@@ -1,0 +1,6 @@
+/* the configured version and settings for mlopen
+ *  */
+#define mlopenVersionMajor @MLOpen_VERSION_MAJOR@
+#define mlopenVersionMinor @MLOpen_VERSION_MINOR@
+#define mlopenVersionPatch @MLOpen_VERSION_PATCH@
+#define mlopenVersionTweak @MLOpen_VERSION_TWEAK@
