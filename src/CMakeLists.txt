@@ -43,7 +43,6 @@ message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 set( MLOpen_SOVERSION 1 )
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
-
 set( MLOpen_Source
 	Handle.cpp
 	Handle.hpp

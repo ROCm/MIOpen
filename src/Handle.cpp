@@ -2,7 +2,7 @@
 
 extern "C" 
 mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
-		mlopenStream_t stream = NULL) {
+		mlopenStream_t stream ) {
 		
 	// if handle not valid
 	if(handle == nullptr) {
@@ -12,11 +12,11 @@ mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 #if MLOpen_BACKEND_OPENCL
 	try {
 		if(stream != NULL) {
-			*handle = new mlopenContext<cl_command_queue>(stream);
+			*handle = new mlopenContext(stream);
 		}
 		else {
-			*handle = new mlopenContext<cl_command_queue>();
-			handle->CreateDefaultStream();
+			*handle = new mlopenContext();
+			(*handle)->CreateDefaultStream<cl_command_queue>();
 		}
 	} catch (mlopenStatus_t status) {
 		return status;
@@ -25,11 +25,11 @@ mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 #elif MLOpen_BACKEND_HIP
 	try {
 		if(stream != NULL) {
-			*handle = new mlopenContext<hipStream_t>(stream);
+			*handle = new mlopenContext(stream);
 		}
 		else {
-			*handle = new mlopenContext<hipStream_t>();
-			handle->CreateDefaultStream();
+			*handle = new mlopenContext();
+			(*handle)->CreateDefaultStream<hipStream_t>();
 		}
 	} catch (mlopenStatus_t status) {
 		return status;
