@@ -20,7 +20,7 @@ set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS TRUE )
 
 ############################################################
 # require C++11
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" )
+add_compile_options(-std=c++11)
 
 option( USE_Cobalt "Use Cobalt for GEMM operations" OFF )
 
