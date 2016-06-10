@@ -46,6 +46,9 @@ list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MLOpen_Source
 	Handle.cpp
 	Handle.hpp
+	Tensor.cpp
+	Tensor.hpp
+	Tensor_API.cpp
 	include/mlopenTypes.h
 	)
 
