@@ -37,9 +37,15 @@ mlopenStatus_t mlopenSetStream(mlopenHandle_t handle,
 mlopenStatus_t mlopenGetStream(mlopenHandle_t handle, 
 		mlopenStream_t				*streamId);
 
-#if 0
+typedef struct mlopenTensorDescriptor *mlopenTensorDescriptor_t;
+
+typedef enum {
+	mlopenHalf = 0,
+	mlopenFloat = 1,
+	mlopenDouble = 2,
+} mlopenDataType_t;
+
 // Create a Tensor Descriptor
-// TODO: Do we need to pass the handle around for these APIs?
 mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
 		mlopenTensorDescriptor_t	*tensorDesc);
 
@@ -51,10 +57,10 @@ mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
 		int							c,
 		int							h,
 		int							w,
-		int							nStride = 0,
-		int							cStride = 0,
-		int 						hStride = 0,
-		int 						wStride = 0);
+		int							nStride = 1,
+		int							cStride = 1,
+		int 						hStride = 1,
+		int 						wStride = 1);
 
 // Get the details of the tensor desciptor
 mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
@@ -80,7 +86,6 @@ mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
 // Get the details of the n-dimensional tensor desciptor
 mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
 		mlopenTensorDescriptor_t	tensorDesc,
-		int							nbDimsRequested,
 		mlopenDataType_t			*datatype,
 		int							*nbDims,
 		int							*dimA,
@@ -103,6 +108,7 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	 yDesc,
 		void							*y);
 
+#if 0
 /* This function adds the scaled values of a bias tensor to another tensor.
  * Each dimension of the bias tensor A must match the corresponding dimension
  * of the destination tensor C or must be equal to 1. In the latter case, the
