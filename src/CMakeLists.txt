@@ -49,6 +49,8 @@ set( MLOpen_Source
 	Tensor.cpp
 	Tensor.hpp
 	Tensor_API.cpp
+	KernelCache.cpp
+	KernelCache.hpp
 	include/mlopenTypes.h
 	)
 

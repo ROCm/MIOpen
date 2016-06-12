@@ -85,7 +85,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
 	}
 
 	try{
-		tensorDesc->GetDataType(dataType);
+		tensorDesc->GetDataType(*dataType);
 	} catch (mlopenStatus_t success) {
 		return success;
 	}
@@ -143,7 +143,7 @@ mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
 		int *stridesA) {
 
 	try{
-		tensorDesc->GetDims(nbDims);
+		tensorDesc->GetDims(*nbDims);
 	} catch (mlopenStatus_t success) {
 		return success;
 	}
@@ -161,7 +161,7 @@ mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
 	}
 
 	try{
-		tensorDesc->GetDataType(dataType);
+		tensorDesc->GetDataType(*dataType);
 	} catch (mlopenStatus_t success) {
 		return success;
 	}
@@ -194,6 +194,8 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const void						*beta,
 		const mlopenTensorDescriptor_t	 yDesc,
 		void							*y) {
+
+	// Calling the transform function on the destination tensor
 	return yDesc->TransformTensor(handle, 
 			alpha,
 			xDesc,
@@ -202,10 +204,57 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 			y);
 }
 
+extern "C"
+mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
+		mlopenTensorOp_t				tensorOp,
+		const void						*alpha1,
+		const mlopenTensorDescriptor_t	aDesc,
+		const void						*A,
+		const void						*alpha2,
+		const mlopenTensorDescriptor_t	bDesc,
+		const void						*B,
+		const void						*beta,
+		const mlopenTensorDescriptor_t	cDesc,
+		void							*C) {
 
+	// Calling the transform function on the destination tensor
+	return cDesc->OpTensor(handle,
+			tensorOp,
+			alpha1,
+			aDesc,
+			A,
+			alpha2,
+			bDesc,
+			B,
+			beta,
+			C);
+}
 
+extern "C"
+mlopenStatus_t mlopenSetTensor(mlopenHandle_t handle,
+		const mlopenTensorDescriptor_t	yDesc,
+		void							*y,
+		const void						*valuePtr) {
+	
+	// Calling the transform function on the destination tensor
+	return yDesc->SetTensor(handle,
+			y,
+			valuePtr);
+	
+}
 
+extern "C"
+mlopenStatus_t mlopenScaleTensor(mlopenHandle_t handle,
+		const mlopenTensorDescriptor_t	yDesc,
+		void							*y,
+		const void						*alpha) {
 
+	// Calling the transform function on the destination tensor
+	return yDesc->SetTensor(handle,
+			y,
+			alpha);
+
+}
 
 
 

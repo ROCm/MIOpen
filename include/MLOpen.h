@@ -1,3 +1,6 @@
+#ifndef _MLOPEN_H_
+#define _MLOPEN_H_
+
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -44,6 +47,13 @@ typedef enum {
 	mlopenFloat = 1,
 	mlopenDouble = 2,
 } mlopenDataType_t;
+
+typedef enum {
+	mlopenOpTensorAdd = 0,
+	mlopenOpTensorMul = 1,
+	mlopenTensorMin = 2,
+	mlopenTensorMax = 3,
+} mlopenTensorOp_t;
 
 // Create a Tensor Descriptor
 mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
@@ -99,6 +109,9 @@ mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc
  * and output tensors must not overlap in any way (i.e., tensors
  * cannot be transformed in place). This function can be used
  * to convert a tensor with an unsupported format to a supported one.
+ *
+ * [MD]: Can this routine also suffice the requirements of AddTensor() routine? Both are doing the same thing -
+ * dstValue = alpha*srcValue + beta*dstValue;
  */
 mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const void						*alpha,
@@ -114,6 +127,8 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
  * of the destination tensor C or must be equal to 1. In the latter case, the
  * same value from the bias tensor for those dimensions will be used to blend
  * into the C tensor.
+ *
+ * [MD]: See above; may be just TransformTensor is sufficient
  */
 mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
 		const void						*alpha,
@@ -122,14 +137,18 @@ mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
 		const void						*beta,
 		const mlopenTensorDescriptor_t	 cDesc,
 		void							*C);
+#endif
 
 /* This function implements the equation C = op ( alpha1[0] * A, alpha2[0] * B
  * ) + beta[0] * C, given tensors A, B, and C and scaling factors alpha1,
  * alpha2, and beta. The op to use is indicated by the descriptor opTensorDesc.
  * Currently-supported ops are listed by the mlopenOpTensorDescriptor_t enum.
+ *
+ * [MD]: Not sure if OpTensorDescriptor_t is required?
  */
 mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
-		const mlopenOpTensorDescriptor_t opTensorDesc,
+		//const mlopenOpTensorDescriptor_t opTensorDesc,
+		mlopenTensorOp_t				tensorOp,
 		const void						*alpha1,
 		const mlopenTensorDescriptor_t	aDesc,
 		const void						*A,
@@ -154,6 +173,7 @@ mlopenStatus_t mlopenScaleTensor(mlopenHandle_t                 handle,
 		void                          *y,
 		const void                    *alpha );
 
+#if 0
 mlopenStatus_t mlopenCreateFilterDescriptor(mlopenFilterDescriptor_t *filterDesc);
 
 mlopenStatus_t mlopenInitFilterDescriptor(mlopenFilterDescriptor_t filterDesc,
@@ -245,4 +265,6 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 #ifdef __cplusplus
 }
 #endif
+
+#endif // _MLOPEN_H_
 
