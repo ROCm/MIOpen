@@ -7,18 +7,17 @@
 #include <cstring>
 
 // TODO: Should be here and not in MLOpen.h
-#if 0
 #if MLOpen_BACKEND_OPENCL
-#include <CL/cl.h>
-typedef cl_command_queue mlopenStream_t;
+//#include <CL/cl.h>
+//typedef cl_command_queue mlopenStream_t;
 
+#include <CL/cl.hpp>
 
 #elif MLOpen_BACKEND_HIP
-#include <hip_runtime.h>
-typedef hipStream_t mlopenStream_t;
+//#include <hip_runtime.h>
+//typedef hipStream_t mlopenStream_t;
 
 #endif // OpenCL or HIP
-#endif
 
 struct mlopenContext {
 	
@@ -30,7 +29,7 @@ struct mlopenContext {
 	mlopenStatus_t CreateDefaultStream();
 	mlopenStatus_t SetStream(mlopenStream_t stream);
 	mlopenStatus_t GetStream(mlopenStream_t *stream) const;
-
+	
 	std::vector<mlopenStream_t> _streams;
 };
 
@@ -50,7 +49,7 @@ mlopenStatus_t mlopenContext::GetStream (mlopenStream_t *stream) const {
 
 #if MLOpen_BACKEND_OPENCL
 template<>
-mlopenStatus_t mlopenContext::CreateDefaultStream <cl_command_queue> () {
+mlopenStatus_t mlopenContext::CreateDefaultStream <cl::CommandQueue> () {
 	cl_int status = 0;
     size_t deviceListSize;
 	unsigned int i;
@@ -148,7 +147,8 @@ mlopenStatus_t mlopenContext::CreateDefaultStream <cl_command_queue> () {
         return mlopenStatusInternalError;
     }
 	
-	SetStream(commandQueue);	
+	SetStream(commandQueue);
+
 	return mlopenStatusSuccess;
 }
 

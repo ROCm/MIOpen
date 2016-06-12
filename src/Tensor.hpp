@@ -1,7 +1,9 @@
 #ifndef _TENSOR_HPP_
 #define _TENSOR_HPP_
 
+#include "Handle.hpp"
 #include "MLOpen.h"
+#include "KernelCache.hpp"
 #include <vector>
 // TODO: remove this include later
 #include <cstdio>
@@ -38,8 +40,8 @@ struct mlopenTensorDescriptor {
 			int *wStride);
 	mlopenStatus_t GetNDims(int *dimsA);
 	mlopenStatus_t GetNStrides(int *stridesA);
-	mlopenStatus_t GetDataType(mlopenDataType_t *dataType);
-	mlopenStatus_t GetDims(int *dims);
+	mlopenStatus_t GetDataType(mlopenDataType_t &dataType);
+	mlopenStatus_t GetDims(int &dims);
 
 	// Transform functions
 	mlopenStatus_t TransformTensor(mlopenHandle_t handle,
@@ -48,7 +50,35 @@ struct mlopenTensorDescriptor {
 			const void *srcTensor,
 			const void *beta,
 			void *dstTensor);
-	
+
+	mlopenStatus_t OpTensor(mlopenHandle_t handle,
+		mlopenTensorOp_t				tensorOp,
+		const void						*alpha1,
+		const mlopenTensorDescriptor_t	aDesc,
+		const void						*A,
+		const void						*alpha2,
+		const mlopenTensorDescriptor_t	bDesc,
+		const void						*B,
+		const void						*beta,
+		void							*C) ;
+
+	mlopenStatus_t SetTensor(mlopenHandle_t handle,
+			void						*dstTensor,
+			const void					*valuePtr);
+
+	mlopenStatus_t ScaleTensor(mlopenHandle_t handle,
+		void							*y,
+		const void						*alpha) ;
+
+	// Internal
+	std::vector<int> _GetTensorStrides() { return _strideA; }
+	std::vector<int> _GetTensorDims() { return _dimA; }
+	int _GetTensorNDims() { return _dims; }
+	mlopenDataType_t _GetTensorDataType() { return _dataType; }
+
+	mlopenStatus_t _CheckTensorDims(mlopenTensorDescriptor_t srcTensorDesc);
+	mlopenStatus_t _CheckTensorDataTypes(mlopenTensorDescriptor_t srcTensorDesc);
+
 	int _dims;
 	std::vector<int> _dimA;
 	std::vector<int> _strideA;
