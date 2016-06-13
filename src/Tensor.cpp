@@ -129,17 +129,16 @@ mlopenStatus_t mlopenTensorDescriptor::GetTensorHandle(mlopenHandle_t handle) {
 
 mlopenStatus_t mlopenTensorDescriptor::_CheckTensorDims(mlopenTensorDescriptor_t srcTensorDesc) {
 
-	int srcNDims = srcTensorDesc->_GetTensorNDims();
-	int dstNDims = this->_GetTensorNDims();
-
-	if(srcNDims != dstNDims) {
+	if(srcTensorDesc->_dims != this->_dims) {
 		return mlopenStatusBadParm;
 	}
 
-	std::vector<int> srcDims = srcTensorDesc->_GetTensorDims();
-	std::vector<int> dstDims = this->_GetTensorDims();
+	std::vector<int> srcDims(srcTensorDesc->_dimA); 
+	std::vector<int> dstDims(this->_dimA);
 
-	for(int i = 0; i < srcNDims; i++) {
+	int dims = srcTensorDesc->_dims;
+
+	for(int i = 0; i < dims; i++) {
 		if(srcDims[i] != dstDims[i]) {
 			return mlopenStatusBadParm;
 		}
@@ -150,11 +149,8 @@ mlopenStatus_t mlopenTensorDescriptor::_CheckTensorDims(mlopenTensorDescriptor_t
 
 mlopenStatus_t mlopenTensorDescriptor::_CheckTensorDataTypes(mlopenTensorDescriptor_t srcTensorDesc) {
 	
-	mlopenDataType_t srcDataType = srcTensorDesc->_GetTensorDataType();
-	mlopenDataType_t destDataType = this->_GetTensorDataType();
-
-	if(srcDataType != destDataType) {
-		mlopenStatusBadParm;
+	if(srcTensorDesc->_dataType != this->_dataType) {
+		return mlopenStatusBadParm;
 	}
 
 	return mlopenStatusSuccess;
@@ -211,7 +207,7 @@ mlopenStatus_t mlopenTensorDescriptor::OpTensor(mlopenHandle_t handle,
 	// input Tensor2 and dstTensor must have same dims or all the dims of
 	// inputTensor2 must be 1
 	if(this->_CheckTensorDims(inputTensorDesc2) != mlopenStatusSuccess) {
-		std::vector<int> input2Dims = inputTensorDesc2->_GetTensorDims();
+		std::vector<int> input2Dims(inputTensorDesc2->_dimA);
 		for(auto i : input2Dims) {
 			if(i != 1) {
 				return mlopenStatusBadParm;
@@ -232,7 +228,10 @@ mlopenStatus_t mlopenTensorDescriptor::OpTensor(mlopenHandle_t handle,
 
 	mlopenStream_t queue;
 	handle->GetStream(&queue);
+
+#if MLOpen_BACKEND_OPENCL
 	cl::Kernel kernel = KernelCache::get(reinterpret_cast<cl::CommandQueue&>(queue), program_name, kernel_name, parms); 
+#endif
 
 	return mlopenStatusSuccess;
 }
@@ -256,7 +255,10 @@ mlopenStatus_t mlopenTensorDescriptor::SetTensor(mlopenHandle_t handle,
 
 	mlopenStream_t queue;
 	handle->GetStream(&queue);
+
+#if MLOpen_BACKEND_OPENCL
 	cl::Kernel kernel = KernelCache::get(reinterpret_cast<cl::CommandQueue&>(queue), program_name, kernel_name, parms); 
+#endif
 
 	return mlopenStatusSuccess;
 
@@ -280,7 +282,10 @@ mlopenStatus_t mlopenTensorDescriptor::ScaleTensor(mlopenHandle_t handle,
 
 	mlopenStream_t queue;
 	handle->GetStream(&queue);
+
+#if MLOpen_BACKEND_OPENCL
 	cl::Kernel kernel = KernelCache::get(reinterpret_cast<cl::CommandQueue&>(queue), program_name, kernel_name, parms); 
+#endif
 
 	return mlopenStatusSuccess;
 }

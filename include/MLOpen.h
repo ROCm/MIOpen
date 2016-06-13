@@ -42,6 +42,8 @@ mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
 
 typedef struct mlopenTensorDescriptor *mlopenTensorDescriptor_t;
 
+typedef struct mlopenConvolutionDescriptor *mlopenConvolutionDescriptor_t;
+
 typedef enum {
 	mlopenHalf = 0,
 	mlopenFloat = 1,
@@ -54,6 +56,11 @@ typedef enum {
 	mlopenTensorMin = 2,
 	mlopenTensorMax = 3,
 } mlopenTensorOp_t;
+
+typedef enum {
+	mlopenConvolution = 0,
+	mlopenCrossCorrelation = 1,
+} mlopenConvolutionMode_t;
 
 // Create a Tensor Descriptor
 mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
@@ -137,7 +144,7 @@ mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
 		const void						*beta,
 		const mlopenTensorDescriptor_t	 cDesc,
 		void							*C);
-#endif
+#endif // AddTensor API
 
 /* This function implements the equation C = op ( alpha1[0] * A, alpha2[0] * B
  * ) + beta[0] * C, given tensors A, B, and C and scaling factors alpha1,
@@ -173,8 +180,11 @@ mlopenStatus_t mlopenScaleTensor(mlopenHandle_t                 handle,
 		void                          *y,
 		const void                    *alpha );
 
-#if 0
-mlopenStatus_t mlopenCreateFilterDescriptor(mlopenFilterDescriptor_t *filterDesc);
+#if 0 
+/* [MD]: I do not think there is any need to create separate filter
+ * descriptor, just using the tensor descriptor should be fine.  mlopenStatus_t
+ * mlopenCreateFilterDescriptor(mlopenFilterDescriptor_t *filterDesc);
+ */
 
 mlopenStatus_t mlopenInitFilterDescriptor(mlopenFilterDescriptor_t filterDesc,
 		mlopenDataType_t datatype,
@@ -195,7 +205,10 @@ mlopenStatus_t mlopenGetFilterDescriptor(mlopenFilterDescriptor_t filterDesc,
 
 mlopenStatus_t mlopenDestroyFilterDescriptor(mlopenFilterDescriptor_t filterDesc);
 
-mlopenStatus_t mlopenCreateConvolutionDescriptor(mlopenConvolutionDescriptor_t *convDesc);
+#endif // FilterDescriptor APIs
+
+mlopenStatus_t mlopenCreateConvolutionDescriptor(mlopenHandle_t handle,
+		mlopenConvolutionDescriptor_t *convDesc);
 
 mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc,
 		mlopenConvolutionMode_t mode,
@@ -222,12 +235,12 @@ mlopenStatus_t mlopenGetConvolutionDescriptor(mlopenConvolutionDescriptor_t conv
  * convolution.
  */
 mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolutionDescriptor_t convDesc,
-		const mlopenTensorDescriptor_t inputTensorDesc,
-		const mlopenFilterDescriptor_t filterDesc,
-		int *n,
-		int *c,
-		int *h,
-		int *w);
+		const mlopenTensorDescriptor_t		inputTensorDesc,
+		const mlopenTensorDescriptor_t		filterDesc,
+		int									*n,
+		int 								*c,
+		int 								*h,
+		int 								*w);
 		
 
 // TODO: Add APIs for N-dimensional filter descriptors. Tensorflow uses them.
@@ -235,33 +248,81 @@ mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolutionDescriptor_
 
 mlopenStatus_t mlopenDestroyConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc);
 
+// Same enum type for forward, backward filter and backward data
+// algorthms
+typedef enum {
+	mlopenConvolutionNoWorkspace = 0,
+	mlopenConvolutionFastest = 1,
+	mlopenConvolutionWorkSpaceLimit = 2,
+} mlopenConvPreference_t;
+
+typedef enum {
+	mlopenConvolutionFwdAlgoGEMM = 0,
+	mlopenConvolutionFwdAlgoDirect = 1,
+	mlopenConvolutionFwdAlgoFFT = 2,
+	mlopenConvolutionFwdAlgoWinograd = 3,
+} mlopenConvFwdAlgorithm_t;
+
+typedef enum {
+	mlopenConvolutionBwdFilterAlgo_0 = 0,
+} mlopenConvBwdFilterAlgorithm_t;
+
+typedef enum {
+	mlopenConvolutionBwdDataAlgo_0 = 0,
+} mlopenConvBwdDataAlgorithm_t;
+
+// Same perf struct for forward, backward filter and backward
+// data algorthms
+typedef struct{
+	union mlopenAlgoType {
+		mlopenConvFwdAlgorithm_t fwd_algo;
+		mlopenConvBwdFilterAlgorithm_t bwd_filter_algo;
+		mlopenConvBwdDataAlgorithm_t bwd_data_algo;
+	};
+	mlopenStatus_t status;
+	float time;
+	size_t memory;
+} mlopenConvAlgoPerf_t;
 /* This function attempts all MLOpen algorithms for mlopenConvolutionForward(),
  * and outputs performance metrics to a user- allocated array of
  * mlopenConvolutionFwdAlgoPerf_t. These metrics are written in sorted fashion
  * where the first element has the lowest compute time.
+ *
+ * [MD]: Ideally we want all the kernels to be
+ * compiled, cached, etc. in this routine. Does this
+ * mean that the user is required to call this
+ * routine?
+ * [MD]: Adding algo preference here itself such that this
+ * routime works as both cuDNN's FindAlgorithm and GetAlgorithm
+ * routines. I do not see any need of having two similar routines
  */
 mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t xDesc,
-		const mlopenFilterDescriptor_t wDesc,
-		const mlopenConvolutionDescriptor_t condDesc,
-		const mlopenTensorDescriptor_t yDesc,
-		const int requestAlgoCount,
-		int *returnedAlgoCount,
-		mlopenConvolutionFwdAlgoPerf_t *perfResults);
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const mlopenTensorDescriptor_t		wDesc,
+		const void							*w,
+		const mlopenConvolutionDescriptor_t	convDesc,
+		const mlopenTensorDescriptor_t		yDesc,
+		const void							*y,
+		const int							requestAlgoCount,
+		int									*returnedAlgoCount,
+		mlopenConvAlgoPerf_t				*perfResults,
+		mlopenConvPreference_t				preference,
+		void								*workSpace,
+		size_t								workSpaceSize);
 
 mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
-		const void *alpha,
-		const mlopenTensorDescriptor_t xDesc,
-		const void *x,
-		const mlopenFilterDescriptor_t wDesc,
-		const void *w,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const mlopenTensorDescriptor_t		wDesc,
+		const void							*w,
 		const mlopenConvolutionDescriptor_t convDesc,
-		mlopenConvolutionFwdAlgo_t algo,
-		const void *beta,
-		const mlopenTensorDescriptor_t yDesc,
-		void *y);
-#endif
-// TODO: Add APIs for finding the best convolution algorithm and performance, workspace metrics.
+		mlopenConvFwdAlgorithm_t			algo,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		 yDesc,
+		void								*y);
+
 #ifdef __cplusplus
 }
 #endif

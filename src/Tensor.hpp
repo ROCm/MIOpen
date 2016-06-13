@@ -71,11 +71,6 @@ struct mlopenTensorDescriptor {
 		const void						*alpha) ;
 
 	// Internal
-	std::vector<int> _GetTensorStrides() { return _strideA; }
-	std::vector<int> _GetTensorDims() { return _dimA; }
-	int _GetTensorNDims() { return _dims; }
-	mlopenDataType_t _GetTensorDataType() { return _dataType; }
-
 	mlopenStatus_t _CheckTensorDims(mlopenTensorDescriptor_t srcTensorDesc);
 	mlopenStatus_t _CheckTensorDataTypes(mlopenTensorDescriptor_t srcTensorDesc);
 
