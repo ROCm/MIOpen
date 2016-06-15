@@ -46,6 +46,7 @@ list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MLOpen_Source
 	Handle.cpp
 	Handle.hpp
+	Handle_API.cpp
 	Tensor.cpp
 	Tensor.hpp
 	Tensor_API.cpp
@@ -62,7 +63,7 @@ include_directories (
 	)
 
 # build library
-add_library( MLOpen
+add_library( MLOpen SHARED
 	${MLOpen_Source}
 	${MLOpen_API}
 	)
