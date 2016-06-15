@@ -81,3 +81,4 @@ set( MLOpen_API ${CMAKE_SOURCE_DIR}/include/MLOpen.h )
 source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
 
 add_subdirectory(src)
+add_subdirectory(driver)
