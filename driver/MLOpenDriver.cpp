@@ -3,24 +3,6 @@
 #include <MLOpen.h>
 #include <CL/cl.h>
 
-typedef enum {
-	abc = 0,
-	def = 1,
-} ad_t;
-
-typedef enum {
-	xyx = 0,
-	w = 1,
-} xw_t;
-
-struct foo{
-	union {
-		ad_t ad;
-		xw_t xw;
-	};
-	int x;
-};
-
 int main()
 {
 
