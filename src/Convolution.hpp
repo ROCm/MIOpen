@@ -9,6 +9,14 @@
 struct mlopenConvolutionDescriptor {
 	
 	mlopenConvolutionDescriptor();
+	~mlopenConvolutionDescriptor() {}
+
+	mlopenStatus_t GetForwardOutputDim(const mlopenTensorDescriptor_t inputTensorDesc,
+			const mlopenTensorDescriptor_t filterDesc,
+			int *n,
+			int *c,
+			int *h, 
+			int *w);
 
 	mlopenStatus_t FindConvFwdAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	xDesc,

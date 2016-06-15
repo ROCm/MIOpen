@@ -82,9 +82,13 @@ mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolutionDescriptor_
 		int								*c,
 		int								*h,
 		int								*w) {
-	printf("To be implemented\n");
 
-	return mlopenStatusSuccess;
+	return convDesc->GetForwardOutputDim(inputTensorDesc,
+			filterDesc,
+			n, 
+			c, 
+			h,
+			w);
 }
 
 extern "C"
