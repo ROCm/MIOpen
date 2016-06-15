@@ -177,7 +177,7 @@ mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
 }
 
 extern "C"
-mlopenStatus_t mlopenDestroyTensor(mlopenTensorDescriptor_t tensorDesc) {
+mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc) {
 	try {
 		delete tensorDesc;
 	} catch (mlopenStatus_t status) {

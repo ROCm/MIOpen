@@ -1,7 +1,20 @@
 #include "Convolution.hpp"
 
 mlopenConvolutionDescriptor::mlopenConvolutionDescriptor() : _pad_h(0), _pad_w(0), _u(1), _v(1), _upscalex(0), _upscaley(0) {
+	printf("In convolution Ctor\n");
 	_mode = mlopenConvolution;
+}
+
+mlopenStatus_t mlopenConvolutionDescriptor::GetForwardOutputDim(const mlopenTensorDescriptor_t inputTensorDesc,
+			const mlopenTensorDescriptor_t filterDesc,
+			int *n,
+			int *c,
+			int *h, 
+			int *w) {
+	
+	printf("To be implemented (GetForwardOutputDim)\n");
+
+	return mlopenStatusSuccess;
 }
 
 mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t handle,
@@ -18,7 +31,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 		void							*workSpace,
 		size_t							workSpaceSize) {
 	
-	printf("To be implemented\n");
+	printf("To be implemented (FindConvFwdAlgo) \n");
 
 	if(handle == nullptr) {
 		return mlopenStatusBadParm;
@@ -65,7 +78,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 		const mlopenTensorDescriptor_t		 yDesc,
 		void								*y) {
 
-	printf("To be implemented\n");
+	printf("To be implemented (ConvolutionForward) \n");
 
 	if(handle == nullptr) {
 		return mlopenStatusBadParm;
