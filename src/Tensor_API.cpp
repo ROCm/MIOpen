@@ -250,7 +250,7 @@ mlopenStatus_t mlopenScaleTensor(mlopenHandle_t handle,
 		const void						*alpha) {
 
 	// Calling the transform function on the destination tensor
-	return yDesc->SetTensor(handle,
+	return yDesc->ScaleTensor(handle,
 			y,
 			alpha);
 

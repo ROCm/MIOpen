@@ -3,6 +3,7 @@
 
 mlopenTensorDescriptor::mlopenTensorDescriptor() : _dims(4) {
 
+	printf("In Tensor Descriptor Ctor\n");
 	// Setting the default dims to 4
 	_dimA = std::vector<int> (4,0);
 	_strideA = std::vector<int> (4, 1);
@@ -18,6 +19,8 @@ mlopenStatus_t mlopenTensorDescriptor::Set4Dims(int n,
 		int c,
 		int h,
 		int w) {
+
+	printf("In Set4Dims\n");
 	_dimA[0] = n;
 	_dimA[1] = c;
 	_dimA[2] = h;
@@ -66,6 +69,12 @@ mlopenStatus_t mlopenTensorDescriptor::SetDims(int dims) {
 
 	_strideA.resize(dims);
 	_strideA.clear();
+
+	return mlopenStatusSuccess;
+}
+
+mlopenStatus_t mlopenTensorDescriptor::SetDataType(mlopenDataType_t dataType) {
+	_dataType = dataType;
 
 	return mlopenStatusSuccess;
 }
@@ -163,7 +172,7 @@ mlopenStatus_t mlopenTensorDescriptor::TransformTensor(mlopenHandle_t handle,
 		const void *beta,
 		void *dstTensor) {
 
-	printf("To be implemented\n");
+	printf("To be implemented (TransformTensor) \n");
 
 	if(this->_CheckTensorDims(srcTensorDesc) != mlopenStatusSuccess) {
 		return mlopenStatusBadParm;
@@ -197,7 +206,7 @@ mlopenStatus_t mlopenTensorDescriptor::OpTensor(mlopenHandle_t handle,
 		const void						*beta,
 		void							*dstTensor) {
 	
-	printf("To be implemented\n");
+	printf("To be implemented (Op Tensor) \n");
 
 	// inputTensor1 and dstTensor must have same dims
 	if(this->_CheckTensorDims(inputTensorDesc1) != mlopenStatusSuccess) {
@@ -240,6 +249,7 @@ mlopenStatus_t mlopenTensorDescriptor::SetTensor(mlopenHandle_t handle,
 		void							*dstTensor,
 		const void						*valuePtr) {
 
+	printf("To be implemented (SetTensor) \n");
 	if(valuePtr == nullptr || dstTensor == nullptr) {
 		return mlopenStatusBadParm;
 	}
@@ -268,6 +278,7 @@ mlopenStatus_t mlopenTensorDescriptor::ScaleTensor(mlopenHandle_t handle,
 		void							*dstTensor,
 		const void						*valuePtr) {
 
+	printf("To be implemented (ScaleTensor) \n");
 	if(dstTensor == nullptr) {
 		return mlopenStatusBadParm;
 	}

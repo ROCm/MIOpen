@@ -70,7 +70,7 @@ if( USE_Cobalt)
 endif()
 
 set ( MLOpen_Headers_Public
-	include/MLOpen.h
+	${PROJECT_SOURCE_DIR}/include/MLOpen.h
 	${PROJECT_BINARY_DIR}/src/include/MLOpen-version.h
 	)
 
