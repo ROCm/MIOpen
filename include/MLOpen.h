@@ -274,7 +274,7 @@ typedef enum {
 // Same perf struct for forward, backward filter and backward
 // data algorthms
 typedef struct{
-	union mlopenAlgoType {
+	union {
 		mlopenConvFwdAlgorithm_t fwd_algo;
 		mlopenConvBwdFilterAlgorithm_t bwd_filter_algo;
 		mlopenConvBwdDataAlgorithm_t bwd_data_algo;
