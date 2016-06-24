@@ -1,18 +1,40 @@
 #include "Handle.hpp"
 
-mlopenContext::mlopenContext (mlopenStream_t stream) {
-	_streams.push_back(stream);
+mlopenContext::mlopenContext (int numStreams, 
+		mlopenStream_t *streams) {
+
+	for(int i = 0; i < numStreams; i++) {
+		_streams.push_back(streams[i]);
+	}
 }
 
-mlopenStatus_t mlopenContext::SetStream (mlopenStream_t stream) {
+mlopenStatus_t mlopenContext::SetStream (int numStreams,
+		mlopenStream_t *streams) {
 	printf("In Internal SetStream\n");
-	_streams.push_back(stream);
+
+	if(numStreams == 0 && streams == NULL) {
+		return mlopenStatusBadParm;
+	}
+
+	for(int i = 0; i < numStreams; i++) {
+		_streams.push_back(streams[i]);
+	}
+
 	return mlopenStatusSuccess;
 }
 
-mlopenStatus_t mlopenContext::GetStream (mlopenStream_t *stream) const {
+mlopenStatus_t mlopenContext::GetStream (mlopenStream_t *stream,
+		int numStream) const {
 	printf("In Internal GetStream\n");
+
+	if(numStream >= _streams.size()) {
+		return mlopenStatusBadParm;
+	}
+
+	// Using the default stream or the user defined stream.
+	// Neglecting numStream parameter for now.
 	*stream = _streams.back();
+
 	return mlopenStatusSuccess;
 }
 
@@ -118,7 +140,8 @@ mlopenStatus_t mlopenContext::CreateDefaultStream<cl_command_queue>() {
         return mlopenStatusInternalError;
     }
 	
-	SetStream(commandQueue);
+	SetStream(1, &commandQueue);
+	use_default_stream = true;
 
 	return mlopenStatusSuccess;
 }

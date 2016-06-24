@@ -55,6 +55,8 @@ set( MLOpen_Source
 	Convolution_API.cpp
 	KernelCache.cpp
 	KernelCache.hpp
+	OCLKernel.hpp
+	OCLKernel.cpp
 	include/mlopenTypes.h
 	)
 

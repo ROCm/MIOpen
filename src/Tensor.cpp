@@ -189,7 +189,8 @@ mlopenStatus_t mlopenTensorDescriptor::TransformTensor(mlopenHandle_t handle,
 
 	mlopenStream_t queue;
 	handle->GetStream(&queue);
-	cl::Kernel kernel = KernelCache::get(reinterpret_cast<cl::CommandQueue&>(queue), program_name, kernel_name, parms); 
+
+//	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
 	// If beta = 0, y = alpha*x;
 	return mlopenStatusSuccess;
@@ -239,7 +240,7 @@ mlopenStatus_t mlopenTensorDescriptor::OpTensor(mlopenHandle_t handle,
 	handle->GetStream(&queue);
 
 #if MLOpen_BACKEND_OPENCL
-	cl::Kernel kernel = KernelCache::get(reinterpret_cast<cl::CommandQueue&>(queue), program_name, kernel_name, parms); 
+	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 #endif
 
 	return mlopenStatusSuccess;
@@ -267,7 +268,7 @@ mlopenStatus_t mlopenTensorDescriptor::SetTensor(mlopenHandle_t handle,
 	handle->GetStream(&queue);
 
 #if MLOpen_BACKEND_OPENCL
-	cl::Kernel kernel = KernelCache::get(reinterpret_cast<cl::CommandQueue&>(queue), program_name, kernel_name, parms); 
+//	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 #endif
 
 	return mlopenStatusSuccess;
@@ -283,7 +284,6 @@ mlopenStatus_t mlopenTensorDescriptor::ScaleTensor(mlopenHandle_t handle,
 		return mlopenStatusBadParm;
 	}
 
-	// Launch kernels using the handle
 
 	// [MD]: Can we just use the TransformTensor Kernel with beta = 0 ?
 
@@ -295,7 +295,7 @@ mlopenStatus_t mlopenTensorDescriptor::ScaleTensor(mlopenHandle_t handle,
 	handle->GetStream(&queue);
 
 #if MLOpen_BACKEND_OPENCL
-	cl::Kernel kernel = KernelCache::get(reinterpret_cast<cl::CommandQueue&>(queue), program_name, kernel_name, parms); 
+	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 #endif
 
 	return mlopenStatusSuccess;
