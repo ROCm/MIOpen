@@ -28,17 +28,23 @@ typedef enum {
 	mlopenStatusNotImplemented = 6,
 } mlopenStatus_t;
 
-mlopenStatus_t mlopenCreate(mlopenHandle_t *handle, 
-		mlopenStream_t				stream = NULL);
+// TODO: C does not really have default function arguments. Need to modify this
+// later or is it OK to leave it like this?
+mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
+		int							numStreams = 0,
+		mlopenStream_t				*stream = NULL);
 
 mlopenStatus_t mlopenDestroy(mlopenHandle_t handle);
 
 // For OpenCL, stream is a command queue where as for HIP, it is a stream
-mlopenStatus_t mlopenSetStream(mlopenHandle_t handle, 
-		mlopenStream_t				streamId);
+mlopenStatus_t mlopenSetStream(mlopenHandle_t handle,
+		int							numStreams,
+		mlopenStream_t				*streamIds);
 
-mlopenStatus_t mlopenGetStream(mlopenHandle_t handle, 
-		mlopenStream_t				*streamId);
+// Returns numStream'th stream for that particular handle
+mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
+		mlopenStream_t				*streamId,
+		int							numStream = 0);
 
 typedef struct mlopenTensorDescriptor *mlopenTensorDescriptor_t;
 

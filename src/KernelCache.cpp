@@ -28,7 +28,7 @@ KernelCache::KernelCache()
     //we can add sth here which can be shared among all kernels;
 }
 
-cl::Kernel KernelCache::get(cl::CommandQueue& queue,
+OCLKernel& KernelCache::get(cl_command_queue &queue,
                          const std::string& program_name,
                          const std::string& kernel_name,
                          const std::string& params)
@@ -37,17 +37,13 @@ cl::Kernel KernelCache::get(cl::CommandQueue& queue,
 }
 
 
-cl::Kernel KernelCache::getKernel(cl::CommandQueue& queue,
+OCLKernel& KernelCache::getKernel(cl_command_queue &queue,
                                         const std::string& program_name,
                                         const std::string& kernel_name,
                                         const std::string& params)
 {
-    //!! ASSUMPTION: Kernel name == program name;
-#if (BUILD_CLVERSION >= 120)
-    std::string _params = " -cl-kernel-arg-info -cl-std=CL1.2";
-#else
-    std::string _params = " -cl-std=CL1.1";
-#endif
+
+	std::string _params = "";
     if (params.length() > 0)
     {
         // Ensure only one space after the -cl-std.
@@ -60,15 +56,15 @@ cl::Kernel KernelCache::getKernel(cl::CommandQueue& queue,
     key.append( "[" + program_name + "/"  + kernel_name + "]");
     key.append(_params);
 
-    auto hash = rsHash(key);
 #ifndef NDEBUG
-    std::cout << "key: " << key << " hash = " << hash << std::endl;
+    std::cout << "key: " << key << std::endl;
 #endif
 
-    auto kernel_iterator = kernel_map.find(hash);
+    auto kernel_iterator = kernel_map.find(key);
     if (kernel_iterator != kernel_map.end())
     {
 
+		printf("kernel found\n");
 #ifndef NDEBUG
         std::cout << "kernel found: " << hash <<std::endl;
 #endif
@@ -77,116 +73,104 @@ cl::Kernel KernelCache::getKernel(cl::CommandQueue& queue,
     else //build program and compile the kernel;
     {
 
-#ifndef NDEBUG
-        std::cout << "kernel not found in cache: " << hash <<std::endl;
-#endif
-
-        const cl::Program* program = NULL;
-        program = getProgram(queue, program_name, _params);
+		printf("kernel not found\n");
+		cl_program program = NULL;
+        getProgram(program, queue, program_name, _params);
         if (program == nullptr)
         {
             std::cout << "Problem with getting program ["
                       << program_name << "] " << std::endl;
-            delete program;
-            return cl::Kernel();
+        //    return;
+			//TODO: Return meaningful error
         }
 
         cl_int status;
-        cl::Kernel kernel(*program, kernel_name.c_str(), &status);
+
+		cl_kernel kernel = clCreateKernel(program, 
+				kernel_name.c_str(), 
+				&status);
 
         if (status != CL_SUCCESS)
         {
             std::cout << "Problem with creating kernel ["
                       << kernel_name << "]" << std::endl;
-            delete program;
-            return cl::Kernel();
+          //  return;
+			// TODO: Return meaningful error
         }
 
-        kernel_map[hash] = kernel;
-        delete program;
-        return kernel;
+		OCLKernel _kernel(kernel);
+        kernel_map[key] = _kernel;
+        return _kernel;
     }
 }
 
-const cl::Program* KernelCache::getProgram(cl::CommandQueue& queue,
+mlopenStatus_t KernelCache::getProgram(cl_program &program,
+		cl_command_queue &queue,
                                          const std::string& program_name,
                                          const std::string& params)
 {
 
     cl_int status;
-    cl::Context context = queue.getInfo<CL_QUEUE_CONTEXT>();
+	cl_context context;
+	cl_device_id device;
 
-	// TODO: Add the SourceProvider class to get the kernel sources
-    const char* source = nullptr;//SourceProvider::GetSource(program_name);
-    if (source == nullptr)
+	status = clGetCommandQueueInfo(queue,
+			CL_QUEUE_CONTEXT, 
+			sizeof(cl_context),
+			&context, 
+			NULL);
+	// TODO: Check status
+
+	// Stringify the kernel file
+	char *source;
+	size_t sourceSize;
+	FILE *fp = fopen(program_name.c_str(), "rb");
+	fseek(fp, 0, SEEK_END);
+	sourceSize = ftell(fp);
+	fseek(fp , 0, SEEK_SET);
+	source = (char *)malloc(sourceSize * sizeof(char));
+	fread(source, 1, sourceSize, fp);
+	fclose(fp);
+
+	program  = clCreateProgramWithSource(context, 
+			1,
+			(const char**)&source, 
+			&sourceSize, 
+			&status);
+	// TODO: Check status
+
+	status = clGetCommandQueueInfo(queue,
+			CL_QUEUE_DEVICE, 
+			sizeof(cl_device_id),
+			&device, 
+			NULL);
+	// TODO: Check status
+
+
+	/* create a cl program executable for all the devices specified */
+    status = clBuildProgram(program, 
+			1, &device, params.c_str(), 
+			NULL, 
+			NULL);
+	// TODO: Check status
+	
+    if(status != CL_SUCCESS)
     {
-        std::cout << "Source not found [" << program_name << "]" << std::endl;
-        return nullptr;
-    }
-    size_t size = std::char_traits<char>::length(source);
+        printf("Error: Building Program (clBuildProgram): %d", status);
+        char * errorbuf = (char*)calloc(sizeof(char),1024*1024);
+        size_t size;
+        clGetProgramBuildInfo(program,
+				device,
+				CL_PROGRAM_BUILD_LOG, 
+				1024*1024, 
+				errorbuf,
+				&size);
 
-    cl::Program::Sources sources;
-
-    std::pair<const char*, size_t> pair =
-            std::make_pair(source, size);
-    sources.push_back(pair);
-
-    std::vector<cl::Device> devices;
-
-    auto d = queue.getInfo<CL_QUEUE_DEVICE>(&status);
-
-    if (status != CL_SUCCESS)
-    {
-        std::cout << "Problem with getting device form queue: "
-                  << status << std::endl;
-
-        return nullptr;
-    }
-    devices.push_back(d);
-
-    cl::Program* program;
-
-    program = new cl::Program(context, sources);
-    status = program->build(devices, params.c_str());
-
-    // this should catch the nasty situation when you improperly define kernel
-    // string parameters ie: "space" after equal "-DTYPE= " + OclTypeTraits
-    if (status == CL_INVALID_BUILD_OPTIONS)
-    {
-        std::cout << "Error during program compilation err = "
-                  << status << "(CL_INVALID_BUILD_OPTIONS)"
-                  << "\n\tCheck the definiton of the program parameters"
-                  << std::endl;
-        return nullptr;
-    }
-    else if (status != CL_SUCCESS)
-    {
-
-        std::cout << "#######################################" << std::endl;
-        std::cout << "sources: ";
-        for (auto& s : sources)
-        {
-            std::cout << s.first << std::endl;
-        }
-
-        std::cout << std::endl;
-
-        std::cout << "---------------------------------------" << std::endl;
-        std::cout << "parameters: " << params << std::endl;
-        std::cout << "---------------------------------------" << std::endl;
-        cl_int getBuildInfoStatus;
-        auto log = program->getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0], &getBuildInfoStatus);
-        if (getBuildInfoStatus == CL_SUCCESS)
-            std::cout << log << std::endl;
-        else
-            std::cout << "Problem with obtaining build log info: "
-                      << getBuildInfoStatus << std::endl;
-        std::cout << "#######################################" << std::endl;
-
-        return nullptr;
+        printf("%s ", errorbuf);
+		free(errorbuf);
     }
 
-    return program;
+    return mlopenStatusSuccess;
 }
 
 
@@ -194,26 +178,6 @@ const cl::Program* KernelCache::getProgram(cl::CommandQueue& queue,
 KernelCache& KernelCache::getInstance()
 {
     return singleton;
-}
-
-
-unsigned int KernelCache::rsHash(const std::string &key)
-{
-    unsigned int b    = 378551;
-    unsigned int a    = 63689;
-    unsigned int hash = 0;
-    unsigned int i    = 0;
-
-    auto len = key.size();
-
-    for (i = 0; i < len; i++)
-    {
-        hash = hash * a + key[i];
-        a = a * b;
-    }
-
-    return hash;
-
 }
 
 #endif // MLOpen_BACKEND_OPENCL

@@ -3,7 +3,8 @@
 
 extern "C" 
 mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
-		mlopenStream_t stream ) {
+		int numStreams,
+		mlopenStream_t *streams ) {
 		
 	printf("In mlopenCreate\n");
 	// if handle not valid
@@ -13,8 +14,8 @@ mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 
 #if MLOpen_BACKEND_OPENCL
 	try {
-		if(stream != NULL) {
-			*handle = new mlopenContext(stream);
+		if(numStreams != 0) {
+			*handle = new mlopenContext(numStreams, streams);
 		}
 		else {
 			*handle = new mlopenContext();
@@ -26,8 +27,8 @@ mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 	
 #elif MLOpen_BACKEND_HIP
 	try {
-		if(stream != NULL) {
-			*handle = new mlopenContext(stream);
+		if(numStreams != 0) {
+			*handle = new mlopenContext(numStreams, streams);
 		}
 		else {
 			*handle = new mlopenContext();
@@ -42,16 +43,18 @@ mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 }
 
 extern "C" 
-mlopenStatus_t mlopenSetStream(mlopenHandle_t handle, 
-		mlopenStream_t streamID) {
+mlopenStatus_t mlopenSetStream(mlopenHandle_t handle,
+		int numStreams,
+		mlopenStream_t *streamIDs) {
 	printf("In mlopenSetStream\n");
-	return handle->SetStream(streamID);
+	return handle->SetStream(numStreams, streamIDs);
 }
 
 extern "C"
 mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
-		mlopenStream_t *streamID) {
-	return handle->GetStream(streamID);
+		mlopenStream_t *streamID,
+		int numStream) {
+	return handle->GetStream(streamID, numStream);
 }
 
 extern "C"

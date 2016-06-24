@@ -20,14 +20,10 @@
 
 #if MLOpen_BACKEND_OPENCL
 
-#if defined(__APPLE__) || defined(__MACOSX)
-    #include <OpenCL/cl.hpp>
-#else
-    #include <CL/cl.hpp>
-#endif
-
 #include <string>
-#include <map>
+#include <unordered_map>
+#include "MLOpen.h"
+#include "OCLKernel.hpp"
 /**
  * @brief The KernelCache class Build and cache kernels
  * singleton
@@ -37,29 +33,27 @@ class KernelCache
 
 public:
 
-    typedef std::map<unsigned int, cl::Kernel> KernelMap;
+    typedef std::unordered_map<std::string, OCLKernel > KernelMap;
 
     static KernelCache& getInstance();
 
-    static cl::Kernel get(cl::CommandQueue& queue,
+	static OCLKernel& get(cl_command_queue &queue,
                          const std::string& program_name,
                          const std::string& kernel_name,
                          const std::string& params = "");
 
-    const cl::Program* getProgram(cl::CommandQueue& queue,
+    mlopenStatus_t getProgram(cl_program &program,
+							cl_command_queue& queue,
                               const std::string& program_name,
                               const std::string& params = "");
 
-    cl::Kernel getKernel(cl::CommandQueue &queue,
+	OCLKernel& getKernel(cl_command_queue &queue,
                          const std::string& program_name,
                          const std::string& kernel_name,
                          const std::string& params = "");
 
 
 private:
-
-
-    unsigned int rsHash(const std::string& key);
 
     KernelMap kernel_map;
 

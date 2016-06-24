@@ -22,15 +22,16 @@
 struct mlopenContext {
 	
 	mlopenContext() {};
-	mlopenContext(mlopenStream_t stream);
+	mlopenContext(int numStreams, mlopenStream_t *streams);
 	~mlopenContext() {};
 
 	template <typename Stream>
-	mlopenStatus_t CreateDefaultStream() {printf("in default template\n");}
-	mlopenStatus_t SetStream(mlopenStream_t stream);
-	mlopenStatus_t GetStream(mlopenStream_t *stream) const;
+	mlopenStatus_t CreateDefaultStream();
+	mlopenStatus_t SetStream(int numStreams, mlopenStream_t *streams);
+	mlopenStatus_t GetStream(mlopenStream_t *stream, int numStream = 0) const;
 	
 	std::vector<mlopenStream_t> _streams;
+	bool use_default_stream = false;
 };
 
 #if MLOpen_BACKEND_OPENCL
