@@ -71,6 +71,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	obj.GetKernelName(kernName);
 
 	printf("kname: %s\n", kernName.c_str());
+
+#if 0 // Test to see if we can launch the kernel and get the results back
 	float *a = new float[1024];
 	float *b = new float[1024];
 	float *c = new float[1024];
@@ -95,9 +97,12 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	status = clEnqueueWriteBuffer(queue, adev, CL_TRUE, 0, 4*sz, a, 0, NULL, NULL);
 	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
 	status |= clEnqueueWriteBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
+#endif // Test
 
 	// Set kernel arguments
-	obj.SetArgs(0, adev, bdev, cdev, sz);
+	// Use proper arguments
+	
+	//obj.SetArgs(0, adev, bdev, cdev, sz);
 
 	size_t gd = 1024;
 	size_t ld = 256;
@@ -106,6 +111,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	obj.run(queue, 1, 0, gd, ld);
 
 	clFinish(queue);
+
+#if 0 // Read results back
 	clEnqueueReadBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
 
 	float sum = 0.0;
@@ -119,6 +126,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
 
 	getchar();
+#endif //Results
 
 	return mlopenStatusSuccess;
 
