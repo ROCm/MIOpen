@@ -169,8 +169,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 		size_t weights_sz = nWeiStride * cWeiStride * hWeiStride *wWeiStride
 			* sizeof(float);
 
-		construct_params.setKernelDescr(0, wWei, _pad_w, _v);
-		construct_params.setKernelDescr(1, hWei, _pad_h, _u);
+		construct_params.setKernelDescr(0, wWei, _pad_w, _u);
+		construct_params.setKernelDescr(1, hWei, _pad_h, _v);
 
 		construct_params.setWeightsSz(weights_sz);
 		construct_params.setBiasSz(0);
