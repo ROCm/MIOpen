@@ -1,4 +1,5 @@
 #include "Convolution.hpp"
+#include "mlo_internal.hpp"
 
 mlopenConvolutionDescriptor::mlopenConvolutionDescriptor() : _pad_h(0), _pad_w(0), _u(1), _v(1), _upscalex(0), _upscaley(0) {
 	printf("In convolution Ctor\n");
@@ -54,7 +55,132 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	// Generate kernels if OpenCL
 	// Compile, cache kernels, etc.
 	// Launch all kernels and store the perf, workspace limits, etc.
-	
+
+	mlo_construct_direct2D construct_params(1); // forward
+	{
+
+		construct_params.setTimerIter(100);
+// no bias
+		construct_params.doBias(0);
+// HOW TO DEFINE???
+		construct_params.doSearch(true);
+//
+		construct_params.saveSearchRequest(true);
+
+
+// TO DO WHERE IS THE PATH ?
+		std::string kernel_path = "../src";
+
+		construct_params.setKernelPath(kernel_path);
+
+		std::string generic_comp_otions = std::string(" -I ") + kernel_path + " ";
+//		if (debug)
+		{
+			generic_comp_otions += std::string(" -cl-std=CL2.0 ");
+
+		}
+
+		construct_params.setGeneralCompOptions(generic_comp_otions);
+
+		mlopenStream_t queue;
+		handle->GetStream(&queue);
+
+		construct_params.setStream(queue);
+
+		int nOut;
+		int cOut;
+		int hOut;
+		int wOut;
+		int nOutStride;
+		int cOutStride;
+		int hOutStride;
+		int wOutStride;
+
+		yDesc->Get4Dims(&nOut, &cOut, &hOut, &wOut);
+
+		yDesc->Get4Strides(&nOutStride,
+			&cOutStride,
+			&hOutStride,
+			&wOutStride);
+
+// TO DO: Generalize data types
+		size_t out_sz = nOutStride * cOutStride * hOutStride *wOutStride
+			* sizeof(float);
+
+		construct_params.setOutputDescr(hOut,
+										wOut,
+										cOut,
+										hOutStride,
+										cOutStride,
+										nOutStride,
+										out_sz,
+										"NCHW",
+										"FP32");
+
+		int nIn;
+		int cIn;
+		int hIn;
+		int wIn;
+		int nInStride;
+		int cInStride;
+		int hInStride;
+		int wInStride;
+
+		xDesc->Get4Dims(&nIn, &cIn, &hIn, &wIn);
+
+		yDesc->Get4Strides(&nInStride,
+			&cInStride,
+			&hInStride,
+			&wInStride);
+
+		// TO DO: Generalize data types
+		size_t in_sz = nInStride * cInStride * hInStride *wInStride
+			* sizeof(float);
+
+		construct_params.setInputDescr(hIn,
+			wIn,
+			cIn,
+			hInStride,
+			cInStride,
+			nInStride,
+			in_sz,
+			"NCHW",
+			"FP32");
+
+		construct_params.setBatchSize(nIn);
+
+		int nWei;
+		int cWei;
+		int hWei;
+		int wWei;
+		int nWeiStride;
+		int cWeiStride;
+		int hWeiStride;
+		int wWeiStride;
+
+		wDesc->Get4Dims(&nWei, &cWei, &hWei, &wWei);
+
+		wDesc->Get4Strides(&nWeiStride,
+			&cWeiStride,
+			&hWeiStride,
+			&wWeiStride);
+
+		// TO DO: Generalize data types
+		size_t weights_sz = nWeiStride * cWeiStride * hWeiStride *wWeiStride
+			* sizeof(float);
+
+		construct_params.setKernelDescr(0, wWei, _pad_w, _v);
+		construct_params.setKernelDescr(1, hWei, _pad_h, _u);
+
+		construct_params.setWeightsSz(weights_sz);
+		construct_params.setBiasSz(0);
+
+//		construct_params.mloConstructDirect2D();
+
+	}
+
+
+
 	std::string program_name = "../src/Hello.cl"; // CL kernel filename
 	std::string kernel_name = "hello_world_kernel"; // kernel name
 	std::string parms; // kernel parameters
