@@ -1048,18 +1048,25 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 
 			float * bot_sys_buf = new float[_bot_sz / sizeof(float)];
 			// FIX IT: INIT
+			assert(bot_sys_buf);
 
 			cl_mem bot_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bot_sz, bot_sys_buf, &ret);
 
+			assert(bot_ocl_buf);
+
 			float * top_sys_buf = new float[_top_sz / sizeof(float)];
+			assert(top_sys_buf);
 			// FIX IT: INIT
 
 			cl_mem top_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _top_sz, top_sys_buf, &ret);
+			assert(top_ocl_buf);
 
 			float * wei_sys_buf = new float[_weights_sz / sizeof(float)];
 			// FIX IT: INIT
+			assert(wei_sys_buf);
 
 			cl_mem wei_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _weights_sz, wei_sys_buf, &ret);
+			assert(wei_ocl_buf);
 
 			float * bias_sys_buf = 0;
 			cl_mem bias_ocl_buf = 0;
@@ -1067,9 +1074,11 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 			if (_bias)
 			{
 				bias_sys_buf = new float[_bias_sz / sizeof(float)];
+				assert(bias_sys_buf);
 				// FIX IT: INIT
 
 				bias_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bias_sz, bias_sys_buf, &ret);
+				assert(bias_ocl_buf);
 			}
 
 
