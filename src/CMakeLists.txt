@@ -58,6 +58,9 @@ set( MLOpen_Source
 	OCLKernel.hpp
 	OCLKernel.cpp
 	include/mlopenTypes.h
+	mloCLUtil.cpp
+	mloConv.cpp
+	mloCLUtil.cpp
 	)
 
 include_directories (
