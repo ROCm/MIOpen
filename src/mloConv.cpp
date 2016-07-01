@@ -47,6 +47,35 @@ int mloBuildConf_Val(
 
 }
 
+int mloParseConf(const std::string & conf_val,
+	int & grp_tile1,
+	int & grp_tile0,
+	int & in_tile1,
+	int & in_tile0,
+	int & out_pix_tile1,
+	int & out_pix_tile0,
+	int & n_out_pix_tiles,
+	int & n_in_data_tiles,
+	int & n_stacks
+	)
+{
+	std::vector<std::string> conf_val_vec;
+	tokenize(conf_val,
+		conf_val_vec,
+		std::string("."));
+	grp_tile1 = std::stoi(conf_val_vec[0]);
+	grp_tile0 = std::stoi(conf_val_vec[1]);
+	in_tile1 = std::stoi(conf_val_vec[2]);
+	in_tile0 = std::stoi(conf_val_vec[3]);
+	out_pix_tile1 = std::stoi(conf_val_vec[4]);
+	out_pix_tile0 = std::stoi(conf_val_vec[5]);
+	n_out_pix_tiles = std::stoi(conf_val_vec[6]);
+	n_in_data_tiles = std::stoi(conf_val_vec[7]);
+	n_stacks = std::stoi(conf_val_vec[8]);
+	return(0);
+
+}
+
 std::string mloConfFileBaseNm(cl_device_id dev
 	)
 {
@@ -196,8 +225,9 @@ int mlo_construct_direct2D :: mloConstructDirect2D(void)
 					mloSearchDirect2D();
 				}
 
-				ret = mloConstructDirect2DFwd();
 			}
+
+
 			std::cout << "Selected run : "
 				<< _grp_tile1 << ", "
 				<< _grp_tile0 << ", "
@@ -209,6 +239,9 @@ int mlo_construct_direct2D :: mloConstructDirect2D(void)
 				<< _n_in_data_tiles << ", "
 				<< _n_stacks
 				<< std::endl;
+
+// construct searchable configuration
+			ret = mloConstructDirect2DFwd();
 
 		}
 
@@ -549,19 +582,18 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 }
 	int mlo_construct_direct2D :: mloSetConf(const std::string & conf_val)
 	{
-		std::vector<std::string> conf_val_vec;
-		tokenize(conf_val,
-			conf_val_vec,
-			std::string("."));
-		_grp_tile1 = std::stoi(conf_val_vec[0]);
-		_grp_tile0 = std::stoi(conf_val_vec[1]);
-		_in_tile1 = std::stoi(conf_val_vec[2]);
-		_in_tile0 = std::stoi(conf_val_vec[3]);
-		_out_pix_tile1 = std::stoi(conf_val_vec[4]);
-		_out_pix_tile0 = std::stoi(conf_val_vec[5]);
-		_n_out_pix_tiles = std::stoi(conf_val_vec[6]);
-		_n_in_data_tiles = std::stoi(conf_val_vec[7]);
-		_n_stacks = std::stoi(conf_val_vec[8]);
+		mloParseConf(conf_val,
+			_grp_tile1,
+			_grp_tile0,
+			_in_tile1,
+			_in_tile0,
+			_out_pix_tile1,
+			_out_pix_tile0,
+			_n_out_pix_tiles,
+			_n_in_data_tiles,
+			_n_stacks
+			);
+
 		return(0);
 
 	}
