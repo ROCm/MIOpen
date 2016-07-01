@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <MLOpen.h>
 #include <CL/cl.h>
+#include "mloConvHost.hpp"
 
 int main()
 {
