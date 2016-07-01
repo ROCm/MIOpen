@@ -19,6 +19,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define MLO_CONVHOST_H_
 
 #include <cmath>
+#include <iomanip>
 
 template<typename _T>
 double CalcErr( _T c_val, _T g_val)
