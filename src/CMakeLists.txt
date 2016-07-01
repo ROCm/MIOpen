@@ -60,7 +60,10 @@ set( MLOpen_Source
 	include/mlopenTypes.h
 	mloCLUtil.cpp
 	mloConv.cpp
-	mloCLUtil.cpp
+	mlo_internal.hpp
+	mloUtils.hpp
+	MlOpenConvDirGenFwd.cl
+	MLOpenConvDirUni.cl
 	)
 
 include_directories (

@@ -66,7 +66,7 @@ OCLKernel& KernelCache::getKernel(cl_command_queue &queue,
 
 		printf("kernel found\n");
 #ifndef NDEBUG
-        std::cout << "kernel found: " << hash <<std::endl;
+		std::cout << "kernel found: " << hash <<std::endl;
 #endif
         return kernel_iterator->second;
     }
