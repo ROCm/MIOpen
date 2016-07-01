@@ -18,6 +18,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #ifndef MLO_CONVHOST_H_
 #define MLO_CONVHOST_H_
 
+#include <cmath>
+
 template<typename _T>
 double CalcErr( _T c_val, _T g_val)
 {
@@ -545,7 +547,7 @@ bool mloVerifyConv(
 		}
 	}
 
-	sqr_accum = sqrt(sqr_accum / ((double)n_batchs * n_channels*height *width));
+	sqr_accum = std::sqrt(sqr_accum / ((double)n_batchs * n_channels*height *width));
 
 	bool match = true;
 
