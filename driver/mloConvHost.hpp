@@ -365,12 +365,12 @@ int mloBackwardMMOnHost(
 
 	for (int b = 0; b < batch_sz; ++b)
 	{
-		ADNN_mm_cpu<aDType>(weights_ptr, weights_width, weights_height, weights_stride, ADNN_MM_TRANSPOSE,
+		ADNN_mm_cpu<_T>(weights_ptr, weights_width, weights_height, weights_stride, ADNN_MM_TRANSPOSE,
 			(const _T *)&top_df_ptr[top_df_batch_stride * b], top_width * top_height, outputs, top_df_channel_stride, 0,
 			&col_we_df_ptr[col_we_batch_stride * b], col_we_df_width, col_we_df_height, col_we_stride, 0,
 			1, 0); //- bias
 
-		ADNN_col2im_cpu<aDType>(&col_we_df_ptr[col_we_batch_stride * b], inputs, bot_height, bot_width, kernel_size, pad,
+		ADNN_col2im_cpu<_T>(&col_we_df_ptr[col_we_batch_stride * b], inputs, bot_height, bot_width, kernel_size, pad,
 			stride, &bot_df_ptr[bot_df_batch_stride*b]);
 
 	}
