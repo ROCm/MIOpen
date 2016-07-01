@@ -43,6 +43,191 @@ double CalcErr( _T c_val, _T g_val)
 }
 
 
+////////////////////////////////////////////////////////////
+//
+///////////////////////////////////////////////////////////
+#define ADNN_MM_TRANSPOSE 1
+template <typename Dtype>
+void ADNN_mm_cpu(const Dtype * a_ptr, size_t a_cols, size_t a_rows, size_t a_stride, int a_flags,
+	const Dtype * b_ptr, size_t b_cols, size_t b_rows, size_t b_stride, int b_flags,
+	Dtype * c_ptr, size_t c_cols, size_t c_rows, size_t c_stride, int c_flags,
+	double d_alpha, double d_beta)
+{
+	// mA
+
+	// mB
+
+	// mC
+	Dtype alpha = (Dtype)d_alpha;
+	Dtype beta = (Dtype)d_beta;
+	if ((!(a_flags & ADNN_MM_TRANSPOSE) && !(b_flags & ADNN_MM_TRANSPOSE) && ((a_cols != b_rows) || (a_rows != c_rows) || (b_cols != c_cols)))
+		|| ((a_flags & ADNN_MM_TRANSPOSE) && (b_flags & ADNN_MM_TRANSPOSE) && ((a_rows != b_cols) || (a_cols != c_rows) || (b_rows != c_cols)))
+		|| ((a_flags & ADNN_MM_TRANSPOSE) && !(b_flags & ADNN_MM_TRANSPOSE) && ((a_rows != b_rows) || (a_cols != c_rows) || (b_cols != c_cols)))
+		|| (!(a_flags & ADNN_MM_TRANSPOSE) && (b_flags & ADNN_MM_TRANSPOSE) && ((a_cols != b_cols) || (a_rows != c_rows) || (b_rows != c_cols)))
+		)
+	{
+		printf("MM_CPU ERROR; %zd %zd   %zd %zd   %zd %zd\n", a_cols, a_rows, b_cols, b_rows, c_rows, c_cols);
+		return;
+	}
+
+	size_t inner_loop = (!(a_flags & ADNN_MM_TRANSPOSE)) ? a_cols : a_rows;
+
+	if (!(a_flags & ADNN_MM_TRANSPOSE) && !(b_flags & ADNN_MM_TRANSPOSE))
+	{
+		for (size_t n = 0; n < c_rows; ++n)
+		{
+			for (size_t k = 0; k < c_cols; ++k)
+			{
+				Dtype mm_e = 0;
+				for (size_t m = 0; m < inner_loop; ++m)
+				{
+					mm_e += a_ptr[n*a_stride + m] * b_ptr[m*b_stride + k];
+				}
+				c_ptr[n*c_stride + k] = beta * c_ptr[n*c_stride + k] + alpha * mm_e;
+			}
+		}
+	}
+	else if ((a_flags & ADNN_MM_TRANSPOSE) && !(b_flags & ADNN_MM_TRANSPOSE))
+	{
+		for (size_t n = 0; n < c_rows; ++n)
+		{
+			for (size_t k = 0; k < c_cols; ++k)
+			{
+
+				Dtype mm_e = 0;
+				for (size_t m = 0; m < inner_loop; ++m)
+				{
+					mm_e += a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k];
+#if 0
+					if (
+						(n == 0 && k == 33
+						|| n == 1 && k == 32
+						|| n == 3 && k == 1
+						|| n == 4 && k == 0
+
+						)
+						&& a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k] != 0
+						)
+					{
+						printf("C:mm:%d %d %d   %11.9f %11.9f %11.9f %11.9f\n",
+							n, k, m,
+							mm_e, a_ptr[m*a_stride + n], b_ptr[m*b_stride + k], a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k]);
+					}
+#endif
+				}
+				c_ptr[n*c_stride + k] = beta * c_ptr[n*c_stride + k] + alpha * mm_e;
+			}
+		}
+	}
+	else if (!(a_flags & ADNN_MM_TRANSPOSE) && (b_flags & ADNN_MM_TRANSPOSE))
+	{
+		for (size_t n = 0; n < c_rows; ++n)
+		{
+			for (size_t k = 0; k < c_cols; ++k)
+			{
+				Dtype mm_e = 0;
+
+				for (size_t m = 0; m < inner_loop; ++m)
+				{
+					mm_e += a_ptr[n*a_stride + m] * b_ptr[k*b_stride + m];
+#if 0
+					if (n == 0 && k == 6 && a_ptr[n*a_stride + m] * b_ptr[k*b_stride + m] != 0)
+					{
+						printf("%4d  %11.9f %11.9f %11.9f\n", m, mm_e, a_ptr[n*a_stride + m], b_ptr[k*b_stride + m]);
+					}
+#endif
+				}
+				c_ptr[n*c_stride + k] = beta * c_ptr[n*c_stride + k] + alpha * mm_e;
+			}
+		}
+	}
+	else
+	{
+		for (size_t n = 0; n < c_rows; ++n)
+		{
+			for (size_t k = 0; k < c_cols; ++k)
+			{
+				Dtype mm_e = 0;
+				for (size_t m = 0; m < inner_loop; ++m)
+				{
+					c_ptr[n*c_stride + k] += a_ptr[m*a_stride + n] * b_ptr[k*b_stride + m];
+				}
+				c_ptr[n*c_stride + k] = beta * c_ptr[n*c_stride + k] + alpha * mm_e;
+			}
+		}
+	}
+
+}
+
+
+
+template <typename Dtype>
+void ADNN_im2col_cpu(const Dtype* data_im, const int channels,
+	const int height, const int width, const int ksize, const int pad,
+	const int stride, Dtype* data_col, int stride_col = 0) {
+	int height_col = (height + 2 * pad - ksize) / stride + 1;
+	int width_col = (width + 2 * pad - ksize) / stride + 1;
+	height_col = (height_col < 0) ? 1 : height_col;
+	width_col = (width_col < 0) ? 1 : width_col;
+	stride_col = (stride_col == 0) ? height_col * width_col : stride_col;
+	int channels_col = channels * ksize * ksize;
+	for (int c = 0; c < channels_col; ++c) {
+		int w_offset = c % ksize;
+		int h_offset = (c / ksize) % ksize;
+		int c_im = c / ksize / ksize;
+		for (int h = 0; h < height_col; ++h) {
+			for (int w = 0; w < width_col; ++w) {
+				int h_pad = h * stride - pad + h_offset;
+				int w_pad = w * stride - pad + w_offset;
+				if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
+				{
+					data_col[c * stride_col + h * width_col + w] =
+						data_im[(c_im * height + h_pad) * width + w_pad];
+				}
+				else
+				{
+					data_col[c * stride_col + h * width_col + w] = 0;
+				}
+			}
+		}
+	}
+}
+
+template <typename Dtype>
+void ADNN_col2im_cpu(const Dtype* data_col, const int channels,
+	const int height, const int width, const int ksize, const int pad,
+	const int stride, Dtype* data_im) {
+	memset(data_im, 0, sizeof(Dtype) * height * width * channels);
+	int height_col = (height + 2 * pad - ksize) / stride + 1;
+	int width_col = (width + 2 * pad - ksize) / stride + 1;
+	height_col = (height_col < 0) ? 1 : height_col;
+	width_col = (width_col < 0) ? 1 : width_col;
+	int channels_col = channels * ksize * ksize;
+	for (int c = 0; c < channels_col; ++c) {
+		int w_offset = c % ksize;
+		int h_offset = (c / ksize) % ksize;
+		int c_im = c / ksize / ksize;
+		for (int h = 0; h < height_col; ++h) {
+			for (int w = 0; w < width_col; ++w) {
+				int h_pad = h * stride - pad + h_offset;
+				int w_pad = w * stride - pad + w_offset;
+				if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
+				{
+					data_im[(c_im * height + h_pad) * width + w_pad] +=
+						data_col[(c * height_col + h) * width_col + w];
+#if 0
+					if (c_im == 3 && h_pad == 30 && w_pad == 23)
+					{
+						printf("C:c2i: %d %d   %d %d %d %d    %14.12f %14.12f\n", c, h * width_col + w, w, h, w_pad, h_pad, data_im[(c_im * height + h_pad) * width + w_pad], data_col[(c * height_col + h) * width_col + w]);
+					}
+#endif
+				}
+			}
+		}
+	}
+}
+
+
 template<typename _T>
 int mloConvForwarDirectOnHost(
 	_T padding_value,        // padding value
@@ -142,7 +327,60 @@ int mloConvForwarDirectOnHost(
 	return(ret);
 }
 
+template<typename _T>
+int mloBackwardMMOnHost(
+	int kernel_size,
+	int pad,
+	int stride,
+	const _T * weights_ptr,
+	int weights_height,
+	int weights_width,
+	int weights_stride,
+	const _T * top_df_ptr,
+	int top_height,
+	int top_width,
+	int outputs,
+	int batch_sz,
+	int top_df_batch_stride,
+	int top_df_channel_stride,
+	int top_df_stride,
+	_T * bot_df_ptr,
+	int bot_height,
+	int bot_width,
+	int inputs,
+	int bot_df_batch_stride,
+	int bot_df_channel_stride,
+	int bot_df_stride
 
+	)
+{
+
+	int col_we_df_width = top_width*top_height;
+	int col_we_df_height = weights_width; // - bias
+	int col_we_batch_stride = col_we_df_width * col_we_df_height;
+	int col_we_stride = col_we_df_width;
+	_T * col_we_df_ptr = new _T[col_we_batch_stride * batch_sz];
+
+	assert(col_we_df_ptr);
+
+	for (int b = 0; b < batch_sz; ++b)
+	{
+		ADNN_mm_cpu<aDType>(weights_ptr, weights_width, weights_height, weights_stride, ADNN_MM_TRANSPOSE,
+			(const _T *)&top_df_ptr[top_df_batch_stride * b], top_width * top_height, outputs, top_df_channel_stride, 0,
+			&col_we_df_ptr[col_we_batch_stride * b], col_we_df_width, col_we_df_height, col_we_stride, 0,
+			1, 0); //- bias
+
+		ADNN_col2im_cpu<aDType>(&col_we_df_ptr[col_we_batch_stride * b], inputs, bot_height, bot_width, kernel_size, pad,
+			stride, &bot_df_ptr[bot_df_batch_stride*b]);
+
+	}
+	if (col_we_df_ptr)
+	{
+		delete[] col_we_df_ptr;
+	}
+
+	return(0);
+}
 
 
 template<typename _T>
@@ -352,6 +590,8 @@ bool mloVerifyConv(
 
 	return(match);
 }
+
+
 
 
 #endif

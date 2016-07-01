@@ -19,7 +19,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "mlo_internal.hpp"
 #include "mloUtils.hpp"
 
-
+// rand() * (1.0 / RAND_MAX)
+static
 int mloBuildConf_Val(
 	std::string & conf_val,
 	int grp_tile1,
@@ -47,6 +48,7 @@ int mloBuildConf_Val(
 
 }
 
+static
 int mloParseConf(const std::string & conf_val,
 	int & grp_tile1,
 	int & grp_tile0,
@@ -76,6 +78,7 @@ int mloParseConf(const std::string & conf_val,
 
 }
 
+static
 std::string mloConfFileBaseNm(cl_device_id dev
 	)
 {
@@ -107,95 +110,97 @@ std::string mloConfFileBaseNm(cl_device_id dev
 	return(conf_file_base_nm);
 }
 
+static
+int mloReadDb(
+cl_device_id dev,
+const std::string confreq_db_name,
+std::vector<std::string> &db
+)
+{
+	int ret = 0;
 
-	int mloReadDb(
-		cl_device_id dev,
-		const std::string confreq_db_name,
-		std::vector<std::string> &db
-		)
+
+	mloFile f;
+
+	ret = f.readBinaryFromFile(confreq_db_name.c_str());
+
+	tokenize(f.source(),
+		db,
+		std::string("\n"));
+
+	return(ret);
+}
+
+static
+int mloUpdateDb(const std::string  &file_nm, const std::vector<std::string> & db)
+{
+	mloFile f;
+	// serialize
+	std::string serial = "";
+	std::vector<std::string>::const_iterator it;
+	for (it = db.begin(); it != db.end(); ++it)
 	{
-		int ret = 0;
-
-
-		mloFile f;
-
-		ret = f.readBinaryFromFile(confreq_db_name.c_str());
-
-		tokenize(f.source(),
-			db,
-			std::string("\n"));
-
-		return(ret);
+		serial += (*it) + "\n";
 	}
 
-	int mloUpdateDb(const std::string  &file_nm, const std::vector<std::string> & db)
+	int ret = f.writeBinaryToFile(file_nm.c_str(), serial.c_str(), serial.length());
+
+
+	return(ret);
+}
+
+
+
+static
+bool mloFindConfigReq(
+const std::string confreq_db_name,
+cl_device_id dev,
+const std::string & conf_key,
+std::vector<std::string> &req_conf_db,
+std::vector<std::string>::iterator &it
+)
+{
+	bool ret = true;
+
+	mloReadDb(dev,
+		confreq_db_name,
+		req_conf_db
+		);
+
+	// find req string
+	ret = false;
+	for (it = req_conf_db.begin(); it != req_conf_db.end(); ++it)
 	{
-		mloFile f;
-		// serialize
-		std::string serial = "";
-		std::vector<std::string>::const_iterator it;
-		for (it = db.begin(); it != db.end(); ++it)
+		if (!(*it).compare(conf_key))
 		{
-			serial += (*it) + "\n";
+			ret = true;
+			break;
 		}
-
-		int ret = f.writeBinaryToFile(file_nm.c_str(), serial.c_str(), serial.length());
-
-
-		return(ret);
 	}
+	return(ret);
+}
 
+static
+bool mloSearchConfigDB(
+std::map<std::string, std::string> & conf_db,
+std::string & conf_key,
+std::string & conf_val,
+std::map<std::string, std::string>::iterator & it
+)
+{
 
+	bool found = false;
 
-
-	bool mloFindConfigReq(
-		const std::string confreq_db_name,
-		cl_device_id dev,
-		const std::string & conf_key,
-		std::vector<std::string> &req_conf_db,
-		std::vector<std::string>::iterator &it
-	)
+	it = conf_db.find(conf_key);
+	if (it != conf_db.end())
 	{
-		bool ret = true;
+		found = true;
+		conf_val = (*it).second;
 
-		mloReadDb(dev,
-			confreq_db_name,
-			req_conf_db
-			);
-
-		// find req string
-		ret = false;
-		for (it = req_conf_db.begin(); it != req_conf_db.end(); ++it)
-		{
-			if (!(*it).compare(conf_key))
-			{
-				ret = true;
-				break;
-			}
-		}
-		return(ret);
+		//			std::cout << "Found : " << conf_val << std::endl;
 	}
-
-	bool mloSearchConfigDB(
-		std::map<std::string, std::string> & conf_db,
-		std::string & conf_key,
-		std::string & conf_val,
-		std::map<std::string, std::string>::iterator & it
-		)
-	{
-
-		bool found = false;
-
-		it = conf_db.find(conf_key);
-		if (it != conf_db.end())
-		{
-			found = true;
-			conf_val = (*it).second;
-
-//			std::cout << "Found : " << conf_val << std::endl;
-		}
-		return(found);
-	}
+	return(found);
+}
 
 
 	/************************************************************************************************************************
@@ -205,48 +210,47 @@ std::string mloConfFileBaseNm(cl_device_id dev
 	************************************************************************************************************************/
 
 
-int mlo_construct_direct2D :: mloConstructDirect2D(void)
+int mlo_construct_direct2D::mloConstructDirect2D(void)
+{
+	int ret = 0;
+	_gen = ((_kernel_size0 == _kernel_size1 && _kernel_size0 > 5) || _kernel_stride0 > 1 || _kernel_stride1 > 1 || (_kernel_size0 != _kernel_size1));
+	if (_gen)
 	{
-		int ret = 0;
-		_gen = ((_kernel_size0 == _kernel_size1 && _kernel_size0 > 5) || _kernel_stride0 > 1 || _kernel_stride1 > 1 || (_kernel_size0 != _kernel_size1));
-		if (_gen)
-		{
-			ret = mloConstructDirect2DFwdGen();
-		}
-		else
-		{
-			bool known_config = mloGetConfig();
-			// if not known - search
+		ret = mloConstructDirect2DFwdGen();
+	}
+	else
+	{
+		bool known_config = mloGetConfig();
+		// if not known - search
 
-			if (!known_config)
+		if (!known_config)
+		{
+			if (doSearch())
 			{
-				if (doSearch())
-				{
-					mloSearchDirect2D();
-				}
-
+				mloSearchDirect2D();
 			}
 
-
-			std::cout << "Selected run : "
-				<< _grp_tile1 << ", "
-				<< _grp_tile0 << ", "
-				<< _in_tile1 << ", "
-				<< _in_tile0 << ", "
-				<< _out_pix_tile1 << ", "
-				<< _out_pix_tile0 << ", "
-				<< _n_out_pix_tiles << ", "
-				<< _n_in_data_tiles << ", "
-				<< _n_stacks
-				<< std::endl;
-
-// construct searchable configuration
-			ret = mloConstructDirect2DFwd();
-
 		}
 
-		return(ret);
+		std::cout << "Selected run : "
+			<< _grp_tile1 << ", "
+			<< _grp_tile0 << ", "
+			<< _in_tile1 << ", "
+			<< _in_tile0 << ", "
+			<< _out_pix_tile1 << ", "
+			<< _out_pix_tile0 << ", "
+			<< _n_out_pix_tiles << ", "
+			<< _n_in_data_tiles << ", "
+			<< _n_stacks
+			<< std::endl;
+
+		// construct searchable configuration
+		ret = mloConstructDirect2DFwd();
+
 	}
+
+	return(ret);
+}
 
 
 int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
