@@ -251,6 +251,6 @@ int mloGetDeviceInfo(cl_device_id deviceId,
 int mloReadEventTime(cl_event& event, double & time);
 
 
-#include "mloConvHost.hpp"
+
 
 #endif
