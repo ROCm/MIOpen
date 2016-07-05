@@ -190,7 +190,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	handle->GetStream(&queue);
 
 	// Compile the kernel if not aleady compiled
-	OCLKernel obj = KernelCache::get(queue, program_name, kernel_name);
+	OCLKernel obj = KernelCache::get(queue, program_name, kernel_name, parms);
 	cl_int status;
 
 	std::string kernName;
