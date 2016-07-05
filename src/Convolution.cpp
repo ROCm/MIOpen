@@ -56,14 +56,12 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	// Compile, cache kernels, etc.
 	// Launch all kernels and store the perf, workspace limits, etc.
 
-	mlo_construct_direct2D construct_params(1); // forward
+	mlo_construct_direct2D construct_params(1); // forward, no bias
 	{
 
 		construct_params.setTimerIter(100);
-// no bias
-		construct_params.doBias(0);
 // HOW TO DEFINE???
-		construct_params.doSearch(true);
+		construct_params.doSearch(false);
 //
 		construct_params.saveSearchRequest(true);
 
@@ -103,19 +101,18 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 			&hOutStride,
 			&wOutStride);
 
-// TO DO: Generalize data types
-		size_t out_sz = nOutStride * cOutStride * hOutStride *wOutStride
-			* sizeof(float);
 
-		construct_params.setOutputDescr(hOut,
-										wOut,
-										cOut,
-										hOutStride,
-										cOutStride,
-										nOutStride,
-										out_sz,
-										"NCHW",
-										"FP32");
+		construct_params.setOutputDescr(
+			"NCHW",
+			"FP32",
+			nOut,
+			cOut,
+			hOut,
+			wOut,
+			nOutStride,
+			cOutStride,
+			hOutStride,
+			wOutStride);
 
 		int nIn;
 		int cIn;
@@ -133,21 +130,17 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 			&hInStride,
 			&wInStride);
 
-		// TO DO: Generalize data types
-		size_t in_sz = nInStride * cInStride * hInStride *wInStride
-			* sizeof(float);
-
-		construct_params.setInputDescr(hIn,
-			wIn,
-			cIn,
-			hInStride,
-			cInStride,
-			nInStride,
-			in_sz,
+		construct_params.setInputDescr(
 			"NCHW",
-			"FP32");
-
-		construct_params.setBatchSize(nIn);
+			"FP32",
+			nIn,
+			cIn,
+			hIn,
+			wIn,
+			nInStride,
+			cInStride,
+			hInStride,
+			wInStride);
 
 		int nWei;
 		int cWei;
@@ -165,25 +158,32 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 			&hWeiStride,
 			&wWeiStride);
 
-		// TO DO: Generalize data types
-		size_t weights_sz = nWeiStride * cWeiStride * hWeiStride *wWeiStride
-			* sizeof(float);
 
-		construct_params.setKernelDescr(0, wWei, _pad_w, _u);
-		construct_params.setKernelDescr(1, hWei, _pad_h, _v);
+		construct_params.setWeightsDescr(
+			"NCHW",
+			"FP32",
+			nWei,
+			cWei,
+			hWei,
+			wWei,
+			nWeiStride,
+			cWeiStride,
+			hWeiStride,
+			wWeiStride
+			);
 
-		construct_params.setWeightsSz(weights_sz);
-		construct_params.setBiasSz(0);
+		construct_params.setConvDescr(_pad_h, _pad_w, _u, _v, _upscalex, _upscaley);
 
-//		construct_params.mloConstructDirect2D();
+
+		construct_params.mloConstructDirect2D();
 
 	}
 
 
 
-	std::string program_name = "../src/Hello.cl"; // CL kernel filename
-	std::string kernel_name = "hello_world_kernel"; // kernel name
-	std::string parms; // kernel parameters
+	std::string program_name = std::string("../src") +  construct_params.getKernelFile();  "../src/Hello.cl"; // CL kernel filename
+	std::string kernel_name = construct_params.getKernelFile(); // "hello_world_kernel"; // kernel name
+	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
 	// Get the queue associated with this handle
 	mlopenStream_t queue;

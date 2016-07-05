@@ -59,7 +59,7 @@ set( MLOpen_Source
 	OCLKernel.cpp
 	include/mlopenTypes.h
 	mloCLUtil.cpp
-	mloConv.cpp
+	mloDirConv.cpp
 	mlo_internal.hpp
 	mloUtils.hpp
 	MlOpenConvDirGenFwd.cl
