@@ -182,7 +182,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 
 	std::string program_name = std::string("../src/") +  construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
-	std::string kernel_name = construct_params.getKernelFile(); // "hello_world_kernel"; // kernel name
+	std::string kernel_name = construct_params.getKernelName(); // "hello_world_kernel"; // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
 	// Get the queue associated with this handle
