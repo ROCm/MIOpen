@@ -19,10 +19,10 @@ int main()
 	mlopenInit4dTensorDescriptor(handle,
 			tensor,
 			mlopenFloat,
-			19,
+			10,
 			3,
-			32,
-			32);
+			8,
+			8);
 
 	int n, c, h, w;
 	int nStride, cStride, hStride, wStride;
@@ -41,7 +41,7 @@ int main()
 			&wStride);
 
 	std::cout<<dt<<" (shoule be 1)\n";
-	printf("%d %d %d %d %d %d %d %d (should be 19, 3, 32, 32, 1, 1, 1, 1)\n", n, c, h, w, nStride, cStride, hStride, wStride);
+	printf("%d %d %d %d %d %d %d %d (should be 10, 3, 8, 8, 1, 1, 1, 1)\n", n, c, h, w, nStride, cStride, hStride, wStride);
 
 	mlopenTensorDescriptor_t t1;
 	mlopenCreateTensorDescriptor(handle, &t1);
@@ -67,10 +67,11 @@ int main()
 
 	mlopenConvolutionMode_t mode = mlopenConvolution;
 
+// convolution with padding 2
 	mlopenInitConvolutionDescriptor(convDesc,
 			mode,
-			1,
-			1,
+			2,
+			2,
 			1,
 			1,
 			1,
@@ -82,18 +83,34 @@ int main()
 			&pad_h, &pad_w, &u, &v,
 			&upx, &upy);
 
-	printf("%d %d %d %d %d %d %d (Should be 0, 1, 1, 1, 1, 1, 1)\n", mode, pad_h, pad_w, u, v, upx, upy);
+	printf("%d %d %d %d %d %d %d (Should be 0, 2, 2, 1, 1, 1, 1)\n", mode, pad_h, pad_w, u, v, upx, upy);
 
-	mlopenGetConvolutionForwardOutputDim(convDesc, 
-			tensor,
-			t1,
-			&n,
-			&c,
-			&h,
-			&w);
+
+
 	
+
 	mlopenTensorDescriptor_t t2;
 	mlopenCreateTensorDescriptor(handle, &t2);
+
+	mlopenInit4dTensorDescriptor(handle,
+		t2,
+		mlopenFloat,
+		n,
+		32,
+		8,
+		8);
+
+
+	// weights
+	mlopenInit4dTensorDescriptor(handle,
+		t1,
+		mlopenFloat,
+		32,  // outputs
+		3,   // inputs
+		5,   // kernel size
+		5);
+
+
 	int ret_algo_count;
 	mlopenConvAlgoPerf_t perf;
 

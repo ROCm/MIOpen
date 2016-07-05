@@ -213,7 +213,7 @@ std::map<std::string, std::string>::iterator & it
 int mlo_construct_direct2D::mloConstructDirect2D(void)
 {
 	int ret = 0;
-	_gen = ((_kernel_size0 == _kernel_size1 && _kernel_size0 > 5) || _kernel_stride0 > 1 || _kernel_stride1 > 1 || (_kernel_size0 != _kernel_size1));
+	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 	if (_gen)
 	{
 		ret = mloConstructDirect2DFwdGen();
