@@ -92,13 +92,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 
 
- /* Include CLBLAS header. It automatically includes needed OpenCL header,
- ** so we can drop out explicit inclusion of cl.h header.
- */
+/* Include CLBLAS header. It automatically includes needed OpenCL header,
+** so we can drop out explicit inclusion of cl.h header.
+*/
 
- //#ifndef WITH_CLBLAS
+//#ifndef WITH_CLBLAS
 //#define WITH_CLBLAS
- //#endif
+//#endif
 
 #ifdef WITH_CLBLAS
 #include <clBLAS.h>
@@ -108,10 +108,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 class mlo_construct_direct2D {
 public:
 
-	mlo_construct_direct2D(int dir)
+	mlo_construct_direct2D(int dir, bool do_bias = false)
 	{
 		_direction = dir;
-		_bias_sz = 0;
+		_bias = (do_bias) ? 1 : 0;
 		_pad0 = 1;
 		_pad1 = 1;
 		_kernel_size0 = 3;
@@ -199,51 +199,60 @@ public:
 	}
 
 
-	inline void setWeightsSz(size_t weights_sz)
-	{
-		_weights_sz = weights_sz; // bytes
-	}
-	inline void setBiasSz(size_t bias_sz)
-	{
-		_bias_sz = bias_sz; // bytes
-	}
 
-	inline void setKernelDescr(int dim, int size, int pad, int stride = 1)
+	inline void setConvDescr(
+		int u_padding,
+		int v_padding,
+		int u_stride,
+		int v_stride,
+		int u_upstride,
+		int v_upstride
+		)
 	{
-		switch (dim)
-		{
-		case 0:
-			_pad0 = pad;
-			_kernel_size0 = size;
-			_kernel_stride0 = stride;
-			break;
-		case 1:
-			_pad1 = pad;
-			_kernel_size1 = size;
-			_kernel_stride1 = stride;
-			break;
-		}
+		_pad1 = u_padding;
+		_pad0 = v_padding;
+		_kernel_stride1 = u_stride;
+		_kernel_stride0 = v_stride;
 	}
 
-
-
-
-	inline void setBatchSize(int batch_sz)
+	inline void setWeightsDescr(
+		const std::string & layout,
+		const std::string & data_type,
+		int batch,
+		int depth,
+		int height,
+		int width,
+		int batch_stride,
+		int channel_stride,
+		int stride,
+		int w_stride
+		)
 	{
-		_batch_sz = batch_sz;
+		_kernel_size0 = width;
+		_kernel_size1 = height;
+		int data_len = (!data_type.compare("FP32") ? 4 : 8);
+		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+		_weights_sz = size;
 	}
 
-	inline void setOutputDescr(int height,
-							int width,
-							int depth,
-							int stride,
-							int channel_stride,
-							int batch_stride,
-							size_t size,
+
+
+	inline void setOutputDescr(
 							const std::string & layout,
-							const std::string & data_type
+							const std::string & data_type,
+							int batch,
+							int depth, 
+							int height,
+							int width,
+							int batch_stride,
+							int channel_stride,
+							int stride,
+							int w_stride
 							)
 	{
+		_batch_sz = batch;
+		int data_len = (!data_type.compare("FP32") ? 4 : 8);
+		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 		if (_direction)
 		{
 
@@ -274,17 +283,22 @@ public:
 		}
 	}
 
-	inline void setInputDescr(int height,
-							int width,
-							int depth,
-							int stride,
-							int channel_stride,
-							int batch_stride,
-							size_t size,
+	inline void setInputDescr(
 							const std::string & layout,
-							const std::string & data_type
+							const std::string & data_type,
+							int batch,
+							int depth,
+							int height,
+							int width,
+							int batch_stride,
+							int channel_stride,
+							int stride,
+							int w_stride
 							)
 	{
+		_batch_sz = batch;
+		int data_len = (!data_type.compare("FP32") ? 4 : 8);
+		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 		if (_direction)
 		{
 
@@ -313,12 +327,11 @@ public:
 			_out_layout = layout;
 			_out_data_type = data_type;
 		}
+
+		_bias_sz = (_bias) ? _n_outputs * data_len : 0; 
 	}
 
-	inline void doBias(int do_bias)
-	{
-		_bias = do_bias;
-	}
+
 
 	inline void doSearch(bool do_search)
 	{
