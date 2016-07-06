@@ -55,6 +55,9 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	// Generate kernels if OpenCL
 	// Compile, cache kernels, etc.
 	// Launch all kernels and store the perf, workspace limits, etc.
+	size_t input_sz = 0;
+	size_t output_sz = 0;
+	size_t weights_sz = 0;
 
 	mlo_construct_direct2D construct_params(1); // forward, no bias
 	{
@@ -114,6 +117,9 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 			hOutStride,
 			wOutStride);
 
+
+		output_sz = nOut * cOut * hOut * wOut * sizeof(float);
+
 		int nIn;
 		int cIn;
 		int hIn;
@@ -141,6 +147,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 			cInStride,
 			hInStride,
 			wInStride);
+		input_sz = nIn * cIn * hIn * wIn * sizeof(float);
 
 		int nWei;
 		int cWei;
@@ -172,6 +179,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 			wWeiStride
 			);
 
+		weights_sz = nWei * cWei * hWei * wWei * sizeof(float);
+
 		construct_params.setConvDescr(_pad_h, _pad_w, _u, _v, _upscalex, _upscaley);
 
 
@@ -198,44 +207,57 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 	printf("kname: %s\n", kernName.c_str());
 
-#if 0 // Test to see if we can launch the kernel and get the results back
-	float *a = new float[1024];
-	float *b = new float[1024];
-	float *c = new float[1024];
+#if 1 // Test to see if we can launch the kernel and get the results back
 
-	for(int i = 0; i < 1024; i++) {
-		a[i] = 1.0;
-		b[i] = 7.0;
-		c[i] = 0.0;
+	float * in_sys = new float[input_sz];
+	float * wei_sys = new float[weights_sz];
+	float * out_sys = new float[output_sz];
+
+	for(int i = 0; i < input_sz; i++) {
+		in_sys[i] = rand() * (1.0 / RAND_MAX);
 	}
-	int sz = 1024;
+	for (int i = 0; i < weights_sz; i++) {
+		wei_sys[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+	}
 
 	cl_context ctx;
 	clGetCommandQueueInfo(queue, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
-	cl_mem adev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, &status);
+	cl_mem in_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input_sz, in_sys, &status);
 	if(status != CL_SUCCESS) {
 		printf("error %d\n", status);
 	}
-	cl_mem bdev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, NULL);
-	cl_mem cdev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz,NULL, NULL);
+	cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, weights_sz,wei_sys, NULL);
+	cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, output_sz,NULL, NULL);
 
-	status = clEnqueueWriteBuffer(queue, adev, CL_TRUE, 0, 4*sz, a, 0, NULL, NULL);
-	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
-	status |= clEnqueueWriteBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
+//	status = clEnqueueWriteBuffer(queue, adev, CL_TRUE, 0, 4*sz, a, 0, NULL, NULL);
+//	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
+//	status |= clEnqueueWriteBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
 
 
 	// Set kernel arguments
 	// Use proper arguments
-	
-	//obj.SetArgs(0, adev, bdev, cdev, sz);
+	float padding_val = 0;
+	obj.SetArgs(0, in_dev, wei_dev, out_dev, padding_val);
 
-	size_t gd = 1024;
-	size_t ld = 256;
+	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 
+	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
+
+	int dim = (int)vld.size();
+	size_t * gd = new size_t[dim];
+	size_t * ld = new size_t[dim];
+
+	for (int i = 0; i < dim; ++i)
+	{
+		gd[i] = vgd[i];
+		ld[i] = vld[i];
+	}
 	// Run the kernel
-	obj.run(queue, 1, 0, gd, ld);
-
+	obj.run(queue, dim, 0, gd, ld);
+	
+	delete[] gd;
+	delete[] ld;
 	clFinish(queue);
 #endif // Test
 
