@@ -64,7 +64,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 		construct_params.setTimerIter(100);
 // HOW TO DEFINE???
-		construct_params.doSearch(false);
+		construct_params.doSearch(true); // false);
 //
 		construct_params.saveSearchRequest(true);
 
