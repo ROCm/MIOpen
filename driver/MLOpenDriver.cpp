@@ -20,9 +20,9 @@ int main()
 			tensor,
 			mlopenFloat,
 			100,
-			3,
 			32,
-			32);
+			8,
+			8);
 
 	int n, c, h, w;
 	int nStride, cStride, hStride, wStride;
@@ -41,7 +41,7 @@ int main()
 			&wStride);
 
 	std::cout<<dt<<" (shoule be 1)\n";
-	printf("%d %d %d %d %d %d %d %d (should be 100, 3, 32, 32, 1, 1, 1, 1)\n", n, c, h, w, nStride, cStride, hStride, wStride);
+	printf("%d %d %d %d %d %d %d %d (should be 100, 32, 8, 8, 1, 1, 1, 1)\n", n, c, h, w, nStride, cStride, hStride, wStride);
 
 	mlopenTensorDescriptor_t t1;
 	mlopenCreateTensorDescriptor(handle, &t1);
@@ -96,9 +96,9 @@ int main()
 		t2,
 		mlopenFloat,
 		n,
-		32,
-		32,
-		32);
+		64,
+		8,
+		8);
 
 
 	// weights
