@@ -258,7 +258,7 @@ int mloConvForwarDirectOnHost(
 	const _T * bot_ptr,			// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
 	_T * top_ptr,	// output "te4nsor"  - batch x channels (output images, feature maps, slices) x width (scaled) x height (scaled)
 	const _T * weights_ptr,    // weights n output channels x n input channels x filter size_y x filter size_x
-	const _T * bias_ptr          // bias
+	const _T * bias_ptr = NULL         // bias, NULL if no bias
 	)
 {
 	int ret = 0;
@@ -303,7 +303,7 @@ int mloConvForwarDirectOnHost(
 
 								accum += data_val * wei_val;
 #if 0
-								if (b == 0 && o == 0 && j == 2 && i == 0)
+								if (b == 0 && o == 0 && j == 0 && i == 0)
 								{
 									printf("c: %f %f %f\n",
 										accum/* + bias_ptr[o]*/,
@@ -318,7 +318,8 @@ int mloConvForwarDirectOnHost(
 
 					}
 
-					run_top_ptr[o*top_channel_stride + j*top_stride + i] = accum + bias_ptr[o]; // + bias
+					_T final_val = (bias_ptr) ? accum + bias_ptr[o] : accum;
+					run_top_ptr[o*top_channel_stride + j*top_stride + i] = final_val;
 
 				}
 

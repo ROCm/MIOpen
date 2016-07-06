@@ -19,7 +19,44 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "mlo_internal.hpp"
 #include "mloUtils.hpp"
 
-// rand() * (1.0 / RAND_MAX)
+
+/*
+the search db is a text file with the name defined by the device characteristics.
+each line is a key/value pair, separated by a space:
+32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
+or
+64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
+
+key format (all values are separted by x):
+n input maps
+input height
+input width
+filter height
+filter width
+n output maps
+output height
+output width
+batch size
+tensors' layout
+tensprs' data type
+direction (1 - forward, 0 - backward)
+
+Note:
+for backward direction - input and output are reversed.
+
+value format (all values are separated by .):
+vertical group size
+horizontal group size
+input block vertical size
+input block horizontal size
+output tile vertical size
+output tile horizaontal size
+n of output tiles
+n of input blocks
+n batchs (stacks) processed by the group
+*/
+
+
 static
 int mloBuildConf_Val(
 	std::string & conf_val,
@@ -78,6 +115,10 @@ int mloParseConf(const std::string & conf_val,
 
 }
 
+/*
+* build the confiuration db file name base:
+* system device name_number of compute units_engine frequency
+*/
 static
 std::string mloConfFileBaseNm(cl_device_id dev
 	)
@@ -209,19 +250,24 @@ std::map<std::string, std::string>::iterator & it
 	**
 	************************************************************************************************************************/
 
-
+/*
+construction has been split into 2
+generic convlution forward
+non-generic stride = 1, forward and backward
+*/
 int mlo_construct_direct2D::mloConstructDirect2D(void)
 {
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
-	if (_gen)
+	if (_gen && getDirectcion())
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
 	else
 	{
+// search known configurations
 		bool known_config = mloGetConfig();
-		// if not known - search
+// if not known and the saerch is alloed - search
 
 		if (!known_config)
 		{
@@ -244,7 +290,8 @@ int mlo_construct_direct2D::mloConstructDirect2D(void)
 			<< _n_stacks
 			<< std::endl;
 
-		// construct searchable configuration
+// construct found configuration
+
 		ret = mloConstructDirect2DFwd();
 
 	}
@@ -253,6 +300,9 @@ int mlo_construct_direct2D::mloConstructDirect2D(void)
 }
 
 
+/*
+* constructs found configuration
+*/
 int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 {
 	int ret = 0;
@@ -299,8 +349,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 	_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
 	_n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
 
-	//	_grp_tile0 = (_in_tile0 == 8) ? 8 : 16; // # of ALUs (group size)
-	//	_grp_tile1 = (_in_tile1 == 8) ? 8 : 16; //
 
 	int alu_tile0 = (_in_tile0 / _out_pix_tile0);
 	int alu_tile1 = (_in_tile1 / _out_pix_tile1);
@@ -336,8 +384,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 	int n_out_tiles_perstack = n_alu_tiles_perstack * _n_out_pix_tiles;
 
 	n_out_tiles_perstack = std::min(n_out_tiles_perstack, _n_outputs);
-
-	//		_direction = 1;
 
 
 	_comp_options =
@@ -403,7 +449,9 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 	return(ret);
 }
 
-
+/*
+* construct generic forward configuration
+*/
 int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 {
 
@@ -584,9 +632,46 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 		return(0);
 
 }
-	int mlo_construct_direct2D :: mloSetConf(const std::string & conf_val)
-	{
-		mloParseConf(conf_val,
+
+/*
+the search db is a text file with the name defined by the device characteristics.
+each line is a key/value pair, separated by a space:
+32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
+or
+64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
+
+key format (all values are separted by x):
+n input maps
+input height
+input width
+filter height
+filter width
+n output maps
+output height
+output width
+batch size
+tensors' layout
+tensprs' data type
+direction (1 - forward, 0 - backward)
+
+Note: 
+for backward direction - input and output are reversed.
+
+value format (all values are separated by .):
+vertical group size
+horizontal group size
+input block vertical size
+input block horizontal size
+output tile vertical size
+output tile horizaontal size
+n of output tiles
+n of input blocks
+n batchs (stacks) processed by the group
+*/
+
+int mlo_construct_direct2D :: mloSetConf(const std::string & conf_val)
+{
+	mloParseConf(conf_val,
 			_grp_tile1,
 			_grp_tile0,
 			_in_tile1,
@@ -598,31 +683,33 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 			_n_stacks
 			);
 
-		return(0);
+	return(0);
 
-	}
+}
 
-	int mlo_construct_direct2D :: mloBuildConf_Key(std::string & conf_key) const
-	{
+int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
+{
 
-		conf_key = std::to_string((long long)_n_inputs)
-			+ std::string("x") + std::to_string((long long)_in_height)
-			+ std::string("x") + std::to_string((long long)_in_width)
-			+ std::string("x") + std::to_string((long long)_kernel_size1)
-			+ std::string("x") + std::to_string((long long)_kernel_size0)
-			+ std::string("x") + std::to_string((long long)_n_outputs)
-			+ std::string("x") + std::to_string((long long)_out_height)
-			+ std::string("x") + std::to_string((long long)_out_width)
-			+ std::string("x") + std::to_string((long long)_batch_sz)
-			+ std::string("x") + _tens_layout
-			+ std::string("x") + _tens_data_format
-			+ std::string("x") + std::to_string((long long)_direction)
-			;
-		return(0);
-	}
+	conf_key = std::to_string((long long)_n_inputs)
+		+ std::string("x") + std::to_string((long long)_in_height)
+		+ std::string("x") + std::to_string((long long)_in_width)
+		+ std::string("x") + std::to_string((long long)_kernel_size1)
+		+ std::string("x") + std::to_string((long long)_kernel_size0)
+		+ std::string("x") + std::to_string((long long)_n_outputs)
+		+ std::string("x") + std::to_string((long long)_out_height)
+		+ std::string("x") + std::to_string((long long)_out_width)
+		+ std::string("x") + std::to_string((long long)_batch_sz)
+		+ std::string("x") + _tens_layout
+		+ std::string("x") + _tens_data_format
+		+ std::string("x") + std::to_string((long long)_direction)
+		;
+	return(0);
+}
 
 
-
+/*
+* select defult configuration if a known configuration has not been found.
+*/
 	int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 	{
 
@@ -661,7 +748,9 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 	}
 
 
-
+	/*
+	* mesure the current onfiguration pefformance
+	*/
 	int mlo_construct_direct2D :: mloMeasuredLoop(cl_context ctxt,
 		cl_device_id dev,
 		cl_command_queue profile_q,
@@ -815,7 +904,11 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 	}
 
 
-
+	/*
+	* request cofiguraion db management
+	* request configuration db is a text file
+	* each line is a key (in cofig db format) that has not been found in teh configuratio db
+	*/
 
 
 	int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::string & conf_key) const
@@ -982,7 +1075,9 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 		return(known_config);
 	}
 
-
+	/*
+	* return a known or default configuration
+	*/
 	bool mlo_construct_direct2D :: mloGetConfig(void)
 	{
 		int ret = 0;
@@ -992,22 +1087,29 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 		std::string conf_key;
 		std::string conf_val;
 
-
+		// get device id
 		ret = mloGetContextDeviceFromCLQueue(ctxt, dev, NULL, (cl_command_queue)_stream);
 
+		// find a db and configuration in it
 		known_config = mloSearchConfigInDB(
 			dev,
 			conf_key,
 			conf_val
 			);
 
+		// if found save it
+
 		if (known_config)
 		{
 			mloSetConf(conf_val);
 		}
 		else
+			// otherwise
 		{
+			// select default
 			mloSelectDefaultConfig(conf_val);
+			// save the unknown configuration
+			// if allowed
 			if (_save_srch_req)
 			{
 				mloAddConfigReq(dev, conf_key);
@@ -1018,7 +1120,13 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 
 	}
 
+	/*
+	* search utility
+	* defines a configurati spce 
+	* search by maesure performabce per each configuration and saves the a current minimum
 
+
+	*/
 	int mlo_construct_direct2D :: mloSearchDirect2D(void)
 	{
 		int ret = 0;
@@ -1072,34 +1180,44 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 		_hw_wave_sz = 64;
 		_dev_local_mem_sz = localMemSize; // in bytes
 
+		// if it is not known
 		bool known_config = mloSearchConfigInDB(
 			dev,
 			conf_key,
 			conf_val
 			);
 
+
+		// proceed
 		if (!known_config)
 		{
 
-
-			float * bot_sys_buf = new float[_bot_sz / sizeof(float)];
-			// FIX IT: INIT
+			// allocate tem input/output buffers
+			size_t bot_sz = _bot_sz / sizeof(float);
+			float * bot_sys_buf = new float[bot_sz];
 			assert(bot_sys_buf);
+
+			for (int i = 0; i < bot_sz; i++) {
+				bot_sys_buf[i] = (float)(rand() * (1.0 / RAND_MAX));
+			}
 
 			cl_mem bot_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bot_sz, bot_sys_buf, &ret);
 
 			assert(bot_ocl_buf);
 
-			float * top_sys_buf = new float[_top_sz / sizeof(float)];
+			size_t top_sz = _top_sz / sizeof(float);
+			float * top_sys_buf = new float[top_sz];
 			assert(top_sys_buf);
-			// FIX IT: INIT
 
 			cl_mem top_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _top_sz, top_sys_buf, &ret);
 			assert(top_ocl_buf);
 
-			float * wei_sys_buf = new float[_weights_sz / sizeof(float)];
-			// FIX IT: INIT
+			size_t weights_sz = _weights_sz / sizeof(float);
+			float * wei_sys_buf = new float[weights_sz];
 			assert(wei_sys_buf);
+			for (int i = 0; i < weights_sz; i++) {
+				wei_sys_buf[i] = (float)((rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+			}
 
 			cl_mem wei_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _weights_sz, wei_sys_buf, &ret);
 			assert(wei_ocl_buf);
@@ -1109,9 +1227,12 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 
 			if (_bias)
 			{
+				size_t bias_sz = _bias_sz / sizeof(float);
 				bias_sys_buf = new float[_bias_sz / sizeof(float)];
 				assert(bias_sys_buf);
-				// FIX IT: INIT
+				for (int i = 0; i < bias_sz; i++) {
+					bias_sys_buf[i] = (float)(rand() * (1.0 / RAND_MAX));
+				}
 
 				bias_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bias_sz, bias_sys_buf, &ret);
 				assert(bias_ocl_buf);
