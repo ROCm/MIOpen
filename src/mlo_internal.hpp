@@ -120,16 +120,35 @@ public:
 		_kernel_stride1 = 1;
 	}
 
+	/*
+	* major interface
+	* it has to be called only after
+	* convolutional parmeters, input, output and weight tesnor have been set
+	*
+	* constructs compiler option
+	*
+	* selects kernel file and name
+	* covers genrinc forward convolution:
+	* arbitrary combination of kerenl sizes, strides
+	*/
 	int mloConstructDirect2D(void);
-	bool mloGetConfig(void);
-	int mloSearchDirect2D(void);
+
+	/*
+	* ontains major configuration parameres:
+	* grp_tile1, grp_tile0 - group work size vertically and horizontally
+	* in_tile1, in_tile0 - vertical and horizotal size of input data block processed by the group
+	* out_pix_tile1, out_pix_tile0 - vertical and horizontal size of output tile process by a single wk-item
+	* n_out_pix_tiles - number of output maps processed by a simgle wk-item. that's wk-item processes a stack of n_out_pix_tiles tiles out_pix_tile1 x out_pix_tile0.
+	* n_in_data_tiles - number of different input maps kept in LDS per one batch (or stack).
+	* n_stacks - number of batches processed by the group
+	*/
 	inline void getConfigParameters(
-		int & grp_tile0,
 		int & grp_tile1,
-		int & in_tile0,
+		int & grp_tile0,
 		int & in_tile1,
-		int & out_pix_tile0,
+		int & in_tile0,
 		int & out_pix_tile1,
+		int & out_pix_tile0,
 		int & n_out_pix_tiles,
 		int & n_in_data_tiles,
 		int & n_stacks
@@ -148,12 +167,12 @@ public:
 	}
 
 	inline void setConfigParameters(
-		int grp_tile0,
 		int grp_tile1,
-		int in_tile0,
+		int grp_tile0,
 		int in_tile1,
-		int out_pix_tile0,
+		int in_tile0,
 		int out_pix_tile1,
+		int out_pix_tile0,
 		int n_out_pix_tiles,
 		int n_in_data_tiles,
 		int n_stacks
@@ -170,36 +189,73 @@ public:
 		_n_in_data_tiles = n_in_data_tiles;
 		_n_stacks = n_stacks;
 	}
-
+	
+	/*
+	* returns kernel file name without location
+	*/
 	inline std::string getKernelFile(void) const
 	{
 		return(_kernel_file);
 	}
+	/*
+	* retuns kerner/shader name
+	*/
 	inline std::string getKernelName(void) const
 	{
 		return(_kernel_name);
 	}
+	/*
+	* return set of compile options
+	*/
+
 	inline const std::string & getCompilerOptions(void) const
 	{
 		return(_comp_options);
 	}
+	/*
+	*  return a local working configuration
+	*/
+	inline const std::vector<size_t> & getLocalWkSize(void) const
+	{
+		return(_l_wk);
+	}
+	/*
+	* return a global working configuration
+	*/
+	inline const std::vector<size_t> & getGlobalWkSize(void) const
+	{
+		return(_g_wk);
+	}
 
+
+	/*
+	* set a number of iteration for thwe wall clock performance meaturement
+	*/
 
 	inline void setTimerIter(int n_timer_iter)
 	{
 		_n_timer_iter = n_timer_iter;
 	}
+	
+	/*
+	* set library stream
+	*/
 	inline void setStream(void * stream)
 	{
 		_stream = stream;
 	}
+
+	/*
+	* set OCL Kernels path
+	*/
 	inline void setKernelPath(const std::string & kernel_path)
 	{
 		_kernel_path = kernel_path;
 	}
 
-
-
+	/*
+	* set convolutional parameters
+	*/
 	inline void setConvDescr(
 		int u_padding,
 		int v_padding,
@@ -215,6 +271,9 @@ public:
 		_kernel_stride0 = v_stride;
 	}
 
+	/*
+	* set weights tensor
+	*/
 	inline void setWeightsDescr(
 		const std::string & layout,
 		const std::string & data_type,
@@ -236,7 +295,9 @@ public:
 	}
 
 
-
+	/*
+	* set output tensor
+	*/
 	inline void setOutputDescr(
 							const std::string & layout,
 							const std::string & data_type,
@@ -282,6 +343,10 @@ public:
 
 		}
 	}
+
+	/*
+	*  set input tensor
+	*/
 
 	inline void setInputDescr(
 							const std::string & layout,
@@ -331,43 +396,55 @@ public:
 		_bias_sz = (_bias) ? _n_outputs * data_len : 0; 
 	}
 
-
-
+	/*
+	*  allow the search for the best possible solution
+	*/
 	inline void doSearch(bool do_search)
 	{
 		_search = do_search;
 	}
-
+	/*
+	* is search set?
+	*/
 	inline bool doSearch(void) const
 	{
 		return(_search);
 	}
 
+	/*
+	* allow to save the missing configuraion in the search request file for an offline search
+	*/
 	inline void saveSearchRequest(bool save_req)
 	{
 		_save_srch_req = save_req;
 	}
-
+	/*
+	* set common compiler options
+	*/
 	inline void setGeneralCompOptions(const std::string & options)
 	{
 		_gen_comp_options = options;
 	}
+
+	/*
+	* get common compiler options
+	*/
 	inline const std::string & getGeneralCompOptions(void) const
 	{
 		return(_gen_comp_options);
 	}
-
-	inline const std::vector<size_t> & getLocalWkSize(void) const
+	/*
+	* return direction: true - forward, false - backward
+	*/
+	inline bool getDirectcion(void) const
 	{
-		return(_l_wk);
-	}
-	inline const std::vector<size_t> & getGlobalWkSize(void) const
-	{
-		return(_g_wk);
+		return(_direction == 1);
 	}
 
 protected:
 
+	bool mloGetConfig(void);
+	int mloSearchDirect2D(void);
 	int mloConstructDirect2DFwd(void);
 	int mloConstructDirect2DFwdGen(void);
 
