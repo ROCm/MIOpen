@@ -105,8 +105,8 @@ int main()
 	mlopenInit4dTensorDescriptor(handle,
 		t1,
 		mlopenFloat,
-		32,  // outputs
-		3,   // inputs
+		64,  // outputs
+		32,   // inputs
 		5,   // kernel size
 		5);
 
