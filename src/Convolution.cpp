@@ -55,15 +55,16 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	// Generate kernels if OpenCL
 	// Compile, cache kernels, etc.
 	// Launch all kernels and store the perf, workspace limits, etc.
+	size_t input_sz = 0;
+	size_t output_sz = 0;
+	size_t weights_sz = 0;
 
-	mlo_construct_direct2D construct_params(1); // forward
+	mlo_construct_direct2D construct_params(1); // forward, no bias
 	{
 
 		construct_params.setTimerIter(100);
-// no bias
-		construct_params.doBias(0);
 // HOW TO DEFINE???
-		construct_params.doSearch(true);
+		construct_params.doSearch(true); // false);
 //
 		construct_params.saveSearchRequest(true);
 
@@ -103,19 +104,21 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 			&hOutStride,
 			&wOutStride);
 
-// TO DO: Generalize data types
-		size_t out_sz = nOutStride * cOutStride * hOutStride *wOutStride
-			* sizeof(float);
 
-		construct_params.setOutputDescr(hOut,
-										wOut,
-										cOut,
-										hOutStride,
-										cOutStride,
-										nOutStride,
-										out_sz,
-										"NCHW",
-										"FP32");
+		construct_params.setOutputDescr(
+			"NCHW",
+			"FP32",
+			nOut,
+			cOut,
+			hOut,
+			wOut,
+			nOutStride,
+			cOutStride,
+			hOutStride,
+			wOutStride);
+
+
+		output_sz = nOut * cOut * hOut * wOut * sizeof(float);
 
 		int nIn;
 		int cIn;
@@ -133,21 +136,18 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 			&hInStride,
 			&wInStride);
 
-		// TO DO: Generalize data types
-		size_t in_sz = nInStride * cInStride * hInStride *wInStride
-			* sizeof(float);
-
-		construct_params.setInputDescr(hIn,
-			wIn,
-			cIn,
-			hInStride,
-			cInStride,
-			nInStride,
-			in_sz,
+		construct_params.setInputDescr(
 			"NCHW",
-			"FP32");
-
-		construct_params.setBatchSize(nIn);
+			"FP32",
+			nIn,
+			cIn,
+			hIn,
+			wIn,
+			nInStride,
+			cInStride,
+			hInStride,
+			wInStride);
+		input_sz = nIn * cIn * hIn * wIn * sizeof(float);
 
 		int nWei;
 		int cWei;
@@ -165,32 +165,41 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 			&hWeiStride,
 			&wWeiStride);
 
-		// TO DO: Generalize data types
-		size_t weights_sz = nWeiStride * cWeiStride * hWeiStride *wWeiStride
-			* sizeof(float);
 
-		construct_params.setKernelDescr(0, wWei, _pad_w, _u);
-		construct_params.setKernelDescr(1, hWei, _pad_h, _v);
+		construct_params.setWeightsDescr(
+			"NCHW",
+			"FP32",
+			nWei,
+			cWei,
+			hWei,
+			wWei,
+			nWeiStride,
+			cWeiStride,
+			hWeiStride,
+			wWeiStride
+			);
 
-		construct_params.setWeightsSz(weights_sz);
-		construct_params.setBiasSz(0);
+		weights_sz = nWei * cWei * hWei * wWei * sizeof(float);
 
-//		construct_params.mloConstructDirect2D();
+		construct_params.setConvDescr(_pad_h, _pad_w, _u, _v, _upscalex, _upscaley);
+
+
+		construct_params.mloConstructDirect2D();
 
 	}
 
 
 
-	std::string program_name = "../src/Hello.cl"; // CL kernel filename
-	std::string kernel_name = "hello_world_kernel"; // kernel name
-	std::string parms; // kernel parameters
+	std::string program_name = std::string("../src/") +  construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
+	std::string kernel_name = construct_params.getKernelName(); // "hello_world_kernel"; // kernel name
+	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
 	// Get the queue associated with this handle
 	mlopenStream_t queue;
 	handle->GetStream(&queue);
 
 	// Compile the kernel if not aleady compiled
-	OCLKernel obj = KernelCache::get(queue, program_name, kernel_name);
+	OCLKernel obj = KernelCache::get(queue, program_name, kernel_name, parms);
 	cl_int status;
 
 	std::string kernName;
@@ -198,45 +207,61 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 	printf("kname: %s\n", kernName.c_str());
 
-#if 0 // Test to see if we can launch the kernel and get the results back
-	float *a = new float[1024];
-	float *b = new float[1024];
-	float *c = new float[1024];
+#if 1 // Test to see if we can launch the kernel and get the results back
 
-	for(int i = 0; i < 1024; i++) {
-		a[i] = 1.0;
-		b[i] = 7.0;
-		c[i] = 0.0;
+	float * in_sys = new float[input_sz];
+	float * wei_sys = new float[weights_sz];
+	float * out_sys = new float[output_sz];
+
+	for(int i = 0; i < input_sz; i++) {
+		in_sys[i] = rand() * (1.0 / RAND_MAX);
 	}
-	int sz = 1024;
+	for (int i = 0; i < weights_sz; i++) {
+		wei_sys[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+	}
 
 	cl_context ctx;
 	clGetCommandQueueInfo(queue, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
-	cl_mem adev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, &status);
+	cl_mem in_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input_sz, in_sys, &status);
 	if(status != CL_SUCCESS) {
 		printf("error %d\n", status);
 	}
-	cl_mem bdev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, NULL);
-	cl_mem cdev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz,NULL, NULL);
+	cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, weights_sz,wei_sys, NULL);
+	cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, output_sz,NULL, NULL);
 
-	status = clEnqueueWriteBuffer(queue, adev, CL_TRUE, 0, 4*sz, a, 0, NULL, NULL);
-	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
-	status |= clEnqueueWriteBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
-#endif // Test
+//	status = clEnqueueWriteBuffer(queue, adev, CL_TRUE, 0, 4*sz, a, 0, NULL, NULL);
+//	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
+//	status |= clEnqueueWriteBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
+
 
 	// Set kernel arguments
 	// Use proper arguments
-	
-	//obj.SetArgs(0, adev, bdev, cdev, sz);
+	float padding_val = 0;
+	obj.SetArgs(0, in_dev, wei_dev, out_dev, padding_val);
 
-	size_t gd = 1024;
-	size_t ld = 256;
+	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 
+	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
+
+	int dim = (int)vld.size();
+	size_t * gd = new size_t[dim];
+	size_t * ld = new size_t[dim];
+
+	for (int i = 0; i < dim; ++i)
+	{
+		gd[i] = vgd[i];
+		ld[i] = vld[i];
+	}
 	// Run the kernel
-	obj.run(queue, 1, 0, gd, ld);
-
+	obj.run(queue, dim, 0, gd, ld);
+	
+	delete[] gd;
+	delete[] ld;
 	clFinish(queue);
+
+	std::cout << "Conv's finished." << std::endl;
+#endif // Test
 
 #if 0 // Read results back
 	clEnqueueReadBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
