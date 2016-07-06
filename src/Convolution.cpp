@@ -259,6 +259,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	delete[] gd;
 	delete[] ld;
 	clFinish(queue);
+
+	std::cout << "Conv's finished." << std::endl;
 #endif // Test
 
 #if 0 // Read results back
