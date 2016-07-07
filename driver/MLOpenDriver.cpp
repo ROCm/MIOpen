@@ -14,10 +14,11 @@ int main()
 	mlopenGetStream(handle, &q);
 
 	// mlopenTensor APIs
-	mlopenTensorDescriptor_t tensor;
-	mlopenCreateTensorDescriptor(handle, &tensor);
+	mlopenTensorDescriptor_t inputTensor;
+	mlopenCreateTensorDescriptor(handle, &inputTensor);
+
 	mlopenInit4dTensorDescriptor(handle,
-			tensor,
+			inputTensor,
 			mlopenFloat,
 			100,
 			32,
@@ -27,9 +28,9 @@ int main()
 	int n, c, h, w;
 	int nStride, cStride, hStride, wStride;
 	mlopenDataType_t dt;
-
+	
 	mlopenGet4dTensorDescriptor(handle,
-			tensor,
+			inputTensor,
 			&dt,
 			&n,
 			&c,
@@ -43,21 +44,31 @@ int main()
 	std::cout<<dt<<" (shoule be 1)\n";
 	printf("%d %d %d %d %d %d %d %d (should be 100, 32, 8, 8, 1, 1, 1, 1)\n", n, c, h, w, nStride, cStride, hStride, wStride);
 
-	mlopenTensorDescriptor_t t1;
-	mlopenCreateTensorDescriptor(handle, &t1);
+	mlopenTensorDescriptor_t convFilter;
+	mlopenCreateTensorDescriptor(handle, &convFilter);
+
+	// weights
+	mlopenInit4dTensorDescriptor(handle,
+		convFilter,
+		mlopenFloat,
+		64,  // outputs
+		32,   // inputs
+		5,   // kernel size
+		5);
+
 	int alpha = 1, beta = 1;
 	mlopenTransformTensor(handle,
 			&alpha,
-			tensor,
+			inputTensor,
 			NULL,
 			&beta,
-			t1,
+			convFilter,
 			NULL);
 
 	int value = 10;
-	mlopenSetTensor(handle, tensor, NULL, &value);
+	mlopenSetTensor(handle, inputTensor, NULL, &value);
 
-	mlopenScaleTensor(handle, tensor, NULL, &alpha);
+	mlopenScaleTensor(handle, inputTensor, NULL, &alpha);
 
 	// mlopenConvolution APIs
 	//
@@ -85,31 +96,21 @@ int main()
 
 	printf("%d %d %d %d %d %d %d (Should be 0, 2, 2, 1, 1, 1, 1)\n", mode, pad_h, pad_w, u, v, upx, upy);
 
+	int x, y, z, a;
+	mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a);
 
+	printf("Output dims: %d, %d, %d, %d (Should be 100, 64, 8, 8)\n", x, y, z, a);
 
-	
-
-	mlopenTensorDescriptor_t t2;
-	mlopenCreateTensorDescriptor(handle, &t2);
+	mlopenTensorDescriptor_t outputTensor;
+	mlopenCreateTensorDescriptor(handle, &outputTensor);
 
 	mlopenInit4dTensorDescriptor(handle,
-		t2,
+		outputTensor,
 		mlopenFloat,
-		n,
-		64,
-		8,
-		8);
-
-
-	// weights
-	mlopenInit4dTensorDescriptor(handle,
-		t1,
-		mlopenFloat,
-		64,  // outputs
-		32,   // inputs
-		5,   // kernel size
-		5);
-
+		x,
+		y,
+		z,
+		a);
 
 	int ret_algo_count;
 	mlopenConvAlgoPerf_t perf;
@@ -145,12 +146,12 @@ int main()
 #endif // Test
 
 	mlopenFindConvolutionForwardAlgorithm(handle,
-			tensor,
+			inputTensor,
 			adev,
-			t1,
+			convFilter,
 			bdev,
 			convDesc,
-			t2,
+			outputTensor,
 			cdev,
 			1,
 			&ret_algo_count,
@@ -158,6 +159,7 @@ int main()
 			mlopenConvolutionFastest,
 			NULL,
 			10);
+
 #if 1 // Read results back
 	clEnqueueReadBuffer(q, cdev, CL_TRUE, 0, 4*sz, c1, 0, NULL, NULL);
 
@@ -169,25 +171,27 @@ int main()
 
 	printf("\nsum %f\n, ", sum);
 	sum = 0.0;
-
-	getchar();
+	
+	delete[] a1;
+	delete[] b1;
+	delete[] c1;
 #endif //Results
 
 	mlopenConvolutionForward(handle,
 			&alpha,
-			tensor,
+			inputTensor,
 			NULL,
-			t1,
+			convFilter,
 			NULL,
 			convDesc,
 			mlopenConvolutionFwdAlgoGEMM,
 			&beta,
-			t2,
+			outputTensor,
 			NULL);
 
-	mlopenDestroyTensorDescriptor(t2);
-	mlopenDestroyTensorDescriptor(t1);
-	mlopenDestroyTensorDescriptor(tensor);
+	mlopenDestroyTensorDescriptor(outputTensor);
+	mlopenDestroyTensorDescriptor(convFilter);
+	mlopenDestroyTensorDescriptor(inputTensor);
 
 	mlopenDestroyConvolutionDescriptor(convDesc);
 
