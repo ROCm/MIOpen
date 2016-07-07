@@ -13,7 +13,38 @@ mlopenStatus_t mlopenConvolutionDescriptor::GetForwardOutputDim(const mlopenTens
 			int *h, 
 			int *w) {
 	
-	printf("To be implemented (GetForwardOutputDim)\n");
+	if(inputTensorDesc == NULL || filterDesc == NULL) {
+		return mlopenStatusBadParm;
+	}
+
+	int input_n;
+	int input_c;
+	int input_h;
+	int input_w;
+
+	inputTensorDesc->Get4Dims(&input_n, 
+			&input_c,
+			&input_h,
+			&input_w);
+
+	int filter_k;
+	int filter_c;
+	int filter_h;
+	int filter_w;
+
+	filterDesc->Get4Dims(&filter_k,
+			&filter_c,
+			&filter_h,
+			&filter_w);
+
+	if(input_c != filter_c) {
+		return mlopenStatusBadParm;
+	}
+
+	*n = input_n;
+	*c = filter_k;
+	*h = (input_h - filter_h + 2*_pad_h) / _u + 1;
+	*w = (input_w - filter_w + 2*_pad_w) / _v + 1;
 
 	return mlopenStatusSuccess;
 }
