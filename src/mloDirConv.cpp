@@ -263,6 +263,11 @@ int mlo_construct_direct2D::mloConstructDirect2D(void)
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
+	else if (_gen)
+	{
+		std::cout << "Error: backward generic direct conv is not implemented. " << std::endl;
+		return (-1);
+	}
 	else
 	{
 // search known configurations
@@ -1154,7 +1159,13 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 		int min_n_stacks = 1;
 
 
-		ret = mloGetContextDeviceFromCLQueue(ctxt, dev, NULL /*&profile_q*/, (cl_command_queue)_stream);
+		ret = mloGetContextDeviceFromCLQueue(ctxt, dev,
+#if 0
+			NULL
+#else
+			&profile_q
+#endif
+			, (cl_command_queue)_stream);
 
 		int maxComputeUnits;
 		int maxWorkItemDims;
@@ -1262,10 +1273,10 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 			std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may take few minutes." << std::endl;
 
 			size_t run_counter = 0;
-			int out_pix_tl_cnt = (_kernel_size0 != 3 || _kernel_size1 == 3) ? 3 : 4;
+			int out_pix_tl_cnt = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 3 : 4;
 			int n_out_tls = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 4 : n_out_tiles_rg[1];
 
-			size_t runs_left = 2 * 2 * 3 * 3 * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * 4 * 3;
+			long long runs_left = 2 * 2 * 3 * 3 * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
 
 			size_t report_inteval = 25;
 //			_n_timer_iter = 250;
@@ -1411,7 +1422,7 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 													std::cout << "Runs left : " << runs_left << ", "
 														<< "min time so far : " << min_proc_time << ", "
 														<< "curr time : " << processing_time
-#if 0
+#if 1
 														<< _grp_tile0 << ", "
 														<< _grp_tile1 << ", "
 														<< _in_tile0 << ", "
