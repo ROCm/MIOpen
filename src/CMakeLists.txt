@@ -62,9 +62,21 @@ set( MLOpen_Source
 	mloDirConv.cpp
 	mlo_internal.hpp
 	mloUtils.hpp
-	MlOpenConvDirGenFwd.cl
-	MLOpenConvDirUni.cl
+	#	MlOpenConvDirGenFwd.cl
+	#MLOpenConvDirUni.cl
 	)
+
+if( MLOpen_BACKEND MATCHES "OpenCL")
+	list(APPEND MLOpen_Source OCL/HandleOCL.cpp
+		OCL/TensorOCL.cpp
+		OCL/ConvolutionOCL.cpp)
+endif()
+
+if( MLOpen_BACKEND MATCHES "HIP")
+	list(APPEND MLOpen_Source HIP/HandleHIP.cpp
+		HIP/TensorHIP.cpp
+		HIP/ConvolutionHIP.cpp)
+endif()
 
 include_directories (
 	${MLOpen_DIRS_INCLUDE}
