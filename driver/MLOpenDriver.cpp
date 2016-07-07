@@ -114,20 +114,64 @@ int main()
 	int ret_algo_count;
 	mlopenConvAlgoPerf_t perf;
 
+	cl_int status;
+#if 1 // Test to see if we can launch the kernel and get the results back
+	float *a1 = new float[1024];
+	float *b1 = new float[1024];
+	float *c1 = new float[1024];
+
+	for(int i = 0; i < 1024; i++) {
+		a1[i] = 1.0;
+		b1[i] = 6.0;
+		c1[i] = 0.0;
+	}
+	int sz = 1024;
+
+	cl_context ctx;
+	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+
+	cl_mem adev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, &status);
+	if(status != CL_SUCCESS) {
+		printf("error %d\n", status);
+	}
+	cl_mem bdev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, NULL);
+	cl_mem cdev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz,NULL, NULL);
+
+	status = clEnqueueWriteBuffer(q, adev, CL_TRUE, 0, 4*sz, a1, 0, NULL, NULL);
+	status |= clEnqueueWriteBuffer(q, bdev, CL_TRUE, 0, 4*sz, b1, 0, NULL, NULL);
+	status |= clEnqueueWriteBuffer(q, cdev, CL_TRUE, 0, 4*sz, c1, 0, NULL, NULL);
+	if(status != CL_SUCCESS) 
+		printf("error\n");
+#endif // Test
+
 	mlopenFindConvolutionForwardAlgorithm(handle,
 			tensor,
-			NULL,
+			adev,
 			t1,
-			NULL,
+			bdev,
 			convDesc,
 			t2,
-			NULL,
+			cdev,
 			1,
 			&ret_algo_count,
 			&perf,
 			mlopenConvolutionFastest,
 			NULL,
 			10);
+#if 1 // Read results back
+	clEnqueueReadBuffer(q, cdev, CL_TRUE, 0, 4*sz, c1, 0, NULL, NULL);
+
+	float sum = 0.0;
+	for(int i = 0; i < 1024; i++) {
+		b1[i] = 6;
+		sum += c1[i];
+	}
+
+	printf("\nsum %f\n, ", sum);
+	sum = 0.0;
+
+	getchar();
+#endif //Results
 
 	mlopenConvolutionForward(handle,
 			&alpha,
