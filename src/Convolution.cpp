@@ -17,4 +17,3 @@ mlopenStatus_t mlopenConvolutionDescriptor::GetForwardOutputDim(const mlopenTens
 
 	return mlopenStatusSuccess;
 }
-
