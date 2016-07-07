@@ -76,7 +76,8 @@ set ( MLOpen_Headers_Public
 
 set( MLOpen_DIRS_INCLUDE
 	${CMAKE_SOURCE_DIR}/include
-	${CMAKE_SOURCE_DIR}/src/include)
+	${CMAKE_SOURCE_DIR}/src/include
+	${CMAKE_SOURCE_DIR}/src)
 set( MLOpen_API ${CMAKE_SOURCE_DIR}/include/MLOpen.h )
 source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
 
