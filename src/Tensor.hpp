@@ -44,30 +44,35 @@ struct mlopenTensorDescriptor {
 	mlopenStatus_t GetDims(int &dims);
 
 	// Transform functions
+	template <typename Data_t> 
 	mlopenStatus_t TransformTensor(mlopenHandle_t handle,
 			const void *alpha,
 			const mlopenTensorDescriptor_t srcTensorDesc,
-			const void *srcTensor,
+			const Data_t srcTensor,
 			const void *beta,
-			void *dstTensor);
+			Data_t dstTensor);
 
+
+	template <typename Data_t> 
 	mlopenStatus_t OpTensor(mlopenHandle_t handle,
 		mlopenTensorOp_t				tensorOp,
 		const void						*alpha1,
 		const mlopenTensorDescriptor_t	aDesc,
-		const void						*A,
+		const Data_t					A,
 		const void						*alpha2,
 		const mlopenTensorDescriptor_t	bDesc,
-		const void						*B,
+		const Data_t					B,
 		const void						*beta,
-		void							*C) ;
+		Data_t							C) ;
 
+	template <typename Data_t> 
 	mlopenStatus_t SetTensor(mlopenHandle_t handle,
-			void						*dstTensor,
+			Data_t						dstTensor,
 			const void					*valuePtr);
 
+	template <typename Data_t> 
 	mlopenStatus_t ScaleTensor(mlopenHandle_t handle,
-		void							*y,
+		Data_t							y,
 		const void						*alpha) ;
 
 	// Internal
@@ -81,5 +86,71 @@ struct mlopenTensorDescriptor {
 	mlopenDataType_t _dataType;
 	mlopenHandle_t _tensorHandle;
 };
+
+// Template Instantations
+//
+#if MLOpen_BACKEND_OPENCL
+template<>
+mlopenStatus_t mlopenTensorDescriptor::TransformTensor<cl_mem>(mlopenHandle_t handle,
+			const void *alpha,
+			const mlopenTensorDescriptor_t srcTensorDesc,
+			const cl_mem srcTensor,
+			const void *beta,
+			cl_mem dstTensor);
+
+template<>
+mlopenStatus_t mlopenTensorDescriptor::OpTensor<cl_mem>(mlopenHandle_t handle,
+		mlopenTensorOp_t				tensorOp,
+		const void						*alpha1,
+		const mlopenTensorDescriptor_t	aDesc,
+		const cl_mem					A,
+		const void						*alpha2,
+		const mlopenTensorDescriptor_t	bDesc,
+		const cl_mem					B,
+		const void						*beta,
+		cl_mem							C);
+
+template<>
+mlopenStatus_t mlopenTensorDescriptor::SetTensor<cl_mem>(mlopenHandle_t handle,
+		cl_mem							dstTensor,
+		const void						*valuePtr);
+
+template<>
+mlopenStatus_t mlopenTensorDescriptor::ScaleTensor<cl_mem>(mlopenHandle_t handle,
+		cl_mem							y,
+		const void						*alpha);
+
+#elif MLOpen_BACKEND_HIP
+template<>
+mlopenStatus_t mlopenTensorDescriptor::TransformTensor<void *>(mlopenHandle_t handle,
+			const void *alpha,
+			const mlopenTensorDescriptor_t srcTensorDesc,
+			const void *srcTensor,
+			const void *beta,
+			void *dstTensor);
+
+template<>
+mlopenStatus_t mlopenTensorDescriptor::OpTensor<void *>(mlopenHandle_t handle,
+		mlopenTensorOp_t				tensorOp,
+		const void						*alpha1,
+		const mlopenTensorDescriptor_t	aDesc,
+		const cl_mem					A,
+		const void						*alpha2,
+		const mlopenTensorDescriptor_t	bDesc,
+		const cl_mem					B,
+		const void						*beta,
+		cl_mem							C);
+
+template<>
+mlopenStatus_t mlopenTensorDescriptor::SetTensor<void *>(mlopenHandle_t handle,
+		cl_mem							dstTensor,
+		const void						*valuePtr);
+
+template<>
+mlopenStatus_t mlopenTensorDescriptor::ScaleTensor<void *>(mlopenHandle_t handle,
+		cl_mem							y,
+		const void						*alpha);
+
+#endif // HIP vs OpenCL
 
 #endif // _TENSOR_HPP_

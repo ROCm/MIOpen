@@ -66,6 +66,18 @@ set( MLOpen_Source
 	MLOpenConvDirUni.cl
 	)
 
+if( MLOpen_BACKEND MATCHES "OpenCL")
+	list(APPEND MLOpen_Source HandleOCL.cpp
+		TensorOCL.cpp
+		ConvolutionOCL.cpp)
+endif()
+
+if( MLOpen_BACKEND MATCHES "HIP")
+	list(APPEND MLOpen_Source HandleHIP.cpp
+		TensorHIP.cpp
+		ConvolutionHIP.cpp)
+endif()
+
 include_directories (
 	${MLOpen_DIRS_INCLUDE}
 	)
