@@ -31,12 +31,6 @@ class OCLKernel {
 	}
 
 	mlopenStatus_t run(cl_command_queue &queue,
-			const int &work_dim,
-			const size_t &global_work_offset,
-			const size_t &global_work_dim,
-			const size_t &local_work_dim);
-
-	mlopenStatus_t run(cl_command_queue &queue,
 		const int &work_dim,
 		const size_t * global_work_offset,
 		const size_t * global_work_dim,
