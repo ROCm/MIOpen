@@ -192,16 +192,25 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	xDesc,
 		const void						*x,
 		const void						*beta,
-		const mlopenTensorDescriptor_t	 yDesc,
+		const mlopenTensorDescriptor_t	yDesc,
 		void							*y) {
 
 	// Calling the transform function on the destination tensor
-	return yDesc->TransformTensor(handle, 
+#if MLOpen_BACKEND_OPENCL
+	return yDesc->TransformTensor<cl_mem>(handle, 
+			alpha,
+			xDesc,
+			(cl_mem)x,
+			beta,
+			(cl_mem)y);
+#elif MLOpen_BACKEND_HIP
+	return yDesc->TransformTensor<void *>(handle, 
 			alpha,
 			xDesc,
 			x,
 			beta,
 			y);
+#endif
 }
 
 extern "C"
@@ -218,7 +227,20 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 		void							*C) {
 
 	// Calling the transform function on the destination tensor
-	return cDesc->OpTensor(handle,
+#if MLOpen_BACKEND_OPENCL
+	return cDesc->OpTensor<cl_mem>(handle,
+			tensorOp,
+			alpha1,
+			aDesc,
+			(cl_mem)A,
+			alpha2,
+			bDesc,
+			(cl_mem)B,
+			beta,
+			(cl_mem)C);
+
+#elif MLOpen_BACKEND_HIP
+	return cDesc->OpTensor<void *>(handle,
 			tensorOp,
 			alpha1,
 			aDesc,
@@ -228,6 +250,7 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 			B,
 			beta,
 			C);
+#endif
 }
 
 extern "C"
@@ -237,9 +260,15 @@ mlopenStatus_t mlopenSetTensor(mlopenHandle_t handle,
 		const void						*valuePtr) {
 	
 	// Calling the transform function on the destination tensor
-	return yDesc->SetTensor(handle,
+#if MLOpen_BACKEND_OPENCL
+	return yDesc->SetTensor<cl_mem>(handle,
+			(cl_mem)y,
+			valuePtr);
+#elif MLOpen_BACKEND_HIP
+	return yDesc->SetTensor<void *>(handle,
 			y,
 			valuePtr);
+#endif
 	
 }
 
@@ -250,16 +279,13 @@ mlopenStatus_t mlopenScaleTensor(mlopenHandle_t handle,
 		const void						*alpha) {
 
 	// Calling the transform function on the destination tensor
-	return yDesc->ScaleTensor(handle,
+#if MLOpen_BACKEND_OPENCL
+	return yDesc->ScaleTensor<cl_mem>(handle,
+			(cl_mem)y,
+			alpha);
+#elif MLOpen_BACKEND_HIP
+	return yDesc->ScaleTensor<void *>(handle,
 			y,
 			alpha);
-
+#endif
 }
-
-
-
-
-
-
-
-

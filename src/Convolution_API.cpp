@@ -117,7 +117,23 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-	return convDesc->FindConvFwdAlgorithm(handle,
+#if MLOpen_BACKEND_OPENCL
+	return convDesc->FindConvFwdAlgorithm<cl_mem>(handle,
+			xDesc,
+			(cl_mem)x,
+			wDesc,
+			(cl_mem)w,
+			yDesc,
+			(cl_mem)y,
+			requestAlgoCount,
+			returnedAlgoCount,
+			perfResults,
+			preference,
+			workSpace,
+			workSpaceSize);
+
+#elif MLOpen_BACKEND_HIP
+	return convDesc->FindConvFwdAlgorithm<void *>(handle,
 			xDesc,
 			x,
 			wDesc,
@@ -130,6 +146,7 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 			preference,
 			workSpace,
 			workSpaceSize);
+#endif
 }
 
 extern "C"
@@ -145,7 +162,20 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t		 yDesc,
 		void								*y) {
 
-	return convDesc->ConvolutionForward(handle,
+#if MLOpen_BACKEND_OPENCL
+	return convDesc->ConvolutionForward<cl_mem>(handle,
+			alpha,
+			xDesc,
+			(cl_mem)x,
+			wDesc,
+			(cl_mem)w,
+			algo,
+			beta,
+			yDesc,
+			(cl_mem)y);
+
+#elif MLOpen_BACKEND_HIP
+	return convDesc->ConvolutionForward<void *>(handle,
 			alpha,
 			xDesc,
 			x,
@@ -155,5 +185,6 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 			beta,
 			yDesc,
 			y);
+#endif
 }
 
