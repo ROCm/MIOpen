@@ -53,7 +53,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<cl_mem>(mlopenH
 
 
 // TO DO WHERE IS THE PATH ?
-		std::string kernel_path = "../src";
+		std::string kernel_path = "../src/Kernels/";
 
 		construct_params.setKernelPath(kernel_path);
 
@@ -169,7 +169,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<cl_mem>(mlopenH
 		construct_params.mloConstructDirect2D();
 	}
 
-	std::string program_name = std::string("../src/") +  construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
+	std::string program_name = std::string("../src/Kernels/") +  construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // "hello_world_kernel"; // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
