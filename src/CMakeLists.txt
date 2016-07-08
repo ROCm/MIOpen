@@ -1,5 +1,6 @@
 cmake_minimum_required( VERSION 2.8.12 )
 
+include (GenerateExportHeader)
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
 if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
@@ -88,6 +89,7 @@ add_library( MLOpen SHARED
 	${MLOpen_API}
 	)
 
+GENERATE_EXPORT_HEADER(MLOpen)
 ############################################################
 # MLOpen depends on OpenCL
 if( MLOpen_BACKEND MATCHES "OpenCL")
@@ -95,3 +97,4 @@ if( MLOpen_BACKEND MATCHES "OpenCL")
 	include_directories( ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )
 endif()
+

@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include "mlopen_export.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,19 +32,19 @@ typedef enum {
 
 // TODO: C does not really have default function arguments. Need to modify this
 // later or is it OK to leave it like this?
-mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 		int							numStreams = 0,
 		mlopenStream_t				*stream = NULL);
 
-mlopenStatus_t mlopenDestroy(mlopenHandle_t handle);
+MLOPEN_EXPORT mlopenStatus_t mlopenDestroy(mlopenHandle_t handle);
 
 // For OpenCL, stream is a command queue where as for HIP, it is a stream
-mlopenStatus_t mlopenSetStream(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenSetStream(mlopenHandle_t handle,
 		int							numStreams,
 		mlopenStream_t				*streamIds);
 
 // Returns numStream'th stream for that particular handle
-mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
 		mlopenStream_t				*streamId,
 		int							numStream = 0);
 
@@ -69,11 +71,11 @@ typedef enum {
 } mlopenConvolutionMode_t;
 
 // Create a Tensor Descriptor
-mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
 		mlopenTensorDescriptor_t	*tensorDesc);
 
 // Only supporting NCHW for now and merging both expert and regular cuDNN APIs
-mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
 		mlopenTensorDescriptor_t	tensorDesc,
 		mlopenDataType_t			datatype, // half/float/double
 		int							n,
@@ -86,7 +88,7 @@ mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
 		int 						wStride = 1);
 
 // Get the details of the tensor desciptor
-mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
 		mlopenTensorDescriptor_t	tensorDesc,
 		mlopenDataType_t			*datatype,
 		int							*n,
@@ -99,7 +101,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
 		int							*wStride);
 
 // Not sure if the following two APIs are required right now
-mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
 		mlopenTensorDescriptor_t	tensorDesc,
 		mlopenDataType_t			datatype,
 		int							nbDims,
@@ -107,14 +109,14 @@ mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
 		int							*strideA);
 
 // Get the details of the n-dimensional tensor desciptor
-mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
 		mlopenTensorDescriptor_t	tensorDesc,
 		mlopenDataType_t			*datatype,
 		int							*nbDims,
 		int							*dimA,
 		int							*strideA);
 		
-mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc);
+MLOPEN_EXPORT mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc);
 
 /* This function copies the scaled data from one tensor to another
  * tensor with a different layout. Those descriptors need to have the
@@ -126,7 +128,7 @@ mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc
  * [MD]: Can this routine also suffice the requirements of AddTensor() routine? Both are doing the same thing -
  * dstValue = alpha*srcValue + beta*dstValue;
  */
-mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const void						*alpha,
 		const mlopenTensorDescriptor_t	xDesc,
 		const void						*x,
@@ -159,7 +161,7 @@ mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
  *
  * [MD]: Not sure if OpTensorDescriptor_t is required?
  */
-mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 		//const mlopenOpTensorDescriptor_t opTensorDesc,
 		mlopenTensorOp_t				tensorOp,
 		const void						*alpha1,
@@ -176,12 +178,12 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
  * be set to value[0]. The data type of the element in value[0] has to match
  * the data type of tensor y.
  */
-mlopenStatus_t mlopenSetTensor(mlopenHandle_t                 handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenSetTensor(mlopenHandle_t                 handle,
 		const mlopenTensorDescriptor_t yDesc,
 		void                          *y,
 		const void                    *valuePtr );
 
-mlopenStatus_t mlopenScaleTensor(mlopenHandle_t                 handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenScaleTensor(mlopenHandle_t                 handle,
 		const mlopenTensorDescriptor_t yDesc,
 		void                          *y,
 		const void                    *alpha );
@@ -213,10 +215,10 @@ mlopenStatus_t mlopenDestroyFilterDescriptor(mlopenFilterDescriptor_t filterDesc
 
 #endif // FilterDescriptor APIs
 
-mlopenStatus_t mlopenCreateConvolutionDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateConvolutionDescriptor(mlopenHandle_t handle,
 		mlopenConvolutionDescriptor_t *convDesc);
 
-mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc,
+MLOPEN_EXPORT mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc,
 		mlopenConvolutionMode_t mode,
 		int pad_h,
 		int pad_w,
@@ -225,7 +227,7 @@ mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t con
 		int upscalex,
 		int upscaley);
 
-mlopenStatus_t mlopenGetConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc,
+MLOPEN_EXPORT mlopenStatus_t mlopenGetConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc,
 		mlopenConvolutionMode_t *mode,
 		int *pad_h,
 		int *pad_w,
@@ -240,7 +242,7 @@ mlopenStatus_t mlopenGetConvolutionDescriptor(mlopenConvolutionDescriptor_t conv
  * and allocate the proper amount of memory prior to launch the actual
  * convolution.
  */
-mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolutionDescriptor_t convDesc,
+MLOPEN_EXPORT mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolutionDescriptor_t convDesc,
 		const mlopenTensorDescriptor_t		inputTensorDesc,
 		const mlopenTensorDescriptor_t		filterDesc,
 		int									*n,
@@ -252,7 +254,7 @@ mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolutionDescriptor_
 // TODO: Add APIs for N-dimensional filter descriptors. Tensorflow uses them.
 //
 
-mlopenStatus_t mlopenDestroyConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc);
+MLOPEN_EXPORT mlopenStatus_t mlopenDestroyConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc);
 
 // Same enum type for forward, backward filter and backward data
 // algorthms
@@ -302,7 +304,7 @@ typedef struct{
  * routime works as both cuDNN's FindAlgorithm and GetAlgorithm
  * routines. I do not see any need of having two similar routines
  */
-mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t		xDesc,
 		const void							*x,
 		const mlopenTensorDescriptor_t		wDesc,
@@ -317,7 +319,7 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize);
 
-mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 		const void							*alpha,
 		const mlopenTensorDescriptor_t		xDesc,
 		const void							*x,
