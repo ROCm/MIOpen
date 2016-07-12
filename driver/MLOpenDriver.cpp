@@ -184,7 +184,7 @@ int main()
 			convFilter,
 			NULL,
 			convDesc,
-			mlopenConvolutionFwdAlgoGEMM,
+			mlopenConvolutionFwdAlgoDirect,
 			&beta,
 			outputTensor,
 			NULL);

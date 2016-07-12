@@ -14,7 +14,7 @@ mlopenStatus_t OCLKernel::run(cl_command_queue &queue,
 
 	//TODO: Check for error 
 	if (status != CL_SUCCESS) {
-		printf("kernelfailed\n");
+		printf("kernel failed %d \n",status);
 	}
 
 	return mlopenStatusSuccess;
