@@ -441,6 +441,8 @@ public:
 		return(_direction == 1);
 	}
 
+	// MD: Hack to get the key outside of mlo_internal
+	int mloBuildConf_Key(std::string & conf_key) const;
 protected:
 
 	bool mloGetConfig(void);
@@ -449,8 +451,7 @@ protected:
 	int mloConstructDirect2DFwdGen(void);
 
 	int mloSetConf(const std::string & conf_val);
-	int mloBuildConf_Key(std::string & conf_key);
-	int mloBuildConf_Key(std::string & conf_key) const;
+//	int mloBuildConf_Key(std::string & conf_key) const;
 	int mloSelectDefaultConfig(std::string & conf_val);
 	int mloAddConfigReq(cl_device_id dev,
 		const std::string & conf_key

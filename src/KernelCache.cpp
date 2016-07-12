@@ -28,18 +28,60 @@ KernelCache::KernelCache()
     //we can add sth here which can be shared among all kernels;
 }
 
-OCLKernel& KernelCache::get(cl_command_queue &queue,
+OCLKernel KernelCache::get(cl_command_queue &queue,
+						 const std::string& algorithm,
+						 const std::string& network_config,
                          const std::string& program_name,
                          const std::string& kernel_name,
+						 const std::vector<size_t>& vld,
+						 const std::vector<size_t>& vgd,
                          const std::string& params)
 {
-    return getInstance().getKernel(queue, program_name, kernel_name, params);
+    return getInstance().getKernel(queue,
+			algorithm,
+			network_config,
+			program_name,
+			kernel_name, 
+			vld, 
+			vgd,
+			params);
 }
 
+OCLKernel KernelCache::get( const std::string& algorithm,
+						 const std::string& network_config)
+{
+    return getInstance().getKernel(algorithm, network_config);
+}
 
-OCLKernel& KernelCache::getKernel(cl_command_queue &queue,
+OCLKernel KernelCache::getKernel(	const std::string& algorithm,
+										const std::string& network_config) {
+	
+	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
+#ifndef NDEBUG
+	std::cout << "key: " << key.first <<" "<< key.second<< std::endl;
+#endif
+
+	auto kernel_iterator = kernel_map.find(key);
+	if (kernel_iterator != kernel_map.end())
+	{
+
+		printf("kernel found\n");
+		return kernel_iterator->second;
+	}
+	// TODO: Where should the default kernel be?
+	else // return default kernel
+	{
+	
+	}
+}
+
+OCLKernel KernelCache::getKernel(cl_command_queue &queue,
+										const std::string& algorithm,
+										const std::string& network_config,
                                         const std::string& program_name,
                                         const std::string& kernel_name,
+										const std::vector<size_t>& vld,
+										const std::vector<size_t>& vgd,
                                         const std::string& params)
 {
 
@@ -52,10 +94,8 @@ OCLKernel& KernelCache::getKernel(cl_command_queue &queue,
             _params.append(" ");
         _params.append(params);
     }
-    std::string key;
-    key.append( "[" + program_name + "/"  + kernel_name + "]");
-    key.append(_params);
 
+	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
 #ifndef NDEBUG
     std::cout << "key: " << key << std::endl;
 #endif
@@ -65,9 +105,6 @@ OCLKernel& KernelCache::getKernel(cl_command_queue &queue,
     {
 
 		printf("kernel found\n");
-#ifndef NDEBUG
-//		std::cout << "kernel found: " << hash <<std::endl;
-#endif
         return kernel_iterator->second;
     }
     else //build program and compile the kernel;
@@ -97,8 +134,8 @@ OCLKernel& KernelCache::getKernel(cl_command_queue &queue,
           //  return;
 			// TODO: Return meaningful error
         }
-
-		OCLKernel _kernel(kernel);
+		
+		OCLKernel _kernel(kernel, vld, vgd);
         kernel_map[key] = _kernel;
         return _kernel;
     }
