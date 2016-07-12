@@ -639,6 +639,60 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 }
 
 /*
+* makes a unique key that represent the current kernel c0onfiguration
+*/
+
+int mlo_construct_direct2D::mloMakeKernelHash(std::string & hash) const
+{
+
+	std::string conf_key, conf_val;
+	mloBuildConf_Key(conf_key);
+	int grp_tile1;
+	int grp_tile0;
+	int in_tile1;
+	int in_tile0;
+	int out_pix_tile1;
+	int out_pix_tile0;
+	int n_out_pix_tiles;
+	int n_in_data_tiles;
+	int n_stacks;
+
+	getConfigParameters(
+		grp_tile1,
+		grp_tile0,
+		in_tile1,
+		in_tile0,
+		out_pix_tile1,
+		out_pix_tile0,
+		n_out_pix_tiles,
+		n_in_data_tiles,
+		n_stacks
+		);
+	mloBuildConf_Val(
+		conf_val,
+		grp_tile1,
+		grp_tile0,
+		in_tile1,
+		in_tile0,
+		out_pix_tile1,
+		out_pix_tile0,
+		n_out_pix_tiles,
+		n_in_data_tiles,
+		n_stacks
+		);
+	hash = conf_key + std::string(" ") + conf_val;
+	return(0);
+}
+
+/***********************************************************************************************************
+
+* Internal implementation of the direct conv configuration search
+
+************************************************************************************************************/
+
+
+
+/*
 the search db is a text file with the name defined by the device characteristics.
 each line is a key/value pair, separated by a space:
 32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
@@ -1299,7 +1353,7 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 							continue;
 						}
 						// tile 0
-						for (int j = 0; j < 3; ++j)
+						for (int j = 0; j < 1; ++j)
 						{
 
 							_in_tile0 = tile_sz[j];
@@ -1423,12 +1477,12 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 														<< "min time so far : " << min_proc_time << ", "
 														<< "curr time : " << processing_time
 #if 1
+														<< ", " << _grp_tile1 << ", "
 														<< _grp_tile0 << ", "
-														<< _grp_tile1 << ", "
-														<< _in_tile0 << ", "
 														<< _in_tile1 << ", "
-														<< _out_pix_tile0 << ", "
+														<< _in_tile0 << ", "
 														<< _out_pix_tile1 << ", "
+														<< _out_pix_tile0 << ", "
 														<< _n_out_pix_tiles << ", "
 														<< _n_in_data_tiles << ", "
 														<< _n_stacks
