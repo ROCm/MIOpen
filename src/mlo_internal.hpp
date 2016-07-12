@@ -92,15 +92,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 
 
-/* Include CLBLAS header. It automatically includes needed OpenCL header,
-** so we can drop out explicit inclusion of cl.h header.
+/* 
+Include CLBLAS header. 
 */
 
-//#ifndef WITH_CLBLAS
-//#define WITH_CLBLAS
-//#endif
 #ifdef WITH_CLBLAS
-
 #include <clBLAS.h>
 #endif
 
