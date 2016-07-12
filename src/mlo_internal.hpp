@@ -97,7 +97,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 //#ifndef WITH_CLBLAS
-//#define WITH_CLBLAS
+#define WITH_CLBLAS
 //#endif
 
 #ifdef WITH_CLBLAS
@@ -133,6 +133,13 @@ public:
 	*/
 	int mloConstructDirect2D(void);
 
+
+	/*
+	* makes a unique key that represent the current kernel c0onfiguration
+	*/
+	int mloMakeKernelHash(std::string & hash) const;
+
+
 	/*
 	* ontains major configuration parameres:
 	* grp_tile1, grp_tile0 - group work size vertically and horizontally
@@ -152,7 +159,7 @@ public:
 		int & n_out_pix_tiles,
 		int & n_in_data_tiles,
 		int & n_stacks
-		)
+		) const
 	{
 
 		grp_tile0 = _grp_tile0;
@@ -190,6 +197,8 @@ public:
 		_n_stacks = n_stacks;
 	}
 	
+
+
 	/*
 	* returns kernel file name without location
 	*/
@@ -449,7 +458,6 @@ protected:
 	int mloConstructDirect2DFwdGen(void);
 
 	int mloSetConf(const std::string & conf_val);
-	int mloBuildConf_Key(std::string & conf_key);
 	int mloBuildConf_Key(std::string & conf_key) const;
 	int mloSelectDefaultConfig(std::string & conf_val);
 	int mloAddConfigReq(cl_device_id dev,
