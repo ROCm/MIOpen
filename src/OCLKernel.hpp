@@ -2,6 +2,7 @@
 #define _OCL_KERNEL_HPP_
 
 #include <sstream>
+#include <vector>
 #include "MLOpen.h"
 
 struct LocalMemArg 
@@ -17,7 +18,14 @@ class OCLKernel {
 
 	public:
 	OCLKernel() {}
-	OCLKernel(cl_kernel kernel) : _kernel(kernel) {}
+	OCLKernel(cl_kernel kernel, 
+			std::vector<size_t> ldims,
+			std::vector<size_t> gdims) : _kernel(kernel) {
+		for(int i = 0; i < ldims.size(); i++) {
+			_ldims.push_back(ldims[i]);
+			_gdims.push_back(gdims[i]);
+		}
+	}
 
 	//TODO: when to call the destructor?
 //	~OCLKernel() { clReleaseKernel(_kernel); }
@@ -40,8 +48,13 @@ class OCLKernel {
 
 	mlopenStatus_t GetKernelName(std::string &kernelName);
 
+	inline const std::vector<size_t>& GetLocalDims() const { return _ldims; }
+	inline const std::vector<size_t>& GetGlobalDims() const { return _gdims; }
+
 	private:
 	cl_kernel _kernel;
+	std::vector<size_t> _ldims;
+	std::vector<size_t> _gdims;
 };
 
 template<typename T, typename... Args>
