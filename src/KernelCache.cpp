@@ -113,26 +113,20 @@ OCLKernel KernelCache::getKernel(cl_command_queue &queue,
 		printf("kernel not found\n");
 		cl_program program = NULL;
         getProgram(program, queue, program_name, _params);
-        if (program == nullptr)
-        {
+        if (program == nullptr) {
             std::cout << "Problem with getting program ["
                       << program_name << "] " << std::endl;
         //    return;
 			//TODO: Return meaningful error
         }
 
-        cl_int status;
+        int status;
 
-		cl_kernel kernel = clCreateKernel(program, 
-				kernel_name.c_str(), 
-				&status);
+		cl_kernel kernel;
+		status = CLHelper::CreateKernel(program, kernel, kernel_name);
 
-        if (status != CL_SUCCESS)
-        {
-            std::cout << "Problem with creating kernel ["
-                      << kernel_name << "]" << std::endl;
-          //  return;
-			// TODO: Return meaningful error
+        if (status != mlopenStatusSuccess) {
+			std::cout << " Error creating OCL kernel\n";
         }
 		
 		OCLKernel _kernel(kernel, vld, vgd);
@@ -146,68 +140,19 @@ mlopenStatus_t KernelCache::getProgram(cl_program &program,
                                          const std::string& program_name,
                                          const std::string& params)
 {
+	mlopenStatus_t status;
 
-    cl_int status;
-	cl_context context;
-	cl_device_id device;
+ 	status = CLHelper::LoadProgramFromSource(program, queue, program_name);
+	if(status != mlopenStatusSuccess) {
+		return status;
+	}
 
-	status = clGetCommandQueueInfo(queue,
-			CL_QUEUE_CONTEXT, 
-			sizeof(cl_context),
-			&context, 
-			NULL);
-	// TODO: Check status
+	status = CLHelper::BuildProgram(program, queue, params);
+	if(status != mlopenStatusSuccess) {
+		return status;
+	}
 
-	// Stringify the kernel file
-	char *source;
-	size_t sourceSize;
-	FILE *fp = fopen(program_name.c_str(), "rb");
-	fseek(fp, 0, SEEK_END);
-	sourceSize = ftell(fp);
-	fseek(fp , 0, SEEK_SET);
-	source = (char *)malloc(sourceSize * sizeof(char));
-	fread(source, 1, sourceSize, fp);
-	fclose(fp);
-
-	program  = clCreateProgramWithSource(context, 
-			1,
-			(const char**)&source, 
-			&sourceSize, 
-			&status);
-	// TODO: Check status
-
-	status = clGetCommandQueueInfo(queue,
-			CL_QUEUE_DEVICE, 
-			sizeof(cl_device_id),
-			&device, 
-			NULL);
-	// TODO: Check status
-
-
-	/* create a cl program executable for all the devices specified */
-    status = clBuildProgram(program, 
-			1, &device, params.c_str(), 
-			NULL, 
-			NULL);
-	// TODO: Check status
-	
-    if(status != CL_SUCCESS)
-    {
-        printf("Error: Building Program (clBuildProgram): %d", status);
-        char * errorbuf = (char*)calloc(sizeof(char),1024*1024);
-        size_t size;
-        clGetProgramBuildInfo(program,
-				device,
-				CL_PROGRAM_BUILD_LOG, 
-				1024*1024, 
-				errorbuf,
-				&size);
-
-        printf("%s ", errorbuf);
-		free(errorbuf);
-    }
-
-    return mlopenStatusSuccess;
+	return mlopenStatusSuccess;
 }
 
 

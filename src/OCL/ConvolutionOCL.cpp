@@ -234,19 +234,10 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<cl_mem>(mlopenH
 	obj.SetArgs(0, in_dev, wei_dev, out_dev, padding_val);
 
 	int dim = (int)vld.size();
-	size_t * gd = new size_t[dim];
-	size_t * ld = new size_t[dim];
-
-	for (int i = 0; i < dim; ++i)
-	{
-		gd[i] = vgd[i];
-		ld[i] = vld[i];
-	}
-	// Run the kernel
-	obj.run(queue, dim, 0, gd, ld);
 	
-	delete[] gd;
-	delete[] ld;
+	// Run the kernel
+	obj.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
+	
 	clFinish(queue);
 
 	std::cout << "Conv's finished." << std::endl;
@@ -451,19 +442,9 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward<cl_mem>(mlopenHan
 	const std::vector<size_t> & vgd = kernel.GetGlobalDims();
 
 	int dim = (int)vld.size();
-	size_t * gd = new size_t[dim];
-	size_t * ld = new size_t[dim];
-
-	for (int i = 0; i < dim; ++i)
-	{
-		gd[i] = vgd[i];
-		ld[i] = vld[i];
-	}
 	// Run the kernel
-	kernel.run(queue, dim, 0, gd, ld);
+	kernel.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
 	
-	delete[] gd;
-	delete[] ld;
 	clFinish(queue);
 
 	std::cout << "Conv's (forward) finished." << std::endl;

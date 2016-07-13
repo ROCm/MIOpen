@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include "MLOpen.h"
 #include "OCLKernel.hpp"
+#include "OCL/CLHelper.hpp"
 
 struct SimpleHash {
 	size_t operator()(const std::pair<std::string, std::string>& p) const {
