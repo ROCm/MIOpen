@@ -11,13 +11,7 @@ mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 	cl_int status;
 	cl_context context;
 
-	status = clGetCommandQueueInfo(queue,
-			CL_QUEUE_CONTEXT, 
-			sizeof(cl_context),
-			&context, 
-			NULL);
-
-	CheckCLStatus(status, "Error Getting Context Info from Queue in LoadProgramFromSource()");
+	GetContextFromQueue(queue, context);
 
 	// Stringify the kernel file
 	char *source;
@@ -54,13 +48,7 @@ mlopenStatus_t CLHelper::BuildProgram(cl_program &program,
 	cl_int status;
 	cl_device_id device;
 
-	status = clGetCommandQueueInfo(queue,
-			CL_QUEUE_DEVICE, 
-			sizeof(cl_device_id),
-			&device, 
-			NULL);
-
-	CheckCLStatus(status, "Error Getting Device Info from Queue in BuildProgram()");
+	GetDeviceFromQueue(queue, device);
 
 	/* create a cl program executable for all the devices specified */
     status = clBuildProgram(program, 
@@ -106,6 +94,36 @@ mlopenStatus_t CLHelper::CreateKernel(cl_program &program,
 	std::string error = "Error Creating Kernel [" + kernel_name + "] in CreateKernel()";
 	CheckCLStatus(status, error);
 
+	return mlopenStatusSuccess;
+}
+
+mlopenStatus_t CLHelper::GetDeviceFromQueue(const cl_command_queue &queue,
+		cl_device_id &device) {
+
+	cl_int status;
+
+	status = clGetCommandQueueInfo(queue,
+			CL_QUEUE_DEVICE, 
+			sizeof(cl_device_id),
+			&device, 
+			NULL);
+
+	CheckCLStatus(status, "Error Getting Device Info from Queue in GetDecviceFromQueue()");
+	return mlopenStatusSuccess;
+}
+
+mlopenStatus_t CLHelper::GetContextFromQueue(const cl_command_queue &queue,
+		cl_context &context) {
+
+	cl_int status;
+
+	status = clGetCommandQueueInfo(queue,
+			CL_QUEUE_CONTEXT, 
+			sizeof(cl_context),
+			&context, 
+			NULL);
+
+	CheckCLStatus(status, "Error Getting Device Info from Queue in GetDecviceFromQueue()");
 	return mlopenStatusSuccess;
 }
 
