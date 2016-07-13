@@ -70,7 +70,9 @@ set( MLOpen_Source
 if( MLOpen_BACKEND MATCHES "OpenCL")
 	list(APPEND MLOpen_Source OCL/HandleOCL.cpp
 		OCL/TensorOCL.cpp
-		OCL/ConvolutionOCL.cpp)
+		OCL/ConvolutionOCL.cpp
+		OCL/CLHelper.hpp
+		OCL/CLHelper.cpp)
 endif()
 
 if( MLOpen_BACKEND MATCHES "HIP")
