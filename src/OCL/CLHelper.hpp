@@ -22,6 +22,12 @@ class CLHelper {
 			cl_kernel &kernel,
 			const std::string &kernel_name);
 
+	static mlopenStatus_t GetDeviceFromQueue(const cl_command_queue &queue,
+			cl_device_id &device);
+
+	static mlopenStatus_t GetContextFromQueue(const cl_command_queue &queue,
+			cl_context &context);
+
 	static void CheckCLStatus(cl_int status, const std::string &desc);
 };
 #endif // _OCL_HELPER_HPP_

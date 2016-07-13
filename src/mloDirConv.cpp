@@ -312,11 +312,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 {
 	int ret = 0;
 
-
-
-	cl_context ctxt;
 	cl_device_id dev;
-	ret = mloGetContextDeviceFromCLQueue(ctxt, dev, NULL, (cl_command_queue)_stream);
+	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
 
 	int maxComputeUnits;
 	int maxWorkItemDims;
@@ -341,8 +338,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
-
-
 
 	if (_direction == 0)
 	{
@@ -761,9 +756,7 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 /*
  * mesure the current onfiguration pefformance
  */
-int mlo_construct_direct2D :: mloMeasuredLoop(cl_context ctxt,
-		cl_device_id dev,
-		cl_command_queue profile_q,
+int mlo_construct_direct2D :: mloMeasuredLoop( cl_command_queue profile_q,
 		cl_mem bot_ocl_buf,
 		cl_mem top_ocl_buf,
 		cl_mem wei_ocl_buf,
@@ -1051,13 +1044,12 @@ bool mlo_construct_direct2D :: mloGetConfig(void)
 {
 	int ret = 0;
 	bool known_config = false;
-	cl_context ctxt;
 	cl_device_id dev;
 	std::string conf_key;
 	std::string conf_val;
 
 	// get device id
-	ret = mloGetContextDeviceFromCLQueue(ctxt, dev, NULL, (cl_command_queue)_stream);
+	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
 
 	// find a db and configuration in it
 	known_config = mloSearchConfigInDB(
@@ -1363,9 +1355,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 												<< _n_stacks
 												<< std::endl;
 #endif
-											ret = mloMeasuredLoop(ctxt,
-													dev,
-													profile_q,
+											ret = mloMeasuredLoop( profile_q,
 													bot_ocl_buf,
 													top_ocl_buf,
 													wei_ocl_buf,
