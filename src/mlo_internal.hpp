@@ -104,6 +104,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <clBLAS.h>
 #endif
 
+#include "OCLKernel.hpp"
+#include "OCL/CLHelper.hpp"
 
 class mlo_construct_direct2D {
 public:

@@ -18,6 +18,7 @@ class OCLKernel {
 
 	public:
 	OCLKernel() {}
+	OCLKernel(cl_kernel kernel) : _kernel(kernel) {}
 	OCLKernel(cl_kernel kernel, 
 			std::vector<size_t> ldims,
 			std::vector<size_t> gdims) : _kernel(kernel) {
@@ -42,7 +43,8 @@ class OCLKernel {
 		const int &work_dim,
 		const size_t * global_work_offset,
 		const size_t * global_work_dim,
-		const size_t * local_work_dim);
+		const size_t * local_work_dim,
+		cl_event	 * event);
 
 	cl_kernel& GetKernel() { return _kernel; } 
 
