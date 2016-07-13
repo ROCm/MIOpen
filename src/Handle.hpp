@@ -11,7 +11,7 @@
 //#include <CL/cl.h>
 //typedef cl_command_queue mlopenStream_t;
 
-#include <CL/cl.hpp>
+#include <CL/cl.h>
 
 #elif MLOpen_BACKEND_HIP
 //#include <hip_runtime.h>
