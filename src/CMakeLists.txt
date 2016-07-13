@@ -93,7 +93,7 @@ GENERATE_EXPORT_HEADER(MLOpen)
 ############################################################
 # MLOpen depends on OpenCL
 if( MLOpen_BACKEND MATCHES "OpenCL")
-	MESSAGE( "MLOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
+	MESSAGE( STATUS "MLOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	include_directories( ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )
 endif()

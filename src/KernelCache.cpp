@@ -97,7 +97,7 @@ OCLKernel KernelCache::getKernel(cl_command_queue &queue,
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
 #ifndef NDEBUG
-    std::cout << "key: " << key << std::endl;
+    std::cout << "key: " << key.first << ',' << key.second << std::endl;
 #endif
 
     auto kernel_iterator = kernel_map.find(key);
