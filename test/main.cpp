@@ -242,7 +242,9 @@ struct conv_forward : output_tensor_fixture
             mlopenConvolutionFwdAlgoDirect,
             &beta,
             outputTensor,
-            NULL);
+            NULL,
+            NULL,
+            0);
     }
 };
 
