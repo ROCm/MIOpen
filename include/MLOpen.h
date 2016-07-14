@@ -328,8 +328,39 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 		const mlopenConvolutionDescriptor_t convDesc,
 		mlopenConvFwdAlgorithm_t			algo,
 		const void							*beta,
-		const mlopenTensorDescriptor_t		 yDesc,
-		void								*y);
+		const mlopenTensorDescriptor_t		yDesc,
+		void								*y,
+		void								*workSpace,
+		size_t								workSpaceSize);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHandle_t handle,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		wDesc,
+		const void							*w,
+		const mlopenConvolutionDescriptor_t	convDesc,
+		const mlopenTensorDescriptor_t		dxDesc,
+		const void							*dx,
+		const int							requestAlgoCount,
+		int									*returnedAlgoCount,
+		mlopenConvAlgoPerf_t				*perfResults,
+		mlopenConvPreference_t				preference,
+		void								*workSpace,
+		size_t								workSpaceSize);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		wDesc,
+		const void							*w,
+		const mlopenConvolutionDescriptor_t convDesc,
+		mlopenConvBwdDataAlgorithm_t		algo,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		dxDesc,
+		void								*dx,
+		void								*workSpace,
+		size_t								workSpaceSize);
 
 #ifdef __cplusplus
 }

@@ -116,7 +116,7 @@ int main()
 	mlopenConvAlgoPerf_t perf;
 
 	cl_int status;
-#if 1 // Test to see if we can launch the kernel and get the results back
+#if 0 // Test to see if we can launch the kernel and get the results back
 	float *a1 = new float[1024];
 	float *b1 = new float[1024];
 	float *c1 = new float[1024];
@@ -126,18 +126,15 @@ int main()
 		b1[i] = 6.0;
 		c1[i] = 0.0;
 	}
+#endif
 	int sz = 1024;
-
 	cl_context ctx;
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
 	cl_mem adev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, &status);
-	if(status != CL_SUCCESS) {
-		printf("error %d\n", status);
-	}
 	cl_mem bdev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, NULL);
 	cl_mem cdev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz,NULL, NULL);
-
+#if 0
 	status = clEnqueueWriteBuffer(q, adev, CL_TRUE, 0, 4*sz, a1, 0, NULL, NULL);
 	status |= clEnqueueWriteBuffer(q, bdev, CL_TRUE, 0, 4*sz, b1, 0, NULL, NULL);
 	status |= clEnqueueWriteBuffer(q, cdev, CL_TRUE, 0, 4*sz, c1, 0, NULL, NULL);
@@ -160,7 +157,7 @@ int main()
 			NULL,
 			10);
 
-#if 1 // Read results back
+#if 0 // Read results back
 	clEnqueueReadBuffer(q, cdev, CL_TRUE, 0, 4*sz, c1, 0, NULL, NULL);
 
 	float sum = 0.0;
@@ -187,7 +184,38 @@ int main()
 			mlopenConvolutionFwdAlgoDirect,
 			&beta,
 			outputTensor,
-			NULL);
+			NULL,
+			NULL,
+			0);
+
+	mlopenFindConvolutionBackwardDataAlgorithm(handle,
+			inputTensor,
+			adev,
+			convFilter,
+			bdev,
+			convDesc,
+			outputTensor,
+			cdev,
+			1,
+			&ret_algo_count,
+			&perf,
+			mlopenConvolutionFastest,
+			NULL,
+			10);
+
+	mlopenConvolutionBackwardData(handle,
+			&alpha,
+			inputTensor,
+			NULL,
+			convFilter,
+			NULL,
+			convDesc,
+			mlopenConvolutionBwdDataAlgo_0,
+			&beta,
+			outputTensor,
+			NULL,
+			NULL,
+			0);
 
 	mlopenDestroyTensorDescriptor(outputTensor);
 	mlopenDestroyTensorDescriptor(convFilter);

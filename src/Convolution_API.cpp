@@ -160,7 +160,9 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 		mlopenConvFwdAlgorithm_t			algo,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		 yDesc,
-		void								*y) {
+		void								*y,
+		void								*workSpace,
+		size_t								workSpaceSize) {
 
 #if MLOpen_BACKEND_OPENCL
 	return convDesc->ConvolutionForward<cl_mem>(handle,
@@ -172,7 +174,9 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 			algo,
 			beta,
 			yDesc,
-			(cl_mem)y);
+			(cl_mem)y,
+			workSpace,
+			workSpaceSize);
 
 #elif MLOpen_BACKEND_HIP
 	return convDesc->ConvolutionForward<void *>(handle,
@@ -184,7 +188,102 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 			algo,
 			beta,
 			yDesc,
-			y);
+			y,
+			workSpace,
+			workSpaceSize);
+#endif
+}
+
+extern "C"
+mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHandle_t handle,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		wDesc,
+		const void							*w,
+		const mlopenConvolutionDescriptor_t	convDesc,
+		const mlopenTensorDescriptor_t		dxDesc,
+		const void							*dx,
+		const int							requestAlgoCount,
+		int									*returnedAlgoCount,
+		mlopenConvAlgoPerf_t				*perfResults,
+		mlopenConvPreference_t				preference,
+		void								*workSpace,
+		size_t								workSpaceSize) {
+
+#if MLOpen_BACKEND_OPENCL
+	return convDesc->FindConvBwdDataAlgorithm<cl_mem>(handle,
+			dyDesc,
+			(cl_mem)dy,
+			wDesc,
+			(cl_mem)w,
+			dxDesc,
+			(cl_mem)dx,
+			requestAlgoCount,
+			returnedAlgoCount,
+			perfResults,
+			preference,
+			workSpace,
+			workSpaceSize);
+
+#elif MLOpen_BACKEND_HIP
+	return convDesc->FindConvBwdDataAlgorithm<void *>(handle,
+			dyDesc,
+			dy,
+			wDesc,
+			w,
+			dxDesc,
+			dx,
+			requestAlgoCount,
+			returnedAlgoCount,
+			perfResults,
+			preference,
+			workSpace,
+			workSpaceSize);
+#endif
+}
+
+extern "C"
+mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		wDesc,
+		const void							*w,
+		const mlopenConvolutionDescriptor_t convDesc,
+		mlopenConvBwdDataAlgorithm_t		algo,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		dxDesc,
+		void								*dx,
+		void								*workSpace,
+		size_t								workSpaceSize) {
+
+#if MLOpen_BACKEND_OPENCL
+	return convDesc->ConvolutionBackwardData<cl_mem>(handle,
+			alpha,
+			dyDesc,
+			(cl_mem)dy,
+			wDesc,
+			(cl_mem)w,
+			algo,
+			beta,
+			dxDesc,
+			(cl_mem)dx,
+			workSpace,
+			workSpaceSize);
+
+#elif MLOpen_BACKEND_HIP
+	return convDesc->ConvolutionBackwardData<void *>(handle,
+			alpha,
+			dyDesc,
+			dy,
+			wDesc,
+			w,
+			algo,
+			beta,
+			dxDesc,
+			dx,
+			workSpace,
+			workSpaceSize);
 #endif
 }
 
