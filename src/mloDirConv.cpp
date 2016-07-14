@@ -634,6 +634,79 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 }
 
 /*
+* makes a unique key that represent the current kernel c0onfiguration
+*/
+
+int mlo_construct_direct2D::mloMakeKernelHash(std::string & hash) const
+{
+
+	std::string conf_key, conf_val;
+	mloBuildConf_Key(conf_key);
+	int grp_tile1;
+	int grp_tile0;
+	int in_tile1;
+	int in_tile0;
+	int out_pix_tile1;
+	int out_pix_tile0;
+	int n_out_pix_tiles;
+	int n_in_data_tiles;
+	int n_stacks;
+
+	getConfigParameters(
+		grp_tile1,
+		grp_tile0,
+		in_tile1,
+		in_tile0,
+		out_pix_tile1,
+		out_pix_tile0,
+		n_out_pix_tiles,
+		n_in_data_tiles,
+		n_stacks
+		);
+	mloBuildConf_Val(
+		conf_val,
+		grp_tile1,
+		grp_tile0,
+		in_tile1,
+		in_tile0,
+		out_pix_tile1,
+		out_pix_tile0,
+		n_out_pix_tiles,
+		n_in_data_tiles,
+		n_stacks
+		);
+	hash = conf_key + std::string(" ") + conf_val;
+	return(0);
+}
+
+/***********************************************************************************************************
+
+* Internal implementation of the direct conv configuration search
+
+************************************************************************************************************/
+
+
+
+/*
+the search db is a text file with the name defined by the device characteristics.
+each line is a key/value pair, separated by a space:
+32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
+or
+64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
+
+key format (all values are separted by x):
+n input maps
+input height
+input width
+filter height
+filter width
+n output maps
+output height
+output width
+batch size
+tensors' layout
+tensprs' data type
+direction (1 - forward, 0 - backward)
    the search db is a text file with the name defined by the device characteristics.
    each line is a key/value pair, separated by a space:
    32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
@@ -1221,7 +1294,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		   std::vector<int> v_n_in_tiles_rg;
 		   std::vector<int> v_n_in_stacks_sz;
 		   */
-		// 
+		   // 
 
 		double min_proc_time = CL_MAXFLOAT;
 
@@ -1266,187 +1339,173 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 							continue;
 						}
 
-						// out pix 1
-
-						int k_l = (_kernel_size1 == 3) ? 4 : 3;
-						for (int k = 0; k < k_l; ++k)
+						// tile 0
+						for (int j = 0; j < 3; ++j)
 						{
-							_out_pix_tile1 = out_pix_tile_sz[k];
-							if (_out_pix_tile1 > _in_tile1)
-							{
-								runs_left--;
-								runs_left = (runs_left < 0) ? 0 : runs_left;
-								continue;
-							}
-							// out pix 0
-							int l_l = (_kernel_size0 == 3) ? 4 : 3;
-							for (int l = 0; l < l_l; ++l)
-							{
-								_out_pix_tile0 = out_pix_tile_sz[l];
+							// out pix 1
 
-								if (_out_pix_tile0 > _in_tile0)
+							int k_l = (_kernel_size1 == 3) ? 4 : 3;
+							for (int k = 0; k < k_l; ++k)
+							{
+								_out_pix_tile1 = out_pix_tile_sz[k];
+								if (_out_pix_tile1 > _in_tile1)
 								{
 									runs_left--;
 									runs_left = (runs_left < 0) ? 0 : runs_left;
 									continue;
 								}
-
-								int o_l = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 4 : n_out_tiles_rg[1];
-								for (int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
+								// out pix 0
+								int l_l = (_kernel_size0 == 3) ? 4 : 3;
+								for (int l = 0; l < l_l; ++l)
 								{
-#if 1
-									if ((_out_pix_tile1 == 8 || _out_pix_tile0 == 8) && o_t > 4)
-									{
-										runs_left--;
-										runs_left = (runs_left < 0) ? 0 : runs_left;
-										continue;
-									}
-#endif
-									_n_out_pix_tiles = o_t;
-									if (_n_outputs < _n_out_pix_tiles)
+									_out_pix_tile0 = out_pix_tile_sz[l];
+
+									if (_out_pix_tile0 > _in_tile0)
 									{
 										runs_left--;
 										runs_left = (runs_left < 0) ? 0 : runs_left;
 										continue;
 									}
 
-									for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
+									int o_l = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 4 : n_out_tiles_rg[1];
+									for (int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
 									{
-										_n_in_data_tiles = i_t;
-										if (_n_inputs < _n_in_data_tiles)
+#if 1
+										if ((_out_pix_tile1 == 8 || _out_pix_tile0 == 8) && o_t > 4)
+										{
+											runs_left--;
+											runs_left = (runs_left < 0) ? 0 : runs_left;
+											continue;
+										}
+#endif
+										_n_out_pix_tiles = o_t;
+										if (_n_outputs < _n_out_pix_tiles)
 										{
 											runs_left--;
 											runs_left = (runs_left < 0) ? 0 : runs_left;
 											continue;
 										}
 
-										for (int s = 0; s < 3; ++s)
+										for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
 										{
-
-											_n_stacks = n_in_stacks_sz[s];
-#if 1
-											if ((_in_tile1 > 16 || _in_tile0 > 16)
-													&& i_t > 4
-													&& _n_stacks > 2)
-
+											_n_in_data_tiles = i_t;
+											if (_n_inputs < _n_in_data_tiles)
 											{
 												runs_left--;
 												runs_left = (runs_left < 0) ? 0 : runs_left;
-
 												continue;
 											}
 
+											for (int s = 0; s < 3; ++s)
+											{
+
+												_n_stacks = n_in_stacks_sz[s];
+#if 1
+												if ((_in_tile1 > 16 || _in_tile0 > 16)
+													&& i_t > 4
+													&& _n_stacks > 2)
+
+												{
+													runs_left--;
+													runs_left = (runs_left < 0) ? 0 : runs_left;
+
+													continue;
+												}
+
 #endif
 
 
-
-
-											// here is the loop
-#if 0
-											std::cout
-												<< _grp_tile0 << ", "
-												<< _grp_tile1 << ", "
-												<< _in_tile0 << ", "
-												<< _in_tile1 << ", "
-												<< _out_pix_tile0 << ", "
-												<< _out_pix_tile1 << ", "
-												<< _n_out_pix_tiles << ", "
-												<< _n_in_data_tiles << ", "
-												<< _n_stacks
-												<< std::endl;
-#endif
-											ret = mloMeasuredLoop( profile_q,
+												ret = mloMeasuredLoop(profile_q,
 													bot_ocl_buf,
 													top_ocl_buf,
 													wei_ocl_buf,
 													bias_ocl_buf,
 													processing_time
-													);
-											if (ret != 0)
-											{
-												std::cout << "Failed run." << std::endl;
+												);
+
+												if (ret != 0)
+												{
+													std::cout << "Failed run." << std::endl;
+													runs_left--;
+													runs_left = (runs_left < 0) ? 0 : runs_left;
+													continue;
+												}
+
+
+												if (run_counter != 0 && run_counter % report_inteval == 0)
+												{
+													std::cout << "Runs left : " << runs_left << ", "
+														<< "min time so far : " << min_proc_time << ", "
+														<< "curr time : " << processing_time
+#if 1
+														<< ", " << _grp_tile1 << ", "
+														<< _grp_tile0 << ", "
+														<< _in_tile1 << ", "
+														<< _in_tile0 << ", "
+														<< _out_pix_tile1 << ", "
+														<< _out_pix_tile0 << ", "
+														<< _n_out_pix_tiles << ", "
+														<< _n_in_data_tiles << ", "
+														<< _n_stacks
+#endif
+														<< std::endl;
+												}
+
+												run_counter++;
 												runs_left--;
 												runs_left = (runs_left < 0) ? 0 : runs_left;
-												continue;
-											}
+												if (min_proc_time > processing_time)
+												{
+													min_proc_time = processing_time;
+													min_grp_tile0 = _grp_tile0;
+													min_grp_tile1 = _grp_tile1;
+													min_in_tile0 = _in_tile0;
+													min_in_tile1 = _in_tile1;
+													min_out_pix_tile0 = _out_pix_tile0;
+													min_out_pix_tile1 = _out_pix_tile1;
+													min_n_out_pix_tiles = _n_out_pix_tiles;
+													min_n_in_data_tiles = _n_in_data_tiles;
+													min_n_stacks = _n_stacks;
+												}
+
+											}  // for (int s = 0; s < 3; ++s)
+										} // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
+
+									} // if (_out_pix_tile0 > _in_tile0)
+								} // for (int l = 0; l < l_l; ++l)
+
+							} // for (int k = 0; k < k_l; ++k)
+
+						}  // for (int j = 0; j < 3; ++j)
+
+					} // for (int i = 0; i < 3; ++i)
+				} // for (int g0 = 0; g0 < 2; ++g0)
+			} // for (int g1 = 0; g1 < 2; g1++) 
 
 
-											if (run_counter != 0 && run_counter % report_inteval == 0)
-											{
-												std::cout << "Runs left : " << runs_left << ", "
-													<< "min time so far : " << min_proc_time << ", "
-													<< "curr time : " << processing_time
-#if 1
-													<< _grp_tile0 << ", "
-													<< _grp_tile1 << ", "
-													<< _in_tile0 << ", "
-													<< _in_tile1 << ", "
-													<< _out_pix_tile0 << ", "
-													<< _out_pix_tile1 << ", "
-													<< _n_out_pix_tiles << ", "
-													<< _n_in_data_tiles << ", "
-													<< _n_stacks
+			std::cout << std::endl << "Score: " << min_proc_time << std::endl;
 #endif
-													<< std::endl;
-											}
 
-											run_counter++;
-											runs_left--;
-											runs_left = (runs_left < 0) ? 0 : runs_left;
-
-
-											if (min_proc_time > processing_time)
-											{
-												min_proc_time = processing_time;
-												min_grp_tile0 = _grp_tile0;
-												min_grp_tile1 = _grp_tile1;
-												min_in_tile0 = _in_tile0;
-												min_in_tile1 = _in_tile1;
-												min_out_pix_tile0 = _out_pix_tile0;
-												min_out_pix_tile1 = _out_pix_tile1;
-												min_n_out_pix_tiles = _n_out_pix_tiles;
-												min_n_in_data_tiles = _n_in_data_tiles;
-												min_n_stacks = _n_stacks;
-											}
-
-										}
-									}
-
-								}
-							}
-
-						}
-
-					}
-
-				}
+			ret = clReleaseMemObject(bot_ocl_buf);
+			ret = clReleaseMemObject(top_ocl_buf);
+			ret = clReleaseMemObject(wei_ocl_buf);
+			if (_bias)
+			{
+				ret = clReleaseMemObject(bias_ocl_buf);
+				delete[] bias_sys_buf;
 			}
-		}
+
+			if (profile_q)
+			{
+				clReleaseCommandQueue(profile_q);
+			}
 
 
-		std::cout << std::endl << "Score: " << min_proc_time << std::endl;
-#endif
+			delete[] bot_sys_buf;
+			delete[] top_sys_buf;
+			delete[] wei_sys_buf;
 
-		ret = clReleaseMemObject(bot_ocl_buf);
-		ret = clReleaseMemObject(top_ocl_buf);
-		ret = clReleaseMemObject(wei_ocl_buf);
-		if (_bias)
-		{
-			ret = clReleaseMemObject(bias_ocl_buf);
-			delete[] bias_sys_buf;
-		}
-
-		if (profile_q)
-		{
-			clReleaseCommandQueue(profile_q);
-		}
-
-
-		delete[] bot_sys_buf;
-		delete[] top_sys_buf;
-		delete[] wei_sys_buf;
-
-		mloBuildConf_Val(conf_val,
+			mloBuildConf_Val(conf_val,
 				min_grp_tile1,
 				min_grp_tile0,
 				min_in_tile1,
@@ -1456,19 +1515,19 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 				min_n_out_pix_tiles,
 				min_n_in_data_tiles,
 				min_n_stacks
-				);
+			);
 
 
-		mloAddConfig(
+			mloAddConfig(
 				dev,
 				conf_key,
 				conf_val
-				);
-		// set the learnt data fo the current run.
-		mloSetConf(conf_val);
+			);
+			// set the learnt data fo the current run.
+			mloSetConf(conf_val);
 
+		}
 	}
-
 	return(ret);
 }
 
