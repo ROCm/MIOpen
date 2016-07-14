@@ -1471,3 +1471,114 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 
 	return(ret);
 }
+
+// Tensor Helper APIs
+
+size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescriptor_t &weight_tensor) {
+	
+	int nWei;
+	int cWei;
+	int hWei;
+	int wWei;
+	int nWeiStride;
+	int cWeiStride;
+	int hWeiStride;
+	int wWeiStride;
+
+	weight_tensor->Get4Dims(&nWei, &cWei, &hWei, &wWei);
+
+	weight_tensor->Get4Strides(&nWeiStride,
+			&cWeiStride,
+			&hWeiStride,
+			&wWeiStride);
+
+
+	setWeightsDescr(
+			"NCHW",
+			"FP32",
+			nWei,
+			cWei,
+			hWei,
+			wWei,
+			nWeiStride,
+			cWeiStride,
+			hWeiStride,
+			wWeiStride
+			);
+
+	size_t weights_sz = nWei * cWei * hWei * wWei * sizeof(float);
+	return weights_sz;
+
+}
+
+size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescriptor_t &output_tensor) {
+
+	int nOut;
+	int cOut;
+	int hOut;
+	int wOut;
+	int nOutStride;
+	int cOutStride;
+	int hOutStride;
+	int wOutStride;
+
+	output_tensor->Get4Dims(&nOut, &cOut, &hOut, &wOut);
+
+	output_tensor->Get4Strides(&nOutStride,
+			&cOutStride,
+			&hOutStride,
+			&wOutStride);
+
+
+	setOutputDescr(
+			"NCHW",
+			"FP32",
+			nOut,
+			cOut,
+			hOut,
+			wOut,
+			nOutStride,
+			cOutStride,
+			hOutStride,
+			wOutStride);
+
+
+	size_t output_sz = nOut * cOut * hOut * wOut * sizeof(float);
+	return output_sz;
+
+}
+
+size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopenTensorDescriptor_t &input_tensor) {
+
+	int nIn;
+	int cIn;
+	int hIn;
+	int wIn;
+	int nInStride;
+	int cInStride;
+	int hInStride;
+	int wInStride;
+
+	input_tensor->Get4Dims(&nIn, &cIn, &hIn, &wIn);
+
+	input_tensor->Get4Strides(&nInStride,
+			&cInStride,
+			&hInStride,
+			&wInStride);
+
+	setInputDescr(
+			"NCHW",
+			"FP32",
+			nIn,
+			cIn,
+			hIn,
+			wIn,
+			nInStride,
+			cInStride,
+			hInStride,
+			wInStride);
+
+	size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
+
+	return input_sz;
+}
