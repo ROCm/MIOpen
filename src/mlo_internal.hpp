@@ -106,6 +106,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "OCLKernel.hpp"
 #include "OCL/CLHelper.hpp"
+#include "Tensor.hpp"
 
 class mlo_construct_direct2D {
 public:
@@ -445,6 +446,9 @@ public:
 
 	// MD: Hack to get the key outside of mlo_internal
 	int mloBuildConf_Key(std::string & conf_key) const;
+	size_t setInputDescFromMLDesc(const mlopenTensorDescriptor_t &input_tensor);
+	size_t setOutputDescFromMLDesc(const mlopenTensorDescriptor_t &output_tensor);
+	size_t setWeightDescFromMLDesc(const mlopenTensorDescriptor_t &weight_tensor);
 protected:
 
 	bool mloGetConfig(void);
