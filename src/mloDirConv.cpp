@@ -707,7 +707,6 @@ batch size
 tensors' layout
 tensprs' data type
 direction (1 - forward, 0 - backward)
-=======
    the search db is a text file with the name defined by the device characteristics.
    each line is a key/value pair, separated by a space:
    32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
@@ -727,7 +726,6 @@ direction (1 - forward, 0 - backward)
    tensors' layout
    tensprs' data type
    direction (1 - forward, 0 - backward)
->>>>>>> 2250393b787c008df053bd1d3cb934dc4055ae1a
 
 Note: 
 for backward direction - input and output are reversed.
