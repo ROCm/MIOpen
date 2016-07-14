@@ -55,7 +55,7 @@ OCLKernel KernelCache::get( const std::string& algorithm,
 
 OCLKernel KernelCache::getKernel(	const std::string& algorithm,
 										const std::string& network_config) {
-	
+
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
 #ifndef NDEBUG
 	std::cout << "key: " << key.first <<" "<< key.second<< std::endl;
@@ -71,7 +71,8 @@ OCLKernel KernelCache::getKernel(	const std::string& algorithm,
 	// TODO: Where should the default kernel be?
 	else // return default kernel
 	{
-	
+		printf("looking for default kernel (does not exist)\n");
+		exit(0);
 	}
 }
 
