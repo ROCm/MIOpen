@@ -1,8 +1,6 @@
 #include "Tensor.hpp"
 
-#if MLOpen_BACKEND_OPENCL
-template<>
-mlopenStatus_t mlopenTensorDescriptor::TransformTensor<cl_mem>(mlopenHandle_t handle,
+mlopenStatus_t mlopenTensorDescriptor::TransformTensor(mlopenHandle_t handle,
 			const void *alpha,
 			const mlopenTensorDescriptor_t srcTensorDesc,
 			const cl_mem srcTensor,
@@ -33,8 +31,7 @@ mlopenStatus_t mlopenTensorDescriptor::TransformTensor<cl_mem>(mlopenHandle_t ha
 	return mlopenStatusSuccess;
 }
 
-template<>
-mlopenStatus_t mlopenTensorDescriptor::OpTensor<cl_mem>(mlopenHandle_t handle,
+mlopenStatus_t mlopenTensorDescriptor::OpTensor(mlopenHandle_t handle,
 		mlopenTensorOp_t				tensorOp,
 		const void						*alpha1,
 		const mlopenTensorDescriptor_t	inputTensorDesc1,
@@ -83,8 +80,7 @@ mlopenStatus_t mlopenTensorDescriptor::OpTensor<cl_mem>(mlopenHandle_t handle,
 
 }
 
-template<>
-mlopenStatus_t mlopenTensorDescriptor::SetTensor<cl_mem>(mlopenHandle_t handle,
+mlopenStatus_t mlopenTensorDescriptor::SetTensor(mlopenHandle_t handle,
 		cl_mem							dstTensor,
 		const void						*valuePtr) {
 
@@ -111,8 +107,7 @@ mlopenStatus_t mlopenTensorDescriptor::SetTensor<cl_mem>(mlopenHandle_t handle,
 
 }
 
-template<>
-mlopenStatus_t mlopenTensorDescriptor::ScaleTensor<cl_mem>(mlopenHandle_t handle,
+mlopenStatus_t mlopenTensorDescriptor::ScaleTensor(mlopenHandle_t handle,
 		cl_mem							dstTensor,
 		const void						*alpha) {
 
@@ -136,5 +131,3 @@ mlopenStatus_t mlopenTensorDescriptor::ScaleTensor<cl_mem>(mlopenHandle_t handle
 	return mlopenStatusSuccess;
 
 }
-
-#endif
