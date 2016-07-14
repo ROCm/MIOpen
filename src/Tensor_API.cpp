@@ -195,22 +195,12 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	yDesc,
 		void							*y) {
 
-	// Calling the transform function on the destination tensor
-#if MLOpen_BACKEND_OPENCL
-	return yDesc->TransformTensor<cl_mem>(handle, 
+	return yDesc->TransformTensor(handle, 
 			alpha,
 			xDesc,
-			(cl_mem)x,
+			DataCast(x),
 			beta,
-			(cl_mem)y);
-#elif MLOpen_BACKEND_HIP
-	return yDesc->TransformTensor<void *>(handle, 
-			alpha,
-			xDesc,
-			x,
-			beta,
-			y);
-#endif
+			DataCast(y));
 }
 
 extern "C"
@@ -226,31 +216,17 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	cDesc,
 		void							*C) {
 
-	// Calling the transform function on the destination tensor
-#if MLOpen_BACKEND_OPENCL
-	return cDesc->OpTensor<cl_mem>(handle,
+	return cDesc->OpTensor(handle,
 			tensorOp,
 			alpha1,
 			aDesc,
-			(cl_mem)A,
+			DataCast(A),
 			alpha2,
 			bDesc,
-			(cl_mem)B,
+			DataCast(B),
 			beta,
-			(cl_mem)C);
+			DataCast(C));
 
-#elif MLOpen_BACKEND_HIP
-	return cDesc->OpTensor<void *>(handle,
-			tensorOp,
-			alpha1,
-			aDesc,
-			A,
-			alpha2,
-			bDesc,
-			B,
-			beta,
-			C);
-#endif
 }
 
 extern "C"
@@ -259,17 +235,10 @@ mlopenStatus_t mlopenSetTensor(mlopenHandle_t handle,
 		void							*y,
 		const void						*valuePtr) {
 	
-	// Calling the transform function on the destination tensor
-#if MLOpen_BACKEND_OPENCL
-	return yDesc->SetTensor<cl_mem>(handle,
-			(cl_mem)y,
+	return yDesc->SetTensor(handle,
+			DataCast(y),
 			valuePtr);
-#elif MLOpen_BACKEND_HIP
-	return yDesc->SetTensor<void *>(handle,
-			y,
-			valuePtr);
-#endif
-	
+
 }
 
 extern "C"
@@ -278,14 +247,8 @@ mlopenStatus_t mlopenScaleTensor(mlopenHandle_t handle,
 		void							*y,
 		const void						*alpha) {
 
-	// Calling the transform function on the destination tensor
-#if MLOpen_BACKEND_OPENCL
-	return yDesc->ScaleTensor<cl_mem>(handle,
-			(cl_mem)y,
+	return yDesc->ScaleTensor(handle,
+			DataCast(y),
 			alpha);
-#elif MLOpen_BACKEND_HIP
-	return yDesc->ScaleTensor<void *>(handle,
-			y,
-			alpha);
-#endif
+
 }

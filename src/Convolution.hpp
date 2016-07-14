@@ -1,10 +1,11 @@
-#ifndef _CONVOLUTION_HPP_
-#define _CONVOLUTION_HPP_
+#ifndef _MLOPEN_CONVOLUTION_HPP_
+#define _MLOPEN_CONVOLUTION_HPP_
 
 #include "MLOpen.h"
 #include "Handle.hpp"
 #include "Tensor.hpp"
 #include "KernelCache.hpp"
+#include "Common.hpp"
 
 struct mlopenConvolutionDescriptor {
 	
@@ -18,7 +19,6 @@ struct mlopenConvolutionDescriptor {
 			int *h, 
 			int *w);
 
-	template <typename Data_t>
 	mlopenStatus_t FindConvFwdAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	xDesc,
 		const Data_t					x,
@@ -33,7 +33,6 @@ struct mlopenConvolutionDescriptor {
 		void							*workSpace,
 		size_t							workSpaceSize);
 
-	template <typename Data_t>
 	mlopenStatus_t ConvolutionForward(mlopenHandle_t handle,
 		const void							*alpha,
 		const mlopenTensorDescriptor_t		xDesc,
@@ -47,7 +46,6 @@ struct mlopenConvolutionDescriptor {
 		void								*workSpace,
 		size_t								workSpaceSize);
 
-	template <typename Data_t>
 	mlopenStatus_t FindConvBwdDataAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	dyDesc,
 		const Data_t					dy,
@@ -62,7 +60,6 @@ struct mlopenConvolutionDescriptor {
 		void							*workSpace,
 		size_t							workSpaceSize);
 
-	template <typename Data_t>
 	mlopenStatus_t ConvolutionBackwardData(mlopenHandle_t handle,
 		const void							*alpha,
 		const mlopenTensorDescriptor_t		dyDesc,
@@ -86,126 +83,4 @@ struct mlopenConvolutionDescriptor {
 	mlopenHandle_t _convHandle;
 };
 
-// Template Instantations
-//
-#if MLOpen_BACKEND_OPENCL
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<cl_mem>(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t	xDesc,
-		const cl_mem					x,
-		const mlopenTensorDescriptor_t	wDesc,
-		const cl_mem					w,
-		const mlopenTensorDescriptor_t	yDesc,
-		const cl_mem					y,
-		const int						requestAlgoCount,
-		int								*returnedAlgoCount,
-		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
-		void							*workSpace,
-		size_t							workSpaceSize);
-
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward<cl_mem>(mlopenHandle_t handle,
-		const void							*alpha,
-		const mlopenTensorDescriptor_t		xDesc,
-		const cl_mem						x,
-		const mlopenTensorDescriptor_t		wDesc,
-		const cl_mem						w,
-		mlopenConvFwdAlgorithm_t			algo,
-		const void							*beta,
-		const mlopenTensorDescriptor_t		yDesc,
-		cl_mem								y,
-		void								*workSpace,
-		size_t								workSpaceSize);
-
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm<cl_mem>(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t	dyDesc,
-		const cl_mem					dy,
-		const mlopenTensorDescriptor_t	wDesc,
-		const cl_mem					w,
-		const mlopenTensorDescriptor_t	dxDesc,
-		const cl_mem					dx,
-		const int						requestAlgoCount,
-		int								*returnedAlgoCount,
-		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
-		void							*workSpace,
-		size_t							workSpaceSize);
-
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData<cl_mem>(mlopenHandle_t handle,
-		const void							*alpha,
-		const mlopenTensorDescriptor_t		dyDesc,
-		const cl_mem						dy,
-		const mlopenTensorDescriptor_t		wDesc,
-		const cl_mem						w,
-		mlopenConvBwdDataAlgorithm_t		algo,
-		const void							*beta,
-		const mlopenTensorDescriptor_t		dxDesc,
-		cl_mem								dx,
-		void								*workSpace,
-		size_t								workSpaceSize);
-
-#elif MLOpen_BACKEND_HIP
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<void *>(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t	xDesc,
-		const void						*x,
-		const mlopenTensorDescriptor_t	wDesc,
-		const void						*w,
-		const mlopenTensorDescriptor_t	yDesc,
-		const void						*y,
-		const int						requestAlgoCount,
-		int								*returnedAlgoCount,
-		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
-		void							*workSpace,
-		size_t							workSpaceSize);
-
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward<void *>(mlopenHandle_t handle,
-		const void							*alpha,
-		const mlopenTensorDescriptor_t		xDesc,
-		const void							*x,
-		const mlopenTensorDescriptor_t		wDesc,
-		const void							*w,
-		mlopenConvFwdAlgorithm_t			algo,
-		const void							*beta,
-		const mlopenTensorDescriptor_t		yDesc,
-		void								*y,
-		void								*workSpace,
-		size_t								workSpaceSize);
-
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm<void *>(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t	dyDesc,
-		const void						*dy,
-		const mlopenTensorDescriptor_t	wDesc,
-		const void						*w,
-		const mlopenTensorDescriptor_t	dxDesc,
-		const void						*dx,
-		const int						requestAlgoCount,
-		int								*returnedAlgoCount,
-		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
-		void							*workSpace,
-		size_t							workSpaceSize);
-
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData<void *>(mlopenHandle_t handle,
-		const void							*alpha,
-		const mlopenTensorDescriptor_t		dyDesc,
-		const void							*dy,
-		const mlopenTensorDescriptor_t		wDesc,
-		const void							*w,
-		mlopenConvFwdAlgorithm_t			algo,
-		const void							*beta,
-		const mlopenTensorDescriptor_t		dxDesc,
-		void								*dx,
-		void								*workSpace,
-		size_t								workSpaceSize);
-
-#endif // HIP vs OpenCL
-
-#endif // _CONVOLUTION_HPP_
+#endif // _MLOPEN_CONVOLUTION_HPP_

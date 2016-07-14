@@ -117,14 +117,13 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-#if MLOpen_BACKEND_OPENCL
-	return convDesc->FindConvFwdAlgorithm<cl_mem>(handle,
+	return convDesc->FindConvFwdAlgorithm(handle,
 			xDesc,
-			(cl_mem)x,
+			DataCast(x),
 			wDesc,
-			(cl_mem)w,
+			DataCast(w),
 			yDesc,
-			(cl_mem)y,
+			DataCast(y),
 			requestAlgoCount,
 			returnedAlgoCount,
 			perfResults,
@@ -132,21 +131,6 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 			workSpace,
 			workSpaceSize);
 
-#elif MLOpen_BACKEND_HIP
-	return convDesc->FindConvFwdAlgorithm<void *>(handle,
-			xDesc,
-			x,
-			wDesc,
-			w,
-			yDesc,
-			y,
-			requestAlgoCount,
-			returnedAlgoCount,
-			perfResults,
-			preference,
-			workSpace,
-			workSpaceSize);
-#endif
 }
 
 extern "C"
@@ -164,34 +148,19 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-#if MLOpen_BACKEND_OPENCL
-	return convDesc->ConvolutionForward<cl_mem>(handle,
+	return convDesc->ConvolutionForward(handle,
 			alpha,
 			xDesc,
-			(cl_mem)x,
+			DataCast(x),
 			wDesc,
-			(cl_mem)w,
+			DataCast(w),
 			algo,
 			beta,
 			yDesc,
-			(cl_mem)y,
+			DataCast(y),
 			workSpace,
 			workSpaceSize);
 
-#elif MLOpen_BACKEND_HIP
-	return convDesc->ConvolutionForward<void *>(handle,
-			alpha,
-			xDesc,
-			x,
-			wDesc,
-			w,
-			algo,
-			beta,
-			yDesc,
-			y,
-			workSpace,
-			workSpaceSize);
-#endif
 }
 
 extern "C"
@@ -210,36 +179,19 @@ mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-#if MLOpen_BACKEND_OPENCL
-	return convDesc->FindConvBwdDataAlgorithm<cl_mem>(handle,
+	return convDesc->FindConvBwdDataAlgorithm(handle,
 			dyDesc,
-			(cl_mem)dy,
+			DataCast(dy),
 			wDesc,
-			(cl_mem)w,
+			DataCast(w),
 			dxDesc,
-			(cl_mem)dx,
+			DataCast(dx),
 			requestAlgoCount,
 			returnedAlgoCount,
 			perfResults,
 			preference,
 			workSpace,
 			workSpaceSize);
-
-#elif MLOpen_BACKEND_HIP
-	return convDesc->FindConvBwdDataAlgorithm<void *>(handle,
-			dyDesc,
-			dy,
-			wDesc,
-			w,
-			dxDesc,
-			dx,
-			requestAlgoCount,
-			returnedAlgoCount,
-			perfResults,
-			preference,
-			workSpace,
-			workSpaceSize);
-#endif
 }
 
 extern "C"
@@ -257,33 +209,17 @@ mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-#if MLOpen_BACKEND_OPENCL
-	return convDesc->ConvolutionBackwardData<cl_mem>(handle,
+	return convDesc->ConvolutionBackwardData(handle,
 			alpha,
 			dyDesc,
-			(cl_mem)dy,
+			DataCast(dy),
 			wDesc,
-			(cl_mem)w,
+			DataCast(w),
 			algo,
 			beta,
 			dxDesc,
-			(cl_mem)dx,
+			DataCast(dx),
 			workSpace,
 			workSpaceSize);
-
-#elif MLOpen_BACKEND_HIP
-	return convDesc->ConvolutionBackwardData<void *>(handle,
-			alpha,
-			dyDesc,
-			dy,
-			wDesc,
-			w,
-			algo,
-			beta,
-			dxDesc,
-			dx,
-			workSpace,
-			workSpaceSize);
-#endif
 }
 

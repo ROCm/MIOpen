@@ -63,8 +63,7 @@ set( MLOpen_Source
 	mloDirConv.cpp
 	mlo_internal.hpp
 	mloUtils.hpp
-	#	MlOpenConvDirGenFwd.cl
-	#MLOpenConvDirUni.cl
+	Common.hpp
 	)
 
 if( MLOpen_BACKEND MATCHES "OpenCL")

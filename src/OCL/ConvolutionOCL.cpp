@@ -1,9 +1,7 @@
 #include "Convolution.hpp"
 #include "mlo_internal.hpp"
 
-#if MLOpen_BACKEND_OPENCL
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<cl_mem>(mlopenHandle_t handle,
+mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	xDesc,
 		const cl_mem					x,
 		const mlopenTensorDescriptor_t	wDesc,
@@ -17,7 +15,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<cl_mem>(mlopenH
 		void							*workSpace,
 		size_t							workSpaceSize) {
 	
-	printf("To be implemented (FindConvFwdAlgo) \n");
 #if 0
 	if(handle == nullptr) {
 		return mlopenStatusBadParm;
@@ -103,8 +100,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<cl_mem>(mlopenH
 			vgd,
 			parms);
 
-//	printf("ehr\n");
-//	getchar();
 	cl_int status;
 
 	std::string kernName;
@@ -158,8 +153,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<cl_mem>(mlopenH
 
 }
 
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward<cl_mem>(mlopenHandle_t handle,
+mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t handle,
 		const void							*alpha,
 		const mlopenTensorDescriptor_t		xDesc,
 		const cl_mem						x,
@@ -171,8 +165,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward<cl_mem>(mlopenHan
 		cl_mem								y, 
 		void								*workSpace,
 		size_t								workSpaceSize) {
-
-	printf("To be implemented (ConvolutionForward) \n");
 
 #if 0
 	if(handle == nullptr) {
@@ -281,8 +273,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward<cl_mem>(mlopenHan
 
 // FindBackwardDataAlgorithm()
 //
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm<cl_mem>(mlopenHandle_t handle,
+mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	dyDesc,
 		const cl_mem					dy,
 		const mlopenTensorDescriptor_t	wDesc,
@@ -296,7 +287,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm<cl_mem>(mlo
 		void							*workSpace,
 		size_t							workSpaceSize) {
 	
-	printf("To be implemented (FindConvBwdDataAlgo) \n");
 #if 0
 	if(handle == nullptr) {
 		return mlopenStatusBadParm;
@@ -436,8 +426,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm<cl_mem>(mlo
 }
 
 // BackwardDataAlgorithm()
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData<cl_mem>(mlopenHandle_t handle,
+mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle_t handle,
 		const void							*alpha,
 		const mlopenTensorDescriptor_t		dyDesc,
 		const cl_mem						dy,
@@ -449,8 +438,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData<cl_mem>(mlop
 		cl_mem								dx, 
 		void								*workSpace,
 		size_t								workSpaceSize) {
-
-	printf("To be implemented (ConvolutionBackward) \n");
 
 #if 0
 	if(handle == nullptr) {
@@ -560,4 +547,3 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData<cl_mem>(mlop
 	return mlopenStatusSuccess;
 
 }
-#endif
