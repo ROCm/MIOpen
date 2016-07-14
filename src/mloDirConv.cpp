@@ -634,7 +634,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 }
 
 /*
-<<<<<<< HEAD
 * makes a unique key that represent the current kernel c0onfiguration
 */
 
