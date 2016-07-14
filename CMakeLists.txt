@@ -11,7 +11,7 @@ if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
 	set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
 endif()
 
-project ( SuperBuild.MLOpen NONE )
+project ( SuperBuild.MLOpen C CXX )
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( TARGET_PLATFORM "64" )
@@ -85,3 +85,4 @@ source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
 
 add_subdirectory(src)
 add_subdirectory(driver)
+add_subdirectory(test)
