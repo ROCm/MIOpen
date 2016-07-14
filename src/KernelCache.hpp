@@ -15,8 +15,8 @@
  * ************************************************************************ */
 
 #pragma once
-#ifndef _KERNEL_CAHCE_HPP_
-#define _KERNEL_CAHCE_HPP_
+#ifndef _MLOPEN_KERNEL_CACHE_HPP_
+#define _MLOPEN_KERNEL_CACHE_HPP_
 
 #if MLOpen_BACKEND_OPENCL
 
@@ -89,4 +89,4 @@ private:
 
 #endif // MLOpen_BACKEND_OPENCL
 
-#endif //_KERNEL_CACHE_HPP_
+#endif //_MLOPEN_KERNEL_CACHE_HPP_

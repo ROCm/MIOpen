@@ -1,5 +1,5 @@
-#ifndef _OCL_KERNEL_HPP_
-#define _OCL_KERNEL_HPP_
+#ifndef _MLOPEN_OCL_KERNEL_HPP_
+#define _MLOPEN_OCL_KERNEL_HPP_
 
 #include <sstream>
 #include <vector>
@@ -92,4 +92,4 @@ mlopenStatus_t OCLKernel::SetArgs(int i,
 
 }
 
-#endif // _OCL_KERNEL_HPP_
+#endif // _MLOPEN_OCL_KERNEL_HPP_
