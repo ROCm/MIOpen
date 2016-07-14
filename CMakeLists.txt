@@ -85,3 +85,4 @@ source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
 
 add_subdirectory(src)
 add_subdirectory(driver)
+add_subdirectory(test)
