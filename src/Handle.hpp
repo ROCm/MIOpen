@@ -1,5 +1,5 @@
-#ifndef _HANDLE_HPP_
-#define _HANDLE_HPP_
+#ifndef _MLOPEN_HANDLE_HPP_
+#define _MLOPEN_HANDLE_HPP_
 
 #include "MLOpen.h"
 #include <vector>
@@ -42,4 +42,4 @@ template<>
 mlopenStatus_t mlopenContext::CreateDefaultStream<hipStream_t>();
 #endif // HIP vs OpenCL
 
-#endif // _HANDLE_HPP_
+#endif // _MLOPEN_HANDLE_HPP_
