@@ -3,6 +3,8 @@
 #include <MLOpen.h>
 #include <CL/cl.h>
 #include <vector>
+#include <array>
+#include <iterator>
 // #include "mloConvHost.hpp"
 
 void failed(const char * msg, const char* file, int line)
@@ -75,9 +77,9 @@ struct input_tensor_fixture : virtual handle_fixture
         CHECK(c == 32);
         CHECK(h == 8);
         CHECK(w == 8);
-        CHECK(nStride == 1);
-        CHECK(cStride == 1);
-        CHECK(hStride == 1);
+        CHECK(nStride == c * cStride);
+        CHECK(cStride == h * hStride);
+        CHECK(hStride == w * wStride);
         CHECK(wStride == 1);
     }
 };
