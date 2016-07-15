@@ -12,6 +12,8 @@
 struct mlopenTensorDescriptor {
 	mlopenTensorDescriptor();
 
+	void CalculateStrides();
+
 	// Set functions
 	mlopenStatus_t SetTensorHandle(mlopenHandle_t handle);
 	mlopenStatus_t Set4Dims(int n,

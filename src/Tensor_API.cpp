@@ -26,29 +26,13 @@ mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
 		int n,
 		int c,
 		int h,
-		int w,
-		int nStride,
-		int cStride,
-		int hStride,
-		int wStride) {
+		int w) {
 	
 	try{
 		tensorDesc->Set4Dims(n, c, h, w);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try {
-		tensorDesc->Set4Strides(nStride,
-			cStride,
-			hStride,
-			wStride);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
+		tensorDesc->CalculateStrides();
 		tensorDesc->SetDataType(dataType);
+
 	} catch (mlopenStatus_t success) {
 		return success;
 	}
