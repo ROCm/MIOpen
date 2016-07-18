@@ -28,6 +28,9 @@ class CLHelper {
 	static mlopenStatus_t GetContextFromQueue(const cl_command_queue &queue,
 			cl_context &context);
 
+	static mlopenStatus_t CreateQueueWithProfiling(const cl_command_queue &queue,
+			cl_command_queue *profile_q);
+
 	static void CheckCLStatus(cl_int status, const std::string &desc);
 };
 #endif // _OCL_HELPER_HPP_

@@ -1188,14 +1188,10 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 	int min_n_in_data_tiles = 3;
 	int min_n_stacks = 1;
 
-
-	ret = mloGetContextDeviceFromCLQueue(ctxt, dev,
-#if 0
-			NULL
-#else
-			&profile_q
-#endif
-			, (cl_command_queue)_stream);
+  CLHelper::GetContextFromQueue((cl_command_queue)_stream, ctxt);
+  CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
+  if(!profile_q)
+	  CLHelper::CreateQueueWithProfiling((cl_command_queue)_stream, &profile_q);
 
 	int maxComputeUnits;
 	int maxWorkItemDims;
@@ -1227,7 +1223,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 			conf_key,
 			conf_val
 			);
-
 
 	// proceed
 	if (!known_config)
@@ -1313,19 +1308,15 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 
 		for (int g1 = 0; g1 < 2; g1++)
 		{
-
 			_grp_tile1 = grp_tl_ln[g1];
 
 			for (int g0 = 0; g0 < 2; ++g0)
 			{
-
-
 				_grp_tile0 = grp_tl_ln[g0];
 
 				// tile1
 				for (int j = 0; j < 3; ++j)
 				{
-
 					_in_tile1 = tile_sz[j];
 					if (_out_height * 2 <= _in_tile1)
 					{
@@ -1336,8 +1327,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 					// tile 0
 					for (int i = 0; i < 3; ++i)
 					{
-
-
 						_in_tile0 = tile_sz[i];
 						if (_out_width * 2 <= _in_tile0)
 						{
@@ -1416,8 +1405,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 											}
 
 #endif
-
-
 											ret = mloMeasuredLoop(profile_q,
 												bot_ocl_buf,
 												top_ocl_buf,
@@ -1473,23 +1460,13 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 
 										}  // for (int s = 0; s < 3; ++s)
 									} // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
-
 								} // if (_out_pix_tile0 > _in_tile0)
 							} // for (int l = 0; l < l_l; ++l)
-
 						} // for (int k = 0; k < k_l; ++k)
-
 					}  // for (int i = 0; i < 3; ++i)
-
-
 				} // for (int j = 0; j < 3; ++j)
-
-
 			} // for (int g0 = 0; g0 < 2; ++g0)
-
-
 		} // for (int g1 = 0; g1 < 2; g1++) 
-
 
 		std::cout << std::endl << "Score: " << min_proc_time << std::endl;
 #endif
@@ -1508,7 +1485,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 			clReleaseCommandQueue(profile_q);
 		}
 
-
 		delete[] bot_sys_buf;
 		delete[] top_sys_buf;
 		delete[] wei_sys_buf;
@@ -1525,7 +1501,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 			min_n_stacks
 		);
 
-
 		mloAddConfig(
 			dev,
 			conf_key,
@@ -1533,7 +1508,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		);
 		// set the learnt data fo the current run.
 		mloSetConf(conf_val);
-
 
 	}
 
