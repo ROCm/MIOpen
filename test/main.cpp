@@ -263,7 +263,7 @@ int main() {
     run_test<input_tensor_fixture>();
     run_test<conv_filter_fixture>();
     run_test<output_tensor_fixture>();
-    // run_test<conv_forward>();
+    run_test<conv_forward>();
 }
 
 
