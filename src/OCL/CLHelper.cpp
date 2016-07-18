@@ -127,6 +127,23 @@ mlopenStatus_t CLHelper::GetContextFromQueue(const cl_command_queue &queue,
 	return mlopenStatusSuccess;
 }
 
+mlopenStatus_t CLHelper::CreateQueueWithProfiling(const cl_command_queue &queue,
+		cl_command_queue *profile_q) {
+
+	cl_device_id dev;
+	cl_context ctx;
+	cl_int status;
+
+	GetContextFromQueue(queue, ctx);
+	GetDeviceFromQueue(queue, dev);
+
+	*profile_q = clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &status);
+
+	CheckCLStatus(status, "Error Creating Queue With Profiling Enabled");
+
+	return mlopenStatusSuccess;
+}
+
 void CLHelper::CheckCLStatus(cl_int status, const std::string &errString) {
 	if (status != CL_SUCCESS)
 	{
