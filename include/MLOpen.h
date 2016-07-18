@@ -81,11 +81,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
 		int							n,
 		int							c,
 		int							h,
-		int							w,
-		int							nStride = 1,
-		int							cStride = 1,
-		int 						hStride = 1,
-		int 						wStride = 1);
+		int							w);
 
 // Get the details of the tensor desciptor
 MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
