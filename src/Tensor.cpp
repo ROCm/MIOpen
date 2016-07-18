@@ -1,5 +1,6 @@
 #include "Tensor.hpp"
 #include <string>
+#include <algorithm>
 
 mlopenTensorDescriptor::mlopenTensorDescriptor() : _dims(4) {
 
@@ -8,6 +9,14 @@ mlopenTensorDescriptor::mlopenTensorDescriptor() : _dims(4) {
 	_dimA = std::vector<int> (4,0);
 	_strideA = std::vector<int> (4, 1);
 	_tensorHandle = nullptr;
+}
+
+void mlopenTensorDescriptor::CalculateStrides()
+{
+	_strideA.clear();
+	_strideA.resize(_dimA.size(), 0);
+	_strideA.back() = 1;
+	std::partial_sum(_dimA.rbegin(), _dimA.rend()-1, _strideA.rbegin()+1, std::multiplies<int>());
 }
 
 mlopenStatus_t mlopenTensorDescriptor::SetTensorHandle(mlopenHandle_t handle) {

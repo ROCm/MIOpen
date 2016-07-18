@@ -3,6 +3,10 @@
 #include <MLOpen.h>
 #include <CL/cl.h>
 #include <vector>
+#include <array>
+#include <iterator>
+#include <memory>
+#include <cassert>
 // #include "mloConvHost.hpp"
 
 void failed(const char * msg, const char* file, int line)
@@ -75,9 +79,9 @@ struct input_tensor_fixture : virtual handle_fixture
         CHECK(c == 32);
         CHECK(h == 8);
         CHECK(w == 8);
-        CHECK(nStride == 1);
-        CHECK(cStride == 1);
-        CHECK(hStride == 1);
+        CHECK(nStride == c * cStride);
+        CHECK(cStride == h * hStride);
+        CHECK(hStride == w * wStride);
         CHECK(wStride == 1);
     }
 };
@@ -194,7 +198,7 @@ struct conv_forward : output_tensor_fixture
 
         // Setup OpenCL buffers
 
-        cl_int status;
+        cl_int status = CL_SUCCESS;
         const int sz = 1024;
         std::vector<float> a1(sz, 1.0);
         std::vector<float> b1(sz, 6.0);
@@ -248,13 +252,18 @@ struct conv_forward : output_tensor_fixture
     }
 };
 
-
+template<class T>
+void run_test()
+{
+    T t = {};
+    t.run();
+}
 
 int main() {
-    input_tensor_fixture{}.run();
-    conv_filter_fixture{}.run();
-    output_tensor_fixture{}.run();
-    conv_forward{}.run();
+    run_test<input_tensor_fixture>();
+    run_test<conv_filter_fixture>();
+    run_test<output_tensor_fixture>();
+    // run_test<conv_forward>();
 }
 
 
