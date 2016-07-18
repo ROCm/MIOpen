@@ -1,21 +1,11 @@
-#include <iostream>
-#include <cstdio>
 #include <MLOpen.h>
+#include "test.hpp"
 #include <CL/cl.h>
 #include <vector>
 #include <array>
 #include <iterator>
 #include <memory>
-#include <cassert>
 // #include "mloConvHost.hpp"
-
-void failed(const char * msg, const char* file, int line)
-{
-    printf("FAILED: %s: %s:%i\n", msg, file, line);
-    std::abort();
-}
-
-#define CHECK(...) if (!(__VA_ARGS__)) failed(#__VA_ARGS__, __FILE__, __LINE__)
 
 struct handle_fixture
 {
@@ -34,14 +24,14 @@ struct handle_fixture
     }
 };
 
-struct input_tensor_fixture : virtual handle_fixture
+struct input_tensor_fixture //: virtual handle_fixture
 {
     mlopenTensorDescriptor_t inputTensor;
 
     input_tensor_fixture()
     {
-        mlopenCreateTensorDescriptor(handle, &inputTensor);
-        mlopenInit4dTensorDescriptor(handle,
+        mlopenCreateTensorDescriptor(&inputTensor);
+        mlopenInit4dTensorDescriptor(
                 inputTensor,
                 mlopenFloat,
                 100,
@@ -62,7 +52,7 @@ struct input_tensor_fixture : virtual handle_fixture
         int nStride, cStride, hStride, wStride;
         mlopenDataType_t dt;
 
-        mlopenGet4dTensorDescriptor(handle,
+        mlopenGet4dTensorDescriptor(
                 inputTensor,
                 &dt,
                 &n,
@@ -95,9 +85,9 @@ struct conv_filter_fixture : virtual handle_fixture
 
     conv_filter_fixture()
     {
-        mlopenCreateTensorDescriptor(handle, &convFilter);
+        mlopenCreateTensorDescriptor(&convFilter);
         // weights
-        mlopenInit4dTensorDescriptor(handle,
+        mlopenInit4dTensorDescriptor(
             convFilter,
             mlopenFloat,
             64,  // outputs
@@ -151,9 +141,9 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
         int x, y, z, a;
         mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a);
 
-        mlopenCreateTensorDescriptor(handle, &outputTensor);
+        mlopenCreateTensorDescriptor(&outputTensor);
 
-        mlopenInit4dTensorDescriptor(handle,
+        mlopenInit4dTensorDescriptor(
             outputTensor,
             mlopenFloat,
             x,
@@ -251,13 +241,6 @@ struct conv_forward : output_tensor_fixture
             0);
     }
 };
-
-template<class T>
-void run_test()
-{
-    T t = {};
-    t.run();
-}
 
 int main() {
     run_test<input_tensor_fixture>();

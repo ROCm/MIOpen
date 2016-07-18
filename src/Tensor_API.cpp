@@ -1,7 +1,7 @@
 #include "Tensor.hpp"
 
 extern "C"
-mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenCreateTensorDescriptor(
 		mlopenTensorDescriptor_t *tensorDesc) {
 	
 	if(tensorDesc == nullptr) {
@@ -14,13 +14,11 @@ mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
 		return status;
 	}
 
-	(*tensorDesc)->SetTensorHandle(handle);	
-
 	return mlopenStatusSuccess;
 }
 
 extern "C"
-mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenInit4dTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t dataType,
 		int n,
@@ -41,7 +39,7 @@ mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
 }
 
 extern "C"
-mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenGet4dTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t *dataType,
 		int *n,
@@ -74,16 +72,10 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
 		return success;
 	}
 
-	try{
-		tensorDesc->GetTensorHandle(handle);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
 	return mlopenStatusSuccess;
 }
 
-mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenInitNdTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t dataType,
 		int nbDims,
@@ -119,7 +111,7 @@ mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
 }
 
 extern "C"
-mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenGetNdTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t *dataType,
 		int *nbDims,
@@ -146,12 +138,6 @@ mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
 
 	try{
 		tensorDesc->GetDataType(*dataType);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->GetTensorHandle(handle);
 	} catch (mlopenStatus_t success) {
 		return success;
 	}

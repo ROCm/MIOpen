@@ -18,5 +18,10 @@ function(add_test_executable TEST_NAME)
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 endfunction(add_test_executable)
 
-add_test_executable(main main.cpp)
-target_link_libraries(main MLOpen)
+file(GLOB TESTS *.cpp)
+foreach(TEST ${TESTS})
+    get_filename_component(BASE_NAME ${TEST} NAME_WE)
+    add_test_executable(test_${BASE_NAME} ${TEST})
+    target_link_libraries(test_${BASE_NAME} MLOpen)
+endforeach()
+
