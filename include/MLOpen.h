@@ -95,21 +95,6 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptor(
 		int							*hStride,
 		int							*wStride);
 
-
-MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
-		mlopenTensorDescriptor_t tensorDesc,
-		int *n,
-		int *c,
-		int *h,
-		int *w);
-
-MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
-		mlopenTensorDescriptor_t tensorDesc,
-		int *nStride,
-		int *cStride,
-		int *hStride,
-		int *wStride);
-
 // Not sure if the following two APIs are required right now
 MLOPEN_EXPORT mlopenStatus_t mlopenSetTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
