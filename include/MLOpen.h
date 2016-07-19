@@ -71,11 +71,10 @@ typedef enum {
 } mlopenConvolutionMode_t;
 
 // Create a Tensor Descriptor
-MLOPEN_EXPORT mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
-		mlopenTensorDescriptor_t	*tensorDesc);
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateTensorDescriptor(mlopenTensorDescriptor_t *tensorDesc);
 
 // Only supporting NCHW for now and merging both expert and regular cuDNN APIs
-MLOPEN_EXPORT mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenSet4dTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
 		mlopenDataType_t			datatype, // half/float/double
 		int							n,
@@ -84,7 +83,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
 		int							w);
 
 // Get the details of the tensor desciptor
-MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
 		mlopenDataType_t			*datatype,
 		int							*n,
@@ -97,18 +96,19 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
 		int							*wStride);
 
 // Not sure if the following two APIs are required right now
-MLOPEN_EXPORT mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenSetTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
 		mlopenDataType_t			datatype,
 		int							nbDims,
 		int							*dimA,
 		int							*strideA);
 
+MLOPEN_EXPORT mlopenStatus_t mlopenGetTensorDescriptorSize(mlopenTensorDescriptor_t tensorDesc, int* size);
+
 // Get the details of the n-dimensional tensor desciptor
-MLOPEN_EXPORT mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenGetTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
 		mlopenDataType_t			*datatype,
-		int							*nbDims,
 		int							*dimA,
 		int							*strideA);
 		

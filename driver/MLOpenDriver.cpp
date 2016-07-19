@@ -55,9 +55,9 @@ int main()
 
 	// mlopenTensor APIs
 	mlopenTensorDescriptor_t inputTensor;
-	mlopenCreateTensorDescriptor(handle, &inputTensor);
+	mlopenCreateTensorDescriptor(&inputTensor);
 
-	mlopenInit4dTensorDescriptor(handle,
+	mlopenSet4dTensorDescriptor(
 			inputTensor,
 			mlopenFloat,
 			100,
@@ -75,7 +75,7 @@ int main()
 	
 	mlopenDataType_t dt;
 	
-	mlopenGet4dTensorDescriptor(handle,
+	mlopenGet4dTensorDescriptor(
 			inputTensor,
 			&dt,
 			&n_in,
@@ -90,10 +90,10 @@ int main()
 	size_t sz_in = n_in*c_in*h_in*w_in;
 
 	mlopenTensorDescriptor_t convFilter;
-	mlopenCreateTensorDescriptor(handle, &convFilter);
+	mlopenCreateTensorDescriptor(&convFilter);
 
 	// weights
-	mlopenInit4dTensorDescriptor(handle,
+	mlopenSet4dTensorDescriptor(
 		convFilter,
 		mlopenFloat,
 		64,  // outputs
@@ -148,9 +148,9 @@ int main()
 	mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a);
 
 	mlopenTensorDescriptor_t outputTensor;
-	mlopenCreateTensorDescriptor(handle, &outputTensor);
+	mlopenCreateTensorDescriptor(&outputTensor);
 
-	mlopenInit4dTensorDescriptor(handle,
+	mlopenSet4dTensorDescriptor(
 		outputTensor,
 		mlopenFloat,
 		x,
