@@ -5,7 +5,7 @@
 #include <array>
 #include <iterator>
 #include <memory>
-// #include "mloConvHost.hpp"
+#include <mlopenTensor.hpp>
 
 struct handle_fixture
 {
@@ -99,8 +99,8 @@ struct conv_filter_fixture : virtual handle_fixture
         // convolution with padding 2
         mlopenInitConvolutionDescriptor(convDesc,
                 mode,
-                2,
-                2,
+                0,
+                0,
                 1,
                 1,
                 1,
@@ -124,8 +124,8 @@ struct conv_filter_fixture : virtual handle_fixture
                 &upx, &upy);
 
         CHECK(mode == 0);
-        CHECK(pad_h == 2);
-        CHECK(pad_w == 2);
+        CHECK(pad_h == 0);
+        CHECK(pad_w == 0);
         CHECK(u == 1);
         CHECK(v == 1);
         CHECK(upx == 1);
@@ -163,8 +163,8 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
 
         CHECK(x == 100);
         CHECK(y == 64);
-        CHECK(z == 8);
-        CHECK(a == 8);
+        CHECK(z == 4);
+        CHECK(a == 4);
     }
 };
 
@@ -188,37 +188,51 @@ struct conv_forward : output_tensor_fixture
 
         // Setup OpenCL buffers
 
+		int n, h, c, w;
+		mlopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w);
+		size_t sz_in = n*c*h*w;
+		
+		mlopenGet4dTensorDescriptorLengths(convFilter, &n, &c, &h, &w);
+		size_t sz_wei = n*c*h*w;
+		
+		mlopenGet4dTensorDescriptorLengths(outputTensor, &n, &c, &h, &w);
+		size_t sz_out = n*c*h*w;
+
         cl_int status = CL_SUCCESS;
-        const int sz = 1024;
-        std::vector<float> a1(sz, 1.0);
-        std::vector<float> b1(sz, 6.0);
-        std::vector<float> c1(sz, 0.0);
+		float *in = new float[sz_in];
+		float *wei = new float[sz_wei];
+		std::vector<float> out(sz_out, 0);
+
+		for(int i = 0; i < sz_in; i++) {
+			in[i] = rand() * (1.0 / RAND_MAX);
+		}
+		for (int i = 0; i < sz_wei; i++) {
+			wei[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+		}
 
         cl_context ctx;
         clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
-        cl_mem adev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, &status);
-        CHECK(status == CL_SUCCESS);
+		cl_mem in_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz_in,NULL, &status);
+		cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz_wei,NULL, NULL);
+		cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz_out,NULL, NULL);
 
-        cl_mem bdev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, NULL);
-        cl_mem cdev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz,NULL, NULL);
-
-        status = clEnqueueWriteBuffer(q, adev, CL_TRUE, 0, 4*sz, a1.data(), 0, NULL, NULL);
-        status |= clEnqueueWriteBuffer(q, bdev, CL_TRUE, 0, 4*sz, b1.data(), 0, NULL, NULL);
-        status |= clEnqueueWriteBuffer(q, cdev, CL_TRUE, 0, 4*sz, c1.data(), 0, NULL, NULL);
-        CHECK(status == CL_SUCCESS);
+		status = clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4*sz_in, in, 0, NULL, NULL);
+		status |= clEnqueueWriteBuffer(q, wei_dev, CL_TRUE, 0, 4*sz_wei, wei, 0, NULL, NULL);
+		status |= clEnqueueWriteBuffer(q, out_dev, CL_TRUE, 0, 4*sz_out, out.data(), 0, NULL, NULL);
+		CHECK(status == CL_SUCCESS);
 
         int ret_algo_count;
         mlopenConvAlgoPerf_t perf;
 
         mlopenFindConvolutionForwardAlgorithm(handle,
             inputTensor,
-            adev,
+            in_dev,
             convFilter,
-            bdev,
+            wei_dev,
             convDesc,
             outputTensor,
-            cdev,
+            out_dev,
             1,
             &ret_algo_count,
             &perf,
@@ -229,14 +243,14 @@ struct conv_forward : output_tensor_fixture
         mlopenConvolutionForward(handle,
             &alpha,
             inputTensor,
-            NULL,
+            in_dev,
             convFilter,
-            NULL,
+            wei_dev,
             convDesc,
             mlopenConvolutionFwdAlgoDirect,
             &beta,
             outputTensor,
-            NULL,
+			out_dev,
             NULL,
             0);
     }
