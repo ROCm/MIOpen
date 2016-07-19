@@ -101,7 +101,7 @@ int main()
 		5,   // kernel size
 		5);
 
-	mlopenGet4dTensorDescriptor(handle,
+	mlopenGet4dTensorDescriptor(
 			convFilter,
 			&dt,
 			&n_wei,
@@ -158,7 +158,7 @@ int main()
 		z,
 		a);
 
-	mlopenGet4dTensorDescriptor(handle,
+	mlopenGet4dTensorDescriptor(
 			outputTensor,
 			&dt,
 			&n_out,
@@ -270,11 +270,11 @@ int main()
 	if(status != CL_SUCCESS) 
 		printf("error\n");
 
-	for(int i = 0; i < sz_out; i++) {
-		//printf("%f\t%f\t%f\n, ", out[i], outhost[i], outhost1[i]);
-		printf("%f\n, ", outhost1[i]);
-	}
-	
+//	for(int i = 0; i < sz_out; i++) {
+//		//printf("%f\t%f\t%f\n, ", out[i], outhost[i], outhost1[i]);
+//		printf("%f\n, ", outhost1[i]);
+//	}
+
 	mlopenFindConvolutionBackwardDataAlgorithm(handle,
 			inputTensor,
 			out_dev,
@@ -303,7 +303,6 @@ int main()
 			in_dev,
 			NULL,
 			0);
-
 	mlopenDestroyTensorDescriptor(outputTensor);
 	mlopenDestroyTensorDescriptor(convFilter);
 	mlopenDestroyTensorDescriptor(inputTensor);

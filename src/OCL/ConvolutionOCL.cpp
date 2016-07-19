@@ -107,7 +107,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 	printf("kname: %s\n", kernName.c_str());
 
-#if 1 // Test to see if we can launch the kernel and get the results back
+#if 0 // Test to see if we can launch the kernel and get the results back
 
 	float * in_sys = new float[input_sz];
 	float * wei_sys = new float[weights_sz];
@@ -133,11 +133,11 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 //	status = clEnqueueWriteBuffer(queue, adev, CL_TRUE, 0, 4*sz, a, 0, NULL, NULL);
 //	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
 //	status |= clEnqueueWriteBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
-
+#endif
 	// Set kernel arguments
 	// Use proper arguments
 	float padding_val = 0;
-	obj.SetArgs(0, in_dev, wei_dev, out_dev, padding_val);
+	obj.SetArgs(0, x, w, y, padding_val);
 
 	int dim = (int)vld.size();
 	
@@ -147,7 +147,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	clFinish(queue);
 
 	std::cout << "Conv's finished." << std::endl;
-#endif // Test
 
 	return mlopenStatusSuccess;
 
@@ -175,16 +174,16 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 	if(x == nullptr || w == nullptr || y == nullptr) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->_dims != yDesc->_dims || xDesc->_dims != wDesc->_dims) {
+	if(xDesc->GetSize() != yDesc->GetSize() || xDesc->GetSize() != wDesc->GetSize()) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->_CheckTensorDataTypes(yDesc) != mlopenStatusSuccess || xDesc->_CheckTensorDataTypes(wDesc) != mlopenStatusSuccess) {
+	if(xDesc->GetType() != yDesc->GetType() || xDesc->GetType() != wDesc->GetType()) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->_dimA[1] != wDesc->_dimA[1]) {
+	if(xDesc->GetLengths()[1] != wDesc->GetLengths()[1]) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->_dims < 3) {
+	if(xDesc->GetSize() < 3) {
 		return mlopenStatusBadParm;
 	}
 	
@@ -321,8 +320,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 		construct_params.mloConstructDirect2D();
 	}
 
-	std::string program_name = std::string("../src/Kernels/") +  construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
-	std::string kernel_name = construct_params.getKernelName(); // "hello_world_kernel"; // kernel name
+	std::string program_name = std::string("../src/Kernels/") +  construct_params.getKernelFile();  
+	std::string kernel_name = construct_params.getKernelName(); // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
 	std::string network_config;
@@ -351,37 +350,10 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 
 	printf("kname: %s\n", kernName.c_str());
 
-#if 1 // Test to see if we can launch the kernel and get the results back
-
-	float * in_sys = new float[input_sz];
-	float * wei_sys = new float[weights_sz];
-	float * out_sys = new float[output_sz];
-
-	for(int i = 0; i < input_sz; i++) {
-		in_sys[i] = rand() * (1.0 / RAND_MAX);
-	}
-	for (int i = 0; i < weights_sz; i++) {
-		wei_sys[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
-	}
-
-	cl_context ctx;
-	clGetCommandQueueInfo(queue, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
-	cl_mem in_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input_sz, in_sys, &status);
-	if(status != CL_SUCCESS) {
-		printf("error %d\n", status);
-	}
-	cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, weights_sz,wei_sys, NULL);
-	cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, output_sz,NULL, NULL);
-
-//	status = clEnqueueWriteBuffer(queue, adev, CL_TRUE, 0, 4*sz, a, 0, NULL, NULL);
-//	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
-//	status |= clEnqueueWriteBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
-
 	// Set kernel arguments
 	// Use proper arguments
 	float padding_val = 0;
-	obj.SetArgs(0, in_dev, wei_dev, out_dev, padding_val);
+	obj.SetArgs(0, dy, w, dx, padding_val);
 
 	int dim = (int)vld.size();
 	
@@ -391,7 +363,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 	clFinish(queue);
 
 	std::cout << "Backward Conv's finished." << std::endl;
-#endif // Test
 
 	return mlopenStatusSuccess;
 
@@ -411,29 +382,28 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-#if 0
 	if(handle == nullptr) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc == nullptr || wDesc == nullptr || yDesc == nullptr) {
+	if(dxDesc == nullptr || wDesc == nullptr || dyDesc == nullptr) {
 		return mlopenStatusBadParm;
 	}
-	if(x == nullptr || w == nullptr || y == nullptr) {
+	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->_CheckTensorDims(yDesc) != mlopenStatusSuccess || xDesc->_CheckTensorDims(wDesc) != mlopenStatusSuccess) {
+	if(dyDesc->GetSize() != dxDesc->GetSize() || dyDesc->GetSize() != wDesc->GetSize()) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->_CheckTensorDataTypes(yDesc) != mlopenStatusSuccess || xDesc->_CheckTensorDataTypes(wDesc) != mlopenStatusSuccess) {
+	if(dyDesc->GetType() != dxDesc->GetType() || dyDesc->GetType() != wDesc->GetType()) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->_dimA[0] != wDesc->_dimA[0]) {
+	if(dyDesc->GetLengths()[1] != wDesc->GetLengths()[1]) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->_dims < 3) {
+	if(dyDesc->GetSize() < 3) {
 		return mlopenStatusBadParm;
 	}
-#endif
+
 	// TODO: Replicating code for now.
 	size_t input_sz = 0;
 	size_t output_sz = 0;
@@ -472,37 +442,10 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 
 	printf("kname: %s\n", kernName.c_str());
 
-#if 1 // Test to see if we can launch the kernel and get the results back
-
-	float * in_sys = new float[input_sz];
-	float * wei_sys = new float[weights_sz];
-	float * out_sys = new float[output_sz];
-
-	for(int i = 0; i < input_sz; i++) {
-		in_sys[i] = rand() * (1.0 / RAND_MAX);
-	}
-	for (int i = 0; i < weights_sz; i++) {
-		wei_sys[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
-	}
-
-	cl_context ctx;
-	clGetCommandQueueInfo(queue, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
-	cl_mem in_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input_sz, in_sys, &status);
-	if(status != CL_SUCCESS) {
-		printf("error %d\n", status);
-	}
-	cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, weights_sz,wei_sys, NULL);
-	cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, output_sz,NULL, NULL);
-
-//	status = clEnqueueWriteBuffer(queue, adev, CL_TRUE, 0, 4*sz, a, 0, NULL, NULL);
-//	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
-//	status |= clEnqueueWriteBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
-
 	// Set kernel arguments
 	// Use proper arguments
 	float padding_val = 0;
-	kernel.SetArgs(0, in_dev, wei_dev, out_dev, padding_val);
+	kernel.SetArgs(0, dy, w, dx, padding_val);
 
 	const std::vector<size_t> & vld = kernel.GetLocalDims();
 	const std::vector<size_t> & vgd = kernel.GetGlobalDims();
@@ -514,7 +457,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 	clFinish(queue);
 
 	std::cout << "Conv's (backward) finished." << std::endl;
-#endif // Test
 
 	return mlopenStatusSuccess;
 
