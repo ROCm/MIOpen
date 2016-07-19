@@ -9,6 +9,6 @@ if( ${BUILD64} )
 	set_property( GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS TRUE )
 endif( )
 
-add_executable(MLOpenDriver MLOpenDriver.cpp)
+add_executable(MLOpenDriver MLOpenDriver.cpp InputFlags.cpp)
 target_link_libraries(MLOpenDriver MLOpen)
 
