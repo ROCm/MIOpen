@@ -1,4 +1,6 @@
 #include "Tensor.hpp"
+#include <initializer_list>
+#include <array>
 
 extern "C"
 mlopenStatus_t mlopenCreateTensorDescriptor(
@@ -27,9 +29,8 @@ mlopenStatus_t mlopenInit4dTensorDescriptor(
 		int w) {
 	
 	try{
-		tensorDesc->Set4Dims(n, c, h, w);
-		tensorDesc->CalculateStrides();
-		tensorDesc->SetDataType(dataType);
+		std::initializer_list<int> lens = {n, c, h, w};
+		*tensorDesc = mlopenTensorDescriptor(dataType, lens.begin(), 4);
 
 	} catch (mlopenStatus_t success) {
 		return success;
@@ -52,22 +53,9 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(
 		int *wStride) {
 	
 	try{
-		tensorDesc->Get4Dims(n, c, h, w);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try {
-		tensorDesc->Get4Strides(nStride,
-			cStride,
-			hStride,
-			wStride);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->GetDataType(*dataType);
+		*dataType = tensorDesc->type;
+		std::tie(*n, *c, *h, *w) = tie4(tensorDesc->GetLengths());
+		std::tie(*nStride, *cStride, *hStride, *wStride) = tie4(tensorDesc->GetStrides());
 	} catch (mlopenStatus_t success) {
 		return success;
 	}
@@ -83,25 +71,7 @@ mlopenStatus_t mlopenInitNdTensorDescriptor(
 		int *stridesA) {
 
 	try{
-		tensorDesc->SetDims(nbDims);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->SetNDims(nbDims, dimsA);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-	
-	try{
-		tensorDesc->SetNStrides(nbDims, stridesA);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->SetDataType(dataType);
+		*tensorDesc = mlopenTensorDescriptor(dataType, dimsA, stridesA, nbDims);
 	} catch (mlopenStatus_t success) {
 		return success;
 	}
@@ -119,25 +89,10 @@ mlopenStatus_t mlopenGetNdTensorDescriptor(
 		int *stridesA) {
 
 	try{
-		tensorDesc->GetDims(*nbDims);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->GetNDims(dimsA);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-	
-	try{
-		tensorDesc->GetNStrides(stridesA);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->GetDataType(*dataType);
+		*dataType = tensorDesc->type;
+		*nbDims = tensorDesc->GetSize();
+		std::copy(tensorDesc->lens.begin(), tensorDesc->lens.end(), dimsA);
+		std::copy(tensorDesc->strides.begin(), tensorDesc->strides.end(), stridesA);
 	} catch (mlopenStatus_t success) {
 		return success;
 	}

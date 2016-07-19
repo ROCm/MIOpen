@@ -1544,13 +1544,8 @@ size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescrip
 	int hWeiStride;
 	int wWeiStride;
 
-	weight_tensor->Get4Dims(&nWei, &cWei, &hWei, &wWei);
-
-	weight_tensor->Get4Strides(&nWeiStride,
-			&cWeiStride,
-			&hWeiStride,
-			&wWeiStride);
-
+	std::tie(nWei, cWei, hWei, wWei) = tie4(weight_tensor->GetLengths());
+	std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) = tie4(weight_tensor->GetStrides());
 
 	setWeightsDescr(
 			"NCHW",
@@ -1581,12 +1576,8 @@ size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescrip
 	int hOutStride;
 	int wOutStride;
 
-	output_tensor->Get4Dims(&nOut, &cOut, &hOut, &wOut);
-
-	output_tensor->Get4Strides(&nOutStride,
-			&cOutStride,
-			&hOutStride,
-			&wOutStride);
+	std::tie(nOut, cOut, hOut, wOut) = tie4(output_tensor->GetLengths());
+	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(output_tensor->GetStrides());
 
 
 	setOutputDescr(
@@ -1618,12 +1609,8 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopenTensorDescript
 	int hInStride;
 	int wInStride;
 
-	input_tensor->Get4Dims(&nIn, &cIn, &hIn, &wIn);
-
-	input_tensor->Get4Strides(&nInStride,
-			&cInStride,
-			&hInStride,
-			&wInStride);
+	std::tie(nIn, cIn, hIn, wIn) = tie4(input_tensor->GetLengths());
+	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(input_tensor->GetStrides());
 
 	setInputDescr(
 			"NCHW",
