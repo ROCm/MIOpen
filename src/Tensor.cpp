@@ -23,20 +23,23 @@ void mlopenTensorDescriptor::CalculateStrides()
 	std::partial_sum(lens.rbegin(), lens.rend()-1, strides.rbegin()+1, std::multiplies<int>());
 }
 
-const int* mlopenTensorDescriptor::GetLengths() const
+const std::vector<int> mlopenTensorDescriptor::GetLengths() const
 {
-	return lens.data();
+	return lens;
 }
-const int* mlopenTensorDescriptor::GetStrides() const
+const std::vector<int> mlopenTensorDescriptor::GetStrides() const
 {
-	return strides.data();
+	return strides;
 }
 int mlopenTensorDescriptor::GetSize() const
 {
 	assert(lens.size() == strides.size());
 	return lens.size();
 }
-
+mlopenDataType_t mlopenTensorDescriptor::GetType() const
+{
+	return this->type;
+}
 bool mlopenTensorDescriptor::operator==(const mlopenTensorDescriptor& rhs) const
 {
 	assert(this->lens.size() == rhs.strides.size());
