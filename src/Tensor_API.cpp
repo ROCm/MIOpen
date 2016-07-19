@@ -1,7 +1,9 @@
 #include "Tensor.hpp"
+#include <initializer_list>
+#include <array>
 
 extern "C"
-mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenCreateTensorDescriptor(
 		mlopenTensorDescriptor_t *tensorDesc) {
 	
 	if(tensorDesc == nullptr) {
@@ -14,13 +16,11 @@ mlopenStatus_t mlopenCreateTensorDescriptor(mlopenHandle_t handle,
 		return status;
 	}
 
-	(*tensorDesc)->SetTensorHandle(handle);	
-
 	return mlopenStatusSuccess;
 }
 
 extern "C"
-mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenSet4dTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t dataType,
 		int n,
@@ -29,9 +29,8 @@ mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
 		int w) {
 	
 	try{
-		tensorDesc->Set4Dims(n, c, h, w);
-		tensorDesc->CalculateStrides();
-		tensorDesc->SetDataType(dataType);
+		std::initializer_list<int> lens = {n, c, h, w};
+		*tensorDesc = mlopenTensorDescriptor(dataType, lens.begin(), 4);
 
 	} catch (mlopenStatus_t success) {
 		return success;
@@ -41,7 +40,7 @@ mlopenStatus_t mlopenInit4dTensorDescriptor(mlopenHandle_t handle,
 }
 
 extern "C"
-mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenGet4dTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t *dataType,
 		int *n,
@@ -54,28 +53,9 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
 		int *wStride) {
 	
 	try{
-		tensorDesc->Get4Dims(n, c, h, w);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try {
-		tensorDesc->Get4Strides(nStride,
-			cStride,
-			hStride,
-			wStride);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->GetDataType(*dataType);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->GetTensorHandle(handle);
+		*dataType = tensorDesc->GetType();
+		std::tie(*n, *c, *h, *w) = tie4(tensorDesc->GetLengths());
+		std::tie(*nStride, *cStride, *hStride, *wStride) = tie4(tensorDesc->GetStrides());
 	} catch (mlopenStatus_t success) {
 		return success;
 	}
@@ -83,7 +63,41 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(mlopenHandle_t handle,
 	return mlopenStatusSuccess;
 }
 
-mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
+extern "C"
+mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
+		mlopenTensorDescriptor_t tensorDesc,
+		int *n,
+		int *c,
+		int *h,
+		int *w) {
+	
+	try{
+		std::tie(*n, *c, *h, *w) = tie4(tensorDesc->GetLengths());
+	} catch (mlopenStatus_t success) {
+		return success;
+	}
+
+	return mlopenStatusSuccess;
+}
+
+extern "C"
+mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
+		mlopenTensorDescriptor_t tensorDesc,
+		int *nStride,
+		int *cStride,
+		int *hStride,
+		int *wStride) {
+	
+	try{
+		std::tie(*nStride, *cStride, *hStride, *wStride) = tie4(tensorDesc->GetStrides());
+	} catch (mlopenStatus_t success) {
+		return success;
+	}
+
+	return mlopenStatusSuccess;
+}
+
+mlopenStatus_t mlopenSetTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t dataType,
 		int nbDims,
@@ -91,25 +105,11 @@ mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
 		int *stridesA) {
 
 	try{
-		tensorDesc->SetDims(nbDims);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->SetNDims(nbDims, dimsA);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-	
-	try{
-		tensorDesc->SetNStrides(nbDims, stridesA);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->SetDataType(dataType);
+		if (stridesA == nullptr) {
+			*tensorDesc = mlopenTensorDescriptor(dataType, dimsA, nbDims);
+		} else {
+			*tensorDesc = mlopenTensorDescriptor(dataType, dimsA, stridesA, nbDims);
+		}
 	} catch (mlopenStatus_t success) {
 		return success;
 	}
@@ -118,40 +118,33 @@ mlopenStatus_t mlopenInitNdTensorDescriptor(mlopenHandle_t handle,
 
 }
 
+extern "C" 
+mlopenStatus_t mlopenGetTensorDescriptorSize(mlopenTensorDescriptor_t tensorDesc, int* size) {
+	try {
+		*size = tensorDesc->GetSize();
+	} catch (mlopenStatus_t success) {
+		return success;
+	}
+	return mlopenStatusSuccess;
+}
+
 extern "C"
-mlopenStatus_t mlopenGetNdTensorDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenGetTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t *dataType,
-		int *nbDims,
 		int *dimsA,
 		int *stridesA) {
 
 	try{
-		tensorDesc->GetDims(*nbDims);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->GetNDims(dimsA);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-	
-	try{
-		tensorDesc->GetNStrides(stridesA);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->GetDataType(*dataType);
-	} catch (mlopenStatus_t success) {
-		return success;
-	}
-
-	try{
-		tensorDesc->GetTensorHandle(handle);
+		if (dataType != nullptr) {
+			*dataType = tensorDesc->GetType();
+		}
+		if (dimsA != nullptr) {
+			std::copy(tensorDesc->GetLengths().begin(), tensorDesc->GetLengths().end(), dimsA);
+		}
+		if (stridesA != nullptr) {
+			std::copy(tensorDesc->GetStrides().begin(), tensorDesc->GetStrides().end(), stridesA);
+		}
 	} catch (mlopenStatus_t success) {
 		return success;
 	}
