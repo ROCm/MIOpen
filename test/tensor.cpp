@@ -8,7 +8,7 @@ struct tensor_fixture
     tensor_fixture()
     {
         mlopenCreateTensorDescriptor(&inputTensor);
-        mlopenInit4dTensorDescriptor(
+        mlopenSet4dTensorDescriptor(
                 inputTensor,
                 mlopenFloat,
                 100,
@@ -28,7 +28,7 @@ struct check_tensor : tensor_fixture
 {
     void run()
     {
-        mlopenInit4dTensorDescriptor(
+        mlopenSet4dTensorDescriptor(
                 inputTensor,
                 mlopenFloat,
                 100,
