@@ -63,7 +63,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(
 	return mlopenStatusSuccess;
 }
 
-extern "C"
+// Internal API
 mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
 		mlopenTensorDescriptor_t tensorDesc,
 		int *n,
@@ -80,7 +80,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
 	return mlopenStatusSuccess;
 }
 
-extern "C"
+
 mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
 		mlopenTensorDescriptor_t tensorDesc,
 		int *nStride,
