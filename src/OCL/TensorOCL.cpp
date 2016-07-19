@@ -1,4 +1,5 @@
 #include "Tensor.hpp"
+#include <algorithm>
 
 mlopenStatus_t mlopenTensorDescriptor::TransformTensor(mlopenHandle_t handle,
 			const void *alpha,
@@ -9,7 +10,7 @@ mlopenStatus_t mlopenTensorDescriptor::TransformTensor(mlopenHandle_t handle,
 
 	printf("To be implemented (TransformTensor) \n");
 
-	if(this->_CheckTensorDims(srcTensorDesc) != mlopenStatusSuccess) {
+	if(*this == *srcTensorDesc) {
 		return mlopenStatusBadParm;
 	}
 
@@ -45,23 +46,21 @@ mlopenStatus_t mlopenTensorDescriptor::OpTensor(mlopenHandle_t handle,
 	printf("To be implemented (Op Tensor) \n");
 
 	// inputTensor1 and dstTensor must have same dims
-	if(this->_CheckTensorDims(inputTensorDesc1) != mlopenStatusSuccess) {
+	if(this->lens != inputTensorDesc1->lens) {
 		return mlopenStatusBadParm;
 	}
 
 	// input Tensor2 and dstTensor must have same dims or all the dims of
 	// inputTensor2 must be 1
-	if(this->_CheckTensorDims(inputTensorDesc2) != mlopenStatusSuccess) {
-		std::vector<int> input2Dims(inputTensorDesc2->_dimA);
-		for(auto i : input2Dims) {
-			if(i != 1) {
-				return mlopenStatusBadParm;
-			}
-		}
+	if(
+		this->lens != inputTensorDesc2->lens and 
+		not std::all_of(inputTensorDesc2->lens.begin(), inputTensorDesc2->lens.end(), [](int x) { return x == 1; })
+	) 
+	{
+		return mlopenStatusBadParm;
 	}
 	
-	if(this->_CheckTensorDataTypes(inputTensorDesc1) != mlopenStatusSuccess && 
-			this->_CheckTensorDataTypes(inputTensorDesc2) != mlopenStatusSuccess) {
+	if(this->type != inputTensorDesc1->type and this->type != inputTensorDesc2->type) {
 		return mlopenStatusBadParm;
 	}
 

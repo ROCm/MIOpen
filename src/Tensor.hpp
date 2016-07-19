@@ -9,42 +9,36 @@
 // TODO: remove this include later
 #include <cstdio>
 
+template<class T>
+auto tie4(T&& x) -> decltype(std::tie(x[0], x[1], x[2], x[3]))
+{
+	return std::tie(x[0], x[1], x[2], x[3]);
+}
+
 struct mlopenTensorDescriptor {
 	mlopenTensorDescriptor();
+	mlopenTensorDescriptor(mlopenDataType_t t, const int* plens, int size);
+	mlopenTensorDescriptor(mlopenDataType_t t, const int* plens, const int* pstrides, int size);
 
 	void CalculateStrides();
 
-	// Set functions
-	mlopenStatus_t SetTensorHandle(mlopenHandle_t handle);
-	mlopenStatus_t Set4Dims(int n,
-			int c,
-			int h, 
-			int w);
-	mlopenStatus_t Set4Strides(int nStride,
-			int cStride,
-			int hStride,
-			int wStride);
- 	mlopenStatus_t SetNDims(int dims,
-			int *dimsA);
- 	mlopenStatus_t SetNStrides(int dims,
-  			int *StridesA);
-	mlopenStatus_t SetDataType(mlopenDataType_t dataType);
-	mlopenStatus_t SetDims(int dims);
+	const std::vector<int>& GetLengths() const;
+	const std::vector<int>& GetStrides() const;
+	int GetSize() const;
 
-	// Get functions
-	mlopenStatus_t GetTensorHandle(mlopenHandle_t handle);
-	mlopenStatus_t Get4Dims(int *n,
-			int *c,
-			int *h,
-			int *w);
-	mlopenStatus_t Get4Strides(int *nStride,
-			int *cStride,
-			int *hStride,
-			int *wStride);
-	mlopenStatus_t GetNDims(int *dimsA);
-	mlopenStatus_t GetNStrides(int *stridesA);
-	mlopenStatus_t GetDataType(mlopenDataType_t &dataType);
-	mlopenStatus_t GetDims(int &dims);
+	mlopenDataType_t GetType() const;
+
+	int GetIndex(std::initializer_list<int> l) const;
+
+	template<class... Ts>
+	int GetIndex(Ts... is) const
+	{
+		return this->GetIndex({is...});
+	}
+
+	bool operator==(const mlopenTensorDescriptor& rhs) const;
+	bool operator!=(const mlopenTensorDescriptor& rhs) const;
+
 
 	mlopenStatus_t TransformTensor(mlopenHandle_t handle,
 			const void *alpha,
@@ -72,16 +66,11 @@ struct mlopenTensorDescriptor {
 			Data_t							y,
 			const void						*alpha);
 
-	// Internal
-	mlopenStatus_t _CheckTensorDims(mlopenTensorDescriptor_t srcTensorDesc);
-	mlopenStatus_t _CheckTensorDataTypes(mlopenTensorDescriptor_t srcTensorDesc);
+private:
+	std::vector<int> lens;
+	std::vector<int> strides;
 
-	int _dims;
-	std::vector<int> _dimA;
-	std::vector<int> _strideA;
-
-	mlopenDataType_t _dataType;
-	mlopenHandle_t _tensorHandle;
+	mlopenDataType_t type;
 };
 
 #endif // _MLOPEN_TENSOR_HPP_

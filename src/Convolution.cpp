@@ -22,20 +22,14 @@ mlopenStatus_t mlopenConvolutionDescriptor::GetForwardOutputDim(const mlopenTens
 	int input_h;
 	int input_w;
 
-	inputTensorDesc->Get4Dims(&input_n, 
-			&input_c,
-			&input_h,
-			&input_w);
+	std::tie(input_n, input_c, input_h, input_w) = tie4(inputTensorDesc->GetLengths());
 
 	int filter_k;
 	int filter_c;
 	int filter_h;
 	int filter_w;
-
-	filterDesc->Get4Dims(&filter_k,
-			&filter_c,
-			&filter_h,
-			&filter_w);
+	
+	std::tie(filter_k, filter_c, filter_h, filter_w) = tie4(filterDesc->GetLengths());
 
 	if(input_c != filter_c) {
 		return mlopenStatusBadParm;
