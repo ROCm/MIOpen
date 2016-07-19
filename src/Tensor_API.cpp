@@ -80,17 +80,25 @@ mlopenStatus_t mlopenSetTensorDescriptor(
 
 }
 
+extern "C" 
+mlopenStatus_t mlopenGetTensorDescriptorSize(mlopenTensorDescriptor_t tensorDesc, int* size) {
+	try {
+		*size = tensorDesc->GetSize();
+	} catch (mlopenStatus_t success) {
+		return success;
+	}
+	return mlopenStatusSuccess;
+}
+
 extern "C"
 mlopenStatus_t mlopenGetTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t *dataType,
-		int *nbDims,
 		int *dimsA,
 		int *stridesA) {
 
 	try{
 		*dataType = tensorDesc->GetType();
-		*nbDims = tensorDesc->GetSize();
 		std::copy(tensorDesc->GetLengths().begin(), tensorDesc->GetLengths().end(), dimsA);
 		std::copy(tensorDesc->GetStrides().begin(), tensorDesc->GetStrides().end(), stridesA);
 	} catch (mlopenStatus_t success) {

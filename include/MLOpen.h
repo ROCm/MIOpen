@@ -103,11 +103,12 @@ MLOPEN_EXPORT mlopenStatus_t mlopenSetTensorDescriptor(
 		int							*dimA,
 		int							*strideA);
 
+MLOPEN_EXPORT mlopenStatus_t mlopenGetTensorDescriptorSize(mlopenTensorDescriptor_t tensorDesc, int* size);
+
 // Get the details of the n-dimensional tensor desciptor
 MLOPEN_EXPORT mlopenStatus_t mlopenGetTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
 		mlopenDataType_t			*datatype,
-		int							*nbDims,
 		int							*dimA,
 		int							*strideA);
 		
