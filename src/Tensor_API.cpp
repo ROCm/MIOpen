@@ -53,7 +53,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(
 		int *wStride) {
 	
 	try{
-		*dataType = tensorDesc->type;
+		*dataType = tensorDesc->GetType();
 		std::tie(*n, *c, *h, *w) = tie4(tensorDesc->GetLengths());
 		std::tie(*nStride, *cStride, *hStride, *wStride) = tie4(tensorDesc->GetStrides());
 	} catch (mlopenStatus_t success) {
@@ -89,10 +89,10 @@ mlopenStatus_t mlopenGetNdTensorDescriptor(
 		int *stridesA) {
 
 	try{
-		*dataType = tensorDesc->type;
+		*dataType = tensorDesc->GetType();
 		*nbDims = tensorDesc->GetSize();
-		std::copy(tensorDesc->lens.begin(), tensorDesc->lens.end(), dimsA);
-		std::copy(tensorDesc->strides.begin(), tensorDesc->strides.end(), stridesA);
+		std::copy(tensorDesc->GetLengths().begin(), tensorDesc->GetLengths().end(), dimsA);
+		std::copy(tensorDesc->GetStrides().begin(), tensorDesc->GetStrides().end(), stridesA);
 	} catch (mlopenStatus_t success) {
 		return success;
 	}

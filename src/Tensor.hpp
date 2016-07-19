@@ -22,9 +22,11 @@ struct mlopenTensorDescriptor {
 
 	void CalculateStrides();
 
-	const int* GetLengths() const;
-	const int* GetStrides() const;
+	const std::vector<int> GetLengths() const;
+	const std::vector<int> GetStrides() const;
 	int GetSize() const;
+
+	mlopenDataType_t GetType() const;
 
 	bool operator==(const mlopenTensorDescriptor& rhs) const;
 	bool operator!=(const mlopenTensorDescriptor& rhs) const;
@@ -56,7 +58,7 @@ struct mlopenTensorDescriptor {
 			Data_t							y,
 			const void						*alpha);
 
-// TODO: Make these variables private?
+private:
 	std::vector<int> lens;
 	std::vector<int> strides;
 
