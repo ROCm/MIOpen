@@ -17,7 +17,7 @@ int main()
 	mlopenTensorDescriptor_t inputTensor;
 	mlopenCreateTensorDescriptor(handle, &inputTensor);
 
-	mlopenInit4dTensorDescriptor(handle,
+	mlopenSet4dTensorDescriptor(handle,
 			inputTensor,
 			mlopenFloat,
 			100,
@@ -48,7 +48,7 @@ int main()
 	mlopenCreateTensorDescriptor(handle, &convFilter);
 
 	// weights
-	mlopenInit4dTensorDescriptor(handle,
+	mlopenSet4dTensorDescriptor(handle,
 		convFilter,
 		mlopenFloat,
 		64,  // outputs
@@ -104,7 +104,7 @@ int main()
 	mlopenTensorDescriptor_t outputTensor;
 	mlopenCreateTensorDescriptor(handle, &outputTensor);
 
-	mlopenInit4dTensorDescriptor(handle,
+	mlopenSet4dTensorDescriptor(handle,
 		outputTensor,
 		mlopenFloat,
 		x,

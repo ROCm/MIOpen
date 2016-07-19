@@ -20,7 +20,7 @@ mlopenStatus_t mlopenCreateTensorDescriptor(
 }
 
 extern "C"
-mlopenStatus_t mlopenInit4dTensorDescriptor(
+mlopenStatus_t mlopenSet4dTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t dataType,
 		int n,
@@ -63,7 +63,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(
 	return mlopenStatusSuccess;
 }
 
-mlopenStatus_t mlopenInitNdTensorDescriptor(
+mlopenStatus_t mlopenSetTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t dataType,
 		int nbDims,
@@ -81,7 +81,7 @@ mlopenStatus_t mlopenInitNdTensorDescriptor(
 }
 
 extern "C"
-mlopenStatus_t mlopenGetNdTensorDescriptor(
+mlopenStatus_t mlopenGetTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t *dataType,
 		int *nbDims,

@@ -31,7 +31,7 @@ struct input_tensor_fixture //: virtual handle_fixture
     input_tensor_fixture()
     {
         mlopenCreateTensorDescriptor(&inputTensor);
-        mlopenInit4dTensorDescriptor(
+        mlopenSet4dTensorDescriptor(
                 inputTensor,
                 mlopenFloat,
                 100,
@@ -87,7 +87,7 @@ struct conv_filter_fixture : virtual handle_fixture
     {
         mlopenCreateTensorDescriptor(&convFilter);
         // weights
-        mlopenInit4dTensorDescriptor(
+        mlopenSet4dTensorDescriptor(
             convFilter,
             mlopenFloat,
             64,  // outputs
@@ -143,7 +143,7 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
 
         mlopenCreateTensorDescriptor(&outputTensor);
 
-        mlopenInit4dTensorDescriptor(
+        mlopenSet4dTensorDescriptor(
             outputTensor,
             mlopenFloat,
             x,
