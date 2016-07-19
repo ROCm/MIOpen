@@ -1,4 +1,5 @@
 #include <MLOpen.h>
+#include <mlopenTensor.hpp>
 #include <array>
 #include <iostream>
 #include "test.hpp"
@@ -239,6 +240,18 @@ struct tensor_test_suit
         }
     };
 
+    struct get_tensor_index : Fixture
+    {
+        void run()
+        {
+            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 0}) == 0);
+            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 1}) == 1);
+            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 2}) == 2);
+            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 1, 0}) == 8);
+            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 1, 1}) == 9);
+        }
+    };
+
     static void run_tests()
     {
         run_test<get_tensor_4d>();
@@ -247,6 +260,7 @@ struct tensor_test_suit
         run_test<get_tensor_n>();
         run_test<get_tensor_n_lengths>();
         run_test<get_tensor_n_strides>();
+        run_test<get_tensor_index>();
     }
 };
 
