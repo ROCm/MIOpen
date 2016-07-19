@@ -3,6 +3,46 @@
 #include <MLOpen.h>
 #include <CL/cl.h>
 #include "mloConvHost.hpp"
+#include "InputFlags.hpp"
+#include <vector>
+
+int ForwardConvOnHost(int n_in, int c_in, int h_in, int w_in,
+		int nStride_in, int cStride_in, int hStride_in, int wStride_in,
+		int n_wei, int c_wei, int h_wei, int w_wei,
+		int nStride_wei, int cStride_wei, int hStride_wei, int wStride_wei,
+		int n_out, int c_out, int h_out, int w_out,
+		int nStride_out, int cStride_out, int hStride_out, int wStride_out,
+		int u, int v, int pad_h, int pad_w,
+		float *bot, float *wei, std::vector<float> &out) {
+	
+	int in_pad_w = w_in + 2*pad_w;
+	int in_pad_h = h_in + 2*pad_h;
+	int bias = 0;
+
+	for(int o = 0; o < n_out; o++) { // mini-batch size
+		int image_off = (pad_h == 0 && pad_w == 0) ? o*nStride_in : o * c_in * in_pad_h * in_pad_w;
+		for(int w = 0; w < c_out; w++) { // out_channels (num filters)
+			for(int i = 0; i < h_out; i++) { // output_height (from getforwardoutputdim())
+				int in_off_h = i * v;
+				for(int j = 0; j < w_out; j++) { //output_width (from getforwardoutputdim())
+					float acc = 0;
+					int in_off_w = j * u;
+					for(int k = 0; k < c_in; k++) { // in_channels (RGB)
+						int chan_off = (pad_h == 0 && pad_w == 0) ? k*cStride_in : k * in_pad_h * in_pad_w;
+						for(int x = 0; x < h_wei; x++) {
+							for(int y = 0; y < w_wei; y++) {
+								acc +=	bot[image_off + chan_off + (in_off_h+x)*in_pad_w + in_off_w + y] * wei[w*nStride_wei + k*cStride_wei + x*hStride_wei + y];
+							}
+						}
+					}
+					acc = bias != 0 ? acc+bias : acc;
+					out[o*nStride_out + w*cStride_out + i*hStride_out + j] = acc;
+				}
+			}
+		}
+	}
+	return 0;
+}
 
 int main()
 {
@@ -25,24 +65,29 @@ int main()
 			8,
 			8);
 
-	int n, c, h, w;
-	int nStride, cStride, hStride, wStride;
+	int n_in, c_in, h_in, w_in;
+	int n_wei, c_wei, h_wei, w_wei;
+	int n_out, c_out, h_out, w_out;
+
+	int nStride_in, cStride_in, hStride_in, wStride_in;
+	int nStride_wei, cStride_wei, hStride_wei, wStride_wei;
+	int nStride_out, cStride_out, hStride_out, wStride_out;
+	
 	mlopenDataType_t dt;
 	
 	mlopenGet4dTensorDescriptor(handle,
 			inputTensor,
 			&dt,
-			&n,
-			&c,
-			&h,
-			&w,
-			&nStride,
-			&cStride,
-			&hStride,
-			&wStride);
+			&n_in,
+			&c_in,
+			&h_in,
+			&w_in,
+			&nStride_in,
+			&cStride_in,
+			&hStride_in,
+			&wStride_in);
 
-	std::cout<<dt<<" (shoule be 1)\n";
-	printf("%d %d %d %d %d %d %d %d (should be 100, 32, 8, 8, 1, 1, 1, 1)\n", n, c, h, w, nStride, cStride, hStride, wStride);
+	size_t sz_in = n_in*c_in*h_in*w_in;
 
 	mlopenTensorDescriptor_t convFilter;
 	mlopenCreateTensorDescriptor(handle, &convFilter);
@@ -56,7 +101,22 @@ int main()
 		5,   // kernel size
 		5);
 
+	mlopenGet4dTensorDescriptor(handle,
+			convFilter,
+			&dt,
+			&n_wei,
+			&c_wei,
+			&h_wei,
+			&w_wei,
+			&nStride_wei,
+			&cStride_wei,
+			&hStride_wei,
+			&wStride_wei);
+
+	size_t sz_wei = n_wei*c_wei*h_wei*w_wei;
+
 	int alpha = 1, beta = 1;
+#if 0
 	mlopenTransformTensor(handle,
 			&alpha,
 			inputTensor,
@@ -69,6 +129,7 @@ int main()
 	mlopenSetTensor(handle, inputTensor, NULL, &value);
 
 	mlopenScaleTensor(handle, inputTensor, NULL, &alpha);
+#endif
 
 	// mlopenConvolution APIs
 	//
@@ -78,28 +139,13 @@ int main()
 
 	mlopenConvolutionMode_t mode = mlopenConvolution;
 
-// convolution with padding 2
-	mlopenInitConvolutionDescriptor(convDesc,
-			mode,
-			2,
-			2,
-			1,
-			1,
-			1,
-			1);
+	mlopenInitConvolutionDescriptor(convDesc, mode,	0, 0, 1, 1,	1, 1);
 
 	int pad_w, pad_h, u, v, upx, upy;
-	mlopenGetConvolutionDescriptor(convDesc,
-			&mode,
-			&pad_h, &pad_w, &u, &v,
-			&upx, &upy);
-
-	printf("%d %d %d %d %d %d %d (Should be 0, 2, 2, 1, 1, 1, 1)\n", mode, pad_h, pad_w, u, v, upx, upy);
+	mlopenGetConvolutionDescriptor(convDesc, &mode,	&pad_h, &pad_w, &u, &v,	&upx, &upy);
 
 	int x, y, z, a;
 	mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a);
-
-	printf("Output dims: %d, %d, %d, %d (Should be 100, 64, 8, 8)\n", x, y, z, a);
 
 	mlopenTensorDescriptor_t outputTensor;
 	mlopenCreateTensorDescriptor(handle, &outputTensor);
@@ -112,44 +158,93 @@ int main()
 		z,
 		a);
 
+	mlopenGet4dTensorDescriptor(handle,
+			outputTensor,
+			&dt,
+			&n_out,
+			&c_out,
+			&h_out,
+			&w_out,
+			&nStride_out,
+			&cStride_out,
+			&hStride_out,
+			&wStride_out);
+
+	size_t sz_out = n_out*c_out*h_out*w_out;
+
 	int ret_algo_count;
 	mlopenConvAlgoPerf_t perf;
 
 	cl_int status;
-#if 0 // Test to see if we can launch the kernel and get the results back
-	float *a1 = new float[1024];
-	float *b1 = new float[1024];
-	float *c1 = new float[1024];
+	
+	float *in = new float[sz_in];
+	float *wei = new float[sz_wei];
+	std::vector<float> out(sz_out, 0);
+	std::vector<float> outhost(sz_out, 0);
+	std::vector<float> outhost1(sz_out, 0);
 
-	for(int i = 0; i < 1024; i++) {
-		a1[i] = 1.0;
-		b1[i] = 6.0;
-		c1[i] = 0.0;
+	for(int i = 0; i < sz_in; i++) {
+		in[i] = rand() * (1.0 / RAND_MAX);
 	}
-#endif
-	int sz = 1024;
+	for (int i = 0; i < sz_wei; i++) {
+		wei[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+	}
+
+	mloConvForwarDirectOnHost<float>(0,
+			w_wei,
+			pad_w,
+			u,
+			h_wei,
+			pad_h,
+			v,
+			n_in,
+			n_wei,
+			c_in, 
+			h_out,
+			w_out,
+			nStride_out,
+			cStride_out,
+			hStride_out,
+			w_in,
+			h_in,
+			nStride_in,
+			cStride_in,
+			hStride_in,
+			hStride_wei,
+			in,
+			outhost.data(),
+			wei);
+
+	ForwardConvOnHost(n_in, c_in, h_in, w_in,
+			nStride_in, cStride_in, hStride_in, wStride_in,
+			n_wei, c_wei, h_wei, w_wei,
+			nStride_wei, cStride_wei, hStride_wei, wStride_wei,
+			n_out, c_out, h_out, w_out,
+			nStride_out, cStride_out, hStride_out, wStride_out,
+			u, v, pad_h, pad_w,
+			in, wei, outhost1);
+
 	cl_context ctx;
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
-	cl_mem adev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, &status);
-	cl_mem bdev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz,NULL, NULL);
-	cl_mem cdev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz,NULL, NULL);
-#if 0
-	status = clEnqueueWriteBuffer(q, adev, CL_TRUE, 0, 4*sz, a1, 0, NULL, NULL);
-	status |= clEnqueueWriteBuffer(q, bdev, CL_TRUE, 0, 4*sz, b1, 0, NULL, NULL);
-	status |= clEnqueueWriteBuffer(q, cdev, CL_TRUE, 0, 4*sz, c1, 0, NULL, NULL);
+	
+	cl_mem in_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz_in,NULL, &status);
+	cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz_wei,NULL, NULL);
+	cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz_out,NULL, NULL);
+	
+	status = clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4*sz_in, in, 0, NULL, NULL);
+	status |= clEnqueueWriteBuffer(q, wei_dev, CL_TRUE, 0, 4*sz_wei, wei, 0, NULL, NULL);
+	status |= clEnqueueWriteBuffer(q, out_dev, CL_TRUE, 0, 4*sz_out, out.data(), 0, NULL, NULL);
 	if(status != CL_SUCCESS) 
 		printf("error\n");
-#endif // Test
 
 	mlopenFindConvolutionForwardAlgorithm(handle,
 			inputTensor,
-			adev,
+			in_dev,
 			convFilter,
-			bdev,
+			wei_dev,
 			convDesc,
 			outputTensor,
-			cdev,
+			out_dev,
 			1,
 			&ret_algo_count,
 			&perf,
@@ -157,45 +252,37 @@ int main()
 			NULL,
 			10);
 
-#if 0 // Read results back
-	clEnqueueReadBuffer(q, cdev, CL_TRUE, 0, 4*sz, c1, 0, NULL, NULL);
-
-	float sum = 0.0;
-	for(int i = 0; i < 1024; i++) {
-		b1[i] = 6;
-		sum += c1[i];
-	}
-
-	printf("\nsum %f\n, ", sum);
-	sum = 0.0;
-	
-	delete[] a1;
-	delete[] b1;
-	delete[] c1;
-#endif //Results
-
 	mlopenConvolutionForward(handle,
 			&alpha,
 			inputTensor,
-			NULL,
+			in_dev,
 			convFilter,
-			NULL,
+			wei_dev,
 			convDesc,
 			mlopenConvolutionFwdAlgoDirect,
 			&beta,
 			outputTensor,
-			NULL,
+			out_dev,
 			NULL,
 			0);
 
+	status |= clEnqueueReadBuffer(q, out_dev, CL_TRUE, 0, 4*sz_out, out.data(), 0, NULL, NULL);
+	if(status != CL_SUCCESS) 
+		printf("error\n");
+
+	for(int i = 0; i < sz_out; i++) {
+		//printf("%f\t%f\t%f\n, ", out[i], outhost[i], outhost1[i]);
+		printf("%f\n, ", outhost1[i]);
+	}
+	
 	mlopenFindConvolutionBackwardDataAlgorithm(handle,
 			inputTensor,
-			adev,
+			out_dev,
 			convFilter,
-			bdev,
+			wei_dev,
 			convDesc,
 			outputTensor,
-			cdev,
+			in_dev,
 			1,
 			&ret_algo_count,
 			&perf,
@@ -206,14 +293,14 @@ int main()
 	mlopenConvolutionBackwardData(handle,
 			&alpha,
 			inputTensor,
-			NULL,
+			out_dev,
 			convFilter,
-			NULL,
+			wei_dev,
 			convDesc,
 			mlopenConvolutionBwdDataAlgo_0,
 			&beta,
 			outputTensor,
-			NULL,
+			in_dev,
 			NULL,
 			0);
 
@@ -224,5 +311,9 @@ int main()
 	mlopenDestroyConvolutionDescriptor(convDesc);
 
 	mlopenDestroy(handle);
+
+	delete[] in;
+	delete[] wei;
+
 	return 0;
 }
