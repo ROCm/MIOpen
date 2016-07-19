@@ -22,8 +22,8 @@ struct mlopenTensorDescriptor {
 
 	void CalculateStrides();
 
-	const std::vector<int> GetLengths() const;
-	const std::vector<int> GetStrides() const;
+	const std::vector<int>& GetLengths() const;
+	const std::vector<int>& GetStrides() const;
 	int GetSize() const;
 
 	mlopenDataType_t GetType() const;
