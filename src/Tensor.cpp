@@ -1,6 +1,7 @@
 #include "Tensor.hpp"
 #include <string>
 #include <algorithm>
+#include <numeric>
 #include <cassert>
 
 mlopenTensorDescriptor::mlopenTensorDescriptor() {}
