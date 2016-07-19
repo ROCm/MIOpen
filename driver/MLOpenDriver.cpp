@@ -15,9 +15,9 @@ int main()
 
 	// mlopenTensor APIs
 	mlopenTensorDescriptor_t inputTensor;
-	mlopenCreateTensorDescriptor(handle, &inputTensor);
+	mlopenCreateTensorDescriptor(&inputTensor);
 
-	mlopenSet4dTensorDescriptor(handle,
+	mlopenSet4dTensorDescriptor(
 			inputTensor,
 			mlopenFloat,
 			100,
@@ -29,7 +29,7 @@ int main()
 	int nStride, cStride, hStride, wStride;
 	mlopenDataType_t dt;
 	
-	mlopenGet4dTensorDescriptor(handle,
+	mlopenGet4dTensorDescriptor(
 			inputTensor,
 			&dt,
 			&n,
@@ -45,10 +45,10 @@ int main()
 	printf("%d %d %d %d %d %d %d %d (should be 100, 32, 8, 8, 1, 1, 1, 1)\n", n, c, h, w, nStride, cStride, hStride, wStride);
 
 	mlopenTensorDescriptor_t convFilter;
-	mlopenCreateTensorDescriptor(handle, &convFilter);
+	mlopenCreateTensorDescriptor(&convFilter);
 
 	// weights
-	mlopenSet4dTensorDescriptor(handle,
+	mlopenSet4dTensorDescriptor(
 		convFilter,
 		mlopenFloat,
 		64,  // outputs
@@ -102,9 +102,9 @@ int main()
 	printf("Output dims: %d, %d, %d, %d (Should be 100, 64, 8, 8)\n", x, y, z, a);
 
 	mlopenTensorDescriptor_t outputTensor;
-	mlopenCreateTensorDescriptor(handle, &outputTensor);
+	mlopenCreateTensorDescriptor(&outputTensor);
 
-	mlopenSet4dTensorDescriptor(handle,
+	mlopenSet4dTensorDescriptor(
 		outputTensor,
 		mlopenFloat,
 		x,
