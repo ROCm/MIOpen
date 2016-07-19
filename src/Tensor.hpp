@@ -28,6 +28,14 @@ struct mlopenTensorDescriptor {
 
 	mlopenDataType_t GetType() const;
 
+	int GetIndex(std::initializer_list<int> l) const;
+
+	template<class... Ts>
+	int GetIndex(Ts... is) const
+	{
+		return this->GetIndex({is...});
+	}
+
 	bool operator==(const mlopenTensorDescriptor& rhs) const;
 	bool operator!=(const mlopenTensorDescriptor& rhs) const;
 

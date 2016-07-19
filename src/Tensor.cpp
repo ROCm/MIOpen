@@ -40,6 +40,13 @@ mlopenDataType_t mlopenTensorDescriptor::GetType() const
 {
 	return this->type;
 }
+
+int mlopenTensorDescriptor::GetIndex(std::initializer_list<int> l) const
+{
+	assert(l.size() <= this->GetSize());
+	return std::inner_product(l.begin(), l.end(), strides.begin(), 0);
+}
+
 bool mlopenTensorDescriptor::operator==(const mlopenTensorDescriptor& rhs) const
 {
 	assert(this->lens.size() == rhs.strides.size());
@@ -49,4 +56,9 @@ bool mlopenTensorDescriptor::operator==(const mlopenTensorDescriptor& rhs) const
 bool mlopenTensorDescriptor::operator!=(const mlopenTensorDescriptor& rhs) const
 {
 	return not (*this == rhs);
+}
+
+int mlopenGetTensorIndex(mlopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
+{
+	return tensorDesc->GetIndex(indices);
 }
