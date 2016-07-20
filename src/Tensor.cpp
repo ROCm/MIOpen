@@ -37,6 +37,11 @@ int mlopenTensorDescriptor::GetSize() const
 	assert(lens.size() == strides.size());
 	return lens.size();
 }
+int mlopenTensorDescriptor::GetElementSize() const
+{
+	assert(lens.size() == strides.size());
+	return std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>());
+}
 mlopenDataType_t mlopenTensorDescriptor::GetType() const
 {
 	return this->type;
