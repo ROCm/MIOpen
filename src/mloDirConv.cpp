@@ -902,7 +902,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop( cl_command_queue profile_q,
 
 		clFinish(q);
 
-		s = mach_absolute_time();
+		s = mlopen_mach_absolute_time();
 
 		for (int i = 0; i < iter && ret == 0; i++)
 		{
@@ -910,7 +910,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop( cl_command_queue profile_q,
 		}
 
 		clFinish(q);
-		e = mach_absolute_time();
+		e = mlopen_mach_absolute_time();
 
 		if (ret != 0)
 		{

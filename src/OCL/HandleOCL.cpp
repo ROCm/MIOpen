@@ -95,7 +95,7 @@ mlopenStatus_t mlopenContext::CreateDefaultStream<cl_command_queue>() {
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
-    cl_command_queue commandQueue = clCreateCommandQueueWithProperties(context, devices[0], NULL, &status);
+    cl_command_queue commandQueue = clCreateCommandQueue(context, devices[0], 0, &status);
     if(status != CL_SUCCESS)
     {
         perror("Creating Command Queue. (clCreateCommandQueue)");
