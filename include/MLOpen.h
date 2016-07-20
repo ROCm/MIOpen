@@ -10,7 +10,11 @@ extern "C" {
 #endif
 
 #if MLOpen_BACKEND_OPENCL
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <OpenCL/cl.h>
+#else
 #include <CL/cl.h>
+#endif
 typedef cl_command_queue mlopenStream_t;
 
 #elif MLOpen_BACKEND_HIP
