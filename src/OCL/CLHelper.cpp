@@ -51,7 +51,6 @@ mlopenStatus_t CLHelper::BuildProgram(cl_program &program,
 	GetDeviceFromQueue(queue, device);
 
 	/* create a cl program executable for all the devices specified */
-	std::cout << "params: " << params << std::endl;
     status = clBuildProgram(program, 
 			1, &device, params.c_str(), 
 			NULL, 
