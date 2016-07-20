@@ -210,7 +210,7 @@ int main()
 			nStride_in,
 			cStride_in,
 			hStride_in,
-			hStride_wei,
+			nStride_wei,
 			in,
 			outhost.data(),
 			wei);
@@ -272,9 +272,8 @@ int main()
 
 //	for(int i = 0; i < sz_out; i++) {
 //		//printf("%f\t%f\t%f\n, ", out[i], outhost[i], outhost1[i]);
-//		printf("%f\n, ", outhost1[i]);
+//		printf("%f\n, ", outhost[i]);
 //	}
-
 	mlopenFindConvolutionBackwardDataAlgorithm(handle,
 			inputTensor,
 			out_dev,
@@ -303,6 +302,7 @@ int main()
 			in_dev,
 			NULL,
 			0);
+
 	mlopenDestroyTensorDescriptor(outputTensor);
 	mlopenDestroyTensorDescriptor(convFilter);
 	mlopenDestroyTensorDescriptor(inputTensor);
