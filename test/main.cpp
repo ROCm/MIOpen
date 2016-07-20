@@ -94,7 +94,7 @@ struct conv_filter_fixture : virtual handle_fixture
             5,   // kernel size
             5);
         
-        mlopenCreateConvolutionDescriptor(handle, &convDesc);
+        mlopenCreateConvolutionDescriptor(&convDesc);
         // convolution with padding 2
         mlopenInitConvolutionDescriptor(convDesc,
                 mode,

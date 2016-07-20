@@ -1,7 +1,7 @@
 #include "Convolution.hpp"
 
 extern "C"
-mlopenStatus_t mlopenCreateConvolutionDescriptor(mlopenHandle_t handle,
+mlopenStatus_t mlopenCreateConvolutionDescriptor(
 		mlopenConvolutionDescriptor_t *convDesc) {
 	
 	if(convDesc == nullptr) {
@@ -13,8 +13,6 @@ mlopenStatus_t mlopenCreateConvolutionDescriptor(mlopenHandle_t handle,
 	} catch (mlopenStatus_t status) {
 		return status;
 	}
-
-	(*convDesc)->_convHandle = handle;	
 
 	return mlopenStatusSuccess;
 }
