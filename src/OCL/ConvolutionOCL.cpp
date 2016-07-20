@@ -57,7 +57,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 		std::string generic_comp_otions = std::string(" -I ") + kernel_path + " ";
 //		if (debug)
 		{
-			generic_comp_otions += std::string(" -cl-std=CL2.0 ");
+			// generic_comp_otions += std::string(" -cl-std=CL2.0 ");
 
 		}
 

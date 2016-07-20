@@ -25,7 +25,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #define _USE_MATH_DEFINES
 #ifdef __APPLE__
- #include <mach/mach_time.h>  // for mach_absolute_time() and friends
+ #include <mach/mach_time.h>  // for mlopen_mach_absolute_time() and friends
  #include <OpenCL/opencl.h>
 #else
  #include <CL/opencl.h>

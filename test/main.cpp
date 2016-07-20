@@ -1,6 +1,5 @@
 #include <MLOpen.h>
 #include "test.hpp"
-#include <CL/cl.h>
 #include <vector>
 #include <array>
 #include <iterator>
