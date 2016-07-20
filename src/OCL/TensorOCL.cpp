@@ -53,14 +53,14 @@ mlopenStatus_t mlopenTensorDescriptor::OpTensor(mlopenHandle_t handle,
 	// input Tensor2 and dstTensor must have same dims or all the dims of
 	// inputTensor2 must be 1
 	if(
-		this->lens != inputTensorDesc2->lens and 
-		not std::all_of(inputTensorDesc2->lens.begin(), inputTensorDesc2->lens.end(), [](int x) { return x == 1; })
+		this->lens != inputTensorDesc2->lens && 
+		! std::all_of(inputTensorDesc2->lens.begin(), inputTensorDesc2->lens.end(), [](int x) { return x == 1; })
 	) 
 	{
 		return mlopenStatusBadParm;
 	}
 	
-	if(this->type != inputTensorDesc1->type and this->type != inputTensorDesc2->type) {
+	if(this->type != inputTensorDesc1->type && this->type != inputTensorDesc2->type) {
 		return mlopenStatusBadParm;
 	}
 
