@@ -80,7 +80,6 @@ struct mlopenConvolutionDescriptor {
 	int _v;
 	int _upscalex;
 	int _upscaley;
-	mlopenHandle_t _convHandle;
 };
 
 #endif // _MLOPEN_CONVOLUTION_HPP_

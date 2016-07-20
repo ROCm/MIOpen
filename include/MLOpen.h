@@ -215,7 +215,7 @@ mlopenStatus_t mlopenDestroyFilterDescriptor(mlopenFilterDescriptor_t filterDesc
 
 #endif // FilterDescriptor APIs
 
-MLOPEN_EXPORT mlopenStatus_t mlopenCreateConvolutionDescriptor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateConvolutionDescriptor(
 		mlopenConvolutionDescriptor_t *convDesc);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc,
