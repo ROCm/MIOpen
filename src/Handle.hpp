@@ -11,7 +11,11 @@
 //#include <CL/cl.h>
 //typedef cl_command_queue mlopenStream_t;
 
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <OpenCL/cl.h>
+#else
 #include <CL/cl.h>
+#endif
 
 #elif MLOpen_BACKEND_HIP
 //#include <hip_runtime.h>
