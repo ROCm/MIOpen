@@ -28,6 +28,8 @@ struct mlopenTensorDescriptor {
 
 	mlopenDataType_t GetType() const;
 
+	int GetElementSize() const;
+
 	int GetIndex(std::initializer_list<int> l) const;
 
 	template<class... Ts>

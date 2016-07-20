@@ -81,6 +81,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
 }
 
 
+// Internal API
 mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
 		mlopenTensorDescriptor_t tensorDesc,
 		int *nStride,
@@ -97,6 +98,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
 	return mlopenStatusSuccess;
 }
 
+// Internal API
 mlopenStatus_t mlopenSetTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t dataType,
@@ -116,6 +118,11 @@ mlopenStatus_t mlopenSetTensorDescriptor(
 
 	return mlopenStatusSuccess;
 
+}
+
+// Internal API
+int mlopenGetTensorDescriptorElementSize(mlopenTensorDescriptor_t tensorDesc) {
+	return tensorDesc->GetElementSize();
 }
 
 extern "C" 
