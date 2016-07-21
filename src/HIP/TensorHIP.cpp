@@ -24,7 +24,7 @@ mlopenStatus_t mlopenTensorDescriptor::TransformTensor<void *>(mlopenHandle_t ha
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenStream_t queue;
+	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
 	// If beta = 0, y = alpha*x;
@@ -72,7 +72,7 @@ mlopenStatus_t mlopenTensorDescriptor::OpTensor<void *>(mlopenHandle_t handle,
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenStream_t queue;
+	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
 	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
@@ -100,7 +100,7 @@ mlopenStatus_t mlopenTensorDescriptor::SetTensor<void *>(mlopenHandle_t handle,
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenStream_t queue;
+	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
 //	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
@@ -126,7 +126,7 @@ mlopenStatus_t mlopenTensorDescriptor::ScaleTensor<void *>(mlopenHandle_t handle
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenStream_t queue;
+	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
 	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);

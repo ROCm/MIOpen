@@ -15,11 +15,11 @@ extern "C" {
 #else
 #include <CL/cl.h>
 #endif
-typedef cl_command_queue mlopenStream_t;
+typedef cl_command_queue mlopenAcceleratorQueue_t;
 
 #elif MLOpen_BACKEND_HIP
 #include <hip_runtime.h>
-typedef hipStream_t mlopenStream_t;
+typedef hipStream_t mlopenAcceleratorQueue_t;
 #endif
 
 typedef struct mlopenContext *mlopenHandle_t;
@@ -38,18 +38,13 @@ typedef enum {
 // later or is it OK to leave it like this?
 MLOPEN_EXPORT mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 		int							numStreams = 0,
-		mlopenStream_t				*stream = NULL);
+		mlopenAcceleratorQueue_t				*stream = NULL);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroy(mlopenHandle_t handle);
 
-// For OpenCL, stream is a command queue where as for HIP, it is a stream
-MLOPEN_EXPORT mlopenStatus_t mlopenSetStream(mlopenHandle_t handle,
-		int							numStreams,
-		mlopenStream_t				*streamIds);
-
 // Returns numStream'th stream for that particular handle
 MLOPEN_EXPORT mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
-		mlopenStream_t				*streamId,
+		mlopenAcceleratorQueue_t				*streamId,
 		int							numStream = 0);
 
 typedef struct mlopenTensorDescriptor *mlopenTensorDescriptor_t;
