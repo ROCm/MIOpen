@@ -78,7 +78,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward<void *>(mlopenHan
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenStream_t queue;
+	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
 	return mlopenStatusSuccess;

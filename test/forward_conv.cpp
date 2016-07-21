@@ -329,12 +329,6 @@ void each_args(F f, Ts&&... xs)
     std::initializer_list<int>{(f(std::forward<Ts>(xs)), 0)...};
 }
 
-struct swallow
-{
-    template<class... Ts>
-    swallow(Ts&&...) {}
-};
-
 template<class T, class Input, class Filter>
 void verify(int n, std::pair<int, int> ind, std::pair<int, int> fd, Input in, Filter f)
 {
