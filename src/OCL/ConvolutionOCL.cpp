@@ -57,7 +57,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 		std::string generic_comp_otions = std::string(" -I ") + kernel_path + " ";
 //		if (debug)
 		{
-			// generic_comp_otions += std::string(" -cl-std=CL2.0 ");
+			 generic_comp_otions += std::string(" -cl-std=CL2.0 ");
 
 		}
 
@@ -107,33 +107,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 	printf("kname: %s\n", kernName.c_str());
 
-#if 0 // Test to see if we can launch the kernel and get the results back
-
-	float * in_sys = new float[input_sz];
-	float * wei_sys = new float[weights_sz];
-	float * out_sys = new float[output_sz];
-
-	for(int i = 0; i < input_sz; i++) {
-		in_sys[i] = rand() * (1.0 / RAND_MAX);
-	}
-	for (int i = 0; i < weights_sz; i++) {
-		wei_sys[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
-	}
-
-	cl_context ctx;
-	clGetCommandQueueInfo(queue, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
-	cl_mem in_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input_sz, in_sys, &status);
-	if(status != CL_SUCCESS) {
-		printf("error %d\n", status);
-	}
-	cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, weights_sz,wei_sys, NULL);
-	cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, output_sz,NULL, NULL);
-
-//	status = clEnqueueWriteBuffer(queue, adev, CL_TRUE, 0, 4*sz, a, 0, NULL, NULL);
-//	status |= clEnqueueWriteBuffer(queue, bdev, CL_TRUE, 0, 4*sz, b, 0, NULL, NULL);
-//	status |= clEnqueueWriteBuffer(queue, cdev, CL_TRUE, 0, 4*sz, c, 0, NULL, NULL);
-#endif
 	// Set kernel arguments
 	// Use proper arguments
 	float padding_val = 0;
