@@ -1280,7 +1280,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		int grp_tl_ln[2] = { 8, 16 };
 		int tile_sz[3] = { 8, 16, 32 };
 		int out_pix_tile_sz[4] = { 1, 2, 4, 8 };
-		int n_out_tiles_rg[2] = { 1, 8 };
+		int n_out_tiles_rg[2] = { 1, 12 };
 		int n_in_tiles_rg[2] = { 1, 4 };
 		int n_in_stacks_sz[3] = { 1, 2, 4 };
 		/*
@@ -1299,9 +1299,12 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 
 		size_t run_counter = 0;
 		int out_pix_tl_cnt = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 3 : 4;
-		int n_out_tls = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 4 : n_out_tiles_rg[1];
+		int n_out_tls = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
+		n_out_tls = std::min(_n_outputs, n_out_tls);
+		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : 3;
+		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : 3;
 
-		long long runs_left = 2 * 2 * 3 * 3 * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
+		long long runs_left = 2 * 2 * n_tile0_sz * n_tile1_sz * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
 
 		size_t report_inteval = 25;
 		//			_n_timer_iter = 250;
@@ -1359,7 +1362,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 									continue;
 								}
 
-								int o_l = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 4 : n_out_tiles_rg[1];
+								int o_l = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
 								for (int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
 								{
 
