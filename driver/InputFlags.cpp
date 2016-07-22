@@ -83,7 +83,7 @@ void InputFlags::AddInputFlag(const std::string &_long_name,
 
 void InputFlags::Print()
 {
-	printf("SpMV Input Flags: \n\n");
+	printf("MLOpen Driver Input Flags: \n\n");
 
 	for(auto &content : MapInputs)
 		std::cout<<std::setw(8)<<"--"<<content.second.long_name<<std::setw(20 - content.second.long_name.length())<<"-"<<content.first<<std::setw(8)<<" "<<content.second.help_text<<"\n";
@@ -114,8 +114,8 @@ void InputFlags::Parse(int argc, char *argv[])
 	for(int i = 1; i < argc; i++)
 		args.push_back(argv[i]);
 
-	if(args.size() == 0) // No Input Flag
-		Print();
+//	if(args.size() == 0) // No Input Flag
+//		Print();
 
 	for(int i = 0; i < args.size(); i++)
 	{
