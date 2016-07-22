@@ -51,12 +51,12 @@ int mlopenTensorDescriptor::GetIndex(std::initializer_list<int> l) const
 bool mlopenTensorDescriptor::operator==(const mlopenTensorDescriptor& rhs) const
 {
 	assert(this->lens.size() == rhs.strides.size());
-	return this->type == rhs.type and this->lens == rhs.lens and this->strides == rhs.strides;
+	return this->type == rhs.type && this->lens == rhs.lens && this->strides == rhs.strides;
 }
 
 bool mlopenTensorDescriptor::operator!=(const mlopenTensorDescriptor& rhs) const
 {
-	return not (*this == rhs);
+	return ! (*this == rhs);
 }
 
 int mlopenGetTensorIndex(mlopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
