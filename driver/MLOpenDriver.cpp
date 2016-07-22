@@ -15,12 +15,9 @@ int ForwardConvOnHost(int n_in, int c_in, int h_in, int w_in,
 		int u, int v, int pad_h, int pad_w,
 		float *bot, float *wei, std::vector<float> &out) {
 	
-	int in_pad_w = w_in + 2*pad_w;
-	int in_pad_h = h_in + 2*pad_h;
 	int bias = 0;
 
 	for(int o = 0; o < n_out; o++) { // mini-batch size
-		int image_off = (pad_h == 0 && pad_w == 0) ? o*nStride_in : o * c_in * in_pad_h * in_pad_w;
 		for(int w = 0; w < c_out; w++) { // out_channels (num filters)
 			for(int i = 0; i < h_out; i++) { // output_height (from getforwardoutputdim())
 				int in_off_h = i * v;
@@ -28,10 +25,16 @@ int ForwardConvOnHost(int n_in, int c_in, int h_in, int w_in,
 					float acc = 0;
 					int in_off_w = j * u;
 					for(int k = 0; k < c_in; k++) { // in_channels (RGB)
-						int chan_off = (pad_h == 0 && pad_w == 0) ? k*cStride_in : k * in_pad_h * in_pad_w;
 						for(int x = 0; x < h_wei; x++) {
-							for(int y = 0; y < w_wei; y++) {
-								acc +=	bot[image_off + chan_off + (in_off_h+x)*in_pad_w + in_off_w + y] * wei[w*nStride_wei + k*cStride_wei + x*hStride_wei + y];
+							int in_x_lo = in_off_h - pad_h + x;
+							int in_x_hi = (in_off_h - pad_h + x)*w_in;
+							if(in_x_lo >= 0 && in_x_hi < h_in*w_in) {
+								for(int y = 0; y < w_wei; y++) {
+									int in_y = in_off_w - pad_w + y;
+									if(in_y >= 0 && in_y < w_in) {
+										acc +=	bot[o*nStride_in + k*cStride_in + (in_off_h+x-pad_h)*w_in + in_off_w + y - pad_w] * wei[w*nStride_wei + k*cStride_wei + x*hStride_wei + y];
+									}
+								}
 							}
 						}
 					}
@@ -139,7 +142,7 @@ int main()
 
 	mlopenConvolutionMode_t mode = mlopenConvolution;
 
-	mlopenInitConvolutionDescriptor(convDesc, mode,	0, 0, 1, 1,	1, 1);
+	mlopenInitConvolutionDescriptor(convDesc, mode,	4, 4, 1, 1,	1, 1);
 
 	int pad_w, pad_h, u, v, upx, upy;
 	mlopenGetConvolutionDescriptor(convDesc, &mode,	&pad_h, &pad_w, &u, &v,	&upx, &upy);
@@ -270,10 +273,11 @@ int main()
 	if(status != CL_SUCCESS) 
 		printf("error\n");
 
-//	for(int i = 0; i < sz_out; i++) {
-//		//printf("%f\t%f\t%f\n, ", out[i], outhost[i], outhost1[i]);
+	for(int i = 0; i < sz_out; i++) {
+		printf("%f\t%f\t%f\n, ", out[i], outhost[i], outhost1[i]);
 //		printf("%f\n, ", outhost[i]);
-//	}
+	}
+#if 0
 	mlopenFindConvolutionBackwardDataAlgorithm(handle,
 			inputTensor,
 			out_dev,
@@ -302,7 +306,7 @@ int main()
 			in_dev,
 			NULL,
 			0);
-
+#endif
 	mlopenDestroyTensorDescriptor(outputTensor);
 	mlopenDestroyTensorDescriptor(convFilter);
 	mlopenDestroyTensorDescriptor(inputTensor);
