@@ -118,7 +118,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	
 	clFinish(queue);
 
-	std::cout << "Conv's finished." << std::endl;
+	std::cout << "Find Forward Convolution Finished !!" << std::endl;
 
 	return mlopenStatusSuccess;
 
@@ -208,7 +208,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 	
 	clFinish(queue);
 
-	std::cout << "Conv's (forward) finished." << std::endl;
+	std::cout << "Run Forward Convolution Finished !!" << std::endl;
 
 	return mlopenStatusSuccess;
 
@@ -334,7 +334,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 	
 	clFinish(queue);
 
-	std::cout << "Backward Conv's finished." << std::endl;
+	std::cout << "Find Backward Data Finished !!" << std::endl;
 
 	return mlopenStatusSuccess;
 
@@ -428,7 +428,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 	
 	clFinish(queue);
 
-	std::cout << "Conv's (backward) finished." << std::endl;
+	std::cout << "Run Backward Data Finished !!" << std::endl;
 
 	return mlopenStatusSuccess;
 
