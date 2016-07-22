@@ -1318,7 +1318,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 				for (int j = 0; j < 3; ++j)
 				{
 					_in_tile1 = tile_sz[j];
-					if (_out_height * 2 <= _in_tile1 && !(_out_height < tile_sz[0]))
+					if (_out_height * 2 <= _in_tile1 && _in_tile1 > tile_sz[0])
 					{
 						runs_left--;
 						runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -1328,7 +1328,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 					for (int i = 0; i < 3; ++i)
 					{
 						_in_tile0 = tile_sz[i];
-						if (_out_width * 2 <= _in_tile0  && !(_out_width < tile_sz[0]))
+						if (_out_width * 2 <= _in_tile0 &&  _in_tile0 > tile_sz[0])
 						{
 							runs_left--;
 							runs_left = (runs_left < 0) ? 0 : runs_left;
