@@ -73,7 +73,6 @@ class InputFlags
 
 	public:
 	InputFlags();
-	virtual void AddDerivedInputFlags() = 0;
 	void AddInputFlag(const std::string &_long_name, 
 					char _short_name,
 					const std::string &_value,
