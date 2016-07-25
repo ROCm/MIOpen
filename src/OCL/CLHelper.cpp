@@ -37,6 +37,7 @@ mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 	CheckCLStatus(status, "Error Creating OpenCL Program (cl_program) in LoadProgramFromSource()");
 
 	delete[] source;
+	// clReleaseContext(context);
 
 	return mlopenStatusSuccess;
 }
