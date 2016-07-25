@@ -8,6 +8,7 @@
 #include <iostream>
 #include <mlopenTensor.hpp>
 #include <manage_ptr.hpp>
+#include <returns.hpp>
 
 mlopenHandle_t global_handle;
 struct handle_fixture
@@ -62,32 +63,32 @@ struct handle_fixture
 };
 
 // Multidimensional for loop
-template<class F, class T>
-void ford_impl(F f, T x)
+struct ford_impl
 {
-    for(T i=0;i<x;i++) f(i);
-}
-
-template<class F, class T, class... Ts>
-void ford_impl(F f, T x, Ts... xs)
-{
-    ford_impl([&](T i)
+    template<class F, class T>
+    void operator()(F f, T x) const
     {
-        ford_impl([&](Ts... is)
+        for(T i=0;i<x;i++) f(i);
+    }
+
+    template<class F, class T, class... Ts>
+    void operator()(F f, T x, Ts... xs) const
+    {
+        (*this)([&](T i)
         {
-            f(i, is...);
-        }, xs...);
-    }, x);
-}
+            (*this)([&](Ts... is)
+            {
+                f(i, is...);
+            }, xs...);
+        }, x);
+    }
+};
 
 template<class... Ts>
-auto ford(Ts... xs)
-{
-    return [=](auto f)
-    {
-        ford_impl(f, xs...);
-    };
-};
+auto ford(Ts... xs) MLOPEN_RETURNS
+(
+    std::bind(ford_impl{}, std::placeholders::_1, xs...)
+);
 
 
 template<class T>
@@ -185,6 +186,15 @@ struct tensor
     {
         assert(this->index(n, c, h, w) < data.size());
         return this->data[this->index(n, c, h, w)];
+    }
+};
+
+struct tensor_generate
+{
+    template<class Tensor, class G>
+    Tensor&& operator()(Tensor&& t, G g) const
+    {
+        return std::forward<Tensor>(t.generate(g));
     }
 };
 
@@ -316,6 +326,16 @@ std::vector<T> verify_forward_conv(const tensor<T>& input, const tensor<T>& weig
     auto out_gpu = forward_conv_gpu(input, weights, filter, bias);
     CHECK(out_cpu == out_gpu);
 }
+struct verify_forward_conv_gen 
+{
+    template<class T, mlopenConvolutionMode_t Mode, class G1, class G2>
+    std::vector<T> operator()(tensor<T>& input, G1 g1, tensor<T>& weights, G2 g2, const conv_filter<Mode>& filter, int bias = 0) const
+    {
+        input.generate(g1);
+        weights.generate(g2);
+        verify_forward_conv(input, weights, filter, bias);
+    }
+};
 
 template<class F, class... Ts>
 void each_args(F f, Ts&&... xs)
@@ -323,16 +343,39 @@ void each_args(F f, Ts&&... xs)
     std::initializer_list<int>{(f(std::forward<Ts>(xs)), 0)...};
 }
 
+template<class F>
+struct protect_fn
+{
+    F f;
+    protect_fn(F x) : f(std::move(x)) 
+    {}
+
+    template<class... Ts>
+    auto operator()(Ts&&... xs) const MLOPEN_RETURNS
+    (f(std::forward<Ts>(xs)...));
+};
+
+template<class F>
+protect_fn<F> protect(F f)
+{
+    return {std::move(f)};
+}
+
+struct cross_args_apply
+{
+    template<class F, class T, class... Ts>
+    void operator()(F f, T&& x, Ts&&... xs) const
+    {
+        each_args(std::bind(f, std::forward<T>(x), std::placeholders::_1), std::forward<Ts>(xs)...);
+    }
+};
+
 template<class F, class... Ts>
 void cross_args(F f, Ts&&... xs)
 {
-    each_args([&](auto g1)
-    {
-        each_args([&](auto g2)
-        {
-            f(g1, g2);
-        }, std::forward<Ts>(xs)...);
-    }, std::forward<Ts>(xs)...);
+    each_args(
+        std::bind(cross_args_apply{}, protect(std::move(f)), std::placeholders::_1, std::forward<Ts>(xs)...),
+    std::forward<Ts>(xs)...);
 }
 
 template<class T, class G>
@@ -351,12 +394,21 @@ void verify_all(Gs... gs)
         conv_filter<mlopenConvolution> filter{padh, padw, u+1, v+1, upx+1, upy+1};
         ford(8,8,8,8)([&](int x1, int y1, int x2, int y2)
         {
-            cross_args([&](auto g1, auto g2)
+            if (x1 >= x2 && y1 >= y2)
             {
-                auto input = tensor<T>{5, 16, x1+1, y1+1}.generate(g1);
-                auto weights = tensor<T>{8, 16, x2+1, y2+1}.generate(g2);
-                verify_forward_conv(input, weights, filter);
-            }, gs...);
+                tensor<T> input{5, 16, x1+1, y1+1};
+                tensor<T> weights{8, 16, x2+1, y2+1};
+                cross_args(
+                    std::bind(verify_forward_conv_gen{},
+                        std::ref(input),
+                        std::placeholders::_1,
+                        std::ref(weights),
+                        std::placeholders::_2,
+                        std::ref(filter)
+                    ),
+                    gs...
+                );
+            }
         }); 
     });
 }

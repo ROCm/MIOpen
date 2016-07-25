@@ -17,6 +17,6 @@ struct manage_deleter
 template<class T, class F, F f>
 using manage_ptr = std::unique_ptr<T, manage_deleter<F, f>>;
 
-#define MLOPEN_MANAGE_PTR(T, F) manage_ptr<std::remove_pointer_t<T>, decltype(&F), &F>
+#define MLOPEN_MANAGE_PTR(T, F) manage_ptr<typename std::remove_pointer<T>::type, decltype(&F), &F>
 
 #endif
