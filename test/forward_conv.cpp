@@ -6,6 +6,7 @@
 #include <memory>
 #include <utility>
 #include <iostream>
+#include <cmath>
 #include <mlopenTensor.hpp>
 #include <manage_ptr.hpp>
 #include <returns.hpp>
@@ -319,12 +320,23 @@ std::vector<T> forward_conv_gpu(const tensor<T>& input, const tensor<T>& weights
     return out.data;
 }
 
+struct float_equal_fn
+{
+    template<class T>
+    bool operator()(T x, T y) const
+    {
+        return std::fabs(x - y) < std::numeric_limits<T>::epsilon() * std::max(x, y);
+    }
+};
+
 template<class T, mlopenConvolutionMode_t Mode>
 std::vector<T> verify_forward_conv(const tensor<T>& input, const tensor<T>& weights, const conv_filter<Mode>& filter, int bias = 0)
 {
     auto out_cpu = forward_conv_cpu(input, weights, filter, bias);
     auto out_gpu = forward_conv_gpu(input, weights, filter, bias);
-    CHECK(out_cpu == out_gpu);
+    CHECK(std::distance(out_cpu.begin(), out_cpu.end()) == std::distance(out_gpu.begin(), out_gpu.end()));
+    CHECK(std::equal(out_cpu.begin(), out_cpu.end(), out_gpu.begin(), float_equal_fn{}));
+    // CHECK(out_cpu == out_gpu);
 }
 struct verify_forward_conv_gen 
 {
@@ -383,7 +395,8 @@ void verify_one(G g)
 {
     auto input = tensor<float>{5, 16, 8, 8}.generate(g);
     auto weights = tensor<float>{8, 16, 5, 5}.generate(g);
-    verify_forward_conv(input, weights, conv_filter<mlopenConvolution>{});
+    conv_filter<mlopenConvolution> filter{};
+    verify_forward_conv(input, weights, filter);
 }
 
 template<class T, class... Gs>
@@ -420,8 +433,13 @@ int main() {
     auto g_id = [](int n, int c, int h, int w) { return h == w ? 1 : 0; };
     auto g = [](int n, int c, int h, int w) { return n+c+h+w; };
 
+#if MLOPEN_TEST_ALL
+    printf("verify_all\n");
+    verify_all<float>(g0,g1, g_id, g);
+#else
+    printf("verify_one\n");
     verify_one<float>(g);
-    // verify_all<float>(g0,g1, g_id, g);
+#endif
 
     mlopenDestroy(global_handle);
 }
