@@ -99,15 +99,15 @@ struct tensor_test_suit
                     &hStride,
                     &wStride);
 
-            CHECK(dt == mlopenFloat);
-            CHECK(n == 100);
-            CHECK(c == 32);
-            CHECK(h == 8);
-            CHECK(w == 8);
-            CHECK(nStride == c * cStride);
-            CHECK(cStride == h * hStride);
-            CHECK(hStride == w * wStride);
-            CHECK(wStride == 1);
+            EXPECT(dt == mlopenFloat);
+            EXPECT(n == 100);
+            EXPECT(c == 32);
+            EXPECT(h == 8);
+            EXPECT(w == 8);
+            EXPECT(nStride == c * cStride);
+            EXPECT(cStride == h * hStride);
+            EXPECT(hStride == w * wStride);
+            EXPECT(wStride == 1);
         }
     };
 
@@ -125,10 +125,10 @@ struct tensor_test_suit
                     &hStride,
                     &wStride);
 
-            CHECK(nStride == 32 * cStride);
-            CHECK(cStride == 8 * hStride);
-            CHECK(hStride == 8 * wStride);
-            CHECK(wStride == 1);
+            EXPECT(nStride == 32 * cStride);
+            EXPECT(cStride == 8 * hStride);
+            EXPECT(hStride == 8 * wStride);
+            EXPECT(wStride == 1);
         }
     };
 
@@ -146,10 +146,10 @@ struct tensor_test_suit
                     &h,
                     &w);
 
-            CHECK(n == 100);
-            CHECK(c == 32);
-            CHECK(h == 8);
-            CHECK(w == 8);
+            EXPECT(n == 100);
+            EXPECT(c == 32);
+            EXPECT(h == 8);
+            EXPECT(w == 8);
         }
     };
 
@@ -159,7 +159,7 @@ struct tensor_test_suit
         {
             int size;
             mlopenGetTensorDescriptorSize(this->tensor, &size);
-            CHECK(size == 4);
+            EXPECT(size == 4);
 
             std::array<int, 4> lens;
             std::array<int, 4> strides;
@@ -171,16 +171,16 @@ struct tensor_test_suit
                     lens.data(),
                     strides.data());
 
-            CHECK(dt == mlopenFloat);
+            EXPECT(dt == mlopenFloat);
 
-            CHECK(lens[0] == 100);
-            CHECK(lens[1] == 32);
-            CHECK(lens[2] == 8);
-            CHECK(lens[3] == 8);
-            CHECK(strides[0] == lens[1] * strides[1]);
-            CHECK(strides[1] == lens[2] * strides[2]);
-            CHECK(strides[2] == lens[3] * strides[3]);
-            CHECK(strides[3] == 1);
+            EXPECT(lens[0] == 100);
+            EXPECT(lens[1] == 32);
+            EXPECT(lens[2] == 8);
+            EXPECT(lens[3] == 8);
+            EXPECT(strides[0] == lens[1] * strides[1]);
+            EXPECT(strides[1] == lens[2] * strides[2]);
+            EXPECT(strides[2] == lens[3] * strides[3]);
+            EXPECT(strides[3] == 1);
         }
     };
 
@@ -190,7 +190,7 @@ struct tensor_test_suit
         {
             int size;
             mlopenGetTensorDescriptorSize(this->tensor, &size);
-            CHECK(size == 4);
+            EXPECT(size == 4);
 
             std::array<int, 4> lens;
             mlopenDataType_t dt;
@@ -201,12 +201,12 @@ struct tensor_test_suit
                     lens.data(),
                     nullptr);
 
-            CHECK(dt == mlopenFloat);
+            EXPECT(dt == mlopenFloat);
 
-            CHECK(lens[0] == 100);
-            CHECK(lens[1] == 32);
-            CHECK(lens[2] == 8);
-            CHECK(lens[3] == 8);
+            EXPECT(lens[0] == 100);
+            EXPECT(lens[1] == 32);
+            EXPECT(lens[2] == 8);
+            EXPECT(lens[3] == 8);
         }
     };
 
@@ -216,7 +216,7 @@ struct tensor_test_suit
         {
             int size;
             mlopenGetTensorDescriptorSize(this->tensor, &size);
-            CHECK(size == 4);
+            EXPECT(size == 4);
 
             std::array<int, 4> lens = {100, 32, 8, 8};
             std::array<int, 4> strides;
@@ -228,15 +228,15 @@ struct tensor_test_suit
                     nullptr,
                     strides.data());
 
-            CHECK(dt == mlopenFloat);
-            CHECK(lens[0] == 100);
-            CHECK(lens[1] == 32);
-            CHECK(lens[2] == 8);
-            CHECK(lens[3] == 8);
-            CHECK(strides[0] == lens[1] * strides[1]);
-            CHECK(strides[1] == lens[2] * strides[2]);
-            CHECK(strides[2] == lens[3] * strides[3]);
-            CHECK(strides[3] == 1);
+            EXPECT(dt == mlopenFloat);
+            EXPECT(lens[0] == 100);
+            EXPECT(lens[1] == 32);
+            EXPECT(lens[2] == 8);
+            EXPECT(lens[3] == 8);
+            EXPECT(strides[0] == lens[1] * strides[1]);
+            EXPECT(strides[1] == lens[2] * strides[2]);
+            EXPECT(strides[2] == lens[3] * strides[3]);
+            EXPECT(strides[3] == 1);
         }
     };
 
@@ -244,11 +244,11 @@ struct tensor_test_suit
     {
         void run()
         {
-            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 0}) == 0);
-            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 1}) == 1);
-            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 2}) == 2);
-            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 1, 0}) == 8);
-            CHECK(mlopenGetTensorIndex(this->tensor, {0, 0, 1, 1}) == 9);
+            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 0}) == 0);
+            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 1}) == 1);
+            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 2}) == 2);
+            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 1, 0}) == 8);
+            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 1, 1}) == 9);
         }
     };
 
