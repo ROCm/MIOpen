@@ -279,7 +279,7 @@ std::vector<T> forward_conv_gpu(const tensor<T>& input, const tensor<T>& weights
 
     cl_mem in_dev = handle.write(input.data);
     cl_mem wei_dev = handle.write(weights.data);
-    cl_mem out_dev = handle.create<float>(out.data.size());
+    cl_mem out_dev = handle.create<T>(out.data.size());
 
     int ret_algo_count;
     mlopenConvAlgoPerf_t perf;
