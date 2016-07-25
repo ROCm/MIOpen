@@ -1,26 +1,13 @@
 #include "Handle.hpp"
 
-template<class F, F f>
-struct manage_deleter
-{
-    template<class T>
-    void operator()(T* x) const
-    {
-        f(x);
-    }
-};
-
-template<class T, class F, F f>
-using manage_ptr = std::unique_ptr<T, manage_deleter<F, f>>;
-
-#define MANAGE_PTR(T, F) manage_ptr<T, decltype(&F), &F>
+#include <manage_ptr.hpp>
 
 
 struct mlopenContextImpl
 {
 
-    typedef MANAGE_PTR(std::remove_pointer_t<mlopenAcceleratorQueue_t>, clReleaseCommandQueue) AqPtr;
-    typedef MANAGE_PTR(std::remove_pointer_t<cl_context>, clReleaseContext) ContextPtr;
+    typedef MLOPEN_MANAGE_PTR(mlopenAcceleratorQueue_t, clReleaseCommandQueue) AqPtr;
+    typedef MLOPEN_MANAGE_PTR(cl_context, clReleaseContext) ContextPtr;
 
     ContextPtr context;
     std::vector<AqPtr> queues;
