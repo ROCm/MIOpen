@@ -42,7 +42,7 @@ class ConvDriver
 		mlopenCreateTensorDescriptor(&weightTensor);
 		mlopenCreateTensorDescriptor(&outputTensor);
 
-		mlopenCreateConvolutionDescriptor(handle, &convDesc);
+		mlopenCreateConvolutionDescriptor(&convDesc);
 	};
 	int AddCmdLineArgs();
 	int ParseCmdLineArgs(int argc, char *argv[]) { inflags.Parse(argc, argv); }
