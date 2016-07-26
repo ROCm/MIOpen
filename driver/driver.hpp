@@ -126,7 +126,7 @@ int ConvDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
 	inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
-	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=0)", "int");
+	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
 	inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
 	inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
