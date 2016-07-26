@@ -24,7 +24,7 @@ mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 	fseek(fp, 0, SEEK_END);
 	sourceSize = ftell(fp);
 	fseek(fp , 0, SEEK_SET);
-	source = new char[sourceSize];
+	source = new char[sourceSize+1];
 	fread(source, 1, sourceSize, fp);
 	fclose(fp);
 
@@ -37,6 +37,7 @@ mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 	CheckCLStatus(status, "Error Creating OpenCL Program (cl_program) in LoadProgramFromSource()");
 
 	delete[] source;
+	// clReleaseContext(context);
 
 	return mlopenStatusSuccess;
 }

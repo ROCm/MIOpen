@@ -62,7 +62,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 		construct_params.setGeneralCompOptions(generic_comp_otions);
 
-		mlopenStream_t queue;
+		mlopenAcceleratorQueue_t queue;
 		handle->GetStream(&queue);
 
 		construct_params.setStream(queue);
@@ -83,7 +83,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 	// Get the queue associated with this handle
-	mlopenStream_t queue;
+	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
@@ -174,7 +174,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 	// Get the queue associated with this handle
-	mlopenStream_t queue;
+	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
 	OCLKernel kernel;
@@ -278,7 +278,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 
 		construct_params.setGeneralCompOptions(generic_comp_otions);
 
-		mlopenStream_t queue;
+		mlopenAcceleratorQueue_t queue;
 		handle->GetStream(&queue);
 
 		construct_params.setStream(queue);
@@ -299,7 +299,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 	// Get the queue associated with this handle
-	mlopenStream_t queue;
+	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
@@ -391,7 +391,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 	// Get the queue associated with this handle
-	mlopenStream_t queue;
+	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
 	OCLKernel kernel;

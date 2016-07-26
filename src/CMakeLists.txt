@@ -45,7 +45,6 @@ set( MLOpen_SOVERSION 1 )
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MLOpen_Source
-	Handle.cpp
 	Handle.hpp
 	Handle_API.cpp
 	Tensor.cpp
@@ -68,6 +67,7 @@ set( MLOpen_Source
 
 if( MLOpen_BACKEND MATCHES "OpenCL")
 	list(APPEND MLOpen_Source OCL/HandleOCL.cpp
+		OCL/HandleOCL.cpp
 		OCL/TensorOCL.cpp
 		OCL/ConvolutionOCL.cpp
 		OCL/CLHelper.hpp

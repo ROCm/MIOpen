@@ -63,15 +63,15 @@ struct input_tensor_fixture //: virtual handle_fixture
                 &hStride,
                 &wStride);
 
-        CHECK(dt == 1);
-        CHECK(n == 100);
-        CHECK(c == 32);
-        CHECK(h == 8);
-        CHECK(w == 8);
-        CHECK(nStride == c * cStride);
-        CHECK(cStride == h * hStride);
-        CHECK(hStride == w * wStride);
-        CHECK(wStride == 1);
+        EXPECT(dt == 1);
+        EXPECT(n == 100);
+        EXPECT(c == 32);
+        EXPECT(h == 8);
+        EXPECT(w == 8);
+        EXPECT(nStride == c * cStride);
+        EXPECT(cStride == h * hStride);
+        EXPECT(hStride == w * wStride);
+        EXPECT(wStride == 1);
     }
 };
 
@@ -94,7 +94,7 @@ struct conv_filter_fixture : virtual handle_fixture
             5,   // kernel size
             5);
         
-        mlopenCreateConvolutionDescriptor(handle, &convDesc);
+        mlopenCreateConvolutionDescriptor(&convDesc);
         // convolution with padding 2
         mlopenInitConvolutionDescriptor(convDesc,
                 mode,
@@ -122,13 +122,13 @@ struct conv_filter_fixture : virtual handle_fixture
                 &pad_h, &pad_w, &u, &v,
                 &upx, &upy);
 
-        CHECK(mode == 0);
-        CHECK(pad_h == 0);
-        CHECK(pad_w == 0);
-        CHECK(u == 1);
-        CHECK(v == 1);
-        CHECK(upx == 1);
-        CHECK(upy == 1);
+        EXPECT(mode == 0);
+        EXPECT(pad_h == 0);
+        EXPECT(pad_w == 0);
+        EXPECT(u == 1);
+        EXPECT(v == 1);
+        EXPECT(upx == 1);
+        EXPECT(upy == 1);
     }
 };
 
@@ -160,10 +160,10 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
         int x, y, z, a;
         mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a);
 
-        CHECK(x == 100);
-        CHECK(y == 64);
-        CHECK(z == 4);
-        CHECK(a == 4);
+        EXPECT(x == 100);
+        EXPECT(y == 64);
+        EXPECT(z == 4);
+        EXPECT(a == 4);
     }
 };
 
@@ -219,7 +219,7 @@ struct conv_forward : output_tensor_fixture
 		status = clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4*sz_in, in, 0, NULL, NULL);
 		status |= clEnqueueWriteBuffer(q, wei_dev, CL_TRUE, 0, 4*sz_wei, wei, 0, NULL, NULL);
 		status |= clEnqueueWriteBuffer(q, out_dev, CL_TRUE, 0, 4*sz_out, out.data(), 0, NULL, NULL);
-		CHECK(status == CL_SUCCESS);
+		EXPECT(status == CL_SUCCESS);
 
         int ret_algo_count;
         mlopenConvAlgoPerf_t perf;
