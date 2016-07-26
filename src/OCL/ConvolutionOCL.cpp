@@ -54,10 +54,10 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 		construct_params.setKernelPath(kernel_path);
 
-		std::string generic_comp_otions = std::string(" -I ") + kernel_path + " ";
+		std::string generic_comp_otions;// = std::string(" -I ") + kernel_path + " ";
 //		if (debug)
 		{
-			generic_comp_otions += std::string(" -cl-std=CL2.0 ");
+			// generic_comp_otions += std::string(" -cl-std=CL2.0 ");
 		}
 
 		construct_params.setGeneralCompOptions(generic_comp_otions);
@@ -269,10 +269,10 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 
 		construct_params.setKernelPath(kernel_path);
 
-		std::string generic_comp_otions = std::string(" -I ") + kernel_path + " ";
+		std::string generic_comp_otions;// = std::string(" -I ") + kernel_path + " ";
 //		if (debug)
 		{
-			generic_comp_otions += std::string(" -cl-std=CL2.0 ");
+			// generic_comp_otions += std::string(" -cl-std=CL2.0 ");
 
 		}
 
