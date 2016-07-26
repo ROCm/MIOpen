@@ -19,7 +19,7 @@ set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS TRUE )
 
 
 ############################################################
-# require C++14
+# require C++11
 add_compile_options(-std=c++11)
 
 # suppress all warnings for now as many occur in cl.hpp
