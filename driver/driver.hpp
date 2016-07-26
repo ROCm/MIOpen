@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <float.h>
 #include <memory>
+#include <numeric>
 
 #define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
 
@@ -45,7 +46,7 @@ class ConvDriver
 		mlopenCreateConvolutionDescriptor(&convDesc);
 	};
 	int AddCmdLineArgs();
-	int ParseCmdLineArgs(int argc, char *argv[]) { inflags.Parse(argc, argv); }
+	int ParseCmdLineArgs(int argc, char *argv[]) { inflags.Parse(argc, argv); return 0; }
 	InputFlags & GetInputFlags() { return inflags; }
 	mlopenHandle_t GetHandle() { return handle; }
 	
@@ -129,6 +130,8 @@ int ConvDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
 	inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
 	inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
+
+	return 0;
 }
 
 template<typename T>
