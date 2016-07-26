@@ -48,6 +48,16 @@ struct handle_fixture
         return result;
     }
 
+    template<class Container>
+    cl_mem write(const Container& c, cl_mem data, int sz)
+    {
+        assert(sz == c.size()*sizeof(typename Container::value_type));
+        cl_int status = CL_SUCCESS;
+        status = clEnqueueWriteBuffer(q, result, CL_TRUE, 0, sz, c.data(), 0, nullptr, nullptr);
+        if (status != CL_SUCCESS) throw status;
+        return result;
+    }
+
     template<class T>
     std::vector<T> read(cl_mem data, int sz)
     {
