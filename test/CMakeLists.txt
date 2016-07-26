@@ -1,6 +1,14 @@
 
 include(CTest)
 
+option( MLOPEN_TEST_ALL "Run the full test suite" OFF )
+
+if(MLOPEN_TEST_ALL)
+    add_definitions(-DMLOPEN_TEST_ALL=1)
+else()
+    add_definitions(-DMLOPEN_TEST_ALL=0)
+endif()
+
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 

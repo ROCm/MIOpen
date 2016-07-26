@@ -3,6 +3,8 @@
 
 int mlopenGetTensorIndex(mlopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices);
 
+int mlopenGetTensorDescriptorElementSize(mlopenTensorDescriptor_t tensorDesc);
+
 mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
         mlopenTensorDescriptor_t tensorDesc,
         int *n,
