@@ -53,9 +53,9 @@ struct handle_fixture
     {
         assert(sz == c.size()*sizeof(typename Container::value_type));
         cl_int status = CL_SUCCESS;
-        status = clEnqueueWriteBuffer(q, result, CL_TRUE, 0, sz, c.data(), 0, nullptr, nullptr);
+        status = clEnqueueWriteBuffer(q, data, CL_TRUE, 0, sz, c.data(), 0, nullptr, nullptr);
         if (status != CL_SUCCESS) throw status;
-        return result;
+        return data;
     }
 
     template<class T>
