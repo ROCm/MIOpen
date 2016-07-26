@@ -148,9 +148,13 @@ void InputFlags::Parse(int argc, char *argv[])
 			}
 			if(short_name == 'h')
 				Print();
-
-			MapInputs[short_name].value = args[i+1];
-			i++;
+		
+			if(i+1 >= args.size()) // Check whether last arg has a value 
+				Print();
+			else {
+				MapInputs[short_name].value = args[i+1];
+				i++;
+			}
 		}
 	}
 }
