@@ -176,7 +176,7 @@ struct tensor
                 &hStride_in,
                 &wStride_in);
 
-        return {n_in, c_in, h_in, w_in};
+        return std::make_tuple(n_in, c_in, h_in, w_in);
     }
 
     int index(int n, int c, int h, int w) const
