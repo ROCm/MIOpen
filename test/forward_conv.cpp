@@ -159,7 +159,7 @@ struct tensor
         ford(n, c, h, w)(std::move(f));
     }
 
-    std::array<int, 4> get_lengths() const
+    std::tuple<int, int, int, int> get_lengths() const
     {
         int n_in, c_in, h_in, w_in;
         int nStride_in, cStride_in, hStride_in, wStride_in;
