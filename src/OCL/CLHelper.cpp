@@ -53,7 +53,6 @@ mlopenStatus_t CLHelper::BuildProgram(cl_program &program,
 	// Also, removing the CL2.0 flag for now due to incorrect code generation found by Alex
 	// params += " -cl-std=CL2.0";
 
-	std::cout<<params;
 	cl_int status;
 	cl_device_id device;
 
