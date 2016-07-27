@@ -16,7 +16,7 @@ class CLHelper {
 
 	static mlopenStatus_t BuildProgram(cl_program &program,
 			cl_command_queue &queue,
-			const std::string &params);
+			std::string params);
 
 	static mlopenStatus_t CreateKernel(cl_program &program,
 			cl_kernel &kernel,
