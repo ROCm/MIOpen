@@ -298,7 +298,8 @@ int ConvDriver<T>::FindForwardConvAlgo() {
 			&perf,
 			mlopenConvolutionFastest,
 			NULL,
-			10);
+			10,
+			(bool)inflags.GetValueInt("search"));
 }
 
 template<typename T>
@@ -430,7 +431,7 @@ int ConvDriver<T>::VerifyForwardConv() {
 		T diff = std::fabs(out[i] - outhost[i]);
 		if(diff > std::fabs((std::max(out[i], outhost[i])) * std::numeric_limits<T>::epsilon())) {
 
-			printf("Output Mismatch at: %d diff: %.10f %.10f %.10f \n", i, diff, out[i], outhost[i]);
+			printf("Output Mismatch at: %d diff: %.10f gpu: %.10f cpu: %.10f \n", i, diff, out[i], outhost[i]);
 			return -1;
 		}
 	}

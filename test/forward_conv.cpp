@@ -10,6 +10,7 @@
 #include <mlopenTensor.hpp>
 #include <manage_ptr.hpp>
 #include <returns.hpp>
+#include <limits>
 
 mlopenHandle_t global_handle;
 struct handle_fixture
@@ -307,7 +308,8 @@ std::vector<T> forward_conv_gpu(const tensor<T>& input, const tensor<T>& weights
         &perf,
         mlopenConvolutionFastest,
         NULL,
-        10);
+        10,
+		0); // MD: Not performing exhaustiveSearch by default for now
 
     mlopenConvolutionForward(handle.handle,
         &alpha,
