@@ -44,7 +44,10 @@ mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 
 mlopenStatus_t CLHelper::BuildProgram(cl_program &program,
 		cl_command_queue &queue,
-		const std::string &params) {
+		std::string params) {
+
+	// Temporary hack to properly add the flags without causing spacing problems or duplication
+	params += " -I ../src/Kernel/ -cl-std=CL2.0";
 
 	cl_int status;
 	cl_device_id device;
