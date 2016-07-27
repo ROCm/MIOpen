@@ -47,8 +47,13 @@ mlopenStatus_t CLHelper::BuildProgram(cl_program &program,
 		std::string params) {
 
 	// Temporary hack to properly add the flags without causing spacing problems or duplication
-	params += " -I ../src/Kernel/ -cl-std=CL2.0";
+	// MD: I do not think the path is required here anyways, it is only required to find the kernel
+	// which we are doing in LoadProgramFromSource.
+	//
+	// Also, removing the CL2.0 flag for now due to incorrect code generation found by Alex
+	// params += " -cl-std=CL2.0";
 
+	std::cout<<params;
 	cl_int status;
 	cl_device_id device;
 
