@@ -162,7 +162,7 @@ __attribute__((reqd_work_group_size(ADNN_GRP_SZ0,ADNN_GRP_SZ1,ADNN_GRP_SZ2)))
 __kernel void MLOpenCDFGen(
        const __global _FLOAT * bot,
 		const __global _FLOAT * weights,
-       const __global _FLOAT * bias,
+  /*     const __global _FLOAT * bias,*/
 	  __global _FLOAT *top,
 	   _FLOAT padding_val
 //	   int in_main_loop
@@ -357,7 +357,9 @@ __kernel void MLOpenCDFGen(
 			return;
 		}
 #endif
-		_FLOAT  bias_val = bias[o_id * ADNN_LCL_N_OUT_CHNLS + o];
+		//MD: No bias 
+//		_FLOAT  bias_val = bias[o_id * ADNN_LCL_N_OUT_CHNLS + o];
+		_FLOAT bias_val = 0.0;
 
 		int top_off2 = top_off;
 
