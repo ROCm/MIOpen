@@ -13,7 +13,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
 		void							*workSpace,
-		size_t							workSpaceSize) {
+		size_t							workSpaceSize,
+		bool							exhaustiveSearch) {
 	
 	if(handle == nullptr) {
 		return mlopenStatusBadParm;
@@ -44,7 +45,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	{
 		construct_params.setTimerIter(100);
 // HOW TO DEFINE???
-		construct_params.doSearch(true); // false);
+		construct_params.doSearch(exhaustiveSearch);
 //
 		construct_params.saveSearchRequest(true);
 
@@ -54,10 +55,12 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 		construct_params.setKernelPath(kernel_path);
 
-		std::string generic_comp_otions = std::string(" -I ") + kernel_path + " ";
+		std::string generic_comp_otions;
 //		if (debug)
 		{
+
 //			generic_comp_otions += std::string(" -cl-std=CL2.0 ");
+
 		}
 
 		construct_params.setGeneralCompOptions(generic_comp_otions);
@@ -196,7 +199,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 	// Set kernel arguments
 	// Use proper arguments
 	float padding_val = 0;
-	//kernel.SetArgs(0, in_dev, wei_dev, out_dev, padding_val);
 	kernel.SetArgs(0, x, w, y, padding_val);
 
 	const std::vector<size_t> & vld = kernel.GetLocalDims();
@@ -269,9 +271,10 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 
 		construct_params.setKernelPath(kernel_path);
 
-		std::string generic_comp_otions = std::string(" -I ") + kernel_path + " ";
+		std::string generic_comp_otions;
 //		if (debug)
 		{
+
 //			generic_comp_otions += std::string(" -cl-std=CL2.0 ");
 
 		}

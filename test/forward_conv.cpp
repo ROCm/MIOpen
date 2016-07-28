@@ -10,6 +10,7 @@
 #include <mlopenTensor.hpp>
 #include <manage_ptr.hpp>
 #include <returns.hpp>
+#include <limits>
 
 mlopenHandle_t global_handle;
 struct handle_fixture
@@ -17,6 +18,8 @@ struct handle_fixture
     mlopenHandle_t handle;
     cl_command_queue q;
     cl_context ctx;
+
+    typedef MLOPEN_MANAGE_PTR(cl_mem, clReleaseMemObject) data_ptr;
 
     handle_fixture()
     {
@@ -28,41 +31,36 @@ struct handle_fixture
     }
 
     template<class T>
-    cl_mem create(int sz)
+    data_ptr create(int sz)
     {
         cl_int status = CL_SUCCESS;
-        cl_mem result = clCreateBuffer(ctx, CL_MEM_READ_ONLY, sizeof(T)*sz, nullptr, &status);
+        auto result = data_ptr{clCreateBuffer(ctx, CL_MEM_READ_ONLY, sizeof(T)*sz, nullptr, &status)};
         if (status != CL_SUCCESS) throw status;
-        return result;
+        return std::move(result);
     }
 
-    template<class Container>
-    cl_mem write(const Container& c)
-    {
-        auto sz = c.size()*sizeof(typename Container::value_type); 
-        cl_int status = CL_SUCCESS;
-        cl_mem result = clCreateBuffer(ctx, CL_MEM_READ_ONLY, sz, nullptr, &status);
-        if (status != CL_SUCCESS) throw status;
-        status = clEnqueueWriteBuffer(q, result, CL_TRUE, 0, sz, c.data(), 0, nullptr, nullptr);
-        if (status != CL_SUCCESS) throw status;
-        return result;
-    }
-
-    template<class Container>
-    cl_mem write(const Container& c, cl_mem data, int sz)
+    template<class Container, class DataPtr>
+    data_ptr write(const Container& c, DataPtr&& data, int sz)
     {
         assert(sz == c.size()*sizeof(typename Container::value_type));
         cl_int status = CL_SUCCESS;
-        status = clEnqueueWriteBuffer(q, result, CL_TRUE, 0, sz, c.data(), 0, nullptr, nullptr);
+        status = clEnqueueWriteBuffer(q, data.get(), CL_TRUE, 0, sz, c.data(), 0, nullptr, nullptr);
         if (status != CL_SUCCESS) throw status;
-        return result;
+        return std::move(data);
+    }
+
+    template<class Container>
+    data_ptr write(const Container& c)
+    {
+        typedef typename Container::value_type type;
+        return this->write(c, this->create<type>(c.size()), c.size()*sizeof(type));
     }
 
     template<class T>
-    std::vector<T> read(cl_mem data, int sz)
+    std::vector<T> read(const data_ptr& data, int sz)
     {
         std::vector<T> result(sz);
-        auto status = clEnqueueReadBuffer(q, data, CL_TRUE, 0, sizeof(T)*sz, result.data(), 0, nullptr, nullptr);
+        auto status = clEnqueueReadBuffer(q, data.get(), CL_TRUE, 0, sizeof(T)*sz, result.data(), 0, nullptr, nullptr);
         if (status != CL_SUCCESS) throw status;
         return result;
     }
@@ -162,7 +160,7 @@ struct tensor
         ford(n, c, h, w)(std::move(f));
     }
 
-    std::array<int, 4> get_lengths() const
+    std::tuple<int, int, int, int> get_lengths() const
     {
         int n_in, c_in, h_in, w_in;
         int nStride_in, cStride_in, hStride_in, wStride_in;
@@ -179,7 +177,7 @@ struct tensor
                 &hStride_in,
                 &wStride_in);
 
-        return {n_in, c_in, h_in, w_in};
+        return std::make_tuple(n_in, c_in, h_in, w_in);
     }
 
     int index(int n, int c, int h, int w) const
@@ -288,9 +286,9 @@ std::vector<T> forward_conv_gpu(const tensor<T>& input, const tensor<T>& weights
     auto out = filter.get_output(input, weights);
     handle_fixture handle;
 
-    cl_mem in_dev = handle.write(input.data);
-    cl_mem wei_dev = handle.write(weights.data);
-    cl_mem out_dev = handle.create<T>(out.data.size());
+    auto in_dev = handle.write(input.data);
+    auto wei_dev = handle.write(weights.data);
+    auto out_dev = handle.create<T>(out.data.size());
 
     int ret_algo_count;
     mlopenConvAlgoPerf_t perf;
@@ -299,30 +297,31 @@ std::vector<T> forward_conv_gpu(const tensor<T>& input, const tensor<T>& weights
 
     mlopenFindConvolutionForwardAlgorithm(handle.handle,
         input.get(),
-        in_dev,
+        in_dev.get(),
         weights.get(),
-        wei_dev,
+        wei_dev.get(),
         filter.get(),
         out.get(),
-        out_dev,
+        out_dev.get(),
         1,
         &ret_algo_count,
         &perf,
         mlopenConvolutionFastest,
         NULL,
-        10);
+        10,
+		0); // MD: Not performing exhaustiveSearch by default for now
 
     mlopenConvolutionForward(handle.handle,
         &alpha,
         input.get(),
-        in_dev,
+        in_dev.get(),
         weights.get(),
-        wei_dev,
+        wei_dev.get(),
         filter.get(),
         mlopenConvolutionFwdAlgoDirect,
         &beta,
         out.get(),
-        out_dev,
+        out_dev.get(),
         NULL,
         0);
 

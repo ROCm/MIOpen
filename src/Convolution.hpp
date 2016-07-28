@@ -31,7 +31,8 @@ struct mlopenConvolutionDescriptor {
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
 		void							*workSpace,
-		size_t							workSpaceSize);
+		size_t							workSpaceSize,
+		bool							exhaustiveSearch);
 
 	mlopenStatus_t ConvolutionForward(mlopenHandle_t handle,
 		const void							*alpha,

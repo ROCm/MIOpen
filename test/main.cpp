@@ -237,7 +237,8 @@ struct conv_forward : output_tensor_fixture
             &perf,
             mlopenConvolutionFastest,
             NULL,
-            10);
+            10,
+			0); // MD: Not performing exhaustiveSearch by default for now
 
         mlopenConvolutionForward(handle,
             &alpha,

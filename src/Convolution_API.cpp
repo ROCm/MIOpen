@@ -113,7 +113,8 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		mlopenConvAlgoPerf_t				*perfResults,
 		mlopenConvPreference_t				preference,
 		void								*workSpace,
-		size_t								workSpaceSize) {
+		size_t								workSpaceSize,
+		bool								exhaustiveSearch) {
 
 	return convDesc->FindConvFwdAlgorithm(handle,
 			xDesc,
@@ -127,7 +128,8 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 			perfResults,
 			preference,
 			workSpace,
-			workSpaceSize);
+			workSpaceSize,
+			exhaustiveSearch);
 
 }
 
