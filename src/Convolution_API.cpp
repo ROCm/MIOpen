@@ -1,20 +1,13 @@
 #include "Convolution.hpp"
+#include <errors.hpp>
 
 extern "C"
 mlopenStatus_t mlopenCreateConvolutionDescriptor(
 		mlopenConvolutionDescriptor_t *convDesc) {
-	
-	if(convDesc == nullptr) {
-		return mlopenStatusBadParm;
-	}
 
-	try {
-		*convDesc = new mlopenConvolutionDescriptor();
-	} catch (mlopenStatus_t status) {
-		return status;
-	}
-
-	return mlopenStatusSuccess;
+	return mlopen::try_([&] {
+		mlopen::deref(convDesc) = new mlopenConvolutionDescriptor();
+	});
 }
 
 extern "C"
@@ -37,15 +30,15 @@ mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t con
 		return mlopenStatusBadParm;
 	}
 
-	convDesc->_mode		= mode;
-	convDesc->_pad_h	= pad_h;
-	convDesc->_pad_w	= pad_w;
-	convDesc->_u		= u;
-	convDesc->_v		= v;
-	convDesc->_upscalex = upscalex;
-	convDesc->_upscaley = upscaley;
-
-	return mlopenStatusSuccess;
+	return mlopen::try_([&] {
+		convDesc->_mode		= mode;
+		convDesc->_pad_h	= pad_h;
+		convDesc->_pad_w	= pad_w;
+		convDesc->_u		= u;
+		convDesc->_v		= v;
+		convDesc->_upscalex = upscalex;
+		convDesc->_upscaley = upscaley;
+	});
 }
 
 extern "C"
@@ -57,19 +50,16 @@ mlopenStatus_t mlopenGetConvolutionDescriptor(mlopenConvolutionDescriptor_t conv
 		int						*v,
 		int						*upscalex,
 		int						*upscaley) {
-	if(convDesc == nullptr) {
-		return mlopenStatusBadParm;
-	}
 
-	*mode		= convDesc->_mode;
-	*pad_h		= convDesc->_pad_h;
-	*pad_w		= convDesc->_pad_w;
-	*u			= convDesc->_u;
-	*v			= convDesc->_v;
-	*upscalex	= convDesc->_upscalex;
-	*upscaley	= convDesc->_upscaley;
-
-	return mlopenStatusSuccess;
+	return mlopen::try_([&] {
+		mlopen::deref(mode)		= convDesc->_mode;
+		mlopen::deref(pad_h)		= convDesc->_pad_h;
+		mlopen::deref(pad_w)		= convDesc->_pad_w;
+		mlopen::deref(u)			= convDesc->_u;
+		mlopen::deref(v)			= convDesc->_v;
+		mlopen::deref(upscalex)	= convDesc->_upscalex;
+		mlopen::deref(upscaley)	= convDesc->_upscaley;
+	});
 }
 
 extern "C"
@@ -81,22 +71,22 @@ mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolutionDescriptor_
 		int								*h,
 		int								*w) {
 
-	return convDesc->GetForwardOutputDim(inputTensorDesc,
-			filterDesc,
-			n, 
-			c, 
-			h,
-			w);
+	return mlopen::try_([&] {
+		convDesc->GetForwardOutputDim(inputTensorDesc,
+				filterDesc,
+				n, 
+				c, 
+				h,
+				w);
+	});
+
 }
 
 extern "C"
 mlopenStatus_t mlopenDestroyConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc) {
-	try {
+	return mlopen::try_([&] {
 		delete convDesc;
-	} catch (mlopenStatus_t status) {
-		return status;
-	}
-	return mlopenStatusSuccess;
+	});
 }
 
 extern "C"
@@ -115,19 +105,22 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-	return convDesc->FindConvFwdAlgorithm(handle,
-			xDesc,
-			DataCast(x),
-			wDesc,
-			DataCast(w),
-			yDesc,
-			DataCast(y),
-			requestAlgoCount,
-			returnedAlgoCount,
-			perfResults,
-			preference,
-			workSpace,
-			workSpaceSize);
+	return mlopen::try_([&] {
+		convDesc->FindConvFwdAlgorithm(handle,
+				xDesc,
+				DataCast(x),
+				wDesc,
+				DataCast(w),
+				yDesc,
+				DataCast(y),
+				requestAlgoCount,
+				returnedAlgoCount,
+				perfResults,
+				preference,
+				workSpace,
+				workSpaceSize);
+	});
+
 
 }
 
@@ -146,18 +139,21 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-	return convDesc->ConvolutionForward(handle,
-			alpha,
-			xDesc,
-			DataCast(x),
-			wDesc,
-			DataCast(w),
-			algo,
-			beta,
-			yDesc,
-			DataCast(y),
-			workSpace,
-			workSpaceSize);
+	return mlopen::try_([&] {
+		convDesc->ConvolutionForward(handle,
+				alpha,
+				xDesc,
+				DataCast(x),
+				wDesc,
+				DataCast(w),
+				algo,
+				beta,
+				yDesc,
+				DataCast(y),
+				workSpace,
+				workSpaceSize);
+	});
+
 
 }
 
@@ -177,19 +173,22 @@ mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-	return convDesc->FindConvBwdDataAlgorithm(handle,
-			dyDesc,
-			DataCast(dy),
-			wDesc,
-			DataCast(w),
-			dxDesc,
-			DataCast(dx),
-			requestAlgoCount,
-			returnedAlgoCount,
-			perfResults,
-			preference,
-			workSpace,
-			workSpaceSize);
+	return mlopen::try_([&] {
+		convDesc->FindConvBwdDataAlgorithm(handle,
+				dyDesc,
+				DataCast(dy),
+				wDesc,
+				DataCast(w),
+				dxDesc,
+				DataCast(dx),
+				requestAlgoCount,
+				returnedAlgoCount,
+				perfResults,
+				preference,
+				workSpace,
+				workSpaceSize);
+	});
+
 }
 
 extern "C"
@@ -207,17 +206,20 @@ mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
-	return convDesc->ConvolutionBackwardData(handle,
-			alpha,
-			dyDesc,
-			DataCast(dy),
-			wDesc,
-			DataCast(w),
-			algo,
-			beta,
-			dxDesc,
-			DataCast(dx),
-			workSpace,
-			workSpaceSize);
+	return mlopen::try_([&] {
+		convDesc->ConvolutionBackwardData(handle,
+				alpha,
+				dyDesc,
+				DataCast(dy),
+				wDesc,
+				DataCast(w),
+				algo,
+				beta,
+				dxDesc,
+				DataCast(dx),
+				workSpace,
+				workSpaceSize);
+	});
+
 }
 
