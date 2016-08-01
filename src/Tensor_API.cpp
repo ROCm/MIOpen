@@ -48,7 +48,8 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(
 }
 
 // Internal API
-mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
+// MD: This should not be reqired to be exported. Temporary hack
+MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
 		mlopenTensorDescriptor_t tensorDesc,
 		int *n,
 		int *c,
@@ -62,7 +63,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
 
 
 // Internal API
-mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
+MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
 		mlopenTensorDescriptor_t tensorDesc,
 		int *nStride,
 		int *cStride,

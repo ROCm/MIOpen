@@ -47,7 +47,11 @@ mlopenStatus_t CLHelper::BuildProgram(cl_program &program,
 		std::string params) {
 
 	// Temporary hack to properly add the flags without causing spacing problems or duplication
-	params += " -I ../src/Kernel/ -cl-std=CL2.0";
+	// MD: I do not think the path is required here anyways, it is only required to find the kernel
+	// which we are doing in LoadProgramFromSource.
+	//
+	// Also, removing the CL2.0 flag for now due to incorrect code generation found by Alex
+	// params += " -cl-std=CL2.0";
 
 	cl_int status;
 	cl_device_id device;
@@ -60,10 +64,12 @@ mlopenStatus_t CLHelper::BuildProgram(cl_program &program,
 			NULL, 
 			NULL);
 
-	CheckCLStatus(status, "Error Building OpenCL Program in BuildProgram()");
+	// MD: CheckCLStatus exits but we need to get the ProgramBuildInfo.
+//	CheckCLStatus(status, "Error Building OpenCL Program in BuildProgram()");
 
     if(status != CL_SUCCESS)
     {
+		printf("Error Building OpenCL Program in BuildProgram()\n");
         char * errorbuf = (char*)calloc(sizeof(char),1024*1024);
         size_t size;
         clGetProgramBuildInfo(program,
@@ -75,6 +81,7 @@ mlopenStatus_t CLHelper::BuildProgram(cl_program &program,
 
         printf("%s ", errorbuf);
 		free(errorbuf);
+		return mlopenStatusBadParm;
     }
 
     return mlopenStatusSuccess;
@@ -96,7 +103,14 @@ mlopenStatus_t CLHelper::CreateKernel(cl_program &program,
 			&status);
 
 	std::string error = "Error Creating Kernel [" + kernel_name + "] in CreateKernel()";
-	CheckCLStatus(status, error);
+	if(status != CL_SUCCESS) {
+		std::cout<<error<<" "<<status<<"\n";
+		return mlopenStatusBadParm;
+	}
+	// MD: Cannot use CheckCLStatus because the search needs to continue even if one
+	// kernel fails. Rather, the search should be graceful not to create a kernel
+	// if conditions are not met
+	//CheckCLStatus(status, error);
 
 	return mlopenStatusSuccess;
 }

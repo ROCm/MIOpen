@@ -258,7 +258,7 @@ bool mloSearchConfigDB(
 int mlo_construct_direct2D::mloConstructDirect2D(void)
 {
 	int ret = 0;
-	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
+	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1 || !doSearch());
 	if (_gen && getDirectcion())
 	{
 		ret = mloConstructDirect2DFwdGen();
@@ -1298,13 +1298,15 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may take few minutes." << std::endl;
 
 		size_t run_counter = 0;
+		int n_grp_tiles0 = (_out_height >= 32) ? 1 : 2;
+		int n_grp_tiles1 = (_out_width >= 32) ? 1 : 2;
 		int out_pix_tl_cnt = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 3 : 4;
 		int n_out_tls = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
 		n_out_tls = std::min(_n_outputs, n_out_tls);
 		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : 3;
 		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : 3;
 
-		long long runs_left = 2 * 2 * n_tile0_sz * n_tile1_sz * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
+		long long runs_left = n_grp_tiles0 * n_grp_tiles1 * n_tile0_sz * n_tile1_sz * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
 
 		size_t report_inteval = 25;
 		//			_n_timer_iter = 250;
@@ -1312,10 +1314,16 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		for (int g1 = 0; g1 < 2; g1++)
 		{
 			_grp_tile1 = grp_tl_ln[g1];
+			if (_out_height >= 32 && _grp_tile1 == 8) {
+				continue;
+			}
 
 			for (int g0 = 0; g0 < 2; ++g0)
 			{
 				_grp_tile0 = grp_tl_ln[g0];
+				if (_out_width >= 32 && _grp_tile0 == 8) {
+					continue;
+				}
 
 				// tile1
 				for (int j = 0; j < 3; ++j)
