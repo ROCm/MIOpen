@@ -71,6 +71,24 @@ struct handle_fixture
     }
 };
 
+template<class F>
+struct protect_fn
+{
+    F f;
+    protect_fn(F x) : f(std::move(x)) 
+    {}
+
+    template<class... Ts>
+    auto operator()(Ts&&... xs) const MLOPEN_RETURNS
+    (f(std::forward<Ts>(xs)...));
+};
+
+template<class F>
+protect_fn<F> protect(F f)
+{
+    return {std::move(f)};
+}
+
 // Multidimensional for loop
 struct ford_impl
 {
@@ -83,6 +101,14 @@ struct ford_impl
     template<class F, class T, class... Ts>
     void operator()(F f, T x, Ts... xs) const
     {
+#if (defined(__GNUC__) && !defined (__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 9)
+        // Workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=55914
+        // This reverses the order of evaluation
+        (*this)([&](Ts... is)
+        {
+            (*this)(std::bind(protect(f), std::placeholders::_1, is...), x);
+        }, xs...);
+#else
         (*this)([&](T i)
         {
             (*this)([&](Ts... is)
@@ -90,6 +116,8 @@ struct ford_impl
                 f(i, is...);
             }, xs...);
         }, x);
+#endif
+
     }
 };
 
@@ -364,24 +392,6 @@ void each_args(F f, Ts&&... xs)
     std::initializer_list<int>{(f(std::forward<Ts>(xs)), 0)...};
 }
 
-template<class F>
-struct protect_fn
-{
-    F f;
-    protect_fn(F x) : f(std::move(x)) 
-    {}
-
-    template<class... Ts>
-    auto operator()(Ts&&... xs) const MLOPEN_RETURNS
-    (f(std::forward<Ts>(xs)...));
-};
-
-template<class F>
-protect_fn<F> protect(F f)
-{
-    return {std::move(f)};
-}
-
 struct cross_args_apply
 {
     template<class F, class T, class... Ts>
@@ -408,31 +418,33 @@ void verify_one(G g)
     verify_forward_conv(input, weights, filter);
 }
 
+template<class T>
+struct verify_both
+{
+    template<class G1, class G2>
+    void operator()(G1 g1, G2 g2) const
+    {
+        ford(8,8,8,8,8,8)([&](int padh, int padw, int u, int v, int upx, int upy)
+        {
+            conv_filter<mlopenConvolution> filter{padh, padw, u+1, v+1, upx+1, upy+1};
+            ford(8,8,8,8)([&](int x1, int y1, int x2, int y2)
+            {
+                if (x1 >= x2 && y1 >= y2)
+                {
+                    auto input = tensor<float>{5, 16, x1+1, y1+1}.generate(g1);
+                    auto weights = tensor<float>{8, 16, x2+1, y2+1}.generate(g2);
+                    conv_filter<mlopenConvolution> filter{};
+                    verify_forward_conv(input, weights, filter);
+                }
+            }); 
+        });
+    }
+};
+
 template<class T, class... Gs>
 void verify_all(Gs... gs)
 {
-    ford(8,8,8,8,8,8)([&](int padh, int padw, int u, int v, int upx, int upy)
-    {
-        conv_filter<mlopenConvolution> filter{padh, padw, u+1, v+1, upx+1, upy+1};
-        ford(8,8,8,8)([&](int x1, int y1, int x2, int y2)
-        {
-            if (x1 >= x2 && y1 >= y2)
-            {
-                tensor<T> input{5, 16, x1+1, y1+1};
-                tensor<T> weights{8, 16, x2+1, y2+1};
-                cross_args(
-                    std::bind(verify_forward_conv_gen{},
-                        std::ref(input),
-                        std::placeholders::_1,
-                        std::ref(weights),
-                        std::placeholders::_2,
-                        std::ref(filter)
-                    ),
-                    gs...
-                );
-            }
-        }); 
-    });
+    cross_args(verify_both<T>{}, gs...);
 }
 
 int main() {
