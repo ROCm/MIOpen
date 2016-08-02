@@ -47,10 +47,11 @@ list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MLOpen_Source
 	convolution.cpp
 	convolution_api.cpp
+	errors.cpp
 	handle_api.cpp
 	include/mlopen/common.hpp
 	include/mlopen/convolution.hpp
-	include/mlopen/errors.cpp
+	include/mlopen/errors.hpp
 	include/mlopen/handle.hpp
 	include/mlopen/kernelcache.hpp
 	include/mlopen/mlo_internal.hpp
