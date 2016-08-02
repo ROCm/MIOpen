@@ -89,6 +89,11 @@ add_library( MLOpen SHARED
 
 target_include_directories(MLOpen PUBLIC ${MLOpen_DIRS_INCLUDE})
 
+install(TARGETS MLOpen 
+	RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib)
+
 GENERATE_EXPORT_HEADER(MLOpen)
 ############################################################
 # MLOpen depends on OpenCL
