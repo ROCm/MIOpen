@@ -1,10 +1,10 @@
-#include <MLOpen.h>
+#include <mlopen.h>
 #include "test.hpp"
 #include <vector>
 #include <array>
 #include <iterator>
 #include <memory>
-#include <mlopenTensor.hpp>
+#include <mlopen/tensor_extra.hpp>
 
 struct handle_fixture
 {

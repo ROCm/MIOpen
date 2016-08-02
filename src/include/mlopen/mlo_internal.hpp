@@ -100,9 +100,9 @@ Include CLBLAS header.
 #include <clBLAS.h>
 #endif
 
-#include "OCLKernel.hpp"
+#include <mlopen/oclkernel.hpp>
 #include "OCL/CLHelper.hpp"
-#include "Tensor.hpp"
+#include <mlopen/tensor.hpp>
 
 class mlo_construct_direct2D {
 public:
@@ -254,7 +254,7 @@ public:
 	}
 
 	/*
-	* set OCL Kernels path
+	* set ocl Kernels path
 	*/
 	inline void setKernelPath(const std::string & kernel_path)
 	{

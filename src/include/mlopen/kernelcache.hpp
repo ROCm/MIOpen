@@ -22,8 +22,8 @@
 
 #include <string>
 #include <unordered_map>
-#include "MLOpen.h"
-#include "OCLKernel.hpp"
+#include <mlopen.h>
+#include <mlopen/oclkernel.hpp>
 #include "OCL/CLHelper.hpp"
 
 struct SimpleHash {

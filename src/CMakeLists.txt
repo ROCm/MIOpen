@@ -45,40 +45,42 @@ set( MLOpen_SOVERSION 1 )
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MLOpen_Source
-	errors.cpp
-	Handle.hpp
-	Handle_API.cpp
-	Tensor.cpp
-	Tensor.hpp
-	Tensor_API.cpp
-	Convolution.hpp
-	Convolution.cpp
-	Convolution_API.cpp
-	KernelCache.cpp
-	KernelCache.hpp
-	OCLKernel.hpp
-	OCLKernel.cpp
+	convolution.cpp
+	convolution_api.cpp
+	handle_api.cpp
+	include/mlopen/common.hpp
+	include/mlopen/convolution.hpp
+	include/mlopen/errors.cpp
+	include/mlopen/handle.hpp
+	include/mlopen/kernelcache.hpp
+	include/mlopen/mlo_internal.hpp
+	include/mlopen/mloutils.hpp
+	include/mlopen/oclkernel.hpp
+	include/mlopen/tensor.hpp
 	include/mlopenTypes.h
-	mloCLUtil.cpp
-	mloDirConv.cpp
-	mlo_internal.hpp
-	mloUtils.hpp
-	Common.hpp
+	kernelcache.cpp
+	mloclutil.cpp
+	mlodirconv.cpp
+	oclkernel.cpp
+	tensor.cpp
+	tensor_api.cpp
 	)
 
 if( MLOpen_BACKEND MATCHES "OpenCL")
 	list(APPEND MLOpen_Source OCL/HandleOCL.cpp
-		OCL/HandleOCL.cpp
-		OCL/TensorOCL.cpp
-		OCL/ConvolutionOCL.cpp
-		OCL/CLHelper.hpp
-		OCL/CLHelper.cpp)
+		ocl/clhelper.cpp
+		ocl/clhelper.hpp
+		ocl/convolutionocl.cpp
+		ocl/handleocl.cpp
+		ocl/tensorocl.cpp
+		)
 endif()
 
 if( MLOpen_BACKEND MATCHES "HIP")
 	list(APPEND MLOpen_Source HIP/HandleHIP.cpp
-		HIP/TensorHIP.cpp
-		HIP/ConvolutionHIP.cpp)
+		hip/convolutionhip.cpp
+		hip/tensorhip.cpp
+		)
 endif()
 
 # build library

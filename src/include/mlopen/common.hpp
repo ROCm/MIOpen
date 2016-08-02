@@ -1,7 +1,7 @@
 #ifndef _MLOPEN_COMMON_HPP_
 #define _MLOPEN_COMMON_HPP_
 
-#include "MLOpen.h"
+#include <mlopen.h>
 
 #if MLOpen_BACKEND_OPENCL
 
@@ -26,5 +26,5 @@ inline Data_t DataCast(void *p) {
 inline const Data_t DataCast(const void *p) {
 	return p;
 }
-#endif // OpenCL vs HIP
+#endif // OpenCL vs hip
 #endif // _MLOPEN_COMMON_HPP_

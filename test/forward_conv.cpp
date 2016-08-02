@@ -1,4 +1,4 @@
-#include <MLOpen.h>
+#include <mlopen.h>
 #include "test.hpp"
 #include <vector>
 #include <array>
@@ -7,9 +7,9 @@
 #include <utility>
 #include <iostream>
 #include <cmath>
-#include <mlopenTensor.hpp>
-#include <manage_ptr.hpp>
-#include <returns.hpp>
+#include <mlopen/tensor_extra.hpp>
+#include <mlopen/manage_ptr.hpp>
+#include <mlopen/returns.hpp>
 #include <limits>
 
 mlopenHandle_t global_handle;

@@ -1,4 +1,4 @@
-#include "Handle.hpp"
+#include <mlopen/handle.hpp>
 
 #if MLOpen_BACKEND_HIP
 
@@ -10,6 +10,6 @@ mlopenStatus_t mlopenContext::CreateDefaultStream<hipStream_t>() {
 	SetStream(stream);
 	return mlopenStatusSuccess;
 }
-#endif // OpenCL vs HIP
+#endif // OpenCL vs hip
 
 
