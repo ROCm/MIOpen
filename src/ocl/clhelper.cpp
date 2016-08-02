@@ -1,4 +1,4 @@
-#include "CLHelper.hpp"
+#include "clhelper.hpp"
 
 mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 		cl_command_queue &queue,
