@@ -24,7 +24,7 @@
 #include <unordered_map>
 #include <mlopen.h>
 #include <mlopen/oclkernel.hpp>
-#include "OCL/CLHelper.hpp"
+#include "ocl/clhelper.hpp"
 
 struct SimpleHash {
 	size_t operator()(const std::pair<std::string, std::string>& p) const {
