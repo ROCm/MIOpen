@@ -1,28 +1,20 @@
 #include "Handle.hpp"
+#include <errors.hpp>
 #include <cstdio>
 
 extern "C" 
 mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 		int numStreams,
 		mlopenAcceleratorQueue_t *streams ) {
-		
-	// if handle not valid
-	if(handle == nullptr) {
-		return mlopenStatusBadParm;
-	}
 
-	try {
+	return mlopen::try_([&] {
 		if(numStreams != 0) {
-			*handle = new mlopenContext(numStreams, streams);
+			mlopen::deref(handle) = new mlopenContext(numStreams, streams);
 		}
 		else {
-			*handle = new mlopenContext();
+			mlopen::deref(handle) = new mlopenContext();
 		}
-	} catch (mlopenStatus_t status) {
-		return status;
-	}
-	
-	return mlopenStatusSuccess;
+	});
 }
 
 // TODO: Stream size should be a spearate parameter
@@ -30,16 +22,14 @@ extern "C"
 mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
 		mlopenAcceleratorQueue_t *streamID,
 		int numStream) {
-	*streamID = handle->GetStream();
-	return mlopenStatusSuccess;
+	return mlopen::try_([&] {
+		mlopen::deref(streamID) = handle->GetStream();
+	});
 }
 
 extern "C"
 mlopenStatus_t mlopenDestroy(mlopenHandle_t handle) {
-	try {
+	return mlopen::try_([&] {
 		delete handle;
-	} catch (mlopenStatus_t status) {
-		return status;
-	}
-	return mlopenStatusSuccess;
+	});
 }

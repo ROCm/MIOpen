@@ -32,6 +32,7 @@ typedef enum {
 	mlopenStatusAllocFailed = 4,
 	mlopenStatusInternalError = 5,
 	mlopenStatusNotImplemented = 6,
+	mlopenStatusUnknownError = 7,
 } mlopenStatus_t;
 
 // TODO: C does not really have default function arguments. Need to modify this
