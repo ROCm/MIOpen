@@ -72,7 +72,10 @@ endif()
 set ( MLOpen_Headers_Public
 	${PROJECT_SOURCE_DIR}/include/MLOpen.h
 	${PROJECT_BINARY_DIR}/src/include/MLOpen-version.h
+	${PROJECT_BINARY_DIR}/src/mlopen_export.h
 	)
+
+install(FILES ${MLOpen_Headers_Public} DESTINATION include)
 
 set( MLOpen_DIRS_INCLUDE
 	${CMAKE_SOURCE_DIR}/include
