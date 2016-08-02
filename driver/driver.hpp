@@ -2,11 +2,11 @@
 #define _MLOPEN_ConvDriver_HPP_
 #include <cstdio>
 #include <cstdlib>
-#include <MLOpen.h>
+#include <mlopen.h>
 #include <CL/cl.h>
 #include "mloConvHost.hpp"
 #include "InputFlags.hpp"
-#include "mlopenTensor.hpp"
+#include <mlopen/tensor_extra.hpp>
 #include <vector>
 #include <algorithm>
 #include <float.h>

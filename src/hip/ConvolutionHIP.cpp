@@ -1,4 +1,4 @@
-#include "Convolution.hpp"
+#include <mlopen/convolution.hpp>
 
 #if MLOpen_BACKEND_HIP
 template<>

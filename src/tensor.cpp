@@ -1,4 +1,4 @@
-#include "Tensor.hpp"
+#include <mlopen/tensor.hpp>
 #include <string>
 #include <algorithm>
 #include <numeric>

@@ -1,5 +1,5 @@
-#include "Convolution.hpp"
-#include <errors.hpp>
+#include <mlopen/convolution.hpp>
+#include <mlopen/errors.hpp>
 
 extern "C"
 mlopenStatus_t mlopenCreateConvolutionDescriptor(

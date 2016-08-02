@@ -1,5 +1,5 @@
-#include "Tensor.hpp"
-#include <errors.hpp>
+#include <mlopen/tensor.hpp>
+#include <mlopen/errors.hpp>
 #include <initializer_list>
 #include <array>
 

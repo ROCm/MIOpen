@@ -1,5 +1,5 @@
-#include "Convolution.hpp"
-#include "mlo_internal.hpp"
+#include <mlopen/convolution.hpp>
+#include <mlopen/mlo_internal.hpp>
 
 mlopenConvolutionDescriptor::mlopenConvolutionDescriptor() : _pad_h(0), _pad_w(0), _u(1), _v(1), _upscalex(0), _upscaley(0) {
 	printf("In convolution Ctor\n");

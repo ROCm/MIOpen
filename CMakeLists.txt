@@ -70,7 +70,7 @@ if( USE_Cobalt)
 endif()
 
 set ( MLOpen_Headers_Public
-	${PROJECT_SOURCE_DIR}/include/MLOpen.h
+	${PROJECT_SOURCE_DIR}/include/mlopen.h
 	${PROJECT_BINARY_DIR}/src/include/MLOpen-version.h
 	${PROJECT_BINARY_DIR}/src/mlopen_export.h
 	)
@@ -83,7 +83,7 @@ set( MLOpen_DIRS_INCLUDE
 	${CMAKE_SOURCE_DIR}/src
 	${PROJECT_BINARY_DIR}/src)
 
-set( MLOpen_API ${CMAKE_SOURCE_DIR}/include/MLOpen.h )
+set( MLOpen_API ${CMAKE_SOURCE_DIR}/include/mlopen.h )
 source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
 
 add_subdirectory(src)
