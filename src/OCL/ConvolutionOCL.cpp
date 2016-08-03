@@ -203,10 +203,17 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 	const std::vector<size_t> & vgd = kernel.GetGlobalDims();
 
 	int dim = (int)vld.size();
+	cl_event e;
 	// Run the kernel
-	kernel.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
+	kernel.run(queue, dim, 0, vgd.data(), vld.data(), &e);
 	
 	clFinish(queue);
+	size_t st, end;
+	clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, NULL);
+	clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, NULL);
+
+	float kernel_time = (end-st)*1e-6;
+	printf("Kernel Time (ms): %f\n", kernel_time);
 
 	std::cout << "Run Forward Convolution Finished !!" << std::endl;
 
