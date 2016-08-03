@@ -11,6 +11,6 @@ endif( )
 
 #add_executable(MLOpenDriver MLOpenDriver.cpp InputFlags.cpp)
 
-add_executable(MLOpenDriver main.cpp InputFlags.cpp)
+add_executable(MLOpenDriver EXCLUDE_FROM_ALL main.cpp InputFlags.cpp)
 target_link_libraries(MLOpenDriver MLOpen)
 
