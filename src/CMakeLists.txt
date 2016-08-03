@@ -45,6 +45,7 @@ set( MLOpen_SOVERSION 1 )
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MLOpen_Source
+	errors.cpp
 	Handle.hpp
 	Handle_API.cpp
 	Tensor.cpp
@@ -87,6 +88,11 @@ add_library( MLOpen SHARED
 	)
 
 target_include_directories(MLOpen PUBLIC ${MLOpen_DIRS_INCLUDE})
+
+install(TARGETS MLOpen 
+	RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib)
 
 GENERATE_EXPORT_HEADER(MLOpen)
 ############################################################
