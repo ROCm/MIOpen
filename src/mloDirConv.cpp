@@ -1298,15 +1298,16 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may take few minutes." << std::endl;
 
 		size_t run_counter = 0;
-		int n_grp_tiles0 = (_out_height >= 32) ? 1 : 2;
-		int n_grp_tiles1 = (_out_width >= 32) ? 1 : 2;
+		int n_grp_tiles0 = (_out_height >= 32 && _batch_sz >= 16) ? 1 : 2;
+		int n_grp_tiles1 = (_out_width >= 32 && _batch_sz >= 16) ? 1 : 2;
 		int out_pix_tl_cnt = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 3 : 4;
 		int n_out_tls = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
 		n_out_tls = std::min(_n_outputs, n_out_tls);
-		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : 3;
-		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : 3;
+		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : (_out_width * 2 <= 64) ? 3 : 4;
+		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : (_out_height * 2 <= 32) ? 3 : 4;
+		int n_tiles_cnt = (n_tile0_sz * n_tile1_sz == 9) ? (n_tile0_sz * n_tile1_sz - 1) : (n_tile0_sz * n_tile1_sz == 16) ? (n_tile0_sz * n_tile1_sz - 4) : n_tile0_sz * n_tile1_sz;
 
-		long long runs_left = n_grp_tiles0 * n_grp_tiles1 * n_tile0_sz * n_tile1_sz * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
+		long long runs_left = n_grp_tiles0 * n_grp_tiles1 * n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
 
 		size_t report_inteval = 25;
 		//			_n_timer_iter = 250;
@@ -1314,7 +1315,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		for (int g1 = 0; g1 < 2; g1++)
 		{
 			_grp_tile1 = grp_tl_ln[g1];
-			if (_out_height >= 32 && _grp_tile1 == 8)
+			if (_out_height >= 32 && _grp_tile1 == 8 && _batch_sz >= 16)
 			{
 				continue;
 			}
@@ -1322,7 +1323,8 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 			for (int g0 = 0; g0 < 2; ++g0)
 			{
 				_grp_tile0 = grp_tl_ln[g0];
-				if (_out_width >= 32 && _grp_tile0 == 8)
+
+				if (_out_width >= 32 && _grp_tile0 == 8 && _batch_sz >= 16)
 				{
 					continue;
 				}
@@ -1341,7 +1343,11 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 					for (int i = 0; i < 3; ++i)
 					{
 						_in_tile0 = tile_sz[i];
-						if (_out_width * 2 <= _in_tile0 &&  _in_tile0 > tile_sz[0])
+						if ((_out_width * 2 <= _in_tile0 &&  _in_tile0 > tile_sz[0])
+							|| (_in_tile0 == _in_tile1 && _in_tile0 == 64)
+							|| (_in_tile0 == 8 && _in_tile1 == 32)
+							|| ((_in_tile0 == 8 || _in_tile0 == 16) && _in_tile1 == 64)
+							)
 						{
 							runs_left--;
 							runs_left = (runs_left < 0) ? 0 : runs_left;
