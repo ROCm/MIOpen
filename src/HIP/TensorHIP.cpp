@@ -1,6 +1,5 @@
 #include "Tensor.hpp"
 
-#if MLOpen_BACKEND_HIP
 template<>
 mlopenStatus_t mlopenTensorDescriptor::TransformTensor<void *>(mlopenHandle_t handle,
 			const void *alpha,
@@ -135,5 +134,3 @@ mlopenStatus_t mlopenTensorDescriptor::ScaleTensor<void *>(mlopenHandle_t handle
 
 }
 
-
-#endif
