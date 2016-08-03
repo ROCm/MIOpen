@@ -66,7 +66,7 @@ set( MLOpen_Source
 	Common.hpp
 	)
 
-if( MLOpen_BACKEND MATCHES "OpenCL")
+if( MLOPEN_BACKEND MATCHES "OpenCL")
 	list(APPEND MLOpen_Source OCL/HandleOCL.cpp
 		OCL/HandleOCL.cpp
 		OCL/TensorOCL.cpp
@@ -75,7 +75,7 @@ if( MLOpen_BACKEND MATCHES "OpenCL")
 		OCL/CLHelper.cpp)
 endif()
 
-if( MLOpen_BACKEND MATCHES "HIP")
+if( MLOPEN_BACKEND MATCHES "HIP")
 	list(APPEND MLOpen_Source HIP/HandleHIP.cpp
 		HIP/TensorHIP.cpp
 		HIP/ConvolutionHIP.cpp)
@@ -97,7 +97,7 @@ install(TARGETS MLOpen
 GENERATE_EXPORT_HEADER(MLOpen)
 ############################################################
 # MLOpen depends on OpenCL
-if( MLOpen_BACKEND MATCHES "OpenCL")
+if( MLOPEN_BACKEND MATCHES "OpenCL")
 	MESSAGE( STATUS "MLOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MLOpen PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )

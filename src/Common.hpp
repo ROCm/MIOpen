@@ -3,7 +3,7 @@
 
 #include "MLOpen.h"
 
-#if MLOpen_BACKEND_OPENCL
+#if MLOPEN_BACKEND_OPENCL
 
 typedef cl_mem Data_t;
 
@@ -15,7 +15,7 @@ inline const Data_t DataCast(const void *p) {
 	return (Data_t)p;
 }
 
-#elif MLOpen_BACKEND_HIP
+#elif MLOPEN_BACKEND_HIP
 
 typedef void * Data_t;
 

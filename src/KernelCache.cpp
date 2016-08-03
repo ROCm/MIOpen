@@ -14,8 +14,6 @@
  * limitations under the License.
  * ************************************************************************ */
 
-#if MLOpen_BACKEND_OPENCL
-
 #include "KernelCache.hpp"
 
 #include <iostream>
@@ -162,5 +160,3 @@ KernelCache& KernelCache::getInstance()
 {
     return singleton;
 }
-
-#endif // MLOpen_BACKEND_OPENCL

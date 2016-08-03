@@ -1,6 +1,5 @@
 #include "Convolution.hpp"
 
-#if MLOpen_BACKEND_HIP
 template<>
 mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<void *>(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	xDesc,
@@ -84,5 +83,3 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward<void *>(mlopenHan
 	return mlopenStatusSuccess;
 
 }
-
-#endif
