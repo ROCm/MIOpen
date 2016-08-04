@@ -17,7 +17,7 @@
 
 #define MLOPEN
 #include <mlopen/mlo_internal.hpp>
-#include <mlopen/mloutils.hpp>
+#include <mlopen/mlo_utils.hpp>
 
 
 /*

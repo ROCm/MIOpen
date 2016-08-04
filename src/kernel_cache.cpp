@@ -16,7 +16,7 @@
 
 #if MLOpen_BACKEND_OPENCL
 
-#include <mlopen/kernelcache.hpp>
+#include <mlopen/kernel_cache.hpp>
 
 #include <iostream>
 #include <iterator>
