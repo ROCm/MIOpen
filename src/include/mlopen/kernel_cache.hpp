@@ -18,8 +18,6 @@
 #ifndef _MLOPEN_KERNEL_CACHE_HPP_
 #define _MLOPEN_KERNEL_CACHE_HPP_
 
-#if MLOpen_BACKEND_OPENCL
-
 #include <string>
 #include <unordered_map>
 #include <mlopen.h>
@@ -86,7 +84,5 @@ private:
     static KernelCache singleton;
 	
 };
-
-#endif // MLOpen_BACKEND_OPENCL
 
 #endif //_MLOPEN_KERNEL_CACHE_HPP_

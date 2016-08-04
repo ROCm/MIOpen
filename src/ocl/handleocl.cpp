@@ -116,7 +116,7 @@ mlopenContext::mlopenContext ()
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
     cl_int status = 0;
-    impl->queues.emplace_back(clCreateCommandQueue(impl->context.get(), devices[0], 0, &status));
+    impl->queues.emplace_back(clCreateCommandQueue(impl->context.get(), devices[0], CL_QUEUE_PROFILING_ENABLE, &status));
     if(status != CL_SUCCESS)
     {
         perror("Creating Command Queue. (clCreateCommandQueue)");
