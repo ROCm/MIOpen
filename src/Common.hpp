@@ -3,6 +3,12 @@
 
 #include "MLOpen.h"
 
+template<class T>
+auto tie2(T&& x) -> decltype(std::tie(x[0], x[1]))
+{
+	return std::tie(x[0], x[1]);
+}
+
 #if MLOpen_BACKEND_OPENCL
 
 typedef cl_mem Data_t;

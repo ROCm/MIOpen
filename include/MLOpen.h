@@ -52,6 +52,8 @@ typedef struct mlopenTensorDescriptor *mlopenTensorDescriptor_t;
 
 typedef struct mlopenConvolutionDescriptor *mlopenConvolutionDescriptor_t;
 
+typedef struct mlopenPoolingDescriptor *mlopenPoolingDescriptor_t;
+
 typedef enum {
 	mlopenHalf = 0,
 	mlopenFloat = 1,
@@ -69,6 +71,12 @@ typedef enum {
 	mlopenConvolution = 0,
 	mlopenCrossCorrelation = 1,
 } mlopenConvolutionMode_t;
+
+typedef enum {
+	mlopenPoolingMax = 0,
+	mlopenPoolingAverageIncludePadding = 1,
+	mlopenPoolingAverageExcludePadding = 2,
+} mlopenPoolingMode_t;
 
 // Create a Tensor Descriptor
 MLOPEN_EXPORT mlopenStatus_t mlopenCreateTensorDescriptor(mlopenTensorDescriptor_t *tensorDesc);
@@ -359,6 +367,79 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle
 		void								*workSpace,
 		size_t								workSpaceSize);
 
+// Pooling APIs
+
+MLOPEN_EXPORT mlopenStatus_t mlopenCreatePoolingDescriptor(mlopenPoolingDescriptor_t *poolDesc);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenSet2dPoolingDescriptor(
+		mlopenPoolingDescriptor_t			poolDesc,
+		mlopenPoolingMode_t					mode,
+		int									windowHeight,
+		int									windowWidth,
+		int									pad_h,
+		int									pad_w,
+		int									u,
+		int									v);
+	
+MLOPEN_EXPORT mlopenStatus_t mlopenGet2dPoolingDescriptor(
+		const mlopenPoolingDescriptor_t		poolDesc,
+		mlopenPoolingMode_t					*mode,
+		int									*windowHeight,
+		int									*windowWidth,
+		int									*pad_h,
+		int									*pad_w,
+		int									*u,
+		int									*v);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenSetNdPoolingDescriptor(
+		mlopenPoolingDescriptor_t			poolDesc,
+		mlopenPoolingMode_t					mode,
+		int									nbDims,
+		int									*windowDimA,
+		int									*padA,
+		int									*stridesA);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenGetNdPoolingDescriptor(
+		const mlopenPoolingDescriptor_t		poolDesc,
+		mlopenPoolingMode_t					*mode,
+		int									*nbDims,
+		int									*windowDimA,
+		int									*padA,
+		int									*stridesA);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenGetPoolingForwardOutputDim(
+		const mlopenPoolingDescriptor_t		poolDesc,
+		const mlopenTensorDescriptor_t		tensorDesc,
+		int									*n,
+		int									*c,
+		int									*h,
+		int									*w);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenPoolingForward(
+		mlopenHandle_t						handle,
+		const mlopenPoolingDescriptor_t		poolDesc,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		yDesc,
+		void								*y);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenPoolingBackward(
+		mlopenHandle_t						handle,
+		const mlopenPoolingDescriptor_t		poolDesc,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		yDesc,
+		const void							*y,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		dxDesc,
+		void								*dx);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenDestroyPoolingDescriptor(mlopenPoolingDescriptor_t poolDesc);
 #ifdef __cplusplus
 }
 #endif
