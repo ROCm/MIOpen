@@ -14,7 +14,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************/
 #include <mlopen/mlo_internal.hpp>
-#include <mlopen/mloutils.hpp>
+#include <mlopen/mlo_utils.hpp>
 
 
 void tokenize(const std::string& str,

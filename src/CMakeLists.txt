@@ -53,9 +53,9 @@ set( MLOpen_Source
 	include/mlopen/convolution.hpp
 	include/mlopen/errors.hpp
 	include/mlopen/handle.hpp
-	include/mlopen/kernelcache.hpp
+	include/mlopen/kernel_cache.hpp
 	include/mlopen/mlo_internal.hpp
-	include/mlopen/mloutils.hpp
+	include/mlopen/mlo_utils.hpp
 	include/mlopen/oclkernel.hpp
 	include/mlopen/tensor.hpp
 	include/mlopenTypes.h

@@ -3,7 +3,7 @@
 
 #include <mlopen/handle.hpp>
 #include <mlopen.h>
-#include <mlopen/kernelcache.hpp>
+#include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
 #include <vector>
 // TODO: remove this include later

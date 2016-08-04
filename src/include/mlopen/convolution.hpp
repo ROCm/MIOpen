@@ -4,7 +4,7 @@
 #include <mlopen.h>
 #include <mlopen/handle.hpp>
 #include <mlopen/tensor.hpp>
-#include <mlopen/kernelcache.hpp>
+#include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
 
 struct mlopenConvolutionDescriptor {
