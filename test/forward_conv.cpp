@@ -367,7 +367,7 @@ struct float_equal_fn
 };
 
 template<class T, mlopenConvolutionMode_t Mode>
-std::vector<T> verify_forward_conv(const tensor<T>& input, const tensor<T>& weights, const conv_filter<Mode>& filter, int bias = 0)
+void verify_forward_conv(const tensor<T>& input, const tensor<T>& weights, const conv_filter<Mode>& filter, int bias = 0)
 {
     auto out_cpu = forward_conv_cpu(input, weights, filter, bias);
     auto out_gpu = forward_conv_gpu(input, weights, filter, bias);
