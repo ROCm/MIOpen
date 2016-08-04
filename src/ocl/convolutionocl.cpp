@@ -1,5 +1,5 @@
-#include "Convolution.hpp"
-#include "mlo_internal.hpp"
+#include <mlopen/convolution.hpp>
+#include <mlopen/mlo_internal.hpp>
 
 mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	xDesc,

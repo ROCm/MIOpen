@@ -1,7 +1,7 @@
 #ifndef _MLOPEN_HANDLE_HPP_
 #define _MLOPEN_HANDLE_HPP_
 
-#include <MLOpen.h>
+#include <mlopen.h>
 #include <vector>
 #include <cstdio>
 #include <cstring>

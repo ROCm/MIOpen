@@ -1,4 +1,4 @@
-#include "OCLKernel.hpp"
+#include <mlopen/oclkernel.hpp>
 
 mlopenStatus_t OCLKernel::run(cl_command_queue &queue,
 	const int &work_dim,

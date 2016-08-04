@@ -1,11 +1,11 @@
 #ifndef _MLOPEN_CONVOLUTION_HPP_
 #define _MLOPEN_CONVOLUTION_HPP_
 
-#include "MLOpen.h"
-#include "Handle.hpp"
-#include "Tensor.hpp"
-#include "KernelCache.hpp"
-#include "Common.hpp"
+#include <mlopen.h>
+#include <mlopen/handle.hpp>
+#include <mlopen/tensor.hpp>
+#include <mlopen/kernel_cache.hpp>
+#include <mlopen/common.hpp>
 
 struct mlopenConvolutionDescriptor {
 	

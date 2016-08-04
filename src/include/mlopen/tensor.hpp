@@ -1,10 +1,10 @@
 #ifndef _MLOPEN_TENSOR_HPP_
 #define _MLOPEN_TENSOR_HPP_
 
-#include "Handle.hpp"
-#include "MLOpen.h"
-#include "KernelCache.hpp"
-#include "Common.hpp"
+#include <mlopen/handle.hpp>
+#include <mlopen.h>
+#include <mlopen/kernel_cache.hpp>
+#include <mlopen/common.hpp>
 #include <vector>
 // TODO: remove this include later
 #include <cstdio>

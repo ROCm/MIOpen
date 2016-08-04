@@ -14,7 +14,8 @@
  * limitations under the License.
  * ************************************************************************ */
 
-#include "KernelCache.hpp"
+
+#include <mlopen/kernel_cache.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -125,7 +126,7 @@ OCLKernel KernelCache::getKernel(cl_command_queue &queue,
 		status = CLHelper::CreateKernel(program, kernel, kernel_name);
 
         if (status != mlopenStatusSuccess) {
-			std::cout << " Error creating OCL kernel\n";
+			std::cout << " Error creating ocl kernel\n";
         }
 		
 		OCLKernel _kernel(kernel, vld, vgd);
