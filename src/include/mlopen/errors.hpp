@@ -4,7 +4,7 @@
 #include <exception>
 #include <string>
 #include <iostream>
-#include <MLOpen.h>
+#include <mlopen.h>
 
 namespace mlopen {
 

@@ -1,4 +1,4 @@
-#include "Convolution.hpp"
+#include <mlopen/convolution.hpp>
 
 template<>
 mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<void *>(mlopenHandle_t handle,

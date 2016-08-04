@@ -1,6 +1,6 @@
-#include "Handle.hpp"
+#include <mlopen/handle.hpp>
 
-#include <manage_ptr.hpp>
+#include <mlopen/manage_ptr.hpp>
 
 
 struct mlopenContextImpl

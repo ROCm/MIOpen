@@ -1,4 +1,4 @@
-#include <MLOpen.h>
+#include <mlopen.h>
 #include "test.hpp"
 #include <vector>
 #include <array>
@@ -7,9 +7,9 @@
 #include <utility>
 #include <iostream>
 #include <cmath>
-#include <mlopenTensor.hpp>
-#include <manage_ptr.hpp>
-#include <returns.hpp>
+#include <mlopen/tensor_extra.hpp>
+#include <mlopen/manage_ptr.hpp>
+#include <mlopen/returns.hpp>
 #include <limits>
 
 mlopenHandle_t global_handle;
@@ -412,9 +412,9 @@ void cross_args(F f, Ts&&... xs)
 template<class T, class G>
 void verify_one(G g)
 {
-    auto input = tensor<float>{5, 16, 8, 8}.generate(g);
-    auto weights = tensor<float>{8, 16, 5, 5}.generate(g);
-    conv_filter<mlopenConvolution> filter{};
+    auto input = tensor<float>{16, 32, 8, 8}.generate(g);
+    auto weights = tensor<float>{64, 32, 5, 5}.generate(g);
+    conv_filter<mlopenConvolution> filter{1, 1};
     verify_forward_conv(input, weights, filter);
 }
 

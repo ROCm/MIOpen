@@ -2,7 +2,7 @@
 #ifndef _OCL_HELPER_HPP_
 #define _OCL_HELPER_HPP_
 
-#include "MLOpen.h"
+#include <mlopen.h>
 #include <string>
 #include <iostream>
 
