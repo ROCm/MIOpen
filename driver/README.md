@@ -4,6 +4,10 @@ The driver enables to test forward/backward convolution in MLOpen.
 To build the driver, type `make MLOpenDriver` from the `build` directory.
 
 To execute from the build directory: `./driver/MLOpenDriver`
+
+Sample runs:
+* With search on - `./driver/MLOpenDriver -c 32 -H 8 -W 8 -k 64 -x 5 -y 5 -p 1 -q 1` (runs forward & backward)
+* With search off - `./driver/MLOpenDriver -c 32 -H 8 -W 8 -k 64 -x 5 -y 5 -s 0 -F 1 -p 1 -q 1` (runs only forward)
 ```
       --forwconv           -F        Run only Forward Convolution (Default=0)
       --in_h               -H        Input Height (Default=32)
