@@ -54,6 +54,8 @@ typedef struct mlopenConvolutionDescriptor *mlopenConvolutionDescriptor_t;
 
 typedef struct mlopenPoolingDescriptor *mlopenPoolingDescriptor_t;
 
+typedef struct mlopenLRNDescriptor *mlopenLRNDescriptor_t;
+
 typedef enum {
 	mlopenHalf = 0,
 	mlopenFloat = 1,
@@ -77,6 +79,11 @@ typedef enum {
 	mlopenPoolingAverageIncludePadding = 1,
 	mlopenPoolingAverageExcludePadding = 2,
 } mlopenPoolingMode_t;
+
+typedef enum {
+	mlopenLRNCrossChannel = 0,
+	mlopenLRNWithinChannel = 1,
+} mlopenLRNMode_t;
 
 // Create a Tensor Descriptor
 MLOPEN_EXPORT mlopenStatus_t mlopenCreateTensorDescriptor(mlopenTensorDescriptor_t *tensorDesc);
@@ -440,6 +447,51 @@ MLOPEN_EXPORT mlopenStatus_t mlopenPoolingBackward(
 		void								*dx);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroyPoolingDescriptor(mlopenPoolingDescriptor_t poolDesc);
+
+// LRN APIs
+
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateLRNDescriptor(mlopenLRNDescriptor_t *lrnDesc);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenSetLRNDescriptor(
+		const mlopenLRNDescriptor_t			lrnDesc,
+		mlopenLRNMode_t						mode,
+		unsigned int						lrnN,
+		double								lrnAlpha,
+		double								lrnBeta,
+		double								lrnK);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenGetLRNDescriptor(
+		const mlopenLRNDescriptor_t			lrnDesc,
+		mlopenLRNMode_t						*mode,
+		unsigned int						*lrnN,
+		double								*lrnAlpha,
+		double								*lrnBeta,
+		double								*lrnK);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenLRNCrossChannelForward(
+		mlopenHandle_t						handle,
+		const mlopenLRNDescriptor_t			lrnDesc,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		yDesc,
+		void								*y);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenLRNCrossChannelBackward(
+		mlopenHandle_t						handle,
+		const mlopenLRNDescriptor_t			lrnDesc,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		yDesc,
+		const void							*y,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		dxDesc,
+		void								*dx);
+
 #ifdef __cplusplus
 }
 #endif
