@@ -2,7 +2,7 @@
 #define _MLOPEN_CONVOLUTION_HPP_
 
 #include <mlopen.h>
-#include <mlopen/handle.hpp>
+#include <mlopen/context.hpp>
 #include <mlopen/tensor.hpp>
 #include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
