@@ -1,7 +1,9 @@
 #include <mlopen/tensor.hpp>
 
+namespace mlopen {
+
 template<>
-mlopenStatus_t mlopenTensorDescriptor::TransformTensor<void *>(mlopenHandle_t handle,
+mlopenStatus_t TensorDescriptor::TransformTensor<void *>(mlopenHandle_t handle,
 			const void *alpha,
 			const mlopenTensorDescriptor_t srcTensorDesc,
 			const void *srcTensor,
@@ -31,7 +33,7 @@ mlopenStatus_t mlopenTensorDescriptor::TransformTensor<void *>(mlopenHandle_t ha
 }
 
 template<>
-mlopenStatus_t mlopenTensorDescriptor::OpTensor<void *>(mlopenHandle_t handle,
+mlopenStatus_t TensorDescriptor::OpTensor<void *>(mlopenHandle_t handle,
 		mlopenTensorOp_t				tensorOp,
 		const void						*alpha1,
 		const mlopenTensorDescriptor_t	inputTensorDesc1,
@@ -81,7 +83,7 @@ mlopenStatus_t mlopenTensorDescriptor::OpTensor<void *>(mlopenHandle_t handle,
 }
 
 template<>
-mlopenStatus_t mlopenTensorDescriptor::SetTensor<void *>(mlopenHandle_t handle,
+mlopenStatus_t TensorDescriptor::SetTensor<void *>(mlopenHandle_t handle,
 		void							*dstTensor,
 		const void						*valuePtr) {
 
@@ -109,7 +111,7 @@ mlopenStatus_t mlopenTensorDescriptor::SetTensor<void *>(mlopenHandle_t handle,
 }
 
 template<>
-mlopenStatus_t mlopenTensorDescriptor::ScaleTensor<void *>(mlopenHandle_t handle,
+mlopenStatus_t TensorDescriptor::ScaleTensor<void *>(mlopenHandle_t handle,
 		void							*dstTensor,
 		const void						*alpha) {
 
@@ -132,5 +134,6 @@ mlopenStatus_t mlopenTensorDescriptor::ScaleTensor<void *>(mlopenHandle_t handle
 
 	return mlopenStatusSuccess;
 
+}
 }
 

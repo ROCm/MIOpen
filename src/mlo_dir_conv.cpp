@@ -1527,7 +1527,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 
 // Tensor Helper APIs
 
-size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescriptor_t &weight_tensor) {
+size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopen::TensorDescriptor &weight_tensor) {
 	
 	int nWei;
 	int cWei;
@@ -1538,8 +1538,8 @@ size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescrip
 	int hWeiStride;
 	int wWeiStride;
 
-	std::tie(nWei, cWei, hWei, wWei) = tie4(weight_tensor->GetLengths());
-	std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) = tie4(weight_tensor->GetStrides());
+	std::tie(nWei, cWei, hWei, wWei) = mlopen::tie4(weight_tensor.GetLengths());
+	std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) = mlopen::tie4(weight_tensor.GetStrides());
 
 	setWeightsDescr(
 			"NCHW",
@@ -1559,7 +1559,7 @@ size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescrip
 
 }
 
-size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescriptor_t &output_tensor) {
+size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopen::TensorDescriptor &output_tensor) {
 
 	int nOut;
 	int cOut;
@@ -1570,8 +1570,8 @@ size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescrip
 	int hOutStride;
 	int wOutStride;
 
-	std::tie(nOut, cOut, hOut, wOut) = tie4(output_tensor->GetLengths());
-	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(output_tensor->GetStrides());
+	std::tie(nOut, cOut, hOut, wOut) = mlopen::tie4(output_tensor.GetLengths());
+	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = mlopen::tie4(output_tensor.GetStrides());
 
 
 	setOutputDescr(
@@ -1592,7 +1592,7 @@ size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescrip
 
 }
 
-size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopenTensorDescriptor_t &input_tensor) {
+size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopen::TensorDescriptor &input_tensor) {
 
 	int nIn;
 	int cIn;
@@ -1603,8 +1603,8 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopenTensorDescript
 	int hInStride;
 	int wInStride;
 
-	std::tie(nIn, cIn, hIn, wIn) = tie4(input_tensor->GetLengths());
-	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(input_tensor->GetStrides());
+	std::tie(nIn, cIn, hIn, wIn) = mlopen::tie4(input_tensor.GetLengths());
+	std::tie(nInStride, cInStride, hInStride, wInStride) = mlopen::tie4(input_tensor.GetStrides());
 
 	setInputDescr(
 			"NCHW",
