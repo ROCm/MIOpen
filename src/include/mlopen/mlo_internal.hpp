@@ -451,9 +451,9 @@ public:
 
 	// MD: Hack to get the key outside of mlo_internal
 	int mloBuildConf_Key(std::string & conf_key) const;
-	size_t setInputDescFromMLDesc(const mlopenTensorDescriptor_t &input_tensor);
-	size_t setOutputDescFromMLDesc(const mlopenTensorDescriptor_t &output_tensor);
-	size_t setWeightDescFromMLDesc(const mlopenTensorDescriptor_t &weight_tensor);
+	size_t setInputDescFromMLDesc(const mlopen::TensorDescriptor &input_tensor);
+	size_t setOutputDescFromMLDesc(const mlopen::TensorDescriptor &output_tensor);
+	size_t setWeightDescFromMLDesc(const mlopen::TensorDescriptor &weight_tensor);
 protected:
 
 	bool mloGetConfig(void);
