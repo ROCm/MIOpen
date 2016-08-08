@@ -2,7 +2,7 @@
 #define GUARD_MLOPEN_TENSOR_HPP_
 
 #include <mlopen/context.hpp>
-#include <mlopen/handle.hpp>
+#include <mlopen/object.hpp>
 #include <mlopen.h>
 #include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
