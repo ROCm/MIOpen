@@ -73,9 +73,9 @@ T& deref_impl(rank<0>, T& x)
 }
 
 template<class T>
-auto deref_impl(rank<1>, T& x) -> decltype(mlopen_deref_handle(x))
+auto deref_impl(rank<1>, T& x) -> decltype(mlopen_get_object(x))
 {
-    return mlopen_deref_handle(x);
+    return mlopen_get_object(x);
 }
 
 }

@@ -128,7 +128,7 @@ mlopenStatus_t mlopenGetTensorDescriptor(
 extern "C"
 mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc) {
 	return mlopen::try_([&] {
-		mlopen_destroy_handle(tensorDesc);
+		mlopen_destroy_object(tensorDesc);
 	});
 }
 
