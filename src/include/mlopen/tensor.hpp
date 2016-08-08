@@ -79,7 +79,7 @@ private:
 };
 }
 
-MLOPEN_DEFINE_HANDLE(mlopenTensorDescriptor, mlopen::TensorDescriptor)
+MLOPEN_DEFINE_OBJECT(mlopenTensorDescriptor, mlopen::TensorDescriptor)
 
 
 #endif // GUARD_MLOPEN_TENSOR_HPP_
