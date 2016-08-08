@@ -75,7 +75,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
 	});
 }
 
-// Internal API
+extern "C"
 mlopenStatus_t mlopenSetTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t dataType,
