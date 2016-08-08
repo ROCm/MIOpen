@@ -9,10 +9,10 @@ mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 
 	return mlopen::try_([&] {
 		if(numStreams != 0) {
-			mlopen::deref(handle) = new mlopenContext(numStreams, streams);
+			mlopen::deref(handle) = new mlopen::Context(numStreams, streams);
 		}
 		else {
-			mlopen::deref(handle) = new mlopenContext();
+			mlopen::deref(handle) = new mlopen::Context();
 		}
 	});
 }
@@ -23,13 +23,13 @@ mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
 		mlopenAcceleratorQueue_t *streamID,
 		int numStream) {
 	return mlopen::try_([&] {
-		mlopen::deref(streamID) = handle->GetStream();
+		mlopen::deref(streamID) = mlopen::deref(handle).GetStream();
 	});
 }
 
 extern "C"
 mlopenStatus_t mlopenDestroy(mlopenHandle_t handle) {
 	return mlopen::try_([&] {
-		delete handle;
+		mlopen_destroy_object(handle);
 	});
 }
