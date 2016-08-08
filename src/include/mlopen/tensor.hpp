@@ -1,7 +1,8 @@
-#ifndef _MLOPEN_TENSOR_HPP_
-#define _MLOPEN_TENSOR_HPP_
+#ifndef GUARD_MLOPEN_TENSOR_HPP_
+#define GUARD_MLOPEN_TENSOR_HPP_
 
-#include <mlopen/handle.hpp>
+#include <mlopen/context.hpp>
+#include <mlopen/object.hpp>
 #include <mlopen.h>
 #include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
@@ -9,16 +10,18 @@
 // TODO: remove this include later
 #include <cstdio>
 
+namespace mlopen {
+
 template<class T>
 auto tie4(T&& x) -> decltype(std::tie(x[0], x[1], x[2], x[3]))
 {
 	return std::tie(x[0], x[1], x[2], x[3]);
 }
 
-struct mlopenTensorDescriptor {
-	mlopenTensorDescriptor();
-	mlopenTensorDescriptor(mlopenDataType_t t, const int* plens, int size);
-	mlopenTensorDescriptor(mlopenDataType_t t, const int* plens, const int* pstrides, int size);
+struct TensorDescriptor : mlopenTensorDescriptor {
+	TensorDescriptor();
+	TensorDescriptor(mlopenDataType_t t, const int* plens, int size);
+	TensorDescriptor(mlopenDataType_t t, const int* plens, const int* pstrides, int size);
 
 	void CalculateStrides();
 
@@ -38,13 +41,13 @@ struct mlopenTensorDescriptor {
 		return this->GetIndex({is...});
 	}
 
-	bool operator==(const mlopenTensorDescriptor& rhs) const;
-	bool operator!=(const mlopenTensorDescriptor& rhs) const;
+	bool operator==(const TensorDescriptor& rhs) const;
+	bool operator!=(const TensorDescriptor& rhs) const;
 
 
 	mlopenStatus_t TransformTensor(mlopenHandle_t handle,
 			const void *alpha,
-			const mlopenTensorDescriptor_t srcTensorDesc,
+			const TensorDescriptor& srcTensorDesc,
 			const Data_t srcTensor,
 			const void *beta,
 			Data_t dstTensor);
@@ -52,10 +55,10 @@ struct mlopenTensorDescriptor {
 	mlopenStatus_t OpTensor(mlopenHandle_t handle,
 			mlopenTensorOp_t				tensorOp,
 			const void						*alpha1,
-			const mlopenTensorDescriptor_t	aDesc,
+			const TensorDescriptor&	aDesc,
 			const Data_t					A,
 			const void						*alpha2,
-			const mlopenTensorDescriptor_t	bDesc,
+			const TensorDescriptor&	bDesc,
 			const Data_t					B,
 			const void						*beta,
 			Data_t							C);
@@ -74,5 +77,9 @@ private:
 
 	mlopenDataType_t type;
 };
+}
 
-#endif // _MLOPEN_TENSOR_HPP_
+MLOPEN_DEFINE_OBJECT(mlopenTensorDescriptor, mlopen::TensorDescriptor)
+
+
+#endif // GUARD_MLOPEN_TENSOR_HPP_
