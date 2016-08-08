@@ -1,7 +1,7 @@
 #ifndef GUARD_MLOPEN_HANDLE_HPP
 #define GUARD_MLOPEN_HANDLE_HPP
 
-#define MLOPEN_DEFINE_HANDLE(handle, ...) \
+#define MLOPEN_DEFINE_OBJECT(handle, ...) \
 inline __VA_ARGS__& mlopen_deref_handle(handle& h)  \
 { \
     return static_cast<__VA_ARGS__&>(h); \

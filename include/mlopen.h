@@ -5,7 +5,7 @@
 
 #include "mlopen_export.h"
 
-#define MLOPEN_DECLARE_HANDLE(name) \
+#define MLOPEN_DECLARE_OBJECT(name) \
 struct name {}; \
 typedef struct name * name ## _t;
 
@@ -52,7 +52,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
 		mlopenAcceleratorQueue_t				*streamId,
 		int							numStream = 0);
 
-MLOPEN_DECLARE_HANDLE(mlopenTensorDescriptor);
+MLOPEN_DECLARE_OBJECT(mlopenTensorDescriptor);
 
 typedef struct mlopenConvolutionDescriptor *mlopenConvolutionDescriptor_t;
 
