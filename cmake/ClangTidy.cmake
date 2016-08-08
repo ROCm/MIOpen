@@ -12,9 +12,23 @@ find_program(CLANG_TIDY_EXE
         /usr/local/opt/llvm/bin
 )
 
+function(find_clang_tidy_version VAR)
+    execute_process(COMMAND ${CLANG_TIDY_EXE} -version OUTPUT_VARIABLE VERSION_OUTPUT)
+    separate_arguments(VERSION_OUTPUT_LIST UNIX_COMMAND "${VERSION_OUTPUT}")
+    list(FIND VERSION_OUTPUT_LIST "version" VERSION_INDEX)
+    math(EXPR VERSION_INDEX "${VERSION_INDEX} + 1")
+    list(GET VERSION_OUTPUT_LIST ${VERSION_INDEX} VERSION)
+    set(${VAR} ${VERSION} PARENT_SCOPE)
+endfunction()
+
 if( NOT CLANG_TIDY_EXE )
     message( STATUS "Clang tidy not found" )
+else()
+    find_clang_tidy_version(CLANG_TIDY_VERSION)
+    message( STATUS "Clang tidy found: ${CLANG_TIDY_VERSION}")
 endif()
+
+
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -34,11 +48,18 @@ macro(enable_clang_tidy)
         set(CLANG_TIDY_ANALYZE_TEMPORARY_DTORS "-analyze-temporary-dtors")
     endif()
 
+    if (${CLANG_TIDY_VERSION} VERSION_LESS "3.9.0")
+        set(CLANG_TIDY_ERRORS_ARG "")
+    else()
+        set(CLANG_TIDY_ERRORS_ARG "-warnings-as-errors='${CLANG_TIDY_ERRORS}'")
+
+    endif()
+
     set(CLANG_TIDY_COMMAND 
         ${CLANG_TIDY_EXE} 
         -p ${CMAKE_BINARY_DIR} 
         -checks='${CLANG_TIDY_CHECKS}'
-        -warnings-as-errors='${CLANG_TIDY_ERRORS}'
+        ${CLANG_TIDY_ERRORS_ARG}
         -extra-arg='${CLANG_TIDY_EXTRA_ARGS}'
         ${CLANG_TIDY_ANALYZE_TEMPORARY_DTORS}
     )
