@@ -2,11 +2,11 @@
 #include <mlopen/mlo_internal.hpp>
 
 mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t	xDesc,
+		const mlopen::TensorDescriptor&	xDesc,
 		const cl_mem					x,
-		const mlopenTensorDescriptor_t	wDesc,
+		const mlopen::TensorDescriptor&	wDesc,
 		const cl_mem					w,
-		const mlopenTensorDescriptor_t	yDesc,
+		const mlopen::TensorDescriptor&	yDesc,
 		const cl_mem					y,
 		const int						requestAlgoCount,
 		int								*returnedAlgoCount,
@@ -17,9 +17,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 		bool							exhaustiveSearch) {
 	
 	if(handle == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(xDesc == nullptr || wDesc == nullptr || yDesc == nullptr) {
 		return mlopenStatusBadParm;
 	}
 	if(x == nullptr || w == nullptr || y == nullptr) {
@@ -127,13 +124,13 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t handle,
 		const void							*alpha,
-		const mlopenTensorDescriptor_t		xDesc,
+		const mlopen::TensorDescriptor&		xDesc,
 		const cl_mem						x,
-		const mlopenTensorDescriptor_t		wDesc,
+		const mlopen::TensorDescriptor&		wDesc,
 		const cl_mem						w,
 		mlopenConvFwdAlgorithm_t			algo,
 		const void							*beta,
-		const mlopenTensorDescriptor_t		yDesc,
+		const mlopen::TensorDescriptor&		yDesc,
 		cl_mem								y, 
 		void								*workSpace,
 		size_t								workSpaceSize) {
@@ -141,22 +138,19 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 	if(handle == nullptr) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc == nullptr || wDesc == nullptr || yDesc == nullptr) {
-		return mlopenStatusBadParm;
-	}
 	if(x == nullptr || w == nullptr || y == nullptr) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->GetSize() != yDesc->GetSize() || xDesc->GetSize() != wDesc->GetSize()) {
+	if(xDesc.GetSize() != yDesc.GetSize() || xDesc.GetSize() != wDesc.GetSize()) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->GetType() != yDesc->GetType() || xDesc->GetType() != wDesc->GetType()) {
+	if(xDesc.GetType() != yDesc.GetType() || xDesc.GetType() != wDesc.GetType()) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->GetLengths()[1] != wDesc->GetLengths()[1]) {
+	if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
 		return mlopenStatusBadParm;
 	}
-	if(xDesc->GetSize() < 3) {
+	if(xDesc.GetSize() < 3) {
 		return mlopenStatusBadParm;
 	}
 	
@@ -224,11 +218,11 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 // FindBackwardDataAlgorithm()
 //
 mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t	dyDesc,
+		const mlopen::TensorDescriptor&	dyDesc,
 		const cl_mem					dy,
-		const mlopenTensorDescriptor_t	wDesc,
+		const mlopen::TensorDescriptor&	wDesc,
 		const cl_mem					w,
-		const mlopenTensorDescriptor_t	dxDesc,
+		const mlopen::TensorDescriptor&	dxDesc,
 		const cl_mem					dx,
 		const int						requestAlgoCount,
 		int								*returnedAlgoCount,
@@ -238,9 +232,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 		size_t							workSpaceSize) {
 	
 	if(handle == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(dxDesc == nullptr || wDesc == nullptr || dyDesc == nullptr) {
 		return mlopenStatusBadParm;
 	}
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
@@ -349,13 +340,13 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 // BackwardDataAlgorithm()
 mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle_t handle,
 		const void							*alpha,
-		const mlopenTensorDescriptor_t		dyDesc,
+		const mlopen::TensorDescriptor&		dyDesc,
 		const cl_mem						dy,
-		const mlopenTensorDescriptor_t		wDesc,
+		const mlopen::TensorDescriptor&		wDesc,
 		const cl_mem						w,
 		mlopenConvBwdDataAlgorithm_t		algo,
 		const void							*beta,
-		const mlopenTensorDescriptor_t		dxDesc,
+		const mlopen::TensorDescriptor&		dxDesc,
 		cl_mem								dx, 
 		void								*workSpace,
 		size_t								workSpaceSize) {
@@ -363,22 +354,19 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 	if(handle == nullptr) {
 		return mlopenStatusBadParm;
 	}
-	if(dxDesc == nullptr || wDesc == nullptr || dyDesc == nullptr) {
-		return mlopenStatusBadParm;
-	}
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		return mlopenStatusBadParm;
 	}
-	if(dyDesc->GetSize() != dxDesc->GetSize() || dyDesc->GetSize() != wDesc->GetSize()) {
+	if(dyDesc.GetSize() != dxDesc.GetSize() || dyDesc.GetSize() != wDesc.GetSize()) {
 		return mlopenStatusBadParm;
 	}
-	if(dyDesc->GetType() != dxDesc->GetType() || dyDesc->GetType() != wDesc->GetType()) {
+	if(dyDesc.GetType() != dxDesc.GetType() || dyDesc.GetType() != wDesc.GetType()) {
 		return mlopenStatusBadParm;
 	}
-	if(dyDesc->GetLengths()[1] != wDesc->GetLengths()[1]) {
+	if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
 		return mlopenStatusBadParm;
 	}
-	if(dyDesc->GetSize() < 3) {
+	if(dyDesc.GetSize() < 3) {
 		return mlopenStatusBadParm;
 	}
 

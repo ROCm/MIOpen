@@ -1,5 +1,5 @@
-#ifndef _MLOPEN_HANDLE_HPP_
-#define _MLOPEN_HANDLE_HPP_
+#ifndef GUARD_MLOPEN_CONTEXT_HPP_
+#define GUARD_MLOPEN_CONTEXT_HPP_
 
 #include <mlopen.h>
 #include <vector>
@@ -29,4 +29,4 @@ struct mlopenContext {
 };
 
 
-#endif // _MLOPEN_HANDLE_HPP_
+#endif // GUARD_MLOPEN_CONTEXT_HPP_
