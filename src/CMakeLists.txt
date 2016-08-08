@@ -92,6 +92,8 @@ add_library( MLOpen SHARED
 	${MLOpen_API}
 	)
 
+clang_tidy_check(MLOpen)
+
 target_include_directories(MLOpen PUBLIC ${MLOpen_DIRS_INCLUDE})
 
 install(TARGETS MLOpen 
