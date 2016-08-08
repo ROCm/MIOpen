@@ -89,7 +89,22 @@ source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
 include(ClangTidy)
 
 enable_clang_tidy(
-	CHECKS *
+	CHECKS 
+		*
+		-cppcoreguidelines-pro-bounds-array-to-pointer-decay
+		-cppcoreguidelines-pro-bounds-constant-array-index
+		-cppcoreguidelines-pro-bounds-pointer-arithmetic
+		-cppcoreguidelines-pro-type-vararg
+		-google-runtime-int
+		-google-runtime-references
+		-misc-misplaced-const
+		-modernize-loop-convert
+		-readability-implicit-bool-cast
+	ERRORS
+		*
+		-google-readability-todo
+		-readability-inconsistent-declaration-parameter-name
+
 )
 
 add_subdirectory(src)
