@@ -107,7 +107,7 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		bool								exhaustiveSearch) {
 
 	return mlopen::try_([&] {
-		convDesc->FindConvFwdAlgorithm(handle,
+		convDesc->FindConvFwdAlgorithm(mlopen::deref(handle),
 				mlopen::deref(xDesc),
 				DataCast(x),
 				mlopen::deref(wDesc),
@@ -141,7 +141,7 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 		size_t								workSpaceSize) {
 
 	return mlopen::try_([&] {
-		convDesc->ConvolutionForward(handle,
+		convDesc->ConvolutionForward(mlopen::deref(handle),
 				alpha,
 				mlopen::deref(xDesc),
 				DataCast(x),
@@ -175,7 +175,7 @@ mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHandle_t handle,
 		size_t								workSpaceSize) {
 
 	return mlopen::try_([&] {
-		convDesc->FindConvBwdDataAlgorithm(handle,
+		convDesc->FindConvBwdDataAlgorithm(mlopen::deref(handle),
 				mlopen::deref(dyDesc),
 				DataCast(dy),
 				mlopen::deref(wDesc),
@@ -208,7 +208,7 @@ mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
 		size_t								workSpaceSize) {
 
 	return mlopen::try_([&] {
-		convDesc->ConvolutionBackwardData(handle,
+		convDesc->ConvolutionBackwardData(mlopen::deref(handle),
 				alpha,
 				mlopen::deref(dyDesc),
 				DataCast(dy),

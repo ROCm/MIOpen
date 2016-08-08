@@ -2,8 +2,9 @@
 
 #include <mlopen/manage_ptr.hpp>
 
+namespace mlopen {
 
-struct mlopenContextImpl
+struct ContextImpl
 {
 
     typedef MLOPEN_MANAGE_PTR(mlopenAcceleratorQueue_t, clReleaseCommandQueue) AqPtr;
@@ -65,15 +66,15 @@ struct mlopenContextImpl
     }
 };
 
-mlopenContext::mlopenContext (int numStreams, mlopenAcceleratorQueue_t *streams) 
-: impl(new mlopenContextImpl())
+Context::Context (int numStreams, mlopenAcceleratorQueue_t *streams) 
+: impl(new ContextImpl())
 {
     // TODO: Retain the queues
     for(int i=0;i<numStreams;i++) impl->queues.emplace_back(streams[i]);
 }
 
-mlopenContext::mlopenContext () 
-: impl(new mlopenContextImpl())
+Context::Context () 
+: impl(new ContextImpl())
 {
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL context
@@ -124,9 +125,10 @@ mlopenContext::mlopenContext ()
     } 
 }
 
-mlopenContext::~mlopenContext() {}
+Context::~Context() {}
 
-mlopenAcceleratorQueue_t mlopenContext::GetStream()
+mlopenAcceleratorQueue_t Context::GetStream()
 {
     return impl->queues.front().get();
+}
 }

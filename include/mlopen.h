@@ -26,7 +26,8 @@ typedef cl_command_queue mlopenAcceleratorQueue_t;
 typedef hipStream_t mlopenAcceleratorQueue_t;
 #endif
 
-typedef struct mlopenContext *mlopenHandle_t;
+MLOPEN_DECLARE_OBJECT(mlopenHandle);
+// typedef struct mlopenContext *mlopenHandle_t;
 
 typedef enum {
 	mlopenStatusSuccess = 0,

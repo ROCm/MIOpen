@@ -45,14 +45,14 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 	bool operator!=(const TensorDescriptor& rhs) const;
 
 
-	mlopenStatus_t TransformTensor(mlopenHandle_t handle,
+	mlopenStatus_t TransformTensor(mlopen::Context& handle,
 			const void *alpha,
 			const TensorDescriptor& srcTensorDesc,
 			const Data_t srcTensor,
 			const void *beta,
 			Data_t dstTensor);
 
-	mlopenStatus_t OpTensor(mlopenHandle_t handle,
+	mlopenStatus_t OpTensor(mlopen::Context& handle,
 			mlopenTensorOp_t				tensorOp,
 			const void						*alpha1,
 			const TensorDescriptor&	aDesc,
@@ -63,11 +63,11 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 			const void						*beta,
 			Data_t							C);
 
-	mlopenStatus_t SetTensor(mlopenHandle_t handle,
+	mlopenStatus_t SetTensor(mlopen::Context& handle,
 			Data_t							dstTensor,
 			const void						*valuePtr);
 
-	mlopenStatus_t ScaleTensor(mlopenHandle_t handle,
+	mlopenStatus_t ScaleTensor(mlopen::Context& handle,
 			Data_t							y,
 			const void						*alpha);
 
