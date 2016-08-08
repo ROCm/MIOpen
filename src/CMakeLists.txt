@@ -54,6 +54,12 @@ set( MLOpen_Source
 	Convolution.hpp
 	Convolution.cpp
 	Convolution_API.cpp
+	pooling.hpp
+	pooling.cpp
+	pooling_api.cpp
+	lrn.hpp
+	lrn.cpp
+	lrn_api.cpp
 	KernelCache.cpp
 	KernelCache.hpp
 	OCLKernel.hpp
@@ -71,6 +77,8 @@ if( MLOpen_BACKEND MATCHES "OpenCL")
 		OCL/HandleOCL.cpp
 		OCL/TensorOCL.cpp
 		OCL/ConvolutionOCL.cpp
+		OCL/pooling_ocl.cpp
+		OCL/lrn_ocl.cpp
 		OCL/CLHelper.hpp
 		OCL/CLHelper.cpp)
 endif()
