@@ -1,4 +1,5 @@
 #include <pooling.hpp>
+#include "mlo_internal.hpp"
 
 mlopenStatus_t mlopenPoolingDescriptor::Forward(
 		mlopenHandle_t						handle,
@@ -8,8 +9,9 @@ mlopenStatus_t mlopenPoolingDescriptor::Forward(
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
 		cl_mem								y) {
-
+	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in pooling forward\n");
+	return(status);
 }
 
 mlopenStatus_t mlopenPoolingDescriptor::Backward(
@@ -25,6 +27,8 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 		const mlopenTensorDescriptor_t		dxDesc,
 		cl_mem								dx) {
 
+	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in pooling backward\n");
+	return(status);
 }
 

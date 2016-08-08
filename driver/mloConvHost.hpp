@@ -303,7 +303,7 @@ int mloConvForwarDirectOnHost(
 
 								accum += data_val * wei_val;
 #if 0
-								if (b == 0 && o == 0 && j == 0 && i == 0)
+								if (b == 0 && o == 1 && j == 0 && i == 1)
 								{
 									printf("c: %f %f %f\n",
 										accum/* + bias_ptr[o]*/,
@@ -490,9 +490,477 @@ int mloBackwardDirectOnHost(
 
 }
 
+template<typename _T>
+void mloPrepad(
+	int o,
+	int c,
+	int j,
+	int i,
+	_T padding_value,        // padding value
+	int pad0,               // padding size
+	int pad1,               // padding size
+	int bot_batch_stride,
+	int bot_channel_stride,
+	int bot_stride,
+	int bot_height,
+	int bot_width,
+	int new_bot_batch_stride,
+	int new_bot_channel_stride,
+	int new_bot_stride,
+	int new_bot_height,
+	int new_bot_width,
+	_T * new_bot_ptr,
+	const _T * bot_ptr		// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
+	)
+{
+	int src_j = j - pad1;
+	int src_i = i - pad0;
+	int src_off = o*bot_batch_stride + c*bot_channel_stride + src_j * bot_stride + src_i;
+	int dst_off = o*new_bot_batch_stride + c*new_bot_channel_stride + j * new_bot_stride + i;
+
+	if (src_i >= 0 && src_i < bot_width && src_j >= 0 && src_j < bot_height)
+	{
+		new_bot_ptr[dst_off] = bot_ptr[src_off];
+	}
+	else
+	{
+		new_bot_ptr[dst_off] = padding_value;
+	}
+}
 
 template<typename _T>
-bool mloVerifyConv(
+int mloDirectSPHostPrepad(
+	_T padding_value,        // padding value
+	int pad0,               // padding size
+	int pad1,               // padding size
+	int n_batchs,
+	int n_inputs,
+	int bot_batch_stride,
+	int bot_channel_stride,
+	int bot_stride,
+	int bot_height,
+	int bot_width,
+	int new_bot_batch_stride,
+	int new_bot_channel_stride,
+	int new_bot_stride,
+	int new_bot_height,
+	int new_bot_width,
+	_T * new_bot_ptr,
+	const _T * bot_ptr		// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
+	)
+{
+	int ret = 0;
+	for (int o = 0; o < n_batchs; ++o)
+	{
+		for (int c = 0; c < n_inputs; ++c)
+		{
+			for (int j = 0; j < new_bot_height; ++j)
+			{
+				for (int i = 0; i < new_bot_width; ++i)
+				{
+					mloPrepad<_T>(
+						o,
+						c,
+						j,
+						i,
+						padding_value,        // padding value
+						pad0,               // padding size
+						pad1,               // padding size
+						bot_batch_stride,
+						bot_channel_stride,
+						bot_stride,
+						bot_height,
+						bot_width,
+						new_bot_batch_stride,
+						new_bot_channel_stride,
+						new_bot_stride,
+						new_bot_height,
+						new_bot_width,
+						new_bot_ptr,
+						bot_ptr
+						);
+
+				}
+			}
+		}
+	}
+
+	return(ret);
+}
+
+/*
+weihts interleave
+n inputs
+	n output blocks (1 block == n output tiles)
+		rows 1 * n output tiles
+		rows 2 * n output tiles
+		rows 3 * n output tiles
+*/
+
+template<typename _T>
+void mloInterleavelWeightsInOutputs(
+	int c,
+	int o_block,
+	int o,
+	int k_j,
+	int k_i,
+	int kernel_size0,   // kernel 1 dim 
+	int kernel_size1,   // kernel 1 dim 
+	int n_outputs,
+	int MLO_N_OUT_TILES,
+	int n_inputs,
+	const _T * wei_ptr,
+	_T * new_wei_ptr
+	)
+{
+	int src_off = (o_block * MLO_N_OUT_TILES + o) * n_inputs * kernel_size1 * kernel_size0
+		+ c * kernel_size1 * kernel_size0 + k_j *kernel_size0 + k_i;
+	int dst_off = c * n_outputs * kernel_size1 * kernel_size0
+		+ o_block * MLO_N_OUT_TILES * kernel_size1 * kernel_size0
+		+ MLO_N_OUT_TILES * k_j * kernel_size0
+		+ o * kernel_size0
+		+ k_i;
+	new_wei_ptr[dst_off] = wei_ptr[src_off];
+}
+
+template<typename _T>
+void mloDirectSPHostIntlWeights(
+	bool forward,       // forwad = 1, backward = 0
+	int kernel_size0,   // kernel 1 dim 
+	int kernel_size1,   // kernel 1 dim 
+	int n_outputs,
+	int n_inputs,
+	int MLO_N_OUT_TILES,
+	const _T * wei_ptr,
+	_T * new_wei_ptr
+	)
+{
+	if (forward)
+	{
+// interleave all 
+// outputs per input
+		int o_loops = (n_outputs + MLO_N_OUT_TILES - 1) / MLO_N_OUT_TILES;
+
+		for (int c = 0; c < n_inputs; ++c)
+		{
+			for (int o_block = 0; o_block < o_loops; ++o_block)
+			{
+				for (int o = 0; o < MLO_N_OUT_TILES && o_block * MLO_N_OUT_TILES + o < n_outputs; ++o)
+				{
+					for (int k_j = 0; k_j < kernel_size1; ++k_j)
+					{
+						for (int k_i = 0; k_i < kernel_size0; ++k_i)
+						{
+							mloInterleavelWeightsInOutputs(
+								c,
+								o_block,
+								o,
+								k_j,
+								k_i,
+								kernel_size0,   // kernel 1 dim 
+								kernel_size1,   // kernel 1 dim 
+								n_outputs,
+								MLO_N_OUT_TILES,
+								n_inputs,
+								wei_ptr,
+								new_wei_ptr
+								);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+template<typename _T>
+int mloDirectSPConvHost5x5(
+	int MLO_GRP_SZ1,
+	int MLO_GRP_SZ0,
+	int MLO_OUT_TILE1, 
+	int MLO_OUT_TILE0,
+	int MLO_N_OUT_TILES,
+	int MLO_KERNEL_SZ1,   // kernel 1 dim 
+	int MLO_FILTER_SIZE1,   // kernel 1 dim 
+	int MLO_N_BATCHS,
+	int MLO_N_OUTPUTS,
+	int MLO_TOP_BATCH_STRIDE,
+	int MLO_TOP_CHANNEL_STRIDE,
+	int MLO_TOP_STRIDE,
+	int MLO_TOP_HEIGHT,
+	int MLO_TOP_WIDTH,
+	int MLO_N_INPUTS,
+	int MLO_BOT_BATCH_STRIDE,
+	int MLO_BOT_CHANNEL_STRIDE,
+	int MLO_BOT_STRIDE,
+	int MLO_BOT_HEIGHT,
+	int MLO_BOT_WIDTH,
+	const _T * bot_ptr,			// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
+	// interleaved weights
+	const _T * wei_ptr,    // weights n output channels x n input channels x filter size_y x filter size_x
+	_T * top_ptr,	// output "te4nsor"  - batch x channels (output images, feature maps, slices) x width (scaled) x height (scaled)
+	const _T * bias_ptr = NULL         // bias, NULL if no bias
+
+	)
+{
+	int j_loops = (MLO_TOP_HEIGHT + MLO_GRP_SZ1*MLO_OUT_TILE1 - 1) / (MLO_GRP_SZ1 * MLO_OUT_TILE1);
+	int i_loops = (MLO_TOP_WIDTH + MLO_GRP_SZ0*MLO_OUT_TILE0 - 1) / (MLO_GRP_SZ0 * MLO_OUT_TILE0);
+	int o_loops = (MLO_N_OUTPUTS + MLO_N_OUT_TILES - 1) / MLO_N_OUT_TILES;
+
+
+	_T * bot_stage = new _T[MLO_OUT_TILE1*(MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1)];
+	_T * wei_stage = new _T[MLO_FILTER_SIZE1];
+	_T * out_tiles = new _T[MLO_OUT_TILE1*MLO_OUT_TILE0*MLO_N_OUT_TILES];
+
+	for (int g2 = 0; g2 < o_loops * MLO_N_BATCHS; ++g2)
+	{
+		for (int g1 = 0; g1 < j_loops; ++g1)
+		{
+			for (int g0 = 0; g0 < i_loops; ++g0)
+			{
+				for (int l1 = 0; l1 < MLO_GRP_SZ1 && (g1*MLO_GRP_SZ1 + l1) * MLO_OUT_TILE1 < MLO_TOP_HEIGHT; ++l1)
+				{
+					for (int l0 = 0; l0 < MLO_GRP_SZ0 && (g0*MLO_GRP_SZ0 + l0) * MLO_OUT_TILE1 < MLO_TOP_WIDTH; ++l0)
+					{
+						// KERNEL
+						int glbl1 = (g1*MLO_GRP_SZ1 + l1) * MLO_OUT_TILE1;
+						int glbl0 = (g0*MLO_GRP_SZ0 + l0) * MLO_OUT_TILE0;
+						int o_block = g2 / MLO_N_BATCHS;
+						int b = g2 - o_block * MLO_N_BATCHS; // batch
+						// position of on the map of the top-left input pixel
+						// bot stride may include additional padding zeros from prepadding
+						int bot_off = b * MLO_BOT_BATCH_STRIDE + MLO_BOT_STRIDE * glbl1 + glbl0;
+						// weight are interleaved
+						int o_base = o_block * MLO_N_OUT_TILES;
+						int wei_off = o_base * MLO_KERNEL_SZ1  * MLO_FILTER_SIZE1;
+						for (int ii = 0; ii < MLO_OUT_TILE1*MLO_OUT_TILE0*MLO_N_OUT_TILES; ++ii)
+						{
+							out_tiles[ii] = 0;
+						}
+						// the only place where we jump
+						for (int c = 0; c < MLO_N_INPUTS;
+							++c, bot_off += MLO_BOT_CHANNEL_STRIDE, wei_off += MLO_KERNEL_SZ1 * MLO_FILTER_SIZE1 * MLO_N_OUTPUTS
+							)
+						{
+							int bot_off1 = bot_off;
+
+							// read first MLO_OUT_TILE1 - 1 lines of input
+							for (int j = 0; j < MLO_OUT_TILE1 - 1; ++j, bot_off1 += MLO_BOT_STRIDE)
+							{
+								for (int i = 0; i < (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1); ++i)
+								{
+									bot_stage[j * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + i] = bot_ptr[bot_off1 + i];
+								}
+
+							}
+							// now all weights are sequencially located
+							// see transformed layout
+							int wei_off1 = wei_off;
+							for (int k_j = 0; k_j < MLO_KERNEL_SZ1; ++k_j, bot_off1 += MLO_BOT_STRIDE)
+							{
+							// insertn new line
+								for (int i = 0; i < (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1); ++i)
+								{
+									bot_stage[(MLO_OUT_TILE1 - 1) * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + i] = bot_ptr[bot_off1 + i];
+								}
+								// loop over outputs
+	
+								for (int o_i = 0; o_i < MLO_N_OUT_TILES; ++o_i)
+								{
+
+							// read filter coeff row
+									for (int w_i = 0; w_i < MLO_FILTER_SIZE1; ++w_i)
+									{
+							// moving along the weights
+										wei_stage[w_i] = wei_ptr[wei_off1++];
+									}
+							// convolve
+									for (int k_i = 0; k_i < MLO_FILTER_SIZE1; ++k_i)		
+									{
+										for (int m = 0; m < MLO_OUT_TILE1; ++m)
+										{
+											for (int l = 0; l < MLO_OUT_TILE0; ++l)
+											{
+												out_tiles[o_i * MLO_OUT_TILE1 * MLO_OUT_TILE0 + m*MLO_OUT_TILE0 + l] += bot_stage[m * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + k_i + l]
+													* wei_stage[k_i];
+#if 0
+												if (o_i == 1 && l1 == 0 && l0 == 0 && g0==0 && g1==0 && g2==0)
+												{
+													printf("ek: %f %f %f\n",
+														out_tiles[o_i * MLO_OUT_TILE1 * MLO_OUT_TILE0 + m*MLO_OUT_TILE0 + l],
+														bot_stage[m * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + k_i + l],
+														wei_stage[k_i]
+														);
+												}
+#endif
+											}
+										}
+									}
+
+
+								} // for (int o_i = 0; o_i < MLO_N_OUT_TILES; ++o_i, wei_off1 += MLO_FILTER_SIZE1)
+
+								// move data up
+								for (int up = 0; up < MLO_OUT_TILE1 - 1; ++up)
+								{
+									for (int r = 0; r < (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1); ++r)
+									{
+										bot_stage[up * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + r]
+											= bot_stage[(up + 1) * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + r];
+									}
+
+								}
+
+
+							} // for (int k_j = 0; k_j < MLO_KERNEL_SZ1; ++k_j, bot_off1 += MLO_BOT_STRIDE, wei_off += MLO_FILTER_SIZE1 * MLO_N_OUTPUTS * MLO_N_INPUTS)
+						} // for (int c = 0; c < MLO_N_INPUTS; ++c, bot_off += MLO_BOT_CHANNEL_STRIDE)
+
+						// output
+						int out_off = b * MLO_TOP_BATCH_STRIDE + o_base * MLO_TOP_CHANNEL_STRIDE + glbl1 * MLO_TOP_STRIDE + glbl0;
+						for (int o = 0; o < MLO_N_OUT_TILES
+							&& o_base + o < MLO_N_OUTPUTS
+							; ++o, out_off += MLO_TOP_CHANNEL_STRIDE)
+						{
+							int out_off1 = out_off;
+							for (int j = 0; j < MLO_OUT_TILE1; ++j, out_off1 += MLO_TOP_STRIDE)
+							{
+								for (int i = 0; i < MLO_OUT_TILE0; ++i)
+								{
+									top_ptr[out_off1 + i] = out_tiles[o *MLO_OUT_TILE1*MLO_OUT_TILE0 + j*MLO_OUT_TILE0 + i];
+								}
+							}
+						}
+
+					} // for (int l0 = 0; l0 < MLO_SPC_GRP0 && (g0*MLO_SPC_GRP0 + l0) * MLO_OUT_TILE1 < MLO_TOP_WIDTH; ++l0)
+				}
+			}
+		}
+	}
+
+	delete[] bot_stage;
+	delete[] out_tiles;
+	delete[] wei_stage;
+
+	return(0);
+}
+
+template<typename _T>
+int mloDirectSPHost(
+
+	int MLO_SPC_GRP1,
+	int MLO_SPC_GRP0,
+	int MLO_OUT_TILE1,
+	int MLO_OUT_TILE0,
+	int MLO_N_OUT_TILES,
+
+	bool forward,
+	bool do_input_copy,
+	_T padding_value,        // padding value
+	// TO DO: check top, bot dim are equal
+	int kernel_size0,   // kernel 1 dim 
+	int pad0,               // padding size
+	int stride0,    // scale factor
+	int kernel_size1,   // kernel 1 dim 
+	int pad1,               // padding size
+	int stride1,    // scale factor
+	int n_batchs,
+	int n_outputs,
+	int top_batch_stride,
+	int top_channel_stride,
+	int top_stride,
+	int top_height,
+	int top_width,
+	int n_inputs,
+	int bot_batch_stride,
+	int bot_channel_stride,
+	int bot_stride,
+	int bot_height,
+	int bot_width,
+	int new_bot_batch_stride,
+	int new_bot_channel_stride,
+	int new_bot_stride,
+	int new_bot_height,
+	int new_bot_width,
+	_T * new_bot_ptr,
+	const _T * bot_ptr,			// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
+
+	const _T * wei_ptr,    // weights n output channels x n input channels x filter size_y x filter size_x
+	_T * new_wei_ptr,
+	_T * top_ptr,	// output "te4nsor"  - batch x channels (output images, feature maps, slices) x width (scaled) x height (scaled)
+	const _T * bias_ptr = NULL         // bias, NULL if no bias
+
+
+	)
+{
+	int ret = 0;
+	if (do_input_copy)
+	{
+		mloDirectSPHostPrepad<_T>(
+			padding_value,        // padding value
+			pad0,               // padding size
+			pad1,               // padding size
+			n_batchs,
+			n_inputs,
+			bot_batch_stride,
+			bot_channel_stride,
+			bot_stride,
+			bot_height,
+			bot_width,
+			new_bot_batch_stride,
+			new_bot_channel_stride,
+			new_bot_stride,
+			new_bot_height,
+			new_bot_width,
+			new_bot_ptr,
+			bot_ptr		// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
+			);
+	}
+
+	mloDirectSPHostIntlWeights<_T>(
+		forward,       // forwad = 1, backward = 0
+		kernel_size0,   // kernel 1 dim 
+		kernel_size1,   // kernel 1 dim 
+		n_outputs,
+		n_inputs,
+		MLO_N_OUT_TILES,
+		wei_ptr,
+		new_wei_ptr
+		);
+
+	mloDirectSPConvHost5x5<_T>(
+		MLO_SPC_GRP1,
+		MLO_SPC_GRP0,
+		MLO_OUT_TILE1,
+		MLO_OUT_TILE0,
+		MLO_N_OUT_TILES,
+		kernel_size1,
+		kernel_size0,
+		n_batchs,
+		n_outputs,
+		top_batch_stride,
+		top_channel_stride,
+		top_stride,
+		top_height,
+		top_width,
+		n_inputs,
+		new_bot_batch_stride,
+		new_bot_channel_stride,
+		new_bot_stride,
+		new_bot_height,
+		new_bot_width,
+
+		new_bot_ptr,
+		new_wei_ptr,
+		top_ptr,	// output "te4nsor"  - batch x channels (output images, feature maps, slices) x width (scaled) x height (scaled)
+		bias_ptr
+		);
+	return(ret);
+}
+
+
+
+template<typename _T>
+bool mloVerify(
 	int n_batchs,
 	int n_channels, 
 	int height,
@@ -532,7 +1000,7 @@ bool mloVerifyConv(
 					_T g_val = g_ptr[b*g_batch_stride + c*g_channel_stride + j*g_stride + i];
 
 					sqr_accum += (c_val - g_val) * (c_val - g_val);
-					double err = CalcErr<_T>(c_val, g_val);
+					double err = abs(c_val - g_val);
 					if (err > max_err)
 					{
 						max_err = err;

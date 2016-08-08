@@ -80,7 +80,8 @@ if( MLOpen_BACKEND MATCHES "OpenCL")
 		OCL/pooling_ocl.cpp
 		OCL/lrn_ocl.cpp
 		OCL/CLHelper.hpp
-		OCL/CLHelper.cpp)
+		OCL/CLHelper.cpp
+		OCL/mloPooling.cpp)
 endif()
 
 if( MLOpen_BACKEND MATCHES "HIP")
