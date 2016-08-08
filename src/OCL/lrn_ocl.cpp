@@ -1,8 +1,7 @@
 #include <lrn.hpp>
 
-mlopenStatus_t Forward(
+mlopenStatus_t mlopenLRNDescriptor::Forward(
 		mlopenHandle_t						handle,
-		const mlopenLRNDescriptor_t			lrnDesc,
 		const void							*alpha,
 		const mlopenTensorDescriptor_t		xDesc,
 		const Data_t						x,
@@ -10,11 +9,13 @@ mlopenStatus_t Forward(
 		const mlopenTensorDescriptor_t		yDesc,
 		Data_t								y) {
 	
+	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in lrn forward\n");
+	return(status);
 }
-mlopenStatus_t Backward(
+
+mlopenStatus_t mlopenLRNDescriptor :: Backward(
 		mlopenHandle_t						handle,
-		const mlopenLRNDescriptor_t			lrnDesc,
 		const void							*alpha,
 		const mlopenTensorDescriptor_t		yDesc,
 		const Data_t						y,
@@ -26,6 +27,8 @@ mlopenStatus_t Backward(
 		const mlopenTensorDescriptor_t		dxDesc,
 		Data_t								dx) {
 
+	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in lrn backward\n");
+	return(status);
 }
 

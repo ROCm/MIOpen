@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdio>
 #include "driver.hpp"
+#include "mloConvHost.hpp"
+#include "mloPoolingHost.hpp"
 
 void PrintConvParameters(std::vector<int> &in_len,
 		std::vector<int> &wei_len,
