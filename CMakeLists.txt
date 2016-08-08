@@ -86,6 +86,12 @@ set( MLOpen_DIRS_INCLUDE
 set( MLOpen_API ${CMAKE_SOURCE_DIR}/include/mlopen.h )
 source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
 
+include(ClangTidy)
+
+enable_clang_tidy(
+	CHECKS *
+)
+
 add_subdirectory(src)
 add_subdirectory(driver)
 add_subdirectory(test)
