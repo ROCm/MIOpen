@@ -76,6 +76,16 @@ bool TensorDescriptor::operator!=(const TensorDescriptor& rhs) const
 	return ! (*this == rhs);
 }
 
+std::string TensorDescriptor::ToString() const
+{
+	std::string result;
+	for(auto i:this->lens)
+	{
+		result += std::to_string(i) + ", ";
+	}
+	return result.substr(0, result.length()-2);
+}
+
 }
 
 // TODO: Remove
