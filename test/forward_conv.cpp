@@ -38,24 +38,37 @@ protect_fn<F> protect(F f)
 template<class F>
 void par_for(int n, F f)
 {
-    std::vector<std::thread> threads(std::thread::hardware_concurrency());
-    const int grainsize = n / threads.size();
+    const auto threadsize = std::thread::hardware_concurrency();
+    if (n < threadsize)
+    {
+        for(int i=0;i<n;i++) f(i);
+    }
+    else
+    {
+        std::vector<std::thread> threads(threadsize);
+        const int grainsize = n / threads.size();
 
-    int work = 0;
-    std::generate(threads.begin(), threads.end(), [&]
-    {
-        auto result = std::thread([=]
+        int work = 0;
+        std::generate(threads.begin(), threads.end(), [&]
         {
-            int last = std::min(n, work+grainsize);
-            for(int i=work;i<last;i++) f(i);
+            auto result = std::thread([=]
+            {
+                int last = std::min(n, work+grainsize);
+                assert((last - work) <= grainsize);
+                for(int i=work;i<last;i++) 
+                {
+                    assert(i < n && i >= 0);
+                    f(i);
+                }
+            });
+            work += grainsize;
+            return result;
         });
-        work += grainsize;
-        return result;
-    });
-    // TODO: Should be in destructor
-    for(auto&& t:threads)
-    {
-        if (t.joinable()) t.join();
+        // TODO: Should be in destructor
+        for(auto&& t:threads)
+        {
+            if (t.joinable()) t.join();
+        }
     }
 }
 
