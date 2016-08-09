@@ -31,13 +31,7 @@ mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t con
 	}
 
 	return mlopen::try_([&] {
-		mlopen::deref(convDesc).mode		= mode;
-		mlopen::deref(convDesc).pad_h	= pad_h;
-		mlopen::deref(convDesc).pad_w	= pad_w;
-		mlopen::deref(convDesc).u		= u;
-		mlopen::deref(convDesc).v		= v;
-		mlopen::deref(convDesc).upscalex = upscalex;
-		mlopen::deref(convDesc).upscaley = upscaley;
+		mlopen::deref(convDesc) = mlopen::ConvolutionDescriptor(mode, pad_h, pad_w, u, v, upscalex, upscaley);
 	});
 }
 

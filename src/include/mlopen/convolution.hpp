@@ -11,9 +11,10 @@ namespace mlopen {
 
 struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	
-	// ConvolutionDescriptor(int p_padh = 0, int p_padw = 0, int p_u = 1, int p_v = 1, int p_upx = 1, int p_upy = 1);
-	ConvolutionDescriptor();
-	~ConvolutionDescriptor() {}
+	ConvolutionDescriptor(int p_pad_h = 0, int p_pad_w = 0, int p_u = 1, int p_v = 1, int p_upscalex = 1, int p_upscaley = 1);
+	ConvolutionDescriptor(mlopenConvolutionMode_t p_mode, int p_pad_h = 0, int p_pad_w = 0, int p_u = 1, int p_v = 1, int p_upscalex = 1, int p_upscaley = 1);
+	// ConvolutionDescriptor();
+	// ~ConvolutionDescriptor() {}
 
 	mlopenStatus_t GetForwardOutputDim(const mlopen::TensorDescriptor& inputTensorDesc,
 			const mlopen::TensorDescriptor& filterDesc,
