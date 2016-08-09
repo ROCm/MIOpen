@@ -51,15 +51,15 @@ void par_for(int n, F f)
         int work = 0;
         std::generate(threads.begin(), threads.end(), [&]
         {
+            int start = work;
             int last = std::min(n, work+grainsize);
             // std::cout << "work, last: " << work << ", " << last << std::endl;
-            assert((last - work) <= grainsize);
-            assert((last - work) > 0);
-            auto result = std::thread([=]
+            assert((last - start) <= grainsize);
+            assert((last - start) > 0);
+            auto result = std::thread([&f, start, last]
             {
-                for(int i=work;i<last;i++) 
+                for(int i=start;i<last;i++) 
                 {
-                    assert(i < n && i >= 0);
                     f(i);
                 }
             });
