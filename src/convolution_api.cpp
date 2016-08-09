@@ -19,17 +19,7 @@ mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t con
 		int						v,
 		int						upscalex,
 		int						upscaley) {
-
-	if(convDesc == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(pad_h < 0 || pad_w < 0) {
-		return mlopenStatusBadParm;
-	}
-	if(u < 0 || v < 0) {
-		return mlopenStatusBadParm;
-	}
-
+	
 	return mlopen::try_([&] {
 		mlopen::deref(convDesc) = mlopen::ConvolutionDescriptor(mode, pad_h, pad_w, u, v, upscalex, upscaley);
 	});
@@ -66,12 +56,9 @@ mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolutionDescriptor_
 		int								*w) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(convDesc).GetForwardOutputDim(mlopen::deref(inputTensorDesc),
-				mlopen::deref(filterDesc),
-				n, 
-				c, 
-				h,
-				w);
+		mlopen::tie_deref(n, c, h, w) = mlopen::deref(convDesc).GetForwardOutputDim(
+			mlopen::deref(inputTensorDesc), 
+			mlopen::deref(filterDesc));
 	});
 
 }

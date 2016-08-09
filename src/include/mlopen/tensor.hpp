@@ -20,6 +20,8 @@ auto tie4(T&& x) -> decltype(std::tie(x[0], x[1], x[2], x[3]))
 
 struct TensorDescriptor : mlopenTensorDescriptor {
 	TensorDescriptor();
+	TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens);
+	TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens, std::initializer_list<int> pstrides);
 	TensorDescriptor(mlopenDataType_t t, const int* plens, int size);
 	TensorDescriptor(mlopenDataType_t t, const int* plens, const int* pstrides, int size);
 

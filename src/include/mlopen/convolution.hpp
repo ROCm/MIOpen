@@ -1,5 +1,5 @@
-#ifndef _MLOPEN_CONVOLUTION_HPP_
-#define _MLOPEN_CONVOLUTION_HPP_
+#ifndef GUARD_MLOPEN_CONVOLUTION_HPP_
+#define GUARD_MLOPEN_CONVOLUTION_HPP_
 
 #include <mlopen.h>
 #include <mlopen/context.hpp>
@@ -13,15 +13,9 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	
 	ConvolutionDescriptor(int p_pad_h = 0, int p_pad_w = 0, int p_u = 1, int p_v = 1, int p_upscalex = 1, int p_upscaley = 1);
 	ConvolutionDescriptor(mlopenConvolutionMode_t p_mode, int p_pad_h = 0, int p_pad_w = 0, int p_u = 1, int p_v = 1, int p_upscalex = 1, int p_upscaley = 1);
-	// ConvolutionDescriptor();
-	// ~ConvolutionDescriptor() {}
 
-	mlopenStatus_t GetForwardOutputDim(const mlopen::TensorDescriptor& inputTensorDesc,
-			const mlopen::TensorDescriptor& filterDesc,
-			int *n,
-			int *c,
-			int *h, 
-			int *w);
+	std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& inputTensorDesc, const TensorDescriptor& filterDesc) const;
+	TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& inputTensorDesc, const TensorDescriptor& filterDesc) const;
 
 	mlopenStatus_t FindConvFwdAlgorithm(mlopen::Context& handle,
 		const mlopen::TensorDescriptor&	xDesc,
@@ -89,4 +83,4 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 }
 MLOPEN_DEFINE_OBJECT(mlopenConvolutionDescriptor, mlopen::ConvolutionDescriptor);
 
-#endif // _MLOPEN_CONVOLUTION_HPP_
+#endif // GUARD_MLOPEN_CONVOLUTION_HPP_
