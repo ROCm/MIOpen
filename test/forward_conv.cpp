@@ -12,6 +12,8 @@
 #include <mlopen/returns.hpp>
 #include <limits>
 
+#include "network_data.hpp"
+
 template<class F>
 struct protect_fn
 {
@@ -247,18 +249,6 @@ void verify_forward_conv(mlopen::Context& handle, const tensor<T>& input, const 
     // CHECK(out_cpu == out_gpu);
 }
 
-#if 0
-struct verify_forward_conv_gen 
-{
-    template<class T, mlopenConvolutionMode_t Mode, class G1, class G2>
-    std::vector<T> operator()(tensor<T>& input, G1 g1, tensor<T>& weights, G2 g2, const conv_filter<Mode>& filter, int bias = 0) const
-    {
-        input.generate(g1);
-        weights.generate(g2);
-        verify_forward_conv(input, weights, filter, bias);
-    }
-};
-
 template<class F, class... Ts>
 void each_args(F f, Ts&&... xs)
 {
@@ -282,44 +272,29 @@ void cross_args(F f, Ts&&... xs)
     std::forward<Ts>(xs)...);
 }
 
-template<class T, class G>
-void verify_one(G g)
-{
-    auto input = tensor<float>{16, 32, 8, 8}.generate(g);
-    auto weights = tensor<float>{64, 32, 5, 5}.generate(g);
-    conv_filter<mlopenConvolution> filter{1, 1};
-    verify_forward_conv(input, weights, filter);
-}
-
 template<class T>
 struct verify_both
 {
     template<class G1, class G2>
-    void operator()(G1 g1, G2 g2) const
+    void operator()(mlopen::Context& handle, G1 g1, G2 g2) const
     {
-        ford(8,8,8,8,8,8)([&](int padh, int padw, int u, int v, int upx, int upy)
+        visit_network<T>([&](mlopen::TensorDescriptor input_desc, mlopen::TensorDescriptor weights_desc)
         {
-            conv_filter<mlopenConvolution> filter{padh, padw, u+1, v+1, upx+1, upy+1};
-            ford(8,8,8,8)([&](int x1, int y1, int x2, int y2)
-            {
-                if (x1 >= x2 && y1 >= y2)
-                {
-                    auto input = tensor<float>{5, 16, x1+1, y1+1}.generate(g1);
-                    auto weights = tensor<float>{8, 16, x2+1, y2+1}.generate(g2);
-                    conv_filter<mlopenConvolution> filter{};
-                    verify_forward_conv(input, weights, filter);
-                }
-            }); 
+            auto input = tensor<T>{std::move(input_desc)}.generate(g1);
+            auto weights = tensor<T>{std::move(weights_desc)}.generate(g2);
+            mlopen::ConvolutionDescriptor filter{1, 1};
+            verify_forward_conv(handle, input, weights, filter);
         });
     }
 };
 
 template<class T, class... Gs>
-void verify_all(Gs... gs)
+void verify_all(mlopen::Context& handle, Gs... gs)
 {
-    cross_args(verify_both<T>{}, gs...);
+    cross_args(
+        std::bind(verify_both<T>{}, std::ref(handle), std::placeholders::_1, std::placeholders::_2), 
+        gs...);
 }
-#endif
 
 template<class T, class G>
 void verify_one(mlopen::Context& handle, G g)
@@ -332,24 +307,15 @@ void verify_one(mlopen::Context& handle, G g)
 
 int main() {
     mlopen::Context handle;
-    auto g = [](int n, int c, int h, int w) { return n+c+h+w; };
-    verify_one<float>(handle, g);
-
-#if 0
-    mlopenCreate(&global_handle);
     auto g0 = [](int, int, int, int) { return 0; };
     auto g1 = [](int, int, int, int) { return 1; };
     auto g_id = [](int n, int c, int h, int w) { return h == w ? 1 : 0; };
     auto g = [](int n, int c, int h, int w) { return n+c+h+w; };
-
 #if MLOPEN_TEST_ALL
     printf("verify_all\n");
-    verify_all<float>(g0,g1, g_id, g);
+    verify_all<float>(handle, g0,g1, g_id, g);
 #else
     printf("verify_one\n");
-    verify_one<float>(g);
-#endif
-
-    mlopenDestroy(global_handle);
+    verify_one<float>(handle, g);
 #endif
 }
