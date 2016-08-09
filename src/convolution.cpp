@@ -3,10 +3,13 @@
 
 namespace mlopen {
 
-ConvolutionDescriptor::ConvolutionDescriptor() : pad_h(0), pad_w(0), u(1), v(1), upscalex(0), upscaley(0) {
-	printf("In convolution Ctor\n");
-	mode = mlopenConvolution;
-}
+ConvolutionDescriptor::ConvolutionDescriptor(int p_pad_h, int p_pad_w, int p_u, int p_v, int p_upscalex, int p_upscaley) 
+: mode(mlopenConvolution), pad_h(p_pad_h), pad_w(p_pad_w), u(p_u), v(p_v), upscalex(p_upscalex), upscaley(p_upscaley) 
+{}
+
+ConvolutionDescriptor::ConvolutionDescriptor(mlopenConvolutionMode_t p_mode, int p_pad_h, int p_pad_w, int p_u, int p_v, int p_upscalex, int p_upscaley)
+: mode(p_mode), pad_h(p_pad_h), pad_w(p_pad_w), u(p_u), v(p_v), upscalex(p_upscalex), upscaley(p_upscaley)
+{}
 
 mlopenStatus_t ConvolutionDescriptor::GetForwardOutputDim(const mlopen::TensorDescriptor& inputTensorDesc,
 			const mlopen::TensorDescriptor& filterDesc,
@@ -14,6 +17,9 @@ mlopenStatus_t ConvolutionDescriptor::GetForwardOutputDim(const mlopen::TensorDe
 			int *c,
 			int *h, 
 			int *w) {
+
+	assert(inputTensorDesc.GetLengths().size() == 4);
+	assert(filterDesc.GetLengths().size() == 4);
 
 	int input_n;
 	int input_c;
