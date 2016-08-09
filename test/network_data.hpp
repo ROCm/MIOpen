@@ -8,7 +8,7 @@ void visit_network(F f, int n=1)
     f(mlopen::TensorDescriptor(t, { (100 / n), 3,    32,  32  }), mlopen::TensorDescriptor(t, { (32 / n),  3,    5,  5  }));
     f(mlopen::TensorDescriptor(t, { (100 / n), 32,   16,  16  }), mlopen::TensorDescriptor(t, { (32 / n),  32,   5,  5  }));
     f(mlopen::TensorDescriptor(t, { (100 / n), 32,   8,   8   }), mlopen::TensorDescriptor(t, { (64 / n),  32,   5,  5  }));
-    // f(mlopen::TensorDescriptor(t, { (256 / n), 3,    227, 227 }), mlopen::TensorDescriptor(t, { (96 / n),  3,    11, 11 }));
+    f(mlopen::TensorDescriptor(t, { (256 / n), 3,    227, 227 }), mlopen::TensorDescriptor(t, { (96 / n),  3,    11, 11 }));
     f(mlopen::TensorDescriptor(t, { (256 / n), 96,   27,  27  }), mlopen::TensorDescriptor(t, { (256 / n), 96,   5,  5  }));
     f(mlopen::TensorDescriptor(t, { (256 / n), 256,  13,  13  }), mlopen::TensorDescriptor(t, { (384 / n), 256,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { (256 / n), 384,  13,  13  }), mlopen::TensorDescriptor(t, { (384 / n), 384,  3,  3  }));
@@ -72,7 +72,7 @@ void visit_network(F f, int n=1)
     f(mlopen::TensorDescriptor(t, { (32 / n),  832,  7,   7   }), mlopen::TensorDescriptor(t, { (48 / n),  832,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { (32 / n),  48,   7,   7   }), mlopen::TensorDescriptor(t, { (128 / n), 48,   5,  5  }));
     f(mlopen::TensorDescriptor(t, { (32 / n),  832,  7,   7   }), mlopen::TensorDescriptor(t, { (128 / n), 832,  1,  1  }));
-    // f(mlopen::TensorDescriptor(t, { (128 / n), 3,    231, 231 }), mlopen::TensorDescriptor(t, { (96 / n),  3,    11, 11 }));
+    f(mlopen::TensorDescriptor(t, { (128 / n), 3,    231, 231 }), mlopen::TensorDescriptor(t, { (96 / n),  3,    11, 11 }));
     f(mlopen::TensorDescriptor(t, { (128 / n), 96,   28,  28  }), mlopen::TensorDescriptor(t, { (256 / n), 96,   5,  5  }));
     f(mlopen::TensorDescriptor(t, { (128 / n), 256,  12,  12  }), mlopen::TensorDescriptor(t, { (512 / n), 256,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { (128 / n), 512,  12,  12  }), mlopen::TensorDescriptor(t, { (1024 / n),512,  3,  3  }));
