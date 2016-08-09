@@ -3,6 +3,7 @@
 #include <vector>
 #include <array>
 #include <iterator>
+#include <algorithm>
 #include <numeric>
 #include <memory>
 #include <utility>
@@ -43,12 +44,13 @@ void par_for(int n, F f)
     int work = 0;
     std::generate(threads.begin(), threads.end(), [&]
     {
-        return std::thread([=]
+        auto result = std::thread([=]
         {
             int last = std::min(n, work+grainsize);
             for(int i=work;i<last;i++) f(i);
         });
         work += grainsize;
+        return result;
     });
     // TODO: Should be in destructor
     for(auto&& t:threads)
