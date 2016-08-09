@@ -67,7 +67,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 		input_sz = construct_params.setInputDescFromMLDesc(xDesc);
 		weights_sz = construct_params.setWeightDescFromMLDesc(wDesc);
 
-		construct_params.setConvDescr(_pad_h, _pad_w, _u, _v, _upscalex, _upscaley);
+		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
 		construct_params.mloConstructDirect2D();
 	}
@@ -273,7 +273,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 		input_sz = construct_params.setInputDescFromMLDesc(dyDesc);
 		weights_sz = construct_params.setWeightDescFromMLDesc(wDesc);
 
-		construct_params.setConvDescr(_pad_h, _pad_w, _u, _v, _upscalex, _upscaley);
+		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
 		construct_params.mloConstructDirect2D();
 	}

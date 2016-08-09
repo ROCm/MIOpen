@@ -31,13 +31,13 @@ mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t con
 	}
 
 	return mlopen::try_([&] {
-		mlopen::deref(convDesc)._mode		= mode;
-		mlopen::deref(convDesc)._pad_h	= pad_h;
-		mlopen::deref(convDesc)._pad_w	= pad_w;
-		mlopen::deref(convDesc)._u		= u;
-		mlopen::deref(convDesc)._v		= v;
-		mlopen::deref(convDesc)._upscalex = upscalex;
-		mlopen::deref(convDesc)._upscaley = upscaley;
+		mlopen::deref(convDesc).mode		= mode;
+		mlopen::deref(convDesc).pad_h	= pad_h;
+		mlopen::deref(convDesc).pad_w	= pad_w;
+		mlopen::deref(convDesc).u		= u;
+		mlopen::deref(convDesc).v		= v;
+		mlopen::deref(convDesc).upscalex = upscalex;
+		mlopen::deref(convDesc).upscaley = upscaley;
 	});
 }
 
@@ -52,13 +52,13 @@ mlopenStatus_t mlopenGetConvolutionDescriptor(mlopenConvolutionDescriptor_t conv
 		int						*upscaley) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(mode)		= mlopen::deref(convDesc)._mode;
-		mlopen::deref(pad_h)		= mlopen::deref(convDesc)._pad_h;
-		mlopen::deref(pad_w)		= mlopen::deref(convDesc)._pad_w;
-		mlopen::deref(u)			= mlopen::deref(convDesc)._u;
-		mlopen::deref(v)			= mlopen::deref(convDesc)._v;
-		mlopen::deref(upscalex)	= mlopen::deref(convDesc)._upscalex;
-		mlopen::deref(upscaley)	= mlopen::deref(convDesc)._upscaley;
+		mlopen::deref(mode)		= mlopen::deref(convDesc).mode;
+		mlopen::deref(pad_h)		= mlopen::deref(convDesc).pad_h;
+		mlopen::deref(pad_w)		= mlopen::deref(convDesc).pad_w;
+		mlopen::deref(u)			= mlopen::deref(convDesc).u;
+		mlopen::deref(v)			= mlopen::deref(convDesc).v;
+		mlopen::deref(upscalex)	= mlopen::deref(convDesc).upscalex;
+		mlopen::deref(upscaley)	= mlopen::deref(convDesc).upscaley;
 	});
 }
 
