@@ -4,6 +4,7 @@
 #include <exception>
 #include <string>
 #include <iostream>
+#include <tuple>
 #include <mlopen.h>
 #include <mlopen/returns.hpp>
 
