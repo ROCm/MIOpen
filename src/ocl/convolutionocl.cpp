@@ -16,7 +16,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 		mlopenConvPreference_t			preference,
 		void							*workSpace,
 		size_t							workSpaceSize,
-		bool							exhaustiveSearch) {
+		bool							exhaustiveSearch) const {
 	
 	if(x == nullptr || w == nullptr || y == nullptr) {
 		return mlopenStatusBadParm;
@@ -130,7 +130,7 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle
 		const mlopen::TensorDescriptor&		yDesc,
 		cl_mem								y, 
 		void								*workSpace,
-		size_t								workSpaceSize) {
+		size_t								workSpaceSize) const {
 
 	if(x == nullptr || w == nullptr || y == nullptr) {
 		return mlopenStatusBadParm;
@@ -222,7 +222,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
 		void							*workSpace,
-		size_t							workSpaceSize) {
+		size_t							workSpaceSize) const {
 	
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		return mlopenStatusBadParm;
@@ -337,7 +337,7 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Context& h
 		const mlopen::TensorDescriptor&		dxDesc,
 		cl_mem								dx, 
 		void								*workSpace,
-		size_t								workSpaceSize) {
+		size_t								workSpaceSize) const {
 
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		return mlopenStatusBadParm;

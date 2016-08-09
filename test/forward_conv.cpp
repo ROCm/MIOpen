@@ -7,69 +7,10 @@
 #include <utility>
 #include <iostream>
 #include <cmath>
-#include <mlopen/tensor_extra.hpp>
-#include <mlopen/manage_ptr.hpp>
+#include <mlopen/tensor.hpp>
+#include <mlopen/convolution.hpp>
 #include <mlopen/returns.hpp>
 #include <limits>
-
-mlopenHandle_t global_handle;
-struct handle_fixture
-{
-    mlopenHandle_t handle;
-    cl_command_queue q;
-    cl_context ctx;
-
-    typedef MLOPEN_MANAGE_PTR(cl_mem, clReleaseMemObject) data_ptr;
-
-    handle_fixture()
-    {
-        // mlopenCreate(&handle);
-        handle = global_handle;
-        mlopenGetStream(handle, &q);
-        auto status = clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-        if (status != CL_SUCCESS) throw status;
-    }
-
-    template<class T>
-    data_ptr create(int sz)
-    {
-        cl_int status = CL_SUCCESS;
-        auto result = data_ptr{clCreateBuffer(ctx, CL_MEM_READ_ONLY, sizeof(T)*sz, nullptr, &status)};
-        if (status != CL_SUCCESS) throw status;
-        return std::move(result);
-    }
-
-    template<class Container, class DataPtr>
-    data_ptr write(const Container& c, DataPtr&& data, int sz)
-    {
-        assert(sz == c.size()*sizeof(typename Container::value_type));
-        cl_int status = CL_SUCCESS;
-        status = clEnqueueWriteBuffer(q, data.get(), CL_TRUE, 0, sz, c.data(), 0, nullptr, nullptr);
-        if (status != CL_SUCCESS) throw status;
-        return std::move(data);
-    }
-
-    template<class Container>
-    data_ptr write(const Container& c)
-    {
-        typedef typename Container::value_type type;
-        return this->write(c, this->create<type>(c.size()), c.size()*sizeof(type));
-    }
-
-    template<class T>
-    std::vector<T> read(const data_ptr& data, int sz)
-    {
-        std::vector<T> result(sz);
-        auto status = clEnqueueReadBuffer(q, data.get(), CL_TRUE, 0, sizeof(T)*sz, result.data(), 0, nullptr, nullptr);
-        if (status != CL_SUCCESS) throw status;
-        return result;
-    }
-
-    ~handle_fixture()
-    {
-        // mlopenDestroy(handle);
-    }
-};
 
 template<class F>
 struct protect_fn
@@ -131,27 +72,17 @@ auto ford(Ts... xs) MLOPEN_RETURNS
 template<class T>
 struct tensor
 {
-    MLOPEN_MANAGE_PTR(mlopenTensorDescriptor_t, mlopenDestroyTensorDescriptor) desc;
+    mlopen::TensorDescriptor desc;
     std::vector<T> data;
 
     tensor(int n, int c, int h, int w)
-    : desc(nullptr), data(n*c*h*w)
-    {
-        mlopenTensorDescriptor_t local;
-        mlopenCreateTensorDescriptor(&local);
-        desc.reset(local);
-        mlopenSet4dTensorDescriptor(
-                local,
-                mlopenFloat, // TODO: Pick correct type
-                n,
-                c,
-                h,
-                w);    
-    }
+    : desc(mlopenFloat, {n,c,h,w}), data(n*c*h*w)
+    {}
 
-    mlopenTensorDescriptor_t get() const
+    tensor(mlopen::TensorDescriptor rhs)
+    : desc(std::move(rhs))
     {
-        return desc.get();
+        data.resize(desc.GetElementSize());
     }
 
     template<class G>
@@ -184,45 +115,20 @@ struct tensor
     void for_each(F f) const
     {
         int n, c, h, w;
-        mlopenGet4dTensorDescriptorLengths(desc.get(), &n, &c, &h, &w);
+        std::tie(n, c, h, w) = mlopen::tie4(desc.GetLengths());
         ford(n, c, h, w)(std::move(f));
-    }
-
-    std::tuple<int, int, int, int> get_lengths() const
-    {
-        int n_in, c_in, h_in, w_in;
-        int nStride_in, cStride_in, hStride_in, wStride_in;
-        mlopenDataType_t dt;
-        mlopenGet4dTensorDescriptor(
-                desc.get(),
-                &dt,
-                &n_in,
-                &c_in,
-                &h_in,
-                &w_in,
-                &nStride_in,
-                &cStride_in,
-                &hStride_in,
-                &wStride_in);
-
-        return std::make_tuple(n_in, c_in, h_in, w_in);
-    }
-
-    int index(int n, int c, int h, int w) const
-    {
-        return mlopenGetTensorIndex(desc.get(), {n, c, h, w});
     }
 
     T& operator()(int n, int c, int h, int w)
     {
-        assert(this->index(n, c, h, w) < data.size());
-        return this->data[this->index(n, c, h, w)];
+        assert(this->desc.GetIndex(n, c, h, w) < data.size());
+        return this->data[this->desc.GetIndex(n, c, h, w)];
     }
 
     const T& operator()(int n, int c, int h, int w) const
     {
-        assert(this->index(n, c, h, w) < data.size());
-        return this->data[this->index(n, c, h, w)];
+        assert(this->desc.GetIndex(n, c, h, w) < data.size());
+        return this->data[this->desc.GetIndex(n, c, h, w)];
     }
 };
 
@@ -235,67 +141,35 @@ struct tensor_generate
     }
 };
 
-template<mlopenConvolutionMode_t Mode>
-struct conv_filter
+template<class T>
+tensor<T> get_output_tensor(const mlopen::ConvolutionDescriptor& filter, const tensor<T>& input, const tensor<T>& weights)
 {
-    MLOPEN_MANAGE_PTR(mlopenConvolutionDescriptor_t, mlopenDestroyConvolutionDescriptor) filter;
+    return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
+}
 
-    conv_filter(int padh = 0, int padw = 0, int u = 1, int v = 1, int upx = 1, int upy = 1)
-    {
-        mlopenConvolutionDescriptor_t local;
-        mlopenCreateConvolutionDescriptor(&local);
-        filter.reset(local);
-        mlopenInitConvolutionDescriptor(local,
-                Mode,
-                padh,
-                padw,
-                u,
-                v,
-                upx,
-                upy);   
-    }
-
-    mlopenConvolutionDescriptor_t get() const
-    {
-        return this->filter.get();
-    }
-
-    template<class T>
-    tensor<T> get_output(const tensor<T>& input, const tensor<T>& weights) const
-    {
-        int x, y, z, a;
-        mlopenGetConvolutionForwardOutputDim(this->filter.get(), input.get(), weights.get(), &x, &y, &z, &a);
-        return {x, y, z, a};
-    }
-};
-
-template<class T, mlopenConvolutionMode_t Mode>
-std::vector<T> forward_conv_cpu(const tensor<T>& input, const tensor<T>& weights, const conv_filter<Mode>& filter, int bias = 0)
+template<class T>
+std::vector<T> forward_conv(const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int bias = 0)
 {
-    auto out = filter.get_output(input, weights);
+    auto out = get_output_tensor(filter, input, weights);
 
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = input.get_lengths();
+    std::tie(in_n, in_c, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
 
     int wei_h, wei_w;
-    std::tie(std::ignore, std::ignore, wei_h, wei_w) = weights.get_lengths();
-
-    int pad_w, pad_h, u, v, upx, upy;
-    mlopenConvolutionMode_t mode = mlopenConvolution;
-    mlopenGetConvolutionDescriptor(filter.get(), &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+    std::tie(std::ignore, std::ignore, wei_h, wei_w) = mlopen::tie4(weights.desc.GetLengths());
 
     out.for_each([&](int o, int w, int i, int j)
     {
-        int in_off_h = i * v;
-        int in_off_w = j * u;
+        int in_off_h = i * filter.v;
+        int in_off_w = j * filter.u;
 
-        T acc = 0;
+        T acc = bias;
         for(int k = 0; k < in_c; k++) { // in_channels (RGB)
             for(int x = 0; x < wei_h; x++) {
-                int in_x = in_off_h - pad_h + x;
+                int in_x = in_off_h - filter.pad_h + x;
                 if(in_x >= 0 && in_x < in_h) {
                     for(int y = 0; y < wei_w; y++) {
-                        int in_y = in_off_w - pad_w + y;
+                        int in_y = in_off_w - filter.pad_w + y;
                         if(in_y >= 0 && in_y < in_w) {
                             acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
                         }
@@ -303,33 +177,31 @@ std::vector<T> forward_conv_cpu(const tensor<T>& input, const tensor<T>& weights
                 }
             }
         }
-        out(o, w, i, j) = acc+bias;
+        out(o, w, i, j) = acc;
     });
     return out.data;
 }
 
-template<class T, mlopenConvolutionMode_t Mode>
-std::vector<T> forward_conv_gpu(const tensor<T>& input, const tensor<T>& weights, const conv_filter<Mode>& filter, int bias = 0)
+template<class T>
+std::vector<T> forward_conv(mlopen::Context& handle, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int bias = 0)
 {
-    auto out = filter.get_output(input, weights);
-    handle_fixture handle;
+    auto out = get_output_tensor(filter, input, weights);
 
-    auto in_dev = handle.write(input.data);
-    auto wei_dev = handle.write(weights.data);
-    auto out_dev = handle.create<T>(out.data.size());
+    auto in_dev = handle.Write(input.data);
+    auto wei_dev = handle.Write(weights.data);
+    auto out_dev = handle.Create<T>(out.data.size());
 
     int ret_algo_count;
     mlopenConvAlgoPerf_t perf;
 
     int alpha = 1, beta = 1;
 
-    mlopenFindConvolutionForwardAlgorithm(handle.handle,
-        input.get(),
+    filter.FindConvFwdAlgorithm(handle,
+        input.desc,
         in_dev.get(),
-        weights.get(),
+        weights.desc,
         wei_dev.get(),
-        filter.get(),
-        out.get(),
+        out.desc,
         out_dev.get(),
         1,
         &ret_algo_count,
@@ -337,23 +209,22 @@ std::vector<T> forward_conv_gpu(const tensor<T>& input, const tensor<T>& weights
         mlopenConvolutionFastest,
         NULL,
         10,
-		0); // MD: Not performing exhaustiveSearch by default for now
+        0); // MD: Not performing exhaustiveSearch by default for now
 
-    mlopenConvolutionForward(handle.handle,
+    filter.ConvolutionForward(handle,
         &alpha,
-        input.get(),
+        input.desc,
         in_dev.get(),
-        weights.get(),
+        weights.desc,
         wei_dev.get(),
-        filter.get(),
         mlopenConvolutionFwdAlgoDirect,
         &beta,
-        out.get(),
+        out.desc,
         out_dev.get(),
         NULL,
         0);
 
-    out.data = handle.read<T>(out_dev, out.data.size());
+    out.data = handle.Read<T>(out_dev, out.data.size());
     return out.data;
 }
 
@@ -366,15 +237,17 @@ struct float_equal_fn
     }
 };
 
-template<class T, mlopenConvolutionMode_t Mode>
-void verify_forward_conv(const tensor<T>& input, const tensor<T>& weights, const conv_filter<Mode>& filter, int bias = 0)
+template<class T>
+void verify_forward_conv(mlopen::Context& handle, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int bias = 0)
 {
-    auto out_cpu = forward_conv_cpu(input, weights, filter, bias);
-    auto out_gpu = forward_conv_gpu(input, weights, filter, bias);
+    auto out_cpu = forward_conv(input, weights, filter, bias);
+    auto out_gpu = forward_conv(handle, input, weights, filter, bias);
     CHECK(std::distance(out_cpu.begin(), out_cpu.end()) == std::distance(out_gpu.begin(), out_gpu.end()));
     CHECK(std::equal(out_cpu.begin(), out_cpu.end(), out_gpu.begin(), float_equal_fn{}));
     // CHECK(out_cpu == out_gpu);
 }
+
+#if 0
 struct verify_forward_conv_gen 
 {
     template<class T, mlopenConvolutionMode_t Mode, class G1, class G2>
@@ -446,8 +319,23 @@ void verify_all(Gs... gs)
 {
     cross_args(verify_both<T>{}, gs...);
 }
+#endif
+
+template<class T, class G>
+void verify_one(mlopen::Context& handle, G g)
+{
+    auto input = tensor<T>{16, 32, 8, 8}.generate(g);
+    auto weights = tensor<T>{64, 32, 5, 5}.generate(g);
+    mlopen::ConvolutionDescriptor filter{1, 1};
+    verify_forward_conv(handle, input, weights, filter);
+}
 
 int main() {
+    mlopen::Context handle;
+    auto g = [](int n, int c, int h, int w) { return n+c+h+w; };
+    verify_one<float>(handle, g);
+
+#if 0
     mlopenCreate(&global_handle);
     auto g0 = [](int, int, int, int) { return 0; };
     auto g1 = [](int, int, int, int) { return 1; };
@@ -463,4 +351,5 @@ int main() {
 #endif
 
     mlopenDestroy(global_handle);
+#endif
 }

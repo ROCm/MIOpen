@@ -30,7 +30,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		mlopenConvPreference_t			preference,
 		void							*workSpace,
 		size_t							workSpaceSize,
-		bool							exhaustiveSearch);
+		bool							exhaustiveSearch) const;
 
 	mlopenStatus_t ConvolutionForward(mlopen::Context& handle,
 		const void							*alpha,
@@ -43,7 +43,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const mlopen::TensorDescriptor&		yDesc,
 		Data_t								y,
 		void								*workSpace,
-		size_t								workSpaceSize);
+		size_t								workSpaceSize) const;
 
 	mlopenStatus_t FindConvBwdDataAlgorithm(mlopen::Context& handle,
 		const mlopen::TensorDescriptor&	dyDesc,
@@ -57,7 +57,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
 		void							*workSpace,
-		size_t							workSpaceSize);
+		size_t							workSpaceSize) const;
 
 	mlopenStatus_t ConvolutionBackwardData(mlopen::Context& handle,
 		const void							*alpha,
@@ -70,7 +70,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const mlopen::TensorDescriptor&		dxDesc,
 		Data_t								dx,
 		void								*workSpace,
-		size_t								workSpaceSize);
+		size_t								workSpaceSize) const;
 
 	mlopenConvolutionMode_t mode;
 	int pad_h;
