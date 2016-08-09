@@ -46,6 +46,7 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 	bool operator==(const TensorDescriptor& rhs) const;
 	bool operator!=(const TensorDescriptor& rhs) const;
 
+	std::string ToString() const;
 
 	mlopenStatus_t TransformTensor(mlopen::Context& handle,
 			const void *alpha,

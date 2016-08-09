@@ -283,6 +283,10 @@ struct verify_both
             auto input = tensor<T>{std::move(input_desc)}.generate(g1);
             auto weights = tensor<T>{std::move(weights_desc)}.generate(g2);
             mlopen::ConvolutionDescriptor filter{1, 1};
+
+            std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
+            std::cout << "Weights tensor: " << input.desc.ToString() << std::endl;
+
             verify_forward_conv(handle, input, weights, filter);
         });
     }
