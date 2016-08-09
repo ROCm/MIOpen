@@ -388,7 +388,7 @@ struct verify_both
             mlopen::ConvolutionDescriptor filter{1, 1};
 
             std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
-            std::cout << "Weights tensor: " << input.desc.ToString() << std::endl;
+            std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
 
             verify_forward_conv(handle, input, weights, filter);
         });
