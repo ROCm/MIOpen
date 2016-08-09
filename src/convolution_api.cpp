@@ -6,7 +6,7 @@ mlopenStatus_t mlopenCreateConvolutionDescriptor(
 		mlopenConvolutionDescriptor_t *convDesc) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(convDesc) = new mlopenConvolutionDescriptor();
+		mlopen::deref(convDesc) = new mlopen::ConvolutionDescriptor();
 	});
 }
 
@@ -31,13 +31,13 @@ mlopenStatus_t mlopenInitConvolutionDescriptor(mlopenConvolutionDescriptor_t con
 	}
 
 	return mlopen::try_([&] {
-		convDesc->_mode		= mode;
-		convDesc->_pad_h	= pad_h;
-		convDesc->_pad_w	= pad_w;
-		convDesc->_u		= u;
-		convDesc->_v		= v;
-		convDesc->_upscalex = upscalex;
-		convDesc->_upscaley = upscaley;
+		mlopen::deref(convDesc)._mode		= mode;
+		mlopen::deref(convDesc)._pad_h	= pad_h;
+		mlopen::deref(convDesc)._pad_w	= pad_w;
+		mlopen::deref(convDesc)._u		= u;
+		mlopen::deref(convDesc)._v		= v;
+		mlopen::deref(convDesc)._upscalex = upscalex;
+		mlopen::deref(convDesc)._upscaley = upscaley;
 	});
 }
 
@@ -52,13 +52,13 @@ mlopenStatus_t mlopenGetConvolutionDescriptor(mlopenConvolutionDescriptor_t conv
 		int						*upscaley) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(mode)		= convDesc->_mode;
-		mlopen::deref(pad_h)		= convDesc->_pad_h;
-		mlopen::deref(pad_w)		= convDesc->_pad_w;
-		mlopen::deref(u)			= convDesc->_u;
-		mlopen::deref(v)			= convDesc->_v;
-		mlopen::deref(upscalex)	= convDesc->_upscalex;
-		mlopen::deref(upscaley)	= convDesc->_upscaley;
+		mlopen::deref(mode)		= mlopen::deref(convDesc)._mode;
+		mlopen::deref(pad_h)		= mlopen::deref(convDesc)._pad_h;
+		mlopen::deref(pad_w)		= mlopen::deref(convDesc)._pad_w;
+		mlopen::deref(u)			= mlopen::deref(convDesc)._u;
+		mlopen::deref(v)			= mlopen::deref(convDesc)._v;
+		mlopen::deref(upscalex)	= mlopen::deref(convDesc)._upscalex;
+		mlopen::deref(upscaley)	= mlopen::deref(convDesc)._upscaley;
 	});
 }
 
@@ -72,7 +72,7 @@ mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolutionDescriptor_
 		int								*w) {
 
 	return mlopen::try_([&] {
-		convDesc->GetForwardOutputDim(mlopen::deref(inputTensorDesc),
+		mlopen::deref(convDesc).GetForwardOutputDim(mlopen::deref(inputTensorDesc),
 				mlopen::deref(filterDesc),
 				n, 
 				c, 
@@ -107,7 +107,7 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		bool								exhaustiveSearch) {
 
 	return mlopen::try_([&] {
-		convDesc->FindConvFwdAlgorithm(mlopen::deref(handle),
+		mlopen::deref(convDesc).FindConvFwdAlgorithm(mlopen::deref(handle),
 				mlopen::deref(xDesc),
 				DataCast(x),
 				mlopen::deref(wDesc),
@@ -141,7 +141,7 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 		size_t								workSpaceSize) {
 
 	return mlopen::try_([&] {
-		convDesc->ConvolutionForward(mlopen::deref(handle),
+		mlopen::deref(convDesc).ConvolutionForward(mlopen::deref(handle),
 				alpha,
 				mlopen::deref(xDesc),
 				DataCast(x),
@@ -175,7 +175,7 @@ mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHandle_t handle,
 		size_t								workSpaceSize) {
 
 	return mlopen::try_([&] {
-		convDesc->FindConvBwdDataAlgorithm(mlopen::deref(handle),
+		mlopen::deref(convDesc).FindConvBwdDataAlgorithm(mlopen::deref(handle),
 				mlopen::deref(dyDesc),
 				DataCast(dy),
 				mlopen::deref(wDesc),
@@ -208,7 +208,7 @@ mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
 		size_t								workSpaceSize) {
 
 	return mlopen::try_([&] {
-		convDesc->ConvolutionBackwardData(mlopen::deref(handle),
+		mlopen::deref(convDesc).ConvolutionBackwardData(mlopen::deref(handle),
 				alpha,
 				mlopen::deref(dyDesc),
 				DataCast(dy),

@@ -1,7 +1,9 @@
 #include <mlopen/convolution.hpp>
 #include <mlopen/mlo_internal.hpp>
 
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& handle,
+namespace mlopen {
+
+mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& handle,
 		const mlopen::TensorDescriptor&	xDesc,
 		const cl_mem					x,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -117,7 +119,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context
 
 }
 
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		xDesc,
 		const cl_mem						x,
@@ -208,7 +210,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopen::Context& 
 
 // FindBackwardDataAlgorithm()
 //
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& handle,
 		const mlopen::TensorDescriptor&	dyDesc,
 		const cl_mem					dy,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -324,7 +326,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Con
 }
 
 // BackwardDataAlgorithm()
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Context& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		dyDesc,
 		const cl_mem						dy,
@@ -408,4 +410,5 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopen::Cont
 
 	return mlopenStatusSuccess;
 
+}
 }
