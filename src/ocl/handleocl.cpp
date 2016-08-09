@@ -1,6 +1,7 @@
 #include <mlopen/context.hpp>
-
 #include <mlopen/manage_ptr.hpp>
+#include <mlopen/errors.hpp>
+#include <string>
 
 namespace mlopen {
 
@@ -130,5 +131,26 @@ Context::~Context() {}
 mlopenAcceleratorQueue_t Context::GetStream()
 {
     return impl->queues.front().get();
+}
+
+ManageDataPtr Context::Create(int sz)
+{
+    cl_int status = CL_SUCCESS;
+    auto result = ManageDataPtr{clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
+    if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error creating buffer: " + std::to_string(status));
+    return std::move(result);
+}
+ManageDataPtr& Context::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
+{
+    cl_int status = CL_SUCCESS;
+    status = clEnqueueWriteBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
+    if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error writing to buffer: " + std::to_string(status));
+    return ddata;
+}
+
+void Context::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
+{
+    auto status = clEnqueueReadBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
+    if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error reading from buffer: " + std::to_string(status));
 }
 }
