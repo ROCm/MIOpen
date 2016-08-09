@@ -12,6 +12,7 @@
 #include <mlopen/convolution.hpp>
 #include <mlopen/returns.hpp>
 #include <limits>
+#include <thread>
 
 #include "network_data.hpp"
 
@@ -31,6 +32,29 @@ template<class F>
 protect_fn<F> protect(F f)
 {
     return {std::move(f)};
+}
+
+template<class F>
+void par_for(int n, F f)
+{
+    std::vector<std::thread> threads(std::thread::hardware_concurrency());
+    const int grainsize = n / threads.size();
+
+    int work = 0;
+    std::generate(threads.begin(), threads.end(), [&]
+    {
+        return std::thread([=]
+        {
+            int last = std::min(n, work+grainsize);
+            for(int i=work;i<last;i++) f(i);
+        });
+        work += grainsize;
+    });
+    // TODO: Should be in destructor
+    for(auto&& t:threads)
+    {
+        if (t.joinable()) t.join();
+    }
 }
 
 // Multidimensional for loop
@@ -69,6 +93,32 @@ template<class... Ts>
 auto ford(Ts... xs) MLOPEN_RETURNS
 (
     std::bind(ford_impl{}, std::placeholders::_1, xs...)
+);
+
+struct par_ford_impl
+{
+    template<class F, class T, class... Ts>
+    void operator()(F f, T x, Ts... xs) const
+    {
+#if (defined(__GNUC__) && !defined (__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 9)
+        // No parallelism for gcc 4.8
+        ford(x, xs...)(f);
+#else
+        par_for(x, [&](T i)
+        {
+            ford(xs...)([&](Ts... is)
+            {
+                f(i, is...);
+            });
+        });
+#endif
+    }
+};
+
+template<class... Ts>
+auto par_ford(Ts... xs) MLOPEN_RETURNS
+(
+    std::bind(par_ford_impl{}, std::placeholders::_1, xs...)
 );
 
 
@@ -122,6 +172,14 @@ struct tensor
         ford(n, c, h, w)(std::move(f));
     }
 
+    template<class F>
+    void par_for_each(F f) const
+    {
+        int n, c, h, w;
+        std::tie(n, c, h, w) = mlopen::tie4(desc.GetLengths());
+        par_ford(n, c, h, w)(std::move(f));
+    }
+
     T& operator()(int n, int c, int h, int w)
     {
         assert(this->desc.GetIndex(n, c, h, w) < data.size());
@@ -161,7 +219,7 @@ std::vector<T> forward_conv(const tensor<T>& input, const tensor<T>& weights, co
     int wei_h, wei_w;
     std::tie(std::ignore, std::ignore, wei_h, wei_w) = mlopen::tie4(weights.desc.GetLengths());
 
-    out.for_each([&](int o, int w, int i, int j)
+    out.par_for_each([&](int o, int w, int i, int j)
     {
         int in_off_h = i * filter.v;
         int in_off_w = j * filter.u;
@@ -316,7 +374,7 @@ struct verify_both
             std::cout << "Weights tensor: " << input.desc.ToString() << std::endl;
 
             verify_forward_conv(handle, input, weights, filter);
-        }, 10);
+        });
     }
 };
 
