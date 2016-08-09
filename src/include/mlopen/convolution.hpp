@@ -11,6 +11,7 @@ namespace mlopen {
 
 struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	
+	// ConvolutionDescriptor(int p_padh = 0, int p_padw = 0, int p_u = 1, int p_v = 1, int p_upx = 1, int p_upy = 1);
 	ConvolutionDescriptor();
 	~ConvolutionDescriptor() {}
 
@@ -76,13 +77,13 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		void								*workSpace,
 		size_t								workSpaceSize);
 
-	mlopenConvolutionMode_t _mode;
-	int _pad_h;
-	int _pad_w;
-	int _u;
-	int _v;
-	int _upscalex;
-	int _upscaley;
+	mlopenConvolutionMode_t mode;
+	int pad_h;
+	int pad_w;
+	int u;
+	int v;
+	int upscalex;
+	int upscaley;
 };
 }
 MLOPEN_DEFINE_OBJECT(mlopenConvolutionDescriptor, mlopen::ConvolutionDescriptor);
