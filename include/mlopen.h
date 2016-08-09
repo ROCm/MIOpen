@@ -27,7 +27,6 @@ typedef hipStream_t mlopenAcceleratorQueue_t;
 #endif
 
 MLOPEN_DECLARE_OBJECT(mlopenHandle);
-// typedef struct mlopenContext *mlopenHandle_t;
 
 typedef enum {
 	mlopenStatusSuccess = 0,
@@ -54,8 +53,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
 		int							numStream = 0);
 
 MLOPEN_DECLARE_OBJECT(mlopenTensorDescriptor);
-
-typedef struct mlopenConvolutionDescriptor *mlopenConvolutionDescriptor_t;
+MLOPEN_DECLARE_OBJECT(mlopenConvolutionDescriptor);
 
 typedef enum {
 	mlopenHalf = 0,

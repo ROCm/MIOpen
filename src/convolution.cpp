@@ -1,12 +1,14 @@
 #include <mlopen/convolution.hpp>
 #include <mlopen/mlo_internal.hpp>
 
-mlopenConvolutionDescriptor::mlopenConvolutionDescriptor() : _pad_h(0), _pad_w(0), _u(1), _v(1), _upscalex(0), _upscaley(0) {
+namespace mlopen {
+
+ConvolutionDescriptor::ConvolutionDescriptor() : _pad_h(0), _pad_w(0), _u(1), _v(1), _upscalex(0), _upscaley(0) {
 	printf("In convolution Ctor\n");
 	_mode = mlopenConvolution;
 }
 
-mlopenStatus_t mlopenConvolutionDescriptor::GetForwardOutputDim(const mlopen::TensorDescriptor& inputTensorDesc,
+mlopenStatus_t ConvolutionDescriptor::GetForwardOutputDim(const mlopen::TensorDescriptor& inputTensorDesc,
 			const mlopen::TensorDescriptor& filterDesc,
 			int *n,
 			int *c,
@@ -37,4 +39,5 @@ mlopenStatus_t mlopenConvolutionDescriptor::GetForwardOutputDim(const mlopen::Te
 	*w = (input_w - filter_w + 2*_pad_w) / _v + 1;
 
 	return mlopenStatusSuccess;
+}
 }

@@ -7,10 +7,12 @@
 #include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
 
-struct mlopenConvolutionDescriptor {
+namespace mlopen {
+
+struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	
-	mlopenConvolutionDescriptor();
-	~mlopenConvolutionDescriptor() {}
+	ConvolutionDescriptor();
+	~ConvolutionDescriptor() {}
 
 	mlopenStatus_t GetForwardOutputDim(const mlopen::TensorDescriptor& inputTensorDesc,
 			const mlopen::TensorDescriptor& filterDesc,
@@ -82,5 +84,7 @@ struct mlopenConvolutionDescriptor {
 	int _upscalex;
 	int _upscaley;
 };
+}
+MLOPEN_DEFINE_OBJECT(mlopenConvolutionDescriptor, mlopen::ConvolutionDescriptor);
 
 #endif // _MLOPEN_CONVOLUTION_HPP_
