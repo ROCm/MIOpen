@@ -4,7 +4,9 @@
 #include <exception>
 #include <string>
 #include <iostream>
+#include <tuple>
 #include <mlopen.h>
+#include <mlopen/returns.hpp>
 
 namespace mlopen {
 
@@ -86,6 +88,9 @@ auto deref(T& x, mlopenStatus_t err=mlopenStatusBadParm) -> decltype((x == nullp
     if (x == nullptr) MLOPEN_THROW(err, "Dereferencing nullptr");
     return detail::deref_impl(detail::rank<1>{}, *x);
 }
+
+template<class... Ts>
+auto tie_deref(Ts&... xs) MLOPEN_RETURNS(std::tie(mlopen::deref(xs)...));
 
 }
 

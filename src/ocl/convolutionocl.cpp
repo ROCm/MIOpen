@@ -1,7 +1,9 @@
 #include <mlopen/convolution.hpp>
 #include <mlopen/mlo_internal.hpp>
 
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t handle,
+namespace mlopen {
+
+mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& handle,
 		const mlopen::TensorDescriptor&	xDesc,
 		const cl_mem					x,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -14,11 +16,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 		mlopenConvPreference_t			preference,
 		void							*workSpace,
 		size_t							workSpaceSize,
-		bool							exhaustiveSearch) {
+		bool							exhaustiveSearch) const {
 	
-	if(handle == nullptr) {
-		return mlopenStatusBadParm;
-	}
 	if(x == nullptr || w == nullptr || y == nullptr) {
 		return mlopenStatusBadParm;
 	}
@@ -41,9 +40,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	mlo_construct_direct2D construct_params(1); // forward
 	{
 		construct_params.setTimerIter(100);
-// HOW TO DEFINE???
 		construct_params.doSearch(exhaustiveSearch);
-//
 		construct_params.saveSearchRequest(true);
 
 
@@ -60,8 +57,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 		construct_params.setGeneralCompOptions(generic_comp_otions);
 
-		mlopenAcceleratorQueue_t queue;
-		handle->GetStream(&queue);
+		mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 		construct_params.setStream(queue);
 
@@ -69,7 +65,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 		input_sz = construct_params.setInputDescFromMLDesc(xDesc);
 		weights_sz = construct_params.setWeightDescFromMLDesc(wDesc);
 
-		construct_params.setConvDescr(_pad_h, _pad_w, _u, _v, _upscalex, _upscaley);
+		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
 		construct_params.mloConstructDirect2D();
 	}
@@ -81,8 +77,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 	// Get the queue associated with this handle
-	mlopenAcceleratorQueue_t queue;
-	handle->GetStream(&queue);
+	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
@@ -122,7 +117,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 }
 
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t handle,
+mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		xDesc,
 		const cl_mem						x,
@@ -133,11 +128,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 		const mlopen::TensorDescriptor&		yDesc,
 		cl_mem								y, 
 		void								*workSpace,
-		size_t								workSpaceSize) {
+		size_t								workSpaceSize) const {
 
-	if(handle == nullptr) {
-		return mlopenStatusBadParm;
-	}
 	if(x == nullptr || w == nullptr || y == nullptr) {
 		return mlopenStatusBadParm;
 	}
@@ -169,8 +161,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 	// Get the queue associated with this handle
-	mlopenAcceleratorQueue_t queue;
-	handle->GetStream(&queue);
+	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 	OCLKernel kernel;
 	switch(algo) {
@@ -217,7 +208,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 
 // FindBackwardDataAlgorithm()
 //
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandle_t handle,
+mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& handle,
 		const mlopen::TensorDescriptor&	dyDesc,
 		const cl_mem					dy,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -229,11 +220,9 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
 		void							*workSpace,
-		size_t							workSpaceSize) {
+		size_t							workSpaceSize,
+		bool							exhaustiveSearch) const {
 	
-	if(handle == nullptr) {
-		return mlopenStatusBadParm;
-	}
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		return mlopenStatusBadParm;
 	}
@@ -256,9 +245,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 	mlo_construct_direct2D construct_params(0); // backward
 	{
 		construct_params.setTimerIter(100);
-// HOW TO DEFINE???
-		construct_params.doSearch(true); // false);
-//
+		construct_params.doSearch(exhaustiveSearch);
 		construct_params.saveSearchRequest(true);
 
 
@@ -275,8 +262,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 
 		construct_params.setGeneralCompOptions(generic_comp_otions);
 
-		mlopenAcceleratorQueue_t queue;
-		handle->GetStream(&queue);
+		mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 		construct_params.setStream(queue);
 
@@ -284,7 +270,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 		input_sz = construct_params.setInputDescFromMLDesc(dyDesc);
 		weights_sz = construct_params.setWeightDescFromMLDesc(wDesc);
 
-		construct_params.setConvDescr(_pad_h, _pad_w, _u, _v, _upscalex, _upscaley);
+		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
 		construct_params.mloConstructDirect2D();
 	}
@@ -296,8 +282,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 	// Get the queue associated with this handle
-	mlopenAcceleratorQueue_t queue;
-	handle->GetStream(&queue);
+	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
@@ -338,7 +323,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 }
 
 // BackwardDataAlgorithm()
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle_t handle,
+mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Context& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		dyDesc,
 		const cl_mem						dy,
@@ -349,11 +334,8 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 		const mlopen::TensorDescriptor&		dxDesc,
 		cl_mem								dx, 
 		void								*workSpace,
-		size_t								workSpaceSize) {
+		size_t								workSpaceSize) const {
 
-	if(handle == nullptr) {
-		return mlopenStatusBadParm;
-	}
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		return mlopenStatusBadParm;
 	}
@@ -385,8 +367,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 	// Get the queue associated with this handle
-	mlopenAcceleratorQueue_t queue;
-	handle->GetStream(&queue);
+	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 	OCLKernel kernel;
 	switch(algo) {
@@ -426,4 +407,5 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 
 	return mlopenStatusSuccess;
 
+}
 }

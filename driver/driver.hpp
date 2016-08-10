@@ -402,7 +402,8 @@ int ConvDriver<T>::FindBackwardDataAlgo() {
 			&perf,
 			mlopenConvolutionFastest,
 			NULL,
-			10);
+			10,
+			(bool)inflags.GetValueInt("search"));
 }
 
 template<typename T>
