@@ -52,10 +52,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 	construct_params.setKernelPath(kernel_path);
 
-	std::string generic_comp_otions;
-
-	construct_params.setGeneralCompOptions(generic_comp_otions);
-
 	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
@@ -70,15 +66,12 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 	construct_params.mloConstructDirect2D();
 
 
-	std::string program_name = std::string("../src/Kernels/") + construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
+	std::string program_name = kernel_path + construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // "hello_world_kernel"; // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
-	// Get the queue associated with this handle
-//	mlopenAcceleratorQueue_t queue;
-	handle->GetStream(&queue);
 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
@@ -254,10 +247,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 
 	construct_params.setKernelPath(kernel_path);
 
-	std::string generic_comp_otions;
-
-	construct_params.setGeneralCompOptions(generic_comp_otions);
-
+	// Get the queue associated with this handle
 	mlopenAcceleratorQueue_t queue;
 	handle->GetStream(&queue);
 
@@ -272,15 +262,12 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 	construct_params.mloConstructDirect2D();
 
 
-	std::string program_name = std::string("../src/Kernels/") + construct_params.getKernelFile();
+	std::string program_name = kernel_path + construct_params.getKernelFile();
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
-	// Get the queue associated with this handle
-//	mlopenAcceleratorQueue_t queue;
-	handle->GetStream(&queue);
 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
