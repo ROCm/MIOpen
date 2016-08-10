@@ -417,7 +417,11 @@ int main() {
     auto g0 = [](int, int, int, int) { return 0; };
     auto g1 = [](int, int, int, int) { return 1; };
     auto g_id = [](int n, int c, int h, int w) { return h == w ? 1 : 0; };
-    auto g = [](int n, int c, int h, int w) { return n+c+h+w; };
+    auto g = [](int n, int c, int h, int w)
+    {
+        double x = (547*n+701*c+877*h+1049*w+173)%1223;
+        return x/691.0;
+    };
 #if MLOPEN_TEST_ALL
     printf("verify_all\n");
     verify_all<float>(handle, g0,g1, g_id, g);
