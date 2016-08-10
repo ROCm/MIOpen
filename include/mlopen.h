@@ -26,7 +26,7 @@ typedef cl_command_queue mlopenAcceleratorQueue_t;
 typedef hipStream_t mlopenAcceleratorQueue_t;
 #endif
 
-typedef struct mlopenContext *mlopenHandle_t;
+MLOPEN_DECLARE_OBJECT(mlopenHandle);
 
 typedef enum {
 	mlopenStatusSuccess = 0,
@@ -53,8 +53,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
 		int							numStream = 0);
 
 MLOPEN_DECLARE_OBJECT(mlopenTensorDescriptor);
-
-typedef struct mlopenConvolutionDescriptor *mlopenConvolutionDescriptor_t;
+MLOPEN_DECLARE_OBJECT(mlopenConvolutionDescriptor);
 
 typedef enum {
 	mlopenHalf = 0,
@@ -347,7 +346,8 @@ MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHa
 		mlopenConvAlgoPerf_t				*perfResults,
 		mlopenConvPreference_t				preference,
 		void								*workSpace,
-		size_t								workSpaceSize);
+		size_t								workSpaceSize,
+		bool								exhaustiveSearch);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
 		const void							*alpha,

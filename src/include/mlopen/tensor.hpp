@@ -20,6 +20,8 @@ auto tie4(T&& x) -> decltype(std::tie(x[0], x[1], x[2], x[3]))
 
 struct TensorDescriptor : mlopenTensorDescriptor {
 	TensorDescriptor();
+	TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens);
+	TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens, std::initializer_list<int> pstrides);
 	TensorDescriptor(mlopenDataType_t t, const int* plens, int size);
 	TensorDescriptor(mlopenDataType_t t, const int* plens, const int* pstrides, int size);
 
@@ -44,15 +46,16 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 	bool operator==(const TensorDescriptor& rhs) const;
 	bool operator!=(const TensorDescriptor& rhs) const;
 
+	std::string ToString() const;
 
-	mlopenStatus_t TransformTensor(mlopenHandle_t handle,
+	mlopenStatus_t TransformTensor(mlopen::Context& handle,
 			const void *alpha,
 			const TensorDescriptor& srcTensorDesc,
 			const Data_t srcTensor,
 			const void *beta,
 			Data_t dstTensor);
 
-	mlopenStatus_t OpTensor(mlopenHandle_t handle,
+	mlopenStatus_t OpTensor(mlopen::Context& handle,
 			mlopenTensorOp_t				tensorOp,
 			const void						*alpha1,
 			const TensorDescriptor&	aDesc,
@@ -63,11 +66,11 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 			const void						*beta,
 			Data_t							C);
 
-	mlopenStatus_t SetTensor(mlopenHandle_t handle,
+	mlopenStatus_t SetTensor(mlopen::Context& handle,
 			Data_t							dstTensor,
 			const void						*valuePtr);
 
-	mlopenStatus_t ScaleTensor(mlopenHandle_t handle,
+	mlopenStatus_t ScaleTensor(mlopen::Context& handle,
 			Data_t							y,
 			const void						*alpha);
 
