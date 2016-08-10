@@ -40,9 +40,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 	mlo_construct_direct2D construct_params(1); // forward
 	{
 		construct_params.setTimerIter(100);
-// HOW TO DEFINE???
 		construct_params.doSearch(exhaustiveSearch);
-//
 		construct_params.saveSearchRequest(true);
 
 
@@ -222,7 +220,8 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
 		void							*workSpace,
-		size_t							workSpaceSize) const {
+		size_t							workSpaceSize,
+		bool							exhaustiveSearch) const {
 	
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		return mlopenStatusBadParm;
@@ -246,9 +245,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 	mlo_construct_direct2D construct_params(0); // backward
 	{
 		construct_params.setTimerIter(100);
-// HOW TO DEFINE???
-		construct_params.doSearch(true); // false);
-//
+		construct_params.doSearch(exhaustiveSearch);
 		construct_params.saveSearchRequest(true);
 
 

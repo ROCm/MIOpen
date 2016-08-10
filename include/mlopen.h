@@ -346,7 +346,8 @@ MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHa
 		mlopenConvAlgoPerf_t				*perfResults,
 		mlopenConvPreference_t				preference,
 		void								*workSpace,
-		size_t								workSpaceSize);
+		size_t								workSpaceSize,
+		bool								exhaustiveSearch);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
 		const void							*alpha,
