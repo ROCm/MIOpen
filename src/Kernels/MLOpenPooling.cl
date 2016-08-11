@@ -42,7 +42,7 @@
 #endif
 // max
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-#define MLO_POOLING_OP(A,B) max(A, B);
+#define MLO_POOLING_OP(A,B) fmax(A, B);
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
 #define MLO_POOLING_OP(A,B) (A + B);
 #endif
@@ -66,7 +66,7 @@ __kernel void mloPooling(
 		int lcl_id1 = get_local_id(1);
 //		int lcl_id = (lcl_id1 << MLO_POOLING_GROUP_LG2SZ0) + lcl_id0;
 		int ob = get_global_id(2); // output * batch_sz
-		int b = (int)(float)ob / (float)MLO_POOLING_N_OUTPUTS;
+		int b = ob / MLO_POOLING_N_OUTPUTS;
 		int o = ob - b * MLO_POOLING_N_OUTPUTS;
 		int bot_x = x*MLO_POOLING_STRIDE0;
 		int bot_y = y*MLO_POOLING_STRIDE1;

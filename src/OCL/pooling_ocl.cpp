@@ -22,8 +22,59 @@ mlopenStatus_t mlopenPoolingDescriptor::Forward(
 
 	construct_params.setStream(queue);
 
-	construct_params.setOutputDescFromMLDesc(yDesc);
-	construct_params.setInputDescFromMLDesc(xDesc);
+	{
+		int nOut;
+		int cOut;
+		int hOut;
+		int wOut;
+		int nOutStride;
+		int cOutStride;
+		int hOutStride;
+		int wOutStride;
+
+		std::tie(nOut, cOut, hOut, wOut) = tie4(yDesc->GetLengths());
+		std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc->GetStrides());
+
+
+		construct_params.setTopDescr(
+			"NCHW",
+			"FP32",
+			nOut,
+			cOut,
+			hOut,
+			wOut,
+			nOutStride,
+			cOutStride,
+			hOutStride,
+			wOutStride);
+	}
+
+	{
+		int nIn;
+		int cIn;
+		int hIn;
+		int wIn;
+		int nInStride;
+		int cInStride;
+		int hInStride;
+		int wInStride;
+
+		std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc->GetLengths());
+		std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc->GetStrides());
+
+		construct_params.setBotDescr(
+			"NCHW",
+			"FP32",
+			nIn,
+			cIn,
+			hIn,
+			wIn,
+			nInStride,
+			cInStride,
+			hInStride,
+			wInStride);
+	}
+
 	mlopenPoolingMode_t mode = GetMode();
 	const std::vector<int> & lengths = GetLengths();
 	const std::vector<int> & strides = GetStrides();
@@ -60,7 +111,6 @@ mlopenStatus_t mlopenPoolingDescriptor::Forward(
 
 	// Set kernel arguments
 	// Use proper arguments
-	float padding_val = 0;
 	obj.SetArgs(0, x, y);
 
 	int dim = (int)vld.size();
