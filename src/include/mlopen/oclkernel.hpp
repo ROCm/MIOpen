@@ -1,9 +1,11 @@
-#ifndef _MLOPEN_OCL_KERNEL_HPP_
-#define _MLOPEN_OCL_KERNEL_HPP_
+#ifndef GUARD_MLOPEN_OCL_KERNEL_HPP_
+#define GUARD_MLOPEN_OCL_KERNEL_HPP_
 
 #include <sstream>
 #include <vector>
 #include <mlopen.h>
+
+namespace mlopen {
 
 struct LocalMemArg 
 {
@@ -18,13 +20,13 @@ class OCLKernel {
 
 	public:
 	OCLKernel() {}
-	OCLKernel(cl_kernel kernel) : _kernel(kernel) {}
-	OCLKernel(cl_kernel kernel, 
-			std::vector<size_t> ldims,
-			std::vector<size_t> gdims) : _kernel(kernel) {
+	OCLKernel(cl_kernel k) : kernel(k) {}
+	OCLKernel(cl_kernel k, 
+			std::vector<size_t> local_dims,
+			std::vector<size_t> gloabl_dims) : kernel(k) {
 		for(int i = 0; i < ldims.size(); i++) {
-			_ldims.push_back(ldims[i]);
-			_gdims.push_back(gdims[i]);
+			ldims.push_back(local_dims[i]);
+			gdims.push_back(gloabl_dims[i]);
 		}
 	}
 
@@ -35,7 +37,7 @@ class OCLKernel {
 	mlopenStatus_t SetArgs(int i, const T& first, const Args&... rest);
 	template<typename... Args>
 	mlopenStatus_t SetArgs(int i, const LocalMemArg &lmem, const Args&... rest);
-	mlopenStatus_t SetArgs(int i) {
+	mlopenStatus_t SetArgs(int) {
 		return mlopenStatusSuccess;
 	}
 
@@ -46,17 +48,17 @@ class OCLKernel {
 		const size_t * local_work_dim,
 		cl_event	 * event);
 
-	cl_kernel& GetKernel() { return _kernel; } 
+	cl_kernel& GetKernel() { return kernel; } 
 
 	mlopenStatus_t GetKernelName(std::string &kernelName);
 
-	inline const std::vector<size_t>& GetLocalDims() const { return _ldims; }
-	inline const std::vector<size_t>& GetGlobalDims() const { return _gdims; }
+	inline const std::vector<size_t>& GetLocalDims() const { return ldims; }
+	inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
 
-	private:
-	cl_kernel _kernel;
-	std::vector<size_t> _ldims;
-	std::vector<size_t> _gdims;
+private:
+	cl_kernel kernel;
+	std::vector<size_t> ldims;
+	std::vector<size_t> gdims;
 };
 
 template<typename T, typename... Args>
@@ -66,7 +68,7 @@ mlopenStatus_t OCLKernel::SetArgs(int i,
 {
 	cl_int status;
 
-	status = clSetKernelArg(_kernel, i++, sizeof(T), (void *)& first);
+	status = clSetKernelArg(kernel, i++, sizeof(T), (void *)& first);
 	std::stringstream errStream;
 	errStream<<"OpenCL error setting kernel argument "<<i;
 //	clCheckStatus(status, errStream.str()) ;
@@ -82,7 +84,7 @@ mlopenStatus_t OCLKernel::SetArgs(int i,
 		const Args&... rest)
 {
 	cl_int status;
-	status = clSetKernelArg(_kernel, i++, lmem.GetSize(), NULL);
+	status = clSetKernelArg(kernel, i++, lmem.GetSize(), NULL);
 	std::stringstream errStream;
 	errStream<<"OpenCL error setting kernel argument (local memory) "<<i;
 	//clCheckStatus(status, errStream.str()) ;
@@ -92,4 +94,6 @@ mlopenStatus_t OCLKernel::SetArgs(int i,
 
 }
 
-#endif // _MLOPEN_OCL_KERNEL_HPP_
+}
+
+#endif // GUARD_MLOPEN_OCL_KERNEL_HPP_

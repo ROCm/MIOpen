@@ -15,14 +15,16 @@
  * ************************************************************************ */
 
 #pragma once
-#ifndef _MLOPEN_KERNEL_CACHE_HPP_
-#define _MLOPEN_KERNEL_CACHE_HPP_
+#ifndef GUARD_MLOPEN_KERNEL_CACHE_HPP_
+#define GUARD_MLOPEN_KERNEL_CACHE_HPP_
 
 #include <string>
 #include <unordered_map>
 #include <mlopen.h>
 #include <mlopen/oclkernel.hpp>
 #include "ocl/clhelper.hpp"
+
+namespace mlopen {
 
 struct SimpleHash {
 	size_t operator()(const std::pair<std::string, std::string>& p) const {
@@ -85,4 +87,6 @@ private:
 	
 };
 
-#endif //_MLOPEN_KERNEL_CACHE_HPP_
+}
+
+#endif // GUARD_MLOPEN_KERNEL_CACHE_HPP_

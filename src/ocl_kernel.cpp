@@ -1,5 +1,7 @@
 #include <mlopen/oclkernel.hpp>
 
+namespace mlopen {
+
 mlopenStatus_t OCLKernel::run(cl_command_queue &queue,
 	const int &work_dim,
 	const size_t  * global_work_offset,
@@ -7,7 +9,7 @@ mlopenStatus_t OCLKernel::run(cl_command_queue &queue,
 	const size_t  * local_work_dim,
 	cl_event	  * event) {
 
-	cl_int status = clEnqueueNDRangeKernel(queue, _kernel,
+	cl_int status = clEnqueueNDRangeKernel(queue, kernel,
 		work_dim,
 		global_work_offset,
 		global_work_dim,
@@ -27,7 +29,7 @@ mlopenStatus_t OCLKernel::run(cl_command_queue &queue,
 mlopenStatus_t OCLKernel::GetKernelName(std::string &progName) {
 	
 	char *name = new char[200];
-	cl_int status = clGetKernelInfo(_kernel, 
+	cl_int status = clGetKernelInfo(kernel, 
 			CL_KERNEL_FUNCTION_NAME, 
 			200, 
 			name, 
@@ -42,5 +44,7 @@ mlopenStatus_t OCLKernel::GetKernelName(std::string &progName) {
 
 	return mlopenStatusSuccess;
 	
+}
+
 }
 
