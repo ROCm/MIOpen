@@ -22,6 +22,10 @@ struct Context : mlopenHandle {
 
 	mlopenAcceleratorQueue_t GetStream() const;
 
+    void EnableProfiling(bool enable=true);
+
+    float GetKernelTime() const;
+
     KernelInvoke Run(
             const std::string& algorithm,
             const std::string& network_config,
