@@ -4,6 +4,7 @@
 #include <mlopen.h>
 #include <mlopen/object.hpp>
 #include <mlopen/common.hpp>
+#include <mlopen/kernel.hpp>
 #include <vector>
 #include <cstdio>
 #include <cstring>
@@ -19,7 +20,22 @@ struct Context : mlopenHandle {
 	Context(int numStreams, mlopenAcceleratorQueue_t *streams);
 	~Context();
 
-	mlopenAcceleratorQueue_t GetStream();
+	mlopenAcceleratorQueue_t GetStream() const;
+
+    KernelInvoke Run(
+            const std::string& algorithm,
+            const std::string& network_config,
+            const std::string& program_name,
+            const std::string& kernel_name,
+            const std::vector<size_t>& vld,
+            const std::vector<size_t>& vgd,
+            const std::string& params);
+
+    KernelInvoke Run(
+        const std::string& algorithm,
+        const std::string& network_config);
+
+    void Finish() const;
 
 	ManageDataPtr Create(int sz);
 	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, int sz);

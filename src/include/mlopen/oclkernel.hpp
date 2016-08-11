@@ -4,6 +4,11 @@
 #include <sstream>
 #include <vector>
 #include <mlopen.h>
+#include <cassert>
+#include <functional>
+
+#include <mlopen/errors.hpp>
+#include <mlopen/each_args.hpp>
 
 namespace mlopen {
 
@@ -16,6 +21,43 @@ struct LocalMemArg
 	size_t size;
 };
 
+struct OCLSetKernelArg
+{
+	template<class I, class T>
+	void operator()(cl_kernel kernel, I i, const T& x) const
+	{
+		cl_int status = clSetKernelArg(kernel, i, sizeof(T), (void *)&x);
+		if (status != CL_SUCCESS) MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
+	}
+
+	template<class I, class T>
+	void operator()(cl_kernel kernel, I i, const LocalMemArg& lmem) const
+	{
+		cl_int status = clSetKernelArg(kernel, i, lmem.GetSize(), NULL);
+		if (status != CL_SUCCESS) MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
+	}
+};
+
+struct OCLKernelInvoke
+{
+	cl_command_queue queue;
+	cl_kernel kernel;
+	size_t work_dim;
+	std::array<size_t, 3> global_work_offset;
+	std::array<size_t, 3> global_work_dim;
+	std::array<size_t, 3> local_work_dim;
+	std::function<void(cl_event&)> callback;
+
+	template<class... Ts>
+	void operator()(const Ts&... xs) const
+	{
+		each_args_i(std::bind(OCLSetKernelArg{}, kernel, std::placeholders::_1, std::placeholders::_2), xs...);
+		run();
+	}
+
+	void run() const;
+};
+
 class OCLKernel {
 
 	public:
@@ -23,12 +65,14 @@ class OCLKernel {
 	OCLKernel(cl_kernel k) : kernel(k) {}
 	OCLKernel(cl_kernel k, 
 			std::vector<size_t> local_dims,
-			std::vector<size_t> gloabl_dims) : kernel(k) {
-		for(int i = 0; i < ldims.size(); i++) {
-			ldims.push_back(local_dims[i]);
-			gdims.push_back(gloabl_dims[i]);
-		}
+			std::vector<size_t> global_dims) 
+	: kernel(k), ldims(local_dims), gdims(global_dims) 
+	{
+		assert(ldims.size() == gdims.size());
+		assert(ldims.size() > 0 && ldims.size() <= 3);
 	}
+
+	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr);
 
 	//TODO: when to call the destructor?
 //	~OCLKernel() { clReleaseKernel(_kernel); }
