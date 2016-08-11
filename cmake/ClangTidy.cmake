@@ -62,6 +62,7 @@ macro(enable_clang_tidy)
         ${CLANG_TIDY_ERRORS_ARG}
         -extra-arg='${CLANG_TIDY_EXTRA_ARGS}'
         ${CLANG_TIDY_ANALYZE_TEMPORARY_DTORS}
+        -header-filter='.*'
     )
     add_custom_target(tidy)
 endmacro()
