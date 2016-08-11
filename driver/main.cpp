@@ -138,6 +138,57 @@ int main(int argc, char* argv[]) {
 		float alpha = 1., beta = 1.;
 		mlopenPoolingForward(handle, poolDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
 
+// verification
+		{
+			int nInStride, cInStride, hInStride, wInStride;
+			mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
+			int nIn, cIn, hIn, wIn;
+			mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+			int nOutStride, cOutStride, hOutStride, wOutStride;
+			mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
+			int nOut, cOut, hOut, wOut;
+			mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+
+			mlopenPoolingMode_t	mode;
+			int	windowHeight;
+			int	windowWidth;
+			int	pad_h;
+			int	pad_w;
+			int	u;
+			int	v;
+			mlopenGet2dPoolingDescriptor(poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
+
+			int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+
+
+			status = out_dev->FromGPU(q, out.data());
+
+			status = mloPoolingForwardRunHostAndVerify<float>(
+				pooling_method,
+				pad_h,
+				u,
+				windowHeight,
+				pad_w,
+				v,
+				windowWidth,
+				nIn,
+				cOut,
+				hIn,
+				wIn,
+				hInStride,
+				cInStride,
+				nInStride,
+				hOut,
+				wOut,
+				hOutStride,
+				cOutStride,
+				nOutStride,
+				in.data(),
+				out.data(),
+				(1<<2)
+				);
+
+		}
 	}
 	return 0;
 }

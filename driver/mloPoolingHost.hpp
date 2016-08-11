@@ -91,7 +91,7 @@ int mloPoolingForwardRunHostAndVerify(
 	int match = 1;
 
 	// c-emulator
-	aDType res = 0;
+	_T res = 0;
 
 	for (int b = 0; b < n_batchs && match; b++)
 	{
@@ -154,8 +154,8 @@ int mloPoolingForwardRunHostAndVerify(
 					{
 						res /= pool_size;
 					}
-					aDType c_val = res;
-					aDType g_val = top_ptr[b*top_batch_stride + o * top_channel_stride + j * top_stride + i];
+					_T c_val = res;
+					_T g_val = top_ptr[b*top_batch_stride + o * top_channel_stride + j * top_stride + i];
 					double err = CalcErr<_T>(c_val, g_val);
 					if (err > allowedEps || std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) || !std::isfinite(g_val))
 					{
