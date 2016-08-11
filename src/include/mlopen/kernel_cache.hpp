@@ -47,6 +47,8 @@ public:
 
     static KernelCache& getInstance();
 
+    static void clear();
+
 	static OCLKernel get(cl_command_queue &queue,
 						 const std::string& algorithm,
 						 const std::string& network_config,

@@ -136,7 +136,12 @@ Context::Context ()
     } 
 }
 
-Context::~Context() {}
+Context::~Context() 
+{
+    // HACK: Clear global cache, the kernel cache should be a member of
+    // ContextImpl so it is associated with each cl_context
+    KernelCache::clear();
+}
 
 mlopenAcceleratorQueue_t Context::GetStream() const
 {
@@ -201,8 +206,7 @@ ManageDataPtr Context::Create(int sz)
 }
 ManageDataPtr& Context::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
-    cl_int status = CL_SUCCESS;
-    status = clEnqueueWriteBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
+    cl_int status = clEnqueueWriteBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error writing to buffer: " + std::to_string(status));
     return ddata;
 }

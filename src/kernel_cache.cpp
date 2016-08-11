@@ -29,6 +29,11 @@ KernelCache::KernelCache()
     //we can add sth here which can be shared among all kernels;
 }
 
+void KernelCache::clear()
+{
+    getInstance().kernel_map.clear();
+}
+
 OCLKernel KernelCache::get(cl_command_queue &queue,
 						 const std::string& algorithm,
 						 const std::string& network_config,
