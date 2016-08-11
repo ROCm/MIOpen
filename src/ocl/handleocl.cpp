@@ -1,6 +1,7 @@
 #include <mlopen/context.hpp>
 #include <mlopen/manage_ptr.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/kernel_cache.hpp>
 #include <string>
 
 namespace mlopen {
@@ -13,6 +14,8 @@ struct ContextImpl
 
     ContextPtr context;
     std::vector<AqPtr> queues;
+    bool enable_profiling;
+    float profiling_result;
 
     ContextPtr create_context()
     {
@@ -56,14 +59,21 @@ struct ContextImpl
         cl_int status = 0;
         cl_context_properties cps[3] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0 };
         cl_context_properties* cprops = (nullptr == platform) ? nullptr : cps;
-        ContextPtr context{clCreateContextFromType(cprops, CL_DEVICE_TYPE_GPU, nullptr, nullptr, &status)};
+        ContextPtr result{clCreateContextFromType(cprops, CL_DEVICE_TYPE_GPU, nullptr, nullptr, &status)};
         if(status != CL_SUCCESS)
         {
             printf("status: %d",  status);
             perror("Error: Creating Context. (clCreateContextFromType)");
             throw mlopenStatusInternalError;
         }
-        return context;
+        return result;
+    }
+    void SetProfilingResult(cl_event& e)
+    {
+        size_t st, end;
+        clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, NULL);
+        clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, NULL);
+        profiling_result = (end-st)*1e-6;
     }
 };
 
@@ -128,9 +138,48 @@ Context::Context ()
 
 Context::~Context() {}
 
-mlopenAcceleratorQueue_t Context::GetStream()
+mlopenAcceleratorQueue_t Context::GetStream() const
 {
     return impl->queues.front().get();
+}
+
+KernelInvoke Context::Run(
+        const std::string& algorithm,
+        const std::string& network_config,
+        const std::string& program_name,
+        const std::string& kernel_name,
+        const std::vector<size_t>& vld,
+        const std::vector<size_t>& vgd,
+        const std::string& params)
+{
+    auto q = this->GetStream();
+    OCLKernel obj = KernelCache::get(q, 
+            algorithm,
+            network_config,
+            program_name, 
+            kernel_name,
+            vld,
+            vgd,
+            params);
+    if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&ContextImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+    else return obj.Invoke(q);
+}
+
+KernelInvoke Context::Run(
+    const std::string& algorithm,
+    const std::string& network_config)
+{
+    auto q = this->GetStream();
+    OCLKernel obj = KernelCache::get(
+            algorithm,
+            network_config);
+    if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&ContextImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+    else return obj.Invoke(q);
+}
+
+void Context::Finish() const
+{
+    clFinish(this->GetStream());
 }
 
 ManageDataPtr Context::Create(int sz)

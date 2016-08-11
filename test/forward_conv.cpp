@@ -12,6 +12,7 @@
 #include <mlopen/tensor.hpp>
 #include <mlopen/convolution.hpp>
 #include <mlopen/returns.hpp>
+#include <mlopen/each_args.hpp>
 #include <limits>
 #include <thread>
 
@@ -352,25 +353,19 @@ void verify_forward_conv(mlopen::Context& handle, const tensor<T>& input, const 
     // CHECK(out_cpu == out_gpu);
 }
 
-template<class F, class... Ts>
-void each_args(F f, Ts&&... xs)
-{
-    std::initializer_list<int>{(f(std::forward<Ts>(xs)), 0)...};
-}
-
 struct cross_args_apply
 {
     template<class F, class T, class... Ts>
     void operator()(F f, T&& x, Ts&&... xs) const
     {
-        each_args(std::bind(f, std::forward<T>(x), std::placeholders::_1), std::forward<Ts>(xs)...);
+        mlopen::each_args(std::bind(f, std::forward<T>(x), std::placeholders::_1), std::forward<Ts>(xs)...);
     }
 };
 
 template<class F, class... Ts>
 void cross_args(F f, Ts&&... xs)
 {
-    each_args(
+    mlopen::each_args(
         std::bind(cross_args_apply{}, protect(std::move(f)), std::placeholders::_1, std::forward<Ts>(xs)...),
     std::forward<Ts>(xs)...);
 }

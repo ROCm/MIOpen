@@ -82,34 +82,16 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	// Compile the kernel if not aleady compiled
-	OCLKernel obj = KernelCache::get(queue, 
-			"mlopenConvolutionFwdAlgoDirect",
+	float padding_val = 0;
+	handle.Run("mlopenConvolutionFwdAlgoDirect",
 			network_config,
 			program_name, 
 			kernel_name,
 			vld,
 			vgd,
-			parms);
-
-	cl_int status;
-
-	std::string kernName;
-	obj.GetKernelName(kernName);
-
-	printf("kname: %s\n", kernName.c_str());
-
-	// Set kernel arguments
-	// Use proper arguments
-	float padding_val = 0;
-	obj.SetArgs(0, x, w, y, padding_val);
-
-	int dim = (int)vld.size();
+			parms)(x, w, y, padding_val);
 	
-	// Run the kernel
-	obj.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
-	
-	clFinish(queue);
+	handle.Finish();
 
 	std::cout << "Find Forward Convolution Finished !!" << std::endl;
 
@@ -163,44 +145,18 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle
 	// Get the queue associated with this handle
 	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
-	OCLKernel kernel;
+	std::string algorithm_name;
 	switch(algo) {
 		case mlopenConvolutionFwdAlgoDirect:
 			 // Compile the kernel if not aleady compiled
-			 kernel = KernelCache::get( "mlopenConvolutionFwdAlgoDirect",
-					 network_config);
+			algorithm_name = "mlopenConvolutionFwdAlgoDirect";
 		break;
 
 	}
-	cl_int status;
 
-	std::string kernName;
-	kernel.GetKernelName(kernName);
-
-	printf("kname: %s\n", kernName.c_str());
-
-	// Set kernel arguments
-	// Use proper arguments
 	float padding_val = 0;
-	kernel.SetArgs(0, x, w, y, padding_val);
-
-	const std::vector<size_t> & vld = kernel.GetLocalDims();
-	const std::vector<size_t> & vgd = kernel.GetGlobalDims();
-
-	int dim = (int)vld.size();
-	cl_event e;
-	// Run the kernel
-	kernel.run(queue, dim, 0, vgd.data(), vld.data(), &e);
-	
-	clFinish(queue);
-	size_t st, end;
-	clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, NULL);
-	clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, NULL);
-
-	float kernel_time = (end-st)*1e-6;
-	printf("Kernel Time (ms): %f\n", kernel_time);
-
-	std::cout << "Run Forward Convolution Finished !!" << std::endl;
+	handle.Run(algorithm_name, network_config)(x, w, y, padding_val);
+	handle.Finish();
 
 	return mlopenStatusSuccess;
 
