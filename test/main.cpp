@@ -167,10 +167,12 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
     }
 };
 
+template<bool Profile>
 struct conv_forward : output_tensor_fixture
 {
     void run()
     {
+        mlopenEnableProfiling(handle, Profile);
         int alpha = 1, beta = 1;
         mlopenTransformTensor(handle,
                 &alpha,
@@ -253,6 +255,17 @@ struct conv_forward : output_tensor_fixture
 			out_dev,
             NULL,
             0);
+
+        float time;
+        mlopenGetKernelTime(handle, &time);
+        if (Profile) 
+        { 
+            CHECK(time > 0.0);
+        }
+        else 
+        { 
+            CHECK(time == 0.0);
+        }
     }
 };
 
@@ -260,7 +273,8 @@ int main() {
     run_test<input_tensor_fixture>();
     run_test<conv_filter_fixture>();
     run_test<output_tensor_fixture>();
-    run_test<conv_forward>();
+    run_test<conv_forward<true>>();
+    run_test<conv_forward<false>>();
 }
 
 

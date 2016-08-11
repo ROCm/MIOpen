@@ -33,3 +33,16 @@ mlopenStatus_t mlopenDestroy(mlopenHandle_t handle) {
 		mlopen_destroy_object(handle);
 	});
 }
+
+extern "C" mlopenStatus_t mlopenGetKernelTime(mlopenHandle_t handle, float* time)
+{
+	return mlopen::try_([&] {
+		mlopen::deref(time) = mlopen::deref(handle).GetKernelTime();
+	});
+}
+extern "C" mlopenStatus_t mlopenEnableProfiling(mlopenHandle_t handle, bool enable)
+{
+	return mlopen::try_([&] {
+		mlopen::deref(handle).EnableProfiling(enable);
+	});
+}

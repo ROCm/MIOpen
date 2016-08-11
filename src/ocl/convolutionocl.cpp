@@ -47,9 +47,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 
 		construct_params.setGeneralCompOptions("");
 
-		mlopenAcceleratorQueue_t queue = handle.GetStream();
-
-		construct_params.setStream(queue);
+		construct_params.setStream(handle.GetStream());
 
 		construct_params.setOutputDescFromMLDesc(yDesc);
 		construct_params.setInputDescFromMLDesc(xDesc);
@@ -80,8 +78,6 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 			parms)(x, w, y, padding_val);
 	
 	handle.Finish();
-
-	std::cout << "Find Forward Convolution Finished !!" << std::endl;
 
 	return mlopenStatusSuccess;
 
@@ -197,9 +193,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 
 		construct_params.setGeneralCompOptions("");
 
-		mlopenAcceleratorQueue_t queue = handle.GetStream();
-
-		construct_params.setStream(queue);
+		construct_params.setStream(handle.GetStream());
 
 		construct_params.setOutputDescFromMLDesc(dxDesc);
 		construct_params.setInputDescFromMLDesc(dyDesc);

@@ -143,6 +143,16 @@ mlopenAcceleratorQueue_t Context::GetStream() const
     return impl->queues.front().get();
 }
 
+void Context::EnableProfiling(bool enable)
+{
+    this->impl->enable_profiling = enable;
+}
+
+float Context::GetKernelTime() const
+{
+    return this->impl->profiling_result;
+}
+
 KernelInvoke Context::Run(
         const std::string& algorithm,
         const std::string& network_config,
