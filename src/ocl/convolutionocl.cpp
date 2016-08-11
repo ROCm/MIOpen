@@ -243,36 +243,16 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	// Compile the kernel if not aleady compiled
-	OCLKernel obj = KernelCache::get(queue, 
-			"mlopenConvolutionBwdDataAlgo_0",
+	float padding_val = 0;
+	handle.Run("mlopenConvolutionBwdDataAlgo_0",
 			network_config,
 			program_name, 
 			kernel_name,
 			vld,
 			vgd,
-			parms);
-
-	cl_int status;
-
-	std::string kernName;
-	obj.GetKernelName(kernName);
-
-	printf("kname: %s\n", kernName.c_str());
-
-	// Set kernel arguments
-	// Use proper arguments
-	float padding_val = 0;
-	obj.SetArgs(0, dy, w, dx, padding_val);
-
-	int dim = (int)vld.size();
+			parms)(dy, w, dx, padding_val);
 	
-	// Run the kernel
-	obj.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
-	
-	clFinish(queue);
-
-	std::cout << "Find Backward Data Finished !!" << std::endl;
+	handle.Finish();
 
 	return mlopenStatusSuccess;
 
@@ -325,41 +305,18 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Context& h
 	// Get the queue associated with this handle
 	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
-	OCLKernel kernel;
+	std::string algorithm_name;
 	switch(algo) {
 		case mlopenConvolutionBwdDataAlgo_0:
-			 // Compile the kernel if not aleady compiled
-			 kernel = KernelCache::get( "mlopenConvolutionBwdDataAlgo_0",
-					 network_config);
-//			 if(!kernel) {printf("kenrel not found in hash table\n");
+			 algorithm_name = "mlopenConvolutionBwdDataAlgo_0";
 		break;
 		default:
 			printf("Algorithm not found\n");
 		break;
-
 	}
-	cl_int status;
-
-	std::string kernName;
-	kernel.GetKernelName(kernName);
-
-	printf("kname: %s\n", kernName.c_str());
-
-	// Set kernel arguments
-	// Use proper arguments
 	float padding_val = 0;
-	kernel.SetArgs(0, dy, w, dx, padding_val);
-
-	const std::vector<size_t> & vld = kernel.GetLocalDims();
-	const std::vector<size_t> & vgd = kernel.GetGlobalDims();
-
-	int dim = (int)vld.size();
-	// Run the kernel
-	kernel.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
-	
-	clFinish(queue);
-
-	std::cout << "Run Backward Data Finished !!" << std::endl;
+	handle.Run(algorithm_name, network_config)(dy, w, dx, padding_val);
+	handle.Finish();
 
 	return mlopenStatusSuccess;
 
