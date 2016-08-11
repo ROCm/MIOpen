@@ -866,7 +866,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop( cl_command_queue profile_q,
 	}
 
 	// Creating OCLKernel obj
-	OCLKernel kernel(test_kernel);
+	mlopen::OCLKernel kernel(test_kernel);
 	// pass all arguments
 
 	float padding_value = 0;

@@ -20,6 +20,8 @@
 #include <iostream>
 #include <iterator>
 
+namespace mlopen {
+
 KernelCache KernelCache::singleton;
 
 KernelCache::KernelCache()
@@ -160,4 +162,6 @@ mlopenStatus_t KernelCache::getProgram(cl_program &program,
 KernelCache& KernelCache::getInstance()
 {
     return singleton;
+}
+
 }
