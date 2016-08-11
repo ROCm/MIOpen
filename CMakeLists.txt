@@ -86,8 +86,9 @@ set( MLOpen_DIRS_INCLUDE
 set( MLOpen_API ${CMAKE_SOURCE_DIR}/include/mlopen.h )
 source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
 
-include(ClangTidy)
+include(EnableCompilerWarnings)
 
+include(ClangTidy)
 enable_clang_tidy(
 	CHECKS 
 		*
@@ -95,8 +96,10 @@ enable_clang_tidy(
 		-cppcoreguidelines-pro-bounds-constant-array-index
 		-cppcoreguidelines-pro-bounds-pointer-arithmetic
 		-cppcoreguidelines-pro-type-vararg
+		-google-explicit-constructor
 		-google-runtime-int
 		-google-runtime-references
+		-llvm-include-order
 		-misc-misplaced-const
 		-modernize-loop-convert
 		-readability-implicit-bool-cast
