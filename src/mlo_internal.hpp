@@ -162,11 +162,7 @@ public:
 	* covers genrinc forward convolution:
 	* arbitrary combination of kerenl sizes, strides
 	*/
-	virtual int mloConstructDirect2D(void);
-	virtual int mloConstruct(void)
-	{
-		return(0);
-	}
+	virtual int mloConstruct(void);
 
 
 	/*

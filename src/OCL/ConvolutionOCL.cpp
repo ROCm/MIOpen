@@ -63,7 +63,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm(mlopenHandle_t 
 
 	construct_params.setConvDescr(_pad_h, _pad_w, _u, _v, _upscalex, _upscaley);
 
-	construct_params.mloConstructDirect2D();
+	construct_params.mloConstruct();
 
 
 	std::string program_name = kernel_path + construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
@@ -146,7 +146,6 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward(mlopenHandle_t ha
 		return mlopenStatusBadParm;
 	}
 	
-	// TODO: Replicating code for now.
 	
 	mlo_construct_direct2D construct_params(1); // forward
 	construct_params.setOutputDescFromMLDesc(yDesc);
@@ -259,7 +258,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopenHandl
 
 	construct_params.setConvDescr(_pad_h, _pad_w, _u, _v, _upscalex, _upscaley);
 
-	construct_params.mloConstructDirect2D();
+	construct_params.mloConstruct();
 
 
 	std::string program_name = kernel_path + construct_params.getKernelFile();
@@ -343,10 +342,7 @@ mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionBackwardData(mlopenHandle
 		return mlopenStatusBadParm;
 	}
 
-	// TODO: Replicating code for now.
-//	size_t input_sz = 0;
-//	size_t output_sz = 0;
-//	size_t weights_sz = 0;
+
 
 	mlo_construct_direct2D construct_params(0); // backward
 
