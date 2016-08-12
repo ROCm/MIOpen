@@ -1,18 +1,18 @@
 /**********************************************************************
-  Copyright (c)2016 Advanced Micro Devices, Inc. All rights reserved.
+Copyright (c)2016 Advanced Micro Devices, Inc. All rights reserved.
 
-  Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-  ?	Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-  ?	Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or
-  other materials provided with the distribution.
+?	Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+?	Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or
+ other materials provided with the distribution.
 
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ********************************************************************/
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+ DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+********************************************************************/
 // to share code with between CPU and GPU
 
 #define MLOPEN
@@ -21,25 +21,25 @@
 
 
 /*
-   the search db is a text file with the name defined by the device characteristics.
-   each line is a key/value pair, separated by a space:
-   32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
-   or
-   64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
+the search db is a text file with the name defined by the device characteristics.
+each line is a key/value pair, separated by a space:
+32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
+or
+64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
 
-   key format (all values are separted by x):
-   n input maps
-   input height
-   input width
-   filter height
-   filter width
-   n output maps
-   output height
-   output width
-   batch size
-   tensors' layout
-   tensprs' data type
-   direction (1 - forward, 0 - backward)
+key format (all values are separted by x):
+n input maps
+input height
+input width
+filter height
+filter width
+n output maps
+output height
+output width
+batch size
+tensors' layout
+tensprs' data type
+direction (1 - forward, 0 - backward)
 
 Note:
 for backward direction - input and output are reversed.
@@ -57,19 +57,19 @@ n batchs (stacks) processed by the group
 */
 
 
-	static
+static
 int mloBuildConf_Val(
-		std::string & conf_val,
-		int grp_tile1,
-		int grp_tile0,
-		int in_tile1,
-		int in_tile0,
-		int out_pix_tile1,
-		int out_pix_tile0,
-		int n_out_pix_tiles,
-		int n_in_data_tiles,
-		int n_stacks
-		)
+	std::string & conf_val,
+	int grp_tile1,
+	int grp_tile0,
+	int in_tile1,
+	int in_tile0,
+	int out_pix_tile1,
+	int out_pix_tile0,
+	int n_out_pix_tiles,
+	int n_in_data_tiles,
+	int n_stacks
+	)
 {
 	conf_val = std::to_string((long long)grp_tile1) + std::string(".")
 		+ std::to_string((long long)grp_tile0) + std::string(".")
@@ -85,23 +85,23 @@ int mloBuildConf_Val(
 
 }
 
-	static
+static
 int mloParseConf(const std::string & conf_val,
-		int & grp_tile1,
-		int & grp_tile0,
-		int & in_tile1,
-		int & in_tile0,
-		int & out_pix_tile1,
-		int & out_pix_tile0,
-		int & n_out_pix_tiles,
-		int & n_in_data_tiles,
-		int & n_stacks
-		)
+	int & grp_tile1,
+	int & grp_tile0,
+	int & in_tile1,
+	int & in_tile0,
+	int & out_pix_tile1,
+	int & out_pix_tile0,
+	int & n_out_pix_tiles,
+	int & n_in_data_tiles,
+	int & n_stacks
+	)
 {
 	std::vector<std::string> conf_val_vec;
 	tokenize(conf_val,
-			conf_val_vec,
-			std::string("."));
+		conf_val_vec,
+		std::string("."));
 	grp_tile1 = std::stoi(conf_val_vec[0]);
 	grp_tile0 = std::stoi(conf_val_vec[1]);
 	in_tile1 = std::stoi(conf_val_vec[2]);
@@ -116,12 +116,12 @@ int mloParseConf(const std::string & conf_val,
 }
 
 /*
- * build the confiuration db file name base:
- * system device name_number of compute units_engine frequency
- */
-	static
+* build the confiuration db file name base:
+* system device name_number of compute units_engine frequency
+*/
+static
 std::string mloConfFileBaseNm(cl_device_id dev
-		)
+	)
 {
 	int maxComputeUnits;
 	int maxWorkItemDims;
@@ -134,15 +134,15 @@ std::string mloConfFileBaseNm(cl_device_id dev
 	std::string deviceName;
 
 	mloGetDeviceInfo(dev,
-			maxComputeUnits,
-			maxWorkItemDims,
-			maxWorkItemSize,
-			maxWorkGroupSize,
-			maxClockFrequency,
-			maxMemAllocSize,
-			localMemSize,
-			timerResolution,
-			deviceName);
+		maxComputeUnits,
+		maxWorkItemDims,
+		maxWorkItemSize,
+		maxWorkGroupSize,
+		maxClockFrequency,
+		maxMemAllocSize,
+		localMemSize,
+		timerResolution,
+		deviceName);
 
 	std::string conf_file_base_nm = deviceName + "_"
 		+ std::to_string((long long)maxComputeUnits) + "_"
@@ -151,12 +151,12 @@ std::string mloConfFileBaseNm(cl_device_id dev
 	return(conf_file_base_nm);
 }
 
-	static
+static
 int mloReadDb(
-		cl_device_id dev,
-		const std::string confreq_db_name,
-		std::vector<std::string> &db
-		)
+cl_device_id dev,
+const std::string confreq_db_name,
+std::vector<std::string> &db
+)
 {
 	int ret = 0;
 
@@ -166,13 +166,13 @@ int mloReadDb(
 	ret = f.readBinaryFromFile(confreq_db_name.c_str());
 
 	tokenize(f.source(),
-			db,
-			std::string("\n"));
+		db,
+		std::string("\n"));
 
 	return(ret);
 }
 
-	static
+static
 int mloUpdateDb(const std::string  &file_nm, const std::vector<std::string> & db)
 {
 	mloFile f;
@@ -192,21 +192,21 @@ int mloUpdateDb(const std::string  &file_nm, const std::vector<std::string> & db
 
 
 
-	static
+static
 bool mloFindConfigReq(
-		const std::string confreq_db_name,
-		cl_device_id dev,
-		const std::string & conf_key,
-		std::vector<std::string> &req_conf_db,
-		std::vector<std::string>::iterator &it
-		)
+const std::string confreq_db_name,
+cl_device_id dev,
+const std::string & conf_key,
+std::vector<std::string> &req_conf_db,
+std::vector<std::string>::iterator &it
+)
 {
 	bool ret = true;
 
 	mloReadDb(dev,
-			confreq_db_name,
-			req_conf_db
-			);
+		confreq_db_name,
+		req_conf_db
+		);
 
 	// find req string
 	ret = false;
@@ -221,13 +221,13 @@ bool mloFindConfigReq(
 	return(ret);
 }
 
-	static
+static
 bool mloSearchConfigDB(
-		std::map<std::string, std::string> & conf_db,
-		std::string & conf_key,
-		std::string & conf_val,
-		std::map<std::string, std::string>::iterator & it
-		)
+std::map<std::string, std::string> & conf_db,
+std::string & conf_key,
+std::string & conf_val,
+std::map<std::string, std::string>::iterator & it
+)
 {
 
 	bool found = false;
@@ -244,21 +244,22 @@ bool mloSearchConfigDB(
 }
 
 
-/************************************************************************************************************************
- **
- **			CONSTRUCT CONVOLUTIONAL LAYER
- **
- ************************************************************************************************************************/
+	/************************************************************************************************************************
+	**
+	**			CONSTRUCT CONVOLUTIONAL LAYER
+	**
+	************************************************************************************************************************/
 
 /*
-   construction has been split into 2
-   generic convlution forward
-   non-generic stride = 1, forward and backward
-   */
-int mlo_construct_direct2D::mloConstructDirect2D(void)
+construction has been split into 2
+generic convlution forward 
+gen = (_kernel_size0 >= 9 || _kernel_size1 >= 9 || _kernel_stride0 > 1 || _kernel_stride1 > 1)
+non-generic stride = 1, forward and backward
+*/
+int mlo_construct_direct2D::mloConstruct(void)
 {
 	int ret = 0;
-	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1 || !doSearch());
+	_gen = (_kernel_size0 >= 9 || _kernel_size1 >= 9 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 	if (_gen && getDirectcion())
 	{
 		ret = mloConstructDirect2DFwdGen();
@@ -270,9 +271,9 @@ int mlo_construct_direct2D::mloConstructDirect2D(void)
 	}
 	else
 	{
-		// search known configurations
+// search known configurations
 		bool known_config = mloGetConfig();
-		// if not known and the saerch is alloed - search
+// if not known and the saerch is alloed - search
 
 		if (!known_config)
 		{
@@ -295,7 +296,7 @@ int mlo_construct_direct2D::mloConstructDirect2D(void)
 			<< _n_stacks
 			<< std::endl;
 
-		// construct found configuration
+// construct found configuration
 
 		ret = mloConstructDirect2DFwd();
 
@@ -306,14 +307,17 @@ int mlo_construct_direct2D::mloConstructDirect2D(void)
 
 
 /*
- * constructs found configuration
- */
+* constructs found configuration
+*/
 int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 {
 	int ret = 0;
 
+
+
+	cl_context ctxt;
 	cl_device_id dev;
-	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
+	ret = mloGetContextDeviceFromCLQueue(ctxt, dev, NULL, (cl_command_queue)_stream);
 
 	int maxComputeUnits;
 	int maxWorkItemDims;
@@ -326,18 +330,20 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 	std::string deviceName;
 
 	mloGetDeviceInfo(dev,
-			maxComputeUnits,
-			maxWorkItemDims,
-			maxWorkItemSize,
-			maxWorkGroupSize,
-			maxClockFrequency,
-			maxMemAllocSize,
-			localMemSize,
-			timerResolution,
-			deviceName);
+		maxComputeUnits,
+		maxWorkItemDims,
+		maxWorkItemSize,
+		maxWorkGroupSize,
+		maxClockFrequency,
+		maxMemAllocSize,
+		localMemSize,
+		timerResolution,
+		deviceName);
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
+
+
 
 	if (_direction == 0)
 	{
@@ -406,8 +412,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 		+ std::string(" -D MLO_IN_BATCH_STRIDE=") + std::to_string((long long)_in_batch_stride)
 		+ std::string(" -D MLO_IN_CHANNEL_STRIDE=") + std::to_string((long long)_in_channel_stride)
 		+ std::string(" -D MLO_IN_STRIDE=") + std::to_string((long long)_in_stride)
-		//			+ std::string(" -D MLO_WEIGHTS_HEIGHT=") + std::to_string((long long)_weights_height)
-		//			+ std::string(" -D MLO_WEIGHTS_STRIDE=") + std::to_string((long long)_weights_stride)
 		// algorithm parameters
 		+std::string(" -D MLO_IN_TILE0=") + std::to_string((long long)_in_tile0)  // size of input data per ALU plane
 		+ std::string(" -D MLO_IN_TILE1=") + std::to_string((long long)_in_tile1)  // size of input data per ALU plane
@@ -450,8 +454,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 }
 
 /*
- * construct generic forward configuration
- */
+* construct generic forward configuration
+*/
 int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 {
 
@@ -617,19 +621,19 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 		;
 
 
-	_kernel_file = "MlOpenConvDirGenFwd.cl";
-	_kernel_name = "MLOpenCDFGen";
+		_kernel_file = "MlOpenConvDirGenFwd.cl";
+		_kernel_name = "MLOpenCDFGen";
 
-	_l_wk.clear();
-	_l_wk.push_back(ocl_group_sz0);
-	_l_wk.push_back(ocl_group_sz1);
-	_l_wk.push_back(ocl_group_sz2);
+		_l_wk.clear();
+		_l_wk.push_back(ocl_group_sz0);
+		_l_wk.push_back(ocl_group_sz1);
+		_l_wk.push_back(ocl_group_sz2);
 
-	_g_wk.push_back(gbl0);
-	_g_wk.push_back(gbl1);
-	_g_wk.push_back(gbl2);
+		_g_wk.push_back(gbl0);
+		_g_wk.push_back(gbl1);
+		_g_wk.push_back(gbl2);
 
-	return(0);
+		return(0);
 
 }
 
@@ -707,25 +711,6 @@ batch size
 tensors' layout
 tensprs' data type
 direction (1 - forward, 0 - backward)
-   the search db is a text file with the name defined by the device characteristics.
-   each line is a key/value pair, separated by a space:
-   32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
-   or
-   64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
-
-   key format (all values are separted by x):
-   n input maps
-   input height
-   input width
-   filter height
-   filter width
-   n output maps
-   output height
-   output width
-   batch size
-   tensors' layout
-   tensprs' data type
-   direction (1 - forward, 0 - backward)
 
 Note: 
 for backward direction - input and output are reversed.
@@ -772,8 +757,8 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 		+ std::string("x") + std::to_string((long long)_out_height)
 		+ std::string("x") + std::to_string((long long)_out_width)
 		+ std::string("x") + std::to_string((long long)_batch_sz)
-		+ std::string("x") + _tens_layout
-		+ std::string("x") + _tens_data_format
+		+ std::string("x") + _in_layout
+		+ std::string("x") + _in_data_type
 		+ std::string("x") + std::to_string((long long)_direction)
 		;
 	return(0);
@@ -781,28 +766,46 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 
 
 /*
- * select defult configuration if a known configuration has not been found.
- */
-int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
-{
+* select defult configuration if a known configuration has not been found.
+*/
+	int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
+	{
 
-	// 
-	int in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
-	int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
+		//
+#if 1
+		int in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
+		int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
 
-	int grp_tile0 = in_tile0;
-	int grp_tile1 = in_tile1;
+		int grp_tile0 = in_tile0;
+		int grp_tile1 = in_tile1;
 
-	int out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
-	int out_pix_tile1 = 4; //
+		int out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
+		int out_pix_tile1 = 4; //
 
 
-	int n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
-	int n_in_data_tiles = 4; // # of blocks of different inputs in LDS
+		int n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
+		int n_in_data_tiles = 4; // # of blocks of different inputs in LDS
 
-	int n_stacks = 1; // # of diff stacks (part of batch).
+		int n_stacks = 1; // # of diff stacks (part of batch).
+#else
 
-	mloBuildConf_Val(
+		int in_tile0 = 8; // (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
+		int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
+
+		int grp_tile0 = 16; // in_tile0;
+		int grp_tile1 = in_tile1;
+
+		int out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
+		int out_pix_tile1 = 2; //
+
+
+		int n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
+		int n_in_data_tiles = 3; // # of blocks of different inputs in LDS
+
+		int n_stacks = 2; // # of diff stacks (part of batch).
+#endif
+
+		mloBuildConf_Val(
 			conf_val,
 			grp_tile1,
 			grp_tile0,
@@ -815,395 +818,437 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 			n_stacks
 			);
 
-	mloSetConf(conf_val);
+		mloSetConf(conf_val);
 
-	return(0);
-}
+		return(0);
+	}
 
-#define CHECK_RET(x) if (x != 0) { \
-	if (prog) { \
-		clReleaseProgram(prog); \
-	} \
-	return -1;\
-}\
-/*
- * mesure the current onfiguration pefformance
- */
-int mlo_construct_direct2D :: mloMeasuredLoop( cl_command_queue profile_q,
+
+	/*
+	* mesure the current onfiguration pefformance
+	*/
+	int mlo_construct_direct2D :: mloMeasuredLoop(cl_context ctxt,
+		cl_device_id dev,
+		cl_command_queue profile_q,
 		cl_mem bot_ocl_buf,
 		cl_mem top_ocl_buf,
 		cl_mem wei_ocl_buf,
 		cl_mem bias_ocl_buf,
 		double &processing_time
 		)
-{
-	int ret = 0;
-
-	cl_program prog = 0;
-	ret = mloConstructDirect2DFwd();
-	if (ret != 0) {
-		return(ret);
-	}
-	std::string compiler_options = _gen_comp_options + _comp_options;
-	std::string kernelPath = (_kernel_path == "") ? mloGetPath() : _kernel_path;
-	kernelPath.append(std::string("/") + _kernel_file.c_str());
-	ret = CLHelper::LoadProgramFromSource(prog, profile_q, kernelPath);
-
-	CHECK_RET(ret);
-
-	ret = CLHelper::BuildProgram(prog, profile_q, compiler_options);
-
-	CHECK_RET(ret);
-
-	cl_kernel test_kernel;
-	CLHelper::CreateKernel(prog, test_kernel, _kernel_name);
-
-	if (!test_kernel) {
-		if (prog) {
-			clReleaseProgram(prog);
-		}
-		return(-1);
-	}
-
-	// Creating OCLKernel obj
-	OCLKernel kernel(test_kernel);
-	// pass all arguments
-
-	float padding_value = 0;
-	if(!_bias)
-		kernel.SetArgs(0, bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-	else
-		kernel.SetArgs(0, bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-
-	double s = 0, e = 0;
-	int iter = 1;
-	
-	if (profile_q)
 	{
-		cl_event profile_e;
+		int ret = 0;
 
-		processing_time = CL_MAXFLOAT;
-
-		ret = kernel.run(profile_q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), &profile_e);
-		if (ret == CL_SUCCESS)
+		cl_program prog = 0;
+		ret = mloConstructDirect2DFwd();
+		if (ret != 0)
 		{
-			mloReadEventTime(profile_e, processing_time);
+			return(ret);
 		}
 
-		ret = clReleaseEvent(profile_e);
-	}
-	else
-	{
-		iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
-
-		cl_command_queue q = (cl_command_queue)_stream;
-
-		kernel.run(q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), NULL);
-
-		clFinish(q);
-
-		s = mlopen_mach_absolute_time();
-
-		for (int i = 0; i < iter && ret == 0; i++)
-		{
-			ret = kernel.run(q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), NULL);
-		}
-
-		clFinish(q);
-		e = mlopen_mach_absolute_time();
+		std::string compiler_options = _gen_comp_options + _comp_options;
+		ret = mloLoadOpenCLProgramFromSource(prog, ctxt, _kernel_path, _kernel_file);
 
 		if (ret != 0)
 		{
+			if (prog)
+			{
+				clReleaseProgram(prog);
+			}
+			return(ret);
+		}
+
+		ret = mloBuildOpenCLProgram(ctxt, dev, prog, compiler_options, true);
+
+		if (ret != 0)
+		{
+			if (prog)
+			{
+				clReleaseProgram(prog);
+			}
+			return(ret);
+		}
+
+		cl_kernel test_kernel = clCreateKernel(prog, _kernel_name.c_str(), &ret);
+
+		if (!test_kernel)
+		{
+			if (prog)
+			{
+				clReleaseProgram(prog);
+			}
+			return(-1);
+		}
+
+		// pass all arguments
+
+		float padding_value = 0;
+		int n_arg = 0;
+		mlo_ocl_args kern_args;
+		kern_args[n_arg] = std::make_pair(sizeof(cl_mem), &bot_ocl_buf);
+		n_arg++;
+		kern_args[n_arg] = std::make_pair(sizeof(cl_mem), &wei_ocl_buf);
+		if (_bias)
+		{
+			n_arg++;
+			kern_args[n_arg] = std::make_pair(sizeof(cl_mem), &bias_ocl_buf);
+		}
+		n_arg++;
+		kern_args[n_arg] = std::make_pair(sizeof(cl_mem), &top_ocl_buf);
+		n_arg++;
+		kern_args[n_arg] = std::make_pair(sizeof(float), &padding_value);
+
+		double s = 0, e = 0;
+		int iter = 1;
+
+		if (profile_q)
+		{
+			cl_event profile_e;
+
 			processing_time = CL_MAXFLOAT;
+
+			ret = mloExecuteNoWait(kern_args,
+				profile_q,
+				test_kernel,
+				_g_wk,
+				_l_wk,
+				&profile_e
+				);
+			if (ret == CL_SUCCESS)
+			{
+				mloReadEventTime(profile_e, processing_time);
+			}
+
+			ret = clReleaseEvent(profile_e);
 		}
 		else
 		{
-			processing_time = subtractTimes(e, s) / iter;
-			//			std::cout << "Processing time: " << processing_time << std::endl;
+			iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
 
+			cl_command_queue q = (cl_command_queue)_stream;
+
+			ret = mloExecuteNoWait(kern_args,
+				q,
+				test_kernel,
+				_g_wk,
+				_l_wk
+				);
+			clFinish(q);
+
+
+
+			s = mlopen_mach_absolute_time();
+
+			for (int i = 0; i < iter && ret == 0; i++)
+			{
+				ret = mloExecuteNoWait(kern_args,
+					q,
+					test_kernel,
+					_g_wk,
+					_l_wk
+					);
+
+			}
+
+			clFinish(q);
+			e = mlopen_mach_absolute_time();
+
+			if (ret != 0)
+			{
+				processing_time = CL_MAXFLOAT;
+			}
+			else
+			{
+				processing_time = subtractTimes(e, s) / iter;
+				//			std::cout << "Processing time: " << processing_time << std::endl;
+
+			}
 		}
+
+		if (test_kernel)
+		{
+			clReleaseKernel(test_kernel);
+		}
+
+		if (prog)
+		{
+			clReleaseProgram(prog);
+		}
+
+		return (ret);
+
 	}
 
-	if (test_kernel)
+
+	/*
+	* request cofiguraion db management
+	* request configuration db is a text file
+	* each line is a key (in cofig db format) that has not been found in teh configuratio db
+	*/
+
+
+	int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::string & conf_key) const
 	{
-		clReleaseKernel(test_kernel);
+		int ret = 0;
+		std::vector<std::string> req_conf_db;
+		std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+
+		conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
+
+		std::vector<std::string>::iterator it;
+		bool found = mloFindConfigReq(conf_file, dev, conf_key, req_conf_db, it);
+
+
+		if (!found)
+		{
+			req_conf_db.push_back(conf_key);
+			ret = mloUpdateDb(conf_file, req_conf_db);
+		}
+		return(ret);
 	}
 
-	if (prog)
-	{
-		clReleaseProgram(prog);
-	}
-
-	return (ret);
-
-}
-
-
-/*
- * request cofiguraion db management
- * request configuration db is a text file
- * each line is a key (in cofig db format) that has not been found in teh configuratio db
- */
-
-
-int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::string & conf_key) const
-{
-	int ret = 0;
-	std::vector<std::string> req_conf_db;
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
-
-	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
-
-	std::vector<std::string>::iterator it;
-	bool found = mloFindConfigReq(conf_file, dev, conf_key, req_conf_db, it);
-
-
-	if (!found)
-	{
-		req_conf_db.push_back(conf_key);
-		ret = mloUpdateDb(conf_file, req_conf_db);
-	}
-	return(ret);
-}
-
-int mlo_construct_direct2D :: mloRemoveConfigReq(
+	int mlo_construct_direct2D :: mloRemoveConfigReq(
 		cl_device_id dev,
 		const std::string & conf_key
 		) const
-{
-	int ret = 0;
-	std::vector<std::string> req_conf_db;
-
-	std::vector<std::string>::iterator it;
-
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
-	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
-
-	bool found = mloFindConfigReq(conf_file, dev, conf_key, req_conf_db, it);
-
-
-	if (found)
 	{
-		req_conf_db.erase(it);
-		ret = mloUpdateDb(conf_file, req_conf_db);
-	}
-	return(ret);
-}
+		int ret = 0;
+		std::vector<std::string> req_conf_db;
 
-int mlo_construct_direct2D :: mloReadConfigDB(
+		std::vector<std::string>::iterator it;
+
+		std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+		conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
+
+		bool found = mloFindConfigReq(conf_file, dev, conf_key, req_conf_db, it);
+
+
+		if (found)
+		{
+			req_conf_db.erase(it);
+			ret = mloUpdateDb(conf_file, req_conf_db);
+		}
+		return(ret);
+	}
+
+	int mlo_construct_direct2D :: mloReadConfigDB(
 		cl_device_id dev,
 		std::map<std::string, std::string> & conf_db
 		) const
-{
-
-	int ret = 0;
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
-
-	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
-
-	std::vector<std::string> db;
-	mloReadDb(dev, conf_file, db);
-
-	// build searchable db
-
-	std::vector<std::string>::iterator it;
-	for (it = db.begin(); it != db.end(); ++it)
 	{
-		std::vector<std::string> v_key_val;
-		tokenize((*it),
+
+		int ret = 0;
+		std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+
+		conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
+
+		std::vector<std::string> db;
+		mloReadDb(dev, conf_file, db);
+
+		// build searchable db
+
+		std::vector<std::string>::iterator it;
+		for (it = db.begin(); it != db.end(); ++it)
+		{
+			std::vector<std::string> v_key_val;
+			tokenize((*it),
 				v_key_val,
 				std::string(" "));
 
-		conf_db[v_key_val[0]] = v_key_val[1];
+			conf_db[v_key_val[0]] = v_key_val[1];
+		}
+		return(ret);
 	}
-	return(ret);
-}
 
-int mlo_construct_direct2D :: mloWriteConfigDB(
+	int mlo_construct_direct2D :: mloWriteConfigDB(
 		cl_device_id dev,
 		const std::map<std::string, std::string> & conf_db
 		) const
-{
-
-	int ret = 0;
-	//serialize
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
-
-	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
-
-	std::vector<std::string> db;
-
-	std::map<std::string, std::string>::const_iterator it;
-
-	for (it = conf_db.begin(); it != conf_db.end(); ++it)
 	{
-		db.push_back((*it).first + std::string(" ") + (*it).second + std::string("\n"));
+
+		int ret = 0;
+		//serialize
+		std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+
+		conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
+
+		std::vector<std::string> db;
+
+		std::map<std::string, std::string>::const_iterator it;
+
+		for (it = conf_db.begin(); it != conf_db.end(); ++it)
+		{
+			db.push_back((*it).first + std::string(" ") + (*it).second + std::string("\n"));
+		}
+
+		ret = mloUpdateDb(conf_file, db);
+
+		return(ret);
 	}
 
-	ret = mloUpdateDb(conf_file, db);
-
-	return(ret);
-}
-
-int mlo_construct_direct2D :: mloAddConfig(
+	int mlo_construct_direct2D :: mloAddConfig(
 		cl_device_id dev,
 		std::string & conf_key,
 		std::string & conf_val
 		) const
-{
-	int ret = 0;
+	{
+		int ret = 0;
 
-	// build searchable db
-	std::map<std::string, std::string> conf_db;
+// build searchable db
+		std::map<std::string, std::string> conf_db;
 
-	ret = mloReadConfigDB(
+		ret = mloReadConfigDB(
 			dev,
 			conf_db
 			);
-	// add config
+// add config
 
-	conf_db[conf_key] = conf_val;
-	//serialize
-	ret = mloWriteConfigDB(
+		conf_db[conf_key] = conf_val;
+//serialize
+		ret = mloWriteConfigDB(
 			dev,
 			conf_db
 			);
 
-	// remove request
-	mloRemoveConfigReq(
+// remove request
+		mloRemoveConfigReq(
 			dev,
 			conf_key
 			);
 
-	return(ret);
-}
+		return(ret);
+	}
 
 
 
 
 
-bool mlo_construct_direct2D :: mloSearchConfigInDB(
+	bool mlo_construct_direct2D :: mloSearchConfigInDB(
 		cl_device_id dev,
 		std::string & conf_key,
 		std::string & conf_val
 		) const
-{
-	bool known_config = false;
-	// build searchable db
-	std::map<std::string, std::string> conf_db;
+	{
+		bool known_config = false;
+			// build searchable db
+		std::map<std::string, std::string> conf_db;
 
-	mloReadConfigDB(
+		mloReadConfigDB(
 			dev,
 			conf_db
 			);
 
-	mloBuildConf_Key(conf_key);
+		mloBuildConf_Key(conf_key);
 
-	std::map<std::string, std::string>::iterator m_it;
-	known_config = mloSearchConfigDB(
-			conf_db,
-			conf_key,
-			conf_val,
-			m_it
-			);
+		std::map<std::string, std::string>::iterator m_it;
+		known_config = mloSearchConfigDB(
+				conf_db,
+				conf_key,
+				conf_val,
+				m_it
+				);
+		
+		return(known_config);
+	}
 
-	return(known_config);
-}
+	/*
+	* return a known or default configuration
+	*/
+	bool mlo_construct_direct2D :: mloGetConfig(void)
+	{
+		int ret = 0;
+		bool known_config = false;
+		cl_context ctxt;
+		cl_device_id dev;
+		std::string conf_key;
+		std::string conf_val;
 
-/*
- * return a known or default configuration
- */
-bool mlo_construct_direct2D :: mloGetConfig(void)
-{
-	int ret = 0;
-	bool known_config = false;
-	cl_device_id dev;
-	std::string conf_key;
-	std::string conf_val;
+		// get device id
+		ret = mloGetContextDeviceFromCLQueue(ctxt, dev, NULL, (cl_command_queue)_stream);
 
-	// get device id
-	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
-
-	// find a db and configuration in it
-	known_config = mloSearchConfigInDB(
+		// find a db and configuration in it
+		known_config = mloSearchConfigInDB(
 			dev,
 			conf_key,
 			conf_val
 			);
 
-	// if found save it
+		// if found save it
 
-	if (known_config)
-	{
-		mloSetConf(conf_val);
-	}
-	else
-		// otherwise
-	{
-		// select default
-		mloSelectDefaultConfig(conf_val);
-		// save the unknown configuration
-		// if allowed
-		if (_save_srch_req)
+		if (known_config)
 		{
-			mloAddConfigReq(dev, conf_key);
+			mloSetConf(conf_val);
 		}
+		else
+			// otherwise
+		{
+			// select default
+			mloSelectDefaultConfig(conf_val);
+			// save the unknown configuration
+			// if allowed
+			if (_save_srch_req)
+			{
+				mloAddConfigReq(dev, conf_key);
+			}
+		}
+
+		return(known_config);
+
 	}
 
-	return(known_config);
-
-}
-
-/*
- * search utility
- * defines a configurati spce 
- * search by maesure performabce per each configuration and saves the a current minimum
+	/*
+	* search utility
+	* defines a configurati spce 
+	* search by maesure performabce per each configuration and saves the a current minimum
 
 
-*/
-int mlo_construct_direct2D :: mloSearchDirect2D(void)
-{
-	int ret = 0;
+	*/
+	int mlo_construct_direct2D :: mloSearchDirect2D(void)
+	{
+		int ret = 0;
+		
+		cl_context ctxt;
+		cl_device_id dev;
+		cl_command_queue profile_q = 0;
+//		cl_program prog;
+		double processing_time;
+		std::string conf_key;
+		std::string conf_val;
+
+		int min_grp_tile0 = 16;
+		int min_grp_tile1 = 16;
+		// tile 0
+		int min_in_tile0 = 16;
+		// tile 1
+		int min_in_tile1 = 16;
+		// out pix 0
+		int min_out_pix_tile0 = 1;
+		// out pix 1
+		int min_out_pix_tile1 = 1;
+		int min_n_out_pix_tiles = 2;
+		int min_n_in_data_tiles = 3;
+		int min_n_stacks = 1;
 
 
-	cl_context ctxt;
-	cl_device_id dev;
-	cl_command_queue profile_q = 0;
-	//		cl_program prog;
-	double processing_time;
-	std::string conf_key;
-	std::string conf_val;
+		ret = mloGetContextDeviceFromCLQueue(ctxt, dev,
+#if 0
+			NULL
+#else
+			&profile_q
+#endif
+			, (cl_command_queue)_stream);
 
-	int min_grp_tile0 = 16;
-	int min_grp_tile1 = 16;
-	// tile 0
-	int min_in_tile0 = 16;
-	// tile 1
-	int min_in_tile1 = 16;
-	// out pix 0
-	int min_out_pix_tile0 = 1;
-	// out pix 1
-	int min_out_pix_tile1 = 1;
-	int min_n_out_pix_tiles = 2;
-	int min_n_in_data_tiles = 3;
-	int min_n_stacks = 1;
+		int maxComputeUnits;
+		int maxWorkItemDims;
+		std::vector<size_t> maxWorkItemSize;
+		size_t maxWorkGroupSize;
+		int maxClockFrequency;
+		size_t maxMemAllocSize;
+		size_t localMemSize;
+		size_t timerResolution;
+		std::string deviceName;
 
-  CLHelper::GetContextFromQueue((cl_command_queue)_stream, ctxt);
-  CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
-  if(!profile_q)
-	  CLHelper::CreateQueueWithProfiling((cl_command_queue)_stream, &profile_q);
-
-	int maxComputeUnits;
-	int maxWorkItemDims;
-	std::vector<size_t> maxWorkItemSize;
-	size_t maxWorkGroupSize;
-	int maxClockFrequency;
-	size_t maxMemAllocSize;
-	size_t localMemSize;
-	size_t timerResolution;
-	std::string deviceName;
-
-	mloGetDeviceInfo(dev,
+		mloGetDeviceInfo(dev,
 			maxComputeUnits,
 			maxWorkItemDims,
 			maxWorkItemSize,
@@ -1214,334 +1259,492 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 			timerResolution,
 			deviceName);
 
-	_hw_wave_sz = 64;
-	_dev_local_mem_sz = localMemSize; // in bytes
+		_hw_wave_sz = 64;
+		_dev_local_mem_sz = localMemSize; // in bytes
 
-	// if it is not known
-	bool known_config = mloSearchConfigInDB(
+		// if it is not known
+		bool known_config = mloSearchConfigInDB(
 			dev,
 			conf_key,
 			conf_val
 			);
 
-	// proceed
-	if (!known_config)
-	{
 
-		// allocate tem input/output buffers
-		size_t bot_sz = _bot_sz / sizeof(float);
-		float * bot_sys_buf = new float[bot_sz];
-		assert(bot_sys_buf);
-
-		for (int i = 0; i < bot_sz; i++) {
-			bot_sys_buf[i] = (float)(rand() * (1.0 / RAND_MAX));
-		}
-
-		cl_mem bot_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bot_sz, bot_sys_buf, &ret);
-
-		assert(bot_ocl_buf);
-
-		size_t top_sz = _top_sz / sizeof(float);
-		float * top_sys_buf = new float[top_sz];
-		assert(top_sys_buf);
-
-		cl_mem top_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _top_sz, top_sys_buf, &ret);
-		assert(top_ocl_buf);
-
-		size_t weights_sz = _weights_sz / sizeof(float);
-		float * wei_sys_buf = new float[weights_sz];
-		assert(wei_sys_buf);
-		for (int i = 0; i < weights_sz; i++) {
-			wei_sys_buf[i] = (float)((rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
-		}
-
-		cl_mem wei_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _weights_sz, wei_sys_buf, &ret);
-		assert(wei_ocl_buf);
-
-		float * bias_sys_buf = 0;
-		cl_mem bias_ocl_buf = 0;
-
-		if (_bias)
+		// proceed
+		if (!known_config)
 		{
-			size_t bias_sz = _bias_sz / sizeof(float);
-			bias_sys_buf = new float[_bias_sz / sizeof(float)];
-			assert(bias_sys_buf);
-			for (int i = 0; i < bias_sz; i++) {
-				bias_sys_buf[i] = (float)(rand() * (1.0 / RAND_MAX));
+
+			// allocate tem input/output buffers
+			size_t bot_sz = _bot_sz / sizeof(float);
+			float * bot_sys_buf = new float[bot_sz];
+			assert(bot_sys_buf);
+
+			for (int i = 0; i < bot_sz; i++) {
+				bot_sys_buf[i] = (float)(rand() * (1.0 / RAND_MAX));
 			}
 
-			bias_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bias_sz, bias_sys_buf, &ret);
-			assert(bias_ocl_buf);
-		}
+			cl_mem bot_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bot_sz, bot_sys_buf, &ret);
+
+			assert(bot_ocl_buf);
+
+			size_t top_sz = _top_sz / sizeof(float);
+			float * top_sys_buf = new float[top_sz];
+			assert(top_sys_buf);
+
+			cl_mem top_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _top_sz, top_sys_buf, &ret);
+			assert(top_ocl_buf);
+
+			size_t weights_sz = _weights_sz / sizeof(float);
+			float * wei_sys_buf = new float[weights_sz];
+			assert(wei_sys_buf);
+			for (int i = 0; i < weights_sz; i++) {
+				wei_sys_buf[i] = (float)((rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+			}
+
+			cl_mem wei_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _weights_sz, wei_sys_buf, &ret);
+			assert(wei_ocl_buf);
+
+			float * bias_sys_buf = 0;
+			cl_mem bias_ocl_buf = 0;
+
+			if (_bias)
+			{
+				size_t bias_sz = _bias_sz / sizeof(float);
+				bias_sys_buf = new float[_bias_sz / sizeof(float)];
+				assert(bias_sys_buf);
+				for (int i = 0; i < bias_sz; i++) {
+					bias_sys_buf[i] = (float)(rand() * (1.0 / RAND_MAX));
+				}
+
+				bias_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bias_sz, bias_sys_buf, &ret);
+				assert(bias_ocl_buf);
+			}
 
 
-		// search loop here
-		//		int grp_sz[3] = { 64, 128, 256 };
-		int grp_tl_ln[2] = { 8, 16 };
-		int tile_sz[3] = { 8, 16, 32 };
-		int out_pix_tile_sz[4] = { 1, 2, 4, 8 };
-		int n_out_tiles_rg[2] = { 1, 12 };
-		int n_in_tiles_rg[2] = { 1, 4 };
-		int n_in_stacks_sz[3] = { 1, 2, 4 };
-		/*
-		   std::vector<int> v_tile_sz;
-		   std::vector<int> v_out_pix_tile_sz;
-		   std::vector<int> v_n_out_tiles_rg;
-		   std::vector<int> v_n_in_tiles_rg;
-		   std::vector<int> v_n_in_stacks_sz;
-		   */
-		   // 
+			// search loop here
+			//		int grp_sz[3] = { 64, 128, 256 };
+			int grp_tl_ln[2] = { 8, 16 };
+			int tile_sz[4] = { 8, 16, 32, 64 };
+			int out_pix_tile_sz[4] = { 1, 2, 4, 8 };
+			int n_out_tiles_rg[2] = { 1, 12 };
+			int n_in_tiles_rg[2] = { 1, 4 };
+			int n_in_stacks_sz[3] = { 1, 2, 4 };
+			/*
+			std::vector<int> v_tile_sz;
+			std::vector<int> v_out_pix_tile_sz;
+			std::vector<int> v_n_out_tiles_rg;
+			std::vector<int> v_n_in_tiles_rg;
+			std::vector<int> v_n_in_stacks_sz;
+			*/
+			// 
 
-		double min_proc_time = CL_MAXFLOAT;
+			double min_proc_time = CL_MAXFLOAT;
 
 #if 1
-		std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may take few minutes." << std::endl;
+			std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may take few minutes." << std::endl;
 
-		size_t run_counter = 0;
-		int n_grp_tiles0 = (_out_height >= 32) ? 1 : 2;
-		int n_grp_tiles1 = (_out_width >= 32) ? 1 : 2;
-		int out_pix_tl_cnt = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 3 : 4;
-		int n_out_tls = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
-		n_out_tls = std::min(_n_outputs, n_out_tls);
-		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : 3;
-		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : 3;
+			size_t run_counter = 0;
+			int n_grp_tiles0 = (_out_height >= 32 && _batch_sz >=16) ? 1 : 2;
+			int n_grp_tiles1 = (_out_width >= 32 && _batch_sz >= 16) ? 1 : 2;
+			int out_pix_tl_cnt = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 3 : 4;
+			int n_out_tls = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
+			n_out_tls = std::min(_n_outputs, n_out_tls);
+			int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : (_out_width * 2 <= 64) ? 3 : 4;
+			int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : (_out_height * 2 <= 32) ? 3 : 4;
+			int n_tiles_cnt = (n_tile0_sz * n_tile1_sz == 9) ? (n_tile0_sz * n_tile1_sz - 1)  : (n_tile0_sz * n_tile1_sz == 16) ? (n_tile0_sz * n_tile1_sz - 4) : n_tile0_sz * n_tile1_sz;
 
-		long long runs_left = n_grp_tiles0 * n_grp_tiles1 * n_tile0_sz * n_tile1_sz * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
+			long long runs_left = n_grp_tiles0 * n_grp_tiles1 * n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
 
-		size_t report_inteval = 25;
-		//			_n_timer_iter = 250;
+			size_t report_inteval = 25;
+			//			_n_timer_iter = 250;
 
-		for (int g1 = 0; g1 < 2; g1++)
-		{
-			_grp_tile1 = grp_tl_ln[g1];
-			if (_out_height >= 32 && _grp_tile1 == 8) {
-				continue;
-			}
-
-			for (int g0 = 0; g0 < 2; ++g0)
+			for (int g1 = 0; g1 < 2; g1++)
 			{
-				_grp_tile0 = grp_tl_ln[g0];
-				if (_out_width >= 32 && _grp_tile0 == 8) {
+				_grp_tile1 = grp_tl_ln[g1];
+				if (_out_height >= 32 && _grp_tile1 == 8 && _batch_sz >= 16)
+				{
 					continue;
 				}
 
-				// tile1
-				for (int j = 0; j < 3; ++j)
+				for (int g0 = 0; g0 < 2; ++g0)
 				{
-					_in_tile1 = tile_sz[j];
-					if (_out_height * 2 <= _in_tile1 && _in_tile1 > tile_sz[0])
+					_grp_tile0 = grp_tl_ln[g0];
+
+					if (_out_width >= 32 && _grp_tile0 == 8 && _batch_sz >= 16)
 					{
-						runs_left--;
-						runs_left = (runs_left < 0) ? 0 : runs_left;
 						continue;
 					}
-					// tile 0
-					for (int i = 0; i < 3; ++i)
+					// tile1
+					for (int j = 0; j < n_tile1_sz; ++j)
 					{
-						_in_tile0 = tile_sz[i];
-						if (_out_width * 2 <= _in_tile0 &&  _in_tile0 > tile_sz[0])
+						_in_tile1 = tile_sz[j];
+						if (_out_height * 2 <= _in_tile1 && _in_tile1 > tile_sz[0])
 						{
 							runs_left--;
 							runs_left = (runs_left < 0) ? 0 : runs_left;
 							continue;
 						}
-						// out pix 1
-
-						int k_l = (_kernel_size1 == 3) ? 4 : 3;
-						for (int k = 0; k < k_l; ++k)
+						// tile 0
+						for (int i = 0; i < n_tile0_sz; ++i)
 						{
-							_out_pix_tile1 = out_pix_tile_sz[k];
-							if (_out_pix_tile1 > _in_tile1)
+							_in_tile0 = tile_sz[i];
+							if ((_out_width * 2 <= _in_tile0 &&  _in_tile0 > tile_sz[0])
+								|| (_in_tile0 == _in_tile1 && _in_tile0 == 64)
+								|| (_in_tile0 == 8 && _in_tile1 == 32)
+								|| ((_in_tile0 == 8 || _in_tile0 == 16) &&_in_tile1 == 64)
+								)
 							{
 								runs_left--;
 								runs_left = (runs_left < 0) ? 0 : runs_left;
 								continue;
 							}
-							// out pix 0
-							int l_l = (_kernel_size0 == 3) ? 4 : 3;
-							for (int l = 0; l < l_l; ++l)
-							{
-								_out_pix_tile0 = out_pix_tile_sz[l];
+							// out pix 1
 
-								if (_out_pix_tile0 > _in_tile0)
+							int k_l = (_kernel_size1 == 3) ? 4 : 3;
+							for (int k = 0; k < k_l; ++k)
+							{
+								_out_pix_tile1 = out_pix_tile_sz[k];
+								if (_out_pix_tile1 > _in_tile1)
 								{
 									runs_left--;
 									runs_left = (runs_left < 0) ? 0 : runs_left;
 									continue;
 								}
-
-								int o_l = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
-								for (int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
+								// out pix 0
+								int l_l = (_kernel_size0 == 3) ? 4 : 3;
+								for (int l = 0; l < l_l; ++l)
 								{
+									_out_pix_tile0 = out_pix_tile_sz[l];
 
-									if ((_out_pix_tile1 == 8 || _out_pix_tile0 == 8) && o_t > 4)
+									if (_out_pix_tile0 > _in_tile0)
 									{
 										runs_left--;
 										runs_left = (runs_left < 0) ? 0 : runs_left;
 										continue;
 									}
 
-									_n_out_pix_tiles = o_t;
-									if (_n_outputs < _n_out_pix_tiles)
+									int o_l = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
+									for (int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
 									{
-										runs_left--;
-										runs_left = (runs_left < 0) ? 0 : runs_left;
-										continue;
-									}
 
-									for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
-									{
-										_n_in_data_tiles = i_t;
-										if (_n_inputs < _n_in_data_tiles)
+										if ((_out_pix_tile1 == 8 || _out_pix_tile0 == 8) && o_t > 4)
 										{
 											runs_left--;
 											runs_left = (runs_left < 0) ? 0 : runs_left;
 											continue;
 										}
 
-										for (int s = 0; s < 3; ++s)
+										_n_out_pix_tiles = o_t;
+										if (_n_outputs < _n_out_pix_tiles)
 										{
-
-											_n_stacks = n_in_stacks_sz[s];
-#if 1
-											if ((_in_tile1 > 16 || _in_tile0 > 16)
-												&& i_t > 4
-												&& _n_stacks > 2)
-
-											{
-												runs_left--;
-												runs_left = (runs_left < 0) ? 0 : runs_left;
-
-												continue;
-											}
-
-#endif
-											ret = mloMeasuredLoop(profile_q,
-												bot_ocl_buf,
-												top_ocl_buf,
-												wei_ocl_buf,
-												bias_ocl_buf,
-												processing_time
-											);
-
-											if (ret != 0)
-											{
-												std::cout << "Failed run." << std::endl;
-												runs_left--;
-												runs_left = (runs_left < 0) ? 0 : runs_left;
-												continue;
-											}
-
-
-											if (run_counter != 0 && run_counter % report_inteval == 0)
-											{
-												std::cout << "Runs left : " << runs_left << ", "
-													<< "min time so far : " << min_proc_time << ", "
-													<< "curr time : " << processing_time
-#if 1
-													<< ", " << _grp_tile1 << ", "
-													<< _grp_tile0 << ", "
-													<< _in_tile1 << ", "
-													<< _in_tile0 << ", "
-													<< _out_pix_tile1 << ", "
-													<< _out_pix_tile0 << ", "
-													<< _n_out_pix_tiles << ", "
-													<< _n_in_data_tiles << ", "
-													<< _n_stacks
-#endif
-													<< std::endl;
-											}
-											 
-											run_counter++;
 											runs_left--;
 											runs_left = (runs_left < 0) ? 0 : runs_left;
-											if (min_proc_time > processing_time)
+											continue;
+										}
+
+										for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
+										{
+											_n_in_data_tiles = i_t;
+											if (_n_inputs < _n_in_data_tiles)
 											{
-												min_proc_time = processing_time;
-												min_grp_tile0 = _grp_tile0;
-												min_grp_tile1 = _grp_tile1;
-												min_in_tile0 = _in_tile0;
-												min_in_tile1 = _in_tile1;
-												min_out_pix_tile0 = _out_pix_tile0;
-												min_out_pix_tile1 = _out_pix_tile1;
-												min_n_out_pix_tiles = _n_out_pix_tiles;
-												min_n_in_data_tiles = _n_in_data_tiles;
-												min_n_stacks = _n_stacks;
+												runs_left--;
+												runs_left = (runs_left < 0) ? 0 : runs_left;
+												continue;
 											}
 
-										}  // for (int s = 0; s < 3; ++s)
-									} // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
-								} // if (_out_pix_tile0 > _in_tile0)
-							} // for (int l = 0; l < l_l; ++l)
-						} // for (int k = 0; k < k_l; ++k)
-					}  // for (int i = 0; i < 3; ++i)
-				} // for (int j = 0; j < 3; ++j)
-			} // for (int g0 = 0; g0 < 2; ++g0)
-		} // for (int g1 = 0; g1 < 2; g1++) 
+											for (int s = 0; s < 3; ++s)
+											{
 
-		std::cout << std::endl << "Score: " << min_proc_time << std::endl;
+												_n_stacks = n_in_stacks_sz[s];
+#if 1
+												if ((_in_tile1 > 16 || _in_tile0 > 16)
+													&& i_t > 4
+													&& _n_stacks > 2)
+
+												{
+													runs_left--;
+													runs_left = (runs_left < 0) ? 0 : runs_left;
+
+													continue;
+												}
+
+#endif
+												ret = mloMeasuredLoop(ctxt,
+													dev,
+													profile_q,
+													bot_ocl_buf,
+													top_ocl_buf,
+													wei_ocl_buf,
+													bias_ocl_buf,
+													processing_time
+													);
+
+												if (ret != 0)
+												{
+													std::cout << "Failed run." << std::endl;
+													runs_left--;
+													runs_left = (runs_left < 0) ? 0 : runs_left;
+													continue;
+												}
+
+
+												if (run_counter != 0 && run_counter % report_inteval == 0)
+												{
+													std::cout << "Runs left : " << runs_left << ", "
+														<< "min time so far : " << min_proc_time << ", "
+														<< "curr time : " << processing_time
+#if 1
+														<< ", " << _grp_tile1 << ", "
+														<< _grp_tile0 << ", "
+														<< _in_tile1 << ", "
+														<< _in_tile0 << ", "
+														<< _out_pix_tile1 << ", "
+														<< _out_pix_tile0 << ", "
+														<< _n_out_pix_tiles << ", "
+														<< _n_in_data_tiles << ", "
+														<< _n_stacks
+#endif
+														<< std::endl;
+												}
+
+												run_counter++;
+												runs_left--;
+												runs_left = (runs_left < 0) ? 0 : runs_left;
+												if (min_proc_time > processing_time)
+												{
+													min_proc_time = processing_time;
+													min_grp_tile0 = _grp_tile0;
+													min_grp_tile1 = _grp_tile1;
+													min_in_tile0 = _in_tile0;
+													min_in_tile1 = _in_tile1;
+													min_out_pix_tile0 = _out_pix_tile0;
+													min_out_pix_tile1 = _out_pix_tile1;
+													min_n_out_pix_tiles = _n_out_pix_tiles;
+													min_n_in_data_tiles = _n_in_data_tiles;
+													min_n_stacks = _n_stacks;
+												}
+
+											}  // for (int s = 0; s < 3; ++s)
+										} // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
+									} // if (_out_pix_tile0 > _in_tile0)
+								} // for (int l = 0; l < l_l; ++l)
+							} // for (int k = 0; k < k_l; ++k)
+						}  // for (int i = 0; i < 3; ++i)
+					} // for (int j = 0; j < 3; ++j)
+				} // for (int g0 = 0; g0 < 2; ++g0)
+			} // for (int g1 = 0; g1 < 2; g1++) 
+
+			std::cout << std::endl << "Score: " << min_proc_time << std::endl;
 #endif
 
-		ret = clReleaseMemObject(bot_ocl_buf);
-		ret = clReleaseMemObject(top_ocl_buf);
-		ret = clReleaseMemObject(wei_ocl_buf);
-		if (_bias)
-		{
-			ret = clReleaseMemObject(bias_ocl_buf);
-			delete[] bias_sys_buf;
+			ret = clReleaseMemObject(bot_ocl_buf);
+			ret = clReleaseMemObject(top_ocl_buf);
+			ret = clReleaseMemObject(wei_ocl_buf);
+			if (_bias)
+			{
+				ret = clReleaseMemObject(bias_ocl_buf);
+				delete[] bias_sys_buf;
+			}
+
+			if (profile_q)
+			{
+				clReleaseCommandQueue(profile_q);
+			}
+
+
+			delete[] bot_sys_buf;
+			delete[] top_sys_buf;
+			delete[] wei_sys_buf;
+
+			mloBuildConf_Val(conf_val,
+				min_grp_tile1,
+				min_grp_tile0,
+				min_in_tile1,
+				min_in_tile0,
+				min_out_pix_tile1,
+				min_out_pix_tile0,
+				min_n_out_pix_tiles,
+				min_n_in_data_tiles,
+				min_n_stacks
+				);
+
+
+			mloAddConfig(
+				dev,
+				conf_key,
+				conf_val
+				);
+			// set the learnt data fo the current run.
+			mloSetConf(conf_val);
+
 		}
 
-		if (profile_q)
-		{
-			clReleaseCommandQueue(profile_q);
-		}
+		return(ret);
+	}
 
-		delete[] bot_sys_buf;
-		delete[] top_sys_buf;
-		delete[] wei_sys_buf;
 
-		mloBuildConf_Val(conf_val,
-			min_grp_tile1,
-			min_grp_tile0,
-			min_in_tile1,
-			min_in_tile0,
-			min_out_pix_tile1,
-			min_out_pix_tile0,
-			min_n_out_pix_tiles,
-			min_n_in_data_tiles,
-			min_n_stacks
-		);
+	/******************************************************************************************************
+	**
+	**  SP
+	**
+	*******************************************************************************************************/
 
-		mloAddConfig(
-			dev,
-			conf_key,
-			conf_val
-		);
-		// set the learnt data fo the current run.
-		mloSetConf(conf_val);
+	void mlo_construct_direct2D::getNewInputDescr(
+		std::string & layout,
+		std::string & data_type,
+		int &batch,
+		int &depth,
+		int &height,
+		int &width,
+		int &batch_stride,
+		int &channel_stride,
+		int &stride,
+		int &w_stride
+		)
+	{
+
+		layout = _in_layout;
+		data_type = _in_data_type;
+		batch = _batch_sz;
+		depth = _n_inputs;
+		height = _new_in_height;
+		width = _new_in_width;
+
+		batch_stride = _new_in_batch_stride;
+		channel_stride = _new_in_channel_stride;
+		stride = _new_in_stride;
+		w_stride = 1;
 
 	}
 
-	return(ret);
-}
 
-// Tensor Helper APIs
+	/*
+	* construct generic forward configuration
+	*/
+	int mlo_construct_direct2D::mloConstructSP2D(void)
+	{
 
-size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescriptor_t &weight_tensor) {
-	
-	int nWei;
-	int cWei;
-	int hWei;
-	int wWei;
-	int nWeiStride;
-	int cWeiStride;
-	int hWeiStride;
-	int wWeiStride;
 
-	std::tie(nWei, cWei, hWei, wWei) = tie4(weight_tensor->GetLengths());
-	std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) = tie4(weight_tensor->GetStrides());
+		_small = (_out_width < 48 || _out_height < 48);
 
-	setWeightsDescr(
+
+		//		if (_small)
+		{
+			_out_pix_tile0 = /*((_out_width / 8) * 8 == _out_width && _out_width >= 64) ? 8 : */
+				((_out_width / 4) * 4 == _out_width && _out_width >= 32) ? 4
+				: ((_out_width / 2) * 2 == _out_width && _out_width >= 16) ? 2
+				: 1; // # of generated pixels per output per wk-item  (ALU)
+			_out_pix_tile1 = /*((_out_height / 8) * 8 == _out_height && _out_height >= 64) ? 8 : */
+				((_out_height / 4) * 4 == _out_height && _out_height >= 32) ? 4
+				: ((_out_height / 2) * 2 == _out_height && _out_height >= 16) ? 2
+				: 1;
+			// # of generated pixels per output per wk-item  (ALU)
+			_grp_tile0 = 8;   // total number ALUs per group
+			_grp_tile1 = 8;   // total number ALUs per group
+			_n_out_pix_tiles = 8;
+		}
+
+	//	_grp_tile0 = 16;   // total number ALUs per group
+	//	_grp_tile1 = 16;   // total number ALUs per group
+	//	_out_pix_tile0 = 2; // # of generated pixels per output per wk-item  (ALU)
+	//	_out_pix_tile1 = 2;
+
+
+		_n_out_pix_tiles = std::min(_n_out_pix_tiles, _n_outputs);
+
+
+		int new_in_width = (_in_width < _out_width + _kernel_size0 - 1) ? _in_width + _kernel_size0 - 1
+			: (_pad0 > 0) ? (_pad0 * 2 + _in_width) : _in_width;
+		_new_in_width = ((new_in_width + _out_pix_tile0 - 1) / _out_pix_tile0) * _out_pix_tile0;
+
+		int new_in_height = (_in_height < _out_height + _kernel_size1 - 1) ? _in_height + _kernel_size1 - 1 :
+			(_pad1 > 0) ? (_pad1 * 2 + _in_height) : _in_height;
+		_new_in_height = ((new_in_height + _out_pix_tile1 - 1) / _out_pix_tile1) * _out_pix_tile1;
+
+		_copy_input = (_new_in_width != _in_width || _new_in_height != _in_height);
+
+		_new_in_stride =  _new_in_width;
+		_new_in_channel_stride = _new_in_stride * _new_in_height;
+		_new_in_batch_stride = _new_in_channel_stride * _n_inputs;
+
+
+		int data_len = (!_in_data_type.compare("FP32") ? 4 : 8);
+
+		_new_in_sz = _new_in_width *_new_in_height * data_len;
+
+
+		int g0 = ((_out_width + _out_pix_tile0 - 1) / _out_pix_tile0);
+		int g1 = ((_out_height + _out_pix_tile1 - 1) / _out_pix_tile1);
+
+
+		int n_out_blocks = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
+
+		int outputs_aligned = (n_out_blocks * _n_out_pix_tiles == _n_outputs) ? 1 : 0;
+
+		_comp_options =
+			std::string(" -D MLO_DIR_FORWARD=") + std::to_string((long long)_direction)
+			+ std::string(" -D MLO_GRP_SZ0=") + std::to_string((long long)_grp_tile0) // # of ALUs (group size)
+			+ std::string(" -D MLO_GRP_SZ1=") + std::to_string((long long)_grp_tile1) //
+			+ std::string(" -D MLO_GRP_SZ2=") + std::to_string((long long)1) //
+			+ std::string(" -D MLO_FILTER_SIZE0=") + std::to_string((long long)_kernel_size0)
+			+ std::string(" -D MLO_FILTER_SIZE1=") + std::to_string((long long)_kernel_size1)
+			+ std::string(" -D MLO_FILTER_PAD0=") + std::to_string((long long)_pad0)
+			+ std::string(" -D MLO_FILTER_PAD1=") + std::to_string((long long)_pad1)
+			+ std::string(" -D MLO_N_OUTPUTS=") + std::to_string((long long)_n_outputs)
+			+ std::string(" -D MLO_N_INPUTS=") + std::to_string((long long)_n_inputs)
+			+ std::string(" -D MLO_N_BATCHS=") + std::to_string((long long)_batch_sz)
+			+ std::string(" -D MLO_TOP_WIDTH=") + std::to_string((long long)_out_width)
+			+ std::string(" -D MLO_TOP_HEIGHT=") + std::to_string((long long)_out_height)
+			+ std::string(" -D MLO_TOP_BATCH_STRIDE=") + std::to_string((long long)_out_batch_stride)
+			+ std::string(" -D MLO_TOP_CHANNEL_STRIDE=") + std::to_string((long long)_out_channel_stride)
+			+ std::string(" -D MLO_TOP_STRIDE=") + std::to_string((long long)_out_stride)
+			+ std::string(" -D MLO_BOT_WIDTH=") + std::to_string((long long)_new_in_width)
+			+ std::string(" -D MLO_BOT_HEIGHT=") + std::to_string((long long)_new_in_height)
+			+ std::string(" -D MLO_BOT_BATCH_STRIDE=") + std::to_string((long long)_new_in_batch_stride)
+			+ std::string(" -D MLO_BOT_CHANNEL_STRIDE=") + std::to_string((long long)_new_in_channel_stride)
+			+ std::string(" -D MLO_BOT_STRIDE=") + std::to_string((long long)_new_in_stride)
+			+ std::string(" -D MLO_OUT_TILE0=") + std::to_string((long long)_out_pix_tile0)  // size of ouptput tile per wk-item (ALU))
+			+ std::string(" -D MLO_OUT_TILE1=") + std::to_string((long long)_out_pix_tile1)  //
+			+ std::string(" -D MLO_N_OUT_TILES=") + std::to_string((long long)_n_out_pix_tiles)  // # output pixel tiles per wk-item (ALU)
+			+ std::string(" -D MLO_CONV_BIAS=") + std::to_string((long long)_bias)
+			+ std::string(" -D MLO_OUT_ALIGNED=") + std::to_string((long long)outputs_aligned)
+			+ getGeneralCompOptions()
+			;
+
+		_kernel_file = "MlOpenConvDirUniSP.cl";
+		_kernel_name = "aDNNConvUniSP";
+
+		_l_wk.clear();
+		_l_wk.push_back(_grp_tile0);
+		_l_wk.push_back(_grp_tile1);
+		_l_wk.push_back(1);
+
+		_g_wk.push_back(g0);
+		_g_wk.push_back(g1);
+		_g_wk.push_back(n_out_blocks * _batch_sz);
+
+		return(0);
+
+	}
+
+
+	// Tensor Helper APIs
+
+	size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescriptor_t &weight_tensor) {
+
+		int nWei;
+		int cWei;
+		int hWei;
+		int wWei;
+		int nWeiStride;
+		int cWeiStride;
+		int hWeiStride;
+		int wWeiStride;
+
+		std::tie(nWei, cWei, hWei, wWei) = tie4(weight_tensor->GetLengths());
+		std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) = tie4(weight_tensor->GetStrides());
+
+		setWeightsDescr(
 			"NCHW",
 			"FP32",
 			nWei,
@@ -1552,29 +1755,29 @@ size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescrip
 			cWeiStride,
 			hWeiStride,
 			wWeiStride
-			);
+		);
 
-	size_t weights_sz = nWei * cWei * hWei * wWei * sizeof(float);
-	return weights_sz;
+		size_t weights_sz = nWei * cWei * hWei * wWei * sizeof(float);
+		return weights_sz;
 
-}
+	}
 
-size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescriptor_t &output_tensor) {
+	size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescriptor_t &output_tensor) {
 
-	int nOut;
-	int cOut;
-	int hOut;
-	int wOut;
-	int nOutStride;
-	int cOutStride;
-	int hOutStride;
-	int wOutStride;
+		int nOut;
+		int cOut;
+		int hOut;
+		int wOut;
+		int nOutStride;
+		int cOutStride;
+		int hOutStride;
+		int wOutStride;
 
-	std::tie(nOut, cOut, hOut, wOut) = tie4(output_tensor->GetLengths());
-	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(output_tensor->GetStrides());
+		std::tie(nOut, cOut, hOut, wOut) = tie4(output_tensor->GetLengths());
+		std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(output_tensor->GetStrides());
 
 
-	setOutputDescr(
+		setOutputDescr(
 			"NCHW",
 			"FP32",
 			nOut,
@@ -1587,26 +1790,26 @@ size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescrip
 			wOutStride);
 
 
-	size_t output_sz = nOut * cOut * hOut * wOut * sizeof(float);
-	return output_sz;
+		size_t output_sz = nOut * cOut * hOut * wOut * sizeof(float);
+		return output_sz;
 
-}
+	}
 
-size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopenTensorDescriptor_t &input_tensor) {
+	size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopenTensorDescriptor_t &input_tensor) {
 
-	int nIn;
-	int cIn;
-	int hIn;
-	int wIn;
-	int nInStride;
-	int cInStride;
-	int hInStride;
-	int wInStride;
+		int nIn;
+		int cIn;
+		int hIn;
+		int wIn;
+		int nInStride;
+		int cInStride;
+		int hInStride;
+		int wInStride;
 
-	std::tie(nIn, cIn, hIn, wIn) = tie4(input_tensor->GetLengths());
-	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(input_tensor->GetStrides());
+		std::tie(nIn, cIn, hIn, wIn) = tie4(input_tensor->GetLengths());
+		std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(input_tensor->GetStrides());
 
-	setInputDescr(
+		setInputDescr(
 			"NCHW",
 			"FP32",
 			nIn,
@@ -1618,7 +1821,7 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopenTensorDescript
 			hInStride,
 			wInStride);
 
-	size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
+		size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
 
-	return input_sz;
-}
+		return input_sz;
+	}
