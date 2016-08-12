@@ -262,7 +262,7 @@ std::vector<T> forward_conv(const tensor<T>& input, const tensor<T>& weights, co
 }
 
 template<class T>
-std::vector<T> forward_conv(mlopen::Context& handle, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int bias = 0)
+std::vector<T> forward_conv(mlopen::Handle& handle, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int bias = 0)
 {
     auto out = get_output_tensor(filter, input, weights);
 
@@ -332,7 +332,7 @@ float accumulate_difference(R1&& r1, R2&& r2, Op op)
 }
 
 template<class T>
-void verify_forward_conv(mlopen::Context& handle, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int bias = 0)
+void verify_forward_conv(mlopen::Handle& handle, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int bias = 0)
 {
     auto out_cpu = forward_conv(input, weights, filter, bias);
     auto out_gpu = forward_conv(handle, input, weights, filter, bias);
@@ -374,7 +374,7 @@ template<class T>
 struct verify_both
 {
     template<class G1, class G2>
-    void operator()(mlopen::Context& handle, G1 g1, G2 g2) const
+    void operator()(mlopen::Handle& handle, G1 g1, G2 g2) const
     {
         visit_network<T>([&](mlopen::TensorDescriptor input_desc, mlopen::TensorDescriptor weights_desc)
         {
@@ -391,7 +391,7 @@ struct verify_both
 };
 
 template<class T, class... Gs>
-void verify_all(mlopen::Context& handle, Gs... gs)
+void verify_all(mlopen::Handle& handle, Gs... gs)
 {
     cross_args(
         std::bind(verify_both<T>{}, std::ref(handle), std::placeholders::_1, std::placeholders::_2), 
@@ -399,7 +399,7 @@ void verify_all(mlopen::Context& handle, Gs... gs)
 }
 
 template<class T, class G>
-void verify_one(mlopen::Context& handle, G g)
+void verify_one(mlopen::Handle& handle, G g)
 {
     auto input = tensor<T>{16, 32, 8, 8}.generate(g);
     auto weights = tensor<T>{64, 32, 5, 5}.generate(g);
@@ -408,7 +408,7 @@ void verify_one(mlopen::Context& handle, G g)
 }
 
 int main() {
-    mlopen::Context handle;
+    mlopen::Handle handle;
     auto g0 = [](int, int, int, int) { return 0; };
     auto g1 = [](int, int, int, int) { return 1; };
     auto g_id = [](int n, int c, int h, int w) { return h == w ? 1 : 0; };

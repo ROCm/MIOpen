@@ -52,7 +52,7 @@ set( MLOpen_Source
 	include/mlopen/common.hpp
 	include/mlopen/convolution.hpp
 	include/mlopen/errors.hpp
-	include/mlopen/context.hpp
+	include/mlopen/handle.hpp
 	include/mlopen/kernel_cache.hpp
 	include/mlopen/mlo_internal.hpp
 	include/mlopen/mlo_utils.hpp

@@ -1,4 +1,4 @@
-#include <mlopen/context.hpp>
+#include <mlopen/handle.hpp>
 #include <mlopen/errors.hpp>
 #include <cstdio>
 
@@ -9,10 +9,10 @@ mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 
 	return mlopen::try_([&] {
 		if(numStreams != 0) {
-			mlopen::deref(handle) = new mlopen::Context(numStreams, streams);
+			mlopen::deref(handle) = new mlopen::Handle(numStreams, streams);
 		}
 		else {
-			mlopen::deref(handle) = new mlopen::Context();
+			mlopen::deref(handle) = new mlopen::Handle();
 		}
 	});
 }

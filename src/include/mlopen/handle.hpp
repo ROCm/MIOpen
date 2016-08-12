@@ -12,13 +12,13 @@
 
 namespace mlopen {
 
-struct ContextImpl;
+struct HandleImpl;
 
-struct Context : mlopenHandle {
+struct Handle : mlopenHandle {
 	
-	Context();
-	Context(int numStreams, mlopenAcceleratorQueue_t *streams);
-	~Context();
+	Handle();
+	Handle(int numStreams, mlopenAcceleratorQueue_t *streams);
+	~Handle();
 
 	mlopenAcceleratorQueue_t GetStream() const;
 
@@ -67,11 +67,11 @@ struct Context : mlopenHandle {
     	return result;
     }
 
-	std::unique_ptr<ContextImpl> impl;
+	std::unique_ptr<HandleImpl> impl;
 	
 };
 }
-MLOPEN_DEFINE_OBJECT(mlopenHandle, mlopen::Context);
+MLOPEN_DEFINE_OBJECT(mlopenHandle, mlopen::Handle);
 
 
 #endif // GUARD_MLOPEN_CONTEXT_HPP_

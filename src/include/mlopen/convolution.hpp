@@ -2,7 +2,7 @@
 #define GUARD_MLOPEN_CONVOLUTION_HPP_
 
 #include <mlopen.h>
-#include <mlopen/context.hpp>
+#include <mlopen/handle.hpp>
 #include <mlopen/tensor.hpp>
 #include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
@@ -17,7 +17,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& inputTensorDesc, const TensorDescriptor& filterDesc) const;
 	TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& inputTensorDesc, const TensorDescriptor& filterDesc) const;
 
-	mlopenStatus_t FindConvFwdAlgorithm(mlopen::Context& handle,
+	mlopenStatus_t FindConvFwdAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	xDesc,
 		const Data_t					x,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -32,7 +32,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
-	mlopenStatus_t ConvolutionForward(mlopen::Context& handle,
+	mlopenStatus_t ConvolutionForward(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		xDesc,
 		const Data_t						x,
@@ -45,7 +45,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		void								*workSpace,
 		size_t								workSpaceSize) const;
 
-	mlopenStatus_t FindConvBwdDataAlgorithm(mlopen::Context& handle,
+	mlopenStatus_t FindConvBwdDataAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	dyDesc,
 		const Data_t					dy,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -60,7 +60,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
-	mlopenStatus_t ConvolutionBackwardData(mlopen::Context& handle,
+	mlopenStatus_t ConvolutionBackwardData(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		dyDesc,
 		const Data_t						dy,
