@@ -3,7 +3,7 @@
 
 namespace mlopen {
 
-mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	xDesc,
 		const cl_mem					x,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -33,10 +33,6 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 	// Generate kernels if OpenCL
 	// Compile, cache kernels, etc.
 	// Launch all kernels and store the perf, workspace limits, etc.
-	size_t input_sz = 0;
-	size_t output_sz = 0;
-	size_t weights_sz = 0;
-
 	mlo_construct_direct2D construct_params(1); // forward
 	{
 		construct_params.setTimerIter(100);
@@ -49,21 +45,13 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 
 		construct_params.setKernelPath(kernel_path);
 
-		std::string generic_comp_otions;
-//		if (debug)
-		{
-			// generic_comp_otions += std::string(" -cl-std=CL2.0 ");
-		}
+		construct_params.setGeneralCompOptions("");
 
-		construct_params.setGeneralCompOptions(generic_comp_otions);
+		construct_params.setStream(handle.GetStream());
 
-		mlopenAcceleratorQueue_t queue = handle.GetStream();
-
-		construct_params.setStream(queue);
-
-		output_sz = construct_params.setOutputDescFromMLDesc(yDesc);
-		input_sz = construct_params.setInputDescFromMLDesc(xDesc);
-		weights_sz = construct_params.setWeightDescFromMLDesc(wDesc);
+		construct_params.setOutputDescFromMLDesc(yDesc);
+		construct_params.setInputDescFromMLDesc(xDesc);
+		construct_params.setWeightDescFromMLDesc(wDesc);
 
 		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
@@ -76,48 +64,26 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
-	// Get the queue associated with this handle
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	// Compile the kernel if not aleady compiled
-	OCLKernel obj = KernelCache::get(queue, 
-			"mlopenConvolutionFwdAlgoDirect",
+	float padding_val = 0;
+	handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
 			network_config,
 			program_name, 
 			kernel_name,
 			vld,
 			vgd,
-			parms);
-
-	cl_int status;
-
-	std::string kernName;
-	obj.GetKernelName(kernName);
-
-	printf("kname: %s\n", kernName.c_str());
-
-	// Set kernel arguments
-	// Use proper arguments
-	float padding_val = 0;
-	obj.SetArgs(0, x, w, y, padding_val);
-
-	int dim = (int)vld.size();
+			parms)(x, w, y, padding_val);
 	
-	// Run the kernel
-	obj.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
-	
-	clFinish(queue);
-
-	std::cout << "Find Forward Convolution Finished !!" << std::endl;
+	handle.Finish();
 
 	return mlopenStatusSuccess;
 
 }
 
-mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		xDesc,
 		const cl_mem						x,
@@ -147,60 +113,35 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle
 	}
 	
 	// TODO: Replicating code for now.
-	size_t input_sz = 0;
-	size_t output_sz = 0;
-	size_t weights_sz = 0;
-	
 	mlo_construct_direct2D construct_params(1); // forward
 	{
-		output_sz = construct_params.setOutputDescFromMLDesc(yDesc);
-		input_sz = construct_params.setInputDescFromMLDesc(xDesc);
-		weights_sz = construct_params.setWeightDescFromMLDesc(wDesc);
+		construct_params.setOutputDescFromMLDesc(yDesc);
+		construct_params.setInputDescFromMLDesc(xDesc);
+		construct_params.setWeightDescFromMLDesc(wDesc);
 	}
 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
-	// Get the queue associated with this handle
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
-	OCLKernel kernel;
+	std::string algorithm_name;
 	switch(algo) {
 		case mlopenConvolutionFwdAlgoDirect:
-			 // Compile the kernel if not aleady compiled
-			 kernel = KernelCache::get( "mlopenConvolutionFwdAlgoDirect",
-					 network_config);
-		break;
-
+			algorithm_name = "mlopenConvolutionFwdAlgoDirect";
+			break;
+		case mlopenConvolutionFwdAlgoGEMM:
+			algorithm_name = "mlopenConvolutionFwdAlgoGEMM";
+			break;
+		case mlopenConvolutionFwdAlgoFFT:
+			algorithm_name = "mlopenConvolutionFwdAlgoFFT";
+			break;
+		case mlopenConvolutionFwdAlgoWinograd:
+			algorithm_name = "mlopenConvolutionFwdAlgoWinograd";
+			break;
 	}
-	cl_int status;
 
-	std::string kernName;
-	kernel.GetKernelName(kernName);
-
-	printf("kname: %s\n", kernName.c_str());
-
-	// Set kernel arguments
-	// Use proper arguments
 	float padding_val = 0;
-	kernel.SetArgs(0, x, w, y, padding_val);
-
-	const std::vector<size_t> & vld = kernel.GetLocalDims();
-	const std::vector<size_t> & vgd = kernel.GetGlobalDims();
-
-	int dim = (int)vld.size();
-	cl_event e;
-	// Run the kernel
-	kernel.run(queue, dim, 0, vgd.data(), vld.data(), &e);
-	
-	clFinish(queue);
-	size_t st, end;
-	clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, NULL);
-	clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, NULL);
-
-	float kernel_time = (end-st)*1e-6;
-	printf("Kernel Time (ms): %f\n", kernel_time);
-
-	std::cout << "Run Forward Convolution Finished !!" << std::endl;
+	handle.GetKernel(algorithm_name, network_config)(x, w, y, padding_val);
+	handle.Finish();
 
 	return mlopenStatusSuccess;
 
@@ -208,7 +149,7 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle
 
 // FindBackwardDataAlgorithm()
 //
-mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	dyDesc,
 		const cl_mem					dy,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -238,10 +179,6 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 	// Generate kernels if OpenCL
 	// Compile, cache kernels, etc.
 	// Launch all kernels and store the perf, workspace limits, etc.
-	size_t input_sz = 0;
-	size_t output_sz = 0;
-	size_t weights_sz = 0;
-
 	mlo_construct_direct2D construct_params(0); // backward
 	{
 		construct_params.setTimerIter(100);
@@ -254,21 +191,13 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 
 		construct_params.setKernelPath(kernel_path);
 
-		std::string generic_comp_otions;
-//		if (debug)
-		{
-			// generic_comp_otions += std::string(" -cl-std=CL2.0 ");
-		}
+		construct_params.setGeneralCompOptions("");
 
-		construct_params.setGeneralCompOptions(generic_comp_otions);
+		construct_params.setStream(handle.GetStream());
 
-		mlopenAcceleratorQueue_t queue = handle.GetStream();
-
-		construct_params.setStream(queue);
-
-		output_sz = construct_params.setOutputDescFromMLDesc(dxDesc);
-		input_sz = construct_params.setInputDescFromMLDesc(dyDesc);
-		weights_sz = construct_params.setWeightDescFromMLDesc(wDesc);
+		construct_params.setOutputDescFromMLDesc(dxDesc);
+		construct_params.setInputDescFromMLDesc(dyDesc);
+		construct_params.setWeightDescFromMLDesc(wDesc);
 
 		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
@@ -281,49 +210,27 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
-	// Get the queue associated with this handle
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	// Compile the kernel if not aleady compiled
-	OCLKernel obj = KernelCache::get(queue, 
-			"mlopenConvolutionBwdDataAlgo_0",
+	float padding_val = 0;
+	handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
 			network_config,
 			program_name, 
 			kernel_name,
 			vld,
 			vgd,
-			parms);
-
-	cl_int status;
-
-	std::string kernName;
-	obj.GetKernelName(kernName);
-
-	printf("kname: %s\n", kernName.c_str());
-
-	// Set kernel arguments
-	// Use proper arguments
-	float padding_val = 0;
-	obj.SetArgs(0, dy, w, dx, padding_val);
-
-	int dim = (int)vld.size();
+			parms)(dy, w, dx, padding_val);
 	
-	// Run the kernel
-	obj.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
-	
-	clFinish(queue);
-
-	std::cout << "Find Backward Data Finished !!" << std::endl;
+	handle.Finish();
 
 	return mlopenStatusSuccess;
 
 }
 
 // BackwardDataAlgorithm()
-mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		dyDesc,
 		const cl_mem						dy,
@@ -353,57 +260,28 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Context& h
 	}
 
 	// TODO: Replicating code for now.
-	size_t input_sz = 0;
-	size_t output_sz = 0;
-	size_t weights_sz = 0;
-	
 	mlo_construct_direct2D construct_params(0); // backward
 	{
-		output_sz = construct_params.setOutputDescFromMLDesc(dxDesc);
-		input_sz = construct_params.setInputDescFromMLDesc(dyDesc);
-		weights_sz = construct_params.setWeightDescFromMLDesc(wDesc);
+		construct_params.setOutputDescFromMLDesc(dxDesc);
+		construct_params.setInputDescFromMLDesc(dyDesc);
+		construct_params.setWeightDescFromMLDesc(wDesc);
 	}
 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
-	// Get the queue associated with this handle
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
-	OCLKernel kernel;
+	std::string algorithm_name;
 	switch(algo) {
 		case mlopenConvolutionBwdDataAlgo_0:
-			 // Compile the kernel if not aleady compiled
-			 kernel = KernelCache::get( "mlopenConvolutionBwdDataAlgo_0",
-					 network_config);
-//			 if(!kernel) {printf("kenrel not found in hash table\n");
+			 algorithm_name = "mlopenConvolutionBwdDataAlgo_0";
 		break;
 		default:
 			printf("Algorithm not found\n");
 		break;
-
 	}
-	cl_int status;
-
-	std::string kernName;
-	kernel.GetKernelName(kernName);
-
-	printf("kname: %s\n", kernName.c_str());
-
-	// Set kernel arguments
-	// Use proper arguments
 	float padding_val = 0;
-	kernel.SetArgs(0, dy, w, dx, padding_val);
-
-	const std::vector<size_t> & vld = kernel.GetLocalDims();
-	const std::vector<size_t> & vgd = kernel.GetGlobalDims();
-
-	int dim = (int)vld.size();
-	// Run the kernel
-	kernel.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
-	
-	clFinish(queue);
-
-	std::cout << "Run Backward Data Finished !!" << std::endl;
+	handle.GetKernel(algorithm_name, network_config)(dy, w, dx, padding_val);
+	handle.Finish();
 
 	return mlopenStatusSuccess;
 

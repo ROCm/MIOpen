@@ -52,6 +52,12 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
 		mlopenAcceleratorQueue_t				*streamId,
 		int							numStream = 0);
 
+// Get time for last kernel launched
+MLOPEN_EXPORT mlopenStatus_t mlopenGetKernelTime(mlopenHandle_t handle, float* time);
+// Enable profiling to retrieve time
+MLOPEN_EXPORT mlopenStatus_t mlopenEnableProfiling(mlopenHandle_t handle, bool enable);
+
+
 MLOPEN_DECLARE_OBJECT(mlopenTensorDescriptor);
 MLOPEN_DECLARE_OBJECT(mlopenConvolutionDescriptor);
 

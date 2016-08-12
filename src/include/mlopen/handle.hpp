@@ -4,6 +4,7 @@
 #include <mlopen.h>
 #include <mlopen/object.hpp>
 #include <mlopen/common.hpp>
+#include <mlopen/kernel.hpp>
 #include <vector>
 #include <cstdio>
 #include <cstring>
@@ -11,15 +12,34 @@
 
 namespace mlopen {
 
-struct ContextImpl;
+struct HandleImpl;
 
-struct Context : mlopenHandle {
+struct Handle : mlopenHandle {
 	
-	Context();
-	Context(int numStreams, mlopenAcceleratorQueue_t *streams);
-	~Context();
+	Handle();
+	Handle(int numStreams, mlopenAcceleratorQueue_t *streams);
+	~Handle();
 
-	mlopenAcceleratorQueue_t GetStream();
+	mlopenAcceleratorQueue_t GetStream() const;
+
+    void EnableProfiling(bool enable=true);
+
+    float GetKernelTime() const;
+
+    KernelInvoke GetKernel(
+            const std::string& algorithm,
+            const std::string& network_config,
+            const std::string& program_name,
+            const std::string& kernel_name,
+            const std::vector<size_t>& vld,
+            const std::vector<size_t>& vgd,
+            const std::string& params);
+
+    KernelInvoke GetKernel(
+        const std::string& algorithm,
+        const std::string& network_config);
+
+    void Finish() const;
 
 	ManageDataPtr Create(int sz);
 	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, int sz);
@@ -47,11 +67,11 @@ struct Context : mlopenHandle {
     	return result;
     }
 
-	std::unique_ptr<ContextImpl> impl;
+	std::unique_ptr<HandleImpl> impl;
 	
 };
 }
-MLOPEN_DEFINE_OBJECT(mlopenHandle, mlopen::Context);
+MLOPEN_DEFINE_OBJECT(mlopenHandle, mlopen::Handle);
 
 
 #endif // GUARD_MLOPEN_CONTEXT_HPP_
