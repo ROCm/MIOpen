@@ -230,7 +230,7 @@ int mloPoolingBackwardRunHost(
 			int  top_df_off = b * top_df_batch_stride + o * top_df_channel_stride;
 			int  top_off = b * top_batch_stride + o * top_channel_stride;
 
-			if (pooling_method == ADNN_POOLING_MAX)
+			if (pooling_method == MLO_POOLING_OP_MAX)
 			{
 				memset(&bot_df_v_ptr[bot_df_v_off], 0, bot_height * bot_df_v_stride * sizeof(_T));
 				for (int j = 0; j < top_height; j++)
@@ -268,7 +268,7 @@ int mloPoolingBackwardRunHost(
 				}
 
 			}
-			else if (pooling_method == ADNN_POOLING_AVE)
+			else if (pooling_method == MLO_POOLING_OP_AVE)
 			{
 
 				for (int j = 0; j < bot_height; j++)
@@ -276,7 +276,7 @@ int mloPoolingBackwardRunHost(
 					for (int i = 0; i < bot_width; i++)
 					{
 						// c-emulator
-						aDType res = 0;
+						_T res = 0;
 
 						res = 0;
 						bot_df_v_ptr[bot_df_v_off + j * bot_df_v_stride + i] = 0;
@@ -286,7 +286,7 @@ int mloPoolingBackwardRunHost(
 						int phend = std::min(h / stride1 + 1, top_height);
 						int pwstart = (w < kernel_size0) ? 0 : (w - kernel_size0) / stride0 + 1;
 						int pwend = std::min(w / stride0 + 1, top_width);
-						aDType gradient = 0;
+						_T gradient = 0;
 						for (int ph = phstart; ph < phend; ++ph) {
 							for (int pw = pwstart; pw < pwend; ++pw) {
 								// figure out the pooling size
