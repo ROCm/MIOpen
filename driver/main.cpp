@@ -66,7 +66,6 @@ int main(int argc, char* argv[]) {
 		mlopenPoolingDescriptor_t poolDesc;
 
 		std::unique_ptr<GPUMem> in_dev;
-		std::unique_ptr<GPUMem> wei_dev;
 		std::unique_ptr<GPUMem> out_dev;
 
 		std::vector<float> in;
@@ -82,7 +81,7 @@ int main(int argc, char* argv[]) {
 
 		mlopenCreatePoolingDescriptor(&poolDesc);
 
-		mlopenPoolingMode_t	mode = mlopenPoolingMax;
+		mlopenPoolingMode_t	mode = mlopenPoolingMax; //mlopenPoolingAverageIncludePadding; // mlopenPoolingMax;
 		int	windowHeight = 3;
 		int	windowWidth = 3;
 		int	pad_h = 1;
@@ -134,7 +133,7 @@ int main(int argc, char* argv[]) {
 
 		if (status != CL_SUCCESS)
 			printf("Error copying data to GPU\n");
-
+// forward
 		float alpha = 1., beta = 1.;
 		mlopenPoolingForward(handle, poolDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
 
@@ -189,6 +188,131 @@ int main(int argc, char* argv[]) {
 				);
 
 		}
+// backward
+		mlopenTensorDescriptor_t dInputTensor;
+		mlopenTensorDescriptor_t dOutputTensor;
+
+		std::unique_ptr<GPUMem> din_dev;
+		std::unique_ptr<GPUMem> dout_dev;
+
+		std::vector<float> din;
+		std::vector<float> dout;
+		std::vector<float> dinhost;
+
+		mlopenCreateTensorDescriptor(&dInputTensor);
+		mlopenCreateTensorDescriptor(&dOutputTensor);
+		mlopenSet4dTensorDescriptor(
+			dInputTensor,
+			mlopenFloat,
+			UNPACK_VEC4(in_len));
+
+		mlopenSet4dTensorDescriptor(
+			dOutputTensor,
+			mlopenFloat,
+			UNPACK_VEC4(out_pooling_len));
+
+		din_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
+		dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+
+		din = std::vector<float>(in_sz);
+		dout = std::vector<float>(out_sz, 0);
+		dinhost = std::vector<float>(in_sz, 0);
+
+
+		for (int i = 0; i < out_sz; i++) {
+			dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+		}
+
+		status = din_dev->ToGPU(q, din.data());
+		status |= dout_dev->ToGPU(q, dout.data());
+		if (status != CL_SUCCESS)
+			printf("Error copying data to GPU\n");
+
+
+		status = mlopenPoolingBackward(handle,
+			poolDesc,
+			&alpha,
+			outputTensor,
+			out_dev->GetMem(),
+			dOutputTensor,
+			dout_dev->GetMem(),
+			inputTensor,
+			in_dev->GetMem(),
+			&beta,
+			dInputTensor,
+			din_dev->GetMem());
+
+		// verification
+		{
+			int nInStride, cInStride, hInStride, wInStride;
+			mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
+			int nIn, cIn, hIn, wIn;
+			mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+			int nOutStride, cOutStride, hOutStride, wOutStride;
+			mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
+			int nOut, cOut, hOut, wOut;
+			mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+
+			int ndInStride, cdInStride, hdInStride, wdInStride;
+			mlopenGet4dTensorDescriptorStrides(dInputTensor, &ndInStride, &cdInStride, &hdInStride, &wdInStride);
+			int ndIn, cdIn, hdIn, wdIn;
+			mlopenGet4dTensorDescriptorLengths(dInputTensor, &ndIn, &cdIn, &hdIn, &wdIn);
+			int ndOutStride, cdOutStride, hdOutStride, wdOutStride;
+			mlopenGet4dTensorDescriptorStrides(dOutputTensor, &ndOutStride, &cdOutStride, &hdOutStride, &wdOutStride);
+			int ndOut, cdOut, hdOut, wdOut;
+			mlopenGet4dTensorDescriptorLengths(dOutputTensor, &ndOut, &cdOut, &hdOut, &wdOut);
+
+
+			mlopenPoolingMode_t	mode;
+			int	windowHeight;
+			int	windowWidth;
+			int	pad_h;
+			int	pad_w;
+			int	u;
+			int	v;
+			mlopenGet2dPoolingDescriptor(poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
+
+			int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+
+
+
+			status = mloPoolingBackwardRunHost<float>(
+				pooling_method,
+				pad_h,
+				u,
+				windowHeight,
+				pad_w,
+				v,
+				windowWidth,
+// host output
+				dinhost.data(),
+				dout.data(),
+				in.data(),
+				out.data(),
+				ndInStride,
+				cdInStride,
+				hdInStride,
+				nInStride,
+				cInStride,
+				hInStride,
+				wIn,
+				hIn,
+				cOut,
+				nOut,
+				ndOutStride,
+				cdOutStride,
+				hdOutStride,
+				wOut,
+				hOut,
+				nOutStride,
+				cOutStride,
+				hOutStride
+				);
+
+			status = din_dev->FromGPU(q, din.data());
+
+		}
+
 	}
 	return 0;
 }
