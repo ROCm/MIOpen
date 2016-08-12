@@ -20,11 +20,18 @@
 #include <iostream>
 #include <iterator>
 
+namespace mlopen {
+
 KernelCache KernelCache::singleton;
 
 KernelCache::KernelCache()
 {
     //we can add sth here which can be shared among all kernels;
+}
+
+void KernelCache::clear()
+{
+    getInstance().kernel_map.clear();
 }
 
 OCLKernel KernelCache::get(cl_command_queue &queue,
@@ -160,4 +167,6 @@ mlopenStatus_t KernelCache::getProgram(cl_program &program,
 KernelCache& KernelCache::getInstance()
 {
     return singleton;
+}
+
 }
