@@ -25,7 +25,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #define _USE_MATH_DEFINES
 #ifdef __APPLE__
- #include <mach/mach_time.h>  // for mlopen_mach_absolute_time() and friends
+ #include <mach/mach_time.h>  // for mach_absolute_time() and friends
  #include <OpenCL/opencl.h>
 #else
  #include <CL/opencl.h>
@@ -103,13 +103,29 @@ Include CLBLAS header.
 #include "OCLKernel.hpp"
 #include "OCL/CLHelper.hpp"
 #include "Tensor.hpp"
-
 class mlo_construct_direct2D {
 public:
 
 	mlo_construct_direct2D(int dir, bool do_bias = false)
 	{
 		_direction = dir;
+#if !(defined(__APPLE__) || defined(__MACOSX))
+		_gen_comp_options = std::string(" -cl-std=CL2.0 ");
+#endif
+		int in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
+		int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
+
+		int grp_tile0 = in_tile0;
+		int grp_tile1 = in_tile1;
+
+		int out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
+		int out_pix_tile1 = 4; //
+
+
+		int n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
+		int n_in_data_tiles = 4; // # of blocks of different inputs in LDS
+
+		int n_stacks = 1; // # of diff stacks (part of batch).
 		_bias = (do_bias) ? 1 : 0;
 		_pad0 = 1;
 		_pad1 = 1;
@@ -117,8 +133,24 @@ public:
 		_kernel_size1 = 3;
 		_kernel_stride0 = 1;
 		_kernel_stride1 = 1;
+		_stream = NULL;
+		_bot_sz = 0; // bytes
+		_top_sz = 0; // bytes
+		_weights_sz = 0; // bytes
+		_bias_sz = 0; // bytes
+
+		_workspce_sz = 0;
+
+		_small = true;
+		_copy_input = false;
+		_new_in_width = 0;
+		_new_in_height = 0;
+		_new_in_sz = 0;
+
 	}
 
+	virtual ~mlo_construct_direct2D(void)
+	{}
 	/*
 	* major interface
 	* it has to be called only after
@@ -130,7 +162,7 @@ public:
 	* covers genrinc forward convolution:
 	* arbitrary combination of kerenl sizes, strides
 	*/
-	int mloConstructDirect2D(void);
+	virtual int mloConstruct(void);
 
 
 	/*
@@ -235,6 +267,36 @@ public:
 		return(_g_wk);
 	}
 
+	/*
+	* get common compiler options
+	*/
+	inline const std::string & getGeneralCompOptions(void) const
+	{
+		return(_gen_comp_options);
+	}
+	/*
+	* return direction: true - forward, false - backward
+	*/
+	inline bool getDirectcion(void) const
+	{
+		return(_direction == 1);
+	}
+
+	/*
+	* get workspace size
+	*/
+	inline size_t getWorkSpaceSzBytes(void) const
+	{
+		return(_workspce_sz);
+	}
+	/*
+	*  is bias incuded
+	*/
+
+	inline bool doBias(void) const
+	{
+		return(_bias == 1);
+	}
 
 	/*
 	* set a number of iteration for thwe wall clock performance meaturement
@@ -346,8 +408,8 @@ public:
 			_bot_sz = size;
 			_in_layout = layout;
 			_in_data_type = data_type;
-			_tens_layout = layout;
-			_tens_data_format = data_type;
+//			_tens_layout = layout;
+//			_tens_data_format = data_type;
 
 		}
 	}
@@ -384,8 +446,8 @@ public:
 			_bot_sz = size;
 			_in_layout = layout;
 			_in_data_type = data_type;
-			_tens_layout = layout;
-			_tens_data_format = data_type;
+//			_tens_layout = layout;
+//			_tens_data_format = data_type;
 
 		}
 		else
@@ -402,6 +464,140 @@ public:
 		}
 
 		_bias_sz = (_bias) ? _n_outputs * data_len : 0; 
+	}
+
+
+	/*
+	* set top tensor
+	*/
+	void setTopDescr(
+		const std::string & layout,
+		const std::string & data_type,
+		int batch,
+		int depth,
+		int height,
+		int width,
+		int batch_stride,
+		int channel_stride,
+		int stride,
+		int w_stride
+		)
+	{
+		_batch_sz = batch;
+		int data_len = (!data_type.compare("FP32") ? 4 : 8);
+		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+
+			_out_width = width;
+			_out_height = height;
+			_n_outputs = depth;
+			_out_batch_stride = batch_stride;
+			_out_channel_stride = channel_stride;
+			_out_stride = stride;
+			_top_sz = size;
+			_out_layout = layout;
+			_out_data_type = data_type;
+			_bias_sz = (_bias) ? _n_outputs * data_len : 0;
+
+	}
+
+	/*
+	*  set bot tensor
+	*/
+
+	void setBotDescr(
+		const std::string & layout,
+		const std::string & data_type,
+		int batch,
+		int depth,
+		int height,
+		int width,
+		int batch_stride,
+		int channel_stride,
+		int stride,
+		int w_stride
+		)
+	{
+		_batch_sz = batch;
+		int data_len = (!data_type.compare("FP32") ? 4 : 8);
+		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+
+			_in_width = width;
+			_in_height = height;
+			_n_inputs = depth;
+			_in_batch_stride = batch_stride;
+			_in_channel_stride = channel_stride;
+			_in_stride = stride;
+			_bot_sz = size;
+			_in_layout = layout;
+			_in_data_type = data_type;
+//			_tens_layout = layout;
+//			_tens_data_format = data_type;
+
+	}
+
+	/*
+	* set top df tensor
+	*/
+	void setTopDfDescr(
+		const std::string & layout,
+		const std::string & data_type,
+		int batch,
+		int depth,
+		int height,
+		int width,
+		int batch_stride,
+		int channel_stride,
+		int stride,
+		int w_stride
+		)
+	{
+		_batch_sz = batch;
+		int data_len = (!data_type.compare("FP32") ? 4 : 8);
+		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+
+		_out_df_width = width;
+		_out_df_height = height;
+		_n_outputs = depth;
+		_out_df_batch_stride = batch_stride;
+		_out_df_channel_stride = channel_stride;
+		_out_df_stride = stride;
+		_top_df_sz = size;
+		_out_df_layout = layout;
+		_out_df_data_type = data_type;
+
+	}
+
+	/*
+	*  set bot df tensor
+	*/
+
+	void setBotDfDescr(
+		const std::string & layout,
+		const std::string & data_type,
+		int batch,
+		int depth,
+		int height,
+		int width,
+		int batch_stride,
+		int channel_stride,
+		int stride,
+		int w_stride
+		)
+	{
+		_batch_sz = batch;
+		int data_len = (!data_type.compare("FP32") ? 4 : 8);
+		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+
+		_in_df_width = width;
+		_in_df_height = height;
+		_n_inputs = depth;
+		_in_df_batch_stride = batch_stride;
+		_in_df_channel_stride = channel_stride;
+		_in_df_stride = stride;
+		_bot_df_sz = size;
+		_in_df_layout = layout;
+		_in_df_data_type = data_type;
+
 	}
 
 	/*
@@ -431,35 +627,52 @@ public:
 	*/
 	inline void setGeneralCompOptions(const std::string & options)
 	{
-		_gen_comp_options = options;
+		_gen_comp_options += options;
 	}
 
-	/*
-	* get common compiler options
-	*/
-	inline const std::string & getGeneralCompOptions(void) const
-	{
-		return(_gen_comp_options);
-	}
-	/*
-	* return direction: true - forward, false - backward
-	*/
-	inline bool getDirectcion(void) const
-	{
-		return(_direction == 1);
-	}
 
 	// MD: Hack to get the key outside of mlo_internal
 	int mloBuildConf_Key(std::string & conf_key) const;
+
+	inline bool doCopyInput(void) const
+	{
+		return(_copy_input);
+	}
+
+	void getNewInputDescr(
+		std::string & layout,
+		std::string & data_type,
+		int &batch,
+		int &depth,
+		int &height,
+		int &width,
+		int &batch_stride,
+		int &channel_stride,
+		int &stride,
+		int &w_stride
+		);
+// TEMP
+	int mloConstructSP2D(void);
+
 	size_t setInputDescFromMLDesc(const mlopenTensorDescriptor_t &input_tensor);
 	size_t setOutputDescFromMLDesc(const mlopenTensorDescriptor_t &output_tensor);
 	size_t setWeightDescFromMLDesc(const mlopenTensorDescriptor_t &weight_tensor);
+
 protected:
 
 	bool mloGetConfig(void);
 	int mloSearchDirect2D(void);
 	int mloConstructDirect2DFwd(void);
 	int mloConstructDirect2DFwdGen(void);
+	int mloConstructBwd(void)
+	{
+		return(0);
+	}
+	int mloConstructFwd(void)
+	{
+		return(0);
+	}
+
 
 	int mloSetConf(const std::string & conf_val);
 
@@ -493,6 +706,8 @@ protected:
 		) const;
 
 	int mloMeasuredLoop(
+		cl_context ctxt,
+		cl_device_id dev,
 		cl_command_queue profile_q,
 		cl_mem bot_ocl_buf,
 		cl_mem top_ocl_buf,
@@ -513,6 +728,7 @@ protected:
 	int _n_outputs;
 	int _n_inputs;
 	int _batch_sz;
+
 	int _out_width;
 	int _out_height;
 	int _out_batch_stride;
@@ -520,6 +736,7 @@ protected:
 	int _out_stride;
 	std::string _out_layout;
 	std::string _out_data_type;
+
 	int _in_width;
 	int _in_height;
 	int _in_batch_stride;
@@ -527,14 +744,43 @@ protected:
 	int _in_stride;
 	std::string _in_layout;
 	std::string _in_data_type;
+
+	int _in_df_width;
+	int _in_df_height;
+	int _in_df_batch_stride;
+	int _in_df_channel_stride;
+	int _in_df_stride;
+	std::string _in_df_layout;
+	std::string _in_df_data_type;
+
+
+	int _out_df_width;
+	int _out_df_height;
+	int _out_df_batch_stride;
+	int _out_df_channel_stride;
+	int _out_df_stride;
+	std::string _out_df_layout;
+	std::string _out_df_data_type;
+
+// SP
+
+	bool _small;
+	bool _copy_input;
+	int _new_in_height;
+	int _new_in_width;
+	int _new_in_batch_stride;
+	int _new_in_channel_stride;
+	int _new_in_stride;
+	size_t _new_in_sz;
+
 	// FIX IT
 //	int _weights_height;
 //	int _weights_stride;
 	std::string _weights_layout;
 	std::string _weight_data_type;
 	// 
-	std::string _tens_layout;
-	std::string _tens_data_format;
+//	std::string _tens_layout;
+//	std::string _tens_data_format;
 
 	int _in_tile0;     // size of in-tile in local memory
 	int _in_tile1;     // size of in-tile in local memory
@@ -567,13 +813,146 @@ protected:
 	void * _stream;
 	size_t _bot_sz; // bytes
 	size_t _top_sz; // bytes
+	size_t _bot_df_sz; // bytes
+	size_t _top_df_sz; // bytes
 	size_t _weights_sz; // bytes
 	size_t _bias_sz; // bytes
 
+	size_t _workspce_sz;
+};
+
+#define MLO_POOLING_OP_AVE			0
+#define MLO_POOLING_OP_MAX			1
+#define MLO_POOLING_OP_STC			2
+
+class mlo_construct_pooling2D : public mlo_construct_direct2D
+{
+public:
+	mlo_construct_pooling2D(int dir) : mlo_construct_direct2D(dir)
+	{
+		_pooling_method = MLO_POOLING_OP_MAX;
+		_NAN_option = 0;
+	}
+
+	inline void setPoolingDescr(
+		int pooling_method = MLO_POOLING_OP_MAX,
+		int windowHeight = 3,
+		int windowWidth = 3,
+		int padding_v = 0,
+		int padding_h = 0,
+		int stride_v = 2,
+		int stride_h = 2,
+		int NAN_opt = 0
+		)
+	{
+		_pooling_method = pooling_method;
+		_pad1 = padding_v;
+		_pad0 = padding_h;
+		_kernel_size1 = windowHeight;
+		_kernel_size0 = windowWidth;
+		_kernel_stride1 = stride_v;
+		_kernel_stride0 = stride_h;
+		_NAN_option = NAN_opt;
+
+	}
+
+	inline void getPoolingDescr(
+		int & pooling_method,
+		int & windowHeight,
+		int & windowWidth,
+		int & padding_v,
+		int & padding_h,
+		int & stride_v,
+		int & stride_h,
+		int & NAN_opt
+		) const
+	{
+		padding_v = _pad1;
+		padding_h = _pad0;
+		windowHeight= _kernel_size1;
+		windowWidth = _kernel_size0;
+		stride_v= _kernel_stride1;
+		stride_h = _kernel_stride0;
+		NAN_opt = _NAN_option;
+
+	}
+
+	inline int getPoolingMethod(void) const
+	{
+		return(_pooling_method);
+	}
+	int mloConstruct(void);
+
+protected:
+	int _pooling_method;
+	int _NAN_option;
+	int mloConstructFwd(void);
+	int mloConstructBwd(void);
 
 };
 
+#define MLO_LRN_WITHIN_CHANNEL  0
+#define MLO_LRN_ACROSS_CHANNELS 1
 
+
+class mlo_construct_norm : public mlo_construct_direct2D
+{
+public:
+	mlo_construct_norm(int dir) : mlo_construct_direct2D(dir)
+	{
+		_do_scale = false;
+	}
+
+	inline void setNormDescr(
+		int norm_region,
+		int norm_area,
+		double normAlpha,
+		double normBeta,
+		double normK = 1.,
+		bool do_scale = false
+		)
+	{
+		_do_scale = do_scale,
+		_norm_region = norm_region;
+		_norm_area = norm_area;
+		_normAlpha = normAlpha;
+		_normBeta = normBeta;
+		_normK = normK;
+
+	}
+
+	inline void getNormDescr(
+		bool & do_scale,
+		int & norm_region,
+		int & norm_area,
+		double & normAlpha,
+		double & normBeta,
+		double & normK,
+		double & alphaoverarea
+		) const	
+	{
+		do_scale = _do_scale,
+		norm_region = _norm_region;
+		norm_area = _norm_area;
+		normAlpha = _normAlpha;
+		normBeta= _normBeta;
+		normK = _normK;
+		alphaoverarea = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? _normAlpha / _norm_area : _normAlpha / (_norm_area*_norm_area);
+	}
+
+	int mloConstruct(void);
+
+protected:
+	int mloConstructFwd(void);
+	int mloConstructBwd(void);
+	bool _do_scale;
+	int _norm_region;
+	int _norm_area;
+	double _normAlpha;
+	double _normBeta;
+	double _normK;
+
+};
 
 
 #endif
