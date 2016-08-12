@@ -69,7 +69,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	float padding_val = 0;
-	handle.Run("mlopenConvolutionFwdAlgoDirect",
+	handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
 			network_config,
 			program_name, 
 			kernel_name,
@@ -140,7 +140,7 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle
 	}
 
 	float padding_val = 0;
-	handle.Run(algorithm_name, network_config)(x, w, y, padding_val);
+	handle.GetKernel(algorithm_name, network_config)(x, w, y, padding_val);
 	handle.Finish();
 
 	return mlopenStatusSuccess;
@@ -215,7 +215,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	float padding_val = 0;
-	handle.Run("mlopenConvolutionBwdDataAlgo_0",
+	handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
 			network_config,
 			program_name, 
 			kernel_name,
@@ -280,7 +280,7 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Context& h
 		break;
 	}
 	float padding_val = 0;
-	handle.Run(algorithm_name, network_config)(dy, w, dx, padding_val);
+	handle.GetKernel(algorithm_name, network_config)(dy, w, dx, padding_val);
 	handle.Finish();
 
 	return mlopenStatusSuccess;

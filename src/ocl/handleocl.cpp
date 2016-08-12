@@ -158,7 +158,7 @@ float Context::GetKernelTime() const
     return this->impl->profiling_result;
 }
 
-KernelInvoke Context::Run(
+KernelInvoke Context::GetKernel(
         const std::string& algorithm,
         const std::string& network_config,
         const std::string& program_name,
@@ -180,7 +180,7 @@ KernelInvoke Context::Run(
     else return obj.Invoke(q);
 }
 
-KernelInvoke Context::Run(
+KernelInvoke Context::GetKernel(
     const std::string& algorithm,
     const std::string& network_config)
 {
