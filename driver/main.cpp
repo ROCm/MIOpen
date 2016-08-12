@@ -66,7 +66,6 @@ int main(int argc, char* argv[]) {
 		mlopenPoolingDescriptor_t poolDesc;
 
 		std::unique_ptr<GPUMem> in_dev;
-		std::unique_ptr<GPUMem> wei_dev;
 		std::unique_ptr<GPUMem> out_dev;
 
 		std::vector<float> in;
@@ -134,7 +133,7 @@ int main(int argc, char* argv[]) {
 
 		if (status != CL_SUCCESS)
 			printf("Error copying data to GPU\n");
-
+// forward
 		float alpha = 1., beta = 1.;
 		mlopenPoolingForward(handle, poolDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
 
@@ -189,6 +188,61 @@ int main(int argc, char* argv[]) {
 				);
 
 		}
+// backward
+		mlopenTensorDescriptor_t dInputTensor;
+		mlopenTensorDescriptor_t dOutputTensor;
+
+		std::unique_ptr<GPUMem> din_dev;
+		std::unique_ptr<GPUMem> dout_dev;
+
+		std::vector<float> din;
+		std::vector<float> dout;
+		std::vector<float> douthost;
+
+		mlopenCreateTensorDescriptor(&dInputTensor);
+		mlopenCreateTensorDescriptor(&dOutputTensor);
+		mlopenSet4dTensorDescriptor(
+			dInputTensor,
+			mlopenFloat,
+			UNPACK_VEC4(in_len));
+
+		mlopenSet4dTensorDescriptor(
+			dOutputTensor,
+			mlopenFloat,
+			UNPACK_VEC4(out_pooling_len));
+
+		din_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
+		dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+
+		din = std::vector<float>(in_sz);
+		dout = std::vector<float>(out_sz, 0);
+		douthost = std::vector<float>(out_sz, 0);
+
+
+		for (int i = 0; i < out_sz; i++) {
+			dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+		}
+
+		status = din_dev->ToGPU(q, din.data());
+		status |= dout_dev->ToGPU(q, dout.data());
+		if (status != CL_SUCCESS)
+			printf("Error copying data to GPU\n");
+
+
+		status = mlopenPoolingBackward(handle,
+			poolDesc,
+			&alpha,
+			outputTensor,
+			out_dev->GetMem(),
+			dOutputTensor,
+			dout_dev->GetMem(),
+			inputTensor,
+			in_dev->GetMem(),
+			&beta,
+			dInputTensor,
+			din_dev->GetMem());
+
+
 	}
 	return 0;
 }
