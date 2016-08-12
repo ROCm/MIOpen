@@ -1,7 +1,7 @@
 #ifndef GUARD_MLOPEN_TENSOR_HPP_
 #define GUARD_MLOPEN_TENSOR_HPP_
 
-#include <mlopen/context.hpp>
+#include <mlopen/handle.hpp>
 #include <mlopen/object.hpp>
 #include <mlopen.h>
 #include <mlopen/kernel_cache.hpp>
@@ -48,14 +48,14 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 
 	std::string ToString() const;
 
-	mlopenStatus_t TransformTensor(mlopen::Context& handle,
+	mlopenStatus_t TransformTensor(mlopen::Handle& handle,
 			const void *alpha,
 			const TensorDescriptor& srcTensorDesc,
 			const Data_t srcTensor,
 			const void *beta,
 			Data_t dstTensor);
 
-	mlopenStatus_t OpTensor(mlopen::Context& handle,
+	mlopenStatus_t OpTensor(mlopen::Handle& handle,
 			mlopenTensorOp_t				tensorOp,
 			const void						*alpha1,
 			const TensorDescriptor&	aDesc,
@@ -66,11 +66,11 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 			const void						*beta,
 			Data_t							C);
 
-	mlopenStatus_t SetTensor(mlopen::Context& handle,
+	mlopenStatus_t SetTensor(mlopen::Handle& handle,
 			Data_t							dstTensor,
 			const void						*valuePtr);
 
-	mlopenStatus_t ScaleTensor(mlopen::Context& handle,
+	mlopenStatus_t ScaleTensor(mlopen::Handle& handle,
 			Data_t							y,
 			const void						*alpha);
 

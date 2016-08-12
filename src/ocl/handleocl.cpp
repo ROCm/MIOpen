@@ -1,4 +1,4 @@
-#include <mlopen/context.hpp>
+#include <mlopen/handle.hpp>
 #include <mlopen/manage_ptr.hpp>
 #include <mlopen/errors.hpp>
 #include <mlopen/kernel_cache.hpp>
@@ -6,7 +6,7 @@
 
 namespace mlopen {
 
-struct ContextImpl
+struct HandleImpl
 {
 
     typedef MLOPEN_MANAGE_PTR(mlopenAcceleratorQueue_t, clReleaseCommandQueue) AqPtr;
@@ -63,7 +63,7 @@ struct ContextImpl
         if(status != CL_SUCCESS)
         {
             printf("status: %d",  status);
-            perror("Error: Creating Context. (clCreateContextFromType)");
+            perror("Error: Creating Handle. (clCreateContextFromType)");
             throw mlopenStatusInternalError;
         }
         return result;
@@ -77,15 +77,15 @@ struct ContextImpl
     }
 };
 
-Context::Context (int numStreams, mlopenAcceleratorQueue_t *streams) 
-: impl(new ContextImpl())
+Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
+: impl(new HandleImpl())
 {
     // TODO: Retain the queues
     for(int i=0;i<numStreams;i++) impl->queues.emplace_back(streams[i]);
 }
 
-Context::Context () 
-: impl(new ContextImpl())
+Handle::Handle () 
+: impl(new HandleImpl())
 {
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL context
@@ -96,7 +96,7 @@ Context::Context ()
     size_t deviceListSize;
     if(clGetContextInfo(impl->context.get(), CL_CONTEXT_NUM_DEVICES, sizeof(size_t), &deviceListSize, nullptr) != CL_SUCCESS)
     {
-        perror("Error: Getting Context Info (device list size, clGetContextInfo)");
+        perror("Error: Getting Handle Info (device list size, clGetContextInfo)");
         throw mlopenStatusInternalError;
     }
 
@@ -114,7 +114,7 @@ Context::Context ()
     /* Now, get the device list data */
     if(clGetContextInfo( impl->context.get(), CL_CONTEXT_DEVICES, deviceListSize*sizeof(cl_device_id), devices.data(), nullptr) != CL_SUCCESS)
     {
-        perror("Error: Getting Context Info (device list, clGetContextInfo)");
+        perror("Error: Getting Handle Info (device list, clGetContextInfo)");
         throw mlopenStatusInternalError;
     }
 
@@ -136,29 +136,29 @@ Context::Context ()
     } 
 }
 
-Context::~Context() 
+Handle::~Handle() 
 {
     // HACK: Clear global cache, the kernel cache should be a member of
-    // ContextImpl so it is associated with each cl_context
+    // HandleImpl so it is associated with each cl_context
     KernelCache::clear();
 }
 
-mlopenAcceleratorQueue_t Context::GetStream() const
+mlopenAcceleratorQueue_t Handle::GetStream() const
 {
     return impl->queues.front().get();
 }
 
-void Context::EnableProfiling(bool enable)
+void Handle::EnableProfiling(bool enable)
 {
     this->impl->enable_profiling = enable;
 }
 
-float Context::GetKernelTime() const
+float Handle::GetKernelTime() const
 {
     return this->impl->profiling_result;
 }
 
-KernelInvoke Context::GetKernel(
+KernelInvoke Handle::GetKernel(
         const std::string& algorithm,
         const std::string& network_config,
         const std::string& program_name,
@@ -176,11 +176,11 @@ KernelInvoke Context::GetKernel(
             vld,
             vgd,
             params);
-    if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&ContextImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+    if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
     else return obj.Invoke(q);
 }
 
-KernelInvoke Context::GetKernel(
+KernelInvoke Handle::GetKernel(
     const std::string& algorithm,
     const std::string& network_config)
 {
@@ -188,30 +188,30 @@ KernelInvoke Context::GetKernel(
     OCLKernel obj = KernelCache::get(
             algorithm,
             network_config);
-    if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&ContextImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+    if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
     else return obj.Invoke(q);
 }
 
-void Context::Finish() const
+void Handle::Finish() const
 {
     clFinish(this->GetStream());
 }
 
-ManageDataPtr Context::Create(int sz)
+ManageDataPtr Handle::Create(int sz)
 {
     cl_int status = CL_SUCCESS;
     auto result = ManageDataPtr{clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
     if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error creating buffer: " + std::to_string(status));
     return std::move(result);
 }
-ManageDataPtr& Context::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
+ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
     cl_int status = clEnqueueWriteBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error writing to buffer: " + std::to_string(status));
     return ddata;
 }
 
-void Context::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
+void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
 {
     auto status = clEnqueueReadBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error reading from buffer: " + std::to_string(status));

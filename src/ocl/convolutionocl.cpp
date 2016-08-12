@@ -3,7 +3,7 @@
 
 namespace mlopen {
 
-mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	xDesc,
 		const cl_mem					x,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -83,7 +83,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Context& hand
 
 }
 
-mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		xDesc,
 		const cl_mem						x,
@@ -149,7 +149,7 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Context& handle
 
 // FindBackwardDataAlgorithm()
 //
-mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	dyDesc,
 		const cl_mem					dy,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -230,7 +230,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Context& 
 }
 
 // BackwardDataAlgorithm()
-mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Context& handle,
+mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		dyDesc,
 		const cl_mem						dy,

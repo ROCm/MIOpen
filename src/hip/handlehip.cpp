@@ -1,4 +1,4 @@
-#include <mlopen/context.hpp>
+#include <mlopen/handle.hpp>
 
 template<>
 mlopenStatus_t mlopenContext::CreateDefaultStream<hipStream_t>() {

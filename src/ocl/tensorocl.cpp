@@ -3,7 +3,7 @@
 
 namespace mlopen {
 
-mlopenStatus_t TensorDescriptor::TransformTensor(mlopen::Context& handle,
+mlopenStatus_t TensorDescriptor::TransformTensor(mlopen::Handle& handle,
 			const void *alpha,
 			const TensorDescriptor& srcTensorDesc,
 			const cl_mem srcTensor,
@@ -33,7 +33,7 @@ mlopenStatus_t TensorDescriptor::TransformTensor(mlopen::Context& handle,
 	return mlopenStatusSuccess;
 }
 
-mlopenStatus_t TensorDescriptor::OpTensor(mlopen::Context& handle,
+mlopenStatus_t TensorDescriptor::OpTensor(mlopen::Handle& handle,
 		mlopenTensorOp_t				tensorOp,
 		const void						*alpha1,
 		const TensorDescriptor&	inputTensorDesc1,
@@ -79,7 +79,7 @@ mlopenStatus_t TensorDescriptor::OpTensor(mlopen::Context& handle,
 
 }
 
-mlopenStatus_t TensorDescriptor::SetTensor(mlopen::Context& handle,
+mlopenStatus_t TensorDescriptor::SetTensor(mlopen::Handle& handle,
 		cl_mem							dstTensor,
 		const void						*valuePtr) {
 
@@ -105,7 +105,7 @@ mlopenStatus_t TensorDescriptor::SetTensor(mlopen::Context& handle,
 
 }
 
-mlopenStatus_t TensorDescriptor::ScaleTensor(mlopen::Context& handle,
+mlopenStatus_t TensorDescriptor::ScaleTensor(mlopen::Handle& handle,
 		cl_mem							dstTensor,
 		const void						*alpha) {
 
