@@ -26,7 +26,7 @@ struct Context : mlopenHandle {
 
     float GetKernelTime() const;
 
-    KernelInvoke Run(
+    KernelInvoke GetKernel(
             const std::string& algorithm,
             const std::string& network_config,
             const std::string& program_name,
@@ -35,7 +35,7 @@ struct Context : mlopenHandle {
             const std::vector<size_t>& vgd,
             const std::string& params);
 
-    KernelInvoke Run(
+    KernelInvoke GetKernel(
         const std::string& algorithm,
         const std::string& network_config);
 
