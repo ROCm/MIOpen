@@ -117,7 +117,6 @@ set ( MLOpen_Headers_Public
 # build library
 add_library( MLOpen SHARED
 	${MLOpen_Source}
-	${MLOpen_API}
 	)
 
 set( MLOpen_DIRS_INCLUDE
