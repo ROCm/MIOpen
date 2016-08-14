@@ -39,12 +39,6 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handl
 		construct_params.doSearch(exhaustiveSearch);
 		construct_params.saveSearchRequest(true);
 
-
-// TO DO WHERE IS THE PATH ?
-		std::string kernel_path = "../src/Kernels/";
-
-		construct_params.setKernelPath(kernel_path);
-
 		construct_params.setGeneralCompOptions("");
 
 		construct_params.setStream(handle.GetStream());
@@ -58,7 +52,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handl
 		construct_params.mloConstructDirect2D();
 	}
 
-	std::string program_name = std::string("../src/Kernels/") +  construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
+	std::string program_name = construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // "hello_world_kernel"; // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
@@ -185,12 +179,6 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& h
 		construct_params.doSearch(exhaustiveSearch);
 		construct_params.saveSearchRequest(true);
 
-
-// TO DO WHERE IS THE PATH ?
-		std::string kernel_path = "../src/Kernels/";
-
-		construct_params.setKernelPath(kernel_path);
-
 		construct_params.setGeneralCompOptions("");
 
 		construct_params.setStream(handle.GetStream());
@@ -204,7 +192,7 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& h
 		construct_params.mloConstructDirect2D();
 	}
 
-	std::string program_name = std::string("../src/Kernels/") +  construct_params.getKernelFile();  
+	std::string program_name = construct_params.getKernelFile();  
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
