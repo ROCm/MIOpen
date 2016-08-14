@@ -1,5 +1,6 @@
 #include "clhelper.hpp"
 #include <mlopen/kernel.hpp>
+#include <mlopen/errors.hpp>
 
 mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 		cl_command_queue &queue,
@@ -153,7 +154,6 @@ mlopenStatus_t CLHelper::CreateQueueWithProfiling(const cl_command_queue &queue,
 void CLHelper::CheckCLStatus(cl_int status, const std::string &errString) {
 	if (status != CL_SUCCESS)
 	{
-		std::cout<<status<<", "<<errString<<"\n";
-		exit(-1);
+		MLOPEN_THROW(errString + std::to_string(status));
 	}
 }
