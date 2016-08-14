@@ -111,7 +111,6 @@ set ( MLOpen_Headers_Public
 	${PROJECT_SOURCE_DIR}/include/mlopen.h
 	${PROJECT_BINARY_DIR}/include/MLOpen-version.h
 	${PROJECT_BINARY_DIR}/include/mlopen_export.h
-	# ${PROJECT_BINARY_DIR}/src/mlopen_export.h
 	)
 
 
@@ -122,12 +121,10 @@ add_library( MLOpen SHARED
 	)
 
 set( MLOpen_DIRS_INCLUDE
-	# TODO" Remove this
+	# TODO: Remove this
 	${PROJECT_SOURCE_DIR}
 	${CMAKE_SOURCE_DIR}/include
 	${PROJECT_SOURCE_DIR}/include
-	# ${CMAKE_SOURCE_DIR}/src/include
-	# ${CMAKE_SOURCE_DIR}/src
 	${PROJECT_BINARY_DIR}/include)
 
 target_include_directories(MLOpen PUBLIC ${MLOpen_DIRS_INCLUDE})
