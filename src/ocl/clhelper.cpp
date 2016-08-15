@@ -1,4 +1,6 @@
 #include "clhelper.hpp"
+#include <mlopen/kernel.hpp>
+#include <mlopen/errors.hpp>
 
 mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 		cl_command_queue &queue,
@@ -13,31 +15,18 @@ mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 
 	GetContextFromQueue(queue, context);
 
-	// Stringify the kernel file
-	char *source;
-	size_t sourceSize;
-	FILE *fp = fopen(program_name.c_str(), "rb");
-	if(fp == NULL) {
-		return mlopenStatusBadParm;
-	}
+	std::string source = mlopen::GetKernelSrc(program_name);
 
-	fseek(fp, 0, SEEK_END);
-	sourceSize = ftell(fp);
-	fseek(fp , 0, SEEK_SET);
-	source = new char[sourceSize+1];
-	fread(source, 1, sourceSize, fp);
-	fclose(fp);
+	const char* char_source = source.c_str();
+	auto size = source.size();
 
 	program  = clCreateProgramWithSource(context, 
 			1,
-			(const char**)&source, 
-			&sourceSize, 
+			(const char**)&char_source, 
+			&size, 
 			&status);
 
 	CheckCLStatus(status, "Error Creating OpenCL Program (cl_program) in LoadProgramFromSource()");
-
-	delete[] source;
-	// clReleaseContext(context);
 
 	return mlopenStatusSuccess;
 }
@@ -165,7 +154,6 @@ mlopenStatus_t CLHelper::CreateQueueWithProfiling(const cl_command_queue &queue,
 void CLHelper::CheckCLStatus(cl_int status, const std::string &errString) {
 	if (status != CL_SUCCESS)
 	{
-		std::cout<<status<<", "<<errString<<"\n";
-		exit(-1);
+		MLOPEN_THROW(errString + std::to_string(status));
 	}
 }
