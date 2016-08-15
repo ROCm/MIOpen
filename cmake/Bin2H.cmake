@@ -1,3 +1,7 @@
+# 
+# From Sivachandran Paramasivam 
+# http://www.sivachandran.in/2014/12/pure-cmake-based-bin2h-implementation.html
+# 
 include(CMakeParseArguments)
 
 # Function to wrap a given string into multiple lines at the given column position.
