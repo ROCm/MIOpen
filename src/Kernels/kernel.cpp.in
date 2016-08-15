@@ -1,5 +1,6 @@
 #include <mlopen/kernel.hpp>
 #include <map>
+#include <algorithm>
 #include "mlopen_kernels.h"
 
 namespace mlopen {
@@ -25,7 +26,11 @@ std::string GetKernelSrc(const std::string& name)
         len = ex - start;
     }
 
-    return kernels.at(name.substr(start, len));
+    auto key = name.substr(start, len);
+    // Convert to uppercase
+    std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+
+    return kernels.at(key);
 }
 
 }
