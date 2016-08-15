@@ -6,6 +6,8 @@
 
 namespace mlopen {
 using KernelInvoke = OCLKernelInvoke;
+
+std::string GetKernelSrc(const std::string& name);
 }
 
 #elif MLOPEN_BACKEND_HIP
