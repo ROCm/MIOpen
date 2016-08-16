@@ -3,6 +3,8 @@
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"
+#include "mloNormHost.hpp"
+#include "mloNeuronHost.hpp"
 
 void PrintConvParameters(std::vector<int> &in_len,
 		std::vector<int> &wei_len,
