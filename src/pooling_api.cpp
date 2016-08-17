@@ -123,7 +123,10 @@ mlopenStatus_t mlopenPoolingForward(
 		const void							*x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
-		void								*y) {
+		void								*y,
+		bool                                do_backward,
+		void								*workSpace,
+		size_t								workSpaceSize) {
 
 	return mlopen::try_([&] {
 		poolDesc->Forward(handle,
@@ -132,7 +135,10 @@ mlopenStatus_t mlopenPoolingForward(
 				DataCast(x),
 				beta,
 				yDesc,
-				DataCast(y));
+				DataCast(y),
+				do_backward,
+				DataCast(workSpace),
+				workSpaceSize);
 	});
 
 }
@@ -150,7 +156,8 @@ mlopenStatus_t mlopenPoolingBackward(
 		const void							*x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
-		void								*dx) {
+		void								*dx,
+		const void							*workSpace) {
 
 	return mlopen::try_([&] {
 		poolDesc->Backward(handle,
@@ -163,7 +170,8 @@ mlopenStatus_t mlopenPoolingBackward(
 				DataCast(x),
 				beta,
 				dxDesc,
-				DataCast(dx));
+				DataCast(dx),
+				DataCast(workSpace));
 	});
 
 }
