@@ -7,7 +7,10 @@ mlopenStatus_t mlopenLRNDescriptor::Forward(
 		const Data_t						x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
-		Data_t								y) {
+		Data_t								y,
+		bool                                do_backward,
+		Data_t								workSpace,
+		size_t								workSpaceSize) {
 	
 	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in lrn forward\n");
@@ -25,7 +28,8 @@ mlopenStatus_t mlopenLRNDescriptor :: Backward(
 		const Data_t						x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
-		Data_t								dx) {
+		Data_t								dx,
+		const Data_t						workSpace) {
 
 	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in lrn backward\n");

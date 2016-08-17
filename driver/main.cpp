@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
 			printf("Error copying data to GPU\n");
 // forward
 		float alpha = 1., beta = 1.;
-		mlopenPoolingForward(handle, poolDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
+		mlopenPoolingForward(handle, poolDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem(),false, NULL, 0);
 
 // verification
 		{
@@ -242,7 +242,8 @@ int main(int argc, char* argv[]) {
 			in_dev->GetMem(),
 			&beta,
 			dInputTensor,
-			din_dev->GetMem());
+			din_dev->GetMem(),
+			NULL);
 
 		// verification
 		{
