@@ -58,7 +58,7 @@ mlopenStatus_t mlopenLRNForward(
 		void								*y,
 		bool                                do_backward,
 		void								*workSpace,
-		size_t								workSpaceSize) {
+		size_t								*workSpaceSize) {
 
 
 	return mlopen::try_([&] {
