@@ -80,8 +80,8 @@ typedef enum {
 } mlopenPoolingMode_t;
 
 typedef enum {
-	mlopenLRNCrossChannel = 0,
-	mlopenLRNWithinChannel = 1,
+	mlopenLRNWithinChannel = 0,
+	mlopenLRNCrossChannel = 1,
 } mlopenLRNMode_t;
 
 // Create a Tensor Descriptor

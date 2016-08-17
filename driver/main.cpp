@@ -329,10 +329,11 @@ int main(int argc, char* argv[]) {
 
 		std::unique_ptr<GPUMem> in_dev;
 		std::unique_ptr<GPUMem> out_dev;
-		std::unique_ptr<GPUMem> scale;
+		std::unique_ptr<GPUMem> scale_dev;
 
 		std::vector<float> in;
 		std::vector<float> out;
+		std::vector<float> scale;
 		std::vector<float> outhost;
 
 
@@ -364,8 +365,10 @@ int main(int argc, char* argv[]) {
 			outputTensor,
 			mlopenFloat,
 			UNPACK_VEC4(in_len));
+
 		bool   do_backward = true;
 		size_t	workSpaceSize = 0;
+
 		// get worspace size
 		mlopenLRNForward(handle,lrnDesc,NULL,inputTensor,NULL,NULL, outputTensor,NULL, do_backward, NULL, &workSpaceSize);
 
@@ -383,9 +386,14 @@ int main(int argc, char* argv[]) {
 
 		in_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
 		out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+		if (do_backward)
+		{
+			scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize/sizeof(float), sizeof(float)));
+		}
 
 		in = std::vector<float>(in_sz);
 		out = std::vector<float>(out_sz, 0);
+		scale = std::vector<float>(workSpaceSize/sizeof(float), 0);
 		outhost = std::vector<float>(out_sz, 0);
 
 		for (int i = 0; i < in_sz; i++) {
@@ -395,13 +403,15 @@ int main(int argc, char* argv[]) {
 
 		cl_int status;
 		status = in_dev->ToGPU(q, in.data());
+		status |= scale_dev->ToGPU(q, scale.data());
 		status |= out_dev->ToGPU(q, out.data());
 
 		if (status != CL_SUCCESS)
 			printf("Error copying data to GPU\n");
 		// forward
 		float alpha = 1., beta = 1.;
-//		mlopenPoolingForward(handle, poolDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem(), false, NULL, 0);
+		// real run
+		mlopenLRNForward(handle, lrnDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem(), do_backward, scale_dev->GetMem(), &workSpaceSize);
 	}
 
 	return 0;

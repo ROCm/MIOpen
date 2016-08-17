@@ -143,7 +143,8 @@ int mlo_construct_norm::mloConstructFwd(void)
 	int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
 
 	// calculate workspace
-	_workspce_sz = scale_stride * scale_channel_stride * scale_batch_stride * data_len;
+	size_t scale_sz = _batch_sz * scale_batch_stride * data_len;
+	_workspce_sz = (doBackward()) ? scale_sz : 0;
 
 	return(ret);
 }
