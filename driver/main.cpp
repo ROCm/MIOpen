@@ -317,5 +317,92 @@ int main(int argc, char* argv[]) {
 		}
 
 	}
+
+	// LNR
+	{
+		mlopenHandle_t handle;
+		cl_command_queue q;
+
+		mlopenTensorDescriptor_t inputTensor;
+		mlopenTensorDescriptor_t outputTensor;
+		mlopenLRNDescriptor_t lrnDesc;
+
+		std::unique_ptr<GPUMem> in_dev;
+		std::unique_ptr<GPUMem> out_dev;
+		std::unique_ptr<GPUMem> scale;
+
+		std::vector<float> in;
+		std::vector<float> out;
+		std::vector<float> outhost;
+
+
+		handle = drv.GetHandle();
+		mlopenGetStream(handle, &q);
+
+		mlopenCreateTensorDescriptor(&inputTensor);
+		mlopenCreateTensorDescriptor(&outputTensor);
+
+		mlopenCreateLRNDescriptor(&lrnDesc);
+
+		mlopenLRNMode_t	mode = mlopenLRNWithinChannel;
+		unsigned int lrnN = 5;
+		double	lrnAlpha = 0.001;
+		double	lrnBeta = 0.75;
+		double	lrnK = 1.;
+		mlopenSetLRNDescriptor(lrnDesc,
+			mode,
+			lrnN,
+			lrnAlpha,
+			lrnBeta,
+			lrnK);
+
+		mlopenSet4dTensorDescriptor(
+			inputTensor,
+			mlopenFloat,
+			UNPACK_VEC4(in_len));
+		mlopenSet4dTensorDescriptor(
+			outputTensor,
+			mlopenFloat,
+			UNPACK_VEC4(in_len));
+		bool   do_backward = true;
+		size_t	workSpaceSize = 0;
+		// get worspace size
+		mlopenLRNForward(handle,lrnDesc,NULL,inputTensor,NULL,NULL, outputTensor,NULL, do_backward, NULL, &workSpaceSize);
+
+		int n_l, c_l, h_l, w_l;
+		mlopenGet4dTensorDescriptorLengths(inputTensor, &n_l, &c_l, &h_l, &w_l);
+
+		size_t in_sz = n_l * c_l * h_l *w_l;
+
+		mlopenGet4dTensorDescriptorLengths(outputTensor, &n_l, &c_l, &h_l, &w_l);
+
+		size_t out_sz = n_l * c_l * h_l *w_l;
+
+		cl_context ctx;
+		clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+
+		in_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
+		out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+
+		in = std::vector<float>(in_sz);
+		out = std::vector<float>(out_sz, 0);
+		outhost = std::vector<float>(out_sz, 0);
+
+		for (int i = 0; i < in_sz; i++) {
+			in[i] = rand() * (1.0 / RAND_MAX);
+		}
+
+
+		cl_int status;
+		status = in_dev->ToGPU(q, in.data());
+		status |= out_dev->ToGPU(q, out.data());
+
+		if (status != CL_SUCCESS)
+			printf("Error copying data to GPU\n");
+		// forward
+		float alpha = 1., beta = 1.;
+//		mlopenPoolingForward(handle, poolDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem(), false, NULL, 0);
+	}
+
 	return 0;
 }

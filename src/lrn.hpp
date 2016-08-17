@@ -29,7 +29,7 @@ struct mlopenLRNDescriptor {
 		Data_t								y,
 		bool                                do_backward,
 		Data_t								workSpace,
-		size_t								workSpaceSize);
+		size_t								*workSpaceSize);
 
 	mlopenStatus_t Backward(
 		mlopenHandle_t						handle,

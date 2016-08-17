@@ -10,7 +10,7 @@ mlopenStatus_t mlopenLRNDescriptor::Forward(
 		Data_t								y,
 		bool                                do_backward,
 		Data_t								workSpace,
-		size_t								workSpaceSize) {
+		size_t								*workSpaceSize) {
 	
 	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in lrn forward\n");
