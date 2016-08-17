@@ -76,8 +76,7 @@ typedef enum {
 
 typedef enum {
 	mlopenPoolingMax = 0,
-	mlopenPoolingAverageIncludePadding = 1,
-	mlopenPoolingAverageExcludePadding = 2,
+	mlopenPoolingAverage = 1,
 } mlopenPoolingMode_t;
 
 typedef enum {
@@ -430,7 +429,11 @@ MLOPEN_EXPORT mlopenStatus_t mlopenPoolingForward(
 		const void							*x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
-		void								*y);
+		void								*y,
+		bool                                do_backward,
+		void								*workSpace,
+		size_t								workSpaceSize);
+
 
 MLOPEN_EXPORT mlopenStatus_t mlopenPoolingBackward(
 		mlopenHandle_t						handle,
@@ -444,7 +447,9 @@ MLOPEN_EXPORT mlopenStatus_t mlopenPoolingBackward(
 		const void							*x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
-		void								*dx);
+		void								*dx,
+		const void							*workSpace);
+
 
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroyPoolingDescriptor(mlopenPoolingDescriptor_t poolDesc);
 
@@ -453,12 +458,13 @@ MLOPEN_EXPORT mlopenStatus_t mlopenDestroyPoolingDescriptor(mlopenPoolingDescrip
 MLOPEN_EXPORT mlopenStatus_t mlopenCreateLRNDescriptor(mlopenLRNDescriptor_t *lrnDesc);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenSetLRNDescriptor(
-		const mlopenLRNDescriptor_t			lrnDesc,
-		mlopenLRNMode_t						mode,
-		unsigned int						lrnN,
-		double								lrnAlpha,
-		double								lrnBeta,
-		double								lrnK);
+	const mlopenLRNDescriptor_t			lrnDesc,
+	mlopenLRNMode_t						mode,
+	unsigned int						lrnN,
+	double								lrnAlpha,
+	double								lrnBeta,
+	double								lrnK);
+
 
 MLOPEN_EXPORT mlopenStatus_t mlopenGetLRNDescriptor(
 		const mlopenLRNDescriptor_t			lrnDesc,
@@ -468,7 +474,9 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetLRNDescriptor(
 		double								*lrnBeta,
 		double								*lrnK);
 
-MLOPEN_EXPORT mlopenStatus_t mlopenLRNCrossChannelForward(
+
+
+MLOPEN_EXPORT mlopenStatus_t mlopenLRNForward(
 		mlopenHandle_t						handle,
 		const mlopenLRNDescriptor_t			lrnDesc,
 		const void							*alpha,
@@ -476,9 +484,13 @@ MLOPEN_EXPORT mlopenStatus_t mlopenLRNCrossChannelForward(
 		const void							*x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
-		void								*y);
+		void								*y,
+		bool                                do_backward,
+		void								*workSpace,
+		size_t								workSpaceSize);
 
-MLOPEN_EXPORT mlopenStatus_t mlopenLRNCrossChannelBackward(
+
+MLOPEN_EXPORT mlopenStatus_t mlopenLRNBackward(
 		mlopenHandle_t						handle,
 		const mlopenLRNDescriptor_t			lrnDesc,
 		const void							*alpha,
@@ -490,7 +502,9 @@ MLOPEN_EXPORT mlopenStatus_t mlopenLRNCrossChannelBackward(
 		const void							*x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
-		void								*dx);
+		void								*dx,
+		const void							*workSpace);
+
 
 #ifdef __cplusplus
 }
