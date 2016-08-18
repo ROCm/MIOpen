@@ -48,6 +48,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	find_package( OpenCL REQUIRED )
+	set(MLOPEN_SHARED ON)
 	message( STATUS "${MLOPEN_BACKEND} backend selected." )
 endif()
 # HCC
@@ -55,6 +56,7 @@ if( MLOPEN_BACKEND MATCHES "HCC")
 	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
 	add_definitions( -DMLOPEN_BACKEND_HCC=1 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
+	set(MLOPEN_SHARED ON)
 	message( SEND_ERROR "${Cobalt_BACKEND} backend not yet supported." )
 endif()
 # HIP
@@ -62,12 +64,15 @@ if( MLOPEN_BACKEND MATCHES "HIP")
 	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=1 )
+	set(MLOPEN_SHARED OFF)
 	message( STATUS "${MLOPEN_BACKEND} backend selected." )
 endif()
 
 # If Cobalt is used in future
 if( USE_Cobalt)
 endif()
+
+option( BUILD_SHARED_LIBS "Build as a shared library" ${MLOPEN_SHARED} )
 
 add_subdirectory(src)
 add_subdirectory(driver)

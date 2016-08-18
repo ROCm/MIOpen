@@ -121,7 +121,7 @@ set ( MLOpen_Headers_Public
 
 
 # build library
-add_library( MLOpen SHARED
+add_library( MLOpen
 	${MLOpen_Source}
 	)
 
