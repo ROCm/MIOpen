@@ -335,6 +335,7 @@ int main(int argc, char* argv[]) {
 		std::vector<float> out;
 		std::vector<float> scale;
 		std::vector<float> outhost;
+		std::vector<float> scalehost;
 
 
 		handle = drv.GetHandle();
@@ -345,7 +346,7 @@ int main(int argc, char* argv[]) {
 
 		mlopenCreateLRNDescriptor(&lrnDesc);
 
-		mlopenLRNMode_t	mode = mlopenLRNWithinChannel;
+		mlopenLRNMode_t	mode = mlopenLRNCrossChannel; // mlopenLRNWithinChannel;
 		unsigned int lrnN = 5;
 		double	lrnAlpha = 0.001;
 		double	lrnBeta = 0.75;
@@ -395,6 +396,7 @@ int main(int argc, char* argv[]) {
 		out = std::vector<float>(out_sz, 0);
 		scale = std::vector<float>(workSpaceSize/sizeof(float), 0);
 		outhost = std::vector<float>(out_sz, 0);
+		scalehost = std::vector<float>(workSpaceSize / sizeof(float), 0);
 
 		for (int i = 0; i < in_sz; i++) {
 			in[i] = rand() * (1.0 / RAND_MAX);
@@ -412,6 +414,87 @@ int main(int argc, char* argv[]) {
 		float alpha = 1., beta = 1.;
 		// real run
 		mlopenLRNForward(handle, lrnDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem(), do_backward, scale_dev->GetMem(), &workSpaceSize);
+
+		// verification
+		{
+			int nInStride, cInStride, hInStride, wInStride;
+			mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
+			int nIn, cIn, hIn, wIn;
+			mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+			int nOutStride, cOutStride, hOutStride, wOutStride;
+			mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
+			int nOut, cOut, hOut, wOut;
+			mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+			mlopenLRNMode_t	v_mode;
+			unsigned int v_lrnN;
+			double	v_lrnAlpha;
+			double	v_lrnBeta;
+			double	v_lrnK;
+
+			mlopenGetLRNDescriptor(lrnDesc,
+				&v_mode,
+				&v_lrnN,
+				&v_lrnAlpha,
+				&v_lrnBeta,
+				&v_lrnK);
+
+			float alphaoverarea = (v_mode == mlopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN);
+
+			int pre_pad = (v_lrnN - 1) / 2;
+			int pad = v_lrnN - pre_pad - 1;
+
+			int batch_sz = nIn;
+			int n_inputs = cIn;
+			int bot_height = hIn;
+			int bot_width = wIn;
+			int bot_stride = hInStride;
+			int bot_channel_stride = cInStride;
+			int bot_batch_stride = nInStride;
+
+
+			int n_outputs = cOut;
+			int top_height = hOut;
+			int top_width = wOut;
+			int top_v_stride = hOutStride;
+			int top_v_channel_stride = cOutStride;
+			int	top_v_batch_stride = nOutStride;
+			int scale_v_stride = top_v_stride;
+			int scale_v_channel_stride = top_v_channel_stride;
+			int scale_v_batch_stride = top_v_batch_stride;
+
+
+			mloLRNForwardRunHost<float>(
+				do_backward,
+				v_mode,
+				pad,
+				v_lrnN,
+				alphaoverarea,
+				(float)v_lrnAlpha,
+				(float)v_lrnBeta,
+				(float)v_lrnK,
+				batch_sz,
+				n_outputs,
+				n_inputs,
+				bot_height,
+				bot_width,
+				bot_stride,
+				bot_channel_stride,
+				bot_batch_stride,
+				top_height,
+				top_width,
+				top_v_stride,
+				top_v_channel_stride,
+				top_v_batch_stride,
+				scale_v_stride,
+				scale_v_channel_stride,
+				scale_v_batch_stride,
+				in.data(),
+				scalehost.data(),
+				outhost.data()
+				);
+
+		}
+
 	}
 
 	return 0;

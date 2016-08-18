@@ -29,7 +29,7 @@ mlopenStatus_t mlopenSetLRNDescriptor(
 }
 
 extern "C"
-mlopenStatus_t mlopenGet2dLRNDescriptor(
+mlopenStatus_t mlopenGetLRNDescriptor(
 		const mlopenLRNDescriptor_t		lrnDesc,
 		mlopenLRNMode_t					*mode,
 		unsigned int					*lrnN,
