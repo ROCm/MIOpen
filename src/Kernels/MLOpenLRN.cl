@@ -423,7 +423,11 @@ __kernel void MLOpenLRNWithinChannelBwd(
 
 }
 
-
+#if (MLO_LRN_N_INPUTS + 2* MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ || MLO_LRN_N_OUTPUTSS + 2* MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ)
+#define MLO_LOW_CHNL_COUNT 1
+#else
+#define MLO_LOW_CHNL_COUNT 0
+#endif
 __attribute__((reqd_work_group_size(MLO_LRN_GROUP_SZ0,MLO_LRN_GROUP_SZ1,MLO_LRN_GROUP_SZ2)))
 __kernel void MLOpenLRNAcrossChannels1(
        const __global _FLOAT * bottom,
@@ -451,8 +455,11 @@ __kernel void MLOpenLRNAcrossChannels1(
 		int scale_off = 0;
 
 		for( c_i = 0; c_i < MLO_LRN_PAD; c_i++)
-		{			
-			bot_in[c_i] = bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + MLO_LRN_BOT_STRIDE * y + x];
+		{
+			_FLOAT bot_val = bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + MLO_LRN_BOT_STRIDE * y + x];
+#if MLO_LOW_CHNL_COUNT
+			bot_in[c_i] = (c_i < MLO_LRN_N_INPUTS) ? bot_val : 0;
+#endif
 			bot_in2[c_i] = bot_in[c_i] * bot_in[c_i];
 			accum = 
 				accum + bot_in2[c_i];
@@ -462,7 +469,11 @@ __kernel void MLOpenLRNAcrossChannels1(
 
 		for( ; c_i < MLO_LRN_KERNEL_SZ; c_i++, c_o++)
 		{
-			bot_in[c_i] = bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + MLO_LRN_BOT_STRIDE * y + x];
+			_FLOAT bot_val = bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + MLO_LRN_BOT_STRIDE * y + x];
+
+#if MLO_LOW_CHNL_COUNT
+			bot_in[c_i] = (c_i < MLO_LRN_N_INPUTS) ? bot_val : 0;
+#endif
 			bot_in2[c_i] = bot_in[c_i] * bot_in[c_i];
 			accum = 
 				accum + bot_in2[c_i];
@@ -479,16 +490,24 @@ __kernel void MLOpenLRNAcrossChannels1(
 //				pow(prv_scale,-beta);
 
 			_FLOAT out_val = bot_in[c_o] * exp_scale;
-#if MLO_LRN_DO_SCALE
-			scale[scale_off] = prv_scale;
+#if MLO_LOW_CHNL_COUNT
+			if (c_o < MLO_LRN_N_OUTPUTS)
 #endif
-			top[top_off] = out_val;
+			{
+#if MLO_LRN_DO_SCALE
+				scale[scale_off] = prv_scale;
+#endif
+				top[top_off] = out_val;
+			}
 		}
 
 		for( ; c_i < MLO_LRN_N_CHANNELS; c_i++, c_o++)
 		{
 
 			_FLOAT prv_bot_in = bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + MLO_LRN_BOT_STRIDE * y + x];
+#if MLO_LOW_CHNL_COUNT
+			prv_bot_in = (c_i < MLO_LRN_N_INPUTS) ? prv_bot_in : 0;
+#endif
 			_FLOAT prv_bot_in2 = prv_bot_in * prv_bot_in;
 			accum = 
 				accum + prv_bot_in2;
@@ -519,11 +538,15 @@ __kernel void MLOpenLRNAcrossChannels1(
 //				pow(prv_scale,-beta);
 
 			_FLOAT out_val = bot_in[MLO_LRN_PAD] * exp_scale;
-#if MLO_LRN_DO_SCALE
-			scale[scale_off] = prv_scale;
+#if MLO_LOW_CHNL_COUNT
+			if (c_o < MLO_LRN_N_OUTPUTS)
 #endif
-			top[top_off] = out_val;
-
+			{
+#if MLO_LRN_DO_SCALE
+				scale[scale_off] = prv_scale;
+#endif
+				top[top_off] = out_val;
+			}
 
 		}
 
@@ -548,19 +571,22 @@ __kernel void MLOpenLRNAcrossChannels1(
 //				fma(accum,alphaoverarea, 1.f);
 
 			_FLOAT exp_scale = 
-//				native_exp(-beta * native_log(prv_scale));
-				pow(prv_scale,-beta);
+				native_exp(-beta * native_log(prv_scale));
+	//			pow(prv_scale,-beta);
 
 			_FLOAT out_val = bot_in[MLO_LRN_PAD] * exp_scale;
-#if MLO_LRN_DO_SCALE
-			scale[scale_off] = prv_scale;
+#if MLO_LOW_CHNL_COUNT
+			if (c_o < MLO_LRN_N_OUTPUTS)
 #endif
-			top[top_off] = out_val;
-
+			{
+#if MLO_LRN_DO_SCALE
+				scale[scale_off] = prv_scale;
+#endif
+				top[top_off] = out_val;
+			}
 		}
 
 }
-
 
 
 __attribute__((reqd_work_group_size(MLO_LRN_GROUP_SZ0,MLO_LRN_GROUP_SZ1,MLO_LRN_GROUP_SZ2)))
@@ -592,9 +618,12 @@ __kernel void MLOpenLRNAcrossChannelsBwd1(
 			top_df_in[c_i] = top_df[MLO_LRN_TOPDF_BATCH_STRIDE * b + MLO_LRN_TOPDF_CHANNEL_STRIDE *c_i + MLO_LRN_TOPDF_STRIDE * y + x];
 			scale_in[c_i] = scale[MLO_LRN_SCALE_BATCH_STRIDE * b + MLO_LRN_SCALE_CHANNEL_STRIDE * c_i + MLO_LRN_SCALE_STRIDE * y + x];
 			_FLOAT top_dta = top[MLO_LRN_TOP_BATCH_STRIDE *b  + MLO_LRN_TOP_CHANNEL_STRIDE * c_i + MLO_LRN_TOP_STRIDE * y + x];
-			ratio_dta[c_i] = 
-						(top_df_in[c_i] * top_dta) /scale_in[c_i];
 
+			ratio_dta[c_i] = (top_df_in[c_i] * top_dta) / scale_in[c_i];
+
+#if MLO_LOW_CHNL_COUNT
+			ratio_dta[c_i] = (c_i < MLO_LRN_N_OUTPUTS) ? ratio_dta[c_i] : 0;
+#endif
 #if 0
 			if ( x == 5 && y == 11/* && c_o==12 */&& b==10)
 			{
@@ -621,8 +650,10 @@ __kernel void MLOpenLRNAcrossChannelsBwd1(
 			top_df_in[c_i] = top_df[MLO_LRN_TOPDF_BATCH_STRIDE * b + MLO_LRN_TOPDF_CHANNEL_STRIDE *c_i + MLO_LRN_TOPDF_STRIDE * y + x];
 			scale_in[c_i] = scale[MLO_LRN_SCALE_BATCH_STRIDE * b + MLO_LRN_SCALE_CHANNEL_STRIDE * c_i + MLO_LRN_SCALE_STRIDE * y + x];
 			_FLOAT top_dta = top[MLO_LRN_TOP_BATCH_STRIDE *b  + MLO_LRN_TOP_CHANNEL_STRIDE * c_i + MLO_LRN_TOP_STRIDE * y + x];
-			ratio_dta[c_i] = 
-						(top_df_in[c_i] * top_dta) /scale_in[c_i];
+			ratio_dta[c_i] = (top_df_in[c_i] * top_dta) / scale_in[c_i];
+#if MLO_LOW_CHNL_COUNT
+			ratio_dta[c_i] = (c_i < MLO_LRN_N_OUTPUTS) ? ratio_dta[c_i] : 0;
+#endif
 
 #if 0
 			if ( x == 5 && y == 11/* && c_o==12 */&& b==10)
@@ -640,25 +671,28 @@ __kernel void MLOpenLRNAcrossChannelsBwd1(
 
  			accum_ratio = 
 				accum_ratio + ratio_dta[c_i] ;
+#if MLO_LOW_CHNL_COUNT
+			if (c_o < MLO_LRN_N_INPUTS)
+#endif
+			{
+				_FLOAT bot_dta = bot[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_o + MLO_LRN_BOT_STRIDE * y + x];
 
-			_FLOAT bot_dta = bot[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_o + MLO_LRN_BOT_STRIDE * y + x];
-
-			_FLOAT prv_scale = scale_in[c_o];
+				_FLOAT prv_scale = scale_in[c_o];
 
 
-			_FLOAT exp_scale = 
-//				native_exp(-beta * native_log(prv_scale));
-				pow(prv_scale,-beta);
+				_FLOAT exp_scale =
+					native_exp(-beta * native_log(prv_scale));
+//					pow(prv_scale, -beta);
 
-			_FLOAT prv_accum_ratio =
-				ratio * bot_dta * accum_ratio;
+				_FLOAT prv_accum_ratio =
+					ratio * bot_dta * accum_ratio;
 
-			_FLOAT out_val = top_df_in[c_o] * exp_scale - prv_accum_ratio;
+				_FLOAT out_val = top_df_in[c_o] * exp_scale - prv_accum_ratio;
 
-			bot_df_off = MLO_LRN_BOTDF_BATCH_STRIDE * b + MLO_LRN_BOTDF_CHANNEL_STRIDE * c_o + MLO_LRN_BOTDF_STRIDE * y + x;
+				bot_df_off = MLO_LRN_BOTDF_BATCH_STRIDE * b + MLO_LRN_BOTDF_CHANNEL_STRIDE * c_o + MLO_LRN_BOTDF_STRIDE * y + x;
 
-			bot_df[bot_df_off] = out_val;
-
+				bot_df[bot_df_off] = out_val;
+			}
 
 		}
 
@@ -669,8 +703,10 @@ __kernel void MLOpenLRNAcrossChannelsBwd1(
 			_FLOAT prv_top_df_in = top_df[MLO_LRN_TOPDF_BATCH_STRIDE * b + MLO_LRN_TOPDF_CHANNEL_STRIDE *c_i + MLO_LRN_TOPDF_STRIDE * y + x];
 			_FLOAT prv_scale_in = scale[MLO_LRN_SCALE_BATCH_STRIDE * b + MLO_LRN_SCALE_CHANNEL_STRIDE * c_i + MLO_LRN_SCALE_STRIDE * y + x];
 			_FLOAT top_dta = top[MLO_LRN_TOP_BATCH_STRIDE *b  + MLO_LRN_TOP_CHANNEL_STRIDE * c_i + MLO_LRN_TOP_STRIDE * y + x];
-			_FLOAT prv_ratio_dta= 
-						prv_top_df_in * top_dta / prv_scale_in;
+			_FLOAT prv_ratio_dta = prv_top_df_in * top_dta / prv_scale_in;
+#if MLO_LOW_CHNL_COUNT
+			prv_ratio_dta = (c_i < MLO_LRN_N_OUTPUTS) ? prv_ratio_dta : 0;
+#endif
 
 #if 0
 			if ( x == 5 && y == 11/* && c_o==12 */&& b==10)
@@ -722,31 +758,34 @@ __kernel void MLOpenLRNAcrossChannelsBwd1(
 
 #endif
 
+#if MLO_LOW_CHNL_COUNT
+			if (c_o < MLO_LRN_N_INPUTS)
+#endif
+			{
+				_FLOAT bot_dta = bot[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_o + MLO_LRN_BOT_STRIDE * y + x];
 
-			_FLOAT bot_dta = bot[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_o + MLO_LRN_BOT_STRIDE * y + x];
-
-			_FLOAT prv_scale = scale_in[MLO_LRN_PAD];
+				_FLOAT prv_scale = scale_in[MLO_LRN_PAD];
 
 
-			_FLOAT exp_scale = 
-				native_exp(-beta * native_log(prv_scale));
-//				pow(prv_scale,-beta);
+				_FLOAT exp_scale =
+					native_exp(-beta * native_log(prv_scale));
+				//				pow(prv_scale,-beta);
 
-			_FLOAT prv_accum_ratio =
-				ratio * bot_dta * accum_ratio;
+				_FLOAT prv_accum_ratio =
+					ratio * bot_dta * accum_ratio;
 
-			_FLOAT out_val = top_df_in[MLO_LRN_PAD] * exp_scale - prv_accum_ratio;
+				_FLOAT out_val = top_df_in[MLO_LRN_PAD] * exp_scale - prv_accum_ratio;
 
-			bot_df_off = MLO_LRN_BOTDF_BATCH_STRIDE * b + MLO_LRN_BOTDF_CHANNEL_STRIDE * c_o + MLO_LRN_BOTDF_STRIDE * y + x;
+				bot_df_off = MLO_LRN_BOTDF_BATCH_STRIDE * b + MLO_LRN_BOTDF_CHANNEL_STRIDE * c_o + MLO_LRN_BOTDF_STRIDE * y + x;
 
-			bot_df[bot_df_off] = out_val;
-
+				bot_df[bot_df_off] = out_val;
+			}
 
 
 
 		}
 
-		for(  ; c_i < MLO_LRN_N_CHANNELS + MLO_LRN_PAD; c_i++, c_o++)
+		for (; c_i < MLO_LRN_N_CHANNELS + MLO_LRN_PAD; c_i++, c_o++)
 		{
 
 
@@ -755,51 +794,54 @@ __kernel void MLOpenLRNAcrossChannelsBwd1(
 
 
 
-			for( int i = 0; i < MLO_LRN_KERNEL_SZ - 1; i++)
+			for (int i = 0; i < MLO_LRN_KERNEL_SZ - 1; i++)
 			{
-				top_df_in[i] = top_df_in[i+1];
-				scale_in[i] = scale_in[i+1];
-				ratio_dta[i] = ratio_dta[i+1];
+				top_df_in[i] = top_df_in[i + 1];
+				scale_in[i] = scale_in[i + 1];
+				ratio_dta[i] = ratio_dta[i + 1];
 
 			}
 
-
-			_FLOAT bot_dta = bot[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_o + MLO_LRN_BOT_STRIDE * y + x];
-
-			_FLOAT prv_scale = scale_in[MLO_LRN_PAD];
-
-
-			_FLOAT exp_scale = 
-				native_exp(-beta * native_log(prv_scale));
-//				pow(prv_scale,-beta);
-
-			_FLOAT prv_accum_ratio =
-				ratio * bot_dta * accum_ratio;
-
-			_FLOAT out_val = top_df_in[MLO_LRN_PAD] * exp_scale - prv_accum_ratio;
-
-			bot_df_off = MLO_LRN_BOTDF_BATCH_STRIDE * b + MLO_LRN_BOTDF_CHANNEL_STRIDE * c_o + MLO_LRN_BOTDF_STRIDE * y + x;
-
-			bot_df[bot_df_off] = out_val;
-
- #if 0
-			if ( x == 5 && y == 11/* && c_o==12 */&& b== 10)
+#if MLO_LOW_CHNL_COUNT
+			if (c_o < MLO_LRN_N_INPUTS)
+#endif
 			{
-				printf("K: %d %10.8f %10.8f %10.8f %10.8f %10.8f %10.8f %10.8f\n",
-					c_i,
-					bot_df[bot_df_off],
-					top_df_in[MLO_LRN_PAD],
-					exp_scale,
-					prv_scale,
-					-prv_accum_ratio,
-					bot_dta,
-					accum_ratio
-				);
+				_FLOAT bot_dta = bot[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_o + MLO_LRN_BOT_STRIDE * y + x];
 
-			}
+				_FLOAT prv_scale = scale_in[MLO_LRN_PAD];
+
+
+				_FLOAT exp_scale =
+					native_exp(-beta * native_log(prv_scale));
+				//				pow(prv_scale,-beta);
+
+				_FLOAT prv_accum_ratio =
+					ratio * bot_dta * accum_ratio;
+
+				_FLOAT out_val = top_df_in[MLO_LRN_PAD] * exp_scale - prv_accum_ratio;
+
+				bot_df_off = MLO_LRN_BOTDF_BATCH_STRIDE * b + MLO_LRN_BOTDF_CHANNEL_STRIDE * c_o + MLO_LRN_BOTDF_STRIDE * y + x;
+
+				bot_df[bot_df_off] = out_val;
+
+#if 0
+				if ( x == 5 && y == 11/* && c_o==12 */&& b== 10)
+				{
+					printf("K: %d %10.8f %10.8f %10.8f %10.8f %10.8f %10.8f %10.8f\n",
+						c_i,
+						bot_df[bot_df_off],
+						top_df_in[MLO_LRN_PAD],
+						exp_scale,
+						prv_scale,
+						-prv_accum_ratio,
+						bot_dta,
+						accum_ratio
+						);
+
+				}
 
 #endif
-
+			}
 		}
 
 }

@@ -109,6 +109,8 @@ int mlo_construct_norm::mloConstructFwd(void)
 		+ std::string(" -D MLO_LRN_BOTDF_CHANNEL_STRIDE=") + std::to_string((long long)bot_df_channel_stride)
 		+ std::string(" -D MLO_LRN_BOTDF_STRIDE=") + std::to_string((long long)bot_df_stride)
 		+ std::string(" -D MLO_LRN_BATCH_SZ=") + std::to_string((long long)_batch_sz)
+		+ std::string(" -D MLO_LRN_N_INPUTS=") + std::to_string((long long)_n_inputs)
+		+ std::string(" -D MLO_LRN_N_OUTPUTS=") + std::to_string((long long)_n_outputs)
 		+ std::string(" -D MLO_LRN_DO_SCALE=") + std::to_string((long long)scale)
 		+ getGeneralCompOptions()
 		;
@@ -209,6 +211,8 @@ int mlo_construct_norm::mloConstructBwd(void)
 		+ std::string(" -D MLO_LRN_BOTDF_CHANNEL_STRIDE=") + std::to_string((long long)_in_df_channel_stride)
 		+ std::string(" -D MLO_LRN_BOTDF_STRIDE=") + std::to_string((long long)_in_df_stride)
 		+ std::string(" -D MLO_LRN_BATCH_SZ=") + std::to_string((long long)_batch_sz)
+		+ std::string(" -D MLO_LRN_N_INPUTS=") + std::to_string((long long)_n_inputs)
+		+ std::string(" -D MLO_LRN_N_OUTPUTS=") + std::to_string((long long)_n_outputs)
 		+ getGeneralCompOptions()
 		;
 
