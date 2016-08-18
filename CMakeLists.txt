@@ -62,7 +62,7 @@ if( MLOPEN_BACKEND MATCHES "HIP")
 	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=1 )
-	message( SEND_ERROR "${Cobalt_BACKEND} backend not yet supported." )
+	message( STATUS "${MLOPEN_BACKEND} backend selected." )
 endif()
 
 # If Cobalt is used in future

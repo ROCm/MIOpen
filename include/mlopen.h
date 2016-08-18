@@ -5,6 +5,17 @@
 
 #include "mlopen_export.h"
 
+#if MLOPEN_BACKEND_OPENCL
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <OpenCL/cl.h>
+#else
+#include <CL/cl.h>
+#endif
+
+#elif MLOPEN_BACKEND_HIP
+#include <hip_runtime.h>
+#endif
+
 #define MLOPEN_DECLARE_OBJECT(name) \
 struct name {}; \
 typedef struct name * name ## _t;
@@ -14,15 +25,8 @@ extern "C" {
 #endif
 
 #if MLOPEN_BACKEND_OPENCL
-#if defined(__APPLE__) || defined(__MACOSX)
-#include <OpenCL/cl.h>
-#else
-#include <CL/cl.h>
-#endif
 typedef cl_command_queue mlopenAcceleratorQueue_t;
-
 #elif MLOPEN_BACKEND_HIP
-#include <hip_runtime.h>
 typedef hipStream_t mlopenAcceleratorQueue_t;
 #endif
 

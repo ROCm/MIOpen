@@ -4,7 +4,6 @@
 #include <mlopen.h>
 #include <mlopen/handle.hpp>
 #include <mlopen/tensor.hpp>
-#include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
 
 namespace mlopen {
@@ -19,11 +18,11 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 
 	mlopenStatus_t FindConvFwdAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	xDesc,
-		const Data_t					x,
+		ConstData_t					x,
 		const mlopen::TensorDescriptor&	wDesc,
-		const Data_t					w,
+		ConstData_t					w,
 		const mlopen::TensorDescriptor&	yDesc,
-		const Data_t					y,
+		ConstData_t					y,
 		const int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,
@@ -35,9 +34,9 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	mlopenStatus_t ConvolutionForward(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		xDesc,
-		const Data_t						x,
+		ConstData_t						x,
 		const mlopen::TensorDescriptor&		wDesc,
-		const Data_t						w,
+		ConstData_t						w,
 		mlopenConvFwdAlgorithm_t			algo,
 		const void							*beta,
 		const mlopen::TensorDescriptor&		yDesc,
@@ -47,11 +46,11 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 
 	mlopenStatus_t FindConvBwdDataAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	dyDesc,
-		const Data_t					dy,
+		ConstData_t					dy,
 		const mlopen::TensorDescriptor&	wDesc,
-		const Data_t					w,
+		ConstData_t					w,
 		const mlopen::TensorDescriptor&	dxDesc,
-		const Data_t					dx,
+		ConstData_t					dx,
 		const int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,
@@ -63,9 +62,9 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	mlopenStatus_t ConvolutionBackwardData(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		dyDesc,
-		const Data_t						dy,
+		ConstData_t						dy,
 		const mlopen::TensorDescriptor&		wDesc,
-		const Data_t						w,
+		ConstData_t						w,
 		mlopenConvBwdDataAlgorithm_t		algo,
 		const void							*beta,
 		const mlopen::TensorDescriptor&		dxDesc,

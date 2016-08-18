@@ -81,10 +81,6 @@ set( MLOpen_Source
 	include/mlopen/oclkernel.hpp
 	include/mlopen/tensor.hpp
 	include/mlopenTypes.h
-	kernel_cache.cpp
-	mlo_cl_util.cpp
-	mlo_dir_conv.cpp
-	ocl_kernel.cpp
 	tensor.cpp
 	tensor_api.cpp
 	)
@@ -95,6 +91,10 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MlOpenConvDirGenFwd.cl
 	)
 	list(APPEND MLOpen_Source 
+		kernel_cache.cpp
+		mlo_cl_util.cpp
+		mlo_dir_conv.cpp
+		ocl_kernel.cpp
 		ocl/handleocl.cpp
 		ocl/clhelper.cpp
 		ocl/clhelper.hpp
