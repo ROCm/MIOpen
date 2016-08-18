@@ -47,14 +47,14 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 
 	std::string ToString() const;
 
-	mlopenStatus_t TransformTensor(mlopen::Handle& handle,
+	void TransformTensor(Handle& handle,
 			const void *alpha,
 			const TensorDescriptor& srcTensorDesc,
 			ConstData_t srcTensor,
 			const void *beta,
 			Data_t dstTensor);
 
-	mlopenStatus_t OpTensor(mlopen::Handle& handle,
+	void OpTensor(Handle& handle,
 			mlopenTensorOp_t				tensorOp,
 			const void						*alpha1,
 			const TensorDescriptor&	aDesc,
@@ -65,11 +65,11 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 			const void						*beta,
 			Data_t							C);
 
-	mlopenStatus_t SetTensor(mlopen::Handle& handle,
+	void SetTensor(Handle& handle,
 			Data_t							dstTensor,
 			const void						*valuePtr);
 
-	mlopenStatus_t ScaleTensor(mlopen::Handle& handle,
+	void ScaleTensor(Handle& handle,
 			Data_t							y,
 			const void						*alpha);
 
