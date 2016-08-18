@@ -4,7 +4,6 @@
 #include <mlopen/handle.hpp>
 #include <mlopen/object.hpp>
 #include <mlopen.h>
-#include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
 #include <vector>
 // TODO: remove this include later
@@ -51,7 +50,7 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 	mlopenStatus_t TransformTensor(mlopen::Handle& handle,
 			const void *alpha,
 			const TensorDescriptor& srcTensorDesc,
-			const Data_t srcTensor,
+			ConstData_t srcTensor,
 			const void *beta,
 			Data_t dstTensor);
 
@@ -59,10 +58,10 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 			mlopenTensorOp_t				tensorOp,
 			const void						*alpha1,
 			const TensorDescriptor&	aDesc,
-			const Data_t					A,
+			ConstData_t					A,
 			const void						*alpha2,
 			const TensorDescriptor&	bDesc,
-			const Data_t					B,
+			ConstData_t					B,
 			const void						*beta,
 			Data_t							C);
 

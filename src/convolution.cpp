@@ -1,6 +1,5 @@
 #include <mlopen/convolution.hpp>
 #include <mlopen/errors.hpp>
-#include <mlopen/mlo_internal.hpp>
 
 namespace mlopen {
 
