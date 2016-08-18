@@ -26,7 +26,10 @@ struct mlopenLRNDescriptor {
 		const Data_t						x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
-		Data_t								y);
+		Data_t								y,
+		bool                                do_backward,
+		Data_t								workSpace,
+		size_t								*workSpaceSize);
 
 	mlopenStatus_t Backward(
 		mlopenHandle_t						handle,
@@ -39,7 +42,8 @@ struct mlopenLRNDescriptor {
 		const Data_t						x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
-		Data_t								dx);
+		Data_t								dx,
+		const Data_t						workSpace);
 
 	private:
 	unsigned int lrnN;

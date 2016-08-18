@@ -29,7 +29,7 @@ mlopenStatus_t mlopenSetLRNDescriptor(
 }
 
 extern "C"
-mlopenStatus_t mlopenGet2dLRNDescriptor(
+mlopenStatus_t mlopenGetLRNDescriptor(
 		const mlopenLRNDescriptor_t		lrnDesc,
 		mlopenLRNMode_t					*mode,
 		unsigned int					*lrnN,
@@ -47,7 +47,7 @@ mlopenStatus_t mlopenGet2dLRNDescriptor(
 }
 
 extern "C"
-mlopenStatus_t mlopenLRNCrossChannelForward(
+mlopenStatus_t mlopenLRNForward(
 		mlopenHandle_t						handle,
 		const mlopenLRNDescriptor_t			lrnDesc,
 		const void							*alpha,
@@ -55,7 +55,11 @@ mlopenStatus_t mlopenLRNCrossChannelForward(
 		const void							*x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
-		void								*y) {
+		void								*y,
+		bool                                do_backward,
+		void								*workSpace,
+		size_t								*workSpaceSize) {
+
 
 	return mlopen::try_([&] {
 		lrnDesc->Forward(handle,
@@ -64,12 +68,16 @@ mlopenStatus_t mlopenLRNCrossChannelForward(
 			DataCast(x),
 			beta,
 			yDesc,
-			DataCast(y));
+			DataCast(y),
+			do_backward,
+			DataCast(workSpace),
+			workSpaceSize);
+
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenLRNCrossChannelBackward(
+mlopenStatus_t mlopenLRNBackward(
 		mlopenHandle_t						handle,
 		const mlopenLRNDescriptor_t			lrnDesc,
 		const void							*alpha,
@@ -81,7 +89,8 @@ mlopenStatus_t mlopenLRNCrossChannelBackward(
 		const void							*x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
-		void								*dx) {
+		void								*dx,
+		const void							*workSpace) {
 
 	return mlopen::try_([&] {
 		lrnDesc->Backward(handle,
@@ -94,7 +103,8 @@ mlopenStatus_t mlopenLRNCrossChannelBackward(
 			DataCast(x),
 			beta,
 			dxDesc,
-			DataCast(dx));
+			DataCast(dx),
+			DataCast(workSpace));
 	});
 }
 

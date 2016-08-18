@@ -81,7 +81,10 @@ if( MLOpen_BACKEND MATCHES "OpenCL")
 		OCL/lrn_ocl.cpp
 		OCL/CLHelper.hpp
 		OCL/CLHelper.cpp
-		OCL/mloPooling.cpp)
+		OCL/mloPooling.cpp
+		OCL/mloNeuron.cpp
+		OCL/mloNorm.cpp
+		)
 endif()
 
 if( MLOpen_BACKEND MATCHES "HIP")
