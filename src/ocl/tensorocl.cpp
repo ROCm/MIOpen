@@ -1,9 +1,10 @@
 #include <mlopen/tensor.hpp>
+#include <mlopen/errors.hpp>
 #include <algorithm>
 
 namespace mlopen {
 
-mlopenStatus_t TensorDescriptor::TransformTensor(mlopen::Handle& handle,
+void TensorDescriptor::TransformTensor(Handle& handle,
 			const void *alpha,
 			const TensorDescriptor& srcTensorDesc,
 			const cl_mem srcTensor,
@@ -13,7 +14,7 @@ mlopenStatus_t TensorDescriptor::TransformTensor(mlopen::Handle& handle,
 	printf("To be implemented (TransformTensor) \n");
 
 	if(*this == srcTensorDesc) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
 	// Check that output tensors do not overlap .. output tensors cannot be transformed in place .. no aliasing
@@ -29,11 +30,10 @@ mlopenStatus_t TensorDescriptor::TransformTensor(mlopen::Handle& handle,
 
 //	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
-	// If beta = 0, y = alpha*x;
-	return mlopenStatusSuccess;
+	// If beta = 0, y = alpha*x
 }
 
-mlopenStatus_t TensorDescriptor::OpTensor(mlopen::Handle& handle,
+void TensorDescriptor::OpTensor(Handle& handle,
 		mlopenTensorOp_t				tensorOp,
 		const void						*alpha1,
 		const TensorDescriptor&	inputTensorDesc1,
@@ -48,7 +48,7 @@ mlopenStatus_t TensorDescriptor::OpTensor(mlopen::Handle& handle,
 
 	// inputTensor1 and dstTensor must have same dims
 	if(this->lens != inputTensorDesc1.lens) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
 	// input Tensor2 and dstTensor must have same dims or all the dims of
@@ -58,11 +58,11 @@ mlopenStatus_t TensorDescriptor::OpTensor(mlopen::Handle& handle,
 		! std::all_of(inputTensorDesc2.lens.begin(), inputTensorDesc2.lens.end(), [](int x) { return x == 1; })
 	) 
 	{
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	
 	if(this->type != inputTensorDesc1.type && this->type != inputTensorDesc2.type) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
 	// Launch kernels using the handle
@@ -75,17 +75,15 @@ mlopenStatus_t TensorDescriptor::OpTensor(mlopen::Handle& handle,
 
 	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
-	return mlopenStatusSuccess;
-
 }
 
-mlopenStatus_t TensorDescriptor::SetTensor(mlopen::Handle& handle,
+void TensorDescriptor::SetTensor(Handle& handle,
 		cl_mem							dstTensor,
 		const void						*valuePtr) {
 
 	printf("To be implemented (SetTensor) \n");
 	if(valuePtr == nullptr || dstTensor == nullptr) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
 	// Launch kernels using the handle
@@ -101,17 +99,15 @@ mlopenStatus_t TensorDescriptor::SetTensor(mlopen::Handle& handle,
 
 //	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
-	return mlopenStatusSuccess;
-
 }
 
-mlopenStatus_t TensorDescriptor::ScaleTensor(mlopen::Handle& handle,
+void TensorDescriptor::ScaleTensor(Handle& handle,
 		cl_mem							dstTensor,
 		const void						*alpha) {
 
 	printf("To be implemented (ScaleTensor) \n");
 	if(dstTensor == nullptr) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
 
@@ -124,8 +120,6 @@ mlopenStatus_t TensorDescriptor::ScaleTensor(mlopen::Handle& handle,
 	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
-
-	return mlopenStatusSuccess;
 
 }
 
