@@ -8,7 +8,11 @@ mlopenStatus_t mlopenPoolingDescriptor::Forward(
 		const cl_mem						x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
-		cl_mem								y) {
+		cl_mem								y,
+		bool								do_backward,
+		cl_mem								workSpace,
+		size_t								workSpaceSize) {
+
 	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in pooling forward\n");
 	mlo_construct_pooling2D construct_params(1); // forward
@@ -137,7 +141,9 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 		const cl_mem						x,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
-		cl_mem								dx) {
+		cl_mem								dx,
+		const cl_mem						workSpace) {
+
 
 	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in pooling backward\n");

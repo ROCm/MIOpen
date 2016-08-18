@@ -3,6 +3,8 @@
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"
+#include "mloNormHost.hpp"
+#include "mloNeuronHost.hpp"
 
 void PrintConvParameters(std::vector<int> &in_len,
 		std::vector<int> &wei_len,
@@ -135,7 +137,7 @@ int main(int argc, char* argv[]) {
 			printf("Error copying data to GPU\n");
 // forward
 		float alpha = 1., beta = 1.;
-		mlopenPoolingForward(handle, poolDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
+		mlopenPoolingForward(handle, poolDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem(),false, NULL, 0);
 
 // verification
 		{
@@ -240,7 +242,8 @@ int main(int argc, char* argv[]) {
 			in_dev->GetMem(),
 			&beta,
 			dInputTensor,
-			din_dev->GetMem());
+			din_dev->GetMem(),
+			NULL);
 
 		// verification
 		{
@@ -314,5 +317,185 @@ int main(int argc, char* argv[]) {
 		}
 
 	}
+
+	// LNR
+	{
+		mlopenHandle_t handle;
+		cl_command_queue q;
+
+		mlopenTensorDescriptor_t inputTensor;
+		mlopenTensorDescriptor_t outputTensor;
+		mlopenLRNDescriptor_t lrnDesc;
+
+		std::unique_ptr<GPUMem> in_dev;
+		std::unique_ptr<GPUMem> out_dev;
+		std::unique_ptr<GPUMem> scale_dev;
+
+		std::vector<float> in;
+		std::vector<float> out;
+		std::vector<float> scale;
+		std::vector<float> outhost;
+		std::vector<float> scalehost;
+
+
+		handle = drv.GetHandle();
+		mlopenGetStream(handle, &q);
+
+		mlopenCreateTensorDescriptor(&inputTensor);
+		mlopenCreateTensorDescriptor(&outputTensor);
+
+		mlopenCreateLRNDescriptor(&lrnDesc);
+
+		mlopenLRNMode_t	mode = mlopenLRNCrossChannel; // mlopenLRNWithinChannel;
+		unsigned int lrnN = 5;
+		double	lrnAlpha = 0.001;
+		double	lrnBeta = 0.75;
+		double	lrnK = 1.;
+		mlopenSetLRNDescriptor(lrnDesc,
+			mode,
+			lrnN,
+			lrnAlpha,
+			lrnBeta,
+			lrnK);
+
+		mlopenSet4dTensorDescriptor(
+			inputTensor,
+			mlopenFloat,
+			UNPACK_VEC4(in_len));
+		mlopenSet4dTensorDescriptor(
+			outputTensor,
+			mlopenFloat,
+			UNPACK_VEC4(in_len));
+
+		bool   do_backward = true;
+		size_t	workSpaceSize = 0;
+
+		// get worspace size
+		mlopenLRNForward(handle,lrnDesc,NULL,inputTensor,NULL,NULL, outputTensor,NULL, do_backward, NULL, &workSpaceSize);
+
+		int n_l, c_l, h_l, w_l;
+		mlopenGet4dTensorDescriptorLengths(inputTensor, &n_l, &c_l, &h_l, &w_l);
+
+		size_t in_sz = n_l * c_l * h_l *w_l;
+
+		mlopenGet4dTensorDescriptorLengths(outputTensor, &n_l, &c_l, &h_l, &w_l);
+
+		size_t out_sz = n_l * c_l * h_l *w_l;
+
+		cl_context ctx;
+		clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+
+		in_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
+		out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+		if (do_backward)
+		{
+			scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize/sizeof(float), sizeof(float)));
+		}
+
+		in = std::vector<float>(in_sz);
+		out = std::vector<float>(out_sz, 0);
+		scale = std::vector<float>(workSpaceSize/sizeof(float), 0);
+		outhost = std::vector<float>(out_sz, 0);
+		scalehost = std::vector<float>(workSpaceSize / sizeof(float), 0);
+
+		for (int i = 0; i < in_sz; i++) {
+			in[i] = rand() * (1.0 / RAND_MAX);
+		}
+
+
+		cl_int status;
+		status = in_dev->ToGPU(q, in.data());
+		status |= scale_dev->ToGPU(q, scale.data());
+		status |= out_dev->ToGPU(q, out.data());
+
+		if (status != CL_SUCCESS)
+			printf("Error copying data to GPU\n");
+		// forward
+		float alpha = 1., beta = 1.;
+		// real run
+		mlopenLRNForward(handle, lrnDesc, &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem(), do_backward, scale_dev->GetMem(), &workSpaceSize);
+
+		// verification
+		{
+			int nInStride, cInStride, hInStride, wInStride;
+			mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
+			int nIn, cIn, hIn, wIn;
+			mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+			int nOutStride, cOutStride, hOutStride, wOutStride;
+			mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
+			int nOut, cOut, hOut, wOut;
+			mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+			mlopenLRNMode_t	v_mode;
+			unsigned int v_lrnN;
+			double	v_lrnAlpha;
+			double	v_lrnBeta;
+			double	v_lrnK;
+
+			mlopenGetLRNDescriptor(lrnDesc,
+				&v_mode,
+				&v_lrnN,
+				&v_lrnAlpha,
+				&v_lrnBeta,
+				&v_lrnK);
+
+			float alphaoverarea = (v_mode == mlopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN);
+
+			int pre_pad = (v_lrnN - 1) / 2;
+			int pad = v_lrnN - pre_pad - 1;
+
+			int batch_sz = nIn;
+			int n_inputs = cIn;
+			int bot_height = hIn;
+			int bot_width = wIn;
+			int bot_stride = hInStride;
+			int bot_channel_stride = cInStride;
+			int bot_batch_stride = nInStride;
+
+
+			int n_outputs = cOut;
+			int top_height = hOut;
+			int top_width = wOut;
+			int top_v_stride = hOutStride;
+			int top_v_channel_stride = cOutStride;
+			int	top_v_batch_stride = nOutStride;
+			int scale_v_stride = top_v_stride;
+			int scale_v_channel_stride = top_v_channel_stride;
+			int scale_v_batch_stride = top_v_batch_stride;
+
+
+			mloLRNForwardRunHost<float>(
+				do_backward,
+				v_mode,
+				pad,
+				v_lrnN,
+				alphaoverarea,
+				(float)v_lrnAlpha,
+				(float)v_lrnBeta,
+				(float)v_lrnK,
+				batch_sz,
+				n_outputs,
+				n_inputs,
+				bot_height,
+				bot_width,
+				bot_stride,
+				bot_channel_stride,
+				bot_batch_stride,
+				top_height,
+				top_width,
+				top_v_stride,
+				top_v_channel_stride,
+				top_v_batch_stride,
+				scale_v_stride,
+				scale_v_channel_stride,
+				scale_v_batch_stride,
+				in.data(),
+				scalehost.data(),
+				outhost.data()
+				);
+
+		}
+
+	}
+
 	return 0;
 }

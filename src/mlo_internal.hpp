@@ -109,6 +109,8 @@ public:
 	mlo_construct_direct2D(int dir, bool do_bias = false)
 	{
 		_direction = dir;
+		_do_backward = false;
+
 #if !(defined(__APPLE__) || defined(__MACOSX))
 		_gen_comp_options = std::string(" -cl-std=CL2.0 ");
 #endif
@@ -162,8 +164,8 @@ public:
 	* covers genrinc forward convolution:
 	* arbitrary combination of kerenl sizes, strides
 	*/
-	virtual int mloConstruct(void);
 
+	virtual int mloConstruct(void);
 
 	/*
 	* makes a unique key that represent the current kernel c0onfiguration
@@ -601,6 +603,22 @@ public:
 	}
 
 	/*
+	*  indicate the need for backward pass
+	*/
+	inline void doBackward(bool do_bwd)
+	{
+		_do_backward = do_bwd;
+	}
+	/*
+	* need for backward pass?
+	*/
+	inline bool doBackward(void) const
+	{
+		return(_do_backward);
+	}
+
+
+	/*
 	*  allow the search for the best possible solution
 	*/
 	inline void doSearch(bool do_search)
@@ -772,6 +790,7 @@ protected:
 	int _new_in_channel_stride;
 	int _new_in_stride;
 	size_t _new_in_sz;
+	bool _do_backward;
 
 	// FIX IT
 //	int _weights_height;
@@ -900,7 +919,6 @@ class mlo_construct_norm : public mlo_construct_direct2D
 public:
 	mlo_construct_norm(int dir) : mlo_construct_direct2D(dir)
 	{
-		_do_scale = false;
 	}
 
 	inline void setNormDescr(
@@ -908,11 +926,9 @@ public:
 		int norm_area,
 		double normAlpha,
 		double normBeta,
-		double normK = 1.,
-		bool do_scale = false
+		double normK = 1.
 		)
 	{
-		_do_scale = do_scale,
 		_norm_region = norm_region;
 		_norm_area = norm_area;
 		_normAlpha = normAlpha;
@@ -922,7 +938,6 @@ public:
 	}
 
 	inline void getNormDescr(
-		bool & do_scale,
 		int & norm_region,
 		int & norm_area,
 		double & normAlpha,
@@ -931,7 +946,6 @@ public:
 		double & alphaoverarea
 		) const	
 	{
-		do_scale = _do_scale,
 		norm_region = _norm_region;
 		norm_area = _norm_area;
 		normAlpha = _normAlpha;
@@ -945,12 +959,74 @@ public:
 protected:
 	int mloConstructFwd(void);
 	int mloConstructBwd(void);
-	bool _do_scale;
 	int _norm_region;
 	int _norm_area;
 	double _normAlpha;
 	double _normBeta;
 	double _normK;
+
+};
+
+#define MLO_NEURON_PASTHRU		0  //x	
+#define MLO_NEURON_LOGISTIC	MLO_NEURON_PASTHRU + 1		//	1 / (1 + e^-x)	//Sigmoid
+#define MLO_NEURON_TANH		MLO_NEURON_LOGISTIC + 1	//	a * tanh( b * x)
+#define MLO_NEURON_RELU		MLO_NEURON_TANH + 1		//	max(0, x)
+#define MLO_NEURON_BRELU		MLO_NEURON_RELU + 1		//	min(a, max(0, x))
+#define MLO_NEURON_SOFTRELU	MLO_NEURON_BRELU + 1		//	log(1 + e^x)   // bonomial normal log likelihood
+#define MLO_NEURON_ABS			MLO_NEURON_SOFTRELU + 1	//	abs(x)
+#define MLO_NEURON_SQUARE		MLO_NEURON_ABS + 1			//	x^2
+#define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
+#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
+#define MLO_NEURON_POWER		MLO_NEURON_LINEAR + 1		// (a + b * x ) ^power
+#define MLO_NEURON_TOTAL		MLO_NEURON_POWER + 1
+
+
+class mlo_construct_neuron : public mlo_construct_direct2D
+{
+public:
+	mlo_construct_neuron(int dir) : mlo_construct_direct2D(dir)
+	{
+		_neuron_type = 0;
+		_power = 0;
+		_scale = 1;
+		_shift = 0;
+	}
+
+	inline void setNeuronDescr(
+		int neuron_type,
+		double power,
+		double scale,
+		double shift
+	)
+	{
+		_neuron_type = neuron_type;
+		_power = power;
+		_scale = scale;
+		_shift = shift;
+	}
+
+	inline void getNeuronDescr(
+		int & neuron_type,
+		double & power,
+		double & scale,
+		double & shift
+		) const
+	{
+		neuron_type = _neuron_type;
+		power = _power;
+		scale = _scale;
+		shift = _shift;
+	}
+
+	int mloConstruct(void);
+
+protected:
+	int mloConstructFwd(void);
+	int mloConstructBwd(void);
+	int _neuron_type;
+	double _power;
+	double _scale;
+	double _shift;
 
 };
 
