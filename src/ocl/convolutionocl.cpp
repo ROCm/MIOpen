@@ -3,7 +3,7 @@
 
 namespace mlopen {
 
-mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
+void ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	xDesc,
 		const cl_mem					x,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -19,14 +19,14 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handl
 		bool							exhaustiveSearch) const {
 	
 	if(x == nullptr || w == nullptr || y == nullptr) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 #if 0
 	if(returnedAlgoCount == nullptr || perfResults == nullptr) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(requestAlgoCount < 1) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 #endif 
 
@@ -73,11 +73,9 @@ mlopenStatus_t ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handl
 	
 	handle.Finish();
 
-	return mlopenStatusSuccess;
-
 }
 
-mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
+void ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		xDesc,
 		const cl_mem						x,
@@ -91,19 +89,19 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
 		size_t								workSpaceSize) const {
 
 	if(x == nullptr || w == nullptr || y == nullptr) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(xDesc.GetSize() != yDesc.GetSize() || xDesc.GetSize() != wDesc.GetSize()) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(xDesc.GetType() != yDesc.GetType() || xDesc.GetType() != wDesc.GetType()) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(xDesc.GetSize() < 3) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	
 	// TODO: Replicating code for now.
@@ -137,13 +135,11 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
 	handle.GetKernel(algorithm_name, network_config)(x, w, y, padding_val);
 	handle.Finish();
 
-	return mlopenStatusSuccess;
-
 }
 
 // FindBackwardDataAlgorithm()
 //
-mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
+void ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	dyDesc,
 		const cl_mem					dy,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -159,14 +155,14 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& h
 		bool							exhaustiveSearch) const {
 	
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 #if 0
 	if(returnedAlgoCount == nullptr || perfResults == nullptr) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(requestAlgoCount < 1) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 #endif 
 
@@ -213,12 +209,10 @@ mlopenStatus_t ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& h
 	
 	handle.Finish();
 
-	return mlopenStatusSuccess;
-
 }
 
 // BackwardDataAlgorithm()
-mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Handle& handle,
+void ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		dyDesc,
 		const cl_mem						dy,
@@ -232,19 +226,19 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Handle& ha
 		size_t								workSpaceSize) const {
 
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(dyDesc.GetSize() != dxDesc.GetSize() || dyDesc.GetSize() != wDesc.GetSize()) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(dyDesc.GetType() != dxDesc.GetType() || dyDesc.GetType() != wDesc.GetType()) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(dyDesc.GetSize() < 3) {
-		return mlopenStatusBadParm;
+		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
 	// TODO: Replicating code for now.
@@ -270,8 +264,6 @@ mlopenStatus_t ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Handle& ha
 	float padding_val = 0;
 	handle.GetKernel(algorithm_name, network_config)(dy, w, dx, padding_val);
 	handle.Finish();
-
-	return mlopenStatusSuccess;
 
 }
 }
