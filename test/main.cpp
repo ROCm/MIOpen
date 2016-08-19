@@ -183,9 +183,9 @@ struct conv_forward : output_tensor_fixture
                 NULL));
 
         int value = 10;
-        STATUS(mlopenSetTensor(handle, inputTensor, NULL, &value));
+        // STATUS(mlopenSetTensor(handle, inputTensor, NULL, &value));
 
-        STATUS(mlopenScaleTensor(handle, inputTensor, NULL, &alpha));
+        // STATUS(mlopenScaleTensor(handle, inputTensor, NULL, &alpha));
 
         // Setup OpenCL buffers
 
