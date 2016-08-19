@@ -16,7 +16,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& inputTensorDesc, const TensorDescriptor& filterDesc) const;
 	TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& inputTensorDesc, const TensorDescriptor& filterDesc) const;
 
-	mlopenStatus_t FindConvFwdAlgorithm(mlopen::Handle& handle,
+	void FindConvFwdAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	xDesc,
 		ConstData_t					x,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -31,7 +31,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
-	mlopenStatus_t ConvolutionForward(mlopen::Handle& handle,
+	void ConvolutionForward(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		xDesc,
 		ConstData_t						x,
@@ -44,7 +44,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		void								*workSpace,
 		size_t								workSpaceSize) const;
 
-	mlopenStatus_t FindConvBwdDataAlgorithm(mlopen::Handle& handle,
+	void FindConvBwdDataAlgorithm(mlopen::Handle& handle,
 		const mlopen::TensorDescriptor&	dyDesc,
 		ConstData_t					dy,
 		const mlopen::TensorDescriptor&	wDesc,
@@ -59,7 +59,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
-	mlopenStatus_t ConvolutionBackwardData(mlopen::Handle& handle,
+	void ConvolutionBackwardData(mlopen::Handle& handle,
 		const void							*alpha,
 		const mlopen::TensorDescriptor&		dyDesc,
 		ConstData_t						dy,

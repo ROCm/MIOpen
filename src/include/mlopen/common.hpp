@@ -23,7 +23,7 @@ inline ConstData_t DataCast(const void *p) {
 typedef void * Data_t;
 typedef const void * ConstData_t;
 // TODO: Set the deleter
-typedef std::unique_ptr<void> ManageDataPtr;
+typedef MLOPEN_MANAGE_PTR(void, hipFree) ManageDataPtr;
 
 inline Data_t DataCast(void *p) {
 	return p;
