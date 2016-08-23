@@ -182,3 +182,11 @@ uint64_t InputFlags::GetValueUint64(const std::string &long_name)
 
     return value;
 }
+
+double InputFlags::GetValueDouble(const std::string &long_name)
+{
+    char short_name = FindShortName(long_name);
+    double value = atof(MapInputs[short_name].value.c_str());
+
+    return value;
+}
