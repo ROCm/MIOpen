@@ -111,7 +111,7 @@ char InputFlags::FindShortName(const std::string &long_name)
 void InputFlags::Parse(int argc, char *argv[])
 {
 	std::vector<std::string> args;
-	for(int i = 1; i < argc; i++)
+	for(int i = 2; i < argc; i++)
 		args.push_back(argv[i]);
 
 //	if(args.size() == 0) // No Input Flag
