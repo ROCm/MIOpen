@@ -309,7 +309,6 @@ int PoolDriver<T>::VerifyForward() {
 			(1 << 2)
 				);
 
-	printf("Forward Pooling Verfication Pass: %d\n", status);
 	return 0;
 }
 
@@ -380,7 +379,6 @@ int PoolDriver<T>::VerifyBackward() {
 			hOutStride
 				);
 
-	printf("Backward Pooling Verfication Pass: %d\n", status);
 	return 0;
 }
 #endif //GUARD_MLOPEN_POOL_DRIVER_HPP
