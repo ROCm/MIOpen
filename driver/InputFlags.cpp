@@ -111,7 +111,7 @@ char InputFlags::FindShortName(const std::string &long_name)
 void InputFlags::Parse(int argc, char *argv[])
 {
 	std::vector<std::string> args;
-	for(int i = 1; i < argc; i++)
+	for(int i = 2; i < argc; i++)
 		args.push_back(argv[i]);
 
 //	if(args.size() == 0) // No Input Flag
@@ -179,6 +179,14 @@ uint64_t InputFlags::GetValueUint64(const std::string &long_name)
 {
     char short_name = FindShortName(long_name);
     uint64_t value = strtoull(MapInputs[short_name].value.c_str(), NULL, 10);
+
+    return value;
+}
+
+double InputFlags::GetValueDouble(const std::string &long_name)
+{
+    char short_name = FindShortName(long_name);
+    double value = atof(MapInputs[short_name].value.c_str());
 
     return value;
 }

@@ -505,7 +505,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenLRNBackward(
 		void								*dx,
 		const void							*workSpace);
 
-
+MLOPEN_EXPORT mlopenStatus_t mlopenDestroyLRNDescriptor(mlopenLRNDescriptor_t lrnDesc);
 #ifdef __cplusplus
 }
 #endif
