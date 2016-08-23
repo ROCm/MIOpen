@@ -39,8 +39,9 @@ int mlo_construct_neuron::mloConstruct(void)
 int mlo_construct_neuron::mloConstructFwd(void)
 {
 	int ret = 0;
+	int data_len = (!_in_data_type.compare("FP32") ? 4 : 8);
 
-	size_t size = _bot_sz;
+	size_t size = (_bot_sz / data_len);
 	if (((size / 4) * 4) != size)
 	{
 		printf("Error: buffer size is not multipel of 4.\n");
@@ -68,7 +69,7 @@ int mlo_construct_neuron::mloConstructFwd(void)
 	_g_wk.clear();
 	_g_wk.push_back(glbl_wk);
 	_g_wk.push_back(1);
-	_g_wk.push_back(glbl_wk);
+	_g_wk.push_back(1);
 
 
 	_kernel_file = "MLOpenNeuron.cl";
@@ -81,7 +82,9 @@ int mlo_construct_neuron::mloConstructFwd(void)
 int mlo_construct_neuron::mloConstructBwd(void)
 {
 	int ret = 0;
-	size_t size = _bot_sz;
+	int data_len = (!_in_data_type.compare("FP32") ? 4 : 8);
+
+	size_t size = (_bot_sz / data_len);
 	if (((size / 4) * 4) != size)
 	{
 		printf("Error: buffer size is not multipel of 4.\n");
@@ -109,7 +112,7 @@ int mlo_construct_neuron::mloConstructBwd(void)
 	_g_wk.clear();
 	_g_wk.push_back(glbl_wk);
 	_g_wk.push_back(1);
-	_g_wk.push_back(glbl_wk);
+	_g_wk.push_back(1);
 	_kernel_file = "MLOpenNeuron.cl";
 	_kernel_name = "MLOpenNeuron4_Bwd";
 
