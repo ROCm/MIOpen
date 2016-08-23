@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <MLOpen.h>
 #include <CL/cl.h>
+#include "driver.hpp"
 #include "mloPoolingHost.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
@@ -141,13 +142,15 @@ int PoolDriver<T>::SetPoolDescriptorFromCmdLineArgs() {
 	int pad_w = inflags.GetValueInt("pad_w");
 	int u = inflags.GetValueInt("pool_stride_0");
 	int v = inflags.GetValueInt("pool_stride_1");
+	int win_h = inflags.GetValueInt("win_h");
+	int win_w = inflags.GetValueInt("win_w");
 	if((inflags.GetValueStr("mode")) == "max") {
 		mode = mlopenPoolingMax;
 	}
 	else if((inflags.GetValueStr("mode")) == "avg") {
 		mode = mlopenPoolingAverage;
 	}
-	return mlopenSet2dPoolingDescriptor(poolDesc, mode,	pad_h, pad_w, u, v,	1, 1);
+	return mlopenSet2dPoolingDescriptor(poolDesc, mode,	win_h, win_w, pad_h, pad_w, u, v);
 }
 
 template<typename T>
@@ -306,6 +309,8 @@ int PoolDriver<T>::VerifyForward() {
 			(1 << 2)
 				);
 
+	printf("Forward Pooling Verfication Pass: %d\n", status);
+	return 0;
 }
 
 template<typename T>
@@ -375,5 +380,7 @@ int PoolDriver<T>::VerifyBackward() {
 			hOutStride
 				);
 
+	printf("Backward Pooling Verfication Pass: %d\n", status);
+	return 0;
 }
 #endif //GUARD_MLOPEN_POOL_DRIVER_HPP
