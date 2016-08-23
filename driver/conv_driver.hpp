@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <MLOpen.h>
 #include <CL/cl.h>
+#include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
