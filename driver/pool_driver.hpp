@@ -309,6 +309,8 @@ int PoolDriver<T>::VerifyForward() {
 			(1 << 2)
 				);
 
+	if(status) printf("Forward Pooling Verifies on CPU and GPU\n");
+
 	return 0;
 }
 

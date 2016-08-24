@@ -413,7 +413,7 @@ int LRNDriver<T>::VerifyForward() {
 			get_error_pos
 			);
 
-	printf("Forward LRN Verification Pass: %d\n", match);
+	if(match) printf("Forward LRN Verifies on CPU and GPU\n");
 	return 0;
 }
 
@@ -580,7 +580,7 @@ int LRNDriver<T>::VerifyBackward() {
 			get_error_pos
 			);
 
-	printf("Backward LRN Verification Pass: %d\n", match);
+	if(match) printf("Backward LRN Verifies on CPU and GPU\n");
 	return 0;
 }
 
