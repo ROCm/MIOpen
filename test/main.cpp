@@ -238,9 +238,9 @@ struct conv_forward : output_tensor_fixture
         EXPECT(hipMalloc(&wei_dev, 4*sz_wei) == hipSuccess);
         EXPECT(hipMalloc(&out_dev, 4*sz_out) == hipSuccess);
 
-        EXPECT(hipMemcpy(in_dev, in.data(), 4*sz_in, hipMemcpyDeviceToHost) == hipSuccess);
-        EXPECT(hipMemcpy(wei_dev, wei.data(), 4*sz_wei, hipMemcpyDeviceToHost) == hipSuccess);
-        EXPECT(hipMemcpy(out_dev, out.data(), 4*sz_out, hipMemcpyDeviceToHost) == hipSuccess);
+        EXPECT(hipMemcpy(in_dev, in.data(), 4*sz_in, hipMemcpyHostToDevice) == hipSuccess);
+        EXPECT(hipMemcpy(wei_dev, wei.data(), 4*sz_wei, hipMemcpyHostToDevice) == hipSuccess);
+        EXPECT(hipMemcpy(out_dev, out.data(), 4*sz_out, hipMemcpyHostToDevice) == hipSuccess);
 
 #endif
 
@@ -287,6 +287,15 @@ struct conv_forward : output_tensor_fixture
         { 
             CHECK(time == 0.0);
         }
+
+        // Potential memory leak free memory at end of function
+#if MLOPEN_BACKEND_OPENCL
+
+#elif MLOPEN_BACKEND_HIP
+        hipFree(in_dev);
+        hipFree(wei_dev);
+        hipFree(out_dev);
+#endif
     }
 };
 
