@@ -98,7 +98,11 @@ set( MLOpen_Source
 if( MLOPEN_BACKEND MATCHES "OpenCL")
 	add_kernels(
 		Kernels/MLOpenConvDirUni.cl
-		Kernels/MlOpenConvDirGenFwd.cl
+		Kernels/MLOpenConvDirGenFwd.cl
+		Kernels/MLOpenLRN.cl
+		Kernels/MLOpenNeuron.cl
+		Kernels/MLOpenPooling.cl
+		Kernels/MLOpenPoolingBwd.cl
 	)
 	list(APPEND MLOpen_Source 
 		ocl/handleocl.cpp
