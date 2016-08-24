@@ -16,8 +16,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 // to share code with between CPU and GPU
 
 #define MLOPEN
-#include "mlo_internal.hpp"
-#include "mloUtils.hpp"
+#include <mlopen/mlo_internal.hpp>
+#include <mlopen/mlo_utils.hpp>
 
 int mlo_construct_neuron::mloConstruct(void)
 {

@@ -868,7 +868,16 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_context ctxt,
 		}
 		return(ret);
 	}
+	
+	cl_kernel test_kernel;
+	CLHelper::CreateKernel(prog, test_kernel, _kernel_name);
 
+	if (!test_kernel) {
+		if (prog) {
+			clReleaseProgram(prog);
+		}
+		return(-1);
+	}
 	// Creating OCLKernel obj
 	mlopen::OCLKernel kernel(test_kernel);
 	// pass all arguments

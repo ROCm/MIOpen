@@ -1,4 +1,5 @@
-#include <pooling.hpp>
+#include <mlopen/pooling.hpp>
+#include <mlopen/errors.hpp>
 #include <initializer_list>
 #include <array>
 
@@ -7,7 +8,7 @@ mlopenStatus_t mlopenCreatePoolingDescriptor(
 		mlopenPoolingDescriptor_t *poolDesc) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(poolDesc) = new mlopenPoolingDescriptor();
+		mlopen::deref(poolDesc) = new mlopen::PoolingDescriptor();
 	});
 }
 
@@ -26,7 +27,7 @@ mlopenStatus_t mlopenSet2dPoolingDescriptor(
 		std::initializer_list<int> lens = {windowHeight, windowWidth};
 		std::initializer_list<int> pads = {pad_h, pad_w};
 		std::initializer_list<int> strides = {u, v};
-		mlopen::deref(poolDesc) = mlopenPoolingDescriptor(mode, 
+		mlopen::deref(poolDesc) = mlopen::PoolingDescriptor(mode, 
 			lens.begin(),
 			pads.begin(),
 			strides.begin(), 2);
@@ -45,10 +46,10 @@ mlopenStatus_t mlopenGet2dPoolingDescriptor(
 		int									*v) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(mode) = poolDesc->GetMode();
-		std::tie(mlopen::deref(windowHeight), mlopen::deref(windowWidth)) = tie2(poolDesc->GetLengths());
-		std::tie(mlopen::deref(u), mlopen::deref(v)) = tie2(poolDesc->GetStrides());
-		std::tie(mlopen::deref(pad_h), mlopen::deref(pad_w)) = tie2(poolDesc->GetPads());
+		mlopen::deref(mode) = mlopen::deref(poolDesc).mode;
+		std::tie(mlopen::deref(windowHeight), mlopen::deref(windowWidth)) = mlopen::tie2(mlopen::deref(poolDesc).GetLengths());
+		std::tie(mlopen::deref(u), mlopen::deref(v)) = mlopen::tie2(mlopen::deref(poolDesc).GetStrides());
+		std::tie(mlopen::deref(pad_h), mlopen::deref(pad_w)) = mlopen::tie2(mlopen::deref(poolDesc).GetPads());
 	});
 }
 
@@ -62,7 +63,7 @@ mlopenStatus_t mlopenSetNdPoolingDescriptor(
 		int									*stridesA) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(poolDesc) = mlopenPoolingDescriptor(mode, windowDimA, padA, stridesA, nbDims);
+		mlopen::deref(poolDesc) = mlopen::PoolingDescriptor(mode, windowDimA, padA, stridesA, nbDims);
 	});
 }
 
@@ -77,19 +78,19 @@ mlopenStatus_t mlopenGetNdPoolingDescriptor(
 
 	return mlopen::try_([&] {
 		if (mode != nullptr) {
-			*mode = poolDesc->GetMode();
+			*mode = mlopen::deref(poolDesc).mode;
 		}
 		if (nbDims != nullptr) {
-			*nbDims = poolDesc->GetSize();
+			*nbDims = mlopen::deref(poolDesc).GetSize();
 		}
 		if (windowDimA != nullptr) {
-			std::copy(poolDesc->GetLengths().begin(), poolDesc->GetLengths().end(), windowDimA);
+			std::copy(mlopen::deref(poolDesc).GetLengths().begin(), mlopen::deref(poolDesc).GetLengths().end(), windowDimA);
 		}
 		if (stridesA != nullptr) {
-			std::copy(poolDesc->GetStrides().begin(), poolDesc->GetStrides().end(), stridesA);
+			std::copy(mlopen::deref(poolDesc).GetStrides().begin(), mlopen::deref(poolDesc).GetStrides().end(), stridesA);
 		}
 		if (padA != nullptr) {
-			std::copy(poolDesc->GetPads().begin(), poolDesc->GetPads().end(), padA);
+			std::copy(mlopen::deref(poolDesc).GetPads().begin(), mlopen::deref(poolDesc).GetPads().end(), padA);
 		}
 
 	});
@@ -105,11 +106,7 @@ mlopenStatus_t mlopenGetPoolingForwardOutputDim(
 		int									*w) {
 
 	return mlopen::try_([&] {
-			mlopen::deref(poolDesc).GetForwardOutputDim(mlopen::deref(tensorDesc),
-				n, 
-				c, 
-				h,
-				w);
+		mlopen::tie_deref(n, c, h, w) = mlopen::deref(poolDesc).GetForwardOutputDim(mlopen::deref(tensorDesc)); 
 	});
 
 }
@@ -129,12 +126,12 @@ mlopenStatus_t mlopenPoolingForward(
 		size_t								workSpaceSize) {
 
 	return mlopen::try_([&] {
-		poolDesc->Forward(handle,
+			mlopen::deref(poolDesc).Forward(mlopen::deref(handle),
 				alpha,
-				xDesc,
+				mlopen::deref(xDesc),
 				DataCast(x),
 				beta,
-				yDesc,
+				mlopen::deref(yDesc),
 				DataCast(y),
 				do_backward,
 				DataCast(workSpace),
@@ -160,16 +157,16 @@ mlopenStatus_t mlopenPoolingBackward(
 		const void							*workSpace) {
 
 	return mlopen::try_([&] {
-		poolDesc->Backward(handle,
+			mlopen::deref(poolDesc).Backward(mlopen::deref(handle),
 				alpha,
-				yDesc,
+				mlopen::deref(yDesc),
 				DataCast(y),
-				dyDesc,
+				mlopen::deref(dyDesc),
 				DataCast(dy),
-				xDesc,
+				mlopen::deref(xDesc),
 				DataCast(x),
 				beta,
-				dxDesc,
+				mlopen::deref(dxDesc),
 				DataCast(dx),
 				DataCast(workSpace));
 	});

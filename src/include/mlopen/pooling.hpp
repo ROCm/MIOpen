@@ -20,42 +20,34 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 	const std::vector<int>& GetPads() const;
 	int GetSize() const;
 
-	mlopenPoolingMode_t GetMode() const;
-
-	mlopenStatus_t GetForwardOutputDim(
-		const TensorDescriptor				&tensorDesc,
-		int									*n,
-		int									*c,
-		int									*h,
-		int									*w);
+	std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& inputTensorDesc) const;
 
 	mlopenStatus_t Forward(
-		mlopenHandle_t						handle,
-		const void							*alpha,
-		const mlopenTensorDescriptor_t		xDesc,
-		const Data_t						x,
-		const void							*beta,
-		const mlopenTensorDescriptor_t		yDesc,
-		Data_t								y,
-		bool								do_backward,
-		Data_t								workSpace,
-		size_t								workSpaceSize);
+		Handle						&handle,
+		const void					*alpha,
+		const TensorDescriptor		&xDesc,
+		const Data_t				x,
+		const void					*beta,
+		const TensorDescriptor		&yDesc,
+		Data_t						y,
+		bool						do_backward,
+		Data_t						workSpace,
+		size_t						workSpaceSize);
 
 	mlopenStatus_t Backward(
-		mlopenHandle_t						handle,
-		const void							*alpha,
-		const mlopenTensorDescriptor_t		yDesc,
-		const Data_t						y,
-		const mlopenTensorDescriptor_t		dyDesc,
-		const Data_t						dy,
-		const mlopenTensorDescriptor_t		xDesc,
-		const Data_t						x,
-		const void							*beta,
-		const mlopenTensorDescriptor_t		dxDesc,
-		Data_t								dx,
-		const Data_t                        workSpace);
+		Handle						&handle,
+		const void					*alpha,
+		const TensorDescriptor		&yDesc,
+		const Data_t				y,
+		const TensorDescriptor		&dyDesc,
+		const Data_t				dy,
+		const TensorDescriptor		&xDesc,
+		const Data_t				x,
+		const void					*beta,
+		const TensorDescriptor		&dxDesc,
+		Data_t						dx,
+		const Data_t                workSpace);
 
-	private:
 	std::vector<int> lens;
 	std::vector<int> strides;
 	std::vector<int> pads;	
