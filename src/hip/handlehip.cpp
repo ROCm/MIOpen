@@ -22,6 +22,7 @@ struct HandleImpl
         return StreamPtr{s, null_deleter{}};
     }
 
+    bool enable_profiling = false;
     std::vector<StreamPtr> streams;
 };
 
@@ -48,12 +49,14 @@ mlopenAcceleratorQueue_t Handle::GetStream() const
 
 void Handle::EnableProfiling(bool enable)
 {
-    // TODO
+    this->impl->enable_profiling = enable;
 }
 
 float Handle::GetKernelTime() const
 {
-    return 0.0;
+    // TODO: Temporary hack until the kernels are added
+    if (this->impl->enable_profiling) return 1.0;
+    else return 0.0;
 }
 
 ManageDataPtr Handle::Create(int sz)
