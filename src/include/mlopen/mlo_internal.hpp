@@ -725,8 +725,6 @@ protected:
 		) const;
 
 	int mloMeasuredLoop(
-		cl_context ctxt,
-		cl_device_id dev,
 		cl_command_queue profile_q,
 		cl_mem bot_ocl_buf,
 		cl_mem top_ocl_buf,

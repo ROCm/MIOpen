@@ -315,9 +315,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 
 
 
-	cl_context ctxt;
 	cl_device_id dev;
-	ret = mloGetContextDeviceFromCLQueue(ctxt, dev, NULL, (cl_command_queue)_stream);
+	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
 
 	int maxComputeUnits;
 	int maxWorkItemDims;
@@ -342,8 +341,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
-
-
 
 	if (_direction == 0)
 	{
@@ -772,7 +769,6 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 {
 
 	//
-#if 1
 	int in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
 	int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
 
@@ -787,23 +783,6 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 	int n_in_data_tiles = 4; // # of blocks of different inputs in LDS
 
 	int n_stacks = 1; // # of diff stacks (part of batch).
-#else
-
-	int in_tile0 = 8; // (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
-	int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
-
-	int grp_tile0 = 16; // in_tile0;
-	int grp_tile1 = in_tile1;
-
-	int out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
-	int out_pix_tile1 = 2; //
-
-
-	int n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
-	int n_in_data_tiles = 3; // # of blocks of different inputs in LDS
-
-	int n_stacks = 2; // # of diff stacks (part of batch).
-#endif
 
 	mloBuildConf_Val(
 			conf_val,
@@ -823,13 +802,17 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 	return(0);
 }
 
+#define CHECK_RET(x) if (x != 0) { \
+	if (prog) { \
+		clReleaseProgram(prog); \
+	} \
+	return -1;\
+}\
 
 /*
  * mesure the current onfiguration pefformance
  */
-int mlo_construct_direct2D :: mloMeasuredLoop(cl_context ctxt,
-		cl_device_id dev,
-		cl_command_queue profile_q,
+int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 		cl_mem bot_ocl_buf,
 		cl_mem top_ocl_buf,
 		cl_mem wei_ocl_buf,
@@ -847,28 +830,16 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_context ctxt,
 	}
 
 	std::string compiler_options = _gen_comp_options + _comp_options;
-	ret = mloLoadOpenCLProgramFromSource(prog, ctxt, _kernel_path, _kernel_file);
+    std::string kernelPath = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+    kernelPath.append(std::string("/") + _kernel_file.c_str());
+    ret = CLHelper::LoadProgramFromSource(prog, profile_q, kernelPath);
 
-	if (ret != 0)
-	{
-		if (prog)
-		{
-			clReleaseProgram(prog);
-		}
-		return(ret);
-	}
+	CHECK_RET(ret);
 
-	ret = mloBuildOpenCLProgram(ctxt, dev, prog, compiler_options, true);
+	CLHelper::BuildProgram(prog, profile_q, compiler_options);
 
-	if (ret != 0)
-	{
-		if (prog)
-		{
-			clReleaseProgram(prog);
-		}
-		return(ret);
-	}
-	
+	CHECK_RET(ret);
+		
 	cl_kernel test_kernel;
 	CLHelper::CreateKernel(prog, test_kernel, _kernel_name);
 
@@ -882,34 +853,14 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_context ctxt,
 	mlopen::OCLKernel kernel(test_kernel);
 	// pass all arguments
 
-	if (!test_kernel)
-	{
-		if (prog)
-		{
-			clReleaseProgram(prog);
-		}
-		return(-1);
-	}
-
-	// pass all arguments
-
 	float padding_value = 0;
-	int n_arg = 0;
-	mlo_ocl_args kern_args;
-	kern_args[n_arg] = std::make_pair(sizeof(cl_mem), &bot_ocl_buf);
-	n_arg++;
-	kern_args[n_arg] = std::make_pair(sizeof(cl_mem), &wei_ocl_buf);
-	if (_bias)
-	{
-		n_arg++;
-		kern_args[n_arg] = std::make_pair(sizeof(cl_mem), &bias_ocl_buf);
-	}
-	n_arg++;
-	kern_args[n_arg] = std::make_pair(sizeof(cl_mem), &top_ocl_buf);
-	n_arg++;
-	kern_args[n_arg] = std::make_pair(sizeof(float), &padding_value);
+	
+	if(!_bias)
+		kernel.SetArgs(0, bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
+	else
+		kernel.SetArgs(0, bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
 
-	double s = 0, e = 0;
+	double s= 0, e = 0;
 	int iter = 1;
 
 	if (profile_q)
@@ -918,13 +869,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_context ctxt,
 
 		processing_time = CL_MAXFLOAT;
 
-		ret = mloExecuteNoWait(kern_args,
-				profile_q,
-				test_kernel,
-				_g_wk,
-				_l_wk,
-				&profile_e
-				);
+		ret = kernel.run(profile_q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), &profile_e);
 		if (ret == CL_SUCCESS)
 		{
 			mloReadEventTime(profile_e, processing_time);
@@ -938,27 +883,14 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_context ctxt,
 
 		cl_command_queue q = (cl_command_queue)_stream;
 
-		ret = mloExecuteNoWait(kern_args,
-				q,
-				test_kernel,
-				_g_wk,
-				_l_wk
-				);
+		kernel.run(q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), NULL);
 		clFinish(q);
-
-
 
 		s = mlopen_mach_absolute_time();
 
 		for (int i = 0; i < iter && ret == 0; i++)
 		{
-			ret = mloExecuteNoWait(kern_args,
-					q,
-					test_kernel,
-					_g_wk,
-					_l_wk
-					);
-
+			ret = kernel.run(q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), NULL);
 		}
 
 		clFinish(q);
@@ -1169,13 +1101,12 @@ bool mlo_construct_direct2D :: mloGetConfig(void)
 {
 	int ret = 0;
 	bool known_config = false;
-	cl_context ctxt;
 	cl_device_id dev;
 	std::string conf_key;
 	std::string conf_val;
 
 	// get device id
-	ret = mloGetContextDeviceFromCLQueue(ctxt, dev, NULL, (cl_command_queue)_stream);
+	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
 
 	// find a db and configuration in it
 	known_config = mloSearchConfigInDB(
@@ -1241,13 +1172,10 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 	int min_n_stacks = 1;
 
 
-	ret = mloGetContextDeviceFromCLQueue(ctxt, dev,
-#if 0
-			NULL
-#else
-			&profile_q
-#endif
-			, (cl_command_queue)_stream);
+	CLHelper::GetContextFromQueue((cl_command_queue)_stream, ctxt);
+	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
+	if(!profile_q)
+		CLHelper::CreateQueueWithProfiling((cl_command_queue)_stream, &profile_q);
 
 	int maxComputeUnits;
 	int maxWorkItemDims;
@@ -1279,7 +1207,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 			conf_key,
 			conf_val
 			);
-
 
 	// proceed
 	if (!known_config)
@@ -1480,9 +1407,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 											}
 
 #endif
-											ret = mloMeasuredLoop(ctxt,
-													dev,
-													profile_q,
+											ret = mloMeasuredLoop(profile_q,
 													bot_ocl_buf,
 													top_ocl_buf,
 													wei_ocl_buf,
@@ -1593,152 +1518,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 	return(ret);
 }
 
-
-/******************************************************************************************************
- **
- **  SP
- **
- *******************************************************************************************************/
-
-void mlo_construct_direct2D::getNewInputDescr(
-		std::string & layout,
-		std::string & data_type,
-		int &batch,
-		int &depth,
-		int &height,
-		int &width,
-		int &batch_stride,
-		int &channel_stride,
-		int &stride,
-		int &w_stride
-		)
-{
-
-	layout = _in_layout;
-	data_type = _in_data_type;
-	batch = _batch_sz;
-	depth = _n_inputs;
-	height = _new_in_height;
-	width = _new_in_width;
-
-	batch_stride = _new_in_batch_stride;
-	channel_stride = _new_in_channel_stride;
-	stride = _new_in_stride;
-	w_stride = 1;
-
-}
-
-
-/*
- * construct generic forward configuration
- */
-int mlo_construct_direct2D::mloConstructSP2D(void)
-{
-
-
-	_small = (_out_width < 48 || _out_height < 48);
-
-
-	//		if (_small)
-	{
-		_out_pix_tile0 = /*((_out_width / 8) * 8 == _out_width && _out_width >= 64) ? 8 : */
-			((_out_width / 4) * 4 == _out_width && _out_width >= 32) ? 4
-			: ((_out_width / 2) * 2 == _out_width && _out_width >= 16) ? 2
-			: 1; // # of generated pixels per output per wk-item  (ALU)
-		_out_pix_tile1 = /*((_out_height / 8) * 8 == _out_height && _out_height >= 64) ? 8 : */
-			((_out_height / 4) * 4 == _out_height && _out_height >= 32) ? 4
-			: ((_out_height / 2) * 2 == _out_height && _out_height >= 16) ? 2
-			: 1;
-		// # of generated pixels per output per wk-item  (ALU)
-		_grp_tile0 = 8;   // total number ALUs per group
-		_grp_tile1 = 8;   // total number ALUs per group
-		_n_out_pix_tiles = 8;
-	}
-
-	//	_grp_tile0 = 16;   // total number ALUs per group
-	//	_grp_tile1 = 16;   // total number ALUs per group
-	//	_out_pix_tile0 = 2; // # of generated pixels per output per wk-item  (ALU)
-	//	_out_pix_tile1 = 2;
-
-
-	_n_out_pix_tiles = std::min(_n_out_pix_tiles, _n_outputs);
-
-
-	int new_in_width = (_in_width < _out_width + _kernel_size0 - 1) ? _in_width + _kernel_size0 - 1
-		: (_pad0 > 0) ? (_pad0 * 2 + _in_width) : _in_width;
-	_new_in_width = ((new_in_width + _out_pix_tile0 - 1) / _out_pix_tile0) * _out_pix_tile0;
-
-	int new_in_height = (_in_height < _out_height + _kernel_size1 - 1) ? _in_height + _kernel_size1 - 1 :
-		(_pad1 > 0) ? (_pad1 * 2 + _in_height) : _in_height;
-	_new_in_height = ((new_in_height + _out_pix_tile1 - 1) / _out_pix_tile1) * _out_pix_tile1;
-
-	_copy_input = (_new_in_width != _in_width || _new_in_height != _in_height);
-
-	_new_in_stride =  _new_in_width;
-	_new_in_channel_stride = _new_in_stride * _new_in_height;
-	_new_in_batch_stride = _new_in_channel_stride * _n_inputs;
-
-
-	int data_len = (!_in_data_type.compare("FP32") ? 4 : 8);
-
-	_new_in_sz = _new_in_width *_new_in_height * data_len;
-
-
-	int g0 = ((_out_width + _out_pix_tile0 - 1) / _out_pix_tile0);
-	int g1 = ((_out_height + _out_pix_tile1 - 1) / _out_pix_tile1);
-
-
-	int n_out_blocks = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
-
-	int outputs_aligned = (n_out_blocks * _n_out_pix_tiles == _n_outputs) ? 1 : 0;
-
-	_comp_options =
-		std::string(" -D MLO_DIR_FORWARD=") + std::to_string((long long)_direction)
-		+ std::string(" -D MLO_GRP_SZ0=") + std::to_string((long long)_grp_tile0) // # of ALUs (group size)
-		+ std::string(" -D MLO_GRP_SZ1=") + std::to_string((long long)_grp_tile1) //
-		+ std::string(" -D MLO_GRP_SZ2=") + std::to_string((long long)1) //
-		+ std::string(" -D MLO_FILTER_SIZE0=") + std::to_string((long long)_kernel_size0)
-		+ std::string(" -D MLO_FILTER_SIZE1=") + std::to_string((long long)_kernel_size1)
-		+ std::string(" -D MLO_FILTER_PAD0=") + std::to_string((long long)_pad0)
-		+ std::string(" -D MLO_FILTER_PAD1=") + std::to_string((long long)_pad1)
-		+ std::string(" -D MLO_N_OUTPUTS=") + std::to_string((long long)_n_outputs)
-		+ std::string(" -D MLO_N_INPUTS=") + std::to_string((long long)_n_inputs)
-		+ std::string(" -D MLO_N_BATCHS=") + std::to_string((long long)_batch_sz)
-		+ std::string(" -D MLO_TOP_WIDTH=") + std::to_string((long long)_out_width)
-		+ std::string(" -D MLO_TOP_HEIGHT=") + std::to_string((long long)_out_height)
-		+ std::string(" -D MLO_TOP_BATCH_STRIDE=") + std::to_string((long long)_out_batch_stride)
-		+ std::string(" -D MLO_TOP_CHANNEL_STRIDE=") + std::to_string((long long)_out_channel_stride)
-		+ std::string(" -D MLO_TOP_STRIDE=") + std::to_string((long long)_out_stride)
-		+ std::string(" -D MLO_BOT_WIDTH=") + std::to_string((long long)_new_in_width)
-		+ std::string(" -D MLO_BOT_HEIGHT=") + std::to_string((long long)_new_in_height)
-		+ std::string(" -D MLO_BOT_BATCH_STRIDE=") + std::to_string((long long)_new_in_batch_stride)
-		+ std::string(" -D MLO_BOT_CHANNEL_STRIDE=") + std::to_string((long long)_new_in_channel_stride)
-		+ std::string(" -D MLO_BOT_STRIDE=") + std::to_string((long long)_new_in_stride)
-		+ std::string(" -D MLO_OUT_TILE0=") + std::to_string((long long)_out_pix_tile0)  // size of ouptput tile per wk-item (ALU))
-		+ std::string(" -D MLO_OUT_TILE1=") + std::to_string((long long)_out_pix_tile1)  //
-		+ std::string(" -D MLO_N_OUT_TILES=") + std::to_string((long long)_n_out_pix_tiles)  // # output pixel tiles per wk-item (ALU)
-		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string((long long)_bias)
-		+ std::string(" -D MLO_OUT_ALIGNED=") + std::to_string((long long)outputs_aligned)
-		+ getGeneralCompOptions()
-		;
-
-	_kernel_file = "MlOpenConvDirUniSP.cl";
-	_kernel_name = "aDNNConvUniSP";
-
-	_l_wk.clear();
-	_l_wk.push_back(_grp_tile0);
-	_l_wk.push_back(_grp_tile1);
-	_l_wk.push_back(1);
-
-	_g_wk.push_back(g0);
-	_g_wk.push_back(g1);
-	_g_wk.push_back(n_out_blocks * _batch_sz);
-
-	return(0);
-
-}
-
-
 // Tensor Helper APIs
 
 size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopen::TensorDescriptor &weight_tensor) {
@@ -1833,4 +1612,3 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopen::TensorDescri
 
 	return input_sz;
 }
-€kN€kP€kP:q
