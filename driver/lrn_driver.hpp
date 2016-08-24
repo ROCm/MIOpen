@@ -99,6 +99,7 @@ int LRNDriver<T>::GetandSetData() {
 	
 	SetTensor4d(dInputTensor, in_len);
 	SetTensor4d(dOutputTensor, in_len);
+	return(0);
 }
 
 template<typename T>
@@ -153,6 +154,7 @@ int LRNDriver<T>::SetLRNDescriptorFromCmdLineArgs() {
 			lrnAlpha,
 			lrnBeta,
 			lrnK);
+	return(0);
 }
 
 template<typename T>
@@ -333,6 +335,7 @@ int LRNDriver<T>::RunForwardCPU() {
 			scalehost.data(),
 			outhost.data()
 				);
+	return(0);
 }
 
 template<typename T>
@@ -358,6 +361,8 @@ int LRNDriver<T>::RunBackwardGPU() {
 			scale_dev->GetMem());
 	
 	din_dev->FromGPU(GetStream(), din.data());
+	return(0);
+
 }
 
 template<typename T>
