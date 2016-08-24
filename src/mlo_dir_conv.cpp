@@ -1833,3 +1833,4 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopen::TensorDescri
 
 	return input_sz;
 }
+€kN€kP€kP:q
