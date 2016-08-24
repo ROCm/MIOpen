@@ -19,6 +19,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define MLO_POOLINGHOST_H_
 
 #include <cmath>
+#include <cstring>
 #include <iomanip>
 
 #if 0
