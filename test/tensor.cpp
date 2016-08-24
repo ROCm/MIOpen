@@ -1,5 +1,5 @@
-#include <MLOpen.h>
-#include <mlopenTensor.hpp>
+#include <mlopen.h>
+#include <mlopen/tensor_extra.hpp>
 #include <array>
 #include <iostream>
 #include "test.hpp"

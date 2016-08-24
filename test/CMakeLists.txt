@@ -9,11 +9,13 @@ else()
     add_definitions(-DMLOPEN_TEST_ALL=0)
 endif()
 
+find_package(Threads)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
 function(add_test_executable TEST_NAME)
     add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
+    target_link_libraries(${TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
     if(WIN32)
         add_test(NAME ${TEST_NAME} WORKING_DIRECTORY ${LIBRARY_OUTPUT_PATH} COMMAND $<TARGET_FILE:${TEST_NAME}>)
     else()

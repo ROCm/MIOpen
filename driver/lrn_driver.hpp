@@ -2,13 +2,13 @@
 #define GUARD_MLOPEN_LRN_DRIVER_HPP
 
 #include <cstdlib>
-#include <MLOpen.h>
+#include <mlopen.h>
 #include <CL/cl.h>
 #include "driver.hpp"
 #include "mloNormHost.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
-#include "mlopenTensor.hpp"
+#include <mlopen/tensor.hpp>
 #include <vector>
 #include <algorithm>
 #include <float.h>
@@ -418,7 +418,7 @@ int LRNDriver<T>::VerifyForward() {
 			get_error_pos
 			);
 
-	printf("Forward LRN Verification Pass: %d\n", match);
+	if(match) printf("Forward LRN Verifies on CPU and GPU\n");
 	return 0;
 }
 
@@ -585,7 +585,7 @@ int LRNDriver<T>::VerifyBackward() {
 			get_error_pos
 			);
 
-	printf("Backward LRN Verification Pass: %d\n", match);
+	if(match) printf("Backward LRN Verifies on CPU and GPU\n");
 	return 0;
 }
 

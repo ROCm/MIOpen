@@ -1,10 +1,10 @@
-#include <MLOpen.h>
+#include <mlopen.h>
 #include "test.hpp"
 #include <vector>
 #include <array>
 #include <iterator>
 #include <memory>
-#include <mlopenTensor.hpp>
+#include <mlopen/tensor_extra.hpp>
 
 struct handle_fixture
 {
@@ -29,14 +29,14 @@ struct input_tensor_fixture //: virtual handle_fixture
 
     input_tensor_fixture()
     {
-        mlopenCreateTensorDescriptor(&inputTensor);
-        mlopenSet4dTensorDescriptor(
+        STATUS(mlopenCreateTensorDescriptor(&inputTensor));
+        STATUS(mlopenSet4dTensorDescriptor(
                 inputTensor,
                 mlopenFloat,
                 100,
                 32,
                 8,
-                8);
+                8));
         
     }
 
@@ -51,7 +51,7 @@ struct input_tensor_fixture //: virtual handle_fixture
         int nStride, cStride, hStride, wStride;
         mlopenDataType_t dt;
 
-        mlopenGet4dTensorDescriptor(
+        STATUS(mlopenGet4dTensorDescriptor(
                 inputTensor,
                 &dt,
                 &n,
@@ -61,7 +61,7 @@ struct input_tensor_fixture //: virtual handle_fixture
                 &nStride,
                 &cStride,
                 &hStride,
-                &wStride);
+                &wStride));
 
         EXPECT(dt == 1);
         EXPECT(n == 100);
@@ -84,26 +84,26 @@ struct conv_filter_fixture : virtual handle_fixture
 
     conv_filter_fixture()
     {
-        mlopenCreateTensorDescriptor(&convFilter);
+        STATUS(mlopenCreateTensorDescriptor(&convFilter));
         // weights
-        mlopenSet4dTensorDescriptor(
+        STATUS(mlopenSet4dTensorDescriptor(
             convFilter,
             mlopenFloat,
             64,  // outputs
             32,   // inputs
             5,   // kernel size
-            5);
+            5));
         
-        mlopenCreateConvolutionDescriptor(&convDesc);
+        STATUS(mlopenCreateConvolutionDescriptor(&convDesc));
         // convolution with padding 2
-        mlopenInitConvolutionDescriptor(convDesc,
+        STATUS(mlopenInitConvolutionDescriptor(convDesc,
                 mode,
                 0,
                 0,
                 1,
                 1,
                 1,
-                1);
+                1));
         
     }
     ~conv_filter_fixture()
@@ -117,10 +117,10 @@ struct conv_filter_fixture : virtual handle_fixture
         // TODO: Update API to not require mode by pointer
         mlopenConvolutionMode_t lmode = mode;
         int pad_w, pad_h, u, v, upx, upy;
-        mlopenGetConvolutionDescriptor(convDesc,
+        STATUS(mlopenGetConvolutionDescriptor(convDesc,
                 &lmode,
                 &pad_h, &pad_w, &u, &v,
-                &upx, &upy);
+                &upx, &upy));
 
         EXPECT(mode == 0);
         EXPECT(pad_h == 0);
@@ -138,17 +138,17 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
     output_tensor_fixture()
     {
         int x, y, z, a;
-        mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a);
+        STATUS(mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a));
 
-        mlopenCreateTensorDescriptor(&outputTensor);
+        STATUS(mlopenCreateTensorDescriptor(&outputTensor));
 
-        mlopenSet4dTensorDescriptor(
+        STATUS(mlopenSet4dTensorDescriptor(
             outputTensor,
             mlopenFloat,
             x,
             y,
             z,
-            a);
+            a));
     }
     ~output_tensor_fixture()
     {
@@ -158,7 +158,7 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
     void run()
     {
         int x, y, z, a;
-        mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a);
+        STATUS(mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a));
 
         EXPECT(x == 100);
         EXPECT(y == 64);
@@ -167,34 +167,36 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
     }
 };
 
+template<bool Profile>
 struct conv_forward : output_tensor_fixture
 {
     void run()
     {
+        STATUS(mlopenEnableProfiling(handle, Profile));
         int alpha = 1, beta = 1;
-        mlopenTransformTensor(handle,
+        STATUS(mlopenTransformTensor(handle,
                 &alpha,
                 inputTensor,
                 NULL,
                 &beta,
                 convFilter,
-                NULL);
+                NULL));
 
         int value = 10;
-        mlopenSetTensor(handle, inputTensor, NULL, &value);
+        STATUS(mlopenSetTensor(handle, inputTensor, NULL, &value));
 
-        mlopenScaleTensor(handle, inputTensor, NULL, &alpha);
+        STATUS(mlopenScaleTensor(handle, inputTensor, NULL, &alpha));
 
         // Setup OpenCL buffers
 
 		int n, h, c, w;
-		mlopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w);
+		STATUS(mlopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w));
 		size_t sz_in = n*c*h*w;
 		
-		mlopenGet4dTensorDescriptorLengths(convFilter, &n, &c, &h, &w);
+		STATUS(mlopenGet4dTensorDescriptorLengths(convFilter, &n, &c, &h, &w));
 		size_t sz_wei = n*c*h*w;
 		
-		mlopenGet4dTensorDescriptorLengths(outputTensor, &n, &c, &h, &w);
+		STATUS(mlopenGet4dTensorDescriptorLengths(outputTensor, &n, &c, &h, &w));
 		size_t sz_out = n*c*h*w;
 
         cl_int status = CL_SUCCESS;
@@ -224,7 +226,7 @@ struct conv_forward : output_tensor_fixture
         int ret_algo_count;
         mlopenConvAlgoPerf_t perf;
 
-        mlopenFindConvolutionForwardAlgorithm(handle,
+        STATUS(mlopenFindConvolutionForwardAlgorithm(handle,
             inputTensor,
             in_dev,
             convFilter,
@@ -238,9 +240,9 @@ struct conv_forward : output_tensor_fixture
             mlopenConvolutionFastest,
             NULL,
             10,
-			0); // MD: Not performing exhaustiveSearch by default for now
+			0)); // MD: Not performing exhaustiveSearch by default for now
 
-        mlopenConvolutionForward(handle,
+        STATUS(mlopenConvolutionForward(handle,
             &alpha,
             inputTensor,
             in_dev,
@@ -252,7 +254,18 @@ struct conv_forward : output_tensor_fixture
             outputTensor,
 			out_dev,
             NULL,
-            0);
+            0));
+
+        float time;
+        STATUS(mlopenGetKernelTime(handle, &time));
+        if (Profile) 
+        { 
+            CHECK(time > 0.0);
+        }
+        else 
+        { 
+            CHECK(time == 0.0);
+        }
     }
 };
 
@@ -260,7 +273,8 @@ int main() {
     run_test<input_tensor_fixture>();
     run_test<conv_filter_fixture>();
     run_test<output_tensor_fixture>();
-    run_test<conv_forward>();
+    run_test<conv_forward<true>>();
+    run_test<conv_forward<false>>();
 }
 
 

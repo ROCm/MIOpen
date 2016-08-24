@@ -1,34 +1,36 @@
-#include<lrn.hpp>
+#include<mlopen/lrn.hpp>
 #include <cassert>
 
-mlopenLRNDescriptor::mlopenLRNDescriptor() {}
+namespace mlopen {
 
-mlopenLRNDescriptor::mlopenLRNDescriptor(mlopenLRNMode_t m,
+LRNDescriptor::LRNDescriptor() {}
+
+LRNDescriptor::LRNDescriptor(mlopenLRNMode_t m,
 		const unsigned int pn, 
 		const double	*pparms) : mode(m), lrnN(pn), parms(pparms, pparms+3) {}
 
-mlopenLRNMode_t mlopenLRNDescriptor::GetMode() const
+mlopenLRNMode_t LRNDescriptor::GetMode() const
 {
 	return this->mode;
 }
 
-unsigned int mlopenLRNDescriptor::GetN() const
+unsigned int LRNDescriptor::GetN() const
 {
 	return this->lrnN;
 }
 
-double mlopenLRNDescriptor::GetAlpha() const
+double LRNDescriptor::GetAlpha() const
 {
 	return this->parms[0];
 }
 
-double mlopenLRNDescriptor::GetBeta() const
+double LRNDescriptor::GetBeta() const
 {
 	return this->parms[1];
 }
 
-double mlopenLRNDescriptor::GetK() const
+double LRNDescriptor::GetK() const
 {
 	return this->parms[2];
 }
-
+}
