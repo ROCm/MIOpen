@@ -167,7 +167,7 @@ std::vector<std::string> &db
 
 	tokenize(f.source(),
 		db,
-		std::string("\n"));
+		std::string("\n\r"));
 
 	return(ret);
 }
