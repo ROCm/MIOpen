@@ -105,7 +105,7 @@ mlopenStatus_t mlopenGetPoolingForwardOutputDim(
 		int									*w) {
 
 	return mlopen::try_([&] {
-		poolDesc->GetForwardOutputDim(tensorDesc,
+			mlopen::deref(poolDesc).GetForwardOutputDim(mlopen::deref(tensorDesc),
 				n, 
 				c, 
 				h,

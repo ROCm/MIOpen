@@ -60,8 +60,9 @@ MLOPEN_EXPORT mlopenStatus_t mlopenEnableProfiling(mlopenHandle_t handle, bool e
 
 MLOPEN_DECLARE_OBJECT(mlopenTensorDescriptor);
 MLOPEN_DECLARE_OBJECT(mlopenConvolutionDescriptor);
+MLOPEN_DECLARE_OBJECT(mlopenPoolingDescriptor);
 
-typedef struct mlopenPoolingDescriptor *mlopenPoolingDescriptor_t;
+//typedef struct mlopenPoolingDescriptor *mlopenPoolingDescriptor_t;
 
 typedef struct mlopenLRNDescriptor *mlopenLRNDescriptor_t;
 

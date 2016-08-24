@@ -4,12 +4,6 @@
 #include <mlopen.h>
 #include <mlopen/manage_ptr.hpp>
 
-template<class T>
-auto tie2(T&& x) -> decltype(std::tie(x[0], x[1]))
-{
-	return std::tie(x[0], x[1]);
-}
-
 #if MLOPEN_BACKEND_OPENCL
 
 typedef cl_mem Data_t;
