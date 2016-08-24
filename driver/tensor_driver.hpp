@@ -3,8 +3,9 @@
 
 #include <vector>
 #include <algorithm>
-#include "mlopenTensor.hpp"
-#include <MLOpen.h>
+#include <mlopen/tensor.hpp>
+#include <mlopen/tensor_extra.hpp>
+#include <mlopen.h>
 
 std::vector<int> GetTensorLengths(mlopenTensorDescriptor_t &tensor){
 	int n;	
