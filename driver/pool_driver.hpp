@@ -97,6 +97,7 @@ int PoolDriver<T>::GetandSetData() {
 	std::vector<int> out_len = GetOutputTensorLengths();
 	SetTensor4d(outputTensor, out_len);
 	SetTensor4d(dOutputTensor, out_len);
+	return(0);
 }
 
 template<typename T>

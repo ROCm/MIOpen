@@ -2,6 +2,7 @@
 #define GUARD_MLOPEN_TENSOR_DRIVER_HPP
 
 #include <vector>
+#include <numeric>
 #include <algorithm>
 #include "mlopenTensor.hpp"
 #include <MLOpen.h>
