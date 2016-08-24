@@ -38,53 +38,36 @@ endif()
 # OPTION - MLOpen Backend
 # - OpenCL
 # - HCC
-set( MLOpen_BACKEND "OpenCL" CACHE STRING
+set( MLOPEN_BACKEND "OpenCL" CACHE STRING
 	"Which of Cobalt's backends to use?" )
-set_property( CACHE MLOpen_BACKEND PROPERTY STRINGS
+set_property( CACHE MLOPEN_BACKEND PROPERTY STRINGS
 	OpenCL HCC HIP )
 # OpenCL 1.2
-if( MLOpen_BACKEND MATCHES "OpenCL")
-	add_definitions( -DMLOpen_BACKEND_OPENCL=1 )
-	add_definitions( -DMLOpen_BACKEND_HCC=0 )
-	add_definitions( -DMLOpen_BACKEND_HIP=0 )
+if( MLOPEN_BACKEND MATCHES "OpenCL")
+	add_definitions( -DMLOPEN_BACKEND_OPENCL=1 )
+	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
+	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	find_package( OpenCL REQUIRED )
-	message( STATUS "${MLOpen_BACKEND} backend selected." )
+	message( STATUS "${MLOPEN_BACKEND} backend selected." )
 endif()
 # HCC
-if( MLOpen_BACKEND MATCHES "HCC")
-	add_definitions( -DMLOpen_BACKEND_OPENCL=0 )
-	add_definitions( -DMLOpen_BACKEND_HCC=1 )
-	add_definitions( -DMLOpen_BACKEND_HIP=0 )
+if( MLOPEN_BACKEND MATCHES "HCC")
+	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
+	add_definitions( -DMLOPEN_BACKEND_HCC=1 )
+	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	message( SEND_ERROR "${Cobalt_BACKEND} backend not yet supported." )
 endif()
 # HIP
-if( MLOpen_BACKEND MATCHES "HIP")
-	add_definitions( -DMLOpen_BACKEND_OPENCL=0 )
-	add_definitions( -DMLOpen_BACKEND_HCC=0 )
-	add_definitions( -DMLOpen_BACKEND_HIP=1 )
+if( MLOPEN_BACKEND MATCHES "HIP")
+	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
+	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
+	add_definitions( -DMLOPEN_BACKEND_HIP=1 )
 	message( SEND_ERROR "${Cobalt_BACKEND} backend not yet supported." )
 endif()
 
 # If Cobalt is used in future
 if( USE_Cobalt)
 endif()
-
-set ( MLOpen_Headers_Public
-	${PROJECT_SOURCE_DIR}/include/MLOpen.h
-	${PROJECT_BINARY_DIR}/src/include/MLOpen-version.h
-	${PROJECT_BINARY_DIR}/src/mlopen_export.h
-	)
-
-install(FILES ${MLOpen_Headers_Public} DESTINATION include)
-
-set( MLOpen_DIRS_INCLUDE
-	${CMAKE_SOURCE_DIR}/include
-	${CMAKE_SOURCE_DIR}/src/include
-	${CMAKE_SOURCE_DIR}/src
-	${PROJECT_BINARY_DIR}/src)
-
-set( MLOpen_API ${CMAKE_SOURCE_DIR}/include/MLOpen.h )
-source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
 
 add_subdirectory(src)
 add_subdirectory(driver)
