@@ -171,7 +171,7 @@ int mloPoolingForwardRunHostAndVerify(
 
 	if (match)
 	{
-		std::cout << "Passed varifier: layer: pooling." << std::endl;
+		ret = match;
 	}
 	else
 	{

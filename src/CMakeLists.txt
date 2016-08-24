@@ -43,61 +43,109 @@ message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 # This is incremented when the ABI to the library changes
 set( MLOpen_SOVERSION 1 )
 
+include(Bin2H)
+function(add_kernels)
+	set(INIT_KERNELS_LIST)
+	set(KERNELS_HEADER "${PROJECT_BINARY_DIR}/include/mlopen_kernels.h")
+	file(WRITE ${KERNELS_HEADER} "")
+	foreach(KERNEL_FILE ${ARGN})
+		if("${CMAKE_VERSION}" VERSION_LESS 3.0)
+			configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
+		else()
+			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
+		endif()
+		get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
+		message(STATUS "Storing ${BASE_NAME}")
+		string(TOUPPER "${BASE_NAME}" KEY_NAME)
+		string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
+		bin2h(SOURCE_FILE ${KERNEL_FILE} HEADER_FILE ${KERNELS_HEADER} VARIABLE_NAME ${VAR_NAME} NULL_TERMINATE APPEND)
+		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", ${VAR_NAME} }")
+	endforeach()
+	string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
+	configure_file(Kernels/kernel.cpp.in kernel.cpp)
+endfunction()
+
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MLOpen_Source
+	convolution.cpp
+	convolution_api.cpp
 	errors.cpp
-	Handle.hpp
-	Handle_API.cpp
-	Tensor.cpp
-	Tensor.hpp
-	Tensor_API.cpp
-	Convolution.hpp
-	Convolution.cpp
-	Convolution_API.cpp
-	pooling.hpp
 	pooling.cpp
 	pooling_api.cpp
-	lrn.hpp
 	lrn.cpp
 	lrn_api.cpp
-	KernelCache.cpp
-	KernelCache.hpp
-	OCLKernel.hpp
-	OCLKernel.cpp
+	handle_api.cpp
+	include/mlopen/common.hpp
+	include/mlopen/convolution.hpp
+	include/mlopen/errors.hpp
+	include/mlopen/handle.hpp
+	include/mlopen/kernel_cache.hpp
+	include/mlopen/mlo_internal.hpp
+	include/mlopen/mlo_utils.hpp
+	include/mlopen/oclkernel.hpp
+	include/mlopen/tensor.hpp
 	include/mlopenTypes.h
-	mloCLUtil.cpp
-	mloDirConv.cpp
-	mlo_internal.hpp
-	mloUtils.hpp
-	Common.hpp
+	include/mlopen/pooling.hpp
+	include/mlopen/lrn.hpp
+	kernel_cache.cpp
+	mlo_cl_util.cpp
+	mlo_dir_conv.cpp
+	ocl_kernel.cpp
+	tensor.cpp
+	tensor_api.cpp
 	)
 
-if( MLOpen_BACKEND MATCHES "OpenCL")
-	list(APPEND MLOpen_Source OCL/HandleOCL.cpp
-		OCL/HandleOCL.cpp
-		OCL/TensorOCL.cpp
-		OCL/ConvolutionOCL.cpp
-		OCL/pooling_ocl.cpp
-		OCL/lrn_ocl.cpp
-		OCL/CLHelper.hpp
-		OCL/CLHelper.cpp
-		OCL/mloPooling.cpp
-		OCL/mloNeuron.cpp
-		OCL/mloNorm.cpp
+if( MLOPEN_BACKEND MATCHES "OpenCL")
+	add_kernels(
+		Kernels/MLOpenConvDirUni.cl
+		Kernels/MLOpenConvDirGenFwd.cl
+		Kernels/MLOpenLRN.cl
+		Kernels/MLOpenNeuron.cl
+		Kernels/MLOpenPooling.cl
+		Kernels/MLOpenPoolingBwd.cl
+	)
+	list(APPEND MLOpen_Source 
+		ocl/handleocl.cpp
+		ocl/clhelper.cpp
+		ocl/clhelper.hpp
+		ocl/convolutionocl.cpp
+		ocl/handleocl.cpp
+		ocl/tensorocl.cpp
+		ocl/pooling_ocl.cpp
+		ocl/lrn_ocl.cpp
+		ocl/mloPooling.cpp
+		ocl/mloNeuron.cpp
+		ocl/mloNorm.cpp
+		${PROJECT_BINARY_DIR}/kernel.cpp
 		)
 endif()
 
-if( MLOpen_BACKEND MATCHES "HIP")
-	list(APPEND MLOpen_Source HIP/HandleHIP.cpp
-		HIP/TensorHIP.cpp
-		HIP/ConvolutionHIP.cpp)
+if( MLOPEN_BACKEND MATCHES "HIP")
+	list(APPEND MLOpen_Source 
+		hip/handlehip.cpp
+		hip/convolutionhip.cpp
+		hip/tensorhip.cpp
+		)
 endif()
+
+set ( MLOpen_Headers_Public
+	${PROJECT_SOURCE_DIR}/include/mlopen.h
+	${PROJECT_BINARY_DIR}/include/MLOpen-version.h
+	${PROJECT_BINARY_DIR}/include/mlopen_export.h
+	)
+
 
 # build library
 add_library( MLOpen SHARED
 	${MLOpen_Source}
-	${MLOpen_API}
 	)
+
+set( MLOpen_DIRS_INCLUDE
+	# TODO: Remove this
+	${PROJECT_SOURCE_DIR}
+	${CMAKE_SOURCE_DIR}/include
+	${PROJECT_SOURCE_DIR}/include
+	${PROJECT_BINARY_DIR}/include)
 
 target_include_directories(MLOpen PUBLIC ${MLOpen_DIRS_INCLUDE})
 
@@ -106,10 +154,14 @@ install(TARGETS MLOpen
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib)
 
-GENERATE_EXPORT_HEADER(MLOpen)
+install(FILES ${MLOpen_Headers_Public} DESTINATION include)
+
+GENERATE_EXPORT_HEADER(MLOpen
+	EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/mlopen_export.h
+)
 ############################################################
 # MLOpen depends on OpenCL
-if( MLOpen_BACKEND MATCHES "OpenCL")
+if( MLOPEN_BACKEND MATCHES "OpenCL")
 	MESSAGE( STATUS "MLOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MLOpen PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )

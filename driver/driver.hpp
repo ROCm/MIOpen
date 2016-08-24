@@ -2,10 +2,15 @@
 #define GUARD_MLOPEN_DRIVER_HPP
 
 #include <cstdio>
-#include <MLOpen.h>
 #include <vector>
+#include <cstdlib>
+#include <mlopen.h>
 #include <CL/cl.h>
 #include "InputFlags.hpp"
+#include <algorithm>
+#include <float.h>
+#include <memory>
+#include <numeric>
 
 #define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
 

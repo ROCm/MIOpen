@@ -2,13 +2,13 @@
 #define GUARD_MLOPEN_POOL_DRIVER_HPP
 
 #include <cstdlib>
-#include <MLOpen.h>
+#include <mlopen.h>
 #include <CL/cl.h>
 #include "driver.hpp"
 #include "mloPoolingHost.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
-#include "mlopenTensor.hpp"
+#include <mlopen/tensor.hpp>
 #include <vector>
 #include <algorithm>
 #include <float.h>
@@ -309,6 +309,8 @@ int PoolDriver<T>::VerifyForward() {
 			out.data(),
 			(1 << 2)
 				);
+
+	if(status) printf("Forward Pooling Verifies on CPU and GPU\n");
 
 	return 0;
 }
