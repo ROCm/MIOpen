@@ -16,8 +16,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 // to share code with between CPU and GPU
 
 #define MLOPEN
-#include "mlo_internal.hpp"
-#include "mloUtils.hpp"
+#include <mlopen/mlo_internal.hpp>
+#include <mlopen/mlo_utils.hpp>
 
 // KNOWN ISSUES:
 // backward propogagation has a bug in cross map normalization when numper of maps less than normalization region

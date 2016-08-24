@@ -1,13 +1,14 @@
-#include <pooling.hpp>
-#include "mlo_internal.hpp"
+#include <mlopen/pooling.hpp>
+#include <mlopen/mlo_internal.hpp>
 
-mlopenStatus_t mlopenPoolingDescriptor::Forward(
-		mlopenHandle_t						handle,
+namespace mlopen {
+mlopenStatus_t PoolingDescriptor::Forward(
+		Handle								&handle,
 		const void							*alpha,
-		const mlopenTensorDescriptor_t		xDesc,
+		const TensorDescriptor				&xDesc,
 		const cl_mem						x,
 		const void							*beta,
-		const mlopenTensorDescriptor_t		yDesc,
+		const TensorDescriptor				&yDesc,
 		cl_mem								y,
 		bool								do_backward,
 		cl_mem								workSpace,
@@ -21,10 +22,7 @@ mlopenStatus_t mlopenPoolingDescriptor::Forward(
 
 	construct_params.setKernelPath(kernel_path);
 
-	mlopenAcceleratorQueue_t queue;
-	handle->GetStream(&queue);
-
-	construct_params.setStream(queue);
+	construct_params.setStream(handle.GetStream());
 
 	{
 		int nOut;
@@ -36,8 +34,8 @@ mlopenStatus_t mlopenPoolingDescriptor::Forward(
 		int hOutStride;
 		int wOutStride;
 
-		std::tie(nOut, cOut, hOut, wOut) = tie4(yDesc->GetLengths());
-		std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc->GetStrides());
+		std::tie(nOut, cOut, hOut, wOut) = tie4(yDesc.GetLengths());
+		std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc.GetStrides());
 
 
 		construct_params.setTopDescr(
@@ -63,8 +61,8 @@ mlopenStatus_t mlopenPoolingDescriptor::Forward(
 		int hInStride;
 		int wInStride;
 
-		std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc->GetLengths());
-		std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc->GetStrides());
+		std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
+		std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
 		construct_params.setBotDescr(
 			"NCHW",
@@ -79,7 +77,7 @@ mlopenStatus_t mlopenPoolingDescriptor::Forward(
 			wInStride);
 	}
 
-	mlopenPoolingMode_t mode = GetMode();
+	mlopenPoolingMode_t mode = mode;
 	const std::vector<int> & lengths = GetLengths();
 	const std::vector<int> & strides = GetStrides();
 	const std::vector<int> & pads = GetPads();
@@ -98,49 +96,33 @@ mlopenStatus_t mlopenPoolingDescriptor::Forward(
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	// Compile the kernel if not aleady compiled
-	OCLKernel obj = KernelCache::get(queue,
-		"mlopenPooling2dForward",
+	handle.GetKernel("mlopenPooling2dDForward",
 		network_config,
 		program_name,
 		kernel_name,
 		vld,
 		vgd,
-		parms);
+		parms)(x, y);
 
-	std::string kernName;
-	obj.GetKernelName(kernName);
 
-	printf("kname: %s\n", kernName.c_str());
-
-	// Set kernel arguments
-	// Use proper arguments
-	obj.SetArgs(0, x, y);
-
-	int dim = (int)vld.size();
-
-	// Run the kernel
-	obj.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
-
-	clFinish(queue);
+	handle.Finish();
 
 	std::cout << "Pooling Forward Finished !!" << std::endl;
 
-
-	return(status);
+	return mlopenStatusSuccess;
 }
 
-mlopenStatus_t mlopenPoolingDescriptor::Backward(
-		mlopenHandle_t						handle,
+mlopenStatus_t PoolingDescriptor::Backward(
+		Handle								&handle,
 		const void							*alpha,
-		const mlopenTensorDescriptor_t		yDesc,
+		const TensorDescriptor				&yDesc,
 		const cl_mem						y,
-		const mlopenTensorDescriptor_t		dyDesc,
+		const TensorDescriptor				&dyDesc,
 		const cl_mem						dy,
-		const mlopenTensorDescriptor_t		xDesc,
+		const TensorDescriptor				&xDesc,
 		const cl_mem						x,
 		const void							*beta,
-		const mlopenTensorDescriptor_t		dxDesc,
+		const TensorDescriptor				&dxDesc,
 		cl_mem								dx,
 		const cl_mem						workSpace) {
 
@@ -153,10 +135,7 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 
 	construct_params.setKernelPath(kernel_path);
 
-	mlopenAcceleratorQueue_t queue;
-	handle->GetStream(&queue);
-
-	construct_params.setStream(queue);
+	construct_params.setStream(handle.GetStream());
 
 	{
 		int ndOut;
@@ -168,8 +147,8 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 		int hdOutStride;
 		int wdOutStride;
 
-		std::tie(ndOut, cdOut, hdOut, wdOut) = tie4(dyDesc->GetLengths());
-		std::tie(ndOutStride, cdOutStride, hdOutStride, wdOutStride) = tie4(dyDesc->GetStrides());
+		std::tie(ndOut, cdOut, hdOut, wdOut) = tie4(dyDesc.GetLengths());
+		std::tie(ndOutStride, cdOutStride, hdOutStride, wdOutStride) = tie4(dyDesc.GetStrides());
 
 
 		construct_params.setTopDfDescr(
@@ -195,8 +174,8 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 		int hOutStride;
 		int wOutStride;
 
-		std::tie(nOut, cOut, hOut, wOut) = tie4(yDesc->GetLengths());
-		std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc->GetStrides());
+		std::tie(nOut, cOut, hOut, wOut) = tie4(yDesc.GetLengths());
+		std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc.GetStrides());
 
 
 		construct_params.setTopDescr(
@@ -223,8 +202,8 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 		int hdInStride;
 		int wdInStride;
 
-		std::tie(ndIn, cdIn, hdIn, wdIn) = tie4(dxDesc->GetLengths());
-		std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tie4(dxDesc->GetStrides());
+		std::tie(ndIn, cdIn, hdIn, wdIn) = tie4(dxDesc.GetLengths());
+		std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tie4(dxDesc.GetStrides());
 
 		construct_params.setBotDfDescr(
 			"NCHW",
@@ -249,8 +228,8 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 		int hInStride;
 		int wInStride;
 
-		std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc->GetLengths());
-		std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc->GetStrides());
+		std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
+		std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
 		construct_params.setBotDescr(
 			"NCHW",
@@ -265,7 +244,7 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 			wInStride);
 	}
 
-	mlopenPoolingMode_t mode = GetMode();
+	mlopenPoolingMode_t mode = mode;
 	const std::vector<int> & lengths = GetLengths();
 	const std::vector<int> & strides = GetStrides();
 	const std::vector<int> & pads = GetPads();
@@ -286,6 +265,7 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	// Compile the kernel if not aleady compiled
+	auto queue = handle.GetStream();
 	OCLKernel obj = KernelCache::get(queue,
 		"mlopenPooling2dBackward",
 		network_config,
@@ -323,4 +303,4 @@ mlopenStatus_t mlopenPoolingDescriptor::Backward(
 
 	return(status);
 }
-
+}

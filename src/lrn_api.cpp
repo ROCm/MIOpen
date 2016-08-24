@@ -1,4 +1,5 @@
-#include <lrn.hpp>
+#include <mlopen/lrn.hpp>
+#include <mlopen/errors.hpp>
 #include <initializer_list>
 #include <array>
 
@@ -7,7 +8,7 @@ mlopenStatus_t mlopenCreateLRNDescriptor(
 		mlopenLRNDescriptor_t *lrnDesc) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(lrnDesc) = new mlopenLRNDescriptor();
+		mlopen::deref(lrnDesc) = new mlopen::LRNDescriptor();
 	});
 }
 
@@ -22,7 +23,7 @@ mlopenStatus_t mlopenSetLRNDescriptor(
 		
 	return mlopen::try_([&] {
 		std::initializer_list<double> parms = {lrnAlpha, lrnBeta, lrnK};
-		mlopen::deref(lrnDesc) = mlopenLRNDescriptor(mode, 
+		mlopen::deref(lrnDesc) = mlopen::LRNDescriptor(mode, 
 			lrnN,
 			parms.begin());
 	});
@@ -38,11 +39,11 @@ mlopenStatus_t mlopenGetLRNDescriptor(
 		double							*lrnK) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(mode) = lrnDesc->GetMode();
-		mlopen::deref(lrnN) = lrnDesc->GetN();
-		mlopen::deref(lrnAlpha) = lrnDesc->GetAlpha();
-		mlopen::deref(lrnBeta) = lrnDesc->GetBeta();
-		mlopen::deref(lrnK) = lrnDesc->GetK();
+		*mode = mlopen::deref(lrnDesc).GetMode();
+		*lrnN = mlopen::deref(lrnDesc).GetN();
+		*lrnAlpha = mlopen::deref(lrnDesc).GetAlpha();
+		*lrnBeta = mlopen::deref(lrnDesc).GetBeta();
+		*lrnK = mlopen::deref(lrnDesc).GetK();
 	});
 }
 
@@ -62,12 +63,12 @@ mlopenStatus_t mlopenLRNForward(
 
 
 	return mlopen::try_([&] {
-		lrnDesc->Forward(handle,
+			mlopen::deref(lrnDesc).Forward(mlopen::deref(handle),
 			alpha,
-			xDesc,
+			mlopen::deref(xDesc),
 			DataCast(x),
 			beta,
-			yDesc,
+			mlopen::deref(yDesc),
 			DataCast(y),
 			do_backward,
 			DataCast(workSpace),
@@ -93,16 +94,16 @@ mlopenStatus_t mlopenLRNBackward(
 		const void							*workSpace) {
 
 	return mlopen::try_([&] {
-		lrnDesc->Backward(handle,
+			mlopen::deref(lrnDesc).Backward(mlopen::deref(handle),
 			alpha,
-			yDesc,
+			mlopen::deref(yDesc),
 			DataCast(y),
-			dyDesc,
+			mlopen::deref(dyDesc),
 			DataCast(dy),
-			xDesc,
+			mlopen::deref(xDesc),
 			DataCast(x),
 			beta,
-			dxDesc,
+			mlopen::deref(dxDesc),
 			DataCast(dx),
 			DataCast(workSpace));
 	});
