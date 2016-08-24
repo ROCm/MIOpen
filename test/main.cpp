@@ -9,12 +9,16 @@
 struct handle_fixture
 {
     mlopenHandle_t handle;
+#if MLOPEN_BACKEND_OPENCL
     cl_command_queue q;
+#endif
 
     handle_fixture()
     {
         mlopenCreate(&handle);
+#if MLOPEN_BACKEND_OPENCL
         mlopenGetStream(handle, &q);
+#endif
     }
 
     ~handle_fixture()
@@ -23,7 +27,7 @@ struct handle_fixture
     }
 };
 
-struct input_tensor_fixture //: virtual handle_fixture
+struct input_tensor_fixture
 {
     mlopenTensorDescriptor_t inputTensor;
 
@@ -199,29 +203,46 @@ struct conv_forward : output_tensor_fixture
 		STATUS(mlopenGet4dTensorDescriptorLengths(outputTensor, &n, &c, &h, &w));
 		size_t sz_out = n*c*h*w;
 
-        cl_int status = CL_SUCCESS;
-		float *in = new float[sz_in];
-		float *wei = new float[sz_wei];
-		std::vector<float> out(sz_out, 0);
+        std::vector<float> in(sz_in);
+        std::vector<float> wei(sz_wei);
+        std::vector<float> out(sz_out);
 
-		for(int i = 0; i < sz_in; i++) {
-			in[i] = rand() * (1.0 / RAND_MAX);
-		}
-		for (int i = 0; i < sz_wei; i++) {
-			wei[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
-		}
+        for(int i = 0; i < sz_in; i++) {
+            in[i] = rand() * (1.0 / RAND_MAX);
+        }
+        for (int i = 0; i < sz_wei; i++) {
+            wei[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+        }
+
+#if MLOPEN_BACKEND_OPENCL
 
         cl_context ctx;
         clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
+        cl_int status = CL_SUCCESS;
 		cl_mem in_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz_in,NULL, &status);
 		cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz_wei,NULL, NULL);
 		cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz_out,NULL, NULL);
 
-		status = clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4*sz_in, in, 0, NULL, NULL);
-		status |= clEnqueueWriteBuffer(q, wei_dev, CL_TRUE, 0, 4*sz_wei, wei, 0, NULL, NULL);
+		status = clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4*sz_in, in.data(), 0, NULL, NULL);
+		status |= clEnqueueWriteBuffer(q, wei_dev, CL_TRUE, 0, 4*sz_wei, wei.data(), 0, NULL, NULL);
 		status |= clEnqueueWriteBuffer(q, out_dev, CL_TRUE, 0, 4*sz_out, out.data(), 0, NULL, NULL);
 		EXPECT(status == CL_SUCCESS);
+
+#elif MLOPEN_BACKEND_HIP
+
+        void * in_dev;
+        void * wei_dev;
+        void * out_dev;
+        EXPECT(hipMalloc(&in_dev, 4*sz_in) == hipSuccess);
+        EXPECT(hipMalloc(&wei_dev, 4*sz_wei) == hipSuccess);
+        EXPECT(hipMalloc(&out_dev, 4*sz_out) == hipSuccess);
+
+        EXPECT(hipMemcpy(in_dev, in.data(), 4*sz_in, hipMemcpyDeviceToHost) == hipSuccess);
+        EXPECT(hipMemcpy(wei_dev, wei.data(), 4*sz_wei, hipMemcpyDeviceToHost) == hipSuccess);
+        EXPECT(hipMemcpy(out_dev, out.data(), 4*sz_out, hipMemcpyDeviceToHost) == hipSuccess);
+
+#endif
 
         int ret_algo_count;
         mlopenConvAlgoPerf_t perf;

@@ -48,7 +48,7 @@ mlopenAcceleratorQueue_t Handle::GetStream() const
 
 void Handle::EnableProfiling(bool enable)
 {
-
+    // TODO
 }
 
 float Handle::GetKernelTime() const
