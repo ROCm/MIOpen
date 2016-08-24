@@ -70,10 +70,8 @@ set( MLOpen_Source
 	convolution.cpp
 	convolution_api.cpp
 	errors.cpp
-	pooling.hpp
 	pooling.cpp
 	pooling_api.cpp
-	lrn.hpp
 	lrn.cpp
 	lrn_api.cpp
 	handle_api.cpp
@@ -87,6 +85,8 @@ set( MLOpen_Source
 	include/mlopen/oclkernel.hpp
 	include/mlopen/tensor.hpp
 	include/mlopenTypes.h
+	include/mlopen/pooling.hpp
+	include/mlopen/lrn.hpp
 	kernel_cache.cpp
 	mlo_cl_util.cpp
 	mlo_dir_conv.cpp
