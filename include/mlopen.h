@@ -64,6 +64,12 @@ MLOPEN_EXPORT mlopenStatus_t mlopenEnableProfiling(mlopenHandle_t handle, bool e
 
 MLOPEN_DECLARE_OBJECT(mlopenTensorDescriptor);
 MLOPEN_DECLARE_OBJECT(mlopenConvolutionDescriptor);
+MLOPEN_DECLARE_OBJECT(mlopenPoolingDescriptor);
+MLOPEN_DECLARE_OBJECT(mlopenLRNDescriptor);
+
+//typedef struct mlopenPoolingDescriptor *mlopenPoolingDescriptor_t;
+
+typedef struct mlopenLRNDescriptor *mlopenLRNDescriptor_t;
 
 typedef enum {
 	mlopenHalf = 0,
@@ -82,6 +88,16 @@ typedef enum {
 	mlopenConvolution = 0,
 	mlopenCrossCorrelation = 1,
 } mlopenConvolutionMode_t;
+
+typedef enum {
+	mlopenPoolingMax = 0,
+	mlopenPoolingAverage = 1,
+} mlopenPoolingMode_t;
+
+typedef enum {
+	mlopenLRNWithinChannel = 0,
+	mlopenLRNCrossChannel = 1,
+} mlopenLRNMode_t;
 
 // Create a Tensor Descriptor
 MLOPEN_EXPORT mlopenStatus_t mlopenCreateTensorDescriptor(mlopenTensorDescriptor_t *tensorDesc);
@@ -373,6 +389,139 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle
 		void								*workSpace,
 		size_t								workSpaceSize);
 
+// Pooling APIs
+
+MLOPEN_EXPORT mlopenStatus_t mlopenCreatePoolingDescriptor(mlopenPoolingDescriptor_t *poolDesc);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenSet2dPoolingDescriptor(
+		mlopenPoolingDescriptor_t			poolDesc,
+		mlopenPoolingMode_t					mode,
+		int									windowHeight,
+		int									windowWidth,
+		int									pad_h,
+		int									pad_w,
+		int									u,
+		int									v);
+	
+MLOPEN_EXPORT mlopenStatus_t mlopenGet2dPoolingDescriptor(
+		const mlopenPoolingDescriptor_t		poolDesc,
+		mlopenPoolingMode_t					*mode,
+		int									*windowHeight,
+		int									*windowWidth,
+		int									*pad_h,
+		int									*pad_w,
+		int									*u,
+		int									*v);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenSetNdPoolingDescriptor(
+		mlopenPoolingDescriptor_t			poolDesc,
+		mlopenPoolingMode_t					mode,
+		int									nbDims,
+		int									*windowDimA,
+		int									*padA,
+		int									*stridesA);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenGetNdPoolingDescriptor(
+		const mlopenPoolingDescriptor_t		poolDesc,
+		mlopenPoolingMode_t					*mode,
+		int									*nbDims,
+		int									*windowDimA,
+		int									*padA,
+		int									*stridesA);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenGetPoolingForwardOutputDim(
+		const mlopenPoolingDescriptor_t		poolDesc,
+		const mlopenTensorDescriptor_t		tensorDesc,
+		int									*n,
+		int									*c,
+		int									*h,
+		int									*w);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenPoolingForward(
+		mlopenHandle_t						handle,
+		const mlopenPoolingDescriptor_t		poolDesc,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		yDesc,
+		void								*y,
+		bool                                do_backward,
+		void								*workSpace,
+		size_t								workSpaceSize);
+
+
+MLOPEN_EXPORT mlopenStatus_t mlopenPoolingBackward(
+		mlopenHandle_t						handle,
+		const mlopenPoolingDescriptor_t		poolDesc,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		yDesc,
+		const void							*y,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		dxDesc,
+		void								*dx,
+		const void							*workSpace);
+
+
+MLOPEN_EXPORT mlopenStatus_t mlopenDestroyPoolingDescriptor(mlopenPoolingDescriptor_t poolDesc);
+
+// LRN APIs
+
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateLRNDescriptor(mlopenLRNDescriptor_t *lrnDesc);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenSetLRNDescriptor(
+	const mlopenLRNDescriptor_t			lrnDesc,
+	mlopenLRNMode_t						mode,
+	unsigned int						lrnN,
+	double								lrnAlpha,
+	double								lrnBeta,
+	double								lrnK);
+
+
+MLOPEN_EXPORT mlopenStatus_t mlopenGetLRNDescriptor(
+		const mlopenLRNDescriptor_t			lrnDesc,
+		mlopenLRNMode_t						*mode,
+		unsigned int						*lrnN,
+		double								*lrnAlpha,
+		double								*lrnBeta,
+		double								*lrnK);
+
+
+
+MLOPEN_EXPORT mlopenStatus_t mlopenLRNForward(
+		mlopenHandle_t						handle,
+		const mlopenLRNDescriptor_t			lrnDesc,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		yDesc,
+		void								*y,
+		bool                                do_backward,
+		void								*workSpace,
+		size_t								*workSpaceSize);
+
+
+MLOPEN_EXPORT mlopenStatus_t mlopenLRNBackward(
+		mlopenHandle_t						handle,
+		const mlopenLRNDescriptor_t			lrnDesc,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		yDesc,
+		const void							*y,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		dxDesc,
+		void								*dx,
+		const void							*workSpace);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenDestroyLRNDescriptor(mlopenLRNDescriptor_t lrnDesc);
 #ifdef __cplusplus
 }
 #endif
