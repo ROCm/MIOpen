@@ -30,7 +30,7 @@ class PoolDriver : public Driver
 	}
 
 	int AddCmdLineArgs();
-	int ParseCmdLineArgs(int argc, char *argv[]) { inflags.Parse(argc, argv); return 0; }
+	int ParseCmdLineArgs(int argc, char *argv[]);
 	InputFlags & GetInputFlags() { return inflags; }
 
 	int GetandSetData();
@@ -85,6 +85,16 @@ class PoolDriver : public Driver
 	std::vector<T> dinhost;
 
 };
+
+template<typename T>
+int PoolDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) { 
+	inflags.Parse(argc, argv); 
+
+	if(inflags.GetValueInt("time") == 1) {
+		mlopenEnableProfiling(GetHandle(), true);
+	}
+	return 0; 
+}
 
 template<typename T>
 int PoolDriver<T>::GetandSetData() {
@@ -229,6 +239,12 @@ int PoolDriver<T>::RunForwardGPU() {
 			NULL,
 			0);
 
+	if(inflags.GetValueInt("time") == 1) {
+		float time = 0.0;
+		mlopenGetKernelTime(GetHandle(), &time);
+		printf("GPU Kernel Time Forward Pooling Elapsed: %f ms\n", time);
+	}
+
 	out_dev->FromGPU(GetStream(), out.data());
 
 	return mlopenStatusSuccess;
@@ -252,6 +268,12 @@ int PoolDriver<T>::RunBackwardGPU() {
 			dInputTensor,
 			din_dev->GetMem(),
 			NULL);
+
+	if(inflags.GetValueInt("time") == 1) {
+		float time = 0.0;
+		mlopenGetKernelTime(GetHandle(), &time);
+		printf("GPU Kernel Time Backward Pooling Elapsed: %f ms\n", time);
+	}
 
 	din_dev->FromGPU(GetStream(), din.data());
 
