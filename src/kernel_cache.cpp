@@ -70,8 +70,9 @@ OCLKernel KernelCache::getKernel(	const std::string& algorithm,
 	auto kernel_iterator = kernel_map.find(key);
 	if (kernel_iterator != kernel_map.end())
 	{
-
+#ifndef NDEBUG
 		printf("kernel found\n");
+#endif
 		return kernel_iterator->second;
 	}
 	// TODO: Where should the default kernel be?
@@ -110,14 +111,16 @@ OCLKernel KernelCache::getKernel(cl_command_queue &queue,
     auto kernel_iterator = kernel_map.find(key);
     if (kernel_iterator != kernel_map.end())
     {
-
+#ifndef NDEBUG
 		printf("kernel found\n");
+#endif
         return kernel_iterator->second;
     }
     else //build program and compile the kernel;
     {
-
+#ifndef NDEBUG
 		printf("kernel not found\n");
+#endif
 		cl_program program = NULL;
         getProgram(program, queue, program_name, _params);
         if (program == nullptr) {
