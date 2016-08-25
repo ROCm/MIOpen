@@ -5,7 +5,6 @@
 #include <mlopen/errors.hpp>
 #include <mlopen/handle.hpp>
 #include <mlopen/tensor.hpp>
-#include "mlopen/kernel_cache.hpp"
 #include "mlopen/common.hpp"
 #include <vector>
 
@@ -26,7 +25,7 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 		Handle						&handle,
 		const void					*alpha,
 		const TensorDescriptor		&xDesc,
-		const Data_t				x,
+		ConstData_t				x,
 		const void					*beta,
 		const TensorDescriptor		&yDesc,
 		Data_t						y,
@@ -38,15 +37,15 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 		Handle						&handle,
 		const void					*alpha,
 		const TensorDescriptor		&yDesc,
-		const Data_t				y,
+		ConstData_t				y,
 		const TensorDescriptor		&dyDesc,
-		const Data_t				dy,
+		ConstData_t				dy,
 		const TensorDescriptor		&xDesc,
-		const Data_t				x,
+		ConstData_t				x,
 		const void					*beta,
 		const TensorDescriptor		&dxDesc,
 		Data_t						dx,
-		const Data_t                workSpace);
+		ConstData_t                workSpace);
 
 	std::vector<int> lens;
 	std::vector<int> strides;
