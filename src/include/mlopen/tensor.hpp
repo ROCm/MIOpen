@@ -17,6 +17,13 @@ auto tie4(T&& x) -> decltype(std::tie(x[0], x[1], x[2], x[3]))
 	return std::tie(x[0], x[1], x[2], x[3]);
 }
 
+template<class T>
+auto tie2(T&& x) -> decltype(std::tie(x[0], x[1]))
+{
+	return std::tie(x[0], x[1]);
+}
+
+
 struct TensorDescriptor : mlopenTensorDescriptor {
 	TensorDescriptor();
 	TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens);

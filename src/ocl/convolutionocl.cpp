@@ -49,7 +49,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
 
 		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
-		construct_params.mloConstructDirect2D();
+		construct_params.mloConstruct();
 	}
 
 	std::string program_name = construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
@@ -185,7 +185,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
 
 		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
-		construct_params.mloConstructDirect2D();
+		construct_params.mloConstruct();
 	}
 
 	std::string program_name = construct_params.getKernelFile();  

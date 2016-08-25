@@ -70,6 +70,8 @@ set( MLOpen_Source
 	convolution.cpp
 	convolution_api.cpp
 	errors.cpp
+	pooling_api.cpp
+	lrn_api.cpp
 	handle_api.cpp
 	include/mlopen/common.hpp
 	include/mlopen/convolution.hpp
@@ -81,6 +83,8 @@ set( MLOpen_Source
 	include/mlopen/oclkernel.hpp
 	include/mlopen/tensor.hpp
 	include/mlopenTypes.h
+	include/mlopen/pooling.hpp
+	include/mlopen/lrn.hpp
 	tensor.cpp
 	tensor_api.cpp
 	)
@@ -88,20 +92,31 @@ set( MLOpen_Source
 if( MLOPEN_BACKEND MATCHES "OpenCL")
 	add_kernels(
 		Kernels/MLOpenConvDirUni.cl
-		Kernels/MlOpenConvDirGenFwd.cl
+		Kernels/MLOpenConvDirGenFwd.cl
+		Kernels/MLOpenLRN.cl
+		Kernels/MLOpenNeuron.cl
+		Kernels/MLOpenPooling.cl
+		Kernels/MLOpenPoolingBwd.cl
 	)
 	list(APPEND MLOpen_Source 
 		kernel_cache.cpp
 		mlo_cl_util.cpp
 		mlo_dir_conv.cpp
-		ocl_kernel.cpp
+		lrn.cpp
+                ocl_kernel.cpp
 		ocl/handleocl.cpp
 		ocl/clhelper.cpp
 		ocl/clhelper.hpp
 		ocl/convolutionocl.cpp
 		ocl/handleocl.cpp
 		ocl/tensorocl.cpp
-		${PROJECT_BINARY_DIR}/kernel.cpp
+		ocl/pooling_ocl.cpp
+		ocl/lrn_ocl.cpp
+		ocl/mloPooling.cpp
+		ocl/mloNeuron.cpp
+		ocl/mloNorm.cpp
+		pooling.cpp
+                ${PROJECT_BINARY_DIR}/kernel.cpp
 		)
 endif()
 
