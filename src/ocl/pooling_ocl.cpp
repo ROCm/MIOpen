@@ -279,8 +279,6 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	std::string kernName;
 	obj.GetKernelName(kernName);
 
-	printf("kname: %s\n", kernName.c_str());
-
 	// Set kernel arguments
 	// Use proper arguments
 	if (!kernName.compare("mloPoolingMaxBwd"))
