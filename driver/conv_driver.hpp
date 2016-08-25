@@ -28,7 +28,7 @@ class ConvDriver : public Driver
 	}
 
 	int AddCmdLineArgs();
-	int ParseCmdLineArgs(int argc, char *argv[]) { inflags.Parse(argc, argv); return 0; }
+	int ParseCmdLineArgs(int argc, char *argv[]);
 	InputFlags & GetInputFlags() { return inflags; }
 
 	int GetandSetData();
@@ -79,6 +79,16 @@ class ConvDriver : public Driver
 
 	mlopenConvolutionDescriptor_t convDesc;
 };
+
+template<typename T>
+int ConvDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) { 
+	inflags.Parse(argc, argv); 
+
+	if(inflags.GetValueInt("time") == 1) {
+		mlopenEnableProfiling(GetHandle(), true);
+	}
+	return 0; 
+}
 
 template<typename T>
 int ConvDriver<T>::GetandSetData() {
@@ -246,6 +256,11 @@ int ConvDriver<T>::RunForwardGPU() {
 			NULL,
 			0);
 
+	if(inflags.GetValueInt("time") == 1) {
+		float time = 0.0;
+		mlopenGetKernelTime(GetHandle(), &time);
+		printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
+	}
 	out_dev->FromGPU(GetStream(), out.data());
 
 	return mlopenStatusSuccess;
@@ -347,6 +362,15 @@ int ConvDriver<T>::RunBackwardGPU() {
 			in_dev->GetMem(),
 			NULL,
 			0);
+
+	if(inflags.GetValueInt("time") == 1) {
+		float time = 0.0;
+		mlopenGetKernelTime(GetHandle(), &time);
+		printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
+	}
+
+	// TODO: copy data GPUtoCPU for verif
+	return 0;
 }
 
 template<typename T>

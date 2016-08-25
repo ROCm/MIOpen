@@ -30,7 +30,7 @@ class LRNDriver : public Driver
 	}
 
 	int AddCmdLineArgs();
-	int ParseCmdLineArgs(int argc, char *argv[]) { inflags.Parse(argc, argv); return 0; }
+	int ParseCmdLineArgs(int argc, char *argv[]);
 	InputFlags & GetInputFlags() { return inflags; }
 
 	int GetandSetData();
@@ -86,6 +86,16 @@ class LRNDriver : public Driver
 	std::vector<T> dinhost;
 
 };
+
+template<typename T>
+int LRNDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) { 
+	inflags.Parse(argc, argv); 
+
+	if(inflags.GetValueInt("time") == 1) {
+		mlopenEnableProfiling(GetHandle(), true);
+	}
+	return 0; 
+}
 
 template<typename T>
 int LRNDriver<T>::GetandSetData() {
@@ -247,6 +257,12 @@ int LRNDriver<T>::RunForwardGPU() {
 			scale_dev->GetMem(),
 			NULL);
 
+	if(inflags.GetValueInt("time") == 1) {
+		float time = 0.0;
+		mlopenGetKernelTime(GetHandle(), &time);
+		printf("GPU Kernel Time Forward LRN Elapsed: %f ms\n", time);
+	}
+
 	out_dev->FromGPU(GetStream(), out.data());
 
 	if (inflags.GetValueInt("back") == 1) {
@@ -360,6 +376,12 @@ int LRNDriver<T>::RunBackwardGPU() {
 			din_dev->GetMem(),
 			scale_dev->GetMem());
 	
+	if(inflags.GetValueInt("time") == 1) {
+		float time = 0.0;
+		mlopenGetKernelTime(GetHandle(), &time);
+		printf("GPU Kernel Time Backward LRN Elapsed: %f ms\n", time);
+	}
+
 	din_dev->FromGPU(GetStream(), din.data());
 	return(0);
 

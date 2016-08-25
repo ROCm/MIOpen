@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
 	drv->GetandSetData();
 
 	drv->AllocateBuffersAndCopy();
+
 	drv->RunForwardGPU();
 
 	if(drv->GetInputFlags().GetValueInt("verify") == 1) {
