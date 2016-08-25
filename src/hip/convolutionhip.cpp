@@ -1,85 +1,73 @@
 #include <mlopen/convolution.hpp>
 
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::FindConvFwdAlgorithm<void *>(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t	xDesc,
-		const void						*x,
-		const mlopenTensorDescriptor_t	wDesc,
-		const void						*w,
-		const mlopenTensorDescriptor_t	yDesc,
-		const void						*y,
-		const int						requestAlgoCount,
-		int								*returnedAlgoCount,
-		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
-		void							*workSpace,
-		size_t							workSpaceSize) {
-	
-	printf("To be implemented (FindConvFwdAlgo) \n");
+namespace mlopen {
 
-	if(handle == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(xDesc == nullptr || wDesc == nullptr || yDesc == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(x == nullptr || w == nullptr || y == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(returnedAlgoCount == nullptr || perfResults == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(requestAlgoCount < 1) {
-		return mlopenStatusBadParm;
-	}
-
-	return mlopenStatusSuccess;
+void ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
+        const mlopen::TensorDescriptor& xDesc,
+        ConstData_t                 x,
+        const mlopen::TensorDescriptor& wDesc,
+        ConstData_t                 w,
+        const mlopen::TensorDescriptor& yDesc,
+        ConstData_t                 y,
+        const int                       requestAlgoCount,
+        int                             *returnedAlgoCount,
+        mlopenConvAlgoPerf_t            *perfResults,
+        mlopenConvPreference_t          preference,
+        void                            *workSpace,
+        size_t                          workSpaceSize,
+        bool                            exhaustiveSearch) const
+{
 
 }
 
-template<>
-mlopenStatus_t mlopenConvolutionDescriptor::ConvolutionForward<void *>(mlopenHandle_t handle,
-		const void							*alpha,
-		const mlopenTensorDescriptor_t		xDesc,
-		const void							*x,
-		const mlopenTensorDescriptor_t		wDesc,
-		const void							*w,
-		mlopenConvFwdAlgorithm_t			algo,
-		const void							*beta,
-		const mlopenTensorDescriptor_t		 yDesc,
-		void								*y) {
+void ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
+    const void                          *alpha,
+    const mlopen::TensorDescriptor&     xDesc,
+    ConstData_t                     x,
+    const mlopen::TensorDescriptor&     wDesc,
+    ConstData_t                     w,
+    mlopenConvFwdAlgorithm_t            algo,
+    const void                          *beta,
+    const mlopen::TensorDescriptor&     yDesc,
+    Data_t                              y,
+    void                                *workSpace,
+    size_t                              workSpaceSize) const
+{
 
-	printf("To be implemented (ConvolutionForward) \n");
+}
 
-	if(handle == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(xDesc == nullptr || wDesc == nullptr || yDesc == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(x == nullptr || w == nullptr || y == nullptr) {
-		return mlopenStatusBadParm;
-	}
-	if(xDesc->_CheckTensorDims(yDesc) != mlopenStatusSuccess || xDesc->_CheckTensorDims(wDesc) != mlopenStatusSuccess) {
-		return mlopenStatusBadParm;
-	}
-	if(xDesc->_CheckTensorDataTypes(yDesc) != mlopenStatusSuccess || xDesc->_CheckTensorDataTypes(wDesc) != mlopenStatusSuccess) {
-		return mlopenStatusBadParm;
-	}
-	if(xDesc->_dimA[0] != wDesc->_dimA[0]) {
-		return mlopenStatusBadParm;
-	}
-	if(xDesc->_dims < 3) {
-		return mlopenStatusBadParm;
-	}
+void ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
+    const mlopen::TensorDescriptor& dyDesc,
+    ConstData_t                 dy,
+    const mlopen::TensorDescriptor& wDesc,
+    ConstData_t                 w,
+    const mlopen::TensorDescriptor& dxDesc,
+    ConstData_t                 dx,
+    const int                       requestAlgoCount,
+    int                             *returnedAlgoCount,
+    mlopenConvAlgoPerf_t            *perfResults,
+    mlopenConvPreference_t          preference,
+    void                            *workSpace,
+    size_t                          workSpaceSize,
+    bool                            exhaustiveSearch) const
+{
 
-	std::string program_name; // CL kernel filename
-	std::string kernel_name; // kernel name
-	std::string parms; // kernel parameters
+}
 
-	mlopenAcceleratorQueue_t queue;
-	handle->GetStream(&queue);
+void ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Handle& handle,
+    const void                          *alpha,
+    const mlopen::TensorDescriptor&     dyDesc,
+    ConstData_t                     dy,
+    const mlopen::TensorDescriptor&     wDesc,
+    ConstData_t                     w,
+    mlopenConvBwdDataAlgorithm_t        algo,
+    const void                          *beta,
+    const mlopen::TensorDescriptor&     dxDesc,
+    Data_t                              dx,
+    void                                *workSpace,
+    size_t                              workSpaceSize) const
+{
 
-	return mlopenStatusSuccess;
+}
 
 }

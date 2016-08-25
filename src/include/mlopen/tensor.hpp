@@ -4,7 +4,6 @@
 #include <mlopen/handle.hpp>
 #include <mlopen/object.hpp>
 #include <mlopen.h>
-#include <mlopen/kernel_cache.hpp>
 #include <mlopen/common.hpp>
 #include <vector>
 // TODO: remove this include later
@@ -55,29 +54,29 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 
 	std::string ToString() const;
 
-	mlopenStatus_t TransformTensor(mlopen::Handle& handle,
+	void TransformTensor(Handle& handle,
 			const void *alpha,
 			const TensorDescriptor& srcTensorDesc,
-			const Data_t srcTensor,
+			ConstData_t srcTensor,
 			const void *beta,
 			Data_t dstTensor);
 
-	mlopenStatus_t OpTensor(mlopen::Handle& handle,
+	void OpTensor(Handle& handle,
 			mlopenTensorOp_t				tensorOp,
 			const void						*alpha1,
 			const TensorDescriptor&	aDesc,
-			const Data_t					A,
+			ConstData_t					A,
 			const void						*alpha2,
 			const TensorDescriptor&	bDesc,
-			const Data_t					B,
+			ConstData_t					B,
 			const void						*beta,
 			Data_t							C);
 
-	mlopenStatus_t SetTensor(mlopen::Handle& handle,
+	void SetTensor(Handle& handle,
 			Data_t							dstTensor,
 			const void						*valuePtr);
 
-	mlopenStatus_t ScaleTensor(mlopen::Handle& handle,
+	void ScaleTensor(Handle& handle,
 			Data_t							y,
 			const void						*alpha);
 
