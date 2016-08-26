@@ -256,36 +256,20 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	// Compile the kernel if not aleady compiled
-	auto queue = handle.GetStream();
-	OCLKernel obj = KernelCache::get(queue,
-		"mlopenPooling2dBackward",
-		network_config,
-		program_name,
-		kernel_name,
-		vld,
-		vgd,
-		parms);
-
-	std::string kernName;
-	obj.GetKernelName(kernName);
+	auto k = handle.GetKernel("mlopenPooling2dBackward", network_config, program_name, kernel_name, vld, vgd, parms);
 
 	// Set kernel arguments
 	// Use proper arguments
-	if (!kernName.compare("mloPoolingMaxBwd"))
+	if (!kernel_name.compare("mloPoolingMaxBwd"))
 	{
-		obj.SetArgs(0, dy, dx, y, x);
+		k(dy, dx, y, x);
 	}
 	else
 	{
-		obj.SetArgs(0, dy, dx);
+		k(dy, dx);
 	}
 
-	int dim = (int)vld.size();
-
-	// Run the kernel
-	obj.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
-
-	clFinish(queue);
+	handle.Finish();
 
 	std::cout << "Pooling Backward Finished !!" << std::endl;
 

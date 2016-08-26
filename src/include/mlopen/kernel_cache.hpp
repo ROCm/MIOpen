@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <mlopen.h>
 #include <mlopen/oclkernel.hpp>
-#include "ocl/clhelper.hpp"
+#include <mlopen/clhelper.hpp>
 
 namespace mlopen {
 
@@ -35,7 +35,7 @@ struct SimpleHash {
 
 /**
  * @brief The KernelCache class Build and cache kernels
- * singleton
+ * 
  */
 class KernelCache
 {
@@ -44,22 +44,6 @@ public:
 
 	typedef std::pair<std::string, std::string> Key;
     typedef std::unordered_map< Key, OCLKernel, SimpleHash > KernelMap;
-
-    static KernelCache& getInstance();
-
-    static void clear();
-
-	static OCLKernel get(cl_command_queue &queue,
-						 const std::string& algorithm,
-						 const std::string& network_config,
-                         const std::string& program_name,
-                         const std::string& kernel_name,
-						 const std::vector<size_t>& ldims,
-						 const std::vector<size_t>& gdims,
-                         const std::string& params = "");
-
-	static OCLKernel get( const std::string& algorithm,
-						 const std::string& network_config);
 
     mlopenStatus_t getProgram(cl_program &program,
 							cl_command_queue& queue,
@@ -73,20 +57,18 @@ public:
                          const std::string& kernel_name,
 						 const std::vector<size_t>& ldims,
 						 const std::vector<size_t>& gdims,
-                         const std::string& params = "");
+                        std::string params = "");
 	
 	OCLKernel getKernel( const std::string& algorithm,
 						 const std::string& network_config);
 
 
+
+    KernelCache();
+    
 private:
 
     KernelMap kernel_map;
-
-    KernelCache();
-
-    static KernelCache singleton;
-	
 };
 
 }

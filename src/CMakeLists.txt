@@ -104,7 +104,6 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		mlo_cl_util.cpp
 		mlo_dir_conv.cpp
 		ocl/clhelper.cpp
-		ocl/clhelper.hpp
 		ocl/convolutionocl.cpp
 		ocl/handleocl.cpp
 		ocl/handleocl.cpp

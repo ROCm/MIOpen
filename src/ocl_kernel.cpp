@@ -22,7 +22,7 @@ void OCLKernelInvoke::run() const
 
 OCLKernelInvoke OCLKernel::Invoke(cl_command_queue q, std::function<void(cl_event&)> callback)
 {
-	OCLKernelInvoke result{q, kernel, ldims.size(), {}, {}, {}, callback};
+	OCLKernelInvoke result{q, kernel.get(), ldims.size(), {}, {}, {}, callback};
 	std::copy(gdims.begin(), gdims.end(), result.global_work_dim.begin());
 	std::copy(ldims.begin(), ldims.end(), result.local_work_dim.begin());
 	return result;
@@ -35,7 +35,7 @@ mlopenStatus_t OCLKernel::run(cl_command_queue &queue,
 	const size_t  * local_work_dim,
 	cl_event	  * event) {
 
-	cl_int status = clEnqueueNDRangeKernel(queue, kernel,
+	cl_int status = clEnqueueNDRangeKernel(queue, kernel.get(),
 		work_dim,
 		global_work_offset,
 		global_work_dim,
@@ -55,7 +55,7 @@ mlopenStatus_t OCLKernel::run(cl_command_queue &queue,
 mlopenStatus_t OCLKernel::GetKernelName(std::string &progName) {
 	
 	char *name = new char[200];
-	cl_int status = clGetKernelInfo(kernel, 
+	cl_int status = clGetKernelInfo(kernel.get(), 
 			CL_KERNEL_FUNCTION_NAME, 
 			200, 
 			name, 
