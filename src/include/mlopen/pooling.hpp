@@ -17,6 +17,7 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 	const std::vector<int>& GetLengths() const;
 	const std::vector<int>& GetStrides() const;
 	const std::vector<int>& GetPads() const;
+	mlopenPoolingMode_t GetMode();
 	int GetSize() const;
 
 	std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& inputTensorDesc) const;
