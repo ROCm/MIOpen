@@ -6,6 +6,7 @@
 #include <mlopen.h>
 #include <cassert>
 #include <functional>
+#include <array>
 
 #include <mlopen/errors.hpp>
 #include <mlopen/each_args.hpp>
