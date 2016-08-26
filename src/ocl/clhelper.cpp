@@ -2,6 +2,90 @@
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
 
+namespace mlopen {
+
+ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params)
+{
+	std::string source = mlopen::GetKernelSrc(program_name);
+
+	const char* char_source = source.c_str();
+	auto size = source.size();
+
+	cl_int status;
+	ClProgramPtr result{clCreateProgramWithSource(ctx, 
+			1,
+			(const char**)&char_source, 
+			&size, 
+			&status)};
+	MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()");
+
+	status = clBuildProgram(result.get(), 
+			1, &device, params.c_str(), 
+			NULL, 
+			NULL);
+
+	if(status != CL_SUCCESS)
+    {
+		std::string msg = "Error Building OpenCL Program in BuildProgram()\n";
+		std::vector<char> errorbuf(1024*1024);
+        size_t size;
+        clGetProgramBuildInfo(result.get(),
+				device,
+				CL_PROGRAM_BUILD_LOG, 
+				1024*1024, 
+				errorbuf.data(),
+				&size);
+
+		msg += errorbuf.data();
+		MLOPEN_THROW_CL_STATUS(status, msg);
+    }
+
+	return result;
+
+}
+ClKernelPtr CreateKernel(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params)
+{
+	auto program = LoadProgram(ctx, device, program_name, params);
+	return CreateKernel(program.get(), program_name);
+}
+ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name)
+{
+	cl_int status;
+	ClKernelPtr result{clCreateKernel(program, 
+			kernel_name.c_str(), 
+			&status)};
+
+	MLOPEN_THROW_CL_STATUS(status);
+
+	return result;
+}
+
+cl_device_id GetDevice(cl_command_queue q)
+{
+	cl_device_id device;
+	cl_int status = clGetCommandQueueInfo(q,
+			CL_QUEUE_DEVICE, 
+			sizeof(cl_device_id),
+			&device, 
+			NULL);
+	MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
+
+	return device;
+}
+cl_context GetContext(cl_command_queue q)
+{
+	cl_context context;
+	cl_int status = clGetCommandQueueInfo(q,
+			CL_QUEUE_CONTEXT, 
+			sizeof(cl_context),
+			&context, 
+			NULL);
+	MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
+	return context;
+}
+
+}
+
 mlopenStatus_t CLHelper::LoadProgramFromSource(cl_program &program,
 		cl_command_queue &queue,
 		const std::string &program_name) {
