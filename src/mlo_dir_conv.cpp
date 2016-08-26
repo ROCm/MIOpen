@@ -829,9 +829,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 	}
 
 	std::string compiler_options = _gen_comp_options + _comp_options;
-    std::string kernelPath = (_kernel_path == "") ? mloGetPath() : _kernel_path;
-    kernelPath.append(std::string("/") + _kernel_file.c_str());
-    ret = CLHelper::LoadProgramFromSource(prog, profile_q, kernelPath);
+    ret = CLHelper::LoadProgramFromSource(prog, profile_q, _kernel_file.c_str());
 
 	CHECK_RET(ret);
 
