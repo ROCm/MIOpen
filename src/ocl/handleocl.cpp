@@ -166,7 +166,7 @@ KernelInvoke Handle::GetKernel(
         const std::string& params)
 {
     auto q = this->GetStream();
-    OCLKernel obj = this->impl->cache.getKernel(q, 
+    OCLKernel obj = this->impl->cache.GetKernel(q, 
             algorithm,
             network_config,
             program_name, 
@@ -183,7 +183,7 @@ KernelInvoke Handle::GetKernel(
     const std::string& network_config)
 {
     auto q = this->GetStream();
-    OCLKernel obj = this->impl->cache.getKernel(
+    OCLKernel obj = this->impl->cache.GetKernel(
             algorithm,
             network_config);
     if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));

@@ -22,7 +22,7 @@
 
 namespace mlopen {
 
-OCLKernel KernelCache::getKernel(const std::string& algorithm,
+OCLKernel KernelCache::GetKernel(const std::string& algorithm,
 										const std::string& network_config) {
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -46,7 +46,7 @@ OCLKernel KernelCache::getKernel(const std::string& algorithm,
 	}
 }
 
-OCLKernel KernelCache::getKernel(cl_command_queue &queue,
+OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
 										const std::string& algorithm,
 										const std::string& network_config,
                                         const std::string& program_name,
@@ -86,26 +86,6 @@ OCLKernel KernelCache::getKernel(cl_command_queue &queue,
         if (!network_config.empty()) kernel_map[key] = kernel;
         return kernel;
     }
-}
-
-mlopenStatus_t KernelCache::getProgram(cl_program &program,
-		cl_command_queue &queue,
-                                         const std::string& program_name,
-                                         const std::string& params)
-{
-	mlopenStatus_t status;
-
- 	status = CLHelper::LoadProgramFromSource(program, queue, program_name);
-	if(status != mlopenStatusSuccess) {
-		return status;
-	}
-
-	status = CLHelper::BuildProgram(program, queue, params);
-	if(status != mlopenStatusSuccess) {
-		return status;
-	}
-
-	return mlopenStatusSuccess;
 }
 
 KernelCache::KernelCache()
