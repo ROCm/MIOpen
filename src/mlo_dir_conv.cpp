@@ -829,25 +829,9 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 	}
 
 	std::string compiler_options = _gen_comp_options + _comp_options;
-    ret = CLHelper::LoadProgramFromSource(prog, profile_q, _kernel_file.c_str());
 
-	CHECK_RET(ret);
-
-	CLHelper::BuildProgram(prog, profile_q, compiler_options);
-
-	CHECK_RET(ret);
-		
-	cl_kernel test_kernel;
-	CLHelper::CreateKernel(prog, test_kernel, _kernel_name);
-
-	if (!test_kernel) {
-		if (prog) {
-			clReleaseProgram(prog);
-		}
-		return(-1);
-	}
 	// Creating OCLKernel obj
-	mlopen::OCLKernel kernel(test_kernel);
+	mlopen::OCLKernel kernel(mlopen::CreateKernel(mlopen::GetContext(profile_q), mlopen::GetDevice(profile_q), _kernel_name, _kernel_file, compiler_options));
 	// pass all arguments
 
 	float padding_value = 0;
@@ -903,16 +887,6 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 			//			std::cout << "Processing time: " << processing_time << std::endl;
 
 		}
-	}
-
-	if (test_kernel)
-	{
-		clReleaseKernel(test_kernel);
-	}
-
-	if (prog)
-	{
-		clReleaseProgram(prog);
 	}
 
 	return (ret);

@@ -101,7 +101,7 @@ Include CLBLAS header.
 #endif
 
 #include <mlopen/oclkernel.hpp>
-#include "ocl/clhelper.hpp"
+#include <mlopen/clhelper.hpp>
 #include <mlopen/tensor.hpp>
 
 class mlo_construct_direct2D {

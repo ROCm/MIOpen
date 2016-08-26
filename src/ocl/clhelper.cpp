@@ -1,4 +1,4 @@
-#include "clhelper.hpp"
+#include <mlopen/clhelper.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
 
@@ -17,7 +17,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 			(const char**)&char_source, 
 			&size, 
 			&status)};
-	MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()");
+	if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()");
 
 	status = clBuildProgram(result.get(), 
 			1, &device, params.c_str(), 
@@ -37,16 +37,16 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 				&size);
 
 		msg += errorbuf.data();
-		MLOPEN_THROW_CL_STATUS(status, msg);
+		if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status, msg);
     }
 
 	return result;
 
 }
-ClKernelPtr CreateKernel(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params)
+ClKernelPtr CreateKernel(cl_context ctx, cl_device_id device, const std::string& kernel_name, const std::string &program_name, std::string params)
 {
 	auto program = LoadProgram(ctx, device, program_name, params);
-	return CreateKernel(program.get(), program_name);
+	return CreateKernel(program.get(), kernel_name);
 }
 ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name)
 {
@@ -55,7 +55,7 @@ ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name)
 			kernel_name.c_str(), 
 			&status)};
 
-	MLOPEN_THROW_CL_STATUS(status);
+	if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status);
 
 	return result;
 }
@@ -68,7 +68,7 @@ cl_device_id GetDevice(cl_command_queue q)
 			sizeof(cl_device_id),
 			&device, 
 			NULL);
-	MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
+	if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
 
 	return device;
 }
@@ -80,7 +80,7 @@ cl_context GetContext(cl_command_queue q)
 			sizeof(cl_context),
 			&context, 
 			NULL);
-	MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
+	if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
 	return context;
 }
 
