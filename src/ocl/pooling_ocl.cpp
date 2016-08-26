@@ -78,7 +78,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 			wInStride);
 	}
 
-	mlopenPoolingMode_t mode = mode;
+	mlopenPoolingMode_t mode = GetMode();
 	const std::vector<int> & lengths = GetLengths();
 	const std::vector<int> & strides = GetStrides();
 	const std::vector<int> & pads = GetPads();
@@ -245,7 +245,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			wInStride);
 	}
 
-	mlopenPoolingMode_t mode = mode;
+	mlopenPoolingMode_t mode = GetMode();
 	const std::vector<int> & lengths = GetLengths();
 	const std::vector<int> & strides = GetStrides();
 	const std::vector<int> & pads = GetPads();
