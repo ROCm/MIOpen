@@ -19,10 +19,6 @@ mlopenStatus_t PoolingDescriptor::Forward(
 	printf("in pooling forward\n");
 	mlo_construct_pooling2D construct_params(1); // forward
 
-	std::string kernel_path = "../src/Kernels/";
-
-	construct_params.setKernelPath(kernel_path);
-
 	construct_params.setStream(handle.GetStream());
 
 	{
@@ -87,7 +83,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 
 	status = (mlopenStatus_t)construct_params.mloConstruct();
 
-	std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
+	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
@@ -104,7 +100,6 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		vld,
 		vgd,
 		parms)(x, y);
-
 
 	handle.Finish();
 
@@ -131,10 +126,6 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in pooling backward\n");
 	mlo_construct_pooling2D construct_params(0); // backward
-
-	std::string kernel_path = "../src/Kernels/";
-
-	construct_params.setKernelPath(kernel_path);
 
 	construct_params.setStream(handle.GetStream());
 
@@ -254,8 +245,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 
 	status = (mlopenStatus_t)construct_params.mloConstruct();
 
-
-	std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
+	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
