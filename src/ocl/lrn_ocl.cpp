@@ -19,10 +19,6 @@ namespace mlopen {
 		printf("in lrn forward\n");
 		mlo_construct_norm construct_params(1); // forward
 
-		std::string kernel_path = "../src/Kernels/";
-
-		construct_params.setKernelPath(kernel_path);
-
 		construct_params.setStream(handle.GetStream());
 
 		int nOut;
@@ -89,7 +85,7 @@ namespace mlopen {
 		else
 		{
 
-			std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
+			std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 			std::string kernel_name = construct_params.getKernelName(); // kernel name
 			std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
@@ -113,25 +109,21 @@ namespace mlopen {
 			float f_norm_K = (float)norm_K;
 			float f_norm_alphaoverarea = (float)norm_alphaoverarea;
 
-			if (do_backward)
-			{
-				handle.GetKernel("mlopenLRNForward",
+			KernelInvoke obj = 	handle.GetKernel("mlopenLRNForward",
 						network_config,
 						program_name,
 						kernel_name,
 						vld,
 						vgd,
-						parms)(x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
+						parms);
+
+			if (do_backward)
+			{
+				obj(x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
 			}
 			else
 			{
-				handle.GetKernel("mlopenLRNForward",
-						network_config,
-						program_name,
-						kernel_name,
-						vld,
-						vgd,
-						parms)(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
+				obj(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
 			}
 
 			handle.Finish();
@@ -159,10 +151,6 @@ namespace mlopen {
 		mlopenStatus_t status = mlopenStatusSuccess;
 		printf("in lrn backward\n");
 		mlo_construct_norm construct_params(0); // backward
-
-		std::string kernel_path = "../src/Kernels/";
-
-		construct_params.setKernelPath(kernel_path);
 
 		construct_params.setStream(handle.GetStream());
 		int ndOut;
@@ -273,7 +261,7 @@ namespace mlopen {
 
 		status = (mlopenStatus_t)construct_params.mloConstruct();
 
-		std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
+		std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 		std::string kernel_name = construct_params.getKernelName(); // kernel name
 		std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
