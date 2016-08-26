@@ -3,20 +3,20 @@
 
 namespace mlopen {
 
-void ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
-		const mlopen::TensorDescriptor&	xDesc,
-		const cl_mem					x,
-		const mlopen::TensorDescriptor&	wDesc,
-		const cl_mem					w,
-		const mlopen::TensorDescriptor&	yDesc,
-		const cl_mem					y,
-		const int						requestAlgoCount,
-		int								*returnedAlgoCount,
-		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
-		void							*workSpace,
-		size_t							workSpaceSize,
-		bool							exhaustiveSearch) const {
+void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
+		const TensorDescriptor&		xDesc,
+		const cl_mem				x,
+		const TensorDescriptor&		wDesc,
+		const cl_mem				w,
+		const TensorDescriptor&		yDesc,
+		const cl_mem				y,
+		const int					requestAlgoCount,
+		int							*returnedAlgoCount,
+		mlopenConvAlgoPerf_t		*perfResults,
+		mlopenConvPreference_t		preference,
+		void						*workSpace,
+		size_t						workSpaceSize,
+		bool						exhaustiveSearch) const {
 	
 	if(x == nullptr || w == nullptr || y == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
@@ -75,18 +75,18 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
 
 }
 
-void ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
-		const void							*alpha,
-		const mlopen::TensorDescriptor&		xDesc,
-		const cl_mem						x,
-		const mlopen::TensorDescriptor&		wDesc,
-		const cl_mem						w,
-		mlopenConvFwdAlgorithm_t			algo,
-		const void							*beta,
-		const mlopen::TensorDescriptor&		yDesc,
-		cl_mem								y, 
-		void								*workSpace,
-		size_t								workSpaceSize) const {
+void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
+		const void					*alpha,
+		const TensorDescriptor&		xDesc,
+		const cl_mem				x,
+		const TensorDescriptor&		wDesc,
+		const cl_mem				w,
+		mlopenConvFwdAlgorithm_t	algo,
+		const void					*beta,
+		const TensorDescriptor&		yDesc,
+		cl_mem						y, 
+		void						*workSpace,
+		size_t						workSpaceSize) const {
 
 	if(x == nullptr || w == nullptr || y == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
@@ -139,20 +139,20 @@ void ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
 
 // FindBackwardDataAlgorithm()
 //
-void ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
-		const mlopen::TensorDescriptor&	dyDesc,
-		const cl_mem					dy,
-		const mlopen::TensorDescriptor&	wDesc,
-		const cl_mem					w,
-		const mlopen::TensorDescriptor&	dxDesc,
-		const cl_mem					dx,
-		const int						requestAlgoCount,
-		int								*returnedAlgoCount,
-		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
-		void							*workSpace,
-		size_t							workSpaceSize,
-		bool							exhaustiveSearch) const {
+void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
+		const TensorDescriptor&		dyDesc,
+		const cl_mem				dy,
+		const TensorDescriptor&		wDesc,
+		const cl_mem				w,
+		const TensorDescriptor&		dxDesc,
+		const cl_mem				dx,
+		const int					requestAlgoCount,
+		int							*returnedAlgoCount,
+		mlopenConvAlgoPerf_t		*perfResults,
+		mlopenConvPreference_t		preference,
+		void						*workSpace,
+		size_t						workSpaceSize,
+		bool						exhaustiveSearch) const {
 	
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
@@ -212,18 +212,18 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
 }
 
 // BackwardDataAlgorithm()
-void ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Handle& handle,
-		const void							*alpha,
-		const mlopen::TensorDescriptor&		dyDesc,
-		const cl_mem						dy,
-		const mlopen::TensorDescriptor&		wDesc,
-		const cl_mem						w,
-		mlopenConvBwdDataAlgorithm_t		algo,
-		const void							*beta,
-		const mlopen::TensorDescriptor&		dxDesc,
-		cl_mem								dx, 
-		void								*workSpace,
-		size_t								workSpaceSize) const {
+void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
+		const void						*alpha,
+		const TensorDescriptor&			dyDesc,
+		const cl_mem					dy,
+		const TensorDescriptor&			wDesc,
+		const cl_mem					w,
+		mlopenConvBwdDataAlgorithm_t	algo,
+		const void						*beta,
+		const TensorDescriptor&			dxDesc,
+		cl_mem							dx, 
+		void							*workSpace,
+		size_t							workSpaceSize) const {
 
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
