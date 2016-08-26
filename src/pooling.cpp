@@ -24,6 +24,12 @@ const std::vector<int>& PoolingDescriptor::GetPads() const
 {
 	return pads;
 }
+
+mlopenPoolingMode_t PoolingDescriptor::GetMode()
+{
+	return mode;
+}
+
 int PoolingDescriptor::GetSize() const
 {
 	assert(lens.size() == strides.size() && lens.size() == pads.size());
