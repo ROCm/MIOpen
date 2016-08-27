@@ -81,8 +81,9 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
 #ifndef NDEBUG
 		printf("kernel not found\n");
 #endif
-		
-		OCLKernel kernel(CreateKernel(GetContext(queue), GetDevice(queue), kernel_name, program_name, params), vld, vgd);
+	
+        auto program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);	
+		OCLKernel kernel(CreateKernel(program, kernel_name), vld, vgd);
         if (!network_config.empty()) kernel_map[key] = kernel;
         return kernel;
     }
