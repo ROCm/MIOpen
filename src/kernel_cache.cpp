@@ -38,11 +38,9 @@ OCLKernel KernelCache::GetKernel(const std::string& algorithm,
 #endif
 		return kernel_iterator->second;
 	}
-	// TODO: Where should the default kernel be?
-	else // return default kernel
+	else
 	{
-		printf("looking for default kernel (does not exist)\n");
-		exit(0);
+        MLOPEN_THROW("looking for default kernel (does not exist): " + algorithm + ", " + network_config);
 	}
 }
 
