@@ -84,7 +84,7 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
 	
         auto program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);	
 		OCLKernel kernel(CreateKernel(program, kernel_name), vld, vgd);
-        if (!network_config.empty()) kernel_map[key] = kernel;
+        if (!network_config.empty() && !algorithm.empty()) kernel_map[key] = kernel;
         return kernel;
     }
 }
