@@ -43,11 +43,6 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 	return result;
 
 }
-ClKernelPtr CreateKernel(cl_context ctx, cl_device_id device, const std::string& kernel_name, const std::string &program_name, std::string params)
-{
-	auto program = LoadProgram(ctx, device, program_name, params);
-	return CreateKernel(program.get(), kernel_name);
-}
 ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name)
 {
 	cl_int status;
