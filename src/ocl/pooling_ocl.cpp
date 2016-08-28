@@ -260,7 +260,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 
 	// Set kernel arguments
 	// Use proper arguments
-	if (!kernel_name.compare("mloPoolingMaxBwd"))
+	if(mode != mlopenPoolingMax)
 	{
 		k(dy, dx, y, x);
 	}
