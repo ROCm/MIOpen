@@ -832,66 +832,61 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 
 	// Creating OCLKernel obj
 	auto program = mlopen::LoadProgram(mlopen::GetContext(profile_q), mlopen::GetDevice(profile_q), _kernel_file, compiler_options);
-	mlopen::OCLKernel kernel(mlopen::CreateKernel(program, _kernel_name));
+	mlopen::OCLKernel kernel{mlopen::CreateKernel(program, _kernel_name), _l_wk, _g_wk};
 	// pass all arguments
 
 	float padding_value = 0;
 	
-	if(!_bias)
-		kernel.SetArgs(0, bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-	else
-		kernel.SetArgs(0, bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-
 	double s= 0, e = 0;
 	int iter = 1;
 
 	if (profile_q)
 	{
-		cl_event profile_e;
-
 		processing_time = CL_MAXFLOAT;
 
-		ret = kernel.run(profile_q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), &profile_e);
-		if (ret == CL_SUCCESS)
-		{
-			mloReadEventTime(profile_e, processing_time);
-		}
+		auto k = kernel.Invoke(profile_q, [&] (cl_event profile_e) {
+			    size_t st, end;
+			    clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, NULL);
+		        clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, NULL);
+		        processing_time = (end-st)*1e-6;
+		});
 
-		ret = clReleaseEvent(profile_e);
+		if(_bias)
+			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+		else
+			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
 	}
 	else
 	{
 		iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
 
 		cl_command_queue q = (cl_command_queue)_stream;
+		auto k = kernel.Invoke(q);
 
-		kernel.run(q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), NULL);
+		if(_bias)
+			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+		else
+			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
+
 		clFinish(q);
 
 		s = mlopen_mach_absolute_time();
 
 		for (int i = 0; i < iter && ret == 0; i++)
 		{
-			ret = kernel.run(q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), NULL);
+			if(_bias)
+				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+			else
+				k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
 		}
 
 		clFinish(q);
 		e = mlopen_mach_absolute_time();
 
-		if (ret != 0)
-		{
-			processing_time = CL_MAXFLOAT;
-		}
-		else
-		{
-			processing_time = subtractTimes(e, s) / iter;
-			//			std::cout << "Processing time: " << processing_time << std::endl;
-
-		}
+		processing_time = subtractTimes(e, s) / iter;
 	}
 
 	return (ret);
-
 }
 
 
