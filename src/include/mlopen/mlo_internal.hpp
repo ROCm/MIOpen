@@ -967,11 +967,11 @@ protected:
 };
 
 #define MLO_NEURON_PASTHRU		0  //x	
-#define MLO_NEURON_LOGISTIC	MLO_NEURON_PASTHRU + 1		//	1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH		MLO_NEURON_LOGISTIC + 1	//	a * tanh( b * x)
-#define MLO_NEURON_RELU		MLO_NEURON_TANH + 1		//	max(0, x)
+#define MLO_NEURON_LOGISTIC		MLO_NEURON_PASTHRU + 1		//	1 / (1 + e^-x)	//Sigmoid
+#define MLO_NEURON_TANH			MLO_NEURON_LOGISTIC + 1	//	a * tanh( b * x)
+#define MLO_NEURON_RELU			MLO_NEURON_TANH + 1		//	max(0, x)
 #define MLO_NEURON_BRELU		MLO_NEURON_RELU + 1		//	min(a, max(0, x))
-#define MLO_NEURON_SOFTRELU	MLO_NEURON_BRELU + 1		//	log(1 + e^x)   // bonomial normal log likelihood
+#define MLO_NEURON_SOFTRELU		MLO_NEURON_BRELU + 1		//	log(1 + e^x)   // bonomial normal log likelihood
 #define MLO_NEURON_ABS			MLO_NEURON_SOFTRELU + 1	//	abs(x)
 #define MLO_NEURON_SQUARE		MLO_NEURON_ABS + 1			//	x^2
 #define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
