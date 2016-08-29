@@ -103,6 +103,7 @@ Include CLBLAS header.
 #include <mlopen/oclkernel.hpp>
 #include <mlopen/clhelper.hpp>
 #include <mlopen/tensor.hpp>
+#include <mlopen/ocldeviceinfo.hpp>
 
 class mlo_construct_direct2D {
 public:

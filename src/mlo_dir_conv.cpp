@@ -124,25 +124,12 @@ std::string mloConfFileBaseNm(cl_device_id dev
 		)
 {
 	int maxComputeUnits;
-	int maxWorkItemDims;
-	std::vector<size_t> maxWorkItemSize;
-	size_t maxWorkGroupSize;
 	int maxClockFrequency;
-	size_t maxMemAllocSize;
-	size_t localMemSize;
-	size_t timerResolution;
 	std::string deviceName;
 
-	mloGetDeviceInfo(dev,
-			maxComputeUnits,
-			maxWorkItemDims,
-			maxWorkItemSize,
-			maxWorkGroupSize,
-			maxClockFrequency,
-			maxMemAllocSize,
-			localMemSize,
-			timerResolution,
-			deviceName);
+	maxComputeUnits = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	maxClockFrequency = mlopen::GetDeviceInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>(dev);
+	deviceName = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 
 	std::string conf_file_base_nm = deviceName + "_"
 		+ std::to_string((long long)maxComputeUnits) + "_"
@@ -314,26 +301,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 
 	cl_device_id dev = mlopen::GetDevice((cl_command_queue)_stream);
 
-	int maxComputeUnits;
-	int maxWorkItemDims;
-	std::vector<size_t> maxWorkItemSize;
-	size_t maxWorkGroupSize;
-	int maxClockFrequency;
-	size_t maxMemAllocSize;
-	size_t localMemSize;
-	size_t timerResolution;
-	std::string deviceName;
-
-	mloGetDeviceInfo(dev,
-			maxComputeUnits,
-			maxWorkItemDims,
-			maxWorkItemSize,
-			maxWorkGroupSize,
-			maxClockFrequency,
-			maxMemAllocSize,
-			localMemSize,
-			timerResolution,
-			deviceName);
+	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -1135,26 +1103,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 	cl_device_id dev = mlopen::GetDevice((cl_command_queue)_stream);
 	profile_q = mlopen::CreateQueueWithProfiling(ctxt, dev);
 
-	int maxComputeUnits;
-	int maxWorkItemDims;
-	std::vector<size_t> maxWorkItemSize;
-	size_t maxWorkGroupSize;
-	int maxClockFrequency;
-	size_t maxMemAllocSize;
-	size_t localMemSize;
-	size_t timerResolution;
-	std::string deviceName;
-
-	mloGetDeviceInfo(dev,
-			maxComputeUnits,
-			maxWorkItemDims,
-			maxWorkItemSize,
-			maxWorkGroupSize,
-			maxClockFrequency,
-			maxMemAllocSize,
-			localMemSize,
-			timerResolution,
-			deviceName);
+	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
