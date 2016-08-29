@@ -312,10 +312,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 {
 	int ret = 0;
 
-
-
-	cl_device_id dev;
-	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
+	cl_device_id dev = mlopen::GetDevice((cl_command_queue)_stream);
 
 	int maxComputeUnits;
 	int maxWorkItemDims;
@@ -1068,12 +1065,11 @@ bool mlo_construct_direct2D :: mloGetConfig(void)
 {
 	int ret = 0;
 	bool known_config = false;
-	cl_device_id dev;
 	std::string conf_key;
 	std::string conf_val;
 
 	// get device id
-	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
+	cl_device_id dev = mlopen::GetDevice((cl_command_queue)_stream);
 
 	// find a db and configuration in it
 	known_config = mloSearchConfigInDB(
@@ -1116,10 +1112,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 {
 	int ret = 0;
 
-	cl_context ctxt;
-	cl_device_id dev;
-	cl_command_queue profile_q = 0;
-	//		cl_program prog;
+	mlopen::ClAqPtr profile_q;
 	double processing_time;
 	std::string conf_key;
 	std::string conf_val;
@@ -1138,11 +1131,9 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 	int min_n_in_data_tiles = 3;
 	int min_n_stacks = 1;
 
-
-	CLHelper::GetContextFromQueue((cl_command_queue)_stream, ctxt);
-	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
-	if(!profile_q)
-		CLHelper::CreateQueueWithProfiling((cl_command_queue)_stream, &profile_q);
+	cl_context ctxt = mlopen::GetContext((cl_command_queue)_stream);
+	cl_device_id dev = mlopen::GetDevice((cl_command_queue)_stream);
+	profile_q = mlopen::CreateQueueWithProfiling(ctxt, dev);
 
 	int maxComputeUnits;
 	int maxWorkItemDims;
@@ -1367,7 +1358,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 											}
 
 #endif
-											ret = mloMeasuredLoop(profile_q,
+											ret = mloMeasuredLoop(profile_q.get(),
 													bot_ocl_buf,
 													top_ocl_buf,
 													wei_ocl_buf,
@@ -1441,12 +1432,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 			ret = clReleaseMemObject(bias_ocl_buf);
 			delete[] bias_sys_buf;
 		}
-
-		if (profile_q)
-		{
-			clReleaseCommandQueue(profile_q);
-		}
-
 
 		delete[] bot_sys_buf;
 		delete[] top_sys_buf;
