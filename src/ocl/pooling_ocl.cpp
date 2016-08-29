@@ -3,6 +3,7 @@
 #include <mlopen/kernel_cache.hpp>
 
 namespace mlopen {
+
 mlopenStatus_t PoolingDescriptor::Forward(
 		Handle								&handle,
 		const void							*alpha,
@@ -21,21 +22,20 @@ mlopenStatus_t PoolingDescriptor::Forward(
 
 	construct_params.setStream(handle.GetStream());
 
-	{
-		int nOut;
-		int cOut;
-		int hOut;
-		int wOut;
-		int nOutStride;
-		int cOutStride;
-		int hOutStride;
-		int wOutStride;
+	int nOut;
+	int cOut;
+	int hOut;
+	int wOut;
+	int nOutStride;
+	int cOutStride;
+	int hOutStride;
+	int wOutStride;
 
-		std::tie(nOut, cOut, hOut, wOut) = tie4(yDesc.GetLengths());
-		std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc.GetStrides());
+	std::tie(nOut, cOut, hOut, wOut) = tie4(yDesc.GetLengths());
+	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc.GetStrides());
 
 
-		construct_params.setTopDescr(
+	construct_params.setTopDescr(
 			"NCHW",
 			"FP32",
 			nOut,
@@ -46,22 +46,19 @@ mlopenStatus_t PoolingDescriptor::Forward(
 			cOutStride,
 			hOutStride,
 			wOutStride);
-	}
+	int nIn;
+	int cIn;
+	int hIn;
+	int wIn;
+	int nInStride;
+	int cInStride;
+	int hInStride;
+	int wInStride;
 
-	{
-		int nIn;
-		int cIn;
-		int hIn;
-		int wIn;
-		int nInStride;
-		int cInStride;
-		int hInStride;
-		int wInStride;
+	std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
+	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
-		std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
-		std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
-
-		construct_params.setBotDescr(
+	construct_params.setBotDescr(
 			"NCHW",
 			"FP32",
 			nIn,
@@ -72,7 +69,6 @@ mlopenStatus_t PoolingDescriptor::Forward(
 			cInStride,
 			hInStride,
 			wInStride);
-	}
 
 	mlopenPoolingMode_t mode = GetMode();
 	const std::vector<int> & lengths = GetLengths();
@@ -129,21 +125,19 @@ mlopenStatus_t PoolingDescriptor::Backward(
 
 	construct_params.setStream(handle.GetStream());
 
-	{
-		int ndOut;
-		int cdOut;
-		int hdOut;
-		int wdOut;
-		int ndOutStride;
-		int cdOutStride;
-		int hdOutStride;
-		int wdOutStride;
+	int ndOut;
+	int cdOut;
+	int hdOut;
+	int wdOut;
+	int ndOutStride;
+	int cdOutStride;
+	int hdOutStride;
+	int wdOutStride;
 
-		std::tie(ndOut, cdOut, hdOut, wdOut) = tie4(dyDesc.GetLengths());
-		std::tie(ndOutStride, cdOutStride, hdOutStride, wdOutStride) = tie4(dyDesc.GetStrides());
+	std::tie(ndOut, cdOut, hdOut, wdOut) = tie4(dyDesc.GetLengths());
+	std::tie(ndOutStride, cdOutStride, hdOutStride, wdOutStride) = tie4(dyDesc.GetStrides());
 
-
-		construct_params.setTopDfDescr(
+	construct_params.setTopDfDescr(
 			"NCHW",
 			"FP32",
 			ndOut,
@@ -154,23 +148,20 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			cdOutStride,
 			hdOutStride,
 			wdOutStride);
-	}
 
-	{
-		int nOut;
-		int cOut;
-		int hOut;
-		int wOut;
-		int nOutStride;
-		int cOutStride;
-		int hOutStride;
-		int wOutStride;
+	int nOut;
+	int cOut;
+	int hOut;
+	int wOut;
+	int nOutStride;
+	int cOutStride;
+	int hOutStride;
+	int wOutStride;
 
-		std::tie(nOut, cOut, hOut, wOut) = tie4(yDesc.GetLengths());
-		std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc.GetStrides());
+	std::tie(nOut, cOut, hOut, wOut) = tie4(yDesc.GetLengths());
+	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc.GetStrides());
 
-
-		construct_params.setTopDescr(
+	construct_params.setTopDescr(
 			"NCHW",
 			"FP32",
 			nOut,
@@ -181,23 +172,20 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			cOutStride,
 			hOutStride,
 			wOutStride);
-	}
 
+	int ndIn;
+	int cdIn;
+	int hdIn;
+	int wdIn;
+	int ndInStride;
+	int cdInStride;
+	int hdInStride;
+	int wdInStride;
 
-	{
-		int ndIn;
-		int cdIn;
-		int hdIn;
-		int wdIn;
-		int ndInStride;
-		int cdInStride;
-		int hdInStride;
-		int wdInStride;
+	std::tie(ndIn, cdIn, hdIn, wdIn) = tie4(dxDesc.GetLengths());
+	std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tie4(dxDesc.GetStrides());
 
-		std::tie(ndIn, cdIn, hdIn, wdIn) = tie4(dxDesc.GetLengths());
-		std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tie4(dxDesc.GetStrides());
-
-		construct_params.setBotDfDescr(
+	construct_params.setBotDfDescr(
 			"NCHW",
 			"FP32",
 			ndIn,
@@ -208,22 +196,20 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			cdInStride,
 			hdInStride,
 			wdInStride);
-	}
 
-	{
-		int nIn;
-		int cIn;
-		int hIn;
-		int wIn;
-		int nInStride;
-		int cInStride;
-		int hInStride;
-		int wInStride;
+	int nIn;
+	int cIn;
+	int hIn;
+	int wIn;
+	int nInStride;
+	int cInStride;
+	int hInStride;
+	int wInStride;
 
-		std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
-		std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
+	std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
+	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
-		construct_params.setBotDescr(
+	construct_params.setBotDescr(
 			"NCHW",
 			"FP32",
 			nIn,
@@ -234,7 +220,6 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			cInStride,
 			hInStride,
 			wInStride);
-	}
 
 	mlopenPoolingMode_t mode = GetMode();
 	const std::vector<int> & lengths = GetLengths();
@@ -256,39 +241,22 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	// Compile the kernel if not aleady compiled
-	auto queue = handle.GetStream();
-	OCLKernel obj = KernelCache::get(queue,
-		"mlopenPooling2dBackward",
-		network_config,
-		program_name,
-		kernel_name,
-		vld,
-		vgd,
-		parms);
-
-	std::string kernName;
-	obj.GetKernelName(kernName);
+	auto k = handle.GetKernel("mlopenPooling2dBackward", network_config, program_name, kernel_name, vld, vgd, parms);
 
 	// Set kernel arguments
 	// Use proper arguments
-	if (!kernName.compare("mloPoolingMaxBwd"))
+	if(mode == mlopenPoolingMax)
 	{
-		obj.SetArgs(0, dy, dx, y, x);
+		k(dy, dx, y, x);
 	}
 	else
 	{
-		obj.SetArgs(0, dy, dx);
+		k(dy, dx);
 	}
 
-	int dim = (int)vld.size();
-
-	// Run the kernel
-	obj.run(queue, dim, 0, vgd.data(), vld.data(), NULL);
-
-	clFinish(queue);
+	handle.Finish();
 
 	std::cout << "Pooling Backward Finished !!" << std::endl;
-
 
 	return(status);
 }

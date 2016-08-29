@@ -35,7 +35,7 @@ template<> struct gens<1> : seq<0> {};
 template<class F, std::size_t ... Ns, class... Ts>
 void each_args_i_impl(F f, seq<Ns...>, Ts&&... xs)
 {
-    std::initializer_list<int>{(f(std::integral_constant<std::size_t, Ns>{}, std::forward<Ts>(xs)), 0)...};
+    (void)std::initializer_list<int>{(f(std::integral_constant<std::size_t, Ns>{}, std::forward<Ts>(xs)), 0)...};
 }
 
 }
@@ -49,7 +49,7 @@ void each_args_i(F f, Ts&&... xs)
 template<class F, class... Ts>
 void each_args(F f, Ts&&... xs)
 {
-    std::initializer_list<int>{(f(std::forward<Ts>(xs)), 0)...};
+    (void)std::initializer_list<int>{(f(std::forward<Ts>(xs)), 0)...};
 }
 
 }

@@ -14,6 +14,7 @@ struct HandleImpl
 
     ContextPtr context;
     std::vector<AqPtr> queues;
+    KernelCache cache;
     bool enable_profiling;
     float profiling_result;
 
@@ -138,9 +139,6 @@ Handle::Handle ()
 
 Handle::~Handle() 
 {
-    // HACK: Clear global cache, the kernel cache should be a member of
-    // HandleImpl so it is associated with each cl_context
-    KernelCache::clear();
 }
 
 mlopenAcceleratorQueue_t Handle::GetStream() const
@@ -168,7 +166,7 @@ KernelInvoke Handle::GetKernel(
         const std::string& params)
 {
     auto q = this->GetStream();
-    OCLKernel obj = KernelCache::get(q, 
+    OCLKernel obj = this->impl->cache.GetKernel(q, 
             algorithm,
             network_config,
             program_name, 
@@ -185,7 +183,7 @@ KernelInvoke Handle::GetKernel(
     const std::string& network_config)
 {
     auto q = this->GetStream();
-    OCLKernel obj = KernelCache::get(
+    OCLKernel obj = this->impl->cache.GetKernel(
             algorithm,
             network_config);
     if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
