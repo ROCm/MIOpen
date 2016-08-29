@@ -158,7 +158,7 @@
 
 inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
-	(*y) = (int)floor((float)linPos / (float)width);
+	(*y) = linPos / width;
 	(*x) = linPos - (*y) * width; 
 }
 
