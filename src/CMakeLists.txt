@@ -100,23 +100,23 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 	)
 	list(APPEND MLOpen_Source 
 		kernel_cache.cpp
+		lrn.cpp
 		mlo_cl_util.cpp
 		mlo_dir_conv.cpp
-		lrn.cpp
-                ocl_kernel.cpp
-		ocl/handleocl.cpp
 		ocl/clhelper.cpp
-		ocl/clhelper.hpp
 		ocl/convolutionocl.cpp
 		ocl/handleocl.cpp
-		ocl/tensorocl.cpp
-		ocl/pooling_ocl.cpp
+		ocl/handleocl.cpp
 		ocl/lrn_ocl.cpp
-		ocl/mloPooling.cpp
 		ocl/mloNeuron.cpp
 		ocl/mloNorm.cpp
+		ocl/mloPooling.cpp
+		ocl/pooling_ocl.cpp
+		ocl/tensorocl.cpp
 		pooling.cpp
-                ${PROJECT_BINARY_DIR}/kernel.cpp
+        ocl/oclerrors.cpp
+        ocl_kernel.cpp
+        ${PROJECT_BINARY_DIR}/kernel.cpp
 		)
 endif()
 

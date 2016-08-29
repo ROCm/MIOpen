@@ -22,44 +22,7 @@
 
 namespace mlopen {
 
-KernelCache KernelCache::singleton;
-
-KernelCache::KernelCache()
-{
-    //we can add sth here which can be shared among all kernels;
-}
-
-void KernelCache::clear()
-{
-    getInstance().kernel_map.clear();
-}
-
-OCLKernel KernelCache::get(cl_command_queue &queue,
-						 const std::string& algorithm,
-						 const std::string& network_config,
-                         const std::string& program_name,
-                         const std::string& kernel_name,
-						 const std::vector<size_t>& vld,
-						 const std::vector<size_t>& vgd,
-                         const std::string& params)
-{
-    return getInstance().getKernel(queue,
-			algorithm,
-			network_config,
-			program_name,
-			kernel_name, 
-			vld, 
-			vgd,
-			params);
-}
-
-OCLKernel KernelCache::get( const std::string& algorithm,
-						 const std::string& network_config)
-{
-    return getInstance().getKernel(algorithm, network_config);
-}
-
-OCLKernel KernelCache::getKernel(	const std::string& algorithm,
+OCLKernel KernelCache::GetKernel(const std::string& algorithm,
 										const std::string& network_config) {
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -75,32 +38,27 @@ OCLKernel KernelCache::getKernel(	const std::string& algorithm,
 #endif
 		return kernel_iterator->second;
 	}
-	// TODO: Where should the default kernel be?
-	else // return default kernel
+	else
 	{
-		printf("looking for default kernel (does not exist)\n");
-		exit(0);
+        MLOPEN_THROW("looking for default kernel (does not exist): " + algorithm + ", " + network_config);
 	}
 }
 
-OCLKernel KernelCache::getKernel(cl_command_queue &queue,
+OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
 										const std::string& algorithm,
 										const std::string& network_config,
                                         const std::string& program_name,
                                         const std::string& kernel_name,
 										const std::vector<size_t>& vld,
 										const std::vector<size_t>& vgd,
-                                        const std::string& params)
+                                        std::string params)
 {
 
-	std::string _params = "";
     if (params.length() > 0)
     {
         // Ensure only one space after the -cl-std.
         // >1 space can cause an Apple compiler bug. See clSPARSE issue #141.
-        if (params.at(0) != ' ')
-            _params.append(" ");
-        _params.append(params);
+        if (params.at(0) != ' ') params = " " + params;
     }
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -121,55 +79,15 @@ OCLKernel KernelCache::getKernel(cl_command_queue &queue,
 #ifndef NDEBUG
 		printf("kernel not found\n");
 #endif
-		cl_program program = NULL;
-        getProgram(program, queue, program_name, _params);
-        if (program == nullptr) {
-            std::cout << "Problem with getting program ["
-                      << program_name << "] " << std::endl;
-        //    return;
-			//TODO: Return meaningful error
-        }
-
-        int status;
-
-		cl_kernel kernel;
-		status = CLHelper::CreateKernel(program, kernel, kernel_name);
-
-        if (status != mlopenStatusSuccess) {
-			std::cout << " Error creating ocl kernel\n";
-        }
-		
-		OCLKernel _kernel(kernel, vld, vgd);
-        kernel_map[key] = _kernel;
-        return _kernel;
+	
+        auto program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);	
+		OCLKernel kernel(CreateKernel(program, kernel_name), vld, vgd);
+        if (!network_config.empty() && !algorithm.empty()) kernel_map[key] = kernel;
+        return kernel;
     }
 }
 
-mlopenStatus_t KernelCache::getProgram(cl_program &program,
-		cl_command_queue &queue,
-                                         const std::string& program_name,
-                                         const std::string& params)
-{
-	mlopenStatus_t status;
-
- 	status = CLHelper::LoadProgramFromSource(program, queue, program_name);
-	if(status != mlopenStatusSuccess) {
-		return status;
-	}
-
-	status = CLHelper::BuildProgram(program, queue, params);
-	if(status != mlopenStatusSuccess) {
-		return status;
-	}
-
-	return mlopenStatusSuccess;
-}
-
-
-
-KernelCache& KernelCache::getInstance()
-{
-    return singleton;
-}
+KernelCache::KernelCache()
+{}
 
 }

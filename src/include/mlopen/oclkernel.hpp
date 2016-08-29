@@ -7,9 +7,11 @@
 #include <cassert>
 #include <functional>
 #include <array>
+#include <memory>
 
 #include <mlopen/errors.hpp>
 #include <mlopen/each_args.hpp>
+#include <mlopen/clhelper.hpp>
 
 namespace mlopen {
 
@@ -42,6 +44,7 @@ struct OCLSetKernelArg
 struct OCLKernelInvoke
 {
 	cl_command_queue queue;
+	// TODO: Use a pointer to OCLKernel
 	cl_kernel kernel;
 	size_t work_dim;
 	std::array<size_t, 3> global_work_offset;
@@ -61,13 +64,15 @@ struct OCLKernelInvoke
 
 class OCLKernel {
 
-	public:
+using SharedKernelPtr = std::shared_ptr<typename std::remove_pointer<cl_kernel>::type>;
+
+public:
 	OCLKernel() {}
-	OCLKernel(cl_kernel k) : kernel(k) {}
-	OCLKernel(cl_kernel k, 
+	OCLKernel(ClKernelPtr k) : kernel(std::move(k)) {}
+	OCLKernel(ClKernelPtr k, 
 			std::vector<size_t> local_dims,
 			std::vector<size_t> global_dims) 
-	: kernel(k), ldims(local_dims), gdims(global_dims) 
+	: kernel(std::move(k)), ldims(local_dims), gdims(global_dims)
 	{
 		assert(ldims.size() == gdims.size());
 		assert(ldims.size() > 0 && ldims.size() <= 3);
@@ -75,25 +80,7 @@ class OCLKernel {
 
 	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr);
 
-	//TODO: when to call the destructor?
-//	~OCLKernel() { clReleaseKernel(_kernel); }
-
-	template<typename T, typename... Args>
-	mlopenStatus_t SetArgs(int i, const T& first, const Args&... rest);
-	template<typename... Args>
-	mlopenStatus_t SetArgs(int i, const LocalMemArg &lmem, const Args&... rest);
-	mlopenStatus_t SetArgs(int) {
-		return mlopenStatusSuccess;
-	}
-
-	mlopenStatus_t run(cl_command_queue &queue,
-		const int &work_dim,
-		const size_t * global_work_offset,
-		const size_t * global_work_dim,
-		const size_t * local_work_dim,
-		cl_event	 * event);
-
-	cl_kernel& GetKernel() { return kernel; } 
+	cl_kernel GetKernel() { return kernel.get(); } 
 
 	mlopenStatus_t GetKernelName(std::string &kernelName);
 
@@ -101,43 +88,10 @@ class OCLKernel {
 	inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
 
 private:
-	cl_kernel kernel;
+	SharedKernelPtr kernel;
 	std::vector<size_t> ldims;
 	std::vector<size_t> gdims;
 };
-
-template<typename T, typename... Args>
-mlopenStatus_t OCLKernel::SetArgs(int i, 
-		const T& first, 
-		const Args&... rest)
-{
-	cl_int status;
-
-	status = clSetKernelArg(kernel, i++, sizeof(T), (void *)& first);
-	std::stringstream errStream;
-	errStream<<"OpenCL error setting kernel argument "<<i;
-//	clCheckStatus(status, errStream.str()) ;
-
-	status = SetArgs(i, rest...);
-	return mlopenStatusSuccess;
-
-}
-
-template<typename... Args>
-mlopenStatus_t OCLKernel::SetArgs(int i, 
-		const LocalMemArg &lmem, 
-		const Args&... rest)
-{
-	cl_int status;
-	status = clSetKernelArg(kernel, i++, lmem.GetSize(), NULL);
-	std::stringstream errStream;
-	errStream<<"OpenCL error setting kernel argument (local memory) "<<i;
-	//clCheckStatus(status, errStream.str()) ;
-	
-	status = SetArgs(i, rest...);
-	return mlopenStatusSuccess;
-
-}
 
 }
 
