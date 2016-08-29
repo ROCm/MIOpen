@@ -98,6 +98,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenPooling.cl
 		Kernels/MLOpenPoolingBwd.cl
 	)
+	configure_file(db.cpp.in db.cpp)
 	list(APPEND MLOpen_Source 
 		kernel_cache.cpp
 		lrn.cpp
@@ -116,6 +117,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		pooling.cpp
         ocl/oclerrors.cpp
         ocl_kernel.cpp
+        ${PROJECT_BINARY_DIR}/db.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
 		)
 endif()
