@@ -212,8 +212,6 @@ void tokenize(const std::string& str,
 	std::vector<std::string>& tokens,
 	const std::string& delimiters = " ");
 
-std::string mloGetPath();
-
 int mloGetContextDeviceFromCLQueue(cl_context & context, cl_device_id & device, cl_command_queue * profile_q, const cl_command_queue & q);
 
 int mloLoadOpenCLProgramFromSource(cl_program & program, const cl_context& context,
