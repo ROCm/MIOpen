@@ -74,6 +74,14 @@ endif()
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ${MLOPEN_SHARED} )
 
+option( BUILD_DEV "Build for development only" OFF)
+
+if(BUILD_DEV)
+	set(MLOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
+else()
+	set(MLOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/share/mlopen/db" CACHE PATH "Default path to search for db")
+endif()
+
 add_subdirectory(src)
 add_subdirectory(driver)
 add_subdirectory(test)

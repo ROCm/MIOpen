@@ -19,6 +19,7 @@
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
 
+#include <mlopen/db.hpp>
 
 /*
    the search db is a text file with the name defined by the device characteristics.
@@ -866,7 +867,7 @@ int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::strin
 {
 	int ret = 0;
 	std::vector<std::string> req_conf_db;
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
 
@@ -892,7 +893,7 @@ int mlo_construct_direct2D :: mloRemoveConfigReq(
 
 	std::vector<std::string>::iterator it;
 
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
 
 	bool found = mloFindConfigReq(conf_file, dev, conf_key, req_conf_db, it);
@@ -913,7 +914,7 @@ int mlo_construct_direct2D :: mloReadConfigDB(
 {
 
 	int ret = 0;
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
 
@@ -943,7 +944,7 @@ int mlo_construct_direct2D :: mloWriteConfigDB(
 
 	int ret = 0;
 	//serialize
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
 

@@ -98,6 +98,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenPooling.cl
 		Kernels/MLOpenPoolingBwd.cl
 	)
+	configure_file(db.cpp.in db.cpp)
 	list(APPEND MLOpen_Source 
 		kernel_cache.cpp
 		lrn.cpp
@@ -116,8 +117,14 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		pooling.cpp
         ocl/oclerrors.cpp
         ocl_kernel.cpp
+        ${PROJECT_BINARY_DIR}/db.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
 		)
+	# Install db files
+	install(FILES 
+		Kernels/Fiji_64_1000.cd.rdb.txt
+		Kernels/Fiji_64_1050.cd.pdb.txt
+	 DESTINATION share/mlopen/db)
 endif()
 
 if( MLOPEN_BACKEND MATCHES "HIP")
@@ -129,7 +136,7 @@ if( MLOPEN_BACKEND MATCHES "HIP")
 endif()
 
 set ( MLOpen_Headers_Public
-	${PROJECT_SOURCE_DIR}/include/mlopen.h
+	${CMAKE_SOURCE_DIR}/include/mlopen.h
 	${PROJECT_BINARY_DIR}/include/MLOpen-version.h
 	${PROJECT_BINARY_DIR}/include/mlopen_export.h
 	)
