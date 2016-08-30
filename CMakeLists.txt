@@ -93,6 +93,7 @@ enable_clang_tidy(
 		-cppcoreguidelines-pro-type-reinterpret-cast
 		-cppcoreguidelines-pro-type-vararg
 		-google-explicit-constructor
+		-google-readability-todo
 		-google-runtime-int
 		-google-runtime-references
 		-llvm-include-order
@@ -106,7 +107,6 @@ enable_clang_tidy(
 		-readability-named-parameter
 	ERRORS
 		*
-		-google-readability-todo
 		-readability-inconsistent-declaration-parameter-name
 
 )
