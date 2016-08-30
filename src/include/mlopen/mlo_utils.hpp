@@ -14,6 +14,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************/
 
+#include <mlopen/errors.hpp>
 
 #ifndef MLO_UITLS_H_
 #define MLO_UITLS_H_
@@ -151,7 +152,7 @@ public:
 	*/
 	int readBinaryFromFile(const char *fileName) {
 		FILE *input = nullptr;
-		size_t size = 0, val;
+		size_t size = 0;
 		char *binary = nullptr;
 
 		if (fopen_s(&input, fileName, "rb")) {
@@ -164,7 +165,8 @@ public:
 		if (binary == nullptr) {
 			return -1;
 		}
-		val = fread(binary, sizeof(char), size, input);
+		auto val = fread(binary, sizeof(char), size, input);
+		if (val != size) MLOPEN_THROW("Error reading file");
 		fclose(input);
 		source_.assign(binary, size);
 		free(binary);
