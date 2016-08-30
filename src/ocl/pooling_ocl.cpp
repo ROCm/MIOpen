@@ -16,7 +16,6 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		cl_mem								 /*workSpace*/,
 		size_t								 /*workSpaceSize*/) {
 
-	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in pooling forward\n");
 	mlo_construct_pooling2D construct_params(1); // forward
 
@@ -73,7 +72,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
-	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
+	construct_params.mloConstruct();
 
 	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name

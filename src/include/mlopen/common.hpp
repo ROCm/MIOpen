@@ -7,8 +7,9 @@
 #if MLOPEN_BACKEND_OPENCL
 
 using Data_t = cl_mem;
-using ConstData_t = const Data_t;
-using ManageDataPtr = mlopen::manage_ptr<typename std::remove_pointer<cl_mem>::type, decltype(&clReleaseMemObject), &clReleaseMemObject>;
+// Const doesnt apply to cl_mem
+using ConstData_t = Data_t;
+using ManageDataPtr = MLOPEN_MANAGE_PTR(cl_mem, clReleaseMemObject);
 
 inline Data_t DataCast(void *p) {
 	return reinterpret_cast<Data_t>(p);

@@ -25,7 +25,6 @@ else()
         -Wextra
         -Wcomment
         -Wendif-labels
-        -Wfloat-equal
         -Wformat
         -Winit-self
         -Wreturn-type
@@ -37,6 +36,8 @@ else()
         -Wuninitialized
         -Wunreachable-code
         -Wunused
+
+        -Wno-sign-compare
     )
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND CMAKE_COMPILER_WARNINGS
@@ -88,6 +89,7 @@ else()
             -Wenum-compare
             -Wexplicit-ownership-type
             -Wextern-initializer
+            -Wfloat-equal
             -Wgnu-array-member-paren-init
             -Wheader-guard
             -Wheader-hygiene
@@ -188,8 +190,10 @@ else()
             -Wweak-template-vtables
             # -Wweak-vtables
             -Wwrite-strings
-            
-            -Wno-sign-compare
+        )
+    else()
+        list(APPEND CMAKE_COMPILER_WARNINGS
+            -Wno-missing-field-initializers
         )
     endif()
 
