@@ -8,4 +8,3 @@ const char* Exception::what() const noexcept
 }
 
 } // namespace mlopen
- // namespace mlopen
