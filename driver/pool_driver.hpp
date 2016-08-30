@@ -161,6 +161,11 @@ int PoolDriver<T>::SetPoolDescriptorFromCmdLineArgs() {
 	else if((inflags.GetValueStr("mode")) == "avg") {
 		mode = mlopenPoolingAverage;
 	}
+	else {
+		printf("Incorrect Pooling Mode\n");
+		exit(0);
+	}
+
 	return mlopenSet2dPoolingDescriptor(poolDesc, mode,	win_h, win_w, pad_h, pad_w, u, v);
 }
 
@@ -182,8 +187,6 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	size_t out_sz = GetTensorSize(outputTensor); 
 
 	cl_context ctx;
-
-	cl_command_queue q = GetStream();
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
@@ -370,8 +373,7 @@ int PoolDriver<T>::VerifyBackward() {
 
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
-	cl_int status;
-	status = mloPoolingBackwardRunHost<float>(
+	mloPoolingBackwardRunHost<float>(
 			pooling_method,
 			pad_h,
 			u,
