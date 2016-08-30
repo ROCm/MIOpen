@@ -98,7 +98,7 @@ else()
             -Wimplicit-fallthrough
             -Wincompatible-library-redeclaration
             -Wincompatible-pointer-types
-            -Winherited-variadic-ctor
+            # -Winherited-variadic-ctor
             -Winline
             -Wint-conversions
             -Wint-to-pointer-cast
