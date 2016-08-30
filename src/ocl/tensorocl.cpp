@@ -4,7 +4,7 @@
 
 namespace mlopen {
 
-void TensorDescriptor::TransformTensor(Handle& handle,
+void TensorDescriptor::TransformTensor(Handle& /* handle */,
 			const void * /*alpha*/,
 			const TensorDescriptor& srcTensorDesc,
 			const cl_mem  /*srcTensor*/,
@@ -26,14 +26,12 @@ void TensorDescriptor::TransformTensor(Handle& handle,
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
-
 //	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
 	// If beta = 0, y = alpha*x
 }
 
-void TensorDescriptor::OpTensor(Handle& handle,
+void TensorDescriptor::OpTensor(Handle& /* handle */,
 		mlopenTensorOp_t				 /*tensorOp*/,
 		const void						* /*alpha1*/,
 		const TensorDescriptor&	inputTensorDesc1,
@@ -71,13 +69,11 @@ void TensorDescriptor::OpTensor(Handle& handle,
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
-
 	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
 }
 
-void TensorDescriptor::SetTensor(Handle& handle,
+void TensorDescriptor::SetTensor(Handle& /* handle */,
 		cl_mem							dstTensor,
 		const void						*valuePtr) {
 
@@ -95,13 +91,11 @@ void TensorDescriptor::SetTensor(Handle& handle,
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
-
 //	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
 }
 
-void TensorDescriptor::ScaleTensor(Handle& handle,
+void TensorDescriptor::ScaleTensor(Handle& /* handle */,
 		cl_mem							dstTensor,
 		const void						* /*alpha*/) {
 
@@ -116,8 +110,6 @@ void TensorDescriptor::ScaleTensor(Handle& handle,
 	std::string program_name; // CL kernel filename
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
-
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
 
 	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 

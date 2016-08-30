@@ -70,12 +70,8 @@ mlopenStatus_t PoolingDescriptor::Forward(
 			hInStride,
 			wInStride);
 
-	mlopenPoolingMode_t mode = GetMode();
-	const std::vector<int> & lengths = GetLengths();
-	const std::vector<int> & strides = GetStrides();
-	const std::vector<int> & pads = GetPads();
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
-	construct_params.setPoolingDescr(pooling_method, lengths[0], lengths[1], pads[0], pads[1], strides[0], strides[1]);
+	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
 	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 
@@ -221,12 +217,8 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			hInStride,
 			wInStride);
 
-	mlopenPoolingMode_t mode = GetMode();
-	const std::vector<int> & lengths = GetLengths();
-	const std::vector<int> & strides = GetStrides();
-	const std::vector<int> & pads = GetPads();
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
-	construct_params.setPoolingDescr(pooling_method, lengths[0], lengths[1], pads[0], pads[1], strides[0], strides[1]);
+	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
 	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 

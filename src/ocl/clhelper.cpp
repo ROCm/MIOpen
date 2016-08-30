@@ -30,13 +30,13 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
     {
 		std::string msg = "Error Building OpenCL Program in BuildProgram()\n";
 		std::vector<char> errorbuf(1024*1024);
-        size_t size;
+        size_t psize;
         clGetProgramBuildInfo(result.get(),
 				device,
 				CL_PROGRAM_BUILD_LOG, 
 				1024*1024, 
 				errorbuf.data(),
-				&size);
+				&psize);
 
 		msg += errorbuf.data();
 		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, msg);

@@ -120,7 +120,6 @@ else()
             -Wmissing-declarations
             -Wmissing-format-attribute
             -Wmissing-include-dirs
-            -Wmissing-noreturn
             -Wmissing-sysroot
             -Wmissing-variable-declarations
             -Wnarrowing
@@ -152,7 +151,7 @@ else()
             -Wshift-count-overflow
             -Wshift-overflow
             -Wshift-sign-overflow
-            -Wsign-compare
+            # -Wsign-compare
             -Wsign-promo
             -Wsizeof-pointer-memaccess
             -Wstack-protector
@@ -187,8 +186,10 @@ else()
             -Wvisibility
             -Wvla
             -Wweak-template-vtables
-            -Wweak-vtables
+            # -Wweak-vtables
             -Wwrite-strings
+            
+            -Wno-sign-compare
         )
     endif()
 

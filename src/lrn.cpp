@@ -7,7 +7,7 @@ LRNDescriptor::LRNDescriptor() {}
 
 LRNDescriptor::LRNDescriptor(mlopenLRNMode_t m,
 		const unsigned int pn, 
-		const double	*pparms) : mode(m), lrnN(pn), parms(pparms, pparms+3) {}
+		const double	*pparms) : lrnN(pn), parms(pparms, pparms+3), mode(m) {}
 
 mlopenLRNMode_t LRNDescriptor::GetMode() const
 {

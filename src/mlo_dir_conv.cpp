@@ -453,8 +453,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	int n_v_proc0 = (_out_width + n_out_pix_horiz - 1) / n_out_pix_horiz;
 	int n_v_proc1 = (_out_height + n_out_pix_vert - 1) / n_out_pix_vert;
 
-	int in_main_loop_ = _n_inputs;
-
 	for (int proc0 = ocl_group_sz0 / 2; n_v_proc0 <= proc0 && proc0 > 1; proc0 /= 2)
 	{
 		n_ins0 *= 2;
@@ -764,13 +762,6 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 	return(0);
 }
 
-#define CHECK_RET(x) if (x != 0) { \
-	if (prog) { \
-		clReleaseProgram(prog); \
-	} \
-	return -1;\
-}\
-
 /*
  * mesure the current onfiguration pefformance
  */
@@ -784,7 +775,6 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 {
 	int ret = 0;
 
-	cl_program prog = nullptr;
 	ret = mloConstructDirect2DFwd();
 	if (ret != 0)
 	{
@@ -1033,7 +1023,6 @@ bool mlo_construct_direct2D :: mloSearchConfigInDB(
  */
 bool mlo_construct_direct2D :: mloGetConfig()
 {
-	int ret = 0;
 	bool known_config = false;
 	std::string conf_key;
 	std::string conf_val;

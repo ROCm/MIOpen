@@ -26,7 +26,7 @@ typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
 
 #ifdef WIN32
 
- static double
+ inline double
 	 mlopen_mach_absolute_time(void)   // Windows
  {
 	 double ret = 0;
@@ -39,7 +39,7 @@ typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
  }
 #else
  // We want milliseconds. Following code was interpreted from timer.cpp
- static double
+ inline double
 	 mlopen_mach_absolute_time()   // Linux 
  {
 	 double  d = 0.0;
@@ -51,7 +51,7 @@ typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
 #endif
 
 
- static double
+ inline double
 	 subtractTimes(double endTime, double startTime)
  {
 	 double difference = endTime - startTime;
@@ -59,7 +59,7 @@ typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
 
 	 if (conversion == 0.0)
 	 {
-#if __APPLE__
+#ifdef __APPLE__
 		 mach_timebase_info_data_t info{};
 		 kern_return_t err = mach_timebase_info(&info);
 
