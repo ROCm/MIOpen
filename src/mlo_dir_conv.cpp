@@ -182,7 +182,6 @@ int mloUpdateDb(const std::string  &file_nm, const std::vector<std::string> & db
 	static
 bool mloFindConfigReq(
 		const std::string confreq_db_name,
-		cl_device_id dev,
 		const std::string & conf_key,
 		std::vector<std::string> &req_conf_db,
 		std::vector<std::string>::iterator &it
@@ -874,7 +873,7 @@ int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::strin
 
 	printf("file %s\n", conf_file.c_str());
 	std::vector<std::string>::iterator it;
-	bool found = mloFindConfigReq(conf_file, dev, conf_key, req_conf_db, it);
+	bool found = mloFindConfigReq(conf_file, conf_key, req_conf_db, it);
 
 
 	if (!found)
@@ -898,7 +897,7 @@ int mlo_construct_direct2D :: mloRemoveConfigReq(
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
 
-	bool found = mloFindConfigReq(conf_file, dev, conf_key, req_conf_db, it);
+	bool found = mloFindConfigReq(conf_file, conf_key, req_conf_db, it);
 
 
 	if (found)
