@@ -34,7 +34,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 macro(enable_clang_tidy)
     set(options ANALYZE_TEMPORARY_DTORS)
-    set(oneValueArgs)
+    set(oneValueArgs HEADER_FILTER)
     set(multiValueArgs CHECKS ERRORS EXTRA_ARGS)
 
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -52,7 +52,12 @@ macro(enable_clang_tidy)
         set(CLANG_TIDY_ERRORS_ARG "")
     else()
         set(CLANG_TIDY_ERRORS_ARG "-warnings-as-errors='${CLANG_TIDY_ERRORS}'")
+    endif()
 
+    if(PARSE_HEADER_FILTER)
+        string(REPLACE "$" "$$" CLANG_TIDY_HEADER_FILTER "${PARSE_HEADER_FILTER}")
+    else()
+        set(CLANG_TIDY_HEADER_FILTER ".*")
     endif()
 
     set(CLANG_TIDY_COMMAND 
@@ -62,7 +67,7 @@ macro(enable_clang_tidy)
         ${CLANG_TIDY_ERRORS_ARG}
         -extra-arg='${CLANG_TIDY_EXTRA_ARGS}'
         ${CLANG_TIDY_ANALYZE_TEMPORARY_DTORS}
-        -header-filter='.*'
+        -header-filter='${CLANG_TIDY_HEADER_FILTER}'
     )
     add_custom_target(tidy)
 endmacro()

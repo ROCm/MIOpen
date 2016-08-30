@@ -108,6 +108,8 @@ enable_clang_tidy(
 	ERRORS
 		*
 		-readability-inconsistent-declaration-parameter-name
+	HEADER_FILTER
+		"hpp$"
 
 )
 
