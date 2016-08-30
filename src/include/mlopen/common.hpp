@@ -16,7 +16,14 @@ inline Data_t DataCast(void *p) {
 }
 
 inline ConstData_t DataCast(const void *p) {
-	return (ConstData_t)p;
+// Casting away const is undefined behaviour, but we do it anyways
+#ifdef MLOPEN_USE_CLANG_TIDY
+    static cl_mem s = nullptr;
+    (void)p;
+    return s;
+#else
+	return reinterpret_cast<ConstData_t>(const_cast<void*>(p));
+#endif
 }
 
 #elif MLOPEN_BACKEND_HIP

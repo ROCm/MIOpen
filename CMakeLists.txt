@@ -86,6 +86,10 @@ enable_clang_tidy(
 	CHECKS 
 		*
 		-cert-err60-cpp
+		-clang-analyzer-alpha.core.CastToStruct
+		# Disable this because it doesn't recognize clean up in the destructor
+		-clang-analyzer-alpha.unix.Stream
+		-clang-analyzer-optin.performance.Padding
 		-clang-diagnostic-extern-c-compat
 		-cppcoreguidelines-pro-bounds-array-to-pointer-decay
 		-cppcoreguidelines-pro-bounds-constant-array-index
@@ -93,6 +97,7 @@ enable_clang_tidy(
 		-cppcoreguidelines-pro-type-reinterpret-cast
 		-cppcoreguidelines-pro-type-vararg
 		-google-explicit-constructor
+		-google-readability-braces-around-statements
 		-google-readability-todo
 		-google-runtime-int
 		-google-runtime-references
@@ -102,6 +107,7 @@ enable_clang_tidy(
 		-modernize-loop-convert
 		-modernize-pass-by-value
 		-performance-unnecessary-value-param
+		-readability-braces-around-statements
 		-readability-else-after-return
 		-readability-implicit-bool-cast
 		-readability-named-parameter
@@ -110,6 +116,9 @@ enable_clang_tidy(
 		-readability-inconsistent-declaration-parameter-name
 	HEADER_FILTER
 		"hpp$"
+	EXTRA_ARGS
+		-DMLOPEN_USE_CLANG_TIDY
+	ANALYZE_TEMPORARY_DTORS ON
 
 )
 

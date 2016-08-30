@@ -23,7 +23,7 @@ struct Exception : std::exception
     {}
 
 
-    Exception& SetContext(const std::string& file, int line)
+    Exception SetContext(const std::string& file, int line)
     {
         message = file + ":" + std::to_string(line) + ": " + message;
         return *this;

@@ -25,16 +25,14 @@ struct HandleImpl
         cl_platform_id platform = nullptr;
         if(clGetPlatformIDs(0, nullptr, &numPlatforms) != CL_SUCCESS)
         {
-            fprintf(stderr,"clGetPlatformIDs failed. %u",numPlatforms);
-            throw mlopenStatusInternalError;
+            MLOPEN_THROW("clGetPlatformIDs failed. " + std::to_string(numPlatforms));
         }
         if (0 < numPlatforms) 
         {
             std::vector<cl_platform_id> platforms(numPlatforms);
             if(clGetPlatformIDs(numPlatforms, platforms.data(), nullptr) != CL_SUCCESS)
             {
-                perror( "clGetPlatformIDs failed.2");
-                throw mlopenStatusInternalError;
+                MLOPEN_THROW("clGetPlatformIDs failed.2");
             }
             for (int i = 0; i < numPlatforms; ++i) 
             {
@@ -42,8 +40,7 @@ struct HandleImpl
 
                 if(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, sizeof(pbuf), pbuf, nullptr) != CL_SUCCESS)
                 {
-                    perror("clGetPlatformInfo failed.");
-                    throw mlopenStatusInternalError;
+                    MLOPEN_THROW("clGetPlatformInfo failed.");
                 }
 
                 platform = platforms[i];
@@ -58,14 +55,12 @@ struct HandleImpl
         // Create an OpenCL context
         /////////////////////////////////////////////////////////////////
         cl_int status = 0;
-        cl_context_properties cps[3] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0 };
+        cl_context_properties cps[3] = { CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(platform), 0 };
         cl_context_properties* cprops = (nullptr == platform) ? nullptr : cps;
         ContextPtr result{clCreateContextFromType(cprops, CL_DEVICE_TYPE_GPU, nullptr, nullptr, &status)};
         if(status != CL_SUCCESS)
         {
-            printf("status: %d",  status);
-            perror("Error: Creating Handle. (clCreateContextFromType)");
-            throw mlopenStatusInternalError;
+            MLOPEN_THROW_CL_STATUS(status, "Error: Creating Handle. (clCreateContextFromType)");
         }
         return result;
     }
@@ -98,14 +93,12 @@ Handle::Handle ()
     size_t deviceListSize;
     if(clGetContextInfo(impl->context.get(), CL_CONTEXT_NUM_DEVICES, sizeof(size_t), &deviceListSize, nullptr) != CL_SUCCESS)
     {
-        perror("Error: Getting Handle Info (device list size, clGetContextInfo)");
-        throw mlopenStatusInternalError;
+        MLOPEN_THROW("Error: Getting Handle Info (device list size, clGetContextInfo)");
     }
 
     if(deviceListSize == 0)
     {
-        perror("Error: No devices found.");
-        throw mlopenStatusInternalError;
+        MLOPEN_THROW("Error: No devices found.");
     }
 
     /////////////////////////////////////////////////////////////////
@@ -116,8 +109,7 @@ Handle::Handle ()
     /* Now, get the device list data */
     if(clGetContextInfo( impl->context.get(), CL_CONTEXT_DEVICES, deviceListSize*sizeof(cl_device_id), devices.data(), nullptr) != CL_SUCCESS)
     {
-        perror("Error: Getting Handle Info (device list, clGetContextInfo)");
-        throw mlopenStatusInternalError;
+        MLOPEN_THROW("Error: Getting Handle Info (device list, clGetContextInfo)");
     }
 
     char deviceName[100];
@@ -133,8 +125,7 @@ Handle::Handle ()
     impl->queues.emplace_back(clCreateCommandQueue(impl->context.get(), devices[0], CL_QUEUE_PROFILING_ENABLE, &status));
     if(status != CL_SUCCESS)
     {
-        perror("Creating Command Queue. (clCreateCommandQueue)");
-        throw mlopenStatusInternalError;
+        MLOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
     } 
 }
 
