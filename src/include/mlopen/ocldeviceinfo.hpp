@@ -1,7 +1,15 @@
 #ifndef GUARD_MLOPEN_OCLDEVICE_HPP
 #define GUARD_MLOPEN_OCLDEVICE_HPP
 
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <OpenCL/cl.h>
+#else
 #include <CL/cl.h>
+#endif
+
+#include <type_traits>
+#include <string>
+#include <mlopen/errors.hpp>
 
 namespace mlopen { namespace detail {
 
