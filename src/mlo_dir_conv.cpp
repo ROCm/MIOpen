@@ -807,7 +807,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
 		} else {
 			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-}
+		}
 	}
 	else
 	{
@@ -820,7 +820,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
 		} else {
 			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-}
+		}
 
 		clFinish(q);
 
@@ -832,7 +832,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
 			} else {
 				k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-}
+			}
 		}
 
 		clFinish(q);

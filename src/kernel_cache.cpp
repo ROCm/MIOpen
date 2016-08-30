@@ -58,8 +58,7 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
     {
         // Ensure only one space after the -cl-std.
         // >1 space can cause an Apple compiler bug. See clSPARSE issue #141.
-        if (params.at(0) != ' ') { params = " " + params;
-}
+        if (params.at(0) != ' ') { params = " " + params; }
     }
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -83,8 +82,7 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
 	
         auto program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);	
 		OCLKernel kernel(CreateKernel(program, kernel_name), vld, vgd);
-        if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel;
-}
+        if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
         return kernel;
     }
 }

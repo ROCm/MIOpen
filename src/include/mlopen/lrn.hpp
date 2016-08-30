@@ -47,7 +47,7 @@ struct LRNDescriptor : mlopenLRNDescriptor{
 		ConstData_t				workSpace);
 
 	private:
-	unsigned int lrnN{};
+	unsigned int lrnN = 0;
 	std::vector<double> parms;
 
 	mlopenLRNMode_t mode;

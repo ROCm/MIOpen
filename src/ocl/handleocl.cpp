@@ -15,8 +15,8 @@ struct HandleImpl
     ContextPtr context;
     std::vector<AqPtr> queues;
     KernelCache cache;
-    bool enable_profiling{};
-    float profiling_result{};
+    bool enable_profiling = false;
+    float profiling_result = 0.0;
 
     ContextPtr create_context()
     {
@@ -165,9 +165,11 @@ KernelInvoke Handle::GetKernel(
             vld,
             vgd,
             params);
-    if (this->impl->enable_profiling) { return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
-    } else { return obj.Invoke(q);
-}
+    if (this->impl->enable_profiling) { 
+        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1)); 
+    } else { 
+        return obj.Invoke(q); 
+    }
 }
 
 KernelInvoke Handle::GetKernel(
@@ -178,9 +180,11 @@ KernelInvoke Handle::GetKernel(
     OCLKernel obj = this->impl->cache.GetKernel(
             algorithm,
             network_config);
-    if (this->impl->enable_profiling) { return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
-    } else { return obj.Invoke(q);
-}
+    if (this->impl->enable_profiling) { 
+        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+    } else { 
+        return obj.Invoke(q);
+    }
 }
 
 void Handle::Finish() const
@@ -192,22 +196,19 @@ ManageDataPtr Handle::Create(int sz)
 {
     cl_int status = CL_SUCCESS;
     auto result = ManageDataPtr{clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
-    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error creating buffer: " + std::to_string(status));
-}
+    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error creating buffer: " + std::to_string(status)); }
     return result;
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
     cl_int status = clEnqueueWriteBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
-    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error writing to buffer: " + std::to_string(status));
-}
+    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error writing to buffer: " + std::to_string(status)); }
     return ddata;
 }
 
 void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
 {
     auto status = clEnqueueReadBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
-    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error reading from buffer: " + std::to_string(status));
-}
+    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error reading from buffer: " + std::to_string(status)); }
 }
 } // namespace mlopen

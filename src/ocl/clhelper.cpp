@@ -17,8 +17,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 			&char_source, 
 			&size, 
 			&status)};
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()");
-}
+	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()"); }
 
 	params += " -cl-std=CL2.0";
 	status = clBuildProgram(result.get(), 
@@ -39,8 +38,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 				&psize);
 
 		msg += errorbuf.data();
-		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, msg);
-}
+		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, msg); }
     }
 
 	return result;
@@ -53,8 +51,7 @@ ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name)
 			kernel_name.c_str(), 
 			&status)};
 
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status);
-}
+	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 
 	return result;
 }
@@ -67,8 +64,7 @@ cl_device_id GetDevice(cl_command_queue q)
 			sizeof(cl_device_id),
 			&device, 
 			nullptr);
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
-}
+	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()"); }
 
 	return device;
 }
@@ -80,8 +76,7 @@ cl_context GetContext(cl_command_queue q)
 			sizeof(cl_context),
 			&context, 
 			nullptr);
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
-}
+	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()"); }
 	return context;
 }
 
@@ -90,8 +85,7 @@ ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev)
 	cl_int status;
 	ClAqPtr q{clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &status)};
 
-	if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status);
-}
+	if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 
 	return q;
 }

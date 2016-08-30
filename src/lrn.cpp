@@ -1,4 +1,4 @@
-#include<mlopen/lrn.hpp>
+#include <mlopen/lrn.hpp>
 #include <cassert>
 
 namespace mlopen {
