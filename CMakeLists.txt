@@ -96,9 +96,11 @@ enable_clang_tidy(
 		-google-runtime-int
 		-google-runtime-references
 		-llvm-include-order
+		-misc-macro-parentheses
 		-misc-misplaced-const
 		-modernize-loop-convert
 		-modernize-pass-by-value
+		-performance-unnecessary-value-param
 		-readability-else-after-return
 		-readability-implicit-bool-cast
 		-readability-named-parameter
