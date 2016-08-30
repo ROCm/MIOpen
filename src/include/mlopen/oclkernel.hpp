@@ -30,7 +30,7 @@ struct OCLSetKernelArg
 	template<class I, class T>
 	void operator()(cl_kernel kernel, I i, const T& x) const
 	{
-		cl_int status = clSetKernelArg(kernel, i, sizeof(T), (void *)&x);
+		cl_int status = clSetKernelArg(kernel, i, sizeof(T), reinterpret_cast<const void*>(&x));
 		if (status != CL_SUCCESS) { MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
 }
 	}

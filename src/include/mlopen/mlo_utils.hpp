@@ -108,7 +108,7 @@ public:
 			size_t sizeFile;
 			// Find the stream size
 			f.seekg(0, std::fstream::end);
-			size = sizeFile = (size_t)f.tellg();
+			size = sizeFile = static_cast<size_t>(f.tellg());
 			f.seekg(0, std::fstream::beg);
 			str = new char[size + 1];
 			if (!str) {
@@ -151,25 +151,21 @@ public:
 	* @return true if success else false
 	*/
 	int readBinaryFromFile(const char *fileName) {
-		FILE *input = nullptr;
-		size_t size = 0;
-		char *binary = nullptr;
+		using FilePtr = MLOPEN_MANAGE_PTR(FILE, fclose);
 
-		if (fopen_s(&input, fileName, "rb")) {
+		FilePtr input{fopen(fileName, "rb")};
+		if (input == nullptr) {
+			// TODO: Should throw
 			return -1;
+			// MLOPEN_THROW("Error opening file " + std::string(fileName));;
 		}
-		fseek(input, 0L, SEEK_END);
-		size = ftell(input);
-		rewind(input);
-		binary = reinterpret_cast<char *>(malloc(size));
-		if (binary == nullptr) {
-			return -1;
-		}
-		auto val = fread(binary, sizeof(char), size, input);
+		fseek(input.get(), 0L, SEEK_END);
+		auto size = ftell(input.get());
+		rewind(input.get());
+		std::vector<char> binary(size);
+		auto val = fread(binary.data(), sizeof(char), size, input.get());
 		if (val != size) MLOPEN_THROW("Error reading file");
-		fclose(input);
-		source_.assign(binary, size);
-		free(binary);
+		source_.assign(binary.data(), size);
 		return 0;
 	}
 

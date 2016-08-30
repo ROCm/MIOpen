@@ -331,7 +331,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	int n_alus_total = (_grp_tile0 * _grp_tile1);
 	int n_alus_perstack = (n_alus_total / _n_stacks);
 
-	int n_read_procs = _grp_tile1 * _grp_tile0;
+	int n_read_procs;
 	if ((_grp_tile1 * _grp_tile0) <= static_cast<float>(_in_tile1 * _in_tile0))
 	{
 		n_read_procs = _grp_tile1 * _grp_tile0;
@@ -428,7 +428,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 
 	int n_ins0 = 1; // number of inputs each a from different stack along dim 0
 	int n_ins1 = 1; // number of inputs each a from different stack along dim 1
-	int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
 
 	// should be a combination of # of CUs, batch size.
 	// these is an aprox for Fiji
@@ -462,7 +461,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		n_ins1 *= 2;
 	}
 
-	n_ins = n_ins0 * n_ins1;
+	int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
 	if (n_ins > _batch_sz)
 	{
 		ocl_group_sz1 /= 2;
@@ -964,7 +963,7 @@ int mlo_construct_direct2D :: mloAddConfig(
 	// build searchable db
 	std::map<std::string, std::string> conf_db;
 
-	ret = mloReadConfigDB(
+	mloReadConfigDB(
 			dev,
 			conf_db
 			);
