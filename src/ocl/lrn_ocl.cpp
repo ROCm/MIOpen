@@ -87,7 +87,7 @@ namespace mlopen {
 
 			std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 			std::string kernel_name = construct_params.getKernelName(); // kernel name
-			const std::string& parms = construct_params.getCompilerOptions(); // kernel parameters
+			const std::string& compiler_parms = construct_params.getCompilerOptions(); // kernel parameters
 
 			std::string network_config;
 			construct_params.mloBuildConf_Key(network_config);
@@ -115,7 +115,7 @@ namespace mlopen {
 						kernel_name,
 						vld,
 						vgd,
-						parms);
+						compiler_parms);
 
 			if (do_backward)
 			{
@@ -263,7 +263,7 @@ namespace mlopen {
 
 		std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 		std::string kernel_name = construct_params.getKernelName(); // kernel name
-		std::string parms = construct_params.getCompilerOptions(); // kernel parameters
+		std::string compiler_parms = construct_params.getCompilerOptions(); // kernel parameters
 
 		std::string network_config;
 		construct_params.mloBuildConf_Key(network_config);
@@ -290,7 +290,7 @@ namespace mlopen {
 				kernel_name,
 				vld,
 				vgd,
-				parms)(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
+				compiler_parms)(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
 
 
 		handle.Finish();

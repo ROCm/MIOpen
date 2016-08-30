@@ -257,9 +257,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 		case mlopenConvolutionBwdDataAlgo_0:
 			 algorithm_name = "mlopenConvolutionBwdDataAlgo_0";
 		break;
-		default:
-			printf("Algorithm not found\n");
-		break;
 	}
 	float padding_val = 0;
 	handle.GetKernel(algorithm_name, network_config)(dy, w, dx, padding_val);

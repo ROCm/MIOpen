@@ -10,22 +10,22 @@ namespace mlopen {
 TensorDescriptor::TensorDescriptor() {}
 
 TensorDescriptor::TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens)
-: type(t), lens(plens)
+: lens(plens), type(t)
 {
 	this->CalculateStrides();
 }
 	
 TensorDescriptor::TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens, std::initializer_list<int> pstrides)
-: type(t), lens(plens), strides(pstrides)
+: lens(plens), strides(pstrides), type(t)
 {}
 
 TensorDescriptor::TensorDescriptor(mlopenDataType_t t, const int* plens, int size)
-: type(t), lens(plens, plens+size)
+: lens(plens, plens+size), type(t)
 {
 	this->CalculateStrides();
 }
 TensorDescriptor::TensorDescriptor(mlopenDataType_t t, const int* plens, const int* pstrides, int size)
-: type(t), lens(plens, plens+size), strides(pstrides, pstrides+size)
+: lens(plens, plens+size), strides(pstrides, pstrides+size), type(t)
 {}
 
 void TensorDescriptor::CalculateStrides()
