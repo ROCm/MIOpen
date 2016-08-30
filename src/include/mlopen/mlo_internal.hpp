@@ -729,40 +729,40 @@ protected:
 	int _kernel_size1;
 	int _kernel_stride0;
 	int _kernel_stride1;
-	int _n_outputs{};
-	int _n_inputs{};
-	int _batch_sz{};
+	int _n_outputs = 0;
+	int _n_inputs = 0;
+	int _batch_sz = 0;
 
-	int _out_width{};
-	int _out_height{};
-	int _out_batch_stride{};
-	int _out_channel_stride{};
-	int _out_stride{};
+	int _out_width = 0;
+	int _out_height = 0;
+	int _out_batch_stride = 0;
+	int _out_channel_stride = 0;
+	int _out_stride = 0;
 	std::string _out_layout;
 	std::string _out_data_type;
 
-	int _in_width{};
-	int _in_height{};
-	int _in_batch_stride{};
-	int _in_channel_stride{};
-	int _in_stride{};
+	int _in_width = 0;
+	int _in_height = 0;
+	int _in_batch_stride = 0;
+	int _in_channel_stride = 0;
+	int _in_stride = 0;
 	std::string _in_layout;
 	std::string _in_data_type;
 
-	int _in_df_width{};
-	int _in_df_height{};
-	int _in_df_batch_stride{};
-	int _in_df_channel_stride{};
-	int _in_df_stride{};
+	int _in_df_width = 0;
+	int _in_df_height = 0;
+	int _in_df_batch_stride = 0;
+	int _in_df_channel_stride = 0;
+	int _in_df_stride = 0;
 	std::string _in_df_layout;
 	std::string _in_df_data_type;
 
 
-	int _out_df_width{};
-	int _out_df_height{};
-	int _out_df_batch_stride{};
-	int _out_df_channel_stride{};
-	int _out_df_stride{};
+	int _out_df_width = 0;
+	int _out_df_height = 0;
+	int _out_df_batch_stride = 0;
+	int _out_df_channel_stride = 0;
+	int _out_df_stride = 0;
 	std::string _out_df_layout;
 	std::string _out_df_data_type;
 
@@ -772,9 +772,9 @@ protected:
 	bool _copy_input;
 	int _new_in_height;
 	int _new_in_width;
-	int _new_in_batch_stride{};
-	int _new_in_channel_stride{};
-	int _new_in_stride{};
+	int _new_in_batch_stride = 0;
+	int _new_in_channel_stride = 0;
+	int _new_in_stride = 0;
 	size_t _new_in_sz;
 	bool _do_backward;
 
@@ -787,15 +787,15 @@ protected:
 //	std::string _tens_layout;
 //	std::string _tens_data_format;
 
-	int _in_tile0{};     // size of in-tile in local memory
-	int _in_tile1{};     // size of in-tile in local memory
-	int _grp_tile0{};   // total number ALUs per group
-	int _grp_tile1{};   // total number ALUs per group
-	int _out_pix_tile0{}; // # of generated pixels per output per wk-item  (ALU)
-	int _out_pix_tile1{}; // # of generated pixels per output per wk-item  (ALU)
-	int _n_out_pix_tiles{};  // # output pixel tiles per wk-item (ALU)
-	int _n_in_data_tiles{}; // # of blocks of different inputs in LDS
-	int _n_stacks{}; // # of diff stacks (part of batch).
+	int _in_tile0 = 0;     // size of in-tile in local memory
+	int _in_tile1 = 0;     // size of in-tile in local memory
+	int _grp_tile0 = 0;   // total number ALUs per group
+	int _grp_tile1 = 0;   // total number ALUs per group
+	int _out_pix_tile0 = 0; // # of generated pixels per output per wk-item  (ALU)
+	int _out_pix_tile1 = 0; // # of generated pixels per output per wk-item  (ALU)
+	int _n_out_pix_tiles = 0;  // # output pixel tiles per wk-item (ALU)
+	int _n_in_data_tiles = 0; // # of blocks of different inputs in LDS
+	int _n_stacks = 0; // # of diff stacks (part of batch).
 	int _bias;     // bias calculated inside conv (forward)
 	std::string _comp_options;
 	std::string _kernel_file;
@@ -803,23 +803,23 @@ protected:
 	std::vector<size_t> _l_wk;
 	std::vector<size_t> _g_wk;
 
-	bool _gen{}; // genral case 
-	int _n_timer_iter{};
-	int _quiet{};
-	bool _search{};
-	bool _save_srch_req{};
+	bool _gen = false; // genral case 
+	int _n_timer_iter = 0;
+	int _quiet = 0;
+	bool _search = false;
+	bool _save_srch_req = false;
 	std::string _gen_comp_options;
 	std::string _kernel_path;
 	// local memory size per group
-	size_t _dev_local_mem_sz{};
+	size_t _dev_local_mem_sz = 0;
 	// wave size
-	int _hw_wave_sz{};
+	int _hw_wave_sz = 0;
 	// cl_queue
 	void * _stream;
 	size_t _bot_sz; // bytes
 	size_t _top_sz; // bytes
-	size_t _bot_df_sz{}; // bytes
-	size_t _top_df_sz{}; // bytes
+	size_t _bot_df_sz = 0; // bytes
+	size_t _top_df_sz = 0; // bytes
 	size_t _weights_sz; // bytes
 	size_t _bias_sz; // bytes
 
@@ -945,11 +945,11 @@ public:
 protected:
 	int mloConstructFwd();
 	int mloConstructBwd();
-	int _norm_region{};
-	int _norm_area{};
-	double _normAlpha{};
-	double _normBeta{};
-	double _normK{};
+	int _norm_region = 0;
+	int _norm_area = 0;
+	double _normAlpha = 0.0;
+	double _normBeta = 0.0;
+	double _normK = 0.0;
 
 };
 
