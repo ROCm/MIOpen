@@ -1,22 +1,34 @@
 #include <mlopen/tensor.hpp>
+#include <mlopen/errors.hpp>
 #include <string>
 #include <algorithm>
 #include <numeric>
 #include <cassert>
 
-mlopenTensorDescriptor::mlopenTensorDescriptor() {}
+namespace mlopen {
 
+TensorDescriptor::TensorDescriptor() {}
 
-mlopenTensorDescriptor::mlopenTensorDescriptor(mlopenDataType_t t, const int* plens, int size)
+TensorDescriptor::TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens)
+: type(t), lens(plens)
+{
+	this->CalculateStrides();
+}
+	
+TensorDescriptor::TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens, std::initializer_list<int> pstrides)
+: type(t), lens(plens), strides(pstrides)
+{}
+
+TensorDescriptor::TensorDescriptor(mlopenDataType_t t, const int* plens, int size)
 : type(t), lens(plens, plens+size)
 {
 	this->CalculateStrides();
 }
-mlopenTensorDescriptor::mlopenTensorDescriptor(mlopenDataType_t t, const int* plens, const int* pstrides, int size)
+TensorDescriptor::TensorDescriptor(mlopenDataType_t t, const int* plens, const int* pstrides, int size)
 : type(t), lens(plens, plens+size), strides(pstrides, pstrides+size)
 {}
 
-void mlopenTensorDescriptor::CalculateStrides()
+void TensorDescriptor::CalculateStrides()
 {
 	strides.clear();
 	strides.resize(lens.size(), 0);
@@ -24,47 +36,60 @@ void mlopenTensorDescriptor::CalculateStrides()
 	std::partial_sum(lens.rbegin(), lens.rend()-1, strides.rbegin()+1, std::multiplies<int>());
 }
 
-const std::vector<int>& mlopenTensorDescriptor::GetLengths() const
+const std::vector<int>& TensorDescriptor::GetLengths() const
 {
 	return lens;
 }
-const std::vector<int>& mlopenTensorDescriptor::GetStrides() const
+const std::vector<int>& TensorDescriptor::GetStrides() const
 {
 	return strides;
 }
-int mlopenTensorDescriptor::GetSize() const
+int TensorDescriptor::GetSize() const
 {
 	assert(lens.size() == strides.size());
 	return lens.size();
 }
-int mlopenTensorDescriptor::GetElementSize() const
+int TensorDescriptor::GetElementSize() const
 {
 	assert(lens.size() == strides.size());
 	return std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>());
 }
-mlopenDataType_t mlopenTensorDescriptor::GetType() const
+mlopenDataType_t TensorDescriptor::GetType() const
 {
 	return this->type;
 }
 
-int mlopenTensorDescriptor::GetIndex(std::initializer_list<int> l) const
+int TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
 	assert(l.size() <= this->GetSize());
 	return std::inner_product(l.begin(), l.end(), strides.begin(), 0);
 }
 
-bool mlopenTensorDescriptor::operator==(const mlopenTensorDescriptor& rhs) const
+bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
 {
 	assert(this->lens.size() == rhs.strides.size());
 	return this->type == rhs.type && this->lens == rhs.lens && this->strides == rhs.strides;
 }
 
-bool mlopenTensorDescriptor::operator!=(const mlopenTensorDescriptor& rhs) const
+bool TensorDescriptor::operator!=(const TensorDescriptor& rhs) const
 {
 	return ! (*this == rhs);
 }
 
+std::string TensorDescriptor::ToString() const
+{
+	std::string result;
+	for(auto i:this->lens)
+	{
+		result += std::to_string(i) + ", ";
+	}
+	return result.substr(0, result.length()-2);
+}
+
+}
+
+// TODO: Remove
 int mlopenGetTensorIndex(mlopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
 {
-	return tensorDesc->GetIndex(indices);
+	return mlopen::deref(tensorDesc).GetIndex(indices);
 }

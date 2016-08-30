@@ -27,7 +27,7 @@ typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
 #ifdef WIN32
 
  static double
-	 mlopen_mach_absolute_time()   // Windows
+	 mlopen_mach_absolute_time(void)   // Windows
  {
 	 double ret = 0;
 	 __int64 frec;
@@ -40,7 +40,7 @@ typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
 #else
  // We want milliseconds. Following code was interpreted from timer.cpp
  static double
-	 mlopen_mach_absolute_time()   // Linux 
+	 mlopen_mach_absolute_time(void)   // Linux 
  {
 	 double  d = 0.0;
 	 timeval t; t.tv_sec = 0; t.tv_usec = 0;
@@ -211,8 +211,6 @@ private:
 void tokenize(const std::string& str,
 	std::vector<std::string>& tokens,
 	const std::string& delimiters = " ");
-
-std::string mloGetPath();
 
 int mloGetContextDeviceFromCLQueue(cl_context & context, cl_device_id & device, cl_command_queue * profile_q, const cl_command_queue & q);
 

@@ -19,6 +19,7 @@
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
 
+#include <mlopen/db.hpp>
 
 /*
    the search db is a text file with the name defined by the device characteristics.
@@ -124,25 +125,12 @@ std::string mloConfFileBaseNm(cl_device_id dev
 		)
 {
 	int maxComputeUnits;
-	int maxWorkItemDims;
-	std::vector<size_t> maxWorkItemSize;
-	size_t maxWorkGroupSize;
 	int maxClockFrequency;
-	size_t maxMemAllocSize;
-	size_t localMemSize;
-	size_t timerResolution;
 	std::string deviceName;
 
-	mloGetDeviceInfo(dev,
-			maxComputeUnits,
-			maxWorkItemDims,
-			maxWorkItemSize,
-			maxWorkGroupSize,
-			maxClockFrequency,
-			maxMemAllocSize,
-			localMemSize,
-			timerResolution,
-			deviceName);
+	maxComputeUnits = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	maxClockFrequency = mlopen::GetDeviceInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>(dev);
+	deviceName = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 
 	std::string conf_file_base_nm = deviceName + "_"
 		+ std::to_string((long long)maxComputeUnits) + "_"
@@ -167,7 +155,7 @@ int mloReadDb(
 
 	tokenize(f.source(),
 			db,
-			std::string("\n"));
+			std::string("\n\r"));
 
 	return(ret);
 }
@@ -252,13 +240,13 @@ bool mloSearchConfigDB(
 
 /*
    construction has been split into 2
-   generic convlution forward
+   generic convlution forward 
    non-generic stride = 1, forward and backward
    */
-int mlo_construct_direct2D::mloConstructDirect2D(void)
+int mlo_construct_direct2D::mloConstruct(void)
 {
 	int ret = 0;
-	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1 || !doSearch());
+	_gen = (_kernel_size0 >= 11 || _kernel_size1 >= 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 	if (_gen && getDirectcion())
 	{
 		ret = mloConstructDirect2DFwdGen();
@@ -312,29 +300,9 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 {
 	int ret = 0;
 
-	cl_device_id dev;
-	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
+	cl_device_id dev = mlopen::GetDevice((cl_command_queue)_stream);
 
-	int maxComputeUnits;
-	int maxWorkItemDims;
-	std::vector<size_t> maxWorkItemSize;
-	size_t maxWorkGroupSize;
-	int maxClockFrequency;
-	size_t maxMemAllocSize;
-	size_t localMemSize;
-	size_t timerResolution;
-	std::string deviceName;
-
-	mloGetDeviceInfo(dev,
-			maxComputeUnits,
-			maxWorkItemDims,
-			maxWorkItemSize,
-			maxWorkGroupSize,
-			maxClockFrequency,
-			maxMemAllocSize,
-			localMemSize,
-			timerResolution,
-			deviceName);
+	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -406,8 +374,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 		+ std::string(" -D MLO_IN_BATCH_STRIDE=") + std::to_string((long long)_in_batch_stride)
 		+ std::string(" -D MLO_IN_CHANNEL_STRIDE=") + std::to_string((long long)_in_channel_stride)
 		+ std::string(" -D MLO_IN_STRIDE=") + std::to_string((long long)_in_stride)
-		//			+ std::string(" -D MLO_WEIGHTS_HEIGHT=") + std::to_string((long long)_weights_height)
-		//			+ std::string(" -D MLO_WEIGHTS_STRIDE=") + std::to_string((long long)_weights_stride)
 		// algorithm parameters
 		+std::string(" -D MLO_IN_TILE0=") + std::to_string((long long)_in_tile0)  // size of input data per ALU plane
 		+ std::string(" -D MLO_IN_TILE1=") + std::to_string((long long)_in_tile1)  // size of input data per ALU plane
@@ -634,8 +600,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 }
 
 /*
-* makes a unique key that represent the current kernel c0onfiguration
-*/
+ * makes a unique key that represent the current kernel c0onfiguration
+ */
 
 int mlo_construct_direct2D::mloMakeKernelHash(std::string & hash) const
 {
@@ -653,60 +619,41 @@ int mlo_construct_direct2D::mloMakeKernelHash(std::string & hash) const
 	int n_stacks;
 
 	getConfigParameters(
-		grp_tile1,
-		grp_tile0,
-		in_tile1,
-		in_tile0,
-		out_pix_tile1,
-		out_pix_tile0,
-		n_out_pix_tiles,
-		n_in_data_tiles,
-		n_stacks
-		);
+			grp_tile1,
+			grp_tile0,
+			in_tile1,
+			in_tile0,
+			out_pix_tile1,
+			out_pix_tile0,
+			n_out_pix_tiles,
+			n_in_data_tiles,
+			n_stacks
+			);
 	mloBuildConf_Val(
-		conf_val,
-		grp_tile1,
-		grp_tile0,
-		in_tile1,
-		in_tile0,
-		out_pix_tile1,
-		out_pix_tile0,
-		n_out_pix_tiles,
-		n_in_data_tiles,
-		n_stacks
-		);
+			conf_val,
+			grp_tile1,
+			grp_tile0,
+			in_tile1,
+			in_tile0,
+			out_pix_tile1,
+			out_pix_tile0,
+			n_out_pix_tiles,
+			n_in_data_tiles,
+			n_stacks
+			);
 	hash = conf_key + std::string(" ") + conf_val;
 	return(0);
 }
 
 /***********************************************************************************************************
 
-* Internal implementation of the direct conv configuration search
+ * Internal implementation of the direct conv configuration search
 
-************************************************************************************************************/
+ ************************************************************************************************************/
 
 
 
 /*
-the search db is a text file with the name defined by the device characteristics.
-each line is a key/value pair, separated by a space:
-32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
-or
-64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
-
-key format (all values are separted by x):
-n input maps
-input height
-input width
-filter height
-filter width
-n output maps
-output height
-output width
-batch size
-tensors' layout
-tensprs' data type
-direction (1 - forward, 0 - backward)
    the search db is a text file with the name defined by the device characteristics.
    each line is a key/value pair, separated by a space:
    32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
@@ -772,8 +719,8 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 		+ std::string("x") + std::to_string((long long)_out_height)
 		+ std::string("x") + std::to_string((long long)_out_width)
 		+ std::string("x") + std::to_string((long long)_batch_sz)
-		+ std::string("x") + _tens_layout
-		+ std::string("x") + _tens_data_format
+		+ std::string("x") + _in_layout
+		+ std::string("x") + _in_data_type
 		+ std::string("x") + std::to_string((long long)_direction)
 		;
 	return(0);
@@ -786,7 +733,7 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 {
 
-	// 
+	//
 	int in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
 	int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
 
@@ -826,10 +773,11 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 	} \
 	return -1;\
 }\
+
 /*
  * mesure the current onfiguration pefformance
  */
-int mlo_construct_direct2D :: mloMeasuredLoop( cl_command_queue profile_q,
+int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 		cl_mem bot_ocl_buf,
 		cl_mem top_ocl_buf,
 		cl_mem wei_ocl_buf,
@@ -841,64 +789,50 @@ int mlo_construct_direct2D :: mloMeasuredLoop( cl_command_queue profile_q,
 
 	cl_program prog = 0;
 	ret = mloConstructDirect2DFwd();
-	if (ret != 0) {
+	if (ret != 0)
+	{
 		return(ret);
 	}
+
 	std::string compiler_options = _gen_comp_options + _comp_options;
-	std::string kernelPath = (_kernel_path == "") ? mloGetPath() : _kernel_path;
-	kernelPath.append(std::string("/") + _kernel_file.c_str());
-	ret = CLHelper::LoadProgramFromSource(prog, profile_q, kernelPath);
-
-	CHECK_RET(ret);
-
-	ret = CLHelper::BuildProgram(prog, profile_q, compiler_options);
-
-	CHECK_RET(ret);
-
-	cl_kernel test_kernel;
-	CLHelper::CreateKernel(prog, test_kernel, _kernel_name);
-
-	if (!test_kernel) {
-		if (prog) {
-			clReleaseProgram(prog);
-		}
-		return(-1);
-	}
 
 	// Creating OCLKernel obj
-	OCLKernel kernel(test_kernel);
+	auto program = mlopen::LoadProgram(mlopen::GetContext(profile_q), mlopen::GetDevice(profile_q), _kernel_file, compiler_options);
+	mlopen::OCLKernel kernel{mlopen::CreateKernel(program, _kernel_name), _l_wk, _g_wk};
 	// pass all arguments
 
 	float padding_value = 0;
-	if(!_bias)
-		kernel.SetArgs(0, bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-	else
-		kernel.SetArgs(0, bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-
-	double s = 0, e = 0;
-	int iter = 1;
 	
+	double s= 0, e = 0;
+	int iter = 1;
+
 	if (profile_q)
 	{
-		cl_event profile_e;
-
 		processing_time = CL_MAXFLOAT;
 
-		ret = kernel.run(profile_q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), &profile_e);
-		if (ret == CL_SUCCESS)
-		{
-			mloReadEventTime(profile_e, processing_time);
-		}
+		auto k = kernel.Invoke(profile_q, [&] (cl_event profile_e) {
+			    size_t st, end;
+			    clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, NULL);
+		        clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, NULL);
+		        processing_time = (end-st)*1e-6;
+		});
 
-		ret = clReleaseEvent(profile_e);
+		if(_bias)
+			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+		else
+			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
 	}
 	else
 	{
 		iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
 
 		cl_command_queue q = (cl_command_queue)_stream;
+		auto k = kernel.Invoke(q);
 
-		kernel.run(q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), NULL);
+		if(_bias)
+			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+		else
+			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
 
 		clFinish(q);
 
@@ -906,36 +840,19 @@ int mlo_construct_direct2D :: mloMeasuredLoop( cl_command_queue profile_q,
 
 		for (int i = 0; i < iter && ret == 0; i++)
 		{
-			ret = kernel.run(q, _g_wk.size(), 0, _g_wk.data(), _l_wk.data(), NULL);
+			if(_bias)
+				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+			else
+				k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
 		}
 
 		clFinish(q);
 		e = mlopen_mach_absolute_time();
 
-		if (ret != 0)
-		{
-			processing_time = CL_MAXFLOAT;
-		}
-		else
-		{
-			processing_time = subtractTimes(e, s) / iter;
-			//			std::cout << "Processing time: " << processing_time << std::endl;
-
-		}
-	}
-
-	if (test_kernel)
-	{
-		clReleaseKernel(test_kernel);
-	}
-
-	if (prog)
-	{
-		clReleaseProgram(prog);
+		processing_time = subtractTimes(e, s) / iter;
 	}
 
 	return (ret);
-
 }
 
 
@@ -950,7 +867,7 @@ int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::strin
 {
 	int ret = 0;
 	std::vector<std::string> req_conf_db;
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
 
@@ -976,7 +893,7 @@ int mlo_construct_direct2D :: mloRemoveConfigReq(
 
 	std::vector<std::string>::iterator it;
 
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
 
 	bool found = mloFindConfigReq(conf_file, dev, conf_key, req_conf_db, it);
@@ -997,7 +914,7 @@ int mlo_construct_direct2D :: mloReadConfigDB(
 {
 
 	int ret = 0;
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
 
@@ -1027,7 +944,7 @@ int mlo_construct_direct2D :: mloWriteConfigDB(
 
 	int ret = 0;
 	//serialize
-	std::string conf_file = (_kernel_path == "") ? mloGetPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
 
@@ -1117,12 +1034,11 @@ bool mlo_construct_direct2D :: mloGetConfig(void)
 {
 	int ret = 0;
 	bool known_config = false;
-	cl_device_id dev;
 	std::string conf_key;
 	std::string conf_val;
 
 	// get device id
-	CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
+	cl_device_id dev = mlopen::GetDevice((cl_command_queue)_stream);
 
 	// find a db and configuration in it
 	known_config = mloSearchConfigInDB(
@@ -1165,11 +1081,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 {
 	int ret = 0;
 
-
-	cl_context ctxt;
-	cl_device_id dev;
-	cl_command_queue profile_q = 0;
-	//		cl_program prog;
+	mlopen::ClAqPtr profile_q;
 	double processing_time;
 	std::string conf_key;
 	std::string conf_val;
@@ -1188,31 +1100,11 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 	int min_n_in_data_tiles = 3;
 	int min_n_stacks = 1;
 
-  CLHelper::GetContextFromQueue((cl_command_queue)_stream, ctxt);
-  CLHelper::GetDeviceFromQueue((cl_command_queue)_stream, dev);
-  if(!profile_q)
-	  CLHelper::CreateQueueWithProfiling((cl_command_queue)_stream, &profile_q);
+	cl_context ctxt = mlopen::GetContext((cl_command_queue)_stream);
+	cl_device_id dev = mlopen::GetDevice((cl_command_queue)_stream);
+	profile_q = mlopen::CreateQueueWithProfiling(ctxt, dev);
 
-	int maxComputeUnits;
-	int maxWorkItemDims;
-	std::vector<size_t> maxWorkItemSize;
-	size_t maxWorkGroupSize;
-	int maxClockFrequency;
-	size_t maxMemAllocSize;
-	size_t localMemSize;
-	size_t timerResolution;
-	std::string deviceName;
-
-	mloGetDeviceInfo(dev,
-			maxComputeUnits,
-			maxWorkItemDims,
-			maxWorkItemSize,
-			maxWorkGroupSize,
-			maxClockFrequency,
-			maxMemAllocSize,
-			localMemSize,
-			timerResolution,
-			deviceName);
+	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -1290,7 +1182,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		   std::vector<int> v_n_in_tiles_rg;
 		   std::vector<int> v_n_in_stacks_sz;
 		   */
-		   // 
+		// 
 
 		double min_proc_time = CL_MAXFLOAT;
 
@@ -1305,8 +1197,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		n_out_tls = std::min(_n_outputs, n_out_tls);
 		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : 3;
 		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : 3;
-
-		long long runs_left = n_grp_tiles0 * n_grp_tiles1 * n_tile0_sz * n_tile1_sz * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
+        long long runs_left = n_grp_tiles0 * n_grp_tiles1 * n_tile0_sz * n_tile1_sz * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
 
 		size_t report_inteval = 25;
 		//			_n_timer_iter = 250;
@@ -1314,17 +1205,19 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		for (int g1 = 0; g1 < 2; g1++)
 		{
 			_grp_tile1 = grp_tl_ln[g1];
-			if (_out_height >= 32 && _grp_tile1 == 8) {
+			if (_out_height >= 32 && _grp_tile1 == 8)
+			{
 				continue;
 			}
 
 			for (int g0 = 0; g0 < 2; ++g0)
 			{
 				_grp_tile0 = grp_tl_ln[g0];
-				if (_out_width >= 32 && _grp_tile0 == 8) {
+
+				if (_out_width >= 32 && _grp_tile0 == 8)
+				{
 					continue;
 				}
-
 				// tile1
 				for (int j = 0; j < 3; ++j)
 				{
@@ -1336,8 +1229,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 						continue;
 					}
 					// tile 0
-					for (int i = 0; i < 3; ++i)
-					{
+					for (int i = 0; i < 3; i++) {
 						_in_tile0 = tile_sz[i];
 						if (_out_width * 2 <= _in_tile0 &&  _in_tile0 > tile_sz[0])
 						{
@@ -1405,8 +1297,8 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 											_n_stacks = n_in_stacks_sz[s];
 #if 1
 											if ((_in_tile1 > 16 || _in_tile0 > 16)
-												&& i_t > 4
-												&& _n_stacks > 2)
+													&& i_t > 4
+													&& _n_stacks > 2)
 
 											{
 												runs_left--;
@@ -1416,13 +1308,13 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 											}
 
 #endif
-											ret = mloMeasuredLoop(profile_q,
-												bot_ocl_buf,
-												top_ocl_buf,
-												wei_ocl_buf,
-												bias_ocl_buf,
-												processing_time
-											);
+											ret = mloMeasuredLoop(profile_q.get(),
+													bot_ocl_buf,
+													top_ocl_buf,
+													wei_ocl_buf,
+													bias_ocl_buf,
+													processing_time
+													);
 
 											if (ret != 0)
 											{
@@ -1451,7 +1343,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 #endif
 													<< std::endl;
 											}
-											 
+
 											run_counter++;
 											runs_left--;
 											runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -1491,32 +1383,28 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 			delete[] bias_sys_buf;
 		}
 
-		if (profile_q)
-		{
-			clReleaseCommandQueue(profile_q);
-		}
-
 		delete[] bot_sys_buf;
 		delete[] top_sys_buf;
 		delete[] wei_sys_buf;
 
 		mloBuildConf_Val(conf_val,
-			min_grp_tile1,
-			min_grp_tile0,
-			min_in_tile1,
-			min_in_tile0,
-			min_out_pix_tile1,
-			min_out_pix_tile0,
-			min_n_out_pix_tiles,
-			min_n_in_data_tiles,
-			min_n_stacks
-		);
+				min_grp_tile1,
+				min_grp_tile0,
+				min_in_tile1,
+				min_in_tile0,
+				min_out_pix_tile1,
+				min_out_pix_tile0,
+				min_n_out_pix_tiles,
+				min_n_in_data_tiles,
+				min_n_stacks
+				);
+
 
 		mloAddConfig(
-			dev,
-			conf_key,
-			conf_val
-		);
+				dev,
+				conf_key,
+				conf_val
+				);
 		// set the learnt data fo the current run.
 		mloSetConf(conf_val);
 
@@ -1527,8 +1415,8 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 
 // Tensor Helper APIs
 
-size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescriptor_t &weight_tensor) {
-	
+size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopen::TensorDescriptor &weight_tensor) {
+
 	int nWei;
 	int cWei;
 	int hWei;
@@ -1538,8 +1426,8 @@ size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescrip
 	int hWeiStride;
 	int wWeiStride;
 
-	std::tie(nWei, cWei, hWei, wWei) = tie4(weight_tensor->GetLengths());
-	std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) = tie4(weight_tensor->GetStrides());
+	std::tie(nWei, cWei, hWei, wWei) = mlopen::tie4(weight_tensor.GetLengths());
+	std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) = mlopen::tie4(weight_tensor.GetStrides());
 
 	setWeightsDescr(
 			"NCHW",
@@ -1559,7 +1447,7 @@ size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopenTensorDescrip
 
 }
 
-size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescriptor_t &output_tensor) {
+size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopen::TensorDescriptor &output_tensor) {
 
 	int nOut;
 	int cOut;
@@ -1570,9 +1458,8 @@ size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescrip
 	int hOutStride;
 	int wOutStride;
 
-	std::tie(nOut, cOut, hOut, wOut) = tie4(output_tensor->GetLengths());
-	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(output_tensor->GetStrides());
-
+	std::tie(nOut, cOut, hOut, wOut) = mlopen::tie4(output_tensor.GetLengths());
+	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = mlopen::tie4(output_tensor.GetStrides());
 
 	setOutputDescr(
 			"NCHW",
@@ -1586,13 +1473,11 @@ size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopenTensorDescrip
 			hOutStride,
 			wOutStride);
 
-
 	size_t output_sz = nOut * cOut * hOut * wOut * sizeof(float);
 	return output_sz;
-
 }
 
-size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopenTensorDescriptor_t &input_tensor) {
+size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopen::TensorDescriptor &input_tensor) {
 
 	int nIn;
 	int cIn;
@@ -1603,8 +1488,8 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopenTensorDescript
 	int hInStride;
 	int wInStride;
 
-	std::tie(nIn, cIn, hIn, wIn) = tie4(input_tensor->GetLengths());
-	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(input_tensor->GetStrides());
+	std::tie(nIn, cIn, hIn, wIn) = mlopen::tie4(input_tensor.GetLengths());
+	std::tie(nInStride, cInStride, hInStride, wInStride) = mlopen::tie4(input_tensor.GetStrides());
 
 	setInputDescr(
 			"NCHW",

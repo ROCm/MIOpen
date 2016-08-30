@@ -4,7 +4,9 @@
 #include <exception>
 #include <string>
 #include <iostream>
+#include <tuple>
 #include <mlopen.h>
+#include <mlopen/returns.hpp>
 
 namespace mlopen {
 
@@ -31,7 +33,10 @@ struct Exception : std::exception
 
 };
 
+std::string OpenCLErrorMessage(int error, const std::string& msg="");
+
 #define MLOPEN_THROW(...) throw mlopen::Exception(__VA_ARGS__).SetContext(__FILE__, __LINE__)
+#define MLOPEN_THROW_CL_STATUS(...) MLOPEN_THROW(mlopenStatusUnknownError, OpenCLErrorMessage(__VA_ARGS__))
 
 // TODO: Debug builds should leave the exception uncaught
 template<class F>
@@ -58,12 +63,37 @@ mlopenStatus_t try_(F f)
     return mlopenStatusSuccess;
 }
 
+namespace detail {
+template<int N>
+struct rank : rank<N-1> {};
+
+template<>
+struct rank<0> {};    
+
+
 template<class T>
-auto deref(T&& x, mlopenStatus_t err=mlopenStatusBadParm) -> decltype(*x)
+T& deref_impl(rank<0>, T& x)
+{
+    return x;
+}
+
+template<class T>
+auto deref_impl(rank<1>, T& x) -> decltype(mlopen_get_object(x))
+{
+    return mlopen_get_object(x);
+}
+
+}
+
+template<class T>
+auto deref(T& x, mlopenStatus_t err=mlopenStatusBadParm) -> decltype((x == nullptr), detail::deref_impl(detail::rank<1>{}, *x))
 {
     if (x == nullptr) MLOPEN_THROW(err, "Dereferencing nullptr");
-    return *x;
+    return detail::deref_impl(detail::rank<1>{}, *x);
 }
+
+template<class... Ts>
+auto tie_deref(Ts&... xs) MLOPEN_RETURNS(std::tie(mlopen::deref(xs)...));
 
 }
 
