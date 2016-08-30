@@ -2,16 +2,102 @@
 
 AMD's library for machine learning primitives
 
-##Linux
+## Configure with cmake
 
-To build, create a build directory and run cmake.
+First create a build directory:
+
 ```
 mkdir build; cd build;
-cmake ..
-make 
 ```
 
-To execute/use MLOpen, use the MLOpenDriver app: https://github.com/AMDComputeLibraries/MLOpen/tree/develop/driver
+Next configure cmake. For OpenCL, run:
+
+```
+cmake -DMLOPEN_BACKEND=OpenCL ..
+```
+
+For, HIP run:
+
+```
+cmake -DMLOPEN_BACKEND=HIP ..
+```
+
+For windows you may need to specify the MSVC generator, like so:
+
+```
+cmake -G "Visual Studio 14 2015 Win64" -DMLOPEN_BACKEND=OpenCL ..
+```
+
+By default the install location is set to '/usr/local', this can be set by using `CMAKE_INSTALL_PREFIX`:
+
+```
+cmake -DMLOPEN_BACKEND=OpenCL -DCMAKE_INSTALL_PREFIX=<mlopen-installed-path> ..
+```
+
+Also, the path to database for network configs can be set using the `MLOPEN_DB_PATH` variable. By default it is set to where the database files would be installed. For development purposes, setting `BUILD_DEV` will set the path to the database files stored in the source directory:
+
+```
+cmake -DMLOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..
+```
+
+The configuration can be changed after running cmake by using `ccmake`:
+
+```
+ccmake ..
+```
+
+or `cmake-gui`:
+
+```
+cmake-gui ..
+```
+
+The `ccmake` program is not available on windows.
+
+## Building the library
+
+The library can be built, from the build directory using the 'Release' configuration:
+
+```
+cmake --build . --config Release
+```
+
+And can be installed by using the 'install' target:
+
+```
+cmake --build . --config Release --target install
+```
+
+This will install the library to the `CMAKE_INSTALL_PREFIX` path that was set. 
+
+## Building the driver
+
+The driver can be built using the 'MLOpenDriver' target:
+
+```
+cmake --build . --config Release --target MLOpenDriver
+```
+
+Then it can be ran using, like so:
+
+```
+./driver/MLOpenDriver --help
+```
+
+## Running the tests
+
+The tests can be run by using the 'check' target:
+
+```
+cmake --build . --config Release --target check
+```
+
+A single test can be built and ran, by doing:
+
+```
+cmake --build . --config Release --target test_tensor
+./test/test_tensor
+```
 
 ##WINDOWS
 
@@ -51,20 +137,4 @@ cd .../MLOpen/build
 PATH=.\src\Debug;%PATH%
 (example)
 .\driver\Debug\MLOpenDriver.exe -n 100 -c 3 -k 32 -x 5 -y 5 -H 32 -W 32 -F 1 -p 2 -q 2
-```
-
-##Install Library for use in external projects
-
-To install the library, type `sudo make install`. This installs the library in `/usr/local/`. 
-If `/usr/local/` is not the desired installation location, use `CMAKE_INSTALL_PREFIX="path"` for the desired location. 
-
-Currently, MLOpen requires a macro to be set at the time of compiling the application which uses it. The macros chooses the appropriate backend, e.g., `-DMLOPEN_BACKEND_OPENCL`. This will requirement will be removed in the future.
-
-To execute/use MLOpen, use the MLOpenDriver app: https://github.com/AMDComputeLibraries/MLOpen/tree/develop/driver
-
-MLOpen also comes with a unit-test framework. To run the unit-tests, type `make check`.
-For running specific tests, first the compile and the tests and then execute the specific test:
-```
-make tests
-./test/test_tensor
 ```
