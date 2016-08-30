@@ -231,44 +231,4 @@ inline void tokenize(const std::string& str,
 		pos = str.find_first_of(delimiters, lastPos);
 	}
 }
-#if 0
-int mloGetContextDeviceFromCLQueue(cl_context & context, cl_device_id & device, cl_command_queue * profile_q, const cl_command_queue & q);
-
-int mloLoadOpenCLProgramFromSource(cl_program & program, const cl_context& context,
-									std::string kernel_path, std::string kernel_nm,
-									bool quiet = true);
-
-int mloBuildOpenCLProgram(const cl_context& context,
-	cl_device_id device,
-	cl_program program,
-	const std::string flagsStr,
-	bool quiet = true);
-
-
-int mloExecuteNoWait(
-	const mlo_ocl_args & args,
-	cl_command_queue queue,
-	cl_kernel ocl_kernel,
-	const std::vector<size_t> & gv_wk,
-	const std::vector<size_t> & lv_wk,
-	cl_event * event = NULL
-	);
-
-
-int mloGetDeviceInfo(cl_device_id deviceId,
-	int & maxComputeUnits,
-	int & maxWorkItemDims,
-	std::vector<size_t> & maxWorkItemSize,
-	size_t & maxWorkGroupSize,
-	int & maxClockFrequency,
-	size_t & maxMemAllocSize,
-	size_t &localMemSize,
-	size_t &timerResolution,
-	std::string & deviceName);
-
-int mloReadEventTime(cl_event& event, double & time);
-#endif
-
-
-
 #endif
