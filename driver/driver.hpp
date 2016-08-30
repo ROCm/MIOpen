@@ -52,6 +52,8 @@ std::string ParseBaseArg(int argc, char *argv[]) {
 		Usage();
 	else
 		return arg;
+
+	return 0;
 }
 
 class Driver
@@ -80,7 +82,7 @@ class Driver
 	virtual int RunBackwardGPU() = 0;
 	virtual int VerifyBackward() = 0;
 
-	private:
+	protected:
 
 	mlopenHandle_t handle;
 	cl_command_queue q;

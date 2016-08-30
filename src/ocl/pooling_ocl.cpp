@@ -6,17 +6,16 @@ namespace mlopen {
 
 mlopenStatus_t PoolingDescriptor::Forward(
 		Handle								&handle,
-		const void							*alpha,
+		const void							* /*alpha*/,
 		const TensorDescriptor				&xDesc,
 		const cl_mem						x,
-		const void							*beta,
+		const void							* /*beta*/,
 		const TensorDescriptor				&yDesc,
 		cl_mem								y,
-		bool								do_backward,
-		cl_mem								workSpace,
-		size_t								workSpaceSize) {
+		bool								 /*do_backward*/,
+		cl_mem								 /*workSpace*/,
+		size_t								 /*workSpaceSize*/) {
 
-	mlopenStatus_t status = mlopenStatusSuccess;
 	printf("in pooling forward\n");
 	mlo_construct_pooling2D construct_params(1); // forward
 
@@ -70,14 +69,10 @@ mlopenStatus_t PoolingDescriptor::Forward(
 			hInStride,
 			wInStride);
 
-	mlopenPoolingMode_t mode = GetMode();
-	const std::vector<int> & lengths = GetLengths();
-	const std::vector<int> & strides = GetStrides();
-	const std::vector<int> & pads = GetPads();
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
-	construct_params.setPoolingDescr(pooling_method, lengths[0], lengths[1], pads[0], pads[1], strides[0], strides[1]);
+	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
-	status = (mlopenStatus_t)construct_params.mloConstruct();
+	construct_params.mloConstruct();
 
 	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
@@ -106,17 +101,17 @@ mlopenStatus_t PoolingDescriptor::Forward(
 
 mlopenStatus_t PoolingDescriptor::Backward(
 		Handle								&handle,
-		const void							*alpha,
+		const void							* /*alpha*/,
 		const TensorDescriptor				&yDesc,
 		const cl_mem						y,
 		const TensorDescriptor				&dyDesc,
 		const cl_mem						dy,
 		const TensorDescriptor				&xDesc,
 		const cl_mem						x,
-		const void							*beta,
+		const void							* /*beta*/,
 		const TensorDescriptor				&dxDesc,
 		cl_mem								dx,
-		const cl_mem						workSpace) {
+		const cl_mem						 /*workSpace*/) {
 
 
 	mlopenStatus_t status = mlopenStatusSuccess;
@@ -221,14 +216,10 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			hInStride,
 			wInStride);
 
-	mlopenPoolingMode_t mode = GetMode();
-	const std::vector<int> & lengths = GetLengths();
-	const std::vector<int> & strides = GetStrides();
-	const std::vector<int> & pads = GetPads();
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
-	construct_params.setPoolingDescr(pooling_method, lengths[0], lengths[1], pads[0], pads[1], strides[0], strides[1]);
+	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
-	status = (mlopenStatus_t)construct_params.mloConstruct();
+	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 
 	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
@@ -260,4 +251,4 @@ mlopenStatus_t PoolingDescriptor::Backward(
 
 	return(status);
 }
-}
+} // namespace mlopen

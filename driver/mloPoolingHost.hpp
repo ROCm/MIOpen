@@ -277,9 +277,6 @@ int mloPoolingBackwardRunHost(
 					for (int i = 0; i < bot_width; i++)
 					{
 						// c-emulator
-						_T res = 0;
-
-						res = 0;
 						bot_df_v_ptr[bot_df_v_off + j * bot_df_v_stride + i] = 0;
 						int h = j + pad1;
 						int w = i + pad0;

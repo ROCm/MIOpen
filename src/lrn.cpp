@@ -1,4 +1,4 @@
-#include<mlopen/lrn.hpp>
+#include <mlopen/lrn.hpp>
 #include <cassert>
 
 namespace mlopen {
@@ -7,7 +7,7 @@ LRNDescriptor::LRNDescriptor() {}
 
 LRNDescriptor::LRNDescriptor(mlopenLRNMode_t m,
 		const unsigned int pn, 
-		const double	*pparms) : mode(m), lrnN(pn), parms(pparms, pparms+3) {}
+		const double	*pparms) : lrnN(pn), parms(pparms, pparms+3), mode(m) {}
 
 mlopenLRNMode_t LRNDescriptor::GetMode() const
 {
@@ -33,4 +33,4 @@ double LRNDescriptor::GetK() const
 {
 	return this->parms[2];
 }
-}
+}  // namespace mlopen
