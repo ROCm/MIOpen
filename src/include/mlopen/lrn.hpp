@@ -12,7 +12,7 @@ namespace mlopen {
 
 struct LRNDescriptor : mlopenLRNDescriptor{
 	LRNDescriptor();
-	LRNDescriptor(mlopenLRNMode_t m, const unsigned int pn, const double *pparms);
+	LRNDescriptor(mlopenLRNMode_t m, unsigned int pn, const double *pparms);
 
 	mlopenLRNMode_t GetMode() const;
 	unsigned int GetN() const;
@@ -47,12 +47,12 @@ struct LRNDescriptor : mlopenLRNDescriptor{
 		ConstData_t				workSpace);
 
 	private:
-	unsigned int lrnN;
+	unsigned int lrnN = 0;
 	std::vector<double> parms;
 
 	mlopenLRNMode_t mode;
 };
 
-}
+} // namespace mlopen
 MLOPEN_DEFINE_OBJECT(mlopenLRNDescriptor, mlopen::LRNDescriptor);
 #endif // _MLOPEN_LRN_HPP_

@@ -33,4 +33,4 @@ std::string GetKernelSrc(const std::string& name)
     return kernels.at(key);
 }
 
-}
+} // namespace mlopen

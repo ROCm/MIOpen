@@ -47,7 +47,7 @@ include(Bin2H)
 function(add_kernels)
 	set(INIT_KERNELS_LIST)
 	set(KERNELS_HEADER "${PROJECT_BINARY_DIR}/include/mlopen_kernels.h")
-	file(WRITE ${KERNELS_HEADER} "")
+	file(WRITE ${KERNELS_HEADER} "#ifndef GUARD_MLOPEN_KERNELS_HPP_\n#define GUARD_MLOPEN_KERNELS_HPP_\n")
 	foreach(KERNEL_FILE ${ARGN})
 		if("${CMAKE_VERSION}" VERSION_LESS 3.0)
 			configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
@@ -61,6 +61,7 @@ function(add_kernels)
 		bin2h(SOURCE_FILE ${KERNEL_FILE} HEADER_FILE ${KERNELS_HEADER} VARIABLE_NAME ${VAR_NAME} NULL_TERMINATE APPEND)
 		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", ${VAR_NAME} }")
 	endforeach()
+	file(APPEND ${KERNELS_HEADER} "\n#endif\n")
 	string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
 	configure_file(Kernels/kernel.cpp.in kernel.cpp)
 endfunction()
@@ -146,6 +147,8 @@ add_library( MLOpen
 	${MLOpen_Source}
 	)
 
+
+clang_tidy_check(MLOpen)
 set( MLOpen_DIRS_INCLUDE
 	# TODO: Remove this
 	${PROJECT_SOURCE_DIR}
@@ -169,7 +172,7 @@ GENERATE_EXPORT_HEADER(MLOpen
 # MLOpen depends on OpenCL
 if( MLOPEN_BACKEND MATCHES "OpenCL")
 	MESSAGE( STATUS "MLOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
-	target_include_directories(MLOpen PUBLIC ${OPENCL_INCLUDE_DIRS} )
+	target_include_directories(MLOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )
 endif()
 

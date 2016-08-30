@@ -186,7 +186,7 @@ struct conv_forward : output_tensor_fixture
                 convFilter,
                 NULL));
 
-        int value = 10;
+        // int value = 10;
         // STATUS(mlopenSetTensor(handle, inputTensor, NULL, &value));
 
         // STATUS(mlopenScaleTensor(handle, inputTensor, NULL, &alpha));
