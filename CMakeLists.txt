@@ -85,9 +85,12 @@ include(ClangTidy)
 enable_clang_tidy(
 	CHECKS 
 		*
+		-cert-err60-cpp
+		-clang-diagnostic-extern-c-compat
 		-cppcoreguidelines-pro-bounds-array-to-pointer-decay
 		-cppcoreguidelines-pro-bounds-constant-array-index
 		-cppcoreguidelines-pro-bounds-pointer-arithmetic
+		-cppcoreguidelines-pro-type-reinterpret-cast
 		-cppcoreguidelines-pro-type-vararg
 		-google-explicit-constructor
 		-google-runtime-int
@@ -95,7 +98,10 @@ enable_clang_tidy(
 		-llvm-include-order
 		-misc-misplaced-const
 		-modernize-loop-convert
+		-modernize-pass-by-value
+		-readability-else-after-return
 		-readability-implicit-bool-cast
+		-readability-named-parameter
 	ERRORS
 		*
 		-google-readability-todo
