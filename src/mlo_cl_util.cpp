@@ -16,6 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
 
+#include <mlopen/db.hpp>
 
 void tokenize(const std::string& str,
 	std::vector<std::string>& tokens,
@@ -51,39 +52,6 @@ static std::string mloGetCurrentDir() {
 		return std::string(currentDir);
 	}
 	return std::string("");
-}
-
-std::string mloGetPath()
-{
-#ifdef _WIN32
-	char buffer[MAX_PATH];
-#ifdef UNICODE
-	if (!GetModuleFileName(NULL, (LPWCH)buffer, sizeof(buffer)))
-	{
-		throw std::string("GetModuleFileName() failed!");
-	}
-#else
-	if (!GetModuleFileName(NULL, buffer, sizeof(buffer)))
-	{
-		throw std::string("GetModuleFileName() failed!");
-	}
-#endif
-	std::string str(buffer);
-	/* '\' == 92 */
-	int last = (int)str.find_last_of((char)92);
-#else
-	char buffer[PATH_MAX + 1];
-	ssize_t len;
-	if ((len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1)) == -1)
-	{
-		throw std::string("readlink() failed!");
-	}
-	buffer[len] = '\0';
-	std::string str(buffer);
-	/* '/' == 47 */
-	int last = (int)str.find_last_of((char)47);
-#endif
-	return str.substr(0, last + 1);
 }
 
 int mloGetContextDeviceFromCLQueue(cl_context & context, cl_device_id & device, cl_command_queue * profile_q, const cl_command_queue & q)
@@ -133,7 +101,7 @@ int mloLoadOpenCLProgramFromSource(cl_program & program, const cl_context& conte
 {
 	cl_int status = CL_SUCCESS;
 	mloFile kernelFile;
-	std::string kernelPath = (kernel_path == "") ? mloGetPath() : kernel_path;
+	std::string kernelPath = (kernel_path == "") ? mlopen::GetDbPath() : kernel_path;
 	kernelPath.append(std::string("/") + kernel_nm.c_str());
 	if (!kernelFile.open(kernelPath.c_str()))//bool
 	{

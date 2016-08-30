@@ -8,7 +8,7 @@ mlopenStatus_t mlopenCreateTensorDescriptor(
 		mlopenTensorDescriptor_t *tensorDesc) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(tensorDesc) = new mlopenTensorDescriptor();
+		mlopen::deref(tensorDesc) = new mlopen::TensorDescriptor();
 	});
 }
 
@@ -23,7 +23,7 @@ mlopenStatus_t mlopenSet4dTensorDescriptor(
 
 	return mlopen::try_([&] {
 		std::initializer_list<int> lens = {n, c, h, w};
-		mlopen::deref(tensorDesc) = mlopenTensorDescriptor(dataType, lens.begin(), 4);
+		mlopen::deref(tensorDesc) = mlopen::TensorDescriptor(dataType, lens.begin(), 4);
 	});
 }
 
@@ -41,9 +41,9 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(
 		int *wStride) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(dataType) = tensorDesc->GetType();
-		std::tie(mlopen::deref(n), mlopen::deref(c), mlopen::deref(h), mlopen::deref(w)) = tie4(tensorDesc->GetLengths());
-		std::tie(mlopen::deref(nStride), mlopen::deref(cStride), mlopen::deref(hStride), mlopen::deref(wStride)) = tie4(tensorDesc->GetStrides());
+		mlopen::deref(dataType) = mlopen::deref(tensorDesc).GetType();
+		mlopen::tie_deref(n, c, h, w) = mlopen::tie4(mlopen::deref(tensorDesc).GetLengths());
+		mlopen::tie_deref(nStride, cStride, hStride, wStride) = mlopen::tie4(mlopen::deref(tensorDesc).GetStrides());
 	});
 }
 
@@ -57,7 +57,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
 		int *w) {
 
 	return mlopen::try_([&] {
-		std::tie(mlopen::deref(n), mlopen::deref(c), mlopen::deref(h), mlopen::deref(w)) = tie4(tensorDesc->GetLengths());
+		mlopen::tie_deref(n, c, h, w) = mlopen::tie4(mlopen::deref(tensorDesc).GetLengths());
 	});
 }
 
@@ -71,11 +71,11 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
 		int *wStride) {
 
 	return mlopen::try_([&] {
-		std::tie(mlopen::deref(nStride), mlopen::deref(cStride), mlopen::deref(hStride), mlopen::deref(wStride)) = tie4(tensorDesc->GetStrides());
+		mlopen::tie_deref(nStride, cStride, hStride, wStride) = mlopen::tie4(mlopen::deref(tensorDesc).GetStrides());
 	});
 }
 
-// Internal API
+extern "C"
 mlopenStatus_t mlopenSetTensorDescriptor(
 		mlopenTensorDescriptor_t tensorDesc,
 		mlopenDataType_t dataType,
@@ -85,22 +85,22 @@ mlopenStatus_t mlopenSetTensorDescriptor(
 
 	return mlopen::try_([&] {
 		if (stridesA == nullptr) {
-			mlopen::deref(tensorDesc) = mlopenTensorDescriptor(dataType, dimsA, nbDims);
+			mlopen::deref(tensorDesc) = mlopen::TensorDescriptor(dataType, dimsA, nbDims);
 		} else {
-			mlopen::deref(tensorDesc) = mlopenTensorDescriptor(dataType, dimsA, stridesA, nbDims);
+			mlopen::deref(tensorDesc) = mlopen::TensorDescriptor(dataType, dimsA, stridesA, nbDims);
 		}
 	});
 }
 
 // Internal API
 int mlopenGetTensorDescriptorElementSize(mlopenTensorDescriptor_t tensorDesc) {
-	return tensorDesc->GetElementSize();
+	return mlopen::deref(tensorDesc).GetElementSize();
 }
 
 extern "C" 
 mlopenStatus_t mlopenGetTensorDescriptorSize(mlopenTensorDescriptor_t tensorDesc, int* size) {
 	return mlopen::try_([&] {
-		mlopen::deref(size) = tensorDesc->GetSize();
+		mlopen::deref(size) = mlopen::deref(tensorDesc).GetSize();
 	});
 }
 
@@ -113,13 +113,13 @@ mlopenStatus_t mlopenGetTensorDescriptor(
 
 	return mlopen::try_([&] {
 		if (dataType != nullptr) {
-			*dataType = tensorDesc->GetType();
+			*dataType = mlopen::deref(tensorDesc).GetType();
 		}
 		if (dimsA != nullptr) {
-			std::copy(tensorDesc->GetLengths().begin(), tensorDesc->GetLengths().end(), dimsA);
+			std::copy(mlopen::deref(tensorDesc).GetLengths().begin(), mlopen::deref(tensorDesc).GetLengths().end(), dimsA);
 		}
 		if (stridesA != nullptr) {
-			std::copy(tensorDesc->GetStrides().begin(), tensorDesc->GetStrides().end(), stridesA);
+			std::copy(mlopen::deref(tensorDesc).GetStrides().begin(), mlopen::deref(tensorDesc).GetStrides().end(), stridesA);
 		}
 	});
 
@@ -128,7 +128,7 @@ mlopenStatus_t mlopenGetTensorDescriptor(
 extern "C"
 mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc) {
 	return mlopen::try_([&] {
-		delete tensorDesc;
+		mlopen_destroy_object(tensorDesc);
 	});
 }
 
@@ -142,9 +142,9 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		void							*y) {
 
 	return mlopen::try_([&] {
-		return yDesc->TransformTensor(handle, 
+		return mlopen::deref(yDesc).TransformTensor(mlopen::deref(handle), 
 				alpha,
-				xDesc,
+				mlopen::deref(xDesc),
 				DataCast(x),
 				beta,
 				DataCast(y));
@@ -166,13 +166,13 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 		void							*C) {
 
 	return mlopen::try_([&] {
-		return cDesc->OpTensor(handle,
+		return mlopen::deref(cDesc).OpTensor(mlopen::deref(handle),
 				tensorOp,
 				alpha1,
-				aDesc,
+				mlopen::deref(aDesc),
 				DataCast(A),
 				alpha2,
-				bDesc,
+				mlopen::deref(bDesc),
 				DataCast(B),
 				beta,
 				DataCast(C));
@@ -188,7 +188,7 @@ mlopenStatus_t mlopenSetTensor(mlopenHandle_t handle,
 		const void						*valuePtr) {
 
 	return mlopen::try_([&] {
-		return yDesc->SetTensor(handle,
+		return mlopen::deref(yDesc).SetTensor(mlopen::deref(handle),
 				DataCast(y),
 				valuePtr);
 	});
@@ -203,7 +203,7 @@ mlopenStatus_t mlopenScaleTensor(mlopenHandle_t handle,
 		const void						*alpha) {
 
 	return mlopen::try_([&] {
-		return yDesc->ScaleTensor(handle,
+		return mlopen::deref(yDesc).ScaleTensor(mlopen::deref(handle),
 				DataCast(y),
 				alpha);
 	});

@@ -15,6 +15,7 @@ void failed(const char * msg, const char* file, int line)
 
 #define CHECK(...) if (!(__VA_ARGS__)) failed(#__VA_ARGS__, __FILE__, __LINE__)
 #define EXPECT(...) if (!(__VA_ARGS__)) failed_abort(#__VA_ARGS__, __FILE__, __LINE__)
+#define STATUS(...) EXPECT((__VA_ARGS__) == 0)
 
 template<class T>
 void run_test()

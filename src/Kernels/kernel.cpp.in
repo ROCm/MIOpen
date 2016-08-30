@@ -1,0 +1,36 @@
+#include <mlopen/kernel.hpp>
+#include <map>
+#include <algorithm>
+#include "mlopen_kernels.h"
+
+namespace mlopen {
+
+const std::map<std::string, const char *> kernels {
+${INIT_KERNELS}
+};
+
+std::string GetKernelSrc(const std::string& name)
+{
+    // Use the base name of the string
+    int start = 0;
+    auto slash = name.find_last_of("/\\");
+    if (slash != std::string::npos)
+    {
+        start = slash + 1;
+    }
+    
+    int len = name.size();
+    auto ex = name.rfind(".cl");
+    if (ex != std::string::npos)
+    {
+        len = ex - start;
+    }
+
+    auto key = name.substr(start, len);
+    // Convert to uppercase
+    std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+
+    return kernels.at(key);
+}
+
+}

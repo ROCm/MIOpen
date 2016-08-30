@@ -1,32 +1,78 @@
-#ifndef _MLOPEN_HANDLE_HPP_
-#define _MLOPEN_HANDLE_HPP_
+#ifndef GUARD_MLOPEN_CONTEXT_HPP_
+#define GUARD_MLOPEN_CONTEXT_HPP_
 
 #include <mlopen.h>
+#include <mlopen/object.hpp>
+#include <mlopen/common.hpp>
+#include <mlopen/kernel.hpp>
 #include <vector>
 #include <cstdio>
 #include <cstring>
 #include <memory>
 
-struct mlopenContextImpl;
+namespace mlopen {
 
-struct mlopenContext {
+struct HandleImpl;
+
+struct Handle : mlopenHandle {
 	
-	mlopenContext();
-	mlopenContext(int numStreams, mlopenAcceleratorQueue_t *streams);
-	~mlopenContext();
+	Handle();
+	Handle(int numStreams, mlopenAcceleratorQueue_t *streams);
+	~Handle();
 
-	mlopenAcceleratorQueue_t GetStream();
+	mlopenAcceleratorQueue_t GetStream() const;
 
-	// Deprecated
-	int GetStream (mlopenAcceleratorQueue_t *stream, ...)
+    void EnableProfiling(bool enable=true);
+
+    float GetKernelTime() const;
+#if MLOPEN_BACKEND_OPENCL
+    KernelInvoke GetKernel(
+            const std::string& algorithm,
+            const std::string& network_config,
+            const std::string& program_name,
+            const std::string& kernel_name,
+            const std::vector<size_t>& vld,
+            const std::vector<size_t>& vgd,
+            const std::string& params);
+
+    KernelInvoke GetKernel(
+        const std::string& algorithm,
+        const std::string& network_config);
+
+    void Finish() const;
+#endif
+
+	ManageDataPtr Create(int sz);
+	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, int sz);
+    void ReadTo(void* data, const ManageDataPtr& ddata, int sz);
+
+	template<class T>
+	ManageDataPtr Create(int sz)
 	{
-		*stream = this->GetStream();
-		return 0;
+		return this->Create(sz*sizeof(T));
 	}
 
-	std::unique_ptr<mlopenContextImpl> impl;
+	template<class Container>
+    ManageDataPtr Write(const Container& c)
+    {
+    	typedef typename Container::value_type type;
+    	auto buf = this->Create<type>(c.size());
+    	return std::move(this->WriteTo(reinterpret_cast<const void*>(c.data()), buf, c.size()*sizeof(type)));
+    }
+
+    template<class T>
+    std::vector<T> Read(const ManageDataPtr& ddata, int sz)
+    {
+    	std::vector<T> result(sz);
+    	this->ReadTo(result.data(), ddata, sz*sizeof(T));
+    	return result;
+    }
+
+	std::unique_ptr<HandleImpl> impl;
 	
 };
+}
+MLOPEN_DEFINE_OBJECT(mlopenHandle, mlopen::Handle);
 
 
-#endif // _MLOPEN_HANDLE_HPP_
+#endif // GUARD_MLOPEN_CONTEXT_HPP_

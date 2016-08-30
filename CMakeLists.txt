@@ -45,6 +45,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	find_package( OpenCL REQUIRED )
+	set(MLOPEN_SHARED ON)
 	message( STATUS "${MLOPEN_BACKEND} backend selected." )
 endif()
 # HCC
@@ -52,6 +53,7 @@ if( MLOPEN_BACKEND MATCHES "HCC")
 	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
 	add_definitions( -DMLOPEN_BACKEND_HCC=1 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
+	set(MLOPEN_SHARED ON)
 	message( SEND_ERROR "${Cobalt_BACKEND} backend not yet supported." )
 endif()
 # HIP
@@ -59,29 +61,23 @@ if( MLOPEN_BACKEND MATCHES "HIP")
 	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=1 )
-	message( SEND_ERROR "${Cobalt_BACKEND} backend not yet supported." )
+	set(MLOPEN_SHARED OFF)
+	message( STATUS "${MLOPEN_BACKEND} backend selected." )
 endif()
 
 # If Cobalt is used in future
 if( USE_Cobalt)
 endif()
 
-set ( MLOpen_Headers_Public
-	${PROJECT_SOURCE_DIR}/include/mlopen.h
-	${PROJECT_BINARY_DIR}/src/include/MLOpen-version.h
-	${PROJECT_BINARY_DIR}/src/mlopen_export.h
-	)
+option( BUILD_SHARED_LIBS "Build as a shared library" ${MLOPEN_SHARED} )
 
-install(FILES ${MLOpen_Headers_Public} DESTINATION include)
+option( BUILD_DEV "Build for development only" OFF)
 
-set( MLOpen_DIRS_INCLUDE
-	${CMAKE_SOURCE_DIR}/include
-	${CMAKE_SOURCE_DIR}/src/include
-	${CMAKE_SOURCE_DIR}/src
-	${PROJECT_BINARY_DIR}/src)
-
-set( MLOpen_API ${CMAKE_SOURCE_DIR}/include/mlopen.h )
-source_group( "Header Files\\Public" FILES ${MLOpen_Headers_Public} )
+if(BUILD_DEV)
+	set(MLOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
+else()
+	set(MLOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/share/mlopen/db" CACHE PATH "Default path to search for db")
+endif()
 
 include(EnableCompilerWarnings)
 
