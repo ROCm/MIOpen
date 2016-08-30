@@ -1,5 +1,10 @@
-#ifndef _MLOPEN_H_
-#define _MLOPEN_H_
+#ifndef MLOPEN_GUARD_MLOPEN_H_
+#define MLOPEN_GUARD_MLOPEN_H_
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wextern-c-compat"
+#endif
 
 #include <stddef.h>
 
@@ -524,6 +529,10 @@ MLOPEN_EXPORT mlopenStatus_t mlopenLRNBackward(
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroyLRNDescriptor(mlopenLRNDescriptor_t lrnDesc);
 #ifdef __cplusplus
 }
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 
 #endif // _MLOPEN_H_
