@@ -871,6 +871,7 @@ int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::strin
 
 	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
 
+	printf("file %s\n", conf_file.c_str());
 	std::vector<std::string>::iterator it;
 	bool found = mloFindConfigReq(conf_file, dev, conf_key, req_conf_db, it);
 
