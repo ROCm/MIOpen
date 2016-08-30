@@ -355,7 +355,7 @@ int LRNDriver<T>::RunForwardCPU() {
 
 template<typename T>
 int LRNDriver<T>::FindBackward() {
-	return;
+	return 0;
 }
 
 template<typename T>
