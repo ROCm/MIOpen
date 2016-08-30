@@ -86,9 +86,9 @@ std::string TensorDescriptor::ToString() const
 	return result.substr(0, result.length()-2);
 }
 
-}
+} // namespace mlopen
 
-// TODO: Remove
+// TODO(paul): Remove
 int mlopenGetTensorIndex(mlopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
 {
 	return mlopen::deref(tensorDesc).GetIndex(indices);

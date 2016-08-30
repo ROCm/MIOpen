@@ -2,6 +2,7 @@
 #define GUARD_MLOPEN_OCL_KERNEL_HPP_
 
 #include <sstream>
+#include <utility>
 #include <vector>
 #include <mlopen.h>
 #include <cassert>
@@ -30,21 +31,23 @@ struct OCLSetKernelArg
 	void operator()(cl_kernel kernel, I i, const T& x) const
 	{
 		cl_int status = clSetKernelArg(kernel, i, sizeof(T), (void *)&x);
-		if (status != CL_SUCCESS) MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
+		if (status != CL_SUCCESS) { MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
+}
 	}
 
 	template<class I, class T>
 	void operator()(cl_kernel kernel, I i, const LocalMemArg& lmem) const
 	{
 		cl_int status = clSetKernelArg(kernel, i, lmem.GetSize(), NULL);
-		if (status != CL_SUCCESS) MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
+		if (status != CL_SUCCESS) { MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
+}
 	}
 };
 
 struct OCLKernelInvoke
 {
 	cl_command_queue queue;
-	// TODO: Use a pointer to OCLKernel
+	// TODO(paul): Use a pointer to OCLKernel
 	cl_kernel kernel;
 	size_t work_dim;
 	std::array<size_t, 3> global_work_offset;
@@ -72,17 +75,17 @@ public:
 	OCLKernel(ClKernelPtr k, 
 			std::vector<size_t> local_dims,
 			std::vector<size_t> global_dims) 
-	: kernel(std::move(k)), ldims(local_dims), gdims(global_dims)
+	: kernel(std::move(k)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
 	{
 		assert(ldims.size() == gdims.size());
-		assert(ldims.size() > 0 && ldims.size() <= 3);
+		assert(!ldims.empty() && ldims.size() <= 3);
 	}
 
 	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr);
 
 	cl_kernel GetKernel() { return kernel.get(); } 
 
-	mlopenStatus_t GetKernelName(std::string &kernelName);
+	mlopenStatus_t GetKernelName(std::string &progName);
 
 	inline const std::vector<size_t>& GetLocalDims() const { return ldims; }
 	inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
@@ -93,6 +96,6 @@ private:
 	std::vector<size_t> gdims;
 };
 
-}
+}  // namespace mlopen
 
 #endif // GUARD_MLOPEN_OCL_KERNEL_HPP_

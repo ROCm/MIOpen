@@ -32,10 +32,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #endif
 
 #include <iomanip>
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cassert>
+#include <cmath>
 #include <map>
 #include <string>
 #include <limits>
@@ -48,7 +48,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <string>
 #include <ctime>
 #include <cmath>
-#include <time.h>
+#include <ctime>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -76,12 +76,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #endif
 
 #else  // !WIN32 so Linux and APPLE
- #include <limits.h>
+ #include <climits>
  #include <unistd.h>
- #include <stdbool.h>
+ #include <cstdbool>
  #include <sys/time.h>
  #include <sys/resource.h>
- typedef  long long int __int64;
+ using __int64 = long long;
  #ifndef fopen_s
    #define fopen_s(file, fileName, mode)                                          \
    ((*(file)) = fopen((fileName), (mode))) == NULL
@@ -137,7 +137,7 @@ public:
 		_kernel_size1 = 3;
 		_kernel_stride0 = 1;
 		_kernel_stride1 = 1;
-		_stream = NULL;
+		_stream = nullptr;
 		_bot_sz = 0; // bytes
 		_top_sz = 0; // bytes
 		_weights_sz = 0; // bytes
@@ -153,8 +153,8 @@ public:
 
 	}
 
-	virtual ~mlo_construct_direct2D(void)
-	{}
+	virtual ~mlo_construct_direct2D()
+	= default;
 	/*
 	* major interface
 	* it has to be called only after
@@ -167,7 +167,7 @@ public:
 	* arbitrary combination of kerenl sizes, strides
 	*/
 
-	virtual int mloConstruct(void);
+	virtual int mloConstruct();
 
 	/*
 	* makes a unique key that represent the current kernel c0onfiguration
@@ -237,14 +237,14 @@ public:
 	/*
 	* returns kernel file name without location
 	*/
-	inline std::string getKernelFile(void) const
+	inline std::string getKernelFile() const
 	{
 		return(_kernel_file);
 	}
 	/*
 	* retuns kerner/shader name
 	*/
-	inline std::string getKernelName(void) const
+	inline std::string getKernelName() const
 	{
 		return(_kernel_name);
 	}
@@ -252,21 +252,21 @@ public:
 	* return set of compile options
 	*/
 
-	inline const std::string & getCompilerOptions(void) const
+	inline const std::string & getCompilerOptions() const
 	{
 		return(_comp_options);
 	}
 	/*
 	*  return a local working configuration
 	*/
-	inline const std::vector<size_t> & getLocalWkSize(void) const
+	inline const std::vector<size_t> & getLocalWkSize() const
 	{
 		return(_l_wk);
 	}
 	/*
 	* return a global working configuration
 	*/
-	inline const std::vector<size_t> & getGlobalWkSize(void) const
+	inline const std::vector<size_t> & getGlobalWkSize() const
 	{
 		return(_g_wk);
 	}
@@ -274,14 +274,14 @@ public:
 	/*
 	* get common compiler options
 	*/
-	inline const std::string & getGeneralCompOptions(void) const
+	inline const std::string & getGeneralCompOptions() const
 	{
 		return(_gen_comp_options);
 	}
 	/*
 	* return direction: true - forward, false - backward
 	*/
-	inline bool getDirectcion(void) const
+	inline bool getDirectcion() const
 	{
 		return(_direction == 1);
 	}
@@ -289,7 +289,7 @@ public:
 	/*
 	* get workspace size
 	*/
-	inline size_t getWorkSpaceSzBytes(void) const
+	inline size_t getWorkSpaceSzBytes() const
 	{
 		return(_workspce_sz);
 	}
@@ -297,7 +297,7 @@ public:
 	*  is bias incuded
 	*/
 
-	inline bool doBias(void) const
+	inline bool doBias() const
 	{
 		return(_bias == 1);
 	}
@@ -335,8 +335,8 @@ public:
 		int v_padding,
 		int u_stride,
 		int v_stride,
-		int u_upstride,
-		int v_upstride
+		int  /*u_upstride*/,
+		int  /*v_upstride*/
 		)
 	{
 		_pad1 = u_padding;
@@ -614,7 +614,7 @@ public:
 	/*
 	* need for backward pass?
 	*/
-	inline bool doBackward(void) const
+	inline bool doBackward() const
 	{
 		return(_do_backward);
 	}
@@ -630,7 +630,7 @@ public:
 	/*
 	* is search set?
 	*/
-	inline bool doSearch(void) const
+	inline bool doSearch() const
 	{
 		return(_search);
 	}
@@ -654,7 +654,7 @@ public:
 	// MD: Hack to get the key outside of mlo_internal
 	int mloBuildConf_Key(std::string & conf_key) const;
 
-	inline bool doCopyInput(void) const
+	inline bool doCopyInput() const
 	{
 		return(_copy_input);
 	}
@@ -673,22 +673,22 @@ public:
 		int &w_stride
 		);
 // TEMP
-	int mloConstructSP2D(void);
+	int mloConstructSP2D();
 
 	size_t setInputDescFromMLDesc(const mlopen::TensorDescriptor &input_tensor);
 	size_t setOutputDescFromMLDesc(const mlopen::TensorDescriptor &output_tensor);
 	size_t setWeightDescFromMLDesc(const mlopen::TensorDescriptor &weight_tensor);
 protected:
 
-	bool mloGetConfig(void);
-	int mloSearchDirect2D(void);
-	int mloConstructDirect2DFwd(void);
-	int mloConstructDirect2DFwdGen(void);
-	int mloConstructBwd(void)
+	bool mloGetConfig();
+	int mloSearchDirect2D();
+	int mloConstructDirect2DFwd();
+	int mloConstructDirect2DFwdGen();
+	int mloConstructBwd()
 	{
 		return(0);
 	}
-	int mloConstructFwd(void)
+	int mloConstructFwd()
 	{
 		return(0);
 	}
@@ -743,40 +743,40 @@ protected:
 	int _kernel_size1;
 	int _kernel_stride0;
 	int _kernel_stride1;
-	int _n_outputs;
-	int _n_inputs;
-	int _batch_sz;
+	int _n_outputs{};
+	int _n_inputs{};
+	int _batch_sz{};
 
-	int _out_width;
-	int _out_height;
-	int _out_batch_stride;
-	int _out_channel_stride;
-	int _out_stride;
+	int _out_width{};
+	int _out_height{};
+	int _out_batch_stride{};
+	int _out_channel_stride{};
+	int _out_stride{};
 	std::string _out_layout;
 	std::string _out_data_type;
 
-	int _in_width;
-	int _in_height;
-	int _in_batch_stride;
-	int _in_channel_stride;
-	int _in_stride;
+	int _in_width{};
+	int _in_height{};
+	int _in_batch_stride{};
+	int _in_channel_stride{};
+	int _in_stride{};
 	std::string _in_layout;
 	std::string _in_data_type;
 
-	int _in_df_width;
-	int _in_df_height;
-	int _in_df_batch_stride;
-	int _in_df_channel_stride;
-	int _in_df_stride;
+	int _in_df_width{};
+	int _in_df_height{};
+	int _in_df_batch_stride{};
+	int _in_df_channel_stride{};
+	int _in_df_stride{};
 	std::string _in_df_layout;
 	std::string _in_df_data_type;
 
 
-	int _out_df_width;
-	int _out_df_height;
-	int _out_df_batch_stride;
-	int _out_df_channel_stride;
-	int _out_df_stride;
+	int _out_df_width{};
+	int _out_df_height{};
+	int _out_df_batch_stride{};
+	int _out_df_channel_stride{};
+	int _out_df_stride{};
 	std::string _out_df_layout;
 	std::string _out_df_data_type;
 
@@ -786,9 +786,9 @@ protected:
 	bool _copy_input;
 	int _new_in_height;
 	int _new_in_width;
-	int _new_in_batch_stride;
-	int _new_in_channel_stride;
-	int _new_in_stride;
+	int _new_in_batch_stride{};
+	int _new_in_channel_stride{};
+	int _new_in_stride{};
 	size_t _new_in_sz;
 	bool _do_backward;
 
@@ -801,15 +801,15 @@ protected:
 //	std::string _tens_layout;
 //	std::string _tens_data_format;
 
-	int _in_tile0;     // size of in-tile in local memory
-	int _in_tile1;     // size of in-tile in local memory
-	int _grp_tile0;   // total number ALUs per group
-	int _grp_tile1;   // total number ALUs per group
-	int _out_pix_tile0; // # of generated pixels per output per wk-item  (ALU)
-	int _out_pix_tile1; // # of generated pixels per output per wk-item  (ALU)
-	int _n_out_pix_tiles;  // # output pixel tiles per wk-item (ALU)
-	int _n_in_data_tiles; // # of blocks of different inputs in LDS
-	int _n_stacks; // # of diff stacks (part of batch).
+	int _in_tile0{};     // size of in-tile in local memory
+	int _in_tile1{};     // size of in-tile in local memory
+	int _grp_tile0{};   // total number ALUs per group
+	int _grp_tile1{};   // total number ALUs per group
+	int _out_pix_tile0{}; // # of generated pixels per output per wk-item  (ALU)
+	int _out_pix_tile1{}; // # of generated pixels per output per wk-item  (ALU)
+	int _n_out_pix_tiles{};  // # output pixel tiles per wk-item (ALU)
+	int _n_in_data_tiles{}; // # of blocks of different inputs in LDS
+	int _n_stacks{}; // # of diff stacks (part of batch).
 	int _bias;     // bias calculated inside conv (forward)
 	std::string _comp_options;
 	std::string _kernel_file;
@@ -817,23 +817,23 @@ protected:
 	std::vector<size_t> _l_wk;
 	std::vector<size_t> _g_wk;
 
-	bool _gen; // genral case 
-	int _n_timer_iter;
-	int _quiet;
-	bool _search;
-	bool _save_srch_req;
+	bool _gen{}; // genral case 
+	int _n_timer_iter{};
+	int _quiet{};
+	bool _search{};
+	bool _save_srch_req{};
 	std::string _gen_comp_options;
 	std::string _kernel_path;
 	// local memory size per group
-	size_t _dev_local_mem_sz;
+	size_t _dev_local_mem_sz{};
 	// wave size
-	int _hw_wave_sz;
+	int _hw_wave_sz{};
 	// cl_queue
 	void * _stream;
 	size_t _bot_sz; // bytes
 	size_t _top_sz; // bytes
-	size_t _bot_df_sz; // bytes
-	size_t _top_df_sz; // bytes
+	size_t _bot_df_sz{}; // bytes
+	size_t _top_df_sz{}; // bytes
 	size_t _weights_sz; // bytes
 	size_t _bias_sz; // bytes
 
@@ -876,7 +876,7 @@ public:
 	}
 
 	inline void getPoolingDescr(
-		int & pooling_method,
+		int &  /*pooling_method*/,
 		int & windowHeight,
 		int & windowWidth,
 		int & padding_v,
@@ -896,17 +896,17 @@ public:
 
 	}
 
-	inline int getPoolingMethod(void) const
+	inline int getPoolingMethod() const
 	{
 		return(_pooling_method);
 	}
-	int mloConstruct(void);
+	int mloConstruct() override;
 
 protected:
 	int _pooling_method;
 	int _NAN_option;
-	int mloConstructFwd(void);
-	int mloConstructBwd(void);
+	int mloConstructFwd();
+	int mloConstructBwd();
 
 };
 
@@ -954,16 +954,16 @@ public:
 		alphaoverarea = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? _normAlpha / _norm_area : _normAlpha / (_norm_area*_norm_area);
 	}
 
-	int mloConstruct(void);
+	int mloConstruct() override;
 
 protected:
-	int mloConstructFwd(void);
-	int mloConstructBwd(void);
-	int _norm_region;
-	int _norm_area;
-	double _normAlpha;
-	double _normBeta;
-	double _normK;
+	int mloConstructFwd();
+	int mloConstructBwd();
+	int _norm_region{};
+	int _norm_area{};
+	double _normAlpha{};
+	double _normBeta{};
+	double _normK{};
 
 };
 
@@ -1018,11 +1018,11 @@ public:
 		shift = _shift;
 	}
 
-	int mloConstruct(void);
+	int mloConstruct() override;
 
 protected:
-	int mloConstructFwd(void);
-	int mloConstructBwd(void);
+	int mloConstructFwd();
+	int mloConstructBwd();
 	int _neuron_type;
 	double _power;
 	double _scale;

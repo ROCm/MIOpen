@@ -10,12 +10,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		const cl_mem				w,
 		const TensorDescriptor&		yDesc,
 		const cl_mem				y,
-		const int					requestAlgoCount,
-		int							*returnedAlgoCount,
-		mlopenConvAlgoPerf_t		*perfResults,
-		mlopenConvPreference_t		preference,
-		void						*workSpace,
-		size_t						workSpaceSize,
+		const int					 /*requestAlgoCount*/,
+		int							* /*returnedAlgoCount*/,
+		mlopenConvAlgoPerf_t		* /*perfResults*/,
+		mlopenConvPreference_t		 /*preference*/,
+		void						* /*workSpace*/,
+		size_t						 /*workSpaceSize*/,
 		bool						exhaustiveSearch) const {
 	
 	if(x == nullptr || w == nullptr || y == nullptr) {
@@ -76,17 +76,17 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
-		const void					*alpha,
+		const void					* /*alpha*/,
 		const TensorDescriptor&		xDesc,
 		const cl_mem				x,
 		const TensorDescriptor&		wDesc,
 		const cl_mem				w,
 		mlopenConvFwdAlgorithm_t	algo,
-		const void					*beta,
+		const void					* /*beta*/,
 		const TensorDescriptor&		yDesc,
 		cl_mem						y, 
-		void						*workSpace,
-		size_t						workSpaceSize) const {
+		void						* /*workSpace*/,
+		size_t						 /*workSpaceSize*/) const {
 
 	if(x == nullptr || w == nullptr || y == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
@@ -104,7 +104,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	
-	// TODO: Replicating code for now.
+	// TODO(paul): Replicating code for now.
 	mlo_construct_direct2D construct_params(1); // forward
 	{
 		construct_params.setOutputDescFromMLDesc(yDesc);
@@ -146,12 +146,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 		const cl_mem				w,
 		const TensorDescriptor&		dxDesc,
 		const cl_mem				dx,
-		const int					requestAlgoCount,
-		int							*returnedAlgoCount,
-		mlopenConvAlgoPerf_t		*perfResults,
-		mlopenConvPreference_t		preference,
-		void						*workSpace,
-		size_t						workSpaceSize,
+		const int					 /*requestAlgoCount*/,
+		int							* /*returnedAlgoCount*/,
+		mlopenConvAlgoPerf_t		* /*perfResults*/,
+		mlopenConvPreference_t		 /*preference*/,
+		void						* /*workSpace*/,
+		size_t						 /*workSpaceSize*/,
 		bool						exhaustiveSearch) const {
 	
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
@@ -213,17 +213,17 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
 // BackwardDataAlgorithm()
 void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
-		const void						*alpha,
+		const void						* /*alpha*/,
 		const TensorDescriptor&			dyDesc,
 		const cl_mem					dy,
 		const TensorDescriptor&			wDesc,
 		const cl_mem					w,
 		mlopenConvBwdDataAlgorithm_t	algo,
-		const void						*beta,
+		const void						* /*beta*/,
 		const TensorDescriptor&			dxDesc,
 		cl_mem							dx, 
-		void							*workSpace,
-		size_t							workSpaceSize) const {
+		void							* /*workSpace*/,
+		size_t							 /*workSpaceSize*/) const {
 
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
@@ -241,7 +241,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
-	// TODO: Replicating code for now.
+	// TODO(paul): Replicating code for now.
 	mlo_construct_direct2D construct_params(0); // backward
 	{
 		construct_params.setOutputDescFromMLDesc(dxDesc);
@@ -266,4 +266,4 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 	handle.Finish();
 
 }
-}
+}  // namespace mlopen

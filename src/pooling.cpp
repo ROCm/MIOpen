@@ -59,4 +59,4 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 
 }
 
-}
+} // namespace mlopen

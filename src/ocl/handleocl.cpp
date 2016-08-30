@@ -9,18 +9,18 @@ namespace mlopen {
 struct HandleImpl
 {
 
-    typedef MLOPEN_MANAGE_PTR(mlopenAcceleratorQueue_t, clReleaseCommandQueue) AqPtr;
-    typedef MLOPEN_MANAGE_PTR(cl_context, clReleaseContext) ContextPtr;
+    using AqPtr = mlopen::manage_ptr<typename std::remove_pointer<mlopenAcceleratorQueue_t>::type, decltype(&clReleaseCommandQueue), &clReleaseCommandQueue>;
+    using ContextPtr = mlopen::manage_ptr<typename std::remove_pointer<cl_context>::type, decltype(&clReleaseContext), &clReleaseContext>;
 
     ContextPtr context;
     std::vector<AqPtr> queues;
     KernelCache cache;
-    bool enable_profiling;
-    float profiling_result;
+    bool enable_profiling{};
+    float profiling_result{};
 
     ContextPtr create_context()
     {
-        // TODO: Change errors to CL errors
+        // TODO(paul): Change errors to CL errors
         cl_uint numPlatforms;
         cl_platform_id platform = nullptr;
         if(clGetPlatformIDs(0, nullptr, &numPlatforms) != CL_SUCCESS)
@@ -72,8 +72,8 @@ struct HandleImpl
     void SetProfilingResult(cl_event& e)
     {
         size_t st, end;
-        clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, NULL);
-        clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, NULL);
+        clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
+        clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
         profiling_result = (end-st)*1e-6;
     }
 };
@@ -81,8 +81,9 @@ struct HandleImpl
 Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
 : impl(new HandleImpl())
 {
-    // TODO: Retain the queues
-    for(int i=0;i<numStreams;i++) impl->queues.emplace_back(streams[i]);
+    // TODO(paul): Retain the queues
+    for(int i=0;i<numStreams;i++) { impl->queues.emplace_back(streams[i]);
+}
 }
 
 Handle::Handle () 
@@ -138,8 +139,7 @@ Handle::Handle ()
 }
 
 Handle::~Handle() 
-{
-}
+= default;
 
 mlopenAcceleratorQueue_t Handle::GetStream() const
 {
@@ -174,8 +174,9 @@ KernelInvoke Handle::GetKernel(
             vld,
             vgd,
             params);
-    if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
-    else return obj.Invoke(q);
+    if (this->impl->enable_profiling) { return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+    } else { return obj.Invoke(q);
+}
 }
 
 KernelInvoke Handle::GetKernel(
@@ -186,8 +187,9 @@ KernelInvoke Handle::GetKernel(
     OCLKernel obj = this->impl->cache.GetKernel(
             algorithm,
             network_config);
-    if (this->impl->enable_profiling) return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
-    else return obj.Invoke(q);
+    if (this->impl->enable_profiling) { return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+    } else { return obj.Invoke(q);
+}
 }
 
 void Handle::Finish() const
@@ -199,19 +201,22 @@ ManageDataPtr Handle::Create(int sz)
 {
     cl_int status = CL_SUCCESS;
     auto result = ManageDataPtr{clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
-    if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error creating buffer: " + std::to_string(status));
-    return std::move(result);
+    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error creating buffer: " + std::to_string(status));
+}
+    return result;
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
     cl_int status = clEnqueueWriteBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
-    if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error writing to buffer: " + std::to_string(status));
+    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error writing to buffer: " + std::to_string(status));
+}
     return ddata;
 }
 
 void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
 {
     auto status = clEnqueueReadBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
-    if (status != CL_SUCCESS) MLOPEN_THROW("OpenCL error reading from buffer: " + std::to_string(status));
+    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error reading from buffer: " + std::to_string(status));
 }
 }
+} // namespace mlopen
