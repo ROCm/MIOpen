@@ -102,7 +102,6 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 	list(APPEND MLOpen_Source 
 		kernel_cache.cpp
 		lrn.cpp
-		mlo_cl_util.cpp
 		mlo_dir_conv.cpp
 		ocl/clhelper.cpp
 		ocl/convolutionocl.cpp
@@ -122,7 +121,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		)
 	# Install db files
 	install(FILES 
-		Kernels/Fiji_64_1000.cd.rdb.txt
+		Kernels/Fiji_64_1000.cd.pdb.txt
 		Kernels/Fiji_64_1050.cd.pdb.txt
 	 DESTINATION share/mlopen/db)
 endif()

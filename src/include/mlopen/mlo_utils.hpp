@@ -208,47 +208,27 @@ private:
 };
 
  
-void tokenize(const std::string& str,
+inline void tokenize(const std::string& str,
 	std::vector<std::string>& tokens,
 	const std::string& delimiters = " ");
 
-int mloGetContextDeviceFromCLQueue(cl_context & context, cl_device_id & device, cl_command_queue * profile_q, const cl_command_queue & q);
+inline void tokenize(const std::string& str,
+	std::vector<std::string>& tokens,
+	const std::string& delimiters)
+{
+	// Skip delimiters at beginning.
+	std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+	// Find first "non-delimiter".
+	std::string::size_type pos = str.find_first_of(delimiters, lastPos);
 
-int mloLoadOpenCLProgramFromSource(cl_program & program, const cl_context& context,
-									std::string kernel_path, std::string kernel_nm,
-									bool quiet = true);
-
-int mloBuildOpenCLProgram(const cl_context& context,
-	cl_device_id device,
-	cl_program program,
-	const std::string flagsStr,
-	bool quiet = true);
-
-
-int mloExecuteNoWait(
-	const mlo_ocl_args & args,
-	cl_command_queue queue,
-	cl_kernel ocl_kernel,
-	const std::vector<size_t> & gv_wk,
-	const std::vector<size_t> & lv_wk,
-	cl_event * event = NULL
-	);
-
-
-int mloGetDeviceInfo(cl_device_id deviceId,
-	int & maxComputeUnits,
-	int & maxWorkItemDims,
-	std::vector<size_t> & maxWorkItemSize,
-	size_t & maxWorkGroupSize,
-	int & maxClockFrequency,
-	size_t & maxMemAllocSize,
-	size_t &localMemSize,
-	size_t &timerResolution,
-	std::string & deviceName);
-
-int mloReadEventTime(cl_event& event, double & time);
-
-
-
-
+	while (std::string::npos != pos || std::string::npos != lastPos)
+	{
+		// Found a token, add it to the vector.
+		tokens.push_back(str.substr(lastPos, pos - lastPos));
+		// Skip delimiters.  Note the "not_of"
+		lastPos = str.find_first_not_of(delimiters, pos);
+		// Find next "non-delimiter"
+		pos = str.find_first_of(delimiters, lastPos);
+	}
+}
 #endif
