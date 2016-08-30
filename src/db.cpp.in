@@ -10,5 +10,5 @@ std::string GetDbPath()
     else return p;
 }
 
-}
+} // namespace mlopen
 
