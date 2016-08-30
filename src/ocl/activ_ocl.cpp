@@ -1,5 +1,6 @@
 #include <mlopen/activ.hpp>
 #include <mlopen/mlo_internal.hpp>
+#include <mlopen/kernel_cache.hpp>
 
 namespace mlopen {
 
@@ -18,8 +19,8 @@ namespace mlopen {
 		mlopenStatus_t status = mlopenStatusSuccess;
 		printf("in activation forward\n");
 
-#if 0
-		mlo_construct_norm construct_params(1); // forward
+
+		mlo_construct_neuron construct_params(1); // forward
 
 		std::string kernel_path = "../src/Kernels/";
 
@@ -74,14 +75,13 @@ namespace mlopen {
 				hInStride,
 				wInStride);
 
-		int norm_reg = GetMode();
-		int local_area = GetN();
-		double lrn_alpha = GetAlpha();
-		double lrn_beta = GetBeta();
-		double lrn_K = GetK();
+		int mode = GetMode();
+		double activ_alpha = GetAlpha();
+		double activ_beta = GetBeta();
+		double activ_power = GetPower();
 
 		construct_params.doBackward(do_backward);
-		construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
+		construct_params.setNeuronDescr(mode, activ_power, activ_beta, activ_alpha);
 
 		status = (mlopenStatus_t)construct_params.mloConstruct();
 		if (x == 0 || y == 0)
@@ -101,47 +101,30 @@ namespace mlopen {
 			const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 			const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-			int norm_region;
-			int local_ar;
-			// whithin channel alphaoverarea is going to be culculate based on actual areal size (cut by borders).
-			double norm_alpha;
-			double norm_beta;
-			double norm_K;
-			double norm_alphaoverarea;
+			int mode;
+			double activ_alpha;
+			double activ_beta;
+			double activ_power;
 
-			construct_params.getNormDescr(norm_region, local_ar, norm_alpha, norm_beta, norm_K, norm_alphaoverarea);
-			float f_norm_alpha = (float)norm_alpha;
-			float f_norm_beta = (float)norm_beta;
-			float f_norm_K = (float)norm_K;
-			float f_norm_alphaoverarea = (float)norm_alphaoverarea;
+			construct_params.getNeuronDescr(mode, activ_power, activ_beta, activ_alpha);
+			float f_activ_alpha = (float)activ_alpha;
+			float f_activ_beta = (float)activ_beta;
+			float f_activ_power = (float)activ_power;
 
-			if (do_backward)
-			{
-				handle.GetKernel("mlopenLRNForward",
+			handle.GetKernel("mlopenActivationForward",
 						network_config,
 						program_name,
 						kernel_name,
 						vld,
 						vgd,
-						parms)(x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
-			}
-			else
-			{
-				handle.GetKernel("mlopenLRNForward",
-						network_config,
-						program_name,
-						kernel_name,
-						vld,
-						vgd,
-						parms)(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
-			}
+						parms)(x, y, f_activ_power, f_activ_beta, f_activ_alpha);
 
 			handle.Finish();
 
-			std::cout << "LRN Forward Finished !!" << std::endl;
+			std::cout << "Activation Forward Finished !!" << std::endl;
 
 		}
-#endif
+
 		return(status);
 	}
 
@@ -163,8 +146,8 @@ namespace mlopen {
 		printf("in activation backward\n");
 
 
-#if 0
-		mlo_construct_norm construct_params(0); // backward
+
+		mlo_construct_neuron construct_params(0); // backward
 
 		std::string kernel_path = "../src/Kernels/";
 
@@ -266,19 +249,6 @@ namespace mlopen {
 				cInStride,
 				hInStride,
 				wInStride);
-
-		int norm_reg = GetMode();
-
-		int local_area = GetN();
-
-		double lrn_alpha = GetAlpha();
-		double lrn_beta = GetBeta();
-		double lrn_K = GetK();
-
-		construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
-
-		status = (mlopenStatus_t)construct_params.mloConstruct();
-
 		std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
 		std::string kernel_name = construct_params.getKernelName(); // kernel name
 		std::string parms = construct_params.getCompilerOptions(); // kernel parameters
@@ -289,32 +259,26 @@ namespace mlopen {
 		const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 		const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-		int norm_region;
-		int local_ar;
-		// whithin channel alphaoverarea is going to be culculate based on actual areal size (cut by borders).
-		double norm_alpha;
-		double norm_beta;
-		double norm_K;
-		double norm_alphaoverarea;
 
-		construct_params.getNormDescr(norm_region, local_ar, norm_alpha, norm_beta, norm_K, norm_alphaoverarea);
-		float f_norm_alpha = (float)norm_alpha;
-		float f_norm_beta = (float)norm_beta;
-		float f_norm_ratio = (float)(2. *norm_alpha * norm_beta / (double)local_ar);
+		int mode = GetMode();
+		float f_activ_alpha = (float)GetAlpha();
+		float f_activ_beta = (float)GetBeta();
+		float f_activ_power = (float)GetPower();
+		float f_diff_scale = f_activ_beta * f_activ_power;
 
-		handle.GetKernel("mlopenLRNBackward",
-				network_config,
-				program_name,
-				kernel_name,
-				vld,
-				vgd,
-				parms)(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
+		handle.GetKernel("mlopenActivationBackward",
+			network_config,
+			program_name,
+			kernel_name,
+			vld,
+			vgd,
+			parms)(dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha);
 
 
 		handle.Finish();
 
-		std::cout << "LRN Backward Finished !!" << std::endl;
-#endif
+		std::cout << "Activation Backward Finished !!" << std::endl;
+
 		return(status);
 	}
 }
