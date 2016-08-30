@@ -262,7 +262,7 @@ std::vector<T> forward_conv(const tensor<T>& input, const tensor<T>& weights, co
 }
 
 template<class T>
-std::vector<T> forward_conv(mlopen::Handle& handle, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int bias = 0)
+std::vector<T> forward_conv(mlopen::Handle& handle, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
 {
     auto out = get_output_tensor(filter, input, weights);
 
@@ -411,12 +411,16 @@ int main() {
     mlopen::Handle handle;
     auto g0 = [](int, int, int, int) { return 0; };
     auto g1 = [](int, int, int, int) { return 1; };
-    auto g_id = [](int n, int c, int h, int w) { return h == w ? 1 : 0; };
+    auto g_id = [](int, int, int h, int w) { return h == w ? 1 : 0; };
     auto g = [](int n, int c, int h, int w)
     {
         double x = (547*n+701*c+877*h+1049*w+173)%1223;
         return x/691.0;
     };
+    (void)g0;
+    (void)g1;
+    (void)g_id;
+    (void)g;
 #if MLOPEN_TEST_ALL
     printf("verify_all\n");
     verify_all<float>(handle, g0,g1, g_id, g);
