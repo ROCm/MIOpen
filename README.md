@@ -99,9 +99,9 @@ cmake --build . --config Release --target test_tensor
 ./test/test_tensor
 ```
 
-##WINDOWS
+##Windows (Deprecated -- use only if the above do not work for you)
 
-## General prerequisites
+### General prerequisites
 
 * GCN-based GPU architecture or later (in particular, check your inegrated graphics HW).
 * Latest AMD display driver.
@@ -109,7 +109,7 @@ cmake --build . --config Release --target test_tensor
 * CMake for WINDOWS
 * MS VS15 full installation
 
-##Build:
+###Build:
 ```
 cd .../MLOpen
 mkdir build
@@ -122,8 +122,8 @@ cmake .. -G "Visual Studio 14 2015 Win64"
 * Click "Set up as Startup Project"
 * Build solution
 
-##Run:
-##From inside VS15
+###Run 
+###From inside VS15)
 * Right click on MLOpenDriver
 * Click on Properties
 * Click on Debugging
@@ -131,7 +131,7 @@ cmake .. -G "Visual Studio 14 2015 Win64"
 * Environment: PATH=./src\Debug;%PATH%
 * Command arguments (example):conv -n 10 -c 13 -k 13 -x 3 -y 3 -H 32 -W 64 -p 3 -q 3 -u 1 -v 1 -V 1 -F 1
 
-##From command line
+### From command line
 ```
 cd .../MLOpen/build
 PATH=.\src\Debug;%PATH%
