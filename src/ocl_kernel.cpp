@@ -9,7 +9,7 @@ void OCLKernelInvoke::run() const
 		work_dim,
 		global_work_offset.data(),
 		global_work_dim.data(),
-		local_work_dim.data(), 0, NULL, callback ? &ev : nullptr);
+		local_work_dim.data(), 0, nullptr, callback ? &ev : nullptr);
 
 	if (status != CL_SUCCESS) {
 		MLOPEN_THROW("Running kernel failed: " + std::to_string(status));
@@ -30,12 +30,12 @@ OCLKernelInvoke OCLKernel::Invoke(cl_command_queue q, std::function<void(cl_even
 
 mlopenStatus_t OCLKernel::GetKernelName(std::string &progName) {
 	
-	char *name = new char[200];
+	auto *name = new char[200];
 	cl_int status = clGetKernelInfo(kernel.get(), 
 			CL_KERNEL_FUNCTION_NAME, 
 			200, 
 			name, 
-			NULL);
+			nullptr);
 
 	if(status != CL_SUCCESS) {
 		return mlopenStatusBadParm;
@@ -48,5 +48,5 @@ mlopenStatus_t OCLKernel::GetKernelName(std::string &progName) {
 	
 }
 
-}
+} // namespace mlopen
 

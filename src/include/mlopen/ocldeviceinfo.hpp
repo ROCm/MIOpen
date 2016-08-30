@@ -98,7 +98,8 @@ struct GetDeviceInfoImpl
     {
         T result;
         auto status = clGetDeviceInfo(device, N, sizeof(T), &result, nullptr);
-        if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status);
+        if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status);
+}
         return result;
     }
 };
@@ -117,7 +118,8 @@ struct GetDeviceInfoImpl<T*>
     {
         size_t size;
         auto status = clGetDeviceInfo(device, N, 0, nullptr, &size);
-        if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status);
+        if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status);
+}
         return size/sizeof(T);
     }
 
@@ -125,8 +127,10 @@ struct GetDeviceInfoImpl<T*>
     {
         type result(GetSize(N, device), 0);
         auto status = clGetDeviceInfo(device, N, result.size()*sizeof(T), (void *)result.data(), nullptr);
-        if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status);
-		if(std::is_same<T, char>()) result.pop_back(); 
+        if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status);
+}
+		if(std::is_same<T, char>()) { result.pop_back(); 
+}
         return result;
     }
 };

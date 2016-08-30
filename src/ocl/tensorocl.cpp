@@ -5,11 +5,11 @@
 namespace mlopen {
 
 void TensorDescriptor::TransformTensor(Handle& handle,
-			const void *alpha,
+			const void * /*alpha*/,
 			const TensorDescriptor& srcTensorDesc,
-			const cl_mem srcTensor,
-			const void *beta,
-			cl_mem dstTensor) {
+			const cl_mem  /*srcTensor*/,
+			const void * /*beta*/,
+			cl_mem  /*dstTensor*/) {
 
 	printf("To be implemented (TransformTensor) \n");
 
@@ -34,15 +34,15 @@ void TensorDescriptor::TransformTensor(Handle& handle,
 }
 
 void TensorDescriptor::OpTensor(Handle& handle,
-		mlopenTensorOp_t				tensorOp,
-		const void						*alpha1,
+		mlopenTensorOp_t				 /*tensorOp*/,
+		const void						* /*alpha1*/,
 		const TensorDescriptor&	inputTensorDesc1,
-		const cl_mem					inputTensor1,
-		const void						*alpha2,
+		const cl_mem					 /*inputTensor1*/,
+		const void						* /*alpha2*/,
 		const TensorDescriptor&	inputTensorDesc2,
-		const cl_mem					inputTensor2,
-		const void						*beta,
-		cl_mem							dstTensor) {
+		const cl_mem					 /*inputTensor2*/,
+		const void						* /*beta*/,
+		cl_mem							 /*dstTensor*/) {
 
 	printf("To be implemented (Op Tensor) \n");
 
@@ -103,7 +103,7 @@ void TensorDescriptor::SetTensor(Handle& handle,
 
 void TensorDescriptor::ScaleTensor(Handle& handle,
 		cl_mem							dstTensor,
-		const void						*alpha) {
+		const void						* /*alpha*/) {
 
 	printf("To be implemented (ScaleTensor) \n");
 	if(dstTensor == nullptr) {
@@ -123,4 +123,4 @@ void TensorDescriptor::ScaleTensor(Handle& handle,
 
 }
 
-}
+} // namespace mlopen

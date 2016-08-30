@@ -33,4 +33,4 @@ double LRNDescriptor::GetK() const
 {
 	return this->parms[2];
 }
-}
+}  // namespace mlopen

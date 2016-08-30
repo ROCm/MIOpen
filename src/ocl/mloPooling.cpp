@@ -19,7 +19,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
 
-int mlo_construct_pooling2D::mloConstruct(void)
+int mlo_construct_pooling2D::mloConstruct()
 {
 	int ret = 0;
 
@@ -36,51 +36,51 @@ int mlo_construct_pooling2D::mloConstruct(void)
 	return(ret);
 } 
 
-int mlo_construct_pooling2D::mloConstructFwd(void)
+int mlo_construct_pooling2D::mloConstructFwd()
 {
 	int ret = 0;
 
 	_grp_tile0 = 8;
 	_grp_tile1 = 8;
-	int ocl_group_lg2sz0 = (int)ceil(log((double)_grp_tile0) / log(2.));
-	int ocl_group_lg2sz1 = (int)ceil(log((double)_grp_tile1) / log(2.));;
+	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile0)) / log(2.)));
+	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile1)) / log(2.)));;
 
 
 	_out_pix_tile0 = (_out_width < _grp_tile0 * 2) ? 1 : 2;
 	_out_pix_tile1 = (_out_height < _grp_tile1 * 2) ? 1 : 2;
 
 	_comp_options =
-		std::string(" -D MLO_POOLING_OP_ID=") + std::to_string((long long)_pooling_method)
-		+ std::string(" -D MLO_POOLING_KERNEL_SZ1=") + std::to_string((long long)_kernel_size1)
-		+ std::string(" -D MLO_POOLING_PAD1=") + std::to_string((long long)_pad1)
-		+ std::string(" -D MLO_POOLING_STRIDE1=") + std::to_string((long long)_kernel_stride1)
-		+ std::string(" -D MLO_POOLING_KERNEL_SZ0=") + std::to_string((long long)_kernel_size0)
-		+ std::string(" -D MLO_POOLING_PAD0=") + std::to_string((long long)_pad0)
-		+ std::string(" -D MLO_POOLING_STRIDE0=") + std::to_string((long long)_kernel_stride0)
-		+ std::string(" -D MLO_POOLING_N_OUTPUTS=") + std::to_string((long long)_n_outputs)
-		+ std::string(" -D MLO_POOLING_N_CHANNELS=") + std::to_string((long long)_n_inputs)
-		+ std::string(" -D MLO_POOLING_N_HORIZ_OUT_PIX=") + std::to_string((long long)_out_pix_tile0)
-		+ std::string(" -D MLO_POOLING_N_VERT_OUT_PIX=") + std::to_string((long long)_out_pix_tile1)
-		+ std::string(" -D MLO_POOLING_GROUP_SZ0=") + std::to_string((long long)_grp_tile0)
-		+ std::string(" -D MLO_POOLING_GROUP_SZ1=") + std::to_string((long long)_grp_tile1)
-		+ std::string(" -D MLO_POOLING_GROUP_LG2SZ0=") + std::to_string((long long)ocl_group_lg2sz0)
-		+ std::string(" -D MLO_POOLING_GROUP_LG2SZ1=") + std::to_string((long long)ocl_group_lg2sz1)
-		+ std::string(" -D MLO_POOLING_BOT_BATCH_STRIDE=") + std::to_string((long long)_in_batch_stride)
-		+ std::string(" -D MLO_POOLING_BOT_CHANNEL_STRIDE=") + std::to_string((long long)_in_channel_stride)
-		+ std::string(" -D MLO_POOLING_BOT_STRIDE=") + std::to_string((long long)_in_stride)
-		+ std::string(" -D MLO_POOLING_TOP_BATCH_STRIDE=") + std::to_string((long long)_out_batch_stride)
-		+ std::string(" -D MLO_POOLING_TOP_CHANNEL_STRIDE=") + std::to_string((long long)_out_channel_stride)
-		+ std::string(" -D MLO_POOLING_TOP_STRIDE=") + std::to_string((long long)_out_stride)
-		+ std::string(" -D MLO_POOLING_BOT_WIDTH=") + std::to_string((long long)_in_width)
-		+ std::string(" -D MLO_POOLING_BOT_HEIGHT=") + std::to_string((long long)_in_height)
-		+ std::string(" -D MLO_POOLING_TOP_WIDTH=") + std::to_string((long long)_out_width)
-		+ std::string(" -D MLO_POOLING_TOP_HEIGHT=") + std::to_string((long long)_out_height)
+		std::string(" -D MLO_POOLING_OP_ID=") + std::to_string(static_cast<long long>(_pooling_method))
+		+ std::string(" -D MLO_POOLING_KERNEL_SZ1=") + std::to_string(static_cast<long long>(_kernel_size1))
+		+ std::string(" -D MLO_POOLING_PAD1=") + std::to_string(static_cast<long long>(_pad1))
+		+ std::string(" -D MLO_POOLING_STRIDE1=") + std::to_string(static_cast<long long>(_kernel_stride1))
+		+ std::string(" -D MLO_POOLING_KERNEL_SZ0=") + std::to_string(static_cast<long long>(_kernel_size0))
+		+ std::string(" -D MLO_POOLING_PAD0=") + std::to_string(static_cast<long long>(_pad0))
+		+ std::string(" -D MLO_POOLING_STRIDE0=") + std::to_string(static_cast<long long>(_kernel_stride0))
+		+ std::string(" -D MLO_POOLING_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs))
+		+ std::string(" -D MLO_POOLING_N_CHANNELS=") + std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string(" -D MLO_POOLING_N_HORIZ_OUT_PIX=") + std::to_string(static_cast<long long>(_out_pix_tile0))
+		+ std::string(" -D MLO_POOLING_N_VERT_OUT_PIX=") + std::to_string(static_cast<long long>(_out_pix_tile1))
+		+ std::string(" -D MLO_POOLING_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
+		+ std::string(" -D MLO_POOLING_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
+		+ std::string(" -D MLO_POOLING_GROUP_LG2SZ0=") + std::to_string(static_cast<long long>(ocl_group_lg2sz0))
+		+ std::string(" -D MLO_POOLING_GROUP_LG2SZ1=") + std::to_string(static_cast<long long>(ocl_group_lg2sz1))
+		+ std::string(" -D MLO_POOLING_BOT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
+		+ std::string(" -D MLO_POOLING_BOT_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
+		+ std::string(" -D MLO_POOLING_BOT_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
+		+ std::string(" -D MLO_POOLING_TOP_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
+		+ std::string(" -D MLO_POOLING_TOP_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
+		+ std::string(" -D MLO_POOLING_TOP_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
+		+ std::string(" -D MLO_POOLING_BOT_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
+		+ std::string(" -D MLO_POOLING_BOT_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
+		+ std::string(" -D MLO_POOLING_TOP_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string(" -D MLO_POOLING_TOP_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
 		+ getGeneralCompOptions()
 		;
 
 
-	int g_wk_width = (int)((_out_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
-	int g_wk_height = (int)((_out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
+	int g_wk_width = ((_out_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
+	int g_wk_height = ((_out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
 
 	_l_wk.clear();
 	_l_wk.push_back(_grp_tile0);
@@ -102,7 +102,7 @@ int mlo_construct_pooling2D::mloConstructFwd(void)
 }
 
 
-int mlo_construct_pooling2D::mloConstructBwd(void)
+int mlo_construct_pooling2D::mloConstructBwd()
 {
 	int ret = 0;
 
@@ -110,47 +110,47 @@ int mlo_construct_pooling2D::mloConstructBwd(void)
 	_out_pix_tile1 = _kernel_stride1;
 	_grp_tile0 = 8;
 	_grp_tile1 = 8;
-	int ocl_group_lg2sz0 = (int)ceil(log((double)_grp_tile0) / log(2.));
-	int ocl_group_lg2sz1 = (int)ceil(log((double)_grp_tile1) / log(2.));
+	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile0)) / log(2.)));
+	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile1)) / log(2.)));
 
 
 	_comp_options =
-		std::string(" -D MLO_POOLING_KERNEL_SZ1=") + std::to_string((long long)_kernel_size1)
-		+ std::string(" -D MLO_POOLING_PAD1=") + std::to_string((long long)_pad1)
-		+ std::string(" -D MLO_POOLING_STRIDE1=") + std::to_string((long long)_kernel_stride1)
-		+ std::string(" -D MLO_POOLING_KERNEL_SZ0=") + std::to_string((long long)_kernel_size0)
-		+ std::string(" -D MLO_POOLING_PAD0=") + std::to_string((long long)_pad0)
-		+ std::string(" -D MLO_POOLING_STRIDE0=") + std::to_string((long long)_kernel_stride0)
-		+ std::string(" -D MLO_POOLING_N_OUTPUTS=") + std::to_string((long long)_n_outputs)
-		+ std::string(" -D MLO_POOLBWD_N_HORIZ_OUT_PIX=") + std::to_string((long long)_out_pix_tile0)
-		+ std::string(" -D MLO_POOLBWD_N_VERT_OUT_PIX=") + std::to_string((long long)_out_pix_tile1)
-		+ std::string(" -D MLO_POOLBWD_GROUP_SZ0=") + std::to_string((long long)_grp_tile0)
-		+ std::string(" -D MLO_POOLBWD_GROUP_SZ1=") + std::to_string((long long)_grp_tile1)
-		+ std::string(" -D MLO_POOLBWD_GROUP_LG2SZ0=") + std::to_string((long long)ocl_group_lg2sz0)
-		+ std::string(" -D MLO_POOLBWD_GROUP_LG2SZ1=") + std::to_string((long long)ocl_group_lg2sz1)
-		+ std::string(" -D MLO_POOLBWD_BOT_BATCH_STRIDE=") + std::to_string((long long)_in_batch_stride)
-		+ std::string(" -D MLO_POOLBWD_BOT_CHANNEL_STRIDE=") + std::to_string((long long)_in_channel_stride)
-		+ std::string(" -D MLO_POOLBWD_BOT_STRIDE=") + std::to_string((long long)_in_stride)
-		+ std::string(" -D MLO_POOLBWD_TOP_BATCH_STRIDE=") + std::to_string((long long)_out_batch_stride)
-		+ std::string(" -D MLO_POOLBWD_TOP_CHANNEL_STRIDE=") + std::to_string((long long)_out_channel_stride)
-		+ std::string(" -D MLO_POOLBWD_TOP_STRIDE=") + std::to_string((long long)_out_stride)
-		+ std::string(" -D MLO_POOLBWD_BOT_WIDTH=") + std::to_string((long long)_in_width)
-		+ std::string(" -D MLO_POOLBWD_BOT_HEIGHT=") + std::to_string((long long)_in_height)
-		+ std::string(" -D MLO_POOLBWD_TOP_WIDTH=") + std::to_string((long long)_out_width)
-		+ std::string(" -D MLO_POOLBWD_TOP_HEIGHT=") + std::to_string((long long)_out_height)
-		+ std::string(" -D MLO_POOLBWD_BOTDF_BATCH_STRIDE=") + std::to_string((long long)_in_df_batch_stride)
-		+ std::string(" -D MLO_POOLBWD_BOTDF_CHANNEL_STRIDE=") + std::to_string((long long)_in_df_channel_stride)
-		+ std::string(" -D MLO_POOLBWD_BOTDF_STRIDE=") + std::to_string((long long)_in_df_stride)
-		+ std::string(" -D MLO_POOLBWD_TOPDF_BATCH_STRIDE=") + std::to_string((long long)_out_df_batch_stride)
-		+ std::string(" -D MLO_POOLBWD_TOPDF_CHANNEL_STRIDE=") + std::to_string((long long)_out_df_channel_stride)
-		+ std::string(" -D MLO_POOLBWD_TOPDF_STRIDE=") + std::to_string((long long)_out_df_stride)
+		std::string(" -D MLO_POOLING_KERNEL_SZ1=") + std::to_string(static_cast<long long>(_kernel_size1))
+		+ std::string(" -D MLO_POOLING_PAD1=") + std::to_string(static_cast<long long>(_pad1))
+		+ std::string(" -D MLO_POOLING_STRIDE1=") + std::to_string(static_cast<long long>(_kernel_stride1))
+		+ std::string(" -D MLO_POOLING_KERNEL_SZ0=") + std::to_string(static_cast<long long>(_kernel_size0))
+		+ std::string(" -D MLO_POOLING_PAD0=") + std::to_string(static_cast<long long>(_pad0))
+		+ std::string(" -D MLO_POOLING_STRIDE0=") + std::to_string(static_cast<long long>(_kernel_stride0))
+		+ std::string(" -D MLO_POOLING_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs))
+		+ std::string(" -D MLO_POOLBWD_N_HORIZ_OUT_PIX=") + std::to_string(static_cast<long long>(_out_pix_tile0))
+		+ std::string(" -D MLO_POOLBWD_N_VERT_OUT_PIX=") + std::to_string(static_cast<long long>(_out_pix_tile1))
+		+ std::string(" -D MLO_POOLBWD_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
+		+ std::string(" -D MLO_POOLBWD_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
+		+ std::string(" -D MLO_POOLBWD_GROUP_LG2SZ0=") + std::to_string(static_cast<long long>(ocl_group_lg2sz0))
+		+ std::string(" -D MLO_POOLBWD_GROUP_LG2SZ1=") + std::to_string(static_cast<long long>(ocl_group_lg2sz1))
+		+ std::string(" -D MLO_POOLBWD_BOT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
+		+ std::string(" -D MLO_POOLBWD_BOT_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
+		+ std::string(" -D MLO_POOLBWD_BOT_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
+		+ std::string(" -D MLO_POOLBWD_TOP_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
+		+ std::string(" -D MLO_POOLBWD_TOP_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
+		+ std::string(" -D MLO_POOLBWD_TOP_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
+		+ std::string(" -D MLO_POOLBWD_BOT_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
+		+ std::string(" -D MLO_POOLBWD_BOT_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
+		+ std::string(" -D MLO_POOLBWD_TOP_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string(" -D MLO_POOLBWD_TOP_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string(" -D MLO_POOLBWD_BOTDF_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_df_batch_stride))
+		+ std::string(" -D MLO_POOLBWD_BOTDF_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_in_df_channel_stride))
+		+ std::string(" -D MLO_POOLBWD_BOTDF_STRIDE=") + std::to_string(static_cast<long long>(_in_df_stride))
+		+ std::string(" -D MLO_POOLBWD_TOPDF_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_df_batch_stride))
+		+ std::string(" -D MLO_POOLBWD_TOPDF_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_out_df_channel_stride))
+		+ std::string(" -D MLO_POOLBWD_TOPDF_STRIDE=") + std::to_string(static_cast<long long>(_out_df_stride))
 
 		+ getGeneralCompOptions()
 		;
 
 
-	int g_wk_width = (int)((_in_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
-	int g_wk_height = (int)((_in_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
+	int g_wk_width = ((_in_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
+	int g_wk_height = ((_in_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
 
 	_l_wk.clear();
 	_l_wk.push_back(_grp_tile0);
