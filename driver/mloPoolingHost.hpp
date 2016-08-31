@@ -14,9 +14,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************/
 
-
 #ifndef MLO_POOLINGHOST_H_
 #define MLO_POOLINGHOST_H_
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#endif
 
 #include <cmath>
 #include <cstring>
@@ -319,4 +323,9 @@ int mloPoolingBackwardRunHost(
 	return(ret);
 }
 
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
+
+#endif
+
