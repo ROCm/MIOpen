@@ -309,8 +309,7 @@ int PoolDriver<T>::VerifyForward() {
 
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
-	cl_int status;
-	status = mloPoolingForwardRunHostAndVerify<float>(
+	bool match = mloPoolingForwardRunHostAndVerify<float>(
 			pooling_method,
 			pad_h,
 			u,
@@ -335,7 +334,7 @@ int PoolDriver<T>::VerifyForward() {
 			(1 << 2)
 				);
 
-	if(status) printf("Forward Pooling Verifies on CPU and GPU\n");
+	printf(match ? "Forward Pooling Verifies on CPU and GPU\n" : "Forward Pooling Verification Failed !!\n");
 
 	return 0;
 }
