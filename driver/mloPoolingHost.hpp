@@ -66,7 +66,7 @@ double CalcErr( _T c_val, _T g_val)
 #endif
 
 template<typename _T>
-int mloPoolingForwardRunHostAndVerify(
+bool mloPoolingForwardRunHostAndVerify(
 	int pooling_method,
 	int pad1,
 	int stride1,
@@ -92,8 +92,7 @@ int mloPoolingForwardRunHostAndVerify(
 	)
 {
 
-	int ret = 0;
-	int match = 1;
+	bool match = true;
 
 	// c-emulator
 	_T res = 0;
@@ -150,7 +149,7 @@ int mloPoolingForwardRunHostAndVerify(
 							else
 							{
 								std::cout << "ERROR: unknown operator : layer: pooling." << std::endl;
-								match = 0;
+								match = false;
 								continue;
 							}
 						}
@@ -165,7 +164,7 @@ int mloPoolingForwardRunHostAndVerify(
 					if (err > allowedEps || std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) || !std::isfinite(g_val))
 					{
 						std::cout << "Difference " << err << " too large at " << b << ", " << o << ", " << j << ", " << i << " c_v = " << c_val << " vs g_val = " << g_val << std::endl;
-						match = 0;
+						match = false;
 					}
 				}
 			}
@@ -173,16 +172,7 @@ int mloPoolingForwardRunHostAndVerify(
 	}
 
 
-	if (match)
-	{
-		ret = match;
-	}
-	else
-	{
-		ret = -1;
-	}
-
-	return(ret);
+	return(match);
 
 }
 
