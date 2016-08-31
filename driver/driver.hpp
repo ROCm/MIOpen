@@ -67,7 +67,7 @@ class Driver
 	mlopenHandle_t GetHandle() { return handle; }
 	cl_command_queue& GetStream() { return q; }
 
-	~Driver() {
+	virtual ~Driver() {
 		mlopenDestroy(handle);
 	}
 

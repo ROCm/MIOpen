@@ -248,8 +248,7 @@ int mloPoolingBackwardRunHost(
 							for (int w = wstart; w < wend; ++w) {
 								bot_df_v_ptr[bot_df_v_off + h * bot_df_v_stride + w] +=
 									top_df_ptr[top_df_off + j * top_df_stride + i] *
-									(bot_ptr[bot_off + h * bot_stride + w] ==
-									top_ptr[top_off + j * top_stride + i]);
+									(bot_ptr[bot_off + h * bot_stride + w] == top_ptr[top_off + j * top_stride + i]);
 #if 0
 								if (b == 0 && o == 5 && w == 17 && h == 0)
 								{
