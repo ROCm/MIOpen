@@ -243,19 +243,14 @@ std::vector<T> forward_conv(const tensor<T>& input, const tensor<T>& weights, co
         int in_off_w = j * filter.u;
 
         T acc = bias;
-        for(int k = 0; k < in_c; k++) { // in_channels (RGB)
-            for(int x = 0; x < wei_h; x++) {
-                int in_x = in_off_h - filter.pad_h + x;
-                if(in_x >= 0 && in_x < in_h) {
-                    for(int y = 0; y < wei_w; y++) {
-                        int in_y = in_off_w - filter.pad_w + y;
-                        if(in_y >= 0 && in_y < in_w) {
-                            acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
-                        }
-                    }
-                }
+        ford(in_c, wei_h, wei_w)([&](int k, int x, int y)
+        {
+            int in_x = in_off_h - filter.pad_h + x;
+            int in_y = in_off_w - filter.pad_w + y;
+            if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
+                acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
             }
-        }
+        });
         out(o, w, i, j) = acc;
     });
     return out.data;
