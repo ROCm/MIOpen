@@ -83,7 +83,10 @@ namespace mlopen {
 		construct_params.doBackward(do_backward);
 		construct_params.setNeuronDescr(mode, activ_power, activ_beta, activ_alpha);
 
+// construct
 		status = (mlopenStatus_t)construct_params.mloConstruct();
+
+
 		if (x == 0 || y == 0)
 		{
 			*workSpaceSize = construct_params.getWorkSpaceSzBytes();
@@ -249,6 +252,17 @@ namespace mlopen {
 				cInStride,
 				hInStride,
 				wInStride);
+
+		int activ_mode = GetMode();
+		double activ_alpha = GetAlpha();
+		double activ_beta = GetBeta();
+		double activ_power = GetPower();
+
+		construct_params.setNeuronDescr(activ_mode, activ_power, activ_beta, activ_alpha);
+
+// construct
+		status = (mlopenStatus_t)construct_params.mloConstruct();
+
 		std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
 		std::string kernel_name = construct_params.getKernelName(); // kernel name
 		std::string parms = construct_params.getCompilerOptions(); // kernel parameters
@@ -260,7 +274,6 @@ namespace mlopen {
 		const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 
-		int mode = GetMode();
 		float f_activ_alpha = (float)GetAlpha();
 		float f_activ_beta = (float)GetBeta();
 		float f_activ_power = (float)GetPower();
