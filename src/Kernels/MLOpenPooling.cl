@@ -103,12 +103,13 @@ __kernel void mloPooling(
 
 				int bot_x_act = bot_x + b_i - MLO_POOLING_PAD0;
 
-				
-
-				_FLOAT bot_val = bot[bot_off + bot_y_off + bot_x_act];
-
 				bool invisibleX = (bot_x_act < 0) || (bot_x_act >= MLO_POOLING_BOT_WIDTH);
-				bot_val = (invisibleX || invisibleY) ?
+				bool invisible = invisibleX || invisibleY;
+
+				int bot_idx = invisible ? 0 : (bot_off + bot_y_off + bot_x_act);
+				_FLOAT bot_val = bot[bot_idx];
+
+				bot_val = (invisible) ?
 
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
 				-FLT_MAX
