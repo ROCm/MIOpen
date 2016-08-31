@@ -89,6 +89,7 @@ else()
             -Wenum-compare
             -Wexplicit-ownership-type
             -Wextern-initializer
+            -Wfloat-equal
             -Wgnu-array-member-paren-init
             -Wheader-guard
             -Wheader-hygiene
