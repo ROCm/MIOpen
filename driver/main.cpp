@@ -4,6 +4,7 @@
 #include "conv_driver.hpp"
 #include "pool_driver.hpp"
 #include "lrn_driver.hpp"
+#include "activ_driver.hpp"
 
 int main(int argc, char *argv[]) {
 
@@ -19,6 +20,10 @@ int main(int argc, char *argv[]) {
 	else if(base_arg == "lrn") {
 		drv = new LRNDriver<float>();
 	}
+	else if (base_arg == "activ") {
+		drv = new ActivationDriver<float>();
+	}
+
 
 	drv->AddCmdLineArgs();
 	drv->ParseCmdLineArgs(argc, argv);
