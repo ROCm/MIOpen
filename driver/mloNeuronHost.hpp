@@ -272,7 +272,7 @@ int mloNeuronForwardRunHostAndVerify(
 /*									DIFF                                      */
 /******************************************************************************/
 template<typename _T>
-void ActivationFunction_ReLU_Diff(_T * bot_diff, const _T* top_diff, const _T *bot_data, _T negative_slope)
+void ActivationFunction_ReLU_Diff(_T * bot_diff, const _T* top_diff, const _T *bot_data, _T /*negative_slope*/)
 {
 
 	for (int i = 0; i < 4; ++i)
@@ -347,12 +347,12 @@ void ActivationFunction_BNLL_Diff(_T * bot_diff, const _T* top_diff, const _T *b
 template<typename _T>
 int mloNeuronBackwardRunHostAndVerify(
 	int neuron_type,
-	_T power,
-	_T shift,
+	_T /*power*/,
+	_T /*shift*/,
 	_T scale,
 	size_t size,
 	const _T * bot_ptr,
-	const _T * top_ptr,
+	const _T * /*top_ptr*/,
 	const _T * bot_df_ptr,
 	const _T * top_df_ptr,
 	double allowedEps
