@@ -14,9 +14,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************/
 
+#include <mlopen/errors.hpp>
 
 #ifndef MLO_UITLS_H_
-#define MLO_UTILS_H_
+#define MLO_UITLS_H_
 
 typedef std::pair<size_t, void*> mlo_ocl_arg;
 typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
@@ -26,7 +27,7 @@ typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
 
 #ifdef WIN32
 
- static double
+ inline double
 	 mlopen_mach_absolute_time(void)   // Windows
  {
 	 double ret = 0;
@@ -39,19 +40,19 @@ typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
  }
 #else
  // We want milliseconds. Following code was interpreted from timer.cpp
- static double
-	 mlopen_mach_absolute_time(void)   // Linux 
+ inline double
+	 mlopen_mach_absolute_time()   // Linux 
  {
 	 double  d = 0.0;
-	 timeval t; t.tv_sec = 0; t.tv_usec = 0;
-	 gettimeofday(&t, NULL);
+	 timeval t{}; t.tv_sec = 0; t.tv_usec = 0;
+	 gettimeofday(&t, nullptr);
 	 d = (t.tv_sec*1000.0) + t.tv_usec / 1000;  // TT: was 1000000.0 
 	 return(d);
  }
 #endif
 
 
- static double
+ inline double
 	 subtractTimes(double endTime, double startTime)
  {
 	 double difference = endTime - startTime;
@@ -59,18 +60,19 @@ typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
 
 	 if (conversion == 0.0)
 	 {
-#if __APPLE__
-		 mach_timebase_info_data_t info;
+#ifdef __APPLE__
+		 mach_timebase_info_data_t info{};
 		 kern_return_t err = mach_timebase_info(&info);
 
 		 //Convert the timebase into seconds
-		 if (err == 0)
-			 conversion = 1e-9 * (double)info.numer / (double)info.denom;
+		 if (err == 0) {
+			 conversion = 1e-9 * static_cast<double>(info.numer) / static_cast<double>(info.denom);
+}
 #else
 		 conversion = 1.;
 #endif
 	 }
-	 return conversion * (double)difference;
+	 return conversion * difference;
  }
 
 #endif
@@ -90,7 +92,7 @@ public:
 	/**
 	* Destructor
 	*/
-	~mloFile(){};
+	~mloFile()= default;;
 
 	/**
 	* Opens the CL program file
@@ -106,7 +108,7 @@ public:
 			size_t sizeFile;
 			// Find the stream size
 			f.seekg(0, std::fstream::end);
-			size = sizeFile = (size_t)f.tellg();
+			size = sizeFile = static_cast<size_t>(f.tellg());
 			f.seekg(0, std::fstream::beg);
 			str = new char[size + 1];
 			if (!str) {
@@ -133,7 +135,7 @@ public:
 	*/
 	int writeBinaryToFile(const char *fileName, const char *binary,
 		size_t numBytes) {
-		FILE *output = NULL;
+		FILE *output = nullptr;
 
 		if (fopen_s(&output, fileName, "wb")) {
 			return 0;
@@ -149,24 +151,21 @@ public:
 	* @return true if success else false
 	*/
 	int readBinaryFromFile(const char *fileName) {
-		FILE *input = NULL;
-		size_t size = 0, val;
-		char *binary = NULL;
+		using FilePtr = MLOPEN_MANAGE_PTR(FILE, fclose);
 
-		if (fopen_s(&input, fileName, "rb")) {
+		FilePtr input{fopen(fileName, "rb")};
+		if (input == nullptr) {
+			// TODO: Should throw
 			return -1;
+			// MLOPEN_THROW("Error opening file " + std::string(fileName));;
 		}
-		fseek(input, 0L, SEEK_END);
-		size = ftell(input);
-		rewind(input);
-		binary = (char *)malloc(size);
-		if (binary == NULL) {
-			return -1;
-		}
-		val = fread(binary, sizeof(char), size, input);
-		fclose(input);
-		source_.assign(binary, size);
-		free(binary);
+		fseek(input.get(), 0L, SEEK_END);
+		auto size = ftell(input.get());
+		rewind(input.get());
+		std::vector<char> binary(size);
+		auto val = fread(binary.data(), sizeof(char), size, input.get());
+		if (val != size) MLOPEN_THROW("Error reading file");
+		source_.assign(binary.data(), size);
 		return 0;
 	}
 

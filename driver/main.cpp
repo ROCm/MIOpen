@@ -19,6 +19,10 @@ int main(int argc, char *argv[]) {
 	else if(base_arg == "lrn") {
 		drv = new LRNDriver<float>();
 	}
+	else {
+		printf("Incorrect BaseArg\n");
+		exit(0);
+	}
 
 	drv->AddCmdLineArgs();
 	drv->ParseCmdLineArgs(argc, argv);

@@ -51,8 +51,8 @@ public:
 						 const std::string& network_config,
                          const std::string& program_name,
                          const std::string& kernel_name,
-						 const std::vector<size_t>& ldims,
-						 const std::vector<size_t>& gdims,
+						 const std::vector<size_t>& vld,
+						 const std::vector<size_t>& vgd,
                         std::string params = "");
 	
 	OCLKernel GetKernel( const std::string& algorithm,
@@ -67,6 +67,6 @@ private:
     KernelMap kernel_map;
 };
 
-}
+}  // namespace mlopen
 
 #endif // GUARD_MLOPEN_KERNEL_CACHE_HPP_

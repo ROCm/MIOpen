@@ -14,9 +14,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************/
 
-
 #ifndef MLO_POOLINGHOST_H_
 #define MLO_POOLINGHOST_H_
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#endif
 
 #include <cmath>
 #include <cstring>
@@ -248,8 +252,7 @@ int mloPoolingBackwardRunHost(
 							for (int w = wstart; w < wend; ++w) {
 								bot_df_v_ptr[bot_df_v_off + h * bot_df_v_stride + w] +=
 									top_df_ptr[top_df_off + j * top_df_stride + i] *
-									(bot_ptr[bot_off + h * bot_stride + w] ==
-									top_ptr[top_off + j * top_stride + i]);
+									(bot_ptr[bot_off + h * bot_stride + w] == top_ptr[top_off + j * top_stride + i]);
 #if 0
 								if (b == 0 && o == 5 && w == 17 && h == 0)
 								{
@@ -277,9 +280,6 @@ int mloPoolingBackwardRunHost(
 					for (int i = 0; i < bot_width; i++)
 					{
 						// c-emulator
-						_T res = 0;
-
-						res = 0;
 						bot_df_v_ptr[bot_df_v_off + j * bot_df_v_stride + i] = 0;
 						int h = j + pad1;
 						int w = i + pad0;
@@ -323,4 +323,9 @@ int mloPoolingBackwardRunHost(
 	return(ret);
 }
 
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
+
+#endif
+

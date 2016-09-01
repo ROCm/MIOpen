@@ -25,7 +25,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		ConstData_t						w,
 		const TensorDescriptor&			yDesc,
 		ConstData_t						y,
-		const int						requestAlgoCount,
+		int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
@@ -53,7 +53,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		ConstData_t						w,
 		const TensorDescriptor&			dxDesc,
 		ConstData_t						dx,
-		const int						requestAlgoCount,
+		int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
@@ -82,7 +82,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	int upscalex;
 	int upscaley;
 };
-}
+}  // namespace mlopen
 MLOPEN_DEFINE_OBJECT(mlopenConvolutionDescriptor, mlopen::ConvolutionDescriptor);
 
 #endif // GUARD_MLOPEN_CONVOLUTION_HPP_

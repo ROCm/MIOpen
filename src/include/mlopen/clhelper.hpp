@@ -22,6 +22,6 @@ ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev);
 
 cl_device_id GetDevice(cl_command_queue q);
 cl_context GetContext(cl_command_queue q);
-}
+}  // namespace mlopen
 
 #endif // MLOPEN_GUARD_OCL_HELPER_HPP_
