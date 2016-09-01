@@ -174,7 +174,7 @@ mlopenStatus_t mlopenPoolingBackward(
 }
 
 extern "C"
-mlopenStatus_t mlopenDestroyiPoolingDescriptor(mlopenPoolingDescriptor_t poolDesc) {
+mlopenStatus_t mlopenDestroyPoolingDescriptor(mlopenPoolingDescriptor_t poolDesc) {
 	return mlopen::try_([&] {
 		delete poolDesc;
 	});

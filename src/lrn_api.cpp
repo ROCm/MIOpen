@@ -109,3 +109,10 @@ mlopenStatus_t mlopenLRNBackward(
 	});
 }
 
+extern "C"
+mlopenStatus_t mlopenDestroyLRNDescriptor(mlopenLRNDescriptor_t lrnDesc) {
+	return mlopen::try_([&] {
+		delete lrnDesc;
+	});
+}
+

@@ -7,6 +7,6 @@ namespace mlopen {
 
 std::string GetDbPath();
 
-}
+} // namespace mlopen
 
 #endif

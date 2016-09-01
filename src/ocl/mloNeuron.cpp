@@ -19,7 +19,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
 
-int mlo_construct_neuron::mloConstruct(void)
+int mlo_construct_neuron::mloConstruct()
 {
 	int ret = 0;
 
@@ -36,7 +36,7 @@ int mlo_construct_neuron::mloConstruct(void)
 	return(ret);
 } 
 
-int mlo_construct_neuron::mloConstructFwd(void)
+int mlo_construct_neuron::mloConstructFwd()
 {
 	int ret = 0;
 	int data_len = (!_in_data_type.compare("FP32") ? 4 : 8);
@@ -55,9 +55,9 @@ int mlo_construct_neuron::mloConstructFwd(void)
 	_grp_tile1 = 1;
 
 	_comp_options =
-		std::string(" -D MLO_NRN_GROUP_SZ0=") + std::to_string((long long)_grp_tile0)
-		+ std::string(" -D MLO_NRN_GROUP_SZ1=") + std::to_string((long long)_grp_tile1)
-		+ std::string(" -D MLO_NRN_OP_ID=") + std::to_string((long long)_neuron_type)
+		std::string(" -D MLO_NRN_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
+		+ std::string(" -D MLO_NRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
+		+ std::string(" -D MLO_NRN_OP_ID=") + std::to_string(static_cast<long long>(_neuron_type))
 		+ getGeneralCompOptions()
 		;
 
@@ -79,7 +79,7 @@ int mlo_construct_neuron::mloConstructFwd(void)
 }
 
 
-int mlo_construct_neuron::mloConstructBwd(void)
+int mlo_construct_neuron::mloConstructBwd()
 {
 	int ret = 0;
 	int data_len = (!_in_data_type.compare("FP32") ? 4 : 8);
@@ -98,9 +98,9 @@ int mlo_construct_neuron::mloConstructBwd(void)
 	_grp_tile1 = 1;
 
 	_comp_options =
-		std::string(" -D MLO_NRN_GROUP_SZ0=") + std::to_string((long long)_grp_tile0)
-		+ std::string(" -D MLO_NRN_GROUP_SZ1=") + std::to_string((long long)_grp_tile1)
-		+ std::string(" -D MLO_NRN_OP_ID=") + std::to_string((long long)_neuron_type)
+		std::string(" -D MLO_NRN_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
+		+ std::string(" -D MLO_NRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
+		+ std::string(" -D MLO_NRN_OP_ID=") + std::to_string(static_cast<long long>(_neuron_type))
 		+ getGeneralCompOptions()
 		;
 

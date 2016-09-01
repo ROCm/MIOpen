@@ -14,31 +14,31 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 	cl_int status;
 	ClProgramPtr result{clCreateProgramWithSource(ctx, 
 			1,
-			(const char**)&char_source, 
+			&char_source, 
 			&size, 
 			&status)};
-	if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()");
+	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()"); }
 
 	params += " -cl-std=CL2.0";
 	status = clBuildProgram(result.get(), 
 			1, &device, params.c_str(), 
-			NULL, 
-			NULL);
+			nullptr, 
+			nullptr);
 
 	if(status != CL_SUCCESS)
     {
 		std::string msg = "Error Building OpenCL Program in BuildProgram()\n";
 		std::vector<char> errorbuf(1024*1024);
-        size_t size;
+        size_t psize;
         clGetProgramBuildInfo(result.get(),
 				device,
 				CL_PROGRAM_BUILD_LOG, 
 				1024*1024, 
 				errorbuf.data(),
-				&size);
+				&psize);
 
 		msg += errorbuf.data();
-		if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status, msg);
+		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, msg); }
     }
 
 	return result;
@@ -51,7 +51,7 @@ ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name)
 			kernel_name.c_str(), 
 			&status)};
 
-	if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status);
+	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 
 	return result;
 }
@@ -63,8 +63,8 @@ cl_device_id GetDevice(cl_command_queue q)
 			CL_QUEUE_DEVICE, 
 			sizeof(cl_device_id),
 			&device, 
-			NULL);
-	if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
+			nullptr);
+	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()"); }
 
 	return device;
 }
@@ -75,8 +75,8 @@ cl_context GetContext(cl_command_queue q)
 			CL_QUEUE_CONTEXT, 
 			sizeof(cl_context),
 			&context, 
-			NULL);
-	if (status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()");
+			nullptr);
+	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()"); }
 	return context;
 }
 
@@ -85,9 +85,9 @@ ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev)
 	cl_int status;
 	ClAqPtr q{clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &status)};
 
-	if(status != CL_SUCCESS) MLOPEN_THROW_CL_STATUS(status);
+	if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 
 	return q;
 }
 
-}
+} // namespace mlopen

@@ -5,10 +5,10 @@ namespace mlopen {
 
 	mlopenStatus_t LRNDescriptor::Forward(
 			Handle						&handle,
-			const void					*alpha,
+			const void					* /*alpha*/,
 			const TensorDescriptor		&xDesc,
 			const Data_t				x,
-			const void					*beta,
+			const void					* /*beta*/,
 			const TensorDescriptor		&yDesc,
 			Data_t						y,
 			bool                        do_backward,
@@ -77,8 +77,8 @@ namespace mlopen {
 		construct_params.doBackward(do_backward);
 		construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-		status = (mlopenStatus_t)construct_params.mloConstruct();
-		if (x == 0 || y == 0)
+		status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
+		if (x == nullptr || y == nullptr)
 		{
 			*workSpaceSize = construct_params.getWorkSpaceSzBytes();
 		}
@@ -87,7 +87,7 @@ namespace mlopen {
 
 			std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 			std::string kernel_name = construct_params.getKernelName(); // kernel name
-			std::string parms = construct_params.getCompilerOptions(); // kernel parameters
+			const std::string& compiler_parms = construct_params.getCompilerOptions(); // kernel parameters
 
 			std::string network_config;
 			construct_params.mloBuildConf_Key(network_config);
@@ -104,10 +104,10 @@ namespace mlopen {
 			double norm_alphaoverarea;
 
 			construct_params.getNormDescr(norm_region, local_ar, norm_alpha, norm_beta, norm_K, norm_alphaoverarea);
-			float f_norm_alpha = (float)norm_alpha;
-			float f_norm_beta = (float)norm_beta;
-			float f_norm_K = (float)norm_K;
-			float f_norm_alphaoverarea = (float)norm_alphaoverarea;
+			float f_norm_alpha = static_cast<float>(norm_alpha);
+			float f_norm_beta = static_cast<float>(norm_beta);
+			float f_norm_K = static_cast<float>(norm_K);
+			float f_norm_alphaoverarea = static_cast<float>(norm_alphaoverarea);
 
 			KernelInvoke obj = 	handle.GetKernel("mlopenLRNForward",
 						network_config,
@@ -115,7 +115,7 @@ namespace mlopen {
 						kernel_name,
 						vld,
 						vgd,
-						parms);
+						compiler_parms);
 
 			if (do_backward)
 			{
@@ -136,14 +136,14 @@ namespace mlopen {
 
 	mlopenStatus_t LRNDescriptor :: Backward(
 			Handle						&handle,
-			const void					*alpha,
+			const void					* /*alpha*/,
 			const TensorDescriptor		&yDesc,
 			const Data_t		  		y,
 			const TensorDescriptor		&dyDesc,
 			const Data_t		  		dy,
 			const TensorDescriptor		&xDesc,
 			const Data_t		  		x,
-			const void			  		*beta,
+			const void			  		* /*beta*/,
 			const TensorDescriptor		&dxDesc,
 			Data_t						dx,
 			const Data_t				workSpace) {
@@ -259,11 +259,11 @@ namespace mlopen {
 
 		construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-		status = (mlopenStatus_t)construct_params.mloConstruct();
+		status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 
 		std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 		std::string kernel_name = construct_params.getKernelName(); // kernel name
-		std::string parms = construct_params.getCompilerOptions(); // kernel parameters
+		std::string compiler_parms = construct_params.getCompilerOptions(); // kernel parameters
 
 		std::string network_config;
 		construct_params.mloBuildConf_Key(network_config);
@@ -280,9 +280,9 @@ namespace mlopen {
 		double norm_alphaoverarea;
 
 		construct_params.getNormDescr(norm_region, local_ar, norm_alpha, norm_beta, norm_K, norm_alphaoverarea);
-		float f_norm_alpha = (float)norm_alpha;
-		float f_norm_beta = (float)norm_beta;
-		float f_norm_ratio = (float)(2. *norm_alpha * norm_beta / (double)local_ar);
+		float f_norm_alpha = static_cast<float>(norm_alpha);
+		float f_norm_beta = static_cast<float>(norm_beta);
+		float f_norm_ratio = static_cast<float>(2. *norm_alpha * norm_beta / static_cast<double>(local_ar));
 
 		handle.GetKernel("mlopenLRNBackward",
 				network_config,
@@ -290,7 +290,7 @@ namespace mlopen {
 				kernel_name,
 				vld,
 				vgd,
-				parms)(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
+				compiler_parms)(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
 
 
 		handle.Finish();
@@ -299,4 +299,4 @@ namespace mlopen {
 
 		return(status);
 	}
-}
+} // namespace mlopen
