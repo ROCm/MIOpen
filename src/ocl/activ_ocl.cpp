@@ -6,14 +6,14 @@ namespace mlopen {
 
 	mlopenStatus_t ActivationDescriptor::Forward(
 			Handle						&handle,
-			const void					*alpha,
+			const void					* /* alpha */,
 			const TensorDescriptor		&xDesc,
 			const Data_t				x,
-			const void					*beta,
+			const void					* /* beta */,
 			const TensorDescriptor		&yDesc,
 			Data_t						y,
 			bool                        do_backward,
-			Data_t						workSpace,
+			Data_t						/* workSpace */,
 			size_t						*workSpaceSize) {
 
 		mlopenStatus_t status = mlopenStatusSuccess;
@@ -75,19 +75,18 @@ namespace mlopen {
 				hInStride,
 				wInStride);
 
-		int mode = GetMode();
 		double activ_alpha = GetAlpha();
 		double activ_beta = GetBeta();
 		double activ_power = GetPower();
 
 		construct_params.doBackward(do_backward);
-		construct_params.setNeuronDescr(mode, activ_power, activ_beta, activ_alpha);
+		construct_params.setNeuronDescr(static_cast<int>(mode), activ_power, activ_beta, activ_alpha);
 
 // construct
-		status = (mlopenStatus_t)construct_params.mloConstruct();
+		status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 
 
-		if (x == 0 || y == 0)
+		if (x == nullptr || y == nullptr)
 		{
 			*workSpaceSize = construct_params.getWorkSpaceSzBytes();
 		}
@@ -96,7 +95,7 @@ namespace mlopen {
 
 			std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
 			std::string kernel_name = construct_params.getKernelName(); // kernel name
-			std::string parms = construct_params.getCompilerOptions(); // kernel parameters
+			std::string compiler_options = construct_params.getCompilerOptions(); // kernel parameters
 
 			std::string network_config;
 			construct_params.mloBuildConf_Key(network_config);
@@ -104,15 +103,11 @@ namespace mlopen {
 			const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 			const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-			int mode;
-			double activ_alpha;
-			double activ_beta;
-			double activ_power;
-
-			construct_params.getNeuronDescr(mode, activ_power, activ_beta, activ_alpha);
-			float f_activ_alpha = (float)activ_alpha;
-			float f_activ_beta = (float)activ_beta;
-			float f_activ_power = (float)activ_power;
+			int imode = mode;
+			construct_params.getNeuronDescr(imode, activ_power, activ_beta, activ_alpha);
+			float f_activ_alpha = static_cast<float>(activ_alpha);
+			float f_activ_beta = static_cast<float>(activ_beta);
+			float f_activ_power = static_cast<float>(activ_power);
 
 			handle.GetKernel("mlopenActivationForward",
 						network_config,
@@ -120,7 +115,7 @@ namespace mlopen {
 						kernel_name,
 						vld,
 						vgd,
-						parms)(x, y, f_activ_power, f_activ_beta, f_activ_alpha);
+						compiler_options)(x, y, f_activ_power, f_activ_beta, f_activ_alpha);
 
 			handle.Finish();
 
@@ -133,17 +128,17 @@ namespace mlopen {
 
 	mlopenStatus_t ActivationDescriptor :: Backward(
 			Handle						&handle,
-			const void					*alpha,
+			const void					* /* alpha */,
 			const TensorDescriptor		&yDesc,
 			const Data_t		  		y,
 			const TensorDescriptor		&dyDesc,
 			const Data_t		  		dy,
 			const TensorDescriptor		&xDesc,
 			const Data_t		  		x,
-			const void			  		*beta,
+			const void			  		* /* beta */,
 			const TensorDescriptor		&dxDesc,
 			Data_t						dx,
-			const Data_t				workSpace) {
+			const Data_t				/* workSpace */) {
 
 		mlopenStatus_t status = mlopenStatusSuccess;
 		printf("in activation backward\n");
@@ -261,11 +256,11 @@ namespace mlopen {
 		construct_params.setNeuronDescr(activ_mode, activ_power, activ_beta, activ_alpha);
 
 // construct
-		status = (mlopenStatus_t)construct_params.mloConstruct();
+		status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 
 		std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
 		std::string kernel_name = construct_params.getKernelName(); // kernel name
-		std::string parms = construct_params.getCompilerOptions(); // kernel parameters
+		std::string compiler_options = construct_params.getCompilerOptions(); // kernel parameters
 
 		std::string network_config;
 		construct_params.mloBuildConf_Key(network_config);
@@ -274,9 +269,9 @@ namespace mlopen {
 		const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 
-		float f_activ_alpha = (float)GetAlpha();
-		float f_activ_beta = (float)GetBeta();
-		float f_activ_power = (float)GetPower();
+		float f_activ_alpha = static_cast<float>(GetAlpha());
+		float f_activ_beta = static_cast<float>(GetBeta());
+		float f_activ_power = static_cast<float>(GetPower());
 		float f_diff_scale = f_activ_beta * f_activ_power;
 
 		handle.GetKernel("mlopenActivationBackward",
@@ -285,7 +280,7 @@ namespace mlopen {
 			kernel_name,
 			vld,
 			vgd,
-			parms)(dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha);
+			compiler_options)(dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha);
 
 
 		handle.Finish();
@@ -294,4 +289,4 @@ namespace mlopen {
 
 		return(status);
 	}
-}
+}  // namespace mlopen

@@ -5,14 +5,13 @@ namespace mlopen {
 
 ActivationDescriptor::ActivationDescriptor() {}
 
-ActivationDescriptor::ActivationDescriptor(mlopenActivationMode_t m, const double *pparms) : mode(m), parms(pparms, pparms+3) {}
+ActivationDescriptor::ActivationDescriptor(mlopenActivationMode_t m, const double *pparms) 
+: parms(pparms, pparms+3), mode(m) {}
 
 mlopenActivationMode_t ActivationDescriptor::GetMode() const
 {
 	return this->mode;
 }
-
-
 
 double ActivationDescriptor::GetAlpha() const
 {
@@ -28,4 +27,4 @@ double ActivationDescriptor::GetPower() const
 {
 	return this->parms[2];
 }
-}
+}  // namespace mlopen
