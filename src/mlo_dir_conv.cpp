@@ -421,13 +421,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 int mlo_construct_direct2D::mloConstructDirect2DFwd2(void)
 {
 	int ret = 0;
-
-
-
-	cl_context ctxt;
-	cl_device_id dev;
-	ret = mloGetContextDeviceFromCLQueue(ctxt, dev, NULL, (cl_command_queue)_stream);
-
+	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
+/*
 	int maxComputeUnits;
 	int maxWorkItemDims;
 	std::vector<size_t> maxWorkItemSize;
@@ -437,7 +432,9 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd2(void)
 	size_t localMemSize;
 	size_t timerResolution;
 	std::string deviceName;
-
+*/
+	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
+	/*
 	mloGetDeviceInfo(dev,
 		maxComputeUnits,
 		maxWorkItemDims,
@@ -448,7 +445,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd2(void)
 		localMemSize,
 		timerResolution,
 		deviceName);
-
+	*/
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
 
