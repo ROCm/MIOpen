@@ -55,7 +55,7 @@ class ActivationDriver : public Driver
 		mlopenDestroyTensorDescriptor(outputTensor);
 		mlopenDestroyTensorDescriptor(inputTensor);
 
-		mlopenDestroyLRNDescriptor(lrnDesc);
+//		mlopenDestroyLRNDescriptor(lrnDesc);
 	}
 		
 	private:
