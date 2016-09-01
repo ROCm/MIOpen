@@ -51,6 +51,6 @@ struct ActivationDescriptor : mlopenActivationDescriptor{
 	mlopenActivationMode_t mode;
 };
 
-}
+}  // namespace mlopen
 MLOPEN_DEFINE_OBJECT(mlopenActivationDescriptor, mlopen::ActivationDescriptor);
 #endif // _MLOPEN_ACTIV_HPP_

@@ -544,7 +544,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenDestroyLRNDescriptor(mlopenLRNDescriptor_t lr
 
 // Activation APIs
 
-MLOPEN_EXPORT mlopenStatus_t mlopenCreateActivationDescriptor(mlopenActivationDescriptor_t *lrnDesc);
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateActivationDescriptor(mlopenActivationDescriptor_t *activDesc);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenSetActivationDescriptor(
 	const mlopenActivationDescriptor_t	activDesc,
@@ -579,7 +579,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenActivationForward(
 
 MLOPEN_EXPORT mlopenStatus_t mlopenActivationBackward(
 	mlopenHandle_t						handle,
-	const mlopenActivationDescriptor_t	lrnDesc,
+	const mlopenActivationDescriptor_t	activDesc,
 	const void							*alpha,
 	const mlopenTensorDescriptor_t		yDesc,
 	const void							*y,
