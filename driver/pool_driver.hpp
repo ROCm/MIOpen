@@ -388,8 +388,7 @@ int PoolDriver<T>::VerifyBackward() {
 			// host output
 			dinhost.data(),
 			dout.data(),
-			in.data(),
-			out.data(),
+			mask.data(),
 			ndInStride,
 			cdInStride,
 			hdInStride,

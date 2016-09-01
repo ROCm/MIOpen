@@ -197,10 +197,9 @@ int mloPoolingBackwardRunHost(
 	int pad0,
 	int stride0,
 
-	_T * bot_df_v_ptr,
+	_T * bot_df_v_ptr, // the code assumes that bot_df_v_ptr was zeroed
 	const _T * top_df_ptr,
-	const _T * bot_ptr,
-	const _T * top_ptr,
+	const size_t * mask_ptr,
 
 	int bot_df_v_batch_stride,
 	int bot_df_v_channel_stride,
@@ -238,40 +237,15 @@ int mloPoolingBackwardRunHost(
 
 			if (pooling_method == MLO_POOLING_OP_MAX)
 			{
-				memset(&bot_df_v_ptr[bot_df_v_off], 0, bot_height * bot_df_v_stride * sizeof(_T));
 				for (int j = 0; j < top_height; j++)
 				{
 					for (int i = 0; i < top_width; i++)
 					{
-						int hstart = j * stride1 - pad1;
-						int wstart = i * stride0 - pad0;
-						int hend = std::min(hstart + kernel_size1, bot_height);
-						int wend = std::min(wstart + kernel_size0, bot_width);
-						hstart = std::max(hstart, 0);
-						wstart = std::max(wstart, 0);
-						for (int h = hstart; h < hend; ++h) {
-							for (int w = wstart; w < wend; ++w) {
-								bot_df_v_ptr[bot_df_v_off + h * bot_df_v_stride + w] +=
-									top_df_ptr[top_df_off + j * top_df_stride + i] *
-									(bot_ptr[bot_off + h * bot_stride + w] == top_ptr[top_off + j * top_stride + i]);
-#if 0
-								if (b == 0 && o == 5 && w == 17 && h == 0)
-								{
-									printf("C:max: %d %d   %13.11f  %13.11f  %13.11f %13.11f\n",
-										i, j,
-										bot_df_v_ptr[bot_df_v_off + h * bot_df_v_stride + w],
-										top_df_ptr[top_df_off + j * top_df_stride + i],
-										bot_ptr[bot_off + h * bot_stride + w],
-										top_ptr[top_off + j * top_stride + i]
-										);
-								}
-#endif
-							}
-						}
-
+						size_t top_idx = top_df_off + j * top_df_stride + i;
+						size_t bot_idx = mask_ptr[top_idx];
+						bot_df_v_ptr[bot_idx] += top_df_ptr[top_idx];
 					}
 				}
-
 			}
 			else if (pooling_method == MLO_POOLING_OP_AVE)
 			{
