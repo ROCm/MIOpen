@@ -103,7 +103,8 @@ namespace mlopen {
 			const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 			const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-			construct_params.getNeuronDescr(reinterpret_cast<int&>(mode), activ_power, activ_beta, activ_alpha);
+			int imode = mode;
+			construct_params.getNeuronDescr(imode, activ_power, activ_beta, activ_alpha);
 			float f_activ_alpha = static_cast<float>(activ_alpha);
 			float f_activ_beta = static_cast<float>(activ_beta);
 			float f_activ_power = static_cast<float>(activ_power);
