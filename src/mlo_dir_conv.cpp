@@ -243,7 +243,7 @@ bool mloSearchConfigDB(
 int mlo_construct_direct2D::mloConstruct()
 {
 	int ret = 0;
-	_gen = (_kernel_size0 >= 11 || _kernel_size1 >= 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
+	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 	if (_gen && getDirectcion())
 	{
 		ret = mloConstructDirect2DFwdGen();
