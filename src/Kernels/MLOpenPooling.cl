@@ -55,7 +55,8 @@
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0,MLO_POOLING_GROUP_SZ1,MLO_POOLING_GROUP_SZ2)))
 __kernel void mloPooling(
        const __global _FLOAT * bot,
-       __global _FLOAT * top
+       __global _FLOAT * top,
+	   __global _FLOAT * mask
 	   )
 {
 		__local _FLOAT bot_data[MLO_POOLING_LCL_DATA_WIDTH * MLO_POOLING_LCL_DATA_HEIGHT];

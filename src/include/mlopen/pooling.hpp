@@ -30,6 +30,7 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 		const void					*beta,
 		const TensorDescriptor		&yDesc,
 		Data_t						y,
+		Data_t						z,
 		bool						do_backward,
 		Data_t						workSpace,
 		size_t						workSpaceSize);

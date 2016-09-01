@@ -121,6 +121,7 @@ mlopenStatus_t mlopenPoolingForward(
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
 		void								*y,
+		void								*z,
 		bool                                do_backward,
 		void								*workSpace,
 		size_t								workSpaceSize) {
@@ -133,6 +134,7 @@ mlopenStatus_t mlopenPoolingForward(
 				beta,
 				mlopen::deref(yDesc),
 				DataCast(y),
+				DataCast(z),
 				do_backward,
 				DataCast(workSpace),
 				workSpaceSize);

@@ -451,6 +451,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenPoolingForward(
 		const void							*beta,
 		const mlopenTensorDescriptor_t		yDesc,
 		void								*y,
+		void								*z,
 		bool                                do_backward,
 		void								*workSpace,
 		size_t								workSpaceSize);

@@ -242,6 +242,7 @@ int PoolDriver<T>::RunForwardGPU() {
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
+			mask_dev->GetMem(),
 			inflags.GetValueInt("back"),
 			NULL,
 			0);
