@@ -33,8 +33,8 @@ double CalcErr( _T c_val, _T g_val)
 	}
 	else if (sizeof(_T) == 8)
 	{
-		int64_t * c_uval = (int64_t *)&c_val;
-		int64_t * g_uval = (int64_t *)&g_val;
+		int64_t * c_uval = reinterpret_cast<int64_t *>(&c_val);
+		int64_t * g_uval = reinterpret_cast<int64_t *>(&g_val);
 		err = (double)std::abs(*c_uval - *g_uval);
 
 	}
@@ -53,7 +53,7 @@ double CalcErr( _T c_val, _T g_val)
 template <typename Dtype>
 void ADNN_mm_cpu(const Dtype * a_ptr, size_t a_cols, size_t a_rows, size_t a_stride, int a_flags,
 	const Dtype * b_ptr, size_t b_cols, size_t b_rows, size_t b_stride, int b_flags,
-	Dtype * c_ptr, size_t c_cols, size_t c_rows, size_t c_stride, int c_flags,
+	Dtype * c_ptr, size_t c_cols, size_t c_rows, size_t c_stride, int /*c_flags*/,
 	double d_alpha, double d_beta)
 {
 	// mA
@@ -347,14 +347,14 @@ int mloBackwardMMOnHost(
 	int batch_sz,
 	int top_df_batch_stride,
 	int top_df_channel_stride,
-	int top_df_stride,
+	int /*top_df_stride*/,
 	_T * bot_df_ptr,
 	int bot_height,
 	int bot_width,
 	int inputs,
 	int bot_df_batch_stride,
-	int bot_df_channel_stride,
-	int bot_df_stride
+	int /*bot_df_channel_stride*/,
+	int /*bot_df_stride*/
 
 	)
 {
@@ -389,7 +389,7 @@ int mloBackwardMMOnHost(
 
 template<typename _T>
 int mloBackwardDirectOnHost(
-	_T padding_value,        // padding value
+	_T /*padding_value*/,        // padding value
 	// TO DO: check top, bot dim are equal
 	int kernel_size0,   // kernel 1 dim 
 	int pad0,               // padding size
@@ -507,8 +507,8 @@ void mloPrepad(
 	int new_bot_batch_stride,
 	int new_bot_channel_stride,
 	int new_bot_stride,
-	int new_bot_height,
-	int new_bot_width,
+	int /*new_bot_height*/,
+	int /*new_bot_width*/,
 	_T * new_bot_ptr,
 	const _T * bot_ptr		// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
 	)
@@ -693,13 +693,13 @@ int mloDirectSPConvHost5x5(
 	int MLO_BOT_BATCH_STRIDE,
 	int MLO_BOT_CHANNEL_STRIDE,
 	int MLO_BOT_STRIDE,
-	int MLO_BOT_HEIGHT,
-	int MLO_BOT_WIDTH,
+	int /*MLO_BOT_HEIGHT*/,
+	int /*MLO_BOT_WIDTH*/,
 	const _T * bot_ptr,			// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
 	// interleaved weights
 	const _T * wei_ptr,    // weights n output channels x n input channels x filter size_y x filter size_x
 	_T * top_ptr,	// output "te4nsor"  - batch x channels (output images, feature maps, slices) x width (scaled) x height (scaled)
-	const _T * bias_ptr = NULL         // bias, NULL if no bias
+	const _T * /*bias_ptr = NULL*/         // bias, NULL if no bias
 
 	)
 {
@@ -859,10 +859,10 @@ int mloDirectSPHost(
 	// TO DO: check top, bot dim are equal
 	int kernel_size0,   // kernel 1 dim 
 	int pad0,               // padding size
-	int stride0,    // scale factor
+	int /*stride0*/,    // scale factor
 	int kernel_size1,   // kernel 1 dim 
 	int pad1,               // padding size
-	int stride1,    // scale factor
+	int /*stride1*/,    // scale factor
 	int n_batchs,
 	int n_outputs,
 	int top_batch_stride,
@@ -1000,7 +1000,7 @@ bool mloVerify(
 					_T g_val = g_ptr[b*g_batch_stride + c*g_channel_stride + j*g_stride + i];
 
 					sqr_accum += (c_val - g_val) * (c_val - g_val);
-					double err = abs(c_val - g_val);
+					double err = std::abs(c_val - g_val);
 					if (err > max_err)
 					{
 						max_err = err;

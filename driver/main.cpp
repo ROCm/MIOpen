@@ -23,7 +23,10 @@ int main(int argc, char *argv[]) {
 	else if (base_arg == "activ") {
 		drv = new ActivationDriver<float>();
 	}
-
+	else {
+		printf("Incorrect BaseArg\n");
+		exit(0);
+	}
 
 	drv->AddCmdLineArgs();
 	drv->ParseCmdLineArgs(argc, argv);

@@ -17,11 +17,11 @@ mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 	});
 }
 
-// TODO: Stream size should be a spearate parameter
+// TODO(paul): Stream size should be a spearate parameter
 extern "C"
 mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
 		mlopenAcceleratorQueue_t *streamID,
-		int numStream) {
+		int  /*numStream*/) {
 	return mlopen::try_([&] {
 		mlopen::deref(streamID) = mlopen::deref(handle).GetStream();
 	});

@@ -181,8 +181,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 
 	cl_context ctx;
 
-	cl_command_queue q = GetStream();
-
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
