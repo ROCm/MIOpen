@@ -45,8 +45,8 @@ int mlo_construct_neuron::mloConstructFwd(void)
 	if (((size / 4) * 4) != size)
 	{
 		printf("Error: buffer size is not multipel of 4.\n");
-		ret = -1;
-		return(ret);
+	//	ret = -1;
+	//	return(ret);
 	}
 
 	size_t glbl_wk = size / 4;
@@ -88,8 +88,8 @@ int mlo_construct_neuron::mloConstructBwd(void)
 	if (((size / 4) * 4) != size)
 	{
 		printf("Error: buffer size is not multipel of 4.\n");
-		ret = -1;
-		return(ret);
+	//	ret = -1;
+	//	return(ret);
 	}
 
 	size_t glbl_wk = size / 4;

@@ -44,7 +44,7 @@ std::string ParseBaseArg(int argc, char *argv[]) {
 
 	std::string arg = argv[1];
 
-	if(arg != "conv" && arg != "pool" && arg != "lrn") {
+	if(arg != "conv" && arg != "pool" && arg != "lrn" && arg != "activ") {
 		printf("Invalid Base Input Argument\n");
 		Usage();
 	}

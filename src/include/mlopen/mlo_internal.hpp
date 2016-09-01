@@ -115,20 +115,20 @@ public:
 #if !(defined(__APPLE__) || defined(__MACOSX))
 		_gen_comp_options = std::string(" -cl-std=CL2.0 ");
 #endif
-		int in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
-		int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
+		_in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
+		_in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
 
-		int grp_tile0 = in_tile0;
-		int grp_tile1 = in_tile1;
+		_grp_tile0 = _in_tile0;
+		_grp_tile1 = _in_tile1;
 
-		int out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
-		int out_pix_tile1 = 4; //
+		_out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
+		_out_pix_tile1 = 4; //
 
 
-		int n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
-		int n_in_data_tiles = 4; // # of blocks of different inputs in LDS
+		_n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
+		_n_in_data_tiles = 4; // # of blocks of different inputs in LDS
 
-		int n_stacks = 1; // # of diff stacks (part of batch).
+		_n_stacks = 1; // # of diff stacks (part of batch).
 		_bias = (do_bias) ? 1 : 0;
 		_pad0 = 1;
 		_pad1 = 1;
@@ -682,6 +682,7 @@ protected:
 	bool mloGetConfig(void);
 	int mloSearchDirect2D(void);
 	int mloConstructDirect2DFwd(void);
+	int mloConstructDirect2DFwd2(void);
 	int mloConstructDirect2DFwdGen(void);
 	int mloConstructBwd(void)
 	{
@@ -967,11 +968,11 @@ protected:
 };
 
 #define MLO_NEURON_PASTHRU		0  //x	
-#define MLO_NEURON_LOGISTIC	MLO_NEURON_PASTHRU + 1		//	1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH		MLO_NEURON_LOGISTIC + 1	//	a * tanh( b * x)
-#define MLO_NEURON_RELU		MLO_NEURON_TANH + 1		//	max(0, x)
+#define MLO_NEURON_LOGISTIC		MLO_NEURON_PASTHRU + 1		//	1 / (1 + e^-x)	//Sigmoid
+#define MLO_NEURON_TANH			MLO_NEURON_LOGISTIC + 1	//	a * tanh( b * x)
+#define MLO_NEURON_RELU			MLO_NEURON_TANH + 1		//	max(0, x)
 #define MLO_NEURON_BRELU		MLO_NEURON_RELU + 1		//	min(a, max(0, x))
-#define MLO_NEURON_SOFTRELU	MLO_NEURON_BRELU + 1		//	log(1 + e^x)   // bonomial normal log likelihood
+#define MLO_NEURON_SOFTRELU		MLO_NEURON_BRELU + 1		//	log(1 + e^x)   // bonomial normal log likelihood
 #define MLO_NEURON_ABS			MLO_NEURON_SOFTRELU + 1	//	abs(x)
 #define MLO_NEURON_SQUARE		MLO_NEURON_ABS + 1			//	x^2
 #define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
