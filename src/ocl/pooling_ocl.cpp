@@ -12,6 +12,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		const void							* /*beta*/,
 		const TensorDescriptor				&yDesc,
 		cl_mem								y,
+		cl_mem								z,
 		bool								 /*do_backward*/,
 		cl_mem								 /*workSpace*/,
 		size_t								 /*workSpaceSize*/) {
@@ -90,7 +91,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		kernel_name,
 		vld,
 		vgd,
-		parms)(x, y);
+		parms)(x, y, z);
 
 	handle.Finish();
 
