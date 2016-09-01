@@ -21,11 +21,11 @@ void visit_network(F f, int n=MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     f(mlopen::TensorDescriptor(t, { pick_batch_size(100, n), 32,   8,   8   }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  32,   5,  5  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 1024, 12,  12  }), mlopen::TensorDescriptor(t, { pick_batch_size(1024, n),1024, 3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 256,  12,  12  }), mlopen::TensorDescriptor(t, { pick_batch_size(512, n), 256,  3,  3  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 3,    231, 231 }), mlopen::TensorDescriptor(t, { pick_batch_size(96, n),  3,    11, 11 }));
+//    f(mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 3,    231, 231 }), mlopen::TensorDescriptor(t, { pick_batch_size(96, n),  3,    11, 11 }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 512,  12,  12  }), mlopen::TensorDescriptor(t, { pick_batch_size(1024, n),512,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 96,   28,  28  }), mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 96,   5,  5  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 256,  13,  13  }), mlopen::TensorDescriptor(t, { pick_batch_size(384, n), 256,  3,  3  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 3,    227, 227 }), mlopen::TensorDescriptor(t, { pick_batch_size(96, n),  3,    11, 11 }));
+  //  f(mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 3,    227, 227 }), mlopen::TensorDescriptor(t, { pick_batch_size(96, n),  3,    11, 11 }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 384,  13,  13  }), mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 384,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 384,  13,  13  }), mlopen::TensorDescriptor(t, { pick_batch_size(384, n), 384,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 96,   27,  27  }), mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 96,   5,  5  }));
