@@ -55,7 +55,7 @@ class ActivationDriver : public Driver
 		mlopenDestroyTensorDescriptor(outputTensor);
 		mlopenDestroyTensorDescriptor(inputTensor);
 
-//		mlopenDestroyLRNDescriptor(lrnDesc);
+		mlopenDestroyActivationDescriptor(activDesc);
 	}
 		
 	private:
@@ -166,8 +166,6 @@ int ActivationDriver<T>::AllocateBuffersAndCopy() {
 
 	cl_context ctx;
 
-	cl_command_queue q = GetStream();
-
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
@@ -257,6 +255,7 @@ int ActivationDriver<T>::RunForwardCPU() {
 
 template<typename T>
 int ActivationDriver<T>::FindBackward() {
+	return 0;
 }
 
 template<typename T>
