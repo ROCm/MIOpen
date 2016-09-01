@@ -27,4 +27,4 @@ double ActivationDescriptor::GetPower() const
 {
 	return this->parms[2];
 }
-}
+}  // namespace mlopen
