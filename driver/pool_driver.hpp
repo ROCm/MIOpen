@@ -410,6 +410,18 @@ int PoolDriver<T>::VerifyBackward() {
 			hOutStride
 				);
 
+	for (int i = 0; i < din.size(); i++) {
+		T res_gpu = din[i];
+		T res_cpu = dinhost[i];
+		T diff = std::fabs(res_gpu - res_cpu);
+		if (diff > std::fabs((std::max(res_gpu, res_cpu)) * std::numeric_limits<T>::epsilon())) {
+			printf("Output Mismatch at: %d diff: %.10f gpu: %.10f cpu: %.10f \nBackward Pooling Verification Failed !!\n", i, diff, res_gpu, res_cpu);
+			return -1;
+		}
+	}
+
+	printf("Backward Pooling Verifies on CPU and GPU\n");
+
 	return 0;
 }
 #endif //GUARD_MLOPEN_POOL_DRIVER_HPP
