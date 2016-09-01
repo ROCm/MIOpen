@@ -418,7 +418,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 /*
 * constructs found configuration
 */
-int mlo_construct_direct2D::mloConstructDirect2DFwd2(void)
+int mlo_construct_direct2D::mloConstructDirect2DFwd2()
 {
 	int ret = 0;
 	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
@@ -475,14 +475,14 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd2(void)
 	int n_out_stacks = (n_alus_total + alu_tiles_sz - 1) / alu_tiles_sz;
 
 
-	int n_read_procs = _grp_tile1 * _grp_tile0;
-	if ((_grp_tile1 * _grp_tile0) <= (float)(_in_tile1 * _in_tile0))
+	int n_read_procs;
+	if ((_grp_tile1 * _grp_tile0) <= static_cast<float>(_in_tile1 * _in_tile0))
 	{
 		n_read_procs = _grp_tile1 * _grp_tile0;
 	}
 	else
 	{
-		float proc_data_ratio = (float)(_in_tile1 * _in_tile0) / (float)(_grp_tile1 * _grp_tile0);
+		float proc_data_ratio = static_cast<float>(_in_tile1 * _in_tile0) / static_cast<float>(_grp_tile1 * _grp_tile0);
 		n_read_procs = (proc_data_ratio <= 0.25) ? (_grp_tile1 * _grp_tile0) / 4 : (proc_data_ratio <= 0.5) ? (_grp_tile1 * _grp_tile0) / 2 : (_grp_tile1 * _grp_tile0);
 	}
 
@@ -495,42 +495,42 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd2(void)
 	int n_in_tiles_total = _n_stacks * _n_in_data_tiles;
 
 	_comp_options =
-		std::string(" -D MLO_HW_WAVE_SZ=") + std::to_string((long long)_hw_wave_sz)
-		+ std::string(" -D MLO_DIR_FORWARD=") + std::to_string((long long)_direction)
-		+ std::string(" -D MLO_FILTER_SIZE0=") + std::to_string((long long)_kernel_size0)
-		+ std::string(" -D MLO_FILTER_SIZE1=") + std::to_string((long long)_kernel_size1)
-		+ std::string(" -D MLO_FILTER_PAD0=") + std::to_string((long long)_pad0)
-		+ std::string(" -D MLO_FILTER_PAD1=") + std::to_string((long long)_pad1)
-		+ std::string(" -D MLO_N_OUTPUTS=") + std::to_string((long long)_n_outputs)
-		+ std::string(" -D MLO_N_INPUTS=") + std::to_string((long long)_n_inputs)
-		+ std::string(" -D MLO_BATCH_SZ=") + std::to_string((long long)_batch_sz)
-		+ std::string(" -D MLO_OUT_WIDTH=") + std::to_string((long long)_out_width)
-		+ std::string(" -D MLO_OUT_HEIGHT=") + std::to_string((long long)_out_height)
-		+ std::string(" -D MLO_OUT_BATCH_STRIDE=") + std::to_string((long long)_out_batch_stride)
-		+ std::string(" -D MLO_OUT_CHANNEL_STRIDE=") + std::to_string((long long)_out_channel_stride)
-		+ std::string(" -D MLO_OUT_STRIDE=") + std::to_string((long long)_out_stride)
-		+ std::string(" -D MLO_IN_WIDTH=") + std::to_string((long long)_in_width)
-		+ std::string(" -D MLO_IN_HEIGHT=") + std::to_string((long long)_in_height)
-		+ std::string(" -D MLO_IN_BATCH_STRIDE=") + std::to_string((long long)_in_batch_stride)
-		+ std::string(" -D MLO_IN_CHANNEL_STRIDE=") + std::to_string((long long)_in_channel_stride)
-		+ std::string(" -D MLO_IN_STRIDE=") + std::to_string((long long)_in_stride)
+		std::string(" -D MLO_HW_WAVE_SZ=") + std::to_string(static_cast<long long>(_hw_wave_sz))
+		+ std::string(" -D MLO_DIR_FORWARD=") + std::to_string(static_cast<long long>(_direction))
+		+ std::string(" -D MLO_FILTER_SIZE0=") + std::to_string(static_cast<long long>(_kernel_size0))
+		+ std::string(" -D MLO_FILTER_SIZE1=") + std::to_string(static_cast<long long>(_kernel_size1))
+		+ std::string(" -D MLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(_pad0))
+		+ std::string(" -D MLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(_pad1))
+		+ std::string(" -D MLO_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs))
+		+ std::string(" -D MLO_N_INPUTS=") + std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string(" -D MLO_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
+		+ std::string(" -D MLO_OUT_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string(" -D MLO_OUT_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string(" -D MLO_OUT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
+		+ std::string(" -D MLO_OUT_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
+		+ std::string(" -D MLO_OUT_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
+		+ std::string(" -D MLO_IN_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
+		+ std::string(" -D MLO_IN_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
+		+ std::string(" -D MLO_IN_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
+		+ std::string(" -D MLO_IN_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
+		+ std::string(" -D MLO_IN_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
 		// algorithm parameters
-		+ std::string(" -D MLO_IN_TILE0=") + std::to_string((long long)_in_tile0)  // size of input data per ALU plane
-		+ std::string(" -D MLO_IN_TILE1=") + std::to_string((long long)_in_tile1)  // size of input data per ALU plane
-		+ std::string(" -D MLO_GRP_TILE0=") + std::to_string((long long)_grp_tile0) // # of ALUs (group size)
-		+ std::string(" -D MLO_GRP_TILE1=") + std::to_string((long long)_grp_tile1) //
-		+ std::string(" -D MLO_OUT_TILE0=") + std::to_string((long long)_out_pix_tile0)  // size of ouptput tile per wk-item (ALU))
-		+ std::string(" -D MLO_OUT_TILE1=") + std::to_string((long long)_out_pix_tile1)  //
-		+ std::string(" -D MLO_N_PIX_STACKS=") + std::to_string((long long)_n_stacks) // # of diff stacks (part of batch).
-		+ std::string(" -D MLO_N_OUT_PIX_TILES=") + std::to_string((long long)_n_out_pix_tiles)  // # output pixel tiles per wk-item (ALU)
-		+ std::string(" -D MLO_N_OUT_STACKS=") + std::to_string((long long)n_out_stacks) // stack of outputs
-		+ std::string(" -D MLO_N_OUT_TILES=") + std::to_string((long long)n_out_tiles)  // # total output tiles = MLO_N_OUT_STACKS * MLO_N_OUT_PIX_TILES
-		+ std::string(" -D MLO_N_IN_TILES=") + std::to_string((long long)_n_in_data_tiles) // # tiles from the same stack in LDS per stack
-		+ std::string(" -D MLO_N_IN_TILES_TOTAL=") + std::to_string((long long)n_in_tiles_total) // _n_stacks * _n_in_data_tiles
-		+ std::string(" -D MLO_N_READ_PROCS=") + std::to_string((long long)n_read_procs)
-		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string((long long)_bias)
-		+ std::string(" -D MLO_ALU_VTILE0=") + std::to_string((long long)alu_tile0)
-		+ std::string(" -D MLO_ALU_VTILE1=") + std::to_string((long long)alu_tile1)
+		+ std::string(" -D MLO_IN_TILE0=") + std::to_string(static_cast<long long>(_in_tile0))  // size of input data per ALU plane
+		+ std::string(" -D MLO_IN_TILE1=") + std::to_string(static_cast<long long>(_in_tile1))  // size of input data per ALU plane
+		+ std::string(" -D MLO_GRP_TILE0=") + std::to_string(static_cast<long long>(_grp_tile0)) // # of ALUs (group size)
+		+ std::string(" -D MLO_GRP_TILE1=") + std::to_string(static_cast<long long>(_grp_tile1)) //
+		+ std::string(" -D MLO_OUT_TILE0=") + std::to_string(static_cast<long long>(_out_pix_tile0))  // size of ouptput tile per wk-item (ALU))
+		+ std::string(" -D MLO_OUT_TILE1=") + std::to_string(static_cast<long long>(_out_pix_tile1))  //
+		+ std::string(" -D MLO_N_PIX_STACKS=") + std::to_string(static_cast<long long>(_n_stacks)) // # of diff stacks (part of batch).
+		+ std::string(" -D MLO_N_OUT_PIX_TILES=") + std::to_string(static_cast<long long>(_n_out_pix_tiles))  // # output pixel tiles per wk-item (ALU)
+		+ std::string(" -D MLO_N_OUT_STACKS=") + std::to_string(static_cast<long long>(n_out_stacks)) // stack of outputs
+		+ std::string(" -D MLO_N_OUT_TILES=") + std::to_string(static_cast<long long>(n_out_tiles))  // # total output tiles = MLO_N_OUT_STACKS * MLO_N_OUT_PIX_TILES
+		+ std::string(" -D MLO_N_IN_TILES=") + std::to_string(static_cast<long long>(_n_in_data_tiles)) // # tiles from the same stack in LDS per stack
+		+ std::string(" -D MLO_N_IN_TILES_TOTAL=") + std::to_string(static_cast<long long>(n_in_tiles_total)) // _n_stacks * _n_in_data_tiles
+		+ std::string(" -D MLO_N_READ_PROCS=") + std::to_string(static_cast<long long>(n_read_procs))
+		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(static_cast<long long>(_bias))
+		+ std::string(" -D MLO_ALU_VTILE0=") + std::to_string(static_cast<long long>(alu_tile0))
+		+ std::string(" -D MLO_ALU_VTILE1=") + std::to_string(static_cast<long long>(alu_tile1))
 		+ getGeneralCompOptions()
 		;
 

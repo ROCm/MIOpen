@@ -83,10 +83,10 @@ namespace mlopen {
 		construct_params.setNeuronDescr(static_cast<int>(mode), activ_power, activ_beta, activ_alpha);
 
 // construct
-		status = (mlopenStatus_t)construct_params.mloConstruct();
+		status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 
 
-		if (x == 0 || y == 0)
+		if (x == nullptr || y == nullptr)
 		{
 			*workSpaceSize = construct_params.getWorkSpaceSzBytes();
 		}
@@ -104,9 +104,9 @@ namespace mlopen {
 			const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 			construct_params.getNeuronDescr(reinterpret_cast<int&>(mode), activ_power, activ_beta, activ_alpha);
-			float f_activ_alpha = (float)activ_alpha;
-			float f_activ_beta = (float)activ_beta;
-			float f_activ_power = (float)activ_power;
+			float f_activ_alpha = static_cast<float>(activ_alpha);
+			float f_activ_beta = static_cast<float>(activ_beta);
+			float f_activ_power = static_cast<float>(activ_power);
 
 			handle.GetKernel("mlopenActivationForward",
 						network_config,
@@ -255,7 +255,7 @@ namespace mlopen {
 		construct_params.setNeuronDescr(activ_mode, activ_power, activ_beta, activ_alpha);
 
 // construct
-		status = (mlopenStatus_t)construct_params.mloConstruct();
+		status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 
 		std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
 		std::string kernel_name = construct_params.getKernelName(); // kernel name
@@ -268,9 +268,9 @@ namespace mlopen {
 		const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 
-		float f_activ_alpha = (float)GetAlpha();
-		float f_activ_beta = (float)GetBeta();
-		float f_activ_power = (float)GetPower();
+		float f_activ_alpha = static_cast<float>(GetAlpha());
+		float f_activ_beta = static_cast<float>(GetBeta());
+		float f_activ_power = static_cast<float>(GetPower());
 		float f_diff_scale = f_activ_beta * f_activ_power;
 
 		handle.GetKernel("mlopenActivationBackward",
@@ -288,4 +288,4 @@ namespace mlopen {
 
 		return(status);
 	}
-}
+}  // namespace mlopen
