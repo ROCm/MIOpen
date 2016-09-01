@@ -4,6 +4,7 @@ node ('fglrx1'){
   env.CXXFLAGS = "-Werror"
   checkout scm
   sh '''
+    rm -rf build
     mkdir build
     cd build
     cmake .. 
