@@ -9,7 +9,7 @@ PoolingDescriptor::PoolingDescriptor(mlopenPoolingMode_t m,
 		const int *plens,
 		const int *ppads,
 		const int *pstrides,
-		int			size) : mode(m), lens(plens, plens+size), pads(ppads, ppads+size), strides(pstrides, pstrides+size) {}
+		int			size) : lens(plens, plens+size), strides(pstrides, pstrides+size), pads(ppads, ppads+size), mode(m) {}
 
 mlopenPoolingMode_t PoolingDescriptor::GetMode() const
 {
@@ -29,6 +29,12 @@ const std::vector<int>& PoolingDescriptor::GetPads() const
 {
 	return pads;
 }
+
+mlopenPoolingMode_t PoolingDescriptor::GetMode()
+{
+	return mode;
+}
+
 int PoolingDescriptor::GetSize() const
 {
 	assert(lens.size() == strides.size() && lens.size() == pads.size());
@@ -58,4 +64,4 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 
 }
 
-}
+} // namespace mlopen
