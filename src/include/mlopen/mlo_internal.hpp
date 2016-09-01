@@ -115,20 +115,20 @@ public:
 #if !(defined(__APPLE__) || defined(__MACOSX))
 		_gen_comp_options = std::string(" -cl-std=CL2.0 ");
 #endif
-		int in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
-		int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
+		_in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
+		_in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
 
-		int grp_tile0 = in_tile0;
-		int grp_tile1 = in_tile1;
+		_grp_tile0 = _in_tile0;
+		_grp_tile1 = _in_tile1;
 
-		int out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
-		int out_pix_tile1 = 4; //
+		_out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
+		_out_pix_tile1 = 4; //
 
 
-		int n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
-		int n_in_data_tiles = 4; // # of blocks of different inputs in LDS
+		_n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
+		_n_in_data_tiles = 4; // # of blocks of different inputs in LDS
 
-		int n_stacks = 1; // # of diff stacks (part of batch).
+		_n_stacks = 1; // # of diff stacks (part of batch).
 		_bias = (do_bias) ? 1 : 0;
 		_pad0 = 1;
 		_pad1 = 1;
@@ -682,6 +682,7 @@ protected:
 	bool mloGetConfig(void);
 	int mloSearchDirect2D(void);
 	int mloConstructDirect2DFwd(void);
+	int mloConstructDirect2DFwd2(void);
 	int mloConstructDirect2DFwdGen(void);
 	int mloConstructBwd(void)
 	{
