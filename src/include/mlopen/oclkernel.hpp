@@ -2,6 +2,7 @@
 #define GUARD_MLOPEN_OCL_KERNEL_HPP_
 
 #include <sstream>
+#include <array>
 #include <vector>
 #include <mlopen.h>
 #include <cassert>

@@ -11,6 +11,11 @@ PoolingDescriptor::PoolingDescriptor(mlopenPoolingMode_t m,
 		const int *pstrides,
 		int			size) : mode(m), lens(plens, plens+size), pads(ppads, ppads+size), strides(pstrides, pstrides+size) {}
 
+mlopenPoolingMode_t PoolingDescriptor::GetMode() const
+{
+	return(mode);
+}
+
 const std::vector<int>& PoolingDescriptor::GetLengths() const
 {
 	return lens;
