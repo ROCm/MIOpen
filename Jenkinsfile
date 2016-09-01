@@ -8,7 +8,8 @@ node ('fglrx1'){
         mkdir build
         cd build
         CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
-        make tidy
+        make tidy 2>&1 | tee tidy_out
+        ! grep -q "warning:" tidy_out
     '''
     stage 'Clang Debug'
     sh '''
