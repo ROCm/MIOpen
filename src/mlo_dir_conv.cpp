@@ -1415,7 +1415,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		int out_pix_tile_sz[3] = { 1, 2, 4 };
 		int n_out_tiles_rg[2] = { 1, 8 };
 		int n_in_tiles_rg[2] = { 1, 4 };
-		int n_in_stacks_sz[3] = { 1, 2, 4 };
+		int n_in_stacks_sz[2] = { 1, 2 };
 		/*
 		std::vector<int> v_tile_sz;
 		std::vector<int> v_out_pix_tile_sz;
@@ -1436,7 +1436,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D(void)
 		int out_pix_tl_cnt = 3;
 		int n_out_tls = n_out_tiles_rg[1];
 		n_out_tls = std::min(_n_outputs, n_out_tls);
-		int stack_cnt = 3;
+		int stack_cnt = 2;
 		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : (_out_width * 2 <= 64) ? 3 : 4;
 		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : (_out_height * 2 <= 64) ? 3 : 4;
 		int n_tiles_cnt = (n_tile0_sz * n_tile1_sz == 9) ? (n_tile0_sz * n_tile1_sz - 1) : (n_tile0_sz * n_tile1_sz == 16) ? (n_tile0_sz * n_tile1_sz - 4) : n_tile0_sz * n_tile1_sz;
