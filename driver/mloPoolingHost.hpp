@@ -88,6 +88,7 @@ bool mloPoolingForwardRunHostAndVerify(
 	int	top_batch_stride,
 	const _T * bot_ptr,
 	const _T * top_ptr,
+	size_t * mask_ptr,
 	double allowedEps
 	)
 {
@@ -124,11 +125,17 @@ bool mloPoolingForwardRunHostAndVerify(
 					wstart = std::max(wstart, 0);
 					hend = std::min(hend, bot_height);
 					wend = std::min(wend, bot_width);
+					size_t res_index = 0;
 					for (int h = hstart; h < hend; ++h) {
 						for (int w = wstart; w < wend; ++w) {
 							if (pooling_method == MLO_POOLING_OP_MAX)
 							{
-								res = std::max(res, bot_ptr[b*bot_batch_stride + o * bot_channel_stride + h * bot_stride + w]);
+								size_t bot_index = b*bot_batch_stride + o * bot_channel_stride + h * bot_stride + w;
+								if (bot_ptr[bot_index] > res)
+								{
+									res = bot_ptr[bot_index];
+									res_index = bot_index;
+								}
 							}
 							else if (pooling_method == MLO_POOLING_OP_AVE)
 							{
@@ -153,6 +160,10 @@ bool mloPoolingForwardRunHostAndVerify(
 								continue;
 							}
 						}
+					}
+					if (pooling_method == MLO_POOLING_OP_MAX)
+					{
+						mask_ptr[b*top_batch_stride + o * top_channel_stride + j * top_stride + i] = res_index;
 					}
 					if (pooling_method == MLO_POOLING_OP_AVE)
 					{

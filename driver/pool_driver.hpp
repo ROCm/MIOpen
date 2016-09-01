@@ -67,9 +67,11 @@ class PoolDriver : public Driver
 
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> out_dev;
+	std::unique_ptr<GPUMem> mask_dev;
 
 	std::vector<T> in;
 	std::vector<T> out;
+	std::vector<size_t> mask;
 	std::vector<T> outhost;
 
 	mlopenPoolingDescriptor_t poolDesc;
@@ -192,12 +194,14 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
+	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(int)));
 	
 	din_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 
 	in = std::vector<T>(in_sz);
 	out = std::vector<T>(out_sz, 0);
+	mask = std::vector<size_t>(out_sz, 0);
 	outhost = std::vector<T>(out_sz, 0);
 	
 	din = std::vector<T>(in_sz);
@@ -331,6 +335,7 @@ int PoolDriver<T>::VerifyForward() {
 			nOutStride,
 			in.data(),
 			out.data(),
+			mask.data(),
 			(1 << 2)
 				);
 
