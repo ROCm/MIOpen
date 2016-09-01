@@ -17,7 +17,6 @@ node ('fglrx1'){
         cd build
         CXX='clang++-3.8' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
         make check
-        make tidy
     '''
     stage 'Clang Release'
     sh '''
