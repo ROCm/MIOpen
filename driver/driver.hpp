@@ -32,7 +32,7 @@ struct GPUMem {
 
 void Usage() {
 	printf("Usage: ./driver *base_arg* *other_args*\n");
-	printf("Supported Base Arguments: conv, pool, lrn\n");
+	printf("Supported Base Arguments: conv, pool, lrn, activ\n");
 	exit(0);
 }
 
@@ -52,6 +52,8 @@ std::string ParseBaseArg(int argc, char *argv[]) {
 		Usage();
 	else
 		return arg;
+
+	return 0;
 }
 
 class Driver
@@ -65,7 +67,7 @@ class Driver
 	mlopenHandle_t GetHandle() { return handle; }
 	cl_command_queue& GetStream() { return q; }
 
-	~Driver() {
+	virtual ~Driver() {
 		mlopenDestroy(handle);
 	}
 
@@ -80,7 +82,7 @@ class Driver
 	virtual int RunBackwardGPU() = 0;
 	virtual int VerifyBackward() = 0;
 
-	private:
+	protected:
 
 	mlopenHandle_t handle;
 	cl_command_queue q;

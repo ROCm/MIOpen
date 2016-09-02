@@ -55,7 +55,7 @@ struct Handle : mlopenHandle {
 	template<class Container>
     ManageDataPtr Write(const Container& c)
     {
-    	typedef typename Container::value_type type;
+    	using type = typename Container::value_type;
     	auto buf = this->Create<type>(c.size());
     	return std::move(this->WriteTo(reinterpret_cast<const void*>(c.data()), buf, c.size()*sizeof(type)));
     }
@@ -71,7 +71,7 @@ struct Handle : mlopenHandle {
 	std::unique_ptr<HandleImpl> impl;
 	
 };
-}
+} // namespace mlopen
 MLOPEN_DEFINE_OBJECT(mlopenHandle, mlopen::Handle);
 
 

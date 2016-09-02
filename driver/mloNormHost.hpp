@@ -72,7 +72,6 @@ int mloLRNForwardRunHost(
 				for (int i = 0; i < top_width; i++)
 				{
 					// c-emulator
-					_T res = 0;
 					_T accum_scale = 0;
 					int head = 0;
 					_T bot_val;
@@ -205,12 +204,12 @@ int mloLRNBackwardRunHost(
 	int norm_region,
 	int pad,
 	int local_area,
-	_T alphaoverarea,
+	_T /*alphaoverarea*/,
 	_T alpha,
 	_T beta,
-	_T K,
+	_T /*K*/,
 	int n_batchs,
-	int n_outputs,
+	int /*n_outputs*/,
 	int n_inputs,
 	int bot_height,
 	int bot_width,

@@ -12,21 +12,22 @@ struct manage_deleter
     template<class T>
     void operator()(T* x) const
     {
-        if (x != nullptr) f(x);
+        if (x != nullptr) { f(x);
+}
     }
 };
 
 struct null_deleter
 {
     template<class T>
-    void operator()(T* x) const
+    void operator()(T*  /*x*/) const
     {}
 };
 
 template<class T, class F, F f>
 using manage_ptr = std::unique_ptr<T, manage_deleter<F, f>>;
 
-}
+} // namespace mlopen
 
 #define MLOPEN_MANAGE_PTR(T, F) mlopen::manage_ptr<typename std::remove_pointer<T>::type, decltype(&F), &F>
 
