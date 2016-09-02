@@ -23,6 +23,7 @@ endfunction()
 
 if( NOT CLANG_TIDY_EXE )
     message( STATUS "Clang tidy not found" )
+    set(CLANG_TIDY_VERSION "0.0")
 else()
     find_clang_tidy_version(CLANG_TIDY_VERSION)
     message( STATUS "Clang tidy found: ${CLANG_TIDY_VERSION}")
