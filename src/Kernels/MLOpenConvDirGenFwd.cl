@@ -63,8 +63,8 @@
 //ADNN_IN_SZ1			vertical read dim 1
 
 // inputs are taken from different stacks of batches - to use the same filters
-#define ADNN_LCL_IMG_WIDTH (ADNN_IN_SZ0 + ADNN_FLTR_PAD_SZ0 * 2)
-#define ADNN_LCL_IMG_HEIGHT  (ADNN_IN_SZ1 + ADNN_FLTR_PAD_SZ1 * 2)
+#define ADNN_LCL_IMG_WIDTH (ADNN_IN_SZ0 + ADNN_FLTR_SZ0 - 1)
+#define ADNN_LCL_IMG_HEIGHT  (ADNN_IN_SZ1 + ADNN_FLTR_SZ1 - 1)
 #define ADNN_LCL_IMG_SIZE (ADNN_LCL_IMG_WIDTH * ADNN_LCL_IMG_HEIGHT)
 #define ADNN_PVT_COL_STG_HEIGHT ((ADNN_N_OUT_PIX_SZ1 - 1) * ADNN_FLTR_STRIDE1 + 1) 
 #define ADNN_PVT_COL_STG_WIDTH ((ADNN_N_OUT_PIX_SZ0 -1) * ADNN_FLTR_STRIDE0 +  ADNN_FLTR_SZ0)
@@ -135,9 +135,13 @@ inline void readDataTile(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_d
 					int x_act = (i - fltr_pad0);
 					bool invisibleX = (tile_x + x_act < 0) || (tile_x + x_act >= gbl_width);
 
-					_FLOAT val = gbl_data[y_gbl_off + x_act];
+					bool invis = invisibleX || invisibleY;
 
-					val = (invisibleX || invisibleY)? padding_val : val;
+					int g_off = (invis) ? 0 : y_gbl_off + x_act;
+
+					_FLOAT val = gbl_data[g_off];
+
+					val = (invis)? padding_val : val;
 								
 					lcl_data[y_lcl_off + i] = val;
 				}
@@ -162,7 +166,9 @@ __attribute__((reqd_work_group_size(ADNN_GRP_SZ0,ADNN_GRP_SZ1,ADNN_GRP_SZ2)))
 __kernel void MLOpenCDFGen(
        const __global _FLOAT * bot,
 		const __global _FLOAT * weights,
-  /*     const __global _FLOAT * bias,*/
+#if ADNN_CONV_BIAS == 1
+       const __global _FLOAT * bias,
+#endif
 	  __global _FLOAT *top,
 	   _FLOAT padding_val
 //	   int in_main_loop
@@ -322,6 +328,20 @@ __kernel void MLOpenCDFGen(
 						{
 								pvt_top_dat[(o * ADNN_N_OUT_PIX_SZ1 + pj) * ADNN_N_OUT_PIX_SZ0 + pi] += pvt_bot_dat[pj * ADNN_FLTR_STRIDE1 * ADNN_PVT_COL_STG_WIDTH + pi* ADNN_FLTR_STRIDE0 + m] 
 																												* pvt_wei_dat[m];
+
+#if 0
+								if (y_out + pj == 0 && x_out + pi == 14)
+								{
+
+									printf("K:cnv: %f %f %f\n",
+										pvt_top_dat[(o * ADNN_N_OUT_PIX_SZ1 + pj) * ADNN_N_OUT_PIX_SZ0 + pi],
+										pvt_bot_dat[pj * ADNN_FLTR_STRIDE1 * ADNN_PVT_COL_STG_WIDTH + pi* ADNN_FLTR_STRIDE0 + m],
+										pvt_wei_dat[m]
+										);
+								}
+
+#endif
+
 						}
 					}
 				}
@@ -357,9 +377,11 @@ __kernel void MLOpenCDFGen(
 			return;
 		}
 #endif
-		//MD: No bias 
-//		_FLOAT  bias_val = bias[o_id * ADNN_LCL_N_OUT_CHNLS + o];
-		_FLOAT bias_val = 0.0;
+		_FLOAT  bias_val = 0;
+#if ADNN_CONV_BIAS == 1
+
+		bias_val = bias[o_id * ADNN_LCL_N_OUT_CHNLS + o];
+#endif
 
 		int top_off2 = top_off;
 
@@ -371,7 +393,18 @@ __kernel void MLOpenCDFGen(
 				if ( y_out + j < ADNN_OUT_HEIGHT && x_out + i < ADNN_OUT_WIDTH)
 #endif
 					top[top_off2 + i] = pvt_top_dat[(o * ADNN_N_OUT_PIX_SZ1 + j) * ADNN_N_OUT_PIX_SZ0 + i] + bias_val;
+#if 0
+				if (y_out + j == 0 && x_out + i == 14)
+				{
 
+					printf("K:out: %d %f %f\n",
+						top_off2 + i,
+						pvt_top_dat[(o * ADNN_N_OUT_PIX_SZ1 + j) * ADNN_N_OUT_PIX_SZ0 + i],
+						top[top_off2 + i]
+						);
+				}
+
+#endif
 			}
 		}
 	}
