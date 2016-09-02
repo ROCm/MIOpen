@@ -75,6 +75,7 @@ class PoolDriver : public Driver
 	std::vector<T> outhost;
 
 	mlopenPoolingDescriptor_t poolDesc;
+	bool do_backward;
 
 	mlopenTensorDescriptor_t dInputTensor;
 	mlopenTensorDescriptor_t dOutputTensor;
@@ -91,6 +92,8 @@ class PoolDriver : public Driver
 template<typename T>
 int PoolDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) { 
 	inflags.Parse(argc, argv); 
+
+	do_backward = !(inflags.GetValueInt("forw"));
 
 	if(inflags.GetValueInt("time") == 1) {
 		mlopenEnableProfiling(GetHandle(), true);
@@ -130,7 +133,7 @@ int PoolDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
-	inflags.AddInputFlag("back", 'b', "0", "Do Backward Pooling (Default=0)", "int");
+	//inflags.AddInputFlag("back", 'b', "0", "Do Backward Pooling (Default=0)", "int");
 	inflags.AddInputFlag("print", 'P', "1", "Print Pooling Dimensions (Default=1)", "int");
 	inflags.AddInputFlag("mode", 'm', "max", "Pooling Mode (max, avg) (Default=max)", "str");
 
@@ -243,7 +246,7 @@ int PoolDriver<T>::RunForwardGPU() {
 			outputTensor,
 			out_dev->GetMem(),
 			mask_dev->GetMem(),
-			inflags.GetValueInt("back"),
+			do_backward,
 			NULL,
 			0);
 

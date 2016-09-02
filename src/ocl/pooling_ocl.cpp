@@ -13,7 +13,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		const TensorDescriptor				&yDesc,
 		cl_mem								y,
 		cl_mem								z,
-		bool								 /*do_backward*/,
+		bool								do_backward,
 		cl_mem								 /*workSpace*/,
 		size_t								 /*workSpaceSize*/) {
 
@@ -72,6 +72,8 @@ mlopenStatus_t PoolingDescriptor::Forward(
 
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
+
+	construct_params.doBackward(do_backward);
 
 	construct_params.mloConstruct();
 
