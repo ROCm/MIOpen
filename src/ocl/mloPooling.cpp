@@ -75,6 +75,7 @@ int mlo_construct_pooling2D::mloConstructFwd()
 		+ std::string(" -D MLO_POOLING_BOT_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
 		+ std::string(" -D MLO_POOLING_TOP_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
 		+ std::string(" -D MLO_POOLING_TOP_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string(_do_backward ? " -D MLO_POOLING_DO_BACKWARD" : "")
 		+ getGeneralCompOptions()
 		;
 
