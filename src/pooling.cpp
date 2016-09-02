@@ -38,7 +38,7 @@ mlopenPoolingMode_t PoolingDescriptor::GetMode()
 int PoolingDescriptor::GetSize() const
 {
 	assert(lens.size() == strides.size() && lens.size() == pads.size());
-	return lens.size();
+	return (int)lens.size();
 }
 
 std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(

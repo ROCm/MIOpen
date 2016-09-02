@@ -184,11 +184,11 @@ int ActivationDriver<T>::AllocateBuffersAndCopy() {
 	dinhost = std::vector<float>(in_sz, 0);
 
 	for (int i = 0; i < in_sz; i++) {
-		in[i] = rand() * (1.0 / RAND_MAX);
+		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
 	for (int i = 0; i < out_sz; i++) {
-		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
 
 	cl_int status;
@@ -304,9 +304,9 @@ int ActivationDriver<T>::VerifyForward() {
 	int match = 1;
 	match = mloNeuronForwardRunHostAndVerify<T>(
 		v_mode,
-		v_Power,
-		v_Alpha,
-		v_Beta,
+		(T)v_Power,
+		(T)v_Alpha,
+		(T)v_Beta,
 		in.size(),
 		in.data(),
 		out.data(),
@@ -341,9 +341,9 @@ int ActivationDriver<T>::VerifyBackward() {
 	int match = 1;
 	match = mloNeuronBackwardRunHostAndVerify<T>(
 		v_mode,
-		v_Power,
-		v_Alpha,
-		v_Beta,
+		(T)v_Power,
+		(T)v_Alpha,
+		(T)v_Beta,
 		dinhost.size(),		
 		in.data(),
 		out.data(),

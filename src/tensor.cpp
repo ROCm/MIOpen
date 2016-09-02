@@ -47,7 +47,7 @@ const std::vector<int>& TensorDescriptor::GetStrides() const
 int TensorDescriptor::GetSize() const
 {
 	assert(lens.size() == strides.size());
-	return lens.size();
+	return (int)lens.size();
 }
 int TensorDescriptor::GetElementSize() const
 {
