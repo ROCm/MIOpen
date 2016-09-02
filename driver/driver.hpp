@@ -32,7 +32,7 @@ struct GPUMem {
 
 void Usage() {
 	printf("Usage: ./driver *base_arg* *other_args*\n");
-	printf("Supported Base Arguments: conv, pool, lrn\n");
+	printf("Supported Base Arguments: conv, pool, lrn, activ\n");
 	exit(0);
 }
 
