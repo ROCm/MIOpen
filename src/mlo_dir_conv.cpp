@@ -616,16 +616,16 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 	int n_ins1 = 1; // number of inputs each a from different stack along dim 1
 	int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
 
-	// should be a combination of # of CUs, batch size.
-	// these is an aprox for Fiji
-	int n_outs = (_batch_sz <= 8) ? ((_kernel_size0 < 5) ? 2 : 4) : (_batch_sz <= 16) ? ((_kernel_size0 < 5) ? 4 : 6) : ((_n_outputs <= 32) ? 4 : 8); // (kernel_size0 == 3 && width_out < 64 && height_out < 64) ? 14 : 12; // n outputs per a single input: major parameter
+								 // should be a combination of # of CUs, batch size.
+								 // these is an aprox for Fiji
+	int n_outs = 14; // (_batch_sz <= 8) ? ((_kernel_size0 < 5) ? 2 : 4) : (_batch_sz <= 16) ? ((_kernel_size0 < 5) ? 4 : 6) : ((_n_outputs <= 32) ? 4 : 8); // (kernel_size0 == 3 && width_out < 64 && height_out < 64) ? 14 : 12; // n outputs per a single input: major parameter
 	int n_out_pix_horiz = 2; // n of output px horix per wk-item: major parameter
 	int n_out_pix_vert = 2; // n of output px horix per wk-item: major parameter
 
 	if (_gen)
 	{
-		n_outs = (_kernel_size1 < 7) ? 12 : (_kernel_size1 < 9) ? 8 : ((_kernel_size1 < 11) ? 4 : 2); // n outputs per a single input: major parameter
-		n_out_pix_horiz = (_kernel_stride0 <= 4) ? 2 : 1; // n of output px horix per wk-item: major parameter
+		n_outs = (_kernel_size1 <= 7) ? 14 : 8; // n outputs per a single input: major parameter
+		n_out_pix_horiz = 2; // (_kernel_stride0 <= 4) ? 2 : 1; // n of output px horix per wk-item: major parameter
 		n_out_pix_vert = (_kernel_stride1 < 4 && _kernel_size1 < 7) ? 2 : 1; // n of output px horix per wk-item: major parameter
 		ocl_group_sz0 = 8; // (stride0 < 4) ? 16 : 8;
 		ocl_group_sz1 = 8; //  (stride1 < 4) ? 16 : 8;
@@ -641,6 +641,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 
 	int in_main_loop_ = _n_inputs;
 
+#if 0
 	for (int proc0 = ocl_group_sz0 / 2; n_v_proc0 <= proc0 && proc0 > 1; proc0 /= 2)
 	{
 		n_ins0 *= 2;
@@ -672,7 +673,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 		}
 		n_ins = n_ins0 * n_ins1;
 	}
-
+#endif
 
 	int batch_aligned = 0;
 #if 1
@@ -696,8 +697,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 	int n_procs0 = ocl_group_sz0 / n_ins0;
 	int n_procs1 = ocl_group_sz1 / n_ins1;
 
-	int in_sz0 = (n_procs0 * n_out_pix_horiz) * _kernel_stride0/* + kernel_size0 - 2 * pad0*/;
-	int in_sz1 = (n_procs1 * n_out_pix_vert) * _kernel_stride1/* + kernel_size1 - 2 * pad1*/;
+	int in_sz0 = (n_procs0 * n_out_pix_horiz - 1) * _kernel_stride0 + 1/* + kernel_size0 - 2 * pad0*/;
+	int in_sz1 = (n_procs1 * n_out_pix_vert - 1) * _kernel_stride1 + 1/* + kernel_size1 - 2 * pad1*/;
 
 
 	int n_out_blocks = ((_n_outputs + n_outs - 1) / n_outs);
@@ -716,7 +717,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 		aligned_out = 0;
 	}
 
-	int bias = 1;
+	int bias = _bias;
 
 	_comp_options =
 		std::string("-D ADNN_GRP_SZ=") + std::to_string((long long)ocl_group_sz0 * ocl_group_sz1 * ocl_group_sz2)
