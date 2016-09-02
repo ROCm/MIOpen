@@ -4,12 +4,12 @@
 
 namespace mlopen {
 
-void TensorDescriptor::TransformTensor(Handle& handle,
-			const void *alpha,
+void TensorDescriptor::TransformTensor(Handle& /* handle */,
+			const void * /*alpha*/,
 			const TensorDescriptor& srcTensorDesc,
-			const cl_mem srcTensor,
-			const void *beta,
-			cl_mem dstTensor) {
+			const cl_mem  /*srcTensor*/,
+			const void * /*beta*/,
+			cl_mem  /*dstTensor*/) {
 
 	printf("To be implemented (TransformTensor) \n");
 
@@ -26,23 +26,21 @@ void TensorDescriptor::TransformTensor(Handle& handle,
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
-
 //	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
 	// If beta = 0, y = alpha*x
 }
 
-void TensorDescriptor::OpTensor(Handle& handle,
-		mlopenTensorOp_t				tensorOp,
-		const void						*alpha1,
+void TensorDescriptor::OpTensor(Handle& /* handle */,
+		mlopenTensorOp_t				 /*tensorOp*/,
+		const void						* /*alpha1*/,
 		const TensorDescriptor&	inputTensorDesc1,
-		const cl_mem					inputTensor1,
-		const void						*alpha2,
+		const cl_mem					 /*inputTensor1*/,
+		const void						* /*alpha2*/,
 		const TensorDescriptor&	inputTensorDesc2,
-		const cl_mem					inputTensor2,
-		const void						*beta,
-		cl_mem							dstTensor) {
+		const cl_mem					 /*inputTensor2*/,
+		const void						* /*beta*/,
+		cl_mem							 /*dstTensor*/) {
 
 	printf("To be implemented (Op Tensor) \n");
 
@@ -71,13 +69,11 @@ void TensorDescriptor::OpTensor(Handle& handle,
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
-
 	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
 }
 
-void TensorDescriptor::SetTensor(Handle& handle,
+void TensorDescriptor::SetTensor(Handle& /* handle */,
 		cl_mem							dstTensor,
 		const void						*valuePtr) {
 
@@ -95,15 +91,13 @@ void TensorDescriptor::SetTensor(Handle& handle,
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
-
 //	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
 }
 
-void TensorDescriptor::ScaleTensor(Handle& handle,
+void TensorDescriptor::ScaleTensor(Handle& /* handle */,
 		cl_mem							dstTensor,
-		const void						*alpha) {
+		const void						* /*alpha*/) {
 
 	printf("To be implemented (ScaleTensor) \n");
 	if(dstTensor == nullptr) {
@@ -117,10 +111,8 @@ void TensorDescriptor::ScaleTensor(Handle& handle,
 	std::string kernel_name; // kernel name
 	std::string parms; // kernel parameters
 
-	mlopenAcceleratorQueue_t queue = handle.GetStream();
-
 	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
 
 }
 
-}
+} // namespace mlopen

@@ -105,3 +105,10 @@ mlopenStatus_t mlopenActivationBackward(
 	});
 }
 
+extern "C"
+mlopenStatus_t mlopenDestroyActivationDescriptor(mlopenActivationDescriptor_t activDesc) {
+	return mlopen::try_([&] {
+		delete activDesc;
+	});
+}
+

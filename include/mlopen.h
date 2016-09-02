@@ -1,5 +1,10 @@
-#ifndef _MLOPEN_H_
-#define _MLOPEN_H_
+#ifndef MLOPEN_GUARD_MLOPEN_H_
+#define MLOPEN_GUARD_MLOPEN_H_
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wextern-c-compat"
+#endif
 
 #include <stddef.h>
 
@@ -47,13 +52,13 @@ typedef enum {
 // later or is it OK to leave it like this?
 MLOPEN_EXPORT mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
 		int							numStreams = 0,
-		mlopenAcceleratorQueue_t				*stream = NULL);
+		mlopenAcceleratorQueue_t				*streams = NULL);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroy(mlopenHandle_t handle);
 
 // Returns numStream'th stream for that particular handle
 MLOPEN_EXPORT mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
-		mlopenAcceleratorQueue_t				*streamId,
+		mlopenAcceleratorQueue_t				*streamID,
 		int							numStream = 0);
 
 // Get time for last kernel launched
@@ -119,7 +124,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenCreateTensorDescriptor(mlopenTensorDescriptor
 // Only supporting NCHW for now and merging both expert and regular cuDNN APIs
 MLOPEN_EXPORT mlopenStatus_t mlopenSet4dTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
-		mlopenDataType_t			datatype, // half/float/double
+		mlopenDataType_t			dataType, // half/float/double
 		int							n,
 		int							c,
 		int							h,
@@ -128,7 +133,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenSet4dTensorDescriptor(
 // Get the details of the tensor desciptor
 MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
-		mlopenDataType_t			*datatype,
+		mlopenDataType_t			*dataType,
 		int							*n,
 		int							*c, 
 		int							*h,
@@ -141,19 +146,19 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptor(
 // Not sure if the following two APIs are required right now
 MLOPEN_EXPORT mlopenStatus_t mlopenSetTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
-		mlopenDataType_t			datatype,
+		mlopenDataType_t			dataType,
 		int							nbDims,
-		int							*dimA,
-		int							*strideA);
+		int							*dimsA,
+		int							*stridesA);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenGetTensorDescriptorSize(mlopenTensorDescriptor_t tensorDesc, int* size);
 
 // Get the details of the n-dimensional tensor desciptor
 MLOPEN_EXPORT mlopenStatus_t mlopenGetTensorDescriptor(
 		mlopenTensorDescriptor_t	tensorDesc,
-		mlopenDataType_t			*datatype,
-		int							*dimA,
-		int							*strideA);
+		mlopenDataType_t			*dataType,
+		int							*dimsA,
+		int							*stridesA);
 		
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc);
 
@@ -539,7 +544,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenDestroyLRNDescriptor(mlopenLRNDescriptor_t lr
 
 // Activation APIs
 
-MLOPEN_EXPORT mlopenStatus_t mlopenCreateActivationDescriptor(mlopenActivationDescriptor_t *lrnDesc);
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateActivationDescriptor(mlopenActivationDescriptor_t *activDesc);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenSetActivationDescriptor(
 	const mlopenActivationDescriptor_t	activDesc,
@@ -574,7 +579,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenActivationForward(
 
 MLOPEN_EXPORT mlopenStatus_t mlopenActivationBackward(
 	mlopenHandle_t						handle,
-	const mlopenActivationDescriptor_t	lrnDesc,
+	const mlopenActivationDescriptor_t	activDesc,
 	const void							*alpha,
 	const mlopenTensorDescriptor_t		yDesc,
 	const void							*y,
@@ -593,6 +598,10 @@ MLOPEN_EXPORT mlopenStatus_t mlopenDestroyActivationDescriptor(mlopenActivationD
 
 #ifdef __cplusplus
 }
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 
 #endif // _MLOPEN_H_

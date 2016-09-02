@@ -35,7 +35,7 @@ struct tensor_fixture_n
     tensor_fixture_n()
     {
         mlopenCreateTensorDescriptor(&tensor);
-        std::array<int, 4> lens = {100, 32, 8, 8};
+        std::array<int, 4> lens = {{100, 32, 8, 8}};
         mlopenSetTensorDescriptor(
                 tensor,
                 mlopenFloat,
@@ -58,8 +58,8 @@ struct tensor_fixture_n_strides
     tensor_fixture_n_strides()
     {
         mlopenCreateTensorDescriptor(&tensor);
-        std::array<int, 4> lens = {100, 32, 8, 8};
-        std::array<int, 4> strides = {2048, 64, 8, 1};
+        std::array<int, 4> lens = {{100, 32, 8, 8}};
+        std::array<int, 4> strides = {{2048, 64, 8, 1}};
         mlopenSetTensorDescriptor(
                 tensor,
                 mlopenFloat,
@@ -218,7 +218,7 @@ struct tensor_test_suit
             mlopenGetTensorDescriptorSize(this->tensor, &size);
             EXPECT(size == 4);
 
-            std::array<int, 4> lens = {100, 32, 8, 8};
+            std::array<int, 4> lens = {{100, 32, 8, 8}};
             std::array<int, 4> strides;
             mlopenDataType_t dt;
 

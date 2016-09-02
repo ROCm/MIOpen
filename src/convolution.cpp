@@ -68,4 +68,4 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(
 		std::get<2>(dims),
 		std::get<3>(dims)});
 }
-}
+} // namespace mlopen

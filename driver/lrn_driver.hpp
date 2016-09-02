@@ -146,7 +146,7 @@ std::vector<int> LRNDriver<T>::GetInputTensorLengthsFromCmdLine() {
 template<typename T>
 int LRNDriver<T>::SetLRNDescriptorFromCmdLineArgs() {
 
-	mlopenLRNMode_t mode; 
+	mlopenLRNMode_t mode ; 
 	int lrnN = inflags.GetValueInt("lrnN");
 	double lrnAlpha = inflags.GetValueDouble("alpha");
 	double lrnBeta = inflags.GetValueDouble("beta");
@@ -156,6 +156,10 @@ int LRNDriver<T>::SetLRNDescriptorFromCmdLineArgs() {
 	}
 	else if((inflags.GetValueStr("mode")) == "cross") {
 		mode = mlopenLRNCrossChannel;
+	}
+	else {
+		printf("Incorrect LRN Mode\n");
+		exit(0);
 	}
 
 	mlopenSetLRNDescriptor(lrnDesc,
@@ -177,8 +181,6 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 	size_t out_sz = GetTensorSize(outputTensor); 
 
 	cl_context ctx;
-
-	cl_command_queue q = GetStream();
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
@@ -311,9 +313,6 @@ int LRNDriver<T>::RunForwardCPU() {
 	int n_outputs = cOut;
 	int top_height = hOut;
 	int top_width = wOut;
-	int top_stride = hOutStride;
-	int top_channel_stride = cOutStride;
-	int	top_batch_stride = nOutStride;
 
 	int top_v_stride = hOutStride;
 	int top_v_channel_stride = cOutStride;
@@ -356,6 +355,7 @@ int LRNDriver<T>::RunForwardCPU() {
 
 template<typename T>
 int LRNDriver<T>::FindBackward() {
+	return 0;
 }
 
 template<typename T>
@@ -392,7 +392,6 @@ int LRNDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
 
-	cl_int status;
 	bool match = true;
 
 	const double allowedEps = (1 << 2);
@@ -491,10 +490,6 @@ int LRNDriver<T>::RunBackwardCPU() {
 	int bot_channel_stride = cInStride;
 	int bot_batch_stride = nInStride;
 
-	int bot_df_stride = hdInStride;
-	int bot_df_channel_stride = cdInStride;
-	int bot_df_batch_stride = ndInStride;
-
 	int bot_df_v_stride = hdInStride;
 	int bot_df_v_channel_stride = cdInStride;
 	int bot_df_v_batch_stride = ndInStride;
@@ -514,8 +509,7 @@ int LRNDriver<T>::RunBackwardCPU() {
 	int scale_channel_stride = top_df_channel_stride;
 	int scale_batch_stride = top_df_batch_stride;
 
-	cl_int status;
-	status = mloLRNBackwardRunHost<float>(
+	mloLRNBackwardRunHost<float>(
 			(int)v_mode,
 			pad,
 			v_lrnN,
@@ -562,8 +556,6 @@ int LRNDriver<T>::VerifyBackward() {
 	
 	bool match = true;
 
-	double sqr_accum = 0;
-	double max_err = -std::numeric_limits<double>::min();
 	double allowedEps = 4;
 	double max_abs_diff = 0.00000001;
 	double max_sqr = 0.000000001;

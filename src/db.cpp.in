@@ -1,0 +1,14 @@
+#include <mlopen/db.hpp>
+#include <cstdlib>
+
+namespace mlopen {
+
+std::string GetDbPath()
+{
+    auto p = std::getenv("MLOPEN_DB_PATH");
+    if (p == nullptr) return "${MLOPEN_DB_PATH}";
+    else return p;
+}
+
+} // namespace mlopen
+

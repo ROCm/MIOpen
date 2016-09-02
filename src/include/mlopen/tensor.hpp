@@ -6,7 +6,7 @@
 #include <mlopen.h>
 #include <mlopen/common.hpp>
 #include <vector>
-// TODO: remove this include later
+// TODO(paul): remove this include later
 #include <cstdio>
 
 namespace mlopen {
@@ -64,10 +64,10 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 	void OpTensor(Handle& handle,
 			mlopenTensorOp_t				tensorOp,
 			const void						*alpha1,
-			const TensorDescriptor&	aDesc,
+			const TensorDescriptor&	inputTensorDesc1,
 			ConstData_t					A,
 			const void						*alpha2,
-			const TensorDescriptor&	bDesc,
+			const TensorDescriptor&	inputTensorDesc2,
 			ConstData_t					B,
 			const void						*beta,
 			Data_t							C);
@@ -77,7 +77,7 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 			const void						*valuePtr);
 
 	void ScaleTensor(Handle& handle,
-			Data_t							y,
+			Data_t							dstTensor,
 			const void						*alpha);
 
 private:
@@ -86,7 +86,7 @@ private:
 
 	mlopenDataType_t type;
 };
-}
+}  // namespace mlopen
 
 MLOPEN_DEFINE_OBJECT(mlopenTensorDescriptor, mlopen::TensorDescriptor)
 
