@@ -6,7 +6,7 @@ void OCLKernelInvoke::run() const
 {
 	cl_event ev;
 	cl_int status = clEnqueueNDRangeKernel(queue, kernel,
-		(cl_uint)work_dim,
+		work_dim,
 		global_work_offset.data(),
 		global_work_dim.data(),
 		local_work_dim.data(), 0, nullptr, callback ? &ev : nullptr);

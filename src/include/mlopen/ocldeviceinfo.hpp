@@ -119,7 +119,7 @@ struct GetDeviceInfoImpl<T*>
         size_t size;
         auto status = clGetDeviceInfo(device, N, 0, nullptr, &size);
         if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
-        return (int)(size/sizeof(T));
+        return (size/sizeof(T));
     }
 
     static type apply(int N, cl_device_id device)
