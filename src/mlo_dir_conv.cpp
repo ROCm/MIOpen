@@ -932,69 +932,68 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 	std::string compiler_options = _gen_comp_options + _comp_options;
 
 	// Creating OCLKernel obj
-	mlopen::OCLKernel kernel;
 	try {
         auto program = mlopen::LoadProgram(mlopen::GetContext(profile_q), mlopen::GetDevice(profile_q), _kernel_file, compiler_options);
-        kernel = mlopen::OCLKernel{mlopen::CreateKernel(program, _kernel_name), _l_wk, _g_wk};
-    }
-    catch(mlopen::Exception&) {
-        return -1;
-    }
-	// pass all arguments
+        mlopen::OCLKernel kernel{mlopen::CreateKernel(program, _kernel_name), _l_wk, _g_wk};
+		// pass all arguments
 
-	float padding_value = 0;
-	
-	double s= 0, e = 0;
-	int iter = 1;
+		float padding_value = 0;
+		
+		double s= 0, e = 0;
+		int iter = 1;
 
-	if (profile_q)
-	{
-		processing_time = CL_MAXFLOAT;
-
-		auto k = kernel.Invoke(profile_q, [&] (cl_event profile_e) {
-			    size_t st, end;
-			    clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
-		        clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
-		        processing_time = (end-st)*1e-6;
-		});
-
-		if(_bias) {
-			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-		} else {
-			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-		}
-	}
-	else
-	{
-		iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
-
-		cl_command_queue q = reinterpret_cast<cl_command_queue>(_stream);
-		auto k = kernel.Invoke(q);
-
-		if(_bias) {
-			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-		} else {
-			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-		}
-
-		clFinish(q);
-
-		s = mlopen_mach_absolute_time();
-
-		for (int i = 0; i < iter && ret == 0; i++)
+		if (profile_q)
 		{
+			processing_time = CL_MAXFLOAT;
+
+			auto k = kernel.Invoke(profile_q, [&] (cl_event profile_e) {
+				    size_t st, end;
+				    clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
+			        clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
+			        processing_time = (end-st)*1e-6;
+			});
+
 			if(_bias) {
 				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
 			} else {
 				k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
 			}
 		}
+		else
+		{
+			iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
 
-		clFinish(q);
-		e = mlopen_mach_absolute_time();
+			cl_command_queue q = reinterpret_cast<cl_command_queue>(_stream);
+			auto k = kernel.Invoke(q);
 
-		processing_time = subtractTimes(e, s) / iter;
-	}
+			if(_bias) {
+				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+			} else {
+				k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
+			}
+
+			clFinish(q);
+
+			s = mlopen_mach_absolute_time();
+
+			for (int i = 0; i < iter && ret == 0; i++)
+			{
+				if(_bias) {
+					k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+				} else {
+					k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
+				}
+			}
+
+			clFinish(q);
+			e = mlopen_mach_absolute_time();
+
+			processing_time = subtractTimes(e, s) / iter;
+		}
+    }
+    catch(mlopen::Exception&) {
+        return -1;
+    }
 
 	return (ret);
 }
