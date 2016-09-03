@@ -564,7 +564,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd2()
 int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 {
 
-
 	int ocl_group_sz0 = 16;
 	int ocl_group_sz1 = 16;
 	int ocl_group_sz2 = 1;
@@ -574,17 +573,18 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 
 	int n_ins0 = 1; // number of inputs each a from different stack along dim 0
 	int n_ins1 = 1; // number of inputs each a from different stack along dim 1
+	int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
 
-	// should be a combination of # of CUs, batch size.
-	// these is an aprox for Fiji
-	int n_outs = (_batch_sz <= 8) ? ((_kernel_size0 < 5) ? 2 : 4) : (_batch_sz <= 16) ? ((_kernel_size0 < 5) ? 4 : 6) : ((_n_outputs <= 32) ? 4 : 8); // (kernel_size0 == 3 && width_out < 64 && height_out < 64) ? 14 : 12; // n outputs per a single input: major parameter
+								 // should be a combination of # of CUs, batch size.
+								 // these is an aprox for Fiji
+	int n_outs = 14; // (_batch_sz <= 8) ? ((_kernel_size0 < 5) ? 2 : 4) : (_batch_sz <= 16) ? ((_kernel_size0 < 5) ? 4 : 6) : ((_n_outputs <= 32) ? 4 : 8); // (kernel_size0 == 3 && width_out < 64 && height_out < 64) ? 14 : 12; // n outputs per a single input: major parameter
 	int n_out_pix_horiz = 2; // n of output px horix per wk-item: major parameter
 	int n_out_pix_vert = 2; // n of output px horix per wk-item: major parameter
 
 	if (_gen)
 	{
-		n_outs = (_kernel_size1 < 7) ? 12 : (_kernel_size1 < 9) ? 8 : ((_kernel_size1 < 11) ? 4 : 2); // n outputs per a single input: major parameter
-		n_out_pix_horiz = (_kernel_stride0 <= 4) ? 2 : 1; // n of output px horix per wk-item: major parameter
+		n_outs = (_kernel_size1 <= 7) ? 14 : 8; // n outputs per a single input: major parameter
+		n_out_pix_horiz = 2; // (_kernel_stride0 <= 4) ? 2 : 1; // n of output px horix per wk-item: major parameter
 		n_out_pix_vert = (_kernel_stride1 < 4 && _kernel_size1 < 7) ? 2 : 1; // n of output px horix per wk-item: major parameter
 		ocl_group_sz0 = 8; // (stride0 < 4) ? 16 : 8;
 		ocl_group_sz1 = 8; //  (stride1 < 4) ? 16 : 8;
@@ -598,6 +598,9 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	int n_v_proc0 = (_out_width + n_out_pix_horiz - 1) / n_out_pix_horiz;
 	int n_v_proc1 = (_out_height + n_out_pix_vert - 1) / n_out_pix_vert;
 
+
+#if 0
+	int in_main_loop_ = _n_inputs;
 	for (int proc0 = ocl_group_sz0 / 2; n_v_proc0 <= proc0 && proc0 > 1; proc0 /= 2)
 	{
 		n_ins0 *= 2;
@@ -607,7 +610,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		n_ins1 *= 2;
 	}
 
-	int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
+	n_ins = n_ins0 * n_ins1;
 	if (n_ins > _batch_sz)
 	{
 		ocl_group_sz1 /= 2;
@@ -629,7 +632,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		}
 		n_ins = n_ins0 * n_ins1;
 	}
-
+#endif
 
 	int batch_aligned = 0;
 #if 1
@@ -653,8 +656,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	int n_procs0 = ocl_group_sz0 / n_ins0;
 	int n_procs1 = ocl_group_sz1 / n_ins1;
 
-	int in_sz0 = (n_procs0 * n_out_pix_horiz) * _kernel_stride0/* + kernel_size0 - 2 * pad0*/;
-	int in_sz1 = (n_procs1 * n_out_pix_vert) * _kernel_stride1/* + kernel_size1 - 2 * pad1*/;
+	int in_sz0 = (n_procs0 * n_out_pix_horiz - 1) * _kernel_stride0 + 1/* + kernel_size0 - 2 * pad0*/;
+	int in_sz1 = (n_procs1 * n_out_pix_vert - 1) * _kernel_stride1 + 1/* + kernel_size1 - 2 * pad1*/;
 
 
 	int n_out_blocks = ((_n_outputs + n_outs - 1) / n_outs);
@@ -673,51 +676,51 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		aligned_out = 0;
 	}
 
-	int bias = 1;
+	int bias = _bias;
 
 	_comp_options =
-		std::string("-D ADNN_GRP_SZ=") + std::to_string(static_cast<long long>(ocl_group_sz0) * ocl_group_sz1 * ocl_group_sz2)
-		+ std::string(" -D ADNN_GRP_SZ0=") + std::to_string(static_cast<long long>(ocl_group_sz0))
-		+ std::string(" -D ADNN_GRP_SZ1=") + std::to_string(static_cast<long long>(ocl_group_sz1))
-		+ std::string(" -D ADNN_GRP_SZ2=") + std::to_string(static_cast<long long>(ocl_group_sz2))
-		+ std::string(" -D ADNN_LCL_N_IN_CHNLS=") + std::to_string(static_cast<long long>(n_ins))
-		+ std::string(" -D ADNN_LCL_N_OUT_CHNLS=") + std::to_string(static_cast<long long>(n_outs))
-		+ std::string(" -D ADNN_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
-		+ std::string(" -D ADNN_FLTR_SZ0=") + std::to_string(static_cast<long long>(_kernel_size0))
-		+ std::string(" -D ADNN_FLTR_PAD_SZ0=") + std::to_string(static_cast<long long>(_pad0))
-		+ std::string(" -D ADNN_FLTR_STRIDE0=") + std::to_string(static_cast<long long>(_kernel_stride0))
-		+ std::string(" -D ADNN_FLTR_SZ1=") + std::to_string(static_cast<long long>(_kernel_size1))
-		+ std::string(" -D ADNN_FLTR_PAD_SZ1=") + std::to_string(static_cast<long long>(_pad1))
-		+ std::string(" -D ADNN_FLTR_STRIDE1=") + std::to_string(static_cast<long long>(_kernel_stride1))
-		+ std::string(" -D ADNN_N_OUT_CHNLS=") + std::to_string(static_cast<long long>(_n_outputs))			//total number of output channels
-		+ std::string(" -D ADNN_OUT_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
-		+ std::string(" -D ADNN_OUT_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
-		+ std::string(" -D ADNN_OUT_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
-		+ std::string(" -D ADNN_OUT_CHNL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
-		+ std::string(" -D ADNN_OUT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
-		+ std::string(" -D ADNN_N_OUT_PIX_SZ0=") + std::to_string(static_cast<long long>(n_out_pix_horiz))
-		+ std::string(" -D ADNN_N_OUT_PIX_SZ1=") + std::to_string(static_cast<long long>(n_out_pix_vert))
-		+ std::string(" -D ADNN_N_IN_CHNLS=") + std::to_string(static_cast<long long>(_n_inputs))
-		+ std::string(" -D ADNN_IN_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
-		+ std::string(" -D ADNN_IN_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
-		+ std::string(" -D ADNN_IN_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
-		+ std::string(" -D ADNN_IN_CHNL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
-		+ std::string(" -D ADNN_IN_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
-		+ std::string(" -D ADNN_N_IN_PIX_SZ0=") + std::to_string(static_cast<long long>(n_in_pix_horiz))         // size of output processing group in 0 dim
-		+ std::string(" -D ADNN_N_IN_PIX_SZ1=") + std::to_string(static_cast<long long>(n_in_pix_vert))         // size of output processing group in 1 dim
-		+ std::string(" -D ADNN_WEI_SZ=") + std::to_string(static_cast<long long>(_n_outputs * _n_inputs * _kernel_size0 * _kernel_size1))
-		+ std::string(" -D ADNN_WEIGHTS_STRIDE=") + std::to_string(static_cast<long long>(_n_inputs * _kernel_size0 * _kernel_size1))		//	weights stride
-		+ std::string(" -D ADNN_N_STACKS=") + std::to_string(static_cast<long long>(n_stack_blocks))          // n of separate data stacks
-		+ std::string(" -D ADNN_N_PROCS0=") + std::to_string(static_cast<long long>(n_procs0))         // n of processors per stack
-		+ std::string(" -D ADNN_N_PROCS1=") + std::to_string(static_cast<long long>(n_procs1))         // n of processors per stack
-		+ std::string(" -D ADNN_ALIGNED=") + std::to_string(static_cast<long long>(aligned_out))		//	dimesions aligned
-		+ std::string(" -D ADNN_BATCH_ALIGNED=") + std::to_string(static_cast<long long>(batch_aligned))      // batch is multiple of n_ins
-		+ std::string(" -D ADNN_OUT_ALINED=") + std::to_string(static_cast<long long>(out_aligned))        // outputs is multiple of n_outs
-		+ std::string(" -D ADNN_IN_SZ0=") + std::to_string(static_cast<long long>(in_sz0))			// horizontal read dim 0
-		+ std::string(" -D ADNN_IN_SZ1=") + std::to_string(static_cast<long long>(in_sz1))			// vertical read dim 1
+		std::string("-D MLO_GRP_SZ=") + std::to_string(static_cast<long long>(ocl_group_sz0 * ocl_group_sz1 * ocl_group_sz2))
+		+ std::string(" -D MLO_GRP_SZ0=") + std::to_string(static_cast<long long>(ocl_group_sz0))
+		+ std::string(" -D MLO_GRP_SZ1=") + std::to_string(static_cast<long long>(ocl_group_sz1))
+		+ std::string(" -D MLO_GRP_SZ2=") + std::to_string(static_cast<long long>(ocl_group_sz2))
+		+ std::string(" -D MLO_LCL_N_IN_CHNLS=") + std::to_string(static_cast<long long>(n_ins))
+		+ std::string(" -D MLO_LCL_N_OUT_CHNLS=") + std::to_string(static_cast<long long>(n_outs))
+		+ std::string(" -D MLO_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
+		+ std::string(" -D MLO_FLTR_SZ0=") + std::to_string(static_cast<long long>(_kernel_size0))
+		+ std::string(" -D MLO_FLTR_PAD_SZ0=") + std::to_string(static_cast<long long>(_pad0))
+		+ std::string(" -D MLO_FLTR_STRIDE0=") + std::to_string(static_cast<long long>(_kernel_stride0))
+		+ std::string(" -D MLO_FLTR_SZ1=") + std::to_string(static_cast<long long>(_kernel_size1))
+		+ std::string(" -D MLO_FLTR_PAD_SZ1=") + std::to_string(static_cast<long long>(_pad1))
+		+ std::string(" -D MLO_FLTR_STRIDE1=") + std::to_string(static_cast<long long>(_kernel_stride1))
+		+ std::string(" -D MLO_N_OUT_CHNLS=") + std::to_string(static_cast<long long>(_n_outputs))			//total number of output channels
+		+ std::string(" -D MLO_OUT_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string(" -D MLO_OUT_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string(" -D MLO_OUT_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
+		+ std::string(" -D MLO_OUT_CHNL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
+		+ std::string(" -D MLO_OUT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
+		+ std::string(" -D MLO_N_OUT_PIX_SZ0=") + std::to_string(static_cast<long long>(n_out_pix_horiz))
+		+ std::string(" -D MLO_N_OUT_PIX_SZ1=") + std::to_string(static_cast<long long>(n_out_pix_vert))
+		+ std::string(" -D MLO_N_IN_CHNLS=") + std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string(" -D MLO_IN_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
+		+ std::string(" -D MLO_IN_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
+		+ std::string(" -D MLO_IN_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
+		+ std::string(" -D MLO_IN_CHNL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
+		+ std::string(" -D MLO_IN_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
+		+ std::string(" -D MLO_N_IN_PIX_SZ0=") + std::to_string(static_cast<long long>(n_in_pix_horiz))         // size of output processing group in 0 dim
+		+ std::string(" -D MLO_N_IN_PIX_SZ1=") + std::to_string(static_cast<long long>(n_in_pix_vert))         // size of output processing group in 1 dim
+		+ std::string(" -D MLO_WEI_SZ=") + std::to_string(static_cast<long long>(_n_outputs * _n_inputs * _kernel_size0 * _kernel_size1))
+		+ std::string(" -D MLO_WEIGHTS_STRIDE=") + std::to_string(static_cast<long long>(_n_inputs * _kernel_size0 * _kernel_size1))		//	weights stride
+		+ std::string(" -D MLO_N_STACKS=") + std::to_string(static_cast<long long>(n_stack_blocks))          // n of separate data stacks
+		+ std::string(" -D MLO_N_PROCS0=") + std::to_string(static_cast<long long>(n_procs0))         // n of processors per stack
+		+ std::string(" -D MLO_N_PROCS1=") + std::to_string(static_cast<long long>(n_procs1))         // n of processors per stack
+		+ std::string(" -D MLO_ALIGNED=") + std::to_string(static_cast<long long>(aligned_out))		//	dimesions aligned
+		+ std::string(" -D MLO_BATCH_ALIGNED=") + std::to_string(static_cast<long long>(batch_aligned))      // batch is multiple of n_ins
+		+ std::string(" -D MLO_OUT_ALINED=") + std::to_string(static_cast<long long>(out_aligned))        // outputs is multiple of n_outs
+		+ std::string(" -D MLO_IN_SZ0=") + std::to_string(static_cast<long long>(in_sz0))			// horizontal read dim 0
+		+ std::string(" -D MLO_IN_SZ1=") + std::to_string(static_cast<long long>(in_sz1))			// vertical read dim 1
 
-		+ std::string(" -D ADNN_BIG=") + std::to_string(static_cast<long long>(big))		//	resolution > 32 x 32
-		+ std::string(" -D ADNN_CONV_BIAS=") + std::to_string(static_cast<long long>(bias))
+		+ std::string(" -D MLO_BIG=") + std::to_string(static_cast<long long>(big))		//	resolution > 32 x 32
+		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(static_cast<long long>(bias))
 
 		+ getGeneralCompOptions()
 		;

@@ -69,7 +69,7 @@ struct HandleImpl
         size_t st, end;
         clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
         clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
-        profiling_result = (end-st)*1e-6;
+        profiling_result = ((end-st)*1e-6);
     }
 };
 
