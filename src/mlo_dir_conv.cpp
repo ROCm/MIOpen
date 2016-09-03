@@ -929,8 +929,14 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 	std::string compiler_options = _gen_comp_options + _comp_options;
 
 	// Creating OCLKernel obj
-	auto program = mlopen::LoadProgram(mlopen::GetContext(profile_q), mlopen::GetDevice(profile_q), _kernel_file, compiler_options);
-	mlopen::OCLKernel kernel{mlopen::CreateKernel(program, _kernel_name), _l_wk, _g_wk};
+	mlopen::OCLKernel kernel;
+	try {
+        auto program = mlopen::LoadProgram(mlopen::GetContext(profile_q), mlopen::GetDevice(profile_q), _kernel_file, compiler_options);
+        kernel = mlopen::OCLKernel{mlopen::CreateKernel(program, _kernel_name), _l_wk, _g_wk};
+    }
+    catch(mlopen::Exception&) {
+        return -1;
+    }
 	// pass all arguments
 
 	float padding_value = 0;
