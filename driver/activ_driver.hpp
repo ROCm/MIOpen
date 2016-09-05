@@ -44,7 +44,6 @@ class ActivationDriver : public Driver
 	int RunForwardGPU();
 	int RunForwardCPU();
 	
-	int FindBackward();
 	int RunBackwardGPU();
 	int RunBackwardCPU();
 	
@@ -251,11 +250,6 @@ int ActivationDriver<T>::RunForwardGPU() {
 template<typename T>
 int ActivationDriver<T>::RunForwardCPU() {
 	return(0);
-}
-
-template<typename T>
-int ActivationDriver<T>::FindBackward() {
-	return 0;
 }
 
 template<typename T>
