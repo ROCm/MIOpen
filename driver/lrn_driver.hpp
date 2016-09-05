@@ -126,6 +126,7 @@ int LRNDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+	inflags.AddInputFlag("back", 'b', "1", "Optimization: Do Backward Pooling (Default=1)", "int");
 	inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
 	inflags.AddInputFlag("mode", 'm', "within", "Pooling Mode (within_channel or cross_channel) (Default=within)", "str");
 
