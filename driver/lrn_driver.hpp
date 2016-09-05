@@ -44,7 +44,6 @@ class LRNDriver : public Driver
 	int RunForwardGPU();
 	int RunForwardCPU();
 	
-	int FindBackward();
 	int RunBackwardGPU();
 	int RunBackwardCPU();
 	
@@ -351,11 +350,6 @@ int LRNDriver<T>::RunForwardCPU() {
 			outhost.data()
 				);
 	return(0);
-}
-
-template<typename T>
-int LRNDriver<T>::FindBackward() {
-	return 0;
 }
 
 template<typename T>
