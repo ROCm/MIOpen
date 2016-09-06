@@ -71,10 +71,11 @@ MLOPEN_DECLARE_OBJECT(mlopenTensorDescriptor);
 MLOPEN_DECLARE_OBJECT(mlopenConvolutionDescriptor);
 MLOPEN_DECLARE_OBJECT(mlopenPoolingDescriptor);
 MLOPEN_DECLARE_OBJECT(mlopenLRNDescriptor);
+MLOPEN_DECLARE_OBJECT(mlopenActivationDescriptor);
 
 //typedef struct mlopenPoolingDescriptor *mlopenPoolingDescriptor_t;
 
-typedef struct mlopenLRNDescriptor *mlopenLRNDescriptor_t;
+//typedef struct mlopenLRNDescriptor *mlopenLRNDescriptor_t;
 
 typedef enum {
 	mlopenHalf = 0,
@@ -104,6 +105,19 @@ typedef enum {
 	mlopenLRNCrossChannel = 1,
 } mlopenLRNMode_t;
 
+typedef enum {
+	mlopenActivationPATHTRU		= 0,
+	mlopenActivationLOGISTIC	= 1,	//	1 / (1 + e^-x)	//Sigmoid
+	mlopenActivationTANH		= 2,	//	a * tanh( b * x)
+	mlopenActivationRELU		= 3,	//	max(0, x)
+	mlopenActivationBRELU		= 4, //	min(a, max(0, x))
+	mlopenActivationSOFTRELU	= 5,	//	log(1 + e^x)   // bonomial normal log likelihood
+	mlopenActivationABS			= 6, //	abs(x)
+	mlopenActivationSQUARE		= 7,//	x^2
+	mlopenActivationSQR			= 8,//	sqr(x)
+	mlopenActivationLINEAR		= 9,//	a + b * x
+	mlopenActivationPOWER		= 10 // (a + b * x ) ^power
+} mlopenActivationMode_t;
 // Create a Tensor Descriptor
 MLOPEN_EXPORT mlopenStatus_t mlopenCreateTensorDescriptor(mlopenTensorDescriptor_t *tensorDesc);
 
@@ -527,6 +541,61 @@ MLOPEN_EXPORT mlopenStatus_t mlopenLRNBackward(
 		const void							*workSpace);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroyLRNDescriptor(mlopenLRNDescriptor_t lrnDesc);
+
+// Activation APIs
+
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateActivationDescriptor(mlopenActivationDescriptor_t *activDesc);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenSetActivationDescriptor(
+	const mlopenActivationDescriptor_t	activDesc,
+	mlopenActivationMode_t				mode,
+	double								activAlpha,
+	double								activBeta,
+	double								activPower);
+
+
+MLOPEN_EXPORT mlopenStatus_t mlopenGetActivationDescriptor(
+	const mlopenActivationDescriptor_t	activDesc,
+	mlopenActivationMode_t				*mode,
+	double								*activAlpha,
+	double								*activBeta,
+	double								*activPower);
+
+
+
+MLOPEN_EXPORT mlopenStatus_t mlopenActivationForward(
+	mlopenHandle_t						handle,
+	const mlopenActivationDescriptor_t	activDesc,
+	const void							*alpha,
+	const mlopenTensorDescriptor_t		xDesc,
+	const void							*x,
+	const void							*beta,
+	const mlopenTensorDescriptor_t		yDesc,
+	void								*y,
+	bool                                do_backward,
+	void								*workSpace,
+	size_t								*workSpaceSize);
+
+
+MLOPEN_EXPORT mlopenStatus_t mlopenActivationBackward(
+	mlopenHandle_t						handle,
+	const mlopenActivationDescriptor_t	activDesc,
+	const void							*alpha,
+	const mlopenTensorDescriptor_t		yDesc,
+	const void							*y,
+	const mlopenTensorDescriptor_t		dyDesc,
+	const void							*dy,
+	const mlopenTensorDescriptor_t		xDesc,
+	const void							*x,
+	const void							*beta,
+	const mlopenTensorDescriptor_t		dxDesc,
+	void								*dx,
+	const void							*workSpace);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenDestroyActivationDescriptor(mlopenActivationDescriptor_t activDesc);
+
+
+
 #ifdef __cplusplus
 }
 #endif

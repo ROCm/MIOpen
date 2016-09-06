@@ -128,7 +128,7 @@ int PoolDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
-	inflags.AddInputFlag("back", 'b', "0", "Do Backward Pooling (Default=0)", "int");
+	inflags.AddInputFlag("back", 'b', "0", "Optimization: Do Backward Pooling (Default=0)", "int");
 	inflags.AddInputFlag("print", 'P', "1", "Print Pooling Dimensions (Default=1)", "int");
 	inflags.AddInputFlag("mode", 'm', "max", "Pooling Mode (max, avg) (Default=max)", "str");
 
@@ -205,11 +205,11 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	dinhost = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
-		in[i] = rand() * (1.0 / RAND_MAX);
+		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 	
 	for (int i = 0; i < out_sz; i++) {
-		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
 
 	cl_int status;
@@ -238,7 +238,7 @@ int PoolDriver<T>::RunForwardGPU() {
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
-			inflags.GetValueInt("back"),
+			(inflags.GetValueInt("back")==1)?true:false,
 			NULL,
 			0);
 

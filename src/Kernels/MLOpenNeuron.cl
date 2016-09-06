@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 AMD Inc.
+ * Copyright (c) 2016 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the

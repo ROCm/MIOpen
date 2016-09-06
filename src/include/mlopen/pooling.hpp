@@ -14,6 +14,7 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 	PoolingDescriptor();
 	PoolingDescriptor(mlopenPoolingMode_t m, const int *plens, const int *ppads, const int *pstrides, int size);
 
+	mlopenPoolingMode_t GetMode() const;
 	const std::vector<int>& GetLengths() const;
 	const std::vector<int>& GetStrides() const;
 	const std::vector<int>& GetPads() const;

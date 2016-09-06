@@ -243,7 +243,7 @@ bool mloSearchConfigDB(
 int mlo_construct_direct2D::mloConstruct()
 {
 	int ret = 0;
-	_gen = (_kernel_size0 >= 11 || _kernel_size1 >= 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
+	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 	if (_gen && getDirectcion())
 	{
 		ret = mloConstructDirect2DFwdGen();
@@ -297,6 +297,9 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 {
 	int ret = 0;
 
+// to restore to the previous version just comment this line
+// currently runs previous version
+//	return(mloConstructDirect2DFwd2());
 	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
 
 	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
@@ -405,7 +408,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	_g_wk.push_back(gbl_wk2);
 
 	_kernel_file = "MLOpenConvDirUni.cl";
-	_kernel_name = "aDNNConvUni";
+	_kernel_name = "MLOpenConvUni";
 
 
 
@@ -413,11 +416,153 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 }
 
 /*
+* constructs found configuration
+*/
+int mlo_construct_direct2D::mloConstructDirect2DFwd2()
+{
+	int ret = 0;
+	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
+/*
+	int maxComputeUnits;
+	int maxWorkItemDims;
+	std::vector<size_t> maxWorkItemSize;
+	size_t maxWorkGroupSize;
+	int maxClockFrequency;
+	size_t maxMemAllocSize;
+	size_t localMemSize;
+	size_t timerResolution;
+	std::string deviceName;
+*/
+	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
+	/*
+	mloGetDeviceInfo(dev,
+		maxComputeUnits,
+		maxWorkItemDims,
+		maxWorkItemSize,
+		maxWorkGroupSize,
+		maxClockFrequency,
+		maxMemAllocSize,
+		localMemSize,
+		timerResolution,
+		deviceName);
+	*/
+	_hw_wave_sz = 64;
+	_dev_local_mem_sz = localMemSize; // in bytes
+
+
+
+	if (_direction == 0)
+	{
+		// backward
+		_pad0 = (_pad0 == 0) ? _kernel_size0 - 1 : _pad0;
+		_pad1 = (_pad1 == 0) ? _kernel_size1 - 1 : _pad1;
+	}
+
+	_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
+	_n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
+	_n_stacks = std::min(_batch_sz, _n_stacks);
+
+	int alu_tile0 = (_in_tile0 + _out_pix_tile0 - 1) / _out_pix_tile0;
+	int alu_tile1 = (_in_tile1 + _out_pix_tile1 - 1) / _out_pix_tile1;
+	int alu_tiles_sz = (alu_tile0*alu_tile1);
+	if (alu_tiles_sz > 256 || _grp_tile0 < alu_tile0 || _grp_tile1 < alu_tile1)
+	{
+		//			std::cout << "ERROR: need out pix size ajustments\n";
+		return(-1);
+	}
+
+	int n_alus_total = (_grp_tile0 * _grp_tile1);
+	int n_out_stacks = (n_alus_total + alu_tiles_sz - 1) / alu_tiles_sz;
+
+
+	int n_read_procs;
+	if ((_grp_tile1 * _grp_tile0) <= static_cast<float>(_in_tile1 * _in_tile0))
+	{
+		n_read_procs = _grp_tile1 * _grp_tile0;
+	}
+	else
+	{
+		float proc_data_ratio = static_cast<float>(_in_tile1 * _in_tile0) / static_cast<float>(_grp_tile1 * _grp_tile0);
+		n_read_procs = (proc_data_ratio <= 0.25) ? (_grp_tile1 * _grp_tile0) / 4 : (proc_data_ratio <= 0.5) ? (_grp_tile1 * _grp_tile0) / 2 : (_grp_tile1 * _grp_tile0);
+	}
+
+	int n_out_tile_blocks0 = (_out_width + _in_tile0 - 1) / (_in_tile0);
+	int n_out_tile_blocks1 = (_out_height + _in_tile1 - 1) / (_in_tile1);
+
+	int n_out_tiles = n_out_stacks * _n_out_pix_tiles;
+
+	n_out_tiles = std::min(n_out_tiles, _n_outputs);
+	int n_in_tiles_total = _n_stacks * _n_in_data_tiles;
+
+	_comp_options =
+		std::string(" -D MLO_HW_WAVE_SZ=") + std::to_string(static_cast<long long>(_hw_wave_sz))
+		+ std::string(" -D MLO_DIR_FORWARD=") + std::to_string(static_cast<long long>(_direction))
+		+ std::string(" -D MLO_FILTER_SIZE0=") + std::to_string(static_cast<long long>(_kernel_size0))
+		+ std::string(" -D MLO_FILTER_SIZE1=") + std::to_string(static_cast<long long>(_kernel_size1))
+		+ std::string(" -D MLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(_pad0))
+		+ std::string(" -D MLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(_pad1))
+		+ std::string(" -D MLO_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs))
+		+ std::string(" -D MLO_N_INPUTS=") + std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string(" -D MLO_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
+		+ std::string(" -D MLO_OUT_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string(" -D MLO_OUT_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string(" -D MLO_OUT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
+		+ std::string(" -D MLO_OUT_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
+		+ std::string(" -D MLO_OUT_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
+		+ std::string(" -D MLO_IN_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
+		+ std::string(" -D MLO_IN_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
+		+ std::string(" -D MLO_IN_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
+		+ std::string(" -D MLO_IN_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
+		+ std::string(" -D MLO_IN_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
+		// algorithm parameters
+		+ std::string(" -D MLO_IN_TILE0=") + std::to_string(static_cast<long long>(_in_tile0))  // size of input data per ALU plane
+		+ std::string(" -D MLO_IN_TILE1=") + std::to_string(static_cast<long long>(_in_tile1))  // size of input data per ALU plane
+		+ std::string(" -D MLO_GRP_TILE0=") + std::to_string(static_cast<long long>(_grp_tile0)) // # of ALUs (group size)
+		+ std::string(" -D MLO_GRP_TILE1=") + std::to_string(static_cast<long long>(_grp_tile1)) //
+		+ std::string(" -D MLO_OUT_TILE0=") + std::to_string(static_cast<long long>(_out_pix_tile0))  // size of ouptput tile per wk-item (ALU))
+		+ std::string(" -D MLO_OUT_TILE1=") + std::to_string(static_cast<long long>(_out_pix_tile1))  //
+		+ std::string(" -D MLO_N_PIX_STACKS=") + std::to_string(static_cast<long long>(_n_stacks)) // # of diff stacks (part of batch).
+		+ std::string(" -D MLO_N_OUT_PIX_TILES=") + std::to_string(static_cast<long long>(_n_out_pix_tiles))  // # output pixel tiles per wk-item (ALU)
+		+ std::string(" -D MLO_N_OUT_STACKS=") + std::to_string(static_cast<long long>(n_out_stacks)) // stack of outputs
+		+ std::string(" -D MLO_N_OUT_TILES=") + std::to_string(static_cast<long long>(n_out_tiles))  // # total output tiles = MLO_N_OUT_STACKS * MLO_N_OUT_PIX_TILES
+		+ std::string(" -D MLO_N_IN_TILES=") + std::to_string(static_cast<long long>(_n_in_data_tiles)) // # tiles from the same stack in LDS per stack
+		+ std::string(" -D MLO_N_IN_TILES_TOTAL=") + std::to_string(static_cast<long long>(n_in_tiles_total)) // _n_stacks * _n_in_data_tiles
+		+ std::string(" -D MLO_N_READ_PROCS=") + std::to_string(static_cast<long long>(n_read_procs))
+		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(static_cast<long long>(_bias))
+		+ std::string(" -D MLO_ALU_VTILE0=") + std::to_string(static_cast<long long>(alu_tile0))
+		+ std::string(" -D MLO_ALU_VTILE1=") + std::to_string(static_cast<long long>(alu_tile1))
+		+ getGeneralCompOptions()
+		;
+
+	_l_wk.clear();
+	_l_wk.push_back(_grp_tile1 * _grp_tile0);
+	_l_wk.push_back(1);
+	_l_wk.push_back(1);
+
+	size_t gbl_wk0 = n_out_tile_blocks0 * n_out_tile_blocks1;
+
+	size_t gbl_wk1 = (_n_outputs + n_out_tiles - 1) / n_out_tiles;
+	size_t gbl_wk2 = (_batch_sz + _n_stacks - 1) / _n_stacks;
+
+	_g_wk.clear();
+	_g_wk.push_back(gbl_wk0 * _l_wk[0]);
+	_g_wk.push_back(gbl_wk1);
+	_g_wk.push_back(gbl_wk2);
+
+	_kernel_file = "MLOpenConvDirUni2.cl";
+	_kernel_name = "MLOpenConvUni2";
+
+
+
+	return(ret);
+}
+
+
+/*
  * construct generic forward configuration
  */
 int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 {
-
 
 	int ocl_group_sz0 = 16;
 	int ocl_group_sz1 = 16;
@@ -428,17 +573,18 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 
 	int n_ins0 = 1; // number of inputs each a from different stack along dim 0
 	int n_ins1 = 1; // number of inputs each a from different stack along dim 1
+	int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
 
-	// should be a combination of # of CUs, batch size.
-	// these is an aprox for Fiji
-	int n_outs = (_batch_sz <= 8) ? ((_kernel_size0 < 5) ? 2 : 4) : (_batch_sz <= 16) ? ((_kernel_size0 < 5) ? 4 : 6) : ((_n_outputs <= 32) ? 4 : 8); // (kernel_size0 == 3 && width_out < 64 && height_out < 64) ? 14 : 12; // n outputs per a single input: major parameter
+								 // should be a combination of # of CUs, batch size.
+								 // these is an aprox for Fiji
+	int n_outs = 14; // (_batch_sz <= 8) ? ((_kernel_size0 < 5) ? 2 : 4) : (_batch_sz <= 16) ? ((_kernel_size0 < 5) ? 4 : 6) : ((_n_outputs <= 32) ? 4 : 8); // (kernel_size0 == 3 && width_out < 64 && height_out < 64) ? 14 : 12; // n outputs per a single input: major parameter
 	int n_out_pix_horiz = 2; // n of output px horix per wk-item: major parameter
 	int n_out_pix_vert = 2; // n of output px horix per wk-item: major parameter
 
 	if (_gen)
 	{
-		n_outs = (_kernel_size1 < 7) ? 12 : (_kernel_size1 < 9) ? 8 : ((_kernel_size1 < 11) ? 4 : 2); // n outputs per a single input: major parameter
-		n_out_pix_horiz = (_kernel_stride0 <= 4) ? 2 : 1; // n of output px horix per wk-item: major parameter
+		n_outs = (_kernel_size1 <= 7) ? 14 : 8; // n outputs per a single input: major parameter
+		n_out_pix_horiz = 2; // (_kernel_stride0 <= 4) ? 2 : 1; // n of output px horix per wk-item: major parameter
 		n_out_pix_vert = (_kernel_stride1 < 4 && _kernel_size1 < 7) ? 2 : 1; // n of output px horix per wk-item: major parameter
 		ocl_group_sz0 = 8; // (stride0 < 4) ? 16 : 8;
 		ocl_group_sz1 = 8; //  (stride1 < 4) ? 16 : 8;
@@ -452,6 +598,9 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	int n_v_proc0 = (_out_width + n_out_pix_horiz - 1) / n_out_pix_horiz;
 	int n_v_proc1 = (_out_height + n_out_pix_vert - 1) / n_out_pix_vert;
 
+
+#if 0
+	int in_main_loop_ = _n_inputs;
 	for (int proc0 = ocl_group_sz0 / 2; n_v_proc0 <= proc0 && proc0 > 1; proc0 /= 2)
 	{
 		n_ins0 *= 2;
@@ -461,7 +610,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		n_ins1 *= 2;
 	}
 
-	int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
+	n_ins = n_ins0 * n_ins1;
 	if (n_ins > _batch_sz)
 	{
 		ocl_group_sz1 /= 2;
@@ -483,7 +632,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		}
 		n_ins = n_ins0 * n_ins1;
 	}
-
+#endif
 
 	int batch_aligned = 0;
 #if 1
@@ -507,8 +656,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	int n_procs0 = ocl_group_sz0 / n_ins0;
 	int n_procs1 = ocl_group_sz1 / n_ins1;
 
-	int in_sz0 = (n_procs0 * n_out_pix_horiz) * _kernel_stride0/* + kernel_size0 - 2 * pad0*/;
-	int in_sz1 = (n_procs1 * n_out_pix_vert) * _kernel_stride1/* + kernel_size1 - 2 * pad1*/;
+	int in_sz0 = (n_procs0 * n_out_pix_horiz - 1) * _kernel_stride0 + 1/* + kernel_size0 - 2 * pad0*/;
+	int in_sz1 = (n_procs1 * n_out_pix_vert - 1) * _kernel_stride1 + 1/* + kernel_size1 - 2 * pad1*/;
 
 
 	int n_out_blocks = ((_n_outputs + n_outs - 1) / n_outs);
@@ -527,51 +676,51 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		aligned_out = 0;
 	}
 
-	int bias = 1;
+	int bias = _bias;
 
 	_comp_options =
-		std::string("-D ADNN_GRP_SZ=") + std::to_string(static_cast<long long>(ocl_group_sz0) * ocl_group_sz1 * ocl_group_sz2)
-		+ std::string(" -D ADNN_GRP_SZ0=") + std::to_string(static_cast<long long>(ocl_group_sz0))
-		+ std::string(" -D ADNN_GRP_SZ1=") + std::to_string(static_cast<long long>(ocl_group_sz1))
-		+ std::string(" -D ADNN_GRP_SZ2=") + std::to_string(static_cast<long long>(ocl_group_sz2))
-		+ std::string(" -D ADNN_LCL_N_IN_CHNLS=") + std::to_string(static_cast<long long>(n_ins))
-		+ std::string(" -D ADNN_LCL_N_OUT_CHNLS=") + std::to_string(static_cast<long long>(n_outs))
-		+ std::string(" -D ADNN_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
-		+ std::string(" -D ADNN_FLTR_SZ0=") + std::to_string(static_cast<long long>(_kernel_size0))
-		+ std::string(" -D ADNN_FLTR_PAD_SZ0=") + std::to_string(static_cast<long long>(_pad0))
-		+ std::string(" -D ADNN_FLTR_STRIDE0=") + std::to_string(static_cast<long long>(_kernel_stride0))
-		+ std::string(" -D ADNN_FLTR_SZ1=") + std::to_string(static_cast<long long>(_kernel_size1))
-		+ std::string(" -D ADNN_FLTR_PAD_SZ1=") + std::to_string(static_cast<long long>(_pad1))
-		+ std::string(" -D ADNN_FLTR_STRIDE1=") + std::to_string(static_cast<long long>(_kernel_stride1))
-		+ std::string(" -D ADNN_N_OUT_CHNLS=") + std::to_string(static_cast<long long>(_n_outputs))			//total number of output channels
-		+ std::string(" -D ADNN_OUT_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
-		+ std::string(" -D ADNN_OUT_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
-		+ std::string(" -D ADNN_OUT_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
-		+ std::string(" -D ADNN_OUT_CHNL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
-		+ std::string(" -D ADNN_OUT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
-		+ std::string(" -D ADNN_N_OUT_PIX_SZ0=") + std::to_string(static_cast<long long>(n_out_pix_horiz))
-		+ std::string(" -D ADNN_N_OUT_PIX_SZ1=") + std::to_string(static_cast<long long>(n_out_pix_vert))
-		+ std::string(" -D ADNN_N_IN_CHNLS=") + std::to_string(static_cast<long long>(_n_inputs))
-		+ std::string(" -D ADNN_IN_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
-		+ std::string(" -D ADNN_IN_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
-		+ std::string(" -D ADNN_IN_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
-		+ std::string(" -D ADNN_IN_CHNL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
-		+ std::string(" -D ADNN_IN_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
-		+ std::string(" -D ADNN_N_IN_PIX_SZ0=") + std::to_string(static_cast<long long>(n_in_pix_horiz))         // size of output processing group in 0 dim
-		+ std::string(" -D ADNN_N_IN_PIX_SZ1=") + std::to_string(static_cast<long long>(n_in_pix_vert))         // size of output processing group in 1 dim
-		+ std::string(" -D ADNN_WEI_SZ=") + std::to_string(static_cast<long long>(_n_outputs * _n_inputs * _kernel_size0 * _kernel_size1))
-		+ std::string(" -D ADNN_WEIGHTS_STRIDE=") + std::to_string(static_cast<long long>(_n_inputs * _kernel_size0 * _kernel_size1))		//	weights stride
-		+ std::string(" -D ADNN_N_STACKS=") + std::to_string(static_cast<long long>(n_stack_blocks))          // n of separate data stacks
-		+ std::string(" -D ADNN_N_PROCS0=") + std::to_string(static_cast<long long>(n_procs0))         // n of processors per stack
-		+ std::string(" -D ADNN_N_PROCS1=") + std::to_string(static_cast<long long>(n_procs1))         // n of processors per stack
-		+ std::string(" -D ADNN_ALIGNED=") + std::to_string(static_cast<long long>(aligned_out))		//	dimesions aligned
-		+ std::string(" -D ADNN_BATCH_ALIGNED=") + std::to_string(static_cast<long long>(batch_aligned))      // batch is multiple of n_ins
-		+ std::string(" -D ADNN_OUT_ALINED=") + std::to_string(static_cast<long long>(out_aligned))        // outputs is multiple of n_outs
-		+ std::string(" -D ADNN_IN_SZ0=") + std::to_string(static_cast<long long>(in_sz0))			// horizontal read dim 0
-		+ std::string(" -D ADNN_IN_SZ1=") + std::to_string(static_cast<long long>(in_sz1))			// vertical read dim 1
+		std::string("-D MLO_GRP_SZ=") + std::to_string(static_cast<long long>(ocl_group_sz0 * ocl_group_sz1 * ocl_group_sz2))
+		+ std::string(" -D MLO_GRP_SZ0=") + std::to_string(static_cast<long long>(ocl_group_sz0))
+		+ std::string(" -D MLO_GRP_SZ1=") + std::to_string(static_cast<long long>(ocl_group_sz1))
+		+ std::string(" -D MLO_GRP_SZ2=") + std::to_string(static_cast<long long>(ocl_group_sz2))
+		+ std::string(" -D MLO_LCL_N_IN_CHNLS=") + std::to_string(static_cast<long long>(n_ins))
+		+ std::string(" -D MLO_LCL_N_OUT_CHNLS=") + std::to_string(static_cast<long long>(n_outs))
+		+ std::string(" -D MLO_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
+		+ std::string(" -D MLO_FLTR_SZ0=") + std::to_string(static_cast<long long>(_kernel_size0))
+		+ std::string(" -D MLO_FLTR_PAD_SZ0=") + std::to_string(static_cast<long long>(_pad0))
+		+ std::string(" -D MLO_FLTR_STRIDE0=") + std::to_string(static_cast<long long>(_kernel_stride0))
+		+ std::string(" -D MLO_FLTR_SZ1=") + std::to_string(static_cast<long long>(_kernel_size1))
+		+ std::string(" -D MLO_FLTR_PAD_SZ1=") + std::to_string(static_cast<long long>(_pad1))
+		+ std::string(" -D MLO_FLTR_STRIDE1=") + std::to_string(static_cast<long long>(_kernel_stride1))
+		+ std::string(" -D MLO_N_OUT_CHNLS=") + std::to_string(static_cast<long long>(_n_outputs))			//total number of output channels
+		+ std::string(" -D MLO_OUT_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string(" -D MLO_OUT_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string(" -D MLO_OUT_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
+		+ std::string(" -D MLO_OUT_CHNL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
+		+ std::string(" -D MLO_OUT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
+		+ std::string(" -D MLO_N_OUT_PIX_SZ0=") + std::to_string(static_cast<long long>(n_out_pix_horiz))
+		+ std::string(" -D MLO_N_OUT_PIX_SZ1=") + std::to_string(static_cast<long long>(n_out_pix_vert))
+		+ std::string(" -D MLO_N_IN_CHNLS=") + std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string(" -D MLO_IN_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
+		+ std::string(" -D MLO_IN_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
+		+ std::string(" -D MLO_IN_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
+		+ std::string(" -D MLO_IN_CHNL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
+		+ std::string(" -D MLO_IN_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
+		+ std::string(" -D MLO_N_IN_PIX_SZ0=") + std::to_string(static_cast<long long>(n_in_pix_horiz))         // size of output processing group in 0 dim
+		+ std::string(" -D MLO_N_IN_PIX_SZ1=") + std::to_string(static_cast<long long>(n_in_pix_vert))         // size of output processing group in 1 dim
+		+ std::string(" -D MLO_WEI_SZ=") + std::to_string(static_cast<long long>(_n_outputs * _n_inputs * _kernel_size0 * _kernel_size1))
+		+ std::string(" -D MLO_WEIGHTS_STRIDE=") + std::to_string(static_cast<long long>(_n_inputs * _kernel_size0 * _kernel_size1))		//	weights stride
+		+ std::string(" -D MLO_N_STACKS=") + std::to_string(static_cast<long long>(n_stack_blocks))          // n of separate data stacks
+		+ std::string(" -D MLO_N_PROCS0=") + std::to_string(static_cast<long long>(n_procs0))         // n of processors per stack
+		+ std::string(" -D MLO_N_PROCS1=") + std::to_string(static_cast<long long>(n_procs1))         // n of processors per stack
+		+ std::string(" -D MLO_ALIGNED=") + std::to_string(static_cast<long long>(aligned_out))		//	dimesions aligned
+		+ std::string(" -D MLO_BATCH_ALIGNED=") + std::to_string(static_cast<long long>(batch_aligned))      // batch is multiple of n_ins
+		+ std::string(" -D MLO_OUT_ALINED=") + std::to_string(static_cast<long long>(out_aligned))        // outputs is multiple of n_outs
+		+ std::string(" -D MLO_IN_SZ0=") + std::to_string(static_cast<long long>(in_sz0))			// horizontal read dim 0
+		+ std::string(" -D MLO_IN_SZ1=") + std::to_string(static_cast<long long>(in_sz1))			// vertical read dim 1
 
-		+ std::string(" -D ADNN_BIG=") + std::to_string(static_cast<long long>(big))		//	resolution > 32 x 32
-		+ std::string(" -D ADNN_CONV_BIAS=") + std::to_string(static_cast<long long>(bias))
+		+ std::string(" -D MLO_BIG=") + std::to_string(static_cast<long long>(big))		//	resolution > 32 x 32
+		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(static_cast<long long>(bias))
 
 		+ getGeneralCompOptions()
 		;
@@ -728,32 +877,32 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 {
 
 	//
-	int in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
-	int in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
+	_in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
+	_in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
 
-	int grp_tile0 = in_tile0;
-	int grp_tile1 = in_tile1;
+	_grp_tile0 = _in_tile0;
+	_grp_tile1 = _in_tile1;
 
-	int out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
-	int out_pix_tile1 = 4; //
+	_out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
+	_out_pix_tile1 = 2; // 4; //
 
 
-	int n_out_pix_tiles = 2;  // # output pixel tiles per wk-item (ALU)
-	int n_in_data_tiles = 4; // # of blocks of different inputs in LDS
+	_n_out_pix_tiles = 2; // 2;  // # output pixel tiles per wk-item (ALU)
+	_n_in_data_tiles = 2; // 4; // # of blocks of different inputs in LDS
 
-	int n_stacks = 1; // # of diff stacks (part of batch).
+	_n_stacks = 2; // # of diff stacks (part of batch).
 
 	mloBuildConf_Val(
 			conf_val,
-			grp_tile1,
-			grp_tile0,
-			in_tile1,
-			in_tile0,
-			out_pix_tile1,
-			out_pix_tile0,
-			n_out_pix_tiles,
-			n_in_data_tiles,
-			n_stacks
+			_grp_tile1,
+			_grp_tile0,
+			_in_tile1,
+			_in_tile0,
+			_out_pix_tile1,
+			_out_pix_tile0,
+			_n_out_pix_tiles,
+			_n_in_data_tiles,
+			_n_stacks
 			);
 
 	mloSetConf(conf_val);
@@ -783,63 +932,68 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 	std::string compiler_options = _gen_comp_options + _comp_options;
 
 	// Creating OCLKernel obj
-	auto program = mlopen::LoadProgram(mlopen::GetContext(profile_q), mlopen::GetDevice(profile_q), _kernel_file, compiler_options);
-	mlopen::OCLKernel kernel{mlopen::CreateKernel(program, _kernel_name), _l_wk, _g_wk};
-	// pass all arguments
+	try {
+        auto program = mlopen::LoadProgram(mlopen::GetContext(profile_q), mlopen::GetDevice(profile_q), _kernel_file, compiler_options);
+        mlopen::OCLKernel kernel{mlopen::CreateKernel(program, _kernel_name), _l_wk, _g_wk};
+		// pass all arguments
 
-	float padding_value = 0;
-	
-	double s= 0, e = 0;
-	int iter = 1;
+		float padding_value = 0;
+		
+		double s= 0, e = 0;
+		int iter = 1;
 
-	if (profile_q)
-	{
-		processing_time = CL_MAXFLOAT;
-
-		auto k = kernel.Invoke(profile_q, [&] (cl_event profile_e) {
-			    size_t st, end;
-			    clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
-		        clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
-		        processing_time = (end-st)*1e-6;
-		});
-
-		if(_bias) {
-			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-		} else {
-			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-		}
-	}
-	else
-	{
-		iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
-
-		cl_command_queue q = reinterpret_cast<cl_command_queue>(_stream);
-		auto k = kernel.Invoke(q);
-
-		if(_bias) {
-			k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-		} else {
-			k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-		}
-
-		clFinish(q);
-
-		s = mlopen_mach_absolute_time();
-
-		for (int i = 0; i < iter && ret == 0; i++)
+		if (profile_q)
 		{
+			processing_time = CL_MAXFLOAT;
+
+			auto k = kernel.Invoke(profile_q, [&] (cl_event profile_e) {
+				    size_t st, end;
+				    clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
+			        clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
+			        processing_time = (end-st)*1e-6;
+			});
+
 			if(_bias) {
 				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
 			} else {
 				k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
 			}
 		}
+		else
+		{
+			iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
 
-		clFinish(q);
-		e = mlopen_mach_absolute_time();
+			cl_command_queue q = reinterpret_cast<cl_command_queue>(_stream);
+			auto k = kernel.Invoke(q);
 
-		processing_time = subtractTimes(e, s) / iter;
-	}
+			if(_bias) {
+				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+			} else {
+				k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
+			}
+
+			clFinish(q);
+
+			s = mlopen_mach_absolute_time();
+
+			for (int i = 0; i < iter && ret == 0; i++)
+			{
+				if(_bias) {
+					k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+				} else {
+					k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
+				}
+			}
+
+			clFinish(q);
+			e = mlopen_mach_absolute_time();
+
+			processing_time = subtractTimes(e, s) / iter;
+		}
+    }
+    catch(mlopen::Exception&) {
+        return -1;
+    }
 
 	return (ret);
 }
@@ -1157,20 +1311,21 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 
 
 		// search loop here
+		// search loop here
 		//		int grp_sz[3] = { 64, 128, 256 };
 		int grp_tl_ln[2] = { 8, 16 };
-		int tile_sz[3] = { 8, 16, 32 };
-		int out_pix_tile_sz[4] = { 1, 2, 4, 8 };
-		int n_out_tiles_rg[2] = { 1, 12 };
+		int tile_sz[4] = { 8, 16, 32, 64 };
+		int out_pix_tile_sz[3] = { 1, 2, 4 };
+		int n_out_tiles_rg[2] = { 1, 8 };
 		int n_in_tiles_rg[2] = { 1, 4 };
-		int n_in_stacks_sz[3] = { 1, 2, 4 };
+		int n_in_stacks_sz[2] = { 1, 2 };
 		/*
-		   std::vector<int> v_tile_sz;
-		   std::vector<int> v_out_pix_tile_sz;
-		   std::vector<int> v_n_out_tiles_rg;
-		   std::vector<int> v_n_in_tiles_rg;
-		   std::vector<int> v_n_in_stacks_sz;
-		   */
+		std::vector<int> v_tile_sz;
+		std::vector<int> v_out_pix_tile_sz;
+		std::vector<int> v_n_out_tiles_rg;
+		std::vector<int> v_n_in_tiles_rg;
+		std::vector<int> v_n_in_stacks_sz;
+		*/
 		// 
 
 		double min_proc_time = CL_MAXFLOAT;
@@ -1179,22 +1334,26 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may take few minutes." << std::endl;
 
 		size_t run_counter = 0;
-		int n_grp_tiles0 = (_out_height >= 32) ? 1 : 2;
-		int n_grp_tiles1 = (_out_width >= 32) ? 1 : 2;
-		int out_pix_tl_cnt = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 3 : 4;
-		int n_out_tls = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
+		int n_grp_tiles0 = (_out_height >= 32 && _batch_sz >= 16) ? 1 : 2;
+		int n_grp_tiles1 = (_out_width >= 32 && _batch_sz >= 16) ? 1 : 2;
+		int out_pix_tl_cnt = 3;
+		int n_out_tls = n_out_tiles_rg[1];
 		n_out_tls = std::min(_n_outputs, n_out_tls);
-		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : 3;
-		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : 3;
-        long long runs_left = n_grp_tiles0 * n_grp_tiles1 * n_tile0_sz * n_tile1_sz * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * 3;
+		int stack_cnt = 2;
+		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : (_out_width * 2 <= 64) ? 3 : 4;
+		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : (_out_height * 2 <= 64) ? 3 : 4;
+		int n_tiles_cnt = (n_tile0_sz * n_tile1_sz == 9) ? (n_tile0_sz * n_tile1_sz - 1) : (n_tile0_sz * n_tile1_sz == 16) ? (n_tile0_sz * n_tile1_sz - 4) : n_tile0_sz * n_tile1_sz;
+
+		long long runs_left = n_grp_tiles0 * n_grp_tiles1 * n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls * n_in_tiles_rg[1] * stack_cnt;
 
 		size_t report_inteval = 25;
 		//			_n_timer_iter = 250;
 
 		for (int g1 = 0; g1 < 2; g1++)
 		{
+			
 			_grp_tile1 = grp_tl_ln[g1];
-			if (_out_height >= 32 && _grp_tile1 == 8)
+			if (_out_height >= 32 && _grp_tile1 == 8 && _batch_sz >= 16)
 			{
 				continue;
 			}
@@ -1203,12 +1362,12 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 			{
 				_grp_tile0 = grp_tl_ln[g0];
 
-				if (_out_width >= 32 && _grp_tile0 == 8)
+				if (_out_width >= 32 && _grp_tile0 == 8 && _batch_sz >= 16)
 				{
 					continue;
 				}
 				// tile1
-				for (int j = 0; j < 3; ++j)
+				for (int j = 0; j < n_tile1_sz; ++j)
 				{
 					_in_tile1 = tile_sz[j];
 					if (_out_height * 2 <= _in_tile1 && _in_tile1 > tile_sz[0])
@@ -1218,9 +1377,14 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 						continue;
 					}
 					// tile 0
-					for (int i = 0; i < 3; i++) {
+					for (int i = 0; i < n_tile0_sz; ++i)
+					{
 						_in_tile0 = tile_sz[i];
-						if (_out_width * 2 <= _in_tile0 &&  _in_tile0 > tile_sz[0])
+						if ((_out_width * 2 <= _in_tile0 &&  _in_tile0 > tile_sz[0])
+							|| (_in_tile0 == _in_tile1 && _in_tile0 == 64)
+							|| (_in_tile0 == 8 && _in_tile1 == 32)
+							|| ((_in_tile0 == 8 || _in_tile0 == 16) && _in_tile1 == 64)
+							)
 						{
 							runs_left--;
 							runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -1228,8 +1392,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 						}
 						// out pix 1
 
-						int k_l = (_kernel_size1 == 3) ? 4 : 3;
-						for (int k = 0; k < k_l; ++k)
+						for (int k = 0; k < out_pix_tl_cnt; ++k)
 						{
 							_out_pix_tile1 = out_pix_tile_sz[k];
 							if (_out_pix_tile1 > _in_tile1)
@@ -1239,7 +1402,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 								continue;
 							}
 							// out pix 0
-							int l_l = (_kernel_size0 == 3) ? 4 : 3;
+							int l_l = 3;
 							for (int l = 0; l < l_l; ++l)
 							{
 								_out_pix_tile0 = out_pix_tile_sz[l];
@@ -1251,17 +1414,17 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 									continue;
 								}
 
-								int o_l = (_kernel_size0 != 3 || _kernel_size1 != 3) ? 6 : n_out_tiles_rg[1];
+								int o_l = n_out_tiles_rg[1];
 								for (int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
 								{
-
+#if 0
 									if ((_out_pix_tile1 == 8 || _out_pix_tile0 == 8) && o_t > 4)
 									{
 										runs_left--;
 										runs_left = (runs_left < 0) ? 0 : runs_left;
 										continue;
 									}
-
+#endif
 									_n_out_pix_tiles = o_t;
 									if (_n_outputs < _n_out_pix_tiles)
 									{
@@ -1280,14 +1443,21 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 											continue;
 										}
 
-										for (int s = 0; s < 3; ++s)
+										for (int s = 0; s < stack_cnt; ++s)
 										{
 
 											_n_stacks = n_in_stacks_sz[s];
-#if 1
+											if (_out_pix_tile1 * _out_pix_tile0 * _n_out_pix_tiles * _n_stacks > 256)
+											{
+												runs_left--;
+												runs_left = (runs_left < 0) ? 0 : runs_left;
+												continue;
+
+											}
+#if 0
 											if ((_in_tile1 > 16 || _in_tile0 > 16)
-													&& i_t > 4
-													&& _n_stacks > 2)
+												&& i_t > 4
+												&& _n_stacks > 2)
 
 											{
 												runs_left--;
@@ -1355,10 +1525,10 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 								} // if (_out_pix_tile0 > _in_tile0)
 							} // for (int l = 0; l < l_l; ++l)
 						} // for (int k = 0; k < k_l; ++k)
-					}  // for (int i = 0; i < 3; ++i)
-				} // for (int j = 0; j < 3; ++j)
-			} // for (int g0 = 0; g0 < 2; ++g0)
-		} // for (int g1 = 0; g1 < 2; g1++) 
+						}  // for (int i = 0; i < 3; ++i)
+					} // for (int j = 0; j < 3; ++j)
+				} // for (int g0 = 0; g0 < 2; ++g0)
+			} // for (int g1 = 0; g1 < 2; g1++) 
 
 		std::cout << std::endl << "Score: " << min_proc_time << std::endl;
 #endif

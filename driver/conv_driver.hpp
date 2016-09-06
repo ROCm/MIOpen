@@ -193,10 +193,10 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	outhost = std::vector<T>(out_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
-		in[i] = rand() * (1.0 / RAND_MAX);
+		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 	for (int i = 0; i < wei_sz; i++) {
-		wei[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
 	
 	cl_int status;
@@ -230,7 +230,8 @@ int ConvDriver<T>::FindForward() {
 			mlopenConvolutionFastest,
 			NULL,
 			10,
-			(bool)inflags.GetValueInt("search"));
+			(inflags.GetValueInt("search")==1)?true:false
+	);
 }
 
 template<typename T>
@@ -347,7 +348,7 @@ template<typename T>
 int ConvDriver<T>::RunBackwardGPU() {
 	int alpha = 1, beta = 1;
 
-	return mlopenConvolutionBackwardData(GetHandle(),
+	int ret = mlopenConvolutionBackwardData(GetHandle(),
 			&alpha,
 			inputTensor,
 			out_dev->GetMem(),
@@ -368,7 +369,7 @@ int ConvDriver<T>::RunBackwardGPU() {
 	}
 
 	// TODO: copy data GPUtoCPU for verif
-	return 0;
+	return ret;
 }
 
 template<typename T>
