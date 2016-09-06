@@ -20,10 +20,16 @@ echo "conv1 1x32x16x16x32x5x5"
 echo "conv1 1x32x8x8x64x5x5"
 ./aLibDNNDriver.exe -li 500 -ni 3 -n -l -bz 1 -iw 8 -ih 8 -ic0 32 -oc0 64 -fs 5 -cnv -fw -sch
 echo "AlexNet"
-echo "conv2 256x96x27x27x256x5x5"
-#./aLibDNNDriver -li 500 -ni 3 -n -l -bz 256 -iw 27 -ih 27 -ic0 96 -oc0 256 -fs 5 -cnv -fw -sch -sd 2
-echo "conv3 256x256x13x13x384x3x3"
-#./aLibDNNDriver -li 500 -ni 3 -n -l -bz 256 -iw 13 -ih 13 -ic0 256 -oc0 384 -fs 3 -cnv -fw -sch
+echo "conv2 128x3x227x227x96x11x11"
+#./aLibDNNDriver.exe -li 500 -ni 3 -n -l -bz 128 -iw 227 -ih 227 -ic0 3 -oc0 96 -fs 11 -fw -cnv -sch -sd 4
+echo "conv2 128x96x27x27x256x5x5"
+./aLibDNNDriver.exe -li 500 -ni 3 -n -l -bz 128 -iw 27 -ih 27 -ic0 96 -oc0 256 -fs 5 -cnv -sch
+echo "conv3 128x256x13x13x384x3x3"
+./aLibDNNDriver.exe -li 500 -ni 3 -n -l -bz 128 -iw 13 -ih 13 -ic0 256 -oc0 384 -fs 3 -cnv -sch
+echo "conv4 128x384x13x13x384x3x3"
+./aLibDNNDriver.exe -li 500 -ni 3 -n -l -bz 128 -iw 13 -ih 13 -ic0 384 -oc0 384 -fs 3 -cnv -sch
+echo "conv5 128x384x13x13x256x3x3"
+./aLibDNNDriver.exe -li 500 -ni 3 -n -l -bz 128 -iw 13 -ih 13 -ic0 384 -oc0 256 -fs 3 -cnv -sch
 echo "FullConvNet"
 echo "conv2/3x3 1x64x256x512x192x3x3"
 ./aLibDNNDriver -li 500 -ni 3 -n -l -bz 1 -iw 512 -ih 256 -ic0 64 -oc0 192 -fs 3 -cnv -fw -sch

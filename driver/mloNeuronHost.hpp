@@ -186,6 +186,7 @@ void ActivationFunction_BNLL(_T * res, const _T* data)
 
 
 
+
 template<typename _T>
 int mloNeuronForwardRunHostAndVerify(
 	int neuron_type,
@@ -266,15 +267,92 @@ int mloNeuronForwardRunHostAndVerify(
 
 }
 
+
+/******************************************************************************/
+/*									DIFF                                      */
+/******************************************************************************/
+template<typename _T>
+void ActivationFunction_ReLU_Diff(_T * bot_diff, const _T* top_diff, const _T *bot_data, _T /*negative_slope*/)
+{
+
+	for (int i = 0; i < 4; ++i)
+	{
+		bot_diff[i] = top_diff[i] * (bot_data[i] > 0);
+	}
+}
+
+
+template<typename _T>
+void ActivationFunction_TanH_Diff(_T * bot_diff, const _T* top_diff, const _T *top_data)
+{
+	for (int i = 0; i <4; i++)
+	{
+		// (exp(2x) -1) / (exp(2x) + 1)
+		_T tanh_x = top_data[i];
+		bot_diff[i] = top_diff[i] * (1 - tanh_x*tanh_x);
+	}
+}
+
+template<typename _T>
+void ActivationFunction_Sigmoid_Diff(_T * bot_diff, const _T* top_diff, const _T *top_data)
+{
+	for (int i = 0; i <4; i++)
+	{
+		// 1/(1 + exp(-x))  
+		_T sigmoid_x = top_data[i];
+		bot_diff[i] = top_diff[i] * sigmoid_x * (1.f - sigmoid_x);
+	}
+}
+
+
+template<typename _T>
+void ActivationFunction_Abs_Diff(_T * bot_diff, const _T* top_diff, const _T *bot_data)
+{
+	for (int i = 0; i <4; i++)
+	{
+		bot_diff[i] = top_diff[i] * ((bot_data >= 0) ? 1 : -1);
+	}
+}
+
+
+// Compute dy/dx = scale * power * (shift + scale * x)^(power - 1)
+//               = diff_scale * y / (shift + scale * x)
+template<typename _T>
+void ActivationFunction_Power_Diff(_T * bot_diff, const _T* top_diff, const _T *top_data, const _T *bot_data,
+	_T diff_scale,
+	_T power,
+	_T scale,
+	_T shift)
+{
+
+	for (int i = 0; i <4; i++)
+	{
+		_T arg = shift + bot_data[i] * scale;
+		bot_diff[i] = (arg == 0) ? 0 : diff_scale * top_data[i] / arg;
+
+	}
+}
+
+template<typename _T>
+void ActivationFunction_BNLL_Diff(_T * bot_diff, const _T* top_diff, const _T *bot_data)
+{
+	for (int i = 0; i <4; i++)
+	{
+		//	(log(1 + exp(x)))' = 1/ (1 + exp(-x))
+		bot_diff[i] = top_diff[i] * (1.f + native_exp(-bot_data[i]));
+	}
+}
+
+
 template<typename _T>
 int mloNeuronBackwardRunHostAndVerify(
 	int neuron_type,
-	_T power,
-	_T shift,
+	_T /*power*/,
+	_T /*shift*/,
 	_T scale,
 	size_t size,
 	const _T * bot_ptr,
-	const _T * top_ptr,
+	const _T * /*top_ptr*/,
 	const _T * bot_df_ptr,
 	const _T * top_df_ptr,
 	double allowedEps
@@ -308,26 +386,26 @@ int mloNeuronBackwardRunHostAndVerify(
 	else if (neuron_type == MLO_NEURON_LOGISTIC)
 	{
 		// 1/(1 + exp(-x))  
-		printf("Neuron: ERROR: bwd func %d has not been implemented yet\n", neuron_type);
+		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
 	}
 	else if (neuron_type == MLO_NEURON_TANH)
 	{
 		// (exp(2x) -1) / (exp(2x) + 1)
-		printf("Neuron: ERROR: bwd func %d has not been implemented yet\n", neuron_type);
+		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
 	}
 	else if (neuron_type == MLO_NEURON_ABS)
 	{
-		printf("Neuron: ERROR: bwd func %d has not been implemented yet\n", neuron_type);
+		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
 	}
 	else if (neuron_type == MLO_NEURON_POWER)
 	{
 		// (shift + scale * x ) ^power
-		printf("Neuron: ERROR: bwd func %d has not been implemented yet\n", neuron_type);
+		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
 	}
 	else if (neuron_type == MLO_NEURON_SOFTRELU)
 	{
 		//	log(1 + exp(x))
-		printf("Neuron: ERROR: bwd func %d has not been implemented yet\n", neuron_type);
+		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
 	}
 	else
 	{

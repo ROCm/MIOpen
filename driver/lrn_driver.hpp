@@ -44,7 +44,6 @@ class LRNDriver : public Driver
 	int RunForwardGPU();
 	int RunForwardCPU();
 	
-	int FindBackward();
 	int RunBackwardGPU();
 	int RunBackwardCPU();
 	
@@ -126,7 +125,7 @@ int LRNDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
-	inflags.AddInputFlag("back", 'b', "1", "Do Backward Pooling (Default=1)", "int");
+	inflags.AddInputFlag("back", 'b', "1", "Optimization: Do Backward Pooling (Default=1)", "int");
 	inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
 	inflags.AddInputFlag("mode", 'm', "within", "Pooling Mode (within_channel or cross_channel) (Default=within)", "str");
 
@@ -205,11 +204,11 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 	dinhost = std::vector<float>(in_sz, 0);
 
 	for (int i = 0; i < in_sz; i++) {
-		in[i] = rand() * (1.0 / RAND_MAX);
+		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
 	for (int i = 0; i < out_sz; i++) {
-		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
 
 	cl_int status;
@@ -237,7 +236,7 @@ int LRNDriver<T>::FindForward(size_t &workspaceSize) {
 			NULL,
 			outputTensor,
 			NULL, 
-			inflags.GetValueInt("back"),
+			(inflags.GetValueInt("back")==1)?true:false,
 			NULL, 
 			&workspaceSize);
 }
@@ -255,7 +254,7 @@ int LRNDriver<T>::RunForwardGPU() {
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
-			inflags.GetValueInt("back"),
+			(inflags.GetValueInt("back")==1)?true:false,
 			scale_dev->GetMem(),
 			NULL);
 
@@ -297,7 +296,7 @@ int LRNDriver<T>::RunForwardCPU() {
 			&v_lrnBeta,
 			&v_lrnK);
 
-	float alphaoverarea = (v_mode == mlopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN);
+	float alphaoverarea = (float)((v_mode == mlopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
 
 	int pre_pad = (v_lrnN - 1) / 2;
 	int pad = v_lrnN - pre_pad - 1;
@@ -321,15 +320,15 @@ int LRNDriver<T>::RunForwardCPU() {
 	int scale_v_channel_stride = top_v_channel_stride;
 	int scale_v_batch_stride = top_v_batch_stride;
 
-	mloLRNForwardRunHost<float>(
-			inflags.GetValueInt("back"),
+	mloLRNForwardRunHost<T>(
+			(inflags.GetValueInt("back")==1)?true:false,
 			v_mode,
 			pad,
 			v_lrnN,
 			alphaoverarea,
-			(float)v_lrnAlpha,
-			(float)v_lrnBeta,
-			(float)v_lrnK,
+			(T)v_lrnAlpha,
+			(T)v_lrnBeta,
+			(T)v_lrnK,
 			batch_sz,
 			n_outputs,
 			n_inputs,
@@ -351,11 +350,6 @@ int LRNDriver<T>::RunForwardCPU() {
 			outhost.data()
 				);
 	return(0);
-}
-
-template<typename T>
-int LRNDriver<T>::FindBackward() {
-	return 0;
 }
 
 template<typename T>
@@ -477,7 +471,7 @@ int LRNDriver<T>::RunBackwardCPU() {
 			&v_lrnBeta,
 			&v_lrnK);
 
-	float alphaoverarea = (v_mode == mlopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN);
+	float alphaoverarea = (float)((v_mode == mlopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
 
 	int pre_pad = (v_lrnN - 1) / 2;
 	int pad = v_lrnN - pre_pad - 1;

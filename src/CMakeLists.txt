@@ -73,6 +73,7 @@ set( MLOpen_Source
 	errors.cpp
 	pooling_api.cpp
 	lrn_api.cpp
+	activ_api.cpp
 	handle_api.cpp
 	include/mlopen/common.hpp
 	include/mlopen/convolution.hpp
@@ -86,6 +87,7 @@ set( MLOpen_Source
 	include/mlopenTypes.h
 	include/mlopen/pooling.hpp
 	include/mlopen/lrn.hpp
+	include/mlopen/activ.hpp
 	tensor.cpp
 	tensor_api.cpp
 	)
@@ -93,6 +95,7 @@ set( MLOpen_Source
 if( MLOPEN_BACKEND MATCHES "OpenCL")
 	add_kernels(
 		Kernels/MLOpenConvDirUni.cl
+		Kernels/MLOpenConvDirUni2.cl
 		Kernels/MLOpenConvDirGenFwd.cl
 		Kernels/MLOpenLRN.cl
 		Kernels/MLOpenNeuron.cl
@@ -101,12 +104,13 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 	)
 	configure_file(db.cpp.in db.cpp)
 	list(APPEND MLOpen_Source 
+		activ.cpp
 		kernel_cache.cpp
 		lrn.cpp
 		mlo_dir_conv.cpp
+		ocl/activ_ocl.cpp
 		ocl/clhelper.cpp
 		ocl/convolutionocl.cpp
-		ocl/handleocl.cpp
 		ocl/handleocl.cpp
 		ocl/lrn_ocl.cpp
 		ocl/mloNeuron.cpp
