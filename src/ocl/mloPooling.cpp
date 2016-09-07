@@ -107,10 +107,14 @@ int mlo_construct_pooling2D::mloConstructBwd()
 {
 	int ret = 0;
 
-	_out_pix_tile0 = _kernel_stride0;
-	_out_pix_tile1 = _kernel_stride1;
 	_grp_tile0 = 8;
 	_grp_tile1 = 8;
+
+	//_out_pix_tile0 = _kernel_stride0;
+	//_out_pix_tile1 = _kernel_stride1;
+	_out_pix_tile0 = (_out_width < _grp_tile0 * 2) ? 1 : 2;
+	_out_pix_tile1 = (_out_height < _grp_tile1 * 2) ? 1 : 2;
+	
 	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile0)) / log(2.)));
 	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile1)) / log(2.)));
 

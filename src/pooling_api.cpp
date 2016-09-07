@@ -156,6 +156,7 @@ mlopenStatus_t mlopenPoolingBackward(
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
 		void								*dx,
+		const void							*mask,
 		const void							*workSpace) {
 
 	return mlopen::try_([&] {
@@ -170,6 +171,7 @@ mlopenStatus_t mlopenPoolingBackward(
 				beta,
 				mlopen::deref(dxDesc),
 				DataCast(dx),
+				DataCast(mask),
 				DataCast(workSpace));
 	});
 

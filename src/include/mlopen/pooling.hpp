@@ -47,6 +47,7 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 		const void					*beta,
 		const TensorDescriptor		&dxDesc,
 		Data_t						dx,
+		ConstData_t					mask,
 		ConstData_t                workSpace);
 
 	std::vector<int> lens;
