@@ -190,24 +190,26 @@ __kernel void mloPoolingMaxBwd(
 	   __global _INT_MASK_GLOBAL * mask
 	   )
 {
-	__local _FLOAT lcl_top_df[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
+	// BUG!!!!
+	//__local _FLOAT lcl_top_df[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
+	__local _FLOAT lcl_top_df[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT + 32]; //magic number to workaround bug
 	__local _INT_MASK_LOCAL lcl_mask[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
 
-	int x = get_group_id(0) * MLO_POOLBWD_GROUP_SZ0 * MLO_POOLBWD_N_HORIZ_OUT_PIX;
-	int y = get_group_id(1) * MLO_POOLBWD_GROUP_SZ1 * MLO_POOLBWD_N_VERT_OUT_PIX;
+	int gid0 = get_group_id(0);
+	int gid1 = get_group_id(1);
+	int x = gid0 * MLO_POOLBWD_GROUP_SZ0 * MLO_POOLBWD_N_HORIZ_OUT_PIX;
+	int y = gid1 * MLO_POOLBWD_GROUP_SZ1 * MLO_POOLBWD_N_VERT_OUT_PIX;
 	int lcl_id0 = get_local_id(0);
 	int lcl_id1 = get_local_id(1);
 	int ob = get_global_id(2); // outputs * batch_sz
 	int b = (int)(float)ob / (float)MLO_POOLING_N_OUTPUTS;
 	int o = ob - b * MLO_POOLING_N_OUTPUTS;
 
-
 	int top_x = (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0) < 0 ? 0 : (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0) / MLO_POOLING_STRIDE0 + 1;
 	int top_y = (y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1) < 0 ? 0 : (y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
 	int top_df_off = b * MLO_POOLBWD_TOPDF_BATCH_STRIDE + o * MLO_POOLBWD_TOPDF_CHANNEL_STRIDE;
 
 	_FLOAT res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];
-
 
 
 	// load tiles
@@ -219,37 +221,63 @@ __kernel void mloPoolingMaxBwd(
 
 		int lcl_off_v = tj * MLO_POOLBWD_LCL_DATA_WIDTH;
 
-		bool invisibleY = (top_y_act >= MLO_POOLBWD_TOP_HEIGHT);
+		bool visibleY = (top_y_act < MLO_POOLBWD_TOP_HEIGHT);
 
 		for (int ti = lcl_id0; ti < MLO_POOLBWD_LCL_DATA_WIDTH; ti += MLO_POOLBWD_GROUP_SZ0)
 		{
 
 			int top_x_act = top_x + ti;
 
-			bool invisibleX = (top_x_act >= MLO_POOLBWD_TOP_WIDTH);
+			bool visible = visibleY && (top_x_act < MLO_POOLBWD_TOP_WIDTH);
+			int idx = visible ? (top_df_off + top_df_y_off + top_x_act) : 0;
 
-			_FLOAT top_df_val = top_df[top_df_off + top_df_y_off + top_x_act];
-			//top_df_val = (invisibleX || invisibleY) ? 0 : top_df_val;
-			_INT_MASK_LOCAL mask_val = mask[top_df_off + top_df_y_off + top_x_act];
-			mask_val = (invisibleX || invisibleY) ? 0xFFFFFFFF : mask_val;
+			_FLOAT top_df_val = top_df[idx];
+			_INT_MASK_LOCAL mask_val = mask[idx];
+			//top_df_val *= visible;
+			mask_val = visible ? mask_val : 0xFFFFFFFF;
 
-			lcl_top_df[lcl_off_v + ti] = top_df_val;
-			lcl_mask[lcl_off_v + ti] = mask_val;
+			int lcl_idx = lcl_off_v + ti;
+
+#if 0
+			if (ob == 0 && gid0 == 1 && gid1 == 0 && lcl_idx==0)
+			{
+				int inv = !visible;
+				printf("ti%i tj%i topi%i lidx%i mask%i inv%i val%13.11f\n",
+					ti, tj, top_x_act, lcl_idx, mask_val, inv, top_df_val);
+			}
+#endif
+
+			lcl_top_df[lcl_idx] = top_df_val;
+			lcl_mask[lcl_idx] = mask_val;
+
+#if 0
+			if (ob == 0 && gid0 == 1 && gid1 == 0 && lcl_idx == 0)
+			{
+				printf("lcl_mask[lcl_idx] = mask_val; lcl_idx=%i mask=%i lcl_mask[lcl_idx]=%i\n",
+					lcl_idx, mask_val, lcl_mask[0]);
+			}
+#endif
 		}
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
+#if 0
+	if (ob == 0 && gid0 == 1 && gid1 == 0 && lcl_id0 == 0 && lcl_id1 == 0)
+	{
+		printf("lcl_mask[0]=%i (%13.11f)\n", lcl_mask[0], lcl_mask[0]);
+	}
+#endif
+
 	int bt_y = (y + lcl_id1 * MLO_POOLBWD_N_VERT_OUT_PIX);
 	int bt_x = (x + lcl_id0 * MLO_POOLBWD_N_HORIZ_OUT_PIX);
-
 	int b_idx = bt_y * MLO_POOLBWD_BOT_WIDTH + bt_x;
+
 	for (int k = 0; k < MLO_POOLBWD_N_VERT_OUT_PIX; k++)
 	{
-
 		int b_y = bt_y + k;
-		// top most top y that can be influenced by this bot y
 
+		// top most top y that can be influenced by this bot y
 		int tt_y = (b_y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1) / MLO_POOLING_STRIDE1;
 		tt_y = max(0, tt_y);
 
@@ -262,12 +290,13 @@ __kernel void mloPoolingMaxBwd(
 
 			// find and sum up all tops that have been influenced by particular bot
 			res[k][l] = 0;
-			
+		
+	
 #if 0
-			if (b == 0 && o == 0 && b_x == 26 && b_y == 1)
+			if (ob == 0 && b_x == 26 && b_y == 1)
 			{
-				printf("gidx%i gidy%i x%i y%i bt_x%i bt_y%i top_x%i top_y%i\n",
-					get_group_id(0), get_group_id(0), x, y, bt_x, bt_y, top_x, top_y);
+				printf("ltx%i tty%i bt_x%i bt_y%i top_x%i top_y%i\n",
+					lt_x, tt_y, bt_x, bt_y, top_x, top_y);
 			}
 #endif
 			for (int th = tt_y; th < tt_y + (MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 1) / MLO_POOLING_STRIDE1; ++th)
@@ -284,16 +313,17 @@ __kernel void mloPoolingMaxBwd(
 					_FLOAT add_val = lcl_top_df[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw] * match;
 					res[k][l] += add_val;
 #if 0
-					if (b == 0 && o == 0 && b_x == 26 && b_y == 1)
+					if (ob == 0 && b_x == 26 && b_y == 1)
 					{
-						int mx = lcl_mask[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw].x;
-						int my = lcl_mask[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw].y;
+						int lidx = lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw;
+						int mask = lcl_mask[lidx];
+						_FLOAT val = lcl_top_df[lidx];
 						//printf("h=%d (%d - %i) w=%i (%i - %i) x%i y%i mx: %i my: %i topy %i\n",
 						//	lcl_th, th, top_y, lcl_tw, tw, top_x, get_group_id(0), get_group_id(1), mx, my,
 						//	res[k][l], top_y
 						//);
-						printf("gidx%i gidy%i x%i y%i bt_x%i bt_y%i top_x%i top_y%i\n",
-							get_group_id(0), get_group_id(0), x, y, bt_x, bt_y, top_x, top_y);
+						printf("th%i tw%i lh%i lw%i b_idx%i lidx%i mask%i v%13.11f\n",
+							th, tw, lcl_th, lcl_tw, b_idx, lidx, mask, val);
 					}
 #endif
 				}
