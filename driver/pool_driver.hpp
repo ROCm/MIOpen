@@ -68,6 +68,7 @@ class PoolDriver : public Driver
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> out_dev;
 	std::unique_ptr<GPUMem> mask_dev;
+	std::vector<uint16_t> mask_dev_test;
 
 	std::vector<T> in;
 	std::vector<T> out;
@@ -197,7 +198,8 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
-	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(int)));
+	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(uint16_t)));
+	mask_dev_test = std::vector<uint16_t>(out_sz, 0);
 	
 	din_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
@@ -257,6 +259,7 @@ int PoolDriver<T>::RunForwardGPU() {
 	}
 
 	out_dev->FromGPU(GetStream(), out.data());
+	mask_dev->FromGPU(GetStream(), mask_dev_test.data());
 
 	return mlopenStatusSuccess;
 }
@@ -278,6 +281,7 @@ int PoolDriver<T>::RunBackwardGPU() {
 			&beta,
 			dInputTensor,
 			din_dev->GetMem(),
+			mask_dev->GetMem(),
 			NULL);
 
 	if(inflags.GetValueInt("time") == 1) {
@@ -340,6 +344,7 @@ int PoolDriver<T>::VerifyForward() {
 			in.data(),
 			out.data(),
 			mask.data(),
+		mask_dev_test.data(),
 			(1 << 2)
 				);
 

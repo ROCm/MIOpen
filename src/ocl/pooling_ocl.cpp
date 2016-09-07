@@ -114,6 +114,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 		const void							* /*beta*/,
 		const TensorDescriptor				&dxDesc,
 		cl_mem								dx,
+		const cl_mem						mask,
 		const cl_mem						 /*workSpace*/) {
 
 
@@ -241,7 +242,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	// Use proper arguments
 	if(mode == mlopenPoolingMax)
 	{
-		k(dy, dx, y, x);
+		k(dy, dx, mask);
 	}
 	else
 	{

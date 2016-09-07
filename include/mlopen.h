@@ -470,6 +470,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenPoolingBackward(
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
 		void								*dx,
+		const void							*mask,
 		const void							*workSpace);
 
 

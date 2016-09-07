@@ -25,6 +25,10 @@
 #define _FLOAT2					float2
 #define _FLOAT4					float4
 #define _FLOAT8					float8
+#define _INT_MASK_GLOBAL		ushort
+#define _INT_MASK_LOCAL			uint
+//#define MASK_Y_SHFT (sizeof(_INT_MASK_GLOBAL) / 2)
+//#define MASK_X_MASK ((1 << MASK_Y_SHFT) - 1)
 
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
@@ -37,9 +41,8 @@
 
 #define MLO_POOLBWD_GROUP_SZ2 1
 
-
-#define MLO_POOLBWD_LCL_DATA_WIDTH (MLO_POOLBWD_GROUP_SZ0 *MLO_POOLBWD_N_VERT_OUT_PIX + MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0 - 1) / MLO_POOLING_STRIDE0
-#define MLO_POOLBWD_LCL_DATA_HEIGHT (MLO_POOLBWD_GROUP_SZ1 *MLO_POOLBWD_N_VERT_OUT_PIX  + MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 1) / MLO_POOLING_STRIDE1
+#define MLO_POOLBWD_LCL_DATA_WIDTH (MLO_POOLBWD_GROUP_SZ0 *MLO_POOLBWD_N_HORIZ_OUT_PIX + MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0 - 2) / MLO_POOLING_STRIDE0
+#define MLO_POOLBWD_LCL_DATA_HEIGHT (MLO_POOLBWD_GROUP_SZ1 *MLO_POOLBWD_N_VERT_OUT_PIX  + MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 2) / MLO_POOLING_STRIDE1
 
 
 __attribute__((reqd_work_group_size(MLO_POOLBWD_GROUP_SZ0,MLO_POOLBWD_GROUP_SZ1,MLO_POOLBWD_GROUP_SZ2)))
@@ -180,183 +183,146 @@ __kernel void mloPoolingAveBwd(
 }
 
 
-#define MLO_LCL_BOT_WIDTH (MLO_POOLBWD_GROUP_SZ0 *MLO_POOLBWD_N_VERT_OUT_PIX + MLO_POOLING_KERNEL_SZ0)
-#define MLO_LCL_BOT_HEIGHT (MLO_POOLBWD_GROUP_SZ1 *MLO_POOLBWD_N_VERT_OUT_PIX  + MLO_POOLING_KERNEL_SZ1)
-
 __attribute__((reqd_work_group_size(MLO_POOLBWD_GROUP_SZ0,MLO_POOLBWD_GROUP_SZ1,MLO_POOLBWD_GROUP_SZ2)))
 __kernel void mloPoolingMaxBwd(
        const __global _FLOAT * top_df,
        __global _FLOAT * bot_df,
-       const __global _FLOAT * top,
-       const __global _FLOAT * bot
+	   __global _INT_MASK_GLOBAL * mask
 	   )
 {
-		__local _FLOAT lcl_top_df[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
-		__local _FLOAT lcl_top[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
-		__local _FLOAT lcl_bot[MLO_LCL_BOT_WIDTH * MLO_LCL_BOT_HEIGHT];
+	__local _FLOAT lcl_top_df[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
+	__local _INT_MASK_LOCAL lcl_mask[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
 
-		int x = get_group_id(0) * MLO_POOLBWD_GROUP_SZ0 * MLO_POOLBWD_N_HORIZ_OUT_PIX;
-		int y = get_group_id(1) * MLO_POOLBWD_GROUP_SZ1 * MLO_POOLBWD_N_VERT_OUT_PIX;
-		int lcl_id0 = get_local_id(0);
-		int lcl_id1 = get_local_id(1);
-		int ob = get_global_id(2); // outputs * batch_sz
-		int b = (int)(float)ob / (float)MLO_POOLING_N_OUTPUTS;
-		int o = ob - b * MLO_POOLING_N_OUTPUTS;
+	int x = get_group_id(0) * MLO_POOLBWD_GROUP_SZ0 * MLO_POOLBWD_N_HORIZ_OUT_PIX;
+	int y = get_group_id(1) * MLO_POOLBWD_GROUP_SZ1 * MLO_POOLBWD_N_VERT_OUT_PIX;
+	int lcl_id0 = get_local_id(0);
+	int lcl_id1 = get_local_id(1);
+	int ob = get_global_id(2); // outputs * batch_sz
+	int b = (int)(float)ob / (float)MLO_POOLING_N_OUTPUTS;
+	int o = ob - b * MLO_POOLING_N_OUTPUTS;
 
 
-		int top_x = (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0) < 0 ? 0 : (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0)/ MLO_POOLING_STRIDE0 + 1;
-		int top_y = (y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1) < 0 ? 0 : (y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
-		int top_df_off = b * MLO_POOLBWD_TOPDF_BATCH_STRIDE + o * MLO_POOLBWD_TOPDF_CHANNEL_STRIDE;
-		int top_off = b * MLO_POOLBWD_TOP_BATCH_STRIDE + o * MLO_POOLBWD_TOP_CHANNEL_STRIDE;
-		int bot_off = b * MLO_POOLBWD_BOT_BATCH_STRIDE + o * MLO_POOLBWD_BOT_CHANNEL_STRIDE;
-		int bot_x = x;
-		int bot_y = y;
+	int top_x = (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0) < 0 ? 0 : (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0) / MLO_POOLING_STRIDE0 + 1;
+	int top_y = (y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1) < 0 ? 0 : (y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
+	int top_df_off = b * MLO_POOLBWD_TOPDF_BATCH_STRIDE + o * MLO_POOLBWD_TOPDF_CHANNEL_STRIDE;
 
-		_FLOAT res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];
+	_FLOAT res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];
 
 
 
-// load tiles
-// top df and top
-		for( int tj = lcl_id1; tj < MLO_POOLBWD_LCL_DATA_HEIGHT; tj += MLO_POOLBWD_GROUP_SZ1)
-		{	
-			int top_y_act = top_y + tj;
-			int top_df_y_off = top_y_act * MLO_POOLBWD_TOPDF_STRIDE;
-			int top_y_off = top_y_act * MLO_POOLBWD_TOP_STRIDE;
+	// load tiles
+	// top df and top
+	for (int tj = lcl_id1; tj < MLO_POOLBWD_LCL_DATA_HEIGHT; tj += MLO_POOLBWD_GROUP_SZ1)
+	{
+		int top_y_act = top_y + tj;
+		int top_df_y_off = top_y_act * MLO_POOLBWD_TOPDF_STRIDE;
 
-			int lcl_off_v = tj * MLO_POOLBWD_LCL_DATA_WIDTH;
+		int lcl_off_v = tj * MLO_POOLBWD_LCL_DATA_WIDTH;
 
-			bool invisibleY = (top_y_act >= MLO_POOLBWD_TOP_HEIGHT);
+		bool invisibleY = (top_y_act >= MLO_POOLBWD_TOP_HEIGHT);
 
-			for(int ti = lcl_id0; ti < MLO_POOLBWD_LCL_DATA_WIDTH; ti += MLO_POOLBWD_GROUP_SZ0)
-			{
-
-				int top_x_act = top_x + ti;
-				
-				bool invisibleX = (top_x_act >= MLO_POOLBWD_TOP_WIDTH);
-
-				_FLOAT top_df_val = top_df[top_df_off + top_df_y_off + top_x_act];
-				top_df_val = (invisibleX || invisibleY)? 0 : top_df_val;
-				_FLOAT top_val = top[top_off + top_y_off + top_x_act];
-				top_val = (invisibleX || invisibleY)? 0 : top_val;
-
-								
-				lcl_top_df[lcl_off_v + ti] = top_df_val;
-				lcl_top[lcl_off_v + ti] = top_val;
-				
-			}
-		}
-
-		for( int tj = lcl_id1; tj < MLO_LCL_BOT_HEIGHT; tj += MLO_POOLBWD_GROUP_SZ1)
-		{	
-			int bot_y_act = bot_y + tj;
-			int bot_y_off = bot_y_act * MLO_POOLBWD_BOT_STRIDE;
-
-			int lcl_off_v = tj * MLO_LCL_BOT_WIDTH;
-
-			bool invisibleY = (bot_y_act >= MLO_POOLBWD_BOT_HEIGHT);
-
-			for(int ti = lcl_id0; ti < MLO_LCL_BOT_WIDTH; ti += MLO_POOLBWD_GROUP_SZ0)
-			{
-
-				int bot_x_act = bot_x + ti;
-				
-				bool invisibleX = (bot_x_act >= MLO_POOLBWD_BOT_WIDTH);
-
-				_FLOAT bot_val = bot[bot_off + bot_y_off + bot_x_act];
-				bot_val = (invisibleX || invisibleY)? 0 : bot_val;
-
-								
-				lcl_bot[lcl_off_v + ti] = bot_val;
-				
-			}
-		}
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-		int bt_y = (y + lcl_id1 * MLO_POOLBWD_N_VERT_OUT_PIX);
-		int bt_x = (x + lcl_id0 * MLO_POOLBWD_N_HORIZ_OUT_PIX);
-
-		int lcl_bt_y = (lcl_id1 * MLO_POOLBWD_N_VERT_OUT_PIX);
-		int lcl_bt_x = (lcl_id0 * MLO_POOLBWD_N_HORIZ_OUT_PIX);
-
-
-		for( int k = 0; k < MLO_POOLBWD_N_VERT_OUT_PIX; k++)
+		for (int ti = lcl_id0; ti < MLO_POOLBWD_LCL_DATA_WIDTH; ti += MLO_POOLBWD_GROUP_SZ0)
 		{
 
-			int b_y = bt_y + k;
-// top most top y that can be influenced by this bot y
+			int top_x_act = top_x + ti;
 
-			int tt_y = (b_y + MLO_POOLING_PAD1 -  MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1)  / MLO_POOLING_STRIDE1;
-			tt_y = (tt_y < 0 ) ? 0 : tt_y;
+			bool invisibleX = (top_x_act >= MLO_POOLBWD_TOP_WIDTH);
 
-			for(int l = 0; l < MLO_POOLBWD_N_HORIZ_OUT_PIX; l++)
+			_FLOAT top_df_val = top_df[top_df_off + top_df_y_off + top_x_act];
+			//top_df_val = (invisibleX || invisibleY) ? 0 : top_df_val;
+			_INT_MASK_LOCAL mask_val = mask[top_df_off + top_df_y_off + top_x_act];
+			mask_val = (invisibleX || invisibleY) ? 0xFFFFFFFF : mask_val;
+
+			lcl_top_df[lcl_off_v + ti] = top_df_val;
+			lcl_mask[lcl_off_v + ti] = mask_val;
+		}
+	}
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	int bt_y = (y + lcl_id1 * MLO_POOLBWD_N_VERT_OUT_PIX);
+	int bt_x = (x + lcl_id0 * MLO_POOLBWD_N_HORIZ_OUT_PIX);
+
+	int b_idx = bt_y * MLO_POOLBWD_BOT_WIDTH + bt_x;
+	for (int k = 0; k < MLO_POOLBWD_N_VERT_OUT_PIX; k++)
+	{
+
+		int b_y = bt_y + k;
+		// top most top y that can be influenced by this bot y
+
+		int tt_y = (b_y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1) / MLO_POOLING_STRIDE1;
+		tt_y = max(0, tt_y);
+
+		for (int l = 0; l < MLO_POOLBWD_N_HORIZ_OUT_PIX; l++)
+		{
+			int	b_x = bt_x + l;
+			// left most top x that can be influenced by this bot x
+			int lt_x = (b_x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0) / MLO_POOLING_STRIDE0;
+			lt_x = max(0, lt_x);
+
+			// find and sum up all tops that have been influenced by particular bot
+			res[k][l] = 0;
+			
+#if 0
+			if (b == 0 && o == 0 && b_x == 26 && b_y == 1)
 			{
-				int	b_x = bt_x + l;
-// left most top x that can be influenced by this bot x
-				int lt_x = (b_x + MLO_POOLING_PAD0 -  MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0)  / MLO_POOLING_STRIDE0;
-				lt_x = (lt_x < 0 ) ? 0 : lt_x;
-				
-// find and sum up all tops that have been influenced by particular bot
-				res[k][l] = 0;
-				for (int th = tt_y; th < tt_y + (MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 1)  / MLO_POOLING_STRIDE1; ++th)
+				printf("gidx%i gidy%i x%i y%i bt_x%i bt_y%i top_x%i top_y%i\n",
+					get_group_id(0), get_group_id(0), x, y, bt_x, bt_y, top_x, top_y);
+			}
+#endif
+			for (int th = tt_y; th < tt_y + (MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 1) / MLO_POOLING_STRIDE1; ++th)
+			{
+				for (int tw = lt_x; tw < lt_x + (MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0 - 1) / MLO_POOLING_STRIDE0; ++tw)
 				{
-					int src_y = th * MLO_POOLING_STRIDE1;
-					bool invisY = (b_y + MLO_POOLING_PAD1 - src_y > MLO_POOLING_KERNEL_SZ1 - 1 || b_y + MLO_POOLING_PAD1 - src_y < 0);
-					for (int tw = lt_x; tw < lt_x + (MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0 - 1)  / MLO_POOLING_STRIDE0; ++tw)
+					int lcl_th = th - top_y;
+					int lcl_tw = tw - top_x;
+
+					// note, that b_idx == b_y * MLO_POOLBWD_BOT_WIDTH + b_x
+					// computing b_idx instead of using (b_y * MLO_POOLBWD_BOT_WIDTH + b_x) saves VGPR
+					bool match = (b_idx == lcl_mask[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw]);
+
+					_FLOAT add_val = lcl_top_df[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw] * match;
+					res[k][l] += add_val;
+#if 0
+					if (b == 0 && o == 0 && b_x == 26 && b_y == 1)
 					{
-						int lcl_th = th - top_y;
-						int lcl_tw = tw - top_x;
-
-						int src_x = tw * MLO_POOLING_STRIDE0;
-						bool invisX = (b_x + MLO_POOLING_PAD0 - src_x > MLO_POOLING_KERNEL_SZ0 - 1 || b_x + MLO_POOLING_PAD0 - src_x < 0);
-						_FLOAT add_val = lcl_top_df[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw] 
-						* (lcl_top[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw] == lcl_bot[(lcl_bt_y +k) * MLO_LCL_BOT_WIDTH + lcl_bt_x +l]);
-						res[k][l] += ( invisY || invisX)? 0 : add_val;
-
-#if 0
-								if (b==0 && o == 0 && b_x == 9 && b_y == 0)
-								{
-									printf("K:max: %d %d %d %d %d %d   %13.11f  %13.11f  %13.11f  %13.11f %13.11f\n",
-									    b_x + MLO_POOLING_PAD0,
-										src_x,
-										tw, th,
-										k,l,
-										res[k][l],
-										add_val, 
-										lcl_top_df[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw] ,
-										lcl_top[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw],
-										lcl_bot[(lcl_bt_y +k) * MLO_LCL_BOT_WIDTH + lcl_bt_x +l]
-										);
-								}
-#endif
+						int mx = lcl_mask[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw].x;
+						int my = lcl_mask[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw].y;
+						//printf("h=%d (%d - %i) w=%i (%i - %i) x%i y%i mx: %i my: %i topy %i\n",
+						//	lcl_th, th, top_y, lcl_tw, tw, top_x, get_group_id(0), get_group_id(1), mx, my,
+						//	res[k][l], top_y
+						//);
+						printf("gidx%i gidy%i x%i y%i bt_x%i bt_y%i top_x%i top_y%i\n",
+							get_group_id(0), get_group_id(0), x, y, bt_x, bt_y, top_x, top_y);
 					}
-				}
-
-
-			}
-		}
-
-		int bot_df_off = b * MLO_POOLBWD_BOTDF_BATCH_STRIDE + o * MLO_POOLBWD_BOTDF_CHANNEL_STRIDE + bt_y * MLO_POOLBWD_BOTDF_STRIDE + bt_x;
-		for( int k = 0; k < MLO_POOLBWD_N_VERT_OUT_PIX; k++)
-		{
-			for(int l = 0; l < MLO_POOLBWD_N_HORIZ_OUT_PIX; l++)
-			{
-				if ((bt_y + k) < MLO_POOLBWD_BOT_HEIGHT && (bt_x + l) < MLO_POOLBWD_BOT_WIDTH)
-				{	
-					bot_df[bot_df_off + k * MLO_POOLBWD_BOTDF_STRIDE +l] = res[k][l];
-#if 0
-								if (b==0 && o ==0 && bt_x +l == 9 && bt_y + k== 0)
-								{
-									printf("K:max: %d %d   %13.11f\n",
-										k, l,
-										res[k][l]
-										);
-								}
 #endif
 				}
 			}
+			b_idx++;
 		}
+		b_idx += MLO_POOLBWD_BOT_WIDTH - MLO_POOLBWD_N_HORIZ_OUT_PIX;
+	}
+
+	int bot_df_off = b * MLO_POOLBWD_BOTDF_BATCH_STRIDE + o * MLO_POOLBWD_BOTDF_CHANNEL_STRIDE + bt_y * MLO_POOLBWD_BOTDF_STRIDE + bt_x;
+	for (int k = 0; k < MLO_POOLBWD_N_VERT_OUT_PIX; k++)
+	{
+		for (int l = 0; l < MLO_POOLBWD_N_HORIZ_OUT_PIX; l++)
+		{
+			if ((bt_y + k) < MLO_POOLBWD_BOT_HEIGHT && (bt_x + l) < MLO_POOLBWD_BOT_WIDTH)
+			{
+				bot_df[bot_df_off + k * MLO_POOLBWD_BOTDF_STRIDE + l] = res[k][l];
+#if 0
+				if (b == 0 && o == 0 && bt_x + l == 9 && bt_y + k == 0)
+				{
+					printf("K:max: %d %d   %13.11f\n",
+						k, l,
+						res[k][l]
+					);
+				}
+#endif
+			}
+		}
+	}
 
 }
 
