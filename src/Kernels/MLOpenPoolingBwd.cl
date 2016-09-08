@@ -41,8 +41,8 @@
 
 #define MLO_POOLBWD_GROUP_SZ2 1
 
-#define MLO_POOLBWD_LCL_DATA_WIDTH (MLO_POOLBWD_GROUP_SZ0 *MLO_POOLBWD_N_HORIZ_OUT_PIX + MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0 - 2) / MLO_POOLING_STRIDE0
-#define MLO_POOLBWD_LCL_DATA_HEIGHT (MLO_POOLBWD_GROUP_SZ1 *MLO_POOLBWD_N_VERT_OUT_PIX  + MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 2) / MLO_POOLING_STRIDE1
+#define MLO_POOLBWD_LCL_DATA_WIDTH  ((MLO_POOLBWD_GROUP_SZ0 *MLO_POOLBWD_N_HORIZ_OUT_PIX + MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0 - 2) / MLO_POOLING_STRIDE0)
+#define MLO_POOLBWD_LCL_DATA_HEIGHT ((MLO_POOLBWD_GROUP_SZ1 *MLO_POOLBWD_N_VERT_OUT_PIX  + MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 2) / MLO_POOLING_STRIDE1)
 
 
 __attribute__((reqd_work_group_size(MLO_POOLBWD_GROUP_SZ0,MLO_POOLBWD_GROUP_SZ1,MLO_POOLBWD_GROUP_SZ2)))
@@ -190,9 +190,7 @@ __kernel void mloPoolingMaxBwd(
 	   __global _INT_MASK_GLOBAL * mask
 	   )
 {
-	// BUG!!!!
-	//__local _FLOAT lcl_top_df[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
-	__local _FLOAT lcl_top_df[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT + 32]; //magic number to workaround bug
+	__local _FLOAT lcl_top_df[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
 	__local _INT_MASK_LOCAL lcl_mask[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
 
 	int gid0 = get_group_id(0);
@@ -238,36 +236,14 @@ __kernel void mloPoolingMaxBwd(
 
 			int lcl_idx = lcl_off_v + ti;
 
-#if 0
-			if (ob == 0 && gid0 == 1 && gid1 == 0 && lcl_idx==0)
-			{
-				int inv = !visible;
-				printf("ti%i tj%i topi%i lidx%i mask%i inv%i val%13.11f\n",
-					ti, tj, top_x_act, lcl_idx, mask_val, inv, top_df_val);
-			}
-#endif
-
 			lcl_top_df[lcl_idx] = top_df_val;
 			lcl_mask[lcl_idx] = mask_val;
 
-#if 0
-			if (ob == 0 && gid0 == 1 && gid1 == 0 && lcl_idx == 0)
-			{
-				printf("lcl_mask[lcl_idx] = mask_val; lcl_idx=%i mask=%i lcl_mask[lcl_idx]=%i\n",
-					lcl_idx, mask_val, lcl_mask[0]);
-			}
-#endif
 		}
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-#if 0
-	if (ob == 0 && gid0 == 1 && gid1 == 0 && lcl_id0 == 0 && lcl_id1 == 0)
-	{
-		printf("lcl_mask[0]=%i (%13.11f)\n", lcl_mask[0], lcl_mask[0]);
-	}
-#endif
 
 	int bt_y = (y + lcl_id1 * MLO_POOLBWD_N_VERT_OUT_PIX);
 	int bt_x = (x + lcl_id0 * MLO_POOLBWD_N_HORIZ_OUT_PIX);
@@ -292,13 +268,6 @@ __kernel void mloPoolingMaxBwd(
 			res[k][l] = 0;
 		
 	
-#if 0
-			if (ob == 0 && b_x == 26 && b_y == 1)
-			{
-				printf("ltx%i tty%i bt_x%i bt_y%i top_x%i top_y%i\n",
-					lt_x, tt_y, bt_x, bt_y, top_x, top_y);
-			}
-#endif
 			for (int th = tt_y; th < tt_y + (MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 1) / MLO_POOLING_STRIDE1; ++th)
 			{
 				for (int tw = lt_x; tw < lt_x + (MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0 - 1) / MLO_POOLING_STRIDE0; ++tw)
@@ -308,24 +277,14 @@ __kernel void mloPoolingMaxBwd(
 
 					// note, that b_idx == b_y * MLO_POOLBWD_BOT_WIDTH + b_x
 					// computing b_idx instead of using (b_y * MLO_POOLBWD_BOT_WIDTH + b_x) saves VGPR
-					bool match = (b_idx == lcl_mask[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw]);
+					bool visible = (lcl_th < MLO_POOLBWD_LCL_DATA_HEIGHT) && (lcl_tw < MLO_POOLBWD_LCL_DATA_WIDTH);
+					int lcl_idx = visible ? (lcl_th * MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw) : 0;
 
-					_FLOAT add_val = lcl_top_df[lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw] * match;
+					bool match = (b_idx == lcl_mask[lcl_idx]) && visible;
+
+					_FLOAT add_val = lcl_top_df[lcl_idx] * match;
 					res[k][l] += add_val;
-#if 0
-					if (ob == 0 && b_x == 26 && b_y == 1)
-					{
-						int lidx = lcl_th *  MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw;
-						int mask = lcl_mask[lidx];
-						_FLOAT val = lcl_top_df[lidx];
-						//printf("h=%d (%d - %i) w=%i (%i - %i) x%i y%i mx: %i my: %i topy %i\n",
-						//	lcl_th, th, top_y, lcl_tw, tw, top_x, get_group_id(0), get_group_id(1), mx, my,
-						//	res[k][l], top_y
-						//);
-						printf("th%i tw%i lh%i lw%i b_idx%i lidx%i mask%i v%13.11f\n",
-							th, tw, lcl_th, lcl_tw, b_idx, lidx, mask, val);
-					}
-#endif
+
 				}
 			}
 			b_idx++;
@@ -341,15 +300,6 @@ __kernel void mloPoolingMaxBwd(
 			if ((bt_y + k) < MLO_POOLBWD_BOT_HEIGHT && (bt_x + l) < MLO_POOLBWD_BOT_WIDTH)
 			{
 				bot_df[bot_df_off + k * MLO_POOLBWD_BOTDF_STRIDE + l] = res[k][l];
-#if 0
-				if (b == 0 && o == 0 && bt_x + l == 9 && bt_y + k == 0)
-				{
-					printf("K:max: %d %d   %13.11f\n",
-						k, l,
-						res[k][l]
-					);
-				}
-#endif
 			}
 		}
 	}
