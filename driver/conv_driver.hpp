@@ -47,7 +47,7 @@ class ConvDriver : public Driver
 	
 	int FindBackward();
 	int RunBackwardGPU();
-	//int RunBackwardCPU();
+	int RunBackwardCPU();
 	
 	int VerifyBackward();
 	int VerifyForward();
@@ -329,12 +329,12 @@ int ConvDriver<T>::FindBackward() {
 	mlopenConvAlgoPerf_t perf;
 
 	return mlopenFindConvolutionBackwardDataAlgorithm(GetHandle(),
-			inputTensor,
+			outputTensor,
 			out_dev->GetMem(),
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
-			outputTensor,
+			inputTensor,
 			in_dev->GetMem(),
 			1,
 			&ret_algo_count,
@@ -350,14 +350,14 @@ int ConvDriver<T>::RunBackwardGPU() {
 
 	int ret = mlopenConvolutionBackwardData(GetHandle(),
 			&alpha,
-			inputTensor,
+			outputTensor,
 			out_dev->GetMem(),
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
 			mlopenConvolutionBwdDataAlgo_0,
 			&beta,
-			outputTensor,
+			inputTensor,
 			in_dev->GetMem(),
 			NULL,
 			0);
