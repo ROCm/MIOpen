@@ -388,12 +388,12 @@ int PoolDriver<T>::VerifyBackward() {
 
 	mloPoolingBackwardRunHost<float>(
 			pooling_method,
+			windowHeight,
 			pad_h,
 			u,
-			windowHeight,
+			windowWidth,
 			pad_w,
 			v,
-			windowWidth,
 			// host output
 			dinhost.data(),
 			dout.data(),
