@@ -18,6 +18,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #ifndef MLO_NEURONHOST_H_
 #define MLO_NEURONHOST_H_
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#endif
+
 #include <cmath>
 #include <iomanip>
 
@@ -318,9 +323,9 @@ void ActivationFunction_Abs_Diff(_T * bot_diff, const _T* top_diff, const _T *bo
 // Compute dy/dx = scale * power * (shift + scale * x)^(power - 1)
 //               = diff_scale * y / (shift + scale * x)
 template<typename _T>
-void ActivationFunction_Power_Diff(_T * bot_diff, const _T* top_diff, const _T *top_data, const _T *bot_data,
+void ActivationFunction_Power_Diff(_T * bot_diff, const _T* /*top_diff*/, const _T *top_data, const _T *bot_data,
 	_T diff_scale,
-	_T power,
+	_T /*power*/,
 	_T scale,
 	_T shift)
 {
@@ -413,4 +418,9 @@ int mloNeuronBackwardRunHostAndVerify(
 	}
 	return(match);
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #endif
