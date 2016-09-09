@@ -240,7 +240,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 	if(dyDesc.GetType() != dxDesc.GetType() || dyDesc.GetType() != wDesc.GetType()) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
-	if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
+	if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0]) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 	if(dyDesc.GetSize() < 3) {
