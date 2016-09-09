@@ -47,7 +47,7 @@ class ConvDriver : public Driver
 	
 	int FindBackward();
 	int RunBackwardGPU();
-	//int RunBackwardCPU();
+	int RunBackwardCPU();
 	
 	int VerifyBackward();
 	int VerifyForward();
@@ -76,6 +76,7 @@ class ConvDriver : public Driver
 	std::vector<T> wei;
 	std::vector<T> out;
 	std::vector<T> outhost;
+	std::vector<T> inhost;
 
 	mlopenConvolutionDescriptor_t convDesc;
 };
@@ -191,6 +192,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	wei = std::vector<T>(wei_sz);
 	out = std::vector<T>(out_sz, 0);
 	outhost = std::vector<T>(out_sz, 0);
+	inhost = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
 		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
@@ -329,12 +331,12 @@ int ConvDriver<T>::FindBackward() {
 	mlopenConvAlgoPerf_t perf;
 
 	return mlopenFindConvolutionBackwardDataAlgorithm(GetHandle(),
-			inputTensor,
+			outputTensor,
 			out_dev->GetMem(),
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
-			outputTensor,
+			inputTensor,
 			in_dev->GetMem(),
 			1,
 			&ret_algo_count,
@@ -350,14 +352,14 @@ int ConvDriver<T>::RunBackwardGPU() {
 
 	int ret = mlopenConvolutionBackwardData(GetHandle(),
 			&alpha,
-			inputTensor,
+			outputTensor,
 			out_dev->GetMem(),
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
 			mlopenConvolutionBwdDataAlgo_0,
 			&beta,
-			outputTensor,
+			inputTensor,
 			in_dev->GetMem(),
 			NULL,
 			0);
@@ -368,8 +370,64 @@ int ConvDriver<T>::RunBackwardGPU() {
 		printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
 	}
 
-	// TODO: copy data GPUtoCPU for verif
+	in_dev->FromGPU(GetStream(), in.data());
+
 	return ret;
+}
+
+template<typename T>
+int ConvDriver<T>::RunBackwardCPU() {
+
+	int in_n, in_c, in_h, in_w;
+	int in_nstride, in_cstride, in_hstride, in_wstride;
+	mlopenDataType_t dt;
+	mlopenGet4dTensorDescriptor(inputTensor, &dt,
+			&in_n, &in_c, &in_h, &in_w,
+			&in_nstride, &in_cstride, &in_hstride, &in_wstride);
+
+	int wei_n, wei_c, wei_h, wei_w;
+	int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
+	mlopenGet4dTensorDescriptor(weightTensor, &dt,
+			&wei_n, &wei_c, &wei_h, &wei_w,
+			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+
+	int out_n, out_c, out_h, out_w;
+	int out_nstride, out_cstride, out_hstride, out_wstride;
+	mlopenGet4dTensorDescriptor(outputTensor, &dt,
+			&out_n, &out_c, &out_h, &out_w,
+			&out_nstride, &out_cstride, &out_hstride, &out_wstride);
+
+	int u, v, pad_h, pad_w, upx, upy;
+	mlopenConvolutionMode_t mode;
+	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+
+	for(int o = 0; o < out_n; o++) { // mini-batch size
+		for(int k = 0; k < in_c; k++) { // in_channels (RGB)
+			for(int w = 0; w < out_c; w++) { // out_channels (num filters)
+				for(int i = 0; i < out_h; i++) { // output_height (from getforwardoutputdim())
+					int in_off_h = i * v;
+					for(int j = 0; j < out_w; j++) { //output_width (from getforwardoutputdim())
+						int in_off_w = j * u;
+						for(int x = 0; x < wei_h; x++) {
+							int in_x = in_off_h - pad_h + x;
+							if(in_x >= 0 && in_x < in_h) {
+								for(int y = 0; y < wei_w; y++) {
+									int in_y = in_off_w - pad_w + y;
+									if(in_y >= 0 && in_y < in_w) {
+										inhost[o*in_nstride + k*in_cstride + in_x*in_hstride + in_y] += 
+											out[o*out_nstride + w*out_cstride + i*out_hstride + j] *
+											wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return 0;
 }
 
 template<typename T>
@@ -391,7 +449,19 @@ int ConvDriver<T>::VerifyForward() {
 
 template<typename T>
 int ConvDriver<T>::VerifyBackward() {
-	// To be implemented
+
+	RunBackwardCPU();
+
+	for(int i = 0; i < in.size(); i++) {
+		T diff = std::fabs(in[i] - inhost[i]);
+		if(diff > std::fabs((std::max(in[i], inhost[i])) * std::numeric_limits<T>::epsilon())) {
+
+			printf("Output Mismatch at: %d diff: %.10f gpu: %.10f cpu: %.10f \n", i, diff, in[i], inhost[i]);
+			return -1;
+		}
+	}
+	printf("Backward Convolution Verifies on CPU and GPU\n");
+
 	return 0;
 }
 
