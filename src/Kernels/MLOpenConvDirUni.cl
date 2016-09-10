@@ -42,10 +42,18 @@
 #define MLO_ALU_TILE_SZ (MLO_ALU_VTILE1*MLO_ALU_VTILE0)
 
 
+#if MLO_DIR_FORWARD==1
 #if MLO_IN_TILE0 < MLO_IN_WIDTH || MLO_IN_TILE1 < MLO_IN_HEIGHT
 #define MLO_LARGE_MAP 1
 #else
 #define MLO_LARGE_MAP 0
+#endif
+#else
+#if MLO_IN_TILE0 < MLO_OUT_WIDTH || MLO_IN_TILE1 < MLO_OUT_HEIGHT
+#define MLO_LARGE_MAP 1
+#else
+#define MLO_LARGE_MAP 0
+#endif
 #endif
 
 
