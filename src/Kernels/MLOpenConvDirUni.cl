@@ -111,7 +111,7 @@
 
 inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
-	(*y) = (int)floor((float)linPos / (float)width);
+	(*y) = linPos / width;
 	(*x) = linPos - (*y) * width; 
 }
 
@@ -561,9 +561,9 @@ __kernel void MLOpenConvUni(
 #else
 // outputs are botoms(inputs))
 // inputs are tops(outputs)
-			int lcl_o = (int)floor((float)i/(float)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
+			int lcl_o = i/(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ);
 			int gbl_i = -mad24(lcl_o, (int)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ), -i);
-			int lcl_c = (int)(floor)((float)gbl_i / (float)MLO_FILTER_SZ);
+			int lcl_c = gbl_i / MLO_FILTER_SZ;
 			int lcl_i = -mad24(lcl_c, (int)MLO_FILTER_SZ, -gbl_i);
 
 			int lcl_we_off = mad24(mad24(lcl_c, (int)MLO_N_IN_TILES_PERSTACK, lcl_o), (int)MLO_FILTER_SZ, lcl_i);

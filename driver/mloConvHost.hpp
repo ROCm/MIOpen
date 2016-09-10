@@ -460,18 +460,20 @@ int mloBackwardDirectOnHost(
 									int bot_data_off = c*bot_channel_stride + bot_y * bot_stride + bot_x;
 									run_bot_ptr[bot_data_off] += data_val * wei_val;
 
+#if 0
+									if (b == 0 && o == 0 && bot_y == 0 && bot_x == 12)
+									{
+										printf("c: %d %f %f %f\n",
+											bot_data_off,
+											run_bot_ptr[bot_data_off],
+											data_val,
+											wei_val
+										);
+									}
+#endif
 								}
 
-#if 0
-								if (b == 0 && o == 1 && j == 2 && i == 2)
-								{
-									printf("c: %f %f %f\n",
-										accum,
-										data_val,
-										wei_val
-										);
-								}
-#endif
+
 
 							}
 						}
