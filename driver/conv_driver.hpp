@@ -195,10 +195,10 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	inhost = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
-		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+		in[i] = (T)1;//((double)rand() * (1.0 / RAND_MAX));
 	}
 	for (int i = 0; i < wei_sz; i++) {
-		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+		wei[i] = (T)1;//((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
 	
 	cl_int status;
@@ -239,6 +239,7 @@ int ConvDriver<T>::FindForward() {
 template<typename T>
 int ConvDriver<T>::RunForwardGPU() {
 
+#if 1
 	FindForward();
 	
 	int alpha = 1, beta = 1;
@@ -263,6 +264,7 @@ int ConvDriver<T>::RunForwardGPU() {
 		printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
 	}
 	out_dev->FromGPU(GetStream(), out.data());
+#endif
 
 	return mlopenStatusSuccess;
 }
@@ -401,6 +403,10 @@ int ConvDriver<T>::RunBackwardCPU() {
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
+	mloBackwardDirectOnHost<T>(0, wei_h, pad_h, u, wei_w, pad_w, v, in_n, wei_n, in_c, out_h, out_w, out_nstride, out_cstride, out_hstride, in_w, in_h, in_nstride, in_cstride, in_hstride, wei_nstride, inhost.data(), out.data(), wei.data());
+
+
+#if 0
 	for(int o = 0; o < out_n; o++) { // mini-batch size
 		for(int k = 0; k < in_c; k++) { // in_channels (RGB)
 			for(int w = 0; w < out_c; w++) { // out_channels (num filters)
@@ -426,7 +432,7 @@ int ConvDriver<T>::RunBackwardCPU() {
 			}
 		}
 	}
-
+#endif
 	return 0;
 }
 
