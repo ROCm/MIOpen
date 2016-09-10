@@ -185,8 +185,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
 			construct_params.setStream(handle.GetStream());
 
-			construct_params.setOutputDescFromMLDesc(dxDesc);
-			construct_params.setInputDescFromMLDesc(dyDesc);
+			construct_params.setOutputDescFromMLDesc(dyDesc);
+			construct_params.setInputDescFromMLDesc(dxDesc);
 			construct_params.setWeightDescFromMLDesc(wDesc);
 
 			construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
@@ -288,8 +288,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
 			construct_params.setStream(handle.GetStream());
 
-			construct_params.setOutputDescFromMLDesc(dxDesc);
-			construct_params.setInputDescFromMLDesc(dyDesc);
+			construct_params.setOutputDescFromMLDesc(dyDesc);
+			construct_params.setInputDescFromMLDesc(dxDesc);
 			construct_params.setWeightDescFromMLDesc(wDesc);
 
 			construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);

@@ -31,72 +31,33 @@
 #endif
 
 
-//#define MLO_HW_WAVE_SZ  64
-
-// #define MLO_DIR_FORWARD 0
-//#define MLO_N_OUTPUTS  8
-//#define MLO_N_INPUTS   8
-//#define MLO_BATCH_SZ   10
-
-//#define MLO_OUT_WIDTH 32    
-//#define MLO_OUT_HEIGHT 32    
-
-//#define MLO_OUT_STRIDE (MLO_OUT_WIDTH)
-//#define MLO_OUT_CHANNEL_STRIDE (MLO_OUT_WIDTH*MLO_OUT_HEIGHT)
-//#define MLO_OUT_BATCH_STRIDE (MLO_OUT_STRIDE*MLO_N_OUTPUTS)
-
-//#define MLO_IN_WIDTH 32    
-//#define MLO_IN_HEIGHT 32    
-// temp
-//#define MLO_IN_STRIDE (MLO_IN_WIDTH)
-//#define MLO_IN_CHANNEL_STRIDE (MLO_IN_WIDTH*MLO_IN_HEIGHT)
-//#define MLO_IN_BATCH_STRIDE (MLO_IN_STRIDE*MLO_N_INPUTS)
-
-
-//#define MLO_FILER_PAD0 1
-//#define MLO_FILER_STRIDE0 1
-//#define MLO_FILER_SIZE0 3
-//#define MLO_FILER_PAD1 1
-//#define MLO_FILER_STRIDE1 1
-//#define MLO_FILER_SIZE1 3
 #define MLO_FILTER_SZ (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0)
-
-//#define MLO_GRP_TILE0 16
-//#define MLO_GRP_TILE1 16
 
 #define MLO_GRP_SZ0  (MLO_GRP_TILE0*MLO_GRP_TILE1)
 #define MLO_GRP_SZ1 1
 #define MLO_GRP_SZ2 1
 #define MLO_GRP_SZ (MLO_GRP_SZ0*MLO_GRP_SZ1*MLO_GRP_SZ2)
 #define MLO_N_PROC_WAVES ((MLO_GRP_SZ + MLO_N_READ_PROCS - 1)/MLO_N_READ_PROCS)
-
-// input tile size
-//#define MLO_IN_TILE0 16  // size of input data per ALU plane
-//#define MLO_IN_TILE1 16
-
-//#define MLO_OUT_TILE0  4      // size of ouptput tile per wk-item (ALU))
-//#define MLO_OUT_TILE1  4
 #define MLO_OUT_TILE_SZ (MLO_OUT_TILE1*MLO_OUT_TILE0)
-
-//#define MLO_N_STACKS		2		// n of stacks per group
-//#define MLO_N_OUT_TILES		4       // per wkitem (ALU), they stacked - it's different output
-//#define MLO_N_IN_TILES_TOTAL 8
-
-
-
-//#define MLO_ALU_VTILE0 (MLO_IN_TILE0/MLO_OUT_TILE0)      // size of ALU plane
-//#define MLO_ALU_VTILE1 (MLO_IN_TILE1/MLO_OUT_TILE1)
 #define MLO_ALU_TILE_SZ (MLO_ALU_VTILE1*MLO_ALU_VTILE0)
 
 
+#if MLO_DIR_FORWARD==1
 #if MLO_IN_TILE0 < MLO_IN_WIDTH || MLO_IN_TILE1 < MLO_IN_HEIGHT
 #define MLO_LARGE_MAP 1
 #else
 #define MLO_LARGE_MAP 0
 #endif
+#else
+#if MLO_IN_TILE0 < MLO_OUT_WIDTH || MLO_IN_TILE1 < MLO_OUT_HEIGHT
+#define MLO_LARGE_MAP 1
+#else
+#define MLO_LARGE_MAP 0
+#endif
+#endif
 
 
-#if (MLO_IN_WIDTH == MLO_OUT_WIDTH && (MLO_IN_WIDTH + MLO_IN_TILE0 - 1) / MLO_IN_TILE0 ) * MLO_IN_TILE0 == MLO_IN_WIDTH && MLO_IN_HEIGHT == MLO_OUT_HEIGHT && ((MLO_IN_HEIGHT + MLO_IN_TILE1 - 1) / MLO_IN_TILE1 ) * MLO_IN_TILE1 == MLO_IN_HEIGHT
+#if (MLO_IN_WIDTH == MLO_OUT_WIDTH && (MLO_IN_WIDTH / MLO_IN_TILE0 ) * MLO_IN_TILE0 == MLO_IN_WIDTH && MLO_IN_HEIGHT == MLO_OUT_HEIGHT && (MLO_IN_HEIGHT / MLO_IN_TILE1 ) * MLO_IN_TILE1 == MLO_IN_HEIGHT)
 #define MLO_OUT_ALIGNED 1
 #else
 #define MLO_OUT_ALIGNED 0
@@ -125,14 +86,14 @@
 #define MLO_INPUTS_ALIGNED 0
 #endif
 
-#define MLO_N_OUT_PACKS  ((MLO_N_OUTPUTS+MLO_N_OUT_TILES_PERSTACK-1)/MLO_N_OUT_TILES_PERSTACK)
+#define MLO_N_OUT_PACKS  (MLO_N_OUTPUTS/MLO_N_OUT_TILES_PERSTACK)
 #if MLO_N_OUT_PACKS*MLO_N_OUT_TILES_PERSTACK == MLO_N_OUTPUTS && MLO_N_OUT_TILES_PERSTACK != MLO_N_OUTPUTS
 #define MLO_OUTPUTS_ALIGNED 1
 #else
 #define MLO_OUTPUTS_ALIGNED 0
 #endif
 
-#define MLO_N_BATCH_PACKS ((MLO_BATCH_SZ + MLO_N_STACKS - 1)/MLO_N_STACKS)
+#define MLO_N_BATCH_PACKS (MLO_BATCH_SZ/MLO_N_STACKS)
 #if MLO_N_BATCH_PACKS*MLO_N_STACKS == MLO_BATCH_SZ && MLO_N_STACKS != MLO_BATCH_SZ
 #define MLO_BATCH_ALIGNED 1
 #else
@@ -345,7 +306,7 @@ inline void Conv(int o_map_base,
 							}
 
 
-							mem_fence(CLK_LOCAL_MEM_FENCE);
+//							mem_fence(CLK_LOCAL_MEM_FENCE);
 
 
 						}
@@ -542,7 +503,7 @@ __kernel void MLOpenConvUni(
 		for(int i = wave_id; i < MLO_N_IN_TILES_TOTAL;  i += MLO_N_PROC_WAVES)
 		{
 		//(MLO_N_STACKS * MLO_N_OUT_TILES_PERSTACK)
-			int i_b = i / MLO_N_IN_TILES_PERSTACK;
+			int i_b = (int)floor((float)i / (float)MLO_N_IN_TILES_PERSTACK);
 			int i_c = -mad24(i_b, (int)MLO_N_IN_TILES_PERSTACK, -i);
 
 			bool vis = true;
@@ -602,15 +563,15 @@ __kernel void MLOpenConvUni(
 		{
 #if MLO_DIR_FORWARD==1
 // here is [tops][bottoms]
-			int lcl_o = (int)floor((float)i/(float)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
+			int lcl_o = (int)floor((_FLOAT)i/(_FLOAT)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
 			int gbl_i = -mad24(lcl_o, (int)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ), -i);
 			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i];
 #else
 // outputs are botoms(inputs))
 // inputs are tops(outputs)
-			int lcl_o = (int)floor((float)i/(float)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
+			int lcl_o = i/(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ);
 			int gbl_i = -mad24(lcl_o, (int)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ), -i);
-			int lcl_c = (int)(floor)((float)gbl_i / (float)MLO_FILTER_SZ);
+			int lcl_c = gbl_i / MLO_FILTER_SZ;
 			int lcl_i = -mad24(lcl_c, (int)MLO_FILTER_SZ, -gbl_i);
 
 			int lcl_we_off = mad24(mad24(lcl_c, (int)MLO_N_IN_TILES_PERSTACK, lcl_o), (int)MLO_FILTER_SZ, lcl_i);
