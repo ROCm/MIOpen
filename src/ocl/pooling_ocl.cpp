@@ -12,9 +12,8 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		const void							* /*beta*/,
 		const TensorDescriptor				&yDesc,
 		cl_mem								y,
-		cl_mem								z,
 		bool								do_backward,
-		cl_mem								 /*workSpace*/,
+		cl_mem								workSpace,
 		size_t								 /*workSpaceSize*/) {
 
 	printf("in pooling forward\n");
@@ -93,7 +92,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		kernel_name,
 		vld,
 		vgd,
-		parms)(x, y, z);
+		parms)(x, y, workSpace);
 
 	handle.Finish();
 
@@ -114,8 +113,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 		const void							* /*beta*/,
 		const TensorDescriptor				&dxDesc,
 		cl_mem								dx,
-		const cl_mem						mask,
-		const cl_mem						 /*workSpace*/) {
+		const cl_mem						workSpace) {
 
 
 	mlopenStatus_t status = mlopenStatusSuccess;
@@ -242,7 +240,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	// Use proper arguments
 	if(mode == mlopenPoolingMax)
 	{
-		k(dy, dx, mask);
+		k(dy, dx, workSpace);
 	}
 	else
 	{
