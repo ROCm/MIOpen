@@ -195,10 +195,10 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	inhost = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
-		in[i] = (T)1;//((double)rand() * (1.0 / RAND_MAX));
+		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 	for (int i = 0; i < wei_sz; i++) {
-		wei[i] = (T)1;//((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
 	
 	cl_int status;
@@ -239,7 +239,6 @@ int ConvDriver<T>::FindForward() {
 template<typename T>
 int ConvDriver<T>::RunForwardGPU() {
 
-#if 1
 	FindForward();
 	
 	int alpha = 1, beta = 1;
@@ -264,7 +263,6 @@ int ConvDriver<T>::RunForwardGPU() {
 		printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
 	}
 	out_dev->FromGPU(GetStream(), out.data());
-#endif
 
 	return mlopenStatusSuccess;
 }
@@ -294,6 +292,36 @@ int ConvDriver<T>::RunForwardCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+
+#if 0
+	mloConvForwarDirectOnHost<T>(
+		0,        // padding value
+		wei_h,   // kernel 1 dim 
+		pad_h,               // padding size
+		v,    // scale factor
+		wei_w,   // kernel 1 dim 
+		pad_w,               // padding size
+		u,    // scale factor
+		out_n,
+		out_c,
+		in_c,
+		out_h,
+		out_w,
+		out_nstride,
+		out_cstride,
+		out_hstride,
+		in_h,
+		in_w,
+		in_nstride,
+		in_cstride,
+		in_hstride,
+		in_c*wei_w*wei_h,
+		in.data(),			// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
+		outhost.data(),	// output "te4nsor"  - batch x channels (output images, feature maps, slices) x width (scaled) x height (scaled)
+		wei.data(),    // weights n output channels x n input channels x filter size_y x filter size_x
+		NULL         // bias, NULL if no bias
+		);
+#endif
 
 	int bias = 0;
 
@@ -403,10 +431,25 @@ int ConvDriver<T>::RunBackwardCPU() {
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
-	mloBackwardDirectOnHost<T>(0, wei_h, pad_h, u, wei_w, pad_w, v, in_n, wei_n, in_c, out_h, out_w, out_nstride, out_cstride, out_hstride, in_w, in_h, in_nstride, in_cstride, in_hstride, wei_nstride, inhost.data(), out.data(), wei.data());
-
-
 #if 0
+	mloBackwardDirectOnHost<T>(0,
+		wei_h,
+		pad_h,
+		u,
+		wei_w,
+		pad_w,
+		v,
+		in_n,
+		out_c,
+		in_c,
+		out_h, out_w,
+		out_nstride, out_cstride, out_hstride,
+		in_w, in_h,
+		in_nstride, in_cstride, in_hstride,
+		wei_nstride,
+		inhost.data(), out.data(), wei.data());
+#endif
+
 	for(int o = 0; o < out_n; o++) { // mini-batch size
 		for(int k = 0; k < in_c; k++) { // in_channels (RGB)
 			for(int w = 0; w < out_c; w++) { // out_channels (num filters)
@@ -432,7 +475,6 @@ int ConvDriver<T>::RunBackwardCPU() {
 			}
 		}
 	}
-#endif
 	return 0;
 }
 

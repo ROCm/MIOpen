@@ -310,16 +310,16 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	if (_direction == 0)
 	{
 		// backward
-		_pad0 = (_pad0 == 0) ? _kernel_size0 - 1 : _pad0;
-		_pad1 = (_pad1 == 0) ? _kernel_size1 - 1 : _pad1;
+		_pad0 = _kernel_size0 - 1 - _pad0;
+		_pad1 = _kernel_size1 - 1 - _pad1;
 	}
 
 	_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
 	_n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
 
 
-	int alu_tile0 = (_in_tile0 / _out_pix_tile0);
-	int alu_tile1 = (_in_tile1 / _out_pix_tile1);
+	int alu_tile0 = (_in_tile0 + _out_pix_tile0 - 1) / _out_pix_tile0;
+	int alu_tile1 = (_in_tile1 + _out_pix_tile1 - 1)/ _out_pix_tile1;
 	int alu_tiles_sz = (alu_tile0*alu_tile1);
 	if (alu_tiles_sz > 256 || _grp_tile0 < alu_tile0 || _grp_tile1 < alu_tile1)
 	{
@@ -327,12 +327,13 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		return(-1);
 	}
 
-	_n_stacks = std::min(_n_stacks, (_grp_tile1*_grp_tile0) / alu_tiles_sz);
+	int n_alus_total = (_grp_tile0 * _grp_tile1);
+
+	_n_stacks = std::min(_n_stacks, (n_alus_total + alu_tiles_sz - 1) / alu_tiles_sz);
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 
 
-	int n_alus_total = (_grp_tile0 * _grp_tile1);
-	int n_alus_perstack = (n_alus_total / _n_stacks);
+	int n_alus_perstack = (n_alus_total + _n_stacks - 1) / _n_stacks;
 
 	int n_read_procs;
 	if ((_grp_tile1 * _grp_tile0) <= static_cast<float>(_in_tile1 * _in_tile0))
@@ -348,7 +349,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	int n_out_tile_blocks0 = (_out_width + _in_tile0 - 1) / (_in_tile0);
 	int n_out_tile_blocks1 = (_out_height + _in_tile1 - 1) / (_in_tile1);
 
-	int n_alu_tiles_perstack = (n_alus_perstack / alu_tiles_sz);
+	int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1)/ alu_tiles_sz;
 	int n_out_tiles_perstack = n_alu_tiles_perstack * _n_out_pix_tiles;
 
 	n_out_tiles_perstack = std::min(n_out_tiles_perstack, _n_outputs);
@@ -454,8 +455,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd2()
 	if (_direction == 0)
 	{
 		// backward
-		_pad0 = (_pad0 == 0) ? _kernel_size0 - 1 : _pad0;
-		_pad1 = (_pad1 == 0) ? _kernel_size1 - 1 : _pad1;
+		_pad0 = _kernel_size0 - 1 - _pad0;
+		_pad1 = _kernel_size1 - 1 - _pad1;
 	}
 
 	_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
@@ -1316,9 +1317,9 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		int grp_tl_ln[2] = { 8, 16 };
 		int tile_sz[4] = { 8, 16, 32, 64 };
 		int out_pix_tile_sz[3] = { 1, 2, 4 };
-		int n_out_tiles_rg[2] = { 1, 8 };
+		int n_out_tiles_rg[2] = { 1, 14 };
 		int n_in_tiles_rg[2] = { 1, 4 };
-		int n_in_stacks_sz[2] = { 1, 2 };
+		int n_in_stacks_sz[3] = { 1, 2, 4 };
 		/*
 		std::vector<int> v_tile_sz;
 		std::vector<int> v_out_pix_tile_sz;
@@ -1337,9 +1338,10 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		int n_grp_tiles0 = (_out_height >= 32 && _batch_sz >= 16) ? 1 : 2;
 		int n_grp_tiles1 = (_out_width >= 32 && _batch_sz >= 16) ? 1 : 2;
 		int out_pix_tl_cnt = 3;
+		n_out_tiles_rg[1] = (_kernel_size0 > 7 || _kernel_size1 > 7) ? 8 : n_out_tiles_rg[1];
 		int n_out_tls = n_out_tiles_rg[1];
 		n_out_tls = std::min(_n_outputs, n_out_tls);
-		int stack_cnt = 2;
+		int stack_cnt = 3;
 		int n_tile0_sz = (_out_width * 2 <= 16) ? 1 : (_out_width * 2 <= 32) ? 2 : (_out_width * 2 <= 64) ? 3 : 4;
 		int n_tile1_sz = (_out_height * 2 <= 16) ? 1 : (_out_height * 2 <= 32) ? 2 : (_out_height * 2 <= 64) ? 3 : 4;
 		int n_tiles_cnt = (n_tile0_sz * n_tile1_sz == 9) ? (n_tile0_sz * n_tile1_sz - 1) : (n_tile0_sz * n_tile1_sz == 16) ? (n_tile0_sz * n_tile1_sz - 4) : n_tile0_sz * n_tile1_sz;
@@ -1447,6 +1449,25 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 										{
 
 											_n_stacks = n_in_stacks_sz[s];
+											int alu_tile0 = (_in_tile0 + _out_pix_tile0 - 1) / _out_pix_tile0;
+											int alu_tile1 = (_in_tile1 + _out_pix_tile1 - 1) / _out_pix_tile1;
+											int alu_tiles_sz = (alu_tile0*alu_tile1);
+											if (alu_tiles_sz > 256 || _grp_tile0 < alu_tile0 || _grp_tile1 < alu_tile1)
+											{
+												runs_left--;
+												runs_left = (runs_left < 0) ? 0 : runs_left;
+												continue;
+											}
+
+											int n_alus_total = (_grp_tile0 * _grp_tile1);
+
+											if (_n_stacks > (n_alus_total + alu_tiles_sz - 1) / alu_tiles_sz)
+											{
+												runs_left--;
+												runs_left = (runs_left < 0) ? 0 : runs_left;
+												continue;
+											}
+
 											if (_out_pix_tile1 * _out_pix_tile0 * _n_out_pix_tiles * _n_stacks > 256)
 											{
 												runs_left--;
