@@ -284,8 +284,8 @@ inline void Conv(int o_map_base,
 
 								pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i]
 									 += pvt_in_stage[j * MLO_PVT_IN_WIDTH + i + l] * pvt_wei_stage[l_act];
-#if 0 //MLO_DIR_FORWARD==1
-								if  (get_local_id(0) == 1 && get_group_id(0) == 0 /*&& alu_out_plane_id == 0 && alu_out_id == 0 */ && (i ==2 /*|| i == 1*/)&& j == 0)
+#if 0 //MLO_DIR_FORWARD==0
+								if  (get_local_id(0) == 0 && get_group_id(0) == 0 && i ==0 && j == 0)
 								{
 									printf("K: oc=%d ic=%d k=%d l=%d j=%d i=%d ai=%d di=%d  %f %f %f\n",
 									o_c,

@@ -461,10 +461,14 @@ int mloBackwardDirectOnHost(
 									run_bot_ptr[bot_data_off] += data_val * wei_val;
 
 #if 0
-									if (b == 0 && o == 0 && bot_y == 0 && bot_x == 12)
+									if (b == 0 && o == 0 && bot_y == 0 && bot_x == 0)
 									{
-										printf("c: %d %f %f %f\n",
+										printf("c: %d %d %d %d %d  %f %f %f\n",
 											bot_data_off,
+											k_j,
+											k_i,
+											j,
+											i,
 											run_bot_ptr[bot_data_off],
 											data_val,
 											wei_val
