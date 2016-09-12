@@ -455,8 +455,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd2()
 	if (_direction == 0)
 	{
 		// backward
-		_pad0 = (_pad0 == 0) ? _kernel_size0 - 1 : _pad0;
-		_pad1 = (_pad1 == 0) ? _kernel_size1 - 1 : _pad1;
+		_pad0 = _kernel_size0 - 1 - _pad0;
+		_pad1 = _kernel_size1 - 1 - _pad1;
 	}
 
 	_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
