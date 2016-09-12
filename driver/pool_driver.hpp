@@ -247,9 +247,8 @@ int PoolDriver<T>::RunForwardGPU() {
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
-			mask_dev->GetMem(),
 			do_backward,
-			NULL,
+			mask_dev->GetMem(),
 			0);
 
 	if(inflags.GetValueInt("time") == 1) {
@@ -281,8 +280,7 @@ int PoolDriver<T>::RunBackwardGPU() {
 			&beta,
 			dInputTensor,
 			din_dev->GetMem(),
-			mask_dev->GetMem(),
-			NULL);
+			mask_dev->GetMem());
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
