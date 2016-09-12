@@ -68,11 +68,11 @@ class PoolDriver : public Driver
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> out_dev;
 	std::unique_ptr<GPUMem> mask_dev;
-	std::vector<uint16_t> mask_dev_test;
+	std::vector<uint16_t> mask;
 
 	std::vector<T> in;
 	std::vector<T> out;
-	std::vector<size_t> mask;
+	std::vector<size_t> maskhost;
 	std::vector<T> outhost;
 
 	mlopenPoolingDescriptor_t poolDesc;
@@ -199,14 +199,14 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(uint16_t)));
-	mask_dev_test = std::vector<uint16_t>(out_sz, 0);
+	mask = std::vector<uint16_t>(out_sz, 0);
 	
 	din_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 
 	in = std::vector<T>(in_sz);
 	out = std::vector<T>(out_sz, 0);
-	mask = std::vector<size_t>(out_sz, 0);
+	maskhost = std::vector<size_t>(out_sz, 0);
 	outhost = std::vector<T>(out_sz, 0);
 	
 	din = std::vector<T>(in_sz);
@@ -259,7 +259,7 @@ int PoolDriver<T>::RunForwardGPU() {
 	}
 
 	out_dev->FromGPU(GetStream(), out.data());
-	mask_dev->FromGPU(GetStream(), mask_dev_test.data());
+	mask_dev->FromGPU(GetStream(), mask.data());
 
 	return mlopenStatusSuccess;
 }
@@ -343,8 +343,9 @@ int PoolDriver<T>::VerifyForward() {
 			nOutStride,
 			in.data(),
 			out.data(),
+			do_backward,
+			maskhost.data(),
 			mask.data(),
-		mask_dev_test.data(),
 			(1 << 2)
 				);
 
@@ -393,7 +394,7 @@ int PoolDriver<T>::VerifyBackward() {
 			// host output
 			dinhost.data(),
 			dout.data(),
-			mask.data(),
+			maskhost.data(),
 			ndInStride,
 			cdInStride,
 			hdInStride,
