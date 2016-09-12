@@ -294,7 +294,35 @@ int ConvDriver<T>::RunForwardCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
-
+#if 1
+	mloConvForwarDirectOnHost<T>(
+		0,        // padding value
+		wei_h,   // kernel 1 dim 
+		pad_h,               // padding size
+		v,    // scale factor
+		wei_w,   // kernel 1 dim 
+		pad_w,               // padding size
+		u,    // scale factor
+		out_n,
+		out_c,
+		in_c,
+		out_h,
+		out_w,
+		out_nstride,
+		out_cstride,
+		out_hstride,
+		in_h,
+		in_w,
+		in_nstride,
+		in_cstride,
+		in_hstride,
+		in_c*wei_w*wei_h,
+		in.data(),			// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
+		outhost.data(),	// output "te4nsor"  - batch x channels (output images, feature maps, slices) x width (scaled) x height (scaled)
+		wei.data(),    // weights n output channels x n input channels x filter size_y x filter size_x
+		NULL         // bias, NULL if no bias
+		);
+#else
 	int bias = 0;
 
 	for(int o = 0; o < out_n; o++) { // mini-batch size
@@ -313,6 +341,17 @@ int ConvDriver<T>::RunForwardCPU() {
 									if(in_y >= 0 && in_y < in_w) {
 										acc +=	in[o*in_nstride + k*in_cstride + in_x*in_w + in_y] * 
 											wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
+#if 1
+										if (w == 0 && o == 0 && j == 16 && i == 0)
+										{
+											printf("c: %f %f %f\n",
+												acc/* + bias_ptr[o]*/,
+												in[o*in_nstride + k*in_cstride + in_x*in_w + in_y],
+												wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y]
+											);
+										}
+#endif
+
 									}
 								}
 							}
@@ -324,6 +363,7 @@ int ConvDriver<T>::RunForwardCPU() {
 			}
 		}
 	}
+#endif
 	return 0;
 }
 
@@ -403,7 +443,22 @@ int ConvDriver<T>::RunBackwardCPU() {
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
-	mloBackwardDirectOnHost<T>(0, wei_h, pad_h, u, wei_w, pad_w, v, in_n, wei_n, in_c, out_h, out_w, out_nstride, out_cstride, out_hstride, in_w, in_h, in_nstride, in_cstride, in_hstride, wei_nstride, inhost.data(), out.data(), wei.data());
+	mloBackwardDirectOnHost<T>(0,
+		wei_h,
+		pad_h,
+		u,
+		wei_w,
+		pad_w,
+		v,
+		in_n,
+		out_c,
+		in_c,
+		out_h, out_w,
+		out_nstride, out_cstride, out_hstride,
+		in_w, in_h,
+		in_nstride, in_cstride, in_hstride,
+		wei_nstride,
+		inhost.data(), out.data(), wei.data());
 
 
 #if 0

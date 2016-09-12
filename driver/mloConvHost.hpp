@@ -234,13 +234,12 @@ void ADNN_col2im_cpu(const Dtype* data_col, const int channels,
 template<typename _T>
 int mloConvForwarDirectOnHost(
 	_T padding_value,        // padding value
-	// TO DO: check top, bot dim are equal
-	int kernel_size0,   // kernel 1 dim 
-	int pad0,               // padding size
-	int stride0,    // scale factor
 	int kernel_size1,   // kernel 1 dim 
 	int pad1,               // padding size
 	int stride1,    // scale factor
+	int kernel_size0,   // kernel 1 dim 
+	int pad0,               // padding size
+	int stride0,    // scale factor
 	int n_batchs,
 	int n_outputs,
 	int n_inputs,
@@ -249,8 +248,8 @@ int mloConvForwarDirectOnHost(
 	int top_batch_stride,
 	int top_channel_stride,
 	int top_stride,
-	int bot_width,
 	int bot_height,
+	int bot_width,
 	int bot_batch_stride,
 	int bot_channel_stride,
 	int bot_stride,
@@ -303,7 +302,7 @@ int mloConvForwarDirectOnHost(
 
 								accum += data_val * wei_val;
 #if 0
-								if (b == 0 && o == 1 && j == 0 && i == 1)
+								if (b == 0 && o == 0 && j == 1 && i == 0)
 								{
 									printf("c: %f %f %f\n",
 										accum/* + bias_ptr[o]*/,
@@ -391,12 +390,12 @@ template<typename _T>
 int mloBackwardDirectOnHost(
 	_T /*padding_value*/,        // padding value
 	// TO DO: check top, bot dim are equal
-	int kernel_size0,   // kernel 1 dim 
-	int pad0,               // padding size
-	int stride0,    // scale factor
 	int kernel_size1,   // kernel 1 dim 
 	int pad1,               // padding size
 	int stride1,    // scale factor
+	int kernel_size0,   // kernel 1 dim 
+	int pad0,               // padding size
+	int stride0,    // scale factor
 	int n_batchs,
 	int n_outputs,
 	int n_inputs,
@@ -463,12 +462,13 @@ int mloBackwardDirectOnHost(
 #if 0
 									if (b == 0 && o == 0 && bot_y == 0 && bot_x == 0)
 									{
-										printf("c: %d %d %d %d %d  %f %f %f\n",
+										printf("c: %d %d %d %d %d %d  %f %f %f\n",
 											bot_data_off,
 											k_j,
 											k_i,
 											j,
 											i,
+											out_data_off,
 											run_bot_ptr[bot_data_off],
 											data_val,
 											wei_val
