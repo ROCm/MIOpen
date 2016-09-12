@@ -195,10 +195,10 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	inhost = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
-		in[i] = (T)1;//((double)rand() * (1.0 / RAND_MAX));
+		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 	for (int i = 0; i < wei_sz; i++) {
-		wei[i] = (T)1;//((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
 	
 	cl_int status;
@@ -239,7 +239,6 @@ int ConvDriver<T>::FindForward() {
 template<typename T>
 int ConvDriver<T>::RunForwardGPU() {
 
-#if 1
 	FindForward();
 	
 	int alpha = 1, beta = 1;
@@ -264,7 +263,6 @@ int ConvDriver<T>::RunForwardGPU() {
 		printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
 	}
 	out_dev->FromGPU(GetStream(), out.data());
-#endif
 
 	return mlopenStatusSuccess;
 }
@@ -294,7 +292,8 @@ int ConvDriver<T>::RunForwardCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
-#if 1
+
+#if 0
 	mloConvForwarDirectOnHost<T>(
 		0,        // padding value
 		wei_h,   // kernel 1 dim 
@@ -322,7 +321,8 @@ int ConvDriver<T>::RunForwardCPU() {
 		wei.data(),    // weights n output channels x n input channels x filter size_y x filter size_x
 		NULL         // bias, NULL if no bias
 		);
-#else
+#endif
+
 	int bias = 0;
 
 	for(int o = 0; o < out_n; o++) { // mini-batch size
@@ -341,17 +341,6 @@ int ConvDriver<T>::RunForwardCPU() {
 									if(in_y >= 0 && in_y < in_w) {
 										acc +=	in[o*in_nstride + k*in_cstride + in_x*in_w + in_y] * 
 											wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
-#if 1
-										if (w == 0 && o == 0 && j == 16 && i == 0)
-										{
-											printf("c: %f %f %f\n",
-												acc/* + bias_ptr[o]*/,
-												in[o*in_nstride + k*in_cstride + in_x*in_w + in_y],
-												wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y]
-											);
-										}
-#endif
-
 									}
 								}
 							}
@@ -363,7 +352,6 @@ int ConvDriver<T>::RunForwardCPU() {
 			}
 		}
 	}
-#endif
 	return 0;
 }
 
@@ -443,6 +431,7 @@ int ConvDriver<T>::RunBackwardCPU() {
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
+#if 0
 	mloBackwardDirectOnHost<T>(0,
 		wei_h,
 		pad_h,
@@ -459,9 +448,8 @@ int ConvDriver<T>::RunBackwardCPU() {
 		in_nstride, in_cstride, in_hstride,
 		wei_nstride,
 		inhost.data(), out.data(), wei.data());
+#endif
 
-
-#if 0
 	for(int o = 0; o < out_n; o++) { // mini-batch size
 		for(int k = 0; k < in_c; k++) { // in_channels (RGB)
 			for(int w = 0; w < out_c; w++) { // out_channels (num filters)
@@ -487,7 +475,6 @@ int ConvDriver<T>::RunBackwardCPU() {
 			}
 		}
 	}
-#endif
 	return 0;
 }
 
