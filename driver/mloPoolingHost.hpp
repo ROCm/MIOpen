@@ -212,9 +212,6 @@ int mloPoolingBackwardRunHost(
 	int bot_df_v_batch_stride,
 	int bot_df_v_channel_stride,
 	int bot_df_v_stride,
-	int bot_batch_stride,
-	int bot_channel_stride,
-	int bot_stride,
 	int bot_width,
 	int bot_height,
 	int n_outputs,
@@ -224,11 +221,7 @@ int mloPoolingBackwardRunHost(
 	int top_df_channel_stride,
 	int top_df_stride,
 	int top_width,
-	int top_height,
-	int top_batch_stride,
-	int top_channel_stride,
-	int top_stride
-
+	int top_height
 	)
 {
 	
@@ -238,10 +231,8 @@ int mloPoolingBackwardRunHost(
 	{
 		for (int o = 0; o < n_outputs; o++)
 		{
-			int  bot_off = b * bot_batch_stride + o * bot_channel_stride;
 			int  bot_df_v_off = b * bot_df_v_batch_stride + o * bot_df_v_channel_stride;
 			int  top_df_off = b * top_df_batch_stride + o * top_df_channel_stride;
-			int  top_off = b * top_batch_stride + o * top_channel_stride;
 
 			if (pooling_method == MLO_POOLING_OP_MAX)
 			{
@@ -280,14 +271,6 @@ int mloPoolingBackwardRunHost(
 								int wend = std::min(wstart + kernel_size0, bot_width + pad0);
 								int pool_size = (hend - hstart) * (wend - wstart);
 								gradient += top_df_ptr[top_df_off + ph * top_df_stride + pw] / pool_size;
-
-#if 0
-								if (b == 0 && o == 3 && i == 6 && j == 0)
-								{
-									printf("C:com: %10.8f %10.8f %10.8f %d\n", gradient, top_ptr[top_off + ph * top_stride + pw] / pool_size, top_ptr[top_off + ph * top_stride + pw], pool_size);
-								}
-
-#endif
 							}
 						}
 						bot_df_v_ptr[bot_df_v_off + j * bot_df_v_stride + i] = gradient;
