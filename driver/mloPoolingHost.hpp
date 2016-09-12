@@ -88,6 +88,7 @@ bool mloPoolingForwardRunHostAndVerify(
 	int	top_batch_stride,
 	const _T * bot_ptr,
 	const _T * top_ptr,
+	bool do_backward,
 	size_t * mask_ptr,
 	uint16_t * mask_gpu,
 	double allowedEps
@@ -167,11 +168,14 @@ bool mloPoolingForwardRunHostAndVerify(
 					if (pooling_method == MLO_POOLING_OP_MAX)
 					{
 						mask_ptr[b*top_batch_stride + o * top_channel_stride + j * top_stride + i] = res_index;
-						//int mg = mask_gpu[b*top_batch_stride + o * top_channel_stride + j * top_stride + i];
-						//if (mg != res_index_gpu) {
-						//	std::cout << "Mask mistmatch, gpu " << mg << " cpu " << res_index_gpu << "(" << res_index << ")" << std::endl;
-						//	match = false;
-						//}
+						if (do_backward)
+						{
+							int mg = mask_gpu[b*top_batch_stride + o * top_channel_stride + j * top_stride + i];
+							if (mg != res_index_gpu) {
+								std::cout << "Mask mistmatch, gpu " << mg << " cpu " << res_index_gpu << "(" << res_index << ")" << std::endl;
+								match = false;
+							}
+						}
 					}
 					if (pooling_method == MLO_POOLING_OP_AVE)
 					{
