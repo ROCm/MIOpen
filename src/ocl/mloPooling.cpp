@@ -42,8 +42,6 @@ int mlo_construct_pooling2D::mloConstructFwd()
 
 	_grp_tile0 = 8;
 	_grp_tile1 = 8;
-	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile0)) / log(2.)));
-	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile1)) / log(2.)));;
 
 
 	_out_pix_tile0 = (_out_width < _grp_tile0 * 2) ? 1 : 2;
@@ -63,8 +61,6 @@ int mlo_construct_pooling2D::mloConstructFwd()
 		+ std::string(" -D MLO_POOLING_N_VERT_OUT_PIX=") + std::to_string(static_cast<long long>(_out_pix_tile1))
 		+ std::string(" -D MLO_POOLING_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
 		+ std::string(" -D MLO_POOLING_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
-		+ std::string(" -D MLO_POOLING_GROUP_LG2SZ0=") + std::to_string(static_cast<long long>(ocl_group_lg2sz0))
-		+ std::string(" -D MLO_POOLING_GROUP_LG2SZ1=") + std::to_string(static_cast<long long>(ocl_group_lg2sz1))
 		+ std::string(" -D MLO_POOLING_BOT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
 		+ std::string(" -D MLO_POOLING_BOT_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
 		+ std::string(" -D MLO_POOLING_BOT_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
@@ -114,10 +110,6 @@ int mlo_construct_pooling2D::mloConstructBwd()
 	//_out_pix_tile1 = _kernel_stride1;
 	_out_pix_tile0 = (_out_width < _grp_tile0 * 2) ? 1 : 2;
 	_out_pix_tile1 = (_out_height < _grp_tile1 * 2) ? 1 : 2;
-	
-	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile0)) / log(2.)));
-	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile1)) / log(2.)));
-
 
 	_comp_options =
 		std::string(" -D MLO_POOLING_KERNEL_SZ1=") + std::to_string(static_cast<long long>(_kernel_size1))
