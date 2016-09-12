@@ -356,12 +356,8 @@ int PoolDriver<T>::VerifyForward() {
 template<typename T>
 int PoolDriver<T>::VerifyBackward() {
 
-	int nInStride, cInStride, hInStride, wInStride;
-	mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
 	int nIn, cIn, hIn, wIn;
 	mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
-	int nOutStride, cOutStride, hOutStride, wOutStride;
-	mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
 	int nOut, cOut, hOut, wOut;
 	mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
 
@@ -401,9 +397,6 @@ int PoolDriver<T>::VerifyBackward() {
 			ndInStride,
 			cdInStride,
 			hdInStride,
-			nInStride,
-			cInStride,
-			hInStride,
 			wIn,
 			hIn,
 			cOut,
@@ -412,23 +405,35 @@ int PoolDriver<T>::VerifyBackward() {
 			cdOutStride,
 			hdOutStride,
 			wOut,
-			hOut,
-			nOutStride,
-			cOutStride,
-			hOutStride
+			hOut
 				);
 
-	for (int i = 0; i < din.size(); i++) {
-		T res_gpu = din[i];
-		T res_cpu = dinhost[i];
-		T diff = std::fabs(res_gpu - res_cpu);
-		if (diff > std::fabs((std::max(res_gpu, res_cpu)) * std::numeric_limits<T>::epsilon())) {
-			printf("Output Mismatch at: %d diff: %.10f gpu: %.10f cpu: %.10f \nBackward Pooling Verification Failed !!\n", i, diff, res_gpu, res_cpu);
-			return -1;
-		}
-	}
+	bool match = true;
+	const double allowedEps = (1 << 2);
+	double max_sqr = 1. / 100000000;
+	double max_abs_diff = 1. / 100000000;
+	bool get_error_pos = true;
 
-	printf("Backward Pooling Verifies on CPU and GPU\n");
+	match = mloVerify<T>(
+		nOut,
+		cOut,
+		hOut,
+		wOut,
+		ndOutStride,
+		cdOutStride,
+		hdOutStride,
+		ndOutStride,
+		cdOutStride,
+		hdOutStride,
+		dinhost.data(),
+		din.data(),
+		allowedEps,
+		max_abs_diff,
+		max_sqr,
+		get_error_pos
+		);
+
+	if (match) printf("Backward Pooling Verifies on CPU and GPU\n");
 
 	return 0;
 }
