@@ -65,7 +65,7 @@ __kernel void mloPoolingAveBwd(
 
 		int top_x = (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0) < 0 ? 0 : (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0)/ MLO_POOLING_STRIDE0 + 1;
 		int top_y = (y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1) < 0 ? 0 : (y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
-		int top_off = b * MLO_POOLBWD_TOP_BATCH_STRIDE + o * MLO_POOLBWD_TOP_CHANNEL_STRIDE;
+		int top_off = b * MLO_POOLBWD_TOPDF_BATCH_STRIDE + o * MLO_POOLBWD_TOPDF_CHANNEL_STRIDE;
 
 
 		_FLOAT res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];
@@ -82,7 +82,7 @@ __kernel void mloPoolingAveBwd(
 		for( int tj = lcl_id1; tj < MLO_POOLBWD_LCL_DATA_HEIGHT; tj += MLO_POOLBWD_GROUP_SZ1)
 		{	
 			int top_y_act = top_y + tj;
-			int top_y_off = top_y_act * MLO_POOLBWD_TOP_STRIDE;
+			int top_y_off = top_y_act * MLO_POOLBWD_TOPDF_STRIDE;
 
 			int lcl_off_v = tj * MLO_POOLBWD_LCL_DATA_WIDTH;
 
@@ -161,18 +161,18 @@ __kernel void mloPoolingAveBwd(
 			}
 		}
 
-		int bot_off = b * MLO_POOLBWD_BOT_BATCH_STRIDE + o * MLO_POOLBWD_BOT_CHANNEL_STRIDE + bot_y * MLO_POOLBWD_BOT_STRIDE + bot_x;
+		int bot_off = b * MLO_POOLBWD_BOTDF_BATCH_STRIDE + o * MLO_POOLBWD_BOTDF_CHANNEL_STRIDE + bot_y * MLO_POOLBWD_BOTDF_STRIDE + bot_x;
 		for( int k = 0; k < MLO_POOLBWD_N_VERT_OUT_PIX; k++)
 		{
 			for(int l = 0; l < MLO_POOLBWD_N_HORIZ_OUT_PIX; l++)
 			{
 				if (bot_y + k < MLO_POOLBWD_BOT_HEIGHT && bot_x + l < MLO_POOLBWD_BOT_WIDTH)
 				{	
-					bot_diff[bot_off + k * MLO_POOLBWD_BOT_STRIDE +l] = res[k][l];
+					bot_diff[bot_off + k * MLO_POOLBWD_BOTDF_STRIDE +l] = res[k][l];
 #if 0
 					if (lcl_id0==0&&lcl_id1==0&&o==0&&b==0)
 					{
-						printf("K:out: %d %d %d  %f\n", bot_off + k * MLO_POOLBWD_BOT_STRIDE +l, k, l, bot_diff[bot_off + k * MLO_POOLBWD_BOT_STRIDE +l]);
+						printf("K:out: %d %d %d  %f\n", bot_off + k * MLO_POOLBWD_BOTDF_STRIDE +l, k, l, bot_diff[bot_off + k * MLO_POOLBWD_BOT_STRIDE +l]);
 					}
 #endif
 
