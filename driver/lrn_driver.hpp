@@ -92,6 +92,10 @@ int LRNDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
 	if(inflags.GetValueInt("time") == 1) {
 		mlopenEnableProfiling(GetHandle(), true);
 	}
+	if(inflags.GetValueInt("back") == 0 && inflags.GetValueStr("mode") == "cross") {
+		printf("Cross channel LRN needs do_backward=1\n");
+		exit(0);
+	}
 	return 0; 
 }
 
@@ -238,8 +242,7 @@ int LRNDriver<T>::RunForwardGPU() {
 			outputTensor,
 			out_dev->GetMem(),
 			(inflags.GetValueInt("back")==1)?true:false,
-			scale_dev->GetMem(),
-			NULL);
+			scale_dev->GetMem());
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;

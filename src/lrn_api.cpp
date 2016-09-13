@@ -69,9 +69,7 @@ mlopenStatus_t mlopenLRNForward(
 		const mlopenTensorDescriptor_t		yDesc,
 		void								*y,
 		bool                                do_backward,
-		void								*workSpace,
-		size_t								*workSpaceSize) {
-
+		void								*workSpace) {
 
 	return mlopen::try_([&] {
 			mlopen::deref(lrnDesc).Forward(mlopen::deref(handle),
@@ -82,9 +80,7 @@ mlopenStatus_t mlopenLRNForward(
 			mlopen::deref(yDesc),
 			DataCast(y),
 			do_backward,
-			DataCast(workSpace),
-			workSpaceSize);
-
+			DataCast(workSpace));
 	});
 }
 
