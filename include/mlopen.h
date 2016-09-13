@@ -456,6 +456,10 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetPoolingForwardOutputDim(
 		int									*h,
 		int									*w);
 
+MLOPEN_EXPORT mlopenStatus_t mlopenPoolingGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		yDesc,
+		size_t								*workSpaceSize);
+
 MLOPEN_EXPORT mlopenStatus_t mlopenPoolingForward(
 		mlopenHandle_t						handle,
 		const mlopenPoolingDescriptor_t		poolDesc,
@@ -468,7 +472,6 @@ MLOPEN_EXPORT mlopenStatus_t mlopenPoolingForward(
 		bool                                do_backward,
 		void								*workSpace,
 		size_t								workSpaceSize);
-
 
 MLOPEN_EXPORT mlopenStatus_t mlopenPoolingBackward(
 		mlopenHandle_t						handle,
