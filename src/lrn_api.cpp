@@ -48,6 +48,17 @@ mlopenStatus_t mlopenGetLRNDescriptor(
 }
 
 extern "C"
+mlopenStatus_t mlopenLRNGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		yDesc,
+		size_t								*workSpaceSize) {
+	
+	// TODO: Supporting size 4 bytes only
+	return mlopen::try_([&] {
+		mlopen::deref(workSpaceSize) = mlopen::deref(yDesc).GetLengths()[0] * mlopen::deref(yDesc).GetStrides()[0] * sizeof(float); 
+	});
+}
+
+extern "C"
 mlopenStatus_t mlopenLRNForward(
 		mlopenHandle_t						handle,
 		const mlopenLRNDescriptor_t			lrnDesc,
