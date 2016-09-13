@@ -69,7 +69,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 			hInStride,
 			wInStride);
 
-	if (mode == mlopenPoolingMax && do_backward && workSpace == NULL)
+	if (mode == mlopenPoolingMax && do_backward && workSpace == nullptr)
 	{
 		throw std::invalid_argument("workSpace cannot be NULL in Forward Pooling MAX mode when backward pass is requested");
 	}
@@ -222,7 +222,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			hInStride,
 			wInStride);
 
-	if (mode == mlopenPoolingMax && workSpace == NULL)
+	if (mode == mlopenPoolingMax && workSpace == nullptr)
 	{
 		throw std::invalid_argument("workSpace cannot be NULL in Backward Pooling MAX mode");
 	}
