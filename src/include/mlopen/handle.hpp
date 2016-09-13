@@ -40,6 +40,7 @@ struct Handle : mlopenHandle {
         const std::string& network_config);
 
     void Finish() const;
+    void Flush() const;
 #endif
 
 	ManageDataPtr Create(int sz);

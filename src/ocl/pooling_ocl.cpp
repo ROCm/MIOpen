@@ -92,8 +92,6 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		vgd,
 		parms)(x, y);
 
-	handle.Finish();
-
 	std::cout << "Pooling Forward Finished !!" << std::endl;
 
 	return mlopenStatusSuccess;
@@ -244,8 +242,6 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	{
 		k(dy, dx);
 	}
-
-	handle.Finish();
 
 	std::cout << "Pooling Backward Finished !!" << std::endl;
 
