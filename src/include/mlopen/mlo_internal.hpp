@@ -114,7 +114,7 @@ public:
 		_do_backward = false;
 
 #if !(defined(__APPLE__) || defined(__MACOSX))
-		//_gen_comp_options = std::string(" -cl-std=CL2.0 ");
+		_gen_comp_options = std::string(" -cl-std=CL2.0 ");
 #endif
 		_in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
 		_in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
