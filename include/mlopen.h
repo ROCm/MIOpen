@@ -523,8 +523,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenLRNForward(
 		const mlopenTensorDescriptor_t		yDesc,
 		void								*y,
 		bool                                do_backward,
-		void								*workSpace,
-		size_t								*workSpaceSize);
+		void								*workSpace);
 
 
 MLOPEN_EXPORT mlopenStatus_t mlopenLRNBackward(
