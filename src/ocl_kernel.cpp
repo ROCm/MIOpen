@@ -11,10 +11,13 @@ void OCLKernelInvoke::run() const
 		global_work_dim.data(),
 		local_work_dim.data(), 0, nullptr, callback ? &ev : nullptr);
 
+	clFlush(queue);
+
 	if (status != CL_SUCCESS) {
 		MLOPEN_THROW("Running kernel failed: " + std::to_string(status));
 	}
 	else if (callback) {
+		clFinish(queue);
 		clWaitForEvents(1, &ev);
 		callback(ev);
 	}
