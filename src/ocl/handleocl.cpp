@@ -192,6 +192,11 @@ void Handle::Finish() const
     clFinish(this->GetStream());
 }
 
+void Handle::Flush() const
+{
+    clFlush(this->GetStream());
+}
+
 ManageDataPtr Handle::Create(int sz)
 {
     cl_int status = CL_SUCCESS;
