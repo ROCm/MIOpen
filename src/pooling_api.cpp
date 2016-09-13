@@ -2,6 +2,7 @@
 #include <mlopen/errors.hpp>
 #include <initializer_list>
 #include <array>
+#include <algorithm>
 
 extern "C"
 mlopenStatus_t mlopenCreatePoolingDescriptor(
@@ -109,6 +110,18 @@ mlopenStatus_t mlopenGetPoolingForwardOutputDim(
 		mlopen::tie_deref(n, c, h, w) = mlopen::deref(poolDesc).GetForwardOutputDim(mlopen::deref(tensorDesc)); 
 	});
 
+}
+
+extern "C"
+mlopenStatus_t mlopenPoolingGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		yDesc,
+		size_t								*workSpaceSize) {
+	
+	return mlopen::try_([&] {
+		std::vector<int> len = mlopen::deref(yDesc).GetLengths();
+		size_t sz = std::accumulate(len.begin(), len.end(), 1, std::multiplies<int>());
+		mlopen::deref(workSpaceSize) = sz * sizeof(uint16_t); 
+	});
 }
 
 extern "C"
