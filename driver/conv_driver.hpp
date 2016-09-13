@@ -381,8 +381,9 @@ template<typename T>
 int ConvDriver<T>::RunBackwardGPU() {
 	int alpha = 1, beta = 1;
 
+	int ret = 0;
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-	int ret = mlopenConvolutionBackwardData(GetHandle(),
+	ret = mlopenConvolutionBackwardData(GetHandle(),
 			&alpha,
 			outputTensor,
 			out_dev->GetMem(),

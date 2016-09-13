@@ -509,7 +509,9 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetLRNDescriptor(
 		double								*lrnBeta,
 		double								*lrnK);
 
-
+MLOPEN_EXPORT mlopenStatus_t mlopenLRNGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		yDesc,
+		size_t								*workSpaceSize);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenLRNForward(
 		mlopenHandle_t						handle,
