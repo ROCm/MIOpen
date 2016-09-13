@@ -20,9 +20,6 @@ mlopenStatus_t ActivationDescriptor::Forward(
 
 	mlo_construct_neuron construct_params(1); // forward
 
-	std::string kernel_path = "../src/Kernels/";
-	construct_params.setKernelPath(kernel_path);
-
 	construct_params.setStream(handle.GetStream());
 
 	int nOut;
@@ -81,7 +78,7 @@ mlopenStatus_t ActivationDescriptor::Forward(
 
 	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 
-	std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
+	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
 	std::string compiler_options = construct_params.getCompilerOptions(); // kernel parameters
 
@@ -128,10 +125,6 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 	printf("in activation backward\n");
 
 	mlo_construct_neuron construct_params(0); // backward
-
-	std::string kernel_path = "../src/Kernels/";
-
-	construct_params.setKernelPath(kernel_path);
 
 	construct_params.setStream(handle.GetStream());
 	int ndOut;
@@ -239,7 +232,7 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 
 	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
 
-	std::string program_name = kernel_path + construct_params.getKernelFile();  // CL kernel filename
+	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
 	std::string compiler_options = construct_params.getCompilerOptions(); // kernel parameters
 
