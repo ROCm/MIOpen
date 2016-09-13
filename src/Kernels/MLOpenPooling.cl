@@ -25,6 +25,8 @@
 #define _FLOAT2					float2
 #define _FLOAT4					float4
 #define _FLOAT8					float8
+#define _INT_MASK_GLOBAL		ushort
+#define _INT_MASK_LOCAL			uint
 
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
@@ -55,7 +57,8 @@
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0,MLO_POOLING_GROUP_SZ1,MLO_POOLING_GROUP_SZ2)))
 __kernel void mloPooling(
        const __global _FLOAT * bot,
-       __global _FLOAT * top
+       __global _FLOAT * top,
+	   __global _INT_MASK_GLOBAL * mask
 	   )
 {
 		__local _FLOAT bot_data[MLO_POOLING_LCL_DATA_WIDTH * MLO_POOLING_LCL_DATA_HEIGHT];
@@ -74,6 +77,9 @@ __kernel void mloPooling(
 
 
 		_FLOAT res[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
+#if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+		_INT_MASK_LOCAL mask_private[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
+#endif
 		for( int k = 0; k < MLO_POOLING_N_VERT_OUT_PIX; k++)
 		{
 			for(int l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
@@ -103,12 +109,13 @@ __kernel void mloPooling(
 
 				int bot_x_act = bot_x + b_i - MLO_POOLING_PAD0;
 
-				
-
-				_FLOAT bot_val = bot[bot_off + bot_y_off + bot_x_act];
-
 				bool invisibleX = (bot_x_act < 0) || (bot_x_act >= MLO_POOLING_BOT_WIDTH);
-				bot_val = (invisibleX || invisibleY) ?
+				bool invisible = invisibleX || invisibleY;
+
+				int bot_idx = invisible ? 0 : (bot_off + bot_y_off + bot_x_act);
+				_FLOAT bot_val = bot[bot_idx];
+
+				bot_val = (invisible) ?
 
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
 				-FLT_MAX
@@ -146,6 +153,9 @@ __kernel void mloPooling(
 				int wend = min(wstart + MLO_POOLING_KERNEL_SZ0, MLO_POOLING_BOT_WIDTH + MLO_POOLING_PAD0);
 
 				int pool_size = (hend - hstart) * (wend - wstart);
+#if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+				mask_private[k][l] = 0xFFFFFFFF;
+#endif
 
 				for( int j = 0; j < MLO_POOLING_KERNEL_SZ1; j++)
 				{
@@ -154,18 +164,29 @@ __kernel void mloPooling(
 
 						_FLOAT bot_val =  bot_data[lcl_off + (k * MLO_POOLING_STRIDE1+j)*MLO_POOLING_LCL_DATA_WIDTH + (l * MLO_POOLING_STRIDE0+i)];
 #if 0
-								if (y_dst == 0 && x_dst == 6)
-								{
+						if (y_dst == 0 && x_dst == 6)
+						{
 
-									printf("k: %d %f %f\n",
-										lcl_off + (k * MLO_POOLING_STRIDE1+j)*MLO_POOLING_LCL_DATA_WIDTH + (l * MLO_POOLING_STRIDE0+i),
-										res[k][l],
-										bot_val
-										);
-								}
+							printf("k: %d %f %f\n",
+								lcl_off + (k * MLO_POOLING_STRIDE1+j)*MLO_POOLING_LCL_DATA_WIDTH + (l * MLO_POOLING_STRIDE0+i),
+								res[k][l],
+								bot_val
+								);
+						}
 #endif
+#if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+						if (bot_val > res[k][l])
+						{
+							res[k][l] = bot_val;
+							int src_x = x_dst * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0 + i;
+							int src_y = y_dst * MLO_POOLING_STRIDE1 - MLO_POOLING_PAD1 + j;
+							//mask_private[k][l].x = src_x;
+							//mask_private[k][l].y = src_y;
+							mask_private[k][l] = src_x + src_y * MLO_POOLING_BOT_WIDTH;
+						}
+#else
 						res[k][l] = MLO_POOLING_OP(res[k][l],bot_val);
-
+#endif
 					}
 				}
 
@@ -185,6 +206,9 @@ __kernel void mloPooling(
 				if (top_y + k < MLO_POOLING_TOP_HEIGHT && top_x + l < MLO_POOLING_TOP_WIDTH)
 				{	
 					top[top_off + k * MLO_POOLING_TOP_STRIDE +l] = res[k][l];
+#if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+					mask[top_off + k * MLO_POOLING_TOP_STRIDE + l] = mask_private[k][l];
+#endif
 				}
 			}
 		}

@@ -12,8 +12,8 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		const void							* /*beta*/,
 		const TensorDescriptor				&yDesc,
 		cl_mem								y,
-		bool								 /*do_backward*/,
-		cl_mem								 /*workSpace*/,
+		bool								do_backward,
+		cl_mem								workSpace,
 		size_t								 /*workSpaceSize*/) {
 
 	printf("in pooling forward\n");
@@ -69,8 +69,14 @@ mlopenStatus_t PoolingDescriptor::Forward(
 			hInStride,
 			wInStride);
 
+	if (mode == mlopenPoolingMax && do_backward && workSpace == nullptr)
+	{
+		throw std::invalid_argument("workSpace cannot be NULL in Forward Pooling MAX mode when backward pass is requested");
+	}
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
+
+	construct_params.doBackward(do_backward);
 
 	construct_params.mloConstruct();
 
@@ -90,7 +96,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		kernel_name,
 		vld,
 		vgd,
-		parms)(x, y);
+		parms)(x, y, workSpace);
 
 	handle.Finish();
 
@@ -103,15 +109,15 @@ mlopenStatus_t PoolingDescriptor::Backward(
 		Handle								&handle,
 		const void							* /*alpha*/,
 		const TensorDescriptor				&yDesc,
-		const cl_mem						y,
+		const cl_mem						/*y*/,
 		const TensorDescriptor				&dyDesc,
 		const cl_mem						dy,
 		const TensorDescriptor				&xDesc,
-		const cl_mem						x,
+		const cl_mem						/*x*/,
 		const void							* /*beta*/,
 		const TensorDescriptor				&dxDesc,
 		cl_mem								dx,
-		const cl_mem						 /*workSpace*/) {
+		const cl_mem						workSpace) {
 
 
 	mlopenStatus_t status = mlopenStatusSuccess;
@@ -216,6 +222,10 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			hInStride,
 			wInStride);
 
+	if (mode == mlopenPoolingMax && workSpace == nullptr)
+	{
+		throw std::invalid_argument("workSpace cannot be NULL in Backward Pooling MAX mode");
+	}
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
@@ -238,7 +248,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	// Use proper arguments
 	if(mode == mlopenPoolingMax)
 	{
-		k(dy, dx, y, x);
+		k(dy, dx, workSpace);
 	}
 	else
 	{
