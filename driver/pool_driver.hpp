@@ -67,12 +67,16 @@ class PoolDriver : public Driver
 
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> out_dev;
+	std::unique_ptr<GPUMem> mask_dev;
+	std::vector<uint16_t> mask;
 
 	std::vector<T> in;
 	std::vector<T> out;
+	std::vector<size_t> maskhost;
 	std::vector<T> outhost;
 
 	mlopenPoolingDescriptor_t poolDesc;
+	bool do_backward;
 
 	mlopenTensorDescriptor_t dInputTensor;
 	mlopenTensorDescriptor_t dOutputTensor;
@@ -89,6 +93,8 @@ class PoolDriver : public Driver
 template<typename T>
 int PoolDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) { 
 	inflags.Parse(argc, argv); 
+
+	do_backward = !(inflags.GetValueInt("forw"));
 
 	if(inflags.GetValueInt("time") == 1) {
 		mlopenEnableProfiling(GetHandle(), true);
@@ -118,8 +124,8 @@ int PoolDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
 	inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
 	inflags.AddInputFlag("out_channels", 'k', "32", "Number of Output Channels (Default=32)", "int");
-	inflags.AddInputFlag("win_h", 'x', "3", "Window Height (Default=3)", "int");
-	inflags.AddInputFlag("win_w", 'y', "3", "Window Width (Default=3)", "int");
+	inflags.AddInputFlag("win_h", 'y', "3", "Window Height (Default=3)", "int");
+	inflags.AddInputFlag("win_w", 'x', "3", "Window Width (Default=3)", "int");
 	inflags.AddInputFlag("pool_stride_0", 'u', "1", "Pooling Stride Vertical (Default=1)", "int");
 	inflags.AddInputFlag("pool_stride_1", 'v', "1", "Pooling Stride Horizontal (Default=1)", "int");
 	inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
@@ -128,7 +134,6 @@ int PoolDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
-	inflags.AddInputFlag("back", 'b', "0", "Optimization: Do Backward Pooling (Default=0)", "int");
 	inflags.AddInputFlag("print", 'P', "1", "Print Pooling Dimensions (Default=1)", "int");
 	inflags.AddInputFlag("mode", 'm', "max", "Pooling Mode (max, avg) (Default=max)", "str");
 
@@ -192,12 +197,15 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
+	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(uint16_t)));
+	mask = std::vector<uint16_t>(out_sz, 0);
 	
 	din_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 
 	in = std::vector<T>(in_sz);
 	out = std::vector<T>(out_sz, 0);
+	maskhost = std::vector<size_t>(out_sz, 0);
 	outhost = std::vector<T>(out_sz, 0);
 	
 	din = std::vector<T>(in_sz);
@@ -205,11 +213,11 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	dinhost = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
-		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+		in[i] = rand() * (1.0 / RAND_MAX);
 	}
 	
 	for (int i = 0; i < out_sz; i++) {
-		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
 	}
 
 	cl_int status;
@@ -238,8 +246,8 @@ int PoolDriver<T>::RunForwardGPU() {
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
-			(inflags.GetValueInt("back")==1)?true:false,
-			NULL,
+			do_backward,
+			mask_dev->GetMem(),
 			0);
 
 	if(inflags.GetValueInt("time") == 1) {
@@ -249,6 +257,7 @@ int PoolDriver<T>::RunForwardGPU() {
 	}
 
 	out_dev->FromGPU(GetStream(), out.data());
+	mask_dev->FromGPU(GetStream(), mask.data());
 
 	return mlopenStatusSuccess;
 }
@@ -270,7 +279,7 @@ int PoolDriver<T>::RunBackwardGPU() {
 			&beta,
 			dInputTensor,
 			din_dev->GetMem(),
-			NULL);
+			mask_dev->GetMem());
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
@@ -309,8 +318,7 @@ int PoolDriver<T>::VerifyForward() {
 
 	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
-	cl_int status;
-	status = mloPoolingForwardRunHostAndVerify<float>(
+	bool match = mloPoolingForwardRunHostAndVerify<float>(
 			pooling_method,
 			pad_h,
 			u,
@@ -332,10 +340,13 @@ int PoolDriver<T>::VerifyForward() {
 			nOutStride,
 			in.data(),
 			out.data(),
+			do_backward,
+			maskhost.data(),
+			mask.data(),
 			(1 << 2)
 				);
 
-	if(status) printf("Forward Pooling Verifies on CPU and GPU\n");
+	printf(match ? "Forward Pooling Verifies on CPU and GPU\n" : "Forward Pooling Verification Failed !!\n");
 
 	return 0;
 }
@@ -343,12 +354,8 @@ int PoolDriver<T>::VerifyForward() {
 template<typename T>
 int PoolDriver<T>::VerifyBackward() {
 
-	int nInStride, cInStride, hInStride, wInStride;
-	mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
 	int nIn, cIn, hIn, wIn;
 	mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
-	int nOutStride, cOutStride, hOutStride, wOutStride;
-	mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
 	int nOut, cOut, hOut, wOut;
 	mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
 
@@ -375,23 +382,19 @@ int PoolDriver<T>::VerifyBackward() {
 
 	mloPoolingBackwardRunHost<float>(
 			pooling_method,
+			windowHeight,
 			pad_h,
 			u,
-			windowHeight,
+			windowWidth,
 			pad_w,
 			v,
-			windowWidth,
 			// host output
 			dinhost.data(),
 			dout.data(),
-			in.data(),
-			out.data(),
+			maskhost.data(),
 			ndInStride,
 			cdInStride,
 			hdInStride,
-			nInStride,
-			cInStride,
-			hInStride,
 			wIn,
 			hIn,
 			cOut,
@@ -400,11 +403,35 @@ int PoolDriver<T>::VerifyBackward() {
 			cdOutStride,
 			hdOutStride,
 			wOut,
-			hOut,
-			nOutStride,
-			cOutStride,
-			hOutStride
+			hOut
 				);
+
+	bool match = true;
+	const double allowedEps = (1 << 2);
+	double max_sqr = 1. / 100000000;
+	double max_abs_diff = 1. / 100000000;
+	bool get_error_pos = true;
+
+	match = mloVerify<T>(
+		nOut,
+		cOut,
+		hOut,
+		wOut,
+		ndOutStride,
+		cdOutStride,
+		hdOutStride,
+		ndOutStride,
+		cdOutStride,
+		hdOutStride,
+		dinhost.data(),
+		din.data(),
+		allowedEps,
+		max_abs_diff,
+		max_sqr,
+		get_error_pos
+		);
+
+	if (match) printf("Backward Pooling Verifies on CPU and GPU\n");
 
 	return 0;
 }

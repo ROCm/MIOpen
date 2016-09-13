@@ -66,7 +66,7 @@ double CalcErr( _T c_val, _T g_val)
 #endif
 
 template<typename _T>
-int mloPoolingForwardRunHostAndVerify(
+bool mloPoolingForwardRunHostAndVerify(
 	int pooling_method,
 	int pad1,
 	int stride1,
@@ -88,12 +88,14 @@ int mloPoolingForwardRunHostAndVerify(
 	int	top_batch_stride,
 	const _T * bot_ptr,
 	const _T * top_ptr,
+	bool do_backward,
+	size_t * mask_ptr,
+	uint16_t * mask_gpu,
 	double allowedEps
 	)
 {
 
-	int ret = 0;
-	int match = 1;
+	bool match = true;
 
 	// c-emulator
 	_T res = 0;
@@ -125,11 +127,19 @@ int mloPoolingForwardRunHostAndVerify(
 					wstart = std::max(wstart, 0);
 					hend = std::min(hend, bot_height);
 					wend = std::min(wend, bot_width);
+					size_t res_index = 0;
+					size_t res_index_gpu = 0;
 					for (int h = hstart; h < hend; ++h) {
 						for (int w = wstart; w < wend; ++w) {
 							if (pooling_method == MLO_POOLING_OP_MAX)
 							{
-								res = std::max(res, bot_ptr[b*bot_batch_stride + o * bot_channel_stride + h * bot_stride + w]);
+								size_t bot_index = b*bot_batch_stride + o * bot_channel_stride + h * bot_stride + w;
+								if (bot_ptr[bot_index] > res)
+								{
+									res = bot_ptr[bot_index];
+									res_index = bot_index;
+									res_index_gpu = h * bot_width + w;
+								}
 							}
 							else if (pooling_method == MLO_POOLING_OP_AVE)
 							{
@@ -150,8 +160,20 @@ int mloPoolingForwardRunHostAndVerify(
 							else
 							{
 								std::cout << "ERROR: unknown operator : layer: pooling." << std::endl;
-								match = 0;
+								match = false;
 								continue;
+							}
+						}
+					}
+					if (pooling_method == MLO_POOLING_OP_MAX)
+					{
+						mask_ptr[b*top_batch_stride + o * top_channel_stride + j * top_stride + i] = res_index;
+						if (do_backward)
+						{
+							int mg = mask_gpu[b*top_batch_stride + o * top_channel_stride + j * top_stride + i];
+							if (mg != res_index_gpu) {
+								std::cout << "Mask mistmatch, gpu " << mg << " cpu " << res_index_gpu << "(" << res_index << ")" << std::endl;
+								match = false;
 							}
 						}
 					}
@@ -165,7 +187,7 @@ int mloPoolingForwardRunHostAndVerify(
 					if (err > allowedEps || std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) || !std::isfinite(g_val))
 					{
 						std::cout << "Difference " << err << " too large at " << b << ", " << o << ", " << j << ", " << i << " c_v = " << c_val << " vs g_val = " << g_val << std::endl;
-						match = 0;
+						match = false;
 					}
 				}
 			}
@@ -173,16 +195,7 @@ int mloPoolingForwardRunHostAndVerify(
 	}
 
 
-	if (match)
-	{
-		ret = match;
-	}
-	else
-	{
-		ret = -1;
-	}
-
-	return(ret);
+	return(match);
 
 }
 
@@ -196,17 +209,13 @@ int mloPoolingBackwardRunHost(
 	int pad0,
 	int stride0,
 
-	_T * bot_df_v_ptr,
+	_T * bot_df_v_ptr, // the code assumes that bot_df_v_ptr was zeroed
 	const _T * top_df_ptr,
-	const _T * bot_ptr,
-	const _T * top_ptr,
+	const size_t * mask_ptr,
 
 	int bot_df_v_batch_stride,
 	int bot_df_v_channel_stride,
 	int bot_df_v_stride,
-	int bot_batch_stride,
-	int bot_channel_stride,
-	int bot_stride,
 	int bot_width,
 	int bot_height,
 	int n_outputs,
@@ -216,11 +225,7 @@ int mloPoolingBackwardRunHost(
 	int top_df_channel_stride,
 	int top_df_stride,
 	int top_width,
-	int top_height,
-	int top_batch_stride,
-	int top_channel_stride,
-	int top_stride
-
+	int top_height
 	)
 {
 	
@@ -230,47 +235,20 @@ int mloPoolingBackwardRunHost(
 	{
 		for (int o = 0; o < n_outputs; o++)
 		{
-			int  bot_off = b * bot_batch_stride + o * bot_channel_stride;
 			int  bot_df_v_off = b * bot_df_v_batch_stride + o * bot_df_v_channel_stride;
 			int  top_df_off = b * top_df_batch_stride + o * top_df_channel_stride;
-			int  top_off = b * top_batch_stride + o * top_channel_stride;
 
 			if (pooling_method == MLO_POOLING_OP_MAX)
 			{
-				memset(&bot_df_v_ptr[bot_df_v_off], 0, bot_height * bot_df_v_stride * sizeof(_T));
 				for (int j = 0; j < top_height; j++)
 				{
 					for (int i = 0; i < top_width; i++)
 					{
-						int hstart = j * stride1 - pad1;
-						int wstart = i * stride0 - pad0;
-						int hend = std::min(hstart + kernel_size1, bot_height);
-						int wend = std::min(wstart + kernel_size0, bot_width);
-						hstart = std::max(hstart, 0);
-						wstart = std::max(wstart, 0);
-						for (int h = hstart; h < hend; ++h) {
-							for (int w = wstart; w < wend; ++w) {
-								bot_df_v_ptr[bot_df_v_off + h * bot_df_v_stride + w] +=
-									top_df_ptr[top_df_off + j * top_df_stride + i] *
-									(bot_ptr[bot_off + h * bot_stride + w] == top_ptr[top_off + j * top_stride + i]);
-#if 0
-								if (b == 0 && o == 5 && w == 17 && h == 0)
-								{
-									printf("C:max: %d %d   %13.11f  %13.11f  %13.11f %13.11f\n",
-										i, j,
-										bot_df_v_ptr[bot_df_v_off + h * bot_df_v_stride + w],
-										top_df_ptr[top_df_off + j * top_df_stride + i],
-										bot_ptr[bot_off + h * bot_stride + w],
-										top_ptr[top_off + j * top_stride + i]
-										);
-								}
-#endif
-							}
-						}
-
+						size_t top_idx = top_df_off + j * top_df_stride + i;
+						size_t bot_idx = mask_ptr[top_idx];
+						bot_df_v_ptr[bot_idx] += top_df_ptr[top_idx];
 					}
 				}
-
 			}
 			else if (pooling_method == MLO_POOLING_OP_AVE)
 			{
@@ -297,14 +275,6 @@ int mloPoolingBackwardRunHost(
 								int wend = std::min(wstart + kernel_size0, bot_width + pad0);
 								int pool_size = (hend - hstart) * (wend - wstart);
 								gradient += top_df_ptr[top_df_off + ph * top_df_stride + pw] / pool_size;
-
-#if 0
-								if (b == 0 && o == 3 && i == 6 && j == 0)
-								{
-									printf("C:com: %10.8f %10.8f %10.8f %d\n", gradient, top_ptr[top_off + ph * top_stride + pw] / pool_size, top_ptr[top_off + ph * top_stride + pw], pool_size);
-								}
-
-#endif
 							}
 						}
 						bot_df_v_ptr[bot_df_v_off + j * bot_df_v_stride + i] = gradient;
