@@ -14,7 +14,6 @@
 #include <float.h>
 #include <memory>
 #include <numeric>
-#include <ctime>
 
 template<typename T>
 class ConvDriver : public Driver 
