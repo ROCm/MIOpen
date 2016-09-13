@@ -240,9 +240,9 @@ template<typename T>
 int ConvDriver<T>::RunForwardGPU() {
 
 	FindForward();
-	
 	int alpha = 1, beta = 1;
 
+	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
 	mlopenConvolutionForward(GetHandle(),
 			&alpha,
 			inputTensor,
@@ -256,6 +256,7 @@ int ConvDriver<T>::RunForwardGPU() {
 			out_dev->GetMem(),
 			NULL,
 			0);
+	}
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
@@ -380,6 +381,7 @@ template<typename T>
 int ConvDriver<T>::RunBackwardGPU() {
 	int alpha = 1, beta = 1;
 
+	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
 	int ret = mlopenConvolutionBackwardData(GetHandle(),
 			&alpha,
 			outputTensor,
@@ -393,11 +395,12 @@ int ConvDriver<T>::RunBackwardGPU() {
 			in_dev->GetMem(),
 			NULL,
 			0);
+	}
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
-		printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
+		printf("GPU Kernel Time Backward Conv. Elapsed: %f ms\n", time);
 	}
 
 	in_dev->FromGPU(GetStream(), in.data());

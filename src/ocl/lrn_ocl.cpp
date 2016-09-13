@@ -126,8 +126,6 @@ namespace mlopen {
 				obj(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
 			}
 
-			handle.Finish();
-
 			std::cout << "LRN Forward Finished !!" << std::endl;
 
 		}
@@ -292,8 +290,6 @@ namespace mlopen {
 				vgd,
 				compiler_parms)(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
 
-
-		handle.Finish();
 
 		std::cout << "LRN Backward Finished !!" << std::endl;
 

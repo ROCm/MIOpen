@@ -70,9 +70,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 			vld,
 			vgd,
 			parms)(x, w, y, padding_val);
-	
-	handle.Finish();
-
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
@@ -133,8 +130,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
 	float padding_val = 0;
 	handle.GetKernel(algorithm_name, network_config)(x, w, y, padding_val);
-	handle.Finish();
-
 }
 
 // FindBackwardDataAlgorithm()
@@ -212,8 +207,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 			vld,
 			vgd,
 			parms)(dy, w, dx, padding_val);
-
-		handle.Finish();
 	}
 }
 
@@ -267,7 +260,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 	}
 	float padding_val = 0;
 	handle.GetKernel(algorithm_name, network_config)(dy, w, dx, padding_val);
-	handle.Finish();
 
 #else
 
@@ -315,10 +307,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 			vld,
 			vgd,
 			parms)(dy, w, dx, padding_val);
-		handle.Finish();
-
 #endif
-
 	}
 }
 }  // namespace mlopen

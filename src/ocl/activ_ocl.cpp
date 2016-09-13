@@ -117,8 +117,6 @@ namespace mlopen {
 						vgd,
 						compiler_options)(x, y, f_activ_power, f_activ_beta, f_activ_alpha);
 
-			handle.Finish();
-
 			std::cout << "Activation Forward Finished !!" << std::endl;
 
 		}
@@ -281,9 +279,6 @@ namespace mlopen {
 			vld,
 			vgd,
 			compiler_options)(dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha);
-
-
-		handle.Finish();
 
 		std::cout << "Activation Backward Finished !!" << std::endl;
 
