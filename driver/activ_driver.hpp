@@ -40,7 +40,6 @@ class ActivationDriver : public Driver
 
 	int AllocateBuffersAndCopy();
 	
-	int FindForward(size_t &workspace);
 	int RunForwardGPU();
 	int RunForwardCPU();
 	
@@ -157,9 +156,6 @@ int ActivationDriver<T>::SetActivationDescriptorFromCmdLineArgs() {
 template<typename T>
 int ActivationDriver<T>::AllocateBuffersAndCopy() {
 	
-	size_t workspaceSize = 0;
-	FindForward(workspaceSize);
-
 	size_t in_sz = GetTensorSize(inputTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
 
@@ -204,22 +200,6 @@ int ActivationDriver<T>::AllocateBuffersAndCopy() {
 }
 
 template<typename T>
-int ActivationDriver<T>::FindForward(size_t &workspaceSize) {
-
-	return mlopenActivationForward(GetHandle(),
-			activDesc,
-			NULL,
-			inputTensor,
-			NULL,
-			NULL,
-			outputTensor,
-			NULL, 
-			false, //inflags.GetValueInt("back"),
-			NULL, 
-			&workspaceSize);
-}
-
-template<typename T>
 int ActivationDriver<T>::RunForwardGPU() {
 
 	int alpha = 1, beta = 1;
@@ -233,7 +213,6 @@ int ActivationDriver<T>::RunForwardGPU() {
 			outputTensor,
 			out_dev->GetMem(),
 			false, //inflags.GetValueInt("back"),
-			NULL,
 			NULL);
 
 	if(inflags.GetValueInt("time") == 1) {

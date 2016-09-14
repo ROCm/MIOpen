@@ -190,6 +190,8 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	
 	size_t in_sz = GetTensorSize(inputTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
+	size_t workSpaceSize = 0; 
+	mlopenPoolingGetWorkSpaceSize(outputTensor, &workSpaceSize);
 
 	cl_context ctx;
 
@@ -197,8 +199,8 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
-	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(uint16_t)));
-	mask = std::vector<uint16_t>(out_sz, 0);
+	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize/sizeof(uint16_t), sizeof(uint16_t)));
+	mask = std::vector<uint16_t>(workSpaceSize/sizeof(uint16_t), 0);
 	
 	din_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));

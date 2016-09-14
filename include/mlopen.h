@@ -456,6 +456,10 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetPoolingForwardOutputDim(
 		int									*h,
 		int									*w);
 
+MLOPEN_EXPORT mlopenStatus_t mlopenPoolingGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		yDesc,
+		size_t								*workSpaceSize);
+
 MLOPEN_EXPORT mlopenStatus_t mlopenPoolingForward(
 		mlopenHandle_t						handle,
 		const mlopenPoolingDescriptor_t		poolDesc,
@@ -468,7 +472,6 @@ MLOPEN_EXPORT mlopenStatus_t mlopenPoolingForward(
 		bool                                do_backward,
 		void								*workSpace,
 		size_t								workSpaceSize);
-
 
 MLOPEN_EXPORT mlopenStatus_t mlopenPoolingBackward(
 		mlopenHandle_t						handle,
@@ -509,7 +512,9 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetLRNDescriptor(
 		double								*lrnBeta,
 		double								*lrnK);
 
-
+MLOPEN_EXPORT mlopenStatus_t mlopenLRNGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		yDesc,
+		size_t								*workSpaceSize);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenLRNForward(
 		mlopenHandle_t						handle,
@@ -521,8 +526,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenLRNForward(
 		const mlopenTensorDescriptor_t		yDesc,
 		void								*y,
 		bool                                do_backward,
-		void								*workSpace,
-		size_t								*workSpaceSize);
+		void								*workSpace);
 
 
 MLOPEN_EXPORT mlopenStatus_t mlopenLRNBackward(
@@ -573,8 +577,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenActivationForward(
 	const mlopenTensorDescriptor_t		yDesc,
 	void								*y,
 	bool                                do_backward,
-	void								*workSpace,
-	size_t								*workSpaceSize);
+	void								*workSpace);
 
 
 MLOPEN_EXPORT mlopenStatus_t mlopenActivationBackward(

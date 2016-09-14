@@ -28,8 +28,7 @@ struct ActivationDescriptor : mlopenActivationDescriptor{
 		const TensorDescriptor		&yDesc,
 		Data_t						y,
 		bool                        do_backward,
-		Data_t						workSpace,
-		size_t						*workSpaceSize);
+		Data_t						workSpace);
 
 	mlopenStatus_t Backward(
 		Handle						&handle,
