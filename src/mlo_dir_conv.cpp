@@ -297,8 +297,16 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 {
 	int ret = 0;
 
-// to restore to the previous version just comment this line
-	return(mloConstructDirect2DFwdC());
+	if (_kernel_size0 == 1 && _kernel_size1 == 1)
+	{
+
+		return(mloConstructDirect2D1x1());
+	}
+	else if (_out_height < 8 || _out_width < 8 || (_out_height > 8 && _out_height < 16) || (_out_width > 8 && _out_width < 16)
+		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32))
+	{
+		return(mloConstructDirect2DFwdC());
+	}
 
 	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
 
@@ -321,7 +329,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 	int alu_tile0 = (_in_tile0 + _out_pix_tile0 - 1) / _out_pix_tile0;
 	int alu_tile1 = (_in_tile1 + _out_pix_tile1 - 1)/ _out_pix_tile1;
 	int alu_tiles_sz = (alu_tile0*alu_tile1);
-	if (alu_tiles_sz > 256 || _grp_tile0 < alu_tile0 || _grp_tile1 < alu_tile1)
+	if (alu_tiles_sz > 256)
 	{
 		//			std::cout << "ERROR: need out pix size ajustments\n";
 		return(-1);
@@ -737,7 +745,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd2()
 	int alu_tile0 = (_in_tile0 + _out_pix_tile0 - 1) / _out_pix_tile0;
 	int alu_tile1 = (_in_tile1 + _out_pix_tile1 - 1) / _out_pix_tile1;
 	int alu_tiles_sz = (alu_tile0*alu_tile1);
-	if (alu_tiles_sz > 256 || _grp_tile0 < alu_tile0 || _grp_tile1 < alu_tile1)
+	if (alu_tiles_sz > 256 )
 	{
 		//			std::cout << "ERROR: need out pix size ajustments\n";
 		return(-1);
@@ -1149,20 +1157,20 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 {
 
 	//
-	_in_tile0 = (_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
-	_in_tile1 = (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
+	_in_tile0 = (_in_width <= 8) ? 8 : (_in_width <= 16) ? 16 : 32; // size of input data per ALU plane
+	_in_tile1 = (_in_height <= 8) ? 8 : (_in_height <= 16) ? 16 : 8; // size of input data per ALU plane
 
 	_grp_tile0 = (_in_tile0 == 8) ? 8 : 16;
 	_grp_tile1 = (_in_tile1 == 8) ? 8 : 16;
 
-	_out_pix_tile0 = 4;  // size of ouptput tile per wk-item (ALU))
-	_out_pix_tile1 = 2; // 4; //
+	_out_pix_tile0 = 2;  // size of ouptput tile per wk-item (ALU))
+	_out_pix_tile1 = 2; // 
 
 
-	_n_out_pix_tiles = 4; // 2;  // # output pixel tiles per wk-item (ALU)
-	_n_in_data_tiles = 2; // 4; // # of blocks of different inputs in LDS
+	_n_out_pix_tiles = 8; //  # output pixel tiles per wk-item (ALU)
+	_n_in_data_tiles = 2; // # of blocks of different inputs in LDS
 
-	_n_stacks = 2; // # of diff stacks (part of batch).
+	_n_stacks = 1; // # of diff stacks (part of batch).
 
 	if (_kernel_size0 == 1 && _kernel_size1 == 1)
 	{
@@ -1609,7 +1617,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		int tile_sz[3] = { 8, 16, 32 };
 		int tile_sz1[3] = { 8, 16, 32 };
 		int tile_sz0[3] = { 8, 16, 32 };
-		int out_pix_tile_sz[2] = { 1, 8 };
+		int out_pix_tile_sz[3] = { 1, 2, 4 };
 		int n_out_tiles_rg[2] = { 1, 8 };
 		int n_in_tiles_rg[2] = { 1, 4 };
 		int n_in_stacks_sz[3] = { 1, 2, 4 };
@@ -1631,7 +1639,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		int n_grp_tiles1 = 2;
 		int n_grp_tiles0 = 2;
 
-		int out_pix_tl_cnt = out_pix_tile_sz[1];
+		int out_pix_tl_cnt = 3; // out_pix_tile_sz[1];
 		int n_out_tls = n_out_tiles_rg[1];
 		int stack_cnt = 2;
 		int n_tile0_sz = 3;
@@ -1750,7 +1758,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 							runs_left = (runs_left < 0) ? 0 : runs_left;
 							continue;
 						}
-						if (_out_width >= 32 && _in_tile1 > _in_tile0)
+						if (_out_width > 32 && _in_tile1 > _in_tile0)
 						{
 							runs_left--;
 							runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -1758,20 +1766,20 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 						}
 						// out pix 1
 
-						for (int k = out_pix_tile_sz[0]; k <= out_pix_tl_cnt; ++k)
+						for (int k = 0 /* out_pix_tile_sz[0]*/; k < out_pix_tl_cnt; ++k)
 						{
-							_out_pix_tile1 = k; // out_pix_tile_sz[k];
+							_out_pix_tile1 = out_pix_tile_sz[k];
 							if (_out_pix_tile1 > _in_tile1)
 							{
 								runs_left--;
 								runs_left = (runs_left < 0) ? 0 : runs_left;
 								continue;
-						}
+							}
 							// out pix 0
 
-							for (int l = out_pix_tile_sz[0]; l <= out_pix_tl_cnt; ++l)
+							for (int l = 0 /*out_pix_tile_sz[0]*/; l < out_pix_tl_cnt; ++l)
 							{
-								_out_pix_tile0 = (_kernel_size0 == 1 && _kernel_size1 == 1) ? 4 : l; // out_pix_tile_sz[l];
+								_out_pix_tile0 = (_kernel_size0 == 1 && _kernel_size1 == 1) ? 4 : out_pix_tile_sz[l];
 
 								if (_out_pix_tile0 > _in_tile0)
 								{
@@ -1807,12 +1815,15 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 											_n_stacks = n_in_stacks_sz[s];
 											if (_kernel_size0 == 1 && _kernel_size1 == 1)
 											{
+
+#if 0
 												if (_n_stacks*_n_in_data_tiles*_n_out_pix_tiles * 4 > 240)
 												{
 													runs_left--;
 													runs_left = (runs_left < 0) ? 0 : runs_left;
 													continue;
 												}
+#endif
 											}
 											else
 											{
@@ -1821,7 +1832,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 												int alu_tiles_sz = (alu_tile0*alu_tile1);
 												int n_alus_total = (_grp_tile0 * _grp_tile1);
 
-												if (alu_tiles_sz > n_alus_total || _n_in_data_tiles*_n_out_pix_tiles*_out_pix_tile1*_out_pix_tile0 > 240)
+												if (alu_tiles_sz > n_alus_total/* || _n_in_data_tiles*_n_out_pix_tiles*_out_pix_tile1*_out_pix_tile0 > 240*/)
 												{
 													runs_left--;
 													runs_left = (runs_left < 0) ? 0 : runs_left;
