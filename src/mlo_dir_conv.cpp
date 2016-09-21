@@ -1686,6 +1686,15 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 
 				}
 
+		bool unaligned = (_out_height < 8 || _out_width < 8 || (_out_height > 8 && _out_height < 16) || (_out_width > 8 && _out_width < 16)
+			|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
+
+		if (unaligned)
+		{
+			out_pix_tile_sz[1] = 6;
+			out_pix_tl_cnt = out_pix_tile_sz[1];
+		}
+
 		int n_grp_tiles = n_grp_tiles1 *  n_grp_tiles0;
 
 		int n_tiles_cnt = n_tile0_sz * n_tile1_sz;
@@ -1766,9 +1775,9 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 						}
 						// out pix 1
 
-						for (int k = 0 /* out_pix_tile_sz[0]*/; k < out_pix_tl_cnt; ++k)
+						for (int k = (unaligned) ? out_pix_tile_sz[0] : 0; k < out_pix_tl_cnt; ++k)
 						{
-							_out_pix_tile1 = out_pix_tile_sz[k];
+							_out_pix_tile1 = (unaligned) ? k : out_pix_tile_sz[k];
 							if (_out_pix_tile1 > _in_tile1)
 							{
 								runs_left--;
@@ -1777,9 +1786,9 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 							}
 							// out pix 0
 
-							for (int l = 0 /*out_pix_tile_sz[0]*/; l < out_pix_tl_cnt; ++l)
+							for (int l = (unaligned) ? out_pix_tile_sz[0] : 0; l < out_pix_tl_cnt; ++l)
 							{
-								_out_pix_tile0 = (_kernel_size0 == 1 && _kernel_size1 == 1) ? 4 : out_pix_tile_sz[l];
+								_out_pix_tile0 = (_kernel_size0 == 1 && _kernel_size1 == 1) ? 4 : (unaligned) ? l : out_pix_tile_sz[l];
 
 								if (_out_pix_tile0 > _in_tile0)
 								{
