@@ -1724,7 +1724,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 			n_out_tls = n_out_tiles_rg[1];
 			n_grp_tiles = n_grp_tiles1 *  n_grp_tiles0;
 
-			report_inteval = 2;
+			report_inteval = 25;
 
 		}
 
