@@ -293,7 +293,7 @@ int mlo_construct_direct2D::mloConstruct()
 /*
  * constructs found configuration
  */
-int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
+int mlo_construct_direct2D::mloConstructDirect2DFwd()
 {
 	int ret = 0;
 
@@ -424,7 +424,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd(void)
 	return(ret);
 }
 
-int mlo_construct_direct2D::mloConstructDirect2DFwdC(void)
+int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;
 
@@ -1716,6 +1716,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 			tile_sz0[0] = 4;
 			n_tile0_sz = n_tile1_sz = 1;
 			n_tiles_cnt = n_tile0_sz * n_tile1_sz;
+			out_pix_tile_sz[0] = (unaligned) ? 0 : out_pix_tile_sz[0];
 			out_pix_tile_sz[1] = 1;
 			n_out_tiles_rg[1] = 16;
 			n_in_tiles_rg[1] = 8;
@@ -1724,7 +1725,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 			n_out_tls = n_out_tiles_rg[1];
 			n_grp_tiles = n_grp_tiles1 *  n_grp_tiles0;
 
-			report_inteval = 25;
+			report_inteval = 20;
 
 		}
 
