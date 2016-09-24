@@ -37,29 +37,28 @@ protect_fn<F> protect(F f)
 }
 
 template<class F>
-void par_for(int n, F f)
+void par_for(std::size_t n, F f)
 {
     const auto threadsize = std::thread::hardware_concurrency();
     if (n < threadsize)
     {
-        for(int i=0;i<n;i++) f(i);
+        for(std::size_t i=0;i<n;i++) f(i);
     }
     else
     {
         std::vector<std::thread> threads(threadsize);
-        const int grainsize = n / threads.size();
+        const std::size_t grainsize = std::ceil(static_cast<double>(n) / threads.size());
 
-        int work = 0;
+        std::size_t work = 0;
         std::generate(threads.begin(), threads.end(), [&]
         {
-            int start = work;
-            int last = std::min(n, work+grainsize);
-            // std::cout << "work, last: " << work << ", " << last << std::endl;
+            std::size_t start = work;
+            std::size_t last = std::min(n, work+grainsize);
             assert((last - start) <= grainsize);
             assert((last - start) > 0);
             auto result = std::thread([&f, start, last]
             {
-                for(int i=start;i<last;i++) 
+                for(std::size_t i=start;i<last;i++) 
                 {
                     f(i);
                 }
@@ -115,21 +114,24 @@ auto ford(Ts... xs) MLOPEN_RETURNS
 
 struct par_ford_impl
 {
-    template<class F, class T, class... Ts>
-    void operator()(F f, T x, Ts... xs) const
+    template<class F, class... Ts>
+    void operator()(F f, Ts... xs) const
     {
-#if (defined(__GNUC__) && !defined (__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 9)
-        // No parallelism for gcc 4.8
-        ford(x, xs...)(f);
-#else
-        par_for(x, [&](T i)
+        using array_type = std::array<std::size_t, sizeof...(Ts)>;
+        array_type lens = {{static_cast<std::size_t>(xs)...}};
+        array_type strides;
+        strides.fill(1);
+        std::partial_sum(lens.rbegin(), lens.rend()-1, strides.rbegin()+1, std::multiplies<std::size_t>());
+        auto size = std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<std::size_t>());
+        par_for(size, [&](std::size_t i)
         {
-            ford(xs...)([&](Ts... is)
+            array_type indices;
+            std::transform(strides.begin(), strides.end(), lens.begin(), indices.begin(), [&](size_t stride, size_t len)
             {
-                f(i, is...);
+                return (i / stride) % len;
             });
+            mlopen::unpack(f, indices);
         });
-#endif
     }
 };
 
