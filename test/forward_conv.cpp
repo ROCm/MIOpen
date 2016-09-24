@@ -338,6 +338,9 @@ void verify_forward_conv(mlopen::Handle& handle, const tensor<T>& input, const t
     if (!float_equal_range(out_cpu, out_gpu))
     {
         std::cout << "FAILED: " << std::endl;
+        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
+        std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
+
         std::cout 
             << "Average difference: " 
             << (accumulate_difference(out_cpu, out_gpu, std::plus<float>()) / size) 
@@ -378,9 +381,6 @@ struct verify_both
             auto input = tensor<T>{std::move(input_desc)}.generate(g1);
             auto weights = tensor<T>{std::move(weights_desc)}.generate(g2);
             mlopen::ConvolutionDescriptor filter{1, 1};
-
-            std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
-            std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
 
             verify_forward_conv(handle, input, weights, filter);
         });
