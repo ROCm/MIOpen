@@ -3,6 +3,7 @@
 #include <initializer_list>
 #include <array>
 #include <algorithm>
+#include <numeric>
 
 extern "C"
 mlopenStatus_t mlopenCreatePoolingDescriptor(
