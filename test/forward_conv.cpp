@@ -77,32 +77,23 @@ void par_for(std::size_t n, F f)
 // Multidimensional for loop
 struct ford_impl
 {
-    template<class F, class T>
-    void operator()(F f, T x) const
+    template<class F>
+    void operator()(F f) const
     {
-        for(T i=0;i<x;i++) f(i);
+        f();
     }
 
     template<class F, class T, class... Ts>
     void operator()(F f, T x, Ts... xs) const
     {
-#if (defined(__GNUC__) && !defined (__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 9)
         // Workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=55914
-        // This reverses the order of evaluation
-        (*this)([&](Ts... is)
-        {
-            (*this)(std::bind(protect(f), std::placeholders::_1, is...), x);
-        }, xs...);
-#else
-        (*this)([&](T i)
+        for(T i=0;i<x;i++)
         {
             (*this)([&](Ts... is)
             {
                 f(i, is...);
             }, xs...);
-        }, x);
-#endif
-
+        }
     }
 };
 
@@ -241,14 +232,14 @@ std::vector<T> forward_conv(const tensor<T>& input, const tensor<T>& weights, co
 
     out.par_for_each([&](int o, int w, int i, int j)
     {
-        int in_off_h = i * filter.v;
-        int in_off_w = j * filter.u;
+        const int in_off_h = i * filter.v;
+        const int in_off_w = j * filter.u;
 
         T acc = bias;
         ford(in_c, wei_h, wei_w)([&](int k, int x, int y)
         {
-            int in_x = in_off_h - filter.pad_h + x;
-            int in_y = in_off_w - filter.pad_w + y;
+            const int in_x = in_off_h - filter.pad_h + x;
+            const int in_y = in_off_w - filter.pad_w + y;
             if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
                 acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
             }
