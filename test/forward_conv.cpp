@@ -52,12 +52,10 @@ void par_for(std::size_t n, F f)
         std::size_t work = 0;
         std::generate(threads.begin(), threads.end(), [&]
         {
-            std::size_t start = work;
-            std::size_t last = std::min(n, work+grainsize);
-            assert((last - start) <= grainsize);
-            assert((last - start) > 0);
-            auto result = std::thread([&f, start, last]
+            auto result = std::thread([&, work]
             {
+                std::size_t start = work;
+                std::size_t last = std::min(n, work+grainsize);
                 for(std::size_t i=start;i<last;i++) 
                 {
                     f(i);
@@ -66,6 +64,7 @@ void par_for(std::size_t n, F f)
             work += grainsize;
             return result;
         });
+        assert(work >= n);
         // TODO: Should be in destructor
         for(auto&& t:threads)
         {
