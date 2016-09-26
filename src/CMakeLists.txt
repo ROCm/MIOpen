@@ -103,6 +103,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenPoolingBwd.cl
 		Kernels/MLOpenConvDirUniC.cl
 		Kernels/MLOpenConv1x1.cl
+		Kernels/MLOpenConv1x1L.cl
 	)
 	configure_file(db.cpp.in db.cpp)
 	list(APPEND MLOpen_Source 
