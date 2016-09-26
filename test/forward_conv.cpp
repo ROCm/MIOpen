@@ -37,29 +37,26 @@ protect_fn<F> protect(F f)
 }
 
 template<class F>
-void par_for(int n, F f)
+void par_for(std::size_t n, F f)
 {
     const auto threadsize = std::thread::hardware_concurrency();
     if (n < threadsize)
     {
-        for(int i=0;i<n;i++) f(i);
+        for(std::size_t i=0;i<n;i++) f(i);
     }
     else
     {
         std::vector<std::thread> threads(threadsize);
-        const int grainsize = n / threads.size();
+        const std::size_t grainsize = std::ceil(static_cast<double>(n) / threads.size());
 
-        int work = 0;
+        std::size_t work = 0;
         std::generate(threads.begin(), threads.end(), [&]
         {
-            int start = work;
-            int last = std::min(n, work+grainsize);
-            // std::cout << "work, last: " << work << ", " << last << std::endl;
-            assert((last - start) <= grainsize);
-            assert((last - start) > 0);
-            auto result = std::thread([&f, start, last]
+            auto result = std::thread([&, work]
             {
-                for(int i=start;i<last;i++) 
+                std::size_t start = work;
+                std::size_t last = std::min(n, work+grainsize);
+                for(std::size_t i=start;i<last;i++) 
                 {
                     f(i);
                 }
@@ -67,6 +64,7 @@ void par_for(int n, F f)
             work += grainsize;
             return result;
         });
+        assert(work >= n);
         // TODO: Should be in destructor
         for(auto&& t:threads)
         {
@@ -78,32 +76,23 @@ void par_for(int n, F f)
 // Multidimensional for loop
 struct ford_impl
 {
-    template<class F, class T>
-    void operator()(F f, T x) const
+    template<class F>
+    void operator()(F f) const
     {
-        for(T i=0;i<x;i++) f(i);
+        f();
     }
 
     template<class F, class T, class... Ts>
     void operator()(F f, T x, Ts... xs) const
     {
-#if (defined(__GNUC__) && !defined (__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 9)
         // Workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=55914
-        // This reverses the order of evaluation
-        (*this)([&](Ts... is)
-        {
-            (*this)(std::bind(protect(f), std::placeholders::_1, is...), x);
-        }, xs...);
-#else
-        (*this)([&](T i)
+        for(T i=0;i<x;i++)
         {
             (*this)([&](Ts... is)
             {
                 f(i, is...);
             }, xs...);
-        }, x);
-#endif
-
+        }
     }
 };
 
@@ -115,21 +104,24 @@ auto ford(Ts... xs) MLOPEN_RETURNS
 
 struct par_ford_impl
 {
-    template<class F, class T, class... Ts>
-    void operator()(F f, T x, Ts... xs) const
+    template<class F, class... Ts>
+    void operator()(F f, Ts... xs) const
     {
-#if (defined(__GNUC__) && !defined (__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 9)
-        // No parallelism for gcc 4.8
-        ford(x, xs...)(f);
-#else
-        par_for(x, [&](T i)
+        using array_type = std::array<std::size_t, sizeof...(Ts)>;
+        array_type lens = {{static_cast<std::size_t>(xs)...}};
+        array_type strides;
+        strides.fill(1);
+        std::partial_sum(lens.rbegin(), lens.rend()-1, strides.rbegin()+1, std::multiplies<std::size_t>());
+        auto size = std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<std::size_t>());
+        par_for(size, [&](std::size_t i)
         {
-            ford(xs...)([&](Ts... is)
+            array_type indices;
+            std::transform(strides.begin(), strides.end(), lens.begin(), indices.begin(), [&](size_t stride, size_t len)
             {
-                f(i, is...);
+                return (i / stride) % len;
             });
+            mlopen::unpack(f, indices);
         });
-#endif
     }
 };
 
@@ -239,23 +231,18 @@ std::vector<T> forward_conv(const tensor<T>& input, const tensor<T>& weights, co
 
     out.par_for_each([&](int o, int w, int i, int j)
     {
-        int in_off_h = i * filter.v;
-        int in_off_w = j * filter.u;
+        const int in_off_h = i * filter.v;
+        const int in_off_w = j * filter.u;
 
         T acc = bias;
-        for(int k = 0; k < in_c; k++) { // in_channels (RGB)
-            for(int x = 0; x < wei_h; x++) {
-                int in_x = in_off_h - filter.pad_h + x;
-                if(in_x >= 0 && in_x < in_h) {
-                    for(int y = 0; y < wei_w; y++) {
-                        int in_y = in_off_w - filter.pad_w + y;
-                        if(in_y >= 0 && in_y < in_w) {
-                            acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
-                        }
-                    }
-                }
+        ford(in_c, wei_h, wei_w)([&](int k, int x, int y)
+        {
+            const int in_x = in_off_h - filter.pad_h + x;
+            const int in_y = in_off_w - filter.pad_w + y;
+            if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
+                acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
             }
-        }
+        });
         out(o, w, i, j) = acc;
     });
     return out.data;
@@ -341,6 +328,9 @@ void verify_forward_conv(mlopen::Handle& handle, const tensor<T>& input, const t
     if (!float_equal_range(out_cpu, out_gpu))
     {
         std::cout << "FAILED: " << std::endl;
+        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
+        std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
+
         std::cout 
             << "Average difference: " 
             << (accumulate_difference(out_cpu, out_gpu, std::plus<float>()) / size) 
@@ -381,9 +371,6 @@ struct verify_both
             auto input = tensor<T>{std::move(input_desc)}.generate(g1);
             auto weights = tensor<T>{std::move(weights_desc)}.generate(g2);
             mlopen::ConvolutionDescriptor filter{1, 1};
-
-            std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
-            std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
 
             verify_forward_conv(handle, input, weights, filter);
         });
