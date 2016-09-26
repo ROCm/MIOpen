@@ -677,7 +677,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_l_wk.push_back(_grp_tile1);
 	_l_wk.push_back(1);
 
-	size_t gbl_wk0 = (GRP_SZ < MAP_SZ4) ? MAP_SZ4 : GRP_SZ;
+	size_t gbl_wk0 = (GRP_SZ < MAP_SZ4) ? ((MAP_SZ4 + GRP_SZ - 1) / GRP_SZ) *GRP_SZ : GRP_SZ;
 
 
 	size_t gbl_wk1 = (_n_outputs + n_out_tiles_pergroup - 1) / n_out_tiles_pergroup;
@@ -688,7 +688,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	_kernel_file = "MLOpenConv1x1.cl";
+	_kernel_file = "MLOpenConv1x1L.cl";
 	_kernel_name = "MLOpenConv1x1";
 
 	return(ret);
