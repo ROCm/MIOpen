@@ -144,7 +144,7 @@ __kernel void MLOpenConv1x1(
 		{
 			int o = (int)(((float)l + 0.000001f) / (MLO_N_LCL_IN_MAPS*MLO_N_MAPS_PERGROUP));
 			int i = -mad24(o,(int)(MLO_N_LCL_IN_MAPS*MLO_N_MAPS_PERGROUP),-l);
-			lcl_wei_stage[o][i] = wei_ptr[wei_off1 + mad24(o, (int)MLO_WEI_BSTRIDE,i)];
+			lcl_wei_stage[o][i] = wei_ptr[wei_off1 + mad24(o, (int)MLO_WEI_BSTRIDE, i)];
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -157,21 +157,20 @@ __kernel void MLOpenConv1x1(
 			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc)
 			{
 				// read weights
-				wei_stage[olc][ilc] = lcl_wei_stage[mad24(in_map_id, (int)MLO_N_LCL_OUT_MAPS, olc)][mad24(in_map_id, (int)MLO_N_LCL_IN_MAPS, ilc)];
+				wei_stage[olc][ilc] = lcl_wei_stage[mad24(in_map_id, (int)MLO_N_LCL_OUT_MAPS, olc)][mad24(ilc, (int)MLO_N_MAPS_PERGROUP, in_map_id)];
 				for (int ib = 0; ib < MLO_N_LCL_BATCHS;  ++ib)
 				{
 					out_tiles[ib][olc] += in_stage[ib][ilc] * (_FLOAT4)wei_stage[olc][ilc];
 #if 0
-					if (get_group_id(0) == 312 && get_group_id(1) == 0 && in_map_id == 0 && pix_id == 80065 && olc == 0)
+					if (get_group_id(0) == 0 && get_group_id(1) == 0 && in_map_id == 0 && pix_id == 0 && olc == 0)
 					{
-						printf("k:c: 0 %d %d %d %d  %11.10f %11.10f %f %f\n",
-							wei_off2,
+						printf("k:c: 0 %d %d %d  %11.10f %11.10f %f %f\n",
 							get_local_id(0),
 							olc,
 							ilc,
-							out_tiles[ib][olc].s2,
-							in_stage[ib][ilc].s2 * wei_stage[olc][ilc],
-							in_stage[ib][ilc].s2,
+							out_tiles[ib][olc].s0,
+							in_stage[ib][ilc].s0 * wei_stage[olc][ilc],
+							in_stage[ib][ilc].s0,
 							wei_stage[olc][ilc]
 							);
 					}
@@ -211,27 +210,26 @@ __kernel void MLOpenConv1x1(
 //			int wei_off1 = wei_off + in_map_id * MLO_WEI_BSTRIDE + imp * MLO_WEI_CHANNEL_STRIDE;
 			for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS; ++olc/*, wei_off1 += MLO_WEI_BSTRIDE*/)
 			{
-				int wei_off2 = wei_off1;
+//				int wei_off2 = wei_off1;
 				for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc/*, wei_off2 += MLO_WEI_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP*/)
 				{
 					// read weights
 //					wei_stage[olc][ilc] = wei_ptr[wei_off2];
-					wei_stage[olc][ilc] = lcl_wei_stage[mad24(in_map_id, (int)MLO_N_LCL_OUT_MAPS, olc)][mad24(imp, (int)MLO_N_LCL_IN_MAPS, ilc)];
+					wei_stage[olc][ilc] = lcl_wei_stage[mad24(in_map_id, (int)MLO_N_LCL_OUT_MAPS, olc)][mad24(ilc, (int)MLO_N_MAPS_PERGROUP, imp)];
 					for (int ib = 0; ib < MLO_N_LCL_BATCHS;++ib)
 					{
 						out_tiles[ib][olc] += in_stage[ib][ilc] * (_FLOAT4)wei_stage[olc][ilc];
 #if 0
-						if (get_group_id(0) == 0 && get_group_id(1) == 0 && in_map_id == 4 && pix_id == 27 && olc == 1 )
+						if (get_group_id(0) == 0 && get_group_id(1) == 0 && in_map_id == 0 && pix_id == 0 && olc == 0 )
 						{
-							printf("k:c: %d %d %d %d %d  %11.10f %11.10f %f %f\n",
+							printf("k:c: %d %d %d %d  %11.10f %11.10f %f %f\n",
 								im,
-								wei_off2,
 								get_local_id(0),
 								olc,
 								ilc,
-								out_tiles[ib][olc].s1,
-								in_stage[ib][ilc].s1*wei_stage[olc][ilc],
-								in_stage[ib][ilc].s1,
+								out_tiles[ib][olc].s0,
+								in_stage[ib][ilc].s0*wei_stage[olc][ilc],
+								in_stage[ib][ilc].s0,
 								wei_stage[olc][ilc]
 								);
 					}
