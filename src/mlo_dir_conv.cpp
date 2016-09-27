@@ -639,7 +639,16 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	// total number of otpit maps per group
 	int n_out_tiles_pergroup = N_MAPS_PERGROUP * _n_out_pix_tiles;
 	n_out_tiles_pergroup = std::min(n_out_tiles_pergroup, _n_outputs);
-
+	int batch_aligned = 0;
+	int output_aligned = 0;
+	if ((_batch_sz / _n_stacks) *_n_stacks == _batch_sz)
+	{
+		batch_aligned = 1;
+	}
+	if ((_n_outputs / n_out_tiles_pergroup) * n_out_tiles_pergroup == _n_outputs)
+	{
+		output_aligned = 1;
+	}
 
 	_comp_options =
 		std::string(" -D MLO_DIR_FORWARD=") + std::to_string(static_cast<long long>(_direction))
@@ -667,6 +676,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 		+ std::string(" -D MLO_N_LCL_IN_MAPS=") + std::to_string(static_cast<long long>(_n_in_data_tiles)) // total # of blocks of different inputs in LDS
 		+ std::string(" -D MLO_N_MAPS_PERGROUP=") + std::to_string(static_cast<long long>(N_MAPS_PERGROUP)) // total # of blocks of different inputs in LDS
 		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(static_cast<long long>(_bias))
+		+ std::string(" -D MLO_BATCH_ALIGNED=") + std::to_string(static_cast<long long>(batch_aligned))
+		+ std::string(" -D MLO_OUTPUTS_ALIGNED=") + std::to_string(static_cast<long long>(output_aligned))
 		+ getGeneralCompOptions()
 		;
 

@@ -482,20 +482,79 @@ int ConvDriver<T>::RunBackwardCPU() {
 	return 0;
 }
 
+template<class R1, class R2>
+float rms_range(R1& r1, R2& r2)
+{
+	if (std::distance(r1.begin(), r1.end()) == std::distance(r2.begin(), r2.end())) {
+		auto square_diff = std::inner_product(r1.begin(), r1.end(), r2.begin(), 0.0, std::plus<double>{},
+			[](float x, float y) { return (x - y)*(x - y); }
+		);
+		return std::sqrt(square_diff) / std::distance(r1.begin(), r1.end());
+	}
+	else return std::numeric_limits<float>::max();
+}
+
+
 template<typename T>
 int ConvDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
+	mlopenDataType_t dt;
+	int out_n, out_c, out_h, out_w;
+	int out_nstride, out_cstride, out_hstride, out_wstride;
+	mlopenGet4dTensorDescriptor(outputTensor, &dt,
+		&out_n, &out_c, &out_h, &out_w,
+		&out_nstride, &out_cstride, &out_hstride, &out_wstride);
+	double max_rms = 1. / 1000000000000;
+	bool match = true;
 
-	for(int i = 0; i < out.size(); i++) {
-		T diff = std::fabs(out[i] - outhost[i]);
-		if(diff > std::fabs((std::max(out[i], outhost[i])) * std::numeric_limits<T>::epsilon())) {
+#if 0
+	const double allowedEps = (1 << 1);
+	double max_abs_diff = 1. / 100000000;
+	bool get_error_pos = true;
 
-			printf("Output Mismatch at: %d diff: %.10f gpu: %.10f cpu: %.10f \n", i, diff, out[i], outhost[i]);
-			return -1;
+	match = mloVerify<T>(
+		out_n,
+		out_c,
+		out_h,
+		out_w,
+		out_nstride,
+		out_cstride,
+		out_hstride,
+		out_nstride,
+		out_cstride,
+		out_hstride,
+		outhost.data(),
+		out.data(),
+		allowedEps,
+		max_abs_diff,
+		max_rms,
+		get_error_pos
+		);
+
+#else
+	float rms = rms_range<std::vector<T>, std::vector<T>>
+		(out,
+		outhost);
+
+	if (rms > max_rms || std::isnan(rms) || !std::isfinite(rms))
+	{
+
+
+		for (int i = 0; i < out.size(); i++) {
+			T diff = std::fabs(out[i] - outhost[i]);
+			if (diff > std::fabs((std::max(out[i], outhost[i])) * std::numeric_limits<T>::epsilon())) {
+
+				printf("Output Mismatch with rms: %.11f at: %d diff: %.10f gpu: %.10f cpu: %.10f \n", rms, i, diff, out[i], outhost[i]);
+				return -1;
+			}
 		}
 	}
-	printf("Forward Convolution Verifies on CPU and GPU\n");
+#endif
+	if (match)
+	{
+		printf("Forward Convolution Verifies on CPU and GPU\n");
+	}
 	return 0;
 }
 
