@@ -104,12 +104,12 @@ __kernel void MLOpenConv1x1(
 			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, in_off2 += MLO_IN_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP)
 			{
 				// read data
-				in_stage[ib][ilc] = 0;
-				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
+				//				in_stage[ib][ilc] = 0;
+				//				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
 				{
 
 					in_stage[ib][ilc] = *(_FLOAT4*)&in_ptr[in_off2];
-
+					in_stage[ib][ilc] = (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS) ? in_stage[ib][ilc] : 0;
 #if !MLO_DIVBY4
 
 					// if the last one
