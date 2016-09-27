@@ -688,9 +688,9 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	_kernel_file = "MLOpenConv1x1L.cl";
+	_kernel_file = "MLOpenConv1x1.cl";
 	_kernel_name = "MLOpenConv1x1";
-
+ 
 	return(ret);
 }
 
