@@ -505,11 +505,11 @@ int ConvDriver<T>::VerifyForward() {
 	mlopenGet4dTensorDescriptor(outputTensor, &dt,
 		&out_n, &out_c, &out_h, &out_w,
 		&out_nstride, &out_cstride, &out_hstride, &out_wstride);
-	double max_rms = 1. / 1000000000;
+	double max_rms = 1. / 100000000;
 	bool match = true;
 
 #if 1
-	const double allowedEps = (1 << 1);
+	const double allowedEps = (1 << 2);
 	double max_abs_diff = 1. / 100000000;
 	bool get_error_pos = true;
 
