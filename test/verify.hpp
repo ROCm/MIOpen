@@ -21,7 +21,10 @@ struct sum_fn
 struct max_mag_fn
 {
     template<class T, class U>
-    auto operator()(T x, U y) const MLOPEN_RETURNS(std::max(std::fabs(x), std::fabs(y)));
+    auto operator()(T x, U y) const MLOPEN_RETURNS
+    (
+        std::max(std::max(std::fabs(x), std::fabs(y)), static_cast<decltype(std::max(std::fabs(x), std::fabs(y)))>(1))
+    );
 };
 
 struct square_diff_fn
