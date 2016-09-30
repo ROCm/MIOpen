@@ -43,8 +43,6 @@ void visit_network(F f, int n=MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  192,  28,  28  }), mlopen::TensorDescriptor(t, { pick_batch_size(96, n),  192,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  192,  7,   7   }), mlopen::TensorDescriptor(t, { pick_batch_size(384, n), 192,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  24,   14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  24,   5,  5  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  24,   14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  24,   5,  5  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  256,  28,  28  }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 256,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  256,  28,  28  }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 256,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  256,  28,  28  }), mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  256,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  256,  28,  28  }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  256,  1,  1  }));
@@ -59,16 +57,11 @@ void visit_network(F f, int n=MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  480,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  480,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  480,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(96, n),  480,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(112, n), 512,  1,  1  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(112, n), 512,  1,  1  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 512,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 512,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(144, n), 512,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(160, n), 512,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(24, n),  512,  1,  1  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(24, n),  512,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  1,  1  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  512,  1,  1  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  512,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  512,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  512,  4,   4   }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 512,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  528,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 528,  1,  1  }));
@@ -78,7 +71,6 @@ void visit_network(F f, int n=MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  528,  4,   4   }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 528,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  64,   56,  56  }), mlopen::TensorDescriptor(t, { pick_batch_size(192, n), 64,   3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  64,   56,  56  }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  64,   1,  1  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  832,  7,   7   }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 832,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  832,  7,   7   }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 832,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  832,  7,   7   }), mlopen::TensorDescriptor(t, { pick_batch_size(160, n), 832,  1,  1  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(32, n),  832,  7,   7   }), mlopen::TensorDescriptor(t, { pick_batch_size(192, n), 832,  1,  1  }));
@@ -92,7 +84,6 @@ void visit_network(F f, int n=MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     f(mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  256,  28,  28  }), mlopen::TensorDescriptor(t, { pick_batch_size(512, n), 256,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  256,  56,  56  }), mlopen::TensorDescriptor(t, { pick_batch_size(256, n), 256,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  3,    224, 224 }), mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  3,    3,  3  }));
-    f(mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(512, n), 512,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  512,  14,  14  }), mlopen::TensorDescriptor(t, { pick_batch_size(512, n), 512,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  512,  28,  28  }), mlopen::TensorDescriptor(t, { pick_batch_size(512, n), 512,  3,  3  }));
     f(mlopen::TensorDescriptor(t, { pick_batch_size(64, n),  64,   112, 112 }), mlopen::TensorDescriptor(t, { pick_batch_size(128, n), 64,   3,  3  }));
