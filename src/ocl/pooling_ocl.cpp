@@ -16,7 +16,6 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		cl_mem								workSpace,
 		size_t								 /*workSpaceSize*/) {
 
-	printf("in pooling forward\n");
 	mlo_construct_pooling2D construct_params(1); // forward
 
 	construct_params.setStream(handle.GetStream());
@@ -98,8 +97,6 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		vgd,
 		parms)(x, y, workSpace);
 
-	std::cout << "Pooling Forward Finished !!" << std::endl;
-
 	return mlopenStatusSuccess;
 }
 
@@ -119,7 +116,6 @@ mlopenStatus_t PoolingDescriptor::Backward(
 
 
 	mlopenStatus_t status = mlopenStatusSuccess;
-	printf("in pooling backward\n");
 	mlo_construct_pooling2D construct_params(0); // backward
 
 	construct_params.setStream(handle.GetStream());
@@ -252,8 +248,6 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	{
 		k(dy, dx);
 	}
-
-	std::cout << "Pooling Backward Finished !!" << std::endl;
 
 	return(status);
 }
