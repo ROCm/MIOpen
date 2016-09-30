@@ -154,7 +154,7 @@ void verify_one(G g)
 {
     auto input = tensor<T>{16, 32, 8, 8}.generate(g);
     auto weights = tensor<T>{64, 32, 5, 5}.generate(g);
-    mlopen::ConvolutionDescriptor filter{1, 1};
+    mlopen::ConvolutionDescriptor filter{0, 0};
     verify(verify_forward_conv{}, input, weights, filter);
 }
 
