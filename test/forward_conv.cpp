@@ -99,7 +99,7 @@ struct verify_forward_conv
     }
 
     template<class T>
-    void fail(const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor&, int /*bias*/ = 0)
+    void fail(float, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor&, int /*bias*/ = 0)
     {
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
         std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
