@@ -592,7 +592,6 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
 
-
 	_in_tile0 = 4;
 	_in_tile1 = 1;
 	_out_pix_tile0 = 4;
@@ -610,42 +609,52 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
 	int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0 : _in_width * _in_height - (MAP_SZ4 - 1) * 4;
 
-
-
-
+	bool small_map = false;
 	int GRP_SZ = _grp_tile0;
 	int N_MAPS_PERGROUP = 1;
-	if (MAP_SZ4 <= GRP_SZ)
+	// exchange step is a number of partial sums that can be eaxchanged in the kernel in one pass
+	// it's used for small maps at th eend of the kerenl to reduce partial sums
+	// tha number is kept in and passed through _n_in_data_tiles (with obused semantics).
+	int exchange_step = 6;
+	if (MAP_SZ4 <= GRP_SZ / 2)
 	{
-
 		N_MAPS_PERGROUP = GRP_SZ / MAP_SZ4;
+		exchange_step = _n_in_data_tiles;
+		_n_in_data_tiles = 1;
+		small_map = true;
 	}
-	// n of input map per group
-	N_MAPS_PERGROUP = std::min(N_MAPS_PERGROUP, _n_inputs);
-	// scale input by n of map per group
-	int n_input_scaled = (_n_inputs + N_MAPS_PERGROUP - 1) / N_MAPS_PERGROUP;
-	// number of input nside wk-items
-	_n_in_data_tiles = std::min(n_input_scaled, _n_in_data_tiles);
-	// number of input loops
-	int n_in_loop = (n_input_scaled + _n_in_data_tiles - 1) / (_n_in_data_tiles);
 
+	// number of inputs inside wk-items
+	_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
+	// scale input by n of map per wk_item
+	int n_input_scaled = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
 
-	// number of batches inside wk_item
-	_n_stacks = std::min(_batch_sz, _n_stacks);
 	// number of outputs inside wk_item
 	_n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
 
 
-	// total number of otpit maps per group
-	int n_out_tiles_pergroup = N_MAPS_PERGROUP * _n_out_pix_tiles;
-	n_out_tiles_pergroup = std::min(n_out_tiles_pergroup, _n_outputs);
+	if (small_map)
+	{
+		exchange_step = std::min(std::min(exchange_step, _n_out_pix_tiles), N_MAPS_PERGROUP);
+		_n_out_pix_tiles = (_n_out_pix_tiles / exchange_step) * exchange_step;
+	}
+	// n of input map per group
+	N_MAPS_PERGROUP = std::min(N_MAPS_PERGROUP, n_input_scaled);
+	// number of input loops
+	int n_in_loop = (n_input_scaled + N_MAPS_PERGROUP - 1) / N_MAPS_PERGROUP;
+
+	// number of batches inside wk_item
+	_n_stacks = std::min(_batch_sz, _n_stacks);
+
+	int n_out_tiles_pergroup = _n_out_pix_tiles * _n_stacks;
+
 	int batch_aligned = 0;
 	int output_aligned = 0;
 	if ((_batch_sz / _n_stacks) *_n_stacks == _batch_sz)
 	{
 		batch_aligned = 1;
 	}
-	if ((_n_outputs / n_out_tiles_pergroup) * n_out_tiles_pergroup == _n_outputs)
+	if ((_n_outputs / _n_out_pix_tiles) * _n_out_pix_tiles == _n_outputs)
 	{
 		output_aligned = 1;
 	}
@@ -678,10 +687,9 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(static_cast<long long>(_bias))
 		+ std::string(" -D MLO_BATCH_ALIGNED=") + std::to_string(static_cast<long long>(batch_aligned))
 		+ std::string(" -D MLO_OUTPUTS_ALIGNED=") + std::to_string(static_cast<long long>(output_aligned))
+		+ std::string(" -D MLO_EXCHANGE_STEP=") + std::to_string(static_cast<long long>(exchange_step))
 		+ getGeneralCompOptions()
 		;
-
-
 
 	_l_wk.clear();
 	_l_wk.push_back(_grp_tile0);
@@ -691,7 +699,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	size_t gbl_wk0 = (GRP_SZ < MAP_SZ4) ? ((MAP_SZ4 + GRP_SZ - 1) / GRP_SZ) *GRP_SZ : GRP_SZ;
 
 
-	size_t gbl_wk1 = (_n_outputs + n_out_tiles_pergroup - 1) / n_out_tiles_pergroup;
+	size_t gbl_wk1 = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
 	size_t gbl_wk2 = (_batch_sz + _n_stacks - 1) / _n_stacks;
 
 	_g_wk.clear();
@@ -699,9 +707,16 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	_kernel_file = "MLOpenConv1x1.cl";
-	_kernel_name = "MLOpenConv1x1";
- 
+	//	_kernel_file = "MLOpenConv1x1.cl";
+	//	_kernel_name = "MLOpenConv1x1";
+	_kernel_file = "MLOpenConv1x1PS.cl";
+	_kernel_name = "MLOpenConv1x1PS";
+	// see above comment
+	if (small_map)
+	{
+		_n_in_data_tiles = exchange_step;
+	}
+
 	return(ret);
 }
 
@@ -1164,7 +1179,7 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string & conf_key) const
 /*
  * select defult configuration if a known configuration has not been found.
  */
-int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
+int mlo_construct_direct2D::mloSelectDefaultConfig(std::string & conf_val)
 {
 
 	//
@@ -1178,7 +1193,7 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 	_out_pix_tile1 = 2; // 
 
 
-	_n_out_pix_tiles = 8; //  # output pixel tiles per wk-item (ALU)
+	_n_out_pix_tiles = 8; // # output pixel tiles per wk-item (ALU)
 	_n_in_data_tiles = 2; // # of blocks of different inputs in LDS
 
 	_n_stacks = 1; // # of diff stacks (part of batch).
@@ -1201,22 +1216,22 @@ int mlo_construct_direct2D :: mloSelectDefaultConfig(std::string & conf_val)
 		_n_out_pix_tiles = 16; // 2;  // # output pixel tiles per wk-item (ALU)
 		_n_in_data_tiles = 2; // 4; // # of blocks of different inputs in LDS
 
-		_n_stacks = 1; // # of diff stacks (part of batch).
+		_n_stacks = (_batch_sz > 1) ? 2 : 1; // # of diff stacks (part of batch).
 
 	}
 
 	mloBuildConf_Val(
-			conf_val,
-			_grp_tile1,
-			_grp_tile0,
-			_in_tile1,
-			_in_tile0,
-			_out_pix_tile1,
-			_out_pix_tile0,
-			_n_out_pix_tiles,
-			_n_in_data_tiles,
-			_n_stacks
-			);
+		conf_val,
+		_grp_tile1,
+		_grp_tile0,
+		_in_tile1,
+		_in_tile0,
+		_out_pix_tile1,
+		_out_pix_tile0,
+		_n_out_pix_tiles,
+		_n_in_data_tiles,
+		_n_stacks
+	);
 
 	mloSetConf(conf_val);
 
@@ -1819,7 +1834,39 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 										runs_left = (runs_left < 0) ? 0 : runs_left;
 										continue;
 									}
+#if 1
+									if (_kernel_size0 == 1 && _kernel_size1 == 1)
+									{
+										int N4S = 1;
 
+										int MAP_SZ4 = (_in_width * _in_height + N4S * 4 - 1) / (N4S * 4);
+
+										int GRP_SZ = _grp_tile0;
+										int N_MAPS_PERGROUP = 1;
+										int exchange_step = std::min(std::min(6, _n_out_pix_tiles), N_MAPS_PERGROUP);
+
+										if (MAP_SZ4 <= GRP_SZ / 2)
+										{
+											N_MAPS_PERGROUP = GRP_SZ / MAP_SZ4;
+											int lcl_mem_avial = (_grp_tile0 <= 192) ? (_dev_local_mem_sz / 4) / 2 : (_dev_local_mem_sz / 4);
+
+											exchange_step = lcl_mem_avial / (N_MAPS_PERGROUP* MAP_SZ4 * 4);
+											exchange_step = std::min(std::min(exchange_step, _n_out_pix_tiles), N_MAPS_PERGROUP);
+											if (exchange_step < _n_out_pix_tiles)
+											{
+												int tmp_stp = (int)ceil(sqrt((float)exchange_step));
+												n_in_tiles_rg[0] = tmp_stp;
+												n_in_tiles_rg[1] = exchange_step;
+											}
+											else
+											{
+												n_in_tiles_rg[0] = 1;
+												n_in_tiles_rg[1] = 1;
+											}
+										}
+
+									}
+#endif
 									for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
 									{
 										_n_in_data_tiles = i_t;
@@ -1837,14 +1884,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 											if (_kernel_size0 == 1 && _kernel_size1 == 1)
 											{
 
-#if 0
-												if (_n_stacks*_n_in_data_tiles*_n_out_pix_tiles * 4 > 240)
-												{
-													runs_left--;
-													runs_left = (runs_left < 0) ? 0 : runs_left;
-													continue;
-												}
-#endif
 											}
 											else
 											{
@@ -1861,8 +1900,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 												}
 											}
 
-
-#if 1
 											if (_n_stacks > _batch_sz)
 											{
 												runs_left--;
@@ -1870,7 +1907,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 												continue;
 
 											}
-#endif
 											ret = mloMeasuredLoop(profile_q.get(),
 													bot_ocl_buf,
 													top_ocl_buf,
