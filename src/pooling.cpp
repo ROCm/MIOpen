@@ -1,5 +1,6 @@
 #include <mlopen/pooling.hpp>
 #include <cassert>
+#include <cmath>
 
 namespace mlopen {
 
@@ -59,8 +60,8 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 	std::tie(window_h, window_w) = mlopen::tie2(GetLengths());
 
 	return std::make_tuple(input_n, input_c, 
-	(input_h - window_h + 2*pad_h) / u + 1,
-	(input_w - window_w + 2*pad_w) / v + 1);
+	ceil((input_h - window_h + 2*pad_h) / static_cast<float>(u)) + 1,
+	ceil((input_w - window_w + 2*pad_w) / static_cast<float>(v)) + 1);
 
 }
 
