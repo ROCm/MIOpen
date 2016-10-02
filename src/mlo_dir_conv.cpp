@@ -1681,7 +1681,8 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		else
 			if (_in_width <= 16)
 			{
-				n_tile0_sz = 2;
+				n_tile0_sz = 1;
+				tile_sz0[0] = 16;
 				n_in_tiles_rg[1] = 8;
 
 			}
@@ -1703,7 +1704,8 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		else
 			if (_in_height <= 16)
 			{
-				n_tile1_sz = 2;
+				n_tile1_sz = 1;
+				tile_sz1[0] = 16;
 				n_in_tiles_rg[1] = 8;
 
 			}
