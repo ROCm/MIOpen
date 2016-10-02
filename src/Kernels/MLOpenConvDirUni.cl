@@ -111,7 +111,7 @@
 
 inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
-	(*y) = linPos / width;
+	(*y) = (int)(((float)linPos + 0.000001f) / (float)width);
 	(*x) = linPos - (*y) * width; 
 }
 
@@ -495,7 +495,7 @@ __kernel void MLOpenConvUni(
 		for(int i = wave_id; i < MLO_N_IN_TILES_TOTAL;  i += MLO_N_PROC_WAVES)
 		{
 		//(MLO_N_STACKS * MLO_N_OUT_TILES_PERSTACK)
-			int i_b = (int)floor((float)i / (float)MLO_N_IN_TILES_PERSTACK);
+			int i_b = (int)(((float)i + 0.00001f) / (float)MLO_N_IN_TILES_PERSTACK);
 			int i_c = -mad24(i_b, (int)MLO_N_IN_TILES_PERSTACK, -i);
 
 			bool vis = true;
@@ -556,7 +556,7 @@ __kernel void MLOpenConvUni(
 		{
 #if MLO_DIR_FORWARD==1
 // here is [tops][bottoms]
-			int lcl_o = (int)floor((_FLOAT)i/(_FLOAT)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
+			int lcl_o = (int)(((_FLOAT)i + 0.00001f)/(_FLOAT)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
 			int gbl_i = -mad24(lcl_o, (int)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ), -i);
 			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i];
 #else
