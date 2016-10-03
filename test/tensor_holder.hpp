@@ -75,6 +75,20 @@ struct tensor
     }
 };
 
+template<class T, class G>
+tensor<T> make_tensor(std::initializer_list<int> dims, G g)
+{
+    // TODO: Compute float
+    return tensor<T>{mlopen::TensorDescriptor{mlopenFloat, dims}}.generate(g);
+}
+
+template<class T, class X, class G>
+tensor<T> make_tensor(const std::vector<X>& dims, G g)
+{
+    // TODO: Compute float
+    return tensor<T>{mlopen::TensorDescriptor{mlopenFloat, dims.data(), static_cast<int>(dims.size())}}.generate(g);
+}
+
 struct tensor_generate
 {
     template<class Tensor, class G>
@@ -83,5 +97,68 @@ struct tensor_generate
         return std::forward<Tensor>(t.generate(g));
     }
 };
+
+template<class F>
+struct protect_fn
+{
+    F f;
+    protect_fn(F x) : f(std::move(x)) 
+    {}
+
+    template<class... Ts>
+    auto operator()(Ts&&... xs) const MLOPEN_RETURNS
+    (f(std::forward<Ts>(xs)...));
+};
+
+template<class F>
+protect_fn<F> protect(F f)
+{
+    return {std::move(f)};
+}
+
+struct cross_args_apply
+{
+    template<class F, class T, class... Ts>
+    void operator()(F f, T&& x, Ts&&... xs) const
+    {
+        mlopen::each_args(std::bind(f, std::forward<T>(x), std::placeholders::_1), std::forward<Ts>(xs)...);
+    }
+};
+
+template<class F, class... Ts>
+void cross_args(F f, Ts&&... xs)
+{
+    mlopen::each_args(
+        std::bind(cross_args_apply{}, protect(std::move(f)), std::placeholders::_1, std::forward<Ts>(xs)...),
+    std::forward<Ts>(xs)...);
+}
+
+template<class T, class Visitor>
+struct generate_both_visitation
+{
+    template<class F, class G1, class G2>
+    void operator()(F f, G1 g1, G2 g2) const
+    {
+        Visitor{}([&](std::initializer_list<int> input, std::initializer_list<int> weights)
+        {
+            f(make_tensor<T>(input, g1), make_tensor<T>(weights, g2));
+        });
+    }
+};
+
+template<class T, class Visitor, class F, class... Gs>
+void generate_all(F f, Gs... gs)
+{
+    cross_args(
+        std::bind(generate_both_visitation<T, Visitor>{}, protect(f), std::placeholders::_1, std::placeholders::_2), 
+        gs...);
+}
+
+
+template<class T, class F, class G>
+void generate_one(F f, std::vector<int> input, std::vector<int> weights, G g)
+{
+    f(make_tensor<T>(input, g), make_tensor<T>(weights, g));
+}
 
 #endif
