@@ -107,56 +107,15 @@ struct verify_forward_conv
     
 };
 
-struct cross_args_apply
+struct verify_conv_filter
 {
-    template<class F, class T, class... Ts>
-    void operator()(F f, T&& x, Ts&&... xs) const
+    template<class T>
+    void operator()(const tensor<T>& input, const tensor<T>& weights) const
     {
-        mlopen::each_args(std::bind(f, std::forward<T>(x), std::placeholders::_1), std::forward<Ts>(xs)...);
+        mlopen::ConvolutionDescriptor filter{1, 1};
+        verify(verify_forward_conv{}, input, weights, filter);
     }
 };
-
-template<class F, class... Ts>
-void cross_args(F f, Ts&&... xs)
-{
-    mlopen::each_args(
-        std::bind(cross_args_apply{}, protect(std::move(f)), std::placeholders::_1, std::forward<Ts>(xs)...),
-    std::forward<Ts>(xs)...);
-}
-
-template<class T>
-struct verify_both
-{
-    template<class G1, class G2>
-    void operator()(G1 g1, G2 g2) const
-    {
-        visit_network<T>([&](mlopen::TensorDescriptor input_desc, mlopen::TensorDescriptor weights_desc)
-        {
-            auto input = tensor<T>{std::move(input_desc)}.generate(g1);
-            auto weights = tensor<T>{std::move(weights_desc)}.generate(g2);
-            mlopen::ConvolutionDescriptor filter{1, 1};
-
-            verify(verify_forward_conv{}, input, weights, filter);
-        });
-    }
-};
-
-template<class T, class... Gs>
-void verify_all(Gs... gs)
-{
-    cross_args(
-        std::bind(verify_both<T>{}, std::placeholders::_1, std::placeholders::_2), 
-        gs...);
-}
-
-template<class T, class G>
-void verify_one(G g)
-{
-    auto input = tensor<T>{16, 32, 8, 8}.generate(g);
-    auto weights = tensor<T>{64, 32, 5, 5}.generate(g);
-    mlopen::ConvolutionDescriptor filter{0, 0};
-    verify(verify_forward_conv{}, input, weights, filter);
-}
 
 int main() {
     // mlopen::Handle handle;
@@ -174,9 +133,9 @@ int main() {
     (void)g;
 #if MLOPEN_TEST_ALL
     printf("verify_all\n");
-    verify_all<float>(g0,g1, g_id, g);
+    generate_all<float, network_visitor>(verify_conv_filter{}, g0,g1, g_id, g);
 #else
     printf("verify_one\n");
-    verify_one<float>(g);
+    generate_one<float>(verify_conv_filter{}, {16, 32, 8, 8}, {64, 32, 5, 5}, g);
 #endif
 }

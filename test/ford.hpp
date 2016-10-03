@@ -12,24 +12,6 @@
 #include <cassert>
 
 template<class F>
-struct protect_fn
-{
-    F f;
-    protect_fn(F x) : f(std::move(x)) 
-    {}
-
-    template<class... Ts>
-    auto operator()(Ts&&... xs) const MLOPEN_RETURNS
-    (f(std::forward<Ts>(xs)...));
-};
-
-template<class F>
-protect_fn<F> protect(F f)
-{
-    return {std::move(f)};
-}
-
-template<class F>
 void par_for(std::size_t n, std::size_t threadsize, F f)
 {
     if (threadsize == 1)
