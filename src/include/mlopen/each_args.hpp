@@ -38,6 +38,12 @@ void each_args_i_impl(F f, seq<Ns...>, Ts&&... xs)
     (void)std::initializer_list<int>{(f(std::integral_constant<std::size_t, Ns>{}, std::forward<Ts>(xs)), 0)...};
 }
 
+template<class F, std::size_t ... Ns, class T>
+void unpack_impl(F f, seq<Ns...>, T&& x)
+{
+    f(std::get<Ns>(x)...);
+}
+
 } // namespace detail
 
 template<class F, class... Ts>
@@ -50,6 +56,13 @@ template<class F, class... Ts>
 void each_args(F f, Ts&&... xs)
 {
     (void)std::initializer_list<int>{(f(std::forward<Ts>(xs)), 0)...};
+}
+
+template<class F, std::size_t ... Ns, class T>
+void unpack(F f, T&& x)
+{
+    using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+    return detail::unpack_impl(f, typename detail::gens<std::tuple_size<type>::value>::type{}, std::forward<T>(x));
 }
 
 }  // namespace mlopen
