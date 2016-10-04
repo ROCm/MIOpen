@@ -684,6 +684,8 @@ protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
+	int mloConstructDirect2DFwdC(void);
+	int mloConstructDirect2D1x1(void);
 	int mloConstructDirect2DFwdGen();
 	int mloConstructBwd()
 	{
