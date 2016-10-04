@@ -134,7 +134,7 @@ struct verify_both
         {
             auto input = tensor<T>{std::move(input_desc)}.generate(g1);
             auto weights = tensor<T>{std::move(weights_desc)}.generate(g2);
-            mlopen::ConvolutionDescriptor filter{1, 1};
+            mlopen::ConvolutionDescriptor filter{0, 0};
 
             verify(verify_forward_conv{}, input, weights, filter);
         });
