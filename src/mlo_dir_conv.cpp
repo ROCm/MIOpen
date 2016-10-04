@@ -1849,7 +1849,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 
 										int GRP_SZ = _grp_tile0;
 										int N_MAPS_PERGROUP = 1;
-										int exchange_step = std::min(std::min(6, _n_out_pix_tiles), N_MAPS_PERGROUP);
+										int exchange_step;
 
 										if (MAP_SZ4 <= GRP_SZ / 2)
 										{
@@ -1860,7 +1860,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 											exchange_step = std::min(std::min(exchange_step, _n_out_pix_tiles), N_MAPS_PERGROUP);
 											if (exchange_step < _n_out_pix_tiles)
 											{
-												int tmp_stp = (int)ceil(sqrt((float)exchange_step));
+												int tmp_stp = static_cast<int>(ceil(sqrt(static_cast<float>(exchange_step))));
 												n_in_tiles_rg[0] = tmp_stp;
 												n_in_tiles_rg[1] = exchange_step;
 											}
