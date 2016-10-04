@@ -124,19 +124,7 @@ int mloParseConf(const std::string & conf_val,
 std::string mloConfFileBaseNm(cl_device_id dev
 		)
 {
-	int maxComputeUnits;
-	int maxClockFrequency;
-	std::string deviceName;
-
-	maxComputeUnits = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
-	maxClockFrequency = mlopen::GetDeviceInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>(dev);
-	deviceName = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
-
-	std::string conf_file_base_nm = deviceName + "_"
-		+ std::to_string(static_cast<long long>(maxComputeUnits)) + "_"
-		+ std::to_string(static_cast<long long>(maxClockFrequency));
-	;
-	return(conf_file_base_nm);
+	return mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 }
 
 	static
@@ -1340,7 +1328,7 @@ int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::strin
 	std::vector<std::string> req_conf_db;
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
+	conf_file += std::string("/") + mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev) + "." + std::string("cd.rdb.txt");
 
 	printf("file %s\n", conf_file.c_str());
 	std::vector<std::string>::iterator it;
@@ -1366,7 +1354,7 @@ int mlo_construct_direct2D :: mloRemoveConfigReq(
 	std::vector<std::string>::iterator it;
 
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
-	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.rdb.txt");
+	conf_file += std::string("/") + mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev) + "." + std::string("cd.rdb.txt");
 
 	bool found = mloFindConfigReq(conf_file, conf_key, req_conf_db, it);
 
@@ -1388,7 +1376,7 @@ int mlo_construct_direct2D :: mloReadConfigDB(
 	int ret = 0;
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
+	conf_file += std::string("/") + mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev) + "." + std::string("cd.pdb.txt");
 
 	std::vector<std::string> db;
 	mloReadDb(conf_file, db);
@@ -1418,7 +1406,7 @@ int mlo_construct_direct2D :: mloWriteConfigDB(
 	//serialize
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + mloConfFileBaseNm(dev) + "." + std::string("cd.pdb.txt");
+	conf_file += std::string("/") + mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev) + "." + std::string("cd.pdb.txt");
 
 	std::vector<std::string> db;
 
