@@ -103,7 +103,7 @@
 inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
 
-	(*y) = (int)(((float)linPos + 0.00001f) / width);
+	(*y) = (int)(((float)linPos + 0.1f) / width);
 
 	(*x) = linPos - (*y) * width;
 }
@@ -484,7 +484,7 @@ __kernel void MLOpenConvUniC(
 		for(int i = wave_id; i < MLO_N_IN_TILES_TOTAL;  i += MLO_N_PROC_WAVES)
 		{
 		//(MLO_N_STACKS * MLO_N_OUT_TILES_PERSTACK)
-			int i_b = (int)(((float)i + 0.000001f) / MLO_N_IN_TILES_PERSTACK);
+			int i_b = (int)(((float)i + 0.1f) / MLO_N_IN_TILES_PERSTACK);
 			int i_c = -mad24(i_b, (int)MLO_N_IN_TILES_PERSTACK, -i);
 
 			bool vis = true;
@@ -545,9 +545,9 @@ __kernel void MLOpenConvUniC(
 #else
 // outputs are botoms(inputs))
 // inputs are tops(outputs)
-			int lcl_o = (int)(((float)i + 0.00001f)/(float)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
+			int lcl_o = (int)(((float)i + 0.1f)/(float)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
 			int gbl_i = -mad24(lcl_o, (int)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ), -i);
-			int lcl_c = (int)(((float)gbl_i + 0.00001f) / (float)MLO_FILTER_SZ);
+			int lcl_c = (int)(((float)gbl_i + 0.1f) / (float)MLO_FILTER_SZ);
 			int lcl_i = -mad24(lcl_c, (int)MLO_FILTER_SZ, -gbl_i);
 
 			int lcl_we_off = mad24(mad24(lcl_c, (int)MLO_N_IN_TILES_PERSTACK, lcl_o), (int)MLO_FILTER_SZ, lcl_i);
