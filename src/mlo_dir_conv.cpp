@@ -116,17 +116,6 @@ int mloParseConf(const std::string & conf_val,
 
 }
 
-/*
- * build the confiuration db file name base:
- * system device name_number of compute units_engine frequency
- */
-	static
-std::string mloConfFileBaseNm(cl_device_id dev
-		)
-{
-	return mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
-}
-
 	static
 int mloReadDb(
 		const std::string confreq_db_name,
