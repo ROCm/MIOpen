@@ -23,12 +23,12 @@ echo "conv2/3x3 1x64x256x512x192x3x3"
 echo "conv2/relu_3x3 1x192x256x512x192"
 .\driver\Debug\MLOpenDriver.exe activ -t %T% -n %B%  -V %V% -W  512 -H 256 -c 192 -F 1
 echo "conv2/norm2 1x192x256x512x192x5x5"
-.\driver\Debug\MLOpenDriver.exe lrn -t %T% -n %B%  -V %V% -W  512 -H 256 -c 192 -k 192 -x 5 -y 5 -p 2 -q 2 -lrn 0 -F 1
+.\driver\Debug\MLOpenDriver.exe lrn -t %T% -n %B%  -V %V% -W  512 -H 256 -c 192 -x 5 -y 5 -p 2 -q 2 -lrn 0 -F 1
 echo "pool2/3x3_s2 1x192x256x512x192x3x3"
 .\driver\Debug\MLOpenDriver.exe pool -t %T% -n %B%  -V %V% -W  512 -H 256 -c 192 -k 192 -x 3 -y 3 -p 1 -q 1 -u 2 -v 2 -F 1
 echo "inception_3a/1x1 1x192x128x256x64x1x1"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  256 -H 128 -c 192 -k 64 -x 1 -y 1 -p 0 -q 0  -F 1 -s %S%
-echo "nception_3a/relu_1x1 1x64x128x256x64"
+echo "inception_3a/relu_1x1 1x64x128x256x64"
 .\driver\Debug\MLOpenDriver.exe activ -t %T% -n %B%  -V %V% -W  256 -H 128 -c 64 -F 1
 echo "inception_3a/3x3_reduce 1x192x128x256x96x3x3"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  256 -H 128 -c 192 -k 96 -x 1 -y 1 -p 0 -q 0  -F 1 -s %S%
@@ -203,7 +203,7 @@ echo "inception_4e/3x3_reduce 1x528x64x128x160x1x1"
 echo "inception_4e/relu_3x3_reduce 1x160x64x128x160"
 .\driver\Debug\MLOpenDriver.exe activ -t %T% -n %B%  -V %V% -W  128 -H 64 -c 160 -F 1
 echo "inception_4e/3x3 1x160x64x128x320x3x3"
-.\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  128 -H 64 -onv c 160 -k 320 -x 3 -y 3 -p 1 -q 1  -F 1 -s %S%
+.\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  128 -H 64 -c 160 -k 320 -x 3 -y 3 -p 1 -q 1  -F 1 -s %S%
 echo "inception_4e/relu_3x3 1x320x64x128x320"
 .\driver\Debug\MLOpenDriver.exe activ -t %T% -n %B%  -V %V% -W  128 -H 64 -c 320 -F 1
 echo "inception_4e/5x5_reduce 1x528x64x128x32x1x1"
@@ -264,7 +264,7 @@ echo "inception_5b/5x5_reduce 1x832x64x128x48x1x1"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  128 -H 64 -c 832 -k 48 -x 1 -y 1 -p 0 -q 0  -F 1 -s %S%
 echo "inception_5b/relu_5x5_reduce 1x48x64x128x48"
 .\driver\Debug\MLOpenDriver.exe activ -t %T% -n %B%  -V %V% -W  128 -H 64 -c 48 -k 48 -F 1
-]echo "inception_5b/5x5 1x48x64x128x128x5x5"
+echo "inception_5b/5x5 1x48x64x128x128x5x5"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  128 -H 64 -c 48 -k 128 -x 5 -y 5 -p 2 -q 2  -F 1 -s %S%
 echo "inception_5b/relu_5x5 1x128x64x128x128"
 .\driver\Debug\MLOpenDriver.exe activ -t %T% -n %B%  -V %V% -W  128 -H 64 -c 128 -F 1
