@@ -263,7 +263,7 @@ echo "inception_5b/relu_3x3 1x384x64x128x384"
 echo "inception_5b/5x5_reduce 1x832x64x128x48x1x1"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  128 -H 64 -c 832 -k 48 -x 1 -y 1 -p 0 -q 0  -F 1 -s %S%
 echo "inception_5b/relu_5x5_reduce 1x48x64x128x48"
-.\driver\Debug\MLOpenDriver.exe activ -t %T% -n %B%  -V %V% -W  128 -H 64 -c 48 -k 48 -F 1
+.\driver\Debug\MLOpenDriver.exe activ -t %T% -n %B%  -V %V% -W  128 -H 64 -c 48 -F 1
 echo "inception_5b/5x5 1x48x64x128x128x5x5"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  128 -H 64 -c 48 -k 128 -x 5 -y 5 -p 2 -q 2  -F 1 -s %S%
 echo "inception_5b/relu_5x5 1x128x64x128x128"
