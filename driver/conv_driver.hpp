@@ -374,11 +374,16 @@ int ConvDriver<T>::FindBackward() {
 			&perf,
 			mlopenConvolutionFastest,
 			NULL,
-			10);
+			10,
+			(inflags.GetValueInt("search") == 1) ? true : false
+		);
 }
 
 template<typename T>
 int ConvDriver<T>::RunBackwardGPU() {
+
+	FindBackward();
+
 	int alpha = 1, beta = 1;
 
 	int ret = 0;
