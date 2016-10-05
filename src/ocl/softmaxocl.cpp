@@ -14,6 +14,7 @@ mlopenStatus_t SoftmaxForward(
 		cl_mem						y) {
 
 	printf("in softmax forward\n");
+	return mlopenStatusSuccess;
 }
 
 mlopenStatus_t SoftmaxBackward(
@@ -28,6 +29,7 @@ mlopenStatus_t SoftmaxBackward(
 		cl_mem						dx) {
 
 	printf("in softmax backward\n");
+	return mlopenStatusSuccess;
 }
 
 } // namespace mlopen

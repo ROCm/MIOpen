@@ -82,7 +82,7 @@ int SoftmaxDriver<T>::GetandSetData() {
 
 template<typename T>
 int SoftmaxDriver<T>::AddCmdLineArgs() {
-	inflags.AddInputFlag("forw", 'F', "0", "Run only Forward LRN Normalization (Default=0)", "int");
+	inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Softmax (Default=0)", "int");
 	inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
 	inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
 	inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
