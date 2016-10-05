@@ -12,8 +12,6 @@ namespace mlopen {
 	mlopenStatus_t SoftmaxForward(
 		Handle						&handle,
 		const void					*alpha,
-		const TensorDescriptor		&xDesc,
-		ConstData_t					x,
 		const void					*beta,
 		const TensorDescriptor		&yDesc,
 		Data_t						y);

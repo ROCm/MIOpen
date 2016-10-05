@@ -125,7 +125,7 @@ int SoftmaxDriver<T>::AllocateBuffersAndCopy() {
 	outhost = std::vector<float>(out_sz, 0);
 
 	for (int i = 0; i < in_sz; i++) {
-		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+		in[i] =  (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
 	cl_int status;
@@ -164,14 +164,40 @@ int SoftmaxDriver<T>::RunForwardGPU() {
 
 template<typename T>
 int SoftmaxDriver<T>::RunForwardCPU() {
-	return(0);
+	int n, c, h, w;
+	mlopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w);
+
+	std::copy(in.begin(), in.end(), outhost.begin());
+	std::vector<float> channel_max(n, -FLT_MAX);
+
+	for(int i = 0; i < n; i++) {
+		for(int j = 0; j < c; j++) {
+			channel_max[i] = std::max(outhost[i*c + j], channel_max[i]);
+		}
+		
+		for(int j = 0; j < c; j++) {
+			outhost[i*c + j] -= channel_max[i];
+			outhost[i*c + j] = exp(outhost[i*c + j]);
+		}
+	
+		channel_max[i] = 0.0;
+		for(int j = 0; j < c; j++) {
+			channel_max[i] += outhost[i*c + j];
+		}
+
+		for(int j = 0; j < c; j++) {
+			outhost[i*c + j] /= channel_max[i];
+		}
+	}
+
+	return 0;
 }
 
 template<typename T>
 int SoftmaxDriver<T>::RunBackwardGPU() {
+#if 0
 	float alpha = 1., beta = 1.;
 
-#if 0
 	mlopenSoftmaxBackward(GetHandle(),
 		&alpha,
 		outputTensor,
@@ -198,6 +224,19 @@ int SoftmaxDriver<T>::RunBackwardGPU() {
 
 template<typename T>
 int SoftmaxDriver<T>::VerifyForward() {
+	RunForwardCPU();
+
+	auto error = rms_range(outhost, out);
+	const double tolerance = 1e-6;
+	if (error > tolerance)
+	{
+		std::cout<<"Forward Softmax Failed: " << error <<"\n";
+	}
+	else
+	{
+		printf("Forward Softmax Verifies on CPU and GPU\n");
+	}
+
 	return 0;
 }
 
