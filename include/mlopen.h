@@ -616,7 +616,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenSoftmaxBackward(
 	const mlopenTensorDescriptor_t		dyDesc,
 	const void							*dy,
 	const void							*beta,
-	const mlopenTensorDescriptor_t		xDesc,
+	const mlopenTensorDescriptor_t		dxDesc,
 	void								*dx);
 
 #ifdef __cplusplus
