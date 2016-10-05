@@ -80,6 +80,11 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 			Data_t							dstTensor,
 			const void						*alpha);
 
+	void CopyTensor(Handle &handle,
+			const TensorDescriptor &srcDesc,
+			ConstData_t src,
+			Data_t dest);
+
 private:
 	std::vector<int> lens;
 	std::vector<int> strides;

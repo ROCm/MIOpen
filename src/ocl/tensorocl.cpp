@@ -115,4 +115,17 @@ void TensorDescriptor::ScaleTensor(Handle& /* handle */,
 
 }
 
+void TensorDescriptor::CopyTensor(Handle &handle, 
+		const TensorDescriptor &srcDesc,
+		const cl_mem src,
+		cl_mem dest) {
+
+	size_t srcSize = srcDesc.GetElementSize();
+
+	cl_int status;
+	status = clEnqueueCopyBuffer(handle.GetStream(), src, dest, 0, 0, srcSize*sizeof(srcDesc.GetType()), 0, NULL, NULL);
+
+	if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
+}
+
 } // namespace mlopen

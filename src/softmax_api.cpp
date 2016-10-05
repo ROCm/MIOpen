@@ -11,9 +11,12 @@ mlopenStatus_t mlopenSoftmaxForward(
 	const mlopenTensorDescriptor_t		yDesc,
 	void								*y) {
 
-	// copy tensors
-	//
 	return mlopen::try_([&] {
+		mlopen::deref(yDesc).CopyTensor(mlopen::deref(handle),
+			mlopen::deref(xDesc),
+			DataCast(x),
+			DataCast(y));
+
 		mlopen::SoftmaxForward(mlopen::deref(handle),
 			alpha,
 			mlopen::deref(xDesc),
