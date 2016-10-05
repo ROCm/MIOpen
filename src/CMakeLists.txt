@@ -75,6 +75,7 @@ set( MLOpen_Source
 	lrn_api.cpp
 	activ_api.cpp
 	handle_api.cpp
+	softmax_api.cpp
 	include/mlopen/common.hpp
 	include/mlopen/convolution.hpp
 	include/mlopen/errors.hpp
@@ -88,6 +89,7 @@ set( MLOpen_Source
 	include/mlopen/pooling.hpp
 	include/mlopen/lrn.hpp
 	include/mlopen/activ.hpp
+	include/mlopen/softmax.hpp
 	tensor.cpp
 	tensor_api.cpp
 	)
@@ -122,6 +124,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		ocl/mloPooling.cpp
 		ocl/pooling_ocl.cpp
 		ocl/tensorocl.cpp
+		ocl/softmaxocl.cpp
 		pooling.cpp
         ocl/oclerrors.cpp
         ocl_kernel.cpp
