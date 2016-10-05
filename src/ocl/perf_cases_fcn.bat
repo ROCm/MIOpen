@@ -57,7 +57,7 @@ echo "inception_3a/output 1x128x256x256"
 echo "inception_3b/1x1 1x256x128x256x128x1x1"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  256 -H 128 -c 256 -k 128 -x 1 -y 1 -p 0 -q 0  -F 1 -s %S%
 echo "nception_3b/relu_1x1 1x128x128x256x128"
-.\driver\Debug\MLOpenDriver.exe active -t %T% -n %B%  -V %V% -W  256 -H 128 -c 128 -F 1
+.\driver\Debug\MLOpenDriver.exe activ -t %T% -n %B%  -V %V% -W  256 -H 128 -c 128 -F 1
 echo "inception_3b/3x3_reduce 1x256x128x256x128x1x1"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -t %T% -n %B%  -V %V% -W  256 -H 128 -c 256 -k 128 -x 1 -y 1 -p 0 -q 0  -F 1 -s %S%
 echo "inception_3a/relu_3x3_reduce 1x128x128x256x128"
