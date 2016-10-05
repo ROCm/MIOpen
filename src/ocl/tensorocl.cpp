@@ -123,7 +123,7 @@ void TensorDescriptor::CopyTensor(Handle &handle,
 	size_t srcSize = srcDesc.GetElementSize();
 
 	cl_int status;
-	status = clEnqueueCopyBuffer(handle.GetStream(), src, dest, 0, 0, srcSize*sizeof(srcDesc.GetType()), 0, NULL, NULL);
+	status = clEnqueueCopyBuffer(handle.GetStream(), src, dest, 0, 0, srcSize*sizeof(srcDesc.GetType()), 0, nullptr, nullptr);
 
 	if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 }

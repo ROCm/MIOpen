@@ -11,6 +11,7 @@ mlopenStatus_t mlopenSoftmaxForward(
 	const mlopenTensorDescriptor_t		yDesc,
 	void								*y) {
 
+	// Check if h and w != 1 here
 	return mlopen::try_([&] {
 		mlopen::deref(yDesc).CopyTensor(mlopen::deref(handle),
 			mlopen::deref(xDesc),
@@ -19,8 +20,6 @@ mlopenStatus_t mlopenSoftmaxForward(
 
 		mlopen::SoftmaxForward(mlopen::deref(handle),
 			alpha,
-			mlopen::deref(xDesc),
-			DataCast(x),
 			beta,
 			mlopen::deref(yDesc),
 			DataCast(y));
