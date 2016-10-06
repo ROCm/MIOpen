@@ -8,8 +8,8 @@
  * We use CSR-{Vector / Stream} apprach to pick an algorithm depending on the
  * number of channels each workgroup has to work with.
  * J. L. Greathouse, M. Daga, Efficient sparse matrix-vector multiplication
- * on GPUs using the CSR storage format, in: Proc. Int’l Conf. High Performance
- * Computing, Networking, Storage and Analysis (SC’14)
+ * on GPUs using the CSR storage format, in: Proc. Int'l Conf. High Performance
+ * Computing, Networking, Storage and Analysis (SC'14)
 */
 
 kernel void SoftmaxForward(global float *y, const int c, const int grid_size, const int spatial_dim) 
