@@ -14,6 +14,7 @@
 #include <float.h>
 #include <memory>
 #include <numeric>
+#include "../test/verify.hpp"
 
 template<typename T>
 class LRNDriver : public Driver 
@@ -372,54 +373,17 @@ int LRNDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
 
-	bool match = true;
+	auto error = rms_range(outhost, out);
+	const double tolerance = 1e-6;
+	if (error > tolerance)
+	{
+		std::cout<<"Forward LRN Failed: " << error <<"\n";
+	}
+	else
+	{
+		printf("Forward LRN Verifies on CPU and GPU\n");
+	}
 
-	const double allowedEps = (1 << 2);
-	double max_sqr = 1. / 100000000;
-	double max_abs_diff = 1. / 100000000;
-	bool get_error_pos = true;
-
-	int nIn, cIn, hIn, wIn;
-	mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
-	int nOutStride, cOutStride, hOutStride, wOutStride;
-	mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
-	int nOut, cOut, hOut, wOut;
-	mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
-
-	int batch_sz = nIn;
-
-	int n_outputs = cOut;
-	int top_height = hOut;
-	int top_width = wOut;
-	int top_stride = hOutStride;
-	int top_channel_stride = cOutStride;
-	int	top_batch_stride = nOutStride;
-
-	int top_v_stride = hOutStride;
-	int top_v_channel_stride = cOutStride;
-	int	top_v_batch_stride = nOutStride;
-
-
-	match = mloVerify<float>(
-			batch_sz,
-			n_outputs,
-			top_height,
-			top_width,
-			top_v_batch_stride,
-			top_v_channel_stride,
-			top_v_stride,
-			top_batch_stride,
-			top_channel_stride,
-			top_stride,
-			outhost.data(),
-			out.data(),
-			allowedEps,
-			max_abs_diff,
-			max_sqr,
-			get_error_pos
-			);
-
-	if(match) printf("Forward LRN Verifies on CPU and GPU\n");
 	return 0;
 }
 
@@ -534,52 +498,17 @@ int LRNDriver<T>::VerifyBackward() {
 
 	RunBackwardCPU();
 	
-	bool match = true;
+	auto error = rms_range(dinhost, din);
+	const double tolerance = 1e-6;
+	if (error > tolerance)
+	{
+		std::cout<<"Backward LRN Failed: " << error <<"\n";
+	}
+	else
+	{
+		printf("Backward LRN Verifies on CPU and GPU\n");
+	}
 
-	double allowedEps = 4;
-	double max_abs_diff = 0.00000001;
-	double max_sqr = 0.000000001;
-	bool get_error_pos = true;
-
-	int nIn, cIn, hIn, wIn;
-	mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
-
-	int ndInStride, cdInStride, hdInStride, wdInStride;
-	mlopenGet4dTensorDescriptorStrides(dInputTensor, &ndInStride, &cdInStride, &hdInStride, &wdInStride);
-
-	int batch_sz = nIn;
-	int n_inputs = cIn;
-	int bot_height = hIn;
-	int bot_width = wIn;
-
-	int bot_df_stride = hdInStride;
-	int bot_df_channel_stride = cdInStride;
-	int bot_df_batch_stride = ndInStride;
-
-	int bot_df_v_stride = hdInStride;
-	int bot_df_v_channel_stride = cdInStride;
-	int bot_df_v_batch_stride = ndInStride;
-
-	match = mloVerify<float>(
-			batch_sz,
-			n_inputs,
-			bot_height,
-			bot_width,
-			bot_df_v_batch_stride,
-			bot_df_v_channel_stride,
-			bot_df_v_stride,
-			bot_df_batch_stride,
-			bot_df_channel_stride,
-			bot_df_stride,
-			dinhost.data(),
-			din.data(),
-			allowedEps,
-			max_abs_diff,
-			max_sqr,
-			get_error_pos
-			);
-
-	if(match) printf("Backward LRN Verifies on CPU and GPU\n");
 	return 0;
 }
 
