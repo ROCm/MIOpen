@@ -13,16 +13,18 @@ mlopenStatus_t SoftmaxForward(
 {
 	int n, c, h, w;
 	std::tie(n, c, h, w) = tie4(yDesc.GetLengths());
-	if(h != 1 || w != 1) {
-		throw std::invalid_argument("height and width != 1 is not supported\n");
-	}
+	
 	std::string program_name = "MLOpenSoftmax.cl";
 	std::string kernel_name = "SoftmaxForward";
 	//TODO: do we need to pass network_config?
 	std::string network = "placeholder";
 
-	const std::vector<size_t> vld(1, 256);
-	const std::vector<size_t> vgd(1, n*vld[0]);
+	size_t workgroups = std::min(n*h*w, 64*40*32);
+
+	const std::vector<size_t> vld(1, 64);
+	const std::vector<size_t> vgd(1, workgroups*vld[0]);
+
+	cl_long  sz = n*h*w;
 
 	handle.GetKernel("mlopenSoftmaxForward",
 			network,
@@ -30,7 +32,7 @@ mlopenStatus_t SoftmaxForward(
 			kernel_name,
 			vld,
 			vgd,
-			"")(y, c);
+			"")(y, c, sz);
 
 
 	return mlopenStatusSuccess;
