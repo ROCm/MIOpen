@@ -108,6 +108,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenConv1x1L.cl
 		Kernels/MLOpenConv1x1PS.cl
 		Kernels/MLOpenSoftmax.cl
+		Kernels/MLOpenConv1x1PS_LW.cl
 	)
 	configure_file(db.cpp.in db.cpp)
 	list(APPEND MLOpen_Source 
@@ -134,8 +135,8 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		)
 	# Install db files
 	install(FILES 
-		Kernels/Fiji_64_1000.cd.pdb.txt
-		Kernels/Fiji_64_1050.cd.pdb.txt
+		Kernels/Fiji.cd.pdb.txt
+		Kernels/Fiji.cd.pdb.txt
 	 DESTINATION share/mlopen/db)
 endif()
 

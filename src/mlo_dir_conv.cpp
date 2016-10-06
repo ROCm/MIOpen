@@ -116,17 +116,6 @@ int mloParseConf(const std::string & conf_val,
 
 }
 
-/*
- * build the confiuration db file name base:
- * system device name_number of compute units_engine frequency
- */
-	static
-std::string mloConfFileBaseNm(cl_device_id dev
-		)
-{
-	return mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
-}
-
 	static
 int mloReadDb(
 		const std::string confreq_db_name,
@@ -697,8 +686,18 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
 	//	_kernel_file = "MLOpenConv1x1.cl";
 	//	_kernel_name = "MLOpenConv1x1";
-	_kernel_file = "MLOpenConv1x1PS.cl";
-	_kernel_name = "MLOpenConv1x1PS";
+	// too much overhead for small maps and few inputs
+
+	if ((small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256))
+	{
+		_kernel_file = "MLOpenConv1x1PS.cl";
+		_kernel_name = "MLOpenConv1x1PS";
+	}
+	else
+	{
+		_kernel_file = "MLOpenConv1x1PS_LW.cl";
+		_kernel_name = "MLOpenConv1x1PS_LW";
+	}
 	// see above comment
 	if (small_map)
 	{
