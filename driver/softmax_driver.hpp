@@ -171,22 +171,24 @@ int SoftmaxDriver<T>::RunForwardCPU() {
 	std::vector<float> channel_max(n, -FLT_MAX);
 
 	for(int i = 0; i < n; i++) {
-		for(int j = 0; j < c; j++) {
-			channel_max[i] = std::max(outhost[i*c + j], channel_max[i]);
-		}
-		
-		for(int j = 0; j < c; j++) {
-			outhost[i*c + j] -= channel_max[i];
-			outhost[i*c + j] = exp(outhost[i*c + j]);
-		}
-	
-		channel_max[i] = 0.0;
-		for(int j = 0; j < c; j++) {
-			channel_max[i] += outhost[i*c + j];
-		}
+		for(int s = 0; s < h*w; s++) {
+			for(int j = 0; j < c; j++) {
+				channel_max[i] = std::max(outhost[(i*c + j)*h*w + s], channel_max[i]);
+			}
 
-		for(int j = 0; j < c; j++) {
-			outhost[i*c + j] /= channel_max[i];
+			for(int j = 0; j < c; j++) {
+				outhost[(i*c + j)*h*w + s] -= channel_max[i];
+				outhost[(i*c + j)*h*w + s] = exp(outhost[(i*c + j)*h*w + s]);
+			}
+
+			channel_max[i] = 0.0;
+			for(int j = 0; j < c; j++) {
+				channel_max[i] += outhost[(i*c + j)*h*w + s];
+			}
+
+			for(int j = 0; j < c; j++) {
+				outhost[(i*c + j)*h*w + s] /= channel_max[i];
+			}
 		}
 	}
 
