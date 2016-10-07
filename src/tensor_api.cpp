@@ -1,4 +1,5 @@
 #include <mlopen/tensor.hpp>
+#include <mlopen/tensor_ops.hpp>
 #include <mlopen/errors.hpp>
 #include <initializer_list>
 #include <array>
@@ -142,11 +143,12 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		void							*y) {
 
 	return mlopen::try_([&] {
-		return mlopen::deref(yDesc).TransformTensor(mlopen::deref(handle), 
+		return TransformTensor(mlopen::deref(handle), 
 				alpha,
 				mlopen::deref(xDesc),
 				DataCast(x),
 				beta,
+				mlopen::deref(yDesc),
 				DataCast(y));
 	});
 
@@ -166,7 +168,7 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 		void							*C) {
 
 	return mlopen::try_([&] {
-		return mlopen::deref(cDesc).OpTensor(mlopen::deref(handle),
+		return OpTensor(mlopen::deref(handle),
 				tensorOp,
 				alpha1,
 				mlopen::deref(aDesc),
@@ -175,6 +177,7 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 				mlopen::deref(bDesc),
 				DataCast(B),
 				beta,
+				mlopen::deref(cDesc),
 				DataCast(C));
 	});
 
