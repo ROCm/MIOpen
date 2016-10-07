@@ -85,6 +85,7 @@ set( MLOpen_Source
 	include/mlopen/mlo_utils.hpp
 	include/mlopen/oclkernel.hpp
 	include/mlopen/tensor.hpp
+	include/mlopen/tensor_ops.hpp
 	include/mlopenTypes.h
 	include/mlopen/pooling.hpp
 	include/mlopen/lrn.hpp

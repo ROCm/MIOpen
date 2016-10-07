@@ -5,6 +5,7 @@
 #include <mlopen/errors.hpp>
 #include <mlopen/handle.hpp>
 #include <mlopen/tensor.hpp>
+#include <mlopen/tensor_ops.hpp>
 #include "mlopen/common.hpp"
 
 namespace mlopen {

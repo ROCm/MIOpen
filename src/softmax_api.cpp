@@ -12,9 +12,10 @@ mlopenStatus_t mlopenSoftmaxForward(
 	void								*y) {
 
 	return mlopen::try_([&] {
-		mlopen::deref(yDesc).CopyTensor(mlopen::deref(handle),
+		CopyTensor(mlopen::deref(handle),
 			mlopen::deref(xDesc),
 			DataCast(x),
+			mlopen::deref(yDesc),
 			DataCast(y));
 
 		mlopen::SoftmaxForward(mlopen::deref(handle),
