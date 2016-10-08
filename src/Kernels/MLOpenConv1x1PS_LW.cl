@@ -30,6 +30,7 @@
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
+// calculating the size of the area for weights prefetch
 
 #if MLO_N_MAPS_PERGROUP > 1
 #define MLO_WEIGHTS_PER_LOOP_MAX 8
@@ -51,7 +52,11 @@
 #endif
 #define MLO_LCL_WEIGHTS_ROW (MLO_WEIGHTS_PER_LOOP * MLO_LCL_IN_ROW)
 #define MLO_WEIGHTS_ROW (MLO_LCL_WEIGHTS_ROW* MLO_WEI_CHANNEL_STRIDE)
+
+// size of the area for weights prefetch
 #define MLO_WEIGHTS_LCL_SZ (MLO_WEIGHTS_ROW * MLO_N_LCL_OUT_MAPS)
+
+// size of area for exchanging partial sums
 #define MLO_EXCHNGE_SZ4 (MLO_MAP_SZ4*MLO_EXCHANGE_STEP * MLO_N_MAPS_PERGROUP)
 
 
@@ -63,7 +68,26 @@
 
 /*
 Layout:
+assuming NCHW data layout.
 
+Data:
+data has been fetch by 4 floats sequentially.
+MLO_MAP_SZ4 = (map_width*map_height + 3)/4.
+in case of total size not a multiple of 4 the the last pixel has a special treatment.
+There are 2 cases:
+MLO_N_MAPS_PERGROUP == 1
+and
+MLO_N_MAPS_PERGROUP > 1, when MLO_MAP_SZ4 <= GPROUP_SIZE/2, in other words when more than 1 map can be held by a group.
+Case MLO_N_MAPS_PERGROUP == 1:
+Data, by 4 floats, may come from MLO_N_LCL_IN_MAPS sequential input maps from MLO_N_LCL_BATCHS neighboring batches.
+Weigts:
+on each MLO_WEIGHTS_PER_LOOP input loop set of weight are prefetched for another MLO_WEIGHTS_PER_LOOP loops.
+Each input map contributes to partial sums of MLO_N_LCL_OUT_MAPS output maps.
+Case MLO_N_MAPS_PERGROUP > 1:
+Similar to a previous case.
+The difference is that several input sequential input maps are kept by group.
+Each taking part in the calculation of partial sums of the same MLO_N_LCL_OUT_MAPS output maps.
+After completion of the main MLO_IN_LOOP loop partial sums have been summed up in parallel.
 
 */
 
@@ -127,7 +151,7 @@ __kernel void MLOpenConv1x1PS_LW(
 		// read array of weights
 		if (wc - c == 0)
 		{
-			for (int w = lcl_id0; w < MLO_WEIGHTS_LCL_SZ /*&& wc + w < MLO_N_OUTPUTS*MLO_N_INPUTS*/; w += MLO_GRP_SZ0)
+			for (int w = lcl_id0; w < MLO_WEIGHTS_LCL_SZ ; w += MLO_GRP_SZ0)
 			{
 				int oi = (int)(((float)w + 0.25f) / (float)MLO_WEIGHTS_ROW);
 				int lwi = -mad24(oi, (int)MLO_WEIGHTS_ROW, -w);
@@ -149,7 +173,6 @@ __kernel void MLOpenConv1x1PS_LW(
 #endif
 			}
 			wc += MLO_WEIGHTS_PER_LOOP;
-//			wc = (wc < MLO_N_INPUTS) ? wc : MLO_N_INPUTS - 1;
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -168,8 +191,6 @@ __kernel void MLOpenConv1x1PS_LW(
 			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, in_off2 += MLO_IN_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP)
 			{
 				// read data
-				//				in_stage[ib][ilc] = 0;
-				//				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
 				{
 
 					in_stage[ib][ilc] = *(_FLOAT4*)&in_ptr[in_off2];
@@ -280,7 +301,7 @@ __kernel void MLOpenConv1x1PS_LW(
 
 			// sum partial sum
 			// MLO_N_MAPS_PERGROUP >= MLO_EXCHANGE_STEP
-			// in_map_id now is an index of the output map
+			// in_map_id is an index of the output map now.
 			if (in_map_id < MLO_EXCHANGE_STEP)
 			{
 				_FLOAT4 sum = 0;

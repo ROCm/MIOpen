@@ -98,6 +98,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenConvDirUni2.cl
 		Kernels/MLOpenConvDirGenFwd.cl
 		Kernels/MLOpenLRN.cl
+		Kernels/MLOpenLRN_PS.cl
 		Kernels/MLOpenNeuron.cl
 		Kernels/MLOpenPooling.cl
 		Kernels/MLOpenPoolingBwd.cl
