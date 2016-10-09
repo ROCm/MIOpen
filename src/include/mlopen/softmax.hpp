@@ -22,8 +22,6 @@ namespace mlopen {
 		const void					*alpha,
 		const TensorDescriptor		&yDesc,
 		ConstData_t					y,
-		const TensorDescriptor		&dyDesc,
-		ConstData_t					dy,
 		const void					*beta,
 		const TensorDescriptor		&dxDesc,
 		Data_t						dx);
