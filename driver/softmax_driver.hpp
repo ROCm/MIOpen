@@ -21,6 +21,9 @@ class SoftmaxDriver : public Driver
 		SoftmaxDriver() : Driver() {
 		mlopenCreateTensorDescriptor(&inputTensor);
 		mlopenCreateTensorDescriptor(&outputTensor);
+		
+		mlopenCreateTensorDescriptor(&dInputTensor);
+		mlopenCreateTensorDescriptor(&dOutputTensor);
 	}
 
 	int AddCmdLineArgs();
@@ -43,6 +46,9 @@ class SoftmaxDriver : public Driver
 	~SoftmaxDriver() {
 		mlopenDestroyTensorDescriptor(outputTensor);
 		mlopenDestroyTensorDescriptor(inputTensor);
+		
+		mlopenDestroyTensorDescriptor(dOutputTensor);
+		mlopenDestroyTensorDescriptor(dInputTensor);
 	}
 		
 	private:
@@ -57,6 +63,16 @@ class SoftmaxDriver : public Driver
 	std::vector<T> in;
 	std::vector<T> out;
 	std::vector<T> outhost;
+
+	mlopenTensorDescriptor_t dInputTensor;
+	mlopenTensorDescriptor_t dOutputTensor;
+
+	std::unique_ptr<GPUMem> din_dev;
+	std::unique_ptr<GPUMem> dout_dev;
+
+	std::vector<T> din;
+	std::vector<T> dout;
+	std::vector<T> dinhost;
 
 };
 
@@ -75,7 +91,9 @@ int SoftmaxDriver<T>::GetandSetData() {
 	std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
 	SetTensor4d(inputTensor, in_len);
+	SetTensor4d(dInputTensor, in_len);
 	SetTensor4d(outputTensor, in_len);
+	SetTensor4d(dOutputTensor, in_len);
 	
 	return(0);
 }
@@ -118,19 +136,32 @@ int SoftmaxDriver<T>::AllocateBuffersAndCopy() {
 
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
-	
+
+	din_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
+	dout_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 
 	in = std::vector<float>(in_sz);
 	out = std::vector<float>(out_sz, 0);
 	outhost = std::vector<float>(out_sz, 0);
+	
+	din = std::vector<T>(in_sz, 0);
+	dout = std::vector<T>(out_sz);
+	dinhost = std::vector<T>(in_sz, 0);
 
 	for (int i = 0; i < in_sz; i++) {
 		in[i] =  (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
+	for (int i = 0; i < out_sz; i++) {
+		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+	}
+
 	cl_int status;
 	status = in_dev->ToGPU(q, in.data());
 	status |= out_dev->ToGPU(q, out.data());
+
+	status = din_dev->ToGPU(q, din.data());
+	status |= dout_dev->ToGPU(q, dout.data());
 
 	if(status != CL_SUCCESS) 
 		printf("Error copying data to GPU\n");
@@ -168,26 +199,26 @@ int SoftmaxDriver<T>::RunForwardCPU() {
 	mlopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w);
 
 	std::copy(in.begin(), in.end(), outhost.begin());
-	std::vector<float> channel_max(n, -FLT_MAX);
+	std::vector<float> channel_max(n*h*w, -FLT_MAX);
 
 	for(int i = 0; i < n; i++) {
 		for(int s = 0; s < h*w; s++) {
 			for(int j = 0; j < c; j++) {
-				channel_max[i] = std::max(outhost[(i*c + j)*h*w + s], channel_max[i]);
+				channel_max[i*h*w + s] = std::max(outhost[(i*c + j)*h*w + s], channel_max[i*h*w + s]);
 			}
 
 			for(int j = 0; j < c; j++) {
-				outhost[(i*c + j)*h*w + s] -= channel_max[i];
+				outhost[(i*c + j)*h*w + s] -= channel_max[i*h*w + s];
 				outhost[(i*c + j)*h*w + s] = exp(outhost[(i*c + j)*h*w + s]);
 			}
 
-			channel_max[i] = 0.0;
+			channel_max[i*h*w + s] = 0.0;
 			for(int j = 0; j < c; j++) {
-				channel_max[i] += outhost[(i*c + j)*h*w + s];
+				channel_max[i*h*w + s] += outhost[(i*c + j)*h*w + s];
 			}
 
 			for(int j = 0; j < c; j++) {
-				outhost[(i*c + j)*h*w + s] /= channel_max[i];
+				outhost[(i*c + j)*h*w + s] /= channel_max[i*h*w + s];
 			}
 		}
 	}
@@ -197,7 +228,6 @@ int SoftmaxDriver<T>::RunForwardCPU() {
 
 template<typename T>
 int SoftmaxDriver<T>::RunBackwardGPU() {
-#if 0
 	float alpha = 1., beta = 1.;
 
 	mlopenSoftmaxBackward(GetHandle(),
@@ -206,8 +236,6 @@ int SoftmaxDriver<T>::RunBackwardGPU() {
 		out_dev->GetMem(),
 		dOutputTensor,
 		dout_dev->GetMem(),
-		inputTensor,
-		in_dev->GetMem(),
 		&beta,
 		dInputTensor,
 		din_dev->GetMem());
@@ -219,7 +247,6 @@ int SoftmaxDriver<T>::RunBackwardGPU() {
 	}
 
 	din_dev->FromGPU(GetStream(), din.data());
-#endif
 	return(0);
 
 }
@@ -244,12 +271,42 @@ int SoftmaxDriver<T>::VerifyForward() {
 
 template<typename T>
 int SoftmaxDriver<T>::RunBackwardCPU() {
-	
+	int n, c, h, w;
+	mlopenGet4dTensorDescriptorLengths(dOutputTensor, &n, &c, &h, &w);
+
+	std::copy(dout.begin(), dout.end(), dinhost.begin());
+	std::vector<float> channel_dot(n*h*w, 0.0);
+
+	for(int i = 0; i < n; i++) {
+		for(int s = 0; s < h*w; s++) {
+			for(int j = 0; j < c; j++) {
+				channel_dot[i*h*w + s] += out[(i*c + j)*h*w + s] * dinhost[(i*c + j)*h*w + s];
+			}
+
+			for(int j = 0; j < c; j++) {
+				dinhost[(i*c + j)*h*w + s] -= channel_dot[i*h*w + s];
+				dinhost[(i*c + j)*h*w + s] = out[(i*c + j)*h*w + s] * dinhost[(i*c + j)*h*w + s];
+			}
+		}
+	}
+
 	return 0;
 }
 
 template<typename T>
 int SoftmaxDriver<T>::VerifyBackward() {
+	RunBackwardCPU();
+
+	auto error = rms_range(dinhost, din);
+	const double tolerance = 1e-6;
+	if (error > tolerance)
+	{
+		std::cout<<"Backward Softmax Failed: " << error <<"\n";
+	}
+	else
+	{
+		printf("Backward Softmax Verifies on CPU and GPU\n");
+	}
 
 	return 0;
 }
