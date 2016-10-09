@@ -93,10 +93,12 @@ int LRNDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
 	if(inflags.GetValueInt("time") == 1) {
 		mlopenEnableProfiling(GetHandle(), true);
 	}
+#if 0
 	if(inflags.GetValueInt("back") == 0 && inflags.GetValueStr("mode") == "cross") {
 		printf("Cross channel LRN needs do_backward=1\n");
 		exit(0);
 	}
+#endif
 	return 0; 
 }
 
@@ -129,7 +131,7 @@ int LRNDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
-	inflags.AddInputFlag("back", 'b', "1", "Optimization: Do Backward LRN (Default=1)", "int");
+//	inflags.AddInputFlag("back", 'b', "1", "Optimization: Do Backward LRN (Default=1)", "int");
 	inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
 	inflags.AddInputFlag("mode", 'm', "within", "LRN Mode (within_channel or cross_channel) (Default=within)", "str");
 
@@ -193,16 +195,18 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 	din_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
 
-	if (inflags.GetValueInt("back") == 1) {
+	if (inflags.GetValueInt("forw") == 0) {
 		scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workspaceSize/sizeof(float), sizeof(float)));
 	}
 
 	in = std::vector<float>(in_sz);
 	out = std::vector<float>(out_sz, 0);
-	scale = std::vector<float>(workspaceSize/sizeof(float), 0);
 	outhost = std::vector<float>(out_sz, 0);
-	scalehost = std::vector<float>(workspaceSize / sizeof(float), 0);
-
+	if (inflags.GetValueInt("forw") == 0)
+	{
+		scale = std::vector<float>(workspaceSize / sizeof(float), 0);
+		scalehost = std::vector<float>(workspaceSize / sizeof(float), 0);
+	}
 	din = std::vector<float>(in_sz);
 	dout = std::vector<float>(out_sz, 0);
 	dinhost = std::vector<float>(in_sz, 0);
@@ -217,7 +221,10 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 
 	cl_int status;
 	status = in_dev->ToGPU(q, in.data());
-	status |= scale_dev->ToGPU(q, scale.data());
+	if (inflags.GetValueInt("forw") == 0)
+	{
+		status |= scale_dev->ToGPU(q, scale.data());
+	}
 	status |= out_dev->ToGPU(q, out.data());
 
 	status = din_dev->ToGPU(q, din.data());
@@ -242,8 +249,9 @@ int LRNDriver<T>::RunForwardGPU() {
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
-			(inflags.GetValueInt("back")==1)?true:false,
-			scale_dev->GetMem());
+			(inflags.GetValueInt("forw")==0)?true:false,
+			(inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : NULL
+	);
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
@@ -253,7 +261,7 @@ int LRNDriver<T>::RunForwardGPU() {
 
 	out_dev->FromGPU(GetStream(), out.data());
 
-	if (inflags.GetValueInt("back") == 1) {
+	if (inflags.GetValueInt("forw") == 0) {
 		scale_dev->FromGPU(GetStream(), scale.data());
 	}
 
@@ -308,7 +316,7 @@ int LRNDriver<T>::RunForwardCPU() {
 	int scale_v_batch_stride = top_v_batch_stride;
 
 	mloLRNForwardRunHost<T>(
-			(inflags.GetValueInt("back")==1)?true:false,
+			(inflags.GetValueInt("forw")==0)?true:false,
 			v_mode,
 			pad,
 			v_lrnN,
