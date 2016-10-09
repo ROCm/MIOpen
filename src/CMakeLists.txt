@@ -75,6 +75,7 @@ set( MLOpen_Source
 	lrn_api.cpp
 	activ_api.cpp
 	handle_api.cpp
+	softmax_api.cpp
 	include/mlopen/common.hpp
 	include/mlopen/convolution.hpp
 	include/mlopen/errors.hpp
@@ -84,10 +85,12 @@ set( MLOpen_Source
 	include/mlopen/mlo_utils.hpp
 	include/mlopen/oclkernel.hpp
 	include/mlopen/tensor.hpp
+	include/mlopen/tensor_ops.hpp
 	include/mlopenTypes.h
 	include/mlopen/pooling.hpp
 	include/mlopen/lrn.hpp
 	include/mlopen/activ.hpp
+	include/mlopen/softmax.hpp
 	tensor.cpp
 	tensor_api.cpp
 	)
@@ -106,6 +109,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenConv1x1.cl
 		Kernels/MLOpenConv1x1L.cl
 		Kernels/MLOpenConv1x1PS.cl
+		Kernels/MLOpenSoftmax.cl
 		Kernels/MLOpenConv1x1PS_LW.cl
 	)
 	configure_file(db.cpp.in db.cpp)
@@ -124,6 +128,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		ocl/mloPooling.cpp
 		ocl/pooling_ocl.cpp
 		ocl/tensorocl.cpp
+		ocl/softmaxocl.cpp
 		pooling.cpp
         ocl/oclerrors.cpp
         ocl_kernel.cpp
