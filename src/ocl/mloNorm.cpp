@@ -78,8 +78,8 @@ int mlo_construct_norm::mloConstructFwd()
 		_out_pix_tile1 = (_out_height <= 8) ? 1 : 2;
 	}
 
-	int ocl_group_lg2sz0 = (int)ceil(log((double)_out_pix_tile0) / log(2.));
-	int ocl_group_lg2sz1 = (int)ceil(log((double)_out_pix_tile1) / log(2.));
+	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile0) / log(2.))));
+	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile1) / log(2.))));
 
 	int read_unit = 4;
 	int N4S = 1;
@@ -111,56 +111,56 @@ int mlo_construct_norm::mloConstructFwd()
 	int	scale_batch_stride = _out_batch_stride;
 	int scale = (doBackward()) ? 1 : 0;
 
-	int g_wk_width = (int)((_out_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
-	int g_wk_height = (int)((_out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
+	int g_wk_width = static_cast<int>((_out_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
+	int g_wk_height = static_cast<int>((_out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
 	int OUT_VERT_ALIGNED = (g_wk_height * (_grp_tile1 * _out_pix_tile1) == _out_height) ? 1 : 0;
 	int OUT_HORIZ_ALIGNED = (g_wk_width * (_grp_tile0 * _out_pix_tile0) == _out_width) ? 1 : 0;
 	// currently always 1
 	int DIVBY4 = (MAP_SZ4 * read_unit == _in_width * _in_height) ? 1 : 0;
 	int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0 : _in_width * _in_height - (MAP_SZ4 - 1) * read_unit;
 
-	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((long long)read_unit);
+	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
 
 	_comp_options =
-		std::string(" -D MLO_LRN_KERNEL_SZ=") + std::to_string((long long)_norm_area)
-		+ std::string(" -D MLO_LRN_PAD=") + std::to_string((long long)pad)
-		+ std::string(" -D MLO_LRN_KERNEL_SZ1=") + std::to_string((long long)_norm_area)
-		+ std::string(" -D MLO_LRN_PAD1=") + std::to_string((long long)pad)
-		+ std::string(" -D MLO_LRN_KERNEL_SZ0=") + std::to_string((long long)_norm_area)
-		+ std::string(" -D MLO_LRN_PAD0=") + std::to_string((long long)pad)
-		+ std::string(" -D MLO_LRN_N_OUTPUTS=") + std::to_string((long long)_n_outputs)
-		+ std::string(" -D MLO_LRN_N_CHANNELS=") + std::to_string((long long)_n_inputs)
-		+ std::string(" -D MLO_LRN_N_HORIZ_OUT_PIX=") + std::to_string((long long)_out_pix_tile0)
-		+ std::string(" -D MLO_LRN_N_VERT_OUT_PIX=") + std::to_string((long long)_out_pix_tile1)
-		+ std::string(" -D MLO_LRN_GROUP_SZ0=") + std::to_string((long long)_grp_tile0)
-		+ std::string(" -D MLO_LRN_GROUP_SZ1=") + std::to_string((long long)_grp_tile1)
-		+ std::string(" -D MLO_LRN_GROUP_LG2SZ0=") + std::to_string((long long)ocl_group_lg2sz0)
-		+ std::string(" -D MLO_LRN_GROUP_LG2SZ1=") + std::to_string((long long)ocl_group_lg2sz1)
-		+ std::string(" -D MLO_LRN_BOT_BATCH_STRIDE=") + std::to_string((long long)_in_batch_stride)
-		+ std::string(" -D MLO_LRN_BOT_CHANNEL_STRIDE=") + std::to_string((long long)_in_channel_stride)
-		+ std::string(" -D MLO_LRN_BOT_STRIDE=") + std::to_string((long long)_in_stride)
-		+ std::string(" -D MLO_LRN_TOP_BATCH_STRIDE=") + std::to_string((long long)_out_batch_stride)
-		+ std::string(" -D MLO_LRN_TOP_CHANNEL_STRIDE=") + std::to_string((long long)_out_channel_stride)
-		+ std::string(" -D MLO_LRN_TOP_STRIDE=") + std::to_string((long long)_out_stride)
-		+ std::string(" -D MLO_LRN_BOT_WIDTH=") + std::to_string((long long)_out_width)
-		+ std::string(" -D MLO_LRN_BOT_HEIGHT=") + std::to_string((long long)_out_height)
-		+ std::string(" -D MLO_LRN_TOP_WIDTH=") + std::to_string((long long)_out_width)
-		+ std::string(" -D MLO_LRN_TOP_HEIGHT=") + std::to_string((long long)_out_height)
-		+ std::string(" -D MLO_LRN_SCALE_BATCH_STRIDE=") + std::to_string((long long)scale_batch_stride)
-		+ std::string(" -D MLO_LRN_SCALE_CHANNEL_STRIDE=") + std::to_string((long long)scale_channel_stride)
-		+ std::string(" -D MLO_LRN_SCALE_STRIDE=") + std::to_string((long long)scale_stride)
-		+ std::string(" -D MLO_LRN_TOPDF_BATCH_STRIDE=") + std::to_string((long long)top_df_batch_stride)
-		+ std::string(" -D MLO_LRN_TOPDF_CHANNEL_STRIDE=") + std::to_string((long long)top_df_channel_stride)
-		+ std::string(" -D MLO_LRN_TOPDF_STRIDE=") + std::to_string((long long)top_df_stride)
-		+ std::string(" -D MLO_LRN_BOTDF_BATCH_STRIDE=") + std::to_string((long long)bot_df_batch_stride)
-		+ std::string(" -D MLO_LRN_BOTDF_CHANNEL_STRIDE=") + std::to_string((long long)bot_df_channel_stride)
-		+ std::string(" -D MLO_LRN_BOTDF_STRIDE=") + std::to_string((long long)bot_df_stride)
-		+ std::string(" -D MLO_LRN_BATCH_SZ=") + std::to_string((long long)_batch_sz)
-		+ std::string(" -D MLO_LRN_N_INPUTS=") + std::to_string((long long)_n_inputs)
-		+ std::string(" -D MLO_LRN_N_OUTPUTS=") + std::to_string((long long)_n_outputs)
-		+ std::string(" -D MLO_LRN_DO_SCALE=") + std::to_string((long long)scale)
-		+ std::string(" -D MLO_OUT_VERT_ALIGNED=") + std::to_string((long long)OUT_VERT_ALIGNED)
-		+ std::string(" -D MLO_OUT_HORIZ_ALIGNED=") + std::to_string((long long)OUT_HORIZ_ALIGNED)
+		std::string(" -D MLO_LRN_KERNEL_SZ=") + std::to_string(static_cast<long long>(_norm_area))
+		+ std::string(" -D MLO_LRN_PAD=") + std::to_string(static_cast<long long>(pad))
+		+ std::string(" -D MLO_LRN_KERNEL_SZ1=") + std::to_string(static_cast<long long>(_norm_area))
+		+ std::string(" -D MLO_LRN_PAD1=") + std::to_string(static_cast<long long>(pad))
+		+ std::string(" -D MLO_LRN_KERNEL_SZ0=") + std::to_string(static_cast<long long>(_norm_area))
+		+ std::string(" -D MLO_LRN_PAD0=") + std::to_string(static_cast<long long>(pad))
+		+ std::string(" -D MLO_LRN_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs))
+		+ std::string(" -D MLO_LRN_N_CHANNELS=") + std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string(" -D MLO_LRN_N_HORIZ_OUT_PIX=") + std::to_string(static_cast<long long>(_out_pix_tile0))
+		+ std::string(" -D MLO_LRN_N_VERT_OUT_PIX=") + std::to_string(static_cast<long long>(_out_pix_tile1))
+		+ std::string(" -D MLO_LRN_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
+		+ std::string(" -D MLO_LRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
+		+ std::string(" -D MLO_LRN_GROUP_LG2SZ0=") + std::to_string(static_cast<long long>(ocl_group_lg2sz0))
+		+ std::string(" -D MLO_LRN_GROUP_LG2SZ1=") + std::to_string(static_cast<long long>(ocl_group_lg2sz1))
+		+ std::string(" -D MLO_LRN_BOT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
+		+ std::string(" -D MLO_LRN_BOT_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
+		+ std::string(" -D MLO_LRN_BOT_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
+		+ std::string(" -D MLO_LRN_TOP_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
+		+ std::string(" -D MLO_LRN_TOP_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
+		+ std::string(" -D MLO_LRN_TOP_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
+		+ std::string(" -D MLO_LRN_BOT_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string(" -D MLO_LRN_BOT_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string(" -D MLO_LRN_TOP_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string(" -D MLO_LRN_TOP_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string(" -D MLO_LRN_SCALE_BATCH_STRIDE=") + std::to_string(static_cast<long long>(scale_batch_stride))
+		+ std::string(" -D MLO_LRN_SCALE_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(scale_channel_stride))
+		+ std::string(" -D MLO_LRN_SCALE_STRIDE=") + std::to_string(static_cast<long long>(scale_stride))
+		+ std::string(" -D MLO_LRN_TOPDF_BATCH_STRIDE=") + std::to_string(static_cast<long long>(top_df_batch_stride))
+		+ std::string(" -D MLO_LRN_TOPDF_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(top_df_channel_stride))
+		+ std::string(" -D MLO_LRN_TOPDF_STRIDE=") + std::to_string(static_cast<long long>(top_df_stride))
+		+ std::string(" -D MLO_LRN_BOTDF_BATCH_STRIDE=") + std::to_string(static_cast<long long>(bot_df_batch_stride))
+		+ std::string(" -D MLO_LRN_BOTDF_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(bot_df_channel_stride))
+		+ std::string(" -D MLO_LRN_BOTDF_STRIDE=") + std::to_string(static_cast<long long>(bot_df_stride))
+		+ std::string(" -D MLO_LRN_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
+		+ std::string(" -D MLO_LRN_N_INPUTS=") + std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string(" -D MLO_LRN_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs))
+		+ std::string(" -D MLO_LRN_DO_SCALE=") + std::to_string(static_cast<long long>(scale))
+		+ std::string(" -D MLO_OUT_VERT_ALIGNED=") + std::to_string(static_cast<long long>(OUT_VERT_ALIGNED))
+		+ std::string(" -D MLO_OUT_HORIZ_ALIGNED=") + std::to_string(static_cast<long long>(OUT_HORIZ_ALIGNED))
 		+ std::string(" -D MLO_MAP_SZ4=") + std::to_string(static_cast<long long>(MAP_SZ4))
 		+ std::string(" -D MLO_C1x1_PIXLEFT=") + std::to_string(static_cast<long long>(C1x1_PIXLEFT))
 		+ std::string(" -D MLO_DIVBY4=") + std::to_string(static_cast<long long>(DIVBY4))
