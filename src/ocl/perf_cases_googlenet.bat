@@ -12,7 +12,7 @@ rem .\driver\Debug\MLOpenDriver.exe active -i 1 -n %B% -W 112 -H 112 -c 64 -F 1 
 echo "pool1/3x3_s2 10x64x112x112x64x3x3"
 .\driver\Debug\MLOpenDriver.exe pool -n %B% -W 112 -H 112 -c 64 -k 64 -x 3 -y 3 -p 1 -q 1 -u 2 -v 2 -F 1 -t %T% -V %V%
 echo "pool1/norm 1x64x56x56x64x5x5"
-rem .\driver\Debug\MLOpenDriver.exe lrn -i 1 -n %B% -W 56 -H 56 -c 64 -x 5 -y 5 -p 2 -q 2 -F 1 -t %T% -V %V%
+.\driver\Debug\MLOpenDriver.exe lrn -i 1 -n %B% -W 56 -H 56 -c 64 -F 1 -t %T% -V %V%
 echo "conv2/3x3_reduce 10x64x56x56x64x1x1"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -n %B% -W 56 -H 56 -c 64 -k 64 -x 1 -y 1 -p 0 -q 0  -F 1 -t %T% -V %V% -s %S%
 echo "conv2/relu_3x3_reduce 1x64x256x512x64"
@@ -22,7 +22,7 @@ echo "conv2/3x3 10x64x56x56x192x3x3"
 echo "conv2/relu_3x3 1x192x256x512x192"
 rem .\driver\Debug\MLOpenDriver.exe conv -i 1 -n %B% -W 56 -H 56 -c 192 -k 192 -F 1 -t %T% -V %V%
 echo "conv2/norm2 1x192x256x512x192x5x5"
-rem .\driver\Debug\MLOpenDriver.exe conv -i 1 -n %B% -W 56 -H 56 -c 192 -k 192 -x 5 -y 5 -p 2 -q 2 -lrn 0 -F 1 -t %T% -V %V%
+.\driver\Debug\MLOpenDriver.exe lrn -i 1 -n %B% -W 56 -H 56 -c 192 -F 1 -t %T% -V %V%
 echo "pool2/3x3_s2 10x192x56x56x192x3x3"
 .\driver\Debug\MLOpenDriver.exe pool -n %B% -W 56 -H 56 -c 192 -k 192 -x 3 -y 3 -p 1 -q 1 -u 2 -v 2 -F 1 -t %T% -V %V%
 echo "inception_3a/1x1 1x192x28x28x64x1x1"

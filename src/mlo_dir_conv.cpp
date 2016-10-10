@@ -221,7 +221,7 @@ int mlo_construct_direct2D::mloConstruct()
 {
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
-	if (_gen && getDirectcion())
+	if (_gen && getDirection())
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
@@ -274,7 +274,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 {
 	int ret = 0;
 
-	if (_kernel_size0 == 1 && _kernel_size1 == 1)
+	if (_kernel_size0 == 1 && _kernel_size1 == 1 && getDirection())
 	{
 
 		return(mloConstructDirect2D1x1());
@@ -405,28 +405,9 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;
 
-	// to restore to the previous version just comment this line
-	if (_kernel_size0 == 1 && _kernel_size1 == 1)
-	{
-		return(mloConstructDirect2D1x1());
-	}
-
 
 	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
-
 	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
-
-	_hw_wave_sz = 64;
-	_dev_local_mem_sz = localMemSize; // in bytes
-
-	if (_kernel_size0 == 1 && _kernel_size1 == 1)
-	{
-
-		return(mloConstructDirect2D1x1());
-	}
-	_hw_wave_sz = 64;
-	_dev_local_mem_sz = localMemSize; // in bytes
-
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes

@@ -1,5 +1,5 @@
 #include <mlopen/tensor.hpp>
-#include <mlopen/tensor.hpp>
+#include <mlopen/tensor_ops.hpp>
 #include <mlopen/errors.hpp>
 #include <algorithm>
 
@@ -54,7 +54,7 @@ void TransformTensor(Handle& /* handle */,
 			const cl_mem  /*srcTensor*/,
 			const void * /*beta*/,
 			const TensorDescriptor& destTensorDesc,
-			cl_mem  /*dstTensor*/) {
+			cl_mem  /*destTensor*/) {
 
 	printf("To be implemented (TransformTensor) \n");
 
@@ -86,7 +86,7 @@ void OpTensor(Handle& /* handle */,
 		const cl_mem					 /*inputTensor2*/,
 		const void						* /*beta*/,
 		const TensorDescriptor& destTensorDesc,
-		cl_mem							 /*dstTensor*/) {
+		cl_mem							 /*destTensor*/) {
 
 	printf("To be implemented (Op Tensor) \n");
 
