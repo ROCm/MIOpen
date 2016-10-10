@@ -281,7 +281,7 @@ public:
 	/*
 	* return direction: true - forward, false - backward
 	*/
-	inline bool getDirectcion() const
+	inline bool getDirection() const
 	{
 		return(_direction == 1);
 	}
