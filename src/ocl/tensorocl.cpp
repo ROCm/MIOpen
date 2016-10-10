@@ -1,5 +1,5 @@
 #include <mlopen/tensor.hpp>
-#include <mlopen/tensor.hpp>
+#include <mlopen/tensor_ops.hpp>
 #include <mlopen/errors.hpp>
 #include <algorithm>
 
