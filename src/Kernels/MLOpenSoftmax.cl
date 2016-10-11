@@ -150,7 +150,7 @@ kernel void SoftmaxForward(global float *y, const int c, const int grid_size, co
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
-	float channel_max = l_helper[batch*16];
+	float channel_max = l_helper[batch * BATCH_SIZE];
 	t_helper = 0.;
 
 	// Subtract channel_max from each value
@@ -177,11 +177,109 @@ kernel void SoftmaxForward(global float *y, const int c, const int grid_size, co
 
 	// Normalize each value in the channel by the channel_sum
 	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
-		value[i / BATCH_SIZE] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
 		value[i / BATCH_SIZE] = exp(value[i / BATCH_SIZE] - channel_max);
 
 		y[mad24(batch_n,c,i)*spatial_dim + batch_s] = value[i / BATCH_SIZE]/channel_sum;
 	}
 
 #endif // CSR-Vector vs CSR-Stream
-}	
+}
+
+kernel void SoftmaxBackward(global float *y, global float *dx, const int c, const int grid_size, const int spatial_dim) 
+{
+
+#if NUM_BATCH == 1 // CSR-Vector like appraoch
+	local float l_helper[256];
+	
+	int gid = get_group_id(0);
+	int lid = get_local_id(0);
+
+	// Total number of workgroups launched can be less than the gridsize, hence iterate over.
+	for(gid = get_group_id(0); gid < grid_size; gid += get_num_groups(0)) {
+	
+		int n = gid / spatial_dim; // nth image
+		int s = gid % spatial_dim; // spatial dimension (h*w)
+		
+		float channel_dot = 0.f; // thread_local helper var
+
+		// Compute dot product per channel
+		// Iterate over all the channels one thread is supposed to loop over
+		// and compute dot-product
+		for(int i = lid; i < c; i += get_local_size(0)) {
+			channel_dot += (y[mad24(n,c, i)*spatial_dim + s] * dx[mad24(n,c, i)*spatial_dim + s]);
+		}
+
+		// Now we have to compute the sum from 256 values (one per each thread)
+		l_helper[lid] = channel_dot;
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// Logarithmic reduction to compute the sum.
+		for(int i = (get_local_size(0)>>1); i > 0; i >>= 1) {
+			if(lid < i) {
+				l_helper[lid] += l_helper[lid+i];
+			}
+			barrier(CLK_LOCAL_MEM_FENCE);
+		}
+
+		channel_dot = l_helper[0];
+
+		// Subtract and element-wise multiplication
+		for(int i = lid; i < c; i += get_local_size(0)) {
+			float value = dx[mad24(n,c,i)*spatial_dim + s] - channel_dot;
+
+			dx[mad24(n,c,i)*spatial_dim + s] = y[mad24(n,c,i)*spatial_dim + s] * value;
+		}
+	}
+
+#else
+
+	local float l_helper[256];
+	
+	int gid = get_group_id(0);
+	int lid = get_local_id(0);
+
+	// ID of the thread within the batch
+	int batch_lid = lid & (BATCH_SIZE-1);
+	int batch = lid / BATCH_SIZE;
+
+	// Batch specific n and s
+	int batch_n = (NUM_BATCH*gid + batch) / spatial_dim;
+	int batch_s = (NUM_BATCH*gid + batch) % spatial_dim;
+	
+	float channel_dot = 0.f; // thread_local helper var
+
+	// stores all the values touched by one thread so that we do not have load
+	// again as the CSR-Vector approach
+	float y_value[U_BATCH_SIZE]; 
+	float dx_value[U_BATCH_SIZE]; 
+
+	// Compute dot product per channel
+	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
+		y_value[i / BATCH_SIZE ] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
+		dx_value[i / BATCH_SIZE ] = dx[mad24(batch_n,c, i)*spatial_dim + batch_s];
+		channel_dot += y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE] ;
+	}
+
+	// Now we have to compute the sum from 256 values (one per each thread)
+	l_helper[lid] = channel_dot;
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// Logarithmic reduction to compute the sum.
+	for(int i = (BATCH_SIZE >> 1); i > 0; i >>= 1) {
+		if(batch_lid < i) {
+			l_helper[lid] += l_helper[lid+i];
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+
+	channel_dot = l_helper[batch * BATCH_SIZE];
+
+	// Subtract and element-wise multiplication
+	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
+		dx_value[i / BATCH_SIZE ] -= channel_dot;
+			
+		dx[mad24(batch_n,c, i)*spatial_dim + batch_s] = y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE];
+	}
+
+#endif // CSR-Vector vs CSR-Stream
+}

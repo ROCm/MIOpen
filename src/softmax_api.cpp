@@ -38,12 +38,16 @@ mlopenStatus_t mlopenSoftmaxBackward(
 	void								*dx) {
 
 	return mlopen::try_([&] {
+		CopyTensor(mlopen::deref(handle),
+			mlopen::deref(dyDesc),
+			DataCast(dy),
+			mlopen::deref(dxDesc),
+			DataCast(dx));
+
 		mlopen::SoftmaxBackward(mlopen::deref(handle),
 			alpha,
 			mlopen::deref(yDesc),
 			DataCast(y),
-			mlopen::deref(dyDesc),
-			DataCast(dy),
 			beta,
 			mlopen::deref(dxDesc),
 			DataCast(dx));
