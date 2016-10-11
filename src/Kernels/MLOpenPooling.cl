@@ -143,11 +143,6 @@ __kernel void mloPooling(
 			for(int l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
 			{
 
-// BUG!!!!
-#if MLO_POOLING_PAD0 > 0 || MLO_POOLING_PAD1  > 0
-		barrier(CLK_LOCAL_MEM_FENCE);
-#endif
-
 				int	x_dst = x+ lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX + l;
 				int wstart = x_dst * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0;
 				int wend = min(wstart + MLO_POOLING_KERNEL_SZ0, MLO_POOLING_BOT_WIDTH + MLO_POOLING_PAD0);
