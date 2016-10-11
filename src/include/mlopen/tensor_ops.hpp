@@ -14,20 +14,20 @@ void TransformTensor(Handle& handle,
 		const TensorDescriptor& srcTensorDesc,
 		ConstData_t srcTensor,
 		const void *beta,
-		const TensorDescriptor& dstTensorDesc,
-		Data_t dstTensor);
+		const TensorDescriptor& destTensorDesc,
+		Data_t destTensor);
 
 void OpTensor(Handle& handle,
 		mlopenTensorOp_t				tensorOp,
 		const void						*alpha1,
 		const TensorDescriptor&	inputTensorDesc1,
-		ConstData_t					A,
+		ConstData_t					inputTensor1,
 		const void						*alpha2,
 		const TensorDescriptor&	inputTensorDesc2,
-		ConstData_t					B,
+		ConstData_t					inputTensor2,
 		const void						*beta,
-		const TensorDescriptor& CTensorDesc,
-		Data_t							C);
+		const TensorDescriptor& destTensorDesc,
+		Data_t							destTensor);
 
 void CopyTensor(Handle &handle,
 		const TensorDescriptor &srcDesc,
