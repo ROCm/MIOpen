@@ -16,8 +16,8 @@ add_custom_target(tests)
 function(add_test_executable TEST_NAME)
     add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
     target_link_libraries(${TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
-    # Older versions of cmake do not add flags correctly
-    if(${CMAKE_VERSION} VERSION_LESS 3.0 AND CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
+    # Cmake does not add flags correctly for gcc
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
         set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
     endif()
     if(WIN32)
