@@ -11,40 +11,37 @@
 #include <cmath>
 #include <cassert>
 
-template<class F>
-struct protect_fn
+struct joinable_thread : std::thread
 {
-    F f;
-    protect_fn(F x) : f(std::move(x)) 
+    template<class... Xs>
+    joinable_thread(Xs&&... xs) : std::thread(std::forward<Xs>(xs)...)
     {}
 
-    template<class... Ts>
-    auto operator()(Ts&&... xs) const MLOPEN_RETURNS
-    (f(std::forward<Ts>(xs)...));
-};
+    joinable_thread& operator=( joinable_thread&& other )=default;
+    joinable_thread( joinable_thread&& other )=default;
 
-template<class F>
-protect_fn<F> protect(F f)
-{
-    return {std::move(f)};
-}
+    ~joinable_thread()
+    {
+        if (this->joinable()) this->join();
+    }
+};
 
 template<class F>
 void par_for(std::size_t n, std::size_t threadsize, F f)
 {
-    if (threadsize == 1)
+    if (threadsize <= 1)
     {
         for(std::size_t i=0;i<n;i++) f(i);
     }
     else
     {
-        std::vector<std::thread> threads(threadsize);
+        std::vector<joinable_thread> threads(threadsize);
         const std::size_t grainsize = std::ceil(static_cast<double>(n) / threads.size());
 
         std::size_t work = 0;
         std::generate(threads.begin(), threads.end(), [&]
         {
-            auto result = std::thread([&, work]
+            auto result = joinable_thread([&, work]
             {
                 std::size_t start = work;
                 std::size_t last = std::min(n, work+grainsize);
@@ -57,11 +54,6 @@ void par_for(std::size_t n, std::size_t threadsize, F f)
             return result;
         });
         assert(work >= n);
-        // TODO: Should be in destructor
-        for(auto&& t:threads)
-        {
-            if (t.joinable()) t.join();
-        }
     }
 }
 
