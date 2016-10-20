@@ -11,22 +11,37 @@
 #include <cmath>
 #include <cassert>
 
+struct joinable_thread : std::thread
+{
+    template<class... Xs>
+    joinable_thread(Xs&&... xs) : std::thread(std::forward<Xs>(xs)...)
+    {}
+
+    joinable_thread& operator=( joinable_thread&& other )=default;
+    joinable_thread( joinable_thread&& other )=default;
+
+    ~joinable_thread()
+    {
+        if (this->joinable()) this->join();
+    }
+};
+
 template<class F>
 void par_for(std::size_t n, std::size_t threadsize, F f)
 {
-    if (threadsize == 1)
+    if (threadsize <= 1)
     {
         for(std::size_t i=0;i<n;i++) f(i);
     }
     else
     {
-        std::vector<std::thread> threads(threadsize);
+        std::vector<joinable_thread> threads(threadsize);
         const std::size_t grainsize = std::ceil(static_cast<double>(n) / threads.size());
 
         std::size_t work = 0;
         std::generate(threads.begin(), threads.end(), [&]
         {
-            auto result = std::thread([&, work]
+            auto result = joinable_thread([&, work]
             {
                 std::size_t start = work;
                 std::size_t last = std::min(n, work+grainsize);
@@ -39,11 +54,6 @@ void par_for(std::size_t n, std::size_t threadsize, F f)
             return result;
         });
         assert(work >= n);
-        // TODO: Should be in destructor
-        for(auto&& t:threads)
-        {
-            if (t.joinable()) t.join();
-        }
     }
 }
 
