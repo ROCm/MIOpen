@@ -135,9 +135,9 @@ struct verify_backward_conv
         int out_n, out_c, out_h, out_w;
         std::tie(out_n, out_c, out_h, out_w) = mlopen::tie4(out.desc.GetLengths());
 
-        par_ford(out_n, out_c, wei_c)([&](int o, int w, int k)
+        par_ford(out_n, wei_c)([&](int o, int k)
         {
-            ford(out_h, out_w, wei_h, wei_w)([&](int i, int j, int x, int y)
+            ford(out_c, out_h, out_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y)
             {
                 const int in_off_h = i * filter.v;
                 const int in_off_w = j * filter.u;
