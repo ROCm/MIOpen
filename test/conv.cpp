@@ -118,14 +118,6 @@ tensor<T> get_input_tensor(const mlopen::ConvolutionDescriptor& filter, const te
     return tensor<T>{filter.GetBackwardInputTensor(out.desc, weights.desc)};
 }
 
-template<class T, class U>
-void atomic_add(std::atomic<T>& a, U val) {
-    auto old = a.load();
-    while( old >= 0 && !a.compare_exchange_weak( old, old+val ) )
-        { }
-    return old;
-}
-
 struct verify_backward_conv
 {
     template<class T>
