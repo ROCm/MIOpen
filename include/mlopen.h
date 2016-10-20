@@ -597,7 +597,27 @@ MLOPEN_EXPORT mlopenStatus_t mlopenActivationBackward(
 
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroyActivationDescriptor(mlopenActivationDescriptor_t activDesc);
 
+// Softmax APIs
 
+MLOPEN_EXPORT mlopenStatus_t mlopenSoftmaxForward(
+	mlopenHandle_t						handle,
+	const void							*alpha,
+	const mlopenTensorDescriptor_t		xDesc,
+	const void							*x,
+	const void							*beta,
+	const mlopenTensorDescriptor_t		yDesc,
+	void								*y);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenSoftmaxBackward(
+	mlopenHandle_t						handle,
+	const void							*alpha,
+	const mlopenTensorDescriptor_t		yDesc,
+	const void							*y,
+	const mlopenTensorDescriptor_t		dyDesc,
+	const void							*dy,
+	const void							*beta,
+	const mlopenTensorDescriptor_t		dxDesc,
+	void								*dx);
 
 #ifdef __cplusplus
 }

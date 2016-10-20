@@ -5,7 +5,6 @@
 #include <mlopen.h>
 #include <CL/cl.h>
 #include "driver.hpp"
-#include "mloConvHost.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
 #include <mlopen/tensor.hpp>
@@ -14,6 +13,7 @@
 #include <float.h>
 #include <memory>
 #include <numeric>
+#include <../test/verify.hpp>
 
 template<typename T>
 class ConvDriver : public Driver 
@@ -294,36 +294,6 @@ int ConvDriver<T>::RunForwardCPU() {
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
-#if 0
-	mloConvForwarDirectOnHost<T>(
-		0,        // padding value
-		wei_h,   // kernel 1 dim 
-		pad_h,               // padding size
-		v,    // scale factor
-		wei_w,   // kernel 1 dim 
-		pad_w,               // padding size
-		u,    // scale factor
-		out_n,
-		out_c,
-		in_c,
-		out_h,
-		out_w,
-		out_nstride,
-		out_cstride,
-		out_hstride,
-		in_h,
-		in_w,
-		in_nstride,
-		in_cstride,
-		in_hstride,
-		in_c*wei_w*wei_h,
-		in.data(),			// input "tensor" - batch x channels (input images, feature maps, slices) x width x height
-		outhost.data(),	// output "te4nsor"  - batch x channels (output images, feature maps, slices) x width (scaled) x height (scaled)
-		wei.data(),    // weights n output channels x n input channels x filter size_y x filter size_x
-		NULL         // bias, NULL if no bias
-		);
-#endif
-
 	int bias = 0;
 
 	for(int o = 0; o < out_n; o++) { // mini-batch size
@@ -374,11 +344,16 @@ int ConvDriver<T>::FindBackward() {
 			&perf,
 			mlopenConvolutionFastest,
 			NULL,
-			10);
+			10,
+			(inflags.GetValueInt("search") == 1) ? true : false
+		);
 }
 
 template<typename T>
 int ConvDriver<T>::RunBackwardGPU() {
+
+	FindBackward();
+
 	int alpha = 1, beta = 1;
 
 	int ret = 0;
@@ -435,25 +410,6 @@ int ConvDriver<T>::RunBackwardCPU() {
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
-#if 0
-	mloBackwardDirectOnHost<T>(0,
-		wei_h,
-		pad_h,
-		u,
-		wei_w,
-		pad_w,
-		v,
-		in_n,
-		out_c,
-		in_c,
-		out_h, out_w,
-		out_nstride, out_cstride, out_hstride,
-		in_w, in_h,
-		in_nstride, in_cstride, in_hstride,
-		wei_nstride,
-		inhost.data(), out.data(), wei.data());
-#endif
-
 	for(int o = 0; o < out_n; o++) { // mini-batch size
 		for(int k = 0; k < in_c; k++) { // in_channels (RGB)
 			for(int w = 0; w < out_c; w++) { // out_channels (num filters)
@@ -487,15 +443,17 @@ int ConvDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
 
-	for(int i = 0; i < out.size(); i++) {
-		T diff = std::fabs(out[i] - outhost[i]);
-		if(diff > std::fabs((std::max(out[i], outhost[i])) * std::numeric_limits<T>::epsilon())) {
-
-			printf("Output Mismatch at: %d diff: %.10f gpu: %.10f cpu: %.10f \n", i, diff, out[i], outhost[i]);
-			return -1;
-		}
+	auto error = rms_range(outhost, out);
+	const double tolerance = 1e-6;
+	if (error > tolerance)
+	{
+		std::cout<<"Forward Convolution Failed: " << error <<"\n";
 	}
-	printf("Forward Convolution Verifies on CPU and GPU\n");
+	else
+	{
+		printf("Forward Convolution Verifies on CPU and GPU\n");
+	}
+
 	return 0;
 }
 
@@ -504,15 +462,16 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardCPU();
 
-	for(int i = 0; i < in.size(); i++) {
-		T diff = std::fabs(in[i] - inhost[i]);
-		if(diff > std::fabs((std::max(in[i], inhost[i])) * std::numeric_limits<T>::epsilon())) {
-
-			printf("Output Mismatch at: %d diff: %.10f gpu: %.10f cpu: %.10f \n", i, diff, in[i], inhost[i]);
-			return -1;
-		}
+	auto error = rms_range(inhost, in);
+	const double tolerance = 1e-6;
+	if (error > tolerance)
+	{
+		std::cout<<"Backward Convolution Failed: " << error <<"\n";
 	}
-	printf("Backward Convolution Verifies on CPU and GPU\n");
+	else
+	{
+		printf("Backward Convolution Verifies on CPU and GPU\n");
+	}
 
 	return 0;
 }

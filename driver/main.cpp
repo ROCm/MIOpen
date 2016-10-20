@@ -5,6 +5,7 @@
 #include "pool_driver.hpp"
 #include "lrn_driver.hpp"
 #include "activ_driver.hpp"
+#include "softmax_driver.hpp"
 
 int main(int argc, char *argv[]) {
 
@@ -22,6 +23,9 @@ int main(int argc, char *argv[]) {
 	}
 	else if (base_arg == "activ") {
 		drv = new ActivationDriver<float>();
+	}
+	else if (base_arg == "softmax") {
+		drv = new SoftmaxDriver<float>();
 	}
 	else {
 		printf("Incorrect BaseArg\n");

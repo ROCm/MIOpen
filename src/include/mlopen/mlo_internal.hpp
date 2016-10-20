@@ -281,7 +281,7 @@ public:
 	/*
 	* return direction: true - forward, false - backward
 	*/
-	inline bool getDirectcion() const
+	inline bool getDirection() const
 	{
 		return(_direction == 1);
 	}
@@ -684,6 +684,8 @@ protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
+	int mloConstructDirect2DFwdC(void);
+	int mloConstructDirect2D1x1(void);
 	int mloConstructDirect2DFwdGen();
 	int mloConstructBwd()
 	{

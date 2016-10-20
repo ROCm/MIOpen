@@ -54,24 +54,6 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 
 	std::string ToString() const;
 
-	void TransformTensor(Handle& handle,
-			const void *alpha,
-			const TensorDescriptor& srcTensorDesc,
-			ConstData_t srcTensor,
-			const void *beta,
-			Data_t dstTensor);
-
-	void OpTensor(Handle& handle,
-			mlopenTensorOp_t				tensorOp,
-			const void						*alpha1,
-			const TensorDescriptor&	inputTensorDesc1,
-			ConstData_t					A,
-			const void						*alpha2,
-			const TensorDescriptor&	inputTensorDesc2,
-			ConstData_t					B,
-			const void						*beta,
-			Data_t							C);
-
 	void SetTensor(Handle& handle,
 			Data_t							dstTensor,
 			const void						*valuePtr);

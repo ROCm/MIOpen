@@ -77,7 +77,7 @@
 
 inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
-	(*y) = linPos /width;
+	(*y) = (int)(((float)linPos + 0.1f) /width);
 	(*x) = linPos - (*y) * width; 
 }
 
@@ -230,7 +230,7 @@ __kernel void MLOpenCDFGen(
 // put weights for all our outputs for this input into LDS 
 		for(int i = lcl_id; i < MLO_LCL_N_OUT_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1; i += MLO_GRP_SZ)
 		{
-			int lcl_o = i/(MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
+			int lcl_o = (int)(((float)i + 0.1f)/(MLO_FLTR_SZ0 * MLO_FLTR_SZ1));
 			int lcl_o_i = i - lcl_o * (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
 
 			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
