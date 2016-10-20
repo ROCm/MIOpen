@@ -73,6 +73,26 @@ struct tensor
         assert(this->desc.GetIndex(n, c, h, w) < data.size());
         return this->data[this->desc.GetIndex(n, c, h, w)];
     }
+
+    typename std::vector<T>::iterator begin()
+    {
+        return data.begin();
+    }
+
+    typename std::vector<T>::iterator end()
+    {
+        return data.end();
+    }
+
+    typename std::vector<T>::const_iterator begin() const
+    {
+        return data.begin();
+    }
+
+    typename std::vector<T>::const_iterator end() const
+    {
+        return data.end();
+    }
 };
 
 template<class T, class G>
@@ -82,11 +102,17 @@ tensor<T> make_tensor(std::initializer_list<int> dims, G g)
     return tensor<T>{mlopen::TensorDescriptor{mlopenFloat, dims}}.generate(g);
 }
 
+template<class T, class X>
+tensor<T> make_tensor(const std::vector<X>& dims)
+{
+    // TODO: Compute float
+    return tensor<T>{mlopen::TensorDescriptor{mlopenFloat, dims.data(), static_cast<int>(dims.size())}};
+}
+
 template<class T, class X, class G>
 tensor<T> make_tensor(const std::vector<X>& dims, G g)
 {
-    // TODO: Compute float
-    return tensor<T>{mlopen::TensorDescriptor{mlopenFloat, dims.data(), static_cast<int>(dims.size())}}.generate(g);
+    return make_tensor<T>(dims).generate(g);
 }
 
 struct tensor_generate
