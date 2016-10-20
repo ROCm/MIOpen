@@ -5,6 +5,7 @@
 #include <mlopen.h>
 #include <CL/cl.h>
 #include "driver.hpp"
+#include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
@@ -210,8 +211,8 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	maskhost = std::vector<size_t>(out_sz, 0);
 	outhost = std::vector<T>(out_sz, 0);
 	
-	din = std::vector<T>(in_sz);
-	dout = std::vector<T>(out_sz, 0);
+	din = std::vector<T>(in_sz, 0);
+	dout = std::vector<T>(out_sz);
 	dinhost = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {

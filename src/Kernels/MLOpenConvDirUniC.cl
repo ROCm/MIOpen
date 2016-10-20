@@ -38,7 +38,7 @@
 #define MLO_GRP_SZ2 1
 #define MLO_GRP_SZ (MLO_GRP_SZ0*MLO_GRP_SZ1*MLO_GRP_SZ2)
 #define MLO_N_PROC_WAVES ((MLO_GRP_SZ + MLO_N_READ_PROCS - 1)/MLO_N_READ_PROCS)
-#define MLO_OUT_TILE_SZ (MLO_OUT_TILE1*MLO_OUT_TILE0)
+#define MLO_OUT_TILE_SZ (MLO_OUT_PIX_TILE1*MLO_OUT_PIX_TILE0)
 #define MLO_ALU_TILE_SZ (MLO_ALU_VTILE1*MLO_ALU_VTILE0)
 
 
@@ -48,7 +48,6 @@
 #define MLO_LARGE_MAP 0
 #endif
 
-
 #if (MLO_IN_WIDTH == MLO_OUT_WIDTH && (MLO_IN_WIDTH / MLO_IN_TILE0 ) * MLO_IN_TILE0 == MLO_IN_WIDTH && MLO_IN_HEIGHT == MLO_OUT_HEIGHT && (MLO_IN_HEIGHT / MLO_IN_TILE1 ) * MLO_IN_TILE1 == MLO_IN_HEIGHT)
 #define MLO_OUT_ALIGNED 1
 #else
@@ -56,20 +55,12 @@
 #endif
 
 
-#define MLO_N_ALUTILES_TOTAL ((MLO_GRP_TILE0*MLO_GRP_TILE1)/(MLO_ALU_TILE_SZ))
-#define MLO_N_ALUTILES_PERSTACK (MLO_N_ALUTILES_TOTAL/MLO_N_STACKS)
 #define MLO_ALUTILES_STACK_SZ (MLO_N_ALUTILES_PERSTACK*MLO_ALU_TILE_SZ)
 #define MLO_N_IN_TILES_TOTAL (MLO_N_IN_TILES_PERSTACK*MLO_N_STACKS)
-/*
-#define MLO_N_OUT_TILES_PERSTACK (MLO_N_OUT_TILES*MLO_N_ALUTILES_PERSTACK)
-#if MLO_N_OUT_TILES_PERSTACK > MLO_N_OUTPUTS
-#undef MLO_N_OUT_TILES_PERSTACK
-#define MLO_N_OUT_TILES_PERSTACK MLO_N_OUTPUTS
-#endif 
-*/
+
 #define MLO_N_OUT_TILE_BLOCKS0 ((MLO_OUT_WIDTH+MLO_IN_TILE0-1)/MLO_IN_TILE0)
 #define MLO_N_OUT_TILE_BLOCKS1 ((MLO_OUT_HEIGHT+MLO_IN_TILE1-1)/MLO_IN_TILE1)
-#define MLO_N_IN_PACKS  ((MLO_N_INPUTS+MLO_N_IN_TILES_PERSTACK-1)/MLO_N_IN_TILES_PERSTACK)
+#define MLO_N_IN_PACKS  (MLO_N_INPUTS/MLO_N_IN_TILES_PERSTACK)
 
 #define MLO_N_IN_READ (MLO_N_IN_PACKS*MLO_N_IN_TILES_PERSTACK)
 #if MLO_N_IN_READ == MLO_N_INPUTS
@@ -94,7 +85,7 @@
 
 
 
-#define MLO_IN_LCL_WIDTH (MLO_IN_TILE0 + MLO_FILTER_SIZE0 - 1 )  // here we use kernel size. it's important when padding == 0  2* MLO_FILTER_PAD0
+#define MLO_IN_LCL_WIDTH (MLO_IN_TILE0 + MLO_FILTER_SIZE0 - 1)  // here we use kernel size. it's important when padding == 0 
 #define MLO_IN_LCL_HEIGHT (MLO_IN_TILE1 + MLO_FILTER_SIZE1 - 1)
 #define MLO_IN_LCL_TILE_SZ (MLO_IN_LCL_WIDTH*MLO_IN_LCL_HEIGHT)
 #define MLO_IN_LCL_PERSTACK_SZ (MLO_IN_LCL_TILE_SZ*MLO_N_IN_TILES_PERSTACK)
@@ -103,16 +94,18 @@
 #define MLO_WEIGHTS_SZ (MLO_N_OUT_TILES_PERSTACK*MLO_N_IN_TILES_PERSTACK*MLO_FILTER_SZ)
 
 #define MLO_PVT_ACCUM_DATA_SZ (MLO_N_OUT_TILES * MLO_OUT_TILE_SZ)
-#define MLO_PVT_IN_WIDTH (MLO_FILTER_SIZE0 + MLO_OUT_TILE0 - 1)
-#define MLO_PVT_IN_HEIGHT (MLO_OUT_TILE1)
+#define MLO_PVT_IN_WIDTH (MLO_FILTER_SIZE0 + MLO_OUT_PIX_TILE0 - 1)
+#define MLO_PVT_IN_HEIGHT (MLO_OUT_PIX_TILE1)
 
 #define MLO_LCL_WEIGHTS 1
 
 
 inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
-	(*y) = (int)(((float)linPos + 0.1f) / (float)width);
-	(*x) = linPos - (*y) * width; 
+
+	(*y) = (int)(((float)linPos + 0.1f) / width);
+
+	(*x) = linPos - (*y) * width;
 }
 
 inline int calculateOffset(int stride, int x, int y)
@@ -152,10 +145,10 @@ inline void readDataElem(int linPos,__local _FLOAT *lcl_data, int lcl_base, int 
 
 	lcl_data[lcl_off] = gbl_val;
 
-#if 0//MLO_DIR_FORWARD==0
-	if ( debug && get_group_id(0) == 0 && x < 4 && y < 4)
+#if 0
+	if ( debug && get_group_id(0) == 0 && x < 3 && y < 2)
 	{
-		printf("K:in: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d  %f\n", linPos, lcl_width, y, x, l_y, l_x, lcl_off, g_y, g_x, gbl_y, gbl_x, gbl_off,
+		printf("K:in: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d  %f\n", linPos, lcl_width, x, y, l_y, l_x, lcl_off, g_y, g_x, gbl_y, gbl_x, gbl_off,
 		 gbl_height, gbl_width, gbl_stride, gbl_val);
 	}
 #endif
@@ -257,9 +250,9 @@ inline void Conv(int o_map_base,
 
 		// actual conv
 
-					for( int j = 0; j < MLO_OUT_TILE1; ++j)
+					for( int j = 0; j < MLO_OUT_PIX_TILE1; ++j)
 					{
-						for(int i = 0; i < MLO_OUT_TILE0; ++i)
+						for(int i = 0; i < MLO_OUT_PIX_TILE0; ++i)
 						{
 							for(int l = 0; l < MLO_FILTER_SIZE0; ++l)
 							{
@@ -274,10 +267,10 @@ inline void Conv(int o_map_base,
 
 #endif
 
-								pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i]
+								pvt_accum[(o_c * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i]
 									 += pvt_in_stage[j * MLO_PVT_IN_WIDTH + i + l] * pvt_wei_stage[l_act];
-#if 0//MLO_DIR_FORWARD==0
-								if  (get_local_id(0) == 0 && get_group_id(0) == 0 && i ==0 && j == 0)
+#if 0//MLO_DIR_FORWARD==1
+								if  (get_local_id(0) == 0 && get_group_id(0) == 1 /*&& alu_out_plane_id == 0 && alu_out_id == 0 */ && (i ==0 /*|| i == 1*/)&& j == 0)
 								{
 									printf("K: oc=%d ic=%d k=%d l=%d j=%d i=%d ai=%d di=%d  %f %f %f\n",
 									o_c,
@@ -286,9 +279,9 @@ inline void Conv(int o_map_base,
 									l_act,
 									j,
 									i,
-									(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i,
+									(o_c * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i,
 									j * MLO_PVT_IN_WIDTH + i + l,
-									pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i],								
+									pvt_accum[(o_c * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i],								
 									pvt_in_stage[j * MLO_PVT_IN_WIDTH + i + l],
 									pvt_wei_stage[l_act]
 									);
@@ -329,7 +322,7 @@ inline void Conv(int o_map_base,
 }
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
-__kernel void MLOpenConvUni(
+__kernel void MLOpenConvUniC(
        const __global _FLOAT * in,
        const __global _FLOAT * weights,
 #if MLO_CONV_BIAS
@@ -377,8 +370,8 @@ __kernel void MLOpenConvUni(
 	int x_in_grp = x_grp - MLO_FILTER_PAD0;
 	int y_in_grp = y_grp - MLO_FILTER_PAD1;
 
-	int x_in_lcl = alu_tl0 * MLO_OUT_TILE0;
-	int y_in_lcl = alu_tl1 * MLO_OUT_TILE1;
+	int x_in_lcl = alu_tl0 * MLO_OUT_PIX_TILE0;
+	int y_in_lcl = alu_tl1 * MLO_OUT_PIX_TILE1;
 
 // base offset to read data from local input data
 	int in_stg_off = stack*MLO_IN_LCL_PERSTACK_SZ + (y_in_lcl) * MLO_IN_LCL_WIDTH + x_in_lcl;
@@ -386,36 +379,32 @@ __kernel void MLOpenConvUni(
     int in_off = b_index * MLO_IN_BATCH_STRIDE;
 
 #if 0
-	if (lcl_id == 0 )
+	if (lcl_id == 0 && grp_id0 == 1)
 	{
-			printf("K:srt: %d %d %d\n",
-				MLO_IN_LCL_SZ,
-				MLO_WEIGHTS_SZ,
-				(MLO_WEIGHTS_SZ + MLO_IN_LCL_SZ) * 4
+			printf("K:srt: %d %d %d %d %d %d %d %d\n",
+				MLO_LARGE_MAP,
+				stack,
+				alu_stack_id,
+				alu_out_plane_id,
+
+				o_map_plane,
+				o_map_base,
+
+				alu_tl1,
+				alu_tl0
 			);
 	}
 #endif
 #if 0
-	if (lcl_id == 0 )
+	if (stack == 1)
 	{
-			printf("K:srt: %d %d %d %d %d %d %d %d %d %d %d %d\n",
+			printf("K:srt: %d %d %d %d %d %d\n",
 				grp_id0,
 				alu_out_plane_id,
 				alu_out_id,
 				MLO_N_OUT_TILE_BLOCKS0,
 				y_grp,
-				x_grp,
-
-// TO DO: scale
-				y_out_grp,
-				x_out_grp,
-
-				y_out_lcl,
-				x_out_lcl,
-
-				MLO_OUT_HEIGHT,
-				MLO_OUT_WIDTH
-
+				x_grp
 			);
 	}
 #endif
@@ -495,7 +484,7 @@ __kernel void MLOpenConvUni(
 		for(int i = wave_id; i < MLO_N_IN_TILES_TOTAL;  i += MLO_N_PROC_WAVES)
 		{
 		//(MLO_N_STACKS * MLO_N_OUT_TILES_PERSTACK)
-			int i_b = (int)(((float)i + 0.1f) / (float)MLO_N_IN_TILES_PERSTACK);
+			int i_b = (int)(((float)i + 0.1f) / MLO_N_IN_TILES_PERSTACK);
 			int i_c = -mad24(i_b, (int)MLO_N_IN_TILES_PERSTACK, -i);
 
 			bool vis = true;
@@ -518,17 +507,11 @@ __kernel void MLOpenConvUni(
 			int gbl_base = 0;
 
 #if 0
-		if  (elem_id==0 &&get_group_id(0)==1)
+//		if  (elem_id==0)
 		{
-			printf("K:in:%d  %d %d %d %d %d %d %d\n",
-				lcl_p_stride,
-				in_off,
-			    i_b,
-				MLO_IN_BATCH_STRIDE,
-				i_c,
-				MLO_IN_CHANNEL_STRIDE,
-				in_off2,
-				MLO_N_IN_TILES_TOTAL
+			printf("K:in: %d %d\n",
+				lcl_id,
+				elem_id
 				);
 		}
 #endif
@@ -556,21 +539,21 @@ __kernel void MLOpenConvUni(
 		{
 #if MLO_DIR_FORWARD==1
 // here is [tops][bottoms]
-			int lcl_o = (int)(((float)i + 0.00001f)/(float)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
+			int lcl_o = (int)(((float)i + 0.00001f)/ (float)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
 			int gbl_i = -mad24(lcl_o, (int)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ), -i);
 			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i];
 #else
 // outputs are botoms(inputs))
 // inputs are tops(outputs)
-			int lcl_o = (int)(((float)i + 0.1f) / (float)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
+			int lcl_o = (int)(((float)i + 0.1f)/(float)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
 			int gbl_i = -mad24(lcl_o, (int)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ), -i);
 			int lcl_c = (int)(((float)gbl_i + 0.1f) / (float)MLO_FILTER_SZ);
 			int lcl_i = -mad24(lcl_c, (int)MLO_FILTER_SZ, -gbl_i);
 
 			int lcl_we_off = mad24(mad24(lcl_c, (int)MLO_N_IN_TILES_PERSTACK, lcl_o), (int)MLO_FILTER_SZ, lcl_i);
 			int gbl_we_off = mad24(mad24(lcl_o, (int)MLO_N_OUTPUTS, lcl_c), (int)MLO_FILTER_SZ, wei_off + lcl_i);
-			lcl_wei[lcl_we_off /*(lcl_c * MLO_N_IN_TILES_PERSTACK + lcl_o) * MLO_FILTER_SZ + lcl_i*/] 
-				= weights[gbl_we_off /*wei_off + (lcl_o * MLO_N_OUTPUTS  + lcl_c)* MLO_FILTER_SZ + lcl_i*/];
+			lcl_wei[lcl_we_off] 
+				= weights[gbl_we_off];
 
 #if 0
 //			if ( i == 0 )
@@ -602,6 +585,9 @@ __kernel void MLOpenConvUni(
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 // convolution
+#if MLO_GRP_SZ > MLO_ACTIVE_ALUS
+		if (lcl_id < MLO_ACTIVE_ALUS)
+#endif
 		Conv(o_map_base,
 			in_stg_off,
 			pvt_in_stage, lcl_indata,
@@ -612,11 +598,19 @@ __kernel void MLOpenConvUni(
 
 //		barrier(CLK_LOCAL_MEM_FENCE);	
 	}
+
+
+#if MLO_GRP_SZ > MLO_ACTIVE_ALUS
+	if (lcl_id >= MLO_ACTIVE_ALUS)
+	{
+		return;
+	}
+#endif
 // write results out
 	int x_out_grp = x_grp;
 	int y_out_grp = y_grp;
-	int x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
-	int y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
+	int x_out_lcl = alu_tl0 * MLO_OUT_PIX_TILE0;
+	int y_out_lcl = alu_tl1 * MLO_OUT_PIX_TILE1;
 
 
     int out_off = (b_index + stack) * MLO_OUT_BATCH_STRIDE + o_map * MLO_OUT_CHANNEL_STRIDE + (y_out_grp + y_out_lcl) * MLO_OUT_STRIDE + x_out_grp + x_out_lcl;
@@ -642,19 +636,21 @@ __kernel void MLOpenConvUni(
 			bias_val = bias[o_map + o];
 #endif
 			int out_off2 = out_off1;
-			for( int j = 0; j < MLO_OUT_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
+			for( int j = 0; j < MLO_OUT_PIX_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
 			{
-				for(int i = 0; i < MLO_OUT_TILE0; ++i)
+				for(int i = 0; i < MLO_OUT_PIX_TILE0; ++i)
 				{
-#if MLO_OUT_ALIGNED == 0
-					if ( y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT &&  x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH)
+#if 1 //MLO_OUT_ALIGNED == 0
+					if ( y_out_lcl + j < MLO_OUT_TILE1 && y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT &&  x_out_lcl + i < MLO_OUT_TILE0 && x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH)
 #endif
 					{
-						out[out_off2 + i] = pvt_accum[o*MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i] + bias_val;
+						out[out_off2 + i] = pvt_accum[o*MLO_OUT_TILE_SZ + j * MLO_OUT_PIX_TILE0 + i] + bias_val;
 #if 0
-						if ( out_off2 + i == 12 /*y_out_grp + y_out_lcl + j == 2 && x_out_grp + x_out_lcl + i == 0*/)
+						if ( out_off2 + i == 1 /*y_out_grp + y_out_lcl + j == 2 && x_out_grp + x_out_lcl + i == 0*/)
 						{
-							printf("K:out: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d    %f %f %f\n",
+							printf("K:out: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d    %f %f %f\n",
+								MLO_OUT_TILE1,
+								MLO_OUT_TILE0,
 								grp_id0,
 								lcl_id,
 								alu_out_plane_id,
@@ -671,7 +667,7 @@ __kernel void MLOpenConvUni(
 								x_out_lcl,
 								j,
 								i,
-								pvt_accum[o*MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i],
+								pvt_accum[o*MLO_OUT_TILE_SZ + j * MLO_OUT_PIX_TILE0 + i],
 								 bias_val,
 								out[out_off2 + i]
 								);

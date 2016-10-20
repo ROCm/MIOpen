@@ -14,7 +14,7 @@ void OCLKernelInvoke::run() const
 	clFlush(queue);
 
 	if (status != CL_SUCCESS) {
-		MLOPEN_THROW("Running kernel failed: " + std::to_string(status));
+		MLOPEN_THROW_CL_STATUS(status, "Running kernel failed: ");
 	}
 	else if (callback) {
 		clFinish(queue);
