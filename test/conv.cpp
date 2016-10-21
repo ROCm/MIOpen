@@ -17,7 +17,7 @@
 template<class T>
 tensor<T> get_output_tensor(const mlopen::ConvolutionDescriptor& filter, const tensor<T>& input, const tensor<T>& weights)
 {
-    assert(filter.GetBackwardInputTensor(filter.GetForwardOutputTensor(input.desc, weights.desc), weights.desc) == input.desc);
+    assert(filter.GetBackwardOutputTensor(filter.GetForwardOutputTensor(input.desc, weights.desc), weights.desc) == input.desc);
     return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
 }
 
@@ -114,8 +114,8 @@ struct verify_forward_conv
 template<class T>
 tensor<T> get_input_tensor(const mlopen::ConvolutionDescriptor& filter, const tensor<T>& out, const tensor<T>& weights)
 {
-    assert(filter.GetForwardOutputTensor(filter.GetBackwardInputTensor(out.desc, weights.desc), weights.desc) == out.desc);
-    return tensor<T>{filter.GetBackwardInputTensor(out.desc, weights.desc)};
+    assert(filter.GetForwardOutputTensor(filter.GetBackwardOutputTensor(out.desc, weights.desc), weights.desc) == out.desc);
+    return tensor<T>{filter.GetBackwardOutputTensor(out.desc, weights.desc)};
 }
 
 struct verify_backward_conv
@@ -203,7 +203,7 @@ struct verify_backward_conv
     void fail(float, const tensor<T>& output, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /*bias*/ = 0)
     {
         std::cout << "Backward convolution: " << std::endl;
-        std::cout << "Input tensor: " << filter.GetBackwardInputTensor(output.desc, weights.desc).ToString() << std::endl;
+        std::cout << "Input tensor: " << filter.GetBackwardOutputTensor(output.desc, weights.desc).ToString() << std::endl;
         std::cout << "Output tensor: " << output.desc.ToString() << std::endl;
         std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
     }

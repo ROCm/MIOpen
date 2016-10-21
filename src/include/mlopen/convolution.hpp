@@ -18,9 +18,9 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& inputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 
-	std::tuple<int, int, int, int> GetBackwardInputDim(const TensorDescriptor& outputTensorDesc,
+	std::tuple<int, int, int, int> GetBackwardOutputDim(const TensorDescriptor& outputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
-	TensorDescriptor GetBackwardInputTensor(const TensorDescriptor& outputTensorDesc,
+	TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 
 	void FindConvFwdAlgorithm(Handle& handle,
