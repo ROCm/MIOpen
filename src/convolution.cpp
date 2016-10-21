@@ -57,7 +57,7 @@ const
 	);
 }
 
-std::tuple<int, int, int, int> ConvolutionDescriptor::GetBackwardInputDim(
+std::tuple<int, int, int, int> ConvolutionDescriptor::GetBackwardOutputDim(
 	const TensorDescriptor& outputTensorDesc, 
 	const TensorDescriptor& filterDesc) 
 const
@@ -107,11 +107,11 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(
 		std::get<3>(dims)});
 }
 
-TensorDescriptor ConvolutionDescriptor::GetBackwardInputTensor(
+TensorDescriptor ConvolutionDescriptor::GetBackwardOutputTensor(
 	const TensorDescriptor& outputTensorDesc, 
 	const TensorDescriptor& filterDesc) const
 {
-	auto dims = this->GetBackwardInputDim(outputTensorDesc, filterDesc);
+	auto dims = this->GetBackwardOutputDim(outputTensorDesc, filterDesc);
 	return TensorDescriptor(outputTensorDesc.GetType(), {
 		std::get<0>(dims),
 		std::get<1>(dims),
