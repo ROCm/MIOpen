@@ -33,11 +33,21 @@ struct square_diff_fn
     auto operator()(T x, U y) const MLOPEN_RETURNS((x - y)*(x - y));
 };
 
+template<class R1>
+auto range_distance(R1&& r1) MLOPEN_RETURNS
+(std::distance(r1.begin(), r1.end()));
+
+template<class R1>
+bool range_zero(R1&& r1)
+{
+    return std::all_of(r1.begin(), r1.end(), [](float x) { return x == 0.0; });
+}
+
 template<class R1, class R2>
 range_value<R1> rms_range(R1&& r1, R2&& r2)
 {
-    std::size_t n = std::distance(r1.begin(), r1.end());
-    if (n == std::distance(r2.begin(), r2.end())) 
+    std::size_t n = range_distance(r1);
+    if (n == range_distance(r2)) 
     {
         auto square_diff = std::inner_product(r1.begin(), r1.end(), r2.begin(), 0.0, sum_fn{}, square_diff_fn{});
         auto mag1 = *std::max_element(r1.begin(), r1.end(), compare_mag_fn{});
@@ -49,19 +59,21 @@ range_value<R1> rms_range(R1&& r1, R2&& r2)
 }
 
 template<class V, class... Ts>
-void verify(V&& v, Ts&&... xs)
+auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
 {
     const double tolerance = 10e-6;
     auto out_cpu = v.cpu(xs...);
     auto out_gpu = v.gpu(xs...);
-    CHECK(std::distance(out_cpu.begin(), out_cpu.end()) == std::distance(out_gpu.begin(), out_gpu.end()));
+    CHECK(range_distance(out_cpu) == range_distance(out_gpu));
     auto error = rms_range(out_cpu, out_gpu);
     if (error > tolerance)
     {
         std::cout << "FAILED: " << error << std::endl;
         v.fail(error, xs...);
-        // TODO: Check if gpu data is all zeros
+        if (range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
+        if (range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
     }
+    return std::make_pair(std::move(out_cpu), std::move(out_gpu));
 }
 
 #endif

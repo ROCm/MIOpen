@@ -57,12 +57,62 @@ const
 	);
 }
 
+std::tuple<int, int, int, int> ConvolutionDescriptor::GetBackwardOutputDim(
+	const TensorDescriptor& outputTensorDesc, 
+	const TensorDescriptor& filterDesc) 
+const
+{
+	assert(outputTensorDesc.GetLengths().size() == 4);
+	assert(filterDesc.GetLengths().size() == 4);
+
+	if (outputTensorDesc.GetType() != filterDesc.GetType()) {
+		MLOPEN_THROW(mlopenStatusBadParm, "Types do not match for the filter");
+	}
+
+	int output_n;
+	int output_c;
+	int output_h;
+	int output_w;
+
+	std::tie(output_n, output_c, output_h, output_w) = mlopen::tie4(outputTensorDesc.GetLengths());
+
+	int filter_k;
+	int filter_c;
+	int filter_h;
+	int filter_w;
+	
+	std::tie(filter_k, filter_c, filter_h, filter_w) = mlopen::tie4(filterDesc.GetLengths());
+
+	if(output_c != filter_k) {
+		MLOPEN_THROW(mlopenStatusBadParm, "Channels do not match for the filter");
+	}
+
+	return std::make_tuple(
+		output_n, 
+		filter_c, 
+		u * (output_h - 1) - 2*pad_h + filter_h, 
+		v * (output_w - 1) - 2*pad_w + filter_w
+	);
+}
+
 TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(
 	const TensorDescriptor& inputTensorDesc, 
 	const TensorDescriptor& filterDesc) const
 {
 	auto dims = this->GetForwardOutputDim(inputTensorDesc, filterDesc);
 	return TensorDescriptor(inputTensorDesc.GetType(), {
+		std::get<0>(dims),
+		std::get<1>(dims),
+		std::get<2>(dims),
+		std::get<3>(dims)});
+}
+
+TensorDescriptor ConvolutionDescriptor::GetBackwardOutputTensor(
+	const TensorDescriptor& outputTensorDesc, 
+	const TensorDescriptor& filterDesc) const
+{
+	auto dims = this->GetBackwardOutputDim(outputTensorDesc, filterDesc);
+	return TensorDescriptor(outputTensorDesc.GetType(), {
 		std::get<0>(dims),
 		std::get<1>(dims),
 		std::get<2>(dims),
