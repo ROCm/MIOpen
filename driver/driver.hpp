@@ -5,12 +5,17 @@
 #include <vector>
 #include <cstdlib>
 #include <mlopen.h>
-#include <CL/cl.h>
 #include "InputFlags.hpp"
 #include <algorithm>
 #include <float.h>
 #include <memory>
 #include <numeric>
+
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <OpenCL/cl.h>
+#else
+#include <CL/cl.h>
+#endif
 
 #define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
 
