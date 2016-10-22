@@ -3,7 +3,6 @@
 
 #include <cstdlib>
 #include <mlopen.h>
-#include <CL/cl.h>
 #include "driver.hpp"
 #include "mloNeuronHost.hpp"
 #include "InputFlags.hpp"
