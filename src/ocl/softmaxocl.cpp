@@ -67,7 +67,8 @@ mlopenStatus_t SoftmaxForward(
 		int batch_size = 256/num_batch;
 		int u_batch_size = c > batch_size ? nextPow2(c/batch_size) : 1;
 
-		const std::vector<size_t> vgd(1, grid_size/num_batch*vld[0]);
+		size_t workgroups = grid_size % num_batch == 0 ? grid_size/num_batch : grid_size/num_batch + 1;
+		const std::vector<size_t> vgd(1, workgroups*vld[0]);
 
 		parms += " -DBATCH_SIZE=" + std::to_string(batch_size) + 
 			" -DU_BATCH_SIZE=" + std::to_string(u_batch_size);
@@ -135,7 +136,8 @@ mlopenStatus_t SoftmaxBackward(
 		int batch_size = 256/num_batch;
 		int u_batch_size = c > batch_size ? nextPow2(c/batch_size) : 1;
 
-		const std::vector<size_t> vgd(1, grid_size/num_batch*vld[0]);
+		size_t workgroups = grid_size % num_batch == 0 ? grid_size/num_batch : grid_size/num_batch + 1;
+		const std::vector<size_t> vgd(1, workgroups*vld[0]);
 
 		parms += " -DBATCH_SIZE=" + std::to_string(batch_size) + 
 			" -DU_BATCH_SIZE=" + std::to_string(u_batch_size);
