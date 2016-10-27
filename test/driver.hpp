@@ -43,6 +43,8 @@ struct test_driver
         }
         else
         {
+            std::reverse(input_dims.begin(), input_dims.end());
+            std::reverse(weights_dims.begin(), weights_dims.end());
             generate_one<float>(F{}, input_dims, weights_dims, g);
         }
     }
