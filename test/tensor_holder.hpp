@@ -3,6 +3,7 @@
 
 #include <mlopen/tensor.hpp>
 #include "ford.hpp"
+#include "network_data.hpp"
 
 template<class T>
 struct tensor
@@ -125,19 +126,23 @@ struct tensor_generate
 };
 
 template<class F>
-struct protect_fn
+struct protect_void_fn
 {
     F f;
-    protect_fn(F x) : f(std::move(x)) 
+    protect_void_fn(F x) : f(std::move(x)) 
     {}
 
+    // template<class... Ts>
+    // auto operator()(Ts&&... xs) const MLOPEN_RETURNS
+    // (f(std::forward<Ts>(xs)...));
+
     template<class... Ts>
-    auto operator()(Ts&&... xs) const MLOPEN_RETURNS
-    (f(std::forward<Ts>(xs)...));
+    void operator()(Ts&&... xs) const
+    { f(std::forward<Ts>(xs)...); }
 };
 
 template<class F>
-protect_fn<F> protect(F f)
+protect_void_fn<F> protect_void(F f)
 {
     return {std::move(f)};
 }
@@ -155,36 +160,60 @@ template<class F, class... Ts>
 void cross_args(F f, Ts&&... xs)
 {
     mlopen::each_args(
-        std::bind(cross_args_apply{}, protect(std::move(f)), std::placeholders::_1, std::forward<Ts>(xs)...),
+        std::bind(cross_args_apply{}, protect_void(std::move(f)), std::placeholders::_1, std::forward<Ts>(xs)...),
     std::forward<Ts>(xs)...);
 }
 
-template<class T, class Visitor>
+template<class T>
 struct generate_both_visitation
 {
     template<class F, class G1, class G2>
     void operator()(F f, G1 g1, G2 g2) const
     {
-        Visitor{}([&](std::initializer_list<int> input, std::initializer_list<int> weights)
-        {
-            f(make_tensor<T>(input, g1), make_tensor<T>(weights, g2));
-        });
+        for(auto&& input:get_inputs())
+            for(auto&& weights:get_weights())
+                if (input.at(1) == weights.at(1)) // channels must match
+                    f(make_tensor<T>(input, g1), make_tensor<T>(weights, g2));
     }
 };
 
-template<class T, class Visitor, class F, class... Gs>
-void generate_all(F f, Gs... gs)
+template<class T, class F, class... Gs>
+void generate_all_layers(F f, Gs... gs)
 {
     cross_args(
-        std::bind(generate_both_visitation<T, Visitor>{}, protect(f), std::placeholders::_1, std::placeholders::_2), 
+        std::bind(generate_both_visitation<T>{}, protect_void(f), std::placeholders::_1, std::placeholders::_2), 
         gs...);
 }
 
 
 template<class T, class F, class G>
-void generate_one(F f, std::vector<int> input, std::vector<int> weights, G g)
+void generate_one_layer(F f, std::vector<int> input, std::vector<int> weights, G g)
 {
     f(make_tensor<T>(input, g), make_tensor<T>(weights, g));
+}
+
+template<class T>
+struct generate_activ_visitation
+{
+    template<class F, class G>
+    void operator()(F f, G g) const
+    {
+        for(auto&& input:get_inputs())
+            f(make_tensor<T>(input, g));
+    }
+};
+
+template<class T, class F, class... Gs>
+void generate_all_activations(F f, Gs... gs)
+{
+    mlopen::each_args(std::bind(generate_activ_visitation<T>{}, protect_void(f), std::placeholders::_1), gs...);
+}
+
+
+template<class T, class F, class G>
+void generate_one_activation(F f, std::vector<int> input, G g)
+{
+    f(make_tensor<T>(input, g));
 }
 
 #endif

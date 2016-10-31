@@ -26,7 +26,6 @@ struct verify_forward_sofmax
 
         int in_n, in_c, in_h, in_w;
         std::tie(in_n, in_c, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
-        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
 
         par_ford(in_n, in_h, in_w)([&](int o, int i, int j)
         {
@@ -76,11 +75,10 @@ struct verify_forward_sofmax
     
 };
 
-
-struct verify_conv_softmax
+struct verify_softmax
 {
     template<class T>
-    void operator()(const tensor<T>& input, const tensor<T>&) const
+    void operator()(const tensor<T>& input) const
     {
         verify(verify_forward_sofmax{}, input);
     }
@@ -88,6 +86,6 @@ struct verify_conv_softmax
 
 int main(int argc, const char *argv[]) 
 {
-    test_drive<verify_conv_softmax>(argc, argv);
+    activation_test_drive<verify_softmax>(argc, argv);
 }
 
