@@ -12,6 +12,12 @@ PoolingDescriptor::PoolingDescriptor(mlopenPoolingMode_t m,
 		const int *pstrides,
 		int			size) : lens(plens, plens+size), strides(pstrides, pstrides+size), pads(ppads, ppads+size), mode(m) {}
 
+PoolingDescriptor::PoolingDescriptor(mlopenPoolingMode_t m, std::initializer_list<int> plens, std::initializer_list<int> pstrides, std::initializer_list<int> ppads)
+: lens(plens), strides(pstrides), pads(ppads), mode(m)
+{
+
+}
+
 mlopenPoolingMode_t PoolingDescriptor::GetMode() const
 {
 	return(mode);
@@ -63,6 +69,17 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 	ceil((input_h - window_h + 2*pad_h) / static_cast<float>(u)) + 1,
 	ceil((input_w - window_w + 2*pad_w) / static_cast<float>(v)) + 1);
 
+}
+
+TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(
+	const TensorDescriptor& inputTensorDesc) const
+{
+	auto dims = this->GetForwardOutputDim(inputTensorDesc);
+	return TensorDescriptor(inputTensorDesc.GetType(), {
+		std::get<0>(dims),
+		std::get<1>(dims),
+		std::get<2>(dims),
+		std::get<3>(dims)});
 }
 
 } // namespace mlopen
