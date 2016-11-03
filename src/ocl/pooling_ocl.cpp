@@ -14,7 +14,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		cl_mem								y,
 		bool								do_backward,
 		cl_mem								workSpace,
-		size_t								 /*workSpaceSize*/) {
+		size_t								 /*workSpaceSize*/) const {
 
 	mlo_construct_pooling2D construct_params(1); // forward
 
@@ -112,7 +112,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 		const void							* /*beta*/,
 		const TensorDescriptor				&dxDesc,
 		cl_mem								dx,
-		const cl_mem						workSpace) {
+		const cl_mem						workSpace) const {
 
 
 	mlopenStatus_t status = mlopenStatusSuccess;

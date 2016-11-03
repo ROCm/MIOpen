@@ -12,6 +12,7 @@ namespace mlopen {
 
 struct PoolingDescriptor : mlopenPoolingDescriptor {
 	PoolingDescriptor();
+	PoolingDescriptor(mlopenPoolingMode_t m, std::initializer_list<int> plens, std::initializer_list<int> pstrides, std::initializer_list<int> ppads);
 	PoolingDescriptor(mlopenPoolingMode_t m, const int *plens, const int *ppads, const int *pstrides, int size);
 
 	mlopenPoolingMode_t GetMode() const;
@@ -22,6 +23,7 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 	int GetSize() const;
 
 	std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& tensorDesc) const;
+	TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& tensorDesc) const;
 
 	mlopenStatus_t Forward(
 		Handle						&handle,
@@ -33,7 +35,7 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 		Data_t						y,
 		bool						do_backward,
 		Data_t						workSpace,
-		size_t						workSpaceSize);
+		size_t						workSpaceSize) const;
 
 	mlopenStatus_t Backward(
 		Handle						&handle,
@@ -47,7 +49,7 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 		const void					*beta,
 		const TensorDescriptor		&dxDesc,
 		Data_t						dx,
-		ConstData_t                workSpace);
+		ConstData_t                workSpace) const;
 
 	std::vector<int> lens;
 	std::vector<int> strides;
