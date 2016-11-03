@@ -72,10 +72,10 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 }
 
 TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(
-	const TensorDescriptor& inputTensorDesc) const
+	const TensorDescriptor& tensorDesc) const
 {
-	auto dims = this->GetForwardOutputDim(inputTensorDesc);
-	return TensorDescriptor(inputTensorDesc.GetType(), {
+	auto dims = this->GetForwardOutputDim(tensorDesc);
+	return TensorDescriptor(tensorDesc.GetType(), {
 		std::get<0>(dims),
 		std::get<1>(dims),
 		std::get<2>(dims),
