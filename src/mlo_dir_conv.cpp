@@ -274,13 +274,22 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 {
 	int ret = 0;
 
+	bool unaligned = (_out_height < 8 || _out_width < 8 || (_out_height > 8 && _out_height < 16) || (_out_width > 8 && _out_width < 16)
+		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
+
+	// no 1x1 backward yet
 	if (_kernel_size0 == 1 && _kernel_size1 == 1 && getDirection())
 	{
 
 		return(mloConstructDirect2D1x1());
 	}
-	else if (_out_height < 8 || _out_width < 8 || (_out_height > 8 && _out_height < 16) || (_out_width > 8 && _out_width < 16)
-		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32))
+#if 1
+	else if ((_kernel_size0 == 3 && _kernel_size1 == 3 && _pad1 == 1 && _pad0 == 1 && getDirection()) && (_out_width == 512 || _out_width == 64 || _out_width == 128 || _out_width == 256))
+	{
+		return(mloConstructDirect2D3x3());
+	}
+#endif
+	else if (unaligned)
 	{
 		return(mloConstructDirect2DFwdC());
 	}
@@ -685,6 +694,166 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 		_n_in_data_tiles = exchange_step;
 	}
 
+	return(ret);
+}
+
+
+int mlo_construct_direct2D::mloConstructDirect2D3x3(void)
+{
+	int ret = 0;
+
+	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
+
+	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
+
+	_hw_wave_sz = 64;
+	_dev_local_mem_sz = localMemSize; // in bytes
+	int n_waves = 4;
+
+	int wei_cstride = _kernel_size0*_kernel_size1;
+	int wei_bstride = _n_inputs*wei_cstride;
+
+	_out_pix_tile0 = 4;
+	_out_pix_tile1 = 2;
+	_n_stacks = 1;
+	_n_out_pix_tiles = 4;
+	int read_unit = _out_pix_tile0;
+	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
+
+	int GRP_SZ = _hw_wave_sz * n_waves;
+
+	int ALU_EXTENT_X = (_out_width + read_unit - 1) / read_unit;
+	int LG2ALU_EXTENT_X = (int)std::ceil(std::log(ALU_EXTENT_X) / std::log(2));
+	int ALU_EXTENT_Y = (GRP_SZ >> LG2ALU_EXTENT_X);
+	int LG2ALU_EXTENT_Y = (int)std::ceil(std::log(ALU_EXTENT_Y) / std::log(2));
+
+	// the wave is logical is a unit of shareing weights in SGPRs
+	// it cannot be less than HW_WAVE_SIZE = 64
+	// it cannot be larger than the group size.
+
+	int LG2_WAVE_SZ0 = std::ceil(std::log(ALU_EXTENT_X) / std::log(2));
+	int logical_wave_sz = std::max(1, ALU_EXTENT_X / _hw_wave_sz) * _hw_wave_sz;
+	if (logical_wave_sz > GRP_SZ)
+	{
+		printf("Conv3x3 conf error\n");
+		return(-1);
+	}
+	int logical_n_waves = std::max(1, GRP_SZ / logical_wave_sz);
+	int LG2_WAVE_SZ = std::ceil(std::log(logical_wave_sz) / std::log(2));
+	int WAVE_SZ1 = (logical_wave_sz >> LG2_WAVE_SZ0);
+	int lg2_n_waves = std::ceil(std::log(logical_n_waves) / std::log(2));
+	int N_WAVES_MASK = (1 << lg2_n_waves) - 1;
+
+	int OUT_EXTENT1 = _out_pix_tile1 * WAVE_SZ1;
+	int OUT_EXTENT0 = (_out_pix_tile0 << LG2_WAVE_SZ0);
+
+	int total_out_maps = _n_out_pix_tiles * logical_n_waves;
+
+	// number of batches inside wk_item
+	_n_stacks = std::min(_batch_sz, _n_stacks);
+
+	int batch_aligned = 0;
+	int output_aligned = 0;
+	if ((_batch_sz / _n_stacks) *_n_stacks == _batch_sz)
+	{
+		batch_aligned = 1;
+	}
+	if ((_n_outputs / total_out_maps) * total_out_maps == _n_outputs)
+	{
+		output_aligned = 1;
+	}
+
+
+
+	int N_HEIGHT_EXTENTS = (_out_height + OUT_EXTENT1 - 1) / OUT_EXTENT1;
+	int N_WIDTH_EXTENTS = (_out_width + OUT_EXTENT0 - 1) / OUT_EXTENT0;
+	int N_OUTER_LOOPS = 2;
+	int WEI_LCL_SZ = (_n_out_pix_tiles * wei_bstride) / N_OUTER_LOOPS;
+
+	// currently always 1
+	int N4S = 1;
+	int MAP_SZ4 = (_in_width * _in_height + N4S * 4 - 1) / (N4S * 4);
+	int DIVBY4 = (MAP_SZ4 * 4 == _in_width * _in_height) ? 1 : 0;
+	int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0 : _in_width * _in_height - (MAP_SZ4 - 1) * 4;
+	int N_MAPS_PERGROUP = 1;
+	if (MAP_SZ4 <= GRP_SZ / 2)
+	{
+		N_MAPS_PERGROUP = GRP_SZ / MAP_SZ4;
+	}
+	int N_GROUPS_PER_MAP = N_HEIGHT_EXTENTS*N_WIDTH_EXTENTS;
+
+
+	_grp_tile0 = GRP_SZ;
+	_grp_tile1 = 1;
+	int grp_tile2 = 1;
+	_in_tile0 = OUT_EXTENT0;
+	_in_tile1 = OUT_EXTENT1;
+	_n_in_data_tiles = 1;
+
+	_gen_comp_options += std::string(" -limit-vector-registers=64 ");
+
+	_comp_options =
+		std::string(" -D MLO_DIR_FORWARD=") + std::to_string(static_cast<long long>(_direction))
+		+ std::string(" -D MLO_GRP_SZ=") + std::to_string(static_cast<long long>(GRP_SZ))
+		+ std::string(" -D MLO_GRP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
+		+ std::string(" -D MLO_GRP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
+		+ std::string(" -D MLO_GRP_SZ2=") + std::to_string(static_cast<long long>(grp_tile2))
+		+ std::string(" -D MLO_FILTER_SIZE0=") + std::to_string(static_cast<long long>(_kernel_size0))
+		+ std::string(" -D MLO_FILTER_SIZE1=") + std::to_string(static_cast<long long>(_kernel_size1))
+		+ std::string(" -D MLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(_pad0))
+		+ std::string(" -D MLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(_pad1))
+		+ std::string(" -D MLO_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs))
+		+ std::string(" -D MLO_N_INPUTS=") + std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string(" -D MLO_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
+		+ std::string(" -D MLO_OUT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
+		+ std::string(" -D MLO_OUT_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
+		+ std::string(" -D MLO_OUT_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
+		+ std::string(" -D MLO_IN_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
+		+ std::string(" -D MLO_IN_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
+		+ std::string(" -D MLO_IN_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
+		+ std::string(" -D MLO_WEI_BATCH_STRIDE=") + std::to_string(static_cast<long long>(wei_bstride))
+		+ std::string(" -D MLO_WEI_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(wei_cstride))
+		+ std::string(" -D MLO_IN_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
+		+ std::string(" -D MLO_IN_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
+		+ std::string(" -D MLO_N_LCL_BATCHS=") + std::to_string(static_cast<long long>(_n_stacks)) // # of diff stacks (part of batch).
+		+ std::string(" -D MLO_N_LCL_OUT_MAPS=") + std::to_string(static_cast<long long>(_n_out_pix_tiles))  // # output pixel tiles per wk-item (ALU)
+		+ std::string(" -D MLO_N_LCL_IN_MAPS=") + std::to_string(static_cast<long long>(_n_in_data_tiles)) // total # of blocks of different inputs in LDS
+		+ std::string(" -D MLO_OUT_TILE0=") + std::to_string(static_cast<long long>(_out_pix_tile0))  // size of ouptput tile per wk-item (ALU))
+		+ std::string(" -D MLO_OUT_TILE1=") + std::to_string(static_cast<long long>(_out_pix_tile1))  //
+		+ std::string(" -D MLO_ALU_EXTENT_X=") + std::to_string(static_cast<long long>(ALU_EXTENT_X))
+		+ std::string(" -D MLO_LG2ALU_EXTENT_X=") + std::to_string(static_cast<long long>(LG2ALU_EXTENT_X))
+		+ std::string(" -D MLO_ALU_EXTENT_Y=") + std::to_string(static_cast<long long>(ALU_EXTENT_Y))
+		+ std::string(" -D MLO_LG2ALU_EXTENT_Y=") + std::to_string(static_cast<long long>(LG2ALU_EXTENT_Y))
+		+ std::string(" -D MLO_OUT_EXTENT1=") + std::to_string(static_cast<long long>(OUT_EXTENT1))
+		+ std::string(" -D MLO_OUT_EXTENT0=") + std::to_string(static_cast<long long>(OUT_EXTENT0))
+		+ std::string(" -D MLO_N_WAVES=") + std::to_string(static_cast<long long>(logical_n_waves))
+		+ std::string(" -D MLO_N_WAVES_MASK=") + std::to_string(static_cast<long long>(N_WAVES_MASK))
+		+ std::string(" -D MLO_LG2_WAVE_SZ=") + std::to_string(static_cast<long long>(LG2_WAVE_SZ))
+		+ std::string(" -D MLO_LG2_WAVE_SZ0=") + std::to_string(static_cast<long long>(LG2_WAVE_SZ0))
+		+ std::string(" -D MLO_READ_TYPE=") + READ_TYPE
+		+ std::string(" -D MLO_READ_UNIT=") + std::to_string(static_cast<long long>(read_unit))
+		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(static_cast<long long>(_bias))
+		+getGeneralCompOptions()
+		;
+
+	_l_wk.clear();
+	_l_wk.push_back(_grp_tile0);
+	_l_wk.push_back(_grp_tile1);
+	_l_wk.push_back(grp_tile2);
+
+	size_t gbl_wk0 = N_GROUPS_PER_MAP;
+
+
+	size_t gbl_wk1 = (_n_outputs + total_out_maps - 1) / total_out_maps;
+	size_t gbl_wk2 = (_batch_sz + _n_stacks - 1) / _n_stacks;
+
+	_g_wk.clear();
+	_g_wk.push_back(gbl_wk0 * _grp_tile0);
+	_g_wk.push_back(gbl_wk1);
+	_g_wk.push_back(gbl_wk2);
+
+	_kernel_file = "MLOpenCvD3x3.cl";
+	_kernel_name = "MLOpenCvD3x3_WSR0";
 	return(ret);
 }
 
