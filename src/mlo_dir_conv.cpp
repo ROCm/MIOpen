@@ -790,7 +790,7 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3(void)
 	_in_tile1 = OUT_EXTENT1;
 	_n_in_data_tiles = 1;
 
-	_gen_comp_options += std::string(" -limit-vector-registers=64 ");
+//	_gen_comp_options += std::string(" -limit-vector-registers=64 ");
 
 	_comp_options =
 		std::string(" -D MLO_DIR_FORWARD=") + std::to_string(static_cast<long long>(_direction))
