@@ -225,6 +225,12 @@ int mlo_construct_direct2D::mloConstruct()
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
+#if 1
+	else if ((_kernel_size0 == 3 && _kernel_size1 == 3 && _pad1 == 1 && _pad0 == 1 && getDirection()) && (_out_width == 512 || _out_width == 64 || _out_width == 128 || _out_width == 256))
+	{
+		return(mloConstructDirect2D3x3());
+	}
+#endif
 	else if (_gen)
 	{
 		std::cout << "Error: backward generic direct conv is not implemented. " << std::endl;
@@ -283,12 +289,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 
 		return(mloConstructDirect2D1x1());
 	}
-#if 1
-	else if ((_kernel_size0 == 3 && _kernel_size1 == 3 && _pad1 == 1 && _pad0 == 1 && getDirection()) && (_out_width == 512 || _out_width == 64 || _out_width == 128 || _out_width == 256))
-	{
-		return(mloConstructDirect2D3x3());
-	}
-#endif
+
 	else if (unaligned)
 	{
 		return(mloConstructDirect2DFwdC());
