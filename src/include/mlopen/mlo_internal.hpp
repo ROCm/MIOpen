@@ -686,6 +686,7 @@ protected:
 	int mloConstructDirect2DFwd();
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
+	int mloConstructDirect2D3x3(void);
 	int mloConstructDirect2DFwdGen();
 	int mloConstructBwd()
 	{
