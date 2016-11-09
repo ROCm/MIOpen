@@ -20,7 +20,33 @@ tensor<T> get_output_tensor(const mlopen::PoolingDescriptor& filter, const tenso
     return tensor<T>{filter.GetForwardOutputTensor(input.desc)};
 }
 
-struct verify_max_pooling
+template<class T>
+T pool_start(const mlopen::PoolingDescriptor& filter)
+{
+    if (filter.GetMode() == mlopenPoolingMax) return std::numeric_limits<T>::lowest();
+    else return 0.0; 
+}
+
+template<class T>
+T pool_op(const mlopen::PoolingDescriptor& filter, T x, T y)
+{
+    if (filter.GetMode() == mlopenPoolingMax) return std::max(x, y);
+    else return x+y; 
+}
+
+template<class T>
+T pool_final(const mlopen::PoolingDescriptor& filter, T x)
+{
+    if (filter.GetMode() == mlopenPoolingMax) return x;
+    else
+    {
+        int window_h, window_w;
+        std::tie(window_h, window_w) = mlopen::tie2(filter.GetLengths());
+        return x / (window_h * window_w); 
+    }
+}
+
+struct verify_forward_pooling
 {
     template<class T>
     tensor<T> cpu(const tensor<T>& input, const mlopen::PoolingDescriptor& filter)
@@ -40,16 +66,16 @@ struct verify_max_pooling
             const int in_off_h = i * v;
             const int in_off_w = j * u;
 
-            T acc = std::numeric_limits<T>::lowest();
+            T acc = pool_start<T>(filter);
             ford(window_h, window_w)([&](int x, int y)
             {
                 const int in_x = in_off_h - pad_h + x;
                 const int in_y = in_off_w - pad_w + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
-                    acc = std::max(acc, input(o, w, in_x, in_y));
+                    acc = pool_op(filter, acc, input(o, w, in_x, in_y));
                 }
             });
-            out(o, w, i, j) = acc;
+            out(o, w, i, j) = pool_final(filter, acc);
         });
         return out;
     }
@@ -84,24 +110,26 @@ struct verify_max_pooling
     template<class T>
     void fail(float, const tensor<T>& input, const mlopen::PoolingDescriptor& filter)
     {
-        std::cout << "Forward max pooling: " << std::endl;
+        std::cout << "Forward pooling: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
         std::cout << "Output tensor: " << filter.GetForwardOutputTensor(input.desc).ToString() << std::endl;
     }
     
 };
 
-
 struct verify_pooling
 {
     template<class T>
     void operator()(const tensor<T>& input) const
     {
-        mlopen::PoolingDescriptor filter1{mlopenPoolingMax, {2, 2}, {1, 1}, {0, 0}};
-        verify(verify_max_pooling{}, input, filter1);
-        
-        mlopen::PoolingDescriptor filter2{mlopenPoolingMax, {2, 2}, {1, 1}, {1, 1}};
-        verify(verify_max_pooling{}, input, filter2);
+        for(auto m:{mlopenPoolingMax, mlopenPoolingAverage})
+        {
+            mlopen::PoolingDescriptor filter1{m, {2, 2}, {1, 1}, {0, 0}};
+            verify(verify_forward_pooling{}, input, filter1);
+            
+            mlopen::PoolingDescriptor filter2{m, {2, 2}, {1, 1}, {1, 1}};
+            verify(verify_forward_pooling{}, input, filter2);
+        }
     }
 };
 
