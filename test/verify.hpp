@@ -18,6 +18,13 @@ struct sum_fn
     auto operator()(T x, U y) const MLOPEN_RETURNS(x + y);
 };
 
+template<class T, class U>
+T as(T, U x)
+{
+    return x;
+}
+
+
 struct compare_mag_fn
 {
     template<class T, class U>
@@ -52,8 +59,9 @@ range_value<R1> rms_range(R1&& r1, R2&& r2)
         auto square_diff = std::inner_product(r1.begin(), r1.end(), r2.begin(), 0.0, sum_fn{}, square_diff_fn{});
         auto mag1 = *std::max_element(r1.begin(), r1.end(), compare_mag_fn{});
         auto mag2 = *std::max_element(r2.begin(), r2.end(), compare_mag_fn{});
-        auto mag = std::max<decltype(mag1)>(std::max(std::fabs(mag1), std::fabs(mag2)), 1);
-        return std::sqrt(square_diff / (n*mag));
+        decltype(mag1) minmag = 1;
+        auto mag = std::sqrt(std::max({std::fabs(mag1), std::fabs(mag2), minmag}));
+        return std::sqrt(square_diff) / (n*mag);
     }
     else return std::numeric_limits<range_value<R1>>::max();
 }

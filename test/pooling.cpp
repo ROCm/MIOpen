@@ -40,13 +40,13 @@ struct verify_max_pooling
             const int in_off_h = i * v;
             const int in_off_w = j * u;
 
-            T acc = -std::numeric_limits<T>::max();
+            T acc = std::numeric_limits<T>::lowest();
             ford(window_h, window_w)([&](int x, int y)
             {
                 const int in_x = in_off_h - pad_h + x;
                 const int in_y = in_off_w - pad_w + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
-                    std::max(acc, input(o, w, in_x, in_y));
+                    acc = std::max(acc, input(o, w, in_x, in_y));
                 }
             });
             out(o, w, i, j) = acc;
