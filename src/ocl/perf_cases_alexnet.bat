@@ -5,8 +5,8 @@ set T=%4
 cd ../../build
 PATH=.\src\Debug;%PATH%
 echo "AlexNet"
-echo "conv2 10x3x227x227x96x11x11"
-.\driver\Debug\MLOpenDriver.exe conv -i 1 -n %B% -c 3 -k 96 -H 227 -W 227 -x 11 -y 11 -p 5 -q 5 -F 1 -t %T% -s %S% -V %V%
+echo "conv1 10x3x227x227x96x11x11"
+.\driver\Debug\MLOpenDriver.exe conv -i 1 -n %B% -c 3 -k 96 -H 227 -W 227 -x 11 -y 11 -p 5 -q 5 -u 4 -v 4 -F 1 -t %T% -s %S% -V %V%
 echo "conv2 10x96x27x27x256x5x5"
 .\driver\Debug\MLOpenDriver.exe conv -i 1 -n %B% -W 27 -H 27 -c 96 -k 256 -x 5 -y 5 -p 2 -q 2 -F 1 -t %T% -s %S% -V %V%
 echo "conv3 10x256x13x13x384x3x3"
