@@ -699,7 +699,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 }
 
 
-int mlo_construct_direct2D::mloConstructDirect2D3x3(void)
+int mlo_construct_direct2D::mloConstructDirect2D3x3()
 {
 	int ret = 0;
 
@@ -719,14 +719,16 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3(void)
 	_n_stacks = 1;
 	_n_out_pix_tiles = 4;
 	int read_unit = _out_pix_tile0;
-	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
+//	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
+	// MD: read_unit is never == 1
+	std::string READ_TYPE = "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
 
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 	int ALU_EXTENT_X = (_out_width + read_unit - 1) / read_unit;
-	int LG2ALU_EXTENT_X = (int)std::ceil(std::log(ALU_EXTENT_X) / std::log(2));
+	int LG2ALU_EXTENT_X = static_cast<int>(std::ceil(std::log(ALU_EXTENT_X) / std::log(2)));
 	int ALU_EXTENT_Y = (GRP_SZ >> LG2ALU_EXTENT_X);
-	int LG2ALU_EXTENT_Y = (int)std::ceil(std::log(ALU_EXTENT_Y) / std::log(2));
+	int LG2ALU_EXTENT_Y = static_cast<int>(std::ceil(std::log(ALU_EXTENT_Y) / std::log(2)));
 
 	// the wave is logical is a unit of shareing weights in SGPRs
 	// it cannot be less than HW_WAVE_SIZE = 64
@@ -753,34 +755,8 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3(void)
 	// number of batches inside wk_item
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 
-	int batch_aligned = 0;
-	int output_aligned = 0;
-	if ((_batch_sz / _n_stacks) *_n_stacks == _batch_sz)
-	{
-		batch_aligned = 1;
-	}
-	if ((_n_outputs / total_out_maps) * total_out_maps == _n_outputs)
-	{
-		output_aligned = 1;
-	}
-
-
-
 	int N_HEIGHT_EXTENTS = (_out_height + OUT_EXTENT1 - 1) / OUT_EXTENT1;
 	int N_WIDTH_EXTENTS = (_out_width + OUT_EXTENT0 - 1) / OUT_EXTENT0;
-	int N_OUTER_LOOPS = 2;
-	int WEI_LCL_SZ = (_n_out_pix_tiles * wei_bstride) / N_OUTER_LOOPS;
-
-	// currently always 1
-	int N4S = 1;
-	int MAP_SZ4 = (_in_width * _in_height + N4S * 4 - 1) / (N4S * 4);
-	int DIVBY4 = (MAP_SZ4 * 4 == _in_width * _in_height) ? 1 : 0;
-	int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0 : _in_width * _in_height - (MAP_SZ4 - 1) * 4;
-	int N_MAPS_PERGROUP = 1;
-	if (MAP_SZ4 <= GRP_SZ / 2)
-	{
-		N_MAPS_PERGROUP = GRP_SZ / MAP_SZ4;
-	}
 	int N_GROUPS_PER_MAP = N_HEIGHT_EXTENTS*N_WIDTH_EXTENTS;
 
 
@@ -843,7 +819,6 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3(void)
 	_l_wk.push_back(grp_tile2);
 
 	size_t gbl_wk0 = N_GROUPS_PER_MAP;
-
 
 	size_t gbl_wk1 = (_n_outputs + total_out_maps - 1) / total_out_maps;
 	size_t gbl_wk2 = (_batch_sz + _n_stacks - 1) / _n_stacks;
