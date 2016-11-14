@@ -25,6 +25,11 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 	std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& tensorDesc) const;
 	TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& tensorDesc) const;
 
+	std::tuple<int, int, int, int> GetBackwardOutputDim(const TensorDescriptor& tensorDesc) const;
+	TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& tensorDesc) const;
+
+	std::size_t GetWorkSpaceSize(const TensorDescriptor& tensorDesc) const;
+
 	mlopenStatus_t Forward(
 		Handle						&handle,
 		const void					*alpha,

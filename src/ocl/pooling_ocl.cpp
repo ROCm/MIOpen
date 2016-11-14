@@ -4,6 +4,11 @@
 
 namespace mlopen {
 
+std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& tensorDesc) const
+{
+	return tensorDesc.GetElementSize() * sizeof(int16_t);
+}
+
 mlopenStatus_t PoolingDescriptor::Forward(
 		Handle								&handle,
 		const void							* /*alpha*/,
