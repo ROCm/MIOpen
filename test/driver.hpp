@@ -79,6 +79,7 @@ struct unary_input
     template<class T, class F, class G>
     void generate_one(F f, G g)
     {
+        std::reverse(input_dims.begin(), input_dims.end());
         generate_unary_one<T>(f, input_dims, g);
     }
 };
@@ -110,6 +111,8 @@ struct binary_input
     template<class T, class F, class G>
     void generate_one(F f, G g)
     {
+        std::reverse(input_dims.begin(), input_dims.end());
+        std::reverse(weights_dims.begin(), weights_dims.end());
         generate_binary_one<T>(f, input_dims, weights_dims, g);
     }
 };
