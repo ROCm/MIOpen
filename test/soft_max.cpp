@@ -84,7 +84,7 @@ struct verify_backward_sofmax
         int in_n, in_c, in_h, in_w;
         std::tie(in_n, in_c, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
 
-        par_ford(in_n, in_c, in_h, in_w)([&](int o, int w, int i, int j)
+        par_ford(in_n, in_h, in_w)([&](int o, int i, int j)
         {
             T sum = 0;
             ford(in_c)([&](int c)
@@ -92,7 +92,10 @@ struct verify_backward_sofmax
                 sum += out(o, c, i, j) * dout(o, c, i, j);
             });
 
-            input(o, w, i, j) = out(o, w, i, j) * (input(o, w, i, j) - sum);
+            ford(in_c)([&](int c)
+            {
+                input(o, c, i, j) = out(o, c, i, j) * (input(o, c, i, j) - sum);
+            });
         });
         return input;
     }
