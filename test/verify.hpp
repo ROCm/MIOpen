@@ -90,6 +90,9 @@ auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs
         v.fail(error, xs...);
         if (range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
         if (range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
+        auto p = std::mismatch(out_cpu.begin(), out_cpu.end(), out_gpu.begin(), float_equal);
+        auto idx = std::distance(out_cpu.begin(), p.first);
+        std::cout << "Mismatch at: " << idx << std::endl;
     }
     return std::make_pair(std::move(out_cpu), std::move(out_gpu));
 }
