@@ -134,6 +134,6 @@ struct verify_softmax
 
 int main(int argc, const char *argv[]) 
 {
-    activation_test_drive<verify_softmax>(argc, argv);
+    test_drive<verify_softmax, unary_input>(argc, argv);
 }
 

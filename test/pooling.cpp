@@ -272,5 +272,5 @@ struct verify_pooling
 
 int main(int argc, const char *argv[]) 
 {
-    activation_test_drive<verify_pooling>(argc, argv);
+    test_drive<verify_pooling, unary_input>(argc, argv);
 }
