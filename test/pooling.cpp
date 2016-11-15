@@ -168,7 +168,7 @@ struct verify_backward_pooling
                     auto idx = indices.at(dout.desc.GetIndex(o, w, i, j));
                     auto idx_h = idx / in_w;
                     auto idx_w = idx % in_w;
-                    CHECK(input(o, w, idx_h, idx_w) == out(o, w, i, j));
+                    CHECK(float_equal(input(o, w, idx_h, idx_w), out(o, w, i, j)));
                     dinput(o, w, idx_h, idx_w) += dout(o, w, i, j);
                 });
             }

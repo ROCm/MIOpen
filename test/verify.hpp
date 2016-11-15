@@ -24,6 +24,16 @@ T as(T, U x)
     return x;
 }
 
+struct float_equal_fn
+{
+    template<class T>
+    bool operator()(T x, T y) const
+    {
+        return std::fabs(x - y) < std::max(std::numeric_limits<T>::epsilon() * std::max(x, y), std::numeric_limits<T>::epsilon());
+    }
+};
+
+static constexpr float_equal_fn float_equal{};
 
 struct compare_mag_fn
 {
