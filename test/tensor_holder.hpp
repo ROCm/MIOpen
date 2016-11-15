@@ -178,7 +178,7 @@ struct generate_both_visitation
 };
 
 template<class T, class F, class... Gs>
-void generate_all_layers(F f, Gs... gs)
+void generate_binary_all(F f, Gs... gs)
 {
     cross_args(
         std::bind(generate_both_visitation<T>{}, protect_void(f), std::placeholders::_1, std::placeholders::_2), 
@@ -187,7 +187,7 @@ void generate_all_layers(F f, Gs... gs)
 
 
 template<class T, class F, class G>
-void generate_one_layer(F f, std::vector<int> input, std::vector<int> weights, G g)
+void generate_binary_one(F f, std::vector<int> input, std::vector<int> weights, G g)
 {
     f(make_tensor<T>(input, g), make_tensor<T>(weights, g));
 }
@@ -204,14 +204,14 @@ struct generate_activ_visitation
 };
 
 template<class T, class F, class... Gs>
-void generate_all_activations(F f, Gs... gs)
+void generate_unary_all(F f, Gs... gs)
 {
     mlopen::each_args(std::bind(generate_activ_visitation<T>{}, protect_void(f), std::placeholders::_1), gs...);
 }
 
 
 template<class T, class F, class G>
-void generate_one_activation(F f, std::vector<int> input, G g)
+void generate_unary_one(F f, std::vector<int> input, G g)
 {
     f(make_tensor<T>(input, g));
 }

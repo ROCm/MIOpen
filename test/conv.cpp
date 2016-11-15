@@ -224,5 +224,5 @@ struct verify_conv_filter
 
 int main(int argc, const char *argv[]) 
 {
-    layer_test_drive<verify_conv_filter>(argc, argv);
+    test_drive<verify_conv_filter, binary_input>(argc, argv);
 }
