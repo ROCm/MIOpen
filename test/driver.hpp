@@ -37,7 +37,11 @@ struct test_driver : Base
         {
         #if MLOPEN_TEST_ALL
             printf("verify_all\n");
+        #ifdef NDEBUG
             this->template generate_all<float>(F{}, g0, g1, g_id, g);
+        #else
+            this->template generate_all<float>(F{}, g);
+        #endif
         #else
             printf("verify_one\n");
             this->template generate_default<float>(F{}, g);
