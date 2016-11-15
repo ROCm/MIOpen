@@ -77,9 +77,9 @@ struct verify_forward_sofmax
 struct verify_backward_sofmax
 {
     template<class T>
-    tensor<T> cpu(const tensor<T>& out)
+    tensor<T> cpu(const tensor<T>& out, const tensor<T>& dout)
     {
-        auto input = out;
+        auto input = dout;
 
         int in_n, in_c, in_h, in_w;
         std::tie(in_n, in_c, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
@@ -89,7 +89,7 @@ struct verify_backward_sofmax
             T sum = 0;
             ford(in_c)([&](int c)
             {
-                sum += out(o, c, i, j) * input(o, c, i, j);
+                sum += out(o, c, i, j) * dout(o, c, i, j);
             });
 
             input(o, w, i, j) = out(o, w, i, j) * (input(o, w, i, j) - sum);
@@ -98,10 +98,10 @@ struct verify_backward_sofmax
     }
 
     template<class T>
-    tensor<T> gpu(const tensor<T>& out)
+    tensor<T> gpu(const tensor<T>& out, const tensor<T>& dout)
     {
         mlopen::Handle handle;
-        auto input = out;
+        auto input = dout;
 
         auto in_dev = handle.Write(input.data);
         auto out_dev = handle.Write(out.data);
@@ -115,7 +115,7 @@ struct verify_backward_sofmax
     }
 
     template<class T>
-    void fail(float, const tensor<T>& output)
+    void fail(float, const tensor<T>& output, const tensor<T>&)
     {
         std::cout << "Backward Sofmax: " << std::endl;
         std::cout << "Output tensor: " << output.desc.ToString() << std::endl;
@@ -128,7 +128,14 @@ struct verify_softmax
     void operator()(const tensor<T>& input) const
     {
         auto out = verify(verify_forward_sofmax{}, input);
-        verify(verify_backward_sofmax{}, out.first);
+        auto dout = input;
+        dout.generate([&](int n, int c, int h, int w)
+        {
+            T x = input(n, c, h, w);
+            double y = (877*n+547*c+701*h+1049*w+static_cast<int>(769*x))%2503;
+            return ((x*y)/1301.0);
+        });
+        verify(verify_backward_sofmax{}, out.first, dout);
     }
 };
 
