@@ -136,5 +136,5 @@ cmake .. -G "Visual Studio 14 2015 Win64"
 cd .../MLOpen/build
 PATH=.\src\Debug;%PATH%
 (example)
-.\driver\Debug\MLOpenDriver.exe -n 100 -c 3 -k 32 -x 5 -y 5 -H 32 -W 32 -F 1 -p 2 -q 2
+.\driver\Debug\MLOpenDriver.exe conv -n 100 -c 3 -k 32 -x 5 -y 5 -H 32 -W 32 -F 1 -p 2 -q 2
 ```
