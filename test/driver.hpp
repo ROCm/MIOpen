@@ -36,7 +36,7 @@ struct test_driver : Base
         if (empty)
         {
         #if MLOPEN_TEST_ALL
-        #ifdef NDEBUG
+        #if MLOPEN_TEST_ALL_GENERATORS
             printf("verify_all\n");
             this->template generate_all<float>(F{}, g0, g1, g_id, g);
         #else
