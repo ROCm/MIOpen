@@ -4,6 +4,10 @@
 #include <mlopen/kernel_cache.hpp>
 #include <string>
 
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
 namespace mlopen {
 
 struct HandleImpl
@@ -112,17 +116,28 @@ Handle::Handle ()
         MLOPEN_THROW("Error: Getting Handle Info (device list, clGetContextInfo)");
     }
 
-    char deviceName[100];
-
+#ifdef _WIN32
     // Just using the first device as default
-    clGetDeviceInfo(devices[0], CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
+    auto device = devices.at(0);
+#else
+    // Pick device based on process id
+    auto pid = ::getpid();
+    assert(pid > 0);
+    auto device = devices.at(pid % devices.size());
+#endif
+
+    // TODO: Store device name in handle
+#ifndef NDEBUG
+    char deviceName[100];
+    clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
     printf("Device Name: %s\n", deviceName);
+#endif
 
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
     cl_int status = 0;
-    impl->queues.emplace_back(clCreateCommandQueue(impl->context.get(), devices[0], CL_QUEUE_PROFILING_ENABLE, &status));
+    impl->queues.emplace_back(clCreateCommandQueue(impl->context.get(), device, CL_QUEUE_PROFILING_ENABLE, &status));
     if(status != CL_SUCCESS)
     {
         MLOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
@@ -201,19 +216,19 @@ ManageDataPtr Handle::Create(int sz)
 {
     cl_int status = CL_SUCCESS;
     auto result = ManageDataPtr{clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
-    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error creating buffer: " + std::to_string(status)); }
+    if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error creating buffer: " + std::to_string(sz)); }
     return result;
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
     cl_int status = clEnqueueWriteBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
-    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error writing to buffer: " + std::to_string(status)); }
+    if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error writing to buffer: " + std::to_string(sz)); }
     return ddata;
 }
 
 void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
 {
     auto status = clEnqueueReadBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
-    if (status != CL_SUCCESS) { MLOPEN_THROW("OpenCL error reading from buffer: " + std::to_string(status)); }
+    if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz)); }
 }
 } // namespace mlopen
