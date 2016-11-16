@@ -240,6 +240,10 @@ struct verify_pooling
     template<class T>
     void operator()(const tensor<T>& input) const
     {
+        int in_h, in_w;
+        std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
+        if ((in_h * in_w) > std::numeric_limits<uint16_t>::max()) return;
+
         for(auto m:{mlopenPoolingMax, mlopenPoolingAverage})
         {
             for(auto filter:{
