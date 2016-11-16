@@ -22,7 +22,6 @@ std::set<std::vector<int>> get_inputs(int n=MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTO
     return 
     {
         { pick_batch_size(100, n), 19,   1024,2048},
-        { pick_batch_size(100, n), 192,  1024,2048},
         { pick_batch_size(100, n), 3,    32,  32  },
         { pick_batch_size(100, n), 32,   16,  16  },
         { pick_batch_size(100, n), 32,   8,   8   },

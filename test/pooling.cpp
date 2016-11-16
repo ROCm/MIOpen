@@ -21,12 +21,6 @@ tensor<T> get_output_tensor(const mlopen::PoolingDescriptor& filter, const tenso
 }
 
 template<class T>
-tensor<T> get_input_tensor(const mlopen::PoolingDescriptor& filter, const tensor<T>& output)
-{
-    return tensor<T>{filter.GetBackwardOutputTensor(output.desc)};
-}
-
-template<class T>
 struct pooling_operators
 {
     mlopen::PoolingDescriptor filter;
@@ -143,8 +137,7 @@ struct verify_backward_pooling
     template<class T>
     tensor<T> cpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const mlopen::PoolingDescriptor& filter, const std::vector<uint16_t>& indices)
     {
-        auto dinput = get_input_tensor(filter, out);
-        CHECK(input.desc == dinput.desc);
+        auto dinput = input;
         CHECK(dout.desc == out.desc);
         std::fill(dinput.begin(), dinput.end(), 0.0);
 
@@ -194,7 +187,7 @@ struct verify_backward_pooling
     tensor<T> gpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const mlopen::PoolingDescriptor& filter, const std::vector<uint16_t>& indices)
     {
         mlopen::Handle handle;
-        auto dinput = get_input_tensor(filter, out);
+        auto dinput = input;
 
         auto in_dev = handle.Write(input.data);
         auto dout_dev = handle.Write(dout.data);
