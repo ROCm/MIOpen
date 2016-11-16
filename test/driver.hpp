@@ -3,18 +3,17 @@
 #include "tensor_holder.hpp"
 #include "network_data.hpp"
 
-template<class F>
-struct test_driver
+template<class F, class Base>
+struct test_driver : Base
 {
-    std::vector<int> input_dims;
-    std::vector<int> weights_dims;
-
-    template<class V>
-    void visit(V v)
+    struct empty_args
     {
-        v(input_dims, "--input");
-        v(weights_dims, "--weights");
-    }
+        template<class T>
+        void operator()(bool& b, T&& x) const
+        {
+            b = b && x.empty();
+        }
+    };
 
     void run()
     {
@@ -31,27 +30,96 @@ struct test_driver
         (void)g_id;
         (void)g;
 
-        if (input_dims.empty() && weights_dims.empty())
+        bool empty = true;
+        this->visit(std::bind(empty_args{}, std::ref(empty), std::placeholders::_1));
+
+        if (empty)
         {
         #if MLOPEN_TEST_ALL
+        #if MLOPEN_TEST_ALL_GENERATORS
             printf("verify_all\n");
-            generate_all<float, network_visitor>(F{}, g0, g1, g_id, g);
+            this->template generate_all<float>(F{}, g0, g1, g_id, g);
+        #else
+            printf("verify_all debug\n");
+            this->template generate_all<float>(F{}, g);
+        #endif
         #else
             printf("verify_one\n");
-            generate_one<float>(F{}, {16, 32, 8, 8}, {64, 32, 5, 5}, g);
+            this->template generate_default<float>(F{}, g);
         #endif
         }
         else
         {
-            generate_one<float>(F{}, input_dims, weights_dims, g);
+            this->template generate_one<float>(F{}, g);
         }
     }
 };
 
-template<class F>
+struct unary_input
+{
+    std::vector<int> input_dims;
+
+    template<class V>
+    void visit(V v)
+    {
+        v(input_dims, "--input");
+    }
+
+    template<class T, class F, class... Gs>
+    void generate_all(F f, Gs... gs)
+    {
+        generate_unary_all<T>(f, gs...);
+    }
+
+    template<class T, class F, class G>
+    void generate_default(F f, G g)
+    {
+        generate_unary_one<T>(f, {16, 32, 8, 8}, g);
+    }
+
+    template<class T, class F, class G>
+    void generate_one(F f, G g)
+    {
+        generate_unary_one<T>(f, input_dims, g);
+    }
+};
+
+struct binary_input
+{
+    std::vector<int> input_dims;
+    std::vector<int> weights_dims;
+
+    template<class V>
+    void visit(V v)
+    {
+        v(input_dims, "--input");
+        v(weights_dims, "--weights");
+    }
+
+    template<class T, class F, class... Gs>
+    void generate_all(F f, Gs... gs)
+    {
+        generate_binary_all<T>(f, gs...);
+    }
+
+    template<class T, class F, class G>
+    void generate_default(F f, G g)
+    {
+        generate_binary_one<T>(f, {16, 32, 8, 8}, {64, 32, 5, 5}, g);
+    }
+
+    template<class T, class F, class G>
+    void generate_one(F f, G g)
+    {
+        generate_binary_one<T>(f, input_dims, weights_dims, g);
+    }
+};
+
+
+template<class F, class Base>
 void test_drive(int argc, const char *argv[])
 {
-    args::parse<test_driver<F>>(argc, argv);
+    args::parse<test_driver<F, Base>>(argc, argv);
 }
 
 
