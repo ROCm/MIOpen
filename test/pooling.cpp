@@ -40,15 +40,10 @@ struct pooling_operators
         else return x+y;
     }
 
-    T final(T x)
+    T final(T x, T y)
     {
         if (filter.GetMode() == mlopenPoolingMax) return x;
-        else
-        {
-            int window_h, window_w;
-            std::tie(window_h, window_w) = mlopen::tie2(filter.GetLengths());
-            return x / (window_h * window_w); 
-        }
+        else return x / y; 
     }
 };
 
@@ -71,19 +66,24 @@ struct verify_forward_pooling
 
         out.par_for_each([&](int o, int w, int i, int j)
         {
-            const int in_off_h = i * v;
-            const int in_off_w = j * u;
+            const int start_x = i * v - pad_h;
+            const int start_y = j * u - pad_w;
+
+            const int hend = std::min(start_x + window_h, in_h + pad_h);
+            const int wend = std::min(start_y + window_w, in_w + pad_w);
+
+            const int pool_size = (hend - start_x) * (wend - start_y);
 
             T acc = op.start();
             ford(window_h, window_w)([&](int x, int y)
             {
-                const int in_x = in_off_h - pad_h + x;
-                const int in_y = in_off_w - pad_w + y;
+                const int in_x = start_x + x;
+                const int in_y = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
                     acc = op(acc, input(o, w, in_x, in_y));
                 }
             });
-            out(o, w, i, j) = op.final(acc);
+            out(o, w, i, j) = op.final(acc, pool_size);
         });
         return out;
     }
@@ -167,15 +167,20 @@ struct verify_backward_pooling
             }
             else
             {
-                auto window_size = window_h * window_w;
                 ford(out_h, out_w, window_h, window_w)([&](int i, int j, int x, int y)
                 {
-                    const int in_off_h = i * v;
-                    const int in_off_w = j * u;
-                    const int in_x = in_off_h - pad_h + x;
-                    const int in_y = in_off_w - pad_w + y;
+                    const int start_x = i * v - pad_h;
+                    const int start_y = j * u - pad_w;
+
+                    const int hend = std::min(start_x + window_h, in_h + pad_h);
+                    const int wend = std::min(start_y + window_w, in_w + pad_w);
+
+                    const int pool_size = (hend - start_x) * (wend - start_y);
+
+                    const int in_x = start_x + x;
+                    const int in_y = start_y + y;
                     if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
-                        dinput(o, w, in_x, in_y) += dout(o, w, i, j) / window_size;
+                        dinput(o, w, in_x, in_y) += dout(o, w, i, j) / pool_size;
                     }
                 });
             }
@@ -247,7 +252,7 @@ struct verify_pooling
         for(auto m:{mlopenPoolingMax, mlopenPoolingAverage})
         {
             for(auto filter:{
-                // mlopen::PoolingDescriptor{m, {2, 2}, {2, 2}, {0, 0}}, 
+                mlopen::PoolingDescriptor{m, {2, 2}, {2, 2}, {0, 0}}, 
                 mlopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {0, 0}}, 
                 mlopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {1, 1}}
             })
