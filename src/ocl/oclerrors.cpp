@@ -67,7 +67,7 @@ std::string OpenCLErrorMessage(int error, const std::string& msg)
         { CL_INVALID_LINKER_OPTIONS, "Invalid Linker Options" },
         { CL_INVALID_DEVICE_PARTITION_COUNT, "Invalid Device Partition Count" }
     };
-    if (error_map.count(error) > 0) { return msg + error_map[error];
+    if (error_map.count(error) > 0) { return msg + " " + error_map[error];
     } else { return msg + "Unknown OpenCL error " + std::to_string(error);
 }
 }

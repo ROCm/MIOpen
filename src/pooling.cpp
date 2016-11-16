@@ -4,6 +4,14 @@
 
 namespace mlopen {
 
+template<class T, class U>
+T iciel_div(T x, U y)
+{
+	auto rem = x % y;
+	if (rem > 0) rem = 1;
+	return ((x - rem) * y);
+}
+
 PoolingDescriptor::PoolingDescriptor() {}
 
 PoolingDescriptor::PoolingDescriptor(mlopenPoolingMode_t m,
@@ -11,6 +19,12 @@ PoolingDescriptor::PoolingDescriptor(mlopenPoolingMode_t m,
 		const int *ppads,
 		const int *pstrides,
 		int			size) : lens(plens, plens+size), strides(pstrides, pstrides+size), pads(ppads, ppads+size), mode(m) {}
+
+PoolingDescriptor::PoolingDescriptor(mlopenPoolingMode_t m, std::initializer_list<int> plens, std::initializer_list<int> pstrides, std::initializer_list<int> ppads)
+: lens(plens), strides(pstrides), pads(ppads), mode(m)
+{
+
+}
 
 mlopenPoolingMode_t PoolingDescriptor::GetMode() const
 {
@@ -64,5 +78,18 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 	ceil((input_w - window_w + 2*pad_w) / static_cast<float>(v)) + 1);
 
 }
+
+
+TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(
+	const TensorDescriptor& tensorDesc) const
+{
+	auto dims = this->GetForwardOutputDim(tensorDesc);
+	return TensorDescriptor(tensorDesc.GetType(), {
+		std::get<0>(dims),
+		std::get<1>(dims),
+		std::get<2>(dims),
+		std::get<3>(dims)});
+}
+
 
 } // namespace mlopen

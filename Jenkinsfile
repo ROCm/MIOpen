@@ -1,6 +1,7 @@
 node ('fglrx1'){
     stage 'Checkout'
     env.CXXFLAGS = "-Werror"
+    env.CTEST_PARALLEL_LEVEL = "4"
     checkout scm
     stage 'Clang Tidy'
     sh '''
