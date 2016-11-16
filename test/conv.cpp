@@ -36,14 +36,14 @@ struct verify_forward_conv
 
         out.par_for_each([&](int o, int w, int i, int j)
         {
-            const int in_off_h = i * filter.v;
-            const int in_off_w = j * filter.u;
+            const int start_x = i * filter.v - filter.pad_h;
+            const int start_y = j * filter.u - filter.pad_w;
 
             T acc = bias;
             ford(wei_c, wei_h, wei_w)([&](int k, int x, int y)
             {
-                const int in_x = in_off_h - filter.pad_h + x;
-                const int in_y = in_off_w - filter.pad_w + y;
+                const int in_x = start_x + x;
+                const int in_y = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
                     acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
                 }
@@ -139,10 +139,10 @@ struct verify_backward_conv
         {
             ford(out_c, out_h, out_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y)
             {
-                const int in_off_h = i * filter.v;
-                const int in_off_w = j * filter.u;
-                const int in_x = in_off_h - filter.pad_h + x;
-                const int in_y = in_off_w - filter.pad_w + y;
+                const int start_x = i * filter.v - filter.pad_h;
+                const int start_y = j * filter.u - filter.pad_w;
+                const int in_x = start_x + x;
+                const int in_y = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
                     input(o, k, in_x, in_y) += out(o, w, i, j) * weights(w, k, x, y);
                 }
@@ -224,5 +224,5 @@ struct verify_conv_filter
 
 int main(int argc, const char *argv[]) 
 {
-    test_drive<verify_conv_filter>(argc, argv);
+    test_drive<verify_conv_filter, binary_input>(argc, argv);
 }

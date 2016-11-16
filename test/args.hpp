@@ -68,21 +68,20 @@ void write_value(T& result, const std::string& x)
 
 struct parse_visitor
 {
-    using string_map = std::unordered_multimap<std::string, std::string>;
+    using string_map = std::unordered_map<std::string, std::vector<std::string>>;
     template<class T>
     void operator()(const string_map& data, T& x, std::string s) const
     {
-        auto r = data.equal_range(s);
-        std::for_each(r.first, r.second, [&](const string_map::value_type& p) {
-            write_value(x, p.second);
-        });
+        auto it = data.find(s);
+        if (it != data.end())
+            for(auto&& value:it->second) write_value(x, value);
     }
 };
 
 template<class T>
 void parse(T& cmd, std::vector<std::string> args)
 {
-    std::unordered_multimap<std::string, std::string> data;
+    std::unordered_map<std::string, std::vector<std::string>> data;
 
     std::string flag;
     for(auto&& x:args)
@@ -93,7 +92,7 @@ void parse(T& cmd, std::vector<std::string> args)
         }
         else
         {
-            data.emplace(flag, x);
+            data[flag].push_back(x);
         }
     }
     cmd.visit(std::bind(parse_visitor{}, std::ref(data), std::placeholders::_1, std::placeholders::_2));
