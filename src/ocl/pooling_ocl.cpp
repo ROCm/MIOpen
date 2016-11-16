@@ -61,6 +61,10 @@ mlopenStatus_t PoolingDescriptor::Forward(
 	std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
 	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
+	if (((hIn * wIn) > std::numeric_limits<uint16_t>::max()) && do_backward) {
+		MLOPEN_THROW("Height and width to large to do backwards");
+	}
+
 	construct_params.setBotDescr(
 			"NCHW",
 			"FP32",
@@ -208,6 +212,10 @@ mlopenStatus_t PoolingDescriptor::Backward(
 
 	std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
 	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
+
+	if (((hIn * wIn) > std::numeric_limits<uint16_t>::max())) {
+		MLOPEN_THROW("Height and width to large to do backwards");
+	}
 
 	construct_params.setBotDescr(
 			"NCHW",
