@@ -254,7 +254,9 @@ struct verify_pooling
             for(auto filter:{
                 mlopen::PoolingDescriptor{m, {2, 2}, {2, 2}, {0, 0}}, 
                 mlopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {0, 0}}, 
-                mlopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {1, 1}}
+                mlopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {1, 1}},
+                mlopen::PoolingDescriptor{m, {3, 3}, {2, 2}, {0, 0}}, 
+                mlopen::PoolingDescriptor{m, {3, 3}, {1, 1}, {1, 1}}
             })
             {
                 std::vector<uint16_t> indices{};
