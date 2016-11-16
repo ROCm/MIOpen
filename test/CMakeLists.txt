@@ -2,11 +2,18 @@
 include(CTest)
 
 option( MLOPEN_TEST_ALL "Run the full test suite" OFF )
+option( MLOPEN_TEST_ALL_GENERATORS "Test using all different data generators" OFF )
 
 if(MLOPEN_TEST_ALL)
     add_definitions(-DMLOPEN_TEST_ALL=1)
 else()
     add_definitions(-DMLOPEN_TEST_ALL=0)
+endif()
+
+if(MLOPEN_TEST_ALL_GENERATORS)
+    add_definitions(-DMLOPEN_TEST_ALL_GENERATORS=1)
+else()
+    add_definitions(-DMLOPEN_TEST_ALL_GENERATORS=0)
 endif()
 
 find_package(Threads REQUIRED)
