@@ -408,6 +408,41 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle
 		void								*workSpace,
 		size_t								workSpaceSize);
 
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		dyDesc,
+		const mlopenTensorDescriptor_t		dwDesc,
+		size_t								*workSpaceSize);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionBackwardWeightsAlgorithm(mlopenHandle_t handle,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const mlopenConvolutionDescriptor_t	convDesc,
+		const mlopenTensorDescriptor_t		dwDesc,
+		const void							*dw,
+		const int							requestAlgoCount,
+		int									*returnedAlgoCount,
+		mlopenConvAlgoPerf_t				*perfResults,
+		mlopenConvPreference_t				preference,
+		void								*workSpace,
+		size_t								workSpaceSize,
+		bool								exhaustiveSearch);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeights(mlopenHandle_t handle,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const mlopenConvolutionDescriptor_t convDesc,
+		mlopenConvBwdDataAlgorithm_t		algo,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		dwDesc,
+		void								*dw,
+		void								*workSpace,
+		size_t								workSpaceSize);
+
 // Pooling APIs
 
 MLOPEN_EXPORT mlopenStatus_t mlopenCreatePoolingDescriptor(mlopenPoolingDescriptor_t *poolDesc);
