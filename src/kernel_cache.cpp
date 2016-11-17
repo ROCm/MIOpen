@@ -63,6 +63,7 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
     std::cout << "key: " << key.first << ',' << key.second << std::endl;
 #endif
 
+#if 0
     auto kernel_iterator = kernel_map.find(key);
     if (kernel_iterator != kernel_map.end())
     {
@@ -72,7 +73,11 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
         return kernel_iterator->second;
     }
     else //build program and compile the kernel;
+#endif
     {
+#ifndef NDEBUG
+        printf("build kernel\n");
+#endif
         auto program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);	
 		OCLKernel kernel(CreateKernel(program, kernel_name), vld, vgd, std::move(program));
         if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }

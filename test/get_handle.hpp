@@ -4,7 +4,7 @@
 
 #include <mlopen/handle.hpp>
 
-#if 1
+#if 0
 
 static mlopen::Handle get_handle()
 {
