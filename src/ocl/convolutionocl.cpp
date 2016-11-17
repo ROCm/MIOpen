@@ -310,4 +310,61 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 #endif
 	}
 }
+
+// FindBackwardWeightsAlgorithm()
+//
+void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
+		const TensorDescriptor&		dyDesc,
+		const cl_mem				dy,
+		const TensorDescriptor&		xDesc,
+		const cl_mem				x,
+		const TensorDescriptor&		dwDesc,
+		const cl_mem				dw,
+		const int					 /*requestAlgoCount*/,
+		int							* /*returnedAlgoCount*/,
+		mlopenConvAlgoPerf_t		* /*perfResults*/,
+		mlopenConvPreference_t		 /*preference*/,
+		cl_mem						workSpace,
+		size_t						workSpaceSize,
+		bool						exhaustiveSearch) const {
+	
+	if(x == nullptr || dw == nullptr || dy == nullptr) {
+		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+	printf("in bwd wrw find\n");
+}
+
+// BackwardWeightsAlgorithm()
+void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
+		const void						* /*alpha*/,
+		const TensorDescriptor&			dyDesc,
+		const cl_mem					dy,
+		const TensorDescriptor&			xDesc,
+		const cl_mem					x,
+		mlopenConvBwdDataAlgorithm_t	/* algo */,
+		const void						* /*beta*/,
+		const TensorDescriptor&			dwDesc,
+		cl_mem							dw, 
+		cl_mem							workSpace,
+		size_t							workSpaceSize) const {
+
+	if(x == nullptr || dw == nullptr || dy == nullptr) {
+		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+	if(dyDesc.GetSize() != dwDesc.GetSize() || dyDesc.GetSize() != xDesc.GetSize()) {
+		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+	if(dyDesc.GetType() != dwDesc.GetType() || dyDesc.GetType() != xDesc.GetType()) {
+		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+	if(dyDesc.GetLengths()[0] != xDesc.GetLengths()[0]) {
+		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+	if(dyDesc.GetSize() < 3) {
+		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+
+	printf("in bwd wrw\n");
+}
+
 }  // namespace mlopen
