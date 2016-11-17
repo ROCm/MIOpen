@@ -13,6 +13,7 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include "driver.hpp"
+#include "get_handle.hpp"
 
 template<class T>
 tensor<T> get_output_tensor(const mlopen::PoolingDescriptor& filter, const tensor<T>& input)
@@ -91,7 +92,7 @@ struct verify_forward_pooling
     template<class T>
     tensor<T> gpu(const tensor<T>& input, const mlopen::PoolingDescriptor& filter, std::vector<uint16_t>& indices)
     {
-        mlopen::Handle handle;
+        auto&& handle = get_handle();
         auto out = get_output_tensor(filter, input);
         indices.resize(out.data.size(), 0);
 
@@ -191,7 +192,7 @@ struct verify_backward_pooling
     template<class T>
     tensor<T> gpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const mlopen::PoolingDescriptor& filter, const std::vector<uint16_t>& indices)
     {
-        mlopen::Handle handle;
+        auto&& handle = get_handle();
         auto dinput = input;
 
         auto in_dev = handle.Write(input.data);
