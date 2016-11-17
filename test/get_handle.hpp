@@ -4,11 +4,21 @@
 
 #include <mlopen/handle.hpp>
 
+#if 1
+
 static mlopen::Handle get_handle()
 {
-    // static mlopen::Handle h{};
-    // return h;
     return mlopen::Handle{};
 }
+
+#else
+
+static mlopen::Handle& get_handle()
+{
+    static mlopen::Handle h{};
+    return h;
+}
+
+#endif
 
 #endif
