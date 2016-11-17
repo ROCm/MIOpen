@@ -14,6 +14,7 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include "driver.hpp"
+#include "get_handle.hpp"
 
 
 struct verify_forward_sofmax
@@ -53,7 +54,7 @@ struct verify_forward_sofmax
     template<class T>
     tensor<T> gpu(const tensor<T>& input)
     {
-        mlopen::Handle handle;
+        auto&& handle = get_handle();
         auto out = input;
 
         auto out_dev = handle.Write(out.data);
@@ -103,7 +104,7 @@ struct verify_backward_sofmax
     template<class T>
     tensor<T> gpu(const tensor<T>& out, const tensor<T>& dout)
     {
-        mlopen::Handle handle;
+        auto&& handle = get_handle();
         auto input = dout;
 
         auto in_dev = handle.Write(input.data);

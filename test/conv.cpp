@@ -13,6 +13,7 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include "driver.hpp"
+#include "get_handle.hpp"
 
 template<class T>
 tensor<T> get_output_tensor(const mlopen::ConvolutionDescriptor& filter, const tensor<T>& input, const tensor<T>& weights)
@@ -56,7 +57,7 @@ struct verify_forward_conv
     template<class T>
     tensor<T> gpu(const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
     {
-        mlopen::Handle handle;
+        auto&& handle = get_handle();
         auto out = get_output_tensor(filter, input, weights);
 
         auto in_dev = handle.Write(input.data);
@@ -154,7 +155,7 @@ struct verify_backward_conv
     template<class T>
     tensor<T> gpu(const tensor<T>& out, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
     {
-        mlopen::Handle handle;
+        auto&& handle = get_handle();
         auto input = get_input_tensor(filter, out, weights);
         std::fill(input.begin(), input.end(), 0);
 
