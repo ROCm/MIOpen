@@ -207,3 +207,88 @@ mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
 
 }
 
+extern "C"
+mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		dyDesc,
+		const mlopenTensorDescriptor_t		dwDesc,
+		size_t								*workSpaceSize) {
+	
+	return mlopen::try_([&] {
+		int out_h, out_w;
+		std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(mlopen::deref(dyDesc).GetLengths());
+		
+		int wei_c, wei_h, wei_w;
+		std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(mlopen::deref(dwDesc).GetLengths());
+		mlopen::deref(workSpaceSize) = wei_c*wei_h*wei_w * out_h*out_w * sizeof(mlopen::deref(dyDesc).GetType());
+	});
+
+}
+
+extern "C"
+mlopenStatus_t mlopenFindConvolutionBackwardWeightsAlgorithm(mlopenHandle_t handle,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const mlopenConvolutionDescriptor_t	convDesc,
+		const mlopenTensorDescriptor_t		dwDesc,
+		const void							*dw,
+		const int							requestAlgoCount,
+		int									*returnedAlgoCount,
+		mlopenConvAlgoPerf_t				*perfResults,
+		mlopenConvPreference_t				preference,
+		void								*workSpace,
+		size_t								workSpaceSize,
+		bool								exhaustiveSearch) {
+
+	return mlopen::try_([&] {
+		mlopen::deref(convDesc).FindConvBwdWeightsAlgorithm(mlopen::deref(handle),
+				mlopen::deref(dyDesc),
+				DataCast(dy),
+				mlopen::deref(xDesc),
+				DataCast(x),
+				mlopen::deref(dwDesc),
+				DataCast(dw),
+				requestAlgoCount,
+				returnedAlgoCount,
+				perfResults,
+				preference,
+				DataCast(workSpace),
+				workSpaceSize,
+				exhaustiveSearch);
+	});
+
+}
+
+extern "C"
+mlopenStatus_t mlopenConvolutionBackwardWeights(mlopenHandle_t handle,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const mlopenConvolutionDescriptor_t convDesc,
+		mlopenConvBwdDataAlgorithm_t		algo,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		dwDesc,
+		void								*dw,
+		void								*workSpace,
+		size_t								workSpaceSize) {
+
+	return mlopen::try_([&] {
+		mlopen::deref(convDesc).ConvolutionBackwardWeights(mlopen::deref(handle),
+				alpha,
+				mlopen::deref(dyDesc),
+				DataCast(dy),
+				mlopen::deref(xDesc),
+				DataCast(x),
+				algo,
+				beta,
+				mlopen::deref(dwDesc),
+				DataCast(dw),
+				DataCast(workSpace),
+				workSpaceSize);
+	});
+
+}
+
