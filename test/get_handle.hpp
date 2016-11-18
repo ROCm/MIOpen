@@ -4,19 +4,24 @@
 
 #include <mlopen/handle.hpp>
 
-#if 0
+#ifndef MLOPEN_TEST_USE_GLOBAL_HANDLE
+#define MLOPEN_TEST_USE_GLOBAL_HANDLE 1
+#endif
 
-static mlopen::Handle get_handle()
-{
-    return mlopen::Handle{};
-}
 
-#else
+#if MLOPEN_TEST_USE_GLOBAL_HANDLE
 
 static mlopen::Handle& get_handle()
 {
     static mlopen::Handle h{};
     return h;
+}
+
+#else
+
+static mlopen::Handle get_handle()
+{
+    return mlopen::Handle{};
 }
 
 #endif
