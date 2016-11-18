@@ -144,7 +144,7 @@ Handle::Handle ()
     } 
 }
 
-Handle::Handle(Handle&&)=default;
+Handle::Handle(Handle&&) noexcept=default;
 Handle::~Handle()=default;
 
 mlopenAcceleratorQueue_t Handle::GetStream() const
