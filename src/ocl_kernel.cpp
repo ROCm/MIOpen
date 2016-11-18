@@ -31,24 +31,21 @@ OCLKernelInvoke OCLKernel::Invoke(cl_command_queue q, std::function<void(cl_even
 	return result;
 }
 
-mlopenStatus_t OCLKernel::GetKernelName(std::string &progName) {
-	
-	auto *name = new char[200];
+std::string OCLKernel::GetName() const
+{
+	std::array<char, 200> buffer{};
+
 	cl_int status = clGetKernelInfo(kernel.get(), 
 			CL_KERNEL_FUNCTION_NAME, 
 			200, 
-			name, 
+			buffer.data(), 
 			nullptr);
 
-	if(status != CL_SUCCESS) {
-		return mlopenStatusBadParm;
+	if(status != CL_SUCCESS) 
+	{
+		MLOPEN_THROW_CL_STATUS(status, "Error getting kernel name");
 	}
-
-	progName = std::string(name);
-	delete[] name;
-
-	return mlopenStatusSuccess;
-	
+	return buffer.data();
 }
 
 } // namespace mlopen

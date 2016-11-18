@@ -86,7 +86,7 @@ public:
 
 	cl_kernel GetKernel() { return kernel.get(); } 
 
-	mlopenStatus_t GetKernelName(std::string &progName);
+	std::string GetName() const;
 
 	inline const std::vector<size_t>& GetLocalDims() const { return ldims; }
 	inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
