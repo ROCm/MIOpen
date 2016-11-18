@@ -99,7 +99,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	handle.GetKernel("mlopenPooling2dDForward",
-		network_config,
+		"",
 		program_name,
 		kernel_name,
 		vld,
@@ -249,7 +249,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	// Compile the kernel if not aleady compiled
-	auto k = handle.GetKernel("mlopenPooling2dBackward", network_config, program_name, kernel_name, vld, vgd, parms);
+	auto k = handle.GetKernel("mlopenPooling2dBackward", "", program_name, kernel_name, vld, vgd, parms);
 
 	// Set kernel arguments
 	// Use proper arguments
