@@ -100,7 +100,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		ConstData_t						dy,
 		const TensorDescriptor&			xDesc,
 		ConstData_t						x,
-		mlopenConvBwdDataAlgorithm_t	algo,
+		mlopenConvBwdWeightsAlgorithm_t	algo,
 		const void						*beta,
 		const TensorDescriptor&			dwDesc,
 		Data_t							dw,

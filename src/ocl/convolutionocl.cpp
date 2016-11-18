@@ -1,4 +1,5 @@
 #include <mlopen/convolution.hpp>
+#include <mlopen/util.hpp>
 #include <mlopen/mlo_internal.hpp>
 
 namespace mlopen {
@@ -326,12 +327,13 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		mlopenConvPreference_t		 /*preference*/,
 		cl_mem						workSpace,
 		size_t						workSpaceSize,
-		bool						exhaustiveSearch) const {
+		bool						/*exhaustiveSearch*/) const {
 	
 	if(x == nullptr || dw == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
-	printf("in bwd wrw find\n");
+
+	Im2ColGPU(handle, xDesc, x, dwDesc, pad_h, pad_w, v, u, workSpace);
 }
 
 // BackwardWeightsAlgorithm()
@@ -341,7 +343,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 		const cl_mem					dy,
 		const TensorDescriptor&			xDesc,
 		const cl_mem					x,
-		mlopenConvBwdDataAlgorithm_t	/* algo */,
+		mlopenConvBwdWeightsAlgorithm_t	/* algo */,
 		const void						* /*beta*/,
 		const TensorDescriptor&			dwDesc,
 		cl_mem							dw, 
@@ -364,7 +366,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
-	printf("in bwd wrw\n");
+	Im2ColGPU(handle, xDesc, x, dwDesc, pad_h, pad_w, v, u, workSpace);
 }
 
 }  // namespace mlopen

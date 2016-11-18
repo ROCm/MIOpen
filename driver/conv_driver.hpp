@@ -6,6 +6,7 @@
 #include "driver.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
+#include "util_driver.hpp"
 #include <mlopen/tensor.hpp>
 #include <vector>
 #include <algorithm>
@@ -44,9 +45,11 @@ class ConvDriver : public Driver
 	int RunForwardGPU();
 	int RunForwardCPU();
 	
-	int FindBackward();
+	int FindBackwardData();
+	int FindBackwardWeights();
 	int RunBackwardGPU();
-	int RunBackwardCPU();
+	int RunBackwardDataCPU();
+	int RunBackwardWeightsCPU();
 	
 	int VerifyBackward();
 	int VerifyForward();
@@ -70,12 +73,15 @@ class ConvDriver : public Driver
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> wei_dev;
 	std::unique_ptr<GPUMem> out_dev;
+	std::unique_ptr<GPUMem> workspace_dev;
 
 	std::vector<T> in;
 	std::vector<T> wei;
 	std::vector<T> out;
+	std::vector<T> workspace;
 	std::vector<T> outhost;
 	std::vector<T> inhost;
+	std::vector<T> workspace_host;
 
 	mlopenConvolutionDescriptor_t convDesc;
 };
@@ -178,6 +184,8 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t in_sz = GetTensorSize(inputTensor); 
 	size_t wei_sz = GetTensorSize(weightTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
+	size_t workSpaceSize = 0; 
+	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(outputTensor, weightTensor, &workSpaceSize);
 
 	cl_context ctx;
 
@@ -186,12 +194,15 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	wei_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, wei_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
+	workspace_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, workSpaceSize/sizeof(T), sizeof(T)));
 	
 	in = std::vector<T>(in_sz);
 	wei = std::vector<T>(wei_sz);
 	out = std::vector<T>(out_sz, 0);
+	workspace = std::vector<T>(workSpaceSize/sizeof(T), 0);
 	outhost = std::vector<T>(out_sz, 0);
 	inhost = std::vector<T>(in_sz, 0);
+	workspace_host = std::vector<T>(workSpaceSize/sizeof(T), 0);
 
 	for(int i = 0; i < in_sz; i++) {
 		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
@@ -204,6 +215,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	status = in_dev->ToGPU(q, in.data());
 	status |= wei_dev->ToGPU(q, wei.data());
 	status |= out_dev->ToGPU(q, out.data());
+	status |= workspace_dev->ToGPU(q, workspace.data());
 	
 	if(status != CL_SUCCESS) 
 		printf("Error copying data to GPU\n");
@@ -326,7 +338,7 @@ int ConvDriver<T>::RunForwardCPU() {
 }
 
 template<typename T>
-int ConvDriver<T>::FindBackward() {
+int ConvDriver<T>::FindBackwardData() {
 	int ret_algo_count;
 	mlopenConvAlgoPerf_t perf;
 
@@ -349,13 +361,59 @@ int ConvDriver<T>::FindBackward() {
 }
 
 template<typename T>
+int ConvDriver<T>::FindBackwardWeights() {
+	int ret_algo_count;
+	mlopenConvAlgoPerf_t perf;
+
+	return mlopenFindConvolutionBackwardWeightsAlgorithm(GetHandle(),
+			outputTensor,
+			out_dev->GetMem(),
+			inputTensor,
+			in_dev->GetMem(),
+			convDesc,
+			weightTensor,
+			wei_dev->GetMem(),
+			1,
+			&ret_algo_count,
+			&perf,
+			mlopenConvolutionFastest,
+			workspace_dev->GetMem(),
+			workspace_dev->GetSize(),
+			(inflags.GetValueInt("search") == 1) ? true : false
+		);
+}
+
+template<typename T>
 int ConvDriver<T>::RunBackwardGPU() {
 
-	FindBackward();
+	FindBackwardData();
+	FindBackwardWeights();
 
 	int alpha = 1, beta = 1;
 
 	int ret = 0;
+	ret = mlopenConvolutionBackwardWeights(GetHandle(),
+			&alpha,
+			outputTensor,
+			out_dev->GetMem(),
+			inputTensor,
+			in_dev->GetMem(),
+			convDesc,
+			mlopenConvolutionBwdWeightsAlgo_0,
+			&beta,
+			weightTensor,
+			wei_dev->GetMem(),
+			workspace_dev->GetMem(),
+			workspace_dev->GetSize());
+
+	if(inflags.GetValueInt("time") == 1) {
+		float time = 0.0;
+		mlopenGetKernelTime(GetHandle(), &time);
+		printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms\n", time);
+	}
+
+	workspace_dev->FromGPU(GetStream(), workspace.data());
+
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
 	ret = mlopenConvolutionBackwardData(GetHandle(),
 			&alpha,
@@ -375,7 +433,7 @@ int ConvDriver<T>::RunBackwardGPU() {
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
-		printf("GPU Kernel Time Backward Conv. Elapsed: %f ms\n", time);
+		printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms\n", time);
 	}
 
 	in_dev->FromGPU(GetStream(), in.data());
@@ -384,7 +442,44 @@ int ConvDriver<T>::RunBackwardGPU() {
 }
 
 template<typename T>
-int ConvDriver<T>::RunBackwardCPU() {
+int ConvDriver<T>::RunBackwardWeightsCPU() {
+
+	int in_n, in_c, in_h, in_w;
+	int in_nstride, in_cstride, in_hstride, in_wstride;
+	mlopenDataType_t dt;
+	mlopenGet4dTensorDescriptor(inputTensor, &dt,
+			&in_n, &in_c, &in_h, &in_w,
+			&in_nstride, &in_cstride, &in_hstride, &in_wstride);
+
+	int wei_n, wei_c, wei_h, wei_w;
+	int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
+	mlopenGet4dTensorDescriptor(weightTensor, &dt,
+			&wei_n, &wei_c, &wei_h, &wei_w,
+			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+
+	int out_n, out_c, out_h, out_w;
+	int out_nstride, out_cstride, out_hstride, out_wstride;
+	mlopenGet4dTensorDescriptor(outputTensor, &dt,
+			&out_n, &out_c, &out_h, &out_w,
+			&out_nstride, &out_cstride, &out_hstride, &out_wstride);
+
+	int u, v, pad_h, pad_w, upx, upy;
+	mlopenConvolutionMode_t mode;
+	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+
+	// im2col 
+	Im2ColCPU<T>(in, in_c, in_h, in_w, 
+			wei_h, wei_w,
+			out_h, out_w,
+			pad_h, pad_w,
+			v, u,
+			workspace_host);
+	
+	return 0;
+}
+
+template<typename T>
+int ConvDriver<T>::RunBackwardDataCPU() {
 
 	int in_n, in_c, in_h, in_w;
 	int in_nstride, in_cstride, in_hstride, in_wstride;
@@ -459,17 +554,29 @@ int ConvDriver<T>::VerifyForward() {
 template<typename T>
 int ConvDriver<T>::VerifyBackward() {
 
-	RunBackwardCPU();
+	RunBackwardWeightsCPU();
 
-	auto error = rms_range(inhost, in);
+	auto error_weights = rms_range(workspace_host, workspace);
 	const double tolerance = 1e-6;
-	if (error > tolerance)
+	if (error_weights > tolerance)
 	{
-		std::cout<<"Backward Convolution Failed: " << error <<"\n";
+		std::cout<<"Backward Convolution Weights Failed: " << error_weights <<"\n";
 	}
 	else
 	{
-		printf("Backward Convolution Verifies on CPU and GPU\n");
+		printf("Backward Convolution Weights Verifies on CPU and GPU\n");
+	}
+
+	RunBackwardDataCPU();
+
+	auto error_data = rms_range(inhost, in);
+	if (error_data > tolerance)
+	{
+		std::cout<<"Backward Convolution Data Failed: " << error_data <<"\n";
+	}
+	else
+	{
+		printf("Backward Convolution Data Verifies on CPU and GPU\n");
 	}
 
 	return 0;

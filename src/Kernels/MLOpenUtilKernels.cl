@@ -1,9 +1,10 @@
-kernel void Im2Col(global float *y,
-		const int h, const w,
+kernel void Im2Col(global float *im,
+		const int h, const int w,
 		const int wei_h, const int wei_w,
 		const int out_h, const int out_w,
 		const int pad_h, const int pad_w,
-		const int stride_h, const int stride_w)
+		const int stride_h, const int stride_w,
+		global float *col)
 {
 	int tid = get_global_id(0);
 	int col_row = tid / (out_h * out_w);
