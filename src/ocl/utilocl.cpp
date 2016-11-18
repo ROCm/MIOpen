@@ -24,7 +24,7 @@ mlopenStatus_t Im2ColGPU(
 	int out_w = (w - wei_w + 2*pad_w)/stride_w + 1;
 
 	std::string program_name = "MLOpenUtilKernels.cl";
-	std::string kernel_name = "im2col";
+	std::string kernel_name = "Im2Col";
 	std::string network = "placeholder";
 
 	int col_m = c * wei_h * wei_w;

@@ -316,8 +316,8 @@ typedef enum {
 } mlopenConvFwdAlgorithm_t;
 
 typedef enum {
-	mlopenConvolutionBwdFilterAlgo_0 = 0,
-} mlopenConvBwdFilterAlgorithm_t;
+	mlopenConvolutionBwdWeightsAlgo_0 = 0,
+} mlopenConvBwdWeightsAlgorithm_t;
 
 typedef enum {
 	mlopenConvolutionBwdDataAlgo_0 = 0,
@@ -328,7 +328,7 @@ typedef enum {
 typedef struct{
 	union {
 		mlopenConvFwdAlgorithm_t fwd_algo;
-		mlopenConvBwdFilterAlgorithm_t bwd_filter_algo;
+		mlopenConvBwdWeightsAlgorithm_t bwd_weights_algo;
 		mlopenConvBwdDataAlgorithm_t bwd_data_algo;
 	};
 	mlopenStatus_t status;
@@ -436,7 +436,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeights(mlopenHandle_t han
 		const mlopenTensorDescriptor_t		xDesc,
 		const void							*x,
 		const mlopenConvolutionDescriptor_t convDesc,
-		mlopenConvBwdDataAlgorithm_t		algo,
+		mlopenConvBwdWeightsAlgorithm_t		algo,
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dwDesc,
 		void								*dw,
