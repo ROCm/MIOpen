@@ -5,7 +5,7 @@ namespace mlopen {
 void OCLKernelInvoke::run() const
 {
 	cl_event ev;
-	cl_int status = clEnqueueNDRangeKernel(queue, kernel,
+	cl_int status = clEnqueueNDRangeKernel(queue, kernel.get(),
 		work_dim,
 		global_work_offset.data(),
 		global_work_dim.data(),
@@ -25,7 +25,7 @@ void OCLKernelInvoke::run() const
 
 OCLKernelInvoke OCLKernel::Invoke(cl_command_queue q, std::function<void(cl_event&)> callback)
 {
-	OCLKernelInvoke result{q, kernel.get(), ldims.size(), {}, {}, {}, callback};
+	OCLKernelInvoke result{q, kernel, ldims.size(), {}, {}, {}, callback};
 	std::copy(gdims.begin(), gdims.end(), result.global_work_dim.begin());
 	std::copy(ldims.begin(), ldims.end(), result.local_work_dim.begin());
 	return result;
