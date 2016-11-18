@@ -315,7 +315,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 // FindBackwardWeightsAlgorithm()
 //
 void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
-		const TensorDescriptor&		dyDesc,
+		const TensorDescriptor&		/*dyDesc*/,
 		const cl_mem				dy,
 		const TensorDescriptor&		xDesc,
 		const cl_mem				x,
@@ -326,7 +326,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		mlopenConvAlgoPerf_t		* /*perfResults*/,
 		mlopenConvPreference_t		 /*preference*/,
 		cl_mem						workSpace,
-		size_t						workSpaceSize,
+		size_t						/*workSpaceSize*/,
 		bool						/*exhaustiveSearch*/) const {
 	
 	if(x == nullptr || dw == nullptr || dy == nullptr) {
@@ -348,7 +348,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 		const TensorDescriptor&			dwDesc,
 		cl_mem							dw, 
 		cl_mem							workSpace,
-		size_t							workSpaceSize) const {
+		size_t							/*workSpaceSize*/) const {
 
 	if(x == nullptr || dw == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
