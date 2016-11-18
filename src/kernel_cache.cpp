@@ -63,26 +63,20 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
     std::cout << "key: " << key.first << ',' << key.second << std::endl;
 #endif
 
-#if 0
-    auto kernel_iterator = kernel_map.find(key);
-    if (kernel_iterator != kernel_map.end())
+    SharedProgramPtr program;
+
+    auto program_it = program_map.find(std::make_pair(program_name, params));
+    if (program_it != program_map.end())
     {
-#ifndef NDEBUG
-		printf("kernel found\n");
-#endif
-        return kernel_iterator->second;
+        program = program_it->second;
     }
-    else //build program and compile the kernel;
-#endif
+    else
     {
-#ifndef NDEBUG
-        printf("build kernel\n");
-#endif
-        auto program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);	
-		OCLKernel kernel(CreateKernel(program, kernel_name), vld, vgd, std::move(program));
-        if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
-        return kernel;
+        program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);
     }
+    OCLKernel kernel{ClKernelPtr{CreateKernel(program.get(), kernel_name)}, vld, vgd, program};
+    if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
+    return kernel;
 }
 
 KernelCache::KernelCache()
