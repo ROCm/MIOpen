@@ -27,6 +27,7 @@ struct GPUMem {
 	int FromGPU(cl_command_queue &q, void *p) { return clEnqueueReadBuffer(q, buf, CL_TRUE, 0, data_sz*sz, p, 0, NULL, NULL); }
 
 	cl_mem GetMem() { return buf; }
+	size_t GetSize() { return sz*data_sz; }
 
 	~GPUMem() { clReleaseMemObject(buf); }
 
