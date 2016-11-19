@@ -4,6 +4,11 @@
 
 namespace mlopen {
 
+std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& tensorDesc) const
+{
+	return tensorDesc.GetElementSize() * sizeof(int16_t);
+}
+
 mlopenStatus_t PoolingDescriptor::Forward(
 		Handle								&handle,
 		const void							* /*alpha*/,
@@ -14,7 +19,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		cl_mem								y,
 		bool								do_backward,
 		cl_mem								workSpace,
-		size_t								 /*workSpaceSize*/) {
+		size_t								 /*workSpaceSize*/) const {
 
 	mlo_construct_pooling2D construct_params(1); // forward
 
@@ -56,6 +61,10 @@ mlopenStatus_t PoolingDescriptor::Forward(
 	std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
 	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
+	if (((hIn * wIn) > std::numeric_limits<uint16_t>::max()) && do_backward) {
+		MLOPEN_THROW("Height and width to large to do backwards");
+	}
+
 	construct_params.setBotDescr(
 			"NCHW",
 			"FP32",
@@ -90,7 +99,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	handle.GetKernel("mlopenPooling2dDForward",
-		network_config,
+		"",
 		program_name,
 		kernel_name,
 		vld,
@@ -112,7 +121,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 		const void							* /*beta*/,
 		const TensorDescriptor				&dxDesc,
 		cl_mem								dx,
-		const cl_mem						workSpace) {
+		const cl_mem						workSpace) const {
 
 
 	mlopenStatus_t status = mlopenStatusSuccess;
@@ -204,6 +213,10 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
 	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
+	if (((hIn * wIn) > std::numeric_limits<uint16_t>::max())) {
+		MLOPEN_THROW("Height and width to large to do backwards");
+	}
+
 	construct_params.setBotDescr(
 			"NCHW",
 			"FP32",
@@ -236,7 +249,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	// Compile the kernel if not aleady compiled
-	auto k = handle.GetKernel("mlopenPooling2dBackward", network_config, program_name, kernel_name, vld, vgd, parms);
+	auto k = handle.GetKernel("mlopenPooling2dBackward", "", program_name, kernel_name, vld, vgd, parms);
 
 	// Set kernel arguments
 	// Use proper arguments

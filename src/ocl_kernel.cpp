@@ -5,7 +5,7 @@ namespace mlopen {
 void OCLKernelInvoke::run() const
 {
 	cl_event ev;
-	cl_int status = clEnqueueNDRangeKernel(queue, kernel,
+	cl_int status = clEnqueueNDRangeKernel(queue, kernel.get(),
 		work_dim,
 		global_work_offset.data(),
 		global_work_dim.data(),
@@ -25,30 +25,27 @@ void OCLKernelInvoke::run() const
 
 OCLKernelInvoke OCLKernel::Invoke(cl_command_queue q, std::function<void(cl_event&)> callback)
 {
-	OCLKernelInvoke result{q, kernel.get(), ldims.size(), {}, {}, {}, callback};
+	OCLKernelInvoke result{q, kernel, ldims.size(), {}, {}, {}, callback};
 	std::copy(gdims.begin(), gdims.end(), result.global_work_dim.begin());
 	std::copy(ldims.begin(), ldims.end(), result.local_work_dim.begin());
 	return result;
 }
 
-mlopenStatus_t OCLKernel::GetKernelName(std::string &progName) {
-	
-	auto *name = new char[200];
+std::string OCLKernel::GetName() const
+{
+	std::array<char, 200> buffer{};
+
 	cl_int status = clGetKernelInfo(kernel.get(), 
 			CL_KERNEL_FUNCTION_NAME, 
 			200, 
-			name, 
+			buffer.data(), 
 			nullptr);
 
-	if(status != CL_SUCCESS) {
-		return mlopenStatusBadParm;
+	if(status != CL_SUCCESS) 
+	{
+		MLOPEN_THROW_CL_STATUS(status, "Error getting kernel name");
 	}
-
-	progName = std::string(name);
-	delete[] name;
-
-	return mlopenStatusSuccess;
-	
+	return buffer.data();
 }
 
 } // namespace mlopen

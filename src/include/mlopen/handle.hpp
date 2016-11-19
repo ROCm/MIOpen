@@ -18,6 +18,7 @@ struct Handle : mlopenHandle {
 	
 	Handle();
 	Handle(int numStreams, mlopenAcceleratorQueue_t *streams);
+    Handle(Handle&&) noexcept;
 	~Handle();
 
 	mlopenAcceleratorQueue_t GetStream() const;

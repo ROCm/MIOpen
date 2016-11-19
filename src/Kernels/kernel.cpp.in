@@ -5,6 +5,16 @@
 
 namespace mlopen {
 
+std::string ReplaceString(std::string subject, const std::string& search, const std::string& replace) 
+{
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos) {
+         subject.replace(pos, search.length(), replace);
+         pos += replace.length();
+    }
+    return subject;
+}
+
 const std::map<std::string, const char *> kernels {
 ${INIT_KERNELS}
 };
@@ -30,7 +40,7 @@ std::string GetKernelSrc(const std::string& name)
     // Convert to uppercase
     std::transform(key.begin(), key.end(), key.begin(), ::toupper);
 
-    return kernels.at(key);
+    return ReplaceString(kernels.at(key), "inline", "static inline");
 }
 
 } // namespace mlopen

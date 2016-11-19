@@ -1,5 +1,4 @@
 #include <mlopen/softmax.hpp>
-#include <mlopen/mlo_internal.hpp>
 #include <mlopen/kernel_cache.hpp>
 
 namespace mlopen {
@@ -33,8 +32,6 @@ mlopenStatus_t SoftmaxForward(
 	
 	std::string program_name = "MLOpenSoftmax.cl";
 	std::string kernel_name = "SoftmaxForward";
-	//TODO: do we need to pass network_config?
-	std::string network = "placeholder";
 
 	// using workgroup size of 256 by default
 	int grid_size = n*h*w;
@@ -55,7 +52,7 @@ mlopenStatus_t SoftmaxForward(
 		const std::vector<size_t> vgd(1, workgroups*vld[0]);
 
 		handle.GetKernel("mlopenSoftmaxForward",
-				network,
+				"",
 				program_name,
 				kernel_name,
 				vld,
@@ -74,7 +71,7 @@ mlopenStatus_t SoftmaxForward(
 			" -DU_BATCH_SIZE=" + std::to_string(u_batch_size);
 
 		handle.GetKernel("mlopenSoftmaxForward",
-				network,
+				"",
 				program_name,
 				kernel_name,
 				vld,
@@ -102,8 +99,6 @@ mlopenStatus_t SoftmaxBackward(
 	
 	std::string program_name = "MLOpenSoftmax.cl";
 	std::string kernel_name = "SoftmaxBackward";
-	//TODO: do we need to pass network_config?
-	std::string network = "placeholder";
 
 	// using workgroup size of 256 by default
 	int grid_size = n*h*w;
@@ -124,7 +119,7 @@ mlopenStatus_t SoftmaxBackward(
 		const std::vector<size_t> vgd(1, workgroups*vld[0]);
 
 		handle.GetKernel("mlopenSoftmaxBackward",
-				network,
+				"",
 				program_name,
 				kernel_name,
 				vld,
@@ -143,7 +138,7 @@ mlopenStatus_t SoftmaxBackward(
 			" -DU_BATCH_SIZE=" + std::to_string(u_batch_size);
 
 		handle.GetKernel("mlopenSoftmaxBackward",
-				network,
+				"",
 				program_name,
 				kernel_name,
 				vld,

@@ -17,6 +17,9 @@
 
 namespace mlopen {
 
+using SharedKernelPtr = std::shared_ptr<typename std::remove_pointer<cl_kernel>::type>;
+using SharedProgramPtr = std::shared_ptr<typename std::remove_pointer<cl_program>::type>;
+
 struct LocalMemArg 
 {
 	LocalMemArg(size_t _size) : size(_size) {}
@@ -48,8 +51,7 @@ struct OCLSetKernelArg
 struct OCLKernelInvoke
 {
 	cl_command_queue queue;
-	// TODO(paul): Use a pointer to OCLKernel
-	cl_kernel kernel;
+	SharedKernelPtr kernel;
 	size_t work_dim;
 	std::array<size_t, 3> global_work_offset;
 	std::array<size_t, 3> global_work_dim;
@@ -59,7 +61,7 @@ struct OCLKernelInvoke
 	template<class... Ts>
 	void operator()(const Ts&... xs) const
 	{
-		each_args_i(std::bind(OCLSetKernelArg{}, kernel, std::placeholders::_1, std::placeholders::_2), xs...);
+		each_args_i(std::bind(OCLSetKernelArg{}, kernel.get(), std::placeholders::_1, std::placeholders::_2), xs...);
 		run();
 	}
 
@@ -68,15 +70,13 @@ struct OCLKernelInvoke
 
 class OCLKernel {
 
-using SharedKernelPtr = std::shared_ptr<typename std::remove_pointer<cl_kernel>::type>;
-
 public:
 	OCLKernel() {}
 	OCLKernel(ClKernelPtr k) : kernel(std::move(k)) {}
 	OCLKernel(ClKernelPtr k, 
 			std::vector<size_t> local_dims,
-			std::vector<size_t> global_dims) 
-	: kernel(std::move(k)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
+			std::vector<size_t> global_dims, SharedProgramPtr p=nullptr) 
+	: program(p), kernel(std::move(k)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
 	{
 		assert(ldims.size() == gdims.size());
 		assert(!ldims.empty() && ldims.size() <= 3);
@@ -86,12 +86,13 @@ public:
 
 	cl_kernel GetKernel() { return kernel.get(); } 
 
-	mlopenStatus_t GetKernelName(std::string &progName);
+	std::string GetName() const;
 
 	inline const std::vector<size_t>& GetLocalDims() const { return ldims; }
 	inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
 
 private:
+	SharedProgramPtr program;
 	SharedKernelPtr kernel;
 	std::vector<size_t> ldims;
 	std::vector<size_t> gdims;
