@@ -316,8 +316,8 @@ typedef enum {
 } mlopenConvFwdAlgorithm_t;
 
 typedef enum {
-	mlopenConvolutionBwdFilterAlgo_0 = 0,
-} mlopenConvBwdFilterAlgorithm_t;
+	mlopenConvolutionBwdWeightsAlgo_0 = 0,
+} mlopenConvBwdWeightsAlgorithm_t;
 
 typedef enum {
 	mlopenConvolutionBwdDataAlgo_0 = 0,
@@ -328,7 +328,7 @@ typedef enum {
 typedef struct{
 	union {
 		mlopenConvFwdAlgorithm_t fwd_algo;
-		mlopenConvBwdFilterAlgorithm_t bwd_filter_algo;
+		mlopenConvBwdWeightsAlgorithm_t bwd_weights_algo;
 		mlopenConvBwdDataAlgorithm_t bwd_data_algo;
 	};
 	mlopenStatus_t status;
@@ -405,6 +405,41 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle
 		const void							*beta,
 		const mlopenTensorDescriptor_t		dxDesc,
 		void								*dx,
+		void								*workSpace,
+		size_t								workSpaceSize);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		dyDesc,
+		const mlopenTensorDescriptor_t		dwDesc,
+		size_t								*workSpaceSize);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionBackwardWeightsAlgorithm(mlopenHandle_t handle,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const mlopenConvolutionDescriptor_t	convDesc,
+		const mlopenTensorDescriptor_t		dwDesc,
+		const void							*dw,
+		const int							requestAlgoCount,
+		int									*returnedAlgoCount,
+		mlopenConvAlgoPerf_t				*perfResults,
+		mlopenConvPreference_t				preference,
+		void								*workSpace,
+		size_t								workSpaceSize,
+		bool								exhaustiveSearch);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeights(mlopenHandle_t handle,
+		const void							*alpha,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void							*dy,
+		const mlopenTensorDescriptor_t		xDesc,
+		const void							*x,
+		const mlopenConvolutionDescriptor_t convDesc,
+		mlopenConvBwdWeightsAlgorithm_t		algo,
+		const void							*beta,
+		const mlopenTensorDescriptor_t		dwDesc,
+		void								*dw,
 		void								*workSpace,
 		size_t								workSpaceSize);
 

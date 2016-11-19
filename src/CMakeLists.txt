@@ -112,6 +112,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenSoftmax.cl
 		Kernels/MLOpenConv1x1PS_LW.cl
 		Kernels/MLOpenConvD3x3.cl
+		Kernels/MLOpenUtilKernels.cl
 	)
 	configure_file(db.cpp.in db.cpp)
 	list(APPEND MLOpen_Source 
@@ -130,6 +131,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		ocl/pooling_ocl.cpp
 		ocl/tensorocl.cpp
 		ocl/softmaxocl.cpp
+		ocl/utilocl.cpp
 		pooling.cpp
         ocl/oclerrors.cpp
         ocl_kernel.cpp

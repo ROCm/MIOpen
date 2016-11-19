@@ -1,5 +1,4 @@
 #include <mlopen/softmax.hpp>
-#include <mlopen/mlo_internal.hpp>
 #include <mlopen/kernel_cache.hpp>
 
 namespace mlopen {
