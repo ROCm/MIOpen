@@ -828,7 +828,7 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	_kernel_file = "MLOpenCvD3x3.cl";
+	_kernel_file = "MLOpenConvD3x3.cl";
 	_kernel_name = "MLOpenCvD3x3_WSR0";
 	return(ret);
 }

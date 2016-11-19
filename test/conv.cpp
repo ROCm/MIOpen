@@ -13,6 +13,7 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include "driver.hpp"
+#include "get_handle.hpp"
 
 template<class T>
 tensor<T> get_output_tensor(const mlopen::ConvolutionDescriptor& filter, const tensor<T>& input, const tensor<T>& weights)
@@ -36,14 +37,14 @@ struct verify_forward_conv
 
         out.par_for_each([&](int o, int w, int i, int j)
         {
-            const int in_off_h = i * filter.v;
-            const int in_off_w = j * filter.u;
+            const int start_x = i * filter.v - filter.pad_h;
+            const int start_y = j * filter.u - filter.pad_w;
 
             T acc = bias;
             ford(wei_c, wei_h, wei_w)([&](int k, int x, int y)
             {
-                const int in_x = in_off_h - filter.pad_h + x;
-                const int in_y = in_off_w - filter.pad_w + y;
+                const int in_x = start_x + x;
+                const int in_y = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
                     acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
                 }
@@ -56,7 +57,7 @@ struct verify_forward_conv
     template<class T>
     tensor<T> gpu(const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
     {
-        mlopen::Handle handle;
+        auto&& handle = get_handle();
         auto out = get_output_tensor(filter, input, weights);
 
         auto in_dev = handle.Write(input.data);
@@ -139,10 +140,10 @@ struct verify_backward_conv
         {
             ford(out_c, out_h, out_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y)
             {
-                const int in_off_h = i * filter.v;
-                const int in_off_w = j * filter.u;
-                const int in_x = in_off_h - filter.pad_h + x;
-                const int in_y = in_off_w - filter.pad_w + y;
+                const int start_x = i * filter.v - filter.pad_h;
+                const int start_y = j * filter.u - filter.pad_w;
+                const int in_x = start_x + x;
+                const int in_y = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
                     input(o, k, in_x, in_y) += out(o, w, i, j) * weights(w, k, x, y);
                 }
@@ -154,7 +155,7 @@ struct verify_backward_conv
     template<class T>
     tensor<T> gpu(const tensor<T>& out, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
     {
-        mlopen::Handle handle;
+        auto&& handle = get_handle();
         auto input = get_input_tensor(filter, out, weights);
         std::fill(input.begin(), input.end(), 0);
 
@@ -224,5 +225,5 @@ struct verify_conv_filter
 
 int main(int argc, const char *argv[]) 
 {
-    test_drive<verify_conv_filter>(argc, argv);
+    test_drive<verify_conv_filter, binary_input>(argc, argv);
 }

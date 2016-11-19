@@ -42,8 +42,11 @@ class KernelCache
 
 public:
 
+    using SharedProgramPtr = std::shared_ptr<typename std::remove_pointer<cl_program>::type>;
+
 	typedef std::pair<std::string, std::string> Key;
     typedef std::unordered_map< Key, OCLKernel, SimpleHash > KernelMap;
+    typedef std::unordered_map< Key, SharedProgramPtr, SimpleHash > ProgramMap;
 
 
 	OCLKernel GetKernel(cl_command_queue &queue,
@@ -65,6 +68,7 @@ public:
 private:
 
     KernelMap kernel_map;
+    ProgramMap program_map;
 };
 
 }  // namespace mlopen
