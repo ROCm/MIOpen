@@ -1002,11 +1002,11 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 
 	if (_gen)
 	{
-		n_outs = (_kernel_size1 <= 7) ? 14 : 8; // n outputs per a single input: major parameter
-		n_out_pix_horiz = 2; // (_kernel_stride0 <= 4) ? 2 : 1; // n of output px horix per wk-item: major parameter
-		n_out_pix_vert = (_kernel_stride1 < 4 && _kernel_size1 < 7) ? 2 : 1; // n of output px horix per wk-item: major parameter
-		ocl_group_sz0 = 8; // (stride0 < 4) ? 16 : 8;
-		ocl_group_sz1 = 8; //  (stride1 < 4) ? 16 : 8;
+		n_outs = (_in_width >= 512) ? 16 : 32; // (_kernel_size1 <= 7) ? 14 : 8; // n outputs per a single input: major parameter
+		n_out_pix_horiz = (_in_width >= 512) ? 2 : 1; // (_kernel_stride0 <= 4) ? 2 : 1; // n of output px horix per wk-item: major parameter
+		n_out_pix_vert = 1; // (_kernel_stride1 < 4 && _kernel_size1 < 7) ? 2 : 1; // n of output px horix per wk-item: major parameter
+		ocl_group_sz0 = 16; // (_kernel_size1 <= 7) ? 8 : 16;
+		ocl_group_sz1 = 16; //  (stride1 < 4) ? 16 : 8;
 
 	}
 
