@@ -11,14 +11,13 @@
 namespace mlopen {
 
 mlopenStatus_t Im2ColGPU(
-	Handle					&handle,
-	const TensorDescriptor&	imDesc,
-	ConstData_t				im,
-	const TensorDescriptor&	wDesc,
-	const int				pad_h,
-	const int				pad_w,
-	const int				stride_h,
-	const int				stride_w,
+	Handle	&handle,
+	ConstData_t im, size_t im_offset,
+	const int c, const int h, const int w,
+	const int wei_h, const int wei_w,
+	const int out_h, const int out_w,
+	const int pad_h, const int	pad_w,
+	const int stride_h, const int stride_w,
 	Data_t					col); 
 
 } // namespace mlopen
