@@ -4,25 +4,15 @@
 namespace mlopen {
 
 mlopenStatus_t Im2ColGPU(
-		Handle					&handle,
-		const TensorDescriptor&	imDesc,
-		const cl_mem			im,
-		const TensorDescriptor&	wDesc,
-		const int				pad_h,
-		const int				pad_w,
-		const int				stride_h,
-		const int				stride_w,
-		cl_mem					col) 
+		Handle	&handle,
+		const cl_mem im, size_t im_offset,
+		const int c, const int h, const int w,
+		const int wei_h, const int wei_w,
+		const int out_h, const int out_w,
+		const int pad_h, const int	pad_w,
+		const int stride_h, const int stride_w,
+		cl_mem col) 
 {
-	int n, c, h, w;
-	std::tie(n, c, h, w) = tie4(imDesc.GetLengths());
-
-	int wei_h, wei_w;
-	std::tie(std::ignore, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
-
-	int out_h = (h - wei_h + 2*pad_h)/stride_h + 1;
-	int out_w = (w - wei_w + 2*pad_w)/stride_w + 1;
-
 	std::string program_name = "MLOpenUtilKernels.cl";
 	std::string kernel_name = "Im2Col";
 	std::string network = "placeholder";
@@ -39,7 +29,7 @@ mlopenStatus_t Im2ColGPU(
 			kernel_name,
 			vld,
 			vgd,
-			"")(im, h, w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, stride_h, stride_w, col);
+			"")(im, im_offset, h, w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, stride_h, stride_w, col);
 
 	return mlopenStatusSuccess;
 }

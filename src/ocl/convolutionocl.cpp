@@ -315,7 +315,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 // FindBackwardWeightsAlgorithm()
 //
 void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
-		const TensorDescriptor&		/*dyDesc*/,
+		const TensorDescriptor&		dyDesc,
 		const cl_mem				dy,
 		const TensorDescriptor&		xDesc,
 		const cl_mem				x,
@@ -333,7 +333,26 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
-	Im2ColGPU(handle, xDesc, x, dwDesc, pad_h, pad_w, v, u, workSpace);
+	int in_n, in_c, in_h, in_w;
+	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+
+	int wei_n, wei_h, wei_w;
+	std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+
+	int out_h, out_w;
+	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+
+//	int M = in_c * wei_h * wei_w;
+//	int N = wei_n;
+//	int K = out_h * out_w;
+//	float alpha = 1.;
+//	float beta = 1.;
+
+	for(int i = 0; i < in_n; i++) {
+		size_t in_offset = i * in_c * in_h * in_w;
+		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+
+	}
 }
 
 // BackwardWeightsAlgorithm()
@@ -366,7 +385,21 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
-	Im2ColGPU(handle, xDesc, x, dwDesc, pad_h, pad_w, v, u, workSpace);
+	int in_n, in_c, in_h, in_w;
+	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+
+	int wei_n, wei_h, wei_w;
+	std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+
+	int out_h, out_w;
+	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+
+	for(int i = 0; i < in_n; i++) {
+		size_t in_offset = i * in_c * in_h * in_w;
+		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+
+	}
+
 }
 
 }  // namespace mlopen
