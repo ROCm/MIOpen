@@ -73,6 +73,7 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
     else
     {
         program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);
+		program_map[std::make_pair(program_name, params)] = program;
     }
     OCLKernel kernel{CreateKernel(program.get(), kernel_name), vld, vgd, program};
     if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
