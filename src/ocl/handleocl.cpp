@@ -172,7 +172,7 @@ KernelInvoke Handle::GetKernel(
         const std::string& params)
 {
     auto q = this->GetStream();
-    OCLKernel obj = this->impl->cache.GetKernel(q, 
+    OCLKernel obj = this->impl->cache.GetKernel(*this, 
             algorithm,
             network_config,
             program_name, 
@@ -200,6 +200,11 @@ KernelInvoke Handle::GetKernel(
     } else { 
         return obj.Invoke(q);
     }
+}
+
+Program Handle::LoadProgram(const std::string &program_name, std::string params)
+{
+    return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params);
 }
 
 void Handle::Finish() const
