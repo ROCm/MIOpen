@@ -78,8 +78,18 @@ public:
 			std::vector<size_t> global_dims, SharedProgramPtr p=nullptr) 
 	: program(p), kernel(std::move(k)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
 	{
-//		assert(ldims.size() == gdims.size());
-//		assert(!ldims.empty() && ldims.size() <= 3);
+		assert(!gdims.empty() && gdims.size() <= 3);
+
+		/* We sometimes launch more than 256 threads in a workgroup.
+		 * The way to do that is to set local_size == NULL in the clEnqueueNDRangeKernel 
+		 * interface and to pass the acual work-group size through the kernel attribute 
+		 * __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
+		 *
+		 * To make the above possible we send an indication to the Invoke (run)
+		 * routine with ldims.size() == 0.
+		 *
+		 * This is why assert on ldims is not done.
+		 */
 	}
 
 	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr);

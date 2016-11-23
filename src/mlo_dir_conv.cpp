@@ -847,14 +847,13 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 * possible improvement - use different set of weights with super-tiles from different batches
 *
 */
-int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
+int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 {
 
 	_hw_wave_sz = 64;
-	int LG2_PHYS_WAVE_SZ = static_cast<int>(std::ceil(std::log(_hw_wave_sz) / std::log(2)));
 
 	int n_in_stacks = 0;
-	if (_kernel_size0 == 11 || _kernel_size0 == 11 || _kernel_size1 == 3 && _kernel_size0 == 3)
+	if ((_kernel_size0 == 11 && _kernel_size0 == 11) || (_kernel_size1 == 3 && _kernel_size0 == 3))
 	{
 		n_in_stacks = ((_batch_sz / 4) * 4 == _batch_sz) ? 4 : ((_batch_sz / 2) * 2 == _batch_sz) ? 2 : 1;  // n of input batches
 	}
@@ -879,19 +878,15 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 	int n_ins0 = 1; // number of inputs each a from different stack along dim 0
 	int n_ins1 = 1; // number of inputs each a from different stack along dim 1
 
-
 	int n_outs = (_in_width >= 384 || (_kernel_size0 >= 11 && _kernel_stride0 >= 4)) ? 16 : 32;  // n outputs per a single input: major parameter
 	int n_out_pix_horiz = (_in_width < 320 || (_kernel_size0 >= 11 && _kernel_stride0 >= 4)) ? 1 : 2; // n of output px horix per wk-item: major parameter
 	int n_out_pix_vert = 1; // n of output px horix per wk-item: major parameter
-
 
 	int n_in_pix_horiz = n_out_pix_horiz; // n of input pix per wk_item
 	int n_in_pix_vert = n_out_pix_vert; // n of input pix per wk_item
 	int n_v_proc0 = (_out_width + n_out_pix_horiz - 1) / n_out_pix_horiz;
 	int n_v_proc1 = (_out_height + n_out_pix_vert - 1) / n_out_pix_vert;
-
-	int in_main_loop_ = _n_inputs;
-
+	
 	int big = 0;
 	if (ocl_group_sz0 * n_in_pix_horiz < _in_width || ocl_group_sz1 * n_in_pix_vert < _in_height)
 	{

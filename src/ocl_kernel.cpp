@@ -8,9 +8,9 @@ void OCLKernelInvoke::run() const
 	/* way to run OCL group larger than 256 */
 	cl_int status = clEnqueueNDRangeKernel(queue, kernel.get(),
 		global_work_dim.size(),
-		((work_dim == 0) ? NULL : global_work_offset.data()),
+		((work_dim == 0) ? nullptr : global_work_offset.data()),
 		global_work_dim.data(),
-		(( work_dim == 0) ? NULL : local_work_dim.data()),
+		((work_dim == 0) ? nullptr : local_work_dim.data()),
 		0, nullptr, callback ? &ev : nullptr);
 
 	clFlush(queue);
