@@ -77,7 +77,7 @@
 
 inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
-	(*y) = (int)(((float)linPos + 0.1f) /width);
+	(*y) = (int)((float)linPos/width + 0.0001f);
 	(*x) = linPos - (*y) * width; 
 }
 
@@ -230,7 +230,7 @@ __kernel void MLOpenCDFGen(
 // put weights for all our outputs for this input into LDS 
 		for(int i = lcl_id; i < MLO_LCL_N_OUT_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1; i += MLO_GRP_SZ)
 		{
-			int lcl_o = (int)(((float)i + 0.1f)/(MLO_FLTR_SZ0 * MLO_FLTR_SZ1));
+			int lcl_o = (int)((float)i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1) + 0.00001f);
 			int lcl_o_i = i - lcl_o * (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
 
 			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
@@ -395,6 +395,260 @@ __kernel void MLOpenCDFGen(
 					top[top_off2 + i] = pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i] + bias_val;
 #if 0
 				if (y_out + j == 0 && x_out + i == 14)
+				{
+
+					printf("K:out: %d %f %f\n",
+						top_off2 + i,
+						pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i],
+						top[top_off2 + i]
+						);
+				}
+
+#endif
+			}
+		}
+	}
+
+
+}
+
+
+
+__attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
+__kernel void MLOpenCDFGen4(
+const __global _FLOAT * bot,
+const __global _FLOAT * weights,
+#if MLO_CONV_BIAS == 1
+const __global _FLOAT * bias,
+#endif
+__global _FLOAT *top,
+_FLOAT padding_val
+//	   int in_main_loop
+)
+{
+	__local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * MLO_IN_STACKS];
+	__local _FLOAT lcl_wei[MLO_LCL_WEI_SIZE * MLO_OUT_STACKS];
+
+	_FLOAT pvt_bot_dat[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
+	_FLOAT pvt_top_dat[MLO_PVT_OUT_DATA_SZ];
+	_FLOAT pvt_wei_dat[MLO_FLTR_SZ0];
+
+
+	int x_out_grp = get_group_id(0) * MLO_N_PROCS0 *  MLO_N_OUT_PIX_SZ0;
+	int y_out_grp = get_group_id(1) * MLO_N_PROCS1 * MLO_N_OUT_PIX_SZ1;
+	int y_in_grp = y_out_grp * MLO_FLTR_STRIDE1;
+	int x_in_grp = x_out_grp * MLO_FLTR_STRIDE0;
+
+	int lcl_id = mad24(get_local_id(1), MLO_GRP_SZ0, get_local_id(0));
+	int proc_tile1 = (get_local_id(1) >> MLO_LG2N_PROC_TILE1);
+	int lcl_proc_id1 = get_local_id(1) - (proc_tile1 << MLO_LG2N_PROC_TILE1);  // 
+	int lcl_proc_id0 = get_local_id(0);  // 
+	int x_out_lcl = mul24(lcl_proc_id0, MLO_N_OUT_PIX_SZ0);
+	int y_out_lcl = mul24(lcl_proc_id1, MLO_N_OUT_PIX_SZ1);
+	int x_out = x_out_grp + x_out_lcl;
+	int y_out = y_out_grp + y_out_lcl;
+
+	int y_in_lcl = y_out * MLO_FLTR_STRIDE1 - y_in_grp;
+	int x_in_lcl = x_out * MLO_FLTR_STRIDE0 - x_in_grp;
+
+
+	int ob = get_global_id(2);
+	int o_id = ob / MLO_N_STACKS;  // block of outputs
+	int b_id = ob - mul24(o_id, (int)MLO_N_STACKS);         // block of batchs
+	// my batch
+	int b = b_id* MLO_LCL_N_IN_CHNLS*MLO_IN_STACKS + proc_tile1;
+
+	int in_off = b * MLO_IN_BATCH_STRIDE;
+	int wei_off = mul24(o_id, (int)(MLO_LCL_N_OUT_CHNLS * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1));
+	int lcl_off = MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1 + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl;
+
+#if MLO_BIG == 0
+	for (int i = lcl_id; i < MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS; i += MLO_GRP_SZ)
+	{
+		lcl_img[i] = 0;
+	}
+#endif
+	for (int i = 0; i < MLO_PVT_OUT_DATA_SZ; ++i)
+	{
+		pvt_top_dat[i] = 0;
+	}
+
+	for (int c = 0; c < MLO_N_IN_CHNLS; c++, in_off += MLO_IN_CHNL_STRIDE, wei_off += MLO_FLTR_SZ0 * MLO_FLTR_SZ1)
+	{
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+		// put weights for all our outputs for this input into LDS 
+		for (int i = lcl_id; i < MLO_LCL_N_OUT_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1; i += MLO_GRP_SZ)
+		{
+			int lcl_o = (int)((float)i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1) + 0.00001f);
+			int lcl_o_i = i - lcl_o * (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
+
+			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+		}
+
+
+#if MLO_BIG
+
+		readDataTile(&lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1],
+			bot,
+			y_in_grp,
+			x_in_grp,
+			MLO_IN_STRIDE,
+			(in_off + y_in_grp * MLO_IN_STRIDE + x_in_grp),
+			MLO_LCL_IMG_WIDTH,
+			0,
+			MLO_IN_HEIGHT,
+			MLO_IN_WIDTH,
+			MLO_LCL_IMG_HEIGHT,
+			MLO_LCL_IMG_WIDTH,
+			lcl_proc_id1,
+			lcl_proc_id0,
+			MLO_N_PROCS1,
+			MLO_N_PROCS0,
+			MLO_FLTR_PAD_SZ1,
+			MLO_FLTR_PAD_SZ0,
+			padding_val);
+
+#else
+		int lcl_base = MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1 + MLO_LCL_IMG_WIDTH * MLO_FLTR_PAD_SZ1 + MLO_FLTR_PAD_SZ0;
+		readData(&lcl_img[lcl_proc * MLO_LCL_IMG_SIZE + lcl_base],
+			bot,
+			lcl_in_proc_id,
+			(MLO_N_PROCS0*MLO_N_PROCS1),
+			(MLO_IN_WIDTH*MLO_IN_HEIGHT),
+			MLO_IN_WIDTH,
+			MLO_IN_STRIDE,
+			in_off,
+			MLO_LCL_IMG_WIDTH,
+			0);
+
+#endif
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+
+		// get first MLO_N_OUT_PIX_SZ1 lines
+
+		int j = 0;
+
+		int lcl_off2 = lcl_off;
+
+		for (; j < MLO_PVT_COL_STG_HEIGHT - 1; ++j, lcl_off2 += MLO_LCL_IMG_WIDTH)
+		{
+
+			// read input data
+
+			for (int i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
+			{
+				pvt_bot_dat[j * MLO_PVT_COL_STG_WIDTH + i] = lcl_img[lcl_off2 + i];
+			}
+
+		}
+
+		// convolve with the filter
+		int lcl_wei_off = 0;
+		for (int k = 0; k < MLO_FLTR_SZ1; ++k, ++j, lcl_off2 += MLO_LCL_IMG_WIDTH, lcl_wei_off += MLO_FLTR_SZ0)
+		{
+
+			// read input data
+			for (int i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
+			{
+				pvt_bot_dat[(MLO_PVT_COL_STG_HEIGHT - 1) * MLO_PVT_COL_STG_WIDTH + i] = lcl_img[lcl_off2 + i];
+
+			}
+
+
+			// convolve over all outputs
+			int lcl_wei_off2 = lcl_wei_off;
+
+			for (int o = 0; o < MLO_LCL_N_OUT_CHNLS; ++o, lcl_wei_off2 += MLO_FLTR_SZ1 * MLO_FLTR_SZ0)
+			{
+				// read weights
+				for (int w = 0; w < MLO_FLTR_SZ0; ++w)
+				{
+					pvt_wei_dat[w] = lcl_wei[lcl_wei_off2 + w];
+				}
+
+				// convolve over the tile
+				for (int pj = 0; pj < MLO_N_OUT_PIX_SZ1; ++pj)
+				{
+					for (int pi = 0; pi < MLO_N_OUT_PIX_SZ0; ++pi)
+					{
+
+						for (int m = 0; m < MLO_FLTR_SZ0; ++m)
+						{
+							pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi] += pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH + pi* MLO_FLTR_STRIDE0 + m]
+								* pvt_wei_dat[m];
+
+#if 0
+							if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + pj == 2 && x_out + pi == 0)
+							{
+
+								printf("K:cnv: %d %d %d %d %f %f %f\n",
+									get_local_id(1),
+									get_local_id(0),
+									y_out,
+									x_out,
+									pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi],
+									pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH + pi* MLO_FLTR_STRIDE0 + m],
+									pvt_wei_dat[m]
+									);
+							}
+
+#endif
+
+						}
+					}
+				}
+
+			}
+
+			// move up
+
+			for (int jj = 0; jj < MLO_PVT_COL_STG_HEIGHT - 1; ++jj)
+			{
+
+				for (int ii = 0; ii < MLO_PVT_COL_STG_WIDTH; ++ii)
+				{
+					pvt_bot_dat[jj * MLO_PVT_COL_STG_WIDTH + ii] = pvt_bot_dat[(jj + 1) * MLO_PVT_COL_STG_WIDTH + ii];
+				}
+
+			}
+
+
+		}
+
+	}
+
+	// write into all output feature maps
+	int top_off = b * MLO_OUT_BATCH_STRIDE + o_id * MLO_LCL_N_OUT_CHNLS * MLO_OUT_CHNL_STRIDE + y_out *MLO_OUT_STRIDE + x_out;
+
+	for (int o = 0; o < MLO_LCL_N_OUT_CHNLS; ++o, top_off += MLO_OUT_CHNL_STRIDE)
+	{
+
+#if MLO_OUT_ALIGNED == 0
+		if (o_id * MLO_LCL_N_OUT_CHNLS + o >= MLO_N_OUT_CHNLS)
+		{
+			return;
+		}
+#endif
+		_FLOAT  bias_val = 0;
+#if MLO_CONV_BIAS == 1
+
+		bias_val = bias[o_id * MLO_LCL_N_OUT_CHNLS + o];
+#endif
+
+		int top_off2 = top_off;
+
+		for (int j = 0; j < MLO_N_OUT_PIX_SZ1; ++j, top_off2 += MLO_OUT_STRIDE)
+		{
+			for (int i = 0; i < MLO_N_OUT_PIX_SZ0; ++i)
+			{
+#if MLO_ALIGNED == 0
+				if (y_out + j < MLO_OUT_HEIGHT && x_out + i < MLO_OUT_WIDTH)
+#endif
+					top[top_off2 + i] = pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i] + bias_val;
+#if 0
+				if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + j == 2 && x_out + i == 0)
 				{
 
 					printf("K:out: %d %f %f\n",
