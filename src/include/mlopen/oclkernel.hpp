@@ -78,8 +78,8 @@ public:
 			std::vector<size_t> global_dims, SharedProgramPtr p=nullptr) 
 	: program(p), kernel(std::move(k)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
 	{
-		assert(ldims.size() == gdims.size());
-		assert(!ldims.empty() && ldims.size() <= 3);
+//		assert(ldims.size() == gdims.size());
+//		assert(!ldims.empty() && ldims.size() <= 3);
 	}
 
 	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr);

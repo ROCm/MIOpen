@@ -5,11 +5,13 @@ namespace mlopen {
 void OCLKernelInvoke::run() const
 {
 	cl_event ev;
+	/* way to run OCL group larger than 256 */
 	cl_int status = clEnqueueNDRangeKernel(queue, kernel.get(),
-		work_dim,
-		global_work_offset.data(),
+		global_work_dim.size(),
+		((work_dim == 0) ? NULL : global_work_offset.data()),
 		global_work_dim.data(),
-		local_work_dim.data(), 0, nullptr, callback ? &ev : nullptr);
+		(( work_dim == 0) ? NULL : local_work_dim.data()),
+		0, nullptr, callback ? &ev : nullptr);
 
 	clFlush(queue);
 
