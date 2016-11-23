@@ -120,8 +120,8 @@ int ConvDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
 	inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
 	inflags.AddInputFlag("out_channels", 'k', "32", "Number of Output Channels (Default=32)", "int");
-	inflags.AddInputFlag("fil_h", 'x', "3", "Filter Height (Default=3)", "int");
-	inflags.AddInputFlag("fil_w", 'y', "3", "Filter Width (Default=3)", "int");
+	inflags.AddInputFlag("fil_h", 'y', "3", "Filter Height (Default=3)", "int");
+	inflags.AddInputFlag("fil_w", 'x', "3", "Filter Width (Default=3)", "int");
 	inflags.AddInputFlag("conv_stride_0", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
 	inflags.AddInputFlag("conv_stride_1", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
 	inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");

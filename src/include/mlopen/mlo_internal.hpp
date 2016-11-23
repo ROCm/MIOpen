@@ -341,8 +341,8 @@ public:
 	{
 		_pad1 = u_padding;
 		_pad0 = v_padding;
-		_kernel_stride1 = u_stride;
-		_kernel_stride0 = v_stride;
+		_kernel_stride0 = u_stride;
+		_kernel_stride1 = v_stride;
 	}
 
 	/*
