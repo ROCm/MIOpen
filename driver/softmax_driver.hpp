@@ -12,6 +12,7 @@
 #include <float.h>
 #include <memory>
 #include <numeric>
+#include "timer.hpp"
 
 template<typename T>
 class SoftmaxDriver : public Driver 
@@ -109,6 +110,7 @@ int SoftmaxDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+	inflags.AddInputFlag("wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
 	return 0;
 }
@@ -181,9 +183,26 @@ int SoftmaxDriver<T>::RunForwardGPU() {
 			outputTensor,
 			out_dev->GetMem());
 
+	Timer t;
+	START_TIME;
+	
+	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
+	mlopenSoftmaxForward(GetHandle(), 
+			&alpha,
+			inputTensor,
+			in_dev->GetMem(),
+			&beta,
+			outputTensor,
+			out_dev->GetMem());
+	}
+
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
+		
+		STOP_TIME;
+		if(WALL_CLOCK)
+			printf("Wall-clock Time Forward Softmax Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
 		printf("GPU Kernel Time Forward Softmax Elapsed: %f ms\n", time);
 	}
 
@@ -238,10 +257,29 @@ int SoftmaxDriver<T>::RunBackwardGPU() {
 		&beta,
 		dInputTensor,
 		din_dev->GetMem());
+
+	Timer t;
+	START_TIME;
 	
+	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
+	mlopenSoftmaxBackward(GetHandle(),
+		&alpha,
+		outputTensor,
+		out_dev->GetMem(),
+		dOutputTensor,
+		dout_dev->GetMem(),
+		&beta,
+		dInputTensor,
+		din_dev->GetMem());
+	}
+
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
+		
+		STOP_TIME;
+		if(WALL_CLOCK)
+			printf("Wall-clock Time Backward Softmax Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
 		printf("GPU Kernel Time Backward Softmax Elapsed: %f ms\n", time);
 	}
 

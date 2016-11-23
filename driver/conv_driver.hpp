@@ -14,6 +14,7 @@
 #include <memory>
 #include <numeric>
 #include <../test/verify.hpp>
+#include "timer.hpp"
 
 template<typename T>
 class ConvDriver : public Driver 
@@ -129,6 +130,7 @@ int ConvDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+	inflags.AddInputFlag("wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 	inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
 	inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
 
@@ -253,6 +255,9 @@ int ConvDriver<T>::RunForwardGPU() {
 	FindForward();
 	int alpha = 1, beta = 1;
 
+	Timer t;
+	START_TIME;
+
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
 	mlopenConvolutionForward(GetHandle(),
 			&alpha,
@@ -272,8 +277,15 @@ int ConvDriver<T>::RunForwardGPU() {
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
+
+		STOP_TIME;
+		if(WALL_CLOCK)
+			printf("Wall-clock Time Forward Conv. Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
+
 		printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
+
 	}
+
 	out_dev->FromGPU(GetStream(), out.data());
 
 	return mlopenStatusSuccess;
@@ -414,6 +426,9 @@ int ConvDriver<T>::RunBackwardGPU() {
 
 	workspace_dev->FromGPU(GetStream(), workspace.data());
 
+	Timer t;
+	START_TIME;
+
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
 	ret = mlopenConvolutionBackwardData(GetHandle(),
 			&alpha,
@@ -433,6 +448,10 @@ int ConvDriver<T>::RunBackwardGPU() {
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
+	
+		STOP_TIME;
+		if(WALL_CLOCK)
+			printf("Wall-clock Time Backward Data Conv. Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
 		printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms\n", time);
 	}
 
