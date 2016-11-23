@@ -14,6 +14,7 @@
 #include <memory>
 #include <numeric>
 #include "../test/verify.hpp"
+#include "timer.hpp"
 
 template<typename T>
 class LRNDriver : public Driver 
@@ -130,6 +131,7 @@ int LRNDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+	inflags.AddInputFlag("wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 //	inflags.AddInputFlag("back", 'b', "1", "Optimization: Do Backward LRN (Default=1)", "int");
 	inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
 	inflags.AddInputFlag("mode", 'm', "within", "LRN Mode (within_channel or cross_channel) (Default=within)", "str");
@@ -249,12 +251,31 @@ int LRNDriver<T>::RunForwardGPU() {
 			outputTensor,
 			out_dev->GetMem(),
 			(inflags.GetValueInt("forw")==0)?true:false,
-			(inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : NULL
-	);
+			(inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : NULL	);
+
+	Timer t;
+	START_TIME;
+	
+	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
+	mlopenLRNForward(GetHandle(), 
+			lrnDesc, 
+			&alpha,
+			inputTensor,
+			in_dev->GetMem(),
+			&beta,
+			outputTensor,
+			out_dev->GetMem(),
+			(inflags.GetValueInt("forw")==0)?true:false,
+			(inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : NULL	);
+	}
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
+		
+		STOP_TIME;
+		if(WALL_CLOCK)
+			printf("Wall-clock Time Forward LRN Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
 		printf("GPU Kernel Time Forward LRN Elapsed: %f ms\n", time);
 	}
 
@@ -363,10 +384,33 @@ int LRNDriver<T>::RunBackwardGPU() {
 			dInputTensor,
 			din_dev->GetMem(),
 			scale_dev->GetMem());
+
+	Timer t;
+	START_TIME;
 	
+	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
+	mlopenLRNBackward(GetHandle(),
+			lrnDesc,
+			&alpha,
+			outputTensor,
+			out_dev->GetMem(),
+			dOutputTensor,
+			dout_dev->GetMem(),
+			inputTensor,
+			in_dev->GetMem(),
+			&beta,
+			dInputTensor,
+			din_dev->GetMem(),
+			scale_dev->GetMem());
+	}
+
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
+		
+		STOP_TIME;
+		if(WALL_CLOCK)
+			printf("Wall-clock Time Backward LRN Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
 		printf("GPU Kernel Time Backward LRN Elapsed: %f ms\n", time);
 	}
 
