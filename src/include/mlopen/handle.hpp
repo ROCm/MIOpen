@@ -26,7 +26,7 @@ struct Handle : mlopenHandle {
     void EnableProfiling(bool enable=true);
 
     float GetKernelTime() const;
-#if MLOPEN_BACKEND_OPENCL
+#if MLOPEN_BACKEND_OPENCL 
     KernelInvoke GetKernel(
             const std::string& algorithm,
             const std::string& network_config,
@@ -39,6 +39,8 @@ struct Handle : mlopenHandle {
     KernelInvoke GetKernel(
         const std::string& algorithm,
         const std::string& network_config);
+
+    Program LoadProgram(const std::string &program_name, std::string params);
 
     void Finish() const;
     void Flush() const;

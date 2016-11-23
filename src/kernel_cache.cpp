@@ -22,7 +22,7 @@
 
 namespace mlopen {
 
-OCLKernel KernelCache::GetKernel(const std::string& algorithm,
+Kernel KernelCache::GetKernel(const std::string& algorithm,
 										const std::string& network_config) {
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -41,7 +41,7 @@ OCLKernel KernelCache::GetKernel(const std::string& algorithm,
 	}
 }
 
-OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
+Kernel KernelCache::GetKernel(Handle &h,
 										const std::string& algorithm,
 										const std::string& network_config,
                                         const std::string& program_name,
@@ -63,7 +63,7 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
     std::cout << "key: " << key.first << ',' << key.second << std::endl;
 #endif
 
-    SharedProgramPtr program;
+    Program program;
 
     auto program_it = program_map.find(std::make_pair(program_name, params));
     if (program_it != program_map.end())
@@ -72,10 +72,10 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
     }
     else
     {
-        program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);
+        program = h.LoadProgram(program_name, params);
 		program_map[std::make_pair(program_name, params)] = program;
     }
-    OCLKernel kernel{CreateKernel(program.get(), kernel_name), vld, vgd, program};
+    Kernel kernel{program, kernel_name, vld, vgd};
     if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
     return kernel;
 }
