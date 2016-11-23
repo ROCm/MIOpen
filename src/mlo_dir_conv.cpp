@@ -854,7 +854,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 	int LG2_PHYS_WAVE_SZ = static_cast<int>(std::ceil(std::log(_hw_wave_sz) / std::log(2)));
 
 	int n_in_stacks = 0;
-	if (_kernel_size0 == 11 || _kernel_size0 == 10 || _kernel_size1 == 3 && _kernel_size0 == 3)
+	if (_kernel_size0 == 11 || _kernel_size0 == 11 || _kernel_size1 == 3 && _kernel_size0 == 3)
 	{
 		n_in_stacks = ((_batch_sz / 4) * 4 == _batch_sz) ? 4 : ((_batch_sz / 2) * 2 == _batch_sz) ? 2 : 1;  // n of input batches
 	}
@@ -862,7 +862,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen(void)
 	{
 		n_in_stacks = ((_batch_sz / 2) * 2 == _batch_sz) ? 2 : 1;  // n of input batches
 	}
-	n_in_stacks = 2;
+
 	int n_proc_supertiles = n_in_stacks; // n of prosessing groups
 	int lg2n_proc_supertiles = static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::log(2)));
 	int n_out_stacks = 1; // n of output sets
