@@ -23,12 +23,19 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define NOMINMAX // stupid windows.h confused with min() macros in std namespace
 #endif
 
+
+
 #define _USE_MATH_DEFINES
+#if MLOPEN_BACKEND_OPENCL
 #ifdef __APPLE__
- #include <mach/mach_time.h>  // for mach_absolute_time() and friends
  #include <OpenCL/opencl.h>
 #else
  #include <CL/opencl.h>
+#endif
+#endif
+
+#ifdef __APPLE__
+#include <mach/mach_time.h>  // for mach_absolute_time() and friends
 #endif
 
 #include <iomanip>
@@ -100,10 +107,12 @@ Include CLBLAS header.
 #include <clBLAS.h>
 #endif
 
+#if MLOPEN_BACKEND_OPENCL
 #include <mlopen/oclkernel.hpp>
 #include <mlopen/clhelper.hpp>
-#include <mlopen/tensor.hpp>
 #include <mlopen/ocldeviceinfo.hpp>
+#endif
+#include <mlopen/tensor.hpp>
 
 class mlo_construct_direct2D {
 public:

@@ -3,7 +3,7 @@
 
 #include <string>
 
-#if MLOPEN_BACKEND_OPENCL || MLOPEN_BACKEND_HIPCO
+#if MLOPEN_BACKEND_OPENCL || MLOPEN_BACKEND_HIPOC
 namespace mlopen {
 std::string GetKernelSrc(const std::string& name);
 } // namespace mlopen
@@ -20,8 +20,15 @@ using Program = SharedProgramPtr;
 
 } // namespace mlopen
 
-#elif MLOPEN_BACKEND_HIP
+#elif MLOPEN_BACKEND_HIPOC
+#include <mlopen/hipoc_kernel.hpp>
 
+namespace mlopen {
+using Kernel = HIPOCKernel;
+using KernelInvoke = HIPOCKernel;
+using Program = HIPOCProgram;
+
+} // namespace mlopen
 #endif
 
 

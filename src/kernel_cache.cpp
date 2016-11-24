@@ -16,6 +16,7 @@
 
 
 #include <mlopen/kernel_cache.hpp>
+#include <mlopen/errors.hpp>
 
 #include <iostream>
 #include <iterator>
