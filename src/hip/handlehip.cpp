@@ -1,5 +1,8 @@
 #include <mlopen/handle.hpp>
 #include <mlopen/errors.hpp>
+#if MLOPEN_BACKEND_HIPOC
+#include <mlopen/kernel_cache.hpp>
+#endif
 #include <algorithm>
 
 namespace mlopen {
@@ -24,6 +27,9 @@ struct HandleImpl
 
     bool enable_profiling = false;
     std::vector<StreamPtr> streams;
+#if MLOPEN_BACKEND_HIPOC
+    KernelCache cache;
+#endif
 };
 
 Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
@@ -77,5 +83,49 @@ void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
     if (status != hipSuccess) MLOPEN_THROW("Hip error reading from buffer: " + std::to_string(status));
 }
+
+#if MLOPEN_BACKEND_HIPOC
+KernelInvoke Handle::GetKernel(
+        const std::string& algorithm,
+        const std::string& network_config,
+        const std::string& program_name,
+        const std::string& kernel_name,
+        const std::vector<size_t>& vld,
+        const std::vector<size_t>& vgd,
+        const std::string& params)
+{
+    return this->impl->cache.GetKernel(*this, 
+            algorithm,
+            network_config,
+            program_name, 
+            kernel_name,
+            vld,
+            vgd,
+            params);
+}
+
+KernelInvoke Handle::GetKernel(
+    const std::string& algorithm,
+    const std::string& network_config)
+{
+    return this->impl->cache.GetKernel(
+            algorithm,
+            network_config);
+}
+
+Program Handle::LoadProgram(const std::string &program_name, std::string params)
+{
+    return HIPOCProgram{program_name, params};
+}
+
+void Handle::Finish() const
+{
+
+}
+void Handle::Flush() const
+{
+
+}
+#endif
 }
 
