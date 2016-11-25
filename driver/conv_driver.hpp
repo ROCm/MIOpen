@@ -487,7 +487,7 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
 	// im2col
-	size_t in_offset;
+	size_t in_offset = 0;
 	Im2ColCPU<T>(in, in_offset, in_c, in_h, in_w, 
 			wei_h, wei_w,
 			out_h, out_w,
