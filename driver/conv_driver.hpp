@@ -577,7 +577,7 @@ int ConvDriver<T>::VerifyBackward() {
 	RunBackwardWeightsCPU();
 
 	auto error_weights = rms_range(workspace_host, workspace);
-	const double tolerance = 1e-9;
+	const double tolerance = 1e-6;
 	if (error_weights > tolerance)
 	{
 		std::cout<<"Backward Convolution Weights Failed: " << error_weights <<"\n";
