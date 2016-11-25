@@ -74,7 +74,7 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
     {
 		bool is_kernel_str = algorithm.find("GEMM") != std::string::npos;
         program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params, is_kernel_str);
-		program_map[std::make_pair(program_name, params)] = program;
+		if(!params.empty()) program_map[std::make_pair(program_name, params)] = program;
     }
     OCLKernel kernel{CreateKernel(program.get(), kernel_name), vld, vgd, program};
     if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
