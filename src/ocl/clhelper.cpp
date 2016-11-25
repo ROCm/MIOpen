@@ -4,9 +4,9 @@
 
 namespace mlopen {
 
-ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params)
+ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params, bool is_kernel_str)
 {
-	std::string source = mlopen::GetKernelSrc(program_name);
+	std::string source = is_kernel_str ? program_name : GetKernelSrc(program_name);
 
 	const char* char_source = source.c_str();
 	auto size = source.size();
