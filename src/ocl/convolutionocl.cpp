@@ -2,6 +2,7 @@
 #include <mlopen/util.hpp>
 #include <mlopen/mlo_internal.hpp>
 
+#include "tinygemm.hpp"
 namespace mlopen {
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -342,17 +343,39 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	int out_h, out_w;
 	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
-//	int M = in_c * wei_h * wei_w;
-//	int N = wei_n;
-//	int K = out_h * out_w;
-//	float alpha = 1.;
-//	float beta = 1.;
+	int M = in_c * wei_h * wei_w;
+	int N = wei_n;
+	int K = out_h * out_w;
+	float alpha = 1.;
+	float beta = 1.;
+	bool tA = false;
+	bool tB = true;
+	bool tC = false;
 
-	for(int i = 0; i < in_n; i++) {
-		size_t in_offset = i * in_c * in_h * in_w;
+//	for(int i = 0; i < in_n; i++) {
+		size_t in_offset = 0 * in_c * in_h * in_w;
 		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+//./driver/MLOpenDriver conv  -s 1 -V 0 -t 1 -F 1 -W 700 -H 161 -c 1 -n 4 -k 32 -y 5  -x 20 -p 0 -q 0 -u 2 -v 2
 
-	}
+		//bool                          isColMajor, bool tA, bool tB, bool tC, unsigned lda, unsigned ldb, unsigned ldc, unsigned m, unsigned n, unsigned k, unsigned a_offset, unsigned b_offset, unsigned c_offset
+		tinygemm::TinyGemmGeometry tgg(    true,       tA,      tB,       tC,      M,          K,              M,            M,           N,          K,           0, 0, 0);
+		tinygemm::TinyGemmSolution soln = tinygemm::find(0.0, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, true, "" );
+		// call tinygemm_find
+		// get a solution which consists of one or two strings -- cl kernel
+		//
+		//
+		//
+		// To cache the kernel in mlopen, we need to create network_config which is nothing but your geometry. eg. 1xcxMxNxKxTAxTB
+		// 	auto k = handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
+		//	network_config,
+		//	program_name, // CL filename
+		//	kernel_name, // CL kernel name 
+		//	vld, // local workgroup size
+		//	vgd, // global workgroup size
+		//	parms) // params == empty
+		//	k(dy, w, dx, padding_val);  //running the kernel a, b, c, lda, ldb,
+
+	//}
 }
 
 // BackwardWeightsAlgorithm()

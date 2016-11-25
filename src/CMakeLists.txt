@@ -191,5 +191,10 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 	MESSAGE( STATUS "MLOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MLOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )
+
+	target_include_directories(MLOpen SYSTEM PUBLIC "/home/james/tinygemm/tinygemm/include" )
+	target_link_libraries( MLOpen /home/james/tinygemm/build/tinygemm/libtinygemm.so )
+		
+	
 endif()
 
