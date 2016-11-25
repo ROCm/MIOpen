@@ -348,9 +348,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	int K = out_h * out_w;
 	float alpha = 1.;
 	float beta = 1.;
-	bool tA = false;
-	bool tB = true;
+	bool tA = true;
+	bool tB = false;
 	bool tC = false;
+	unsigned int lda = K;
+	unsigned int ldb = K;
+	unsigned int ldc = M;
 
 //	for(int i = 0; i < in_n; i++) {
 		size_t in_offset = 0 * in_c * in_h * in_w;
@@ -358,24 +361,50 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 //./driver/MLOpenDriver conv  -s 1 -V 0 -t 1 -F 1 -W 700 -H 161 -c 1 -n 4 -k 32 -y 5  -x 20 -p 0 -q 0 -u 2 -v 2
 
 		//bool                          isColMajor, bool tA, bool tB, bool tC, unsigned lda, unsigned ldb, unsigned ldc, unsigned m, unsigned n, unsigned k, unsigned a_offset, unsigned b_offset, unsigned c_offset
-		tinygemm::TinyGemmGeometry tgg(    true,       tA,      tB,       tC,      M,          K,              M,            M,           N,          K,           0, 0, 0);
-		tinygemm::TinyGemmSolution soln = tinygemm::find(0.0, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, true, "" );
-		// call tinygemm_find
-		// get a solution which consists of one or two strings -- cl kernel
-		//
-		//
-		//
-		// To cache the kernel in mlopen, we need to create network_config which is nothing but your geometry. eg. 1xcxMxNxKxTAxTB
-		// 	auto k = handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
-		//	network_config,
-		//	program_name, // CL filename
-		//	kernel_name, // CL kernel name 
-		//	vld, // local workgroup size
-		//	vgd, // global workgroup size
-		//	parms) // params == empty
-		//	k(dy, w, dx, padding_val);  //running the kernel a, b, c, lda, ldb,
+		tinygemm::TinyGemmGeometry tgg(    true,       tA,      tB,       tC,      lda,          ldb,              ldc,            M,           N,          K,           0, 0, 0);
+		tinygemm::TinyGemmSolution soln = tinygemm::find(.001, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, true, "" );
+		
+		std::string program_name = soln.main_kernel;
+		std::string kernel_name = soln.main_kernel_function_name;
+		std::string network_config = tgg.get_string(); //soln.statistics.benchmarked_geometry
+		
+		auto main_kernel_worksize_params =  soln.get_main_kernel_worksize_params(M, N);
+		//for (auto & qwe : main_kernel_worksize_params){
+			//std::cout << "|" << qwe.first << "|" << "  " << qwe.second << std::endl;
+		//}
+			 
+		size_t local_work_size = main_kernel_worksize_params.at("local_work_size");
+		size_t global_work_size = main_kernel_worksize_params.at("global_work_size");
+		
+		std::vector<size_t> vld (1, local_work_size);
+		std::vector<size_t> vgd (1, global_work_size);
+		
+		auto k = handle.GetKernel("mlopenConvolutionBwdWeightsAlgoGEMM",
+			network_config,
+			program_name,
+			kernel_name,
+			vld,
+			vgd,
+			"");
+			k(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, 0,0,0); 
 
-	//}
+
+  //__global TFLOAT       *          c,
+  //__global const TFLOAT * restrict a,
+  //__global const TFLOAT * restrict b,
+  //const TFLOAT alpha,
+  //const TFLOAT beta,
+  //const unsigned lda,
+  //const unsigned ldb,
+  //const unsigned ldc,
+  //const unsigned m,
+  //const unsigned n,
+  //const unsigned k,
+  //const unsigned a_offset,
+  //const unsigned b_offset,
+  //const unsigned c_offset  
+
+
 }
 
 // BackwardWeightsAlgorithm()

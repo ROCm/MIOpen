@@ -377,7 +377,10 @@ int ConvDriver<T>::FindBackwardWeights() {
 	int ret_algo_count;
 	mlopenConvAlgoPerf_t perf;
 
-	return mlopenFindConvolutionBackwardWeightsAlgorithm(GetHandle(),
+	printf("before\n");
+	for(int i = 0; i < 10; i++)
+		printf("%f, ", wei[i]);
+	mlopenFindConvolutionBackwardWeightsAlgorithm(GetHandle(),
 			outputTensor,
 			out_dev->GetMem(),
 			inputTensor,
@@ -393,6 +396,13 @@ int ConvDriver<T>::FindBackwardWeights() {
 			workspace_dev->GetSize(),
 			(inflags.GetValueInt("search") == 1) ? true : false
 		);
+
+	wei_dev->FromGPU(GetStream(), wei.data());
+
+	printf("after\n");
+	for(int i = 0; i < 10; i++)
+		printf("%f, ", wei[i]);
+	return 0;
 }
 
 template<typename T>
