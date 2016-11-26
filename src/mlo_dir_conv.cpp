@@ -231,11 +231,6 @@ int mlo_construct_direct2D::mloConstruct()
 		return(mloConstructDirect2D3x3());
 	}
 #endif
-	else if (_gen)
-	{
-		std::cout << "Error: backward generic direct conv is not implemented. " << std::endl;
-		return (-1);
-	}
 	else
 	{
 		// search known configurations
