@@ -264,11 +264,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
 #else
 
-	if (u > 1 || v > 1)
-	{
-		printf("Algorithm has not been implemented\n");
-	}
-	else
 	{
 		// Generate kernels if OpenCL
 		// Compile, cache kernels, etc.

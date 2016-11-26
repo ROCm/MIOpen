@@ -30,6 +30,12 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#ifndef MLO_FILTER_STRIDE0
+#define MLO_FILTER_STRIDE0 1
+#endif
+#ifndef MLO_FILTER_STRIDE1
+#define MLO_FILTER_STRIDE1 1
+#endif
 
 #define MLO_FILTER_SZ (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0)
 
@@ -94,8 +100,8 @@
 
 
 
-#define MLO_IN_LCL_WIDTH (MLO_IN_TILE0 + MLO_FILTER_SIZE0 - 1 )  // here we use kernel size. it's important when padding == 0  2* MLO_FILTER_PAD0
-#define MLO_IN_LCL_HEIGHT (MLO_IN_TILE1 + MLO_FILTER_SIZE1 - 1)
+#define MLO_IN_LCL_WIDTH  ((MLO_IN_TILE0 + MLO_FILTER_SIZE0 - 1 + MLO_FILTER_STRIDE0 - 1) / MLO_FILTER_STRIDE0) // here we use kernel size. it's important when padding == 0  2* MLO_FILTER_PAD0
+#define MLO_IN_LCL_HEIGHT ((MLO_IN_TILE1 + MLO_FILTER_SIZE1 - 1 + MLO_FILTER_STRIDE1 - 1) / MLO_FILTER_STRIDE1)
 #define MLO_IN_LCL_TILE_SZ (MLO_IN_LCL_WIDTH*MLO_IN_LCL_HEIGHT)
 #define MLO_IN_LCL_PERSTACK_SZ (MLO_IN_LCL_TILE_SZ*MLO_N_IN_TILES_PERSTACK)
 #define MLO_IN_LCL_SZ (MLO_IN_LCL_PERSTACK_SZ*MLO_N_STACKS)
@@ -103,8 +109,8 @@
 #define MLO_WEIGHTS_SZ (MLO_N_OUT_TILES_PERSTACK*MLO_N_IN_TILES_PERSTACK*MLO_FILTER_SZ)
 
 #define MLO_PVT_ACCUM_DATA_SZ (MLO_N_OUT_TILES * MLO_OUT_TILE_SZ)
-#define MLO_PVT_IN_WIDTH (MLO_FILTER_SIZE0 + MLO_OUT_TILE0 - 1)
-#define MLO_PVT_IN_HEIGHT (MLO_OUT_TILE1)
+#define MLO_PVT_IN_WIDTH  ((MLO_OUT_TILE0 + MLO_FILTER_SIZE0 - 1 + MLO_FILTER_STRIDE0 - 1) / MLO_FILTER_STRIDE0)
+#define MLO_PVT_IN_HEIGHT ((MLO_OUT_TILE1 +                        MLO_FILTER_STRIDE1 - 1) / MLO_FILTER_STRIDE1)
 
 #define MLO_LCL_WEIGHTS 1
 
@@ -222,7 +228,7 @@ inline void Conv(int o_map_base,
 			}
 
 		// over filter rows
-			for(int k = 0; k < MLO_FILTER_SIZE1; ++k, in_stg_off2+=MLO_IN_LCL_WIDTH
+			for(int k = 0; k < MLO_FILTER_SIZE1; ++k, in_stg_off2+=(((k+(MLO_FILTER_SIZE1%MLO_OUT_TILE1)) % MLO_FILTER_STRIDE1)?0:MLO_IN_LCL_WIDTH)
 			)
 			{	
 				int k_act = 0;
@@ -252,6 +258,7 @@ inline void Conv(int o_map_base,
 
 					for( int j = 0; j < MLO_OUT_TILE1; ++j)
 					{
+						if(((j + k + 1 + (MLO_FILTER_SIZE1 % MLO_FILTER_STRIDE1)) % MLO_FILTER_STRIDE1) == 0)
 						for(int i = 0; i < MLO_OUT_TILE0; ++i)
 						{
 							for(int l = 0; l < MLO_FILTER_SIZE0; ++l)
@@ -267,8 +274,9 @@ inline void Conv(int o_map_base,
 
 #endif
 
+								if(((i + l + 1 + (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) % MLO_FILTER_STRIDE0) == 0)
 								pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i]
-									 += pvt_in_stage[j * MLO_PVT_IN_WIDTH + i + l] * pvt_wei_stage[l_act];
+									 += pvt_in_stage[(j/MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH + (i + l)/MLO_FILTER_STRIDE0] * pvt_wei_stage[l_act];
 							}
 						}
 
@@ -336,15 +344,14 @@ __kernel void MLOpenConvUni(
 	int wave_id = (int)((float)lcl_id / (float)MLO_N_READ_PROCS + 0.00001f);
 	int wave_lcl_id = -mad24(wave_id, (int)MLO_N_READ_PROCS, -lcl_id);
 
-	int x_grp = x_tile_blk * MLO_IN_TILE0;
-	int y_grp = y_tile_blk * MLO_IN_TILE1;
+	int x_grp = x_tile_blk * (MLO_IN_TILE0 / MLO_FILTER_STRIDE0);
+	int y_grp = y_tile_blk * (MLO_IN_TILE1 / MLO_FILTER_STRIDE1);
 
-// TO DO: scale
-	int x_in_grp = x_grp - MLO_FILTER_PAD0;
-	int y_in_grp = y_grp - MLO_FILTER_PAD1;
+	int x_in_grp = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
+	int y_in_grp = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
 
-	int x_in_lcl = alu_tl0 * MLO_OUT_TILE0;
-	int y_in_lcl = alu_tl1 * MLO_OUT_TILE1;
+	int x_in_lcl = alu_tl0 * (MLO_OUT_TILE0 / MLO_FILTER_STRIDE0);
+	int y_in_lcl = alu_tl1 * (MLO_OUT_TILE1 / MLO_FILTER_STRIDE1);
 
 // base offset to read data from local input data
 	int in_stg_off = stack*MLO_IN_LCL_PERSTACK_SZ + (y_in_lcl) * MLO_IN_LCL_WIDTH + x_in_lcl;
@@ -443,8 +450,8 @@ __kernel void MLOpenConvUni(
 			int elem_id = wave_lcl_id;
 			int lcl_p_stride = MLO_N_READ_PROCS;
 			int lcl_base = 0;
-			int lcl_y = MLO_FILTER_PAD1;
-			int lcl_x = MLO_FILTER_PAD0;
+			int lcl_y = (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE0);
+			int lcl_x = (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE1);
 			int gbl_base = 0;
 
 			readData(elem_id, (MLO_IN_HEIGHT * MLO_IN_WIDTH), lcl_p_stride,
@@ -511,8 +518,8 @@ __kernel void MLOpenConvUni(
 //		barrier(CLK_LOCAL_MEM_FENCE);	
 	}
 // write results out
-	int x_out_grp = x_grp;
-	int y_out_grp = y_grp;
+	int x_out_grp = x_grp * MLO_FILTER_STRIDE0;
+	int y_out_grp = y_grp * MLO_FILTER_STRIDE1;
 	int x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
 	int y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
 
