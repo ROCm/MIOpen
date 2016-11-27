@@ -91,7 +91,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
 		Data_t							workSpace,
-		size_t							workSpaceSize,
+		size_t							*workSpaceSize,
 		bool							exhaustiveSearch) const;
 
 	void ConvolutionBackwardWeights(Handle& handle,

@@ -1118,6 +1118,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 		+ std::string(" -D MLO_CONV_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
 		+ std::string(" -D MLO_CONVBWD_ACCUMSCANS_PERHEIGHT=") + std::to_string(static_cast<long long>(n_accum_scans_perheight))
 		+ std::string(" -D MLO_CONVBWD_N_GRPS_PERHEIGHT=") + std::to_string(static_cast<long long>(n_grps_perheight))
+		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(static_cast<long long>(bias))
 		+ getGeneralCompOptions()
 
 		;

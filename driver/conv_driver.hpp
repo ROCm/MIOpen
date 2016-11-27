@@ -187,7 +187,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t wei_sz = GetTensorSize(weightTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
 	size_t workSpaceSize = 0; 
-	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(outputTensor, weightTensor, &workSpaceSize);
+	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(GetHandle(),outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize);
 
 	cl_context ctx;
 
@@ -485,7 +485,7 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
-
+#if 0
 	// im2col
 	size_t in_offset = 0;
 	Im2ColCPU<T>(in, in_offset, in_c, in_h, in_w, 
@@ -494,7 +494,7 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 			pad_h, pad_w,
 			v, u,
 			workspace_host);
-	
+#endif	
 	return 0;
 }
 
