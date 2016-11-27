@@ -208,11 +208,32 @@ mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle,
 }
 
 extern "C"
-mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
+mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t		dyDesc,
+		const mlopenTensorDescriptor_t		xDesc,
+		const mlopenConvolutionDescriptor_t	convDesc,
 		const mlopenTensorDescriptor_t		dwDesc,
 		size_t								*workSpaceSize) {
-	
+
+#if 1
+	return mlopen::try_([&] {
+		mlopen::deref(convDesc).FindConvBwdWeightsAlgorithm(mlopen::deref(handle),
+			mlopen::deref(dyDesc),
+			NULL,
+			mlopen::deref(xDesc),
+			NULL,
+			mlopen::deref(dwDesc),
+			NULL,
+			1,
+			NULL,
+			NULL,
+			mlopenConvolutionFastest,
+			NULL,
+			workSpaceSize,
+			false);
+	});
+
+#else
 	return mlopen::try_([&] {
 		int out_h, out_w;
 		std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(mlopen::deref(dyDesc).GetLengths());
@@ -221,7 +242,7 @@ mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
 		std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(mlopen::deref(dwDesc).GetLengths());
 		mlopen::deref(workSpaceSize) = wei_c*wei_h*wei_w * out_h*out_w * sizeof(mlopen::deref(dyDesc).GetType());
 	});
-
+#endif
 }
 
 extern "C"
@@ -254,7 +275,7 @@ mlopenStatus_t mlopenFindConvolutionBackwardWeightsAlgorithm(mlopenHandle_t hand
 				perfResults,
 				preference,
 				DataCast(workSpace),
-				workSpaceSize,
+				&workSpaceSize,
 				exhaustiveSearch);
 	});
 

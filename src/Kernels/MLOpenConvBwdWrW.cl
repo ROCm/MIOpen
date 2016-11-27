@@ -237,7 +237,9 @@ __kernel void MLOpenConvBwdWrW(
        const __global _FLOAT * bot,
 // need another pass to sum over the batch and inputs scan blocks
        __global _FLOAT * weights_df,
+#if MLO_CONV_BIAS
        __global _FLOAT * bias_df,
+#endif
 	   _FLOAT padding_val
 	   )
 {
@@ -430,7 +432,7 @@ __kernel void MLOpenConvBwdWrW(
 
 
 		barrier(CLK_LOCAL_MEM_FENCE);
-
+#if MLO_CONV_BIAS
 // do it once per input
 		if ( cc == 0 && lcl_id == get_local_id(1) * MLO_CONVBWD_GROUP_SZ0)
 		{
@@ -438,7 +440,7 @@ __kernel void MLOpenConvBwdWrW(
 			bias_df[bias_off] = bias_accum[k];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
-
+#endif
 // weights
 
 		for(int i = 0; i < MLO_CONV_KERNEL_SZ0 * MLO_CONV_KERNEL_SZ1; ++i)
@@ -492,9 +494,13 @@ __kernel void MLOpenConvBwdWrW(
 __attribute__((reqd_work_group_size(MLO_CONVBSUM_GRP_SZ0,MLO_CONVBSUM_GRP_SZ1,MLO_CONVBSUM_GRP_SZ2)))
 __kernel void MLOpenConvBwdWrW_rdc(
        const __global _FLOAT * weights_df_t,
+#if MLO_CONV_BIAS
        const __global _FLOAT * bias_df_t,
-       __global _FLOAT * weights_df,
-       __global _FLOAT * bias_df
+#endif
+       __global _FLOAT * weights_df
+#if MLO_CONV_BIAS
+       ,__global _FLOAT * bias_df
+#endif
 	   )
 {
 
@@ -566,7 +572,7 @@ __kernel void MLOpenConvBwdWrW_rdc(
 	}
 
 // bias
-
+#if MLO_CONV_BIAS
 	_FLOAT bias_accum = 0;
 	int bias_in_off = o * MLO_CONV_BATCH_SZ * MLO_CONVBWD_N_GRPS_PERHEIGHT;
 
@@ -599,6 +605,7 @@ __kernel void MLOpenConvBwdWrW_rdc(
 			bias_df[o] = bias_accum;
 		}
 	}
+#endif
 
 }
 

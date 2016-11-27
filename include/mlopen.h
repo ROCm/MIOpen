@@ -408,8 +408,10 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardData(mlopenHandle_t handle
 		void								*workSpace,
 		size_t								workSpaceSize);
 
-MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t		dyDesc,
+		const mlopenTensorDescriptor_t		xDesc,
+		const mlopenConvolutionDescriptor_t	convDesc,
 		const mlopenTensorDescriptor_t		dwDesc,
 		size_t								*workSpaceSize);
 

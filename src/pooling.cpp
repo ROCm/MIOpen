@@ -74,8 +74,8 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 	std::tie(window_h, window_w) = mlopen::tie2(GetLengths());
 
 	return std::make_tuple(input_n, input_c, 
-	ceil((input_h - window_h + 2*pad_h) / static_cast<float>(u)) + 1,
-	ceil((input_w - window_w + 2*pad_w) / static_cast<float>(v)) + 1);
+	static_cast<int>(ceil((input_h - window_h + 2*pad_h) / static_cast<float>(u)) + 1),
+	static_cast<int>(ceil((input_w - window_w + 2*pad_w) / static_cast<float>(v)) + 1));
 
 }
 
