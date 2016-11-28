@@ -284,7 +284,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
 
 	// no 1x1 backward yet
-	if (_kernel_size0 == 1 && _kernel_size1 == 1 && getDirection())
+	if (_kernel_size0 == 1 && _kernel_size1 == 1 )
 	{
 
 		return(mloConstructDirect2D1x1());
@@ -566,7 +566,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_out_pix_tile1 = 1;
 
 	int wei_cstride = _kernel_size0*_kernel_size1;
-	int wei_bstride = _n_inputs*wei_cstride;
+	// backward: inputs are forward outputs
+	int wei_bstride = ((getDirection() == 1) ? _n_inputs : _n_outputs)*wei_cstride;
 
 	// currently always 1
 	int N4S = 1;
@@ -679,7 +680,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	//	_kernel_name = "MLOpenConv1x1";
 	// too much overhead for small maps and few inputs
 
-	if ((small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256))
+	if ((getDirection() == 0) || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256))
 	{
 		_kernel_file = "MLOpenConv1x1PS.cl";
 		_kernel_name = "MLOpenConv1x1PS";

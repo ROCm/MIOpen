@@ -497,7 +497,7 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
 	// im2col
-	size_t in_offset;
+	size_t in_offset = 0;
 	Im2ColCPU<T>(in, in_offset, in_c, in_h, in_w, 
 			wei_h, wei_w,
 			out_h, out_w,
@@ -587,7 +587,7 @@ int ConvDriver<T>::VerifyBackward() {
 	RunBackwardWeightsCPU();
 
 	auto error_weights = rms_range(workspace_host, workspace);
-	const double tolerance = 1e-9;
+	const double tolerance = 1e-6;
 	if (error_weights > tolerance)
 	{
 		std::cout<<"Backward Convolution Weights Failed: " << error_weights <<"\n";
