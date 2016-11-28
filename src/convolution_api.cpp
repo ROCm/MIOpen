@@ -217,20 +217,11 @@ mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(mlopenHandle_t h
 
 #if 1
 	return mlopen::try_([&] {
-		mlopen::deref(convDesc).FindConvBwdWeightsAlgorithm(mlopen::deref(handle),
+		mlopen::deref(convDesc).ConvolutionBackwardWeightsGetWorkSpaceSize(mlopen::deref(handle),
 			mlopen::deref(dyDesc),
-			NULL,
 			mlopen::deref(xDesc),
-			NULL,
 			mlopen::deref(dwDesc),
-			NULL,
-			1,
-			NULL,
-			NULL,
-			mlopenConvolutionFastest,
-			NULL,
-			workSpaceSize,
-			false);
+			workSpaceSize);
 	});
 
 #else
@@ -275,7 +266,7 @@ mlopenStatus_t mlopenFindConvolutionBackwardWeightsAlgorithm(mlopenHandle_t hand
 				perfResults,
 				preference,
 				DataCast(workSpace),
-				&workSpaceSize,
+				workSpaceSize,
 				exhaustiveSearch);
 	});
 
