@@ -192,8 +192,8 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 	target_include_directories(MLOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )
 
-	target_include_directories(MLOpen SYSTEM PUBLIC "/home/james/tinygemm/tinygemm/include" )
-	target_link_libraries( MLOpen /home/james/tinygemm/build/tinygemm/libtinygemm.so )
+	target_include_directories(MLOpen SYSTEM PUBLIC "/home/fpadmin/tinygemm/tinygemm/include" )
+	target_link_libraries( MLOpen /home/fpadmin/tinygemm/build/tinygemm/libtinygemm.so )
 		
 	
 endif()
