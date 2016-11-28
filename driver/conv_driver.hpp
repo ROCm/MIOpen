@@ -424,7 +424,7 @@ int ConvDriver<T>::RunBackwardGPU() {
 			inputTensor,
 			in_dev->GetMem(),
 			convDesc,
-			mlopenConvolutionBwdWeightsAlgo_0,
+			mlopenConvolutionBwdWeightsAlgoGEMM,
 			&beta,
 			weightTensor,
 			wei_dev->GetMem(),
