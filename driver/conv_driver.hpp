@@ -16,6 +16,19 @@
 #include <../test/verify.hpp>
 #include "timer.hpp"
 
+#ifndef NDEBUG
+static inline void dumpDataToFile(const char * name, void * ptr, size_t size, const char * fileName)
+{
+	FILE * fp = fopen(fileName, "wb");
+	if (!fp) printf("ERROR: dumpDataToFile: unable to create: %s\n");
+	else {
+		fwrite(ptr, 1, size, fp);
+		fclose(fp);
+		printf("OK: dumpDataToFile: dumped %s into %s (%d bytes)\n", name, fileName, (int)size);
+	}
+}
+#endif
+
 template<typename T>
 class ConvDriver : public Driver 
 {
@@ -460,12 +473,12 @@ int ConvDriver<T>::RunBackwardGPU() {
 
 	din_dev->FromGPU(GetStream(), din.data());
 
-#if 1
+
 	FindBackwardWeights();
 	ret = mlopenConvolutionBackwardWeights(GetHandle(),
 		&alpha,
 		outputTensor,
-		out_dev->GetMem(),
+		dout_dev->GetMem(),
 		inputTensor,
 		in_dev->GetMem(),
 		convDesc,
@@ -481,9 +494,7 @@ int ConvDriver<T>::RunBackwardGPU() {
 		mlopenGetKernelTime(GetHandle(), &time);
 		printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms\n", time);
 	}
-
-#endif
-//	workspace_dev->FromGPU(GetStream(), workspace.data());
+	workspace_dev->FromGPU(GetStream(), workspace.data());
 	dwei_dev->FromGPU(GetStream(), dwei.data());
 
 
@@ -587,6 +598,13 @@ int ConvDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
 
+#ifndef NDEBUG
+	//dumpDataToFile("in", in.data(), sizeof(float) * in.size(), "dump_fwd_in.bin");
+	//dumpDataToFile("wei", wei.data(), sizeof(float) * wei.size(), "dump_fwd_wei.bin");
+	//dumpDataToFile("out", out.data(), sizeof(float) * out.size(), "dump_fwd_out_gpu.bin");
+	//dumpDataToFile("outhost", outhost.data(), sizeof(float) * outhost.size(), "dump_fwd_out_cpu.bin");
+#endif
+
 	auto error = rms_range(outhost, out);
 	const double tolerance = 1e-6;
 	if (error > tolerance)
@@ -621,7 +639,16 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardDataCPU();
 
+
 	auto error_data = rms_range(din_host, din);
+
+#ifndef NDEBUG
+	//dumpDataToFile("dout", dout.data(), sizeof(float) * dout.size(), "dump_bwd_out.bin");
+	//dumpDataToFile("wei", wei.data(), sizeof(float) * wei.size(), "dump_bwd_wei.bin");
+	//dumpDataToFile("din", din.data(), sizeof(float) * din.size(), "dump_bwd_in_gpu.bin");
+	//dumpDataToFile("dinhost", din_host.data(), sizeof(float) * din_host.size(), "dump_bwd_in_cpu.bin");
+#endif
+
 	if (error_data > tolerance)
 	{
 		std::cout<<"Backward Convolution Data Failed: " << error_data <<"\n";
