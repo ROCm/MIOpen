@@ -68,13 +68,24 @@ struct HandleImpl
         }
         return result;
     }
-    void SetProfilingResult(cl_event& e)
+	void ResetProfilingResult(void)
+	{
+		profiling_result = 0.0;
+	}
+	void AccumProfilingResult(float curr_res)
+	{
+		profiling_result += curr_res;
+	}
+
+	void SetProfilingResult(cl_event& e)
     {
         size_t st, end;
         clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
         clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
         profiling_result = ((end-st)*1e-6);
     }
+	
+
 };
 
 Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
@@ -156,6 +167,17 @@ void Handle::EnableProfiling(bool enable)
 {
     this->impl->enable_profiling = enable;
 }
+
+void Handle::ResetKernelTime(void)
+{
+	this->impl->ResetProfilingResult();
+}
+void Handle::AccumKernelTime(float curr_time)
+{
+	this->impl->AccumProfilingResult(curr_time);
+}
+
+
 
 float Handle::GetKernelTime() const
 {

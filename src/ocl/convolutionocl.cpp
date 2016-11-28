@@ -390,6 +390,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	* std::vector<size_t> _g_wk;
 	* std::vector<size_t> _l_wk;
 	*/
+// reset profiler
+	handle.ResetKernelTime();
+
 // main kernel
 	{
 		const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
@@ -405,6 +408,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 			(dy, x, workSpace, padding_val);
 	}
 
+	float time0 = handle.GetKernelTime(); 
 	// reduction  kernel
 	{
 		const mlo_kernel_info &bwd_wrw = bwd_wrw_info[1];
@@ -420,6 +424,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 			std::get<2>(bwd_wrw))(workSpace, dw);
 
 	}
+
+	handle.AccumKernelTime(time0);
 #endif
 }
 
@@ -489,6 +495,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 
+	handle.ResetKernelTime();
+
 	// main kernel
 	{
 		float padding_val = 0;
@@ -497,6 +505,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 			network_config)
 			(dy, x, workSpace, padding_val);
 	}
+	float time0 = handle.GetKernelTime();
 
 	// reduction  kernel
 	{
@@ -506,6 +515,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
 	}
 
+	handle.AccumKernelTime(time0);
 
 
 #endif
