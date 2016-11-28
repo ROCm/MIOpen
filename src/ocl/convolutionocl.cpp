@@ -374,7 +374,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
 		float padding_val = 0;
 
-		handle.GetKernel("mlopenConvolutionBwdWeightsAlgo_0",
+		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect",
 			network_config,
 			std::get<1>(bwd_wrw),
 			std::get<0>(bwd_wrw),
@@ -385,13 +385,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	}
 
 	float time0 = handle.GetKernelTime(); 
+// second kernel hash
+	network_config += "x1";
 	// reduction  kernel
 	{
 		const mlo_kernel_info &bwd_wrw = bwd_wrw_info[1];
 
 		float padding_val = 0;
 
-		handle.GetKernel("mlopenConvolutionBwdWeightsAlgo_1",
+		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect",
 			network_config,
 			std::get<1>(bwd_wrw),
 			std::get<0>(bwd_wrw),
@@ -477,15 +479,16 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	{
 		float padding_val = 0;
 
-		handle.GetKernel("mlopenConvolutionBwdWeightsAlgo_0",
+		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect",
 			network_config)
 			(dy, x, workSpace, padding_val);
 	}
 	float time0 = handle.GetKernelTime();
-
+	// second kernel has
+	network_config += "x1";
 	// reduction  kernel
 	{
-		handle.GetKernel("mlopenConvolutionBwdWeightsAlgo_1",
+		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect",
 			network_config)
 			(workSpace, dw);
 
