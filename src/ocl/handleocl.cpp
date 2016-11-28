@@ -28,8 +28,8 @@ void dumpKernel(cl_kernel kern, const std::string& kernel_name, const std::vecto
 		work += i ? "," : "/";
 		work += std::to_string(vld[i]);
 	}
-	auto getValueFromParams = [&](const std::string& params, int& value, const char * define) {
-		const char * q = strstr(params.c_str(), define);
+	auto getValueFromParams = [&](const std::string& par, int& value, const char * define) {
+		const char * q = strstr(par.c_str(), define);
 		if (q) value = atoi(q + strlen(define));
 	};
 	int an = 0, ac = 0, ah = 0, aw = 0, ax = 0, ay = 0, ak = 0, ap = 0, aq = 0, au = 1, av = 1, aP = 0, aQ = 0, af = 1;
