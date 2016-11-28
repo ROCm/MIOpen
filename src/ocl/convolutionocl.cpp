@@ -161,52 +161,45 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 	}
 #endif 
 
-	if (u > 1 || v > 1)
+	// Generate kernels if OpenCL
+	// Compile, cache kernels, etc.
+	// Launch all kernels and store the perf, workspace limits, etc.
+	mlo_construct_direct2D construct_params(0); // backward
 	{
-		printf("Algorithm has not been implemented\n");
+		construct_params.doSearch(exhaustiveSearch);
+		construct_params.saveSearchRequest(true);
+
+		construct_params.setGeneralCompOptions("");
+
+		construct_params.setStream(handle.GetStream());
+
+		construct_params.setOutputDescFromMLDesc(dyDesc);
+		construct_params.setInputDescFromMLDesc(dxDesc);
+		construct_params.setWeightDescFromMLDesc(wDesc);
+
+		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+
+		construct_params.mloConstruct();
 	}
-	else
-	{
-		// Generate kernels if OpenCL
-		// Compile, cache kernels, etc.
-		// Launch all kernels and store the perf, workspace limits, etc.
-		mlo_construct_direct2D construct_params(0); // backward
-		{
-			construct_params.doSearch(exhaustiveSearch);
-			construct_params.saveSearchRequest(true);
 
-			construct_params.setGeneralCompOptions("");
+	std::string program_name = construct_params.getKernelFile();
+	std::string kernel_name = construct_params.getKernelName(); // kernel name
+	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
-			construct_params.setStream(handle.GetStream());
+	std::string network_config;
+	construct_params.mloBuildConf_Key(network_config);
 
-			construct_params.setOutputDescFromMLDesc(dyDesc);
-			construct_params.setInputDescFromMLDesc(dxDesc);
-			construct_params.setWeightDescFromMLDesc(wDesc);
+	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
+	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-			construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
-
-			construct_params.mloConstruct();
-		}
-
-		std::string program_name = construct_params.getKernelFile();
-		std::string kernel_name = construct_params.getKernelName(); // kernel name
-		std::string parms = construct_params.getCompilerOptions(); // kernel parameters
-
-		std::string network_config;
-		construct_params.mloBuildConf_Key(network_config);
-
-		const std::vector<size_t> & vld = construct_params.getLocalWkSize();
-		const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
-
-		float padding_val = 0;
-		handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
+	float padding_val = 0;
+	handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
 			network_config,
 			program_name,
 			kernel_name,
 			vld,
 			vgd,
 			parms)(dy, w, dx, padding_val);
-	}
 }
 
 // BackwardDataAlgorithm()
@@ -239,27 +232,19 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
-	if (u > 1 || v > 1)
+	// Launch all kernels and store the perf, workspace limits, etc.
+	mlo_construct_direct2D construct_params(0); // backward
 	{
-		printf("Algorithm has not been implemented\n");
+		construct_params.setOutputDescFromMLDesc(dyDesc);
+		construct_params.setInputDescFromMLDesc(dxDesc);
+		construct_params.setWeightDescFromMLDesc(wDesc);
 	}
-	else
-	{
-		// Launch all kernels and store the perf, workspace limits, etc.
-		mlo_construct_direct2D construct_params(0); // backward
-		{
-			construct_params.setOutputDescFromMLDesc(dyDesc);
-			construct_params.setInputDescFromMLDesc(dxDesc);
-			construct_params.setWeightDescFromMLDesc(wDesc);
-		}
 
-		std::string network_config;
-		construct_params.mloBuildConf_Key(network_config);
+	std::string network_config;
+	construct_params.mloBuildConf_Key(network_config);
 
-		float padding_val = 0;
-		handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
-			network_config)(dy, w, dx, padding_val);
-	}
+	float padding_val = 0;
+	handle.GetKernel("mlopenConvolutionBwdDataAlgo_0", network_config) (dy, w, dx, padding_val);
 }
 
 // ConvolutionBackwardWeightsGetWorkSpaceSiz
