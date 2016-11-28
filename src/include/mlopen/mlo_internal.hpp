@@ -856,6 +856,22 @@ protected:
 	size_t _workspce_sz;
 };
 
+
+/*
+* backward with regard to weights construction
+*/
+
+class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
+{
+public:
+	mlo_construct_BwdWrW2D(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias)
+	{
+	}
+
+	int mloConstruct(void);
+};
+
+
 #define MLO_POOLING_OP_AVE			0
 #define MLO_POOLING_OP_MAX			1
 #define MLO_POOLING_OP_STC			2
@@ -927,19 +943,6 @@ protected:
 };
 
 
-/*
-* backward with regard to weights construction
-*/
-
-class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
-{
-public:
-	mlo_construct_BwdWrW2D(int dir) : mlo_construct_direct2D(dir)
-	{
-	}
-
-	int mloConstruct(void);
-};
 
 
 #define MLO_LRN_WITHIN_CHANNEL  0
