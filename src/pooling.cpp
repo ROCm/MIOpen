@@ -79,7 +79,6 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 
 }
 
-
 TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(
 	const TensorDescriptor& tensorDesc) const
 {
@@ -90,6 +89,5 @@ TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(
 		std::get<2>(dims),
 		std::get<3>(dims)});
 }
-
 
 } // namespace mlopen
