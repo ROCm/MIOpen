@@ -312,7 +312,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
 	//bool isColMajor, bool tA, bool tB, bool tC, unsigned lda, unsigned ldb, unsigned ldc, unsigned m, unsigned n, unsigned k, unsigned a_offset, unsigned b_offset, unsigned c_offset
 	tinygemm::TinyGemmGeometry tgg( true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
-	tinygemm::TinyGemmSolution soln = tinygemm::find(5, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, false, "" );
+	tinygemm::TinyGemmSolution soln = tinygemm::find(15, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, true, "" );
 
 	std::string program_name = soln.main_kernel;
 	std::string kernel_name = soln.main_kernel_function_name;
@@ -378,7 +378,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	int N = wei_n;
 	int K = out_h * out_w;
 	float alpha = 1.0;
-	float beta = 0;
+	float beta = 1;
 	bool tA = true;
 	bool tB = false;
 	bool tC = false;
@@ -394,9 +394,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 		case mlopenConvolutionBwdWeightsAlgoGEMM:
 			algorithm_name = "mlopenConvolutionBwdWeightsAlgoGEMM";
 			break;
-//		case mlopenConvolutionBwdWeightsAlgoDirect:
-//			algorithm_name = "mlopenConvolutionFwdAlgoDirect";
-//			break;
+		case mlopenConvolutionBwdWeightsAlgoDirect:
+			algorithm_name = "mlopenConvolutionFwdAlgoDirect";
+			break;
 	}
 
 	int i = 0;
