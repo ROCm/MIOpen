@@ -195,7 +195,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t wei_sz = GetTensorSize(weightTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
 	size_t workSpaceSize = 0; 
-	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(GetHandle(),outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize);
+	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize);
 
 	cl_context ctx;
 
