@@ -241,27 +241,62 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
-	if (u > 1 || v > 1)
+#if 0
+	// TODO(paul): Replicating code for now.
+	mlo_construct_direct2D construct_params(0); // backward
 	{
-		printf("Algorithm has not been implemented\n");
+		construct_params.setOutputDescFromMLDesc(dxDesc);
+		construct_params.setInputDescFromMLDesc(dyDesc);
+		construct_params.setWeightDescFromMLDesc(wDesc);
 	}
-	else
+
+	std::string network_config;
+	construct_params.mloBuildConf_Key(network_config);
+
+	std::string algorithm_name;
+	switch(algo) {
+		case mlopenConvolutionBwdDataAlgo_0:
+			 algorithm_name = "mlopenConvolutionBwdDataAlgo_0";
+		break;
+	}
+	float padding_val = 0;
+	handle.GetKernel(algorithm_name, network_config)(dy, w, dx, padding_val);
+
+#else
 	{
 		// Launch all kernels and store the perf, workspace limits, etc.
 		mlo_construct_direct2D construct_params(0); // backward
 		{
+			construct_params.doSearch(false);
+			construct_params.setGeneralCompOptions("");
+			construct_params.setStream(handle.GetStream());
 			construct_params.setOutputDescFromMLDesc(dyDesc);
 			construct_params.setInputDescFromMLDesc(dxDesc);
 			construct_params.setWeightDescFromMLDesc(wDesc);
+			construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+			construct_params.mloConstruct();
 		}
+
+		std::string program_name = construct_params.getKernelFile();
+		std::string kernel_name = construct_params.getKernelName(); // kernel name
+		std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
 		std::string network_config;
 		construct_params.mloBuildConf_Key(network_config);
 
+		const std::vector<size_t> & vld = construct_params.getLocalWkSize();
+		const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
+
 		float padding_val = 0;
 		handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
-			network_config)(dy, w, dx, padding_val);
+			network_config,
+			program_name,
+			kernel_name,
+			vld,
+			vgd,
+			parms)(dy, w, dx, padding_val);
 	}
+#endif
 }
 
 // FindBackwardWeightsAlgorithm()

@@ -10,6 +10,113 @@
 
 namespace mlopen {
 
+#ifndef NDEBUG
+void dumpKernel(cl_kernel kern, const std::string& kernel_name, const std::vector<size_t>& vld, const std::vector<size_t>& vgd, const std::string& params)
+{
+	static int dumpOpenCLFileCounter = 0;
+	static std::vector<cl_kernel> kernList;
+	for (auto it = kernList.begin(); it != kernList.end(); it++)
+		if (*it == kern)
+			return;
+	kernList.push_back(kern);
+	std::string work;
+	for (size_t i = 0; i < vgd.size(); i++) {
+		if (i) work += ",";
+		work += std::to_string(vgd[i]);
+	}
+	for (size_t i = 0; i < vld.size(); i++) {
+		work += i ? "," : "/";
+		work += std::to_string(vld[i]);
+	}
+	auto getValueFromParams = [&](const std::string& par, int& value, const char * define) {
+		const char * q = strstr(par.c_str(), define);
+		if (q) value = atoi(q + strlen(define));
+	};
+	int an = 0, ac = 0, ah = 0, aw = 0, ax = 0, ay = 0, ak = 0, ap = 0, aq = 0, au = 1, av = 1, aP = 0, aQ = 0, af = 1;
+	getValueFromParams(params, an, "-D MLO_BATCH_SZ=");
+	getValueFromParams(params, ac, "-D MLO_N_INPUTS=");
+	getValueFromParams(params, ac, "-D MLO_N_IN_CHNLS=");
+	getValueFromParams(params, ah, "-D MLO_IN_HEIGHT=");
+	getValueFromParams(params, aw, "-D MLO_IN_WIDTH=");
+	getValueFromParams(params, ak, "-D MLO_N_OUTPUTS=");
+	getValueFromParams(params, ak, "-D MLO_N_OUT_CHNLS=");
+	getValueFromParams(params, aP, "-D MLO_OUT_HEIGHT=");
+	getValueFromParams(params, aQ, "-D MLO_OUT_WIDTH=");
+	getValueFromParams(params, ay, "-D MLO_FILTER_SIZE1=");
+	getValueFromParams(params, ax, "-D MLO_FILTER_SIZE0=");
+	getValueFromParams(params, ap, "-D MLO_FILTER_PAD1=");
+	getValueFromParams(params, aq, "-D MLO_FILTER_PAD0=");
+	getValueFromParams(params, av, "-D MLO_FILTER_STRIDE1=");
+	getValueFromParams(params, au, "-D MLO_FILTER_STRIDE0=");
+	getValueFromParams(params, ay, "-D MLO_FLTR_SZ1=");
+	getValueFromParams(params, ax, "-D MLO_FLTR_SZ0=");
+	getValueFromParams(params, ap, "-D MLO_FLTR_PAD_SZ1=");
+	getValueFromParams(params, aq, "-D MLO_FLTR_PAD_SZ0=");
+	getValueFromParams(params, av, "-D MLO_FLTR_STRIDE1=");
+	getValueFromParams(params, au, "-D MLO_FLTR_STRIDE0=");
+	getValueFromParams(params, af, "-D MLO_DIR_FORWARD=");
+	int isize = an * ac * ah * aw * 4;
+	int osize = an * ak * aP * aQ * 4;
+	int wsize = ak * ac * ay * ax * 4;
+	if (!isize || !osize || !wsize) {
+		if(params.size() > 0)
+			printf("dumpKernel: can't dump kernel %s missing macros in params: %s\n", kernel_name.c_str(), params.c_str());
+		return;
+	}
+	dumpOpenCLFileCounter++;
+	cl_program prog = nullptr;
+	clGetKernelInfo(kern, CL_KERNEL_PROGRAM, sizeof(prog), &prog, nullptr);
+	cl_uint num_arg = 0;
+	clGetKernelInfo(kern, CL_KERNEL_NUM_ARGS, sizeof(num_arg), &num_arg, nullptr);
+	size_t sizeK = 0;
+	clGetProgramInfo(prog, CL_PROGRAM_SOURCE, 0, nullptr, &sizeK);
+	std::vector<char> bufK(sizeK+1);
+	char * buf = bufK.data();
+	size_t size = 0;
+	clGetProgramInfo(prog, CL_PROGRAM_SOURCE, sizeK, buf, &size);
+	buf[size] = 0;
+	char fileName[1024]; FILE * fp;
+	sprintf(fileName, "dump_%03d_command.txt", dumpOpenCLFileCounter);
+	fp = fopen(fileName, "w"); if (!fp) { printf("ERROR: unable to create: %s\n", fileName); }
+	else {
+		if (af) {
+			fprintf(fp, "execkern -bo -cl-std=CL2.0 dump_%03d_kernel.cl -k %s if#%d:dump_fwd_in.bin if#%d:dump_fwd_wei.bin of#%d:#intmp.bin#/+1e%d/dump_fwd_out_cpu.bin %s %s -- comment -n %d -c %d -H %d -W %d -x %d -y %d -k %d -p %d -q %d -u %d -v %d -- P %d Q %d",
+				dumpOpenCLFileCounter, kernel_name.c_str(), isize, wsize, osize, af ? -6 : -9, num_arg > 3 ? "iv#0 " : "",
+				work.c_str(), an, ac, ah, aw, ax, ay, ak, ap, aq, au, av, aP, aQ);
+		}
+		else {
+			fprintf(fp, "execkern -bo -cl-std=CL2.0 dump_%03d_kernel.cl -k %s if#%d:dump_bwd_out.bin if#%d:dump_bwd_wei.bin of#%d:#outtmp.bin#/+1e%d/dump_bwd_in_cpu.bin %s %s -- comment -n %d -c %d -H %d -W %d -x %d -y %d -k %d -p %d -q %d -u %d -v %d -- P %d Q %d",
+				dumpOpenCLFileCounter, kernel_name.c_str(), isize, wsize, osize, af ? -6 : -9, num_arg > 3 ? "iv#0 " : "",
+				work.c_str(), an, ac, ah, aw, ax, ay, ak, ap, aq, au, av, aP, aQ);
+		}
+		fclose(fp);
+		printf("*** OpenCL kernel %s command dumped into %s with work %s\n", kernel_name.c_str(), fileName, work.c_str());
+	}
+	sprintf(fileName, "dump_%03d_kernel.cl", dumpOpenCLFileCounter);
+	fp = fopen(fileName, "w"); if (!fp) { printf("ERROR: unable to create: %s\n", fileName); }
+	else {
+		const char * s = params.c_str();
+		fprintf(fp, "//[compiler-options] %s\n", s);
+		for (const char * t = s; (t = strstr(t, "-D")) != nullptr;) {
+			t += 2; while (*t && (*t == ' ' || *t == '\t')) t++;
+			fprintf(fp, "#define ");
+			while (*t && *t != ' ' && *t != '\t' && *t != '=') fprintf(fp, "%c", *t++);
+			if (*t == '=') {
+				fprintf(fp, " ");
+				t++;
+				while (*t && *t != ' ' && *t != '\t') fprintf(fp, "%c", *t++);
+			}
+			fprintf(fp, "\n");
+		}
+		for(const char * p = buf; *p; p++)
+			if(*p != '\r')
+				fprintf(fp, "%c", *p);
+		fclose(fp);
+		printf("*** OpenCL kernel %s source dumped into %s with work %s\n", kernel_name.c_str(), fileName, work.c_str());
+	}
+}
+#endif
+
 struct HandleImpl
 {
 
@@ -180,6 +287,9 @@ KernelInvoke Handle::GetKernel(
             vld,
             vgd,
             params);
+#ifndef NDEBUG
+	//dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
+#endif
     if (this->impl->enable_profiling) { 
         return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1)); 
     } else { 
