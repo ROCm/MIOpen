@@ -73,16 +73,19 @@ class ConvDriver : public Driver
 
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> wei_dev;
+	std::unique_ptr<GPUMem> dwei_dev;
 	std::unique_ptr<GPUMem> out_dev;
 	std::unique_ptr<GPUMem> workspace_dev;
 
 	std::vector<T> in;
 	std::vector<T> wei;
+	std::vector<T> dwei;
 	std::vector<T> out;
 	std::vector<T> workspace;
 	std::vector<T> outhost;
 	std::vector<T> inhost;
 	std::vector<T> workspace_host;
+	std::vector<T> dwei_host;
 
 	mlopenConvolutionDescriptor_t convDesc;
 };
@@ -195,20 +198,28 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	wei_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, wei_sz, sizeof(float)));
+	dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 	workspace_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, workSpaceSize/sizeof(T), sizeof(T)));
 	
 	in = std::vector<T>(in_sz);
 	wei = std::vector<T>(wei_sz);
+	dwei = std::vector<T>(wei_sz, 0);
 	out = std::vector<T>(out_sz, 0);
 	workspace = std::vector<T>(workSpaceSize/sizeof(T), 0);
 	outhost = std::vector<T>(out_sz, 0);
 	inhost = std::vector<T>(in_sz, 0);
 	workspace_host = std::vector<T>(workSpaceSize/sizeof(T), 0);
+	dwei_host = std::vector<T>(wei_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
 		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
+	for (int i = 0; i < out_sz; i++) {
+		out[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+	}
+
+
 	for (int i = 0; i < wei_sz; i++) {
 		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
@@ -216,6 +227,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	cl_int status;
 	status = in_dev->ToGPU(q, in.data());
 	status |= wei_dev->ToGPU(q, wei.data());
+	status |= dwei_dev->ToGPU(q, dwei.data());
 	status |= out_dev->ToGPU(q, out.data());
 	status |= workspace_dev->ToGPU(q, workspace.data());
 	
@@ -399,32 +411,10 @@ template<typename T>
 int ConvDriver<T>::RunBackwardGPU() {
 
 	FindBackwardData();
-	FindBackwardWeights();
 
 	int alpha = 1, beta = 1;
 
 	int ret = 0;
-	ret = mlopenConvolutionBackwardWeights(GetHandle(),
-			&alpha,
-			outputTensor,
-			out_dev->GetMem(),
-			inputTensor,
-			in_dev->GetMem(),
-			convDesc,
-			mlopenConvolutionBwdWeightsAlgo_0,
-			&beta,
-			weightTensor,
-			wei_dev->GetMem(),
-			workspace_dev->GetMem(),
-			workspace_dev->GetSize());
-
-	if(inflags.GetValueInt("time") == 1) {
-		float time = 0.0;
-		mlopenGetKernelTime(GetHandle(), &time);
-		printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms\n", time);
-	}
-
-	workspace_dev->FromGPU(GetStream(), workspace.data());
 
 	Timer t;
 	START_TIME;
@@ -456,6 +446,33 @@ int ConvDriver<T>::RunBackwardGPU() {
 	}
 
 	in_dev->FromGPU(GetStream(), in.data());
+
+#if 1
+	FindBackwardWeights();
+	ret = mlopenConvolutionBackwardWeights(GetHandle(),
+		&alpha,
+		outputTensor,
+		out_dev->GetMem(),
+		inputTensor,
+		in_dev->GetMem(),
+		convDesc,
+		mlopenConvolutionBwdWeightsAlgo_0,
+		&beta,
+		weightTensor,
+		dwei_dev->GetMem(),
+		workspace_dev->GetMem(),
+		workspace_dev->GetSize());
+
+	if (inflags.GetValueInt("time") == 1) {
+		float time = 0.0;
+		mlopenGetKernelTime(GetHandle(), &time);
+		printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms\n", time);
+	}
+
+#endif
+//	workspace_dev->FromGPU(GetStream(), workspace.data());
+	dwei_dev->FromGPU(GetStream(), dwei.data());
+
 
 	return ret;
 }
@@ -574,9 +591,11 @@ int ConvDriver<T>::VerifyForward() {
 template<typename T>
 int ConvDriver<T>::VerifyBackward() {
 	const double tolerance = 1e-6;
-#if 0
+
 	RunBackwardWeightsCPU();
-	auto error_weights = rms_range(workspace_host, workspace);
+
+	auto error_weights = rms_range(dwei_host, dwei);
+#if 0
 	if (error_weights > tolerance)
 	{
 		std::cout<<"Backward Convolution Weights Failed: " << error_weights <<"\n";
