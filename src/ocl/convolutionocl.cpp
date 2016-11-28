@@ -264,7 +264,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
 // ConvolutionBackwardWeightsGetWorkSpaceSiz
 //
-void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(Handle& handle,
+void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 	const TensorDescriptor&		 dyDesc,
 	const TensorDescriptor&		 xDesc,
 	const TensorDescriptor&		 dwDesc,
@@ -273,9 +273,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(Handle& h
 	mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
 	
 	construct_params.doSearch(false);
-
-
-	construct_params.setStream(handle.GetStream());
 
 	construct_params.setOutputDescFromMLDesc(dyDesc);
 	construct_params.setInputDescFromMLDesc(xDesc);
@@ -311,7 +308,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
-#if 0
+
 
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
@@ -335,7 +332,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	}
 
 
-#else
+
 
 	mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
 	{
@@ -404,7 +401,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	}
 
 	handle.AccumKernelTime(time0);
-#endif
+
 }
 
 // BackwardWeightsAlgorithm()
@@ -436,68 +433,73 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	if(dyDesc.GetSize() < 3) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
-
-#if 0
-	int in_n, in_c, in_h, in_w;
-	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
-
-	int wei_n, wei_h, wei_w;
-	std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
-
-	int out_h, out_w;
-	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
-
-	for(int i = 0; i < in_n; i++) {
-		size_t in_offset = i * in_c * in_h * in_w;
-		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
-
-	}
-#else
-	mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+	switch (algo)
 	{
-		construct_params.doSearch(false);
+
+		case mlopenConvolutionBwdWeightsAlgoGEMM:
+		{
+			int in_n, in_c, in_h, in_w;
+			std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+
+			int wei_n, wei_h, wei_w;
+			std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+
+			int out_h, out_w;
+			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+
+			for (int i = 0; i < in_n; i++) {
+				size_t in_offset = i * in_c * in_h * in_w;
+				Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+			}
+		}
+		break;
+		case mlopenConvolutionBwdWeightsAlgoDirect:
+		{
+			mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+
+			construct_params.doSearch(false);
+
+			construct_params.setStream(handle.GetStream());
+
+			construct_params.setOutputDescFromMLDesc(dyDesc);
+			construct_params.setInputDescFromMLDesc(xDesc);
+			construct_params.setWeightDescFromMLDesc(dwDesc);
+
+			construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+
+			construct_params.mloConstruct();
 
 
-		construct_params.setStream(handle.GetStream());
 
-		construct_params.setOutputDescFromMLDesc(dyDesc);
-		construct_params.setInputDescFromMLDesc(xDesc);
-		construct_params.setWeightDescFromMLDesc(dwDesc);
+			std::string network_config;
+			construct_params.mloBuildConf_Key(network_config);
 
-		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+			handle.ResetKernelTime();
 
-		construct_params.mloConstruct();
-	}
+		// main kernel
+			{
+				float padding_val = 0;
 
+				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect",
+					network_config)
+					(dy, x, workSpace, padding_val);
+			}
+			float time0 = handle.GetKernelTime();
+		// second kernel has
+			network_config += "x1";
+		// reduction  kernel
+			{
+				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect",
+					network_config)
+					(workSpace, dw);
 
-	std::string network_config;
-	construct_params.mloBuildConf_Key(network_config);
+			}
 
-	handle.ResetKernelTime();
+			handle.AccumKernelTime(time0);
 
-	// main kernel
-	{
-		float padding_val = 0;
-
-		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect",
-			network_config)
-			(dy, x, workSpace, padding_val);
-	}
-	float time0 = handle.GetKernelTime();
-	// second kernel has
-	network_config += "x1";
-	// reduction  kernel
-	{
-		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect",
-			network_config)
-			(workSpace, dw);
-
-	}
-
-	handle.AccumKernelTime(time0);
-
-
-#endif
+		}
+	break;
+	};
 
 }
 
