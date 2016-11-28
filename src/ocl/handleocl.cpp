@@ -11,7 +11,7 @@
 namespace mlopen {
 
 #ifndef NDEBUG
-static void dumpKernel(cl_kernel kern, const std::string& kernel_name, const std::vector<size_t>& vld, const std::vector<size_t>& vgd, const std::string& params)
+void dumpKernel(cl_kernel kern, const std::string& kernel_name, const std::vector<size_t>& vld, const std::vector<size_t>& vgd, const std::string& params)
 {
 	static int dumpOpenCLFileCounter = 0;
 	static std::vector<cl_kernel> kernList;
@@ -29,8 +29,7 @@ static void dumpKernel(cl_kernel kern, const std::string& kernel_name, const std
 		work += std::to_string(vld[i]);
 	}
 	int an = 0, ac = 0, ah = 0, aw = 0, ax = 0, ay = 0, ak = 0, ap = 0, aq = 0, au = 1, av = 1, aP = 0, aQ = 0, af = 1;
-	const char * s = params.c_str(), *p, *q;
-#define GET_VALUE_FROM_PARAMS(value,name) p = "-D " ## name ## "="; q = strstr(s, p); if (q) { value = atoi(q + strlen(p)); }
+#define GET_VALUE_FROM_PARAMS(value,name) { const char * p = "-D " name "="; const char * q = strstr(params.c_str(), p); if (q) { value = atoi(q + strlen(p)); } }
 	GET_VALUE_FROM_PARAMS(an, "MLO_BATCH_SZ");
 	GET_VALUE_FROM_PARAMS(ac, "MLO_N_INPUTS");
 	GET_VALUE_FROM_PARAMS(ac, "MLO_N_IN_CHNLS");
