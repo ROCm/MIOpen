@@ -316,7 +316,8 @@ typedef enum {
 } mlopenConvFwdAlgorithm_t;
 
 typedef enum {
-	mlopenConvolutionBwdWeightsAlgo_0 = 0,
+	mlopenConvolutionBwdWeightsAlgoGEMM = 0,
+	mlopenConvolutionBwdWeightsAlgoDirect = 1,
 } mlopenConvBwdWeightsAlgorithm_t;
 
 typedef enum {
