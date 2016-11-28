@@ -1019,7 +1019,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 * backward with regard to weights
 * inputs == output, outputs == input
 */
-int mlo_construct_BwdWrW2D::mloConstruct(void)
+int mlo_construct_BwdWrW2D::mloConstruct()
 {
 	int ret = 0;
 
@@ -1069,8 +1069,8 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	int gbl_wk1 = (n_bwd_out_blocks * n_bwd_outs) / n_bwd_outsperin;
 	int gbl_wk2 = ((_n_outputs + n_bwd_ins - 1) / n_bwd_ins) * _batch_sz;
 
-	int ocl_group_lg2sz1 = (int)ceil(log((double)ocl_group_sz1) / log(2.));
-	int ocl_group_lg2sz0 = (int)ceil(log((double)ocl_group_sz0) / log(2.));
+	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(ocl_group_sz1)) / log(2.)));
+	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(ocl_group_sz0)) / log(2.)));
 
 	int bias = _bias;
 

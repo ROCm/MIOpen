@@ -868,7 +868,7 @@ public:
 	{
 	}
 
-	int mloConstruct(void);
+	int mloConstruct() override;
 };
 
 

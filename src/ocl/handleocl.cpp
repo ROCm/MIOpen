@@ -175,7 +175,7 @@ struct HandleImpl
         }
         return result;
     }
-	void ResetProfilingResult(void)
+	void ResetProfilingResult()
 	{
 		profiling_result = 0.0;
 	}
@@ -191,8 +191,6 @@ struct HandleImpl
         clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
         profiling_result = ((end-st)*1e-6);
     }
-	
-
 };
 
 Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
@@ -275,7 +273,7 @@ void Handle::EnableProfiling(bool enable)
     this->impl->enable_profiling = enable;
 }
 
-void Handle::ResetKernelTime(void)
+void Handle::ResetKernelTime()
 {
 	this->impl->ResetProfilingResult();
 }
@@ -283,8 +281,6 @@ void Handle::AccumKernelTime(float curr_time)
 {
 	this->impl->AccumProfilingResult(curr_time);
 }
-
-
 
 float Handle::GetKernelTime() const
 {
