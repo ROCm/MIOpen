@@ -28,31 +28,33 @@ void dumpKernel(cl_kernel kern, const std::string& kernel_name, const std::vecto
 		work += i ? "," : "/";
 		work += std::to_string(vld[i]);
 	}
+	auto getValueFromParams = [&](const std::string& params, int& value, const char * define) {
+		const char * q = strstr(params.c_str(), define);
+		if (q) value = atoi(q + strlen(define));
+	};
 	int an = 0, ac = 0, ah = 0, aw = 0, ax = 0, ay = 0, ak = 0, ap = 0, aq = 0, au = 1, av = 1, aP = 0, aQ = 0, af = 1;
-#define GET_VALUE_FROM_PARAMS(value,name) { const char * p = "-D " name "="; const char * q = strstr(params.c_str(), p); if (q) { value = atoi(q + strlen(p)); } }
-	GET_VALUE_FROM_PARAMS(an, "MLO_BATCH_SZ");
-	GET_VALUE_FROM_PARAMS(ac, "MLO_N_INPUTS");
-	GET_VALUE_FROM_PARAMS(ac, "MLO_N_IN_CHNLS");
-	GET_VALUE_FROM_PARAMS(ah, "MLO_IN_HEIGHT");
-	GET_VALUE_FROM_PARAMS(aw, "MLO_IN_WIDTH");
-	GET_VALUE_FROM_PARAMS(ak, "MLO_N_OUTPUTS");
-	GET_VALUE_FROM_PARAMS(ak, "MLO_N_OUT_CHNLS");
-	GET_VALUE_FROM_PARAMS(aP, "MLO_OUT_HEIGHT");
-	GET_VALUE_FROM_PARAMS(aQ, "MLO_OUT_WIDTH");
-	GET_VALUE_FROM_PARAMS(ay, "MLO_FILTER_SIZE1");
-	GET_VALUE_FROM_PARAMS(ax, "MLO_FILTER_SIZE0");
-	GET_VALUE_FROM_PARAMS(ap, "MLO_FILTER_PAD1");
-	GET_VALUE_FROM_PARAMS(aq, "MLO_FILTER_PAD0");
-	GET_VALUE_FROM_PARAMS(av, "MLO_FILTER_STRIDE1");
-	GET_VALUE_FROM_PARAMS(au, "MLO_FILTER_STRIDE0");
-	GET_VALUE_FROM_PARAMS(ay, "MLO_FLTR_SZ1");
-	GET_VALUE_FROM_PARAMS(ax, "MLO_FLTR_SZ0");
-	GET_VALUE_FROM_PARAMS(ap, "MLO_FLTR_PAD_SZ1");
-	GET_VALUE_FROM_PARAMS(aq, "MLO_FLTR_PAD_SZ0");
-	GET_VALUE_FROM_PARAMS(av, "MLO_FLTR_STRIDE1");
-	GET_VALUE_FROM_PARAMS(au, "MLO_FLTR_STRIDE0");
-	GET_VALUE_FROM_PARAMS(af, "MLO_DIR_FORWARD");
-#undef  GET_VALUE_FROM_PARAMS
+	getValueFromParams(params, an, "-D MLO_BATCH_SZ=");
+	getValueFromParams(params, ac, "-D MLO_N_INPUTS=");
+	getValueFromParams(params, ac, "-D MLO_N_IN_CHNLS=");
+	getValueFromParams(params, ah, "-D MLO_IN_HEIGHT=");
+	getValueFromParams(params, aw, "-D MLO_IN_WIDTH=");
+	getValueFromParams(params, ak, "-D MLO_N_OUTPUTS=");
+	getValueFromParams(params, ak, "-D MLO_N_OUT_CHNLS=");
+	getValueFromParams(params, aP, "-D MLO_OUT_HEIGHT=");
+	getValueFromParams(params, aQ, "-D MLO_OUT_WIDTH=");
+	getValueFromParams(params, ay, "-D MLO_FILTER_SIZE1=");
+	getValueFromParams(params, ax, "-D MLO_FILTER_SIZE0=");
+	getValueFromParams(params, ap, "-D MLO_FILTER_PAD1=");
+	getValueFromParams(params, aq, "-D MLO_FILTER_PAD0=");
+	getValueFromParams(params, av, "-D MLO_FILTER_STRIDE1=");
+	getValueFromParams(params, au, "-D MLO_FILTER_STRIDE0=");
+	getValueFromParams(params, ay, "-D MLO_FLTR_SZ1=");
+	getValueFromParams(params, ax, "-D MLO_FLTR_SZ0=");
+	getValueFromParams(params, ap, "-D MLO_FLTR_PAD_SZ1=");
+	getValueFromParams(params, aq, "-D MLO_FLTR_PAD_SZ0=");
+	getValueFromParams(params, av, "-D MLO_FLTR_STRIDE1=");
+	getValueFromParams(params, au, "-D MLO_FLTR_STRIDE0=");
+	getValueFromParams(params, af, "-D MLO_DIR_FORWARD=");
 	int isize = an * ac * ah * aw * 4;
 	int osize = an * ak * aP * aQ * 4;
 	int wsize = ak * ac * ay * ax * 4;
@@ -78,12 +80,12 @@ void dumpKernel(cl_kernel kern, const std::string& kernel_name, const std::vecto
 	fp = fopen(fileName, "w"); if (!fp) { printf("ERROR: unable to create: %s\n", fileName); }
 	else {
 		if (af) {
-			fprintf(fp, "execkern dump_%03d_kernel.cl -k %s if#%d:dump_fwd_in.bin if#%d:dump_fwd_wei.bin of#%d:#intmp.bin#/+1e%d/dump_fwd_out_cpu.bin %s %s -- comment -n %d -c %d -H %d -W %d -x %d -y %d -k %d -p %d -q %d -u %d -v %d -- P %d Q %d",
+			fprintf(fp, "execkern -bo -cl-std=CL2.0 dump_%03d_kernel.cl -k %s if#%d:dump_fwd_in.bin if#%d:dump_fwd_wei.bin of#%d:#intmp.bin#/+1e%d/dump_fwd_out_cpu.bin %s %s -- comment -n %d -c %d -H %d -W %d -x %d -y %d -k %d -p %d -q %d -u %d -v %d -- P %d Q %d",
 				dumpOpenCLFileCounter, kernel_name.c_str(), isize, wsize, osize, af ? -6 : -9, num_arg > 3 ? "iv#0 " : "",
 				work.c_str(), an, ac, ah, aw, ax, ay, ak, ap, aq, au, av, aP, aQ);
 		}
 		else {
-			fprintf(fp, "execkern dump_%03d_kernel.cl -k %s if#%d:dump_bwd_out.bin if#%d:dump_bwd_wei.bin of#%d:#outtmp.bin#/+1e%d/dump_bwd_in_cpu.bin %s %s -- comment -n %d -c %d -H %d -W %d -x %d -y %d -k %d -p %d -q %d -u %d -v %d -- P %d Q %d",
+			fprintf(fp, "execkern -bo -cl-std=CL2.0 dump_%03d_kernel.cl -k %s if#%d:dump_bwd_out.bin if#%d:dump_bwd_wei.bin of#%d:#outtmp.bin#/+1e%d/dump_bwd_in_cpu.bin %s %s -- comment -n %d -c %d -H %d -W %d -x %d -y %d -k %d -p %d -q %d -u %d -v %d -- P %d Q %d",
 				dumpOpenCLFileCounter, kernel_name.c_str(), isize, wsize, osize, af ? -6 : -9, num_arg > 3 ? "iv#0 " : "",
 				work.c_str(), an, ac, ah, aw, ax, ay, ak, ap, aq, au, av, aP, aQ);
 		}
