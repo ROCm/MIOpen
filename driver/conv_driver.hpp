@@ -72,19 +72,24 @@ class ConvDriver : public Driver
 	mlopenTensorDescriptor_t outputTensor;
 
 	std::unique_ptr<GPUMem> in_dev;
+	std::unique_ptr<GPUMem> din_dev;
 	std::unique_ptr<GPUMem> wei_dev;
 	std::unique_ptr<GPUMem> dwei_dev;
 	std::unique_ptr<GPUMem> out_dev;
+	std::unique_ptr<GPUMem> dout_dev;
 	std::unique_ptr<GPUMem> workspace_dev;
 
 	std::vector<T> in;
+	std::vector<T> din;
 	std::vector<T> wei;
 	std::vector<T> dwei;
 	std::vector<T> out;
+	std::vector<T> dout;
 	std::vector<T> workspace;
 	std::vector<T> outhost;
 	std::vector<T> inhost;
 	std::vector<T> workspace_host;
+	std::vector<T> din_host;
 	std::vector<T> dwei_host;
 
 	mlopenConvolutionDescriptor_t convDesc;
@@ -197,37 +202,45 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
 
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
+	din_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
 	wei_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, wei_sz, sizeof(float)));
 	dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
+	dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 	workspace_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, workSpaceSize/sizeof(T), sizeof(T)));
 	
 	in = std::vector<T>(in_sz);
+	din = std::vector<T>(in_sz);
 	wei = std::vector<T>(wei_sz);
 	dwei = std::vector<T>(wei_sz, 0);
+	dout = std::vector<T>(out_sz, 0);
 	out = std::vector<T>(out_sz, 0);
 	workspace = std::vector<T>(workSpaceSize/sizeof(T), 0);
 	outhost = std::vector<T>(out_sz, 0);
 	inhost = std::vector<T>(in_sz, 0);
 	workspace_host = std::vector<T>(workSpaceSize/sizeof(T), 0);
 	dwei_host = std::vector<T>(wei_sz, 0);
+	din_host = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
 		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 	for (int i = 0; i < out_sz; i++) {
 		out[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+		dout[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
 
 	for (int i = 0; i < wei_sz; i++) {
-		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.0001);
 	}
 	
 	cl_int status;
 	status = in_dev->ToGPU(q, in.data());
+	status |= din_dev->ToGPU(q, in.data());
 	status |= wei_dev->ToGPU(q, wei.data());
 	status |= dwei_dev->ToGPU(q, dwei.data());
+	status |= dout_dev->ToGPU(q, out.data());
 	status |= out_dev->ToGPU(q, out.data());
 	status |= workspace_dev->ToGPU(q, workspace.data());
 	
@@ -368,12 +381,12 @@ int ConvDriver<T>::FindBackwardData() {
 
 	return mlopenFindConvolutionBackwardDataAlgorithm(GetHandle(),
 			outputTensor,
-			out_dev->GetMem(),
+			dout_dev->GetMem(),
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
 			inputTensor,
-			in_dev->GetMem(),
+			din_dev->GetMem(),
 			1,
 			&ret_algo_count,
 			&perf,
@@ -423,14 +436,14 @@ int ConvDriver<T>::RunBackwardGPU() {
 	ret = mlopenConvolutionBackwardData(GetHandle(),
 			&alpha,
 			outputTensor,
-			out_dev->GetMem(),
+			dout_dev->GetMem(),
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
 			mlopenConvolutionBwdDataAlgo_0,
 			&beta,
 			inputTensor,
-			in_dev->GetMem(),
+			din_dev->GetMem(),
 			NULL,
 			0);
 	}
@@ -445,7 +458,7 @@ int ConvDriver<T>::RunBackwardGPU() {
 		printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms\n", time);
 	}
 
-	in_dev->FromGPU(GetStream(), in.data());
+	din_dev->FromGPU(GetStream(), din.data());
 
 #if 1
 	FindBackwardWeights();
@@ -456,7 +469,7 @@ int ConvDriver<T>::RunBackwardGPU() {
 		inputTensor,
 		in_dev->GetMem(),
 		convDesc,
-		mlopenConvolutionBwdWeightsAlgo_0,
+		mlopenConvolutionBwdWeightsAlgoDirect,
 		&beta,
 		weightTensor,
 		dwei_dev->GetMem(),
@@ -554,8 +567,8 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 								for(int y = 0; y < wei_w; y++) {
 									int in_y = in_off_w - pad_w + y;
 									if(in_y >= 0 && in_y < in_w) {
-										inhost[o*in_nstride + k*in_cstride + in_x*in_hstride + in_y] += 
-											out[o*out_nstride + w*out_cstride + i*out_hstride + j] *
+										din_host[o*in_nstride + k*in_cstride + in_x*in_hstride + in_y] += 
+											dout[o*out_nstride + w*out_cstride + i*out_hstride + j] *
 											wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
 									}
 								}
@@ -608,7 +621,7 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardDataCPU();
 
-	auto error_data = rms_range(inhost, in);
+	auto error_data = rms_range(din_host, din);
 	if (error_data > tolerance)
 	{
 		std::cout<<"Backward Convolution Data Failed: " << error_data <<"\n";
