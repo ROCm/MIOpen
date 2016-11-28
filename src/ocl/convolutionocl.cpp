@@ -263,25 +263,17 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 	handle.GetKernel(algorithm_name, network_config)(dy, w, dx, padding_val);
 
 #else
-
 	{
-		// Generate kernels if OpenCL
-		// Compile, cache kernels, etc.
 		// Launch all kernels and store the perf, workspace limits, etc.
 		mlo_construct_direct2D construct_params(0); // backward
 		{
 			construct_params.doSearch(false);
-
 			construct_params.setGeneralCompOptions("");
-
 			construct_params.setStream(handle.GetStream());
-
 			construct_params.setOutputDescFromMLDesc(dyDesc);
 			construct_params.setInputDescFromMLDesc(dxDesc);
 			construct_params.setWeightDescFromMLDesc(wDesc);
-
 			construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
-
 			construct_params.mloConstruct();
 		}
 
@@ -303,8 +295,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 			vld,
 			vgd,
 			parms)(dy, w, dx, padding_val);
-#endif
 	}
+#endif
 }
 
 // FindBackwardWeightsAlgorithm()
