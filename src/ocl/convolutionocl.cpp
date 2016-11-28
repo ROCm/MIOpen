@@ -310,6 +310,34 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 	}
 }
 
+// ConvolutionBackwardWeightsGetWorkSpaceSiz
+//
+void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(Handle& handle,
+	const TensorDescriptor&		 dyDesc,
+	const TensorDescriptor&		 xDesc,
+	const TensorDescriptor&		 dwDesc,
+	size_t						*workSpaceSize)
+{
+	mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+	
+	construct_params.doSearch(false);
+
+
+	construct_params.setStream(handle.GetStream());
+
+	construct_params.setOutputDescFromMLDesc(dyDesc);
+	construct_params.setInputDescFromMLDesc(xDesc);
+	construct_params.setWeightDescFromMLDesc(dwDesc);
+
+	construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+
+	construct_params.mloConstruct();
+	
+
+	*workSpaceSize = construct_params.getWorkSpaceSzBytes();
+}
+
+
 // FindBackwardWeightsAlgorithm()
 //
 void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
@@ -324,13 +352,14 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		mlopenConvAlgoPerf_t		* /*perfResults*/,
 		mlopenConvPreference_t		 /*preference*/,
 		cl_mem						workSpace,
-		size_t						*workSpaceSize,
+		size_t						workSpaceSize,
 		bool						/*exhaustiveSearch*/) const {
 	
-#if 0
 	if (x == nullptr || dw == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
+
+#if 0
 
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
@@ -372,11 +401,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		construct_params.mloConstruct();
 	}
 
-	*workSpaceSize = construct_params.getWorkSpaceSzBytes();
-	if (dy == 0 || x == 0 || dw == 0)
-	{
-		return;
-	}
 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
