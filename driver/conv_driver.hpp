@@ -232,7 +232,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 
 
 	for (int i = 0; i < wei_sz; i++) {
-		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.0001);
+		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) );
 	}
 	
 	cl_int status;
@@ -240,7 +240,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	status |= din_dev->ToGPU(q, in.data());
 	status |= wei_dev->ToGPU(q, wei.data());
 	status |= dwei_dev->ToGPU(q, dwei.data());
-	status |= dout_dev->ToGPU(q, out.data());
+	status |= dout_dev->ToGPU(q, dout.data());
 	status |= out_dev->ToGPU(q, out.data());
 	status |= workspace_dev->ToGPU(q, workspace.data());
 	
