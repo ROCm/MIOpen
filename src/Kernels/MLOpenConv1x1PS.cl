@@ -73,7 +73,13 @@ __kernel void MLOpenConv1x1PS(
 		+ in_map_off_id * MLO_IN_CHANNEL_STRIDE
 				+ pix_id * 4;
 
-	int wei_off = out_grp_block * MLO_N_LCL_OUT_MAPS * MLO_WEI_BSTRIDE;
+	int wei_off = out_grp_block * MLO_N_LCL_OUT_MAPS *
+#if MLO_DIR_FORWARD==1
+		MLO_WEI_BSTRIDE
+#else
+		MLO_WEI_CHANNEL_STRIDE
+#endif
+		;
 	for (int j = 0; j < MLO_N_LCL_BATCHS; ++j)
 	{
 		for (int i = 0; i < MLO_N_LCL_OUT_MAPS; ++i)
@@ -84,10 +90,12 @@ __kernel void MLOpenConv1x1PS(
 // over all input maps; with step == MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP; MLO_IN_LOOP
 	for (int c = 0; c < MLO_IN_LOOP; ++c,
 		in_off += MLO_IN_CHANNEL_STRIDE*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP,
-		wei_off += MLO_N_LCL_IN_MAPS* MLO_N_MAPS_PERGROUP * MLO_WEI_CHANNEL_STRIDE
-		//#if MLO_DIR_FORWARD==0
-		//			* MLO_N_OUTPUTS
-		//#endif
+		wei_off += MLO_N_LCL_IN_MAPS* MLO_N_MAPS_PERGROUP *
+#if MLO_DIR_FORWARD==1
+		MLO_WEI_CHANNEL_STRIDE
+#else
+		MLO_WEI_BSTRIDE
+#endif
 		)
 	{
 		// read data
@@ -128,13 +136,31 @@ __kernel void MLOpenConv1x1PS(
 		}
 
 		// convolve
-		int wei_off1 = wei_off + in_map_off_id * MLO_WEI_CHANNEL_STRIDE;
-		for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS; ++olc, wei_off1 += MLO_WEI_BSTRIDE)
+		int wei_off1 = wei_off + in_map_off_id *
+#if MLO_DIR_FORWARD==1
+			MLO_WEI_CHANNEL_STRIDE
+#else
+			MLO_WEI_BSTRIDE
+#endif
+			;
+		for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS; ++olc, wei_off1 += 
+#if MLO_DIR_FORWARD==1
+			MLO_WEI_BSTRIDE
+#else
+			MLO_WEI_CHANNEL_STRIDE
+#endif
+			)
 		{
 			int wei_off2 = wei_off1;
 			// lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP, weights are mapped accordingly
 
-			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, wei_off2 += MLO_WEI_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP)
+			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, wei_off2 += MLO_N_MAPS_PERGROUP * 
+#if MLO_DIR_FORWARD==1
+				MLO_WEI_CHANNEL_STRIDE
+#else
+				MLO_WEI_BSTRIDE
+#endif
+				)
 			{
 				// read weights
 				wei_stage[olc][ilc] = wei_ptr[wei_off2];
