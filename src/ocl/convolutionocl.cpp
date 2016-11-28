@@ -500,8 +500,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
 	// reduction  kernel
 	{
-		float padding_val = 0;
-
 		handle.GetKernel("mlopenConvolutionBwdWeightsAlgo_1",
 			network_config)
 			(workSpace, dw);

@@ -1166,7 +1166,9 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 
 	}
 
-	_workspce_sz = _n_inputs * _n_outputs * _batch_sz * n_grps_perheight* _kernel_size0 * _kernel_size1;
+	int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+
+	_workspce_sz = _n_inputs * _n_outputs * _batch_sz * n_grps_perheight* _kernel_size0 * _kernel_size1 * data_len;
 	return(ret);
 }
 
