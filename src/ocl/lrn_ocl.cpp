@@ -18,7 +18,7 @@ mlopenStatus_t LRNDescriptor::Forward(
 	printf("in lrn forward\n");
 	mlo_construct_norm construct_params(1); // forward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 
 	int nOut;
 	int cOut;
@@ -142,7 +142,7 @@ mlopenStatus_t LRNDescriptor :: Backward(
 	printf("in lrn backward\n");
 	mlo_construct_norm construct_params(0); // backward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 	int ndOut;
 	int cdOut;
 	int hdOut;

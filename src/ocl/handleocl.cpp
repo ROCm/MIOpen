@@ -2,6 +2,7 @@
 #include <mlopen/manage_ptr.hpp>
 #include <mlopen/errors.hpp>
 #include <mlopen/kernel_cache.hpp>
+#include <mlopen/ocldeviceinfo.hpp>
 #include <string>
 
 #ifndef _WIN32
@@ -215,6 +216,16 @@ void Handle::Finish() const
 void Handle::Flush() const
 {
     clFlush(this->GetStream());
+}
+
+std::size_t Handle::GetLocalMemorySize()
+{
+    return mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(mlopen::GetDevice(this->GetStream()));
+}
+
+std::string Handle::GetDeviceName()
+{
+    return mlopen::GetDeviceInfo<CL_DEVICE_NAME>(mlopen::GetDevice(this->GetStream()));
 }
 
 ManageDataPtr Handle::Create(int sz)

@@ -323,7 +323,7 @@ public:
 	/*
 	* set library stream
 	*/
-	inline void setStream(void * stream)
+	inline void setStream(mlopen::Handle * stream)
 	{
 		_stream = stream;
 	}
@@ -712,28 +712,23 @@ protected:
 //	int mloBuildConf_Key(std::string & conf_key) const;
 
 	int mloSelectDefaultConfig(std::string & conf_val);
-	int mloAddConfigReq(cl_device_id dev,
+	int mloAddConfigReq(
 		const std::string & conf_key
 		) const;
 	int mloRemoveConfigReq(
-		cl_device_id dev,
 		const std::string & conf_key
 		) const;
 	int mloReadConfigDB(
-		cl_device_id dev,
 		std::map<std::string, std::string> & conf_db
 		) const;
 	int mloWriteConfigDB(
-		cl_device_id dev,
 		const std::map<std::string, std::string> & conf_db
 		) const;
 	int mloAddConfig(
-		cl_device_id dev,
 		std::string & conf_key,
 		std::string & conf_val
 		) const;
 	bool mloSearchConfigInDB(
-		cl_device_id dev,
 		std::string & conf_key,
 		std::string & conf_val
 		) const;
@@ -842,7 +837,7 @@ protected:
 	// wave size
 	int _hw_wave_sz = 0;
 	// cl_queue
-	void * _stream;
+	mlopen::Handle * _stream;
 	size_t _bot_sz; // bytes
 	size_t _top_sz; // bytes
 	size_t _bot_df_sz = 0; // bytes

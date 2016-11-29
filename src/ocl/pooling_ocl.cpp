@@ -23,7 +23,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 
 	mlo_construct_pooling2D construct_params(1); // forward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 
 	int nOut;
 	int cOut;
@@ -127,7 +127,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	mlopenStatus_t status = mlopenStatusSuccess;
 	mlo_construct_pooling2D construct_params(0); // backward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 
 	int ndOut;
 	int cdOut;
