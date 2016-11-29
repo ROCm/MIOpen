@@ -14,7 +14,7 @@ struct HIPOCProgram
     using FilePtr = MLOPEN_MANAGE_PTR(FILE*, std::fclose);
     HIPOCProgram();
     HIPOCProgram(const std::string &program_name, std::string params);
-    SharedModulePtr modulue;
+    SharedModulePtr module;
 };
 }
 
