@@ -126,6 +126,24 @@ void Handle::Flush() const
 {
 
 }
+
+std::size_t Handle::GetLocalMemorySize()
+{
+    // TODO: Check error codes
+    Device_id dev;
+    hipGetDevice(&dev);
+
+    int result;
+    hipDeviceGetAttribute(&result, hipDeviceAttributeMaxSharedMemoryPerBlock, 1);
+
+    return result;
+}
+
+std::string Handle::GetDeviceName()
+{
+    // TODO
+    return "Fiji";
+}
 #endif
 }
 
