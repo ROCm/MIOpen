@@ -21,7 +21,7 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params)
     std::string src = GetKernelSrc(program_name);
     std::string src_name = GetFileName(tmpsrc);
     
-    if (std::fwrite(src.c_str(), src.size(), 1, tmpsrc.get()) != src.size()) 
+    if (std::fwrite(src.c_str(), 1, src.size(), tmpsrc.get()) != src.size()) 
         MLOPEN_THROW("Failed to write to src file");
     
     std::system((HIP_OC_COMPILER + 
