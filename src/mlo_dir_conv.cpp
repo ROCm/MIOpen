@@ -231,11 +231,6 @@ int mlo_construct_direct2D::mloConstruct()
 		return(mloConstructDirect2D3x3());
 	}
 #endif
-	else if (_gen)
-	{
-		std::cout << "Error: backward generic direct conv is not implemented. " << std::endl;
-		return (-1);
-	}
 	else
 	{
 		// search known configurations
@@ -357,6 +352,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		+ std::string(" -D MLO_FILTER_SIZE1=") + std::to_string(static_cast<long long>(_kernel_size1))
 		+ std::string(" -D MLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(_pad0))
 		+ std::string(" -D MLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(_pad1))
+		+ std::string(" -D MLO_FILTER_STRIDE0=") + std::to_string(static_cast<long long>(_kernel_stride0))
+		+ std::string(" -D MLO_FILTER_STRIDE1=") + std::to_string(static_cast<long long>(_kernel_stride1))
 		+ std::string(" -D MLO_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs))
 		+ std::string(" -D MLO_N_INPUTS=") + std::to_string(static_cast<long long>(_n_inputs))
 		+ std::string(" -D MLO_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
@@ -1014,6 +1011,164 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	return(0);
 
 }
+
+
+
+
+/*
+* backward with regard to weights
+* inputs == output, outputs == input
+*/
+int mlo_construct_BwdWrW2D::mloConstruct()
+{
+	int ret = 0;
+
+	// TO REMOVE
+	int pad = _pad0;
+	int stride = _kernel_stride0;
+
+	// HEURISTICS
+
+
+	int n_accum_scans = 2;
+	int n_bwd_outsperin = 2;
+
+	int ocl_group_sz0 = 64;
+	int ocl_group_sz1 = 4;
+	int n_bwd_outs = ocl_group_sz1 * n_bwd_outsperin;
+
+	int ocl_group_sz = ocl_group_sz0 * ocl_group_sz1;
+
+	// TODO: huristics
+	int scan_step = std::min(8, _in_width);
+	int vert_step = std::min(32, _in_height);
+
+	// make it multiple of n of scans. if it's larger than vert it's filled with 0s
+	vert_step = ((vert_step + n_accum_scans - 1) / n_accum_scans) * n_accum_scans;
+	int top_lcl_width = scan_step;
+	int n_scans_pervert = (vert_step + n_accum_scans - 1) / n_accum_scans;
+	int top_lcl_height = vert_step;
+	int bot_lcl_width = scan_step + 2 * _pad0;
+	int bot_lcl_height = n_scans_pervert * n_accum_scans + 2 * _pad1;
+
+
+	int n_bwd_ins = std::max(ocl_group_sz0 / n_scans_pervert, 1);
+	int n_bwd_out_blocks = (_n_inputs + n_bwd_outs - 1) / n_bwd_outs;
+
+	int lcl_mem_sz = std::max((n_bwd_outs*top_lcl_width*top_lcl_height + n_bwd_ins*bot_lcl_width * bot_lcl_height),
+		ocl_group_sz * _kernel_size0 * _kernel_size1);
+
+	int n_scan_perin = ocl_group_sz0 / n_bwd_ins;
+	int n_scan_loops = (_in_width + scan_step - 1) / scan_step;
+
+	int n_accum_scans_perheight = (_in_height + n_accum_scans - 1) / n_accum_scans;
+	int n_grps_perheight = (n_accum_scans_perheight + n_scan_perin - 1) / n_scan_perin;
+
+
+	int gbl_wk0 = n_grps_perheight * ocl_group_sz0;
+	int gbl_wk1 = (n_bwd_out_blocks * n_bwd_outs) / n_bwd_outsperin;
+	int gbl_wk2 = ((_n_outputs + n_bwd_ins - 1) / n_bwd_ins) * _batch_sz;
+
+	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(ocl_group_sz1)) / log(2.)));
+	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(ocl_group_sz0)) / log(2.)));
+
+	int bias = _bias;
+
+	_comp_options =
+		std::string(" -D MLO_CONVBWD_GROUP_SZ0=") + std::to_string(static_cast<long long>(ocl_group_sz0))
+		+ std::string(" -D MLO_CONVBWD_GROUP_SZ1=") + std::to_string(static_cast<long long>(ocl_group_sz1))
+		+ std::string(" -D MLO_CONVBWD_GROUP_LG2SZ0=") + std::to_string(static_cast<long long>(ocl_group_lg2sz0))
+		+ std::string(" -D MLO_CONVBWD_GROUP_LG2SZ1=") + std::to_string(static_cast<long long>(ocl_group_lg2sz1))
+		+ std::string(" -D MLO_CONV_KERNEL_SZ0=") + std::to_string(static_cast<long long>(_kernel_size0))
+		+ std::string(" -D MLO_CONV_KERNEL_SZ1=") + std::to_string(static_cast<long long>(_kernel_size1))
+		+ std::string(" -D MLO_CONV_KERNEL_PAD0=") + std::to_string(static_cast<long long>(_pad0))
+		+ std::string(" -D MLO_CONV_KERNEL_PAD1=") + std::to_string(static_cast<long long>(_pad1))
+		+ std::string(" -D MLO_CONV_PAD=") + std::to_string(static_cast<long long>(pad))
+		+ std::string(" -D MLO_CONV_STRIDE=") + std::to_string(static_cast<long long>(stride))
+		+ std::string(" -D MLO_CONVBWD_N_ACCUM_SCAN=") + std::to_string(static_cast<long long>(n_accum_scans))
+		+ std::string(" -D MLO_CONVBWD_N_INS=") + std::to_string(static_cast<long long>(n_bwd_ins))
+		+ std::string(" -D MLO_CONVBWD_N_OUTS=") + std::to_string(static_cast<long long>(n_bwd_outs))
+		+ std::string(" -D MLO_CONVBWD_N_OUTBLOCKS=") + std::to_string(static_cast<long long>(n_bwd_out_blocks))
+		+ std::string(" -D MLO_CONVBWD_N_SCANPERIN=") + std::to_string(static_cast<long long>(n_scan_perin))
+		+ std::string(" -D MLO_CONVBWD_N_OUTSPERIN=") + std::to_string(static_cast<long long>(n_bwd_outsperin))
+		+ std::string(" -D MLO_CONVBWD_TOP_DATA_WIDTH=") + std::to_string(static_cast<long long>(top_lcl_width))
+		+ std::string(" -D MLO_CONVBWD_TOP_DATA_HEIGHT=") + std::to_string(static_cast<long long>(top_lcl_height))
+		+ std::string(" -D MLO_CONVBWD_BOT_DATA_WIDTH=") + std::to_string(static_cast<long long>(bot_lcl_width))
+		+ std::string(" -D MLO_CONVBWD_BOT_DATA_HEIGHT=") + std::to_string(static_cast<long long>(bot_lcl_height))
+		+ std::string(" -D MLO_CONVBWD_SCAN_STEP=") + std::to_string(static_cast<long long>(scan_step))
+		+ std::string(" -D MLO_CONVBWD_VERT_STEP=") + std::to_string(static_cast<long long>(vert_step))
+		+ std::string(" -D MLO_CONVBWD_GROUP_SZ=") + std::to_string(static_cast<long long>(ocl_group_sz))
+		+ std::string(" -D MLO_CONVBWD_N_SCANLOOPS=") + std::to_string(static_cast<long long>(n_scan_loops))
+		+ std::string(" -D MLO_CONV_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string(" -D MLO_CONV_N_INPUTS=") + std::to_string(static_cast<long long>(_n_outputs))
+		+ std::string(" -D MLO_CONVBWD_LCL_MEMSZ=") + std::to_string(static_cast<long long>(lcl_mem_sz))
+		+ std::string(" -D MLO_CONV_BOT_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_out_batch_stride))
+		+ std::string(" -D MLO_CONV_BOT_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_out_channel_stride))
+		+ std::string(" -D MLO_CONV_BOT_STRIDE=") + std::to_string(static_cast<long long>(_out_stride))
+		+ std::string(" -D MLO_CONVBWD_TOPDF_BATCH_STRIDE=") + std::to_string(static_cast<long long>(_in_batch_stride))
+		+ std::string(" -D MLO_CONVBWD_TOPDF_CHANNEL_STRIDE=") + std::to_string(static_cast<long long>(_in_channel_stride))
+		+ std::string(" -D MLO_CONVBWD_TOPDF_STRIDE=") + std::to_string(static_cast<long long>(_in_stride))
+		+ std::string(" -D MLO_CONV_BOT_WIDTH=") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string(" -D MLO_CONV_BOT_HEIGHT=") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string(" -D MLO_CONV_TOP_WIDTH=") + std::to_string(static_cast<long long>(_in_width))
+		+ std::string(" -D MLO_CONV_TOP_HEIGHT=") + std::to_string(static_cast<long long>(_in_height))
+		+ std::string(" -D MLO_CONV_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz))
+		+ std::string(" -D MLO_CONVBWD_ACCUMSCANS_PERHEIGHT=") + std::to_string(static_cast<long long>(n_accum_scans_perheight))
+		+ std::string(" -D MLO_CONVBWD_N_GRPS_PERHEIGHT=") + std::to_string(static_cast<long long>(n_grps_perheight))
+		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(static_cast<long long>(bias))
+		+ getGeneralCompOptions()
+
+		;
+	// sum over batch
+	int sum_grp_sz0 = 64;
+	_comp_options += std::string(" -D MLO_CONVBSUM_GRP_SZ0=") + std::to_string(static_cast<long long>(sum_grp_sz0));
+
+	_mlo_kernels_info.clear();
+	// wrt to W
+	{
+		_kernel_file = "MLOpenConvBwdWrW.cl";
+		_kernel_name = "MLOpenConvBwdWrW";
+
+		_l_wk.clear();
+		_l_wk.push_back(ocl_group_sz0);
+		_l_wk.push_back(ocl_group_sz1);
+		_l_wk.push_back(1);
+
+		_g_wk.clear();
+		_g_wk.push_back(gbl_wk0);
+		_g_wk.push_back(gbl_wk1);
+		_g_wk.push_back(gbl_wk2);
+
+		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
+		_mlo_kernels_info.push_back(kern_info);
+	}
+	// sum over batch
+	{
+
+		std::string kernel_file = "MLOpenConvBwdWrW.cl";
+		std::string kernel_name = "MLOpenConvBwdWrW_rdc";
+
+
+		std::vector<size_t> l_wk;
+		l_wk.push_back(sum_grp_sz0);
+		l_wk.push_back(1);
+		l_wk.push_back(1);
+
+		std::vector<size_t> g_wk;
+		g_wk.push_back(sum_grp_sz0);
+		g_wk.push_back(_n_inputs);
+		g_wk.push_back(_n_outputs);
+		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
+		_mlo_kernels_info.push_back(kern_info);
+
+	}
+
+	int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+
+	_workspce_sz = _n_inputs * _n_outputs * _batch_sz * n_grps_perheight* _kernel_size0 * _kernel_size1 * data_len;
+	return(ret);
+}
+
 
 
 /*
