@@ -46,6 +46,10 @@ struct Handle : mlopenHandle {
     void Flush() const;
 #endif
 
+    std::size_t GetLocalMemorySize();
+
+    std::string GetDeviceName();
+
 	ManageDataPtr Create(int sz);
 	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, int sz);
     void ReadTo(void* data, const ManageDataPtr& ddata, int sz);

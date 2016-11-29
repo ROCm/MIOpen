@@ -20,7 +20,7 @@ mlopenStatus_t ActivationDescriptor::Forward(
 
 	mlo_construct_neuron construct_params(1); // forward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 
 	int nOut;
 	int cOut;
@@ -126,7 +126,7 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 
 	mlo_construct_neuron construct_params(0); // backward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 	int ndOut;
 	int cdOut;
 	int hdOut;

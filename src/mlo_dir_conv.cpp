@@ -295,9 +295,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		return(mloConstructDirect2DFwdC());
 	}
 
-	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
-
-	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
+	std::size_t localMemSize = _stream->GetLocalMemorySize();
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -415,9 +413,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;
 
-
-	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
-	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
+	size_t localMemSize = _stream->GetLocalMemorySize();
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -553,9 +549,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	// to restore to the previous version just comment this line
 	// currently runs previous version
 	//	return(mloConstructDirect2DFwd2());
-	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
 
-	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
+	size_t localMemSize = _stream->GetLocalMemorySize();
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -703,9 +698,7 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 {
 	int ret = 0;
 
-	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
-
-	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
+	size_t localMemSize = _stream->GetLocalMemorySize();
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -840,7 +833,6 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 int mlo_construct_direct2D::mloConstructDirect2DFwd2()
 {
 	int ret = 0;
-	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
 /*
 	int maxComputeUnits;
 	int maxWorkItemDims;
@@ -852,7 +844,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd2()
 	size_t timerResolution;
 	std::string deviceName;
 */
-	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
+	size_t localMemSize = _stream->GetLocalMemorySize();
 	/*
 	mloGetDeviceInfo(dev,
 		maxComputeUnits,
@@ -1404,8 +1396,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 		{
 			iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
 
-			cl_command_queue q = reinterpret_cast<cl_command_queue>(_stream);
-			auto k = kernel.Invoke(q);
+			auto k = kernel.Invoke(_stream->GetStream());
 
 			if(_bias) {
 				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
@@ -1413,7 +1404,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 				k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
 			}
 
-			clFinish(q);
+			_stream->Finish();
 
 			s = mlopen_mach_absolute_time();
 
@@ -1426,7 +1417,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 				}
 			}
 
-			clFinish(q);
+			_stream->Finish();
 			e = mlopen_mach_absolute_time();
 
 			processing_time = subtractTimes(e, s) / iter;
@@ -1447,13 +1438,13 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
  */
 
 
-int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::string & conf_key) const
+int mlo_construct_direct2D :: mloAddConfigReq(const std::string & conf_key) const
 {
 	int ret = 0;
 	std::vector<std::string> req_conf_db;
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev) + "." + std::string("cd.rdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.rdb.txt");
 
 	printf("file %s\n", conf_file.c_str());
 	std::vector<std::string>::iterator it;
@@ -1469,7 +1460,6 @@ int mlo_construct_direct2D :: mloAddConfigReq(cl_device_id dev, const std::strin
 }
 
 int mlo_construct_direct2D :: mloRemoveConfigReq(
-		cl_device_id dev,
 		const std::string & conf_key
 		) const
 {
@@ -1479,7 +1469,7 @@ int mlo_construct_direct2D :: mloRemoveConfigReq(
 	std::vector<std::string>::iterator it;
 
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
-	conf_file += std::string("/") + mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev) + "." + std::string("cd.rdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.rdb.txt");
 
 	bool found = mloFindConfigReq(conf_file, conf_key, req_conf_db, it);
 
@@ -1493,7 +1483,6 @@ int mlo_construct_direct2D :: mloRemoveConfigReq(
 }
 
 int mlo_construct_direct2D :: mloReadConfigDB(
-		cl_device_id dev,
 		std::map<std::string, std::string> & conf_db
 		) const
 {
@@ -1501,7 +1490,7 @@ int mlo_construct_direct2D :: mloReadConfigDB(
 	int ret = 0;
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev) + "." + std::string("cd.pdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.pdb.txt");
 
 	std::vector<std::string> db;
 	mloReadDb(conf_file, db);
@@ -1522,7 +1511,6 @@ int mlo_construct_direct2D :: mloReadConfigDB(
 }
 
 int mlo_construct_direct2D :: mloWriteConfigDB(
-		cl_device_id dev,
 		const std::map<std::string, std::string> & conf_db
 		) const
 {
@@ -1531,7 +1519,7 @@ int mlo_construct_direct2D :: mloWriteConfigDB(
 	//serialize
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev) + "." + std::string("cd.pdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.pdb.txt");
 
 	std::vector<std::string> db;
 
@@ -1548,7 +1536,6 @@ int mlo_construct_direct2D :: mloWriteConfigDB(
 }
 
 int mlo_construct_direct2D :: mloAddConfig(
-		cl_device_id dev,
 		std::string & conf_key,
 		std::string & conf_val
 		) const
@@ -1559,7 +1546,6 @@ int mlo_construct_direct2D :: mloAddConfig(
 	std::map<std::string, std::string> conf_db;
 
 	mloReadConfigDB(
-			dev,
 			conf_db
 			);
 	// add config
@@ -1567,13 +1553,11 @@ int mlo_construct_direct2D :: mloAddConfig(
 	conf_db[conf_key] = conf_val;
 	//serialize
 	ret = mloWriteConfigDB(
-			dev,
 			conf_db
 			);
 
 	// remove request
 	mloRemoveConfigReq(
-			dev,
 			conf_key
 			);
 
@@ -1585,7 +1569,6 @@ int mlo_construct_direct2D :: mloAddConfig(
 
 
 bool mlo_construct_direct2D :: mloSearchConfigInDB(
-		cl_device_id dev,
 		std::string & conf_key,
 		std::string & conf_val
 		) const
@@ -1595,7 +1578,6 @@ bool mlo_construct_direct2D :: mloSearchConfigInDB(
 	std::map<std::string, std::string> conf_db;
 
 	mloReadConfigDB(
-			dev,
 			conf_db
 			);
 
@@ -1621,12 +1603,8 @@ bool mlo_construct_direct2D :: mloGetConfig()
 	std::string conf_key;
 	std::string conf_val;
 
-	// get device id
-	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
-
 	// find a db and configuration in it
 	known_config = mloSearchConfigInDB(
-			dev,
 			conf_key,
 			conf_val
 			);
@@ -1646,7 +1624,7 @@ bool mlo_construct_direct2D :: mloGetConfig()
 		// if allowed
 		if (_save_srch_req)
 		{
-			mloAddConfigReq(dev, conf_key);
+			mloAddConfigReq(conf_key);
 		}
 	}
 
@@ -1695,7 +1673,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 
 	// if it is not known
 	bool known_config = mloSearchConfigInDB(
-			dev,
 			conf_key,
 			conf_val
 			);
@@ -2119,7 +2096,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 
 
 		mloAddConfig(
-				dev,
 				conf_key,
 				conf_val
 				);
