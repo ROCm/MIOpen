@@ -299,7 +299,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	int N = wei_n;
 	int K = out_h * out_w;
 	float alpha = 1.0;
-	float beta = 0;
+	float beta = 1.0;
 	bool tA = true;
 	bool tB = false;
 	bool tC = false;
@@ -310,16 +310,16 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	size_t in_offset = 0;
 	Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 
-	//bool isColMajor, bool tA, bool tB, bool tC, unsigned lda, unsigned ldb, unsigned ldc, unsigned m, unsigned n, unsigned k, unsigned a_offset, unsigned b_offset, unsigned c_offset
+	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
 	tinygemm::TinyGemmGeometry tgg( true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
-	tinygemm::TinyGemmSolution soln = tinygemm::find(15, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, true, "" );
+	// alloted_time, queue, a, b, c, enforce_determinism, float_type, geometry, alpha, beta, verbose 
+	tinygemm::TinyGemmSolution soln = tinygemm::find(15, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, true);
 
 	std::string program_name = soln.main_kernel;
 	std::string kernel_name = soln.main_kernel_function_name;
 	std::string network_config = tgg.get_networkconfig_string();
 
 	auto main_kernel_worksize_params =  soln.get_main_kernel_worksize_params(M, N);
-
 	size_t local_work_size = main_kernel_worksize_params.at("local_work_size");
 	size_t global_work_size = main_kernel_worksize_params.at("global_work_size");
 
@@ -378,7 +378,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	int N = wei_n;
 	int K = out_h * out_w;
 	float alpha = 1.0;
-	float beta = 1;
+	float beta = 1.0;
 	bool tA = true;
 	bool tB = false;
 	bool tC = false;
@@ -399,15 +399,19 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 			break;
 	}
 
-	int i = 0;
-//	for(int i = 0; i < in_n; i++) {
-		size_t in_offset = i * in_c * in_h * in_w;
-		if(wei_h != 1 && wei_w != 1)
+	for(int i = 0; i < in_n; i++) {
+		unsigned int out_offset = i * wei_n * out_h * out_w;
+		if(wei_h != 1 && wei_w != 1) {
+			size_t in_offset = i * in_c * in_h * in_w;
 			Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 	
-		// TODO: set offsets
-		handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, 0,0,0);
-//	}
+			handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, 0, out_offset, 0);
+		}
+		else if(wei_h == 1 && wei_w == 1) {
+			unsigned int in_offset = i * in_c * in_h * in_w;
+			handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, in_offset, out_offset, 0);
+		}
+	}
 
 }
 
