@@ -43,9 +43,9 @@ message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 # This is incremented when the ABI to the library changes
 set( MLOpen_SOVERSION 1 )
 
-function(add_kernels)
+function(add_kernels KERNEL_FILES)
 	set(INIT_KERNELS_LIST)
-	foreach(KERNEL_FILE ${ARGN})
+	foreach(KERNEL_FILE ${KERNEL_FILES})
 		if("${CMAKE_VERSION}" VERSION_LESS 3.0)
 			configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
 		else()
@@ -90,7 +90,7 @@ set( MLOpen_Source
 	)
 
 if( MLOPEN_BACKEND MATCHES "OpenCL")
-	add_kernels(
+	SET(MLOPEN_KERNELS
 		Kernels/MLOpenConvDirUni.cl
 		Kernels/MLOpenConvDirUni2.cl
 		Kernels/MLOpenConvDirGenFwd.cl
@@ -107,8 +107,9 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenConv1x1PS_LW.cl
 		Kernels/MLOpenConvD3x3.cl
 		Kernels/MLOpenUtilKernels.cl
-		Kernels/MLOpenConvBwdWrW.cl
-	)
+		Kernels/MLOpenConvBwdWrW.cl)
+	
+	add_kernels(${MLOPEN_KERNELS})
 	configure_file(db.cpp.in db.cpp)
 	list(APPEND MLOpen_Source 
 		activ.cpp
@@ -159,7 +160,15 @@ add_library( MLOpen
 	${MLOpen_Source}
 	)
 
-ADD_DEPENDENCIES(MLOpen addkernels_run)
+IF( MLOPEN_BACKEND MATCHES "OpenCL")
+	ADD_CUSTOM_TARGET(addkernels_run
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		DEPENDS addkernels
+		COMMAND ${PROJECT_BINARY_DIR}/../AddKernels/addkernels -guard GUARD_MLOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/mlopen_kernels.h -source ${MLOPEN_KERNELS}
+		)
+	
+	ADD_DEPENDENCIES(MLOpen addkernels_run)
+ENDIF()
 
 clang_tidy_check(MLOpen)
 set( MLOpen_DIRS_INCLUDE

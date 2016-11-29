@@ -5,7 +5,6 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
-#include "tinydir.h"
 
 void Bin2Hex(std::istream& source, std::ostream& target, const std::string& variable, bool nullTerminate, size_t bufferSize, size_t lineSize)
 {
@@ -60,11 +59,11 @@ void PrintHelp()
 	std::cout << "Option format: -<option name>[ <option value>]" << std::endl;
 	std::cout << std::endl;
 	std::cout << "Options:" << std::endl;
-	std::cout << " -s[ource] <path>: source directory. All *.cl files in directory will be processed. Default: working directory." << std::endl;
-	std::cout << " -t[arget] <path>: target file. Default: std out." << std::endl;
-	std::cout << " -l[ine-size] <number>: bytes in one line. Default: 16." << std::endl;
-	std::cout << " -b[uffer] <number>: read buffer size. Default: 512." << std::endl;
-	std::cout << " -g[uard] <string>: guard name. Default: no guard" << std::endl;
+	std::cout << "[REQUIRED] -s[ource] {<path to file>}: files to be processed. Must be last argument." << std::endl;
+	std::cout << "           -t[arget] <path>: target file. Default: std out." << std::endl;
+	std::cout << "           -l[ine-size] <number>: bytes in one line. Default: 16." << std::endl;
+	std::cout << "           -b[uffer] <number>: read buffer size. Default: 512." << std::endl;
+	std::cout << "           -g[uard] <string>: guard name. Default: no guard" << std::endl;
 }
 
 void WrongUsage(const std::string& error)
@@ -82,6 +81,31 @@ void UnknownArgument(const std::string& arg)
 	WrongUsage(ss.str());
 }
 
+void Process(std::string sourcePath, std::ostream* target, size_t bufferSize, size_t lineSize)
+{
+	std::string fileName(sourcePath);
+	std::string extension;
+	auto extPos = fileName.rfind('.');
+	auto slashPos = fileName.rfind('/');
+
+	if (extPos != std::string::npos)
+	{
+		extension = fileName.substr(extPos + 1);
+		fileName = fileName.substr(0, extPos);
+	}
+
+	if (slashPos != std::string::npos)
+	{
+		fileName = fileName.substr(slashPos + 1);
+	}
+
+	std::string variable(fileName);
+	std::ifstream sourceFile(sourcePath, std::ios::in | std::ios::binary | std::ios::ate);
+
+	std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
+	Bin2Hex(sourceFile, *target, variable, true, bufferSize, lineSize);
+}
+
 int main(int argsn, char** args)
 {
 	if (argsn == 1)
@@ -96,6 +120,8 @@ int main(int argsn, char** args)
 	size_t bufferSize = 512;
 	size_t lineSize = 16;
 
+	std::ofstream targetFile;
+	std::ostream* target = &std::cout;
 
 	size_t i = 0;
 	while (++i < argsn && **args != '-')
@@ -103,62 +129,36 @@ int main(int argsn, char** args)
 		std::string arg(args[i] + 1);
 		std::transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
 
-			 if (arg == "s" || arg == "source")			sourcePath = args[++i];
-		else if (arg == "t" || arg == "target")			targetPath = args[++i];
+		if (arg == "s" || arg == "source")
+		{
+			if (guard.length() > 0)
+			{
+				*target << "#ifndef " << guard << std::endl;
+				*target << "#define " << guard << std::endl;
+			}
+
+			while (++i < argsn)
+			{
+				Process(args[i], target, bufferSize, lineSize);
+			}
+
+			if (guard.length() > 0)
+			{
+				*target << "#endif" << std::endl;
+			}
+
+			return 0;
+		}
+		else if (arg == "t" || arg == "target")
+		{
+			targetFile.open(args[++i], std::ios::out);
+			target = &targetFile;
+		}
 		else if (arg == "l" || arg == "line-size")		lineSize = atol(args[++i]);
 		else if (arg == "b" || arg == "buffer")			bufferSize = atol(args[++i]);
 		else if (arg == "g" || arg == "guard")			guard = args[++i];
 		else											UnknownArgument(arg);
 	}
 
-	if (i < argsn)										UnknownArgument(args[i]);
-
-	std::ostream* target;
-	std::ofstream targetFile;
-
-	if (targetPath.length() != 0)
-	{
-		targetFile.open(targetPath.c_str(), std::ios::out);
-		target = &targetFile;
-	}
-	else
-		target = &std::cout;
-
-	if (guard.length() > 0)
-	{
-		*target << "#ifndef " << guard << std::endl;
-		*target << "#define " << guard << std::endl;
-	}
-
-	tinydir_dir dir;
-	tinydir_open(&dir, sourcePath.c_str());
-
-	while (dir.has_next)
-	{
-		tinydir_file file;
-		tinydir_readfile(&dir, &file);
-
-		if (!file.is_dir && !strcmp(file.extension, "cl"))
-		{
-			std::string variable(file.name);
-			std::ifstream sourceFile(file.path, std::ios::in | std::ios::binary | std::ios::ate);
-
-			if (strlen(file.extension) > 0)
-				variable = variable.substr(0, variable.length() - strlen(file.extension) - 1);
-
-			std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
-			Bin2Hex(sourceFile, *target, variable, true, bufferSize, lineSize);
-		}
-
-		tinydir_next(&dir);
-	}
-
-	tinydir_close(&dir);
-
-	if (guard.length() > 0)
-	{
-		*target << "#endif" << std::endl;
-	}
-
-	return 0;
+	WrongUsage("source key is required");
 }
