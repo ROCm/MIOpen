@@ -734,11 +734,11 @@ protected:
 		) const;
 
 	int mloMeasuredLoop(
-		cl_command_queue profile_q,
-		cl_mem bot_ocl_buf,
-		cl_mem top_ocl_buf,
-		cl_mem wei_ocl_buf,
-		cl_mem bias_ocl_buf,
+		mlopen::Handle* profile_h,
+		Data_t bot_ocl_buf,
+		Data_t top_ocl_buf,
+		Data_t wei_ocl_buf,
+		Data_t bias_ocl_buf,
 		double &processing_time
 		);
 

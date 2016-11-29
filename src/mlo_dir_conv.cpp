@@ -1346,11 +1346,11 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string & conf_val)
 /*
  * mesure the current onfiguration pefformance
  */
-int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
-		cl_mem bot_ocl_buf,
-		cl_mem top_ocl_buf,
-		cl_mem wei_ocl_buf,
-		cl_mem bias_ocl_buf,
+int mlo_construct_direct2D :: mloMeasuredLoop(mlopen::Handle* profile_h,
+		Data_t bot_ocl_buf,
+		Data_t top_ocl_buf,
+		Data_t wei_ocl_buf,
+		Data_t bias_ocl_buf,
 		double &processing_time
 		)
 {
@@ -1366,37 +1366,30 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 
 	// Creating OCLKernel obj
 	try {
-        auto program = mlopen::LoadProgram(mlopen::GetContext(profile_q), mlopen::GetDevice(profile_q), _kernel_file, compiler_options);
-        mlopen::OCLKernel kernel{mlopen::CreateKernel(program, _kernel_name), _l_wk, _g_wk};
-		// pass all arguments
 
 		float padding_value = 0;
 		
 		double s= 0, e = 0;
 		int iter = 1;
 
-		if (profile_q)
+		if (profile_h)
 		{
 			processing_time = CL_MAXFLOAT;
 
-			auto k = kernel.Invoke(profile_q, [&] (cl_event profile_e) {
-				    size_t st, end;
-				    clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
-			        clGetEventProfilingInfo(profile_e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
-			        processing_time = (end-st)*1e-6;
-			});
+			auto k = profile_h->GetKernel("", "", _kernel_file, _kernel_name, _l_wk, _g_wk, compiler_options);
 
 			if(_bias) {
 				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
 			} else {
 				k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
 			}
+			processing_time = profile_h->GetKernelTime();
 		}
 		else
 		{
 			iter = (_n_timer_iter <= 0) ? 1 : _n_timer_iter;
 
-			auto k = kernel.Invoke(_stream->GetStream());
+			auto k = _stream->GetKernel("", "", _kernel_file, _kernel_name, _l_wk, _g_wk, compiler_options);
 
 			if(_bias) {
 				k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
@@ -1429,6 +1422,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(cl_command_queue profile_q,
 
 	return (ret);
 }
+
 
 
 /*
@@ -1643,7 +1637,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 {
 	int ret = 0;
 
-	mlopen::ClAqPtr profile_q;
+	mlopen::Handle profile_h;
 	double processing_time;
 	std::string conf_key;
 	std::string conf_val;
@@ -1662,11 +1656,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 	int min_n_in_data_tiles = 3;
 	int min_n_stacks = 1;
 
-	cl_context ctxt = mlopen::GetContext(reinterpret_cast<cl_command_queue>(_stream));
-	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
-	profile_q = mlopen::CreateQueueWithProfiling(ctxt, dev);
-
-	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
+	size_t localMemSize = profile_h.GetLocalMemorySize();
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -1683,48 +1673,39 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 
 		// allocate tem input/output buffers
 		size_t bot_sz = _bot_sz / sizeof(float);
-		auto * bot_sys_buf = new float[bot_sz];
-		assert(bot_sys_buf);
+		std::vector<float> bot_sys_buf(bot_sz);
 
 		for (int i = 0; i < bot_sz; i++) {
 			bot_sys_buf[i] = static_cast<float>(rand() * (1.0 / RAND_MAX));
 		}
 
-		cl_mem bot_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bot_sz, bot_sys_buf, &ret);
-
-		assert(bot_ocl_buf);
+		auto bot_ocl_buf = profile_h.Write(bot_sys_buf);
 
 		size_t top_sz = _top_sz / sizeof(float);
-		auto * top_sys_buf = new float[top_sz];
-		assert(top_sys_buf);
+		std::vector<float> top_sys_buf(top_sz);
 
-		cl_mem top_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _top_sz, top_sys_buf, &ret);
-		assert(top_ocl_buf);
+		auto top_ocl_buf = profile_h.Write(top_sys_buf);
 
 		size_t weights_sz = _weights_sz / sizeof(float);
-		auto * wei_sys_buf = new float[weights_sz];
-		assert(wei_sys_buf);
+		std::vector<float> wei_sys_buf(weights_sz);
 		for (int i = 0; i < weights_sz; i++) {
 			wei_sys_buf[i] = static_cast<float>((rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 		}
 
-		cl_mem wei_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _weights_sz, wei_sys_buf, &ret);
-		assert(wei_ocl_buf);
+		auto wei_ocl_buf = profile_h.Write(wei_sys_buf);
 
-		float * bias_sys_buf = nullptr;
-		cl_mem bias_ocl_buf = nullptr;
+		std::vector<float> bias_sys_buf;
+		ManageDataPtr bias_ocl_buf = nullptr;
 
 		if (_bias)
 		{
 			size_t bias_sz = _bias_sz / sizeof(float);
-			bias_sys_buf = new float[_bias_sz / sizeof(float)];
-			assert(bias_sys_buf);
+			bias_sys_buf = std::vector<float>(bias_sz);
 			for (int i = 0; i < bias_sz; i++) {
 				bias_sys_buf[i] = static_cast<float>(rand() * (1.0 / RAND_MAX));
 			}
 
-			bias_ocl_buf = clCreateBuffer(ctxt, CL_MEM_COPY_HOST_PTR, _bias_sz, bias_sys_buf, &ret);
-			assert(bias_ocl_buf);
+			bias_ocl_buf = profile_h.Write(bias_sys_buf);
 		}
 
 
@@ -2003,11 +1984,11 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 												continue;
 
 											}
-											ret = mloMeasuredLoop(profile_q.get(),
-													bot_ocl_buf,
-													top_ocl_buf,
-													wei_ocl_buf,
-													bias_ocl_buf,
+											ret = mloMeasuredLoop(&profile_h,
+													bot_ocl_buf.get(),
+													top_ocl_buf.get(),
+													wei_ocl_buf.get(),
+													bias_ocl_buf.get(),
 													processing_time
 													);
 
@@ -2068,19 +2049,6 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 
 		std::cout << std::endl << "Score: " << min_proc_time << std::endl;
 #endif
-
-		ret = clReleaseMemObject(bot_ocl_buf);
-		ret = clReleaseMemObject(top_ocl_buf);
-		ret = clReleaseMemObject(wei_ocl_buf);
-		if (_bias)
-		{
-			ret = clReleaseMemObject(bias_ocl_buf);
-			delete[] bias_sys_buf;
-		}
-
-		delete[] bot_sys_buf;
-		delete[] top_sys_buf;
-		delete[] wei_sys_buf;
 
 		mloBuildConf_Val(conf_val,
 				min_grp_tile1,
