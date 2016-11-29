@@ -1374,7 +1374,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(mlopen::Handle* profile_h,
 
 		if (profile_h)
 		{
-			processing_time = CL_MAXFLOAT;
+			processing_time = std::numeric_limits<float>::max();
 
 			auto k = profile_h->GetKernel("", "", _kernel_file, _kernel_name, _l_wk, _g_wk, compiler_options);
 
@@ -1727,7 +1727,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		*/
 		//
 
-		double min_proc_time = CL_MAXFLOAT;
+		double min_proc_time = std::numeric_limits<float>::max();
 
 #if 1
 		std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may take few minutes." << std::endl;

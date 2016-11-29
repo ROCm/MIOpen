@@ -47,6 +47,7 @@ struct Handle : mlopenHandle {
 #endif
 
     std::size_t GetLocalMemorySize();
+    std::size_t GetMaxComputeUnits();
 
     std::string GetDeviceName();
 

@@ -130,11 +130,23 @@ void Handle::Flush() const
 std::size_t Handle::GetLocalMemorySize()
 {
     // TODO: Check error codes
-    Device_id dev;
+    int dev;
     hipGetDevice(&dev);
 
     int result;
     hipDeviceGetAttribute(&result, hipDeviceAttributeMaxSharedMemoryPerBlock, 1);
+
+    return result;
+}
+
+std::size_t Handle::GetMaxComputeUnits()
+{
+    // TODO: Check error codes
+    int dev;
+    hipGetDevice(&dev);
+
+    int result;
+    hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount , 1);
 
     return result;
 }

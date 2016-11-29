@@ -6,7 +6,7 @@
 namespace mlopen {
 
 void TensorDescriptor::SetTensor(Handle& /* handle */,
-		cl_mem							dstTensor,
+		Data_t							dstTensor,
 		const void						*valuePtr) {
 
 	printf("To be implemented (SetTensor) \n");
@@ -28,7 +28,7 @@ void TensorDescriptor::SetTensor(Handle& /* handle */,
 }
 
 void TensorDescriptor::ScaleTensor(Handle& /* handle */,
-		cl_mem							dstTensor,
+		Data_t							dstTensor,
 		const void						* /*alpha*/) {
 
 	printf("To be implemented (ScaleTensor) \n");
@@ -51,10 +51,10 @@ void TensorDescriptor::ScaleTensor(Handle& /* handle */,
 void TransformTensor(Handle& /* handle */,
 			const void * /*alpha*/,
 			const TensorDescriptor& srcTensorDesc,
-			const cl_mem  /*srcTensor*/,
+			ConstData_t  /*srcTensor*/,
 			const void * /*beta*/,
 			const TensorDescriptor& destTensorDesc,
-			cl_mem  /*destTensor*/) {
+			Data_t  /*destTensor*/) {
 
 	printf("To be implemented (TransformTensor) \n");
 
@@ -80,13 +80,13 @@ void OpTensor(Handle& /* handle */,
 		mlopenTensorOp_t				 /*tensorOp*/,
 		const void						* /*alpha1*/,
 		const TensorDescriptor&	inputTensorDesc1,
-		const cl_mem					 /*inputTensor1*/,
+		ConstData_t					 /*inputTensor1*/,
 		const void						* /*alpha2*/,
 		const TensorDescriptor&	inputTensorDesc2,
-		const cl_mem					 /*inputTensor2*/,
+		ConstData_t					 /*inputTensor2*/,
 		const void						* /*beta*/,
 		const TensorDescriptor& destTensorDesc,
-		cl_mem							 /*destTensor*/) {
+		Data_t							 /*destTensor*/) {
 
 	printf("To be implemented (Op Tensor) \n");
 
@@ -121,19 +121,20 @@ void OpTensor(Handle& /* handle */,
 
 void CopyTensor(Handle &handle, 
 		const TensorDescriptor &srcDesc,
-		const cl_mem src,
+		ConstData_t src,
 		const TensorDescriptor &destDesc,
-		cl_mem dest) {
+		Data_t dest) {
 
-	if(srcDesc.GetElementSize() != destDesc.GetElementSize() || srcDesc.GetType() != destDesc.GetType()) {
-		MLOPEN_THROW(mlopenStatusBadParm);
-	}
-	size_t srcSize = srcDesc.GetElementSize();
+	// TODO: Add buffering copying to handle
+	// if(srcDesc.GetElementSize() != destDesc.GetElementSize() || srcDesc.GetType() != destDesc.GetType()) {
+	// 	MLOPEN_THROW(mlopenStatusBadParm);
+	// }
+	// size_t srcSize = srcDesc.GetElementSize();
 
-	cl_int status;
-	status = clEnqueueCopyBuffer(handle.GetStream(), src, dest, 0, 0, srcSize*sizeof(srcDesc.GetType()), 0, nullptr, nullptr);
+	// cl_int status;
+	// status = clEnqueueCopyBuffer(handle.GetStream(), src, dest, 0, 0, srcSize*sizeof(srcDesc.GetType()), 0, nullptr, nullptr);
 
-	if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
+	// if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 }
 
 } // namespace mlopen

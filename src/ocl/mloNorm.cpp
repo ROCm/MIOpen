@@ -40,10 +40,8 @@ int mlo_construct_norm::mloConstructFwd()
 {
 	int ret = 0;
 
-	cl_device_id dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
-
-	size_t localMemSize = mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(dev);
-	size_t maxComputeUnits = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	size_t localMemSize = _stream->GetLocalMemorySize();
+	size_t maxComputeUnits = _stream->GetMaxComputeUnits();
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes

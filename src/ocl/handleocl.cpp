@@ -228,6 +228,11 @@ std::string Handle::GetDeviceName()
     return mlopen::GetDeviceInfo<CL_DEVICE_NAME>(mlopen::GetDevice(this->GetStream()));
 }
 
+std::size_t Handle::GetMaxComputeUnits()
+{
+    return mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(mlopen::GetDevice(this->GetStream()));
+}
+
 ManageDataPtr Handle::Create(int sz)
 {
     cl_int status = CL_SUCCESS;

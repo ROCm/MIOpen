@@ -122,7 +122,6 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		mlo_dir_conv.cpp
 		ocl/activ_ocl.cpp
 		ocl/convolutionocl.cpp
-		ocl/handleocl.cpp
 		ocl/lrn_ocl.cpp
 		ocl/mloNeuron.cpp
 		ocl/mloNorm.cpp
@@ -132,7 +131,6 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		ocl/softmaxocl.cpp
 		ocl/utilocl.cpp
 		pooling.cpp
-        ocl/oclerrors.cpp
         ${PROJECT_BINARY_DIR}/db.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
 		)
@@ -144,7 +142,9 @@ endif()
 
 if( MLOPEN_BACKEND STREQUAL "OpenCL" )
 	list(APPEND MLOpen_Source 
+		ocl/handleocl.cpp
         ocl_kernel.cpp
+        ocl/oclerrors.cpp
 		ocl/clhelper.cpp
 	)
 endif()
