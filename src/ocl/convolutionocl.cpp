@@ -37,7 +37,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	// Launch all kernels and store the perf, workspace limits, etc.
 	mlo_construct_direct2D construct_params(1); // forward
 	{
-		construct_params.setTimerIter(100);
 		construct_params.doSearch(exhaustiveSearch);
 		construct_params.saveSearchRequest(true);
 
@@ -163,53 +162,45 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 	}
 #endif 
 
-	if (u > 1 || v > 1)
+	// Generate kernels if OpenCL
+	// Compile, cache kernels, etc.
+	// Launch all kernels and store the perf, workspace limits, etc.
+	mlo_construct_direct2D construct_params(0); // backward
 	{
-		printf("Algorithm has not been implemented\n");
+		construct_params.doSearch(exhaustiveSearch);
+		construct_params.saveSearchRequest(true);
+
+		construct_params.setGeneralCompOptions("");
+
+		construct_params.setStream(handle.GetStream());
+
+		construct_params.setOutputDescFromMLDesc(dyDesc);
+		construct_params.setInputDescFromMLDesc(dxDesc);
+		construct_params.setWeightDescFromMLDesc(wDesc);
+
+		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+
+		construct_params.mloConstruct();
 	}
-	else
-	{
-		// Generate kernels if OpenCL
-		// Compile, cache kernels, etc.
-		// Launch all kernels and store the perf, workspace limits, etc.
-		mlo_construct_direct2D construct_params(0); // backward
-		{
-			construct_params.setTimerIter(100);
-			construct_params.doSearch(exhaustiveSearch);
-			construct_params.saveSearchRequest(true);
 
-			construct_params.setGeneralCompOptions("");
+	std::string program_name = construct_params.getKernelFile();
+	std::string kernel_name = construct_params.getKernelName(); // kernel name
+	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
-			construct_params.setStream(handle.GetStream());
+	std::string network_config;
+	construct_params.mloBuildConf_Key(network_config);
 
-			construct_params.setOutputDescFromMLDesc(dyDesc);
-			construct_params.setInputDescFromMLDesc(dxDesc);
-			construct_params.setWeightDescFromMLDesc(wDesc);
+	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
+	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-			construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
-
-			construct_params.mloConstruct();
-		}
-
-		std::string program_name = construct_params.getKernelFile();
-		std::string kernel_name = construct_params.getKernelName(); // kernel name
-		std::string parms = construct_params.getCompilerOptions(); // kernel parameters
-
-		std::string network_config;
-		construct_params.mloBuildConf_Key(network_config);
-
-		const std::vector<size_t> & vld = construct_params.getLocalWkSize();
-		const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
-
-		float padding_val = 0;
-		handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
+	float padding_val = 0;
+	handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
 			network_config,
 			program_name,
 			kernel_name,
 			vld,
 			vgd,
 			parms)(dy, w, dx, padding_val);
-	}
 }
 
 // BackwardDataAlgorithm()
@@ -242,28 +233,39 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
-	if (u > 1 || v > 1)
+	// Launch all kernels and store the perf, workspace limits, etc.
+	mlo_construct_direct2D construct_params(0); // backward
 	{
-		printf("Algorithm has not been implemented\n");
+		construct_params.setOutputDescFromMLDesc(dyDesc);
+		construct_params.setInputDescFromMLDesc(dxDesc);
+		construct_params.setWeightDescFromMLDesc(wDesc);
 	}
-	else
-	{
-		// Launch all kernels and store the perf, workspace limits, etc.
-		mlo_construct_direct2D construct_params(0); // backward
-		{
-			construct_params.setOutputDescFromMLDesc(dyDesc);
-			construct_params.setInputDescFromMLDesc(dxDesc);
-			construct_params.setWeightDescFromMLDesc(wDesc);
-		}
 
-		std::string network_config;
-		construct_params.mloBuildConf_Key(network_config);
+	std::string network_config;
+	construct_params.mloBuildConf_Key(network_config);
 
-		float padding_val = 0;
-		handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
-			network_config)(dy, w, dx, padding_val);
-	}
+	float padding_val = 0;
+	handle.GetKernel("mlopenConvolutionBwdDataAlgo_0", network_config) (dy, w, dx, padding_val);
 }
+
+// ConvolutionBackwardWeightsGetWorkSpaceSize
+void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
+	const TensorDescriptor&		 dyDesc,
+	const TensorDescriptor&		 xDesc,
+	const TensorDescriptor&		 dwDesc,
+	size_t						*workSpaceSize)
+{
+	mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+	construct_params.doSearch(false);
+	construct_params.setOutputDescFromMLDesc(dyDesc);
+	construct_params.setInputDescFromMLDesc(xDesc);
+	construct_params.setWeightDescFromMLDesc(dwDesc);
+	construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+	construct_params.mloConstruct();
+	
+	*workSpaceSize = construct_params.getWorkSpaceSzBytes();
+}
+
 
 // FindBackwardWeightsAlgorithm()
 //
@@ -295,6 +297,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	int out_h, out_w;
 	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
+	// GEMM
 	int M = in_c * wei_h * wei_w;
 	int N = wei_n;
 	int K = out_h * out_w;
@@ -333,6 +336,61 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 			vld,
 			vgd,
 			"");
+
+	// Direct Kernel
+	mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+	{
+		construct_params.doSearch(false);
+		construct_params.setStream(handle.GetStream());
+		construct_params.setOutputDescFromMLDesc(dyDesc);
+		construct_params.setInputDescFromMLDesc(xDesc);
+		construct_params.setWeightDescFromMLDesc(dwDesc);
+		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+		construct_params.mloConstruct();
+	}
+
+	construct_params.mloBuildConf_Key(network_config);
+
+	const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
+	/*
+	* get info for all kernels of the layer
+	* std::string _kernel_name;
+	* std::string _kernel_file;
+	* std::string _comp_options;
+	* std::vector<size_t> _g_wk;
+	* std::vector<size_t> _l_wk;
+	*/
+	// reset profiler
+	handle.ResetKernelTime();
+	
+	// main kernel
+	const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
+	float padding_val = 0;
+
+	handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
+			network_config,
+			std::get<1>(bwd_wrw),
+			std::get<0>(bwd_wrw),
+			std::get<4>(bwd_wrw),
+			std::get<3>(bwd_wrw),
+			std::get<2>(bwd_wrw)) (dy, x, workSpace, padding_val);
+
+	float time0 = handle.GetKernelTime(); 
+	
+	// second kernel hash
+	network_config += "x1";
+	// reduction  kernel
+	const mlo_kernel_info &bwd_wrw = bwd_wrw_info[1];
+
+	handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red",
+			network_config,
+			std::get<1>(bwd_wrw),
+			std::get<0>(bwd_wrw),
+			std::get<4>(bwd_wrw),
+			std::get<3>(bwd_wrw),
+			std::get<2>(bwd_wrw)) (workSpace, dw);
+
+	handle.AccumKernelTime(time0);
 }
 
 // BackwardWeightsAlgorithm()
@@ -365,54 +423,79 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 
-	int in_n, in_c, in_h, in_w;
-	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
-
-	int wei_n, wei_h, wei_w;
-	std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
-
-	int out_h, out_w;
-	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
-
-	int M = in_c * wei_h * wei_w;
-	int N = wei_n;
-	int K = out_h * out_w;
-	float alpha = 1.0;
-	float beta = 1.0;
-	bool tA = true;
-	bool tB = false;
-	bool tC = false;
-	unsigned int lda = K;
-	unsigned int ldb = K;
-	unsigned int ldc = M;
-
-	tinygemm::TinyGemmGeometry tgg( true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
-	std::string network_config = tgg.get_networkconfig_string();
-
-	std::string algorithm_name;
-	switch(algo) {
+	switch (algo)
+	{
 		case mlopenConvolutionBwdWeightsAlgoGEMM:
+		{
+			int in_n, in_c, in_h, in_w;
+			std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+
+			int wei_n, wei_h, wei_w;
+			std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+
+			int out_h, out_w;
+			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+
+			int M = in_c * wei_h * wei_w;
+			int N = wei_n;
+			int K = out_h * out_w;
+			float alpha = 1.0;
+			float beta = 1.0;
+			bool tA = true;
+			bool tB = false;
+			bool tC = false;
+			unsigned int lda = K;
+			unsigned int ldb = K;
+			unsigned int ldc = M;
+
+			tinygemm::TinyGemmGeometry tgg( true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
+			std::string network_config = tgg.get_networkconfig_string();
+
+			std::string algorithm_name;
 			algorithm_name = "mlopenConvolutionBwdWeightsAlgoGEMM";
-			break;
+			for(int i = 0; i < in_n; i++) {
+				unsigned int out_offset = i * wei_n * out_h * out_w;
+				if(wei_h != 1 && wei_w != 1) {
+					size_t in_offset = i * in_c * in_h * in_w;
+					Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+
+					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, 0, out_offset, 0);
+				}
+				else if(wei_h == 1 && wei_w == 1) {
+					unsigned int in_offset = i * in_c * in_h * in_w;
+					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, in_offset, out_offset, 0);
+				}
+			}
+		}
+		break;
+
 		case mlopenConvolutionBwdWeightsAlgoDirect:
-			algorithm_name = "mlopenConvolutionFwdAlgoDirect";
-			break;
-	}
+		{
+			mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+			construct_params.setOutputDescFromMLDesc(dyDesc);
+			construct_params.setInputDescFromMLDesc(xDesc);
+			construct_params.setWeightDescFromMLDesc(dwDesc);
 
-	for(int i = 0; i < in_n; i++) {
-		unsigned int out_offset = i * wei_n * out_h * out_w;
-		if(wei_h != 1 && wei_w != 1) {
-			size_t in_offset = i * in_c * in_h * in_w;
-			Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
-	
-			handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, 0, out_offset, 0);
-		}
-		else if(wei_h == 1 && wei_w == 1) {
-			unsigned int in_offset = i * in_c * in_h * in_w;
-			handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, in_offset, out_offset, 0);
-		}
-	}
+			std::string network_config;
+			construct_params.mloBuildConf_Key(network_config);
 
+			handle.ResetKernelTime();
+
+			// main kernel
+			float padding_val = 0;
+			handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main", network_config) (dy, x, workSpace, padding_val);
+			float time0 = handle.GetKernelTime();
+			
+			// second kernel hash
+			network_config += "x1";
+			
+			// reduction  kernel
+			handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red", network_config) (workSpace, dw);
+			handle.AccumKernelTime(time0);
+
+		}
+		break;
+	};
 }
 
 }  // namespace mlopen
