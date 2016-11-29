@@ -1,50 +1,77 @@
 #include <mlopen/hipoc_program.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/replace.hpp>
+
+#include <sstream>
 
 #include <unistd.h>
 
 namespace mlopen {
-
-void execute(std::string s)
-{
-    std::cout << s << std::endl;
-    std::system(s.c_str());
-}
 
 std::string quote(std::string s)
 {
     return '"' + s + '"';
 }
 
-std::string GetFileName(const HIPOCProgram::FilePtr& f)
+std::string get_thread_id()
 {
-    auto fd = fileno(f.get());
-    std::string path = "/proc/self/fd/" + std::to_string(fd);
-    std::array<char, 256> buffer{};
-    if (readlink(path.c_str(), buffer.data(), buffer.size()-1) == -1) 
-        MLOPEN_THROW("Error reading filename");
-    return buffer.data();
+    std::stringstream ss;
+    ss << std::this_thread::get_id();
+    return ss.str();
+}
+
+struct tmp_file
+{
+    std::string name;
+    tmp_file() = delete;
+    tmp_file(const tmp_file&)=delete;
+    tmp_file(std::string s)
+    : name("/tmp/" + s + "." + get_thread_id() + "." + std::to_string(std::time(nullptr)))
+    {
+    }
+
+    ~tmp_file()
+    {
+        std::remove(name.c_str());
+    }
+};
+
+void execute(std::string exe, std::string args)
+{
+    // Compensate for team city's broken build
+    std::string compiler = std::string(HIP_OC_COMPILER);
+    std::string library_path = compiler.substr(0, compiler.rfind('/')) + std::string("/../../lib/x86_64/");
+    // std::cout << "LD_LIBRARY_PATH=" << library_path << std::endl;
+    setenv("LD_LIBRARY_PATH", library_path.c_str(), 0);
+
+    std::string cmd = exe + " " + args;
+    if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
+}
+
+void WriteFile(const std::string& content, const std::string& name)
+{
+    HIPOCProgram::FilePtr f{std::fopen(name.c_str(), "w")};
+    if (std::fwrite(content.c_str(), 1, content.size(), f.get()) != content.size()) 
+        MLOPEN_THROW("Failed to write to src file");
 }
 
 hipModulePtr CreateModule(const std::string& program_name, std::string params)
 {   
-    HIPOCProgram::FilePtr tmpsrc{std::tmpfile()};
+    tmp_file src_file{program_name};
     std::string src = GetKernelSrc(program_name);
-    std::string src_name = GetFileName(tmpsrc);
-    
-    if (std::fwrite(src.c_str(), 1, src.size(), tmpsrc.get()) != src.size()) 
-        MLOPEN_THROW("Failed to write to src file");
-    
-    execute(HIP_OC_COMPILER + 
-        std::string(" -march=hsail64 -mdevice=Fiji -cl-denorms-are-zero -save-temps=dump -nobin ") + 
+
+    WriteFile(src, src_file.name);
+        
+    execute(HIP_OC_COMPILER, 
+        "-march=hsail64 -mdevice=Fiji -cl-denorms-are-zero -save-temps=dump -nobin " + 
         params + " " +
-        quote(src_name));
+        quote(src_file.name));
 
-    std::string obj_file = src_name + "_obj";
+    std::string obj_file = src_file.name + "_obj";
 
-    execute(HIP_OC_FINALIZER +
-        std::string(" -target=8:0:3 -hsail dump_0_Fiji.hsail -output=") +
+    execute(HIP_OC_FINALIZER,
+        "-target=8:0:3 -hsail dump_0_Fiji.hsail -output=" +
         quote(obj_file)
     );
 
