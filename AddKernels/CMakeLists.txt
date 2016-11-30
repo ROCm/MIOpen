@@ -1,5 +1,5 @@
-PROJECT(AddKernels)
+project(AddKernels)
 
-SET(ADD_KERNELS_SOURCE addkernels.cpp)
+set(ADD_KERNELS_SOURCE addkernels.cpp)
 
-ADD_EXECUTABLE(addkernels EXCLUDE_FROM_ALL ${ADD_KERNELS_SOURCE})
+add_executable(addkernels EXCLUDE_FROM_ALL ${ADD_KERNELS_SOURCE})

@@ -90,7 +90,7 @@ set( MLOpen_Source
 	)
 
 if( MLOPEN_BACKEND MATCHES "OpenCL")
-	SET(MLOPEN_KERNELS
+	set(MLOPEN_KERNELS
 		Kernels/MLOpenConvDirUni.cl
 		Kernels/MLOpenConvDirUni2.cl
 		Kernels/MLOpenConvDirGenFwd.cl
@@ -160,15 +160,15 @@ add_library( MLOpen
 	${MLOpen_Source}
 	)
 
-IF( MLOPEN_BACKEND MATCHES "OpenCL")
-	ADD_CUSTOM_TARGET(addkernels_run
+if( MLOPEN_BACKEND MATCHES "OpenCL")
+	add_custom_target(addkernels_run
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		DEPENDS addkernels
 		COMMAND ${PROJECT_BINARY_DIR}/../AddKernels/addkernels -guard GUARD_MLOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/mlopen_kernels.h -source ${MLOPEN_KERNELS}
 		)
 	
-	ADD_DEPENDENCIES(MLOpen addkernels_run)
-ENDIF()
+	add_dependencies(MLOpen addkernels_run)
+endif()
 
 clang_tidy_check(MLOpen)
 set( MLOpen_DIRS_INCLUDE
