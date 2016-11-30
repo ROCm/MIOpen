@@ -15,7 +15,7 @@ void Bin2Hex(std::istream& source, std::ostream& target, const std::string& vari
 	if (variable.length() != 0)
 	{
 		target << "const size_t " << variable << "_SIZE = " << std::setbase(10) << sourceSize << ";" << std::endl;
-		target << "const char " << variable << "[] = {" << std::endl;
+		target << "const unsigned char " << variable << "[] = {" << std::endl;
 	}
 
 	target << std::setbase(16) << std::setfill('0');
