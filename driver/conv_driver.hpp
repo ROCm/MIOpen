@@ -526,6 +526,33 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+
+	for (int o = 0; o < out_n; o++) // mini-batch size
+	{
+		for (int w = 0; w < out_c; w++) // out_channels (num filters)
+		{
+			for (int k = 0; k < in_c; k++) // in_channels (RGB)
+			{
+				for (int x = 0; x < wei_h; x++) // filter height
+				{
+					for (int y = 0; y < wei_w; y++) // filter width
+					{
+						for (int i = 0; i < out_h; i++) // output height
+						{
+							for (int j = 0; j < out_w; j++) // output width
+							{
+								wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y] +=
+									in[o*in_nstride + k*in_cstride + (i+x)*in_w + (j+y)] *
+									dout[o*out_nstride + w*out_cstride + i*out_hstride + j];
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+
 #if 0
 	// im2col
 	size_t in_offset = 0;
