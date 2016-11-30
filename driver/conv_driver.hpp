@@ -527,6 +527,14 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
+	assert(in_wstride == 1);
+	assert(wei_wstride == 1);
+	assert(out_wstride == 1);
+	assert(pad_h == 0);
+	assert(pad_w == 0);
+	assert(u == 1);
+	assert(v == 1);
+
 	for (int o = 0; o < out_n; o++) // mini-batch size
 	{
 		for (int w = 0; w < out_c; w++) // out_channels (num filters)
@@ -541,8 +549,8 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 						{
 							for (int j = 0; j < out_w; j++) // output width
 							{
-								wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y] +=
-									in[o*in_nstride + k*in_cstride + (i+x)*in_w + (j+y)] *
+								dwei_host[w*wei_nstride + k*wei_cstride + x*wei_hstride + y] +=
+									in[o*in_nstride + k*in_cstride + (x + i)*in_hstride + (y + j)] *
 									dout[o*out_nstride + w*out_cstride + i*out_hstride + j];
 							}
 						}
