@@ -164,7 +164,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 	add_custom_target(addkernels_run
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		DEPENDS addkernels
-		COMMAND ${PROJECT_BINARY_DIR}/../AddKernels/addkernels -guard GUARD_MLOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/mlopen_kernels.h -source ${MLOPEN_KERNELS}
+		COMMAND $<TARGET_FILE:addkernels> -guard GUARD_MLOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/mlopen_kernels.h -source ${MLOPEN_KERNELS}
 		)
 	
 	add_dependencies(MLOpen addkernels_run)

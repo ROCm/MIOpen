@@ -32,7 +32,7 @@ void Bin2Hex(std::istream& source, std::ostream& target, const std::string& vari
 		while (i < blockSize)
 		{
 			size_t j = i;
-			size_t end = std::min(i + lineSize, (size_t)blockSize);
+			size_t end = std::min<size_t>(i + lineSize, blockSize);
 
 			for (; j < end; j++)
 				target << "0x" << std::setw(2) << (unsigned)buffer[j] << ",";
