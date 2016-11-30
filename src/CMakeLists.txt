@@ -54,7 +54,7 @@ function(add_kernels KERNEL_FILES)
 		get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
 		string(TOUPPER "${BASE_NAME}" KEY_NAME)
 		string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
-		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", ${VAR_NAME} }")
+		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", reinterpret_cast<const char*>(${VAR_NAME}) }")
 	endforeach()
 	string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
 	configure_file(Kernels/kernel.cpp.in kernel.cpp)
@@ -109,7 +109,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenUtilKernels.cl
 		Kernels/MLOpenConvBwdWrW.cl)
 	
-	add_kernels(${MLOPEN_KERNELS})
+	add_kernels("${MLOPEN_KERNELS}")
 	configure_file(db.cpp.in db.cpp)
 	list(APPEND MLOpen_Source 
 		activ.cpp
