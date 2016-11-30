@@ -337,60 +337,55 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 			vgd,
 			"");
 
-	// Direct Kernel
-	mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-	{
-		construct_params.doSearch(false);
-		construct_params.setStream(handle.GetStream());
-		construct_params.setOutputDescFromMLDesc(dyDesc);
-		construct_params.setInputDescFromMLDesc(xDesc);
-		construct_params.setWeightDescFromMLDesc(dwDesc);
-		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
-		construct_params.mloConstruct();
+	if(u == 1 && v == 1) { // Direct Kernel
+		mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+		{
+			construct_params.doSearch(false);
+			construct_params.setStream(handle.GetStream());
+			construct_params.setOutputDescFromMLDesc(dyDesc);
+			construct_params.setInputDescFromMLDesc(xDesc);
+			construct_params.setWeightDescFromMLDesc(dwDesc);
+			construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+			construct_params.mloConstruct();
+		}
+
+		construct_params.mloBuildConf_Key(network_config);
+
+		const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
+		/*
+		 * get info for all kernels of the layer
+		 * std::string _kernel_name;
+		 * std::string _kernel_file;
+		 * std::string _comp_options;
+		 * std::vector<size_t> _g_wk;
+		 * std::vector<size_t> _l_wk;
+		 */
+
+		// main kernel
+		auto bwd_wrw = bwd_wrw_info[0];
+		float padding_val = 0;
+
+		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
+				network_config,
+				std::get<1>(bwd_wrw),
+				std::get<0>(bwd_wrw),
+				std::get<4>(bwd_wrw),
+				std::get<3>(bwd_wrw),
+				std::get<2>(bwd_wrw)) (dy, x, workSpace, padding_val);
+
+		// second kernel hash
+		network_config += "x1";
+		// reduction  kernel
+		auto bwd_wrw_red = bwd_wrw_info[1];
+
+		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red",
+				network_config,
+				std::get<1>(bwd_wrw_red),
+				std::get<0>(bwd_wrw_red),
+				std::get<4>(bwd_wrw_red),
+				std::get<3>(bwd_wrw_red),
+				std::get<2>(bwd_wrw_red)) (workSpace, dw);
 	}
-
-	construct_params.mloBuildConf_Key(network_config);
-
-	const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
-	/*
-	* get info for all kernels of the layer
-	* std::string _kernel_name;
-	* std::string _kernel_file;
-	* std::string _comp_options;
-	* std::vector<size_t> _g_wk;
-	* std::vector<size_t> _l_wk;
-	*/
-	// reset profiler
-	handle.ResetKernelTime();
-	
-	// main kernel
-	auto &bwd_wrw = bwd_wrw_info[0];
-	float padding_val = 0;
-
-	handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
-			network_config,
-			std::get<1>(bwd_wrw),
-			std::get<0>(bwd_wrw),
-			std::get<4>(bwd_wrw),
-			std::get<3>(bwd_wrw),
-			std::get<2>(bwd_wrw)) (dy, x, workSpace, padding_val);
-
-	float time0 = handle.GetKernelTime(); 
-	
-	// second kernel hash
-	network_config += "x1";
-	// reduction  kernel
-	auto bwd_wrw_red = bwd_wrw_info[1];
-
-	handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red",
-			network_config,
-			std::get<1>(bwd_wrw_red),
-			std::get<0>(bwd_wrw_red),
-			std::get<4>(bwd_wrw_red),
-			std::get<3>(bwd_wrw_red),
-			std::get<2>(bwd_wrw_red)) (workSpace, dw);
-
-	handle.AccumKernelTime(time0);
 }
 
 // BackwardWeightsAlgorithm()
@@ -471,28 +466,29 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
 		case mlopenConvolutionBwdWeightsAlgoDirect:
 		{
-			mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-			construct_params.setOutputDescFromMLDesc(dyDesc);
-			construct_params.setInputDescFromMLDesc(xDesc);
-			construct_params.setWeightDescFromMLDesc(dwDesc);
+			if(u == 1 && v == 1) {
+				mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+				construct_params.setOutputDescFromMLDesc(dyDesc);
+				construct_params.setInputDescFromMLDesc(xDesc);
+				construct_params.setWeightDescFromMLDesc(dwDesc);
 
-			std::string network_config;
-			construct_params.mloBuildConf_Key(network_config);
+				std::string network_config;
+				construct_params.mloBuildConf_Key(network_config);
 
-			handle.ResetKernelTime();
+				handle.ResetKernelTime();
 
-			// main kernel
-			float padding_val = 0;
-			handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main", network_config) (dy, x, workSpace, padding_val);
-			float time0 = handle.GetKernelTime();
-			
-			// second kernel hash
-			network_config += "x1";
-			
-			// reduction  kernel
-			handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red", network_config) (workSpace, dw);
-			handle.AccumKernelTime(time0);
+				// main kernel
+				float padding_val = 0;
+				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main", network_config) (dy, x, workSpace, padding_val);
+				float time0 = handle.GetKernelTime();
 
+				// second kernel hash
+				network_config += "x1";
+
+				// reduction  kernel
+				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red", network_config) (workSpace, dw);
+				handle.AccumKernelTime(time0);
+			}
 		}
 		break;
 	};
