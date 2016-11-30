@@ -7,16 +7,39 @@
 
 namespace mlopen {
 
+hipDevice_t get_device(int id)
+{
+    hipDevice_t device;
+    auto status = hipDeviceGet(&device, id);
+    if (status != hipSuccess) MLOPEN_THROW("No device");
+    return device;
+}
+
 struct HandleImpl
 {
     // typedef MLOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
-    typedef std::shared_ptr<typename std::remove_pointer<hipStream_t>::type> StreamPtr;
+    using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
+    using ContextPtr = MLOPEN_MANAGE_PTR(hipCtx_t, hipCtxDestroy);
+
+    HandleImpl()
+    {
+        this->context = this->create_context();
+    }
+
+    ContextPtr create_context()
+    {
+        hipCtx_t ctx;
+        auto status = hipCtxCreate(&ctx, 0, get_device(0));
+        ContextPtr result{ctx};
+        if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Error creating context");
+        return result;
+    }
 
     StreamPtr create_stream()
     {
         hipStream_t result;
         auto status = hipStreamCreate(&result);
-        if (status != hipSuccess) MLOPEN_THROW("Failed to allocate stream");
+        if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed to allocate stream");
         return StreamPtr{result, &hipStreamDestroy};
     }
 
@@ -25,6 +48,7 @@ struct HandleImpl
         return StreamPtr{s, null_deleter{}};
     }
 
+    ContextPtr context;
     bool enable_profiling = false;
     std::vector<StreamPtr> streams;
 #if MLOPEN_BACKEND_HIPOC
@@ -69,19 +93,19 @@ ManageDataPtr Handle::Create(int sz)
 {
     void * result;
     auto status = hipMalloc(&result, sz);
-    if (status != hipSuccess) MLOPEN_THROW("Hip error creating buffer: " + std::to_string(status));
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer: ");
     return ManageDataPtr{result};
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);
-    if (status != hipSuccess) MLOPEN_THROW("Hip error writing to buffer: " + std::to_string(status));
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
 void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
 {
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
-    if (status != hipSuccess) MLOPEN_THROW("Hip error reading from buffer: " + std::to_string(status));
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
 }
 
 #if MLOPEN_BACKEND_HIPOC

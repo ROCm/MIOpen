@@ -45,7 +45,7 @@ void execute(std::string exe, std::string args)
     // std::cout << "LD_LIBRARY_PATH=" << library_path << std::endl;
     setenv("LD_LIBRARY_PATH", library_path.c_str(), 0);
 
-    std::string cmd = exe + " " + args;
+    std::string cmd = exe + " " + args + " > /dev/null";
     // std::cout << cmd << std::endl;
     if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
 }
@@ -79,8 +79,9 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params)
     hipModule_t raw_m;
     auto status = hipModuleLoad(&raw_m, obj_file.c_str());
     hipModulePtr m{raw_m};
-    std::remove(obj_file.c_str());
-    if (status != hipSuccess) MLOPEN_THROW("Failed creating module");
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed creating module");
+    // TODO: Remove file on destruction
+    // std::remove(obj_file.c_str());
     return m;
 }
 
