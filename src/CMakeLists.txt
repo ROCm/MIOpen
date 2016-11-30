@@ -151,6 +151,7 @@ endif()
 
 if( MLOPEN_BACKEND STREQUAL "HIPOC")
 	list(APPEND MLOpen_Source 
+		hip/hiperrors.cpp
 		hip/handlehip.cpp
 		hipoc/hipoc_kernel.cpp
 		hipoc/hipoc_program.cpp
