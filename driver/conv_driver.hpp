@@ -2,6 +2,7 @@
 #define GUARD_MLOPEN_CONV_DRIVER_HPP
 
 #include <cstdlib>
+#include <fstream>
 #include <mlopen.h>
 #include "driver.hpp"
 #include "InputFlags.hpp"
@@ -154,6 +155,9 @@ int ConvDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 	inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
 	inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
+    inflags.AddInputFlag("in_data", 'd', "0", "Input data filename (Default=0)", "string");
+    inflags.AddInputFlag("out_data", 'o', "0", "Output data filename (Default=0)", "string");
+    inflags.AddInputFlag("weights", 'e', "0", "Input weights filename (Default=0)", "string");
 
 	return 0;
 }
@@ -235,18 +239,42 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	dwei_host = std::vector<T>(wei_sz, 0);
 	din_host = std::vector<T>(in_sz, 0);
 
-	for(int i = 0; i < in_sz; i++) {
-		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
-	}
+    std::string inFileName = inflags.GetValueStr("in_data");
+    std::string weiFileName = inflags.GetValueStr("weights");
+
+    std::ifstream inFile(inFileName.c_str(), std::ios::binary);
+    std::ifstream weiFile(weiFileName.c_str(), std::ios::binary);
+
+    if(inFile)
+    {
+        inFile.read(reinterpret_cast<char*>(in.data()), in_sz * sizeof(T));
+        inFile.close();
+        printf("Read input data from file %s\n", inFileName.c_str());
+    }
+    else
+    {
+        for(int i = 0; i < in_sz; i++) {
+            in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+        }
+    }
+
 	for (int i = 0; i < out_sz; i++) {
 		out[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 		dout[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
-
-	for (int i = 0; i < wei_sz; i++) {
-		wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) );
-	}
+    if(weiFile)
+    {
+        weiFile.read(reinterpret_cast<char*>(wei.data()), wei_sz * sizeof(T));
+        weiFile.close();
+        printf("Read weights from file %s\n", weiFileName.c_str());
+    }
+    else
+    {
+        for (int i = 0; i < wei_sz; i++) {
+            wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) );
+        }
+    }
 	
 	cl_int status;
 	status = in_dev->ToGPU(q, in.data());
@@ -325,6 +353,15 @@ int ConvDriver<T>::RunForwardGPU() {
 	}
 
 	out_dev->FromGPU(GetStream(), out.data());
+
+    std::string outFileName = inflags.GetValueStr("out_data");
+    std::ofstream outFile(outFileName.c_str(), std::ios::binary);
+    if(outFile)
+    {
+        outFile.write(reinterpret_cast<char*>(out.data()), out.size()*sizeof(T));
+        outFile.close();
+        printf("Wrote output to file %s\n", outFileName.c_str());
+    }
 
 	return mlopenStatusSuccess;
 }
