@@ -43,25 +43,19 @@ message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 # This is incremented when the ABI to the library changes
 set( MLOpen_SOVERSION 1 )
 
-include(Bin2H)
-function(add_kernels)
+function(add_kernels KERNEL_FILES)
 	set(INIT_KERNELS_LIST)
-	set(KERNELS_HEADER "${PROJECT_BINARY_DIR}/include/mlopen_kernels.h")
-	file(WRITE ${KERNELS_HEADER} "#ifndef GUARD_MLOPEN_KERNELS_HPP_\n#define GUARD_MLOPEN_KERNELS_HPP_\n")
-	foreach(KERNEL_FILE ${ARGN})
+	foreach(KERNEL_FILE ${KERNEL_FILES})
 		if("${CMAKE_VERSION}" VERSION_LESS 3.0)
 			configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
 		else()
 			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
 		endif()
 		get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
-		message(STATUS "Storing ${BASE_NAME}")
 		string(TOUPPER "${BASE_NAME}" KEY_NAME)
 		string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
-		bin2h(SOURCE_FILE ${KERNEL_FILE} HEADER_FILE ${KERNELS_HEADER} VARIABLE_NAME ${VAR_NAME} NULL_TERMINATE APPEND)
-		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", ${VAR_NAME} }")
+		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", reinterpret_cast<const char*>(${VAR_NAME}) }")
 	endforeach()
-	file(APPEND ${KERNELS_HEADER} "\n#endif\n")
 	string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
 	configure_file(Kernels/kernel.cpp.in kernel.cpp)
 endfunction()
@@ -96,7 +90,7 @@ set( MLOpen_Source
 	)
 
 if( MLOPEN_BACKEND MATCHES "OpenCL")
-	add_kernels(
+	set(MLOPEN_KERNELS
 		Kernels/MLOpenConvDirUni.cl
 		Kernels/MLOpenConvDirUni2.cl
 		Kernels/MLOpenConvDirGenFwd.cl
@@ -113,8 +107,9 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenConv1x1PS_LW.cl
 		Kernels/MLOpenConvD3x3.cl
 		Kernels/MLOpenUtilKernels.cl
-		Kernels/MLOpenConvBwdWrW.cl
-	)
+		Kernels/MLOpenConvBwdWrW.cl)
+	
+	add_kernels("${MLOPEN_KERNELS}")
 	configure_file(db.cpp.in db.cpp)
 	list(APPEND MLOpen_Source 
 		activ.cpp
@@ -165,6 +160,15 @@ add_library( MLOpen
 	${MLOpen_Source}
 	)
 
+if( MLOPEN_BACKEND MATCHES "OpenCL")
+	add_custom_target(addkernels_run
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		DEPENDS addkernels
+		COMMAND $<TARGET_FILE:addkernels> -guard GUARD_MLOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/mlopen_kernels.h -source ${MLOPEN_KERNELS}
+		)
+	
+	add_dependencies(MLOpen addkernels_run)
+endif()
 
 clang_tidy_check(MLOpen)
 set( MLOpen_DIRS_INCLUDE
