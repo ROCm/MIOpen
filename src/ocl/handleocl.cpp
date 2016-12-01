@@ -340,6 +340,11 @@ void Handle::Flush() const
     clFlush(this->GetStream());
 }
 
+bool Handle::IsProfilingEnabled() const
+{
+	return this->impl->enable_profiling;
+}
+
 ManageDataPtr Handle::Create(int sz)
 {
     cl_int status = CL_SUCCESS;
