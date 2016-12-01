@@ -316,7 +316,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
 	tinygemm::TinyGemmGeometry tgg( true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
 	// alloted_time, queue, a, b, c, enforce_determinism, float_type, geometry, alpha, beta, verbose 
-	tinygemm::TinyGemmSolution soln = tinygemm::find(15, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, true);
+	tinygemm::TinyGemmSolution soln = tinygemm::find(1, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, true);
 
 	std::string program_name = soln.main_kernel;
 	std::string kernel_name = soln.main_kernel_function_name;
@@ -448,17 +448,39 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
 			std::string algorithm_name;
 			algorithm_name = "mlopenConvolutionBwdWeightsAlgoGEMM";
+			handle.ResetKernelTime();
+			float time_0 = 0;
+			float t1 = 0;
 			for(int i = 0; i < in_n; i++) {
 				unsigned int out_offset = i * wei_n * out_h * out_w;
 				if(wei_h != 1 && wei_w != 1) {
 					size_t in_offset = i * in_c * in_h * in_w;
 					Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+					if(handle.IsProfilingEnabled())
+						t1 = handle.GetKernelTime();
+					//printf("imtime %f\n", t1);
 
 					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, 0, out_offset, 0);
+
+					// Update times for both the kernels
+					if(handle.IsProfilingEnabled()) {
+						if(i == in_n - 1)
+							handle.AccumKernelTime(t1+time_0);
+						else
+							handle.AccumKernelTime(t1);
+						time_0 += handle.GetKernelTime();
+					}
+					
 				}
 				else if(wei_h == 1 && wei_w == 1) {
 					unsigned int in_offset = i * in_c * in_h * in_w;
 					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, in_offset, out_offset, 0);
+
+					if(handle.IsProfilingEnabled()) {
+						if(i == in_n - 1)
+							handle.AccumKernelTime(time_0);
+						time_0 += handle.GetKernelTime();
+					}
 				}
 			}
 		}
@@ -479,15 +501,19 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
 				// main kernel
 				float padding_val = 0;
+				float time0 = 0;
 				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main", network_config) (dy, x, workSpace, padding_val);
-				float time0 = handle.GetKernelTime();
+
+				if(handle.IsProfilingEnabled())
+					time0 = handle.GetKernelTime();
 
 				// second kernel hash
 				network_config += "x1";
 
 				// reduction  kernel
 				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red", network_config) (workSpace, dw);
-				handle.AccumKernelTime(time0);
+				if(handle.IsProfilingEnabled())
+					handle.AccumKernelTime(time0);
 			}
 		}
 		break;
