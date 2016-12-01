@@ -17,19 +17,6 @@
 #include <../test/verify.hpp>
 #include "timer.hpp"
 
-#ifndef NDEBUG
-static inline void dumpDataToFile(const char * name, void * ptr, size_t size, const char * fileName)
-{
-	FILE * fp = fopen(fileName, "wb");
-	if (!fp) printf("ERROR: dumpDataToFile: unable to create: %s\n");
-	else {
-		fwrite(ptr, 1, size, fp);
-		fclose(fp);
-		printf("OK: dumpDataToFile: dumped %s into %s (%d bytes)\n", name, fileName, (int)size);
-	}
-}
-#endif
-
 template<typename T>
 class ConvDriver : public Driver 
 {
@@ -155,9 +142,9 @@ int ConvDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 	inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
 	inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
-    inflags.AddInputFlag("in_data", 'd', "0", "Input data filename (Default=0)", "string");
-    inflags.AddInputFlag("out_data", 'o', "0", "Output data filename (Default=0)", "string");
-    inflags.AddInputFlag("weights", 'e', "0", "Input weights filename (Default=0)", "string");
+    inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
+    inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
+    inflags.AddInputFlag("weights", 'e', "", "Input weights filename (Default=)", "string");
 
 	return 0;
 }
@@ -354,13 +341,16 @@ int ConvDriver<T>::RunForwardGPU() {
 
 	out_dev->FromGPU(GetStream(), out.data());
 
-    std::string outFileName = inflags.GetValueStr("out_data");
-    std::ofstream outFile(outFileName.c_str(), std::ios::binary);
-    if(outFile)
+    int dumpOutput = inflags.GetValueInt("dump_output");
+    if(dumpOutput)
     {
-        outFile.write(reinterpret_cast<char*>(out.data()), out.size()*sizeof(T));
-        outFile.close();
-        printf("Wrote output to file %s\n", outFileName.c_str());
+        std::ofstream outFile("dump_fwd_out_gpu.bin", std::ios::binary);
+        if(outFile)
+        {
+            outFile.write(reinterpret_cast<char*>(out.data()), out.size()*sizeof(T));
+            outFile.close();
+            printf("Wrote GPU output to file dump_fwd_out_gpu.bin\n");
+        }
     }
 
 	return mlopenStatusSuccess;
@@ -421,6 +411,19 @@ int ConvDriver<T>::RunForwardCPU() {
 			}
 		}
 	}
+
+    int dumpOutput = inflags.GetValueInt("dump_output");
+    if(dumpOutput)
+    {
+        std::ofstream outFile("dump_fwd_out_cpu.bin", std::ios::binary);
+        if(outFile)
+        {
+            outFile.write(reinterpret_cast<char*>(outhost.data()), outhost.size()*sizeof(T));
+            outFile.close();
+            printf("Wrote CPU output to file dump_fwd_out_cpu.bin\n");
+        }
+    }
+
 	return 0;
 }
 
@@ -534,6 +537,25 @@ int ConvDriver<T>::RunBackwardGPU() {
 	workspace_dev->FromGPU(GetStream(), workspace.data());
 	dwei_dev->FromGPU(GetStream(), dwei.data());
 
+    int dumpOutput = inflags.GetValueInt("dump_output");
+    if(dumpOutput)
+    {
+        std::ofstream outFile_din("dump_bwd_din_gpu.bin", std::ios::binary);
+        if(outFile_din)
+        {
+            outFile_din.write(reinterpret_cast<char*>(din.data()), din.size()*sizeof(T));
+            outFile_din.close();
+            printf("Wrote GPU BWD din to file dump_bwd_din_gpu.bin\n");
+        }
+
+        std::ofstream outFile_dwei("dump_bwd_dwei_gpu.bin", std::ios::binary);
+        if(outFile_dwei)
+        {
+            outFile_dwei.write(reinterpret_cast<char*>(dwei.data()), dwei.size()*sizeof(T));
+            outFile_dwei.close();
+            printf("Wrote GPU BWD dwei to file dump_bwd_dwei_gpu.bin\n");
+        }
+    }
 
 	return ret;
 }
@@ -572,7 +594,20 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 			pad_h, pad_w,
 			v, u,
 			workspace_host);
-#endif	
+#endif
+
+    int dumpOutput = inflags.GetValueInt("dump_output");
+    if(dumpOutput)
+    {
+        std::ofstream outFile("dump_bwd_dwei_cpu.bin", std::ios::binary);
+        if(outFile)
+        {
+            outFile.write(reinterpret_cast<char*>(dwei_host.data()), dwei_host.size()*sizeof(T));
+            outFile.close();
+            printf("Wrote CPU output to file dump_bwd_dwei_cpu.bin\n");
+        }
+    }
+
 	return 0;
 }
 
@@ -627,6 +662,18 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 			}
 		}
 	}
+
+    int dumpOutput = inflags.GetValueInt("dump_output");
+    if(dumpOutput)
+    {
+        std::ofstream outFile("dump_bwd_din_cpu.bin", std::ios::binary);
+        if(outFile)
+        {
+            outFile.write(reinterpret_cast<char*>(din_host.data()), din_host.size()*sizeof(T));
+            outFile.close();
+            printf("Wrote CPU output to file dump_bwd_din_cpu.bin\n");
+        }
+    }
 	return 0;
 }
 
@@ -635,23 +682,16 @@ int ConvDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
 
-#ifndef NDEBUG
-	//dumpDataToFile("in", in.data(), sizeof(float) * in.size(), "dump_fwd_in.bin");
-	//dumpDataToFile("wei", wei.data(), sizeof(float) * wei.size(), "dump_fwd_wei.bin");
-	//dumpDataToFile("out", out.data(), sizeof(float) * out.size(), "dump_fwd_out_gpu.bin");
-	//dumpDataToFile("outhost", outhost.data(), sizeof(float) * outhost.size(), "dump_fwd_out_cpu.bin");
-#endif
-
 	auto error = rms_range(outhost, out);
 	const double tolerance = 1e-6;
-	if (error > tolerance)
+    if (error > tolerance)
 	{
 		std::cout<<"Forward Convolution Failed: " << error <<"\n";
 	}
 	else
 	{
 		printf("Forward Convolution Verifies on CPU and GPU\n");
-	}
+    }
 
 	return 0;
 }
@@ -678,14 +718,6 @@ int ConvDriver<T>::VerifyBackward() {
 
 
 	auto error_data = rms_range(din_host, din);
-
-#ifndef NDEBUG
-	//dumpDataToFile("dout", dout.data(), sizeof(float) * dout.size(), "dump_bwd_out.bin");
-	//dumpDataToFile("wei", wei.data(), sizeof(float) * wei.size(), "dump_bwd_wei.bin");
-	//dumpDataToFile("din", din.data(), sizeof(float) * din.size(), "dump_bwd_in_gpu.bin");
-	//dumpDataToFile("dinhost", din_host.data(), sizeof(float) * din_host.size(), "dump_bwd_in_cpu.bin");
-#endif
-
 	if (error_data > tolerance)
 	{
 		std::cout<<"Backward Convolution Data Failed: " << error_data <<"\n";
