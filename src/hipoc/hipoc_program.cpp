@@ -45,8 +45,8 @@ void execute(std::string exe, std::string args)
     // std::cout << "LD_LIBRARY_PATH=" << library_path << std::endl;
     setenv("LD_LIBRARY_PATH", library_path.c_str(), 0);
 
-    std::string cmd = exe + " " + args + " > /dev/null";
-    // std::cout << cmd << std::endl;
+    std::string cmd = exe + " " + args;// + " > /dev/null";
+    std::cout << cmd << std::endl;
     if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
 }
 
@@ -64,16 +64,23 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params)
 
     WriteFile(src, src_file.name);
         
-    execute(HIP_OC_COMPILER, 
-        "-march=hsail64 -mdevice=Fiji -cl-denorms-are-zero -save-temps=dump -nobin " + 
-        params + " " +
-        quote(src_file.name));
+    std::string bin_file = src_file.name + ".bin";
+    std::string hsaco_file = src_file.name + ".hsaco";
+    std::string obj_file = src_file.name + ".obj";
 
-    std::string obj_file = src_file.name + "_obj";
+    execute(HIP_OC_COMPILER, 
+        "-march=hsail64 -mdevice=Fiji -output=" + bin_file +  
+        params + " " +
+        src_file.name);
+
+    execute("/usr/bin/objcopy", 
+        "-I elf32-little -j .text -O binary -S " + bin_file +
+        " " + hsaco_file
+    );
 
     execute(HIP_OC_FINALIZER,
-        "-target=8:0:3 -hsail dump_0_Fiji.hsail -output=" +
-        quote(obj_file)
+        "-target=8:0:3 -hsail " + hsaco_file + 
+        " -output=" + obj_file
     );
 
     hipModule_t raw_m;
