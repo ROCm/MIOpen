@@ -263,6 +263,26 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
         }
     }
 	
+    int dumpOutput = inflags.GetValueInt("dump_output");
+    if(dumpOutput)
+    {
+        std::ofstream outFile("dump_in.bin", std::ios::binary);
+        if(outFile)
+        {
+            outFile.write(reinterpret_cast<char*>(in.data()), in.size()*sizeof(T));
+            outFile.close();
+            printf("Wrote input to file dump_in.bin\n");
+        }
+
+        std::ofstream outWeiFile("dump_wei.bin", std::ios::binary);
+        if(outWeiFile)
+        {
+            outWeiFile.write(reinterpret_cast<char*>(wei.data()), wei.size()*sizeof(T));
+            outWeiFile.close();
+            printf("Wrote weights to file dump_wei.bin\n");
+        }
+    }
+
 	cl_int status;
 	status = in_dev->ToGPU(q, in.data());
 	status |= din_dev->ToGPU(q, in.data());
