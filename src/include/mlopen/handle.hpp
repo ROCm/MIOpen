@@ -29,6 +29,7 @@ struct Handle : mlopenHandle {
 	void AccumKernelTime(float curr_time);
 
     float GetKernelTime() const;
+	bool IsProfilingEnabled() const;
 #if MLOPEN_BACKEND_OPENCL
     KernelInvoke GetKernel(
             const std::string& algorithm,
