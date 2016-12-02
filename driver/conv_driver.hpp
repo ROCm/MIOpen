@@ -563,7 +563,7 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 		}
 	}
 
-#ifdef BACKWARD_WRW_VERIFY_2
+#ifdef BACKWARD_WRW_VERIFY_DIRECT_2
 
 	{
 		assert(u == 1);
@@ -632,6 +632,114 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 
 			}
 		}
+	}
+
+#endif
+
+#ifdef BACKWARD_WRW_VERIFY_GEMM
+
+	{
+		assert(u == v);
+		assert(pad_h == pad_w);
+
+		std::fill(dwei_host.begin(), dwei_host.end(), (T)0);
+
+		int batch_sz = out_n;
+		int outputs = out_c;
+		int inputs = in_c;
+
+		int bot_batch_stride = in_c*in_h*in_w;
+		int bot_channel_stride = in_h*in_w;
+		int bot_stride = in_w;
+		int bot_height = in_h;
+		int bot_width = in_w;
+
+		int top_width = out_w;
+		int top_height = out_h;
+		int top_df_channel_stride = top_width * top_height;
+		int top_df_batch_stride = top_df_channel_stride * out_c;
+
+		int weights_width = wei_w * wei_h * wei_c;
+		int weights_height = wei_n;
+		int weights_df_v_stride = weights_width;
+		int kernel_size = wei_w;
+
+		int pad = pad_w;
+		int stride = v;
+
+		// allocate raw data for in, dout, dwei for using im2col/gemm aDNN functions
+		T * weights_df_v_ptr = new T[weights_width * weights_height];
+		T * top_df_ptr = new T[out_n*out_c*out_h*out_w];
+		T * bot_ptr = new T[in_n*in_c*in_h*in_w];
+
+		// copy input (in) into packed
+		for (int n = 0; n < in_n; n++)
+		{
+			for (int c = 0; c < in_c; c++)
+			{
+				for (int h = 0; h < in_h; h++)
+				{
+					for (int w = 0; w < in_w; w++)
+					{
+						bot_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w] = in[n*in_nstride + c*in_cstride + h*in_hstride + w];
+					}
+				}
+			}
+		}
+
+		// copy delta out (dout) into packed
+		for (int n = 0; n < out_n; n++)
+		{
+			for (int c = 0; c < out_c; c++)
+			{
+				for (int h = 0; h < out_h; h++)
+				{
+					for (int w = 0; w < out_w; w++)
+					{
+						top_df_ptr[n*out_c*out_h*out_w + c*out_h*out_w + h*out_w + w] = dout[n*out_nstride + c*out_cstride + h*out_hstride + w];
+					}
+				}
+			}
+		}
+
+		int im2col_batch_stride = weights_width * top_width * top_height;
+		T * im2col_ptr = new T[im2col_batch_stride * batch_sz];
+
+		#define ADNN_MM_TRANSPOSE 1
+		memset(weights_df_v_ptr, 0, weights_width * weights_height * sizeof(T));
+		for (int b = 0; b < batch_sz; ++b)
+		{
+			ADNN_im2col_cpu<T>((const T*)&bot_ptr[bot_batch_stride * b], inputs,
+				bot_height, bot_width, kernel_size, pad,
+				stride, &im2col_ptr[im2col_batch_stride * b]);
+			// sum up over mini-batch
+			ADNN_mm_cpu<T>((const T*)&top_df_ptr[top_df_batch_stride * b], top_width * top_height, outputs, top_df_channel_stride, 0,
+				(const T *)&im2col_ptr[im2col_batch_stride * b], top_width * top_height, weights_width, top_width * top_height, ADNN_MM_TRANSPOSE,
+				weights_df_v_ptr, weights_width, weights_height, weights_df_v_stride, 0,
+				1, 1);
+
+		}
+
+		// read back packed delta weight
+		for (int n = 0; n < wei_n; n++)
+		{
+			for (int c = 0; c < wei_c; c++)
+			{
+				for (int h = 0; h < wei_h; h++)
+				{
+					for (int w = 0; w < wei_w; w++)
+					{
+						dwei_host[n*wei_nstride + c*wei_cstride + h*wei_hstride + w] = weights_df_v_ptr[n*wei_c*wei_h*wei_w + c*wei_h*wei_w + h*wei_w + w];
+					}
+				}
+			}
+		}
+
+		delete[] im2col_ptr;
+		delete[] weights_df_v_ptr;
+		delete[] top_df_ptr;
+		delete[] bot_ptr;
+
 	}
 
 #endif
