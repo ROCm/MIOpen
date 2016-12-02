@@ -18,6 +18,40 @@
 #include "timer.hpp"
 
 template<typename T>
+void dumpBufferToFile(const char * fileName, T * data, size_t dataNumItems)
+{
+    std::ofstream outFile(fileName, std::ios::binary);
+    if(outFile)
+    {
+        outFile.write(reinterpret_cast<char*>(data), dataNumItems*sizeof(T));
+        outFile.close();
+        printf("Wrote output to file %s\n", fileName);
+    }
+    else
+    {
+        printf("Could not open file %s for writing\n", fileName);
+    }
+}
+
+template<typename T>
+bool readBufferFromFile(T * data, size_t dataNumItems, const char * fileName)
+{
+    std::ifstream infile(fileName, std::ios::binary);
+    if(infile)
+    {
+        infile.read(reinterpret_cast<char*>(data), dataNumItems*sizeof(T));
+        infile.close();
+        printf("Read data from input file %s\n", fileName);
+        return true;
+    }
+    else
+    {
+        printf("Could not open file %s for reading\n", fileName);
+        return false;
+    }
+}
+
+template<typename T>
 class ConvDriver : public Driver 
 {
 	public:
@@ -229,16 +263,12 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
     std::string inFileName = inflags.GetValueStr("in_data");
     std::string weiFileName = inflags.GetValueStr("weights");
 
-    std::ifstream inFile(inFileName.c_str(), std::ios::binary);
-    std::ifstream weiFile(weiFileName.c_str(), std::ios::binary);
-
-    if(inFile)
-    {
-        inFile.read(reinterpret_cast<char*>(in.data()), in_sz * sizeof(T));
-        inFile.close();
-        printf("Read input data from file %s\n", inFileName.c_str());
+    bool dataRead = false;
+    if(!inFileName.empty()) {
+        dataRead = readBufferFromFile(in.data(), in_sz, inFileName.c_str());
     }
-    else
+
+    if(!dataRead)
     {
         for(int i = 0; i < in_sz; i++) {
             in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
@@ -250,37 +280,21 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 		dout[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
-    if(weiFile)
-    {
-        weiFile.read(reinterpret_cast<char*>(wei.data()), wei_sz * sizeof(T));
-        weiFile.close();
-        printf("Read weights from file %s\n", weiFileName.c_str());
+    bool weiRead = false;
+    if(!weiFileName.empty()) {
+        weiRead = readBufferFromFile(wei.data(), wei_sz, weiFileName.c_str());
     }
-    else
+
+    if(!weiRead)
     {
         for (int i = 0; i < wei_sz; i++) {
             wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) );
         }
     }
 	
-    int dumpOutput = inflags.GetValueInt("dump_output");
-    if(dumpOutput)
-    {
-        std::ofstream outFile("dump_in.bin", std::ios::binary);
-        if(outFile)
-        {
-            outFile.write(reinterpret_cast<char*>(in.data()), in.size()*sizeof(T));
-            outFile.close();
-            printf("Wrote input to file dump_in.bin\n");
-        }
-
-        std::ofstream outWeiFile("dump_wei.bin", std::ios::binary);
-        if(outWeiFile)
-        {
-            outWeiFile.write(reinterpret_cast<char*>(wei.data()), wei.size()*sizeof(T));
-            outWeiFile.close();
-            printf("Wrote weights to file dump_wei.bin\n");
-        }
+    if(inflags.GetValueInt("dump_output")) {
+        dumpBufferToFile("dump_in.bin", in.data(), in_sz);
+        dumpBufferToFile("dump_wei.bin", wei.data(), wei_sz);
     }
 
 	cl_int status;
@@ -361,16 +375,8 @@ int ConvDriver<T>::RunForwardGPU() {
 
 	out_dev->FromGPU(GetStream(), out.data());
 
-    int dumpOutput = inflags.GetValueInt("dump_output");
-    if(dumpOutput)
-    {
-        std::ofstream outFile("dump_fwd_out_gpu.bin", std::ios::binary);
-        if(outFile)
-        {
-            outFile.write(reinterpret_cast<char*>(out.data()), out.size()*sizeof(T));
-            outFile.close();
-            printf("Wrote GPU output to file dump_fwd_out_gpu.bin\n");
-        }
+    if(inflags.GetValueInt("dump_output")) {
+        dumpBufferToFile("dump_fwd_out_gpu.bin", out.data(), out.size());
     }
 
 	return mlopenStatusSuccess;
@@ -432,18 +438,9 @@ int ConvDriver<T>::RunForwardCPU() {
 		}
 	}
 
-    int dumpOutput = inflags.GetValueInt("dump_output");
-    if(dumpOutput)
-    {
-        std::ofstream outFile("dump_fwd_out_cpu.bin", std::ios::binary);
-        if(outFile)
-        {
-            outFile.write(reinterpret_cast<char*>(outhost.data()), outhost.size()*sizeof(T));
-            outFile.close();
-            printf("Wrote CPU output to file dump_fwd_out_cpu.bin\n");
-        }
+    if(inflags.GetValueInt("dump_output")) {
+        dumpBufferToFile("dump_fwd_out_cpu.bin", outhost.data(), outhost.size());
     }
-
 	return 0;
 }
 
@@ -557,24 +554,9 @@ int ConvDriver<T>::RunBackwardGPU() {
 	workspace_dev->FromGPU(GetStream(), workspace.data());
 	dwei_dev->FromGPU(GetStream(), dwei.data());
 
-    int dumpOutput = inflags.GetValueInt("dump_output");
-    if(dumpOutput)
-    {
-        std::ofstream outFile_din("dump_bwd_din_gpu.bin", std::ios::binary);
-        if(outFile_din)
-        {
-            outFile_din.write(reinterpret_cast<char*>(din.data()), din.size()*sizeof(T));
-            outFile_din.close();
-            printf("Wrote GPU BWD din to file dump_bwd_din_gpu.bin\n");
-        }
-
-        std::ofstream outFile_dwei("dump_bwd_dwei_gpu.bin", std::ios::binary);
-        if(outFile_dwei)
-        {
-            outFile_dwei.write(reinterpret_cast<char*>(dwei.data()), dwei.size()*sizeof(T));
-            outFile_dwei.close();
-            printf("Wrote GPU BWD dwei to file dump_bwd_dwei_gpu.bin\n");
-        }
+    if(inflags.GetValueInt("dump_output")) {
+        dumpBufferToFile("dump_bwd_din_gpu.bin", din.data(), din.size());
+        dumpBufferToFile("dump_bwd_dwei_gpu.bin", dwei.data(), dwei.size());
     }
 
 	return ret;
@@ -616,16 +598,8 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 			workspace_host);
 #endif
 
-    int dumpOutput = inflags.GetValueInt("dump_output");
-    if(dumpOutput)
-    {
-        std::ofstream outFile("dump_bwd_dwei_cpu.bin", std::ios::binary);
-        if(outFile)
-        {
-            outFile.write(reinterpret_cast<char*>(dwei_host.data()), dwei_host.size()*sizeof(T));
-            outFile.close();
-            printf("Wrote CPU output to file dump_bwd_dwei_cpu.bin\n");
-        }
+    if(inflags.GetValueInt("dump_output")) {
+        dumpBufferToFile("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
     }
 
 	return 0;
@@ -683,18 +657,10 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 		}
 	}
 
-    int dumpOutput = inflags.GetValueInt("dump_output");
-    if(dumpOutput)
-    {
-        std::ofstream outFile("dump_bwd_din_cpu.bin", std::ios::binary);
-        if(outFile)
-        {
-            outFile.write(reinterpret_cast<char*>(din_host.data()), din_host.size()*sizeof(T));
-            outFile.close();
-            printf("Wrote CPU output to file dump_bwd_din_cpu.bin\n");
-        }
+    if(inflags.GetValueInt("dump_output")) {
+        dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
     }
-	return 0;
+    return 0;
 }
 
 template<typename T>
