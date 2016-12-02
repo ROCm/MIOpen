@@ -104,7 +104,7 @@ __kernel void MLOpenConv1x1PS_LW(
 // KERNEL
 // private buffers
 	__private _FLOAT4 in_stage[MLO_N_LCL_BATCHS][MLO_N_LCL_IN_MAPS];
-	__private _FLOAT wei_stage[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];
+	__private _FLOAT wei_stage;
 	__private _FLOAT4 out_tiles[MLO_N_LCL_BATCHS][MLO_N_LCL_OUT_MAPS];
 	__local _FLOAT lcl_wei_stage[MLO_LCL_MEM_SZ];
 
@@ -222,10 +222,10 @@ __kernel void MLOpenConv1x1PS_LW(
 			{
 				// read weights
 				int lcl_wei_off2 = lcl_wei_off1 + mul24(in_map_id, (int)MLO_WEI_CHANNEL_STRIDE);
-				wei_stage[olc][ilc] = lcl_wei_stage[lcl_wei_off2];
+				wei_stage = lcl_wei_stage[lcl_wei_off2];
 				for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 				{
-					out_tiles[ib][olc] += in_stage[ib][ilc] * (_FLOAT4)wei_stage[olc][ilc];
+					out_tiles[ib][olc] += in_stage[ib][ilc] * (_FLOAT4)wei_stage;
 #if 0
 					if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 /*&& in_map_id == 0*/ && pix_id == 0 && olc == 0 && ib == 0)
 					{
@@ -241,9 +241,9 @@ __kernel void MLOpenConv1x1PS_LW(
 							olc,
 							ilc,
 							out_tiles[ib][olc].s0,
-							in_stage[ib][ilc].s0 * wei_stage[olc][ilc],
+							in_stage[ib][ilc].s0 * wei_stage,
 							in_stage[ib][ilc].s0,
-							wei_stage[olc][ilc]
+							wei_stage
 							);
 					}
 #endif
