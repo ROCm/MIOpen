@@ -266,7 +266,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 	*workSpaceSize = construct_params.getWorkSpaceSzBytes();
 }
 
-
 // FindBackwardWeightsAlgorithm()
 //
 void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
@@ -322,7 +321,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	std::string kernel_name = soln.main_kernel_function_name;
 	std::string network_config = tgg.get_networkconfig_string();
 
-	auto main_kernel_worksize_params =  soln.get_main_kernel_worksize_params(M, N);
+	auto main_kernel_worksize_params =  soln.get_main_kernel_worksize_params(N, M);
 	size_t local_work_size = main_kernel_worksize_params.at("local_work_size");
 	size_t global_work_size = main_kernel_worksize_params.at("global_work_size");
 
@@ -363,7 +362,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
 		// main kernel
 		auto bwd_wrw = bwd_wrw_info[0];
-		float padding_val = 0;
 
 		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
 				network_config,
@@ -371,7 +369,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 				std::get<0>(bwd_wrw),
 				std::get<4>(bwd_wrw),
 				std::get<3>(bwd_wrw),
-				std::get<2>(bwd_wrw));// (dy, x, workSpace, padding_val);
+				std::get<2>(bwd_wrw));
 
 		// second kernel hash
 		network_config += "x1";
@@ -384,7 +382,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 				std::get<0>(bwd_wrw_red),
 				std::get<4>(bwd_wrw_red),
 				std::get<3>(bwd_wrw_red),
-				std::get<2>(bwd_wrw_red));// (workSpace, dw);
+				std::get<2>(bwd_wrw_red));
 	}
 }
 
@@ -458,7 +456,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 					Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 					if(handle.IsProfilingEnabled())
 						t1 = handle.GetKernelTime();
-					//printf("imtime %f\n", t1);
 
 					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, ldb, lda, ldc, N, M, K, 0, out_offset, 0);
 
