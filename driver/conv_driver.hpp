@@ -236,11 +236,11 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	din_host = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
-		in[i] = 2;//(T)((double)rand() * (1.0 / RAND_MAX));
+		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 	for (int i = 0; i < out_sz; i++) {
 		out[i] = (T)((double)rand() * (1.0 / RAND_MAX));
-		dout[i] = 4;//(T)((double)rand() * (1.0 / RAND_MAX));
+		dout[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
 
