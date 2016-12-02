@@ -58,12 +58,6 @@ n batchs (stacks) processed by the group
 */
 
 
-static int mloLg2(int v)
-{
-       int ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
-       return(ret);
-}
-
 
 	static
 int mloBuildConf_Val(
@@ -572,8 +566,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	int wei_cstride = _kernel_size0*_kernel_size1;
 	// backward: inputs are forward outputs
 	int wei_bstride = ((getDirection() == 1) ? _n_inputs : _n_outputs)*wei_cstride;
-    int read_unit = 1;
-    int lg2_read_unit = mloLg2(read_unit);
+    int read_unit = 4;
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
     
 
