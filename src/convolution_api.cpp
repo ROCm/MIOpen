@@ -215,7 +215,7 @@ mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
 		const mlopenTensorDescriptor_t		dwDesc,
 		size_t								*workSpaceSize) {
 
-	size_t size_0, size_1 = 0;
+	size_t size_0 = 0, size_1 = 0;
 	mlopen::try_([&] {
 		mlopen::deref(convDesc).ConvolutionBackwardWeightsGetWorkSpaceSize(
 			mlopen::deref(dyDesc),
