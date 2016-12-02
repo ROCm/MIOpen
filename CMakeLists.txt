@@ -122,6 +122,7 @@ enable_clang_tidy(
 
 )
 
+add_subdirectory(AddKernels)
 add_subdirectory(src)
 add_subdirectory(driver)
 add_subdirectory(test)

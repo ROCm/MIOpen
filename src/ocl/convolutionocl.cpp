@@ -298,25 +298,25 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
 	// GEMM
-	int M = in_c * wei_h * wei_w;
-	int N = wei_n;
-	int K = out_h * out_w;
+	int N = in_c * wei_h * wei_w; 
+	int M = wei_n; 
+	int K = out_h * out_w;  
 	float alpha = 1.0;
 	float beta = 1.0;
-	bool tA = true;
-	bool tB = false;
+	bool tA = false;
+	bool tB = true;
 	bool tC = false;
 	unsigned int lda = K;
 	unsigned int ldb = K;
-	unsigned int ldc = M;
+	unsigned int ldc = N;
 
 	size_t in_offset = 0;
 	Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 
 	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
-	tinygemm::TinyGemmGeometry tgg( true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
+	tinygemm::TinyGemmGeometry tgg( true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
 	// alloted_time, queue, a, b, c, enforce_determinism, float_type, geometry, alpha, beta, verbose 
-	tinygemm::TinyGemmSolution soln = tinygemm::find(1, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, true);
+	tinygemm::TinyGemmSolution soln = tinygemm::find(.003, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, false);
 
 	std::string program_name = soln.main_kernel;
 	std::string kernel_name = soln.main_kernel_function_name;
@@ -371,7 +371,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 				std::get<0>(bwd_wrw),
 				std::get<4>(bwd_wrw),
 				std::get<3>(bwd_wrw),
-				std::get<2>(bwd_wrw)) (dy, x, workSpace, padding_val);
+				std::get<2>(bwd_wrw));// (dy, x, workSpace, padding_val);
 
 		// second kernel hash
 		network_config += "x1";
@@ -384,7 +384,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 				std::get<0>(bwd_wrw_red),
 				std::get<4>(bwd_wrw_red),
 				std::get<3>(bwd_wrw_red),
-				std::get<2>(bwd_wrw_red)) (workSpace, dw);
+				std::get<2>(bwd_wrw_red));// (workSpace, dw);
 	}
 }
 
@@ -431,19 +431,19 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 			int out_h, out_w;
 			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
-			int M = in_c * wei_h * wei_w;
-			int N = wei_n;
-			int K = out_h * out_w;
+			int N = in_c * wei_h * wei_w; 
+			int M = wei_n; 
+			int K = out_h * out_w;  
 			float alpha = 1.0;
 			float beta = 1.0;
-			bool tA = true;
-			bool tB = false;
+			bool tA = false;
+			bool tB = true;
 			bool tC = false;
 			unsigned int lda = K;
 			unsigned int ldb = K;
-			unsigned int ldc = M;
+			unsigned int ldc = N;
 
-			tinygemm::TinyGemmGeometry tgg( true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
+			tinygemm::TinyGemmGeometry tgg( true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
 			std::string network_config = tgg.get_networkconfig_string();
 
 			std::string algorithm_name;
@@ -460,7 +460,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 						t1 = handle.GetKernelTime();
 					//printf("imtime %f\n", t1);
 
-					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, 0, out_offset, 0);
+					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, ldb, lda, ldc, N, M, K, 0, out_offset, 0);
 
 					// Update times for both the kernels
 					if(handle.IsProfilingEnabled()) {
@@ -470,12 +470,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 							handle.AccumKernelTime(t1);
 						time_0 += handle.GetKernelTime();
 					}
-					
 				}
 				else if(wei_h == 1 && wei_w == 1) {
 					unsigned int in_offset = i * in_c * in_h * in_w;
-					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, lda, ldb, ldc, M, N, K, in_offset, out_offset, 0);
-
+					handle.GetKernel(algorithm_name, network_config)(dw, x, dy, alpha, beta, ldb, lda, ldc, N, M, K, in_offset, out_offset, 0);
 					if(handle.IsProfilingEnabled()) {
 						if(i == in_n - 1)
 							handle.AccumKernelTime(time_0);
