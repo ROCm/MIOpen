@@ -2,6 +2,7 @@
 #define GUARD_MLOPEN_HIPOC_KERNEL_HPP
 
 #include <mlopen/hipoc_program.hpp>
+#include <mlopen/errors.hpp>
 
 namespace mlopen {
 
@@ -38,6 +39,8 @@ struct HIPOCKernel
     std::string name;
     std::vector<size_t> ldims;
     std::vector<size_t> gdims;
+    std::string kernel_module;
+    hipFunction_t fun; // TODO: This currently leaks memory
 
     HIPOCKernel()
     {}
@@ -48,6 +51,11 @@ struct HIPOCKernel
         {
             gdims[i] = (global_dims[i] - 1)/local_dims[i] + 1;
         }
+
+        kernel_module = "&__OpenCL_" + name + "_kernel";
+        auto status = hipModuleGetFunction(&fun, program.module.get(), kernel_module.c_str());
+        if (hipSuccess != status)
+            MLOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);
     }
 
     template<class... Ts>

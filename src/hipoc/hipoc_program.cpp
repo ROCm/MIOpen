@@ -68,6 +68,7 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params)
     std::string hsaco_file = src_file.name + ".hsaco";
     std::string obj_file = src_file.name + ".obj";
 
+#if 1
     execute(HIP_OC_COMPILER, 
         "-march=hsail64 -mdevice=Fiji -output=" + bin_file +  
         params + " " +
@@ -77,14 +78,18 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params)
         "-I elf32-little -j .text -O binary -S " + bin_file +
         " " + hsaco_file
     );
-
+#else
+    execute(HIP_OC_COMPILER, 
+        "-march=hsail64 -mdevice=Fiji -save-temps=dump -nobin " +  
+        params + " " +
+        src_file.name);
     execute(HIP_OC_FINALIZER,
-        "-target=8:0:3 -hsail " + hsaco_file + 
-        " -output=" + obj_file
+        "-target=8:0:3 -hsail dump_0_Fiji.hsail -output=" + hsaco_file
     );
+#endif
 
     hipModule_t raw_m;
-    auto status = hipModuleLoad(&raw_m, obj_file.c_str());
+    auto status = hipModuleLoad(&raw_m, hsaco_file.c_str());
     hipModulePtr m{raw_m};
     if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed creating module");
     // TODO: Remove file on destruction
