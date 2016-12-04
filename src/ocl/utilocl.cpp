@@ -22,17 +22,20 @@ mlopenStatus_t Im2ColGPU(
 
 	std::string params;
 	int num_ch_per_wg;
-	if(h <= 8 && w <= 8)
+	if(out_h <= 8 && out_w <= 8)
 		num_ch_per_wg = 4;
 	else 
 		num_ch_per_wg = 1;
 	
 	params += "-DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
+//	params += "-DNUM_IM_BLKS_X=";
+//	params += "-DNUM_IM_BLKS=";
+//	params += "-DLOCAL_MEM_SIZE=";
 
-//	printf(" %d %d\n", col_m, grid_size);
+	printf(" %d %d\n", col_m, grid_size);
 	const std::vector<size_t> vld(1, 256);
 //	const std::vector<size_t> vgd(1, grid_size);
-	const std::vector<size_t> vgd(1, 256*c/num_ch_per_wg);
+	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*2);
 
 	handle.GetKernel("mlopenIm2Col",
 			network,
