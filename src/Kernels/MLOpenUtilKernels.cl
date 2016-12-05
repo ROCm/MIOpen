@@ -29,7 +29,7 @@ kernel void Im2Col(global float *im, size_t im_offset,
 		col[col_row*out_h*out_w + out_y*out_w + out_x] = 0.;
 	}
 }
-#else
+#endif
 kernel void Im2Col(global float *im, size_t im_offset,
 		const int h, const int w,
 		const int wei_h, const int wei_w,
@@ -40,15 +40,15 @@ kernel void Im2Col(global float *im, size_t im_offset,
 {
 #define THREADS_PER_CH (256 / NUM_CH_PER_WG)
 
-	// Load image into LDS
 	global float *im_off = im + im_offset;
-
-	// each workgroup works on 4 channels if < 8x8 else 1 channel
 	int lid = get_local_id(0);
-	int gid = get_group_id(0);	
+	int gid = get_group_id(0);
 
-#if 0
+#if NUM_IM_BLKS == 1 
+
+	// Load image into LDS
 	local float local_im[256];
+
 	int witem_ch = lid / THREADS_PER_CH;
 	if(lid < NUM_CH_PER_WG*h*w)
 		local_im[lid] = im_off[(gid*NUM_CH_PER_WG)*h*w + lid]; 
@@ -76,9 +76,8 @@ kernel void Im2Col(global float *im, size_t im_offset,
 			}
 		}
 	}
-#endif
-//#define NUM_IM_BLKS_X 2
-//#define NUM_IM_BLKS_Y 2
+
+#else // NUM_IM_BLKS > 1
 
 	local float local_im[LOCAL_MEM_SIZE];
 
@@ -135,5 +134,5 @@ kernel void Im2Col(global float *im, size_t im_offset,
 		}
 
 	}
-}
 #endif
+}

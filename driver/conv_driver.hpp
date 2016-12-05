@@ -236,11 +236,11 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	din_host = std::vector<T>(in_sz, 0);
 
 	for(int i = 0; i < in_sz; i++) {
-		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+		in[i] = (i%8);//(T)((double)rand() * (1.0 / RAND_MAX));
 	}
 	for (int i = 0; i < out_sz; i++) {
 		out[i] = (T)((double)rand() * (1.0 / RAND_MAX));
-		dout[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+		dout[i] = (i%8);//(T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
 
@@ -432,6 +432,46 @@ int ConvDriver<T>::FindBackwardWeights() {
 			(inflags.GetValueInt("search") == 1) ? true : false
 		);
 
+	float time = 0;
+	mlopenGetKernelTime(GetHandle(), &time);
+	printf("im time %f\n", time);
+
+	int in_n, in_c, in_h, in_w;
+	int in_nstride, in_cstride, in_hstride, in_wstride;
+	mlopenDataType_t dt;
+	mlopenGet4dTensorDescriptor(inputTensor, &dt,
+			&in_n, &in_c, &in_h, &in_w,
+			&in_nstride, &in_cstride, &in_hstride, &in_wstride);
+
+	int wei_n, wei_c, wei_h, wei_w;
+	int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
+	mlopenGet4dTensorDescriptor(weightTensor, &dt,
+			&wei_n, &wei_c, &wei_h, &wei_w,
+			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+
+	int out_n, out_c, out_h, out_w;
+	int out_nstride, out_cstride, out_hstride, out_wstride;
+	mlopenGet4dTensorDescriptor(outputTensor, &dt,
+			&out_n, &out_c, &out_h, &out_w,
+			&out_nstride, &out_cstride, &out_hstride, &out_wstride);
+
+	int u, v, pad_h, pad_w, upx, upy;
+	mlopenConvolutionMode_t mode;
+	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+
+	if(wei_h != 1 && wei_w != 1) {
+		Im2ColCPU(in, 0, in_c, in_h, in_w,
+				wei_h, wei_w,
+				out_h, out_w, pad_h, pad_w, v, u, workspace_host);
+		
+		workspace_dev->FromGPU(GetStream(), workspace.data());
+		
+		for(int i = 0; i < workspace.size(); i++) {
+			if(workspace[i] != workspace_host[i]) {
+				printf("Im2col error: %d %f %f\n ", i, workspace[i], workspace_host[i]);
+			}
+		}
+	}
 	return 0;
 }
 

@@ -18,8 +18,8 @@ mlopenStatus_t Im2ColGPU(
 	std::string kernel_name = "Im2Col";
 	std::string network = "placeholder";
 
-	int col_m = c * wei_h * wei_w;
-	int grid_size = col_m * out_h * out_w;
+//	int col_m = c * wei_h * wei_w;
+//	int grid_size = col_m * out_h * out_w;
 
 	std::string params;
 	int num_ch_per_wg;
@@ -31,14 +31,11 @@ mlopenStatus_t Im2ColGPU(
 	int num_blks_x = std::ceil(static_cast<float>(out_w)/16);
 	int num_blks = std::ceil(static_cast<float>(out_w)/16) * std::ceil(static_cast<float>(out_h)/16);
 
-	printf("%d %d \n", num_blks_x, num_blks);
-	
 	params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
 	params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
 	params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
 	params += " -DLOCAL_MEM_SIZE=" + std::to_string((16+2*pad_w)*(16+2*pad_h));
 
-	printf(" %d %d\n", col_m, grid_size);
 	const std::vector<size_t> vld(1, 256);
 //	const std::vector<size_t> vgd(1, grid_size);
 	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*num_blks);
