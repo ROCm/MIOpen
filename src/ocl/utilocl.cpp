@@ -1,5 +1,6 @@
 #include <mlopen/util.hpp>
 #include <mlopen/kernel_cache.hpp>
+#include <cmath>
 
 namespace mlopen {
 
@@ -27,15 +28,20 @@ mlopenStatus_t Im2ColGPU(
 	else 
 		num_ch_per_wg = 1;
 	
-	params += "-DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
-//	params += "-DNUM_IM_BLKS_X=";
-//	params += "-DNUM_IM_BLKS=";
-//	params += "-DLOCAL_MEM_SIZE=";
+	int num_blks_x = std::ceil(static_cast<float>(out_w)/16);
+	int num_blks = std::ceil(static_cast<float>(out_w)/16) * std::ceil(static_cast<float>(out_h)/16);
+
+	printf("%d %d \n", num_blks_x, num_blks);
+	
+	params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
+	params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
+	params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
+	params += " -DLOCAL_MEM_SIZE=" + std::to_string((16+2*pad_w)*(16+2*pad_h));
 
 	printf(" %d %d\n", col_m, grid_size);
 	const std::vector<size_t> vld(1, 256);
 //	const std::vector<size_t> vgd(1, grid_size);
-	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*2);
+	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*num_blks);
 
 	handle.GetKernel("mlopenIm2Col",
 			network,
