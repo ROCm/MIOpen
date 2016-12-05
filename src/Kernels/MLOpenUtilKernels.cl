@@ -90,21 +90,10 @@ kernel void Im2Col(global float *im, size_t im_offset,
 	int out_cols_wg = im_x + 16 <= out_w ? 16 : out_w - im_x;
 	int out_rows_wg = im_y + 16 <= out_h ? 16 : out_h - im_y;
 
-	int im_cols_wg = 16 + 2*pad_w;
+	int im_cols_wg = 16+ 2*pad_w;
 	int inner_lid = lid;
-	int row_to_use = inner_lid / im_cols_wg;
-	int col_to_use = inner_lid % im_cols_wg;
-	int lm_offset = row_to_use*im_cols_wg + col_to_use;
-	if(im_y + row_to_use >= pad_h && im_y + row_to_use < h+pad_h && im_x + col_to_use >= pad_w && im_x + col_to_use < w+pad_w) {
-		int im_off_h = im_y + row_to_use - pad_h;
-		int im_off_w = im_x + col_to_use - pad_w;
-		local_im[lm_offset] = im_off[wg_ch*h*w + im_off_h*w + im_off_w];
-	}
-	else
-		local_im[lm_offset] = 0;
 
-	inner_lid += 256;
-	if(inner_lid < LOCAL_MEM_SIZE) {
+	while (inner_lid < LOCAL_MEM_SIZE) {
 		int row_to_use = inner_lid / im_cols_wg;
 		int col_to_use = inner_lid % im_cols_wg;
 		int lm_offset = row_to_use*im_cols_wg + col_to_use;
@@ -115,6 +104,8 @@ kernel void Im2Col(global float *im, size_t im_offset,
 		}
 		else
 			local_im[lm_offset] = 0;
+
+		inner_lid += 256;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
