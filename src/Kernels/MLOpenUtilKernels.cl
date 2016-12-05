@@ -30,6 +30,7 @@ kernel void Im2Col(global float *im, size_t im_offset,
 	}
 }
 #endif
+#if 1
 kernel void Im2Col(global float *im, size_t im_offset,
 		const int h, const int w,
 		const int wei_h, const int wei_w,
@@ -44,7 +45,7 @@ kernel void Im2Col(global float *im, size_t im_offset,
 	int lid = get_local_id(0);
 	int gid = get_group_id(0);
 
-#if NUM_IM_BLKS == 1 
+#if NUM_IM_BLKS == 1 && STRIDE_GT_1 == 0 
 
 	// Load image into LDS
 	local float local_im[256];
@@ -77,7 +78,7 @@ kernel void Im2Col(global float *im, size_t im_offset,
 		}
 	}
 
-#else // NUM_IM_BLKS > 1
+#else // NUM_IM_BLKS > 1 || STRIDE_GT_1 1
 
 	local float local_im[LOCAL_MEM_SIZE];
 
@@ -90,7 +91,7 @@ kernel void Im2Col(global float *im, size_t im_offset,
 	int out_cols_wg = im_x + 16 <= out_w ? 16 : out_w - im_x;
 	int out_rows_wg = im_y + 16 <= out_h ? 16 : out_h - im_y;
 
-	int im_cols_wg = 16+ 2*pad_w;
+	int im_cols_wg = 16*stride_w+ wei_w;
 	int inner_lid = lid;
 
 	while (inner_lid < LOCAL_MEM_SIZE) {
@@ -118,8 +119,8 @@ kernel void Im2Col(global float *im, size_t im_offset,
 
 		for(int y = 0; y < wei_h; y++) {
 			for(int x = 0; x < wei_w; x++) {
-				int im_off_h = out_y + y;
-				int im_off_w = out_x + x;
+				int im_off_h = out_y*stride_h + y;
+				int im_off_w = out_x*stride_w + x;
 				col[col_y + col_x + (y*wei_w+x)*out_h*out_w] = local_im[(im_off_h)*im_cols_wg + im_off_w];	
 			}
 		}
@@ -127,3 +128,4 @@ kernel void Im2Col(global float *im, size_t im_offset,
 	}
 #endif
 }
+#endif
