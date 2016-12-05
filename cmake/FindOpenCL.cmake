@@ -1,7 +1,7 @@
-find_path(OPENCL_INCLUDE_DIRS
+find_path(OpenCL_INCLUDE_DIRS
 	NAMES OpenCL/cl.h CL/cl.h
 	HINTS
-	${OPENCL_ROOT}/include
+	${OpenCL_ROOT}/include
 	$ENV{AMDAPPSDKROOT}/include
 	$ENV{CUDA_PATH}/include
 	PATHS
@@ -11,16 +11,16 @@ find_path(OPENCL_INCLUDE_DIRS
 	/opt/cuda/include
 	DOC "OpenCL header file path"
 	)
-mark_as_advanced( OPENCL_INCLUDE_DIRS )
+mark_as_advanced( OpenCL_INCLUDE_DIRS )
 
 # Search for 64bit libs if FIND_LIBRARY_USE_LIB64_PATHS is set to true in the global environment, 32bit libs else
 get_property( LIB64 GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS )
 
 if( LIB64 )
-	find_library( OPENCL_LIBRARIES
+	find_library( OpenCL_LIBRARIES
 		NAMES OpenCL
 		HINTS
-		${OPENCL_ROOT}/lib
+		${OpenCL_ROOT}/lib
 		$ENV{AMDAPPSDKROOT}/lib
 		$ENV{CUDA_PATH}/lib
 		DOC "OpenCL dynamic library path"
@@ -31,7 +31,7 @@ if( LIB64 )
 		/opt/cuda/lib
 		)
 else( )
-	find_library( OPENCL_LIBRARIES
+	find_library( OpenCL_LIBRARIES
 		NAMES OpenCL
 		HINTS
 		${OPENCL_ROOT}/lib
@@ -46,11 +46,15 @@ else( )
 		/opt/cuda/lib
 		)
 endif( )
-mark_as_advanced( OPENCL_LIBRARIES )
+mark_as_advanced( OpenCL_LIBRARIES )
 
 include( FindPackageHandleStandardArgs )
-FIND_PACKAGE_HANDLE_STANDARD_ARGS( OPENCL DEFAULT_MSG OPENCL_LIBRARIES OPENCL_INCLUDE_DIRS )
+find_package_handle_standard_args( OpenCL DEFAULT_MSG OpenCL_LIBRARIES OpenCL_INCLUDE_DIRS )
 
-if( NOT OPENCL_FOUND )
+set(OPENCL_FOUND ${OpenCL_FOUND} CACHE INTERNAL "")
+set(OPENCL_LIBRARIES ${OpenCL_LIBRARIES} CACHE INTERNAL "")
+set(OPENCL_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS} CACHE INTERNAL "")
+
+if( NOT OpenCL_FOUND )
 	message( STATUS "FindOpenCL looked for libraries named: OpenCL" )
 endif()
