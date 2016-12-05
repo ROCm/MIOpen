@@ -15,7 +15,6 @@ mlopenStatus_t LRNDescriptor::Forward(
 		Data_t						workSpace) {
 
 	mlopenStatus_t status = mlopenStatusSuccess;
-	printf("in lrn forward\n");
 	mlo_construct_norm construct_params(1); // forward
 
 	construct_params.setStream(handle.GetStream());
@@ -119,8 +118,6 @@ mlopenStatus_t LRNDescriptor::Forward(
 		obj(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
 	}
 
-	std::cout << "LRN Forward Finished !!" << std::endl;
-
 	return(status);
 }
 
@@ -139,7 +136,6 @@ mlopenStatus_t LRNDescriptor :: Backward(
 		const Data_t				workSpace) {
 
 	mlopenStatus_t status = mlopenStatusSuccess;
-	printf("in lrn backward\n");
 	mlo_construct_norm construct_params(0); // backward
 
 	construct_params.setStream(handle.GetStream());
@@ -282,8 +278,6 @@ mlopenStatus_t LRNDescriptor :: Backward(
 			vgd,
 			compiler_parms)(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
 
-
-	std::cout << "LRN Backward Finished !!" << std::endl;
 
 	return(status);
 }

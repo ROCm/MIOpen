@@ -58,6 +58,7 @@ n batchs (stacks) processed by the group
 */
 
 
+
 	static
 int mloBuildConf_Val(
 		std::string & conf_val,
@@ -565,22 +566,25 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	int wei_cstride = _kernel_size0*_kernel_size1;
 	// backward: inputs are forward outputs
 	int wei_bstride = ((getDirection() == 1) ? _n_inputs : _n_outputs)*wei_cstride;
+    int read_unit = 4;
+    std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
+    
 
 	// currently always 1
 	int N4S = 1;
 
-	int MAP_SZ4 = (_in_width * _in_height + N4S * 4 - 1) / (N4S * 4);
+    int MAP_SZ4 = (_in_width * _in_height + N4S * read_unit - 1) / (N4S * read_unit);
 
-	int DIVBY4 = (MAP_SZ4 * 4 == _in_width * _in_height) ? 1 : 0;
+    int DIVBY4 = (MAP_SZ4 * read_unit == _in_width * _in_height) ? 1 : 0;
 
-	int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0 : _in_width * _in_height - (MAP_SZ4 - 1) * 4;
-
+    int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0 : _in_width * _in_height - (MAP_SZ4 - 1) * read_unit;
+    
 	bool small_map = false;
 	int GRP_SZ = _grp_tile0;
 	int N_MAPS_PERGROUP = 1;
-	// exchange step is a number of partial sums that can be eaxchanged in the kernel in one pass
-	// it's used for small maps at th eend of the kerenl to reduce partial sums
-	// tha number is kept in and passed through _n_in_data_tiles (with obused semantics).
+	// exchange step is a number of partial sums that can be exchanged in the kernel in one pass
+	// it's used for small maps at the end of the kerenl to reduce partial sums
+	// the number is kept in and passed through _n_in_data_tiles (with abused semantics).
 	int exchange_step = 6;
 	if (MAP_SZ4 <= GRP_SZ / 2)
 	{
@@ -654,6 +658,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 		+ std::string(" -D MLO_BATCH_ALIGNED=") + std::to_string(static_cast<long long>(batch_aligned))
 		+ std::string(" -D MLO_OUTPUTS_ALIGNED=") + std::to_string(static_cast<long long>(output_aligned))
 		+ std::string(" -D MLO_EXCHANGE_STEP=") + std::to_string(static_cast<long long>(exchange_step))
+        + std::string(" -D MLO_READ_TYPE=") + READ_TYPE
+        + std::string(" -D MLO_READ_UNIT=") + std::to_string(static_cast<long long>(read_unit))
 		+ getGeneralCompOptions()
 		;
 
