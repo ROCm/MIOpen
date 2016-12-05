@@ -18,28 +18,32 @@ mlopenStatus_t Im2ColGPU(
 	std::string kernel_name = "Im2Col";
 	std::string network = "placeholder";
 
-//	int col_m = c * wei_h * wei_w;
-//	int grid_size = col_m * out_h * out_w;
+	int col_m = c * wei_h * wei_w;
+	int grid_size = col_m * out_h * out_w;
 
 	std::string params;
 	int num_ch_per_wg;
-	if(out_h <= 8 && out_w <= 8)
+	if((out_h <= 8 && out_w <= 8) && (stride_h == 1 && stride_w==1))
 		num_ch_per_wg = 4;
 	else 
 		num_ch_per_wg = 1;
-	
+
 	int num_blks_x = std::ceil(static_cast<float>(out_w)/16);
 	int num_blks = std::ceil(static_cast<float>(out_w)/16) * std::ceil(static_cast<float>(out_h)/16);
+	int local_mem_sz = (16*stride_w+wei_w)*(16*stride_h+wei_h);
 
 	params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
 	params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
 	params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
-	params += " -DLOCAL_MEM_SIZE=" + std::to_string((16+2*pad_w)*(16+2*pad_h));
+	params += " -DLOCAL_MEM_SIZE=" + std::to_string(local_mem_sz);
+	params += " -DSTRIDE_GT_1=" + std::to_string(stride_h*stride_w > 1);
 
 	const std::vector<size_t> vld(1, 256);
 //	const std::vector<size_t> vgd(1, grid_size);
 	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*num_blks);
-
+//	printf("%d %d\n", out_h, out_w);
+//	printf("vgd %d\n", vgd[0]);
+//	printf("lmem %d\n", local_mem_sz);
 	handle.GetKernel("mlopenIm2Col",
 			network,
 			program_name,
