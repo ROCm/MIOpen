@@ -309,9 +309,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	unsigned int ldb = K;
 	unsigned int ldc = N;
 
-	size_t in_offset = 0;
-	Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
-
+	if(wei_h != 1 && wei_w != 1) {
+		size_t in_offset = 0;
+		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+	}
+	
 	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
 	tinygemm::TinyGemmGeometry tgg( true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
 	// alloted_time, queue, a, b, c, enforce_determinism, float_type, geometry, alpha, beta, verbose 
@@ -456,7 +458,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 					Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 					if(handle.IsProfilingEnabled())
 						t1 = handle.GetKernelTime();
-
+					
 					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, ldb, lda, ldc, N, M, K, 0, out_offset, 0);
 
 					// Update times for both the kernels
