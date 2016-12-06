@@ -98,9 +98,9 @@ kernel void Im2Col(global float *im, size_t im_offset,
 		int row_to_use = inner_lid / im_cols_wg;
 		int col_to_use = inner_lid % im_cols_wg;
 		int lm_offset = row_to_use*im_cols_wg + col_to_use;
-		if(im_y + row_to_use >= pad_h && im_y + row_to_use < h+pad_h && im_x + col_to_use >= pad_w && im_x + col_to_use < w+pad_w) {
-			int im_off_h = im_y + row_to_use - pad_h;
-			int im_off_w = im_x + col_to_use - pad_w;
+		if(im_y*stride_h + row_to_use >= pad_h && im_y*stride_h + row_to_use < h+pad_h && im_x*stride_w + col_to_use >= pad_w && im_x*stride_w + col_to_use < w+pad_w) {
+			int im_off_h = im_y*stride_h + row_to_use - pad_h;
+			int im_off_w = im_x*stride_w + col_to_use - pad_w;
 			local_im[lm_offset] = im_off[wg_ch*h*w + im_off_h*w + im_off_w];
 		}
 		else
