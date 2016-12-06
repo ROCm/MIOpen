@@ -41,9 +41,7 @@ mlopenStatus_t Im2ColGPU(
 	const std::vector<size_t> vld(1, 256);
 //	const std::vector<size_t> vgd(1, grid_size);
 	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*num_blks);
-//	printf("%d %d\n", out_h, out_w);
-//	printf("vgd %d\n", vgd[0]);
-//	printf("lmem %d\n", local_mem_sz);
+	
 	handle.GetKernel("mlopenIm2Col",
 			network,
 			program_name,
