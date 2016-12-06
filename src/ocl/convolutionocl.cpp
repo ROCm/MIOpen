@@ -2,7 +2,7 @@
 #include <mlopen/util.hpp>
 #include <mlopen/mlo_internal.hpp>
 
-#include "tinygemm.hpp"
+#include <tinygemm/tinygemm.hpp>
 namespace mlopen {
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
