@@ -84,7 +84,7 @@ kernel void Im2Col(global float *im, size_t im_offset,
 
 	int witem_ch = lid / THREADS_PER_CH;
 	int wg_ch = gid / NUM_IM_BLKS;
-
+#if 0
 	int im_x = ((gid % NUM_IM_BLKS) % NUM_IM_BLKS_X) * 16;
 	int im_y = ((gid % NUM_IM_BLKS) / NUM_IM_BLKS_X) * 16;
 	
@@ -92,6 +92,16 @@ kernel void Im2Col(global float *im, size_t im_offset,
 	int out_rows_wg = im_y + 16 <= out_h ? 16 : out_h - im_y;
 
 	int im_cols_wg = 16*stride_w+ wei_w;
+#endif
+#if 1
+	int im_x = ((gid % NUM_IM_BLKS) % NUM_IM_BLKS_X) * TILE_SZ_X;
+	int im_y = ((gid % NUM_IM_BLKS) / NUM_IM_BLKS_X) * TILE_SZ_Y;
+	
+	int out_cols_wg = im_x + TILE_SZ_X <= out_w ? TILE_SZ_X : out_w - im_x;
+	int out_rows_wg = im_y + TILE_SZ_Y <= out_h ? TILE_SZ_Y : out_h - im_y;
+
+	int im_cols_wg = TILE_SZ_X*stride_w + wei_w;
+#endif
 	int inner_lid = lid;
 
 	while (inner_lid < LOCAL_MEM_SIZE) {
@@ -110,6 +120,7 @@ kernel void Im2Col(global float *im, size_t im_offset,
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
+#if 0
 	if(lid < out_cols_wg * out_rows_wg) {
 		int out_x = lid % out_cols_wg;
 		int out_y = lid / out_cols_wg;
@@ -124,8 +135,27 @@ kernel void Im2Col(global float *im, size_t im_offset,
 				col[col_y + col_x + (y*wei_w+x)*out_h*out_w] = local_im[(im_off_h)*im_cols_wg + im_off_w];	
 			}
 		}
-
 	}
+#endif
+#if 1
+	inner_lid = lid;
+	while(inner_lid < out_cols_wg * out_rows_wg) {
+		int out_x = inner_lid % out_cols_wg;
+		int out_y = inner_lid / out_cols_wg;
+
+		int col_x = (im_y + out_y) * out_w + im_x + out_x;
+		int col_y = (gid / NUM_IM_BLKS) * out_h * out_w * wei_h * wei_w;
+
+		for(int y = 0; y < wei_h; y++) {
+			for(int x = 0; x < wei_w; x++) {
+				int im_off_h = out_y*stride_h + y;
+				int im_off_w = out_x*stride_w + x;
+				col[col_y + col_x + (y*wei_w+x)*out_h*out_w] = local_im[(im_off_h)*im_cols_wg + im_off_w];	
+			}
+		}
+		inner_lid += 256;
+	}
+#endif
 #endif
 }
 #endif

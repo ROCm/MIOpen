@@ -28,20 +28,31 @@ mlopenStatus_t Im2ColGPU(
 	else 
 		num_ch_per_wg = 1;
 
-	int num_blks_x = std::ceil(static_cast<float>(out_w)/16);
-	int num_blks = std::ceil(static_cast<float>(out_w)/16) * std::ceil(static_cast<float>(out_h)/16);
-	int local_mem_sz = (16*stride_w+wei_w)*(16*stride_h+wei_h);
+	//int num_blks_x = std::ceil(static_cast<float>(out_w)/16);
+	//int num_blks = num_blks_x * std::ceil(static_cast<float>(out_h)/16);
+	//int local_mem_sz = (16*stride_w+wei_w)*(16*stride_h+wei_h);
+
+	int tile_sz_x = 128;
+	int tile_sz_y = 2;
+	int num_blks_x = std::ceil(static_cast<float>(out_w)/tile_sz_x);
+	int num_blks = num_blks_x * std::ceil(static_cast<float>(out_h)/tile_sz_y);
+	int local_mem_sz = (tile_sz_x*stride_w+wei_w)*(tile_sz_y*stride_h+wei_h);
 
 	params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
 	params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
 	params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
 	params += " -DLOCAL_MEM_SIZE=" + std::to_string(local_mem_sz);
 	params += " -DSTRIDE_GT_1=" + std::to_string(stride_h*stride_w > 1);
+	params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
+	params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
 
 	const std::vector<size_t> vld(1, 256);
 //	const std::vector<size_t> vgd(1, grid_size);
 	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*num_blks);
-	
+//	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg));
+
+	printf("vgd %d\n", vgd[0]);
+
 	handle.GetKernel("mlopenIm2Col",
 			network,
 			program_name,
