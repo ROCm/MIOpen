@@ -5,6 +5,8 @@
 #include <fstream>
 #include <mlopen.h>
 #include "driver.hpp"
+#include "mloConvHost.hpp"
+#include "conv_verify.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
 #include "util_driver.hpp"
@@ -588,117 +590,15 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
-    assert(in_wstride == 1);
-	assert(wei_wstride == 1);
-	assert(out_wstride == 1);
+	RunBackwardWeightsCPUVerify(dwei_host, in, dout,
+		in_n, in_c, in_h, in_w, in_nstride, in_cstride, in_hstride, in_wstride,
+		wei_n, wei_c, wei_h, wei_w, wei_nstride, wei_cstride, wei_hstride, wei_wstride,
+		out_n, out_c, out_h, out_w, out_nstride, out_cstride, out_hstride, out_wstride,
+		u, v, pad_h, pad_w);
 
-
-	for (int o = 0; o < out_n; o++) // mini-batch size
-	{
-		for (int w = 0; w < out_c; w++) // out_channels (num filters)
-		{
-			for (int k = 0; k < in_c; k++) // in_channels (RGB)
-			{
-				for (int x = 0; x < wei_h; x++) // filter height
-				{
-					for (int y = 0; y < wei_w; y++) // filter width
-					{
-						for (int i = 0; i < out_h; i++) // output height
-						{
-							for (int j = 0; j < out_w; j++) // output width
-							{
-								int in_i = x + i * u - pad_h;
-								int in_j = y + j * v - pad_w;
-
-								if ((in_i >= 0) && (in_i < in_h) && (in_j >= 0) && (in_j < in_w))
-								{
-									dwei_host[w*wei_nstride + k*wei_cstride + x*wei_hstride + y] +=
-										in[o*in_nstride + k*in_cstride + in_i*in_hstride + in_j] *
-										dout[o*out_nstride + w*out_cstride + i*out_hstride + j];
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+	if (inflags.GetValueInt("dump_output")) {
+		dumpBufferToFile("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
 	}
-
-#ifdef BACKWARD_WRW_VERIFY_2
-
-	{
-		assert(u == 1);
-		assert(v == 1);
-
-		std::fill(dwei_host.begin(), dwei_host.end(), (T)0);
-
-		int pad0 = pad_w;
-		int pad1 = pad_h;
-		int batch_sz = out_n;
-		int outputs = out_c;
-		int inputs = in_c;
-		int top_df_batch_stride = out_nstride;
-		int top_df_channel_stride = out_cstride;
-		int top_df_stride = out_hstride;
-		int bot_batch_stride = in_nstride;
-		int bot_channel_stride = in_cstride;
-		int weights_df_v2_stride = wei_nstride;
-		int bot_stride = in_hstride;
-
-		int kernel_size0 = wei_w;
-		int kernel_size1 = wei_h;
-		int kernel_sz = kernel_size0 * kernel_size1;
-
-		int top_height = out_h;
-		int top_width = out_w;
-		int bot_height = in_h;
-		int bot_width = in_w;
-
-
-		for (int b = 0; b < batch_sz; ++b)
-		{
-			for (int o = 0; o < outputs; ++o)
-			{
-				for (int c = 0; c < inputs; ++c)
-				{
-					int top_df_off = b*top_df_batch_stride + o*top_df_channel_stride;
-					int bot_off = b*bot_batch_stride + c*bot_channel_stride;
-					int we_off = o * weights_df_v2_stride + c * kernel_sz;
-
-					for (int j = 0, c_j = j - pad1; j < top_height; ++j, ++c_j)
-					{
-
-						for (int i = 0, c_i = i - pad0; i < top_width; i++, ++c_i)
-						{
-							float top_val = dout[top_df_off + j*top_df_stride + i];
-
-							for (int k = 0, c_j = j - pad1; k < kernel_size1; ++k, ++c_j)
-							{
-
-								for (int l = 0, c_i = i - pad0; l < kernel_size0; ++l, ++c_i)
-								{
-
-									float bot_val = (c_j >= 0 && c_j < bot_height && c_i >= 0 && c_i < bot_width) ?
-										in[bot_off + c_j*bot_stride + c_i] : 0;
-
-
-									dwei_host[we_off + k*kernel_size0 + l] += bot_val*top_val;
-
-
-								}
-							}
-						}
-					}
-				}
-
-			}
-		}
-	}
-
-#endif
-    if(inflags.GetValueInt("dump_output")) {
-        dumpBufferToFile("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
-    }
 
 	return 0;
 }
