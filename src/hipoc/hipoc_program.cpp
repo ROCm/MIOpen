@@ -68,7 +68,7 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params)
     std::string hsaco_file = src_file.name + ".hsaco";
     std::string obj_file = src_file.name + ".obj";
 
-#if 1
+#if 0
     execute(HIP_OC_COMPILER, 
         "-march=hsail64 -mdevice=Fiji -output=" + bin_file +  
         params + " " +

@@ -47,6 +47,8 @@ struct HIPOCKernel
     HIPOCKernel(HIPOCProgram p, const std::string kernel_name, std::vector<size_t> local_dims, std::vector<size_t> global_dims)
     : program(p), name(kernel_name), ldims(local_dims), gdims(3, 1)
     {
+        assert(local_dims.size() == 3);
+        assert(global_dims.size() == 3);
         for(int i=0;i<global_dims.size();i++)
         {
             gdims[i] = (global_dims[i] - 1)/local_dims[i] + 1;
