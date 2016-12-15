@@ -336,7 +336,7 @@ __kernel void MLOpenCvBwdWrW(
 // process	
 // algorithm
 
-#if 1
+#if 0
 				for(int j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK; ++j)		
 				{	
 					_FLOAT i_vals[MLO_WEI_WKITEM];
@@ -381,7 +381,13 @@ __kernel void MLOpenCvBwdWrW(
 					}
 				}
 #else
-				pvt_accum[og * MLO_N_LCL_OUT_MAPS] = lcl_top[0] * lcl_bot[og];
+						for(int o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+						{
+							for(int w = 0; w < MLO_WEI_WKITEM; ++w)
+							{
+								pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] = lcl_top[(og * MLO_N_LCL_OUT_MAPS + o)] * lcl_bot[w];
+							}
+						}
 #endif			
 			
 
