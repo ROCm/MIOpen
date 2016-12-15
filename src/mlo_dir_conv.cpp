@@ -1054,7 +1054,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 
 	// major parameters
-	int n_waves = 8; // (_out_width <= 32) ? 2 : 4; // (_out_width <= 64) ? 8 : 16;
+	int n_waves = 4; // (_out_width <= 32) ? 2 : 4; // (_out_width <= 64) ? 8 : 16;
 					 //	int N_SUB_GROUPS = 1;
 	_n_in_data_tiles = 1;
 	// n of out blocks in lcl memory
@@ -1075,8 +1075,12 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	// input is output
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
 																		 //	int N_ALIGNED_OUT_SCAN_BLK = ((GRP_SZ / _n_out_pix_tiles) / ALIGNED_OUT_SCAN_LN);
-	int N_ALIGNED_OUT_SCAN_BLK = 5; // (GRP_SZ / ALIGNED_OUT_SCAN_LN);
+	int N_ALIGNED_OUT_SCAN_BLK = 2; // (GRP_SZ / ALIGNED_OUT_SCAN_LN);
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
+
+	int OUT_SCAN_NOT_DIVBY4 = (_in_width < ALIGNED_OUT_SCAN_LN*read_unit);
+
+	int OUT_N_PIXS_OFF = ALIGNED_OUT_SCAN_LN*read_unit - _out_width;
 
 
 	_grp_tile0 = GRP_SZ;
@@ -1131,7 +1135,8 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 		+ std::string(" -D MLO_N_OUT_BLK=") + std::to_string(N_OUT_BLK)
 		+ std::string(" -D MLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
 		+ std::string(" -D MLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
-
+		+ std::string(" -D MLO_OUT_SCAN_NOT_DIVBY4=") + std::to_string(OUT_SCAN_NOT_DIVBY4)
+		+ std::string(" -D MLO_OUT_N_PIXS_OFF=") + std::to_string(OUT_N_PIXS_OFF)
 
 		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(_bias)
 

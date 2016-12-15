@@ -59,6 +59,19 @@
 #define MLO_OUT_WEI_SCAN_BLK ((MLO_OUT_HORIX_PIX_SZ + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
 
 
+#if MLO_OUT_SCAN_NOT_DIVBY4
+__constant _FLOAT cnst_out_r_mask[MLO_READ_UNIT] =
+{
+#if MLO_OUT_N_PIXS_OFF == 1
+	1, 1, 1, 0
+#elif MLO_OUT_N_PIXS_OFF == 2
+	1, 1, 0, 0
+#else
+	1, 0, 0, 0
+#endif
+};
+#endif
+
 
 #define MLO_HW_WAVE_ID_SETTING 0
 
@@ -237,7 +250,17 @@ __kernel void MLOpenCvBwdWrW(
 		*(_FLOAT2*)&lcl[2 * i] = 0;
 	}
 
+#if MLO_OUT_SCAN_NOT_DIVBY4
+	 _FLOAT out_r_mask[MLO_READ_UNIT] = {1, 1, 1, 1};
 
+	if(o_pix4 == (MLO_N_OUT_HORIZ_READS-1))
+	{
+		for(int i = 0; i < MLO_READ_UNIT; ++i)
+		{
+			out_r_mask[i] = cnst_out_r_mask[i];
+		}
+	}
+#endif
 	barrier(CLK_LOCAL_MEM_FENCE);
 // zero out pvt accum
 	// over all batches
@@ -274,10 +297,10 @@ __kernel void MLOpenCvBwdWrW(
 		for(int c_scan = c_scan0; c_scan < MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1; c_scan += MLO_IN_VERT_READS)
 		{
 // TODO :: multiply on right mask if needed
-			*(MLO_READ_TYPE*)&in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
+			*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
 // TO DO:: CHECK HEIGHT
 // TO DO:: CHECK PADDING
-			*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_PAD1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)&in_rd_data;
+			*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_PAD1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
 		}
 
 		in_y +=  MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1;
@@ -301,8 +324,8 @@ __kernel void MLOpenCvBwdWrW(
 			for (int c_scan = c_scan0;i_blk_idx < MLO_N_LCL_IN_MAPS && in_y + c_scan < MLO_IN_HEIGHT && c_scan <  (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1); c_scan += MLO_IN_VERT_READS)
 			{
 
-					*(MLO_READ_TYPE*)&in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
-					*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)&in_rd_data;
+					*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
+					*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
 							
 			}
 
@@ -330,13 +353,16 @@ __kernel void MLOpenCvBwdWrW(
 				{
 						*(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT]
 							= *(MLO_READ_TYPE*)&top_df[gbl_out_scan_off + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
-						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIX_PIX_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)&out_rd_data;
+#if MLO_OUT_SCAN_NOT_DIVBY4
+	 					*(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT] *= *(MLO_READ_TYPE*)out_r_mask;
+#endif
+						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIX_PIX_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT];
 				}
 				
 // process	
 // algorithm
 
-#if 0
+#if 1
 				for(int j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK; ++j)		
 				{	
 					_FLOAT i_vals[MLO_WEI_WKITEM];
@@ -398,8 +424,8 @@ __kernel void MLOpenCvBwdWrW(
 // move data up
 			for(int c_scan = c_scan0; c_scan < MLO_FILTER_SIZE1 -1; c_scan += MLO_IN_VERT_READS)
 			{
-					*(MLO_READ_TYPE*)&in_rd_data = *(MLO_READ_TYPE*)&lcl_bot[(c_scan +  (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1))*(MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT];
-					*(MLO_READ_TYPE*)&lcl_bot[c_scan*(MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)&in_rd_data;
+					*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&lcl_bot[(c_scan +  (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1))*(MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT];
+					*(MLO_READ_TYPE*)&lcl_bot[c_scan*(MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
 	
 			}
 
