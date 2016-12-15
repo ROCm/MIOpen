@@ -30,11 +30,25 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+// number of filter taps in the processing wk_item
+#define MLO_WEI_WKITEM 4
+// n of of filter blks
+#define MLO_WEI_BLK_SZ0 ((MLO_FILTER_SIZE0 + MLO_WEI_WKITEM -1)/MLO_WEI_WKITEM)
+#define MLO_WEI_BLK_SZ (MLO_FILTER_SIZE1*MLO_WEI_BLK_SZ0)
+// n of filter tiles in the group grid
+#define MLO_N_WEI_BLK (MLO_GRP_SZ/ MLO_WEI_BLK_SZ)
+// n of steps per scan line to be mdae in the inner loop
+#define MLO_OUT_WEI_SCAN_BLK ((MLO_OUT_HORIX_PIX_SZ + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
+
 #define MLO_N_OUT_HORIZ_READS (MLO_ALIGNED_OUT_SCAN_LN)
 #define MLO_OUT_HORIX_PIX_SZ (MLO_N_OUT_HORIZ_READS * MLO_READ_UNIT)
 #define MLO_OUT_BLK_GRP_PIX_SZ (MLO_OUT_HORIX_PIX_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_BLK_GRP_WK_SZ (MLO_OUT_BLK_GRP_PIX_SZ / MLO_READ_UNIT)
-#define MLO_OUT_LCL_SZ (MLO_OUT_BLK_GRP_PIX_SZ)
+
+// extended scan to deal with overshot in the inner loop
+#define MLO_OUT_HORIX_PIX_EXT_SZ (MLO_OUT_WEI_SCAN_BLK * MLO_N_WEI_BLK)
+#define MLO_OUT_BLK_GRP_EXT_PIX_SZ (MLO_OUT_HORIX_PIX_EXT_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
+#define MLO_OUT_LCL_SZ (MLO_OUT_BLK_GRP_EXT_PIX_SZ)
 // LDS OUT SIZE
 #define MLO_TOTAL_OUT_LCL_SZ (MLO_N_LCL_OUT_MAPS*MLO_OUT_LCL_SZ)
 
@@ -52,14 +66,10 @@
 #define MLO_TOTAL_IN_LCL_SZ (MLO_N_LCL_IN_MAPS*MLO_IN_LCL_SZ)
 #define MLO_IN_VERT_READS (MLO_GRP_SZ/MLO_N_IN_HORIZ_READS)
 
-#define MLO_WEI_WKITEM 2
-#define MLO_WEI_BLK_SZ0 (MLO_FILTER_SIZE0/MLO_WEI_WKITEM)
-#define MLO_WEI_BLK_SZ (MLO_FILTER_SIZE1*MLO_WEI_BLK_SZ0)
-#define MLO_N_WEI_BLK (MLO_GRP_SZ/ MLO_WEI_BLK_SZ)
-#define MLO_OUT_WEI_SCAN_BLK ((MLO_OUT_HORIX_PIX_SZ + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
 
 
-#if MLO_OUT_SCAN_NOT_DIVBY4
+
+#if 0 //MLO_OUT_SCAN_NOT_DIVBY4
 __constant _FLOAT cnst_out_r_mask[MLO_READ_UNIT] =
 {
 #if MLO_OUT_N_PIXS_OFF == 1
@@ -157,7 +167,7 @@ inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int l
 // for each batch
 //		until end of output map (MLO_N_OUT_BLK)
 //			load input map block in LDS
-//			load output maps into registers
+//			load output maps in LDS
 //          for k in filter size1
 //				for l in filter size 0
 //					at for each out/in pixel pair op,ip in wk_item
@@ -188,7 +198,7 @@ __kernel void MLOpenCvBwdWrW(
 {
 // input/output tiles
 
-	__local _FLOAT lcl[(MLO_TOTAL_IN_LCL_SZ + MLO_TOTAL_OUT_LCL_SZ + 2)];
+	__local _FLOAT lcl[(MLO_TOTAL_IN_LCL_SZ + MLO_TOTAL_OUT_LCL_SZ)];
 	__local _FLOAT * lcl_bot = lcl;
 	__local _FLOAT * lcl_top = lcl + MLO_TOTAL_IN_LCL_SZ;
 
@@ -232,6 +242,20 @@ __kernel void MLOpenCvBwdWrW(
 	int w_y = iDiv(w_idx, MLO_WEI_BLK_SZ0);
 	int w_x0 = iMod(w_idx, w_y, MLO_WEI_BLK_SZ0);
 
+// mask to shut down the overshot filter tap
+	__constant int filter_mask0 = ~(1 << MLO_FILTER_SIZE0);
+	int working_mask = 0;
+// filled with 1 evry stride bit 
+	for(int i = 0; i < MLO_WEI_WKITEM; ++i)
+	{
+		working_mask |= (1 << (i*MLO_FILTER_STRIDE0));
+	}
+// add strting point
+	working_mask <<= w_x0;
+// clamp to the filter size
+	working_mask &= filter_mask0;
+// move back to the relative start
+
 	__private _FLOAT pvt_accum[(MLO_N_OUT_BLK_GRP * MLO_N_LCL_OUT_MAPS * MLO_WEI_WKITEM)];
 
 
@@ -245,12 +269,12 @@ __kernel void MLOpenCvBwdWrW(
 
 
 // zero out LDS
-	for (int i = 0; i <  (MLO_TOTAL_IN_LCL_SZ + MLO_TOTAL_OUT_LCL_SZ + 2) / 2; i += MLO_GRP_SZ)
+	for (int i = 0; i <  (MLO_TOTAL_IN_LCL_SZ + MLO_TOTAL_OUT_LCL_SZ) ; i += MLO_GRP_SZ)
 	{
-		*(_FLOAT2*)&lcl[2 * i] = 0;
+		lcl[i] = 0;
 	}
 
-#if MLO_OUT_SCAN_NOT_DIVBY4
+#if 0 //MLO_OUT_SCAN_NOT_DIVBY4
 	 _FLOAT out_r_mask[MLO_READ_UNIT] = {1, 1, 1, 1};
 
 	if(o_pix4 == (MLO_N_OUT_HORIZ_READS-1))
@@ -354,9 +378,16 @@ __kernel void MLOpenCvBwdWrW(
 						*(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT]
 							= *(MLO_READ_TYPE*)&top_df[gbl_out_scan_off + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
 #if MLO_OUT_SCAN_NOT_DIVBY4
-	 					*(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT] *= *(MLO_READ_TYPE*)out_r_mask;
+						if (o_pix4 == (MLO_N_OUT_HORIZ_READS-1))
+						{
+							for(int i = MLO_READ_UNIT-1; i >= MLO_READ_UNIT - MLO_OUT_N_PIXS_OFF; --i)
+							{
+	 							out_rd_data[o*MLO_READ_UNIT + i] = 0;
+							}
+						}
 #endif
-						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIX_PIX_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT];
+// write with MLO_OUT_HORIX_PIX_EXT_SZ stride
+						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIX_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT];
 				}
 				
 // process	
@@ -365,36 +396,51 @@ __kernel void MLOpenCvBwdWrW(
 #if 1
 				for(int j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK; ++j)		
 				{	
+
 					_FLOAT i_vals[MLO_WEI_WKITEM];
 					for(int w = 0; w < MLO_WEI_WKITEM - 1; ++w)
 					{
 							int w_x = w_x0 + w*MLO_FILTER_STRIDE0;
 							int i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + 0) * MLO_FILTER_STRIDE0 + w_x;
-							i_vals[w] = lcl_bot[i_off];
+							_FLOAT i_val = lcl_bot[i_off];
+
+							i_vals[w] = i_val;
 													
 					}
+
+// if we overshoot the scanline
+// out data will be 0 by initial setting
 
 					for(int i = 0; i < MLO_OUT_WEI_SCAN_BLK; ++i)
 					{
 
 //						for(int w = 0; w < MLO_WEI_WKITEM; ++w)
+
 						{
 							int w_x = w_x0 + (MLO_WEI_WKITEM-1)* MLO_FILTER_STRIDE0;
 							int i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
-							i_vals[(MLO_WEI_WKITEM-1)] = lcl_bot[i_off];
+							_FLOAT i_val = lcl_bot[i_off];
+
+							i_vals[(MLO_WEI_WKITEM-1)] = i_val;
 													
 						}
 
 
 						for(int o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
 						{
+// read with MLO_OUT_HORIX_PIX_EXT_SZ stride
 							_FLOAT o_val 
-								= lcl_top[o*MLO_OUT_LCL_SZ + j * MLO_N_OUT_HORIZ_READS + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i)];
+								= lcl_top[o*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIX_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i)];
 
-							for(int w = 0; w < MLO_WEI_WKITEM; ++w)
+							uint running_mask = working_mask;
+							for(int w = 0; w < MLO_WEI_WKITEM; ++w, (running_mask >>= MLO_FILTER_STRIDE0) )
 							{
+// set input data to zero if MLO_FILTER_SIZE0 is not multiple of MLO_WEI_WKITEM and it's over MLO_FILTER_SIZE0
 
-								pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_vals[w] * o_val;
+								_FLOAT i_val = i_vals[w];
+								int ii_val = as_uint(i_val) & (running_mask & 1);
+								i_val = as_float(ii_val);
+								pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
 							}
 						}
 
