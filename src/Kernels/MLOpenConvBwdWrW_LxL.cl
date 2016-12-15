@@ -483,6 +483,9 @@ __kernel void MLOpenCvBwdWrW(
 
 	int o = iDiv(lcl_id, (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0));
 	int wei_i = iMod(lcl_id, o, (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0));
+	int wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
+	int wei_i_x = iMod(wei_i,wei_i_y, (MLO_FILTER_SIZE0));
+
 	int wei_lcl_off = 0;
 	_FLOAT final_sum = 0;
 
@@ -499,19 +502,21 @@ __kernel void MLOpenCvBwdWrW(
 			int w = 0;
 			for(; w < MLO_WEI_WKITEM; ++w)
 			{
-				wei_lcl_off = (o * MLO_N_LCL_OUT_MAPS *  MLO_N_WEI_BLK  + w_blk_idx) * (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0) + w_y * MLO_FILTER_SIZE0 + w_x0 + w * MLO_FILTER_STRIDE0;
+// save "virtual" filter table
+				wei_lcl_off = ((o * MLO_N_LCL_OUT_MAPS *  MLO_N_WEI_BLK  + w_blk_idx) * MLO_FILTER_SIZE1  + w_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + w_x0 + w * MLO_FILTER_STRIDE0;
 				lcl_bot[wei_lcl_off] = pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
 				
 			}
-		
+
 		}
 
 #if 1	
+// read into real filter table
 		if (lcl_id >= (og * MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) && lcl_id < ((og + 1) * MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0))
 		{
 			for(int i = 0; i < MLO_N_WEI_BLK; ++i)
 			{
-				final_sum += lcl_bot[((o - og * MLO_N_LCL_OUT_MAPS) * MLO_N_WEI_BLK  + i) * (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0) + wei_i];
+				final_sum += lcl_bot[(((o - og * MLO_N_LCL_OUT_MAPS) * MLO_N_WEI_BLK  + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i];
 			}
 		}
 #endif
