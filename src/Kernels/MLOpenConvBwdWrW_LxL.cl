@@ -68,21 +68,6 @@
 
 
 
-
-#if 0 //MLO_OUT_SCAN_NOT_DIVBY4
-__constant _FLOAT cnst_out_r_mask[MLO_READ_UNIT] =
-{
-#if MLO_OUT_N_PIXS_OFF == 1
-	1, 1, 1, 0
-#elif MLO_OUT_N_PIXS_OFF == 2
-	1, 1, 0, 0
-#else
-	1, 0, 0, 0
-#endif
-};
-#endif
-
-
 #define MLO_HW_WAVE_ID_SETTING 0
 
 #if MLO_HW_WAVE_ID_SETTING
@@ -242,6 +227,10 @@ __kernel void MLOpenCvBwdWrW(
 	int w_y = iDiv(w_idx, MLO_WEI_BLK_SZ0);
 	int w_x0 = iMod(w_idx, w_y, MLO_WEI_BLK_SZ0);
 
+
+// FILTR SPECIFIC !!!!!
+	int last_tap_to_remove = (w_x0 > 0)? 0 : 1;
+
 // mask to shut down the overshot filter tap
 	__constant int filter_mask0 = ~(1 << MLO_FILTER_SIZE0);
 	int working_mask = 0;
@@ -274,17 +263,6 @@ __kernel void MLOpenCvBwdWrW(
 		lcl[i] = 0;
 	}
 
-#if 0 //MLO_OUT_SCAN_NOT_DIVBY4
-	 _FLOAT out_r_mask[MLO_READ_UNIT] = {1, 1, 1, 1};
-
-	if(o_pix4 == (MLO_N_OUT_HORIZ_READS-1))
-	{
-		for(int i = 0; i < MLO_READ_UNIT; ++i)
-		{
-			out_r_mask[i] = cnst_out_r_mask[i];
-		}
-	}
-#endif
 	barrier(CLK_LOCAL_MEM_FENCE);
 // zero out pvt accum
 	// over all batches
@@ -432,6 +410,23 @@ __kernel void MLOpenCvBwdWrW(
 							_FLOAT o_val 
 								= lcl_top[o*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIX_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i)];
 
+#if 1
+							for(int w = 0; w < MLO_WEI_WKITEM - 1; ++w )
+							{
+
+								_FLOAT i_val = i_vals[w];
+								pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
+							}
+
+// set input data to zero if MLO_FILTER_SIZE0 is not multiple of MLO_WEI_WKITEM and it's over MLO_FILTER_SIZE0
+
+							_FLOAT i_val = i_vals[MLO_WEI_WKITEM - 1];
+							int ii_val = as_uint(i_val) & last_tap_to_remove;
+							i_val = as_float(ii_val);
+							pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + MLO_WEI_WKITEM - 1] += i_val * o_val;
+
+
+#else
 							uint running_mask = working_mask;
 							for(int w = 0; w < MLO_WEI_WKITEM; ++w, (running_mask >>= MLO_FILTER_STRIDE0) )
 							{
@@ -442,6 +437,9 @@ __kernel void MLOpenCvBwdWrW(
 								i_val = as_float(ii_val);
 								pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
 							}
+
+#endif
+
 						}
 
 						for(int w = 0; w < MLO_WEI_WKITEM - 1; ++w)
@@ -482,24 +480,62 @@ __kernel void MLOpenCvBwdWrW(
 
 #endif
 
+
+	int o = iDiv(lcl_id, (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0));
+	int wei_i = iMod(lcl_id, o, (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0));
+	int wei_lcl_off = 0;
+	_FLOAT final_sum = 0;
+
 #if 1
-// save in lcl
+// save in lcl and orgnize in a proper order
+// outputs
+//	filter size1
+//	  filter size0
+
 	for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
 	{
-		for(int o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+		for(int o = 0;  /*w_blk_idx < MLO_N_WEI_BLK && */o < MLO_N_LCL_OUT_MAPS; ++o)
 		{
-			for(int w = 0; w < MLO_WEI_WKITEM; ++w)
+			int w = 0;
+			for(; w < MLO_WEI_WKITEM; ++w)
 			{
-				int wei_lcl_off = ((og * MLO_N_LCL_OUT_MAPS  + o) *  MLO_N_WEI_BLK  + w_blk_idx) * (MLO_FILTER_SIZE1*(MLO_FILTER_SIZE0/MLO_WEI_WKITEM)) + w_y * (MLO_FILTER_SIZE0/MLO_WEI_WKITEM) + w;
+				wei_lcl_off = (o * MLO_N_LCL_OUT_MAPS *  MLO_N_WEI_BLK  + w_blk_idx) * (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0) + w_y * MLO_FILTER_SIZE0 + w_x0 + w * MLO_FILTER_STRIDE0;
 				lcl_bot[wei_lcl_off] = pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
+				
+			}
+		
+		}
 
+#if 1	
+		if (lcl_id >= (og * MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) && lcl_id < ((og + 1) * MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0))
+		{
+			for(int i = 0; i < MLO_N_WEI_BLK; ++i)
+			{
+				final_sum += lcl_bot[((o - og * MLO_N_LCL_OUT_MAPS) * MLO_N_WEI_BLK  + i) * (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0) + wei_i];
+			}
+		}
+#endif
+
+	} // for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
+#else
+
+	for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
+	{
+		for(int o = 0; w_blk_idx < MLO_N_WEI_BLK && o < MLO_N_LCL_OUT_MAPS; ++o)
+		{
+			int w = 0;
+			for(; w < MLO_WEI_WKITEM; ++w)
+			{
+				wei_lcl_off = og + (o * MLO_N_LCL_OUT_MAPS *  MLO_N_WEI_BLK  + w_blk_idx) * (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0) + w_y * MLO_FILTER_SIZE0 + w_x0 + w * MLO_FILTER_STRIDE0;
+				lcl_bot[wei_lcl_off] = pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
+				
 			}
 		}
 	
-	}
+
+	} // for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
+
 #endif
-
-
 // send it out
 	int wei_df_off = mul24(o_idx, (int)MLO_WEI_BATCH_STRIDE)
 		// this input channel
@@ -509,10 +545,8 @@ __kernel void MLOpenCvBwdWrW(
 	{
 
 #if 1
-		int o = iDiv(lcl_id, (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0));
-		int wei_i = iMod(lcl_id, o, (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0));
 
-		weights_df[wei_df_off + o * MLO_WEI_BATCH_STRIDE + wei_i] = lcl_bot[lcl_id];
+		weights_df[wei_df_off + o * MLO_WEI_BATCH_STRIDE + wei_i] = final_sum; //lcl_bot[lcl_id]; //
 #else
 		_FLOAT t_accum = 0;
 
