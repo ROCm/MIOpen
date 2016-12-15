@@ -50,10 +50,12 @@
 #define MLO_IN_LCL_SZ (MLO_IN_BLK_GRP_PIX_SZ)
 // LDS IN SIZE
 #define MLO_TOTAL_IN_LCL_SZ (MLO_N_LCL_IN_MAPS*MLO_IN_LCL_SZ)
-#define MLO_IN_VERT_READS (MLO_GRP_SZ0/MLO_N_IN_HORIZ_READS)
+#define MLO_IN_VERT_READS (MLO_GRP_SZ/MLO_N_IN_HORIZ_READS)
 
 #define MLO_WEI_WKITEM 2
-#define MLO_N_WEI_BLK (MLO_GRP_SZ/ (MLO_FILTER_SIZE1*(MLO_FILTER_SIZE0/MLO_WEI_WKITEM)))
+#define MLO_WEI_BLK_SZ0 (MLO_FILTER_SIZE0/MLO_WEI_WKITEM)
+#define MLO_WEI_BLK_SZ (MLO_FILTER_SIZE1*MLO_WEI_BLK_SZ0)
+#define MLO_N_WEI_BLK (MLO_GRP_SZ/ MLO_WEI_BLK_SZ)
 #define MLO_OUT_WEI_SCAN_BLK ((MLO_OUT_HORIX_PIX_SZ + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
 
 
@@ -212,10 +214,10 @@ __kernel void MLOpenCvBwdWrW(
 	int c_scan0 = iDiv(lcl_id, MLO_N_IN_HORIZ_READS);
 	int c_pix4 = iMod(lcl_id,c_scan0, MLO_N_IN_HORIZ_READS);
 
-	int w_blk_idx = iDiv(lcl_id, (MLO_FILTER_SIZE1*(MLO_FILTER_SIZE0/MLO_WEI_WKITEM)));
-	int w_idx = iMod(lcl_id, w_blk_idx, (MLO_FILTER_SIZE1*(MLO_FILTER_SIZE0/MLO_WEI_WKITEM)));
-	int w_y = iDiv(w_idx, (MLO_FILTER_SIZE0/MLO_WEI_WKITEM));
-	int w_x0 = iMod(w_idx, w_y, (MLO_FILTER_SIZE0/MLO_WEI_WKITEM));
+	int w_blk_idx = iDiv(lcl_id, MLO_WEI_BLK_SZ);
+	int w_idx = iMod(lcl_id, w_blk_idx, MLO_WEI_BLK_SZ);
+	int w_y = iDiv(w_idx, MLO_WEI_BLK_SZ0);
+	int w_x0 = iMod(w_idx, w_y, MLO_WEI_BLK_SZ0);
 
 	__private _FLOAT pvt_accum[(MLO_N_OUT_BLK_GRP * MLO_N_LCL_OUT_MAPS * MLO_WEI_WKITEM)];
 
@@ -264,7 +266,9 @@ __kernel void MLOpenCvBwdWrW(
 // input scan
 		__private _FLOAT in_rd_data[MLO_READ_UNIT];
 
-		int gbl_in_scan_off = gbl_in_off + mul24(in_y, MLO_IN_STRIDE);
+		int gbl_in_scan_off = 0;
+		int gbl_out_scan_off = 0;
+
 		
 		
 		for(int c_scan = c_scan0; c_scan < MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1; c_scan += MLO_IN_VERT_READS)
@@ -280,7 +284,6 @@ __kernel void MLOpenCvBwdWrW(
 
 // TO DO: HANDLE PADDING
 // over all out blocks
-		int gbl_out_scan_off = gbl_out_off + mul24(out_y, MLO_OUT_STRIDE);
 		for (int ob = 0; ob < MLO_N_OUT_BLK; ++ob, in_y += (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1), out_y += MLO_N_ALIGNED_OUT_SCAN_BLK)
 		{
 
@@ -360,7 +363,7 @@ __kernel void MLOpenCvBwdWrW(
 						for(int o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
 						{
 							_FLOAT o_val 
-								= lcl_top[o*MLO_OUT_LCL_SZ + j * MLO_N_OUT_HORIZ_READS + i];
+								= lcl_top[o*MLO_OUT_LCL_SZ + j * MLO_N_OUT_HORIZ_READS + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i)];
 
 							for(int w = 0; w < MLO_WEI_WKITEM; ++w)
 							{
