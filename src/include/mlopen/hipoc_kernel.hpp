@@ -28,7 +28,9 @@ struct KernelArgs
 {
     KernelArgs(Ts... xs)
     : pack(xs...)
-    {}
+    {
+        for(int i=0;i<6;i++) hidden[i] = 0;
+    }
     uint64_t hidden[6];
     KernelArgsPack<Ts...> pack;
 };
