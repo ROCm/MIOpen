@@ -30,6 +30,10 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+
+#define MLO_N_OUT_HORIZ_READS (MLO_ALIGNED_OUT_SCAN_LN)
+#define MLO_OUT_HORIX_PIX_SZ (MLO_N_OUT_HORIZ_READS * MLO_READ_UNIT)
+
 // number of filter taps in the processing wk_item
 #define MLO_WEI_WKITEM 4
 // n of of filter blks
@@ -40,8 +44,6 @@
 // n of steps per scan line to be mdae in the inner loop
 #define MLO_OUT_WEI_SCAN_BLK ((MLO_OUT_HORIX_PIX_SZ + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
 
-#define MLO_N_OUT_HORIZ_READS (MLO_ALIGNED_OUT_SCAN_LN)
-#define MLO_OUT_HORIX_PIX_SZ (MLO_N_OUT_HORIZ_READS * MLO_READ_UNIT)
 #define MLO_OUT_BLK_GRP_PIX_SZ (MLO_OUT_HORIX_PIX_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_BLK_GRP_WK_SZ (MLO_OUT_BLK_GRP_PIX_SZ / MLO_READ_UNIT)
 
@@ -445,7 +447,7 @@ __kernel void MLOpenCvBwdWrW(
 
 #if 0
 								int w_x = w_x0 + w*MLO_FILTER_STRIDE0;
-								if (c_idx == 0 && o_idx == 0 && og ==0 && o == 0 && w_y ==0 && w_x == 0)
+								if (c_idx == 0 && o_idx == 0 && og ==0 && o == 0 && w_y ==0 && w_x == 0 && (j==0 || j==1) && lcl_id <= 30)
 								{
 									printf("K:s: %d %d %d %d  %f %f %f\n",
 										lcl_id,
@@ -469,7 +471,7 @@ __kernel void MLOpenCvBwdWrW(
 
 #if 0
 							int w_x = w_x0 + w*MLO_FILTER_STRIDE0;
-							if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0)
+							if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0 && (j == 0 || j == 1))
 							{
 								printf("K:s: %d %d %d %d  %f %f %f\n",
 									lcl_id,
