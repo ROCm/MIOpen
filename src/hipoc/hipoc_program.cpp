@@ -86,6 +86,7 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params)
     execute(HIP_OC_FINALIZER,
         "-target=8:0:3 -hsail dump_0_Fiji.hsail -output=" + hsaco_file
     );
+    std::remove("dump_0_Fiji.hsail");
 #endif
 
     hipModule_t raw_m;

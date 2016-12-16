@@ -91,6 +91,7 @@ float Handle::GetKernelTime() const
 
 ManageDataPtr Handle::Create(int sz)
 {
+    this->Finish();
     void * result;
     auto status = hipMalloc(&result, sz);
     if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer: ");
@@ -98,12 +99,14 @@ ManageDataPtr Handle::Create(int sz)
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
+    this->Finish();
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);
     if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
 void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
 {
+    this->Finish();
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
     if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
 }
@@ -144,7 +147,8 @@ Program Handle::LoadProgram(const std::string &program_name, std::string params)
 
 void Handle::Finish() const
 {
-
+    auto status = hipStreamSynchronize(this->GetStream());
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed hip sychronization");
 }
 void Handle::Flush() const
 {
