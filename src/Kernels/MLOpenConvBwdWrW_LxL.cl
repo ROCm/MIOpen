@@ -399,7 +399,7 @@ __kernel void MLOpenCvBwdWrW(
 // over all outputs groups
 			
 			int gbl_out_scan_off1 = gbl_out_scan_off;
-			for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og, gbl_out_scan_off1 += MLO_OUT_LCL_SZ*MLO_OUT_CHANNEL_STRIDE )
+			for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og, gbl_out_scan_off1 += MLO_N_LCL_OUT_MAPS*MLO_OUT_CHANNEL_STRIDE )
 			{
 
 // fetch output
@@ -409,7 +409,7 @@ __kernel void MLOpenCvBwdWrW(
 						; ++o)
 				{
 						*(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT]
-							= *(MLO_READ_TYPE*)&top_df[gbl_out_scan_off + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
+							= *(MLO_READ_TYPE*)&top_df[gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
 #if MLO_OUT_SCAN_NOT_DIVBY4
 						if (o_pix4 == (MLO_N_OUT_HORIZ_READS-1))
 						{
@@ -493,7 +493,7 @@ __kernel void MLOpenCvBwdWrW(
 
 #if 0
 								int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-								if (c_idx == 0 && o_idx == 0 && og ==0 && o == 1 && w_y ==0 && w_x == 0 && lcl_id <= 45/*&& (j==0 || j==1)*/)
+								if (c_idx == 0 && o_idx == 0 && og ==1 && o == 0 && w_y ==0 && w_x == 0 && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0)
 								{
 									printf("K:s: %d %d %d %d %d %f %f %f\n",
 										lcl_id,
@@ -521,7 +521,7 @@ __kernel void MLOpenCvBwdWrW(
 
 #if 0
 							int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-							if (c_idx == 0 && o_idx == 0 && og == 0 && o == 1 && w_y == 0 && w_x == 0 && lcl_id <= 45/* && (j == 0 || j == 1) */)
+							if (c_idx == 0 && o_idx == 0 && og == 1 && o == 0 && w_y == 0 && w_x == 0 && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0)
 							{
 								printf("K:s: %d %d %d %d %d %f %f %f\n",
 									lcl_id,
@@ -609,7 +609,7 @@ __kernel void MLOpenCvBwdWrW(
 				lcl_bot[wei_lcl_off] = pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
 #if 0
 				// wei_lcl_off == 1020 || wei_lcl_off == 1080 || wei_lcl_off == 1140)
-				if (c_idx == 0 && o_idx == 0 && og == 0 && o == 1 && w_y == 0 && w_x == 0 && lcl_id <= 45/* && (j == 0 || j == 1) */)
+				if (c_idx == 0 && o_idx == 0 && og == 1 && o == 0 && w_y == 0 && w_x == 0 && lcl_id <= 45/* && (j == 0 || j == 1) */)
 				{
 					printf("K:u: %d %d %d %f %f\n",
 						lcl_id,
@@ -633,16 +633,16 @@ __kernel void MLOpenCvBwdWrW(
 		{
 			for(int i = 0; i < MLO_MAX_WEI_BLK_LOOP; ++i)
 			{
-				final_sum += lcl_bot[(((oo - og *  MLO_N_LCL_OUT_MAPS) * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x];
+				final_sum += lcl_bot[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x];
 #if 0
-				if (c_idx == 0 && o_idx == 0 && og == 0 && oo  == 1 && wei_i_y == 0 && wei_i_x == 0)
+				if (c_idx == 0 && o_idx == 0  && og == 1 && oo  == 0 && wei_i_y == 0 && wei_i_x == 0)
 				{
 					printf("K:fs: %d %d %d  %f %f\n",
 						lcl_id,
 						i,
-						(((oo - og *  MLO_N_LCL_OUT_MAPS) * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x,
+						((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x,
 						final_sum,
-						lcl_bot[(((oo - og *  MLO_N_LCL_OUT_MAPS) * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x]
+						lcl_bot[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x]
 					);
 				}
 #endif
@@ -650,16 +650,16 @@ __kernel void MLOpenCvBwdWrW(
 
 #if 1
 
-			weights_df[wei_df_off + oo * MLO_WEI_BATCH_STRIDE + wei_i] = final_sum; //lcl_bot[lcl_id]; //
+			weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i] = final_sum; //lcl_bot[lcl_id]; //
 
 #if 0
-			if (oo == 1 && wei_i == 0)
+			if (og == 1 && oo == 0 && wei_i == 0)
 			{
 
 				printf("K:o: %d %d %f\n",
 					wei_df_off,
-					wei_df_off + oo * MLO_WEI_BATCH_STRIDE + wei_i,
-					weights_df[wei_df_off + oo * MLO_WEI_BATCH_STRIDE + wei_i]
+					wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i,
+					weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i]
 					);
 			}
 #endif
