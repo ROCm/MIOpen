@@ -52,6 +52,9 @@
 #define MLO_MAX_WEI_BLK_LOOP MLO_N_WEI_BLK
 #endif
 
+#define MLO_WEI_BLKS_SZ (MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ *MLO_WEI_WKITEM)
+#define MLO_WEI_BLKS_LCL_SZ (MLO_WEI_BLKS_SZ * MLO_N_LCL_OUT_MAPS)
+
 #define MLO_OUT_BLK_GRP_PIX_SZ (MLO_OUT_HORIZ_PIX_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_BLK_GRP_WK_SZ (MLO_OUT_BLK_GRP_PIX_SZ / MLO_READ_UNIT)
 
@@ -77,6 +80,11 @@
 #define MLO_TOTAL_IN_LCL_SZ (MLO_N_LCL_IN_MAPS*MLO_IN_LCL_SZ)
 #define MLO_IN_VERT_READS (MLO_GRP_SZ/MLO_N_IN_HORIZ_READS)
 
+#if (MLO_TOTAL_OUT_LCL_SZ + MLO_TOTAL_IN_LCL_SZ) > (MLO_WEI_BLKS_LCL_SZ)
+#define MLO_LCL_SZ (MLO_TOTAL_OUT_LCL_SZ + MLO_TOTAL_IN_LCL_SZ)
+#else
+#define MLO_LCL_SZ (MLO_WEI_BLKS_LCL_SZ)
+#endif
 
 
 #define MLO_HW_WAVE_ID_SETTING 0
@@ -194,7 +202,7 @@ __kernel void MLOpenCvBwdWrW(
 {
 // input/output tiles
 
-	__local _FLOAT lcl[(MLO_TOTAL_IN_LCL_SZ + MLO_TOTAL_OUT_LCL_SZ)];
+	__local _FLOAT lcl[(MLO_LCL_SZ)];
 	__local _FLOAT * lcl_bot = lcl;
 	__local _FLOAT * lcl_top = lcl + MLO_TOTAL_IN_LCL_SZ;
 
@@ -269,7 +277,7 @@ __kernel void MLOpenCvBwdWrW(
 
 
 // zero out LDS
-	for (int i = 0; i <  (MLO_TOTAL_IN_LCL_SZ + MLO_TOTAL_OUT_LCL_SZ) ; i += MLO_GRP_SZ)
+	for (int i = 0; i < ( MLO_LCL_SZ ); i += MLO_GRP_SZ)
 	{
 		lcl[i] = 0;
 	}
@@ -279,13 +287,14 @@ __kernel void MLOpenCvBwdWrW(
 	// over all batches
 
 #if 0
-	if (c_idx == 0 && o_idx == 0)
+	if (c_idx == 0 && o_idx == 0 && lcl_id == 0)
 	{
-		printf("K:i: %d %d %d %d\n",
-			lcl_id,
-			c_scan0,
-			MLO_N_IN_HORIZ_READS,
-			MLO_IN_VERT_READS
+		printf("K:i: %d %d %d %d %d\n",
+			MLO_MAX_WEI_BLK_LOOP,
+			MLO_WEI_BLK_SZ,
+			MLO_N_LCL_OUT_MAPS,
+			MLO_WEI_BLKS_LCL_SZ,
+			(MLO_LCL_SZ)
 		);
 	}
 #endif
@@ -586,19 +595,20 @@ __kernel void MLOpenCvBwdWrW(
 // outputs
 //	filter size1
 //	  filter size0
-
+// TO DO DEPENDING ON THE GROUP SIZE
 	for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
 	{
-		for(int o = 0;  /*w_blk_idx < MLO_N_WEI_BLK && */o < MLO_N_LCL_OUT_MAPS; ++o)
+		for(int o = 0;  w_blk_idx < MLO_MAX_WEI_BLK_LOOP && o < MLO_N_LCL_OUT_MAPS; ++o)
 		{
 			int w = 0;
 			for(; w < MLO_WEI_WKITEM; ++w)
 			{
 // save "virtual" filter table
 				int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-				wei_lcl_off = ((o * MLO_N_WEI_BLK  + w_blk_idx) * MLO_FILTER_SIZE1  + w_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + w_x;
+				wei_lcl_off = ((o * MLO_MAX_WEI_BLK_LOOP + w_blk_idx) * MLO_FILTER_SIZE1  + w_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + w_x;
 				lcl_bot[wei_lcl_off] = pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
 #if 0
+				// wei_lcl_off == 1020 || wei_lcl_off == 1080 || wei_lcl_off == 1140)
 				if (c_idx == 0 && o_idx == 0 && og == 0 && o == 1 && w_y == 0 && w_x == 0 && lcl_id <= 45/* && (j == 0 || j == 1) */)
 				{
 					printf("K:u: %d %d %d %f %f\n",
@@ -618,20 +628,21 @@ __kernel void MLOpenCvBwdWrW(
 		barrier(CLK_LOCAL_MEM_FENCE);
 #if 1	
 // read into real filter table
-		if (lcl_id >= (og * MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) && lcl_id < ((og + 1) * MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0))
+
+		if (lcl_id < ( MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0))
 		{
 			for(int i = 0; i < MLO_MAX_WEI_BLK_LOOP; ++i)
 			{
-				final_sum += lcl_bot[(((oo - og * MLO_N_LCL_OUT_MAPS) * MLO_N_WEI_BLK  + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x];
+				final_sum += lcl_bot[(((oo - og *  MLO_N_LCL_OUT_MAPS) * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x];
 #if 0
-				if (c_idx == 0 && o_idx == 0 && og == 0 && (oo - og * MLO_N_LCL_OUT_MAPS) ==1 && wei_i_y == 0 && wei_i_x == 0)
+				if (c_idx == 0 && o_idx == 0 && og == 0 && oo  == 1 && wei_i_y == 0 && wei_i_x == 0)
 				{
 					printf("K:fs: %d %d %d  %f %f\n",
 						lcl_id,
 						i,
-						(((oo - og * MLO_N_LCL_OUT_MAPS) * MLO_N_WEI_BLK + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x,
+						(((oo - og *  MLO_N_LCL_OUT_MAPS) * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x,
 						final_sum,
-						lcl_bot[(((oo - og * MLO_N_LCL_OUT_MAPS) * MLO_N_WEI_BLK + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x]
+						lcl_bot[(((oo - og *  MLO_N_LCL_OUT_MAPS) * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x]
 					);
 				}
 #endif
@@ -640,6 +651,18 @@ __kernel void MLOpenCvBwdWrW(
 #if 1
 
 			weights_df[wei_df_off + oo * MLO_WEI_BATCH_STRIDE + wei_i] = final_sum; //lcl_bot[lcl_id]; //
+
+#if 0
+			if (oo == 1 && wei_i == 0)
+			{
+
+				printf("K:o: %d %d %f\n",
+					wei_df_off,
+					wei_df_off + oo * MLO_WEI_BATCH_STRIDE + wei_i,
+					weights_df[wei_df_off + oo * MLO_WEI_BATCH_STRIDE + wei_i]
+					);
+			}
+#endif
 #else
 			_FLOAT t_accum = 0;
 
