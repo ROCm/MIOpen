@@ -1063,9 +1063,9 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	// each wave is a filter row
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
-
+// inout are outputs
 	int wei_cstride = _kernel_size0*_kernel_size1;
-	int wei_bstride = _n_inputs*wei_cstride;
+	int wei_bstride = _n_outputs*wei_cstride;
 	int LG2FILTER_SIZE0 = mloLg2(_kernel_size0);
 
 	int read_unit = 4;// (_out_width < 16) ? 1 : (_out_width < 32) ? 2 : 4; // (_out_width + _hw_wave_sz - 1) / _hw_wave_sz;
