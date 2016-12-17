@@ -491,9 +491,9 @@ __kernel void MLOpenCvBwdWrW(
 								_FLOAT i_val = i_vals[w];
 								pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
 
-#if 0
+#if 1
 								int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-								if (c_idx == 0 && o_idx == 0 && og ==1 && o == 0 && w_y ==0 && w_x == 0 && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0)
+								if (c_idx == 0 && o_idx == 0 && og ==1 && o == 0 && w_y ==0 && w_x == 0 && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM)
 								{
 									printf("K:s: %d %d %d %d %d %f %f %f\n",
 										lcl_id,
@@ -519,9 +519,9 @@ __kernel void MLOpenCvBwdWrW(
 
 							pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
 
-#if 0
+#if 1
 							int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-							if (c_idx == 0 && o_idx == 0 && og == 1 && o == 0 && w_y == 0 && w_x == 0 && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0)
+							if (c_idx == 0 && o_idx == 0 && og == 1 && o == 0 && w_y == 0 && w_x == 0 && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM)
 							{
 								printf("K:s: %d %d %d %d %d %f %f %f\n",
 									lcl_id,
@@ -607,7 +607,7 @@ __kernel void MLOpenCvBwdWrW(
 				int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
 				wei_lcl_off = ((o * MLO_MAX_WEI_BLK_LOOP + w_blk_idx) * MLO_FILTER_SIZE1  + w_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + w_x;
 				lcl_bot[wei_lcl_off] = pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
-#if 0
+#if 1
 				// wei_lcl_off == 1020 || wei_lcl_off == 1080 || wei_lcl_off == 1140)
 				if (c_idx == 0 && o_idx == 0 && og == 1 && o == 0 && w_y == 0 && w_x == 0 && lcl_id <= 45/* && (j == 0 || j == 1) */)
 				{
@@ -631,10 +631,11 @@ __kernel void MLOpenCvBwdWrW(
 
 		if (lcl_id < ( MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0))
 		{
+			final_sum = 0;
 			for(int i = 0; i < MLO_MAX_WEI_BLK_LOOP; ++i)
 			{
 				final_sum += lcl_bot[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x];
-#if 0
+#if 1
 				if (c_idx == 0 && o_idx == 0  && og == 1 && oo  == 0 && wei_i_y == 0 && wei_i_x == 0)
 				{
 					printf("K:fs: %d %d %d  %f %f\n",
