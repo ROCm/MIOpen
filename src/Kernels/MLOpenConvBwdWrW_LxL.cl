@@ -287,9 +287,10 @@ __kernel void MLOpenCvBwdWrW(
 	// over all batches
 
 #if 0
-	if (c_idx == 0 && o_idx == 0 && lcl_id == 0)
+	if (c_idx == 1 && o_idx == 0 && lcl_id == 0)
 	{
-		printf("K:i: %d %d %d %d %d\n",
+		printf("K:i: %d %d %d %d %d %d\n",
+			gbl_in_off,
 			MLO_OUT_WIDTH,
 			MLO_OUT_HORIZ_PIX_SZ,
 			MLO_OUT_WEI_EXT_SCAN_BLK,
@@ -314,8 +315,8 @@ __kernel void MLOpenCvBwdWrW(
 // input scan
 		__private _FLOAT in_rd_data[MLO_READ_UNIT];
 
-		int gbl_in_scan_off = 0;
-		int gbl_out_scan_off = 0;
+		int gbl_in_scan_off = gbl_in_off;
+		int gbl_out_scan_off = gbl_out_off;
 
 		
 		for(int c_scan = c_scan0;  in_y + c_scan < MLO_IN_HEIGHT && c_scan < MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1; c_scan += MLO_IN_VERT_READS)
@@ -331,7 +332,7 @@ __kernel void MLOpenCvBwdWrW(
 			}
 
 #if 0
-			if (c_idx == 0 && o_idx == 0 && c_scan == 2 /*&& (c_pix4 == 0 || c_pix4 == 1)*/)
+			if (c_idx == 1 && o_idx == 0 && c_scan == 2 /*&& (c_pix4 == 0 || c_pix4 == 1)*/)
 			{
 				printf("K:i: %d %d %f %f\n",
 					lcl_id,
@@ -373,7 +374,7 @@ __kernel void MLOpenCvBwdWrW(
 					}
 
 #if 0
-					if (c_idx == 0 && o_idx == 0 && in_y + c_scan == 0 && (c_pix4 == 0 || c_pix4 == 1))
+					if (c_idx == 1 && o_idx == 0 && in_y + c_scan == 0)
 					{
 						printf("K:i: %d %d %f %f\n",
 							lcl_id,
@@ -505,14 +506,14 @@ __kernel void MLOpenCvBwdWrW(
 
 #if 0
 									int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-									if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 1 && w_x == 1 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
+									if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
 									{
 										printf("K:s: %d %d %d %d %d %d %f %f %f\n",
 											lcl_id,
+											ob,
 											j,
 											i,
 											w,
-											last_tap_to_remove,
 											o*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i),
 											pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w],
 											i_val,
@@ -534,14 +535,14 @@ __kernel void MLOpenCvBwdWrW(
 
 #if 0
 								int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-								if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 1 && w_x == 1 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
+								if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
 								{
 									printf("K:s: %d %d %d %d %d %d %f %f %f\n",
 										lcl_id,
+										ob,
 										j,
 										i,
 										w,
-										last_tap_to_remove,
 										o*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i),
 										pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w],
 										i_val,
@@ -578,10 +579,15 @@ __kernel void MLOpenCvBwdWrW(
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 // move data up
-			for(int c_scan = c_scan0; c_scan < MLO_FILTER_SIZE1 -1; c_scan += MLO_IN_VERT_READS)
+			for (int c_scan = c_scan0; c_scan < MLO_FILTER_SIZE1 - 1; c_scan += MLO_IN_VERT_READS)
 			{
-					*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&lcl_bot[(c_scan +  (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1))*(MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT];
-					*(MLO_READ_TYPE*)&lcl_bot[c_scan*(MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
+				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&lcl_bot[(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT];
+//			}
+//			barrier(CLK_LOCAL_MEM_FENCE);
+
+//			for (int c_scan = c_scan0; c_scan < MLO_FILTER_SIZE1 - 1; c_scan += MLO_IN_VERT_READS)
+//			{
+				*(MLO_READ_TYPE*)&lcl_bot[c_scan*(MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
 	
 			}
 
