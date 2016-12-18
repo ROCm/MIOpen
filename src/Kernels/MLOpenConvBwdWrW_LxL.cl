@@ -60,7 +60,7 @@
 
 // extended scan to deal with overshot in the inner loop
 #define MLO_OUT_WEI_EXT_SCAN_BLK ((MLO_OUT_HORIZ_PIX_SZ + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
-#define MLO_OUT_HORIZ_PIX_EXT_SZ ((((MLO_OUT_WEI_EXT_SCAN_BLK * MLO_N_WEI_BLK) + MLO_READ_UNIT - 1) / MLO_READ_UNIT) * MLO_READ_UNIT)
+#define MLO_OUT_HORIZ_PIX_EXT_SZ (MLO_OUT_WEI_EXT_SCAN_BLK * MLO_N_WEI_BLK)
 #define MLO_OUT_BLK_GRP_EXT_PIX_SZ (MLO_OUT_HORIZ_PIX_EXT_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_LCL_SZ (MLO_OUT_BLK_GRP_EXT_PIX_SZ)
 // LDS OUT SIZE
@@ -401,7 +401,7 @@ __kernel void MLOpenCvBwdWrW(
 			int gbl_out_scan_off1 = gbl_out_scan_off;
 			for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og, gbl_out_scan_off1 += MLO_N_LCL_OUT_MAPS*MLO_OUT_CHANNEL_STRIDE )
 			{
-				barrier(CLK_LOCAL_MEM_FENCE);
+//				barrier(CLK_LOCAL_MEM_FENCE);
 
 // fetch output
 
