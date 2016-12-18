@@ -298,15 +298,16 @@ __kernel void MLOpenCvBwdWrW(
 	// over all batches
 
 #if 0
-	if (c_idx == 1 && o_idx == 0 && lcl_id == 0)
+	if (c_idx == 0 && o_idx == 0 && lcl_id == 0)
 	{
-		printf("K:i: %d %d %d %d %d %d\n",
+		printf("K:i: %d %d %d %d %d %d %d\n",
 			gbl_in_off,
 			MLO_OUT_WIDTH,
 			MLO_OUT_HORIZ_PIX_SZ,
 			MLO_OUT_WEI_EXT_SCAN_BLK,
 			MLO_N_WEI_BLK,
-			MLO_OUT_HORIZ_PIX_EXT_SZ
+			MLO_OUT_HORIZ_PIX_EXT_SZ,
+			MLO_MAX_WEI_BLK_LOOP
 		);
 	}
 #endif

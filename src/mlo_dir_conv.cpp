@@ -1088,7 +1088,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 
 	int OUT_SCAN_NOT_DIVBY4 = (_in_width < ALIGNED_OUT_SCAN_LN*read_unit);
 
-	int OUT_N_PIXS_OFF = ALIGNED_OUT_SCAN_LN*read_unit - _out_width;
+	int OUT_N_PIXS_OFF = ALIGNED_OUT_SCAN_LN*read_unit - _in_width;
 
 
 	_grp_tile0 = GRP_SZ;
