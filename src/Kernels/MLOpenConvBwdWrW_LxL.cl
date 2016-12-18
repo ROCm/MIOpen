@@ -30,12 +30,14 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define MLO_ONE_BATCH 1
+ // number of filter taps in the processing wk_item
+#define MLO_WEI_WKITEM 5
+
 
 #define MLO_N_OUT_HORIZ_READS (MLO_ALIGNED_OUT_SCAN_LN)
 #define MLO_OUT_HORIZ_PIX_SZ (MLO_N_OUT_HORIZ_READS * MLO_READ_UNIT)
 
-// number of filter taps in the processing wk_item
-#define MLO_WEI_WKITEM 4
 // n of of filter blks
 #define MLO_WEI_BLK_SZ0 ((MLO_FILTER_SIZE0 + MLO_WEI_WKITEM -1)/MLO_WEI_WKITEM)
 #define MLO_WEI_BLK_SZ (MLO_FILTER_SIZE1*MLO_WEI_BLK_SZ0)
@@ -65,6 +67,12 @@
 #define MLO_OUT_LCL_SZ (MLO_OUT_BLK_GRP_EXT_PIX_SZ)
 // LDS OUT SIZE
 #define MLO_TOTAL_OUT_LCL_SZ (MLO_N_LCL_OUT_MAPS*MLO_OUT_LCL_SZ)
+#if ((MLO_OUT_HEIGHT/MLO_N_ALIGNED_OUT_SCAN_BLK)*MLO_N_ALIGNED_OUT_SCAN_BLK == MLO_OUT_HEIGHT)
+#define MLO_BLK_ALIGNED 1
+#else
+#define MLO_BLK_ALIGNED 0
+#endif
+
 
 // input size depends on output scan length and
 // number of output scans 
@@ -216,9 +224,12 @@ __kernel void MLOpenCvBwdWrW(
 
 	int c_idx_base = get_group_id(1); // input map index base
 
-// register memory
+#if MLO_ONE_BATCH
+	int o_idx_base = iDiv(get_group_id(2), MLO_BATCH_SZ); // output map index base
+	int ib = iMod(get_group_id(2), o_idx_base, MLO_BATCH_SZ);
+#else
 	int o_idx_base = get_group_id(2); // output map index base
-
+#endif
 
 
 	int c_idx = c_idx_base * MLO_N_LCL_IN_MAPS; // input map index
@@ -301,12 +312,21 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 
 #if 1
+
+
+#if MLO_ONE_BATCH
+	gbl_in_off += ib *MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE;
+	gbl_out_off += ib *MLO_N_LCL_BATCHS * MLO_OUT_BATCH_STRIDE;
+
+#else
+	int b = 0;
 	for (int b = 0;
 		b < MLO_N_BATCH_LOOPS;
 		++b,
 		gbl_in_off += MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE,
 		gbl_out_off += MLO_N_LCL_BATCHS * MLO_OUT_BATCH_STRIDE
 		)
+#endif	
 	{
 		int in_y = 0;
 		int out_y = 0;
@@ -361,6 +381,13 @@ __kernel void MLOpenCvBwdWrW(
 // over all out blocks
 		for (int ob = 0; ob < MLO_N_OUT_BLK; ++ob, in_y += (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1), out_y += MLO_N_ALIGNED_OUT_SCAN_BLK)
 		{
+#if MLO_BLK_ALIGNED == 0
+			for (int i = lcl_id; ob == MLO_N_OUT_BLK-1 && i < MLO_TOTAL_OUT_LCL_SZ; i+= MLO_GRP_SZ)
+			{
+				lcl_top[i] = 0;
+			}
+#endif
+
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -401,7 +428,6 @@ __kernel void MLOpenCvBwdWrW(
 
 
 
-
 			gbl_out_scan_off = gbl_out_off + mul24(out_y, MLO_OUT_STRIDE);
 
 	
@@ -409,7 +435,8 @@ __kernel void MLOpenCvBwdWrW(
 // over all outputs groups
 			
 			int gbl_out_scan_off1 = gbl_out_scan_off;
-			for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og, gbl_out_scan_off1 += MLO_N_LCL_OUT_MAPS*MLO_OUT_CHANNEL_STRIDE )
+			for(int og = 0; og < MLO_N_OUT_BLK_GRP
+				; ++og, gbl_out_scan_off1 += MLO_N_LCL_OUT_MAPS*MLO_OUT_CHANNEL_STRIDE )
 			{
 //				barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -424,7 +451,9 @@ __kernel void MLOpenCvBwdWrW(
 					int o_pX4 = iMod(oo_p4, o, (MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS));
 					int o_scan = iDiv(o_pX4, MLO_N_OUT_HORIZ_READS);
 					int o_pix4 = iMod(o_pX4, o_scan, MLO_N_OUT_HORIZ_READS);
-					if (o_idx + o < MLO_N_OUTPUTS && out_y + o_scan < MLO_OUT_HEIGHT)
+					if (out_y + o_scan < MLO_OUT_HEIGHT
+						&& o_idx + og *MLO_N_LCL_OUT_MAPS + o < MLO_N_OUTPUTS
+						)
 					{
 						*(MLO_READ_TYPE*)out_rd_data
 							= *(MLO_READ_TYPE*)&top_df[gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
