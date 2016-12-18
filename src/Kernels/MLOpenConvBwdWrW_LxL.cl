@@ -387,8 +387,6 @@ __kernel void MLOpenCvBwdWrW(
 			}
 
 
-			// ouput scan
-			__private _FLOAT out_rd_data[MLO_N_LCL_OUT_MAPS * MLO_READ_UNIT];
 
 
 
@@ -404,28 +402,36 @@ __kernel void MLOpenCvBwdWrW(
 //				barrier(CLK_LOCAL_MEM_FENCE);
 
 // fetch output
+// ouput scan
+				__private _FLOAT out_rd_data[MLO_READ_UNIT];
 
 				for(int o = 0; o < MLO_N_LCL_OUT_MAPS
 						&&  ( o_idx + o < MLO_N_OUTPUTS && out_y + o_scan < MLO_OUT_HEIGHT && o_scan < MLO_N_ALIGNED_OUT_SCAN_BLK)
 						; ++o)
 				{
-						*(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT]
+						*(MLO_READ_TYPE*)out_rd_data
 							= *(MLO_READ_TYPE*)&top_df[gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
 #if MLO_OUT_SCAN_NOT_DIVBY4
 						if (o_pix4 == (MLO_N_OUT_HORIZ_READS-1))
 						{
 							for(int i = MLO_READ_UNIT-1; i >= MLO_READ_UNIT - MLO_OUT_N_PIXS_OFF; --i)
 							{
-	 							out_rd_data[o*MLO_READ_UNIT + i] = 0;
+	 							out_rd_data[i] = 0;
 							}
 						}
 #endif
 // write with MLO_OUT_HORIZ_PIX_EXT_SZ stride
-//						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)&out_rd_data[o*MLO_READ_UNIT];
-						for (int i = 0; i < MLO_READ_UNIT; ++i)
-						{
-							lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + i] = out_rd_data[o*MLO_READ_UNIT + i];
-						}
+//						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)out_rd_data;
+//
+						lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 0] = out_rd_data[0];
+						lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 1] = out_rd_data[1];
+						lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 2] = out_rd_data[2];
+						lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 3] = out_rd_data[3];
+
+//						for (int i = 0; i < MLO_READ_UNIT; ++i)
+//						{
+//							lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + i] = out_rd_data[o*MLO_READ_UNIT + i];
+//						}
 
 #if 0
 						if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0/* && out_y + o_scan == 0*/)
