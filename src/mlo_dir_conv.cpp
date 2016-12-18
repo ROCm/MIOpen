@@ -1166,7 +1166,9 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 
 		size_t gbl_wk0 = GRP_SZ;
 		size_t gbl_wk1 = _n_outputs;
-		size_t gbl_wk2 = (_n_inputs + total_out_maps - 1) / total_out_maps;
+		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps)
+							* _batch_sz
+										;
 
 
 		_g_wk.clear();
