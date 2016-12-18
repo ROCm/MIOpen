@@ -232,8 +232,8 @@ __kernel void MLOpenCvBwdWrW(
 // output global read
 //	int o_blk_idx = iDiv(lcl_id, MLO_OUT_LCL_SZ);
 //	int o_pix_X4 = iMod(lcl_id, o_blk_idx, MLO_OUT_LCL_SZ);
-	int o_scan = iDiv(lcl_id, MLO_N_OUT_HORIZ_READS);
-	int o_pix4 = iMod(lcl_id, o_scan, MLO_N_OUT_HORIZ_READS);
+//	int o_scan = iDiv(lcl_id, MLO_N_OUT_HORIZ_READS);
+//	int o_pix4 = iMod(lcl_id, o_scan, MLO_N_OUT_HORIZ_READS);
 
 // input global read
 	int i_blk_idx = 0; //iDiv(lcl_id, MLO_IN_LCL_SZ);
@@ -417,33 +417,38 @@ __kernel void MLOpenCvBwdWrW(
 // ouput scan
 				__private _FLOAT out_rd_data[MLO_READ_UNIT];
 
-				for(int o = 0; o < MLO_N_LCL_OUT_MAPS
-						&&  ( o_idx + o < MLO_N_OUTPUTS && out_y + o_scan < MLO_OUT_HEIGHT && o_scan < MLO_N_ALIGNED_OUT_SCAN_BLK)
-						; ++o)
+				for(int oo_p4 = lcl_id; oo_p4 < (MLO_N_LCL_OUT_MAPS*MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS);						
+						oo_p4 += MLO_GRP_SZ)
 				{
+					int o = iDiv(oo_p4, (MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS));
+					int o_pX4 = iMod(oo_p4, o, (MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS));
+					int o_scan = iDiv(o_pX4, MLO_N_OUT_HORIZ_READS);
+					int o_pix4 = iMod(o_pX4, o_scan, MLO_N_OUT_HORIZ_READS);
+					if (o_idx + o < MLO_N_OUTPUTS && out_y + o_scan < MLO_OUT_HEIGHT)
+					{
 						*(MLO_READ_TYPE*)out_rd_data
 							= *(MLO_READ_TYPE*)&top_df[gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
 #if MLO_OUT_SCAN_NOT_DIVBY4
-						if (o_pix4 == (MLO_N_OUT_HORIZ_READS-1))
+						if (o_pix4 == (MLO_N_OUT_HORIZ_READS - 1))
 						{
-							for(int i = MLO_READ_UNIT-1; i >= MLO_READ_UNIT - MLO_OUT_N_PIXS_OFF; --i)
+							for (int i = MLO_READ_UNIT - 1; i >= MLO_READ_UNIT - MLO_OUT_N_PIXS_OFF; --i)
 							{
-	 							out_rd_data[i] = 0;
+								out_rd_data[i] = 0;
 							}
 						}
 #endif
-// write with MLO_OUT_HORIZ_PIX_EXT_SZ stride
-//						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)out_rd_data;
-//
+						// write with MLO_OUT_HORIZ_PIX_EXT_SZ stride
+						//						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)out_rd_data;
+						//
 						lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 0] = out_rd_data[0];
 						lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 1] = out_rd_data[1];
 						lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 2] = out_rd_data[2];
 						lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 3] = out_rd_data[3];
 
-//						for (int i = 0; i < MLO_READ_UNIT; ++i)
-//						{
-//							lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + i] = out_rd_data[o*MLO_READ_UNIT + i];
-//						}
+						//						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						//						{
+						//							lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + i] = out_rd_data[o*MLO_READ_UNIT + i];
+						//						}
 
 #if 0
 						if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0/* && out_y + o_scan == 0*/)
@@ -455,10 +460,11 @@ __kernel void MLOpenCvBwdWrW(
 								lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 0],
 								lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 1],
 								lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 2]
-								);
+							);
 						}
 #endif
 
+					}
 				}
 
 				barrier(CLK_LOCAL_MEM_FENCE);
