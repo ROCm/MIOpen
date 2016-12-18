@@ -238,8 +238,8 @@ __kernel void MLOpenCvBwdWrW(
 // input global read
 	int i_blk_idx = 0; //iDiv(lcl_id, MLO_IN_LCL_SZ);
 	//int c_pix_X4 = iMod(lcl_id, i_blk_idx, MLO_IN_LCL_SZ);
-	int c_scan0 = iDiv(lcl_id, MLO_N_IN_HORIZ_READS);
-	int c_pix4 = iMod(lcl_id,c_scan0, MLO_N_IN_HORIZ_READS);
+//	int c_scan0 = iDiv(lcl_id, MLO_N_IN_HORIZ_READS);
+//	int c_pix4 = iMod(lcl_id,c_scan0, MLO_N_IN_HORIZ_READS);
 
 	int w_blk_idx = iDiv(lcl_id, MLO_WEI_BLK_SZ);
 	int w_idx = iMod(lcl_id, w_blk_idx, MLO_WEI_BLK_SZ);
@@ -318,9 +318,13 @@ __kernel void MLOpenCvBwdWrW(
 		int gbl_in_scan_off = gbl_in_off;
 		int gbl_out_scan_off = gbl_out_off;
 
-		
-		for(int c_scan = c_scan0;  in_y + c_scan < MLO_IN_HEIGHT && c_scan < MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1; c_scan += MLO_IN_VERT_READS)
+		int c_scan = 0;
+		for(int p4 = lcl_id;  p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) && in_y + c_scan < MLO_IN_HEIGHT;
+//			c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS),
+			p4 += MLO_GRP_SZ)
 		{
+			c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
+			int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
 // TODO :: multiply on right mask if needed
 			*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
 // TO DO:: CHECK HEIGHT
@@ -332,10 +336,16 @@ __kernel void MLOpenCvBwdWrW(
 			}
 
 #if 0
-			if (c_idx == 1 && o_idx == 0 && c_scan == 2 /*&& (c_pix4 == 0 || c_pix4 == 1)*/)
+			if (c_idx == 0 && o_idx == 0 && (c_pix4 == 0 || c_pix4 == 1))
 			{
-				printf("K:i: %d %d %f %f\n",
+				printf("K:i: %d %d %d %d %d %d %d %d %f %f\n",
 					lcl_id,
+					p4,
+					c_scan,
+					MLO_N_IN_HORIZ_READS,
+					(MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1),
+					in_y + c_scan,
+					MLO_IN_HEIGHT,
 					gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT,
 					in_rd_data[0],
 					in_rd_data[2]
@@ -345,32 +355,33 @@ __kernel void MLOpenCvBwdWrW(
 
 		}
 
-		in_y +=  MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1;
+		in_y +=  MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1;
 
 // TO DO: HANDLE PADDING
 // over all out blocks
-		for (int ob = 0; ob < MLO_N_OUT_BLK; ++ob, in_y += (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1), out_y += MLO_N_ALIGNED_OUT_SCAN_BLK)
+		for (int ob = 0; ob < MLO_N_OUT_BLK; ++ob, in_y += (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1), out_y += MLO_N_ALIGNED_OUT_SCAN_BLK)
 		{
 
 			barrier(CLK_LOCAL_MEM_FENCE);
-
-
-
 
 
 // fetch input: (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1)
                // TODO:: HANDLE multiple INPUTS 
 			   // overshot i shadled by out put			
 			gbl_in_scan_off = gbl_in_off + mul24(in_y, MLO_IN_STRIDE);
-
-			for (int c_scan = c_scan0;i_blk_idx < MLO_N_LCL_IN_MAPS && in_y + c_scan < MLO_IN_HEIGHT && c_scan <  (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1); c_scan += MLO_IN_VERT_READS)
+			c_scan = 0;
+			for (int p4 = lcl_id; p4 < MLO_N_IN_HORIZ_READS * (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1) && in_y + c_scan < MLO_IN_HEIGHT;
+//					c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS),
+					p4 += MLO_GRP_SZ)
 			{
+					c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
+					int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
 
 					*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
 //					*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
 					for (int i = 0; i < MLO_READ_UNIT; ++i)
 					{
-						lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+						lcl_bot[(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
 					}
 
 #if 0
@@ -508,12 +519,14 @@ __kernel void MLOpenCvBwdWrW(
 									int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
 									if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
 									{
-										printf("K:s: %d %d %d %d %d %d %f %f %f\n",
+										int i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
+										printf("K:s: %d %d %d %d %d %d %d %f %f %f\n",
 											lcl_id,
 											ob,
 											j,
 											i,
 											w,
+											i_off,
 											o*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i),
 											pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w],
 											i_val,
@@ -579,14 +592,13 @@ __kernel void MLOpenCvBwdWrW(
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 // move data up
-			for (int c_scan = c_scan0; c_scan < MLO_FILTER_SIZE1 - 1; c_scan += MLO_IN_VERT_READS)
+			c_scan = 0;
+			for (int p4 = lcl_id; p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1);
+									p4 += MLO_GRP_SZ, c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS))
 			{
-				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&lcl_bot[(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT];
-//			}
-//			barrier(CLK_LOCAL_MEM_FENCE);
+				int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
 
-//			for (int c_scan = c_scan0; c_scan < MLO_FILTER_SIZE1 - 1; c_scan += MLO_IN_VERT_READS)
-//			{
+				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&lcl_bot[(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT];
 				*(MLO_READ_TYPE*)&lcl_bot[c_scan*(MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
 	
 			}
