@@ -1059,7 +1059,15 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	_n_in_data_tiles = 1;
 	// n of out blocks in lcl memory
 	_n_out_pix_tiles = 4;
+
+// select output mapping
+	int total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
+	_out_pix_tile1 = (total_out_maps > _n_inputs) ? 1 : _out_pix_tile1;
+	total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
+	_n_out_pix_tiles = (total_out_maps > _n_inputs) ? _n_inputs : _n_out_pix_tiles;
 	int N_OUT_BLK_GRP = _out_pix_tile1;
+	total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
+
 	// each wave is a filter row
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
@@ -1158,7 +1166,6 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 
 		size_t gbl_wk0 = GRP_SZ;
 		size_t gbl_wk1 = _n_outputs;
-		int total_out_maps = _n_out_pix_tiles * N_OUT_BLK_GRP;
 		size_t gbl_wk2 = (_n_inputs + total_out_maps - 1) / total_out_maps;
 
 
