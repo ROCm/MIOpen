@@ -43,10 +43,13 @@
 // n of filter tiles in the group grid
 #define MLO_N_WEI_BLK (MLO_GRP_SZ/ MLO_WEI_BLK_SZ)
 // n of steps per scan line to be made in the inner loop
-#define MLO_OUT_WEI_SCAN_BLK ((MLO_OUT_WIDTH + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
+// extended scan to deal with overshot in the inner loop
+#define MLO_OUT_WEI_EXT_SCAN_BLK ((MLO_OUT_HORIZ_PIX_SZ + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
+
+#define MLO_OUT_WEI_SCAN_BLK (MLO_OUT_WEI_EXT_SCAN_BLK)
 
 // max loop over virtual blocks for small images
-#define MLO_MAX_WEI_BLK_LOOP_TMP ((MLO_OUT_WIDTH + MLO_OUT_WEI_SCAN_BLK - 1)/MLO_OUT_WEI_SCAN_BLK)
+#define MLO_MAX_WEI_BLK_LOOP_TMP ((MLO_OUT_HORIZ_PIX_SZ + MLO_OUT_WEI_SCAN_BLK - 1)/MLO_OUT_WEI_SCAN_BLK)
 #if MLO_MAX_WEI_BLK_LOOP_TMP < MLO_N_WEI_BLK
 #define MLO_MAX_WEI_BLK_LOOP MLO_MAX_WEI_BLK_LOOP_TMP
 #else
@@ -59,9 +62,7 @@
 #define MLO_OUT_BLK_GRP_PIX_SZ (MLO_OUT_HORIZ_PIX_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_BLK_GRP_WK_SZ (MLO_OUT_BLK_GRP_PIX_SZ / MLO_READ_UNIT)
 
-// extended scan to deal with overshot in the inner loop
-#define MLO_OUT_WEI_EXT_SCAN_BLK ((MLO_OUT_HORIZ_PIX_SZ + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
-#define MLO_OUT_HORIZ_PIX_EXT_SZ (MLO_OUT_WEI_EXT_SCAN_BLK * MLO_N_WEI_BLK)
+#define MLO_OUT_HORIZ_PIX_EXT_SZ (MLO_OUT_WEI_EXT_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP)
 #define MLO_OUT_BLK_GRP_EXT_PIX_SZ (MLO_OUT_HORIZ_PIX_EXT_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_LCL_SZ (MLO_OUT_BLK_GRP_EXT_PIX_SZ)
 // LDS OUT SIZE
@@ -236,17 +237,6 @@ __kernel void MLOpenCvBwdWrW(
 
 
 
-// output global read
-//	int o_blk_idx = iDiv(lcl_id, MLO_OUT_LCL_SZ);
-//	int o_pix_X4 = iMod(lcl_id, o_blk_idx, MLO_OUT_LCL_SZ);
-//	int o_scan = iDiv(lcl_id, MLO_N_OUT_HORIZ_READS);
-//	int o_pix4 = iMod(lcl_id, o_scan, MLO_N_OUT_HORIZ_READS);
-
-// input global read
-	int i_blk_idx = 0; //iDiv(lcl_id, MLO_IN_LCL_SZ);
-	//int c_pix_X4 = iMod(lcl_id, i_blk_idx, MLO_IN_LCL_SZ);
-//	int c_scan0 = iDiv(lcl_id, MLO_N_IN_HORIZ_READS);
-//	int c_pix4 = iMod(lcl_id,c_scan0, MLO_N_IN_HORIZ_READS);
 
 	int w_blk_idx = iDiv(lcl_id, MLO_WEI_BLK_SZ);
 	int w_idx = iMod(lcl_id, w_blk_idx, MLO_WEI_BLK_SZ);
@@ -254,28 +244,12 @@ __kernel void MLOpenCvBwdWrW(
 	int w_x0 = iMod(w_idx, w_y, MLO_WEI_BLK_SZ0);
 
 
-// FILTR SPECIFIC !!!!!
-	int last_tap_to_remove = (w_x0 + (MLO_WEI_WKITEM - 1)* MLO_WEI_BLK_SZ0 >= MLO_FILTER_SIZE0)? 0 : (-1);
-
-// mask to shut down the overshot filter tap
-	__constant int filter_mask0 = ~(1 << MLO_FILTER_SIZE0);
-	int working_mask = 0;
-// filled with 1 evry stride bit 
-	for(int i = 0; i < MLO_WEI_WKITEM; ++i)
-	{
-		working_mask |= (1 << (i*MLO_FILTER_STRIDE0));
-	}
-// add strting point
-	working_mask <<= w_x0;
-// clamp to the filter size
-	working_mask &= filter_mask0;
-// move back to the relative start
 
 	__private _FLOAT pvt_accum[(MLO_N_OUT_BLK_GRP * MLO_N_LCL_OUT_MAPS * MLO_WEI_WKITEM)];
 
 
-	int gbl_in_off = c_idx * MLO_IN_CHANNEL_STRIDE;
-	int gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE;
+	int gbl_in_off = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
+	int gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
 
 	for (int i = 0; i < (MLO_N_OUT_BLK_GRP * MLO_N_LCL_OUT_MAPS * MLO_WEI_WKITEM); ++i)
 	{
@@ -284,7 +258,7 @@ __kernel void MLOpenCvBwdWrW(
 
 
 // zero out LDS
-	for (int i = 0; i < ( MLO_LCL_SZ ); i += MLO_GRP_SZ)
+	for (int i = lcl_id; i < ( MLO_LCL_SZ ); i += MLO_GRP_SZ)
 	{
 		lcl[i] = 0;
 	}
@@ -543,10 +517,8 @@ __kernel void MLOpenCvBwdWrW(
 									if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
 									{
 										int i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
-										printf("K:s: %d %d %d %d %d %d %d %d %f %f %f\n",
+										printf("K:s: %d %d %d %d %d %d %f %f %f\n",
 											lcl_id,
-											b,
-											ob,
 											j,
 											i,
 											w,
