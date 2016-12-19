@@ -225,8 +225,8 @@ __kernel void MLOpenCvBwdWrW(
 	int c_idx_base = get_group_id(1); // input map index base
 
 
-	int o_idx_base = iDiv(get_group_id(2), MLO_N_LCL_BATCHS); // output map index base
-	int ib = iMod(get_group_id(2), o_idx_base, MLO_N_LCL_BATCHS);
+	int o_idx_base = iDiv(get_group_id(2),(MLO_N_INPUTS/(MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS))); // output map index base
+	int ib = iMod(get_group_id(2), o_idx_base, (MLO_N_INPUTS / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS)));
 
 
 	int c_idx = c_idx_base * MLO_N_LCL_IN_MAPS; // input map index
@@ -268,10 +268,10 @@ __kernel void MLOpenCvBwdWrW(
 	// over all batches
 
 #if 0
-	if (c_idx == 0 && o_idx == 0 && lcl_id == 0)
+	if (lcl_id == 0)
 	{
-		printf("K:i: %d %d %d %d %d %d %d %d\n",
-			MLO_N_BATCH_LOOPS,
+		printf("K:i: %d\n",
+			ib
 			gbl_in_off,
 			MLO_OUT_WIDTH,
 			MLO_OUT_HORIZ_PIX_SZ,
@@ -284,6 +284,8 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 
 #if 1
+//	gbl_in_off += MLO_IN_BATCH_STRIDE;
+//	gbl_out_off += MLO_OUT_BATCH_STRIDE;
 
 	for (int b = 0;
 		b < MLO_N_BATCH_LOOPS;
@@ -510,11 +512,15 @@ __kernel void MLOpenCvBwdWrW(
 								{
 
 									i_val = i_vals[w];
+#if 0
+									pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] = fma(i_val, o_val, pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w]);
+#else
 									pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
+#endif
 
 #if 0
 									int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-									if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
+									if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 6 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
 									{
 										int i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
 										printf("K:s: %d %d %d %d %d %d %f %f %f\n",
@@ -578,14 +584,15 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 
 
-	int oo = iDiv(lcl_id, (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0));
-	int wei_i = iMod(lcl_id, oo, (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0));
+	int oo = iDiv(lcl_id, MLO_WEI_CHANNEL_STRIDE);
+	int wei_i = iMod(lcl_id, oo, MLO_WEI_CHANNEL_STRIDE);
 	int wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
 	int wei_i_x = iMod(wei_i,wei_i_y, (MLO_FILTER_SIZE0));
 	// send it out
-	int wei_df_off = mul24(o_idx, (int)MLO_WEI_BATCH_STRIDE)
+	// inputs are outputs
+	int wei_df_off = ((ib * MLO_N_OUTPUTS + o_idx) * (int)MLO_WEI_BATCH_STRIDE)
 		// this input channel
-		+ mul24(c_idx, (int)MLO_WEI_CHANNEL_STRIDE);
+				+ mul24(c_idx, (int)MLO_WEI_CHANNEL_STRIDE);
 
 	int wei_lcl_off = 0;
 	_FLOAT final_sum = 0;
@@ -641,8 +648,7 @@ __kernel void MLOpenCvBwdWrW(
 					printf("K:fs: %d %d %d  %f %f\n",
 						lcl_id,
 						i,
-						((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x,
-						final_sum,
+						((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x,						final_sum,
 						lcl_bot[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x]
 					);
 				}
@@ -654,10 +660,14 @@ __kernel void MLOpenCvBwdWrW(
 			weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i] = final_sum; //lcl_bot[lcl_id]; //
 
 #if 0
-			if (og == 1 && oo == 0 && wei_i == 0)
+			if (og == 0 && oo == 0 && wei_i == 24 && c_idx == 1)
 			{
 
-				printf("K:o: %d %d %f\n",
+				printf("K:o: %d %d %d %d %d %d %f\n",
+					ib,
+					o_idx,
+					c_idx,
+					(og *  MLO_N_LCL_OUT_MAPS + oo),
 					wei_df_off,
 					wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i,
 					weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i]
@@ -693,3 +703,36 @@ __kernel void MLOpenCvBwdWrW(
 }
 
 
+__attribute__((reqd_work_group_size(MLO_UT_GRP_SZ0, 1, 1)))
+__kernel void MLOpenCvBwdWrW_rdc(
+	const __global _FLOAT * weight_df_tmp,
+	__global _FLOAT * weights_df
+)
+{
+	int gbl_id = get_global_id(0);
+	int wei_idx0 = gbl_id * MLO_UT_READ_UNIT;
+
+	int wei_blk_idx = iDiv(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
+	int wei_idx = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
+
+	_FLOAT pvt_accum_wei[MLO_UT_READ_UNIT] = { 0,0 };
+
+	int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS) - 1) / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS);
+	for (int i = 0; i < batch_loop; ++i)
+	{
+		*(MLO_UT_READ_TYPE*)pvt_accum_wei
+			+= *(MLO_UT_READ_TYPE*)&weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE)  + wei_idx];
+#if 0
+		if (wei_blk_idx == 1 && wei_idx == 24)
+		{
+			printf("k:a: %d  %f\n",
+				(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE) + wei_idx,
+				pvt_accum_wei[0]
+				);
+		}
+#endif
+
+	}
+	*(MLO_UT_READ_TYPE*)&weights_df[wei_idx0] = *(MLO_UT_READ_TYPE*)pvt_accum_wei;
+
+}

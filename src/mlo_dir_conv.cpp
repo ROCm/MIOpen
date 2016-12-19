@@ -1049,8 +1049,8 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 // number  of batch iterations
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
-	int N_BATCH_LOOPS = (_batch_sz + _n_stacks - 1) / _n_stacks;
-
+	int N_BATCH_LOOPS = _batch_sz;
+	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 // number of filter taps in the processing wk_item
 	int WEI_WKITEM = 5;
 
@@ -1074,11 +1074,12 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	int N_OUT_BLK_GRP = _out_pix_tile1;
 	total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
 
+
 	// each wave is a filter row
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 
-// inout are outputs
+// inpout are outputs
 	int wei_cstride = _kernel_size0*_kernel_size1;
 	int wei_bstride = _n_outputs*wei_cstride;
 	int LG2FILTER_SIZE0 = mloLg2(_kernel_size0);
@@ -1101,6 +1102,14 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	_grp_tile0 = GRP_SZ;
 	_grp_tile1 = 1;
 	int grp_tile2 = 1;
+
+
+// utility parameters
+	int n_ut_waves = 4;
+	int UT_GRP_SZ0 = _hw_wave_sz * n_ut_waves;
+	int ut_read_unit = ((wei_cstride/4)*4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
+	std::string UT_READ_TYPE = (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
+
 
 	//	_gen_comp_options += std::string(" -limit-vector-registers=64 ");
 // it's backward - inputs are outputs and vs versa
@@ -1156,6 +1165,11 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 
 		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(_bias)
 
+		+ std::string(" -D MLO_UT_READ_TYPE=") + UT_READ_TYPE
+		+ std::string(" -D MLO_UT_READ_UNIT=") + std::to_string(ut_read_unit)
+
+		+ std::string(" -D MLO_UT_GRP_SZ0=") + std::to_string((UT_GRP_SZ0))
+
 		//		+ std::string(" -limit-vector-registers=64 ")
 		+ getGeneralCompOptions()
 		;
@@ -1174,10 +1188,8 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 
 		size_t gbl_wk0 = GRP_SZ;
 		size_t gbl_wk1 = _n_outputs;
-		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps)
-							* ((_batch_sz + N_BATCH_LOOPS - 1) / N_BATCH_LOOPS)
-										;
-
+		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps) * n_batch_blks;
+								
 
 		_g_wk.clear();
 		_g_wk.push_back(gbl_wk0);
@@ -1189,8 +1201,41 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
 		_mlo_kernels_info.push_back(kern_info);
+
+		_workspce_sz = 0;
+
 	}
-	_workspce_sz = 0;
+
+	// sum over batch
+	if (n_batch_blks > 1)
+	{
+
+		std::string kernel_file = "MLOpenConvBwdWrW_LxL.cl";
+		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
+
+
+		std::vector<size_t> l_wk;
+		l_wk.clear();
+		int UT_GRP_SZ0 = _hw_wave_sz * n_ut_waves;
+		int ut_read_unit = ((wei_cstride / 4) * 4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
+
+		int gbl_ut_wk0 = wei_bstride * _n_inputs * n_batch_blks;
+
+		std::vector<size_t> g_wk;
+		g_wk.push_back(gbl_ut_wk0);
+		g_wk.push_back(1);
+		g_wk.push_back(1);
+		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
+		_mlo_kernels_info.push_back(kern_info);
+
+
+		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+
+		_workspce_sz = gbl_ut_wk0 * ut_read_unit * data_len;
+
+	}
+
+
 	return(ret);
 }
 
