@@ -1046,12 +1046,18 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
 
+// number  of batch iterations
+	_n_stacks = 1;
+	_n_stacks = std::min(_batch_sz, _n_stacks);
+	int N_BATCH_LOOPS = (_batch_sz + _n_stacks - 1) / _n_stacks;
+
+// number of filter taps in the processing wk_item
+	int WEI_WKITEM = 5;
+
 	_in_tile0 = 1;
 	_in_tile1 = 1;
 	_out_pix_tile0 = 1;
 	_out_pix_tile1 = 2; // here is number of repeatable blocks
-	_n_stacks = 1;
-	_n_stacks = std::min(_batch_sz, _n_stacks);
 
 	// major parameters
 	int n_waves = 4; // (_out_width <= 32) ? 2 : 4; // (_out_width <= 64) ? 8 : 16;
@@ -1070,6 +1076,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 
 	// each wave is a filter row
 	int GRP_SZ = _hw_wave_sz * n_waves;
+
 
 // inout are outputs
 	int wei_cstride = _kernel_size0*_kernel_size1;
@@ -1114,7 +1121,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 		+ std::string(" -D MLO_N_OUTPUTS=") + std::to_string((_n_inputs))
 		+ std::string(" -D MLO_N_INPUTS=") + std::to_string((_n_outputs))
 		+ std::string(" -D MLO_BATCH_SZ=") + std::to_string(_batch_sz)
-		+ std::string(" -D MLO_N_BATCH_LOOPS=") + std::to_string(_batch_sz)
+		+ std::string(" -D MLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS)
 		+ std::string(" -D MLO_OUT_BATCH_STRIDE=") + std::to_string((_in_batch_stride))
 		+ std::string(" -D MLO_OUT_CHANNEL_STRIDE=") + std::to_string((_in_channel_stride))
 		+ std::string(" -D MLO_OUT_STRIDE=") + std::to_string((_in_stride))
@@ -1139,6 +1146,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 		+ std::string(" -D MLO_READ_UNIT=") + std::to_string(read_unit)
 		+ std::string(" -D MLO_ALIGNED_OUT_SCAN_LN=") + std::to_string(ALIGNED_OUT_SCAN_LN) // image aligned scan
 		+ std::string(" -D MLO_N_ALIGNED_OUT_SCAN_BLK=") + std::to_string(N_ALIGNED_OUT_SCAN_BLK)
+		+ std::string(" -D MLO_WEI_WKITEM=") + std::to_string(WEI_WKITEM)
 		+ std::string(" -D MLO_N_OUT_BLK_GRP=") + std::to_string(N_OUT_BLK_GRP)
 		+ std::string(" -D MLO_N_OUT_BLK=") + std::to_string(N_OUT_BLK)
 		+ std::string(" -D MLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
@@ -1167,7 +1175,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 		size_t gbl_wk0 = GRP_SZ;
 		size_t gbl_wk1 = _n_outputs;
 		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps)
-							* _batch_sz
+							* ((_batch_sz + N_BATCH_LOOPS - 1) / N_BATCH_LOOPS)
 										;
 
 
