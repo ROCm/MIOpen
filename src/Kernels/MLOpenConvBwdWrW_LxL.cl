@@ -534,7 +534,7 @@ __kernel void MLOpenCvBwdWrW(
 
 #if 0
 										int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-										if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
+										if (c_idx == 0 && o_idx == 0 && og == 0 && o == 2 && w_y == 2 && w_x == 8 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
 										{
 											int i_off = lb*MLO_IN_LCL_SZ + (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
 											printf("K:s: %d %d %d %d %d %d %d %d %f %f %f\n",
@@ -608,15 +608,6 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 
 
-	int oo = iDiv(lcl_id, MLO_WEI_CHANNEL_STRIDE);
-	int wei_i = iMod(lcl_id, oo, MLO_WEI_CHANNEL_STRIDE);
-	int wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
-	int wei_i_x = iMod(wei_i, wei_i_y, (MLO_FILTER_SIZE0));
-	// send it out
-	// inputs are outputs
-	int wei_df_off = ((ib * MLO_N_OUTPUTS + o_idx) * (int)MLO_WEI_BATCH_STRIDE)
-		// this input channel
-		+ mul24(c_idx, (int)MLO_WEI_CHANNEL_STRIDE);
 
 	int wei_lcl_off = 0;
 	_FLOAT final_sum = 0;
@@ -660,8 +651,18 @@ __kernel void MLOpenCvBwdWrW(
 #if 1	
 		// read into real filter table
 
-		if (lcl_id < (MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0))
+		for(int l = lcl_id; l < (MLO_N_LCL_OUT_MAPS *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0); l+=MLO_GRP_SZ)
 		{
+			int oo = iDiv(l, MLO_WEI_CHANNEL_STRIDE);
+			int wei_i = iMod(l, oo, MLO_WEI_CHANNEL_STRIDE);
+			int wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
+			int wei_i_x = iMod(wei_i, wei_i_y, (MLO_FILTER_SIZE0));
+			// send it out
+			// inputs are outputs
+			int wei_df_off = ((ib * MLO_N_OUTPUTS + o_idx) * (int)MLO_WEI_BATCH_STRIDE)
+				// this input channel
+				+ mul24(c_idx, (int)MLO_WEI_CHANNEL_STRIDE);
+
 			final_sum = 0;
 			for (int i = 0; i < MLO_MAX_WEI_BLK_LOOP; ++i)
 			{
@@ -677,7 +678,7 @@ __kernel void MLOpenCvBwdWrW(
 					);
 				}
 #endif
-				}
+			}
 
 #if 1
 
@@ -716,7 +717,7 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 
 
-	}
+		}
 #endif
 		barrier(CLK_LOCAL_MEM_FENCE);
 
