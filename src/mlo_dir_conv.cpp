@@ -1049,7 +1049,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 // number  of batch iterations
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
-	int N_BATCH_LOOPS = _batch_sz/ _n_stacks;
+	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 // number of filter taps in the processing wk_item
 	int WEI_WKITEM = 5;
