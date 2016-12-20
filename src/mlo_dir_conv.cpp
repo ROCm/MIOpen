@@ -1049,7 +1049,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 // number  of batch iterations
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
-	int N_BATCH_LOOPS = _batch_sz;
+	int N_BATCH_LOOPS = 1; // _batch_sz;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 // number of filter taps in the processing wk_item
 	int WEI_WKITEM = 5;
@@ -1219,7 +1219,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 		int UT_GRP_SZ0 = _hw_wave_sz * n_ut_waves;
 		int ut_read_unit = ((wei_cstride / 4) * 4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
 
-		int gbl_ut_wk0 = wei_bstride * _n_inputs * n_batch_blks;
+		int gbl_ut_wk0 = wei_bstride * _n_inputs / ut_read_unit;
 
 		std::vector<size_t> g_wk;
 		g_wk.push_back(gbl_ut_wk0);
@@ -1231,7 +1231,7 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 
 		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
 
-		_workspce_sz = gbl_ut_wk0 * ut_read_unit * data_len;
+		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 
 	}
 

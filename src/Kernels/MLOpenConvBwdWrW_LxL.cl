@@ -225,8 +225,8 @@ __kernel void MLOpenCvBwdWrW(
 	int c_idx_base = get_group_id(1); // input map index base
 
 
-	int o_idx_base = iDiv(get_group_id(2),(MLO_N_INPUTS/(MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS))); // output map index base
-	int ib = iMod(get_group_id(2), o_idx_base, (MLO_N_INPUTS / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS)));
+	int o_idx_base = iDiv(get_group_id(2),(MLO_BATCH_SZ/(MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS))); // output map index base
+	int ib = iMod(get_group_id(2), o_idx_base, (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS)));
 
 
 	int c_idx = c_idx_base * MLO_N_LCL_IN_MAPS; // input map index
@@ -270,15 +270,10 @@ __kernel void MLOpenCvBwdWrW(
 #if 0
 	if (lcl_id == 0)
 	{
-		printf("K:i: %d\n",
-			ib
+		printf("K:i: %d %d %d %d\n",
+			ib,
 			gbl_in_off,
-			MLO_OUT_WIDTH,
-			MLO_OUT_HORIZ_PIX_SZ,
-			MLO_OUT_WEI_EXT_SCAN_BLK,
-			MLO_N_WEI_BLK,
-			MLO_OUT_HORIZ_PIX_EXT_SZ,
-			MLO_MAX_WEI_BLK_LOOP
+			gbl_out_off
 		);
 	}
 #endif
@@ -660,7 +655,7 @@ __kernel void MLOpenCvBwdWrW(
 			weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i] = final_sum; //lcl_bot[lcl_id]; //
 
 #if 0
-			if (og == 0 && oo == 0 && wei_i == 24 && c_idx == 1)
+			if (og == 0 && oo == 0 && wei_i == 0 && c_idx == 0)
 			{
 
 				printf("K:o: %d %d %d %d %d %d %f\n",
@@ -723,7 +718,7 @@ __kernel void MLOpenCvBwdWrW_rdc(
 		*(MLO_UT_READ_TYPE*)pvt_accum_wei
 			+= *(MLO_UT_READ_TYPE*)&weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE)  + wei_idx];
 #if 0
-		if (wei_blk_idx == 1 && wei_idx == 24)
+		if (wei_blk_idx == 0 && wei_idx == 0)
 		{
 			printf("k:a: %d  %f\n",
 				(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE) + wei_idx,
