@@ -511,11 +511,12 @@ __kernel void MLOpenCvBwdWrW(
 
 							for (int o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
 							{
-								// read with MLO_OUT_HORIX_PIX_EXT_SZ stride
-								for (int ob = 0; ob < MLO_N_LCL_BATCHS; ++ob)
+								for (int lb = 0; lb < MLO_N_LCL_BATCHS; ++lb)
 								{
+
+									// read with MLO_OUT_HORIX_PIX_EXT_SZ stride
 									_FLOAT o_val
-										= lcl_top[(ob*MLO_N_LCL_OUT_MAPS + o)*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i)];
+										= lcl_top[(lb*MLO_N_LCL_OUT_MAPS + o)*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i)];
 
 									int w = 0;
 									_FLOAT i_val;
@@ -523,36 +524,35 @@ __kernel void MLOpenCvBwdWrW(
 									{
 
 
-										for (int lb = 0; lb < MLO_N_LCL_BATCHS; ++lb)
-										{
-											i_val = i_vals[lb*MLO_WEI_WKITEM + w];
+										i_val = i_vals[lb*MLO_WEI_WKITEM + w];
 #if 0
-											pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] = fma(i_val, o_val, pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w]);
+										pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] = fma(i_val, o_val, pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w]);
 #else
-											pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
+										pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
 #endif
 
 
 #if 0
-											int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-											if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
-											{
-												int i_off = lb*MLO_IN_LCL_SZ + (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
-												printf("K:s: %d %d %d %d %d %d %d %f %f %f\n",
-													lcl_id,
-													lb,
-													j,
-													i,
-													w,
-													i_off,
-													(ob*MLO_N_LCL_OUT_MAPS + o)*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i),
-													pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w],
-													i_val,
-													o_val
-												);
-											}
-#endif
+										int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
+										if (c_idx == 0 && o_idx == 0 && og == 0 && o == 0 && w_y == 0 && w_x == 0 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP /* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/)
+										{
+											int i_off = lb*MLO_IN_LCL_SZ + (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
+											printf("K:s: %d %d %d %d %d %d %d %d %f %f %f\n",
+												lcl_id,
+												lb,
+												ob,
+												j,
+												i,
+												w,
+												i_off,
+												(ob*MLO_N_LCL_OUT_MAPS + o)*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i),
+												pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w],
+												i_val,
+												o_val
+											);
 										}
+#endif
+
 									} // for (/*int w = 0*/; w < MLO_WEI_WKITEM; ++w)
 								}
 							} // for (int o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
