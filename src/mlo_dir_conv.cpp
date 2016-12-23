@@ -283,6 +283,17 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 {
 	int ret = 0;
 
+	const auto use_asm_kernels_env_p = std::getenv("MLOPEN_DEBUG_GCN_ASM_KERNELS");
+	std::string use_asm_kernels_env;
+
+	if (use_asm_kernels_env_p != nullptr)
+		use_asm_kernels_env = use_asm_kernels_env_p;
+
+	if (use_asm_kernels_env == "enable" || (use_asm_kernels_env != "disable" && mloCheckWinogradCondition()))
+	{
+		return (mloConstructWinograd());
+	}
+
 	bool unaligned = (_out_height < 8 || _out_width < 8 || (_out_height > 8 && _out_height < 16) || (_out_width > 8 && _out_width < 16)
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
 
@@ -414,6 +425,70 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 
 
 	return(ret);
+}
+
+bool mlo_construct_direct2D::mloCheckWinogradCondition() const
+{
+	const auto dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
+	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
+
+	const auto driver_has_LC =
+		   (driver.find("(LC)") != std::string::npos)
+		|| (driver.find("(LC,") != std::string::npos)
+		|| (driver.find(",LC)") != std::string::npos)
+		|| (driver.find("(LC ") != std::string::npos)
+		|| (driver.find(" LC)") != std::string::npos)
+		|| (driver.find(" LC,") != std::string::npos)
+		|| (driver.find(",LC ") != std::string::npos)
+		|| (driver.find(" LC ") != std::string::npos)
+		|| (driver.find(",LC,") != std::string::npos);
+
+	const auto device_suits =
+		   name == "gfx800"
+		|| name == "gfx802"
+		|| name == "gfx803"
+		|| name == "gfx804";
+
+	return driver_has_LC
+		&& device_suits
+		&& _batch_sz							<	std::pow(2, 16)
+		&& _n_inputs							<	std::pow(2, 16)
+		&& _n_outputs							<	std::pow(2, 16)
+		&& _in_height							<	std::pow(2, 16)
+		&& _in_width							<	std::pow(2, 16)
+		&& _n_groups							<	std::pow(2, 16)
+		&& _n_inputs * _in_height * _in_width	<	std::pow(2, 28)
+		&& _n_outputs * _in_height * _in_width	<	std::pow(2, 28)
+		&& _n_inputs % 2						==	0
+		&& _n_inputs							>=	16;
+}
+
+int mlo_construct_direct2D::mloConstructWinograd()
+{
+	int ret = 0;
+
+	const auto dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
+	_n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+
+	_kernarg_list_type = kernarg_list_types::winograd;
+
+	_g_wk.clear();
+	_g_wk.push_back(512 * _n_groups);
+	_g_wk.push_back(1);
+	_g_wk.push_back(1);
+
+	_l_wk.clear();
+	_l_wk.push_back(512);
+	_l_wk.push_back(1);
+	_l_wk.push_back(1);
+
+	_kernel_file = "conv_3x3_wheel_alpha_v0_2b_gfx803.so";
+	_kernel_name = "sp3AsmConv3x3F";
+
+	_is_binary = true;
+
+	return (ret);
 }
 
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()

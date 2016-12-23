@@ -44,11 +44,13 @@ OCLKernel KernelCache::GetKernel(const std::string& algorithm,
 OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
 										const std::string& algorithm,
 										const std::string& network_config,
-                                        const std::string& program_name,
-                                        const std::string& kernel_name,
+										const std::string& program_name,
+										const std::string& kernel_name,
 										const std::vector<size_t>& vld,
 										const std::vector<size_t>& vgd,
-                                        std::string params)
+										std::string params,
+										bool is_binary,
+										const kernarg_list_types* kernarg_list_type)
 {
 
     if (params.length() > 0)
@@ -58,7 +60,7 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
         if (params.at(0) != ' ') { params = " " + params; }
     }
 
-	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
+    std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
 #ifndef NDEBUG
     std::cout << "key: " << key.first << ',' << key.second << std::endl;
 #endif
@@ -72,10 +74,13 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
     }
     else
     {
-        program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params);
-		program_map[std::make_pair(program_name, params)] = program;
+        program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params, is_binary);
+        program_map[std::make_pair(program_name, params)] = program;
     }
     OCLKernel kernel{CreateKernel(program.get(), kernel_name), vld, vgd, program};
+    if (kernarg_list_type != nullptr) {
+		kernel.SetKernArgListType(*kernarg_list_type);
+    }
     if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
     return kernel;
 }

@@ -294,7 +294,9 @@ KernelInvoke Handle::GetKernel(
         const std::string& kernel_name,
         const std::vector<size_t>& vld,
         const std::vector<size_t>& vgd,
-        const std::string& params)
+        const std::string& params,
+        bool is_binary,
+        const kernarg_list_types* kernarg_list_type)
 {
     auto q = this->GetStream();
     OCLKernel obj = this->impl->cache.GetKernel(q, 
@@ -304,7 +306,10 @@ KernelInvoke Handle::GetKernel(
             kernel_name,
             vld,
             vgd,
-            params);
+            params,
+            is_binary,
+            kernarg_list_type);
+
 #ifndef NDEBUG
 	//dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
 #endif

@@ -30,7 +30,8 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
-#define MLO_HW_WAVE_ID_SETTING 1
+#define MLO_HW_WAVE_ID_SETTING 0 // This intrinsic can be enabled for HSA-based OpenCL stack only.
+// FIXME Conduct enabling from the host code.
 extern __attribute__((const)) uint __hsail_get_dynwave_id(void);
 
 #define MLO_IN_LCL_WIDTH (MLO_IN_STRIDE + 2 * MLO_FILTER_PAD0)

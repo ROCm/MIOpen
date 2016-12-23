@@ -59,18 +59,41 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 
+	const auto kernarg_list_type = construct_params.getKernargListType();
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	float padding_val = 0;
-	handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+	bool is_binary = construct_params.getIsBinary();
+
+	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
 			network_config,
-			program_name, 
+			program_name,
 			kernel_name,
 			vld,
 			vgd,
-			parms)(x, w, y, padding_val);
+			parms,
+			is_binary,
+			&kernarg_list_type);
 
+	switch (kernarg_list_type)
+	{
+	case kernarg_list_types::winograd: {
+			int flags = 0;
+			int reserved = 0;
+			int *return_addr = nullptr;
+			int N, C, H, W, K, n_groups;
+			construct_params.getWinogradParametersHack(&N, &C, &H, &W, &K, &n_groups);
+			kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+		}
+		break;
+	case kernarg_list_types::generic:
+		kernel(x, w, y, padding_val);
+		break;
+	default:
+		MLOPEN_THROW("Unknown kernarg list type.");
+	}
+	
 	// FIXME: MD temporary hack for hipcaffe
 	// should be ideally wrapped under mlopen::deref to check 
 	// for the size of perfResults == requestedAlgoCount
@@ -135,7 +158,25 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 	}
 
 	float padding_val = 0;
-	handle.GetKernel(algorithm_name, network_config)(x, w, y, padding_val);
+	auto kernel = handle.GetKernel(algorithm_name, network_config);
+
+	switch (kernel.kernarg_list_type)
+	{
+	case kernarg_list_types::winograd: {
+			int flags = 0;
+			int reserved = 0;
+			int *return_addr = nullptr;
+			int N, C, H, W, K, n_groups;
+			construct_params.getWinogradParametersHack(&N, &C, &H, &W, &K, &n_groups);
+			kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+		}
+		break;
+	case kernarg_list_types::generic:
+		kernel(x, w, y, padding_val);
+		break;
+	default:
+		MLOPEN_THROW("Unknown kernarg list type.");
+	}
 }
 
 // FindBackwardDataAlgorithm()
@@ -206,7 +247,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 			vld,
 			vgd,
 			parms)(dy, w, dx, padding_val);
-
+	
 	// FIXME: MD temporary hack for hipcaffe
 	// should be ideally wrapped under mlopen::deref to check 
 	// for the size of perfResults == requestedAlgoCount
