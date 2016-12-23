@@ -1038,35 +1038,30 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 #if WrW_LxL
 int mlo_construct_BwdWrW2D::mloConstruct(void)
 {
-	int ret = 0;
-
-
-	size_t localMemSize = 64 * 1024;
-
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
 
-// number  of batch iterations
+									  // number  of batch iterations
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
-	int n_batch_blks =  (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
-// number of filter taps in the processing wk_item
-	int WEI_WKITEM = 5;
+	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+	// number of filter taps in the processing wk_item
+	int WEI_WKITEM = 10; // 5x20=10, 5x10 = 5
 
 	_in_tile0 = 1;
 	_in_tile1 = 1;
 	_out_pix_tile0 = 1;
-	_out_pix_tile1 = 2; // here is number of repeatable blocks
+	_out_pix_tile1 = 1; //700 = 1, 150 = 2
 
-	// major parameters
-	int n_waves = 2; // (_out_width <= 32) ? 2 : 4; // (_out_width <= 64) ? 8 : 16;
-					 //	int N_SUB_GROUPS = 1;
+						// major parameters
+	int n_waves = 4; // 700 = 4, 150 == 2
+
 	_n_in_data_tiles = 1;
 	// n of out blocks in lcl memory
-	_n_out_pix_tiles = 4;
+	_n_out_pix_tiles = 2; // 700 = 2, 150 = 4
 
-// select output mapping
+						  // select output mapping
 	int total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
 	_out_pix_tile1 = (total_out_maps > _n_inputs) ? 1 : _out_pix_tile1;
 	total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
@@ -1079,19 +1074,18 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 
-// inpout are outputs
+	// inpout are outputs
 	int wei_cstride = _kernel_size0*_kernel_size1;
 	int wei_bstride = _n_outputs*wei_cstride;
 	int LG2FILTER_SIZE0 = mloLg2(_kernel_size0);
 
-	int read_unit = 4;// (_out_width < 16) ? 1 : (_out_width < 32) ? 2 : 4; // (_out_width + _hw_wave_sz - 1) / _hw_wave_sz;
+	int read_unit = 4;
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
 
 	// input is output
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
-																		 //	int N_ALIGNED_OUT_SCAN_BLK = ((GRP_SZ / _n_out_pix_tiles) / ALIGNED_OUT_SCAN_LN);
-	int N_ALIGNED_OUT_SCAN_BLK = 2; // (GRP_SZ / ALIGNED_OUT_SCAN_LN);
+	int N_ALIGNED_OUT_SCAN_BLK = 2;
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
 	int OUT_SCAN_NOT_DIVBY4 = (_in_width < ALIGNED_OUT_SCAN_LN*read_unit);
@@ -1104,15 +1098,14 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	int grp_tile2 = 1;
 
 
-// utility parameters
+	// utility parameters
 	int n_ut_waves = 4;
 	int UT_GRP_SZ0 = _hw_wave_sz * n_ut_waves;
-	int ut_read_unit = ((wei_cstride/4)*4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
+	int ut_read_unit = ((wei_cstride / 4) * 4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
 	std::string UT_READ_TYPE = (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
 
 
-	//	_gen_comp_options += std::string(" -limit-vector-registers=64 ");
-// it's backward - inputs are outputs and vs versa
+	// it's backward - inputs are outputs and vs versa
 	_comp_options =
 		std::string(" -D MLO_DIR_FORWARD=") + std::to_string((_direction))
 		+ std::string(" -D MLO_GRP_SZ=") + std::to_string((GRP_SZ))
@@ -1179,17 +1172,12 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 	// wrt to W
 	{
 		_l_wk.clear();
-#if 0
-		_l_wk.push_back(_grp_tile0);
-		_l_wk.push_back(_grp_tile1);
-		_l_wk.push_back(grp_tile2);
-#endif
 		// input is output
 
 		size_t gbl_wk0 = GRP_SZ;
 		size_t gbl_wk1 = _n_outputs;
 		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps) * n_batch_blks;
-								
+
 
 		_g_wk.clear();
 		_g_wk.push_back(gbl_wk0);
@@ -1234,7 +1222,6 @@ int mlo_construct_BwdWrW2D::mloConstruct(void)
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 
 	}
-
 
 	return(ret);
 }
