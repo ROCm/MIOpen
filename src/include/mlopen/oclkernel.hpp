@@ -15,6 +15,11 @@
 #include <mlopen/each_args.hpp>
 #include <mlopen/clhelper.hpp>
 
+enum class kernarg_list_types {
+	generic,
+	winograd,
+};
+
 namespace mlopen {
 
 using SharedKernelPtr = std::shared_ptr<typename std::remove_pointer<cl_kernel>::type>;
@@ -35,16 +40,22 @@ struct OCLSetKernelArg
 	void operator()(cl_kernel kernel, I i, const T& x) const
 	{
 		cl_int status = clSetKernelArg(kernel, i, sizeof(T), reinterpret_cast<const void*>(&x));
-		if (status != CL_SUCCESS) { MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
-}
+		if (status != CL_SUCCESS) {
+			MLOPEN_THROW(
+			"Error setting argument #" + std::to_string(i) + " to kernel (size = " + std::to_string(sizeof(T)) + "): "
+			+ std::to_string(status));
+		}
 	}
 
 	template<class I, class T>
 	void operator()(cl_kernel kernel, I i, const LocalMemArg& lmem) const
 	{
 		cl_int status = clSetKernelArg(kernel, i, lmem.GetSize(), NULL);
-		if (status != CL_SUCCESS) { MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
-}
+		if (status != CL_SUCCESS) {
+			MLOPEN_THROW(
+				"Error setting argument #" + std::to_string(i) + " to kernel: "
+				+ std::to_string(status));
+		}
 	}
 };
 
@@ -57,6 +68,7 @@ struct OCLKernelInvoke
 	std::array<size_t, 3> global_work_dim;
 	std::array<size_t, 3> local_work_dim;
 	std::function<void(cl_event&)> callback;
+	kernarg_list_types kernarg_list_type;
 
 	template<class... Ts>
 	void operator()(const Ts&... xs) const
@@ -100,12 +112,14 @@ public:
 
 	inline const std::vector<size_t>& GetLocalDims() const { return ldims; }
 	inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
+	inline void SetKernArgListType(kernarg_list_types type) { kernarg_list_type = type; }
 
 private:
 	SharedProgramPtr program;
 	SharedKernelPtr kernel;
 	std::vector<size_t> ldims;
 	std::vector<size_t> gdims;
+	kernarg_list_types kernarg_list_type = kernarg_list_types::generic;
 };
 
 }  // namespace mlopen

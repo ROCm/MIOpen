@@ -1,23 +1,40 @@
+#include <fstream>
 #include <mlopen/clhelper.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
 
 namespace mlopen {
 
-ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params)
+ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params, bool is_binary)
 {
 	std::string source = mlopen::GetKernelSrc(program_name);
 
 	const char* char_source = source.c_str();
 	auto size = source.size();
+	cl_int status, binaryStatus;
+	ClProgramPtr result;
 
-	cl_int status;
-	ClProgramPtr result{clCreateProgramWithSource(ctx, 
+	if (is_binary)
+	{
+		result = ClProgramPtr{clCreateProgramWithBinary(ctx,
 			1,
-			&char_source, 
-			&size, 
-			&status)};
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()"); }
+			&device,
+			reinterpret_cast<const size_t*>(&size),
+			reinterpret_cast<const unsigned char**>(&char_source),
+			&status,
+			&binaryStatus) };
+
+		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error creating code object program (cl_program) in LoadProgramFromBinary()"); }
+	}
+	else
+	{
+		result = ClProgramPtr{clCreateProgramWithSource(ctx,
+				1,
+				&char_source, 
+				&size, 
+				&status)};
+		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()"); }
+	}
 
 	params += " -cl-std=CL2.0";
 	status = clBuildProgram(result.get(), 

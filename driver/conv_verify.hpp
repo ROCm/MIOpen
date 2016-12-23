@@ -15,6 +15,11 @@ void RunBackwardWeightsCPUVerify(
 	assert(in_wstride == 1);
 	assert(wei_wstride == 1);
 	assert(out_wstride == 1);
+#ifdef NDEBUG
+	(void)in_wstride; // -warn
+	(void)wei_wstride; // -warn
+	(void)out_wstride; // -warn
+#endif
 
 	std::vector<double> t_wei(wei_n *wei_c * wei_h * wei_w, 0);
 	for (int o = 0; o < out_n; o++) // mini-batch size
@@ -231,7 +236,10 @@ void RunBackwardWeightsCPUVerify(
 		delete[] bot_ptr;
 
 	}
-
+#else
+	(void)in_n; // -warning
+	(void)wei_c; // -warning
+	(void)wei_n; // -warning
 #endif
 
 }

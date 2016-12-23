@@ -223,8 +223,36 @@ public:
 		_n_in_data_tiles = n_in_data_tiles;
 		_n_stacks = n_stacks;
 	}
-	
 
+	/*
+	* FIXME AMDGPU winograd kernel hack
+	*/
+	inline void getWinogradParametersHack(int* N, int* C, int* H, int* W, int* K, int* n_groups)
+	{
+		assert(N && C && H && W && K && n_groups);
+		*N = _batch_sz;
+		*C = _n_inputs;
+		*H = _in_height;
+		*W = _in_width;
+		*K = _n_outputs;
+		*n_groups = _n_groups;
+	}
+
+	/*
+	* returns type of arguments list
+	*/
+	inline kernarg_list_types getKernargListType()
+	{
+		return _kernarg_list_type;
+	}
+
+	/*
+	* returns true if kernel is a built binary
+	*/
+	inline bool getIsBinary()
+	{
+		return _is_binary;
+	}
 
 	/*
 	* returns kernel file name without location
@@ -692,6 +720,8 @@ protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
+	bool mloCheckWinogradCondition() const;
+	int mloConstructWinograd();
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
 	int mloConstructDirect2D3x3(void);
@@ -854,6 +884,10 @@ protected:
 	size_t _bias_sz; // bytes
 
 	size_t _workspce_sz;
+
+	unsigned int _n_groups;
+	kernarg_list_types _kernarg_list_type = kernarg_list_types::generic;
+	bool _is_binary = false;
 };
 
 

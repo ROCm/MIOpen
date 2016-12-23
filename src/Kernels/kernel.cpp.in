@@ -15,7 +15,7 @@ std::string ReplaceString(std::string subject, const std::string& search, const 
     return subject;
 }
 
-const std::map<std::string, const char *> kernels {
+const std::map<std::string, std::string> kernels {
 ${INIT_KERNELS}
 };
 
@@ -30,17 +30,23 @@ std::string GetKernelSrc(const std::string& name)
     }
     
     int len = name.size();
-    auto ex = name.rfind(".cl");
+    auto ex = name.rfind(".");
+    std::string ext;
     if (ex != std::string::npos)
     {
+        ext = name.substr(ex + 1);
         len = ex - start;
     }
 
     auto key = name.substr(start, len);
     // Convert to uppercase
     std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+	std::transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
 
-    return ReplaceString(kernels.at(key), "inline", "static inline");
+    if (ext == "CL")
+        return ReplaceString(kernels.at(key), "inline", "static inline");
+    else
+        return kernels.at(key);
 }
 
 } // namespace mlopen
