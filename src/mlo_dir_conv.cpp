@@ -1038,6 +1038,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 #if WrW_LxL
 int mlo_construct_BwdWrW2D::mloConstruct(void)
 {
+	int ret = 0;
 	size_t localMemSize = 64 * 1024;
 
 	_hw_wave_sz = 64;
