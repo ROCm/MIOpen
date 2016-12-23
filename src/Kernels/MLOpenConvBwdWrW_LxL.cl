@@ -156,6 +156,33 @@ inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int l
 	}
 }
 
+inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
+{
+	_FLOAT y = v - *c;    //So far, so good: c is zero.
+	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
+	*c = (t - *sum) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
+	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
+}
+
+inline void  Kahan_summation_tricked(_FLOAT *sum, _FLOAT * c, _FLOAT v, _FLOAT mod)
+{
+	_FLOAT y = v - *c;    //So far, so good: c is zero.
+	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
+	*c = (t - (*sum - mod)) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
+	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
+}
+
+
+inline void Kahan_summation2(_FLOAT *sum, _FLOAT *c, _FLOAT *v, int n)
+{
+	for (int i = 0; i < n; ++i)
+	{
+		_FLOAT y = v[i] - c[i];    //So far, so good: c is zero.
+		_FLOAT t = sum[i] + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
+		c[i] = (t - sum[i]) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
+		sum[i] = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
+	}
+}
 
 /*********************************************************************************************************
 // wrw algorithm
