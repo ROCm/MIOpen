@@ -45,11 +45,11 @@ public:
     using SharedProgramPtr = std::shared_ptr<typename std::remove_pointer<cl_program>::type>;
 
 	typedef std::pair<std::string, std::string> Key;
-    typedef std::unordered_map< Key, OCLKernel, SimpleHash > KernelMap;
+    typedef std::unordered_map< Key, std::shared_ptr<OCLKernel>, SimpleHash > KernelMap;
     typedef std::unordered_map< Key, SharedProgramPtr, SimpleHash > ProgramMap;
 
 
-	OCLKernel& GetKernel(cl_command_queue &queue,
+	std::shared_ptr<OCLKernel> GetKernel(cl_command_queue &queue,
 						 const std::string& algorithm,
 						 const std::string& network_config,
 						 const std::string& program_name,
@@ -59,7 +59,7 @@ public:
 						 std::string params = "",
 						 bool is_binary = false);
 	
-	const OCLKernel& GetKernel( const std::string& algorithm,
+	const std::shared_ptr<OCLKernel> GetKernel( const std::string& algorithm,
 						 const std::string& network_config);
 
 
