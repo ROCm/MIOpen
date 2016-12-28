@@ -22,7 +22,7 @@
 
 namespace mlopen {
 
-const OCLKernel& KernelCache::GetKernel(const std::string& algorithm,
+const std::shared_ptr<OCLKernel> KernelCache::GetKernel(const std::string& algorithm,
 										const std::string& network_config) {
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -41,7 +41,7 @@ const OCLKernel& KernelCache::GetKernel(const std::string& algorithm,
 	}
 }
 
-OCLKernel& KernelCache::GetKernel(cl_command_queue &queue,
+std::shared_ptr<OCLKernel> KernelCache::GetKernel(cl_command_queue &queue,
 										const std::string& algorithm,
 										const std::string& network_config,
 										const std::string& program_name,
@@ -76,10 +76,11 @@ OCLKernel& KernelCache::GetKernel(cl_command_queue &queue,
         program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params, is_binary);
         program_map[std::make_pair(program_name, params)] = program;
     }
+	auto kernel = std::shared_ptr<OCLKernel>(new OCLKernel{ CreateKernel(program.get(), kernel_name), vld, vgd, program });
     if (!network_config.empty() && !algorithm.empty()) {
-        kernel_map[key] = OCLKernel{ CreateKernel(program.get(), kernel_name), vld, vgd, program };
+        kernel_map[key] = kernel;
     }
-    return kernel_map[key];
+    return kernel;
 }
 
 KernelCache::KernelCache()

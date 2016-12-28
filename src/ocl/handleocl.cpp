@@ -299,7 +299,7 @@ KernelInvoke Handle::GetKernel(
         const compiled_in_params compiled_ins)
 {
     auto q = this->GetStream();
-    OCLKernel& obj = this->impl->cache.GetKernel(q, 
+    auto obj = this->impl->cache.GetKernel(q, 
             algorithm,
             network_config,
             program_name, 
@@ -309,15 +309,15 @@ KernelInvoke Handle::GetKernel(
             params,
             is_binary);
 
-    obj.SetKernArgListType(compiled_ins);
+    obj->SetKernArgListType(compiled_ins);
 
 #ifndef NDEBUG
 	//dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
 #endif
     if (this->impl->enable_profiling) { 
-        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1)); 
+        return obj->Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
     } else { 
-        return obj.Invoke(q); 
+        return obj->Invoke(q);
     }
 }
 
@@ -326,13 +326,13 @@ KernelInvoke Handle::GetKernel(
     const std::string& network_config)
 {
     auto q = this->GetStream();
-    const OCLKernel& obj = this->impl->cache.GetKernel(
+    const auto obj = this->impl->cache.GetKernel(
             algorithm,
             network_config);
     if (this->impl->enable_profiling) { 
-        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+        return obj->Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
     } else { 
-        return obj.Invoke(q);
+        return obj->Invoke(q);
     }
 }
 
