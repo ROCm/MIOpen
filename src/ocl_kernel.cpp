@@ -49,13 +49,13 @@ void OCLKernelInvoke::run() const
 	}
 }
 
-OCLKernelInvoke OCLKernel::Invoke(cl_command_queue q, std::function<void(cl_event&)> callback)
+OCLKernelInvoke OCLKernel::Invoke(cl_command_queue q, std::function<void(cl_event&)> callback) const
 {
 #ifndef NDEBUG
 	std::cout << "Info: " << "Invoking kernel: " << GetName(); // grid size + \n in OCLKernelInvoke::run()
 #endif // !NDEBUG
 
-	OCLKernelInvoke result{q, kernel, gdims.size(), {}, {}, {}, callback, kernarg_list_type};
+	OCLKernelInvoke result{q, kernel, gdims.size(), {}, {}, {}, callback, compiled_ins};
 	std::copy(gdims.begin(), gdims.end(), result.global_work_dim.begin());
 	std::copy(ldims.begin(), ldims.end(), result.local_work_dim.begin());
 	return result;

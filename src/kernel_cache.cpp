@@ -22,7 +22,7 @@
 
 namespace mlopen {
 
-OCLKernel KernelCache::GetKernel(const std::string& algorithm,
+const OCLKernel& KernelCache::GetKernel(const std::string& algorithm,
 										const std::string& network_config) {
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -41,7 +41,7 @@ OCLKernel KernelCache::GetKernel(const std::string& algorithm,
 	}
 }
 
-OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
+OCLKernel& KernelCache::GetKernel(cl_command_queue &queue,
 										const std::string& algorithm,
 										const std::string& network_config,
 										const std::string& program_name,
@@ -49,8 +49,7 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
 										const std::vector<size_t>& vld,
 										const std::vector<size_t>& vgd,
 										std::string params,
-										bool is_binary,
-										const kernarg_list_types* kernarg_list_type)
+										bool is_binary)
 {
 
     if (params.length() > 0)
@@ -77,12 +76,10 @@ OCLKernel KernelCache::GetKernel(cl_command_queue &queue,
         program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params, is_binary);
         program_map[std::make_pair(program_name, params)] = program;
     }
-    OCLKernel kernel{CreateKernel(program.get(), kernel_name), vld, vgd, program};
-    if (kernarg_list_type != nullptr) {
-		kernel.SetKernArgListType(*kernarg_list_type);
+    if (!network_config.empty() && !algorithm.empty()) {
+        kernel_map[key] = OCLKernel{ CreateKernel(program.get(), kernel_name), vld, vgd, program };
     }
-    if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
-    return kernel;
+    return kernel_map[key];
 }
 
 KernelCache::KernelCache()

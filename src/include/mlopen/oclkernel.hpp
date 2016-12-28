@@ -15,9 +15,9 @@
 #include <mlopen/each_args.hpp>
 #include <mlopen/clhelper.hpp>
 
-enum class kernarg_list_types {
-	generic,
-	winograd,
+enum class compiled_in_params {
+	legacy, // The rest are compiled in by means of #define. This is the default for .cl sources.
+	none, // E.g. KIorcha_Winograd kernel written in assembly.
 };
 
 namespace mlopen {
@@ -68,7 +68,7 @@ struct OCLKernelInvoke
 	std::array<size_t, 3> global_work_dim;
 	std::array<size_t, 3> local_work_dim;
 	std::function<void(cl_event&)> callback;
-	kernarg_list_types kernarg_list_type;
+	compiled_in_params kernarg_list_type;
 
 	template<class... Ts>
 	void operator()(const Ts&... xs) const
@@ -104,7 +104,7 @@ public:
 		 */
 	}
 
-	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr);
+	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr) const;
 
 	cl_kernel GetKernel() { return kernel.get(); } 
 
@@ -112,14 +112,14 @@ public:
 
 	inline const std::vector<size_t>& GetLocalDims() const { return ldims; }
 	inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
-	inline void SetKernArgListType(kernarg_list_types type) { kernarg_list_type = type; }
+	inline void SetKernArgListType(compiled_in_params type) { compiled_ins = type; }
 
 private:
 	SharedProgramPtr program;
 	SharedKernelPtr kernel;
 	std::vector<size_t> ldims;
 	std::vector<size_t> gdims;
-	kernarg_list_types kernarg_list_type = kernarg_list_types::generic;
+	compiled_in_params compiled_ins = compiled_in_params::legacy;
 };
 
 }  // namespace mlopen

@@ -59,7 +59,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 
-	const auto kernarg_list_type = construct_params.getKernargListType();
+	const auto kernarg_list_type = construct_params.getCompiledInParametersKind();
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
@@ -67,27 +67,27 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	bool is_binary = construct_params.getIsBinary();
 
 	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
-			network_config,
-			program_name,
-			kernel_name,
-			vld,
-			vgd,
-			parms,
-			is_binary,
-			&kernarg_list_type);
+		network_config,
+		program_name,
+		kernel_name,
+		vld,
+		vgd,
+		parms,
+		is_binary,
+		kernarg_list_type);
 
 	switch (kernarg_list_type)
 	{
-	case kernarg_list_types::winograd: {
+	case compiled_in_params::none: {
 			int flags = 0;
 			int reserved = 0;
 			int *return_addr = nullptr;
 			int N, C, H, W, K, n_groups;
-			construct_params.getWinogradParametersHack(&N, &C, &H, &W, &K, &n_groups);
+			construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
 			kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
 		}
 		break;
-	case kernarg_list_types::generic:
+	case compiled_in_params::legacy:
 		kernel(x, w, y, padding_val);
 		break;
 	default:
@@ -162,16 +162,16 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
 	switch (kernel.kernarg_list_type)
 	{
-	case kernarg_list_types::winograd: {
+	case compiled_in_params::none: {
 			int flags = 0;
 			int reserved = 0;
 			int *return_addr = nullptr;
 			int N, C, H, W, K, n_groups;
-			construct_params.getWinogradParametersHack(&N, &C, &H, &W, &K, &n_groups);
+			construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
 			kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
 		}
 		break;
-	case kernarg_list_types::generic:
+	case compiled_in_params::legacy:
 		kernel(x, w, y, padding_val);
 		break;
 	default:
