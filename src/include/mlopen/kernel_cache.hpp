@@ -49,7 +49,7 @@ public:
     typedef std::unordered_map< Key, SharedProgramPtr, SimpleHash > ProgramMap;
 
 
-	OCLKernel GetKernel(cl_command_queue &queue,
+	OCLKernel& GetKernel(cl_command_queue &queue,
 						 const std::string& algorithm,
 						 const std::string& network_config,
 						 const std::string& program_name,
@@ -57,10 +57,9 @@ public:
 						 const std::vector<size_t>& vld,
 						 const std::vector<size_t>& vgd,
 						 std::string params = "",
-						 bool is_binary = false,
-						 const kernarg_list_types* kernarg_list_type = nullptr);
+						 bool is_binary = false);
 	
-	OCLKernel GetKernel( const std::string& algorithm,
+	const OCLKernel& GetKernel( const std::string& algorithm,
 						 const std::string& network_config);
 
 

@@ -229,7 +229,18 @@ int mlo_construct_direct2D::mloConstruct()
 {
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
-	if (_gen && getDirection())
+
+	const auto use_asm_kernels_env_p = std::getenv("MLOPEN_DEBUG_GCN_ASM_KERNELS");
+	std::string use_asm_kernels_env;
+
+	if (use_asm_kernels_env_p != nullptr)
+		use_asm_kernels_env = use_asm_kernels_env_p;
+
+	if (use_asm_kernels_env == "enable" || (use_asm_kernels_env != "disable" && mloCheckWinogradCondition()))
+	{
+		return (mloConstructWinograd());
+	}
+	else if (_gen && getDirection())
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
@@ -282,17 +293,6 @@ int mlo_construct_direct2D::mloConstruct()
 int mlo_construct_direct2D::mloConstructDirect2DFwd()
 {
 	int ret = 0;
-
-	const auto use_asm_kernels_env_p = std::getenv("MLOPEN_DEBUG_GCN_ASM_KERNELS");
-	std::string use_asm_kernels_env;
-
-	if (use_asm_kernels_env_p != nullptr)
-		use_asm_kernels_env = use_asm_kernels_env_p;
-
-	if (use_asm_kernels_env == "enable" || (use_asm_kernels_env != "disable" && mloCheckWinogradCondition()))
-	{
-		return (mloConstructWinograd());
-	}
 
 	bool unaligned = (_out_height < 8 || _out_width < 8 || (_out_height > 8 && _out_height < 16) || (_out_width > 8 && _out_width < 16)
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
@@ -452,6 +452,11 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 
 	return driver_has_LC
 		&& device_suits
+
+		&& _kernel_stride0						==	1
+		&& _kernel_stride1						==	1
+		&& _pad0								==	1
+		&& _pad1								==	1
 		&& _batch_sz							<	std::pow(2, 16)
 		&& _n_inputs							<	std::pow(2, 16)
 		&& _n_outputs							<	std::pow(2, 16)
@@ -471,7 +476,7 @@ int mlo_construct_direct2D::mloConstructWinograd()
 	const auto dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
 	_n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
 
-	_kernarg_list_type = kernarg_list_types::winograd;
+	_compiled_in_parameters = compiled_in_params::none;
 
 	_g_wk.clear();
 	_g_wk.push_back(512 * _n_groups);

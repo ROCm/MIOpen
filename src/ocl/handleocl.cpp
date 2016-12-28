@@ -296,10 +296,10 @@ KernelInvoke Handle::GetKernel(
         const std::vector<size_t>& vgd,
         const std::string& params,
         bool is_binary,
-        const kernarg_list_types* kernarg_list_type)
+        const compiled_in_params compiled_ins)
 {
     auto q = this->GetStream();
-    OCLKernel obj = this->impl->cache.GetKernel(q, 
+    OCLKernel& obj = this->impl->cache.GetKernel(q, 
             algorithm,
             network_config,
             program_name, 
@@ -307,8 +307,9 @@ KernelInvoke Handle::GetKernel(
             vld,
             vgd,
             params,
-            is_binary,
-            kernarg_list_type);
+            is_binary);
+
+    obj.SetKernArgListType(compiled_ins);
 
 #ifndef NDEBUG
 	//dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
@@ -325,7 +326,7 @@ KernelInvoke Handle::GetKernel(
     const std::string& network_config)
 {
     auto q = this->GetStream();
-    OCLKernel obj = this->impl->cache.GetKernel(
+    const OCLKernel& obj = this->impl->cache.GetKernel(
             algorithm,
             network_config);
     if (this->impl->enable_profiling) { 

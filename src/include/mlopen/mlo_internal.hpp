@@ -225,9 +225,9 @@ public:
 	}
 
 	/*
-	* FIXME AMDGPU winograd kernel hack
+	* returns parameter values that are compiled in legacy kernels for kernels using them as arguments.
 	*/
-	inline void getWinogradParametersHack(int* N, int* C, int* H, int* W, int* K, int* n_groups)
+	inline void getCompiledInParameters(int* N, int* C, int* H, int* W, int* K, int* n_groups)
 	{
 		assert(N && C && H && W && K && n_groups);
 		*N = _batch_sz;
@@ -239,11 +239,11 @@ public:
 	}
 
 	/*
-	* returns type of arguments list
+	* returns compiled in parameters kind.
 	*/
-	inline kernarg_list_types getKernargListType()
+	inline compiled_in_params getCompiledInParametersKind()
 	{
-		return _kernarg_list_type;
+		return _compiled_in_parameters;
 	}
 
 	/*
@@ -886,7 +886,7 @@ protected:
 	size_t _workspce_sz;
 
 	unsigned int _n_groups;
-	kernarg_list_types _kernarg_list_type = kernarg_list_types::generic;
+	compiled_in_params _compiled_in_parameters = compiled_in_params::legacy;
 	bool _is_binary = false;
 };
 

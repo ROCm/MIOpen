@@ -39,7 +39,7 @@ struct Handle : mlopenHandle {
             const std::vector<size_t>& vgd,
             const std::string& params,
             bool is_binary = false,
-            const kernarg_list_types* kernarg_list_type = nullptr);
+            const compiled_in_params compiled_ins = compiled_in_params::legacy);
 
     KernelInvoke GetKernel(
         const std::string& algorithm,
