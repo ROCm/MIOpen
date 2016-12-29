@@ -453,6 +453,8 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 	return driver_has_LC
 		&& device_suits
 
+		&& _in_layout							== "NCHW"
+		&& _weights_layout						== "NKCHW"
 		&& _kernel_stride0						==	1
 		&& _kernel_stride1						==	1
 		&& _pad0								==	1
