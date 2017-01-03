@@ -168,7 +168,7 @@ inline void  Kahan_summation_tricked(_FLOAT *sum, _FLOAT * c, _FLOAT v, _FLOAT m
 {
 	_FLOAT y = v - *c;    //So far, so good: c is zero.
 	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-	*c = (t - (*sum - mod)) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
+	*c = (t - *sum) * mod - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
 	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
 }
 
