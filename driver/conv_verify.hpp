@@ -16,6 +16,9 @@ void RunBackwardWeightsCPUVerify(
 	assert(wei_wstride == 1);
 	assert(out_wstride == 1);
 
+	double * t_wei = new double[wei_n *wei_c * wei_h * wei_w];
+	assert(t_wei);
+	memset(t_wei, 0, sizeof(double)*wei_n *wei_c * wei_h * wei_w);
 	for (int o = 0; o < out_n; o++) // mini-batch size
 	{
 		for (int w = 0; w < out_c; w++) // out_channels (num filters)
@@ -35,9 +38,9 @@ void RunBackwardWeightsCPUVerify(
 
 								if ((in_i >= 0) && (in_i < in_h) && (in_j >= 0) && (in_j < in_w))
 								{
-									dwei_host[w*wei_nstride + k*wei_cstride + x*wei_hstride + y] +=
-										in[o*in_nstride + k*in_cstride + in_i*in_hstride + in_j] *
-										dout[o*out_nstride + w*out_cstride + i*out_hstride + j];
+									t_wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y] +=
+										(double)in[o*in_nstride + k*in_cstride + in_i*in_hstride + in_j] *
+										(double) dout[o*out_nstride + w*out_cstride + i*out_hstride + j];
 								}
 							}
 						}
@@ -46,6 +49,12 @@ void RunBackwardWeightsCPUVerify(
 			}
 		}
 	}
+	for (size_t i = 0; i < wei_n *wei_c * wei_h * wei_w; ++i)
+	{
+		dwei_host[i] = (T)t_wei[i];
+	}
+		
+	delete[] t_wei;
 
 #ifdef BACKWARD_WRW_VERIFY_DIRECT_2
 
