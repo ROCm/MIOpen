@@ -307,15 +307,16 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 //	int K = out_h * out_w;
 //	float alpha = 1.;
 //	float beta = 1.;
-#if 0
+
 	for(int i = 0; i < in_n; i++) {
 		size_t in_offset = i * in_c * in_h * in_w;
 		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 
 	}
-#endif
 
-//	if(u == 1 && v == 1)
+// temprorary guard
+	if((u == 1 && v == 1) ||
+		(wei_w >= 10 && u == 2 && v == 2 && pad_h == 0 && pad_w == 0))
 	{
 		mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
 		{
@@ -430,7 +431,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	{
 		case mlopenConvolutionBwdWeightsAlgoGEMM:
 		{
-#if 0
+
 			int in_n, in_c, in_h, in_w;
 			std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
@@ -444,12 +445,22 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 				size_t in_offset = i * in_c * in_h * in_w;
 				Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 			}
-#endif
+
 		}
 		break;
 		case mlopenConvolutionBwdWeightsAlgoDirect:
 		{
-//			if(u == 1 && v == 1)
+			int in_n, in_c, in_h, in_w;
+			std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+
+			int wei_n, wei_h, wei_w;
+			std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+
+			int out_h, out_w;
+			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+
+			if ((u == 1 && v == 1) ||
+				(wei_w >= 10 && u == 2 && v == 2 && pad_h == 0 && pad_w == 0))
 			{
 				mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
 				construct_params.doSearch(false);
