@@ -270,16 +270,19 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
         dataRead = readBufferFromFile(in.data(), in_sz, inFileName.c_str());
     }
 
+	double scale = 0.1;
+
     if(!dataRead)
     {
         for(int i = 0; i < in_sz; i++) {
-            in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+			in[i] = (T)(/*(double)scale**/rand() * (1.0 / RAND_MAX));
         }
     }
 
+
 	for (int i = 0; i < out_sz; i++) {
-		out[i] = (T)((double)rand() * (1.0 / RAND_MAX));
-		dout[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+		out[i] = (T)(scale*(double)rand() * (1.0 / RAND_MAX));
+		dout[i] = (T)(scale*(double)rand() * (1.0 / RAND_MAX));
 	}
 
     bool weiRead = false;
@@ -290,7 +293,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
     if(!weiRead)
     {
         for (int i = 0; i < wei_sz; i++) {
-            wei[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) );
+			wei[i] = (T)(scale*(double)(rand() * (1.0 / RAND_MAX) - 0.5) );
         }
     }
 	
@@ -642,7 +645,7 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 								for(int y = 0; y < wei_w; y++) {
 									int in_y = in_off_w - pad_w + y;
 									if(in_y >= 0 && in_y < in_w) {
-										din_host[o*in_nstride + k*in_cstride + in_x*in_hstride + in_y] += 
+										din_host[o*in_nstride + k*in_cstride + in_x*in_hstride + in_y] +=
 											dout[o*out_nstride + w*out_cstride + i*out_hstride + j] *
 											wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
 									}
@@ -655,10 +658,10 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 		}
 	}
 
-    if(inflags.GetValueInt("dump_output")) {
-        dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
-    }
-    return 0;
+	if (inflags.GetValueInt("dump_output")) {
+		dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
+	}
+	return 0;
 }
 
 template<typename T>
@@ -668,14 +671,14 @@ int ConvDriver<T>::VerifyForward() {
 
 	auto error = rms_range(outhost, out);
 	const double tolerance = 1e-6;
-    if (error > tolerance)
+	if (!(error < tolerance))
 	{
-		std::cout<<"Forward Convolution Failed: " << error <<"\n";
+		std::cout<< "Forward Convolution Failed: " << error << "\n";
 	}
 	else
 	{
 		printf("Forward Convolution Verifies on CPU and GPU\n");
-    }
+	}
 
 	return 0;
 }
@@ -687,7 +690,7 @@ int ConvDriver<T>::VerifyBackward() {
 	RunBackwardWeightsCPU();
 
 	auto error_weights = rms_range(dwei_host, dwei);
-	if (error_weights > tolerance)
+	if (!(error_weights < tolerance))
 	{
 		std::cout<<"Backward Convolution Weights Failed: " << error_weights <<"\n";
 	}
@@ -698,9 +701,8 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardDataCPU();
 
-
 	auto error_data = rms_range(din_host, din);
-	if (error_data > tolerance)
+	if (!(error_data < tolerance))
 	{
 		std::cout<<"Backward Convolution Data Failed: " << error_data <<"\n";
 	}
