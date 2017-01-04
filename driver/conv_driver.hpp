@@ -498,7 +498,7 @@ int ConvDriver<T>::FindBackwardWeights() {
 template<typename T>
 int ConvDriver<T>::RunBackwardGPU() {
 
-	//FindBackwardData();
+	FindBackwardData();
 
 	int alpha = 1, beta = 1;
 
@@ -671,7 +671,7 @@ int ConvDriver<T>::VerifyForward() {
 
 	auto error = rms_range(outhost, out);
 	const double tolerance = 1e-6;
-	if (error > tolerance)
+	if (!(error < tolerance))
 	{
 		std::cout<< "Forward Convolution Failed: " << error << "\n";
 	}
@@ -702,7 +702,7 @@ int ConvDriver<T>::VerifyBackward() {
 	RunBackwardDataCPU();
 
 	auto error_data = rms_range(din_host, din);
-	if (error_data > tolerance)
+	if (!(error_data < tolerance))
 	{
 		std::cout<<"Backward Convolution Data Failed: " << error_data <<"\n";
 	}
