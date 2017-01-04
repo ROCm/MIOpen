@@ -1026,14 +1026,12 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 }
 
 
-
-
 /*
 * backward with regard to weights
 * inputs == output, outputs == input
 */
 
-int mlo_construct_BwdWrW2D::mloConstruct2(void)
+int mlo_construct_BwdWrW2D::mloConstruct2()
 {
 	int ret = 0;
 	size_t localMemSize = 64 * 1024;
@@ -1077,7 +1075,6 @@ int mlo_construct_BwdWrW2D::mloConstruct2(void)
 	// inpout are outputs
 	int wei_cstride = _kernel_size0*_kernel_size1;
 	int wei_bstride = _n_outputs*wei_cstride;
-	int LG2FILTER_SIZE0 = mloLg2(_kernel_size0);
 
 	int read_unit = 4;
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
@@ -1197,15 +1194,11 @@ int mlo_construct_BwdWrW2D::mloConstruct2(void)
 	// sum over batch
 	if (n_batch_blks > 1)
 	{
-
 		std::string kernel_file = "MLOpenConvBwdWrW_LxL.cl";
 		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
 
-
 		std::vector<size_t> l_wk;
 		l_wk.clear();
-		int UT_GRP_SZ0 = _hw_wave_sz * n_ut_waves;
-		int ut_read_unit = ((wei_cstride / 4) * 4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
 
 		int gbl_ut_wk0 = wei_bstride * _n_inputs / ut_read_unit;
 
@@ -1216,11 +1209,8 @@ int mlo_construct_BwdWrW2D::mloConstruct2(void)
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-
 		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
-
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
-
 	}
 
 	return(ret);
