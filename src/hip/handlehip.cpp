@@ -19,21 +19,9 @@ struct HandleImpl
 {
     // typedef MLOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
-    using ContextPtr = MLOPEN_MANAGE_PTR(hipCtx_t, hipCtxDestroy);
 
     HandleImpl()
-    {
-        this->context = this->create_context();
-    }
-
-    ContextPtr create_context()
-    {
-        hipCtx_t ctx;
-        auto status = hipCtxCreate(&ctx, 0, get_device(0));
-        ContextPtr result{ctx};
-        if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Error creating context");
-        return result;
-    }
+    {}
 
     StreamPtr create_stream()
     {
@@ -48,7 +36,6 @@ struct HandleImpl
         return StreamPtr{s, null_deleter{}};
     }
 
-    ContextPtr context;
     bool enable_profiling = false;
     std::vector<StreamPtr> streams;
 #if MLOPEN_BACKEND_HIPOC
@@ -68,6 +55,7 @@ Handle::Handle ()
 : impl(new HandleImpl())
 {
     this->impl->streams.push_back(impl->create_stream());
+    // this->impl->streams.push_back(HandleImpl::reference_stream(nullptr));
 }
 
 Handle::~Handle() {}
