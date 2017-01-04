@@ -869,6 +869,8 @@ public:
 	}
 
 	int mloConstruct() override;
+protected:
+	int mloConstruct2();
 };
 
 
