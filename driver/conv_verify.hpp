@@ -16,9 +16,7 @@ void RunBackwardWeightsCPUVerify(
 	assert(wei_wstride == 1);
 	assert(out_wstride == 1);
 
-	double * t_wei = new double[wei_n *wei_c * wei_h * wei_w];
-	assert(t_wei);
-	memset(t_wei, 0, sizeof(double)*wei_n *wei_c * wei_h * wei_w);
+	std::vector<double> t_wei(wei_n *wei_c * wei_h * wei_w, 0);
 	for (int o = 0; o < out_n; o++) // mini-batch size
 	{
 		for (int w = 0; w < out_c; w++) // out_channels (num filters)
@@ -54,8 +52,6 @@ void RunBackwardWeightsCPUVerify(
 		dwei_host[i] = (T)t_wei[i];
 	}
 		
-	delete[] t_wei;
-
 #ifdef BACKWARD_WRW_VERIFY_DIRECT_2
 
 	{
