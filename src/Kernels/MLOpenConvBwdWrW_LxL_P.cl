@@ -80,8 +80,9 @@
 // this number is constrained by amount or LDS and size of register file.
 // TO DO:: CHECK PADDING!!!
 #define MLO_IN_LCL_HEIGHT ((MLO_N_ALIGNED_OUT_SCAN_BLK-1)*MLO_FILTER_STRIDE1 + MLO_FILTER_SIZE1)
-#define MLO_N_IN_HORIZ_READS ((((MLO_OUT_HORIZ_PIX_SZ-1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0) + MLO_READ_UNIT - 1) / MLO_READ_UNIT)
-#define MLO_IN_LCL_WIDTH (MLO_N_IN_HORIZ_READS * MLO_READ_UNIT)
+// there is an assumption that the scanline fits into LDS
+#define MLO_N_IN_HORIZ_READS ((((MLO_OUT_HORIZ_PIX_SZ-1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0 - 2 * MLO_FILTER_PAD0) + MLO_READ_UNIT - 1) / MLO_READ_UNIT)
+#define MLO_IN_LCL_WIDTH (MLO_N_IN_HORIZ_READS * MLO_READ_UNIT + 2 * MLO_FILTER_PAD0)
 #define MLO_IN_BLK_GRP_PIX_SZ (MLO_IN_LCL_WIDTH * MLO_IN_LCL_HEIGHT)
 #define MLO_IN_BLK_GRP_WK_SZ (MLO_IN_BLK_GRP_PIX_SZ/MLO_READ_UNIT)
 #define MLO_IN_LCL_SZ (MLO_IN_BLK_GRP_PIX_SZ)
@@ -235,6 +236,10 @@ __kernel void MLOpenCvBwdWrW(
 	_FLOAT padding_val
 )
 {
+
+#if 0
+	printf("K:proof:\n");
+#endif
 	// input/output tiles + reduce buffer
 
 	__local _FLOAT lcl[(MLO_LCL_SZ)];
@@ -288,6 +293,8 @@ __kernel void MLOpenCvBwdWrW(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 
+
+
 #if 1
 	// over all batches
 
@@ -308,7 +315,7 @@ __kernel void MLOpenCvBwdWrW(
 		int gbl_out_scan_off = gbl_out_off;
 		int c_scan = 0;
 
-		for (int p4 = lcl_id;  p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) && in_y + c_scan < MLO_IN_HEIGHT;
+		for (int p4 = lcl_id;  p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1) && in_y + c_scan < MLO_IN_HEIGHT;
 			//				c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS),
 			p4 += MLO_GRP_SZ)
 		{
@@ -326,7 +333,7 @@ __kernel void MLOpenCvBwdWrW(
 
 		}
 
-		in_y += MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1;
+		in_y += MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1;
 
 // TO DO: HANDLE PADDING
 // over all out blocks
@@ -355,13 +362,29 @@ __kernel void MLOpenCvBwdWrW(
 				p4 += MLO_GRP_SZ)
 			{
 				c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
-				int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
 
-				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
-				//					*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
 				{
-					lcl_bot[(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+
+					*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
+					//					*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+						lcl_bot[(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+#if 0
+						if (lcl_id == 0 && p4 == 0)
+						{
+							printf("K:g:%d %d %d %d %d %f\n",
+								ob,
+								MLO_IN_LCL_WIDTH,
+								(MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1),
+								MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1,
+								(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i,
+								lcl_bot[(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i]
+							);
+						}
+#endif
+					}
 				}
 
 			}
@@ -484,6 +507,29 @@ __kernel void MLOpenCvBwdWrW(
 									i_val = i_vals[w];
 
 									pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
+#if 0
+									int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
+									if (i_val * o_val != 0 && ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 0 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP )
+									{
+										int i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
+										printf("K:s: %d %d %d %d %d %d %d %d %d   %f %f %f %f\n",
+											lcl_id,
+											b,
+											ob,
+											w_blk_idx,
+											j,
+											i,
+											w,
+											i_off,
+											(o)*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i),
+											pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w],
+											i_val * o_val,
+											i_val,
+											o_val
+										);
+									}
+#endif
+
 
 
 								} // for (/*int w = 0*/; w < MLO_WEI_WKITEM; ++w)
@@ -517,12 +563,35 @@ __kernel void MLOpenCvBwdWrW(
 // move the input data tail inside LDS to reduce mem bandwidth
 			c_scan = 0;
 			for (int p4 = lcl_id; p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1);
-				p4 += MLO_GRP_SZ, c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS))
+				p4 += MLO_GRP_SZ )
 			{
+
+				c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
 				int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
 
+#if 1
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					lcl_bot[c_scan*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] =
+						lcl_bot[(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i];
+#if 0
+					if (c_scan == 1 && c_pix4 == 0)
+					{
+						printf("K:l:%d %d %d %d %d %f\n",
+							ob,
+							(MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1),
+							(MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1),
+							c_scan*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i,
+							(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i,
+							lcl_bot[c_scan*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i]
+						);
+					}
+#endif
+				}
+#else
 				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&lcl_bot[(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT];
 				*(MLO_READ_TYPE*)&lcl_bot[c_scan*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
+#endif
 
 			}
 
@@ -635,7 +704,11 @@ __kernel void MLOpenCvBwdWrW_rdc(
 	int wei_blk_idx = iDiv(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
 	int wei_idx = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 
-	_FLOAT pvt_accum_wei[MLO_UT_READ_UNIT] = { 0,0 };
+	_FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];
+	for (int i = 0; i < MLO_UT_READ_UNIT; ++i)
+	{
+		pvt_accum_wei[i] = 0;
+	}
 
 	int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS) - 1) / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS);
 	for (int i = 0; i < batch_loop; ++i)
