@@ -498,7 +498,7 @@ int ConvDriver<T>::FindBackwardWeights() {
 template<typename T>
 int ConvDriver<T>::RunBackwardGPU() {
 
-	//FindBackwardData();
+	FindBackwardData();
 
 	int alpha = 1, beta = 1;
 
@@ -622,32 +622,33 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 			&wei_n, &wei_c, &wei_h, &wei_w,
 			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
-int out_n, out_c, out_h, out_w;
-int out_nstride, out_cstride, out_hstride, out_wstride;
-mlopenGet4dTensorDescriptor(outputTensor, &dt,
-	&out_n, &out_c, &out_h, &out_w,
-	&out_nstride, &out_cstride, &out_hstride, &out_wstride);
+	int out_n, out_c, out_h, out_w;
+	int out_nstride, out_cstride, out_hstride, out_wstride;
+	mlopenGet4dTensorDescriptor(outputTensor, &dt,
+			&out_n, &out_c, &out_h, &out_w,
+			&out_nstride, &out_cstride, &out_hstride, &out_wstride);
 
-int u, v, pad_h, pad_w, upx, upy;
-mlopenConvolutionMode_t mode;
-mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+	int u, v, pad_h, pad_w, upx, upy;
+	mlopenConvolutionMode_t mode;
+	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
-for (int o = 0; o < out_n; o++) { // mini-batch size
-	for (int k = 0; k < in_c; k++) { // in_channels (RGB)
-		for (int w = 0; w < out_c; w++) { // out_channels (num filters)
-			for (int i = 0; i < out_h; i++) { // output_height (from getforwardoutputdim())
-				int in_off_h = i * v;
-				for (int j = 0; j < out_w; j++) { //output_width (from getforwardoutputdim())
-					int in_off_w = j * u;
-					for (int x = 0; x < wei_h; x++) {
-						int in_x = in_off_h - pad_h + x;
-						if (in_x >= 0 && in_x < in_h) {
-							for (int y = 0; y < wei_w; y++) {
-								int in_y = in_off_w - pad_w + y;
-								if (in_y >= 0 && in_y < in_w) {
-									din_host[o*in_nstride + k*in_cstride + in_x*in_hstride + in_y] +=
-										dout[o*out_nstride + w*out_cstride + i*out_hstride + j] *
-										wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
+	for(int o = 0; o < out_n; o++) { // mini-batch size
+		for(int k = 0; k < in_c; k++) { // in_channels (RGB)
+			for(int w = 0; w < out_c; w++) { // out_channels (num filters)
+				for(int i = 0; i < out_h; i++) { // output_height (from getforwardoutputdim())
+					int in_off_h = i * v;
+					for(int j = 0; j < out_w; j++) { //output_width (from getforwardoutputdim())
+						int in_off_w = j * u;
+						for(int x = 0; x < wei_h; x++) {
+							int in_x = in_off_h - pad_h + x;
+							if(in_x >= 0 && in_x < in_h) {
+								for(int y = 0; y < wei_w; y++) {
+									int in_y = in_off_w - pad_w + y;
+									if(in_y >= 0 && in_y < in_w) {
+										din_host[o*in_nstride + k*in_cstride + in_x*in_hstride + in_y] +=
+											dout[o*out_nstride + w*out_cstride + i*out_hstride + j] *
+											wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
+									}
 								}
 							}
 						}
@@ -656,12 +657,11 @@ for (int o = 0; o < out_n; o++) { // mini-batch size
 			}
 		}
 	}
-}
 
-if (inflags.GetValueInt("dump_output")) {
-	dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
-}
-return 0;
+	if (inflags.GetValueInt("dump_output")) {
+		dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
+	}
+	return 0;
 }
 
 template<typename T>
@@ -671,9 +671,9 @@ int ConvDriver<T>::VerifyForward() {
 
 	auto error = rms_range(outhost, out);
 	const double tolerance = 1e-6;
-	if (error > tolerance)
+	if (!(error < tolerance))
 	{
-		std::cout << "Forward Convolution Failed: " << error << "\n";
+		std::cout<< "Forward Convolution Failed: " << error << "\n";
 	}
 	else
 	{
@@ -689,55 +689,6 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardWeightsCPU();
 
-#if 0
-	{
-		int in_n, in_c, in_h, in_w;
-		int in_nstride, in_cstride, in_hstride, in_wstride;
-		mlopenDataType_t dt;
-		mlopenGet4dTensorDescriptor(inputTensor, &dt,
-			&in_n, &in_c, &in_h, &in_w,
-			&in_nstride, &in_cstride, &in_hstride, &in_wstride);
-
-		int wei_n, wei_c, wei_h, wei_w;
-		int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-		mlopenGet4dTensorDescriptor(weightTensor, &dt,
-			&wei_n, &wei_c, &wei_h, &wei_w,
-			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
-
-		int out_n, out_c, out_h, out_w;
-		int out_nstride, out_cstride, out_hstride, out_wstride;
-		mlopenGet4dTensorDescriptor(outputTensor, &dt,
-			&out_n, &out_c, &out_h, &out_w,
-			&out_nstride, &out_cstride, &out_hstride, &out_wstride);
-
-		bool match = true;
-		for (int o = 0; o < out_n; o++) // mini-batch size
-		{
-			for (int w = 0; w < out_c && match; w++) // out_channels (num filters)
-			{
-				for (int k = 0; k < in_c && match; k++) // in_channels (RGB)
-				{
-					for (int x = 0; x < wei_h && match; x++) // filter height
-					{
-						for (int y = 0; y < wei_w && match; y++) // filter width
-						{
-							float c_val = dwei_host[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
-							float g_val = dwei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
-							if (!(abs(c_val - g_val) < 0.006))
-							{
-								printf("Err: %f at  %d, %d, %d, %d with c=%12.6f g=%12.6f\n",
-									abs(c_val - g_val),	w, k, x, y, c_val,g_val
-									);
-								match = false;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-#endif
-
 	auto error_weights = rms_range(dwei_host, dwei);
 	if (!(error_weights < tolerance))
 	{
@@ -750,9 +701,8 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardDataCPU();
 
-
 	auto error_data = rms_range(din_host, din);
-	if (error_data > tolerance)
+	if (!(error_data < tolerance))
 	{
 		std::cout<<"Backward Convolution Data Failed: " << error_data <<"\n";
 	}
