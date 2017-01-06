@@ -377,17 +377,18 @@ __kernel void MLOpenCvBwdWrW(
 
 					*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
 					//					*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
-				}
-#if MLO_IN_N_PIXS_OFF > 0
-				if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
-				{
-					for (int i = MLO_READ_UNIT - 1; i >= MLO_READ_UNIT - MLO_IN_N_PIXS_OFF; --i)
-					{
-						in_rd_data[i] = 0;
-					}
 
-				}
+#if MLO_IN_N_PIXS_OFF > 0
+					if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
+					{
+						for (int i = MLO_READ_UNIT - 1; i >= MLO_READ_UNIT - MLO_IN_N_PIXS_OFF; --i)
+						{
+							in_rd_data[i] = 0;
+						}
+
+					}
 #endif
+				} // if (in_y + c_scan < MLO_IN_HEIGHT)
 
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
@@ -444,7 +445,6 @@ __kernel void MLOpenCvBwdWrW(
 					{
 						*(MLO_READ_TYPE*)out_rd_data
 							= *(MLO_READ_TYPE*)&top_df[gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
-					} // if (out_y + o_scan < MLO_OUT_HEIGHT && o_idx + og *MLO_N_LCL_OUT_MAPS + o < MLO_N_OUTPUTS)
 
 // scan has been fetch by 4
 // here the non-multiple of 4 scan has been handled
@@ -458,15 +458,17 @@ __kernel void MLOpenCvBwdWrW(
 							}
 						}
 #endif
+					} // if (out_y + o_scan < MLO_OUT_HEIGHT && o_idx + og *MLO_N_LCL_OUT_MAPS + o < MLO_N_OUTPUTS)
+
 
 // write into LDS with MLO_OUT_HORIZ_PIX_EXT_SZ stride to zero out weights block overshoot
 						//						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)out_rd_data;
 						//
 
-						for (int i = 0; i < MLO_READ_UNIT; ++i)
-						{
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
 							lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + i] = out_rd_data[i];
-						}
+					}
 
 				} //	for (int oo_p4 = lcl_id; oo_p4 < (MLO_N_LCL_OUT_MAPS*MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS); oo_p4 += MLO_GRP_SZ)
 
@@ -479,16 +481,16 @@ __kernel void MLOpenCvBwdWrW(
 #if 1
 				//				if (w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
 				{
-// over all input scans in LDS
+					// over all input scans in LDS
 					for (int j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK; ++j)
 					{
 
-// prefetch proper inputs pixels.
-// they are MLO_WEI_BLK_SZ0 apart taps of the filter
+						// prefetch proper inputs pixels.
+						// they are MLO_WEI_BLK_SZ0 apart taps of the filter
 
 						_FLOAT i_vals[MLO_WEI_WKITEM];
 
-						for (int w = 0; w < (MLO_WEI_WKITEM - (MLO_FILTER_STRIDE0/ MLO_WEI_BLK_SZ0)); ++w)
+						for (int w = 0; w < (MLO_WEI_WKITEM - (MLO_FILTER_STRIDE0 / MLO_WEI_BLK_SZ0)); ++w)
 						{
 							int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
 							int i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + 0) * MLO_FILTER_STRIDE0 + w_x;
@@ -504,7 +506,7 @@ __kernel void MLOpenCvBwdWrW(
 						for (int i = 0; i < MLO_OUT_WEI_SCAN_BLK; ++i)
 						{
 
-// read the current input pixel
+							// read the current input pixel
 							for (int w = (MLO_WEI_WKITEM - (MLO_FILTER_STRIDE0 / MLO_WEI_BLK_SZ0)); w < MLO_WEI_WKITEM; ++w)
 							{
 								int w_x = w_x0 + w* MLO_WEI_BLK_SZ0;
@@ -513,11 +515,11 @@ __kernel void MLOpenCvBwdWrW(
 
 								i_vals[w] = i_val;
 							}
-// for each output accumulate a proper filter tap
+							// for each output accumulate a proper filter tap
 							for (int o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
 							{
 
-// read with MLO_OUT_HORIX_PIX_EXT_SZ stride
+								// read with MLO_OUT_HORIX_PIX_EXT_SZ stride
 								_FLOAT o_val
 									= lcl_top[(o)*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i)];
 
@@ -531,7 +533,7 @@ __kernel void MLOpenCvBwdWrW(
 									pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
 #if 0
 									int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-									if (i_val * o_val != 0 && ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 6 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP )
+									if (i_val * o_val != 0 && ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 6 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
 									{
 										int i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
 										printf("K:s: %d %d %d %d %d %d %d %d %d   %f %f %f %f %f\n",
