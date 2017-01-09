@@ -270,12 +270,12 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
         dataRead = readBufferFromFile(in.data(), in_sz, inFileName.c_str());
     }
 
-	double scale = 0.1;
+	double scale = 0.01;
 
     if(!dataRead)
     {
         for(int i = 0; i < in_sz; i++) {
-			in[i] = (T)(/*(double)scale**/rand() * (1.0 / RAND_MAX));
+			in[i] = (T)((double)scale*rand() * (1.0 / RAND_MAX));
         }
     }
 
