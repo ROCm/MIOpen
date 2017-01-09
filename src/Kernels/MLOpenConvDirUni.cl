@@ -164,7 +164,7 @@ inline void readDataElem(int linPos,__local _FLOAT *lcl_data, int lcl_base, int 
 #if MLO_LARGE_MAP == 1
 	 vis &= (g_x >= 0 && g_x < gbl_width && g_y >= 0 && g_y < gbl_height);
 #endif
-//	 gbl_off = (vis) ? gbl_off : 0;
+	 gbl_off = (vis) ? gbl_off : 0;
 	 _FLOAT gbl_val = gbl_data[gbl_off];
 	 gbl_val = (vis) ? gbl_val : 0;
 
