@@ -83,6 +83,8 @@ if( MLOPEN_BACKEND STREQUAL "HIPOC")
 			bin/x86_64
 			x86_64
 	)
+	message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
+	message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
 	add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
 	add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
 	set(MLOPEN_SHARED OFF)
