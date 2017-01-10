@@ -143,6 +143,15 @@ void Handle::Flush() const
 
 }
 
+void Handle::ResetKernelTime(void)
+{
+
+}
+void Handle::AccumKernelTime(float)
+{
+
+}
+
 std::size_t Handle::GetLocalMemorySize()
 {
     // TODO: Check error codes
