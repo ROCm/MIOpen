@@ -139,7 +139,7 @@ inline void readDataElem(int linPos,__local _FLOAT *lcl_data, int lcl_base, int 
 #if MLO_LARGE_MAP == 1
 	 vis &= (g_x >= 0 && g_x < gbl_width && g_y >= 0 && g_y < gbl_height);
 #endif
-//	 gbl_off = (vis) ? gbl_off : 0;
+	 gbl_off = (vis) ? gbl_off : 0;
 	 _FLOAT gbl_val = gbl_data[gbl_off];
 	 gbl_val = (vis) ? gbl_val : 0;
 
@@ -483,8 +483,12 @@ __kernel void MLOpenConvUniC(
 
 			int lcl_we_off = mad24(mad24(lcl_c, (int)MLO_N_IN_TILES_PERSTACK, lcl_o), (int)MLO_FILTER_SZ, lcl_i);
 			int gbl_we_off = mad24(mad24(lcl_o, (int)MLO_N_OUTPUTS, lcl_c), (int)MLO_FILTER_SZ, wei_off + lcl_i);
-			lcl_wei[lcl_we_off] 
-				= weights[gbl_we_off];
+			bool within_range = gbl_we_off < (MLO_N_OUTPUTS*MLO_N_INPUTS*MLO_FILTER_SZ);
+			gbl_we_off = (within_range) ? gbl_we_off : 0;
+			_FLOAT wei = weights[gbl_we_off];
+			wei = (within_range) ? wei : 0;
+			lcl_wei[lcl_we_off]
+				= wei;
 
 
 #endif

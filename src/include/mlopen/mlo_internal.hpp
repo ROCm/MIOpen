@@ -62,6 +62,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <vector>
 #include <numeric>
 #include <cstdint>
+#include <tuple>
 
 
 #ifdef WIN32
@@ -96,16 +97,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #endif
 
-
-
-
-/* 
-Include CLBLAS header. 
-*/
-
-#ifdef WITH_CLBLAS
-#include <clBLAS.h>
-#endif
+typedef std::tuple<const std::string, const std::string, const std::string, const std::vector<size_t>, const std::vector<size_t>> mlo_kernel_info;
 
 #if MLOPEN_BACKEND_OPENCL
 #include <mlopen/oclkernel.hpp>
@@ -287,6 +279,22 @@ public:
 	{
 		return(_gen_comp_options);
 	}
+
+	/*
+	* get info for all kernels of the layer
+	* std::string _kernel_name;
+	* std::string _kernel_file;
+	* std::string _comp_options;
+	* std::vector<size_t> _g_wk;
+	* std::vector<size_t> _l_wk;
+	*/
+
+	inline const std::vector<mlo_kernel_info> & getKernelsInfo(void) const
+	{
+		return(_mlo_kernels_info);
+	}
+
+
 	/*
 	* return direction: true - forward, false - backward
 	*/
@@ -350,8 +358,8 @@ public:
 	{
 		_pad1 = u_padding;
 		_pad0 = v_padding;
-		_kernel_stride1 = u_stride;
-		_kernel_stride0 = v_stride;
+		_kernel_stride0 = u_stride;
+		_kernel_stride1 = v_stride;
 	}
 
 	/*
@@ -825,6 +833,10 @@ protected:
 	std::vector<size_t> _l_wk;
 	std::vector<size_t> _g_wk;
 
+	// more than 1 kerenls per stage
+	std::vector<mlo_kernel_info> _mlo_kernels_info;
+
+
 	bool _gen = false; // genral case 
 	int _n_timer_iter = 0;
 	int _quiet = 0;
@@ -847,6 +859,24 @@ protected:
 
 	size_t _workspce_sz;
 };
+
+
+/*
+* backward with regard to weights construction
+*/
+
+class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
+{
+public:
+	mlo_construct_BwdWrW2D(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias)
+	{
+	}
+
+	int mloConstruct() override;
+protected:
+	int mloConstruct2();
+};
+
 
 #define MLO_POOLING_OP_AVE			0
 #define MLO_POOLING_OP_MAX			1
@@ -917,6 +947,9 @@ protected:
 	int mloConstructBwd();
 
 };
+
+
+
 
 #define MLO_LRN_WITHIN_CHANNEL  0
 #define MLO_LRN_ACROSS_CHANNELS 1

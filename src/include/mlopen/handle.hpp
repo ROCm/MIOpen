@@ -24,6 +24,9 @@ struct Handle : mlopenHandle {
 	mlopenAcceleratorQueue_t GetStream() const;
 
     void EnableProfiling(bool enable=true);
+	
+	void ResetKernelTime(void);
+	void AccumKernelTime(float curr_time);
 
     float GetKernelTime() const;
 #if MLOPEN_BACKEND_OPENCL || MLOPEN_BACKEND_HIPOC

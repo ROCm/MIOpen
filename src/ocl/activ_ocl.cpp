@@ -16,7 +16,6 @@ mlopenStatus_t ActivationDescriptor::Forward(
 		Data_t						/* workSpace */) {
 
 	mlopenStatus_t status = mlopenStatusSuccess;
-	printf("in activation forward\n");
 
 	mlo_construct_neuron construct_params(1); // forward
 
@@ -102,8 +101,6 @@ mlopenStatus_t ActivationDescriptor::Forward(
 			vgd,
 			compiler_options)(x, y, f_activ_power, f_activ_beta, f_activ_alpha);
 
-	std::cout << "Activation Forward Finished !!" << std::endl;
-
 	return(status);
 }
 
@@ -122,7 +119,6 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 		ConstData_t				/* workSpace */) {
 
 	mlopenStatus_t status = mlopenStatusSuccess;
-	printf("in activation backward\n");
 
 	mlo_construct_neuron construct_params(0); // backward
 
@@ -255,8 +251,6 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 		vld,
 		vgd,
 		compiler_options)(dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha);
-
-	std::cout << "Activation Backward Finished !!" << std::endl;
 
 	return(status);
 }
