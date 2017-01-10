@@ -483,8 +483,12 @@ __kernel void MLOpenConvUniC(
 
 			int lcl_we_off = mad24(mad24(lcl_c, (int)MLO_N_IN_TILES_PERSTACK, lcl_o), (int)MLO_FILTER_SZ, lcl_i);
 			int gbl_we_off = mad24(mad24(lcl_o, (int)MLO_N_OUTPUTS, lcl_c), (int)MLO_FILTER_SZ, wei_off + lcl_i);
-			lcl_wei[lcl_we_off] 
-				= weights[gbl_we_off];
+			bool within_range = gbl_we_off < (MLO_N_OUTPUTS*MLO_N_INPUTS*MLO_FILTER_SZ);
+			gbl_we_off = (within_range) ? gbl_we_off : 0;
+			_FLOAT wei = weights[gbl_we_off];
+			wei = (within_range) ? wei : 0;
+			lcl_wei[lcl_we_off]
+				= wei;
 
 
 #endif
