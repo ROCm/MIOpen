@@ -46,7 +46,7 @@ void execute(std::string exe, std::string args)
     setenv("LD_LIBRARY_PATH", library_path.c_str(), 0);
 
     std::string cmd = exe + " " + args + " > /dev/null";
-    std::cout << cmd << std::endl;
+    // std::cout << cmd << std::endl;
     if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
 }
 
