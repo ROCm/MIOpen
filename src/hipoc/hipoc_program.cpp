@@ -21,6 +21,48 @@ std::string get_thread_id()
     return ss.str();
 }
 
+void execute(std::string exe, std::string args)
+{
+    std::string cmd = exe + " " + args + " > /dev/null";
+    // std::cout << cmd << std::endl;
+    if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
+}
+
+template<std::size_t N>
+std::array<char, N> make_str_array(const char(&a)[N])
+{
+    std::array<char, N> result;
+    std::copy(a, a+N, result.begin());
+    return result;
+}
+
+struct tmp_dir
+{
+    std::string name;
+    tmp_dir()
+    {
+        auto t = make_str_array("miopen-XXXXXX");
+        name = mkdtemp(t.data());
+    }
+
+    void execute(std::string exe, std::string args)
+    {
+        std::string cd = "cd " + this->name + "; ";
+        std::string cmd = cd + exe + " " + args + " > /dev/null";
+        // std::cout << cmd << std::endl;
+        if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
+    }
+
+    ~tmp_dir()
+    {
+        if(!name.empty())
+        {
+            std::string cmd = "rm -rf " + name;
+            if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
+        }
+    }
+};
+
 struct tmp_file
 {
     std::string name;
@@ -36,19 +78,6 @@ struct tmp_file
         std::remove(name.c_str());
     }
 };
-
-void execute(std::string exe, std::string args)
-{
-    // Compensate for team city's broken build
-    std::string compiler = std::string(HIP_OC_COMPILER);
-    std::string library_path = compiler.substr(0, compiler.rfind('/')) + std::string("/../../lib/x86_64/");
-    // std::cout << "LD_LIBRARY_PATH=" << library_path << std::endl;
-    setenv("LD_LIBRARY_PATH", library_path.c_str(), 0);
-
-    std::string cmd = exe + " " + args + " > /dev/null";
-    // std::cout << cmd << std::endl;
-    if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
-}
 
 void WriteFile(const std::string& content, const std::string& name)
 {

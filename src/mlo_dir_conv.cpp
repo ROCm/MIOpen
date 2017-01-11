@@ -948,7 +948,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	int bias = _bias;
 
 	_comp_options =
-		std::string("-D MLO_GRP_SZ=") + std::to_string(static_cast<long long>(ocl_group_sz0 * ocl_group_sz1 * ocl_group_sz2))
+		std::string("-DMLO_GRP_SZ=") + std::to_string(static_cast<long long>(ocl_group_sz0 * ocl_group_sz1 * ocl_group_sz2))
 		+ std::string(" -DMLO_GRP_SZ0=") + std::to_string(static_cast<long long>(ocl_group_sz0))
 		+ std::string(" -DMLO_GRP_SZ1=") + std::to_string(static_cast<long long>(ocl_group_sz1))
 		+ std::string(" -DMLO_GRP_SZ2=") + std::to_string(static_cast<long long>(ocl_group_sz2))
