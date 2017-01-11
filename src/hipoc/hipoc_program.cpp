@@ -14,34 +14,14 @@ std::string quote(std::string s)
     return '"' + s + '"';
 }
 
-std::string get_thread_id()
-{
-    std::stringstream ss;
-    ss << std::this_thread::get_id();
-    return ss.str();
-}
-
-void execute(std::string exe, std::string args)
-{
-    std::string cmd = exe + " " + args + " > /dev/null";
-    // std::cout << cmd << std::endl;
-    if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
-}
-
-template<std::size_t N>
-std::array<char, N> make_str_array(const char(&a)[N])
-{
-    std::array<char, N> result;
-    std::copy(a, a+N, result.begin());
-    return result;
-}
-
 struct tmp_dir
 {
     std::string name;
-    tmp_dir()
+    tmp_dir(std::string prefix)
     {
-        auto t = make_str_array("miopen-XXXXXX");
+        std::string s = "/tmp/miopen-" + std::move(prefix) + "-XXXXXX";
+        std::vector<char> t(s.begin(), s.end());
+        t.push_back(0);
         name = mkdtemp(t.data());
     }
 
@@ -51,6 +31,11 @@ struct tmp_dir
         std::string cmd = cd + exe + " " + args + " > /dev/null";
         // std::cout << cmd << std::endl;
         if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
+    }
+
+    std::string path(std::string f)
+    {
+        return name + '/' + f;
     }
 
     ~tmp_dir()
@@ -63,22 +48,6 @@ struct tmp_dir
     }
 };
 
-struct tmp_file
-{
-    std::string name;
-    tmp_file() = delete;
-    tmp_file(const tmp_file&)=delete;
-    tmp_file(std::string s)
-    : name("/tmp/" + s + "." + get_thread_id() + "." + std::to_string(std::time(nullptr)))
-    {
-    }
-
-    ~tmp_file()
-    {
-        std::remove(name.c_str());
-    }
-};
-
 void WriteFile(const std::string& content, const std::string& name)
 {
     HIPOCProgram::FilePtr f{std::fopen(name.c_str(), "w")};
@@ -88,14 +57,15 @@ void WriteFile(const std::string& content, const std::string& name)
 
 hipModulePtr CreateModule(const std::string& program_name, std::string params)
 {   
-    tmp_file src_file{program_name};
+    tmp_dir dir{program_name};
+
     std::string src = GetKernelSrc(program_name);
 
-    WriteFile(src, src_file.name);
+    WriteFile(src, dir.path(program_name));
         
-    std::string bin_file = src_file.name + ".bin";
-    std::string hsaco_file = src_file.name + ".hsaco";
-    std::string obj_file = src_file.name + ".obj";
+    std::string bin_file = dir.path(program_name) + ".bin";
+    std::string hsaco_file = dir.path(program_name) + ".hsaco";
+    std::string obj_file = dir.path(program_name) + ".obj";
 
 #if 0
     execute(HIP_OC_COMPILER, 
@@ -108,22 +78,19 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params)
         " " + hsaco_file
     );
 #else
-    execute(HIP_OC_COMPILER, 
+    dir.execute(HIP_OC_COMPILER, 
         "-march=hsail64 -mdevice=Fiji -save-temps=dump -nobin " +  
         params + " " +
-        src_file.name);
-    execute(HIP_OC_FINALIZER,
+        program_name);
+    dir.execute(HIP_OC_FINALIZER,
         "-target=8:0:3 -hsail dump_0_Fiji.hsail -output=" + hsaco_file
     );
-    std::remove("dump_0_Fiji.hsail");
 #endif
 
     hipModule_t raw_m;
     auto status = hipModuleLoad(&raw_m, hsaco_file.c_str());
     hipModulePtr m{raw_m};
     if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed creating module");
-    // TODO: Remove file on destruction
-    // std::remove(obj_file.c_str());
     return m;
 }
 
