@@ -13,7 +13,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		const cl_mem				y,
 		const int					 /*requestAlgoCount*/,
 		int							* /*returnedAlgoCount*/,
-		mlopenConvAlgoPerf_t		* /*perfResults*/,
+		mlopenConvAlgoPerf_t		*perfResults,
 		mlopenConvPreference_t		 /*preference*/,
 		void						* /*workSpace*/,
 		size_t						 /*workSpaceSize*/,
@@ -70,6 +70,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 			vld,
 			vgd,
 			parms)(x, w, y, padding_val);
+
+	// FIXME: MD temporary hack for hipcaffe
+	// should be ideally wrapped under mlopen::deref to check 
+	// for the size of perfResults == requestedAlgoCount
+	perfResults->fwd_algo = mlopenConvolutionFwdAlgoDirect;
+	perfResults->time = handle.GetKernelTime();
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
@@ -143,7 +149,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 		const cl_mem				dx,
 		const int					 /*requestAlgoCount*/,
 		int							* /*returnedAlgoCount*/,
-		mlopenConvAlgoPerf_t		* /*perfResults*/,
+		mlopenConvAlgoPerf_t		*perfResults,
 		mlopenConvPreference_t		 /*preference*/,
 		void						* /*workSpace*/,
 		size_t						 /*workSpaceSize*/,
@@ -200,6 +206,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 			vld,
 			vgd,
 			parms)(dy, w, dx, padding_val);
+
+	// FIXME: MD temporary hack for hipcaffe
+	// should be ideally wrapped under mlopen::deref to check 
+	// for the size of perfResults == requestedAlgoCount
+	perfResults->bwd_data_algo = mlopenConvolutionBwdDataAlgo_0;
+	perfResults->time = handle.GetKernelTime();
+
 }
 
 // BackwardDataAlgorithm()
@@ -283,7 +296,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		const cl_mem				dw,
 		const int					 /*requestAlgoCount*/,
 		int							* /*returnedAlgoCount*/,
-		mlopenConvAlgoPerf_t		* /*perfResults*/,
+		mlopenConvAlgoPerf_t		*perfResults,
 		mlopenConvPreference_t		 /*preference*/,
 		cl_mem						workSpace,
 		size_t						/*workSpaceSize*/,
@@ -395,6 +408,13 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 			handle.AccumKernelTime(time0);
 
 		}
+
+	// FIXME: MD temporary hack for hipcaffe
+	// should be ideally wrapped under mlopen::deref to check 
+	// for the size of perfResults == requestedAlgoCount
+	perfResults->bwd_weights_algo = mlopenConvolutionBwdWeightsAlgoDirect;
+	perfResults->time = handle.GetKernelTime();
+
 	}
 }
 
