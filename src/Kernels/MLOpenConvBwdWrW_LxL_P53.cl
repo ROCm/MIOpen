@@ -456,7 +456,7 @@ __kernel void MLOpenCvBwdWrW(
 			if (o_grp < MLO_N_OUT_PERGROUP)
 			{
 				// over all input scans in LDS
-				for (int j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK; ++j)
+				for (int j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK/* && (w_blk1 * MLO_N_ALIGNED_OUT_SCAN_BLK + j) < MLO_N_OUT_VERTICAL_READS*/; ++j)
 				{
 
 					// prefetch proper inputs pixels.
@@ -574,7 +574,6 @@ __kernel void MLOpenCvBwdWrW(
 
 	} // for (int b = 0;
 
-	barrier(CLK_LOCAL_MEM_FENCE);
 
 #endif
 
@@ -597,6 +596,9 @@ __kernel void MLOpenCvBwdWrW(
 // TO DO:: DEPENDING ON THE GROUP SIZE
 	for (int og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
 	{
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
 		for (int o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
 		{
 			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
@@ -611,10 +613,11 @@ __kernel void MLOpenCvBwdWrW(
 					lcl[wei_lcl_off] = pvt_accum[((og * MLO_N_LCL_OUT_MAPS + o) *MLO_N_LCL_IN_MAPS + c) *MLO_WEI_WKITEM + w];
 
 #if 1
-					if (/*o_grp < MLO_N_OUT_PERGROUP && */ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 0)
+					if (wei_lcl_off == 300 || wei_lcl_off == 350) ///*o_grp < MLO_N_OUT_PERGROUP && */ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 0)
 					{
 
-						printf("K:s: %d %d %f\n",
+						printf("K:s: %d %d %d %f\n",
+							o, 
 							lcl_id, 
 							wei_lcl_off,
 							pvt_accum[((og * MLO_N_LCL_OUT_MAPS + o) *MLO_N_LCL_IN_MAPS + c) *MLO_WEI_WKITEM + w]
