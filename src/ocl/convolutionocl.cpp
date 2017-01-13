@@ -247,7 +247,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 			vld,
 			vgd,
 			parms)(dy, w, dx, padding_val);
-	
+
 	// FIXME: MD temporary hack for hipcaffe
 	// should be ideally wrapped under mlopen::deref to check 
 	// for the size of perfResults == requestedAlgoCount
