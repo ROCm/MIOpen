@@ -5,6 +5,10 @@
 #endif
 #include <algorithm>
 
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
 namespace mlopen {
 
 hipDevice_t get_device(int id)
@@ -13,6 +17,23 @@ hipDevice_t get_device(int id)
     auto status = hipDeviceGet(&device, id);
     if (status != hipSuccess) MLOPEN_THROW("No device");
     return device;
+}
+
+void set_device(int id)
+{
+    auto status = hipSetDevice(id);
+    if (status != hipSuccess) MLOPEN_THROW("Error setting device");
+}
+
+void set_default_device()
+{
+    int n;
+    auto status = hipGetDeviceCount(&n);
+    if (status != hipSuccess) MLOPEN_THROW("Error getting device count");
+    // Pick device based on process id
+    auto pid = ::getpid();
+    assert(pid > 0);
+    set_device(pid % n);
 }
 
 struct HandleImpl
@@ -54,6 +75,7 @@ Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams)
 Handle::Handle () 
 : impl(new HandleImpl())
 {
+    set_default_device();
     // this->impl->streams.push_back(impl->create_stream());
     this->impl->streams.push_back(HandleImpl::reference_stream(nullptr));
 }
@@ -97,6 +119,12 @@ void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
     this->Finish();
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
     if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
+}
+
+void Handle::Copy(ConstData_t src, Data_t dest, int size)
+{
+    auto status = hipMemcpy(dest, src, size, hipMemcpyDeviceToDevice);
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
 }
 
 #if MLOPEN_BACKEND_HIPOC

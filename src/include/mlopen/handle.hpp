@@ -54,6 +54,8 @@ struct Handle : mlopenHandle {
 
     std::string GetDeviceName();
 
+    void Copy(ConstData_t src, Data_t dest, int size);
+
 	ManageDataPtr Create(int sz);
 	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, int sz);
     void ReadTo(void* data, const ManageDataPtr& ddata, int sz);

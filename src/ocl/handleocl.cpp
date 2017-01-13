@@ -380,4 +380,11 @@ void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
     auto status = clEnqueueReadBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz)); }
 }
+
+void Handle::Copy(ConstData_t src, Data_t dest, int size)
+{
+    auto status = clEnqueueCopyBuffer(this->GetStream(), src, dest, 0, 0, size, 0, nullptr, nullptr);
+    if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error copying buffer: " + std::to_string(size)); }
+}
+
 } // namespace mlopen
