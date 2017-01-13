@@ -1039,7 +1039,14 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
 
-									  // number  of batch iterations
+									  // inpout are outputs
+	int wei_cstride = _kernel_size0*_kernel_size1;
+	int wei_bstride = _n_outputs*wei_cstride;
+
+	int read_unit = 4;
+	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
+
+// number  of batch iterations
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
@@ -1061,13 +1068,25 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 	_out_pix_tile1 = ((_in_width * _in_height) <= 1024) ? 1 : 2;
 
-	int N_OUT_PERGROUP = 2;
 	int MAX_WEI_BLK_LOOP = (_in_width > 16) ? (_in_width + 1) / 2 : _in_width;
+	// input is output
+
+	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
+	int N_ALIGNED_OUT_SCAN_BLK = 2;
+	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
+
+
+	int OUT_SCAN_NOT_DIVBY4 = (_in_width < ALIGNED_OUT_SCAN_LN*read_unit);
+
+	int OUT_N_PIXS_OFF = ALIGNED_OUT_SCAN_LN*read_unit - _in_width;
+
+// depends on MAX_WEI_BLK_LOOP and N_ALIGNED_OUT_SCAN_BLK
+	int N_OUT_PERGROUP = 2;
 
 
 	_n_in_data_tiles = 1;
 	// n of out blocks in lcl memory
-	_n_out_pix_tiles = 2; // (_kernel_size0 == 20) ? 2 : 4; // 700 = 2, 350 = 4
+	_n_out_pix_tiles = 1; // (_kernel_size0 == 20) ? 2 : 4; // 700 = 2, 350 = 4
 
 
 
@@ -1079,25 +1098,6 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int N_OUT_BLK_GRP = _out_pix_tile1;
 	total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
 
-
-
-
-	// inpout are outputs
-	int wei_cstride = _kernel_size0*_kernel_size1;
-	int wei_bstride = _n_outputs*wei_cstride;
-
-	int read_unit = 4;
-	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
-
-
-	// input is output
-	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
-	int N_ALIGNED_OUT_SCAN_BLK = 2;
-	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
-
-	int OUT_SCAN_NOT_DIVBY4 = (_in_width < ALIGNED_OUT_SCAN_LN*read_unit);
-
-	int OUT_N_PIXS_OFF = ALIGNED_OUT_SCAN_LN*read_unit - _in_width;
 
 
 	_grp_tile0 = GRP_SZ;
