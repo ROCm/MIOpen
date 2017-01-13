@@ -612,7 +612,7 @@ __kernel void MLOpenCvBwdWrW(
 						(((o*MLO_N_LCL_IN_MAPS + c) * MLO_WEI_BLK_SZ + w_blk_idx) * MLO_FILTER_SIZE1 + w_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + w_x;
 					lcl[wei_lcl_off] = pvt_accum[((og * MLO_N_LCL_OUT_MAPS + o) *MLO_N_LCL_IN_MAPS + c) *MLO_WEI_WKITEM + w];
 
-#if 1
+#if 0
 					if (wei_lcl_off == 300 || wei_lcl_off == 350) ///*o_grp < MLO_N_OUT_PERGROUP && */ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 0)
 					{
 
@@ -658,7 +658,7 @@ __kernel void MLOpenCvBwdWrW(
 			{
 				final_sum += lcl_bot[(((o*MLO_N_LCL_IN_MAPS + c) * MLO_WEI_BLK_SZ + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x];
 
-#if 1
+#if 0
 				if (ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && wei_i_y == 0 && wei_i_x == 0)
 				{
 
