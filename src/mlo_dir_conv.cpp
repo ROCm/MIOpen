@@ -1058,20 +1058,19 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_in_tile1 = 1;
 	_out_pix_tile0 = 1;
 
-
 													// major parameters
 	int n_waves = 2; // (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
 					 // each wave is a filter row
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 	// TO DO: calculate this
-
+// number of ouput reloads per 1 input > increases register pressure
 	_out_pix_tile1 = ((_in_width * _in_height) <= 1024) ? 1 : 2;
 
 	int MAX_WEI_BLK_LOOP = (_in_width > 16) ? (_in_width + 1) / 2 : _in_width;
 	// input is output
-
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
+/// number of lines processed by a single weight tile
 	int N_ALIGNED_OUT_SCAN_BLK = 2;
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
@@ -1081,14 +1080,14 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int OUT_N_PIXS_OFF = ALIGNED_OUT_SCAN_LN*read_unit - _in_width;
 
 // depends on MAX_WEI_BLK_LOOP and N_ALIGNED_OUT_SCAN_BLK
-	int N_OUT_PERGROUP = 2;
+// n of out blocks in lcl memory
+	_n_out_pix_tiles = 2; // (_kernel_size0 == 20) ? 2 : 4; // 700 = 2, 350 = 4
+
+// n of previous blocks per group
+	int N_OUT_PERGROUP = 1;
 
 
 	_n_in_data_tiles = 1;
-	// n of out blocks in lcl memory
-	_n_out_pix_tiles = 1; // (_kernel_size0 == 20) ? 2 : 4; // 700 = 2, 350 = 4
-
-
 
 // select output mapping
 	int total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
