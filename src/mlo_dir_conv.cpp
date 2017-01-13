@@ -430,11 +430,13 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 {
 	const auto dev = mlopen::GetDevice(reinterpret_cast<cl_command_queue>(_stream));
+	const auto vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
 	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
-
-	const auto driver_has_LC =
-		   (driver.find("(LC)") != std::string::npos)
+	
+	const auto driver_is_rocm =
+		   (driver[0] == '1' || driver[0] == '2') && driver[1] == '.' // Both shall support Metadata for Runtime v1.0 we are using for now
+		|| (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
 		|| (driver.find("(LC,") != std::string::npos)
 		|| (driver.find(",LC)") != std::string::npos)
 		|| (driver.find("(LC ") != std::string::npos)
@@ -450,13 +452,14 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 		|| name == "gfx803"
 		|| name == "gfx804";
 
-	assert(_weights_layout.length() == 0); // FIX ME: Uncomment validation below when _weights_layout content will be updated anywahere.
+	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
 
-	return driver_has_LC
+	return driver_is_rocm
 		&& device_suits
+		&& vendor_id == 0x1002
 
 		&& _in_layout							== "NCHW"
-		//&& _weights_layout						== "NKCHW" // FIX ME
+		//&& _weights_layout						== "NKCHW" // FIXME see above
 		&& _kernel_stride0						==	1
 		&& _kernel_stride1						==	1
 		&& _pad0								==	1

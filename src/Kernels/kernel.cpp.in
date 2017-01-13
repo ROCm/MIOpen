@@ -5,7 +5,7 @@
 
 namespace mlopen {
 
-std::string ReplaceString(std::string subject, const std::string& search, const std::string& replace) 
+static std::string ReplaceString(std::string subject, const std::string& search, const std::string& replace) 
 {
     size_t pos = 0;
     while ((pos = subject.find(search, pos)) != std::string::npos) {
@@ -15,8 +15,8 @@ std::string ReplaceString(std::string subject, const std::string& search, const 
     return subject;
 }
 
-const std::map<std::string, std::string> kernels {
-${INIT_KERNELS}
+static const std::map<std::string, std::string> kernels{
+	${INIT_KERNELS}
 };
 
 std::string GetKernelSrc(const std::string& name)
