@@ -125,16 +125,12 @@ void CopyTensor(Handle &handle,
 		const TensorDescriptor &destDesc,
 		Data_t dest) {
 
-	// TODO: Add buffering copying to handle
-	// if(srcDesc.GetElementSize() != destDesc.GetElementSize() || srcDesc.GetType() != destDesc.GetType()) {
-	// 	MLOPEN_THROW(mlopenStatusBadParm);
-	// }
-	// size_t srcSize = srcDesc.GetElementSize();
+	if(srcDesc.GetElementSize() != destDesc.GetElementSize() || srcDesc.GetType() != destDesc.GetType()) {
+		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+	size_t srcSize = srcDesc.GetElementSize();
 
-	// cl_int status;
-	// status = clEnqueueCopyBuffer(handle.GetStream(), src, dest, 0, 0, srcSize*sizeof(srcDesc.GetType()), 0, nullptr, nullptr);
-
-	// if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
+	handle.Copy(src, dest, srcSize*sizeof(srcDesc.GetType()));
 }
 
 } // namespace mlopen
