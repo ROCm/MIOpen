@@ -92,7 +92,6 @@ set( MLOpen_Source
 if( MLOPEN_BACKEND MATCHES "OpenCL")
 	set(MLOPEN_KERNELS
 		Kernels/MLOpenConvDirUni.cl
-		Kernels/MLOpenConvDirUni2.cl
 		Kernels/MLOpenConvDirGenFwd.cl
 		Kernels/MLOpenLRN.cl
 		Kernels/MLOpenLRN_PS.cl
@@ -100,8 +99,6 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		Kernels/MLOpenPooling.cl
 		Kernels/MLOpenPoolingBwd.cl
 		Kernels/MLOpenConvDirUniC.cl
-		Kernels/MLOpenConv1x1.cl
-		Kernels/MLOpenConv1x1L.cl
 		Kernels/MLOpenConv1x1PS.cl
 		Kernels/MLOpenSoftmax.cl
 		Kernels/MLOpenConv1x1PS_LW.cl
