@@ -134,7 +134,8 @@ kernel void SoftmaxForward(global float *y, const int c, const int grid_size, co
 
 	// Compute max per channel
 	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
-		value[i / BATCH_SIZE ] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
+		if(mad24(batch_n,c, i)*spatial_dim + batch_s < c*grid_size)
+			value[i / BATCH_SIZE ] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
 		t_helper = max(value[i / BATCH_SIZE], t_helper);
 	}
 
@@ -179,7 +180,8 @@ kernel void SoftmaxForward(global float *y, const int c, const int grid_size, co
 	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
 		value[i / BATCH_SIZE] = exp(value[i / BATCH_SIZE] - channel_max);
 
-		y[mad24(batch_n,c,i)*spatial_dim + batch_s] = value[i / BATCH_SIZE]/channel_sum;
+		if(mad24(batch_n,c, i)*spatial_dim + batch_s < c*grid_size)
+			y[mad24(batch_n,c,i)*spatial_dim + batch_s] = value[i / BATCH_SIZE]/channel_sum;
 	}
 
 #endif // CSR-Vector vs CSR-Stream
@@ -255,8 +257,10 @@ kernel void SoftmaxBackward(global float *y, global float *dx, const int c, cons
 
 	// Compute dot product per channel
 	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
-		y_value[i / BATCH_SIZE ] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
-		dx_value[i / BATCH_SIZE ] = dx[mad24(batch_n,c, i)*spatial_dim + batch_s];
+		if(mad24(batch_n,c, i)*spatial_dim + batch_s < c*grid_size) {
+			y_value[i / BATCH_SIZE ] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
+			dx_value[i / BATCH_SIZE ] = dx[mad24(batch_n,c, i)*spatial_dim + batch_s];
+		}
 		channel_dot += y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE] ;
 	}
 
@@ -278,7 +282,8 @@ kernel void SoftmaxBackward(global float *y, global float *dx, const int c, cons
 	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
 		dx_value[i / BATCH_SIZE ] -= channel_dot;
 			
-		dx[mad24(batch_n,c, i)*spatial_dim + batch_s] = y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE];
+		if(mad24(batch_n,c, i)*spatial_dim + batch_s < c*grid_size)
+			dx[mad24(batch_n,c, i)*spatial_dim + batch_s] = y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE];
 	}
 
 #endif // CSR-Vector vs CSR-Stream

@@ -95,6 +95,7 @@ enable_clang_tidy(
 		-cppcoreguidelines-pro-bounds-constant-array-index
 		-cppcoreguidelines-pro-bounds-pointer-arithmetic
 		-cppcoreguidelines-pro-type-reinterpret-cast
+		-cppcoreguidelines-pro-type-union-access
 		-cppcoreguidelines-pro-type-vararg
 		-google-explicit-constructor
 		-google-readability-braces-around-statements
