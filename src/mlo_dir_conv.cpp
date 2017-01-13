@@ -450,11 +450,13 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 		|| name == "gfx803"
 		|| name == "gfx804";
 
+	assert(_weights_layout.length() == 0); // FIX ME: Uncomment validation below when _weights_layout content will be updated anywahere.
+
 	return driver_has_LC
 		&& device_suits
 
 		&& _in_layout							== "NCHW"
-		&& _weights_layout						== "NKCHW"
+		//&& _weights_layout						== "NKCHW" // FIX ME
 		&& _kernel_stride0						==	1
 		&& _kernel_stride1						==	1
 		&& _pad0								==	1
