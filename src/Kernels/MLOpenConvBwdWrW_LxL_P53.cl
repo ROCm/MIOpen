@@ -38,6 +38,7 @@
 #define MLO_N_OUT_HORIZ_READS (MLO_ALIGNED_OUT_SCAN_LN)
 #define MLO_OUT_HORIZ_PIX_SZ (MLO_N_OUT_HORIZ_READS * MLO_READ_UNIT)
 #define MLO_N_OUT_VERTICAL_READS (MLO_OUT_HEIGHT)
+#define MLO_N_OUT_VERT_PROCS (MLO_N_ALIGNED_OUT_SCAN_BLK* MLO_N_OUT_BLK)
 
 // n of of filter blks
 #ifndef MLO_WEI_BLK_SZ0
@@ -51,18 +52,18 @@
 // n accum tiles along y
 #define MLO_N_ACCUM1 (MLO_N_OUT_BLK)
 // accum tile size
-#define MLO_N_ACCUM_SZ (MLO_WEI_BLK_SZ)
+#define MLO_ACCUM_SZ (MLO_WEI_BLK_SZ)
 // total number of weight blocks
-#define MLO_N_WEI_BLK (MLO_N_ACCUM1 * MLO_N_ACCUM0 * MLO_N_ACCUM_SZ)
+#define MLO_N_WEI_BLK (MLO_N_ACCUM1 * MLO_N_ACCUM0 * MLO_WEI_BLK_SZ)
 
-#define MLO_WEI_BLKS_SZ (MLO_N_WEI_BLK*MLO_WEI_WKITEM)
+#define MLO_WEI_BLKS_SZ (MLO_N_WEI_BLK * MLO_WEI_WKITEM)
 
 #define MLO_OUT_WEI_EXT_SCAN_BLK (MLO_N_ACCUM0)
 
 
 #define MLO_WEI_BLKS_LCL_SZ (MLO_WEI_BLKS_SZ * MLO_N_LCL_OUT_MAPS * MLO_N_LCL_IN_MAPS * MLO_N_OUT_PERGROUP)
 
-#define MLO_OUT_BLK_GRP_PIX_SZ (MLO_OUT_HORIZ_PIX_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
+#define MLO_OUT_BLK_GRP_PIX_SZ (MLO_OUT_HORIZ_PIX_SZ * MLO_N_OUT_VERT_PROCS)
 #define MLO_OUT_BLK_GRP_WK_SZ (MLO_OUT_BLK_GRP_PIX_SZ / MLO_READ_UNIT)
 
 #if MLO_OUT_HORIZ_PIX_SZ >  (MLO_OUT_WEI_EXT_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP)
@@ -72,7 +73,7 @@
 #endif
 
 
-#define MLO_OUT_BLK_GRP_EXT_PIX_SZ (MLO_OUT_HORIZ_PIX_EXT_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
+#define MLO_OUT_BLK_GRP_EXT_PIX_SZ (MLO_OUT_HORIZ_PIX_EXT_SZ * MLO_N_OUT_VERT_PROCS)
 #define MLO_OUT_LCL_SZ (MLO_OUT_BLK_GRP_EXT_PIX_SZ)
 // LDS OUT SIZE
 #define MLO_TOTAL_OUT_LCL_SZ (MLO_N_LCL_BATCHS*MLO_N_LCL_OUT_MAPS*MLO_N_OUT_PERGROUP*MLO_OUT_LCL_SZ)
@@ -599,7 +600,7 @@ __kernel void MLOpenCvBwdWrW(
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		for (int o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+		for (int o = 0; o < MLO_N_LCL_OUT_MAPS &&  lcl_id < MLO_N_OUT_PERGROUP * MLO_N_WEI_BLK; ++o)
 		{
 			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 			{
@@ -609,15 +610,20 @@ __kernel void MLOpenCvBwdWrW(
 					// save "virtual" filter table
 					int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
 					wei_lcl_off = o_grp * MLO_WEI_BLKS_SZ +
-						(((o*MLO_N_LCL_IN_MAPS + c) * MLO_WEI_BLK_SZ + w_blk_idx) * MLO_FILTER_SIZE1 + w_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + w_x;
+						((o*MLO_N_LCL_IN_MAPS + c) * MLO_N_WEI_BLK + w_blk_idx * MLO_WEI_BLK_SZ)* MLO_WEI_WKITEM + w_y * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + w_x;
 					lcl[wei_lcl_off] = pvt_accum[((og * MLO_N_LCL_OUT_MAPS + o) *MLO_N_LCL_IN_MAPS + c) *MLO_WEI_WKITEM + w];
 
 #if 0
-					if (wei_lcl_off == 300 || wei_lcl_off == 350) ///*o_grp < MLO_N_OUT_PERGROUP && */ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 0)
+					if (o_grp < MLO_N_OUT_PERGROUP && ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 1 && w_x == 0)
 					{
 
-						printf("K:s: %d %d %d %f\n",
-							o, 
+						printf("K:s: %d %d %d %d %d %d %d %d %f\n",
+							o,
+							c,
+							w,
+							w_blk_idx,
+							w_y,
+							w_x,
 							lcl_id, 
 							wei_lcl_off,
 							pvt_accum[((og * MLO_N_LCL_OUT_MAPS + o) *MLO_N_LCL_IN_MAPS + c) *MLO_WEI_WKITEM + w]
@@ -632,7 +638,6 @@ __kernel void MLOpenCvBwdWrW(
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
-
 
 		// read into real filter table
 
@@ -654,20 +659,20 @@ __kernel void MLOpenCvBwdWrW(
 				+ mul24(c_idx + c, (int)MLO_WEI_CHANNEL_STRIDE);
 
 			final_sum = 0;
-			for (int i = 0; i < MLO_N_WEI_BLK; ++i)
+			for (int i = 0; i < (MLO_N_ACCUM1 * MLO_N_ACCUM0); ++i)
 			{
-				final_sum += lcl_bot[(((o*MLO_N_LCL_IN_MAPS + c) * MLO_WEI_BLK_SZ + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x];
+				int bot_off = ((o*MLO_N_LCL_IN_MAPS + c) * MLO_N_WEI_BLK + i *  MLO_WEI_BLK_SZ)* MLO_WEI_WKITEM + wei_i_y * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x;
+				final_sum += lcl_bot[bot_off];
 
 #if 0
-				if (ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && wei_i_y == 0 && wei_i_x == 0)
+				if (ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && wei_i_y == 1 && wei_i_x == 0)
 				{
 
-					printf("K:a2: %d %d %d %f %f\n",
-						MLO_N_WEI_BLK,
+					printf("K:a2: %d %d %f %f\n",
 						lcl_id,
-						(((o*MLO_N_LCL_IN_MAPS + c) * MLO_WEI_BLK_SZ + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x,
+						bot_off,
 						final_sum,
-						lcl_bot[(((o*MLO_N_LCL_IN_MAPS + c) * MLO_WEI_BLK_SZ + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x]
+						lcl_bot[bot_off]
 					);
 
 				}

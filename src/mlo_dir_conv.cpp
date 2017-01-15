@@ -1052,7 +1052,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 	// number of filter taps in the processing wk_item
-	int WEI_WKITEM = (_kernel_size0 == 7) ? 7 : (_kernel_size0 == 10) ? 5 : 10; // 5x20=10, 5x10 = 5
+	int WEI_WKITEM = (_kernel_size0 == 5) ? 5 : (_kernel_size0 == 7) ? 7 : (_kernel_size0 == 10) ? 5 : 10; // 5x20=10, 5x10 = 5
 
 	_in_tile0 = 1;
 	_in_tile1 = 1;
@@ -1065,13 +1065,13 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 	// TO DO: calculate this
 // number of ouput reloads per 1 input > increases register pressure
-	_out_pix_tile1 = ((_in_width * _in_height) <= 1024) ? 1 : 2;
+	_out_pix_tile1 = 1; // ((_in_width * _in_height) <= 1024) ? 1 : 2;
 
 	int MAX_WEI_BLK_LOOP = (_in_width > 16) ? (_in_width + 1) / 2 : _in_width;
 	// input is output
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
 /// number of lines processed by a single weight tile
-	int N_ALIGNED_OUT_SCAN_BLK = 2;
+	int N_ALIGNED_OUT_SCAN_BLK = 3;
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
 
