@@ -25,7 +25,7 @@ using Program = SharedProgramPtr;
 
 namespace mlopen {
 using Kernel = HIPOCKernel;
-using KernelInvoke = HIPOCKernel;
+using KernelInvoke = HIPOCKernelInvoke;
 using Program = HIPOCProgram;
 
 } // namespace mlopen

@@ -144,7 +144,7 @@ KernelInvoke Handle::GetKernel(
             kernel_name,
             vld,
             vgd,
-            params);
+            params).Invoke(this->GetStream());
 }
 
 KernelInvoke Handle::GetKernel(
@@ -153,7 +153,7 @@ KernelInvoke Handle::GetKernel(
 {
     return this->impl->cache.GetKernel(
             algorithm,
-            network_config);
+            network_config).Invoke(this->GetStream());
 }
 
 Program Handle::LoadProgram(const std::string &program_name, std::string params)
