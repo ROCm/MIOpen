@@ -1071,22 +1071,40 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 	int WEI_WKITEM = (_kernel_size0 == 5) ? 5 : (_kernel_size0 == 7) ? 7 : (_kernel_size0 == 10) ? 5 : 10; // 5x20=10, 5x10 = 5
 	int wei_tile_sz = (_kernel_size0  * _kernel_size1 + WEI_WKITEM - 1) / WEI_WKITEM;
-	int n_wei_tiles_per_scan = (_in_width > 16) ? 2 : 1;
-	int n_wei_blocks0 = n_wei_tiles_per_scan * wei_tile_sz;
 
-	int MAX_WEI_BLK_LOOP = (_in_width + n_wei_tiles_per_scan - 1) / n_wei_tiles_per_scan;
+
+	int n_wei_tiles_per_scan = 3; // (_in_width > 16) ? 2 : 1;
+
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
 	int n_input_proc_scans = _in_height;
-
-/// number of lines processed by a single weight tile
-	int N_ALIGNED_OUT_SCAN_BLK = 1; // (n_input_proc_scans + n_wei_blocks1 - 1) / n_wei_blocks1;
-	int n_wei_blocks1 = (n_input_proc_scans + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
-	while (n_wei_blocks1 * n_wei_blocks0 > GRP_SZ)
+// serch for
+// number of horiz pix and number of lines processed by a single weight tile
+// with maximum wk-items involved
+	int MAX_WEI_BLK_LOOP = 0;
+	int n_wei_blocks1 = 0;
+	int max_wk_tems = 0;
+	for (int n_wei_blocks1_t = n_input_proc_scans; n_wei_blocks1_t > 1; --n_wei_blocks1_t)
 	{
-		N_ALIGNED_OUT_SCAN_BLK++;
-		n_wei_blocks1 = (n_input_proc_scans + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
+		for (int n_wei_tiles_per_scan_t = 1; n_wei_tiles_per_scan_t < _in_width; ++n_wei_tiles_per_scan_t)
+		{
+			MAX_WEI_BLK_LOOP = (_in_width + n_wei_tiles_per_scan_t - 1) / n_wei_tiles_per_scan_t;
+			if (n_wei_blocks1_t * n_wei_tiles_per_scan_t < (GRP_SZ / wei_tile_sz)
+				&& n_wei_blocks1_t * n_wei_tiles_per_scan_t >= max_wk_tems
+				&& n_wei_blocks1_t * n_wei_tiles_per_scan_t > 0
+				&& MAX_WEI_BLK_LOOP > _kernel_size0 + _pad0)
+			{
+				n_wei_blocks1 = n_wei_blocks1_t;
+				n_wei_tiles_per_scan = n_wei_tiles_per_scan_t;
+				max_wk_tems = n_wei_blocks1 * n_wei_tiles_per_scan;
+			}
+		}
 	}
+
+	int N_ALIGNED_OUT_SCAN_BLK = (n_input_proc_scans + n_wei_blocks1 - 1) / n_wei_blocks1;
+	MAX_WEI_BLK_LOOP = (_in_width + n_wei_tiles_per_scan - 1) / n_wei_tiles_per_scan;
 	int N_OUT_BLK = n_wei_blocks1;
+	int n_wei_blocks0 = n_wei_tiles_per_scan * wei_tile_sz;
+
 
 	int OUT_SCAN_NOT_DIVBY4 = (_in_width < ALIGNED_OUT_SCAN_LN*read_unit);
 
@@ -1196,7 +1214,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		// input is output
 
 		size_t gbl_wk0 = GRP_SZ;
-		size_t gbl_wk1 = _n_outputs;
+		size_t gbl_wk1 = (_n_outputs + _n_in_data_tiles -1) / _n_in_data_tiles;
 		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps) * n_batch_blks;
 
 

@@ -656,7 +656,7 @@ __kernel void MLOpenCvBwdWrW(
 				final_sum += lcl_bot[bot_off];
 
 #if 0
-				if (/*ib == 0 && */c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && wei_i_y == 0 && wei_i_x == 0)
+				if (ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && wei_i_y == 0 && wei_i_x == 0)
 				{
 
 					printf("K:a2: %d %d %d %f %f\n",
@@ -674,7 +674,7 @@ __kernel void MLOpenCvBwdWrW(
 #if 1
 
 			weights_df[wei_df_off + wei_i] = final_sum; //lcl_bot[lcl_id]; //
-#if 1
+#if 0
 			if (/*ib == 0 && */c_idx + c == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && wei_i_y == 0 && wei_i_x == 0)
 			{
 
