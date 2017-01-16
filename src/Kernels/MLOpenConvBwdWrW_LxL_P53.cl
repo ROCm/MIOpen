@@ -309,7 +309,7 @@ __kernel void MLOpenCvBwdWrW(
 		lcl[i] = 0;
 	}
 
-	barrier(CLK_LOCAL_MEM_FENCE);
+//	barrier(CLK_LOCAL_MEM_FENCE);
 
 
 
@@ -350,7 +350,7 @@ __kernel void MLOpenCvBwdWrW(
 			int p4_t = p4;
 #if MLO_N_LCL_IN_MAPS > 1
 			c = iDiv(p4, (MLO_N_IN_HORIZ_READS * MLO_IN_VERT_READS));
-			p4_t = iMod(p4, c, (MLO_N_IN_HORIZ_READS MLO_IN_VERT_READS));
+			p4_t = iMod(p4, c, (MLO_N_IN_HORIZ_READS*MLO_IN_VERT_READS));
 			if (c_idx + c < MLO_N_INPUTS)
 #endif
 
@@ -361,8 +361,7 @@ __kernel void MLOpenCvBwdWrW(
 
 
 
-				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
-				//					*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
+				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
 
 #if MLO_IN_N_PIXS_OFF > 0
 				if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -377,17 +376,14 @@ __kernel void MLOpenCvBwdWrW(
 
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					lcl_bot[c*MLO_IN_LCL_SZ + (c_scan + MLO_FILTER_PAD1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+					int lcl_in_off = c*MLO_IN_LCL_SZ + (c_scan + MLO_FILTER_PAD1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i;
+					lcl_bot[lcl_in_off] = in_rd_data[i];
 #if 0
-					if (lcl_id == 0 && p4 == 0)
+					if (c_idx + c == 1 && p4_t == 0)
 					{
-						printf("K:g:%d %d %d %d %d %f\n",
-							ob,
-							MLO_IN_LCL_WIDTH,
-							(MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1),
-							MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1,
-							(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i,
-							lcl_bot[(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i]
+						printf("K:g: %d %f\n",
+							lcl_in_off,
+							lcl_bot[lcl_in_off]
 						);
 					}
 #endif
@@ -523,8 +519,8 @@ __kernel void MLOpenCvBwdWrW(
 									pvt_accum[((og * MLO_N_LCL_OUT_MAPS + o) *MLO_N_LCL_IN_MAPS + c) * MLO_WEI_WKITEM + w] += i_val * o_val;
 #if 0
 									int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-									if (i_val * o_val != 0 && o_grp < MLO_N_OUT_PERGROUP && ib == 0 && c_idx == 0
-										&& o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 0)
+									if (i_val * o_val != 0 && o_grp < MLO_N_OUT_PERGROUP && ib == 0 && c_idx + c == 1
+										&& o_idx + og*MLO_N_LCL_OUT_MAPS + o == 1 && w_y == 1 && w_x == 0)
 									{
 										int i_off = c*MLO_IN_LCL_SZ
 											+ (w_blk1 * MLO_N_ALIGNED_OUT_SCAN_BLK + j + w_y) * MLO_IN_LCL_WIDTH
@@ -600,7 +596,7 @@ __kernel void MLOpenCvBwdWrW(
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		for (int o = 0; o < MLO_N_LCL_OUT_MAPS &&  lcl_id < MLO_N_OUT_PERGROUP * MLO_N_WEI_BLK; ++o)
+		for (int o = 0; o < MLO_N_LCL_OUT_MAPS && lcl_id < MLO_N_OUT_PERGROUP * MLO_N_WEI_BLK; ++o)
 		{
 			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 			{
@@ -614,17 +610,12 @@ __kernel void MLOpenCvBwdWrW(
 					lcl[wei_lcl_off] = pvt_accum[((og * MLO_N_LCL_OUT_MAPS + o) *MLO_N_LCL_IN_MAPS + c) *MLO_WEI_WKITEM + w];
 
 #if 0
-					if (o_grp < MLO_N_OUT_PERGROUP && ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 1 && w_x == 0)
+					if (o_grp < MLO_N_OUT_PERGROUP && /*ib == 0 && */c_idx + c == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 0)
 					{
 
-						printf("K:s: %d %d %d %d %d %d %d %d %f\n",
-							o,
-							c,
-							w,
-							w_blk_idx,
-							w_y,
-							w_x,
-							lcl_id, 
+						printf("K:s: %d %d %d %f\n",
+							ib,
+							lcl_id,
 							wei_lcl_off,
 							pvt_accum[((og * MLO_N_LCL_OUT_MAPS + o) *MLO_N_LCL_IN_MAPS + c) *MLO_WEI_WKITEM + w]
 						);
@@ -665,10 +656,11 @@ __kernel void MLOpenCvBwdWrW(
 				final_sum += lcl_bot[bot_off];
 
 #if 0
-				if (ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && wei_i_y == 1 && wei_i_x == 0)
+				if (/*ib == 0 && */c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && wei_i_y == 0 && wei_i_x == 0)
 				{
 
-					printf("K:a2: %d %d %f %f\n",
+					printf("K:a2: %d %d %d %f %f\n",
+						ib,
 						lcl_id,
 						bot_off,
 						final_sum,
@@ -682,6 +674,20 @@ __kernel void MLOpenCvBwdWrW(
 #if 1
 
 			weights_df[wei_df_off + wei_i] = final_sum; //lcl_bot[lcl_id]; //
+#if 1
+			if (/*ib == 0 && */c_idx + c == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && wei_i_y == 0 && wei_i_x == 0)
+			{
+
+				printf("K:o: %d %d %f\n",
+					ib,
+					lcl_id,
+					wei_df_off + wei_i,
+					weights_df[wei_df_off + wei_i]
+				);
+
+			}
+#endif
+
 
 #else
 			_FLOAT t_accum = 0;
@@ -703,7 +709,7 @@ __kernel void MLOpenCvBwdWrW(
 
 		}
 
-		barrier(CLK_LOCAL_MEM_FENCE);
+	//	barrier(CLK_LOCAL_MEM_FENCE);
 
 	} // for(int og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
 
