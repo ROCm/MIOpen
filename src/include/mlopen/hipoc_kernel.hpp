@@ -35,34 +35,12 @@ struct KernelArgs
     KernelArgsPack<Ts...> pack;
 };
 
-struct HIPOCKernel
+struct HIPOCKernelInvoke
 {
-    HIPOCProgram program;
-    std::string name;
-    std::vector<size_t> ldims;
-    std::vector<size_t> gdims;
-    std::string kernel_module;
-    hipFunction_t fun; // TODO: This currently leaks memory
-
-    HIPOCKernel()
-    {}
-    HIPOCKernel(HIPOCProgram p, const std::string kernel_name, std::vector<size_t> local_dims, std::vector<size_t> global_dims)
-    : program(p), name(kernel_name), ldims(local_dims), gdims(3, 1)
-    {
-        while (ldims.size() < 3) ldims.push_back(1);
-        while (global_dims.size() < 3) global_dims.push_back(1);
-        assert(ldims.size() == 3);
-        assert(global_dims.size() == 3);
-        for(int i=0;i<global_dims.size();i++)
-        {
-            gdims[i] = (global_dims[i] - 1)/ldims[i] + 1;
-        }
-
-        kernel_module = "&__OpenCL_" + name + "_kernel";
-        auto status = hipModuleGetFunction(&fun, program.module.get(), kernel_module.c_str());
-        if (hipSuccess != status)
-            MLOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);
-    }
+    hipStream_t stream;
+    hipFunction_t fun;
+    std::array<size_t, 3> ldims;
+    std::array<size_t, 3> gdims;
 
     template<class... Ts>
     void operator()(Ts... xs) const
@@ -74,7 +52,38 @@ struct HIPOCKernel
     void run(void* args, std::size_t size) const;
 };
 
-typedef HIPOCKernel HIPOCKernelInvoke;
+struct HIPOCKernel
+{
+    HIPOCProgram program;
+    std::string name;
+    std::array<size_t, 3> ldims;
+    std::array<size_t, 3> gdims;
+    std::string kernel_module;
+    hipFunction_t fun;
+
+    HIPOCKernel()
+    {}
+    HIPOCKernel(HIPOCProgram p, const std::string kernel_name, std::vector<size_t> local_dims, std::vector<size_t> global_dims)
+    : program(p), name(kernel_name)
+    {
+        assert(local_dims.size() < 3);
+        assert(global_dims.size() < 3);
+        ldims.fill(1);
+        gdims.fill(1);
+        std::copy(local_dims.begin(), local_dims.end(), ldims.begin());
+        for(int i=0;i<global_dims.size();i++)
+        {
+            gdims[i] = (global_dims[i] - 1)/local_dims[i] + 1;
+        }
+
+        kernel_module = "&__OpenCL_" + name + "_kernel";
+        auto status = hipModuleGetFunction(&fun, program.module.get(), kernel_module.c_str());
+        if (hipSuccess != status)
+            MLOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);
+    }
+
+    HIPOCKernelInvoke Invoke(hipStream_t stream);
+};
 
 }
 
