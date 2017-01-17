@@ -36,6 +36,7 @@ mlopenStatus_t SoftmaxForward(
 	// using workgroup size of 256 by default
 	int grid_size = n*h*w;
 	int spatial_dim = h*w;
+	// num_spatial_dims or pixels each workgroup can compute
 	int num_batch = c < 256 ? nextPow2(256/c) : 1;
 
 	const std::vector<size_t> vld(1, 256);
@@ -61,7 +62,9 @@ mlopenStatus_t SoftmaxForward(
 	}
 	else { // CSR-Stream like approach
 
+		// num_threads iterating over channels for one spatial_dim
 		int batch_size = 256/num_batch;
+		// num_channels each threads iterates over to cover all the channels
 		int u_batch_size = c > batch_size ? nextPow2(c/batch_size) : 1;
 
 		size_t workgroups = grid_size % num_batch == 0 ? grid_size/num_batch : grid_size/num_batch + 1;
