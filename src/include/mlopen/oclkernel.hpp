@@ -75,8 +75,18 @@ public:
 	OCLKernel(ClKernelPtr k) : kernel(std::move(k)) {}
 	OCLKernel(ClKernelPtr k, 
 			std::vector<size_t> local_dims,
-			std::vector<size_t> global_dims, SharedProgramPtr p=nullptr) 
-	: program(p), kernel(std::move(k)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
+			std::vector<size_t> global_dims) 
+	: kernel(std::move(k)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
+	{
+		assert(ldims.size() == gdims.size());
+		assert(!ldims.empty() && ldims.size() <= 3);
+	}
+
+	OCLKernel(SharedProgramPtr p, 
+			const std::string& kernel_name,
+			std::vector<size_t> local_dims,
+			std::vector<size_t> global_dims) 
+	: program(p), kernel(CreateKernel(p.get(), kernel_name)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
 	{
 		assert(!gdims.empty() && gdims.size() <= 3);
 

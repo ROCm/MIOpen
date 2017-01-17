@@ -95,7 +95,9 @@ __kernel void mloPoolingAveBwd(
 				
 				bool invisibleX = (top_x_act >= MLO_POOLBWD_TOP_WIDTH);
 
-				_FLOAT top_val = top_diff[top_off + top_y_off + top_x_act];
+				int top_diff_off = (invisibleX || invisibleY) ? 0 : top_off + top_y_off + top_x_act;
+
+				_FLOAT top_val = top_diff[top_diff_off];
 
 
 				top_val = (invisibleX || invisibleY)? 0 : top_val;

@@ -23,12 +23,19 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define NOMINMAX // stupid windows.h confused with min() macros in std namespace
 #endif
 
+
+
 #define _USE_MATH_DEFINES
+#if MLOPEN_BACKEND_OPENCL
 #ifdef __APPLE__
- #include <mach/mach_time.h>  // for mach_absolute_time() and friends
  #include <OpenCL/opencl.h>
 #else
- #include <CL/opencl.h>
+ #include <CL/cl.h>
+#endif
+#endif
+
+#ifdef __APPLE__
+#include <mach/mach_time.h>  // for mach_absolute_time() and friends
 #endif
 
 #include <iomanip>
@@ -92,10 +99,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 typedef std::tuple<const std::string, const std::string, const std::string, const std::vector<size_t>, const std::vector<size_t>> mlo_kernel_info;
 
+#if MLOPEN_BACKEND_OPENCL
 #include <mlopen/oclkernel.hpp>
 #include <mlopen/clhelper.hpp>
-#include <mlopen/tensor.hpp>
 #include <mlopen/ocldeviceinfo.hpp>
+#endif
+#include <mlopen/tensor.hpp>
 
 class mlo_construct_direct2D {
 public:
@@ -322,7 +331,7 @@ public:
 	/*
 	* set library stream
 	*/
-	inline void setStream(void * stream)
+	inline void setStream(mlopen::Handle * stream)
 	{
 		_stream = stream;
 	}
@@ -711,38 +720,33 @@ protected:
 //	int mloBuildConf_Key(std::string & conf_key) const;
 
 	int mloSelectDefaultConfig(std::string & conf_val);
-	int mloAddConfigReq(cl_device_id dev,
+	int mloAddConfigReq(
 		const std::string & conf_key
 		) const;
 	int mloRemoveConfigReq(
-		cl_device_id dev,
 		const std::string & conf_key
 		) const;
 	int mloReadConfigDB(
-		cl_device_id dev,
 		std::map<std::string, std::string> & conf_db
 		) const;
 	int mloWriteConfigDB(
-		cl_device_id dev,
 		const std::map<std::string, std::string> & conf_db
 		) const;
 	int mloAddConfig(
-		cl_device_id dev,
 		std::string & conf_key,
 		std::string & conf_val
 		) const;
 	bool mloSearchConfigInDB(
-		cl_device_id dev,
 		std::string & conf_key,
 		std::string & conf_val
 		) const;
 
 	int mloMeasuredLoop(
-		cl_command_queue profile_q,
-		cl_mem bot_ocl_buf,
-		cl_mem top_ocl_buf,
-		cl_mem wei_ocl_buf,
-		cl_mem bias_ocl_buf,
+		mlopen::Handle* profile_h,
+		Data_t bot_ocl_buf,
+		Data_t top_ocl_buf,
+		Data_t wei_ocl_buf,
+		Data_t bias_ocl_buf,
 		double &processing_time
 		);
 
@@ -845,7 +849,7 @@ protected:
 	// wave size
 	int _hw_wave_sz = 0;
 	// cl_queue
-	void * _stream;
+	mlopen::Handle * _stream;
 	size_t _bot_sz; // bytes
 	size_t _top_sz; // bytes
 	size_t _bot_df_sz = 0; // bytes

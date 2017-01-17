@@ -5,13 +5,13 @@ namespace mlopen {
 
 mlopenStatus_t Im2ColGPU(
 		Handle	&handle,
-		const cl_mem im, size_t im_offset,
+		ConstData_t im, size_t im_offset,
 		const int c, const int h, const int w,
 		const int wei_h, const int wei_w,
 		const int out_h, const int out_w,
 		const int pad_h, const int	pad_w,
 		const int stride_h, const int stride_w,
-		cl_mem col) 
+		Data_t col) 
 {
 	std::string program_name = "MLOpenUtilKernels.cl";
 	std::string kernel_name = "Im2Col";

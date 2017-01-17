@@ -60,7 +60,7 @@ else()
                 -Wattributes
                 -Wavailability
                 -Wbackslash-newline-escape
-                -Wbad-array-new-length
+                # -Wbad-array-new-length
                 -Wbad-function-cast
                 -Wbind-to-temporary-copy
                 -Wbuiltin-macro-redefined
