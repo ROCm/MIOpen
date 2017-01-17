@@ -1004,11 +1004,11 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	_kernel_name = (n_proc_supertiles == 1) ? "MLOpenCDFGen" : "MLOpenCDFGen4";
 
 	_l_wk.clear();
-#if 0
+
 	_l_wk.push_back(ocl_group_sz0);
 	_l_wk.push_back(ocl_group_sz1);
 	_l_wk.push_back(ocl_group_sz2);
-#endif
+	
 	_g_wk.push_back(gbl0);
 	_g_wk.push_back(gbl1);
 	_g_wk.push_back(gbl2);
