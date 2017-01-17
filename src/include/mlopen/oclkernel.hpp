@@ -91,7 +91,7 @@ public:
 	{
 		assert(!gdims.empty() && gdims.size() <= 3);
 		assert(!ldims.empty() && ldims.size() <= 3);
-		if(std::any_of(ldims.begin(), ldims.end(), [](size_t x) { return x > 256; }))
+		if(std::accumulate(ldims.begin(), ldims.end(), 1, std::multiplies<size_t>{}) > 256)
 		{
 			std::fill(ldims.begin(), ldims.end(), 0);
 		}
