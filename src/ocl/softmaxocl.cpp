@@ -25,7 +25,7 @@ mlopenStatus_t SoftmaxForward(
 		const void					* /*alpha*/,
 		const void					* /*beta*/,
 		const TensorDescriptor		&yDesc,
-		cl_mem						y) 
+		Data_t						y) 
 {
 	int n, c, h, w;
 	std::tie(n, c, h, w) = tie4(yDesc.GetLengths());
@@ -89,10 +89,10 @@ mlopenStatus_t SoftmaxBackward(
 		Handle						&handle,
 		const void					* /*alpha*/,
 		const TensorDescriptor		&yDesc,
-		const cl_mem				y,
+		ConstData_t				y,
 		const void					* /*beta*/,
 		const TensorDescriptor		&dxDesc,
-		cl_mem						dx) 
+		Data_t						dx) 
 {
 	if(yDesc != dxDesc) {
 		MLOPEN_THROW(mlopenStatusBadParm);

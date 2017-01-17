@@ -89,7 +89,7 @@ set( MLOpen_Source
 	tensor_api.cpp
 	)
 
-if( MLOPEN_BACKEND MATCHES "OpenCL")
+if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 	set(MLOPEN_KERNELS
 		Kernels/MLOpenConvDirUni.cl
 		Kernels/MLOpenConvDirGenFwd.cl
@@ -116,9 +116,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		lrn.cpp
 		mlo_dir_conv.cpp
 		ocl/activ_ocl.cpp
-		ocl/clhelper.cpp
 		ocl/convolutionocl.cpp
-		ocl/handleocl.cpp
 		ocl/lrn_ocl.cpp
 		ocl/mloNeuron.cpp
 		ocl/mloNorm.cpp
@@ -128,8 +126,6 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 		ocl/softmaxocl.cpp
 		ocl/utilocl.cpp
 		pooling.cpp
-        ocl/oclerrors.cpp
-        ocl_kernel.cpp
         ${PROJECT_BINARY_DIR}/db.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
 		)
@@ -139,7 +135,25 @@ if( MLOPEN_BACKEND MATCHES "OpenCL")
 	 DESTINATION share/mlopen/db)
 endif()
 
-if( MLOPEN_BACKEND MATCHES "HIP")
+if( MLOPEN_BACKEND STREQUAL "OpenCL" )
+	list(APPEND MLOpen_Source 
+		ocl/handleocl.cpp
+        ocl_kernel.cpp
+        ocl/oclerrors.cpp
+		ocl/clhelper.cpp
+	)
+endif()
+
+if( MLOPEN_BACKEND STREQUAL "HIPOC")
+	list(APPEND MLOpen_Source 
+		hip/hiperrors.cpp
+		hip/handlehip.cpp
+		hipoc/hipoc_kernel.cpp
+		hipoc/hipoc_program.cpp
+		)
+endif()
+
+if( MLOPEN_BACKEND STREQUAL "HIP")
 	list(APPEND MLOpen_Source 
 		hip/handlehip.cpp
 		hip/convolutionhip.cpp
@@ -159,7 +173,7 @@ add_library( MLOpen
 	${MLOpen_Source}
 	)
 
-if( MLOPEN_BACKEND MATCHES "OpenCL")
+if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 	add_custom_target(addkernels_run
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		DEPENDS addkernels
@@ -191,7 +205,7 @@ GENERATE_EXPORT_HEADER(MLOpen
 )
 ############################################################
 # MLOpen depends on OpenCL
-if( MLOPEN_BACKEND MATCHES "OpenCL")
+if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	MESSAGE( STATUS "MLOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MLOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )

@@ -21,8 +21,8 @@
 #include <string>
 #include <unordered_map>
 #include <mlopen.h>
-#include <mlopen/oclkernel.hpp>
-#include <mlopen/clhelper.hpp>
+#include <mlopen/handle.hpp>
+#include <mlopen/kernel.hpp>
 
 namespace mlopen {
 
@@ -42,14 +42,12 @@ class KernelCache
 
 public:
 
-    using SharedProgramPtr = std::shared_ptr<typename std::remove_pointer<cl_program>::type>;
-
 	typedef std::pair<std::string, std::string> Key;
-    typedef std::unordered_map< Key, OCLKernel, SimpleHash > KernelMap;
-    typedef std::unordered_map< Key, SharedProgramPtr, SimpleHash > ProgramMap;
+    typedef std::unordered_map< Key, Kernel, SimpleHash > KernelMap;
+    typedef std::unordered_map< Key, Program, SimpleHash > ProgramMap;
 
 
-	OCLKernel GetKernel(cl_command_queue &queue,
+	Kernel GetKernel(Handle &h,
 						 const std::string& algorithm,
 						 const std::string& network_config,
                          const std::string& program_name,
@@ -58,7 +56,7 @@ public:
 						 const std::vector<size_t>& vgd,
                         std::string params = "");
 	
-	OCLKernel GetKernel( const std::string& algorithm,
+	Kernel GetKernel( const std::string& algorithm,
 						 const std::string& network_config);
 
 
