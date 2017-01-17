@@ -66,14 +66,14 @@ struct HIPOCKernel
     HIPOCKernel(HIPOCProgram p, const std::string kernel_name, std::vector<size_t> local_dims, std::vector<size_t> global_dims)
     : program(p), name(kernel_name)
     {
-        assert(local_dims.size() < 3);
-        assert(global_dims.size() < 3);
+        assert(!local_dims.empty() && local_dims.size() <= 3);
+        assert(!global_dims.empty() && global_dims.size() <= 3);
         ldims.fill(1);
         gdims.fill(1);
         std::copy(local_dims.begin(), local_dims.end(), ldims.begin());
         for(int i=0;i<global_dims.size();i++)
         {
-            gdims[i] = (global_dims[i] - 1)/local_dims[i] + 1;
+            gdims[i] = (global_dims[i] - 1)/ldims[i] + 1;
         }
 
         kernel_module = "&__OpenCL_" + name + "_kernel";
