@@ -33,7 +33,7 @@ mlopenStatus_t Im2ColGPU(
 	//int local_mem_sz = (16*stride_w+wei_w)*(16*stride_h+wei_h);
 
 	int tile_sz_x = 32;
-	int tile_sz_y = 4;
+	int tile_sz_y = 8;
 	int num_blks_x = std::ceil(static_cast<float>(out_w)/tile_sz_x);
 	int num_blks = num_blks_x * std::ceil(static_cast<float>(out_h)/tile_sz_y);
 	int local_mem_sz = (tile_sz_x*stride_w+wei_w)*(tile_sz_y*stride_h+wei_h);
