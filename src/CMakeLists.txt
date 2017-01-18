@@ -65,6 +65,7 @@ set( MLOpen_Source
 	convolution.cpp
 	convolution_api.cpp
 	errors.cpp
+	gemm.cpp
 	pooling_api.cpp
 	lrn_api.cpp
 	activ_api.cpp
