@@ -69,7 +69,7 @@ struct HandleImpl
 
     bool enable_profiling = false;
     std::vector<StreamPtr> streams;
-    float profiling_result;
+    float profiling_result = 0.0;
 #if MLOPEN_BACKEND_HIPOC
     KernelCache cache;
 #endif
