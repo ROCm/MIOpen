@@ -434,9 +434,8 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	
-	const auto driver_is_rocm =
-		   (driver[0] == '1' || driver[0] == '2') && driver[1] == '.' // Both shall support Metadata for Runtime v1.0 we are using for now
-		|| (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
+	const auto driver_has_lc =
+		   (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
 		|| (driver.find("(LC,") != std::string::npos)
 		|| (driver.find(",LC)") != std::string::npos)
 		|| (driver.find("(LC ") != std::string::npos)
@@ -445,6 +444,10 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 		|| (driver.find(",LC ") != std::string::npos)
 		|| (driver.find(" LC ") != std::string::npos)
 		|| (driver.find(",LC,") != std::string::npos);
+
+	const auto driver_is_v1_or_v2 = (driver[0] == '1' || driver[0] == '2') && driver[1] == '.'; // Both shall support Metadata for Runtime v1.0 we are using for now
+
+	const auto driver_is_rocm = driver_has_lc && driver_is_v1_or_v2;
 
 	const auto device_suits =
 		   name == "gfx800"
