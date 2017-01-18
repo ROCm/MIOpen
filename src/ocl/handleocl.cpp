@@ -2,6 +2,7 @@
 #include <mlopen/manage_ptr.hpp>
 #include <mlopen/errors.hpp>
 #include <mlopen/kernel_cache.hpp>
+#include <mlopen/ocldeviceinfo.hpp>
 #include <string>
 
 #ifndef _WIN32
@@ -299,7 +300,7 @@ KernelInvoke Handle::GetKernel(
         const compiled_in_params compiled_ins)
 {
     auto q = this->GetStream();
-    auto obj = this->impl->cache.GetKernel(q, 
+    auto obj = this->impl->cache.GetKernel(*this, 
             algorithm,
             network_config,
             program_name, 
@@ -336,6 +337,11 @@ KernelInvoke Handle::GetKernel(
     }
 }
 
+Program Handle::LoadProgram(const std::string &program_name, std::string params, bool is_binary)
+{
+    return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params, is_binary);
+}
+
 void Handle::Finish() const
 {
     clFinish(this->GetStream());
@@ -344,6 +350,21 @@ void Handle::Finish() const
 void Handle::Flush() const
 {
     clFlush(this->GetStream());
+}
+
+std::size_t Handle::GetLocalMemorySize()
+{
+    return mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(mlopen::GetDevice(this->GetStream()));
+}
+
+std::string Handle::GetDeviceName()
+{
+    return mlopen::GetDeviceInfo<CL_DEVICE_NAME>(mlopen::GetDevice(this->GetStream()));
+}
+
+std::size_t Handle::GetMaxComputeUnits()
+{
+    return mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(mlopen::GetDevice(this->GetStream()));
 }
 
 ManageDataPtr Handle::Create(int sz)
@@ -365,4 +386,11 @@ void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
     auto status = clEnqueueReadBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz)); }
 }
+
+void Handle::Copy(ConstData_t src, Data_t dest, int size)
+{
+    auto status = clEnqueueCopyBuffer(this->GetStream(), src, dest, 0, 0, size, 0, nullptr, nullptr);
+    if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error copying buffer: " + std::to_string(size)); }
+}
+
 } // namespace mlopen

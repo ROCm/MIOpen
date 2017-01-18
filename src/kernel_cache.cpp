@@ -16,6 +16,7 @@
 
 
 #include <mlopen/kernel_cache.hpp>
+#include <mlopen/errors.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -41,7 +42,7 @@ const std::shared_ptr<OCLKernel> KernelCache::GetKernel(const std::string& algor
 	}
 }
 
-std::shared_ptr<OCLKernel> KernelCache::GetKernel(cl_command_queue &queue,
+std::shared_ptr<OCLKernel> KernelCache::GetKernel(Handle &h,
 										const std::string& algorithm,
 										const std::string& network_config,
 										const std::string& program_name,
@@ -64,7 +65,7 @@ std::shared_ptr<OCLKernel> KernelCache::GetKernel(cl_command_queue &queue,
     std::cout << "key: " << key.first << ',' << key.second << std::endl;
 #endif
 
-    SharedProgramPtr program;
+    Program program;
 
     auto program_it = program_map.find(std::make_pair(program_name, params));
     if (program_it != program_map.end())
@@ -73,10 +74,10 @@ std::shared_ptr<OCLKernel> KernelCache::GetKernel(cl_command_queue &queue,
     }
     else
     {
-        program = LoadProgram(GetContext(queue), GetDevice(queue), program_name, params, is_binary);
-        program_map[std::make_pair(program_name, params)] = program;
+        program = h.LoadProgram(program_name, params, is_binary);
+		program_map[std::make_pair(program_name, params)] = program;
     }
-	auto kernel = std::shared_ptr<OCLKernel>(new OCLKernel{ CreateKernel(program.get(), kernel_name), vld, vgd, program });
+	auto kernel = std::shared_ptr<OCLKernel>(new OCLKernel{ program, kernel_name, vld, vgd });
     if (!network_config.empty() && !algorithm.empty()) {
         kernel_map[key] = kernel;
     }

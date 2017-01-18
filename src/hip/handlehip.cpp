@@ -1,19 +1,54 @@
 #include <mlopen/handle.hpp>
 #include <mlopen/errors.hpp>
+#if MLOPEN_BACKEND_HIPOC
+#include <mlopen/kernel_cache.hpp>
+#endif
 #include <algorithm>
 
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
 namespace mlopen {
+
+hipDevice_t get_device(int id)
+{
+    hipDevice_t device;
+    auto status = hipDeviceGet(&device, id);
+    if (status != hipSuccess) MLOPEN_THROW("No device");
+    return device;
+}
+
+void set_device(int id)
+{
+    auto status = hipSetDevice(id);
+    if (status != hipSuccess) MLOPEN_THROW("Error setting device");
+}
+
+void set_default_device()
+{
+    int n;
+    auto status = hipGetDeviceCount(&n);
+    if (status != hipSuccess) MLOPEN_THROW("Error getting device count");
+    // Pick device based on process id
+    auto pid = ::getpid();
+    assert(pid > 0);
+    set_device(pid % n);
+}
 
 struct HandleImpl
 {
     // typedef MLOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
-    typedef std::shared_ptr<typename std::remove_pointer<hipStream_t>::type> StreamPtr;
+    using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
+
+    HandleImpl()
+    {}
 
     StreamPtr create_stream()
     {
         hipStream_t result;
         auto status = hipStreamCreate(&result);
-        if (status != hipSuccess) MLOPEN_THROW("Failed to allocate stream");
+        if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed to allocate stream");
         return StreamPtr{result, &hipStreamDestroy};
     }
 
@@ -24,6 +59,9 @@ struct HandleImpl
 
     bool enable_profiling = false;
     std::vector<StreamPtr> streams;
+#if MLOPEN_BACKEND_HIPOC
+    KernelCache cache;
+#endif
 };
 
 Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
@@ -37,7 +75,9 @@ Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams)
 Handle::Handle () 
 : impl(new HandleImpl())
 {
-    this->impl->streams.push_back(impl->create_stream());
+    set_default_device();
+    // this->impl->streams.push_back(impl->create_stream());
+    this->impl->streams.push_back(HandleImpl::reference_stream(nullptr));
 }
 
 Handle::~Handle() {}
@@ -61,21 +101,114 @@ float Handle::GetKernelTime() const
 
 ManageDataPtr Handle::Create(int sz)
 {
+    this->Finish();
     void * result;
     auto status = hipMalloc(&result, sz);
-    if (status != hipSuccess) MLOPEN_THROW("Hip error creating buffer: " + std::to_string(status));
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer: ");
     return ManageDataPtr{result};
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
+    this->Finish();
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);
-    if (status != hipSuccess) MLOPEN_THROW("Hip error writing to buffer: " + std::to_string(status));
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
 void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
 {
+    this->Finish();
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
-    if (status != hipSuccess) MLOPEN_THROW("Hip error reading from buffer: " + std::to_string(status));
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
 }
+
+void Handle::Copy(ConstData_t src, Data_t dest, int size)
+{
+    auto status = hipMemcpy(dest, src, size, hipMemcpyDeviceToDevice);
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
+}
+
+#if MLOPEN_BACKEND_HIPOC
+KernelInvoke Handle::GetKernel(
+        const std::string& algorithm,
+        const std::string& network_config,
+        const std::string& program_name,
+        const std::string& kernel_name,
+        const std::vector<size_t>& vld,
+        const std::vector<size_t>& vgd,
+        const std::string& params)
+{
+    return this->impl->cache.GetKernel(*this, 
+            algorithm,
+            network_config,
+            program_name, 
+            kernel_name,
+            vld,
+            vgd,
+            params).Invoke(this->GetStream());
+}
+
+KernelInvoke Handle::GetKernel(
+    const std::string& algorithm,
+    const std::string& network_config)
+{
+    return this->impl->cache.GetKernel(
+            algorithm,
+            network_config).Invoke(this->GetStream());
+}
+
+Program Handle::LoadProgram(const std::string &program_name, std::string params)
+{
+    return HIPOCProgram{program_name, params};
+}
+
+void Handle::Finish() const
+{
+    auto status = hipStreamSynchronize(this->GetStream());
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed hip sychronization");
+}
+void Handle::Flush() const
+{
+
+}
+
+void Handle::ResetKernelTime(void)
+{
+
+}
+void Handle::AccumKernelTime(float)
+{
+
+}
+
+std::size_t Handle::GetLocalMemorySize()
+{
+    // TODO: Check error codes
+    int dev;
+    hipGetDevice(&dev);
+
+    int result;
+    hipDeviceGetAttribute(&result, hipDeviceAttributeMaxSharedMemoryPerBlock, 1);
+
+    return result;
+}
+
+std::size_t Handle::GetMaxComputeUnits()
+{
+    // TODO: Check error codes
+    int dev;
+    hipGetDevice(&dev);
+
+    int result;
+    hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount , 1);
+
+    return result;
+}
+
+std::string Handle::GetDeviceName()
+{
+    // TODO
+    return "Fiji";
+}
+#endif
 }
 
