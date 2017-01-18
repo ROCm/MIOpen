@@ -1,4 +1,4 @@
-node ('fglrx1'){
+node ('rocmtest10'){
     stage 'Checkout'
     env.CXXFLAGS = "-Werror"
     env.CTEST_PARALLEL_LEVEL = "4"
