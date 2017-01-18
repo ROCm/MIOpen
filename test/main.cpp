@@ -229,7 +229,7 @@ struct conv_forward : output_tensor_fixture
 		status |= clEnqueueWriteBuffer(q, out_dev, CL_TRUE, 0, 4*sz_out, out.data(), 0, NULL, NULL);
 		EXPECT(status == CL_SUCCESS);
 
-#elif MLOPEN_BACKEND_HIP
+#elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
 
         void * in_dev;
         void * wei_dev;
@@ -291,7 +291,7 @@ struct conv_forward : output_tensor_fixture
         // Potential memory leak free memory at end of function
 #if MLOPEN_BACKEND_OPENCL
 
-#elif MLOPEN_BACKEND_HIP
+#elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
         hipFree(in_dev);
         hipFree(wei_dev);
         hipFree(out_dev);

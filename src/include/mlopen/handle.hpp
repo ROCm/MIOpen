@@ -29,7 +29,7 @@ struct Handle : mlopenHandle {
 	void AccumKernelTime(float curr_time);
 
     float GetKernelTime() const;
-#if MLOPEN_BACKEND_OPENCL
+#if MLOPEN_BACKEND_OPENCL || MLOPEN_BACKEND_HIPOC
     KernelInvoke GetKernel(
             const std::string& algorithm,
             const std::string& network_config,
@@ -45,9 +45,18 @@ struct Handle : mlopenHandle {
         const std::string& algorithm,
         const std::string& network_config);
 
+    Program LoadProgram(const std::string &program_name, std::string params, bool is_binary);
+
     void Finish() const;
     void Flush() const;
 #endif
+
+    std::size_t GetLocalMemorySize();
+    std::size_t GetMaxComputeUnits();
+
+    std::string GetDeviceName();
+
+    void Copy(ConstData_t src, Data_t dest, int size);
 
 	ManageDataPtr Create(int sz);
 	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, int sz);

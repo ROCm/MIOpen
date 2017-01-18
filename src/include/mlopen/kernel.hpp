@@ -1,17 +1,34 @@
 #ifndef GUARD_MLOPEN_KERNEL_HPP
 #define GUARD_MLOPEN_KERNEL_HPP
 
-#if MLOPEN_BACKEND_OPENCL
-#include <mlopen/oclkernel.hpp>
+#include <string>
 
+#if MLOPEN_BACKEND_OPENCL || MLOPEN_BACKEND_HIPOC
 namespace mlopen {
-using KernelInvoke = OCLKernelInvoke;
-
 std::string GetKernelSrc(const std::string& name);
 } // namespace mlopen
+#endif
 
-#elif MLOPEN_BACKEND_HIP
+#if MLOPEN_BACKEND_OPENCL
+#include <mlopen/oclkernel.hpp>
+#include <mlopen/clhelper.hpp>
 
+namespace mlopen {
+using Kernel = OCLKernel;
+using KernelInvoke = OCLKernelInvoke;
+using Program = SharedProgramPtr;
+
+} // namespace mlopen
+
+#elif MLOPEN_BACKEND_HIPOC
+#include <mlopen/hipoc_kernel.hpp>
+
+namespace mlopen {
+using Kernel = HIPOCKernel;
+using KernelInvoke = HIPOCKernelInvoke;
+using Program = HIPOCProgram;
+
+} // namespace mlopen
 #endif
 
 
