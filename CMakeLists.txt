@@ -112,6 +112,7 @@ enable_clang_tidy(
 		# Disable this because it doesn't recognize clean up in the destructor
 		-clang-analyzer-alpha.unix.Stream
 		-clang-analyzer-optin.performance.Padding
+		-clang-diagnostic-deprecated-declarations
 		-clang-diagnostic-extern-c-compat
 		-cppcoreguidelines-pro-bounds-array-to-pointer-decay
 		-cppcoreguidelines-pro-bounds-constant-array-index

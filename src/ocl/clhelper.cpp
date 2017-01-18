@@ -83,7 +83,14 @@ cl_context GetContext(cl_command_queue q)
 ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev) 
 {
 	cl_int status;
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 	ClAqPtr q{clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &status)};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 	if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 
