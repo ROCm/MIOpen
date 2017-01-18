@@ -181,6 +181,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		)
 	
 	add_dependencies(MLOpen addkernels_run)
+	add_dependencies(tidy addkernels_run)
 endif()
 
 clang_tidy_check(MLOpen)
