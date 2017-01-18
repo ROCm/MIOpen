@@ -6,7 +6,8 @@ namespace mlopen {
 
 void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 {
-    hipEvent_t start, stop;
+    hipEvent_t start = nullptr;
+    hipEvent_t stop = nullptr;
     void *config[] = {
         HIP_LAUNCH_PARAM_BUFFER_POINTER, args,
         HIP_LAUNCH_PARAM_BUFFER_SIZE, &size,
