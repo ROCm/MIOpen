@@ -3,6 +3,8 @@
 #include <mlopen/mlo_internal.hpp>
 
 #include <tinygemm/tinygemm.hpp>
+#include <mlopen/gemm.hpp>
+
 namespace mlopen {
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -296,18 +298,20 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	int out_h, out_w;
 	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
+#if 0
 	// GEMM
 	int N = in_c * wei_h * wei_w; 
 	int M = wei_n; 
 	int K = out_h * out_w;  
-	float alpha = 1.0;
-	float beta = 1.0;
 	bool tA = false;
 	bool tB = true;
 	bool tC = false;
 	unsigned int lda = K;
 	unsigned int ldb = K;
 	unsigned int ldc = N;
+#endif
+	float alpha = 1.0;
+	float beta = 1.0;
 
 	if(wei_h != 1 && wei_w != 1) {
 		size_t in_offset = 0;
@@ -315,15 +319,19 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	}
 	
 	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
-	tinygemm::TinyGemmGeometry tgg( true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
+	//tinygemm::TinyGemmGeometry tgg( true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
+	GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, true);
 	// alloted_time, queue, a, b, c, enforce_determinism, float_type, geometry, alpha, beta, verbose 
-	tinygemm::TinyGemmSolution soln = tinygemm::find(.003, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, false);
+	//tinygemm::TinyGemmSolution soln = tinygemm::find(.003, handle.GetStream(), workSpace, dy, dw, false, 'f', tgg, alpha, beta, false);
+	tinygemm::TinyGemmSolution soln = tinygemm::find(.003, handle.GetStream(), workSpace, dy, dw, false, 'f', gg.tgg, alpha, beta, false);
 
 	std::string program_name = soln.main_kernel;
 	std::string kernel_name = soln.main_kernel_function_name;
-	std::string network_config = tgg.get_networkconfig_string();
+	//std::string network_config = tgg.get_networkconfig_string();
+	std::string network_config = gg.tgg.get_networkconfig_string();
 
-	auto main_kernel_worksize_params =  soln.get_main_kernel_worksize_params(N, M);
+	//auto main_kernel_worksize_params =  soln.get_main_kernel_worksize_params(N, M);
+	auto main_kernel_worksize_params =  soln.get_main_kernel_worksize_params(gg.dims[0], gg.dims[1]);
 	size_t local_work_size = main_kernel_worksize_params.at("local_work_size");
 	size_t global_work_size = main_kernel_worksize_params.at("global_work_size");
 
@@ -430,21 +438,23 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
 			int out_h, out_w;
 			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
-
+#if 0
 			int N = in_c * wei_h * wei_w; 
 			int M = wei_n; 
 			int K = out_h * out_w;  
-			float alpha = 1.0;
-			float beta = 1.0;
 			bool tA = false;
 			bool tB = true;
 			bool tC = false;
 			unsigned int lda = K;
 			unsigned int ldb = K;
 			unsigned int ldc = N;
-
-			tinygemm::TinyGemmGeometry tgg( true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
-			std::string network_config = tgg.get_networkconfig_string();
+#endif
+			float alpha = 1.0;
+			float beta = 1.0;
+			GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, true);
+			//tinygemm::TinyGemmGeometry tgg( true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
+			//std::string network_config = tgg.get_networkconfig_string();
+			std::string network_config = gg.tgg.get_networkconfig_string();
 
 			std::string algorithm_name;
 			algorithm_name = "mlopenConvolutionBwdWeightsAlgoGEMM";
@@ -459,7 +469,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 					if(handle.IsProfilingEnabled())
 						t1 = handle.GetKernelTime();
 					
-					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, ldb, lda, ldc, N, M, K, 0, out_offset, 0);
+					//handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, ldb, lda, ldc, N, M, K, 0, out_offset, 0);
+					handle.GetKernel(algorithm_name, network_config)(dw, workSpace, dy, alpha, beta, gg.strides[0], gg.strides[1], gg.strides[2], gg.dims[0], gg.dims[1], gg.dims[2], 0, out_offset, 0);
 
 					// Update times for both the kernels
 					if(handle.IsProfilingEnabled()) {
@@ -472,7 +483,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 				}
 				else if(wei_h == 1 && wei_w == 1) {
 					unsigned int in_offset = i * in_c * in_h * in_w;
-					handle.GetKernel(algorithm_name, network_config)(dw, x, dy, alpha, beta, ldb, lda, ldc, N, M, K, in_offset, out_offset, 0);
+					//handle.GetKernel(algorithm_name, network_config)(dw, x, dy, alpha, beta, ldb, lda, ldc, N, M, K, in_offset, out_offset, 0);
+					handle.GetKernel(algorithm_name, network_config)(dw, x, dy, alpha, beta, gg.strides[0], gg.strides[1], gg.strides[2], gg.dims[0], gg.dims[1], gg.dims[2], in_offset, out_offset, 0);
 					if(handle.IsProfilingEnabled()) {
 						if(i == in_n - 1)
 							handle.AccumKernelTime(time_0);

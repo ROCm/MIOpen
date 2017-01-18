@@ -32,8 +32,8 @@ mlopenStatus_t Im2ColGPU(
 	//int num_blks = num_blks_x * std::ceil(static_cast<float>(out_h)/16);
 	//int local_mem_sz = (16*stride_w+wei_w)*(16*stride_h+wei_h);
 
-	int tile_sz_x = 128;
-	int tile_sz_y = 2;
+	int tile_sz_x = 32;
+	int tile_sz_y = 4;
 	int num_blks_x = std::ceil(static_cast<float>(out_w)/tile_sz_x);
 	int num_blks = num_blks_x * std::ceil(static_cast<float>(out_h)/tile_sz_y);
 	int local_mem_sz = (tile_sz_x*stride_w+wei_w)*(tile_sz_y*stride_h+wei_h);
@@ -51,7 +51,6 @@ mlopenStatus_t Im2ColGPU(
 	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*num_blks);
 //	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg));
 
-	printf("vgd %d\n", vgd[0]);
 
 	handle.GetKernel("mlopenIm2Col",
 			network,
