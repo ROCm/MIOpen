@@ -90,8 +90,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	case compiled_in_params::legacy:
 		kernel(x, w, y, padding_val);
 		break;
-	default:
-		MLOPEN_THROW("Unknown kernarg list type.");
 	}
 	
 	// FIXME: MD temporary hack for hipcaffe
@@ -174,8 +172,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 	case compiled_in_params::legacy:
 		kernel(x, w, y, padding_val);
 		break;
-	default:
-		MLOPEN_THROW("Unknown kernarg list type.");
 	}
 }
 
