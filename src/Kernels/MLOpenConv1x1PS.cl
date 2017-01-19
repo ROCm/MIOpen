@@ -30,6 +30,8 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define _LEN_OF_TYPE            MLO_READ_UNIT
+
 /*
 Layout:
 
@@ -48,11 +50,11 @@ __kernel void MLOpenConv1x1PS(
 {
 // KERNEL
 // private buffers
-	__private _FLOAT4 in_stage[MLO_N_LCL_BATCHS][MLO_N_LCL_IN_MAPS];
-	__private _FLOAT wei_stage[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];
-	__private _FLOAT4 out_tiles[MLO_N_LCL_BATCHS][MLO_N_LCL_OUT_MAPS];
+	__private MLO_READ_TYPE in_stage[MLO_N_LCL_BATCHS][MLO_N_LCL_IN_MAPS];
+	__private _FLOAT wei_stage;
+	__private MLO_READ_TYPE out_tiles[MLO_N_LCL_BATCHS][MLO_N_LCL_OUT_MAPS];
 #if MLO_N_MAPS_PERGROUP > 1
-	__local _FLOAT4 lcl_out_stage[MLO_MAP_SZ4*MLO_EXCHANGE_STEP * MLO_N_MAPS_PERGROUP];
+	__local MLO_READ_TYPE lcl_out_stage[MLO_MAP_SZ4*MLO_EXCHANGE_STEP * MLO_N_MAPS_PERGROUP];
 
 #endif
 
@@ -71,7 +73,7 @@ __kernel void MLOpenConv1x1PS(
 
 	int in_off = batch_block * MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE
 		+ in_map_off_id * MLO_IN_CHANNEL_STRIDE
-				+ pix_id * 4;
+				+ pix_id * MLO_READ_UNIT;
 
 	int wei_off = out_grp_block * MLO_N_LCL_OUT_MAPS *
 #if MLO_DIR_FORWARD==1
@@ -116,7 +118,7 @@ __kernel void MLOpenConv1x1PS(
 				//				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
 				{
 
-					in_stage[ib][ilc] = *(_FLOAT4*)&in_ptr[in_off2];
+					in_stage[ib][ilc] = *(MLO_READ_TYPE*)&in_ptr[in_off2];
 					in_stage[ib][ilc] = (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS) ? in_stage[ib][ilc] : 0;
 #if !MLO_DIVBY4
 
@@ -163,10 +165,10 @@ __kernel void MLOpenConv1x1PS(
 				)
 			{
 				// read weights
-				wei_stage[olc][ilc] = wei_ptr[wei_off2];
+				wei_stage = wei_ptr[wei_off2];
 				for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 				{
-					out_tiles[ib][olc] += in_stage[ib][ilc] * (_FLOAT4)wei_stage[olc][ilc];
+					out_tiles[ib][olc] += in_stage[ib][ilc] * (MLO_READ_TYPE)wei_stage;
 #if 0
 					if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && in_map_id == 0 && pix_id == 0 && olc == 0 && ib == 0)
 					{
@@ -177,9 +179,9 @@ __kernel void MLOpenConv1x1PS(
 							olc,
 							ilc,
 							out_tiles[ib][olc].s0,
-							in_stage[ib][ilc].s0 * wei_stage[olc][ilc],
+							in_stage[ib][ilc].s0 * wei_stage,
 							in_stage[ib][ilc].s0,
-							wei_stage[olc][ilc]
+							wei_stage
 							);
 					}
 #endif
@@ -199,7 +201,7 @@ __kernel void MLOpenConv1x1PS(
 	out_block = out_grp_block * MLO_N_LCL_OUT_MAPS;
 	int out_off = batch_block * MLO_N_LCL_BATCHS * MLO_OUT_BATCH_STRIDE
 		+ out_block *  MLO_OUT_CHANNEL_STRIDE
-		+ pix_id * 4;
+		+ pix_id * MLO_READ_UNIT;
 
 #if MLO_N_MAPS_PERGROUP > 1
 	// calculate reduction over all partial sums
@@ -228,7 +230,7 @@ __kernel void MLOpenConv1x1PS(
 			// in_map_id now is an index of the output map
 			if (in_map_id < MLO_EXCHANGE_STEP)
 			{
-				_FLOAT4 sum = 0;
+				MLO_READ_TYPE sum = 0;
 				for (int s = 0; s < MLO_N_MAPS_PERGROUP; ++s)
 				{
 					int imp = in_map_id + s;
@@ -275,7 +277,7 @@ __kernel void MLOpenConv1x1PS(
 #endif
 					{
 
-						*((_FLOAT4*)&out_ptr[out_off2]) = (sum + (_FLOAT4)bias_val);
+						*((MLO_READ_TYPE*)&out_ptr[out_off2]) = (sum + (MLO_READ_TYPE)bias_val);
 					}
 
 
@@ -349,7 +351,7 @@ __kernel void MLOpenConv1x1PS(
 #endif
 			{
 
-				*((_FLOAT4*)&out_ptr[out_off2]) = (out_tiles[ib][olc] + (_FLOAT4)bias_val);
+				*((MLO_READ_TYPE*)&out_ptr[out_off2]) = (out_tiles[ib][olc] + (MLO_READ_TYPE)bias_val);
 			}
 
 

@@ -35,41 +35,70 @@ endif()
 # OPTION - MLOpen Backend
 # - OpenCL
 # - HCC
-set( MLOPEN_BACKEND "OpenCL" CACHE STRING
-	"Which of Cobalt's backends to use?" )
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+	set(MLOPEN_DEFAULT_BACKEND "HIPOC")
+else()
+	set(MLOPEN_DEFAULT_BACKEND "OpenCL")
+endif()
+
+
+set( MLOPEN_BACKEND ${MLOPEN_DEFAULT_BACKEND} CACHE STRING
+	"Which of MLOpens's backends to use?" )
 set_property( CACHE MLOPEN_BACKEND PROPERTY STRINGS
-	OpenCL HCC HIP )
+	OpenCL HCC HIP HIPOC )
 # OpenCL 1.2
-if( MLOPEN_BACKEND MATCHES "OpenCL")
+if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	add_definitions( -DMLOPEN_BACKEND_OPENCL=1 )
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
+	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
 	find_package( OpenCL REQUIRED )
-	set(MLOPEN_SHARED ON)
-	message( STATUS "${MLOPEN_BACKEND} backend selected." )
 endif()
 # HCC
-if( MLOPEN_BACKEND MATCHES "HCC")
+if( MLOPEN_BACKEND STREQUAL "HCC")
 	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
 	add_definitions( -DMLOPEN_BACKEND_HCC=1 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
-	set(MLOPEN_SHARED ON)
-	message( SEND_ERROR "${Cobalt_BACKEND} backend not yet supported." )
+	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
+	message( SEND_ERROR "${MLOPEN_BACKEND} backend not yet supported." )
 endif()
 # HIP
-if( MLOPEN_BACKEND MATCHES "HIP")
+if( MLOPEN_BACKEND STREQUAL "HIP")
 	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=1 )
-	set(MLOPEN_SHARED OFF)
-	message( STATUS "${MLOPEN_BACKEND} backend selected." )
+	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
 endif()
+# HIPOC
+if( MLOPEN_BACKEND STREQUAL "HIPOC")
+	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
+	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
+	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
+	add_definitions( -DMLOPEN_BACKEND_HIPOC=1 )
+	find_program(HIP_OC_COMPILER aoc2
+		PATH_SUFFIXES
+			bin
+			bin/x86_64
+			x86_64
+	)
+	find_program(HIP_OC_FINALIZER amdhsafin
+		PATH_SUFFIXES
+			bin
+			bin/x86_64
+			x86_64
+	)
+	message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
+	message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
+	add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
+	add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
+endif()
+message( STATUS "${MLOPEN_BACKEND} backend selected." )
 
 # If Cobalt is used in future
 if( USE_Cobalt)
 endif()
 
-option( BUILD_SHARED_LIBS "Build as a shared library" ${MLOPEN_SHARED} )
+option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( BUILD_DEV "Build for development only" OFF)
 
@@ -95,6 +124,7 @@ enable_clang_tidy(
 		-cppcoreguidelines-pro-bounds-constant-array-index
 		-cppcoreguidelines-pro-bounds-pointer-arithmetic
 		-cppcoreguidelines-pro-type-reinterpret-cast
+		-cppcoreguidelines-pro-type-union-access
 		-cppcoreguidelines-pro-type-vararg
 		-google-explicit-constructor
 		-google-readability-braces-around-statements

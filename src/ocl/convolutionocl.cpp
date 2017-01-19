@@ -9,14 +9,14 @@ namespace mlopen {
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		const TensorDescriptor&		xDesc,
-		const cl_mem				x,
+		ConstData_t				x,
 		const TensorDescriptor&		wDesc,
-		const cl_mem				w,
+		ConstData_t				w,
 		const TensorDescriptor&		yDesc,
-		const cl_mem				y,
+		ConstData_t				y,
 		const int					 /*requestAlgoCount*/,
 		int							* /*returnedAlgoCount*/,
-		mlopenConvAlgoPerf_t		* /*perfResults*/,
+		mlopenConvAlgoPerf_t		*perfResults,
 		mlopenConvPreference_t		 /*preference*/,
 		cl_mem						workSpace,
 		size_t						 /*workSpaceSize*/,
@@ -62,7 +62,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
 		construct_params.setGeneralCompOptions("");
 
-		construct_params.setStream(handle.GetStream());
+		construct_params.setStream(&handle);
 
 		construct_params.setOutputDescFromMLDesc(yDesc);
 		construct_params.setInputDescFromMLDesc(xDesc);
@@ -91,19 +91,24 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 			vgd,
 			parms);
 	}
+
+	// FIXME: MD temporary hack for hipcaffe
+	// should be ideally wrapped under mlopen::deref to check 
+	// for the size of perfResults == requestedAlgoCount
+	perfResults->fwd_algo = mlopenConvolutionFwdAlgoDirect;
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 		const void					* /*alpha*/,
 		const TensorDescriptor&		xDesc,
-		const cl_mem				x,
+		ConstData_t				x,
 		const TensorDescriptor&		wDesc,
-		const cl_mem				w,
+		ConstData_t				w,
 		mlopenConvFwdAlgorithm_t	algo,
 		const void					* /*beta*/,
 		const TensorDescriptor&		yDesc,
-		cl_mem						y, 
-		cl_mem						workSpace,
+		Data_t						y, 
+		Data_t						workSpace,
 		size_t						 /*workSpaceSize*/) const {
 
 	if(x == nullptr || w == nullptr || y == nullptr) {
@@ -198,7 +203,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 						t1 = handle.GetKernelTime();
 
 					gg.RunGemm(handle, workSpace, w, y, 0, 0, out_offset);
-				//	handle.GetKernel(algorithm_name, network_config)(y, workSpace, w, alpha, beta, ldb, lda, ldc, N, M, K, 0, 0, out_offset);
 
 					// Update times for both the kernels
 					if(handle.IsProfilingEnabled()) {
@@ -212,7 +216,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 				else if(wei_h == 1 && wei_w == 1) {
 					int in_offset = i * in_c * in_h * in_w;
 					gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
-					//handle.GetKernel(algorithm_name, network_config)(y, x, w, alpha, beta, ldb, lda, ldc, N, M, K, in_offset, 0, out_offset);
 					if(handle.IsProfilingEnabled()) {
 						if(i == in_n - 1)
 							handle.AccumKernelTime(time_0);
@@ -235,14 +238,14 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 //
 void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 		const TensorDescriptor&		dyDesc,
-		const cl_mem				dy,
+		ConstData_t				dy,
 		const TensorDescriptor&		wDesc,
-		const cl_mem				w,
+		ConstData_t				w,
 		const TensorDescriptor&		dxDesc,
-		const cl_mem				dx,
+		ConstData_t				dx,
 		const int					 /*requestAlgoCount*/,
 		int							* /*returnedAlgoCount*/,
-		mlopenConvAlgoPerf_t		* /*perfResults*/,
+		mlopenConvAlgoPerf_t		*perfResults,
 		mlopenConvPreference_t		 /*preference*/,
 		void						* /*workSpace*/,
 		size_t						 /*workSpaceSize*/,
@@ -270,7 +273,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
 		construct_params.setGeneralCompOptions("");
 
-		construct_params.setStream(handle.GetStream());
+		construct_params.setStream(&handle);
 
 		construct_params.setOutputDescFromMLDesc(dyDesc);
 		construct_params.setInputDescFromMLDesc(dxDesc);
@@ -299,19 +302,26 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 			vld,
 			vgd,
 			parms)(dy, w, dx, padding_val);
+
+	// FIXME: MD temporary hack for hipcaffe
+	// should be ideally wrapped under mlopen::deref to check 
+	// for the size of perfResults == requestedAlgoCount
+	perfResults->bwd_data_algo = mlopenConvolutionBwdDataAlgo_0;
+	perfResults->time = handle.GetKernelTime();
+
 }
 
 // BackwardDataAlgorithm()
 void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 		const void						* /*alpha*/,
 		const TensorDescriptor&			dyDesc,
-		const cl_mem					dy,
+		ConstData_t					dy,
 		const TensorDescriptor&			wDesc,
-		const cl_mem					w,
+		ConstData_t					w,
 		mlopenConvBwdDataAlgorithm_t	/* algo */,
 		const void						* /*beta*/,
 		const TensorDescriptor&			dxDesc,
-		cl_mem							dx, 
+		Data_t							dx, 
 		void							* /*workSpace*/,
 		size_t							 /*workSpaceSize*/) const {
 
@@ -337,6 +347,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 		construct_params.setOutputDescFromMLDesc(dyDesc);
 		construct_params.setInputDescFromMLDesc(dxDesc);
 		construct_params.setWeightDescFromMLDesc(wDesc);
+		construct_params.setStream(&handle);
 	}
 
 	std::string network_config;
@@ -368,16 +379,16 @@ void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 //
 void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		const TensorDescriptor&		dyDesc,
-		const cl_mem				dy,
+		ConstData_t				dy,
 		const TensorDescriptor&		xDesc,
-		const cl_mem				x,
+		ConstData_t				x,
 		const TensorDescriptor&		dwDesc,
-		const cl_mem				dw,
+		ConstData_t				dw,
 		const int					 /*requestAlgoCount*/,
 		int							* /*returnedAlgoCount*/,
-		mlopenConvAlgoPerf_t		* /*perfResults*/,
+		mlopenConvAlgoPerf_t		*perfResults,
 		mlopenConvPreference_t		 /*preference*/,
-		cl_mem						workSpace,
+		Data_t						workSpace,
 		size_t						/*workSpaceSize*/,
 		bool						/*exhaustiveSearch*/) const {
 
@@ -403,11 +414,13 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	gg.FindSolution(.003, handle, workSpace, dy, dw, false);
 
 	std::string network_config;
-	if(u == 1 && v == 1) { // Direct Kernel
+// temprorary guard
+	if((u == 1 && v == 1) || (wei_w >= 7 && u == 2 && v == 2))
+	{
 		mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
 		{
 			construct_params.doSearch(false);
-			construct_params.setStream(handle.GetStream());
+			construct_params.setStream(&handle);
 			construct_params.setOutputDescFromMLDesc(dyDesc);
 			construct_params.setInputDescFromMLDesc(xDesc);
 			construct_params.setWeightDescFromMLDesc(dwDesc);
@@ -428,28 +441,61 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		 */
 
 		// main kernel
-		auto bwd_wrw = bwd_wrw_info[0];
+		if (bwd_wrw_info.size() == 1)
+		{
+			const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
+			float padding_val = 0;
 
-		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
-				network_config,
-				std::get<1>(bwd_wrw),
-				std::get<0>(bwd_wrw),
-				std::get<4>(bwd_wrw),
-				std::get<3>(bwd_wrw),
-				std::get<2>(bwd_wrw));
+			handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
+					network_config,
+					std::get<1>(bwd_wrw),
+					std::get<0>(bwd_wrw),
+					std::get<4>(bwd_wrw),
+					std::get<3>(bwd_wrw),
+					std::get<2>(bwd_wrw))
+					(dy, x, dw, padding_val);
+		}
+		else
+		{
+			{
+				const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
+				float padding_val = 0;
 
-		// second kernel hash
-		network_config += "x1";
-		// reduction  kernel
-		auto bwd_wrw_red = bwd_wrw_info[1];
+				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
+					network_config,
+					std::get<1>(bwd_wrw),
+					std::get<0>(bwd_wrw),
+					std::get<4>(bwd_wrw),
+					std::get<3>(bwd_wrw),
+					std::get<2>(bwd_wrw))
+					(dy, x, workSpace, padding_val);
+//					(dy, x, dw, padding_val);
+			}
 
-		handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red",
-				network_config,
-				std::get<1>(bwd_wrw_red),
-				std::get<0>(bwd_wrw_red),
-				std::get<4>(bwd_wrw_red),
-				std::get<3>(bwd_wrw_red),
-				std::get<2>(bwd_wrw_red));
+			float time0 = handle.GetKernelTime();
+			// second kernel hash
+			network_config += "x1";
+			// reduction  kernel
+			{
+				const mlo_kernel_info &bwd_wrw = bwd_wrw_info[1];
+
+				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red",
+					network_config,
+					std::get<1>(bwd_wrw),
+					std::get<0>(bwd_wrw),
+					std::get<4>(bwd_wrw),
+					std::get<3>(bwd_wrw),
+					std::get<2>(bwd_wrw))(workSpace, dw);
+			}
+
+			handle.AccumKernelTime(time0);
+
+		}
+
+	// FIXME: MD temporary hack for hipcaffe
+	// should be ideally wrapped under mlopen::deref to check 
+	// for the size of perfResults == requestedAlgoCount
+	perfResults->bwd_weights_algo = mlopenConvolutionBwdWeightsAlgoDirect;
 	}
 }
 
@@ -457,14 +503,14 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 		const void						* /*alpha*/,
 		const TensorDescriptor&			dyDesc,
-		const cl_mem					dy,
+		ConstData_t					dy,
 		const TensorDescriptor&			xDesc,
-		const cl_mem					x,
-		mlopenConvBwdWeightsAlgorithm_t	algo,
+		ConstData_t					x,
+		mlopenConvBwdWeightsAlgorithm_t algo,
 		const void						* /*beta*/,
 		const TensorDescriptor&			dwDesc,
-		cl_mem							dw, 
-		cl_mem							workSpace,
+		Data_t							dw, 
+		Data_t							workSpace,
 		size_t							/*workSpaceSize*/) const {
 
 	if(x == nullptr || dw == nullptr || dy == nullptr) {
@@ -487,6 +533,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	{
 		case mlopenConvolutionBwdWeightsAlgoGEMM:
 		{
+
 			int in_n, in_c, in_h, in_w;
 			std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
@@ -530,12 +577,24 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 					}
 				}
 			}
+
 		}
 		break;
 
 		case mlopenConvolutionBwdWeightsAlgoDirect:
 		{
-			if(u == 1 && v == 1) {
+			int in_n, in_c, in_h, in_w;
+			std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+
+			int wei_n, wei_h, wei_w;
+			std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+
+			int out_h, out_w;
+			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+
+			if ((u == 1 && v == 1) ||
+				(wei_w >= 7 && u == 2 && v == 2))
+			{
 				mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
 				construct_params.setOutputDescFromMLDesc(dyDesc);
 				construct_params.setInputDescFromMLDesc(xDesc);
@@ -543,24 +602,42 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
 				std::string network_config;
 				construct_params.mloBuildConf_Key(network_config);
+				const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
 
 				handle.ResetKernelTime();
 
 				// main kernel
-				float padding_val = 0;
-				float time0 = 0;
-				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main", network_config) (dy, x, workSpace, padding_val);
+				if (bwd_wrw_info.size() == 1)
+				{
+					float padding_val = 0;
+					handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
+							network_config)
+						(dy, x, dw, padding_val);
+				}
+				else
+				{
 
-				if(handle.IsProfilingEnabled())
-					time0 = handle.GetKernelTime();
+					{
+						float padding_val = 0;
+						handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
+							network_config)
+							(dy, x, workSpace, padding_val);
+					}
 
-				// second kernel hash
-				network_config += "x1";
+					float time0 = handle.GetKernelTime();
+					// second kernel has
+					network_config += "x1";
+					// reduction  kernel
+					{
+						handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red",
+							network_config)
+							(workSpace, dw);
+					}
 
-				// reduction  kernel
-				handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red", network_config) (workSpace, dw);
-				if(handle.IsProfilingEnabled())
 					handle.AccumKernelTime(time0);
+
+
+				}
 			}
 		}
 		break;

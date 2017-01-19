@@ -80,6 +80,7 @@ template<class V, class... Ts>
 auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
 {
     const double tolerance = 10e-6;
+    // v.fail(0.0, xs...);
     auto out_cpu = v.cpu(xs...);
     auto out_gpu = v.gpu(xs...);
     CHECK(range_distance(out_cpu) == range_distance(out_gpu));

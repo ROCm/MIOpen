@@ -26,7 +26,7 @@ inline ConstData_t DataCast(const void *p) {
 #endif
 }
 
-#elif MLOPEN_BACKEND_HIP
+#elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
 
 typedef void * Data_t;
 typedef const void * ConstData_t;
