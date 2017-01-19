@@ -99,7 +99,7 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 				returnedAlgoCount,
 				perfResults,
 				preference,
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize,
 				exhaustiveSearch);
 	});
@@ -132,7 +132,7 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 				beta,
 				mlopen::deref(yDesc),
 				DataCast(y),
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize);
 	});
 

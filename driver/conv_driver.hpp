@@ -281,7 +281,7 @@ int ConvDriver<T>::FindForward() {
 			&ret_algo_count,
 			&perf,
 			mlopenConvolutionFastest,
-			NULL,
+			workspace_dev->GetMem(),
 			10,
 			(inflags.GetValueInt("search")==1)?true:false
 	);
@@ -304,11 +304,11 @@ int ConvDriver<T>::RunForwardGPU() {
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
-			mlopenConvolutionFwdAlgoDirect,
+			mlopenConvolutionFwdAlgoGEMM,
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
-			NULL,
+			workspace_dev->GetMem(),
 			0);
 	}
 

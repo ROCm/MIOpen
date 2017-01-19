@@ -44,6 +44,12 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
 		const TensorDescriptor&		dwDesc,
 		bool						isColMajor);
 
+GemmGeometry CreateGemmGeometryConvFwd(
+		const TensorDescriptor&		xDesc,
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		yDesc,
+		bool						isColMajor);
+
 } // mlopen namespace
 
 #endif // GUARD_MLOPEN_GEMM_HPP_
