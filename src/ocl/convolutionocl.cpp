@@ -71,7 +71,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
 		construct_params.mloConstruct();
-	}
 
 	std::string program_name = construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // "hello_world_kernel"; // kernel name
@@ -90,7 +89,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 			kernel_name,
 			vld,
 			vgd,
-			parms)(x, w, y, padding_val);
+			parms);
+	}
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
@@ -186,7 +186,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 
 			GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, true);
-
+			
 			float time_0 = 0;
 			float t1 = 0;
 			for(int i = 0; i < in_n; i++) {
@@ -198,7 +198,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 						t1 = handle.GetKernelTime();
 
 					gg.RunGemm(handle, workSpace, w, y, 0, 0, out_offset);
-					//					handle.GetKernel(algorithm_name, network_config)(y, workSpace, w, alpha, beta, ldb, lda, ldc, N, M, K, 0, 0, out_offset);
+				//	handle.GetKernel(algorithm_name, network_config)(y, workSpace, w, alpha, beta, ldb, lda, ldc, N, M, K, 0, 0, out_offset);
 
 					// Update times for both the kernels
 					if(handle.IsProfilingEnabled()) {
@@ -212,7 +212,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 				else if(wei_h == 1 && wei_w == 1) {
 					int in_offset = i * in_c * in_h * in_w;
 					gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
-					//					handle.GetKernel(algorithm_name, network_config)(y, x, w, alpha, beta, ldb, lda, ldc, N, M, K, in_offset, 0, out_offset);
+					//handle.GetKernel(algorithm_name, network_config)(y, x, w, alpha, beta, ldb, lda, ldc, N, M, K, in_offset, 0, out_offset);
 					if(handle.IsProfilingEnabled()) {
 						if(i == in_n - 1)
 							handle.AccumKernelTime(time_0);
