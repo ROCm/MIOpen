@@ -34,9 +34,11 @@ struct Exception : std::exception
 };
 
 std::string OpenCLErrorMessage(int error, const std::string& msg="");
+std::string HIPErrorMessage(int error, const std::string& msg="");
 
 #define MLOPEN_THROW(...) throw mlopen::Exception(__VA_ARGS__).SetContext(__FILE__, __LINE__)
 #define MLOPEN_THROW_CL_STATUS(...) MLOPEN_THROW(mlopenStatusUnknownError, mlopen::OpenCLErrorMessage(__VA_ARGS__))
+#define MLOPEN_THROW_HIP_STATUS(...) MLOPEN_THROW(mlopenStatusUnknownError, mlopen::HIPErrorMessage(__VA_ARGS__))
 
 // TODO(paul): Debug builds should leave the exception uncaught
 template<class F>

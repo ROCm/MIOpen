@@ -10,6 +10,7 @@
 #include <functional>
 #include <array>
 #include <memory>
+#include <algorithm>
 
 #include <mlopen/errors.hpp>
 #include <mlopen/each_args.hpp>
@@ -39,7 +40,7 @@ struct OCLSetKernelArg
 }
 	}
 
-	template<class I, class T>
+	template<class I>
 	void operator()(cl_kernel kernel, I i, const LocalMemArg& lmem) const
 	{
 		cl_int status = clSetKernelArg(kernel, i, lmem.GetSize(), NULL);
@@ -75,21 +76,25 @@ public:
 	OCLKernel(ClKernelPtr k) : kernel(std::move(k)) {}
 	OCLKernel(ClKernelPtr k, 
 			std::vector<size_t> local_dims,
-			std::vector<size_t> global_dims, SharedProgramPtr p=nullptr) 
-	: program(p), kernel(std::move(k)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
+			std::vector<size_t> global_dims) 
+	: kernel(std::move(k)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
+	{
+		assert(ldims.size() == gdims.size());
+		assert(!ldims.empty() && ldims.size() <= 3);
+	}
+
+	OCLKernel(SharedProgramPtr p, 
+			const std::string& kernel_name,
+			std::vector<size_t> local_dims,
+			std::vector<size_t> global_dims) 
+	: program(p), kernel(CreateKernel(p.get(), kernel_name)), ldims(std::move(local_dims)), gdims(std::move(global_dims))
 	{
 		assert(!gdims.empty() && gdims.size() <= 3);
-
-		/* We sometimes launch more than 256 threads in a workgroup.
-		 * The way to do that is to set local_size == NULL in the clEnqueueNDRangeKernel 
-		 * interface and to pass the acual work-group size through the kernel attribute 
-		 * __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
-		 *
-		 * To make the above possible we send an indication to the Invoke (run)
-		 * routine with ldims.size() == 0.
-		 *
-		 * This is why assert on ldims is not done.
-		 */
+		assert(!ldims.empty() && ldims.size() <= 3);
+		if(std::accumulate(ldims.begin(), ldims.end(), 1, std::multiplies<size_t>{}) > 256)
+		{
+			std::fill(ldims.begin(), ldims.end(), 0);
+		}
 	}
 
 	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr);

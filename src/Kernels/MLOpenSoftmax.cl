@@ -100,7 +100,7 @@ kernel void SoftmaxForward(global float *y, const int c, const int grid_size, co
 #else // CSR-Stream like approach
 
 	/* Each workgroup is computing the softmax for NUM_BATCH spatial_dims ala CSR-Stream.
-	 * The number of threads computing softmax for one batch is BATCH_SIZE.
+	 * The number of threads iterting over channels to compute softmax for one batch is BATCH_SIZE.
 	 * The number of values each thread works on is U_BATCH_SIZE (read micro batch size).
 	 * Each batch in the workgroup works on its nth image and s (spatial_dim).
 	 * E.g. a 256 thread workgroup with c=31 has 8 batches and a batchsize of 32.
@@ -114,12 +114,12 @@ kernel void SoftmaxForward(global float *y, const int c, const int grid_size, co
 	int lid = get_local_id(0);
 
 	// ID of the thread within the batch
-	int batch_lid = lid & (BATCH_SIZE-1);
-	int batch = lid / BATCH_SIZE;
+	int batch_lid = lid & (BATCH_SIZE-1); // thread specific channel_st
+	int batch = lid / BATCH_SIZE; // which spatial_dim or pixel
 
 	// Batch specific n and s
-	int batch_n = (NUM_BATCH*gid + batch) / spatial_dim;
-	int batch_s = (NUM_BATCH*gid + batch) % spatial_dim;
+	int batch_n = (NUM_BATCH*gid + batch) / spatial_dim; // nth image
+	int batch_s = (NUM_BATCH*gid + batch) % spatial_dim; // which spatial_dim/pixel
 	
 	l_helper[lid] = -FLT_MAX;
 
@@ -133,8 +133,10 @@ kernel void SoftmaxForward(global float *y, const int c, const int grid_size, co
 	}
 
 	// Compute max per channel
+	// BATCH_SIZE threads iterate over the channels
 	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
-		value[i / BATCH_SIZE ] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
+		if(mad24(batch_n,c, i)*spatial_dim + batch_s < c*grid_size)
+			value[i / BATCH_SIZE ] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
 		t_helper = max(value[i / BATCH_SIZE], t_helper);
 	}
 
@@ -179,7 +181,8 @@ kernel void SoftmaxForward(global float *y, const int c, const int grid_size, co
 	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
 		value[i / BATCH_SIZE] = exp(value[i / BATCH_SIZE] - channel_max);
 
-		y[mad24(batch_n,c,i)*spatial_dim + batch_s] = value[i / BATCH_SIZE]/channel_sum;
+		if(mad24(batch_n,c, i)*spatial_dim + batch_s < c*grid_size)
+			y[mad24(batch_n,c,i)*spatial_dim + batch_s] = value[i / BATCH_SIZE]/channel_sum;
 	}
 
 #endif // CSR-Vector vs CSR-Stream
@@ -255,8 +258,10 @@ kernel void SoftmaxBackward(global float *y, global float *dx, const int c, cons
 
 	// Compute dot product per channel
 	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
-		y_value[i / BATCH_SIZE ] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
-		dx_value[i / BATCH_SIZE ] = dx[mad24(batch_n,c, i)*spatial_dim + batch_s];
+		if(mad24(batch_n,c, i)*spatial_dim + batch_s < c*grid_size) {
+			y_value[i / BATCH_SIZE ] = y[mad24(batch_n,c, i)*spatial_dim + batch_s];
+			dx_value[i / BATCH_SIZE ] = dx[mad24(batch_n,c, i)*spatial_dim + batch_s];
+		}
 		channel_dot += y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE] ;
 	}
 
@@ -278,7 +283,8 @@ kernel void SoftmaxBackward(global float *y, global float *dx, const int c, cons
 	for(int i = batch_lid; i < c; i += BATCH_SIZE) {
 		dx_value[i / BATCH_SIZE ] -= channel_dot;
 			
-		dx[mad24(batch_n,c, i)*spatial_dim + batch_s] = y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE];
+		if(mad24(batch_n,c, i)*spatial_dim + batch_s < c*grid_size)
+			dx[mad24(batch_n,c, i)*spatial_dim + batch_s] = y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE];
 	}
 
 #endif // CSR-Vector vs CSR-Stream

@@ -7,7 +7,7 @@ mlopenStatus_t LRNDescriptor::Forward(
 		Handle						&handle,
 		const void					* /*alpha*/,
 		const TensorDescriptor		&xDesc,
-		const Data_t				x,
+		ConstData_t				x,
 		const void					* /*beta*/,
 		const TensorDescriptor		&yDesc,
 		Data_t						y,
@@ -15,10 +15,9 @@ mlopenStatus_t LRNDescriptor::Forward(
 		Data_t						workSpace) {
 
 	mlopenStatus_t status = mlopenStatusSuccess;
-	printf("in lrn forward\n");
 	mlo_construct_norm construct_params(1); // forward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 
 	int nOut;
 	int cOut;
@@ -119,8 +118,6 @@ mlopenStatus_t LRNDescriptor::Forward(
 		obj(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
 	}
 
-	std::cout << "LRN Forward Finished !!" << std::endl;
-
 	return(status);
 }
 
@@ -128,21 +125,20 @@ mlopenStatus_t LRNDescriptor :: Backward(
 		Handle						&handle,
 		const void					* /*alpha*/,
 		const TensorDescriptor		&yDesc,
-		const Data_t		  		y,
+		ConstData_t		  		y,
 		const TensorDescriptor		&dyDesc,
-		const Data_t		  		dy,
+		ConstData_t		  		dy,
 		const TensorDescriptor		&xDesc,
-		const Data_t		  		x,
+		ConstData_t		  		x,
 		const void			  		* /*beta*/,
 		const TensorDescriptor		&dxDesc,
 		Data_t						dx,
-		const Data_t				workSpace) {
+		ConstData_t				workSpace) {
 
 	mlopenStatus_t status = mlopenStatusSuccess;
-	printf("in lrn backward\n");
 	mlo_construct_norm construct_params(0); // backward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 	int ndOut;
 	int cdOut;
 	int hdOut;
@@ -282,8 +278,6 @@ mlopenStatus_t LRNDescriptor :: Backward(
 			vgd,
 			compiler_parms)(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
 
-
-	std::cout << "LRN Backward Finished !!" << std::endl;
 
 	return(status);
 }

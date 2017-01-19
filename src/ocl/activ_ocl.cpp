@@ -8,7 +8,7 @@ mlopenStatus_t ActivationDescriptor::Forward(
 		Handle						&handle,
 		const void					* /* alpha */,
 		const TensorDescriptor		&xDesc,
-		const Data_t				x,
+		ConstData_t				x,
 		const void					* /* beta */,
 		const TensorDescriptor		&yDesc,
 		Data_t						y,
@@ -16,11 +16,10 @@ mlopenStatus_t ActivationDescriptor::Forward(
 		Data_t						/* workSpace */) {
 
 	mlopenStatus_t status = mlopenStatusSuccess;
-	printf("in activation forward\n");
 
 	mlo_construct_neuron construct_params(1); // forward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 
 	int nOut;
 	int cOut;
@@ -102,8 +101,6 @@ mlopenStatus_t ActivationDescriptor::Forward(
 			vgd,
 			compiler_options)(x, y, f_activ_power, f_activ_beta, f_activ_alpha);
 
-	std::cout << "Activation Forward Finished !!" << std::endl;
-
 	return(status);
 }
 
@@ -111,22 +108,21 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 		Handle						&handle,
 		const void					* /* alpha */,
 		const TensorDescriptor		&yDesc,
-		const Data_t		  		y,
+		ConstData_t		  		y,
 		const TensorDescriptor		&dyDesc,
-		const Data_t		  		dy,
+		ConstData_t		  		dy,
 		const TensorDescriptor		&xDesc,
-		const Data_t		  		x,
+		ConstData_t		  		x,
 		const void			  		* /* beta */,
 		const TensorDescriptor		&dxDesc,
 		Data_t						dx,
-		const Data_t				/* workSpace */) {
+		ConstData_t				/* workSpace */) {
 
 	mlopenStatus_t status = mlopenStatusSuccess;
-	printf("in activation backward\n");
 
 	mlo_construct_neuron construct_params(0); // backward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 	int ndOut;
 	int cdOut;
 	int hdOut;
@@ -255,8 +251,6 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 		vld,
 		vgd,
 		compiler_options)(dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha);
-
-	std::cout << "Activation Backward Finished !!" << std::endl;
 
 	return(status);
 }
