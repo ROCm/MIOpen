@@ -18,7 +18,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		int							* /*returnedAlgoCount*/,
 		mlopenConvAlgoPerf_t		* /*perfResults*/,
 		mlopenConvPreference_t		 /*preference*/,
-		void						* /*workSpace*/,
+		cl_mem						workSpace,
 		size_t						 /*workSpaceSize*/,
 		bool						exhaustiveSearch) const {
 	
@@ -33,6 +33,24 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
 #endif 
+
+// GEMM based
+	int in_n, in_c, in_h, in_w;
+	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+
+	int wei_n, wei_h, wei_w;
+	std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+
+	int out_h, out_w;
+	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+
+	if(wei_h != 1 && wei_w != 1) {
+		size_t in_offset = 0;
+		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+	}
+
+	GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, true);
+	gg.FindSolution(.003, handle, workSpace, w, y, false);
 
 	// Generate kernels if OpenCL
 	// Compile, cache kernels, etc.
@@ -85,7 +103,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 		const void					* /*beta*/,
 		const TensorDescriptor&		yDesc,
 		cl_mem						y, 
-		void						* /*workSpace*/,
+		cl_mem						workSpace,
 		size_t						 /*workSpaceSize*/) const {
 
 	if(x == nullptr || w == nullptr || y == nullptr) {
@@ -103,7 +121,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 	if(xDesc.GetSize() < 3) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
-	
+
+#if 0
 	// TODO(paul): Replicating code for now.
 	mlo_construct_direct2D construct_params(1); // forward
 	{
@@ -133,6 +152,83 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
 	float padding_val = 0;
 	handle.GetKernel(algorithm_name, network_config)(x, w, y, padding_val);
+#endif
+	switch (algo)
+	{
+		case mlopenConvolutionFwdAlgoDirect:
+		{
+			// TODO(paul): Replicating code for now.
+			mlo_construct_direct2D construct_params(1); // forward
+			{
+				construct_params.setOutputDescFromMLDesc(yDesc);
+				construct_params.setInputDescFromMLDesc(xDesc);
+				construct_params.setWeightDescFromMLDesc(wDesc);
+			}
+
+			std::string network_config;
+			construct_params.mloBuildConf_Key(network_config);
+
+			std::string algorithm_name = "mlopenConvolutionFwdAlgoDirect";
+			float padding_val = 0;
+			handle.GetKernel(algorithm_name, network_config)(x, w, y, padding_val);
+		}
+		break;
+
+		case mlopenConvolutionFwdAlgoGEMM:
+		{
+			int in_n, in_c, in_h, in_w;
+			std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+
+			int wei_n, wei_h, wei_w;
+			std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+
+			int out_h, out_w;
+			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+
+			GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, true);
+
+			float time_0 = 0;
+			float t1 = 0;
+			for(int i = 0; i < in_n; i++) {
+				int out_offset = i * wei_n * out_h * out_w;
+				if(wei_h != 1 && wei_w != 1) {
+					size_t in_offset = i * in_c * in_h * in_w;
+					Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+					if(handle.IsProfilingEnabled())
+						t1 = handle.GetKernelTime();
+
+					gg.RunGemm(handle, workSpace, w, y, 0, 0, out_offset);
+					//					handle.GetKernel(algorithm_name, network_config)(y, workSpace, w, alpha, beta, ldb, lda, ldc, N, M, K, 0, 0, out_offset);
+
+					// Update times for both the kernels
+					if(handle.IsProfilingEnabled()) {
+						if(i == in_n - 1)
+							handle.AccumKernelTime(t1+time_0);
+						else
+							handle.AccumKernelTime(t1);
+						time_0 += handle.GetKernelTime();
+					}
+				}
+				else if(wei_h == 1 && wei_w == 1) {
+					int in_offset = i * in_c * in_h * in_w;
+					gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
+					//					handle.GetKernel(algorithm_name, network_config)(y, x, w, alpha, beta, ldb, lda, ldc, N, M, K, in_offset, 0, out_offset);
+					if(handle.IsProfilingEnabled()) {
+						if(i == in_n - 1)
+							handle.AccumKernelTime(time_0);
+						time_0 += handle.GetKernelTime();
+					}
+
+				} 
+			}
+		}
+		break;
+		case mlopenConvolutionFwdAlgoFFT:
+		break;
+		case mlopenConvolutionFwdAlgoWinograd:
+		break;
+
+	}
 }
 
 // FindBackwardDataAlgorithm()
@@ -151,7 +247,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 		void						* /*workSpace*/,
 		size_t						 /*workSpaceSize*/,
 		bool						exhaustiveSearch) const {
-	
+
 	if(dx == nullptr || w == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
@@ -252,10 +348,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
 // ConvolutionBackwardWeightsGetWorkSpaceSize
 void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
-	const TensorDescriptor&		 dyDesc,
-	const TensorDescriptor&		 xDesc,
-	const TensorDescriptor&		 dwDesc,
-	size_t						*workSpaceSize)
+		const TensorDescriptor&		 dyDesc,
+		const TensorDescriptor&		 xDesc,
+		const TensorDescriptor&		 dwDesc,
+		size_t						*workSpaceSize)
 {
 	mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
 	construct_params.doSearch(false);
@@ -264,7 +360,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 	construct_params.setWeightDescFromMLDesc(dwDesc);
 	construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 	construct_params.mloConstruct();
-	
+
 	*workSpaceSize = construct_params.getWorkSpaceSzBytes();
 }
 
@@ -284,7 +380,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		cl_mem						workSpace,
 		size_t						/*workSpaceSize*/,
 		bool						/*exhaustiveSearch*/) const {
-	
+
 	if(x == nullptr || dw == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
@@ -302,7 +398,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		size_t in_offset = 0;
 		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 	}
-	
+
 	GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, true);
 	gg.FindSolution(.003, handle, workSpace, dy, dw, false);
 
@@ -411,7 +507,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 					Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 					if(handle.IsProfilingEnabled())
 						t1 = handle.GetKernelTime();
-				
+
 					gg.RunGemm(handle, workSpace, dy, dw, 0, out_offset, 0);
 
 					// Update times for both the kernels
@@ -426,7 +522,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 				else if(wei_h == 1 && wei_w == 1) {
 					int in_offset = i * in_c * in_h * in_w;
 					gg.RunGemm(handle, x, dy, dw, in_offset, out_offset, 0);
-					
+
 					if(handle.IsProfilingEnabled()) {
 						if(i == in_n - 1)
 							handle.AccumKernelTime(time_0);
