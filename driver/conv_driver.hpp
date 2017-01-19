@@ -239,8 +239,8 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 		in[i] = (i%8);//(T)((double)rand() * (1.0 / RAND_MAX));
 	}
 	for (int i = 0; i < out_sz; i++) {
-		out[i] = (T)((double)rand() * (1.0 / RAND_MAX));
-		dout[i] = (i%8);//(T)((double)rand() * (1.0 / RAND_MAX));
+		out[i] = 0;//(T)((double)rand() * (1.0 / RAND_MAX));
+		dout[i] = (T)((double)rand() * (1.0 / RAND_MAX));
 	}
 
 
@@ -282,7 +282,7 @@ int ConvDriver<T>::FindForward() {
 			&perf,
 			mlopenConvolutionFastest,
 			workspace_dev->GetMem(),
-			10,
+			workspace_dev->GetSize(),
 			(inflags.GetValueInt("search")==1)?true:false
 	);
 }
@@ -309,7 +309,7 @@ int ConvDriver<T>::RunForwardGPU() {
 			outputTensor,
 			out_dev->GetMem(),
 			workspace_dev->GetMem(),
-			0);
+			workspace_dev->GetSize());
 	}
 
 	if(inflags.GetValueInt("time") == 1) {
@@ -417,7 +417,7 @@ int ConvDriver<T>::FindBackwardWeights() {
 
 	mlopenFindConvolutionBackwardWeightsAlgorithm(GetHandle(),
 			outputTensor,
-			out_dev->GetMem(),
+			dout_dev->GetMem(),
 			inputTensor,
 			in_dev->GetMem(),
 			convDesc,
@@ -761,20 +761,7 @@ template<typename T>
 int ConvDriver<T>::VerifyBackward() {
 	const double tolerance = 1e-6;
 
-	RunBackwardWeightsCPU();
-
-	auto error_weights = rms_range(dwei_host, dwei);
-	if (error_weights > tolerance)
-	{
-		std::cout<<"Backward Convolution Weights Failed: " << error_weights <<"\n";
-	}
-	else
-	{
-		printf("Backward Convolution Weights Verifies on CPU and GPU\n");
-	}
-
 	RunBackwardDataCPU();
-
 
 	auto error_data = rms_range(din_host, din);
 
@@ -792,6 +779,19 @@ int ConvDriver<T>::VerifyBackward() {
 	else
 	{
 		printf("Backward Convolution Data Verifies on CPU and GPU\n");
+	}
+
+
+	RunBackwardWeightsCPU();
+
+	auto error_weights = rms_range(dwei_host, dwei);
+	if (!(error_weights < tolerance))
+	{
+		std::cout<<"Backward Convolution Weights Failed: " << error_weights <<"\n";
+	}
+	else
+	{
+		printf("Backward Convolution Weights Verifies on CPU and GPU\n");
 	}
 
 	return 0;
