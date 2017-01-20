@@ -17,7 +17,7 @@ node ('rocmtest10'){
         rm -rf build
         mkdir build
         cd build
-        CXX='clang++-3.8' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=debug .. 
+        CXX='clang++-3.8' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
         make check
     '''
     stage 'Clang Release'
@@ -33,7 +33,7 @@ node ('rocmtest10'){
         rm -rf build
         mkdir build
         cd build
-        CXX='g++-4.8' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=debug .. 
+        CXX='g++-4.8' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
         make check
     '''
     stage 'GCC Release'
