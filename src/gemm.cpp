@@ -84,6 +84,14 @@ GemmGeometry CreateGemmGeometryConvFwd(
 	}
 }
 
+void GemmGeometry::EnableBetaKernel(bool enable,
+		std::map<std::string, size_t> &beta_args)
+{
+	this->beta_kern_req = enable;
+	beta_kern_args[0] = beta_args.at("dim_coal");
+	beta_kern_args[1] = beta_args.at("dim_uncoal");
+}
+
 void GemmGeometry::FindSolution(float time,
 		Handle			&handle,
 		cl_mem			a,
@@ -91,6 +99,11 @@ void GemmGeometry::FindSolution(float time,
 		cl_mem			c,
 		bool			enforce_determinism)
 {
+	//tinygemm does not support m or n < 16
+	
+	//if(dims[0] < 16 || dims[1] < 16)
+	//	return;
+
 	// alloted_time, queue, a, b, c, enforce_determinism, float_type, geometry, alpha, beta, verbose 
 	TinyGemmSolution soln = tinygemm::find(time, handle.GetStream(), a, b, c, enforce_determinism, 'f', tgg, alpha, beta, false);
 
@@ -99,6 +112,7 @@ void GemmGeometry::FindSolution(float time,
 	std::string network_config = tgg.get_networkconfig_string();
 
 	auto main_kernel_worksize_params =  soln.get_main_kernel_worksize_params(dims[0], dims[1]);
+
 	size_t local_work_size = main_kernel_worksize_params.at("local_work_size");
 	size_t global_work_size = main_kernel_worksize_params.at("global_work_size");
 
@@ -112,6 +126,30 @@ void GemmGeometry::FindSolution(float time,
 			vld,
 			vgd,
 			"");
+
+	// beta kernel
+	if(!soln.betac_kernel.empty())
+	{
+		std::string beta_program_name = soln.betac_kernel;
+		std::string beta_kernel_name = soln.betac_kernel_function_name;
+		auto beta_kernel_worksize_params = soln.get_betac_kernel_worksize_params(dims[0], dims[1]);
+
+		local_work_size = beta_kernel_worksize_params.at("local_work_size");
+		global_work_size = beta_kernel_worksize_params.at("global_work_size");
+
+		EnableBetaKernel(true, beta_kernel_worksize_params);
+
+		vld[0] = local_work_size;
+		vgd[1] = global_work_size;
+
+		handle.GetKernel(algorithm_name+"_beta",
+				"",
+				beta_program_name,
+				beta_kernel_name,
+				vld,
+				vgd,
+				"");
+	}
 }
 
 void GemmGeometry::RunGemm(Handle &handle,
@@ -125,6 +163,13 @@ void GemmGeometry::RunGemm(Handle &handle,
 
 	std::string network_config = tgg.get_networkconfig_string();
 
+	// beta kernel, if required
+	if(beta_kern_req) {
+		handle.GetKernel(algorithm_name+"_beta", "") (beta_kern_args[0], beta_kern_args[1],
+				strides[2], c_offset, c, beta);
+	}
+
+	// main kernel
 //  c, a, b, alpha, beta, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
 	handle.GetKernel(algorithm_name, network_config)(c, a, b,
 			alpha, beta,

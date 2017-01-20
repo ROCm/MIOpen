@@ -75,7 +75,7 @@ Kernel KernelCache::GetKernel(Handle &h,
     {
 		bool is_kernel_str = algorithm.find("GEMM") != std::string::npos;
         program = h.LoadProgram(program_name, params, is_kernel_str);
-		if(!params.empty()) program_map[std::make_pair(program_name, params)] = program;
+		program_map[std::make_pair(program_name, params)] = program;
     }
     Kernel kernel{program, kernel_name, vld, vgd};
     if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }

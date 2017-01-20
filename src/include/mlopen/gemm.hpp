@@ -17,11 +17,18 @@ struct GemmGeometry {
 	float alpha;
 	float beta;
 	TinyGemmGeometry tgg;
+	bool beta_kern_req;
+	std::array<int, 2> beta_kern_args;
 
 	GemmGeometry(){}
 	GemmGeometry(std::array<int, 3> pdims, std::array<int, 3>pstrides, std::string algo_name, float palpha, float pbeta, TinyGemmGeometry ptgg) : 
 		dims(pdims), strides(pstrides), algorithm_name(algo_name), alpha(palpha), beta(pbeta), tgg(ptgg) 
-	{}
+	{
+		beta_kern_req = false;
+		beta_kern_args = {{0, 0}};
+	}
+
+	void EnableBetaKernel(bool enable, std::map<std::string, size_t> &beta_args);
 
 	void FindSolution(float time,
 			Handle			&handle,
