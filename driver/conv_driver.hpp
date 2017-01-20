@@ -124,7 +124,6 @@ class ConvDriver : public Driver
 	std::vector<T> dout;
 	std::vector<T> workspace;
 	std::vector<T> outhost;
-	std::vector<T> inhost;
 	std::vector<T> workspace_host;
 	std::vector<T> din_host;
 	std::vector<T> dwei_host;
@@ -257,7 +256,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	out = std::vector<T>(out_sz, 0);
 	workspace = std::vector<T>(workSpaceSize/sizeof(T), 0);
 	outhost = std::vector<T>(out_sz, 0);
-	inhost = std::vector<T>(in_sz, 0);
 	workspace_host = std::vector<T>(workSpaceSize/sizeof(T), 0);
 	dwei_host = std::vector<T>(wei_sz, 0);
 	din_host = std::vector<T>(in_sz, 0);
@@ -280,7 +278,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
     }
 
 	for (int i = 0; i < out_sz; i++) {
-		out[i] = (T)(scale*(double)rand() * (1.0 / RAND_MAX));
 		dout[i] = (T)(scale*(double)rand() * (1.0 / RAND_MAX));
 	}
 
@@ -595,7 +592,6 @@ int ConvDriver<T>::RunBackwardGPU() {
 		mlopenGetKernelTime(GetHandle(), &time);
 		printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms\n", time);
 	}
-	workspace_dev->FromGPU(GetStream(), workspace.data());
 	dwei_dev->FromGPU(GetStream(), dwei.data());
 
     if(inflags.GetValueInt("dump_output")) {
