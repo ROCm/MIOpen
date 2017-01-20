@@ -57,8 +57,19 @@ struct HandleImpl
         return StreamPtr{s, null_deleter{}};
     }
 
+    void elapsed_time(hipEvent_t start, hipEvent_t stop)
+    {
+        hipEventElapsedTime(&this->profiling_result, start, stop);
+    }
+
+    std::function<void(hipEvent_t, hipEvent_t)> elapsed_time_handler()
+    {
+        return std::bind(&HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
+    }
+
     bool enable_profiling = false;
     std::vector<StreamPtr> streams;
+    float profiling_result = 0.0;
 #if MLOPEN_BACKEND_HIPOC
     KernelCache cache;
 #endif
@@ -94,9 +105,7 @@ void Handle::EnableProfiling(bool enable)
 
 float Handle::GetKernelTime() const
 {
-    // TODO: Temporary hack until the kernels are added
-    if (this->impl->enable_profiling) return 1.0;
-    else return 0.0;
+    return this->impl->profiling_result;
 }
 
 ManageDataPtr Handle::Create(int sz)
@@ -137,23 +146,27 @@ KernelInvoke Handle::GetKernel(
         const std::vector<size_t>& vgd,
         const std::string& params)
 {
-    return this->impl->cache.GetKernel(*this, 
+    auto k = this->impl->cache.GetKernel(*this, 
             algorithm,
             network_config,
             program_name, 
             kernel_name,
             vld,
             vgd,
-            params).Invoke(this->GetStream());
+            params);
+    if (this->impl->enable_profiling) return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
+    else return k.Invoke(this->GetStream());
 }
 
 KernelInvoke Handle::GetKernel(
     const std::string& algorithm,
     const std::string& network_config)
 {
-    return this->impl->cache.GetKernel(
+    auto k = this->impl->cache.GetKernel(
             algorithm,
-            network_config).Invoke(this->GetStream());
+            network_config);
+    if (this->impl->enable_profiling) return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
+    else return k.Invoke(this->GetStream());
 }
 
 Program Handle::LoadProgram(const std::string &program_name, std::string params)
@@ -173,11 +186,11 @@ void Handle::Flush() const
 
 void Handle::ResetKernelTime(void)
 {
-
+    this->impl->profiling_result = 0.0;
 }
-void Handle::AccumKernelTime(float)
+void Handle::AccumKernelTime(float x)
 {
-
+    this->impl->profiling_result += x;
 }
 
 std::size_t Handle::GetLocalMemorySize()
