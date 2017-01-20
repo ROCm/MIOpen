@@ -33,13 +33,13 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
 	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
 	TinyGemmGeometry tgg;
 	
-	if (isColMajor == true) {
+	if (isColMajor) {
 		tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
-		return GemmGeometry{std::array<int, 3>{N, M, K}, std::array<int, 3>{ldb, lda, ldc}, "mlopenConvolutionBwdWeightsAlgoGEMM", alpha, beta, tgg};
+		return GemmGeometry{std::array<int, 3>{{N, M, K}}, std::array<int, 3>{{ldb, lda, ldc}}, "mlopenConvolutionBwdWeightsAlgoGEMM", alpha, beta, tgg};
 	}
 	else {
 		tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
-		return GemmGeometry{std::array<int, 3>{M, N, K}, std::array<int, 3>{lda, ldb, ldc}, "mlopenConvolutionBwdWeightsAlgoGEMM", alpha, beta, tgg};
+		return GemmGeometry{std::array<int, 3>{{M, N, K}}, std::array<int, 3>{{lda, ldb, ldc}}, "mlopenConvolutionBwdWeightsAlgoGEMM", alpha, beta, tgg};
 	}
 }
 
@@ -74,13 +74,13 @@ GemmGeometry CreateGemmGeometryConvFwd(
 	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
 	TinyGemmGeometry tgg;
 	
-	if (isColMajor == true) {
+	if (isColMajor) {
 		tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
-		return GemmGeometry{std::array<int, 3>{N, M, K}, std::array<int, 3>{ldb, lda, ldc}, "mlopenConvolutionFwdAlgoGEMM", alpha, beta, tgg};
+		return GemmGeometry{std::array<int, 3>{{N, M, K}}, std::array<int, 3>{{ldb, lda, ldc}}, "mlopenConvolutionFwdAlgoGEMM", alpha, beta, tgg};
 	}
 	else {
 		tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
-		return GemmGeometry{std::array<int, 3>{M, N, K}, std::array<int, 3>{lda, ldb, ldc}, "mlopenConvolutionFwdAlgoGEMM", alpha, beta, tgg};
+		return GemmGeometry{std::array<int, 3>{{M, N, K}}, std::array<int, 3>{{lda, ldb, ldc}}, "mlopenConvolutionFwdAlgoGEMM", alpha, beta, tgg};
 	}
 }
 

@@ -84,7 +84,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	// TODO: call the kernel here
-	float padding_val = 0;
+	//float padding_val = 0;
 	handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
 			network_config,
 			program_name, 
@@ -410,7 +410,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		if (bwd_wrw_info.size() == 1)
 		{
 			const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
-			float padding_val = 0;
+//			float padding_val = 0;
 
 			handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
 					network_config,
@@ -423,31 +423,31 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		}
 		else
 		{
-			const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
-			float padding_val = 0;
+			auto bwd_wrw_main = bwd_wrw_info[0];
+//			float padding_val = 0;
 
 			handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
 					network_config,
-					std::get<1>(bwd_wrw),
-					std::get<0>(bwd_wrw),
-					std::get<4>(bwd_wrw),
-					std::get<3>(bwd_wrw),
-					std::get<2>(bwd_wrw));
+					std::get<1>(bwd_wrw_main),
+					std::get<0>(bwd_wrw_main),
+					std::get<4>(bwd_wrw_main),
+					std::get<3>(bwd_wrw_main),
+					std::get<2>(bwd_wrw_main));
 			//					(dy, x, workSpace, padding_val);
 
 			float time0 = handle.GetKernelTime();
 			// second kernel hash
 			network_config += "x1";
 			// reduction  kernel
-			const mlo_kernel_info &bwd_wrw = bwd_wrw_info[1];
+			auto bwd_wrw_red = bwd_wrw_info[1];
 
 			handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Red",
 					network_config,
-					std::get<1>(bwd_wrw),
-					std::get<0>(bwd_wrw),
-					std::get<4>(bwd_wrw),
-					std::get<3>(bwd_wrw),
-					std::get<2>(bwd_wrw));
+					std::get<1>(bwd_wrw_red),
+					std::get<0>(bwd_wrw_red),
+					std::get<4>(bwd_wrw_red),
+					std::get<3>(bwd_wrw_red),
+					std::get<2>(bwd_wrw_red));
 			//					(workSpace, dw);
 
 			handle.AccumKernelTime(time0);
@@ -459,7 +459,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	// for the size of perfResults == requestedAlgoCount
 	perfResults->bwd_weights_algo = mlopenConvolutionBwdWeightsAlgoDirect;
 	}
-#endif
 }
 
 // BackwardWeightsAlgorithm()
