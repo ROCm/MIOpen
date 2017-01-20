@@ -18,8 +18,8 @@ mlopenStatus_t Im2ColGPU(
 	std::string kernel_name = "Im2Col";
 	std::string network = "placeholder";
 
-	int col_m = c * wei_h * wei_w;
-	int grid_size = col_m * out_h * out_w;
+//	int col_m = c * wei_h * wei_w;
+//	int grid_size = col_m * out_h * out_w;
 
 	std::string params;
 	int num_ch_per_wg;

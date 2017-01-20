@@ -7,7 +7,8 @@
 
 namespace mlopen {
 
-using namespace tinygemm;
+using tinygemm::TinyGemmGeometry;
+using tinygemm::TinyGemmSolution;
 
 struct GemmGeometry {
 	std::array<int, 3> dims; // m, n, k
@@ -50,7 +51,7 @@ GemmGeometry CreateGemmGeometryConvFwd(
 		const TensorDescriptor&		yDesc,
 		bool						isColMajor);
 
-} // mlopen namespace
+} // namespace mlopen
 
 #endif // GUARD_MLOPEN_GEMM_HPP_
 
