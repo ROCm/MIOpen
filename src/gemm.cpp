@@ -35,11 +35,19 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
 	
 	if (isColMajor) {
 		tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
-		return GemmGeometry{std::array<int, 3>{{N, M, K}}, std::array<int, 3>{{ldb, lda, ldc}}, "mlopenConvolutionBwdWeightsAlgoGEMM", alpha, beta, tgg};
+
+		return GemmGeometry{std::array<int, 3>{{N, M, K}},
+			std::array<int, 3>{{ldb, lda, ldc}},
+			"mlopenConvolutionBwdWeightsAlgoGEMM",
+			alpha, beta, tgg};
 	}
 	else {
 		tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
-		return GemmGeometry{std::array<int, 3>{{M, N, K}}, std::array<int, 3>{{lda, ldb, ldc}}, "mlopenConvolutionBwdWeightsAlgoGEMM", alpha, beta, tgg};
+
+		return GemmGeometry{std::array<int, 3>{{M, N, K}},
+			std::array<int, 3>{{lda, ldb, ldc}},
+			"mlopenConvolutionBwdWeightsAlgoGEMM", 
+			alpha, beta, tgg};
 	}
 }
 
@@ -76,11 +84,49 @@ GemmGeometry CreateGemmGeometryConvFwd(
 	
 	if (isColMajor) {
 		tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
-		return GemmGeometry{std::array<int, 3>{{N, M, K}}, std::array<int, 3>{{ldb, lda, ldc}}, "mlopenConvolutionFwdAlgoGEMM", alpha, beta, tgg};
+
+		return GemmGeometry{std::array<int, 3>{{N, M, K}}, 
+			std::array<int, 3>{{ldb, lda, ldc}},
+			"mlopenConvolutionFwdAlgoGEMM",
+			alpha, beta, tgg};
 	}
 	else {
 		tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
-		return GemmGeometry{std::array<int, 3>{{M, N, K}}, std::array<int, 3>{{lda, ldb, ldc}}, "mlopenConvolutionFwdAlgoGEMM", alpha, beta, tgg};
+
+		return GemmGeometry{std::array<int, 3>{{M, N, K}},
+			std::array<int, 3>{{lda, ldb, ldc}},
+			"mlopenConvolutionFwdAlgoGEMM", 
+			alpha, beta, tgg};
+	}
+}
+
+GemmGeometry CreateMLOpenGemmGeometry( 
+		int M, int N, int K,
+		int lda, int ldb, int ldc,
+		bool tA, bool tB,
+		bool isDataColMajor,
+		float alpha, float beta)
+{
+	TinyGemmGeometry tgg;
+	
+	// Assuming we are using tinygemm as only col major
+	// Therefore, if the user provides data in col. major
+	// then no transformations are requrired and vice versa
+	if(isDataColMajor) {		
+		tgg = TinyGemmGeometry(true, tA, tB, false, lda, ldb, ldc, M, N, K, 0, 0, 0);
+
+		return GemmGeometry{std::array<int, 3>{{M, N, K}},
+			std::array<int, 3>{{lda, ldb, ldc}},
+			"mlopenGEMM",
+			alpha, beta, tgg};
+	}
+	else {
+		tgg = TinyGemmGeometry(true, tB, tA, false, ldb, lda, ldc, N, M, K, 0, 0, 0);
+
+		return GemmGeometry{std::array<int, 3>{{N, M, K}},
+			std::array<int, 3>{{ldb, lda, ldc}}, 
+			"mlopenGEMM",
+			alpha, beta, tgg};
 	}
 }
 
@@ -94,9 +140,9 @@ void GemmGeometry::EnableBetaKernel(bool enable,
 
 void GemmGeometry::FindSolution(float time,
 		Handle			&handle,
-		cl_mem			a,
-		cl_mem			b,
-		cl_mem			c,
+		ConstData_t		a,
+		ConstData_t		b,
+		Data_t			c,
 		bool			enforce_determinism)
 {
 	//tinygemm does not support m or n < 16
@@ -153,9 +199,9 @@ void GemmGeometry::FindSolution(float time,
 }
 
 void GemmGeometry::RunGemm(Handle &handle,
-			cl_mem			a,
-			cl_mem			b,
-			cl_mem			c,
+			ConstData_t		a,
+			ConstData_t		b,
+			Data_t			c,
 			int				a_offset,
 			int				b_offset,
 			int				c_offset)
