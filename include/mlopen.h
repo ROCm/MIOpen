@@ -657,6 +657,20 @@ MLOPEN_EXPORT mlopenStatus_t mlopenSoftmaxBackward(
 	const mlopenTensorDescriptor_t		dxDesc,
 	void								*dx);
 
+// GEMM API
+
+MLOPEN_EXPORT mlopenStatus_t mlopenGemm(
+		mlopenHandle_t			handle,
+		bool					isDataColMajor,
+		bool					transA, 
+		bool					transB, 
+		int M, int N, int K, 
+		const void *alpha, 
+		const void *A, int lda, 
+		const void *B, int ldb, 
+		const void *beta, 
+		void *C, int ldc );
+
 #ifdef __cplusplus
 }
 #endif

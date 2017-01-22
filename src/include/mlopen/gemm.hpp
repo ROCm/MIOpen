@@ -32,15 +32,15 @@ struct GemmGeometry {
 
 	void FindSolution(float time,
 			Handle			&handle,
-			cl_mem			a,
-			cl_mem			b,
-			cl_mem			c,
+			ConstData_t		a,
+			ConstData_t		b,
+			Data_t			c,
 			bool			enforce_determinism);
 
 	void RunGemm(Handle		&handle,
-			cl_mem			a,
-			cl_mem			b,
-			cl_mem			c,
+			ConstData_t		a,
+			ConstData_t		b,
+			Data_t			c,
 			int				a_offset,
 			int				b_offset,
 			int				c_offset);
@@ -57,6 +57,13 @@ GemmGeometry CreateGemmGeometryConvFwd(
 		const TensorDescriptor&		wDesc,
 		const TensorDescriptor&		yDesc,
 		bool						isColMajor);
+
+GemmGeometry CreateMLOpenGemmGeometry( 
+		int M, int N, int K,
+		int lda, int ldb, int ldc,
+		bool tA, bool tB,
+		bool isDataColMajor,
+		float alpha, float beta);
 
 } // namespace mlopen
 
