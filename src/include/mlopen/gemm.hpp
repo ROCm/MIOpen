@@ -4,6 +4,7 @@
 #include <tinygemm/tinygemm.hpp>
 #include <mlopen/tensor.hpp>
 #include <mlopen/handle.hpp>
+#include <mlopen/kernel_cache.hpp>
 
 namespace mlopen {
 
@@ -45,6 +46,19 @@ struct GemmGeometry {
 			int				b_offset,
 			int				c_offset);
 };
+
+typedef std::pair<std::string, std::string> GemmKey;
+static std::unordered_map< GemmKey, GemmGeometry, SimpleHash> gemm_geo_map;
+
+void RunGemm(Handle		&handle,
+		std::string		&algorithm_name,
+		std::string		&&network_config,
+		ConstData_t		a,
+		ConstData_t		b,
+		Data_t			c,
+		int				a_offset,
+		int				b_offset,
+		int				c_offset);
 
 GemmGeometry CreateGemmGeometryConvBwdWeights(
 		const TensorDescriptor&		dyDesc,

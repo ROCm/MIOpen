@@ -170,7 +170,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 					if(handle.IsProfilingEnabled())
 						t1 = handle.GetKernelTime();
 
-					gg.RunGemm(handle, workSpace, w, y, 0, 0, out_offset);
+					//gg.RunGemm(handle, workSpace, w, y, 0, 0, out_offset);
+					RunGemm(handle, gg.algorithm_name, gg.tgg.get_networkconfig_string(), workSpace, w, y, 0, 0, out_offset);
 
 					// Update times for both the kernels
 					if(handle.IsProfilingEnabled()) {
@@ -183,7 +184,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 				}
 				else if(wei_h == 1 && wei_w == 1) {
 					int in_offset = i * in_c * in_h * in_w;
-					gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
+					//gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
+					RunGemm(handle, gg.algorithm_name, gg.tgg.get_networkconfig_string(), x, w, y, in_offset, 0, out_offset);
 					if(handle.IsProfilingEnabled()) {
 						if(i == in_n - 1)
 							handle.AccumKernelTime(time_0);
@@ -516,7 +518,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 					if(handle.IsProfilingEnabled())
 						t1 = handle.GetKernelTime();
 
-					gg.RunGemm(handle, workSpace, dy, dw, 0, out_offset, 0);
+					//gg.RunGemm(handle, workSpace, dy, dw, 0, out_offset, 0);
+					RunGemm(handle, gg.algorithm_name, gg.tgg.get_networkconfig_string(), workSpace, dy, dw, 0, out_offset, 0);
 
 					// Update times for both the kernels
 					if(handle.IsProfilingEnabled()) {
@@ -529,7 +532,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 				}
 				else if(wei_h == 1 && wei_w == 1) {
 					int in_offset = i * in_c * in_h * in_w;
-					gg.RunGemm(handle, x, dy, dw, in_offset, out_offset, 0);
+					//gg.RunGemm(handle, x, dy, dw, in_offset, out_offset, 0);
+					RunGemm(handle, gg.algorithm_name, gg.tgg.get_networkconfig_string(), x, dy, dw, in_offset, out_offset, 0);
 
 					if(handle.IsProfilingEnabled()) {
 						if(i == in_n - 1)

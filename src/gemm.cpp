@@ -197,6 +197,8 @@ void GemmGeometry::FindSolution(float time,
 				vgd,
 				"");
 	}
+
+	gemm_geo_map[std::make_pair(algorithm_name, network_config)] = *this;
 }
 
 void GemmGeometry::RunGemm(Handle &handle,
@@ -223,6 +225,37 @@ void GemmGeometry::RunGemm(Handle &handle,
 			strides[0], strides[1], strides[2],
 			dims[0], dims[1], dims[2],
 			a_offset, b_offset, c_offset);
+}
+
+void RunGemm(Handle &handle,
+			std::string &algorithm_name,
+			std::string &&network_config,
+		ConstData_t		a,
+			ConstData_t		b,
+			Data_t			c,
+			int				a_offset,
+			int				b_offset,
+			int				c_offset)
+{
+	auto gemm_iterator = gemm_geo_map.find(std::make_pair(algorithm_name, network_config));
+	if (gemm_iterator != gemm_geo_map.end())
+	{
+		GemmGeometry gg = gemm_iterator->second;
+
+	// beta kernel, if required
+	if(gg.beta_kern_req) {
+		handle.GetKernel(algorithm_name+"_beta", "placeholder") (gg.beta_kern_args[0], gg.beta_kern_args[1],
+				gg.strides[2], c_offset, c, gg.beta);
+	}
+
+	// main kernel
+//  c, a, b, alpha, beta, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
+	handle.GetKernel(algorithm_name, network_config)(c, a, b,
+			gg.alpha, gg.beta,
+			gg.strides[0], gg.strides[1], gg.strides[2],
+			gg.dims[0], gg.dims[1], gg.dims[2],
+			a_offset, b_offset, c_offset);
+	}
 }
 
 } // namespace mlopen
