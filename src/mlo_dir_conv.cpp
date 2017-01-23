@@ -1064,7 +1064,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_in_tile1 = 4;
 	_in_tile0 = 14;
 	_n_out_pix_tiles = 2; // (_kernel_size0 == 20) ? 2 : 4; // 700 = 2, 350 = 4
-	_n_in_data_tiles = 1;
+	_n_in_data_tiles = 2;
 
 	// major parameters
 	int n_waves = 2; // (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
