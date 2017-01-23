@@ -50,27 +50,21 @@ struct GemmGeometry {
 typedef std::pair<std::string, std::string> GemmKey;
 static std::unordered_map< GemmKey, GemmGeometry, SimpleHash> gemm_geo_map;
 
-void RunGemm(Handle		&handle,
-		std::string		&algorithm_name,
-		std::string		&&network_config,
-		ConstData_t		a,
-		ConstData_t		b,
-		Data_t			c,
-		int				a_offset,
-		int				b_offset,
-		int				c_offset);
+GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_config);
 
 GemmGeometry CreateGemmGeometryConvBwdWeights(
 		const TensorDescriptor&		dyDesc,
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		dwDesc,
-		bool						isColMajor);
+		bool						isColMajor,
+		std::string					&network_config);
 
 GemmGeometry CreateGemmGeometryConvFwd(
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		wDesc,
 		const TensorDescriptor&		yDesc,
-		bool						isColMajor);
+		bool						isColMajor,
+		std::string					&network_config);
 
 GemmGeometry CreateMLOpenGemmGeometry( 
 		int M, int N, int K,
