@@ -41,6 +41,7 @@ struct HIPOCKernelInvoke
     hipFunction_t fun;
     std::array<size_t, 3> ldims;
     std::array<size_t, 3> gdims;
+    std::function<void(hipEvent_t, hipEvent_t)> callback;
 
     template<class... Ts>
     void operator()(Ts... xs) const
@@ -82,7 +83,7 @@ struct HIPOCKernel
             MLOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);
     }
 
-    HIPOCKernelInvoke Invoke(hipStream_t stream);
+    HIPOCKernelInvoke Invoke(hipStream_t stream, std::function<void(hipEvent_t, hipEvent_t)> callback=nullptr);
 };
 
 }
