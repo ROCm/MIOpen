@@ -63,11 +63,11 @@
 #define MLO_WEI_BLKS_LCL_SZ (MLO_WEI_TILES_SZ * MLO_N_LCL_OUT_MAPS * MLO_N_LCL_IN_MAPS * MLO_OUT_STACKS)
 
 
-#if MLO_OUT_HORIZ_PIX_SZ >  (MLO_N_ACCUM0 * MLO_IN_TILE0)
+//#if MLO_OUT_HORIZ_PIX_SZ >  (MLO_N_ACCUM0 * MLO_IN_TILE0)
 #define MLO_OUT_HORIZ_PIX_EXT_SZ (MLO_OUT_HORIZ_PIX_SZ)
-#else
-#define MLO_OUT_HORIZ_PIX_EXT_SZ (MLO_N_ACCUM0 * MLO_IN_TILE0)
-#endif
+//#else
+//#define MLO_OUT_HORIZ_PIX_EXT_SZ (MLO_N_ACCUM0 * MLO_IN_TILE0)
+//#endif
 
 
 //#define MLO_OUT_BLK_GRP_EXT_PIX_SZ (MLO_OUT_HORIZ_PIX_EXT_SZ * MLO_N_OUT_VERT_PROCS)
@@ -101,7 +101,7 @@
 #define  MLO_IN_LCL_HORIZ_SZ (MLO_N_IN_HORIZ_READS * MLO_READ_UNIT)
 #endif
 // assum the input scan + 2 pads fit into LDS
-#define MLO_IN_LCL_WIDTH (MLO_IN_LCL_HORIZ_SZ * MLO_READ_UNIT + 2 * MLO_FILTER_PAD0)
+#define MLO_IN_LCL_WIDTH (MLO_IN_LCL_HORIZ_SZ + 2 * MLO_FILTER_PAD0)
 
 
 #define MLO_IN_LCL_SZ (MLO_IN_LCL_WIDTH * MLO_IN_LCL_HEIGHT)
@@ -297,6 +297,7 @@ __kernel void MLOpenCvBwdWrW(
 	_FLOAT padding_val
 )
 {
+#if 1
 
 	// input/output tiles + reduce buffer
 
@@ -310,7 +311,7 @@ __kernel void MLOpenCvBwdWrW(
 	int lcl_id = get_local_id(0);
 
 	int dat_tl_idx = iDiv(lcl_id, MLO_WEI_TILE_SZ);
-	int wei_tl_idx = iMod(lcl_id, wei_tl_idx, MLO_WEI_TILE_SZ);
+	int wei_tl_idx = iMod(lcl_id, dat_tl_idx, MLO_WEI_TILE_SZ);
 
 // weight grid tile
 	int wei_tl_idx1 = iDiv(wei_tl_idx, MLO_WEI_TILE_SZ0);
@@ -364,6 +365,19 @@ __kernel void MLOpenCvBwdWrW(
 //	barrier(CLK_LOCAL_MEM_FENCE);
 
 
+#if 0
+	if (wei_tl_idx == 4 && o_idx == 0 && c_idx == 0 && (dat_tl_idx == 0 || dat_tl_idx == 1))
+	{
+		printf("G:p: %d %d %d %d %d\n",
+			lcl_id,
+			wei_tl_idx1,
+			wei_tl_idx0,
+			wei_tl1,
+			wei_tl0
+		);
+	}
+
+#endif
 
 
 #if 1
@@ -509,6 +523,7 @@ __kernel void MLOpenCvBwdWrW(
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 
+
 		// process	
 		// algorithm
 
@@ -558,16 +573,37 @@ __kernel void MLOpenCvBwdWrW(
 						{
 							for (int i = 0; i < MLO_OUT_TILE0; ++i)
 							{
+								_FLOAT bot_val = bot_data[(c*MLO_IN_TILE1 + (l + j))*(MLO_IN_TILE0 + MLO_OUT_TILE0 - 1) + (m + i)];
+
+
 								// read output scanline
 								int top_lcl_off = k*MLO_OUT_LCL_SZ + lcl_top_off + l * MLO_OUT_HORIZ_PIX_EXT_SZ + m;
-								top_data[m] = lcl_bot[top_lcl_off];
+								top_data[m] = lcl_top[top_lcl_off];
+								_FLOAT top_val = top_data[m];
 
 								pvt_accum[k* (MLO_OUT_TILE1 *  MLO_OUT_TILE0 * MLO_N_LCL_IN_MAPS)
 									+ c* (MLO_OUT_TILE1 *  MLO_OUT_TILE0)
 									+ j*MLO_OUT_TILE0 + i]
 
-									= bot_data[(c*MLO_IN_TILE1 + (l + j))*(MLO_IN_TILE0 + MLO_OUT_TILE0 - 1) + (m + i)]
-									* top_data[m];
+									+= bot_val * top_val;
+
+#if 0
+								if (bot_val * top_val != 0 && wei_tl1 + j == 1 && wei_tl0 + i == 2 && o_idx + k == 0 && c_idx + c == 0)
+								{
+									printf("G:a: %d %d %d  %f %f %f %f\n",
+										lcl_id,
+										dat_tl_idx,
+										wei_tl_idx,
+										pvt_accum[k* (MLO_OUT_TILE1 *  MLO_OUT_TILE0 * MLO_N_LCL_IN_MAPS)
+										+ c* (MLO_OUT_TILE1 *  MLO_OUT_TILE0)
+										+ j*MLO_OUT_TILE0 + i],
+										bot_val * top_val,
+										bot_val,
+										top_val
+										);
+								}
+
+#endif
 
 							} // for (int i = 0; i < MLO_OUT_TILE0; ++i)
 						} // for (int m = 0; m < MLO_IN_TILE0; ++m)
@@ -697,6 +733,8 @@ __kernel void MLOpenCvBwdWrW(
 
 		}
 
+
+#endif
 
 }
 

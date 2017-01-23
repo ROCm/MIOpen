@@ -1082,16 +1082,8 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 
 	// select output mapping
-	int total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
-	_out_pix_tile1 = (total_out_maps > _n_inputs) ? 1 : _out_pix_tile1;
-	total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
-	_n_out_pix_tiles = (total_out_maps > _n_inputs) ? _n_inputs : _n_out_pix_tiles;
-	int N_OUT_BLK_GRP = _out_pix_tile1;
-	total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
-
-
-
-
+	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
+	total_out_maps = (total_out_maps > _n_inputs) ? _n_inputs : total_out_maps;
 
 	_grp_tile0 = GRP_SZ;
 	_grp_tile1 = 1;
@@ -1181,7 +1173,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = (_pad0 > 1 || _pad1 > 1) ? "MLOpenConvBwdWrW_LxL_P53.cl" : "MLOpenConvBwdWrW_LxL.cl";
+		_kernel_file = (_pad0 > 0 || _pad1 > 0) ? "MLOpenConvBwdWrW_LxL_P53.cl" : "MLOpenConvBwdWrW_LxL.cl";
 		_kernel_name = "MLOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -1196,7 +1188,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	{
 
 
-		std::string kernel_file = (_pad0 > 1 || _pad1 > 1) ? "MLOpenConvBwdWrW_LxL_P53.cl" : "MLOpenConvBwdWrW_LxL.cl";
+		std::string kernel_file = (_pad0 > 0 || _pad1 > 0) ? "MLOpenConvBwdWrW_LxL_P53.cl" : "MLOpenConvBwdWrW_LxL.cl";
 		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
@@ -1270,15 +1262,15 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 // serch for
 // number of horiz pix and number of lines processed by a single weight tile
 // with maximum wk-items involved
-	int MAX_WEI_BLK_LOOP = 0;
-	int n_wei_blocks1 = 0;
-	int max_wk_tems = 0;
+	int MAX_WEI_BLK_LOOP = 1;
+	int n_wei_blocks1 = 1;
+	int max_wk_tems = 1;
 	for (int n_wei_blocks1_t = n_input_proc_scans; n_wei_blocks1_t > 1; --n_wei_blocks1_t)
 	{
 		for (int n_wei_tiles_per_scan_t = 1; n_wei_tiles_per_scan_t < _in_width; ++n_wei_tiles_per_scan_t)
 		{
 			MAX_WEI_BLK_LOOP = (_in_width + n_wei_tiles_per_scan_t - 1) / n_wei_tiles_per_scan_t;
-			if (n_wei_blocks1_t * n_wei_tiles_per_scan_t < (GRP_SZ / wei_tile_sz)
+			if (n_wei_blocks1_t * n_wei_tiles_per_scan_t < (GRP_SZ / wei_tile_sz && n_wei_blocks1_t > 0 && n_wei_tiles_per_scan_t > 0)
 				&& n_wei_blocks1_t * n_wei_tiles_per_scan_t >= max_wk_tems
 				&& n_wei_blocks1_t * n_wei_tiles_per_scan_t > 0
 				&& MAX_WEI_BLK_LOOP > _kernel_size0 + _pad0)
@@ -1413,7 +1405,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = (_pad0 > 1 || _pad1 > 1) ? "MLOpenConvBwdWrW_LxL_P53.cl" : "MLOpenConvBwdWrW_LxL.cl";
+		_kernel_file = (_pad0 > 0 || _pad1 > 0) ? "MLOpenConvBwdWrW_LxL_P53.cl" : "MLOpenConvBwdWrW_LxL.cl";
 		_kernel_name = "MLOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -1428,7 +1420,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	{
 
 
-		std::string kernel_file = (_pad0 > 1 || _pad1 > 1) ? "MLOpenConvBwdWrW_LxL_P53.cl" : "MLOpenConvBwdWrW_LxL.cl";
+		std::string kernel_file = (_pad0 > 0 || _pad1 > 0) ? "MLOpenConvBwdWrW_LxL_P53.cl" : "MLOpenConvBwdWrW_LxL.cl";
 		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
