@@ -85,6 +85,7 @@ cl_device_id GetDevice(cl_command_queue q)
 
 	return device;
 }
+
 cl_context GetContext(cl_command_queue q)
 {
 	cl_context context;

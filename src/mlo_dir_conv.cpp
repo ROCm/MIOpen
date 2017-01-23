@@ -432,11 +432,13 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 {
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
+	const auto platform = mlopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
 	const auto vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
 	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
-	
-	const auto driver_has_lc =
+	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
+
+	const auto device_is_opencl_on_rocm =
 		   (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
 		|| (driver.find("(LC,") != std::string::npos)
 		|| (driver.find(",LC)") != std::string::npos)
@@ -447,21 +449,28 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 		|| (driver.find(" LC ") != std::string::npos)
 		|| (driver.find(",LC,") != std::string::npos);
 
-	const auto driver_is_v1_or_v2 = (driver[0] == '1' || driver[0] == '2') && driver[1] == '.'; // Both shall support Metadata for Runtime v1.0 we are using for now
+	const auto driver_is_v1_or_v2 =
+		   (driver[0] == '1' || driver[0] == '2')
+		&& driver[1] == '.'; // Both shall support Metadata for Runtime v1.0 we are using for now
 
-	const auto driver_is_rocm = driver_has_lc && driver_is_v1_or_v2;
+	const auto device_is_opencl_on_rocm_supports_metadata_1_0 =
+		   device_is_opencl_on_rocm
+		&& driver_is_v1_or_v2;
 
-	const auto device_suits =
+	const auto device_is_gfx8_no_xnack =
 		   name == "gfx800"
 		|| name == "gfx802"
 		|| name == "gfx803"
 		|| name == "gfx804";
 
+	const auto platform_is_amd = platform_vendor.find("AMD") != std::string::npos;
+
 	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
 
-	return driver_is_rocm
-		&& device_suits
+	return device_is_opencl_on_rocm_supports_metadata_1_0
+		&& device_is_gfx8_no_xnack
 		&& vendor_id == 0x1002
+		&& platform_is_amd
 
 		&& _in_layout							== "NCHW"
 		//&& _weights_layout						== "NKCHW" // FIXME see above
