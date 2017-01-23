@@ -67,6 +67,7 @@ set( MLOpen_Source
 	errors.cpp
 	gemm.cpp
 	gemm_api.cpp
+	gemm_geometry.cpp
 	pooling_api.cpp
 	lrn_api.cpp
 	activ_api.cpp
