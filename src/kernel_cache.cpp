@@ -78,6 +78,7 @@ Kernel KernelCache::GetKernel(Handle &h,
 		program_map[std::make_pair(program_name, params)] = program;
     }
     Kernel kernel{program, kernel_name, vld, vgd};
+	// TODO: how to cache kernels which do not have a config?
     if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
     return kernel;
 }
