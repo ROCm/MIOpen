@@ -6,7 +6,8 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
 		const TensorDescriptor&		dyDesc,
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		dwDesc,
-		bool						isColMajor)
+		bool						isColMajor,
+		std::string					&network_config)
 {
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
@@ -32,30 +33,35 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
 
 	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
 	TinyGemmGeometry tgg;
+	GemmGeometry gg;
 	
-	if (isColMajor) {
+	if (!isColMajor) {
 		tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
 
-		return GemmGeometry{std::array<int, 3>{{N, M, K}},
+		gg = GemmGeometry{std::array<int, 3>{{N, M, K}},
 			std::array<int, 3>{{ldb, lda, ldc}},
 			"mlopenConvolutionBwdWeightsAlgoGEMM",
 			alpha, beta, tgg};
 	}
 	else {
-		tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
+		tgg = TinyGemmGeometry(true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
+		network_config = tgg.get_networkconfig_string();
 
-		return GemmGeometry{std::array<int, 3>{{M, N, K}},
+		gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
 			std::array<int, 3>{{lda, ldb, ldc}},
 			"mlopenConvolutionBwdWeightsAlgoGEMM", 
 			alpha, beta, tgg};
 	}
+	network_config = tgg.get_networkconfig_string();
+	return gg;
 }
 
 GemmGeometry CreateGemmGeometryConvFwd(
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		wDesc,
 		const TensorDescriptor&		yDesc,
-		bool						isColMajor)
+		bool						isColMajor,
+		std::string					&network_config)
 {
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
@@ -81,11 +87,12 @@ GemmGeometry CreateGemmGeometryConvFwd(
 
 	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
 	TinyGemmGeometry tgg;
+	GemmGeometry gg;
 	
-	if (isColMajor) {
+	if (!isColMajor) {
 		tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
 
-		return GemmGeometry{std::array<int, 3>{{N, M, K}}, 
+		gg = GemmGeometry{std::array<int, 3>{{N, M, K}}, 
 			std::array<int, 3>{{ldb, lda, ldc}},
 			"mlopenConvolutionFwdAlgoGEMM",
 			alpha, beta, tgg};
@@ -93,11 +100,13 @@ GemmGeometry CreateGemmGeometryConvFwd(
 	else {
 		tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
 
-		return GemmGeometry{std::array<int, 3>{{M, N, K}},
+		gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
 			std::array<int, 3>{{lda, ldb, ldc}},
 			"mlopenConvolutionFwdAlgoGEMM", 
 			alpha, beta, tgg};
 	}
+	network_config = tgg.get_networkconfig_string();
+	return gg;
 }
 
 GemmGeometry CreateMLOpenGemmGeometry( 
@@ -227,34 +236,17 @@ void GemmGeometry::RunGemm(Handle &handle,
 			a_offset, b_offset, c_offset);
 }
 
-void RunGemm(Handle &handle,
-			std::string &algorithm_name,
-			std::string &&network_config,
-		ConstData_t		a,
-			ConstData_t		b,
-			Data_t			c,
-			int				a_offset,
-			int				b_offset,
-			int				c_offset)
+
+GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_config)
 {
 	auto gemm_iterator = gemm_geo_map.find(std::make_pair(algorithm_name, network_config));
 	if (gemm_iterator != gemm_geo_map.end())
 	{
-		GemmGeometry gg = gemm_iterator->second;
-
-	// beta kernel, if required
-	if(gg.beta_kern_req) {
-		handle.GetKernel(algorithm_name+"_beta", "placeholder") (gg.beta_kern_args[0], gg.beta_kern_args[1],
-				gg.strides[2], c_offset, c, gg.beta);
+		return gemm_iterator->second;
 	}
-
-	// main kernel
-//  c, a, b, alpha, beta, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
-	handle.GetKernel(algorithm_name, network_config)(c, a, b,
-			gg.alpha, gg.beta,
-			gg.strides[0], gg.strides[1], gg.strides[2],
-			gg.dims[0], gg.dims[1], gg.dims[2],
-			a_offset, b_offset, c_offset);
+	else
+	{
+        MLOPEN_THROW("looking for gemm kernel (does not exist): " + algorithm_name + ", " + network_config);
 	}
 }
 

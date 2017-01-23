@@ -49,7 +49,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 	}
 
-	GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, true);
+	std::string network_config;
+	GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
 	gg.FindSolution(.003, handle, workSpace, w, y, false);
 
 	// Direct algo
@@ -77,7 +78,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	std::string kernel_name = construct_params.getKernelName(); // "hello_world_kernel"; // kernel name
 	std::string parms = construct_params.getCompilerOptions(); // kernel parameters
 
-	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
@@ -158,7 +158,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 			int out_h, out_w;
 			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 
-			GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, true);
+			std::string network_config;
+			CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+			GemmGeometry gg = GetGemmGeometry("mlopenConvolutionFwdAlgoGEMM", network_config);
 			
 			float time_0 = 0;
 			float t1 = 0;
@@ -170,8 +172,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 					if(handle.IsProfilingEnabled())
 						t1 = handle.GetKernelTime();
 
-					//gg.RunGemm(handle, workSpace, w, y, 0, 0, out_offset);
-					RunGemm(handle, gg.algorithm_name, gg.tgg.get_networkconfig_string(), workSpace, w, y, 0, 0, out_offset);
+					gg.RunGemm(handle, workSpace, w, y, 0, 0, out_offset);
 
 					// Update times for both the kernels
 					if(handle.IsProfilingEnabled()) {
@@ -184,8 +185,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 				}
 				else if(wei_h == 1 && wei_w == 1) {
 					int in_offset = i * in_c * in_h * in_w;
-					//gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
-					RunGemm(handle, gg.algorithm_name, gg.tgg.get_networkconfig_string(), x, w, y, in_offset, 0, out_offset);
+					gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
 					if(handle.IsProfilingEnabled()) {
 						if(i == in_n - 1)
 							handle.AccumKernelTime(time_0);
@@ -376,10 +376,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 	}
 
-	GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, true);
+	std::string network_config;
+	GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
 	gg.FindSolution(.003, handle, workSpace, dy, dw, false);
 
-	std::string network_config;
 // temprorary guard
 	if((u == 1 && v == 1) || (wei_w >= 7 && u == 2 && v == 2))
 	{
@@ -506,7 +506,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	{
 		case mlopenConvolutionBwdWeightsAlgoGEMM:
 		{
-			GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, true);
+			std::string network_config;
+			CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
+			GemmGeometry gg = GetGemmGeometry("mlopenConvolutionBwdWeightsAlgoGEMM", network_config);
+
 			handle.ResetKernelTime();
 			float time_0 = 0;
 			float t1 = 0;
@@ -518,8 +521,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 					if(handle.IsProfilingEnabled())
 						t1 = handle.GetKernelTime();
 
-					//gg.RunGemm(handle, workSpace, dy, dw, 0, out_offset, 0);
-					RunGemm(handle, gg.algorithm_name, gg.tgg.get_networkconfig_string(), workSpace, dy, dw, 0, out_offset, 0);
+					gg.RunGemm(handle, workSpace, dy, dw, 0, out_offset, 0);
 
 					// Update times for both the kernels
 					if(handle.IsProfilingEnabled()) {
@@ -532,8 +534,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 				}
 				else if(wei_h == 1 && wei_w == 1) {
 					int in_offset = i * in_c * in_h * in_w;
-					//gg.RunGemm(handle, x, dy, dw, in_offset, out_offset, 0);
-					RunGemm(handle, gg.algorithm_name, gg.tgg.get_networkconfig_string(), x, dy, dw, in_offset, out_offset, 0);
+					gg.RunGemm(handle, x, dy, dw, in_offset, out_offset, 0);
 
 					if(handle.IsProfilingEnabled()) {
 						if(i == in_n - 1)
