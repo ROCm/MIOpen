@@ -19,7 +19,7 @@ mlopenStatus_t mlopenGemm(
 			lda, ldb, ldc,
 			transA, transB,
 			isDataColMajor,
-			*((float*)(alpha)), *((float*)(beta)));
+			*(static_cast<const float*>(alpha)), *(static_cast<const float*>(beta)));
 
 		gg.FindSolution(.003, mlopen::deref(handle),
 			DataCast(A),

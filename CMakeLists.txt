@@ -116,6 +116,8 @@ enable_clang_tidy(
 		*
 		-cert-err60-cpp
 		-clang-analyzer-alpha.core.CastToStruct
+		# Disable this because of a false-positive in gemm_geometry.cpp
+		-clang-analyzer-alpha.deadcode.UnreachableCode
 		# Disable this because it doesn't recognize clean up in the destructor
 		-clang-analyzer-alpha.unix.Stream
 		-clang-analyzer-optin.performance.Padding
