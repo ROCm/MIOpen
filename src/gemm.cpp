@@ -133,7 +133,7 @@ GemmGeometry CreateMLOpenGemmGeometry(
 void GemmGeometry::EnableBetaKernel(bool enable,
 		std::map<std::string, size_t> &beta_args)
 {
-	this->beta_kern_req = enable;
+	beta_kern_req = enable;
 	beta_kern_args[0] = beta_args.at("dim_coal");
 	beta_kern_args[1] = beta_args.at("dim_uncoal");
 }
@@ -174,7 +174,7 @@ void GemmGeometry::FindSolution(float time,
 			"");
 
 	// beta kernel
-	if(!soln.betac_kernel.empty())
+	if(beta != 1.0 && !soln.betac_kernel.empty())
 	{
 		std::string beta_program_name = soln.betac_kernel;
 		std::string beta_kernel_name = soln.betac_kernel_function_name;
@@ -188,8 +188,9 @@ void GemmGeometry::FindSolution(float time,
 		vld[0] = local_work_size;
 		vgd[1] = global_work_size;
 
+		// TODO: remove placeholder
 		handle.GetKernel(algorithm_name+"_beta",
-				"",
+				"placeholder",
 				beta_program_name,
 				beta_kernel_name,
 				vld,
@@ -211,7 +212,7 @@ void GemmGeometry::RunGemm(Handle &handle,
 
 	// beta kernel, if required
 	if(beta_kern_req) {
-		handle.GetKernel(algorithm_name+"_beta", "") (beta_kern_args[0], beta_kern_args[1],
+		handle.GetKernel(algorithm_name+"_beta", "placeholder") (beta_kern_args[0], beta_kern_args[1],
 				strides[2], c_offset, c, beta);
 	}
 
