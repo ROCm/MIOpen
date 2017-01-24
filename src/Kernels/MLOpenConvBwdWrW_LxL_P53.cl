@@ -211,7 +211,7 @@ inline void readInput(int lcl_id, int c_idx, int sc, int gbl_in_scan_off, __glob
 				for (int i = 0; i < MLO_IN_N_PIXS_OFF; ++i)
 				{
 
-					in_rd_data[i] = bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
+					in_rd_data[i] = bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_pix4*MLO_READ_UNIT + i];
 				}
 
 				for (int i = MLO_READ_UNIT - 1; i >= MLO_READ_UNIT - MLO_IN_N_PIXS_OFF; --i)
@@ -223,16 +223,16 @@ inline void readInput(int lcl_id, int c_idx, int sc, int gbl_in_scan_off, __glob
 			else
 #endif
 			{
-				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
+				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_pix4*MLO_READ_UNIT];
 			}
 
-
+// stack of inputs, each has 1 line
 			for (int i = 0; i < MLO_READ_UNIT; ++i)
 			{
-				int lcl_in_off = c*MLO_IN_LCL_SZ + c_scan*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i;
+				int lcl_in_off = c*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i;
 				lcl_bot[lcl_in_off] = in_rd_data[i];
-#if 1
-				if (c == 38 && c_pix4 == 0)
+#if 0
+				if (c == 0 && c_scan ==1 && c_pix4 == 0)
 				{
 					printf("K:g: %d %d %d %d %f\n",
 						lcl_id,
@@ -391,7 +391,7 @@ __kernel void MLOpenCvBwdWrW(
 
 		int sc = 0;
 // pad0
-		for (; sc < 1; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
+		for (; sc < 1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, gbl_in_scan_off += MLO_IN_STRIDE)
 		{
 			barrier(CLK_LOCAL_MEM_FENCE);
 // read input line
@@ -406,15 +406,14 @@ __kernel void MLOpenCvBwdWrW(
 					{
 						pvt_accum[l*MLO_FILTER_SIZE0 + n]
 							// each wk-item process an input
-							= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
-							* bot_dat[(MLO_FILTER_PAD1 - l) * MLO_PER_WAVE_READ + m];
-#if 1
-						if (lcl_wv_id == 38 && l == 2 && n == 2)
+							+= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
+								* bot_dat[(MLO_FILTER_PAD1 - l) * MLO_PER_WAVE_READ + m];
+#if 0
+						if (lcl_wv_id == 0 && l == 2 && n == 3)
 						{
-							printf("G:ap0: %d %d %d  %f %f %f %f\n",
+							printf("G:ap0: %d %d  %f %f %f %f\n",
 								wave_id,
-								l,
-								n,
+								sc,
 								pvt_accum[l*MLO_FILTER_SIZE0 + n],
 								lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
 									* bot_dat[l * MLO_PER_WAVE_READ + m],
@@ -435,7 +434,7 @@ __kernel void MLOpenCvBwdWrW(
 
 
 // pad1
-		for (; sc < 2 && sc < MLO_OUT_HEIGHT; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
+		for (; sc < 2 && sc < MLO_OUT_HEIGHT; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, gbl_in_scan_off += MLO_IN_STRIDE)
 		{
 			barrier(CLK_LOCAL_MEM_FENCE);
 			// read input line
@@ -451,20 +450,19 @@ __kernel void MLOpenCvBwdWrW(
 					{
 						pvt_accum[l*MLO_FILTER_SIZE0 + n]
 							// each wk-item process an input
-							= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
-							* bot_dat[(MLO_FILTER_PAD1 - l + 1) * MLO_PER_WAVE_READ + m];
+							+= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
+								* bot_dat[(MLO_FILTER_PAD1 - l + 1) * MLO_PER_WAVE_READ + m];
 #if 0
-						if (lcl_wv_id == 0 && l == 1 && n == 1)
+						if (lcl_wv_id == 0 && l == 2 && n == 3)
 						{
-							printf("G:ap1: %d %d %d  %f %f %f %f\n",
+							printf("G:ap1: %d %d  %f %f %f %f\n",
 								wave_id,
-								l,
-								n,
+								sc,
 								pvt_accum[l*MLO_FILTER_SIZE0 + n],
 								lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
-								* bot_dat[l * MLO_PER_WAVE_READ + m],
+								* bot_dat[(MLO_FILTER_PAD1 - l + 1) * MLO_PER_WAVE_READ + m],
 								lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m],
-								bot_dat[(MLO_FILTER_PAD1 - l) * MLO_PER_WAVE_READ + m]
+								bot_dat[(MLO_FILTER_PAD1 - l + 1) * MLO_PER_WAVE_READ + m]
 							);
 						}
 #endif
@@ -479,7 +477,7 @@ __kernel void MLOpenCvBwdWrW(
 
 // generic
 
-		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE, ++out_y)
+		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, gbl_in_scan_off += MLO_IN_STRIDE, ++out_y)
 		{
 
 			int top_df_off = (out_y < MLO_OUT_HEIGHT) ? gbl_out_scan_off + (sc + MLO_FILTER_PAD1) * MLO_IN_STRIDE + top_wave_base[wave_id] : 0;
@@ -507,8 +505,8 @@ __kernel void MLOpenCvBwdWrW(
 					{
 						pvt_accum[l*MLO_FILTER_SIZE0 + n]
 							// each wk-item process an input
-							= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
-							* bot_dat[l * MLO_PER_WAVE_READ + m];
+							+= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
+								* bot_dat[l * MLO_PER_WAVE_READ + m];
 #if 0
 						if (lcl_wv_id == 0 && l == 1 && n == 1)
 						{
@@ -540,14 +538,12 @@ __kernel void MLOpenCvBwdWrW(
 
 
 			barrier(CLK_LOCAL_MEM_FENCE);
-
-
 		}
 
 // epilog 
 // handling padding
 // pad1
-		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
+		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, gbl_in_scan_off += MLO_IN_STRIDE)
 		{
 
 			barrier(CLK_LOCAL_MEM_FENCE);
@@ -564,8 +560,8 @@ __kernel void MLOpenCvBwdWrW(
 					{
 						pvt_accum[l*MLO_FILTER_SIZE0 + n]
 							// each wk-item process an input
-							= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
-							* bot_dat[l * MLO_PER_WAVE_READ + m];
+							+= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
+								* bot_dat[l * MLO_PER_WAVE_READ + m];
 #if 0
 						if (lcl_wv_id == 0 && l == 1 && n == 1)
 						{
@@ -597,7 +593,7 @@ __kernel void MLOpenCvBwdWrW(
 
 
 // pad0
-		for (; sc < MLO_OUT_HEIGHT; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
+		for (; sc < MLO_OUT_HEIGHT; ++sc, gbl_in_scan_off += MLO_IN_STRIDE)
 		{
 
 
@@ -617,8 +613,8 @@ __kernel void MLOpenCvBwdWrW(
 					{
 						pvt_accum[l*MLO_FILTER_SIZE0 + n]
 							// each wk-item process an input
-							= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
-							* bot_dat[l * MLO_PER_WAVE_READ + m];
+							+= lcl_bot[lcl_wv_id * MLO_IN_LCL_WIDTH + wave_id * MLO_PER_WAVE_READ + n + m]
+								* bot_dat[l * MLO_PER_WAVE_READ + m];
 #if 0
 						if (lcl_wv_id == 0 && l == 1 && n == 1)
 						{
@@ -656,8 +652,8 @@ __kernel void MLOpenCvBwdWrW(
 		{
 			lcl[((wave_id - 1) * MLO_HW_WAVE_SZ + lcl_wv_id) * MLO_FILTER_SIZE0 + n] =
 				pvt_accum[l*MLO_FILTER_SIZE0 + n];
-#if 1
-			if (lcl_wv_id == 38 && l == 2 && n == 2)
+#if 0
+			if (lcl_wv_id == 0 && l == 2 && n == 3)
 			{
 				printf("G:s1: %f\n",
 					pvt_accum[l*MLO_FILTER_SIZE0 + n]
@@ -676,8 +672,8 @@ __kernel void MLOpenCvBwdWrW(
 			{
 				pvt_accum[l*MLO_FILTER_SIZE0 + n]
 					+= lcl[(w* MLO_HW_WAVE_SZ + lcl_wv_id) * MLO_FILTER_SIZE0 + n];
-#if 1
-				if (lcl_wv_id == 38 && l == 2 && n == 2)
+#if 0
+				if (lcl_wv_id == 0 && l == 2 && n == 3)
 				{
 					printf("G:s2: %f %f\n",
 						pvt_accum[l*MLO_FILTER_SIZE0 + n],
