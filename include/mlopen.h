@@ -349,6 +349,12 @@ typedef struct{
  * routime works as both cuDNN's FindAlgorithm and GetAlgorithm
  * routines. I do not see any need of having two similar routines
  */
+
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionForwardGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		wDesc,
+		const mlopenTensorDescriptor_t		yDesc,
+		size_t								*workSpaceSize);
+
 MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t		xDesc,
 		const void							*x,

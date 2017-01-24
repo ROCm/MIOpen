@@ -71,6 +71,24 @@ mlopenStatus_t mlopenDestroyConvolutionDescriptor(mlopenConvolutionDescriptor_t 
 }
 
 extern "C"
+mlopenStatus_t mlopenConvolutionForwardGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		wDesc,
+		const mlopenTensorDescriptor_t		yDesc,
+		size_t								*workSpaceSize) {
+
+	mlopen::try_([&] {
+		int out_h, out_w;
+		std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(mlopen::deref(yDesc).GetLengths());
+		
+		int wei_c, wei_h, wei_w;
+		std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(mlopen::deref(wDesc).GetLengths());
+		mlopen::deref(workSpaceSize) = wei_c*wei_h*wei_w * out_h*out_w * sizeof(mlopen::deref(yDesc).GetType());
+	});
+
+	return(mlopenStatusSuccess);
+}
+
+extern "C"
 mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t		xDesc,
 		const void							*x,
