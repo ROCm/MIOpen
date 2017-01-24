@@ -465,29 +465,34 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 
 	const auto platform_is_amd = platform_vendor.find("AMD") != std::string::npos;
 
-	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
-
-	return device_is_opencl_on_rocm_supports_metadata_1_0
+	const auto device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0 =
+		   device_is_opencl_on_rocm_supports_metadata_1_0
 		&& device_is_gfx8_no_xnack
 		&& vendor_id == 0x1002
-		&& platform_is_amd
+		&& platform_is_amd;
 
-		&& _in_layout							== "NCHW"
-		//&& _weights_layout						== "NKCHW" // FIXME see above
-		&& _kernel_stride0						==	1
-		&& _kernel_stride1						==	1
-		&& _pad0								==	1
-		&& _pad1								==	1
+	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
+
+	const auto kernel_is_valid_for_problem_description =
+		   _in_layout == "NCHW"
+		// && _weights_layout						== "NKCHW" // FIXME see above
+		&& _kernel_stride0 == 1
+		&& _kernel_stride1 == 1
+		&& _pad0 == 1
+		&& _pad1 == 1
 		&& _batch_sz							<	std::pow(2, 16)
 		&& _n_inputs							<	std::pow(2, 16)
 		&& _n_outputs							<	std::pow(2, 16)
 		&& _in_height							<	std::pow(2, 16)
 		&& _in_width							<	std::pow(2, 16)
 		&& _n_groups							<	std::pow(2, 16)
-		&& _n_inputs * _in_height * _in_width	<	std::pow(2, 28)
-		&& _n_outputs * _in_height * _in_width	<	std::pow(2, 28)
-		&& _n_inputs % 2						==	0
-		&& _n_inputs							>=	16;
+		&& _n_inputs * _in_height * _in_width	<=	std::pow(2, 28)
+		&& _n_outputs * _in_height * _in_width	<=	std::pow(2, 28)
+		&& _n_inputs % 2 == 0
+		&& _n_inputs >= 16;
+
+	return device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0
+		&& kernel_is_valid_for_problem_description;
 }
 
 int mlo_construct_direct2D::mloConstructWinograd()
