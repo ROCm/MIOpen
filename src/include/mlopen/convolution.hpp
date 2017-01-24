@@ -88,7 +88,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const TensorDescriptor&		dyDesc,
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		dwDesc,
-		size_t								*workSpaceSize);
+		size_t								*workSpaceSize) const;
 
 	void FindConvBwdWeightsAlgorithm(Handle& handle,
 		const TensorDescriptor&			dyDesc,
