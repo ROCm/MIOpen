@@ -44,14 +44,16 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	int out_h, out_w;
 	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 
-	if(wei_h != 1 && wei_w != 1) {
-		size_t in_offset = 0;
-		Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
-	}
-
 	std::string network_config;
-	GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
-	gg.FindSolution(.003, handle, workSpace, w, y, false);
+	if(workSpace != nullptr) {
+		if(wei_h != 1 && wei_w != 1) {
+			size_t in_offset = 0;
+			Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+		}
+
+		GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+		gg.FindSolution(.003, handle, workSpace, w, y, false);
+	}
 
 	// Direct algo
 	// Generate kernels if OpenCL
@@ -149,6 +151,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
 		case mlopenConvolutionFwdAlgoGEMM:
 		{
+			if(workSpace == nullptr) {
+				MLOPEN_THROW("Workspace is required");
+			}
+
 			int in_n, in_c, in_h, in_w;
 			std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
@@ -361,6 +367,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	if(x == nullptr || dw == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
+	if(workSpace == nullptr) {
+		MLOPEN_THROW("Workspace is requried");
+	}
 
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
@@ -502,6 +511,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	int out_h, out_w;
 	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
+	if(workSpace == nullptr) {
+		MLOPEN_THROW("Workspace is requried");
+	}
 	switch (algo)
 	{
 		case mlopenConvolutionBwdWeightsAlgoGEMM:
