@@ -182,7 +182,7 @@ struct GetPlatformInfoImpl<T*>
 	static int GetSize(int N, cl_platform_id platform)
 	{
 		size_t size;
-		auto status = clGetDeviceInfo(platform, N, 0, nullptr, &size);
+		auto status = clGetPlatformInfo(platform, N, 0, nullptr, &size);
 		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 		return (size / sizeof(T));
 	}
@@ -190,7 +190,7 @@ struct GetPlatformInfoImpl<T*>
 	static type apply(int N, cl_platform_id platform)
 	{
 		type result(GetSize(N, platform), 0);
-		auto status = clGetDeviceInfo(platform, N, result.size() * sizeof(T), reinterpret_cast<void*>(&result[0]), nullptr);
+		auto status = clGetPlatformInfo(platform, N, result.size() * sizeof(T), reinterpret_cast<void*>(&result[0]), nullptr);
 		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 		if (std::is_same<T, char>()) { result.pop_back(); }
 		return result;
