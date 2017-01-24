@@ -14,10 +14,7 @@ find_path(OPENCL_INCLUDE_DIRS
 	)
 mark_as_advanced( OPENCL_INCLUDE_DIRS )
 
-# Search for 64bit libs if FIND_LIBRARY_USE_LIB64_PATHS is set to true in the global environment, 32bit libs else
-get_property( LIB64 GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS )
-
-if( LIB64 )
+if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
 	find_library( OPENCL_LIBRARIES
 		NAMES OpenCL
 		HINTS
