@@ -19,10 +19,10 @@ void GemmGeometry::FindSolution(float time,
 		Data_t			c,
 		bool			enforce_determinism)
 {
-	//tinygemm does not support m or n < 16
+	//tinygemm does not support m or n < 8
 	
-	//if(dims[0] < 16 || dims[1] < 16)
-	//	return;
+	if(dims[0] < 8 || dims[1] < 8)
+		return;
 
 	// alloted_time, queue, a, b, c, enforce_determinism, float_type, geometry, alpha, beta, verbose 
 	TinyGemmSolution soln = tinygemm::find(time, handle.GetStream(), a, b, c, enforce_determinism, 'f', tgg, alpha, beta, false);
