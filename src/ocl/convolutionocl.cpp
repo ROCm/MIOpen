@@ -306,6 +306,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 	if(x == nullptr || dw == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
 	}
+	if(workSpace == nullptr) {
+		MLOPEN_THROW("Workspace is requried");
+	}
 
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
@@ -447,6 +450,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	}
 	if(dyDesc.GetSize() < 3) {
 		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+	if(workSpace == nullptr) {
+		MLOPEN_THROW("Workspace is requried");
 	}
 	switch (algo)
 	{
