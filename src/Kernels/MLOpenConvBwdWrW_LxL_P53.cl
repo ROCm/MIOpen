@@ -306,12 +306,9 @@ __kernel void MLOpenCvBwdWrW(
 	int gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
 
 
-	__private int top_wave_base[MLO_N_WAVES];
+	int top_wave_base;
 
-	for (int i = 0; i < MLO_N_WAVES; ++i)
-	{
-		top_wave_base[i] = i * MLO_PER_WAVE_READ;
-	}
+	top_wave_base = wave_id * MLO_PER_WAVE_READ;
 
 	__private _FLOAT top_dat[MLO_PER_WAVE_READ*MLO_FILTER_SIZE1];
 
@@ -377,7 +374,7 @@ __kernel void MLOpenCvBwdWrW(
 		// prefetch output
 		for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j, gbl_out_scan_off += MLO_OUT_STRIDE)
 		{
-			int top_df_off = (j < MLO_OUT_HEIGHT) ? gbl_out_scan_off + top_wave_base[wave_id] : 0;
+			int top_df_off = (j < MLO_OUT_HEIGHT) ? gbl_out_scan_off + top_wave_base : 0;
 			_FLOAT mask = (j < MLO_OUT_HEIGHT) ? 1 : 0;
 			for (int i = 0; i < MLO_PER_WAVE_READ; ++i)
 			{
@@ -480,7 +477,7 @@ __kernel void MLOpenCvBwdWrW(
 		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, gbl_in_scan_off += MLO_IN_STRIDE)
 		{
 
-			int top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? gbl_out_scan_off + top_wave_base[wave_id] : 0;
+			int top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? gbl_out_scan_off + top_wave_base : 0;
 			_FLOAT mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 			// move in the last output scan
 			for (int i = 0; i < MLO_PER_WAVE_READ; ++i)
