@@ -23,6 +23,10 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 
+	size_t ForwardGetWorkSpaceSize(
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		yDesc) const;
+
 	void FindConvFwdAlgorithm(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		ConstData_t						x,
