@@ -353,6 +353,7 @@ typedef struct{
 MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionForwardGetWorkSpaceSize(
 		const mlopenTensorDescriptor_t		wDesc,
 		const mlopenTensorDescriptor_t		yDesc,
+		const mlopenConvolutionDescriptor_t convDesc,
 		size_t								*workSpaceSize);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,

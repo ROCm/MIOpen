@@ -57,6 +57,21 @@ const
 	);
 }
 
+size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
+		const TensorDescriptor& wDesc,
+		const TensorDescriptor& yDesc) const
+{
+	int out_h, out_w;
+	std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(yDesc.GetLengths());
+
+	int wei_c, wei_h, wei_w;
+	std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(wDesc.GetLengths());
+	
+	size_t workspace_size = wei_c*wei_h*wei_w * out_h*out_w * sizeof(yDesc.GetType());
+
+	return workspace_size;
+}
+
 std::tuple<int, int, int, int> ConvolutionDescriptor::GetBackwardOutputDim(
 	const TensorDescriptor& outputTensorDesc, 
 	const TensorDescriptor& filterDesc) 

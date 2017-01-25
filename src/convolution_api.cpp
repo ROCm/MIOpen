@@ -74,15 +74,13 @@ extern "C"
 mlopenStatus_t mlopenConvolutionForwardGetWorkSpaceSize(
 		const mlopenTensorDescriptor_t		wDesc,
 		const mlopenTensorDescriptor_t		yDesc,
+		const mlopenConvolutionDescriptor_t convDesc,
 		size_t								*workSpaceSize) {
 
 	mlopen::try_([&] {
-		int out_h, out_w;
-		std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(mlopen::deref(yDesc).GetLengths());
-		
-		int wei_c, wei_h, wei_w;
-		std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(mlopen::deref(wDesc).GetLengths());
-		mlopen::deref(workSpaceSize) = wei_c*wei_h*wei_w * out_h*out_w * sizeof(mlopen::deref(yDesc).GetType());
+		mlopen::deref(workSpaceSize) = mlopen::deref(convDesc).ForwardGetWorkSpaceSize(
+			mlopen::deref(wDesc),
+			mlopen::deref(yDesc));
 	});
 
 	return(mlopenStatusSuccess);
