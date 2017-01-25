@@ -118,7 +118,7 @@ __kernel void MLOpenConv1x1PS(
 				//				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
 				{
 
-					in_stage[ib][ilc] = *(MLO_READ_TYPE*)&in_ptr[in_off2];
+					in_stage[ib][ilc] = *(__global MLO_READ_TYPE*)&in_ptr[in_off2];
 					in_stage[ib][ilc] = (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS) ? in_stage[ib][ilc] : 0;
 #if !MLO_DIVBY4
 
@@ -277,7 +277,7 @@ __kernel void MLOpenConv1x1PS(
 #endif
 					{
 
-						*((MLO_READ_TYPE*)&out_ptr[out_off2]) = (sum + (MLO_READ_TYPE)bias_val);
+						*((__global MLO_READ_TYPE*)&out_ptr[out_off2]) = (sum + (MLO_READ_TYPE)bias_val);
 					}
 
 
