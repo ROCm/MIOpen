@@ -1042,7 +1042,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
 									  // major parameters
-	int n_waves = 2; 
+	int n_waves = 4; 
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 									  // inpout are outputs
@@ -1064,7 +1064,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_out_pix_tile0 = _kernel_size0;
 	_out_pix_tile1 = _kernel_size1;
 	_in_tile1 = 1;
-	_in_tile0 = 7;
+	_in_tile0 = 4;
 	int n_spans = (_in_width + _in_tile0 - 1) / _in_tile0;
 
 
