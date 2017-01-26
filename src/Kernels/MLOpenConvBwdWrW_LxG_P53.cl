@@ -347,7 +347,7 @@ __kernel void MLOpenCvBwdWrW(
 	int spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 #define MLO_TOP_DAT_SZ (MLO_IN_TILE0 * MLO_FILTER_SIZE1)
 	int lcl_bot_off = spn * MLO_IN_TILE0;
-	int out_wk_item_off = o * MLO_OUT_STRIDE + lcl_bot_off;
+	int out_wk_item_off = o * MLO_OUT_CHANNEL_STRIDE + lcl_bot_off;
 	gbl_out_off += out_wk_item_off;
 
 	__private _FLOAT top_dat[MLO_TOP_DAT_SZ];
