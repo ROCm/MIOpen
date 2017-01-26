@@ -464,10 +464,12 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 		|| name == "gfx804";
 
 	const auto platform_is_amd = platform_vendor == "Advanced Micro Devices, Inc.";
+	const auto device_is_amd = vendor_id == 0x1002;
 
 	const auto device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0 =
 		   device_is_opencl_on_rocm_supports_metadata_1_0
 		&& device_is_gfx8_no_xnack
+		&& device_is_amd
 		&& platform_is_amd;
 
 	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
