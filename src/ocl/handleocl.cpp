@@ -337,9 +337,14 @@ KernelInvoke Handle::GetKernel(
     }
 }
 
-Program Handle::LoadProgram(const std::string &program_name, std::string params, bool is_binary)
+Program Handle::LoadProgram(const std::string &program_name, std::string params)
 {
-    return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params, is_binary);
+    return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params);
+}
+
+Program Handle::LoadBinaryProgram(const std::string &program_name)
+{
+	return mlopen::LoadBinaryProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name);
 }
 
 void Handle::Finish() const

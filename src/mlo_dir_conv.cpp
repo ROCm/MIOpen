@@ -428,7 +428,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	return(ret);
 }
 
-#ifdef MLOPEN_BACKEND_OPENCL
 bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 {
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
@@ -437,6 +436,7 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
+	const auto n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
 
 	const auto device_is_opencl_on_rocm =
 		   (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
@@ -463,12 +463,11 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 		|| name == "gfx803"
 		|| name == "gfx804";
 
-	const auto platform_is_amd = platform_vendor.find("AMD") != std::string::npos;
+	const auto platform_is_amd = platform_vendor == "Advanced Micro Devices, Inc.";
 
 	const auto device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0 =
 		   device_is_opencl_on_rocm_supports_metadata_1_0
 		&& device_is_gfx8_no_xnack
-		&& vendor_id == 0x1002
 		&& platform_is_amd;
 
 	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
@@ -485,7 +484,7 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 		&& _n_outputs							<	std::pow(2, 16)
 		&& _in_height							<	std::pow(2, 16)
 		&& _in_width							<	std::pow(2, 16)
-		&& _n_groups							<	std::pow(2, 16)
+		&& n_groups								<	std::pow(2, 16)
 		&& _n_inputs * _in_height * _in_width	<=	std::pow(2, 28)
 		&& _n_outputs * _in_height * _in_width	<=	std::pow(2, 28)
 		&& _n_inputs % 2 == 0
@@ -521,7 +520,6 @@ int mlo_construct_direct2D::mloConstructWinograd()
 
 	return (ret);
 }
-#endif // MLOPEN_BACKEND_OPENCL
 
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {

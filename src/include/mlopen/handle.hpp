@@ -45,7 +45,8 @@ struct Handle : mlopenHandle {
         const std::string& algorithm,
         const std::string& network_config);
 
-    Program LoadProgram(const std::string &program_name, std::string params, bool is_binary);
+    Program LoadProgram(const std::string &program_name, std::string params);
+	Program LoadBinaryProgram(const std::string &program_name);
 
     void Finish() const;
     void Flush() const;

@@ -729,10 +729,8 @@ protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
-#ifdef MLOPEN_BACKEND_OPENCL
 	bool mloCheckWinogradCondition() const;
 	int mloConstructWinograd();
-#endif // MLOPEN_BACKEND_OPENCL
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
 	int mloConstructDirect2D3x3(void);
