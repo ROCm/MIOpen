@@ -443,7 +443,7 @@ __kernel void MLOpenCvBwdWrW(
 
 // generic
 
-		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 - (MLO_FILTER_SIZE1 - 2 - MLO_FILTER_PAD1); ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
 
 			int top_df_off = gbl_out_scan_off;
@@ -455,11 +455,11 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 			// move in the last output scans
 			// !!!! 2 is seleted because compiler cannot handle register allocation properly
-			for (int j = 2; j < MLO_FILTER_SIZE1; ++j)
+//			for (int j = 2; j < MLO_FILTER_SIZE1; ++j)
 			{
 				for (int i = 0; i < MLO_IN_TILE0; ++i)
 				{
-					top_dat[j *MLO_IN_TILE0 + i] = top_df[top_df_off + (j-2) * MLO_OUT_STRIDE + i] * mask;
+					top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off/* + (j-2) * MLO_OUT_STRIDE*/ + i] * mask;
 				}
 
 			}
@@ -469,7 +469,7 @@ __kernel void MLOpenCvBwdWrW(
 			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
 // move up output
 // !!!! 2 is seleted because compiler cannot handle register allocation properly
-			for (int j = 0; j < 2/*MLO_FILTER_SIZE1 - 1*/; ++j)
+			for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
 			{
 				for (int i = 0; i < MLO_IN_TILE0; ++i)
 				{
