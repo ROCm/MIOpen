@@ -268,7 +268,7 @@ inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __priva
 					// each wk-item process an input
 					+= bot_val * top_val;
 #if 0
-				if (/*bot_val * top_val != 0 && */get_global_id(1) == 0 && get_global_id(2) == 0 && get_local_id(0) == 0 && l == 2 && n == 0)
+				if (/*bot_val * top_val != 0 && */get_global_id(1) == 0 && get_global_id(2) == 0 && get_local_id(0) == 0 && l == 0 && n == 0)
 				{
 					printf("G: %d %d  %f %f %f %f\n",
 						sc,
@@ -403,7 +403,7 @@ __kernel void MLOpenCvBwdWrW(
 
 
 		// prefetch output
-		for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
+		for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j, gbl_out_scan_off += MLO_OUT_STRIDE)
 		{
 			int top_df_off = gbl_out_scan_off;
 			_FLOAT mask = 1;
@@ -413,7 +413,7 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 			for (int i = 0; i < MLO_IN_TILE0; ++i)
 			{
-				_FLOAT top_val = top_df[top_df_off + j * MLO_OUT_STRIDE + i] * mask;
+				_FLOAT top_val = top_df[top_df_off/* + j * MLO_OUT_STRIDE*/ + i] * mask;
 				top_dat[j*MLO_IN_TILE0 + i] = top_val;
 			}
 		}
@@ -430,14 +430,14 @@ __kernel void MLOpenCvBwdWrW(
 
 // processing
 		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
-		gbl_out_scan_off += MLO_OUT_STRIDE;
+	//	gbl_out_scan_off += MLO_OUT_STRIDE;
 		sc++;
 		sc_lcl_off += MLO_IN_LCL_WIDTH;
 
 
 // pad1
 		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1 + 1, 0, pvt_accum, lcl_bot, top_dat);
-		gbl_out_scan_off += MLO_OUT_STRIDE;
+	//	gbl_out_scan_off += MLO_OUT_STRIDE;
 		sc++;
 		sc_lcl_off += MLO_IN_LCL_WIDTH;
 
@@ -450,19 +450,14 @@ __kernel void MLOpenCvBwdWrW(
 			_FLOAT mask = 1;
 
 #if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
-			top_df_off = ((sc + MLO_FILTER_SIZE1 - 2) < MLO_OUT_HEIGHT) ? top_df_off : 0;
-			mask = ((sc + MLO_FILTER_SIZE1 - 2) < MLO_OUT_HEIGHT) ? 1 : 0;
+			top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
+			mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
 			// move in the last output scans
-			// !!!! 2 is seleted because compiler cannot handle register allocation properly
-//			for (int j = 2; j < MLO_FILTER_SIZE1; ++j)
-			{
 				for (int i = 0; i < MLO_IN_TILE0; ++i)
 				{
-					top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off/* + (j-2) * MLO_OUT_STRIDE*/ + i] * mask;
+					top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
 				}
-
-			}
 
 
 			  // processing
@@ -480,31 +475,10 @@ __kernel void MLOpenCvBwdWrW(
 
 		}
 
-#if 0
-		{
-			int top_df_off = gbl_out_scan_off;
-			_FLOAT mask = 1;
-
-#if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
-			top_df_off = ((sc + MLO_FILTER_SIZE1 - 2) < MLO_OUT_HEIGHT) ? top_df_off : 0;
-			mask = ((sc + MLO_FILTER_SIZE1 - 2) < MLO_OUT_HEIGHT) ? 1 : 0;
-#endif
-			// move in the last output scans
-			// !!!! 2 is seleted because compiler cannot handle register allocation properly
-			for (int j = 2; j < MLO_FILTER_SIZE1 - 1; ++j)
-			{
-				for (int i = 0; i < MLO_IN_TILE0; ++i)
-				{
-					top_dat[j *MLO_IN_TILE0 + i] = top_df[top_df_off + (j - 2) * MLO_OUT_STRIDE + i] * mask;
-				}
-
-			}
-		}
-#endif
 // epilog 
 // handling padding
 // pad1
-//		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
 
 
@@ -521,13 +495,11 @@ __kernel void MLOpenCvBwdWrW(
 
 
 		} // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
-		++sc;
-		sc_lcl_off += MLO_IN_LCL_WIDTH;
 
 
 
 // pad0
-//		for (; sc < MLO_OUT_HEIGHT; ++sc, , sc_lcl_off += MLO_IN_LCL_WIDTH)
+		for (; sc < MLO_OUT_HEIGHT; ++sc,sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
 			// processing
 			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, MLO_FILTER_PAD1, pvt_accum, lcl_bot, top_dat);
