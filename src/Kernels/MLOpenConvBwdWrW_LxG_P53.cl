@@ -267,7 +267,7 @@ inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __priva
 				pvt_accum[l*MLO_FILTER_SIZE0 + n]
 					// each wk-item process an input
 					+= bot_val * top_val;
-#if 1
+#if 0
 				if (/*bot_val * top_val != 0 && */get_global_id(1) == 0 && get_global_id(2) == 0 && get_local_id(0) == 0 && l == 2 && n == 0)
 				{
 					printf("G: %d %d  %f %f %f %f\n",
