@@ -23,7 +23,7 @@
 
 namespace mlopen {
 
-const std::shared_ptr<OCLKernel> KernelCache::GetKernel(const std::string& algorithm,
+const std::shared_ptr<Kernel> KernelCache::GetKernel(const std::string& algorithm,
 										const std::string& network_config) {
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -42,7 +42,7 @@ const std::shared_ptr<OCLKernel> KernelCache::GetKernel(const std::string& algor
 	}
 }
 
-std::shared_ptr<OCLKernel> KernelCache::GetKernel(Handle &h,
+std::shared_ptr<Kernel> KernelCache::GetKernel(Handle &h,
 										const std::string& algorithm,
 										const std::string& network_config,
 										const std::string& program_name,
@@ -74,10 +74,14 @@ std::shared_ptr<OCLKernel> KernelCache::GetKernel(Handle &h,
     }
     else
     {
-        program = h.LoadProgram(program_name, params, is_binary);
+		if (is_binary)
+			program = h.LoadBinaryProgram(program_name);
+		else
+			program = h.LoadProgram(program_name, params);
+
 		program_map[std::make_pair(program_name, params)] = program;
     }
-	auto kernel = std::shared_ptr<OCLKernel>(new OCLKernel{ program, kernel_name, vld, vgd });
+	auto kernel = std::shared_ptr<Kernel>(new Kernel{ program, kernel_name, vld, vgd });
     if (!network_config.empty() && !algorithm.empty()) {
         kernel_map[key] = kernel;
     }

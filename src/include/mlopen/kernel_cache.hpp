@@ -43,11 +43,11 @@ class KernelCache
 public:
 
 	typedef std::pair<std::string, std::string> Key;
-	typedef std::unordered_map< Key, std::shared_ptr<OCLKernel>, SimpleHash > KernelMap;
+	typedef std::unordered_map< Key, std::shared_ptr<Kernel>, SimpleHash > KernelMap;
     typedef std::unordered_map< Key, Program, SimpleHash > ProgramMap;
 
 
-	std::shared_ptr<OCLKernel> GetKernel(Handle &h,
+	std::shared_ptr<Kernel> GetKernel(Handle &h,
 						 const std::string& algorithm,
 						 const std::string& network_config,
 						 const std::string& program_name,
@@ -57,7 +57,7 @@ public:
 						 std::string params = "",
 						 bool is_binary = false);
 	
-	const std::shared_ptr<OCLKernel> GetKernel( const std::string& algorithm,
+	const std::shared_ptr<Kernel> GetKernel( const std::string& algorithm,
 						 const std::string& network_config);
 
 

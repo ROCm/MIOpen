@@ -12,7 +12,8 @@ using ClProgramPtr = MLOPEN_MANAGE_PTR(cl_program, clReleaseProgram);
 using ClKernelPtr = MLOPEN_MANAGE_PTR(cl_kernel, clReleaseKernel);
 using ClAqPtr = MLOPEN_MANAGE_PTR(mlopenAcceleratorQueue_t, clReleaseCommandQueue);
 
-ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params, bool is_binary = false);
+ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params);
+ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::string &program_name);
 ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name);
 inline ClKernelPtr CreateKernel(const ClProgramPtr& program, const std::string& kernel_name)
 {
