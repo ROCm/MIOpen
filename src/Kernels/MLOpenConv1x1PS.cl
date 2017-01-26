@@ -351,7 +351,7 @@ __kernel void MLOpenConv1x1PS(
 #endif
 			{
 
-				*((MLO_READ_TYPE*)&out_ptr[out_off2]) = (out_tiles[ib][olc] + (MLO_READ_TYPE)bias_val);
+				*((__global MLO_READ_TYPE*)&out_ptr[out_off2]) = (out_tiles[ib][olc] + (MLO_READ_TYPE)bias_val);
 			}
 
 
