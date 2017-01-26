@@ -508,6 +508,10 @@ __kernel void MLOpenCvBwdWrW(
 
 	} // 	for (int b = 0;
 
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+
 // final summation
 	for (int l = 0; l < MLO_FILTER_SIZE1; ++l)
 	{
