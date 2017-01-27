@@ -131,36 +131,6 @@ inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int l
 }
 
 
-inline void ReduceKernel64(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
-{
-	// read first half
-	if (scan_lcl < (sum_stride >> 1))
-	{
-		for (int i = 0; i < unit_len; ++i)
-		{
-			weights_accum[i] = lcl_blob[(lcl_id + scan_lcl) * unit_len + i];
-
-		}
-
-	}
-	// add second half
-	// appload accumulated value so far
-	for (int j = (sum_stride >> 1); j > 0; j >>= 1)
-	{
-		barrier(CLK_LOCAL_MEM_FENCE);
-		if (scan_lcl < j)
-		{
-			for (int i = 0; i < unit_len; ++i)
-			{
-				weights_accum[i] += lcl_blob[(lcl_id + j) * unit_len + i];
-
-				lcl_blob[lcl_id * unit_len + i] = weights_accum[i];
-			}
-
-		}
-	}
-}
-
 
 inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
 {
@@ -170,26 +140,13 @@ inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
 	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
 }
 
-inline void  Kahan_summation_tricked(_FLOAT *sum, _FLOAT * c, _FLOAT v, _FLOAT mod)
-{
-	_FLOAT y = v - *c;    //So far, so good: c is zero.
-	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-	*c = (t - *sum) * mod - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-}
+/*
+	group cooperative read
+	read by MLO_READ_UNIT
+	handle out of range both horizontally and vertically (by fixed number of veryical reads)
 
-
-inline void Kahan_summation2(_FLOAT *sum, _FLOAT *c, _FLOAT *v, int n)
-{
-	for (int i = 0; i < n; ++i)
-	{
-		_FLOAT y = v[i] - c[i];    //So far, so good: c is zero.
-		_FLOAT t = sum[i] + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-		c[i] = (t - sum[i]) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-		sum[i] = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-	}
-}
-
+	no guard against number of inputs
+*/
 inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * bot, __local _FLOAT *lcl_bot)
 {
 	for (int p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * MLO_IN_VERT_READS;
@@ -233,18 +190,6 @@ inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * b
 			{
 				int lcl_in_off = c*MLO_IN_LCL_SZ + c_scan* MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i;
 				lcl_bot[lcl_in_off] = in_rd_data[i];
-#if 0
-				if (c == 0 && c_scan ==1 && c_pix4 == 0)
-				{
-					printf("K:g: %d %d %d %d %f\n",
-						lcl_id,
-						c_scan,
-						i,
-						lcl_in_off,
-						lcl_bot[lcl_in_off]
-					);
-				}
-#endif
 			}
 		}
 
@@ -255,6 +200,14 @@ inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * b
 
 }
 
+/*
+	core processing loop
+	bot - input, from local (1 span)
+	top - output diff, from global (array of spans, filters vertical size)
+
+	loop over filter vertical size
+
+*/
 inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLOAT * pvt_accum, __local _FLOAT * lcl_bot, __private _FLOAT * top_dat)
 {
 	for (int l = top_lim; l >= bot_lim; --l)
@@ -293,13 +246,21 @@ inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __priva
 /*********************************************************************************************************
 // wrw algorithm for large filters
 // idea:
-// split output line line on number of spans by number of waves
-// read MLO_FILTER_SIZE1 number of such spans into SGPS (for example 5 *7 = 35)
-// read 1 input line for 64 maps into LDS
-//
+// split output scan-line on number of spans by the  MLO_IN_TILE0 (2 for example)
+// 1 scan-line has ((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1/MLO_IN_TILE0) spans
+// group will process MLO_GRP_SZ/((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1/MLO_IN_TILE0) output maps
+
 // alg
-//
-// accumulate 1 scan of data per wave per each input map per wk-item
+// load a block of input map (or full map) into LDS
+// loop
+// read MLO_FILTER_SIZE1 number of spans from output map into VGPRs (for example 5 *2 = 10)
+// read 1 input line for  maps into LDS
+// accumulate
+
+// accumulate all spans at the end
+// start new loop for the next batch (if defined)
+// write out 
+
 
 **********************************************************************************************************/
 
@@ -353,7 +314,7 @@ __kernel void MLOpenCvBwdWrW(
 	int out_wk_item_off = o * MLO_OUT_CHANNEL_STRIDE + lcl_bot_off;
 	gbl_out_off += out_wk_item_off;
 
-
+// to mask output spans outside the range
 #if MLO_OUT_N_PIXS_OFF > 0
 	__private _FLOAT out_mask[MLO_IN_TILE0];
 	for(int i = 0; i < MLO_IN_TILE0; ++i)
@@ -414,18 +375,13 @@ __kernel void MLOpenCvBwdWrW(
 			top_dat[i] = 0;
 		}
 
-		int in_y = 0;
-	//	int out_y = 0;
-
 
 		int gbl_in_scan_off = gbl_in_off;
 		int gbl_out_scan_off = gbl_out_off;
-		// over all out blocks
-		// processing per MLO_N_ALIGNED_OUT_SCAN_BLK output scans
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		// read input line
+		// read input map
 		readInput(lcl_id, gbl_in_scan_off, bot, lcl_bot);
 
 
@@ -459,20 +415,17 @@ __kernel void MLOpenCvBwdWrW(
 		int sc_lcl_off = lcl_bot_off;
 // pad0
 
-// processing
 		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
-	//	gbl_out_scan_off += MLO_OUT_STRIDE;
 		sc++;
 		sc_lcl_off += MLO_IN_LCL_WIDTH;
 
 
 // pad1
 		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1 + 1, 0, pvt_accum, lcl_bot, top_dat);
-	//	gbl_out_scan_off += MLO_OUT_STRIDE;
 		sc++;
 		sc_lcl_off += MLO_IN_LCL_WIDTH;
 
-// generic
+// generic loop
 
 		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
@@ -495,10 +448,10 @@ __kernel void MLOpenCvBwdWrW(
 				}
 
 
-			  // processing
+// processing
 			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
-// move up output
-// !!!! 2 is seleted because compiler cannot handle register allocation properly
+
+// move up output to reduce overfetch
 			for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
 			{
 				for (int i = 0; i < MLO_IN_TILE0; ++i)
@@ -547,23 +500,13 @@ __kernel void MLOpenCvBwdWrW(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 
-// final summation
+// final summation over each filter row
 	for (int l = 0; l < MLO_FILTER_SIZE1; ++l)
 	{
 		for (int n = 0; n < MLO_FILTER_SIZE0; ++n)
 		{
 			lcl[lcl_id * MLO_FILTER_SIZE0 + n] =
 				pvt_accum[l*MLO_FILTER_SIZE0 + n];
-#if 0
-			if (get_global_id(1) == 0 && get_global_id(2) == 1/* && get_local_id(0) == 0*/ && l == 0 && n == 0)
-			{
-				printf("G:s1:%d %d  %f\n",
-					o,
-					o_idx,
-					pvt_accum[l*MLO_FILTER_SIZE0 + n]
-				);
-			}
-#endif
 
 		}
 
@@ -578,16 +521,6 @@ __kernel void MLOpenCvBwdWrW(
 				{
 					pvt_accum[l*MLO_FILTER_SIZE0 + n]
 						+= lcl[(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n];
-#if 0
-					if (lcl_wv_id == 0 && l == 2 && n == 3)
-					{
-						printf("G:s2: %f %f\n",
-							pvt_accum[l*MLO_FILTER_SIZE0 + n],
-							lcl[(w* MLO_HW_WAVE_SZ + lcl_wv_id) * MLO_FILTER_SIZE0 + n]
-						);
-					}
-#endif
-
 				}
 
 			}
@@ -606,17 +539,6 @@ __kernel void MLOpenCvBwdWrW(
 		+ mul24((c_idx + c), (int)MLO_WEI_CHANNEL_STRIDE);
 	if (spn==0 && o_idx + o < MLO_N_OUTPUTS && o < MLO_OUT_STACKS)
 	{
-#if 0
-			if (o_idx + o == 9)
-			{
-				printf("G:s1:%d %d  %f\n",
-					get_global_id(0),
-					get_global_id(1),
-					pvt_accum[0]
-				);
-			}
-#endif
-
 		for (int i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
 		{
 			weights_df[wei_df_off + i] = pvt_accum[i];
