@@ -48,7 +48,7 @@
 //     }
 // }, hip: {
     node ('rocmtest10') {
-        docker.image('rocm-aoc2:tot').inside {
+        withDockerContainer('rocm-aoc2:tot') {
             stage 'Checkout'
             env.CXXFLAGS = "-Werror"
             env.CTEST_PARALLEL_LEVEL = "32"
