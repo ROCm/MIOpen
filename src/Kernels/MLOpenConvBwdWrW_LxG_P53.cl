@@ -268,7 +268,7 @@ inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __priva
 					// each wk-item process an input
 					+= bot_val * top_val;
 #if 0
-				if (/*bot_val * top_val != 0 && */get_global_id(1) == 0 && get_global_id(2) == 0 && get_local_id(0) == 0 && l == 0 && n == 0)
+				if (/*bot_val * top_val != 0 && */get_global_id(1) == 0 && get_global_id(2) == 1 && get_local_id(0) == 0 && l == 0 && n == 0)
 				{
 					printf("G: %d %d  %f %f %f %f\n",
 						sc,
@@ -343,7 +343,7 @@ __kernel void MLOpenCvBwdWrW(
 // 1 span per wk_item, total scanline with MLO_N_SPANS_PER_SCAN spans 
 // TODO: more than 1 input
 	int o = iDiv(lcl_id, MLO_N_SPANS_PER_SCAN);
-	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
+//	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
 	int spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 #define MLO_TOP_DAT_SZ (MLO_IN_TILE0 * MLO_FILTER_SIZE1)
 	int lcl_bot_off = spn * MLO_IN_TILE0;
@@ -388,6 +388,11 @@ __kernel void MLOpenCvBwdWrW(
 		gbl_out_off += MLO_N_LCL_BATCHS*MLO_OUT_BATCH_STRIDE
 		)
 	{
+		for (int i = 0; i < MLO_TOP_DAT_SZ; ++i)
+		{
+			top_dat[i] = 0;
+		}
+
 		int in_y = 0;
 	//	int out_y = 0;
 
@@ -521,9 +526,11 @@ __kernel void MLOpenCvBwdWrW(
 			lcl[lcl_id * MLO_FILTER_SIZE0 + n] =
 				pvt_accum[l*MLO_FILTER_SIZE0 + n];
 #if 0
-			if (lcl_wv_id == 0 && l == 2 && n == 3)
+			if (get_global_id(1) == 0 && get_global_id(2) == 1/* && get_local_id(0) == 0*/ && l == 0 && n == 0)
 			{
-				printf("G:s1: %f\n",
+				printf("G:s1:%d %d  %f\n",
+					o,
+					o_idx,
 					pvt_accum[l*MLO_FILTER_SIZE0 + n]
 				);
 			}
@@ -533,7 +540,7 @@ __kernel void MLOpenCvBwdWrW(
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (scan_lead)
+		if (spn==0)
 		{
 			for (int s = 0; s < MLO_N_SPANS_PER_SCAN - 1; ++s)
 			{
@@ -568,8 +575,19 @@ __kernel void MLOpenCvBwdWrW(
 	int wei_df_off = ((ib * MLO_N_OUTPUTS + o_idx + o) * (int)MLO_WEI_BATCH_STRIDE)
 		// this input channel
 		+ mul24((c_idx + c), (int)MLO_WEI_CHANNEL_STRIDE);
-	if (scan_lead && o_idx + o < MLO_N_OUTPUTS)
+	if (spn==0 && o_idx + o < MLO_N_OUTPUTS && o < MLO_OUT_STACKS)
 	{
+#if 0
+			if (o_idx + o == 9)
+			{
+				printf("G:s1:%d %d  %f\n",
+					get_global_id(0),
+					get_global_id(1),
+					pvt_accum[0]
+				);
+			}
+#endif
+
 		for (int i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
 		{
 			weights_df[wei_df_off + i] = pvt_accum[i];
