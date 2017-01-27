@@ -48,28 +48,30 @@
 //     }
 // }, hip: {
     node ('rocmtest10') {
-        dockerNode(image: 'rocm-aoc2:tot') {
-            stage 'Checkout'
-            env.CXXFLAGS = "-Werror"
-            env.CTEST_PARALLEL_LEVEL = "32"
-            checkout scm
+        stage 'Checkout'
+        env.CXXFLAGS = "-Werror"
+        env.CTEST_PARALLEL_LEVEL = "32"
+        checkout scm
 
-            stage 'Hip Debug'
-            sh '''
-                rm -rf build
-                mkdir build
-                cd build
-                CXX='hcc' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
-                make -j32 check
-            '''
-            stage 'Hip Release'
-            sh '''
-                rm -rf build
-                mkdir build
-                cd build
-                CXX='hcc' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release .. 
-                make -j32 check
-            '''
-        }
+        stage 'Hip Debug'
+        docker_sh rocm-aoc2:tot '''
+            rm -rf build
+            mkdir build
+            cd build
+            CXX='hcc' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
+            make -j32 check
+        '''
+        stage 'Hip Release'
+        docker_sh rocm-aoc2:tot '''
+            rm -rf build
+            mkdir build
+            cd build
+            CXX='hcc' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release .. 
+            make -j32 check
+        '''
     }
 // }
+
+def docker_sh(container, command) {
+    sh "docker run -it -v=$(pwd):/data -w /data -v=/etc/localtime:/etc/localtime --device=/dev/kfd ${container} bash -c '${command}'"
+}
