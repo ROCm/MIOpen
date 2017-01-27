@@ -48,7 +48,7 @@
 //     }
 // }, hip: {
     node ('rocmtest10') {
-        withDockerContainer('rocm-aoc2:tot') {
+        docker.image('rocm-aoc2:tot').inside {
             stage 'Checkout'
             env.CXXFLAGS = "-Werror"
             env.CTEST_PARALLEL_LEVEL = "32"
@@ -73,6 +73,6 @@
         }
     }
 // }
-def docker_sh(container, command) {
-    sh "docker run -it -v=\$(pwd):/data -w /data -v=/etc/localtime:/etc/localtime --device=/dev/kfd ${container} bash -c '${command}'"
-}
+// def docker_sh(container, command) {
+//     sh "docker run -it -v=\$(pwd):/data -w /data -v=/etc/localtime:/etc/localtime --device=/dev/kfd ${container} bash -c '${command}'"
+// }
