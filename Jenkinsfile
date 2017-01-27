@@ -54,7 +54,7 @@
         checkout scm
 
         stage 'Hip Debug'
-        docker_sh rocm-aoc2:tot '''
+        docker_sh 'rocm-aoc2:tot' '''
             rm -rf build
             mkdir build
             cd build
@@ -62,7 +62,7 @@
             make -j32 check
         '''
         stage 'Hip Release'
-        docker_sh rocm-aoc2:tot '''
+        docker_sh 'rocm-aoc2:tot' '''
             rm -rf build
             mkdir build
             cd build
