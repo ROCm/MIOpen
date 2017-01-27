@@ -53,7 +53,7 @@
             env.CTEST_PARALLEL_LEVEL = "32"
             checkout scm
         }
-        withDockerContainer('rocm-aoc2:tot', '--device=/dev/kfd') {
+        withDockerContainer(image: 'rocm-aoc2:tot', args: '--device=/dev/kfd') {
 
             stage('Hip Debug') {
                 sh '''
