@@ -6,11 +6,11 @@ namespace mlopen {
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		const TensorDescriptor&		xDesc,
-		const cl_mem				x,
+		ConstData_t				x,
 		const TensorDescriptor&		wDesc,
-		const cl_mem				w,
+		ConstData_t				w,
 		const TensorDescriptor&		yDesc,
-		const cl_mem				y,
+		ConstData_t				y,
 		const int					 /*requestAlgoCount*/,
 		int							* /*returnedAlgoCount*/,
 		mlopenConvAlgoPerf_t		*perfResults,
@@ -41,7 +41,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
 		construct_params.setGeneralCompOptions("");
 
-		construct_params.setStream(handle.GetStream());
+		construct_params.setStream(&handle);
 
 		construct_params.setOutputDescFromMLDesc(yDesc);
 		construct_params.setInputDescFromMLDesc(xDesc);
@@ -81,13 +81,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 		const void					* /*alpha*/,
 		const TensorDescriptor&		xDesc,
-		const cl_mem				x,
+		ConstData_t				x,
 		const TensorDescriptor&		wDesc,
-		const cl_mem				w,
+		ConstData_t				w,
 		mlopenConvFwdAlgorithm_t	algo,
 		const void					* /*beta*/,
 		const TensorDescriptor&		yDesc,
-		cl_mem						y, 
+		Data_t						y, 
 		void						* /*workSpace*/,
 		size_t						 /*workSpaceSize*/) const {
 
@@ -142,11 +142,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 //
 void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 		const TensorDescriptor&		dyDesc,
-		const cl_mem				dy,
+		ConstData_t				dy,
 		const TensorDescriptor&		wDesc,
-		const cl_mem				w,
+		ConstData_t				w,
 		const TensorDescriptor&		dxDesc,
-		const cl_mem				dx,
+		ConstData_t				dx,
 		const int					 /*requestAlgoCount*/,
 		int							* /*returnedAlgoCount*/,
 		mlopenConvAlgoPerf_t		*perfResults,
@@ -177,7 +177,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
 		construct_params.setGeneralCompOptions("");
 
-		construct_params.setStream(handle.GetStream());
+		construct_params.setStream(&handle);
 
 		construct_params.setOutputDescFromMLDesc(dyDesc);
 		construct_params.setInputDescFromMLDesc(dxDesc);
@@ -219,13 +219,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 		const void						* /*alpha*/,
 		const TensorDescriptor&			dyDesc,
-		const cl_mem					dy,
+		ConstData_t					dy,
 		const TensorDescriptor&			wDesc,
-		const cl_mem					w,
+		ConstData_t					w,
 		mlopenConvBwdDataAlgorithm_t	/* algo */,
 		const void						* /*beta*/,
 		const TensorDescriptor&			dxDesc,
-		cl_mem							dx, 
+		Data_t							dx, 
 		void							* /*workSpace*/,
 		size_t							 /*workSpaceSize*/) const {
 
@@ -251,6 +251,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 		construct_params.setOutputDescFromMLDesc(dyDesc);
 		construct_params.setInputDescFromMLDesc(dxDesc);
 		construct_params.setWeightDescFromMLDesc(wDesc);
+		construct_params.setStream(&handle);
 	}
 
 	std::string network_config;
@@ -289,21 +290,24 @@ void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 //
 void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		const TensorDescriptor&		dyDesc,
-		const cl_mem				dy,
+		ConstData_t				dy,
 		const TensorDescriptor&		xDesc,
-		const cl_mem				x,
+		ConstData_t				x,
 		const TensorDescriptor&		dwDesc,
-		const cl_mem				dw,
+		ConstData_t				dw,
 		const int					 /*requestAlgoCount*/,
 		int							* /*returnedAlgoCount*/,
 		mlopenConvAlgoPerf_t		*perfResults,
 		mlopenConvPreference_t		 /*preference*/,
-		cl_mem						workSpace,
+		Data_t						workSpace,
 		size_t						/*workSpaceSize*/,
 		bool						/*exhaustiveSearch*/) const {
 	
 	if(x == nullptr || dw == nullptr || dy == nullptr) {
 		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+	if(workSpace == nullptr) {
+		MLOPEN_THROW("Workspace is requried");
 	}
 
 	int in_n, in_c, in_h, in_w;
@@ -335,7 +339,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 		mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
 		{
 			construct_params.doSearch(false);
-			construct_params.setStream(handle.GetStream());
+			construct_params.setStream(&handle);
 			construct_params.setOutputDescFromMLDesc(dyDesc);
 			construct_params.setInputDescFromMLDesc(xDesc);
 			construct_params.setWeightDescFromMLDesc(dwDesc);
@@ -423,14 +427,14 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 		const void						* /*alpha*/,
 		const TensorDescriptor&			dyDesc,
-		const cl_mem					dy,
+		ConstData_t					dy,
 		const TensorDescriptor&			xDesc,
-		const cl_mem					x,
+		ConstData_t					x,
 		mlopenConvBwdWeightsAlgorithm_t algo,
 		const void						* /*beta*/,
 		const TensorDescriptor&			dwDesc,
-		cl_mem							dw, 
-		cl_mem							workSpace,
+		Data_t							dw, 
+		Data_t							workSpace,
 		size_t							/*workSpaceSize*/) const {
 
 	if(x == nullptr || dw == nullptr || dy == nullptr) {
@@ -447,6 +451,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 	}
 	if(dyDesc.GetSize() < 3) {
 		MLOPEN_THROW(mlopenStatusBadParm);
+	}
+	if(workSpace == nullptr) {
+		MLOPEN_THROW("Workspace is requried");
 	}
 	switch (algo)
 	{
@@ -486,7 +493,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 			{
 				mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
 				construct_params.doSearch(false);
-				construct_params.setStream(handle.GetStream());
+				construct_params.setStream(&handle);
 				construct_params.setOutputDescFromMLDesc(dyDesc);
 				construct_params.setInputDescFromMLDesc(xDesc);
 				construct_params.setWeightDescFromMLDesc(dwDesc);

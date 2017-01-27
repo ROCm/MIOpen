@@ -55,9 +55,9 @@ int mlo_construct_neuron::mloConstructFwd()
 	_grp_tile1 = 1;
 
 	_comp_options =
-		std::string(" -D MLO_NRN_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
-		+ std::string(" -D MLO_NRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
-		+ std::string(" -D MLO_NRN_OP_ID=") + std::to_string(static_cast<long long>(_neuron_type))
+		std::string(" -DMLO_NRN_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
+		+ std::string(" -DMLO_NRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
+		+ std::string(" -DMLO_NRN_OP_ID=") + std::to_string(static_cast<long long>(_neuron_type))
 		+ getGeneralCompOptions()
 		;
 
@@ -98,9 +98,9 @@ int mlo_construct_neuron::mloConstructBwd()
 	_grp_tile1 = 1;
 
 	_comp_options =
-		std::string(" -D MLO_NRN_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
-		+ std::string(" -D MLO_NRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
-		+ std::string(" -D MLO_NRN_OP_ID=") + std::to_string(static_cast<long long>(_neuron_type))
+		std::string(" -DMLO_NRN_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
+		+ std::string(" -DMLO_NRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
+		+ std::string(" -DMLO_NRN_OP_ID=") + std::to_string(static_cast<long long>(_neuron_type))
 		+ getGeneralCompOptions()
 		;
 
