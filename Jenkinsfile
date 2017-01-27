@@ -47,6 +47,9 @@
 //         '''
 //     }
 // }, hip: {
+def docker_sh(container, command) {
+    sh "docker run -it -v=\$(pwd):/data -w /data -v=/etc/localtime:/etc/localtime --device=/dev/kfd ${container} bash -c '${command}'"
+}
     node ('rocmtest10') {
         stage 'Checkout'
         env.CXXFLAGS = "-Werror"
@@ -71,7 +74,3 @@
         '''
     }
 // }
-
-def docker_sh(container, command) {
-    sh "docker run -it -v=\$(pwd):/data -w /data -v=/etc/localtime:/etc/localtime --device=/dev/kfd ${container} bash -c '${command}'"
-}
