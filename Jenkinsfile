@@ -73,5 +73,5 @@
 // }
 
 def docker_sh(container, command) {
-    sh "docker run -it -v=$(pwd):/data -w /data -v=/etc/localtime:/etc/localtime --device=/dev/kfd ${container} bash -c '${command}'"
+    sh "docker run -it -v=\$(pwd):/data -w /data -v=/etc/localtime:/etc/localtime --device=/dev/kfd ${container} bash -c '${command}'"
 }
