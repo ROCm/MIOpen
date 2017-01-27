@@ -13,17 +13,17 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		Handle								&handle,
 		const void							* /*alpha*/,
 		const TensorDescriptor				&xDesc,
-		const cl_mem						x,
+		ConstData_t						x,
 		const void							* /*beta*/,
 		const TensorDescriptor				&yDesc,
-		cl_mem								y,
+		Data_t								y,
 		bool								do_backward,
-		cl_mem								workSpace,
+		Data_t								workSpace,
 		size_t								 /*workSpaceSize*/) const {
 
 	mlo_construct_pooling2D construct_params(1); // forward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 
 	int nOut;
 	int cOut;
@@ -113,21 +113,21 @@ mlopenStatus_t PoolingDescriptor::Backward(
 		Handle								&handle,
 		const void							* /*alpha*/,
 		const TensorDescriptor				&yDesc,
-		const cl_mem						/*y*/,
+		ConstData_t						/*y*/,
 		const TensorDescriptor				&dyDesc,
-		const cl_mem						dy,
+		ConstData_t						dy,
 		const TensorDescriptor				&xDesc,
-		const cl_mem						/*x*/,
+		ConstData_t						/*x*/,
 		const void							* /*beta*/,
 		const TensorDescriptor				&dxDesc,
-		cl_mem								dx,
-		const cl_mem						workSpace) const {
+		Data_t								dx,
+		ConstData_t						workSpace) const {
 
 
 	mlopenStatus_t status = mlopenStatusSuccess;
 	mlo_construct_pooling2D construct_params(0); // backward
 
-	construct_params.setStream(handle.GetStream());
+	construct_params.setStream(&handle);
 
 	int ndOut;
 	int cdOut;

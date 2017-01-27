@@ -17,8 +17,8 @@
 #include <CL/cl.h>
 #endif
 
-#elif MLOPEN_BACKEND_HIP
-#include <hip_runtime.h>
+#elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
+#include <hip/hip_runtime.h>
 #endif
 
 #define MLOPEN_DECLARE_OBJECT(name) \
@@ -31,7 +31,7 @@ extern "C" {
 
 #if MLOPEN_BACKEND_OPENCL
 typedef cl_command_queue mlopenAcceleratorQueue_t;
-#elif MLOPEN_BACKEND_HIP
+#elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
 typedef hipStream_t mlopenAcceleratorQueue_t;
 #endif
 
