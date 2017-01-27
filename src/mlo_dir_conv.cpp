@@ -1081,7 +1081,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 	int OUT_SCAN_NOT_DIVBY4 = (_in_width < ALIGNED_OUT_SCAN_LN*read_unit);
 
-	int OUT_N_PIXS_OFF = ALIGNED_OUT_SCAN_LN*read_unit - _in_width;
+	int OUT_N_PIXS_OFF = _in_width - (_in_width / read_unit) * read_unit;
 
 
 	// select output mapping
@@ -1145,8 +1145,8 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		+ std::string(" -D MLO_ALIGNED_OUT_SCAN_LN=") + std::to_string(ALIGNED_OUT_SCAN_LN) // image aligned scan
 		+ std::string(" -D MLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
 		+ std::string(" -D MLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
-		+ std::string(" -D MLO_OUT_SCAN_NOT_DIVBY4=") + std::to_string(OUT_SCAN_NOT_DIVBY4)
-		+ std::string(" -D MLO_OUT_N_PIXS_OFF=") + std::to_string(OUT_N_PIXS_OFF)
+//		+ std::string(" -D MLO_OUT_SCAN_NOT_DIVBY4=") + std::to_string(OUT_SCAN_NOT_DIVBY4)
+//		+ std::string(" -D MLO_OUT_N_PIXS_OFF=") + std::to_string(OUT_N_PIXS_OFF)
 
 		+ std::string(" -D MLO_CONV_BIAS=") + std::to_string(_bias)
 

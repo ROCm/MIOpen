@@ -35,7 +35,8 @@
 
 #define MLO_N_OUT_HORIZ_READS ((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1) / MLO_IN_TILE0)
 #define MLO_N_SPANS_PER_SCAN (MLO_N_OUT_HORIZ_READS)
-#define MLO_N_OUT_HORIZ_PIX_READS (MLO_PER_WAVE_READ * MLO_IN_TILE0)
+#define MLO_N_OUT_HORIZ_PIX_READS (MLO_N_OUT_HORIZ_READS * MLO_IN_TILE0)
+#define MLO_OUT_N_PIXS_OFF (MLO_OUT_WIDTH - ((MLO_OUT_WIDTH / MLO_IN_TILE0)*MLO_IN_TILE0))
 #define MLO_N_OUT_VERTICAL_READS (MLO_FILTER_SIZE1)
 
 
@@ -44,7 +45,7 @@
 // there is an assumption that the scanline fits into LDS
 #define MLO_N_IN_HORIZ_PIX_READS (MLO_IN_WIDTH) 
 #define MLO_N_IN_HORIZ_READS ((MLO_N_IN_HORIZ_PIX_READS + MLO_READ_UNIT - 1) / MLO_READ_UNIT)
-#define MLO_IN_N_PIXS_OFF  (MLO_N_IN_HORIZ_READS*MLO_READ_UNIT - MLO_N_IN_HORIZ_PIX_READS)
+#define MLO_IN_N_PIXS_OFF  (MLO_N_IN_HORIZ_PIX_READS - (MLO_N_IN_HORIZ_PIX_READS/MLO_READ_UNIT)*MLO_READ_UNIT)
 #define MLO_IN_LCL_WIDTH (MLO_N_IN_HORIZ_READS * MLO_READ_UNIT + 2* MLO_FILTER_PAD0)
 #define MLO_IN_LCL_HEIGHT MLO_IN_VERT_READS
 #define MLO_IN_LCL_SZ (MLO_IN_LCL_WIDTH * MLO_IN_LCL_HEIGHT)
@@ -215,7 +216,7 @@ inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * b
 					in_rd_data[i] = bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
 				}
 
-				for (int i = MLO_READ_UNIT - 1; i >= MLO_READ_UNIT - MLO_IN_N_PIXS_OFF; --i)
+				for (int i = MLO_IN_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
 				{
 					in_rd_data[i] = 0;
 				}
@@ -268,9 +269,10 @@ inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __priva
 					// each wk-item process an input
 					+= bot_val * top_val;
 #if 0
-				if (/*bot_val * top_val != 0 && */get_global_id(1) == 0 && get_global_id(2) == 1 && get_local_id(0) == 0 && l == 0 && n == 0)
+				if (/*bot_val * top_val != 0 && */get_global_id(1) == 0 && get_global_id(2) == 0 /*&& get_local_id(0) == 0*/ && l == 2 && n == 1)
 				{
-					printf("G: %d %d  %f %f %f %f\n",
+					printf("G: %d %d %d  %f %f %f %f\n",
+						MLO_OUT_N_PIXS_OFF,
 						sc,
 						sc_lcl_off,
 						pvt_accum[l*MLO_FILTER_SIZE0 + n],
@@ -345,10 +347,29 @@ __kernel void MLOpenCvBwdWrW(
 	int o = iDiv(lcl_id, MLO_N_SPANS_PER_SCAN);
 //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
 	int spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
-#define MLO_TOP_DAT_SZ (MLO_IN_TILE0 * MLO_FILTER_SIZE1)
+
+
 	int lcl_bot_off = spn * MLO_IN_TILE0;
 	int out_wk_item_off = o * MLO_OUT_CHANNEL_STRIDE + lcl_bot_off;
 	gbl_out_off += out_wk_item_off;
+
+
+#if MLO_OUT_N_PIXS_OFF > 0
+	__private _FLOAT out_mask[MLO_IN_TILE0];
+	for(int i = 0; i < MLO_IN_TILE0; ++i)
+	{
+		out_mask[i] = 1;
+	}
+	if (spn == MLO_N_SPANS_PER_SCAN -1)
+	{
+		for(int i = MLO_OUT_N_PIXS_OFF; i < MLO_IN_TILE0; ++i)
+		{
+			out_mask[i] = 0;
+		}
+	}
+#endif
+
+#define MLO_TOP_DAT_SZ (MLO_IN_TILE0 * MLO_FILTER_SIZE1)
 
 	__private _FLOAT top_dat[MLO_TOP_DAT_SZ];
 
@@ -419,7 +440,11 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 			for (int i = 0; i < MLO_IN_TILE0; ++i)
 			{
-				_FLOAT top_val = top_df[top_df_off/* + j * MLO_OUT_STRIDE*/ + i] * mask;
+				_FLOAT top_val = top_df[top_df_off + i] * mask
+#if MLO_OUT_N_PIXS_OFF > 0
+					* out_mask[i]
+#endif
+				;
 				top_dat[j*MLO_IN_TILE0 + i] = top_val;
 			}
 		}
@@ -462,7 +487,11 @@ __kernel void MLOpenCvBwdWrW(
 			// move in the last output scans
 				for (int i = 0; i < MLO_IN_TILE0; ++i)
 				{
-					top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+					top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask
+#if MLO_OUT_N_PIXS_OFF > 0
+						* out_mask[i]
+#endif
+					;
 				}
 
 
