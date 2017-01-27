@@ -1140,7 +1140,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		+ std::string(" -D MLO_UT_READ_TYPE=") + UT_READ_TYPE
 		+ std::string(" -D MLO_UT_READ_UNIT=") + std::to_string(ut_read_unit)
 
-		+ std::string(" -D MLO_UT_GRP_SZ0=") + std::to_string((UT_GRP_SZ0))
+		+ std::string(" -D MLO_UT_GRP_SZ0=") + std::to_string(UT_GRP_SZ0)
 
 		//		+ std::string(" -limit-vector-registers=64 ")
 		+ getGeneralCompOptions()
@@ -1151,6 +1151,9 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	// wrt to W
 	{
 		_l_wk.clear();
+		_l_wk.push_back(_grp_tile0);
+		_l_wk.push_back(_grp_tile1);
+		_l_wk.push_back(grp_tile2);
 		// input is output
 
 		size_t gbl_wk0 = GRP_SZ;
@@ -1183,6 +1186,9 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 		std::vector<size_t> l_wk;
 		l_wk.clear();
+		l_wk.push_back(UT_GRP_SZ0);
+		l_wk.push_back(1);
+		l_wk.push_back(1);
 
 		int gbl_ut_wk0 = wei_bstride * _n_inputs / ut_read_unit;
 
@@ -1340,6 +1346,9 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	// wrt to W
 	{
 		_l_wk.clear();
+		_l_wk.push_back(_grp_tile0);
+		_l_wk.push_back(_grp_tile1);
+		_l_wk.push_back(grp_tile2);
 		// input is output
 
 		size_t gbl_wk0 = GRP_SZ;
@@ -1372,6 +1381,9 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 
 		std::vector<size_t> l_wk;
 		l_wk.clear();
+		l_wk.push_back(UT_GRP_SZ0);
+		l_wk.push_back(1);
+		l_wk.push_back(1);
 
 		int gbl_ut_wk0 = wei_bstride * _n_inputs / ut_read_unit;
 
