@@ -182,7 +182,7 @@ inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * b
 			else
 #endif
 			{
-				*(MLO_READ_TYPE*)in_rd_data = *(MLO_READ_TYPE*)&bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
+				*(MLO_READ_TYPE*)in_rd_data = *(__global MLO_READ_TYPE*)&bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
 			}
 
 // stack of inputs, each has 1 line
@@ -574,9 +574,9 @@ __kernel void MLOpenCvBwdWrW_rdc(
 	for (int i = 0; i < batch_loop; ++i)
 	{
 		*(MLO_UT_READ_TYPE*)pvt_accum_wei
-			+= *(MLO_UT_READ_TYPE*)&weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE)  + wei_idx];
+			+= *(__global MLO_UT_READ_TYPE*)&weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE)  + wei_idx];
 	}
 
-	*(MLO_UT_READ_TYPE*)&weights_df[wei_idx0] = *(MLO_UT_READ_TYPE*)pvt_accum_wei;
+	*(__global MLO_UT_READ_TYPE*)&weights_df[wei_idx0] = *(MLO_UT_READ_TYPE*)pvt_accum_wei;
 
 }
