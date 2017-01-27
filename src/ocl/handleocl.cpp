@@ -3,8 +3,8 @@
 #include <mlopen/errors.hpp>
 #include <mlopen/kernel_cache.hpp>
 #include <mlopen/ocldeviceinfo.hpp>
+#include <mlopen/device_name.hpp>
 #include <string>
-#include <map>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -130,14 +130,6 @@ struct HandleImpl
     KernelCache cache;
     bool enable_profiling = false;
     float profiling_result = 0.0;
-	std::map<std::string, std::string> device_name_map;
-
-	HandleImpl() {
-		device_name_map["Fiji"] = "Fiji";
-		device_name_map["gfx803"] = "Fiji";
-		device_name_map["gfx802"] = "Fiji";
-		device_name_map["gfx804"] = "Fiji";
-	}
 
     ContextPtr create_context()
     {
@@ -201,15 +193,6 @@ struct HandleImpl
         clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
         profiling_result = ((end-st)*1e-6);
     }
-	std::string GetDeviceName(std::string &name){
-		auto device_name_iterator = device_name_map.find(name);
-		if(device_name_iterator != device_name_map.end()) {
-			return device_name_iterator->second;
-		}
-		else {
-			return name;
-		}
-	}
 };
 
 Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
@@ -372,7 +355,7 @@ std::size_t Handle::GetLocalMemorySize()
 std::string Handle::GetDeviceName()
 {
 	std::string name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(mlopen::GetDevice(this->GetStream()));
-	return this->impl->GetDeviceName(name);
+	return GetDeviceNameFromMap(name);
 }
 
 std::size_t Handle::GetMaxComputeUnits()
