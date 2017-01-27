@@ -397,6 +397,7 @@ __kernel void MLOpenCvBwdWrW(
 		// over all out blocks
 		// processing per MLO_N_ALIGNED_OUT_SCAN_BLK output scans
 
+		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// read input line
 		readInput(lcl_id, gbl_in_scan_off, bot, lcl_bot);
