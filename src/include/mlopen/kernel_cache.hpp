@@ -54,8 +54,7 @@ public:
 						 const std::string& kernel_name,
 						 const std::vector<size_t>& vld,
 						 const std::vector<size_t>& vgd,
-						 std::string params = "",
-						 bool is_binary = false);
+						 std::string params = "");
 	
 	const std::shared_ptr<Kernel> GetKernel( const std::string& algorithm,
 						 const std::string& network_config);

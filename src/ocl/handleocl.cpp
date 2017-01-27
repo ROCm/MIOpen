@@ -296,7 +296,6 @@ KernelInvoke Handle::GetKernel(
         const std::vector<size_t>& vld,
         const std::vector<size_t>& vgd,
         const std::string& params,
-        bool is_binary,
         const compiled_in_params compiled_ins)
 {
     auto q = this->GetStream();
@@ -307,8 +306,7 @@ KernelInvoke Handle::GetKernel(
             kernel_name,
             vld,
             vgd,
-            params,
-            is_binary);
+            params);
 
     obj->SetKernArgListType(compiled_ins);
 
@@ -337,14 +335,9 @@ KernelInvoke Handle::GetKernel(
     }
 }
 
-Program Handle::LoadProgram(const std::string &program_name, std::string params)
+Program Handle::LoadProgram(const std::string &program_name, const std::string& params)
 {
     return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params);
-}
-
-Program Handle::LoadBinaryProgram(const std::string &program_name)
-{
-	return mlopen::LoadBinaryProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name);
 }
 
 void Handle::Finish() const

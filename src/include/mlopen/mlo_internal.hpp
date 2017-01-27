@@ -256,14 +256,6 @@ public:
 	}
 
 	/*
-	* returns true if kernel is a built binary
-	*/
-	inline bool getIsBinary()
-	{
-		return _is_binary;
-	}
-
-	/*
 	* returns kernel file name without location
 	*/
 	inline std::string getKernelFile() const
@@ -891,7 +883,6 @@ protected:
 
 	unsigned int _n_groups;
 	compiled_in_params _compiled_in_parameters = compiled_in_params::legacy;
-	bool _is_binary = false;
 };
 
 

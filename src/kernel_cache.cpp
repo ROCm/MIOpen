@@ -49,8 +49,7 @@ std::shared_ptr<Kernel> KernelCache::GetKernel(Handle &h,
 										const std::string& kernel_name,
 										const std::vector<size_t>& vld,
 										const std::vector<size_t>& vgd,
-										std::string params,
-										bool is_binary)
+										std::string params)
 {
 
     if (params.length() > 0)
@@ -74,11 +73,7 @@ std::shared_ptr<Kernel> KernelCache::GetKernel(Handle &h,
     }
     else
     {
-		if (is_binary)
-			program = h.LoadBinaryProgram(program_name);
-		else
-			program = h.LoadProgram(program_name, params);
-
+		program = h.LoadProgram(program_name, params);
 		program_map[std::make_pair(program_name, params)] = program;
     }
 	auto kernel = std::shared_ptr<Kernel>(new Kernel{ program, kernel_name, vld, vgd });

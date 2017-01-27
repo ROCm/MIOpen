@@ -38,15 +38,13 @@ struct Handle : mlopenHandle {
             const std::vector<size_t>& vld,
             const std::vector<size_t>& vgd,
             const std::string& params,
-            bool is_binary = false,
             const compiled_in_params compiled_ins = compiled_in_params::legacy);
 
     KernelInvoke GetKernel(
         const std::string& algorithm,
         const std::string& network_config);
 
-    Program LoadProgram(const std::string &program_name, std::string params);
-	Program LoadBinaryProgram(const std::string &program_name);
+    Program LoadProgram(const std::string &program_name, const std::string& params);
 
     void Finish() const;
     void Flush() const;
