@@ -5,7 +5,7 @@
 
 #if MLOPEN_BACKEND_OPENCL || MLOPEN_BACKEND_HIPOC
 namespace mlopen {
-std::string GetKernelSrc(const std::string& name);
+std::string GetKernelSrc(const std::string& name, std::string& ext);
 } // namespace mlopen
 #endif
 

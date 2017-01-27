@@ -64,7 +64,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	float padding_val = 0;
-	bool is_binary = construct_params.getIsBinary();
 
 	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
 		network_config,
@@ -73,7 +72,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		vld,
 		vgd,
 		parms,
-		is_binary,
 		kernarg_list_type);
 
 	switch (kernarg_list_type)

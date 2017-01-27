@@ -518,8 +518,6 @@ int mlo_construct_direct2D::mloConstructWinograd()
 	_kernel_file = "conv_3x3_wheel_alpha_v0_2b_gfx803.so";
 	_kernel_name = "sp3AsmConv3x3F";
 
-	_is_binary = true;
-
 	return (ret);
 }
 
