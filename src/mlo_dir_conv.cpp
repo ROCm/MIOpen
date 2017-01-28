@@ -1132,8 +1132,6 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		+ std::string(" -DMLO_ALIGNED_OUT_SCAN_LN=") + std::to_string(ALIGNED_OUT_SCAN_LN) // image aligned scan
 		+ std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
 		+ std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
-//		+ std::string(" -D MLO_OUT_SCAN_NOT_DIVBY4=") + std::to_string(OUT_SCAN_NOT_DIVBY4)
-//		+ std::string(" -D MLO_OUT_N_PIXS_OFF=") + std::to_string(OUT_N_PIXS_OFF)
 
 		+ std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias)
 
@@ -1262,9 +1260,8 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	int N_ALIGNED_OUT_SCAN_BLK = 2;
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
-	int OUT_SCAN_NOT_DIVBY4 = (_in_width < ALIGNED_OUT_SCAN_LN*read_unit);
 
-	int OUT_N_PIXS_OFF = ALIGNED_OUT_SCAN_LN*read_unit - _in_width;
+	int OUT_N_PIXS_OFF = _in_width - (_in_width  / read_unit) * read_unit;
 
 
 	_grp_tile0 = GRP_SZ;
@@ -1327,7 +1324,6 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		+ std::string(" -DMLO_N_OUT_BLK=") + std::to_string(N_OUT_BLK)
 		+ std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
 		+ std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
-		+ std::string(" -DMLO_OUT_SCAN_NOT_DIVBY4=") + std::to_string(OUT_SCAN_NOT_DIVBY4)
 		+ std::string(" -DMLO_OUT_N_PIXS_OFF=") + std::to_string(OUT_N_PIXS_OFF)
 
 		+ std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias)
