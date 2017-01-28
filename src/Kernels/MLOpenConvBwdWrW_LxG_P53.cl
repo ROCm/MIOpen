@@ -314,21 +314,6 @@ __kernel void MLOpenCvBwdWrW(
 	int out_wk_item_off = o * MLO_OUT_CHANNEL_STRIDE + lcl_bot_off;
 	gbl_out_off += out_wk_item_off;
 
-// to mask output spans outside the range
-#if MLO_OUT_N_PIXS_OFF > 0
-	__private _FLOAT out_mask[MLO_IN_TILE0];
-	for(int i = 0; i < MLO_IN_TILE0; ++i)
-	{
-		out_mask[i] = 1;
-	}
-	if (spn == MLO_N_SPANS_PER_SCAN -1)
-	{
-		for(int i = MLO_OUT_N_PIXS_OFF; i < MLO_IN_TILE0; ++i)
-		{
-			out_mask[i] = 0;
-		}
-	}
-#endif
 
 #define MLO_TOP_DAT_SZ (MLO_IN_TILE0 * MLO_FILTER_SIZE1)
 
@@ -394,15 +379,29 @@ __kernel void MLOpenCvBwdWrW(
 			top_df_off = (j < MLO_OUT_HEIGHT) ? top_df_off : 0;
 			mask = (j < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
-			for (int i = 0; i < MLO_IN_TILE0; ++i)
-			{
-				_FLOAT top_val = top_df[top_df_off + i] * mask
+
 #if MLO_OUT_N_PIXS_OFF > 0
-					* out_mask[i]
+				if (spn == MLO_N_SPANS_PER_SCAN -1)
+				{
+					int i = 0;
+					for (; i < MLO_OUT_N_PIXS_OFF; ++i)
+					{
+						top_dat[j *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+					}
+					for (; i < MLO_IN_TILE0; ++i)
+					{
+						top_dat[j *MLO_IN_TILE0 + i] = 0;
+					}
+				}
+				else
 #endif
-				;
-				top_dat[j*MLO_IN_TILE0 + i] = top_val;
-			}
+				{
+					for (int i = 0; i < MLO_IN_TILE0; ++i)
+					{
+						top_dat[j *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+					}
+				}
+
 		}
 
 
@@ -438,14 +437,28 @@ __kernel void MLOpenCvBwdWrW(
 			mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
 			// move in the last output scans
-				for (int i = 0; i < MLO_IN_TILE0; ++i)
-				{
-					top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask
 #if MLO_OUT_N_PIXS_OFF > 0
-						* out_mask[i]
-#endif
-					;
+				if (spn == MLO_N_SPANS_PER_SCAN -1)
+				{
+					int i = 0;
+					for (; i < MLO_OUT_N_PIXS_OFF; ++i)
+					{
+						top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+					}
+					for (; i < MLO_IN_TILE0; ++i)
+					{
+						top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = 0;
+					}
 				}
+				else
+#endif
+				{
+					for (int i = 0; i < MLO_IN_TILE0; ++i)
+					{
+						top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+					}
+				}
+
 
 
 // processing
