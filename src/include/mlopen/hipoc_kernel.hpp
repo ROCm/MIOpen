@@ -3,6 +3,7 @@
 
 #include <mlopen/hipoc_program.hpp>
 #include <mlopen/errors.hpp>
+#include <array>
 
 namespace mlopen {
 
