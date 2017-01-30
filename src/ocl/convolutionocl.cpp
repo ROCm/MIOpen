@@ -22,6 +22,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         size_t                       /*workSpaceSize*/,
         bool                        exhaustiveSearch) const {
 
+    if(x == nullptr || w == nullptr || y == nullptr) {
+        MLOPEN_THROW(mlopenStatusBadParm);
+    }
 #if 0
         if(returnedAlgoCount == nullptr || perfResults == nullptr) {
             MLOPEN_THROW(mlopenStatusBadParm);
@@ -462,11 +465,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             handle.AccumKernelTime(time0);
 
         }
-
-        // FIXME: MD temporary hack for hipcaffe
-        // should be ideally wrapped under mlopen::deref to check 
-        // for the size of perfResults == requestedAlgoCount
-        perfResults->bwd_weights_algo = mlopenConvolutionBwdWeightsAlgoDirect;
     }
 
     // FIXME: MD temporary hack for hipcaffe
