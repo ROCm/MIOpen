@@ -248,14 +248,6 @@ public:
 	}
 
 	/*
-	* returns compiled in parameters kind.
-	*/
-	inline compiled_in_params getCompiledInParametersKind()
-	{
-		return _compiled_in_parameters;
-	}
-
-	/*
 	* returns kernel file name without location
 	*/
 	inline std::string getKernelFile() const
@@ -882,7 +874,6 @@ protected:
 	size_t _workspce_sz;
 
 	unsigned int _n_groups;
-	compiled_in_params _compiled_in_parameters = compiled_in_params::legacy;
 };
 
 

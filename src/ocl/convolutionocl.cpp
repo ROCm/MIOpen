@@ -59,7 +59,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
 
-	const auto kernarg_list_type = construct_params.getCompiledInParametersKind();
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
@@ -71,23 +70,20 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		kernel_name,
 		vld,
 		vgd,
-		parms,
-		kernarg_list_type);
+		parms);
 
-	switch (kernarg_list_type)
+	if (kernel.GetName() == "sp3AsmConv3x3F")
 	{
-	case compiled_in_params::none: {
-			int flags = 0;
-			int reserved = 0;
-			int *return_addr = nullptr;
-			int N, C, H, W, K, n_groups;
-			construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-			kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
-		}
-		break;
-	case compiled_in_params::legacy:
+		int flags = 0;
+		int reserved = 0;
+		int *return_addr = nullptr;
+		int N, C, H, W, K, n_groups;
+		construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+		kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+	}
+	else
+	{
 		kernel(x, w, y, padding_val);
-		break;
 	}
 	
 	// FIXME: MD temporary hack for hipcaffe
@@ -156,20 +152,18 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 	float padding_val = 0;
 	auto kernel = handle.GetKernel(algorithm_name, network_config);
 
-	switch (kernel.kernarg_list_type)
+	if (kernel.GetName() == "sp3AsmConv3x3F")
 	{
-	case compiled_in_params::none: {
-			int flags = 0;
-			int reserved = 0;
-			int *return_addr = nullptr;
-			int N, C, H, W, K, n_groups;
-			construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-			kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
-		}
-		break;
-	case compiled_in_params::legacy:
+		int flags = 0;
+		int reserved = 0;
+		int *return_addr = nullptr;
+		int N, C, H, W, K, n_groups;
+		construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+		kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+	}
+	else
+	{
 		kernel(x, w, y, padding_val);
-		break;
 	}
 }
 
