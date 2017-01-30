@@ -11,6 +11,7 @@
 #include <array>
 #include <memory>
 #include <algorithm>
+#include <numeric>
 
 #include <mlopen/errors.hpp>
 #include <mlopen/each_args.hpp>

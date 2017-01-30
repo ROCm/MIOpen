@@ -3,6 +3,7 @@
 #include <mlopen/errors.hpp>
 #include <mlopen/kernel_cache.hpp>
 #include <mlopen/ocldeviceinfo.hpp>
+#include <mlopen/device_name.hpp>
 #include <string>
 
 #ifndef _WIN32
@@ -354,7 +355,8 @@ std::size_t Handle::GetLocalMemorySize()
 
 std::string Handle::GetDeviceName()
 {
-    return mlopen::GetDeviceInfo<CL_DEVICE_NAME>(mlopen::GetDevice(this->GetStream()));
+	std::string name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(mlopen::GetDevice(this->GetStream()));
+	return GetDeviceNameFromMap(name);
 }
 
 std::size_t Handle::GetMaxComputeUnits()

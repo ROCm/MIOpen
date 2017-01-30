@@ -41,7 +41,8 @@ void each_args_i_impl(F f, seq<Ns...>, Ts&&... xs)
 template<class F, std::size_t ... Ns, class T>
 void unpack_impl(F f, seq<Ns...>, T&& x)
 {
-    f(std::get<Ns>(x)...);
+    using std::get;
+    f(get<Ns>(x)...);
 }
 
 } // namespace detail
