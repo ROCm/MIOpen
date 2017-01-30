@@ -18,19 +18,12 @@ mlopenStatus_t Im2ColGPU(
 	std::string kernel_name = "Im2Col";
 	std::string network = "placeholder";
 
-//	int col_m = c * wei_h * wei_w;
-//	int grid_size = col_m * out_h * out_w;
-
 	std::string params;
 	int num_ch_per_wg;
 	if((out_h <= 8 && out_w <= 8) && (stride_h == 1 && stride_w==1))
 		num_ch_per_wg = 4;
 	else 
 		num_ch_per_wg = 1;
-
-	//int num_blks_x = std::ceil(static_cast<float>(out_w)/16);
-	//int num_blks = num_blks_x * std::ceil(static_cast<float>(out_h)/16);
-	//int local_mem_sz = (16*stride_w+wei_w)*(16*stride_h+wei_h);
 
 	int tile_sz_x = 32;
 	int tile_sz_y = 8;
@@ -47,10 +40,7 @@ mlopenStatus_t Im2ColGPU(
 	params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
 
 	const std::vector<size_t> vld(1, 256);
-//	const std::vector<size_t> vgd(1, grid_size);
 	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*num_blks);
-//	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg));
-
 
 	handle.GetKernel("mlopenIm2Col",
 			network,
