@@ -471,7 +471,10 @@ __kernel void MLOpenConvUniC(
 // here is [tops][bottoms]
 			int lcl_o = (int)((float)i / (float)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) + 0.00001f);
 			int gbl_i = i - mul24(lcl_o, (int)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
-			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i];
+			if((wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i) < (MLO_N_OUTPUTS*MLO_N_INPUTS*MLO_FILTER_SZ))
+				lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i];
+			else
+				lcl_wei[i] = weights[0];
 #else
 // outputs are botoms(inputs))
 // inputs are tops(outputs)

@@ -35,7 +35,14 @@ endif()
 # OPTION - MLOpen Backend
 # - OpenCL
 # - HCC
-set( MLOPEN_BACKEND "OpenCL" CACHE STRING
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+	set(MLOPEN_DEFAULT_BACKEND "HIPOC")
+else()
+	set(MLOPEN_DEFAULT_BACKEND "OpenCL")
+endif()
+
+
+set( MLOPEN_BACKEND ${MLOPEN_DEFAULT_BACKEND} CACHE STRING
 	"Which of MLOpens's backends to use?" )
 set_property( CACHE MLOPEN_BACKEND PROPERTY STRINGS
 	OpenCL HCC HIP HIPOC )
