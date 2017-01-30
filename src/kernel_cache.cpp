@@ -23,7 +23,7 @@
 
 namespace mlopen {
 
-const std::shared_ptr<Kernel> KernelCache::GetKernel(const std::string& algorithm,
+Kernel KernelCache::GetKernel(const std::string& algorithm,
 										const std::string& network_config) {
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -42,7 +42,7 @@ const std::shared_ptr<Kernel> KernelCache::GetKernel(const std::string& algorith
 	}
 }
 
-std::shared_ptr<Kernel> KernelCache::GetKernel(Handle &h,
+Kernel KernelCache::GetKernel(Handle &h,
 										const std::string& algorithm,
 										const std::string& network_config,
 										const std::string& program_name,
@@ -76,7 +76,7 @@ std::shared_ptr<Kernel> KernelCache::GetKernel(Handle &h,
 		program = h.LoadProgram(program_name, params);
 		program_map[std::make_pair(program_name, params)] = program;
     }
-	auto kernel = std::shared_ptr<Kernel>(new Kernel{ program, kernel_name, vld, vgd });
+	Kernel kernel { program, kernel_name, vld, vgd };
     if (!network_config.empty() && !algorithm.empty()) {
         kernel_map[key] = kernel;
     }

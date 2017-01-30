@@ -312,9 +312,9 @@ KernelInvoke Handle::GetKernel(
 	//dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
 #endif
     if (this->impl->enable_profiling) { 
-        return obj->Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
     } else { 
-        return obj->Invoke(q);
+        return obj.Invoke(q);
     }
 }
 
@@ -327,9 +327,9 @@ KernelInvoke Handle::GetKernel(
             algorithm,
             network_config);
     if (this->impl->enable_profiling) { 
-        return obj->Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
+        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
     } else { 
-        return obj->Invoke(q);
+        return obj.Invoke(q);
     }
 }
 
