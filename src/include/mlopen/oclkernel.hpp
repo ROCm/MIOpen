@@ -16,11 +16,6 @@
 #include <mlopen/each_args.hpp>
 #include <mlopen/clhelper.hpp>
 
-enum class compiled_in_params {
-	legacy, // The rest are compiled in by means of #define. This is the default for .cl sources.
-	none, // E.g. KIorcha_Winograd kernel written in assembly.
-};
-
 namespace mlopen {
 
 using SharedKernelPtr = std::shared_ptr<typename std::remove_pointer<cl_kernel>::type>;
@@ -69,7 +64,6 @@ struct OCLKernelInvoke
 	std::array<size_t, 3> global_work_dim;
 	std::array<size_t, 3> local_work_dim;
 	std::function<void(cl_event&)> callback;
-	compiled_in_params kernarg_list_type;
 
 	template<class... Ts>
 	void operator()(const Ts&... xs) const
@@ -79,6 +73,7 @@ struct OCLKernelInvoke
 	}
 
 	void run() const;
+	std::string GetName() const;
 };
 
 class OCLKernel {
@@ -117,14 +112,12 @@ public:
 
 	inline const std::vector<size_t>& GetLocalDims() const { return ldims; }
 	inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
-	inline void SetKernArgListType(compiled_in_params type) { compiled_ins = type; }
 
 private:
 	SharedProgramPtr program;
 	SharedKernelPtr kernel;
 	std::vector<size_t> ldims;
 	std::vector<size_t> gdims;
-	compiled_in_params compiled_ins = compiled_in_params::legacy;
 };
 
 }  // namespace mlopen

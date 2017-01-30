@@ -503,8 +503,6 @@ int mlo_construct_direct2D::mloConstructWinograd()
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
 	_n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
 
-	_compiled_in_parameters = compiled_in_params::none;
-
 	_g_wk.clear();
 	_g_wk.push_back(512 * _n_groups);
 	_g_wk.push_back(1);
