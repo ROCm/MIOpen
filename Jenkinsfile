@@ -1,6 +1,6 @@
 parallel opencl: {
     node ('rocmtest') {
-        stage('Checkout') {
+        stage('OCL Checkout') {
             env.CXXFLAGS = "-Werror"
             env.CTEST_PARALLEL_LEVEL = "32"
             checkout scm
@@ -54,7 +54,7 @@ parallel opencl: {
     }
 }, hip: {
     node ('rocmtest') {
-        stage('Checkout') {
+        stage('HIP Checkout') {
             env.CXXFLAGS = "-Werror"
             env.CTEST_PARALLEL_LEVEL = "32"
             checkout scm
