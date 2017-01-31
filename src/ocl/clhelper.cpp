@@ -74,7 +74,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 	else
 		result = CreateProgram(ctx, char_source, size);
 
-	BuildProgram(result, device, params + " -cl-std=CL2.0");
+	BuildProgram(result, device, params + " -cl-std=CL1.2");
 
 	return ClProgramPtr{ result };
 }

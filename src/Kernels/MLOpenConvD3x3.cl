@@ -305,7 +305,7 @@ __kernel void MLOpenCvD3x3_WSR0(
 			{
 
 				// WIDTH/HEIGHT
-				*(MLO_READ_TYPE*)&out_ptr[out_off2 + i*MLO_READ_UNIT]
+				*(__global MLO_READ_TYPE*)&out_ptr[out_off2 + i*MLO_READ_UNIT]
 					= *(MLO_READ_TYPE*)&pvt_accum[/*ib*MLO_N_LCL_OUT_MAPS * MLO_OUT_TILE_SZ + */(oc * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i*MLO_READ_UNIT];
 			}
 		}
@@ -545,7 +545,7 @@ __kernel void MLOpenCvD3x3_WSR1(
 			{
 
 				// WIDTH/HEIGHT
-				*(MLO_READ_TYPE*)&out_ptr[out_off2 + i*MLO_READ_UNIT]
+				*(__global MLO_READ_TYPE*)&out_ptr[out_off2 + i*MLO_READ_UNIT]
 					= *(MLO_READ_TYPE*)&pvt_accum[/*ib*MLO_N_LCL_OUT_MAPS * MLO_OUT_TILE_SZ + */(oc * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i*MLO_READ_UNIT];
 			}
 		}
