@@ -230,7 +230,7 @@ int mlo_construct_direct2D::mloConstruct()
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
-#ifdef MLOPEN_BACKEND_OPENCL
+#if MLOPEN_BACKEND_OPENCL
 	const auto use_asm_kernels_env_p = std::getenv("MLOPEN_DEBUG_GCN_ASM_KERNELS");
 	std::string use_asm_kernels_env;
 
@@ -428,6 +428,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	return(ret);
 }
 
+#if MLOPEN_BACKEND_OPENCL
 bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 {
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
@@ -518,7 +519,7 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 
 	return (ret);
 }
-
+#endif
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;

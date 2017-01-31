@@ -43,7 +43,7 @@ struct Handle : mlopenHandle {
         const std::string& algorithm,
         const std::string& network_config);
 
-    Program LoadProgram(const std::string &program_name, const std::string& params);
+    Program LoadProgram(const std::string &program_name, std::string params);
 
     void Finish() const;
     void Flush() const;

@@ -1,7 +1,7 @@
 #include <mlopen/hipoc_program.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
-#include <mlopen/replace.hpp>
+#include <mlopen/stringutils.hpp>
 
 #include <sstream>
 

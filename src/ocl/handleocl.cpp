@@ -340,7 +340,7 @@ KernelInvoke Handle::GetKernel(
     }
 }
 
-Program Handle::LoadProgram(const std::string &program_name, const std::string& params)
+Program Handle::LoadProgram(const std::string &program_name, std::string params)
 {
     return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params);
 }
