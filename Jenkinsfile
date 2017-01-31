@@ -1,10 +1,10 @@
+stage('Checkout') {
+    env.CXXFLAGS = "-Werror"
+    env.CTEST_PARALLEL_LEVEL = "32"
+    checkout scm
+}
 parallel opencl: {
     node ('rocmtest') {
-        stage('Checkout') {
-            env.CXXFLAGS = "-Werror"
-            env.CTEST_PARALLEL_LEVEL = "32"
-            checkout scm
-        }
         stage('Clang Tidy') {
             sh '''
                 rm -rf build
@@ -54,11 +54,11 @@ parallel opencl: {
     }
 }, hip: {
     node ('rocmtest') {
-        stage('Checkout') {
-            env.CXXFLAGS = "-Werror"
-            env.CTEST_PARALLEL_LEVEL = "32"
-            checkout scm
-        }
+        // stage('Checkout') {
+        //     env.CXXFLAGS = "-Werror"
+        //     env.CTEST_PARALLEL_LEVEL = "32"
+        //     checkout scm
+        // }
         withDockerContainer(image: 'rocm-aoc2:tot', args: '--device=/dev/kfd') {
 
             stage('Hip Debug') {
