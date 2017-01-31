@@ -713,8 +713,8 @@ protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
-	bool mloCheckWinogradCondition() const;
-	int mloConstructWinograd();
+	bool mloCheckWinograd3x3FwdConvCondition() const;
+	int mloConstructWinograd3x3FwdConv();
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
 	int mloConstructDirect2D3x3(void);

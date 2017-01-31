@@ -237,9 +237,9 @@ int mlo_construct_direct2D::mloConstruct()
 	if (use_asm_kernels_env_p != nullptr)
 		use_asm_kernels_env = use_asm_kernels_env_p;
 
-	if (use_asm_kernels_env == "enable" || (use_asm_kernels_env != "disable" && mloCheckWinogradCondition()))
+	if (use_asm_kernels_env == "enable" || (use_asm_kernels_env != "disable" && mloCheckWinograd3x3FwdConvCondition()))
 	{
-		return (mloConstructWinograd());
+		return (mloConstructWinograd3x3FwdConv());
 	}
 	else
 #endif // MLOPEN_BACKEND_OPENCL
@@ -428,7 +428,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	return(ret);
 }
 
-bool mlo_construct_direct2D::mloCheckWinogradCondition() const
+bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 {
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
 	const auto platform = mlopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
@@ -496,7 +496,7 @@ bool mlo_construct_direct2D::mloCheckWinogradCondition() const
 		&& kernel_is_valid_for_problem_description;
 }
 
-int mlo_construct_direct2D::mloConstructWinograd()
+int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 {
 	int ret = 0;
 
