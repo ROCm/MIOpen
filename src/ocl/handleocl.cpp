@@ -306,7 +306,7 @@ KernelInvoke Handle::GetKernel(
         const std::string& params)
 {
     auto q = this->GetStream();
-    OCLKernel obj = this->impl->cache.GetKernel(*this, 
+    auto obj = this->impl->cache.GetKernel(*this, 
             algorithm,
             network_config,
             program_name, 
@@ -314,13 +314,14 @@ KernelInvoke Handle::GetKernel(
             vld,
             vgd,
             params);
+
 #ifndef NDEBUG
 	//dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
 #endif
     if (this->impl->enable_profiling) { 
-        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1)); 
+        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
     } else { 
-        return obj.Invoke(q); 
+        return obj.Invoke(q);
     }
 }
 
@@ -329,7 +330,7 @@ KernelInvoke Handle::GetKernel(
     const std::string& network_config)
 {
     auto q = this->GetStream();
-    OCLKernel obj = this->impl->cache.GetKernel(
+    const auto obj = this->impl->cache.GetKernel(
             algorithm,
             network_config);
     if (this->impl->enable_profiling) { 
@@ -339,7 +340,7 @@ KernelInvoke Handle::GetKernel(
     }
 }
 
-Program Handle::LoadProgram(const std::string &program_name, std::string params)
+Program Handle::LoadProgram(const std::string &program_name, const std::string& params)
 {
     return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params);
 }
