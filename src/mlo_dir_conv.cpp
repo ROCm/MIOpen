@@ -229,6 +229,20 @@ int mlo_construct_direct2D::mloConstruct()
 {
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
+
+#ifdef MLOPEN_BACKEND_OPENCL
+	const auto use_asm_kernels_env_p = std::getenv("MLOPEN_DEBUG_GCN_ASM_KERNELS");
+	std::string use_asm_kernels_env;
+
+	if (use_asm_kernels_env_p != nullptr)
+		use_asm_kernels_env = use_asm_kernels_env_p;
+
+	if (use_asm_kernels_env == "enable" || (use_asm_kernels_env != "disable" && mloCheckWinograd3x3FwdConvCondition()))
+	{
+		return (mloConstructWinograd3x3FwdConv());
+	}
+	else
+#endif // MLOPEN_BACKEND_OPENCL
 	if (_gen && getDirection())
 	{
 		ret = mloConstructDirect2DFwdGen();
@@ -412,6 +426,97 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 
 
 	return(ret);
+}
+
+bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
+{
+	const auto dev = mlopen::GetDevice(_stream->GetStream());
+	const auto platform = mlopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
+	const auto vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
+	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
+	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
+	const auto n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+
+	const auto device_is_opencl_on_rocm =
+		   (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
+		|| (driver.find("(LC,") != std::string::npos)
+		|| (driver.find(",LC)") != std::string::npos)
+		|| (driver.find("(LC ") != std::string::npos)
+		|| (driver.find(" LC)") != std::string::npos)
+		|| (driver.find(" LC,") != std::string::npos)
+		|| (driver.find(",LC ") != std::string::npos)
+		|| (driver.find(" LC ") != std::string::npos)
+		|| (driver.find(",LC,") != std::string::npos);
+
+	const auto driver_is_v1_or_v2 =
+		   (driver[0] == '1' || driver[0] == '2')
+		&& driver[1] == '.'; // Both shall support Metadata for Runtime v1.0 we are using for now
+
+	const auto device_is_opencl_on_rocm_supports_metadata_1_0 =
+		   device_is_opencl_on_rocm
+		&& driver_is_v1_or_v2;
+
+	const auto device_is_gfx8_no_xnack =
+		   name == "gfx800"
+		|| name == "gfx802"
+		|| name == "gfx803"
+		|| name == "gfx804";
+
+	const auto platform_is_amd = platform_vendor == "Advanced Micro Devices, Inc.";
+	const auto device_is_amd = vendor_id == 0x1002;
+
+	const auto device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0 =
+		   device_is_opencl_on_rocm_supports_metadata_1_0
+		&& device_is_gfx8_no_xnack
+		&& device_is_amd
+		&& platform_is_amd;
+
+	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
+
+	const auto kernel_is_valid_for_problem_description =
+		   _in_layout == "NCHW"
+		// && _weights_layout						== "NKCHW" // FIXME see above
+		&& _kernel_stride0 == 1
+		&& _kernel_stride1 == 1
+		&& _pad0 == 1
+		&& _pad1 == 1
+		&& _batch_sz							<	std::pow(2, 16)
+		&& _n_inputs							<	std::pow(2, 16)
+		&& _n_outputs							<	std::pow(2, 16)
+		&& _in_height							<	std::pow(2, 16)
+		&& _in_width							<	std::pow(2, 16)
+		&& n_groups								<	std::pow(2, 16)
+		&& _n_inputs * _in_height * _in_width	<=	std::pow(2, 28)
+		&& _n_outputs * _in_height * _in_width	<=	std::pow(2, 28)
+		&& _n_inputs % 2 == 0
+		&& _n_inputs >= 16;
+
+	return device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0
+		&& kernel_is_valid_for_problem_description;
+}
+
+int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
+{
+	int ret = 0;
+
+	const auto dev = mlopen::GetDevice(_stream->GetStream());
+	_n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+
+	_g_wk.clear();
+	_g_wk.push_back(512 * _n_groups);
+	_g_wk.push_back(1);
+	_g_wk.push_back(1);
+
+	_l_wk.clear();
+	_l_wk.push_back(512);
+	_l_wk.push_back(1);
+	_l_wk.push_back(1);
+
+	_kernel_file = "conv_3x3_wheel_alpha_v0_2b_gfx803.so";
+	_kernel_name = "sp3AsmConv3x3F";
+
+	return (ret);
 }
 
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
@@ -1022,6 +1127,189 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 * backward with regard to weights
 * inputs == output, outputs == input
 */
+int mlo_construct_BwdWrW2D::mloConstruct53()
+{
+	int ret = 0;
+	size_t localMemSize = 64 * 1024;
+
+	_hw_wave_sz = 64;
+	_dev_local_mem_sz = localMemSize; // in bytes
+									  // major parameters
+
+									  // inpout are outputs
+	int wei_cstride = _kernel_size0*_kernel_size1;
+	int wei_bstride = _n_outputs*wei_cstride;
+
+	int read_unit = 4;
+	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
+
+	// number  of batch iterations
+	_n_stacks = 1;
+	_n_stacks = std::min(_batch_sz, _n_stacks);
+// defines how to proceed : 1 grouop per batch or with a loop over all batches
+// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
+	int N_BATCH_LOOPS = (_in_width > 16) ? 1 : _batch_sz / _n_stacks;
+	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+	// number of filter taps in the processing wk_item
+
+
+
+	_out_pix_tile0 = _kernel_size0;
+	_out_pix_tile1 = _kernel_size1;
+	_in_tile1 = 1;
+	_in_tile0 = 2;
+	int n_spans = (_in_width + _in_tile0 - 1) / _in_tile0;
+
+// TODO: search
+	int n_waves = (_in_width <= 16) ? 1 : 2;
+	int GRP_SZ = _hw_wave_sz * n_waves;
+
+
+	_n_out_pix_tiles = 1;
+	int n_out_stacks = std::max(1, GRP_SZ / n_spans);
+	_n_in_data_tiles = 1;
+
+
+	// input is output
+
+
+	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
+
+
+	// select output mapping
+	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
+	total_out_maps = (total_out_maps > _n_inputs) ? _n_inputs : total_out_maps;
+
+	_grp_tile0 = GRP_SZ;
+	_grp_tile1 = 1;
+	int grp_tile2 = 1;
+
+
+	// utility parameters
+	int n_ut_waves = 4;
+	int UT_GRP_SZ0 = _hw_wave_sz * n_ut_waves;
+	int ut_read_unit = ((wei_cstride / 4) * 4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
+	std::string UT_READ_TYPE = (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
+
+
+	// it's backward - inputs are outputs and vs versa
+	_comp_options =
+		std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction)
+		+ std::string(" -DMLO_GRP_SZ=") + std::to_string(GRP_SZ)
+		+ std::string(" -DMLO_GRP_SZ0=") + std::to_string(_grp_tile0)
+		+ std::string(" -DMLO_GRP_SZ1=") + std::to_string(_grp_tile1)
+		+ std::string(" -DMLO_GRP_SZ2=") + std::to_string(grp_tile2)
+		+ std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0)
+		+ std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1)
+		+ std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0)
+		+ std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1)
+		+ std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0)
+		+ std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1)
+		+ std::string(" -DSTRIDE_W=") + std::to_string(_kernel_stride0)
+		+ std::string(" -DSTRIDE_H=") + std::to_string(_kernel_stride1)
+		+ std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_inputs)
+		+ std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_outputs)
+		+ std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz)
+		+ std::string(" -DMLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS)
+		+ std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_in_batch_stride)
+		+ std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride)
+		+ std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_in_stride)
+		+ std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_out_batch_stride)
+		+ std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride)
+		+ std::string(" -DMLO_IN_STRIDE=") + std::to_string(_out_stride)
+		+ std::string(" -DMLO_WEI_BATCH_STRIDE=") + std::to_string(wei_bstride)
+		+ std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride)
+		+ std::string(" -DMLO_IN_WIDTH=") + std::to_string(_out_width)
+		+ std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_out_height)
+		+ std::string(" -DMLO_OUT_WIDTH=") + std::to_string(_in_width)
+		+ std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(_in_height)
+		+ std::string(" -DMLO_IN_TILE1=") + std::to_string(_in_tile1)
+		+ std::string(" -DMLO_IN_TILE0=") + std::to_string(_in_tile0)
+		+ std::string(" -DMLO_N_LCL_BATCHS=") + std::to_string(_n_stacks) // # of diff stacks (part of batch).
+		+ std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(_n_out_pix_tiles)  // # output pixel tiles per wk-item (ALU)
+		+ std::string(" -DMLO_N_LCL_IN_MAPS=") + std::to_string(_n_in_data_tiles) // total # of blocks of different inputs in LDS
+		+ std::string(" -DMLO_OUT_TILE0=") + std::to_string(_out_pix_tile0)  // size of ouptput tile per wk-item (ALU)
+		+ std::string(" -DMLO_OUT_TILE1=") + std::to_string(_out_pix_tile1)  //
+		+ std::string(" -DMLO_OUT_STACKS=") + std::to_string(n_out_stacks)
+		+ std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves)
+		+ std::string(" -DMLO_READ_TYPE=") + READ_TYPE
+		+ std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit)
+		+ std::string(" -DMLO_ALIGNED_OUT_SCAN_LN=") + std::to_string(ALIGNED_OUT_SCAN_LN) // image aligned scan
+		+ std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
+		+ std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
+
+		+ std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias)
+
+		+ std::string(" -DMLO_UT_READ_TYPE=") + UT_READ_TYPE
+		+ std::string(" -DMLO_UT_READ_UNIT=") + std::to_string(ut_read_unit)
+
+		+ std::string(" -DMLO_UT_GRP_SZ0=") + std::to_string(UT_GRP_SZ0)
+
+		//		+ std::string(" -limit-vector-registers=64 ")
+		+ getGeneralCompOptions()
+		;
+
+
+	_mlo_kernels_info.clear();
+	// wrt to W
+	{
+		_l_wk.clear();
+		_l_wk.push_back(_grp_tile0);
+		_l_wk.push_back(_grp_tile1);
+		_l_wk.push_back(grp_tile2);
+		// input is output
+
+		size_t gbl_wk0 = GRP_SZ;
+		size_t gbl_wk1 = (_n_outputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
+		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps) * n_batch_blks;
+
+
+		_g_wk.clear();
+		_g_wk.push_back(gbl_wk0);
+		_g_wk.push_back(gbl_wk1);
+		_g_wk.push_back(gbl_wk2);
+
+		_kernel_file = "MLOpenConvBwdWrW_LxG_P53.cl";
+		_kernel_name = "MLOpenCvBwdWrW";
+
+		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
+		_mlo_kernels_info.push_back(kern_info);
+
+		_workspce_sz = 0;
+
+	}
+
+	// sum over batch
+	if (n_batch_blks > 1)
+	{
+
+
+		std::string kernel_file = "MLOpenConvBwdWrW_LxG_P53.cl";
+		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
+
+		std::vector<size_t> l_wk;
+		l_wk.clear();
+		l_wk.push_back(UT_GRP_SZ0);
+		l_wk.push_back(1);
+		l_wk.push_back(1);
+
+		int gbl_ut_wk0 = wei_bstride * _n_inputs / ut_read_unit;
+
+		std::vector<size_t> g_wk;
+		g_wk.push_back(gbl_ut_wk0);
+		g_wk.push_back(1);
+		g_wk.push_back(1);
+		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
+		_mlo_kernels_info.push_back(kern_info);
+
+		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
+	}
+
+	return(ret);
+}
+
+
 
 int mlo_construct_BwdWrW2D::mloConstruct2()
 {
@@ -1077,9 +1365,8 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	int N_ALIGNED_OUT_SCAN_BLK = 2;
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
-	int OUT_SCAN_NOT_DIVBY4 = (_in_width < ALIGNED_OUT_SCAN_LN*read_unit);
 
-	int OUT_N_PIXS_OFF = ALIGNED_OUT_SCAN_LN*read_unit - _in_width;
+	int OUT_N_PIXS_OFF = _in_width - (_in_width  / read_unit) * read_unit;
 
 
 	_grp_tile0 = GRP_SZ;
@@ -1142,7 +1429,6 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		+ std::string(" -DMLO_N_OUT_BLK=") + std::to_string(N_OUT_BLK)
 		+ std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
 		+ std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
-		+ std::string(" -DMLO_OUT_SCAN_NOT_DIVBY4=") + std::to_string(OUT_SCAN_NOT_DIVBY4)
 		+ std::string(" -DMLO_OUT_N_PIXS_OFF=") + std::to_string(OUT_N_PIXS_OFF)
 
 		+ std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias)
@@ -1161,6 +1447,9 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	// wrt to W
 	{
 		_l_wk.clear();
+		_l_wk.push_back(_grp_tile0);
+		_l_wk.push_back(_grp_tile1);
+		_l_wk.push_back(grp_tile2);
 		// input is output
 
 		size_t gbl_wk0 = GRP_SZ;
@@ -1193,6 +1482,9 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 
 		std::vector<size_t> l_wk;
 		l_wk.clear();
+		l_wk.push_back(UT_GRP_SZ0);
+		l_wk.push_back(1);
+		l_wk.push_back(1);
 
 		int gbl_ut_wk0 = wei_bstride * _n_inputs / ut_read_unit;
 
@@ -1218,6 +1510,10 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 	if ((_kernel_size0 >= 7 ) && (_kernel_stride0 > 1 || _kernel_stride1 > 1))
 	{
 		ret = mloConstruct2();
+		return(ret);
+	}
+	else if ((_kernel_size0 >= 5) && (_kernel_size1 <= 5) && (_kernel_stride0 == 1 || _kernel_stride1 == 1)){
+		ret = mloConstruct53();
 		return(ret);
 	}
 	// TO REMOVE

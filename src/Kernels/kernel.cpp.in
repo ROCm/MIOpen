@@ -6,11 +6,11 @@
 
 namespace mlopen {
 
-const std::map<std::string, const char *> kernels {
-${INIT_KERNELS}
+static const std::map<std::string, std::string> kernels{
+	${INIT_KERNELS}
 };
 
-std::string GetKernelSrc(const std::string& name)
+std::string GetKernelSrc(const std::string& name, std::string& ext)
 {
     // Use the base name of the string
     int start = 0;
@@ -19,19 +19,28 @@ std::string GetKernelSrc(const std::string& name)
     {
         start = slash + 1;
     }
-    
+
     int len = name.size();
-    auto ex = name.rfind(".cl");
-    if (ex != std::string::npos)
+    auto ext_start = name.rfind(".");
+    if (ext_start != std::string::npos)
     {
-        len = ex - start;
+        ext = name.substr(ext_start + 1);
+        len = ext_start - start;
+    }
+    else
+    {
+        ext = "";
     }
 
     auto key = name.substr(start, len);
     // Convert to uppercase
     std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
 
-    return ReplaceString(kernels.at(key), "inline", "static inline");
+    if (ext == "CL")
+        return ReplaceString(kernels.at(key), "inline", "static inline");
+    else
+        return kernels.at(key);
 }
 
 } // namespace mlopen

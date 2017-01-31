@@ -114,9 +114,9 @@ public:
 		_direction = dir;
 		_do_backward = false;
 
-#if !(defined(__APPLE__) || defined(__MACOSX))
-		_gen_comp_options = std::string(" -cl-std=CL2.0 ");
-#endif
+//#if !(defined(__APPLE__) || defined(__MACOSX))
+	//	_gen_comp_options = std::string(" -cl-std=CL2.0 ");
+//#endif
 		_in_tile0 = (_in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width < 24 || (_in_width > 32 && _in_width < 48)) ? 16 : 32; // size of input data per ALU plane
 		_in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 || (_in_height > 32 && _in_height < 48)) ? 16 : 32; // size of input data per ALU plane
 
@@ -232,8 +232,20 @@ public:
 		_n_in_data_tiles = n_in_data_tiles;
 		_n_stacks = n_stacks;
 	}
-	
 
+	/*
+	* returns parameter values that are compiled in legacy kernels for kernels using them as arguments.
+	*/
+	inline void getCompiledInParameters(int* N, int* C, int* H, int* W, int* K, int* n_groups)
+	{
+		assert(N && C && H && W && K && n_groups);
+		*N = _batch_sz;
+		*C = _n_inputs;
+		*H = _in_height;
+		*W = _in_width;
+		*K = _n_outputs;
+		*n_groups = _n_groups;
+	}
 
 	/*
 	* returns kernel file name without location
@@ -701,6 +713,8 @@ protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
+	bool mloCheckWinograd3x3FwdConvCondition() const;
+	int mloConstructWinograd3x3FwdConv();
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
 	int mloConstructDirect2D3x3(void);
@@ -858,6 +872,8 @@ protected:
 	size_t _bias_sz; // bytes
 
 	size_t _workspce_sz;
+
+	unsigned int _n_groups;
 };
 
 
@@ -875,6 +891,7 @@ public:
 	int mloConstruct() override;
 protected:
 	int mloConstruct2();
+	int mloConstruct53();
 };
 
 

@@ -65,7 +65,7 @@ template<> struct ComputeDeviceAttributeReturnType<CL_DRIVER_VERSION> { using ty
 template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_PROFILE> { using type = char*; };
 template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_VERSION> { using type = char*; };
 template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_EXTENSIONS> { using type = char*; };
-template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_PLATFORM> { using type = char*; };
+template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_PLATFORM> { using type = cl_platform_id; };
 template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_DOUBLE_FP_CONFIG> { using type = cl_device_fp_config; };
 template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF> { using type = cl_uint; };
 template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_HOST_UNIFIED_MEMORY> { using type = cl_bool; };
@@ -89,7 +89,19 @@ template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_PREFERRED_INTEROP_U
 template<> struct ComputeDeviceAttributeReturnType<CL_DEVICE_PRINTF_BUFFER_SIZE> { using type = size_t; };
 
 template<int N>
+struct ComputePlatformAttributeReturnType;
+
+template<> struct ComputePlatformAttributeReturnType<CL_PLATFORM_VENDOR> { using type = char*; };
+template<> struct ComputePlatformAttributeReturnType<CL_PLATFORM_EXTENSIONS> { using type = char*; };
+template<> struct ComputePlatformAttributeReturnType<CL_PLATFORM_NAME> { using type = char*; };
+template<> struct ComputePlatformAttributeReturnType<CL_PLATFORM_PROFILE> { using type = char*; };
+template<> struct ComputePlatformAttributeReturnType<CL_PLATFORM_VERSION> { using type = char*; };
+
+template<int N>
 using DeviceAttributeReturnType = typename ComputeDeviceAttributeReturnType<N>::type;
+
+template<int N>
+using PlatformAttributeReturnType = typename ComputePlatformAttributeReturnType<N>::type;
 
 template<class T>
 struct GetDeviceInfoImpl
@@ -98,8 +110,31 @@ struct GetDeviceInfoImpl
     {
         T result;
         auto status = clGetDeviceInfo(device, N, sizeof(T), &result, nullptr);
-        if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status);
-}
+        if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
+        return result;
+    }
+};
+
+template<>
+struct GetDeviceInfoImpl<cl_device_id>
+{
+    static cl_device_id apply(int N, cl_device_id device)
+    {
+        cl_device_id result;
+        auto status = clGetDeviceInfo(device, N, sizeof(cl_device_id), &result, nullptr);
+        if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
+        return result;
+    }
+};
+
+template<>
+struct GetDeviceInfoImpl<cl_platform_id>
+{
+    static cl_platform_id apply(int N, cl_device_id device)
+    {
+        cl_platform_id result;
+        auto status = clGetDeviceInfo(device, N, sizeof(cl_platform_id), &result, nullptr);
+        if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
         return result;
     }
 };
@@ -131,10 +166,43 @@ struct GetDeviceInfoImpl<T*>
         return result;
     }
 };
+
+template<class T>
+struct GetPlatformInfoImpl;
+
+template<class T>
+struct GetPlatformInfoImpl<T*>
+{
+	using type = typename std::conditional<
+		std::is_same<T, char>::value,
+		std::string,
+		std::vector<T>
+	>::type;
+
+	static int GetSize(int N, cl_platform_id platform)
+	{
+		size_t size;
+		auto status = clGetPlatformInfo(platform, N, 0, nullptr, &size);
+		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
+		return (size / sizeof(T));
+	}
+
+	static type apply(int N, cl_platform_id platform)
+	{
+		type result(GetSize(N, platform), 0);
+		auto status = clGetPlatformInfo(platform, N, result.size() * sizeof(T), reinterpret_cast<void*>(&result[0]), nullptr);
+		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
+		if (std::is_same<T, char>()) { result.pop_back(); }
+		return result;
+	}
+};
 } // namespace detail
 
 template<int N>
 auto GetDeviceInfo(cl_device_id device) MLOPEN_RETURNS(detail::GetDeviceInfoImpl<detail::DeviceAttributeReturnType<N>>::apply(N, device));
+
+template<int N>
+auto GetPlatformInfo(cl_platform_id platform) MLOPEN_RETURNS(detail::GetPlatformInfoImpl<detail::PlatformAttributeReturnType<N>>::apply(N, platform));
 
 } // namespace mlopen
 #endif //GUARD_MLOPEN_OCLDEVICE_HPP

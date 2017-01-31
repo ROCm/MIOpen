@@ -102,6 +102,12 @@ void Process(std::string sourcePath, std::ostream* target, size_t bufferSize, si
 	std::string variable(fileName);
 	std::ifstream sourceFile(sourcePath, std::ios::in | std::ios::binary | std::ios::ate);
 
+	if (!sourceFile.good())
+	{
+		std::cerr << "File not found: " << sourcePath << std::endl;
+		exit(1);
+	}
+
 	std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
 	Bin2Hex(sourceFile, *target, variable, true, bufferSize, lineSize);
 }

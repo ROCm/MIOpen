@@ -1,49 +1,84 @@
+#include <fstream>
 #include <mlopen/clhelper.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
 
 namespace mlopen {
 
-ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params)
+static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t size)
 {
-	std::string source = mlopen::GetKernelSrc(program_name);
-
-	const char* char_source = source.c_str();
-	auto size = source.size();
-
 	cl_int status;
-	ClProgramPtr result{clCreateProgramWithSource(ctx, 
-			1,
-			&char_source, 
-			&size, 
-			&status)};
+	auto result = clCreateProgramWithSource(ctx,
+		1,
+		&char_source,
+		&size,
+		&status);
+
 	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()"); }
 
-	params += " -cl-std=CL2.0";
-	status = clBuildProgram(result.get(), 
-			1, &device, params.c_str(), 
-			nullptr, 
-			nullptr);
+	return result;
+}
 
-	if(status != CL_SUCCESS)
-    {
+static cl_program CreateBinaryProgram(cl_context ctx, cl_device_id device, const char* char_source, size_t size)
+{
+	cl_int status, binaryStatus;
+	auto result = clCreateProgramWithBinary(ctx,
+		1,
+		&device,
+		reinterpret_cast<const size_t*>(&size),
+		reinterpret_cast<const unsigned char**>(&char_source),
+		&status,
+		&binaryStatus);
+
+	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error creating code object program (cl_program) in LoadProgramFromBinary()"); }
+
+	return result;
+}
+
+static void BuildProgram(cl_program program, cl_device_id device, const std::string& params)
+{
+	auto status = clBuildProgram(program,
+		1, &device, params.c_str(),
+		nullptr,
+		nullptr);
+
+	if (status != CL_SUCCESS)
+	{
 		std::string msg = "Error Building OpenCL Program in BuildProgram()\n";
-		std::vector<char> errorbuf(1024*1024);
-        size_t psize;
-        clGetProgramBuildInfo(result.get(),
-				device,
-				CL_PROGRAM_BUILD_LOG, 
-				1024*1024, 
-				errorbuf.data(),
-				&psize);
+		std::vector<char> errorbuf(1024 * 1024);
+		size_t psize;
+		clGetProgramBuildInfo(program,
+			device,
+			CL_PROGRAM_BUILD_LOG,
+			1024 * 1024,
+			errorbuf.data(),
+			&psize);
 
 		msg += errorbuf.data();
 		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, msg); }
-    }
-
-	return result;
-
+	}
 }
+
+ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params)
+{
+	std::string ext;
+	cl_program result;
+
+	auto source = mlopen::GetKernelSrc(program_name, ext);
+	auto char_source = source.c_str();
+	auto size = source.size();
+	auto is_binary = ext == "SO";
+
+	if (is_binary)
+		result = CreateBinaryProgram(ctx, device, char_source, size);
+	else
+		result = CreateProgram(ctx, char_source, size);
+
+	BuildProgram(result, device, params + " -cl-std=CL1.2");
+
+	return ClProgramPtr{ result };
+}
+
 ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name)
 {
 	cl_int status;
@@ -68,6 +103,7 @@ cl_device_id GetDevice(cl_command_queue q)
 
 	return device;
 }
+
 cl_context GetContext(cl_command_queue q)
 {
 	cl_context context;
