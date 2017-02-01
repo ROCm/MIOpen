@@ -169,9 +169,9 @@ KernelInvoke Handle::GetKernel(
     else return k.Invoke(this->GetStream());
 }
 
-Program Handle::LoadProgram(const std::string &program_name, std::string params)
+Program Handle::LoadProgram(const std::string &program_name, std::string params, bool is_kernel_str)
 {
-    return HIPOCProgram{program_name, params};
+    return HIPOCProgram{program_name, params, is_kernel_str};
 }
 
 void Handle::Finish() const
@@ -182,6 +182,11 @@ void Handle::Finish() const
 void Handle::Flush() const
 {
 
+}
+
+bool Handle::IsProfilingEnabled() const
+{
+	return this->impl->enable_profiling;
 }
 
 void Handle::ResetKernelTime(void)

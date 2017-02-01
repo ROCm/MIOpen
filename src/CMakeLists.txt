@@ -65,6 +65,9 @@ set( MLOpen_Source
 	convolution.cpp
 	convolution_api.cpp
 	errors.cpp
+	gemm.cpp
+	gemm_api.cpp
+	gemm_geometry.cpp
 	pooling_api.cpp
 	lrn_api.cpp
 	activ_api.cpp
@@ -216,3 +219,7 @@ elseif(MLOPEN_BACKEND STREQUAL "HIPOC")
 	target_link_libraries( MLOpen ${hip_LIBRARIES} )
 endif()
 
+############################################################
+# MLOpen depends on tinygemm
+find_package(tinygemm REQUIRED)
+target_link_libraries( MLOpen tinygemm )

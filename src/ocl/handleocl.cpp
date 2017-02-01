@@ -340,9 +340,9 @@ KernelInvoke Handle::GetKernel(
     }
 }
 
-Program Handle::LoadProgram(const std::string &program_name, std::string params)
+Program Handle::LoadProgram(const std::string &program_name, std::string params, bool is_kernel_str)
 {
-    return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params);
+    return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params, is_kernel_str);
 }
 
 void Handle::Finish() const
@@ -353,6 +353,11 @@ void Handle::Finish() const
 void Handle::Flush() const
 {
     clFlush(this->GetStream());
+}
+
+bool Handle::IsProfilingEnabled() const
+{
+	return this->impl->enable_profiling;
 }
 
 std::size_t Handle::GetLocalMemorySize()

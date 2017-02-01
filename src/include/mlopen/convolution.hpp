@@ -23,6 +23,10 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 
+	size_t ForwardGetWorkSpaceSize(
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		yDesc) const;
+
 	void FindConvFwdAlgorithm(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		ConstData_t						x,
@@ -34,7 +38,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
-		void							*workSpace,
+		Data_t							workSpace,
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
@@ -48,7 +52,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const void						*beta,
 		const TensorDescriptor&			yDesc,
 		Data_t							y,
-		void							*workSpace,
+		Data_t							workSpace,
 		size_t							workSpaceSize) const;
 
 	void FindConvBwdDataAlgorithm(Handle& handle,
