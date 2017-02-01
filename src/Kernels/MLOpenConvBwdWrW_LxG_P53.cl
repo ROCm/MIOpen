@@ -428,17 +428,10 @@ __kernel void MLOpenCvBwdWrW(
 		int sc = 0;
 		int sc_lcl_off = lcl_bot_off;
 		// pad0
-
-		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
-		sc++;
-		sc_lcl_off += MLO_IN_LCL_WIDTH;
-
-
-		// pad1
-		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1 + 1, 0, pvt_accum, lcl_bot, top_dat);
-		sc++;
-		sc_lcl_off += MLO_IN_LCL_WIDTH;
-
+		for (; sc < MLO_FILTER_PAD1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		{
+			Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
+		}
 		// generic loop
 
 		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
@@ -502,6 +495,26 @@ __kernel void MLOpenCvBwdWrW(
 		// epilog 
 		// handling padding
 		// pad1
+#if 1
+		for (; sc < MLO_OUT_HEIGHT; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		{
+			// processing
+			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, (MLO_FILTER_PAD1 + 1 - (MLO_OUT_HEIGHT - sc)), pvt_accum, lcl_bot, top_dat);
+			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+			{
+				for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
+				{
+					for (int i = 0; i < MLO_IN_TILE0; ++i)
+					{
+						int pvt_off_n = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j *MLO_IN_TILE0 + i;
+						int pvt_off_o = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + (j + 1) *MLO_IN_TILE0 + i;
+						top_dat[pvt_off_n] = top_dat[pvt_off_o];
+					}
+				}
+			}
+		} // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 2; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
+
+#else
 		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
 
@@ -511,7 +524,7 @@ __kernel void MLOpenCvBwdWrW(
 			// move up output
 			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 			{
-				for (int j = 0; j < MLO_FILTER_SIZE1 - 2; ++j)
+				for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
 				{
 					for (int i = 0; i < MLO_IN_TILE0; ++i)
 					{
@@ -533,7 +546,7 @@ __kernel void MLOpenCvBwdWrW(
 			// processing
 			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, MLO_FILTER_PAD1, pvt_accum, lcl_bot, top_dat);
 		} // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 2; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
-
+#endif
 
 	} // 	for (int b = 0;
 
