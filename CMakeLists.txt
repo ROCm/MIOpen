@@ -1,10 +1,5 @@
 cmake_minimum_required( VERSION 2.8.12 )
 
-# On windows, it's convenient to change the default install prefix such that it does NOT point to 'program files'
-if( WIN32 AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
-	set( CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/rocblas-package" CACHE PATH "Install path prefix, prepended onto install directories" FORCE )
-endif( )
-
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
 if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
@@ -14,9 +9,6 @@ endif()
 project ( SuperBuild.MLOpen C CXX )
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
-set( TARGET_PLATFORM "64" )
-set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS TRUE )
-
 
 ############################################################
 # require C++11
@@ -118,6 +110,8 @@ enable_clang_tidy(
 		*
 		-cert-err60-cpp
 		-clang-analyzer-alpha.core.CastToStruct
+		# Disable this because of a false-positive in gemm_geometry.cpp
+		-clang-analyzer-alpha.deadcode.UnreachableCode
 		# Disable this because it doesn't recognize clean up in the destructor
 		-clang-analyzer-alpha.unix.Stream
 		-clang-analyzer-optin.performance.Padding

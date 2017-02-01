@@ -64,6 +64,11 @@ struct verify_forward_conv
         auto wei_dev = handle.Write(weights.data);
         auto out_dev = handle.Create<T>(out.data.size());
 
+		size_t workspace_size = filter.ForwardGetWorkSpaceSize(weights.desc, out.desc);
+
+		std::vector<char> workspace(workspace_size);
+		auto workspace_dev = handle.Write(workspace);
+
         int ret_algo_count;
         mlopenConvAlgoPerf_t perf;
 
@@ -80,8 +85,8 @@ struct verify_forward_conv
             &ret_algo_count,
             &perf,
             mlopenConvolutionFastest,
-            NULL,
-            10,
+            workspace_dev.get(),
+            workspace_size,
             0); // MD: Not performing exhaustiveSearch by default for now
 
         filter.ConvolutionForward(handle,
@@ -94,8 +99,8 @@ struct verify_forward_conv
             &beta,
             out.desc,
             out_dev.get(),
-            NULL,
-            0);
+            workspace_dev.get(),
+            workspace_size);
 
         out.data = handle.Read<T>(out_dev, out.data.size());
         return out;

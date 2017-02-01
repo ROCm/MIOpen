@@ -55,11 +55,11 @@ void WriteFile(const std::string& content, const std::string& name)
         MLOPEN_THROW("Failed to write to src file");
 }
 
-hipModulePtr CreateModule(const std::string& program_name, std::string params)
+hipModulePtr CreateModule(const std::string& program_name, std::string params, bool is_kernel_str)
 {   
     tmp_dir dir{program_name};
 
-    std::string src = GetKernelSrc(program_name);
+    std::string src = is_kernel_str ? program_name : GetKernelSrc(program_name);
 
     WriteFile(src, dir.path(program_name));
         
@@ -96,8 +96,8 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params)
 
 HIPOCProgram::HIPOCProgram()
 {}
-HIPOCProgram::HIPOCProgram(const std::string &program_name, std::string params)
+HIPOCProgram::HIPOCProgram(const std::string &program_name, std::string params, bool is_kernel_str)
 {
-    this->module = CreateModule(program_name, params);
-}
+    this->module = CreateModule(program_name, params, is_kernel_str);
+
 }
