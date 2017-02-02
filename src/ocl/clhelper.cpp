@@ -19,7 +19,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 			&status)};
 	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()"); }
 
-	params += " -cl-std=CL2.0";
+	params += " -cl-std=CL1.2";
 	status = clBuildProgram(result.get(), 
 			1, &device, params.c_str(), 
 			nullptr, 
