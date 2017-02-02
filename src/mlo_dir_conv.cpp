@@ -230,20 +230,17 @@ int mlo_construct_direct2D::mloConstruct()
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
-#ifdef MLOPEN_BACKEND_OPENCL
-	const auto use_asm_kernels_env_p = std::getenv("MLOPEN_DEBUG_GCN_ASM_KERNELS");
-	std::string use_asm_kernels_env;
+	const auto use_precompiled_binaries_env_p = std::getenv("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+	std::string use_precompiled_binaries_env;
 
-	if (use_asm_kernels_env_p != nullptr)
-		use_asm_kernels_env = use_asm_kernels_env_p;
+	if (use_precompiled_binaries_env_p != nullptr)
+		use_precompiled_binaries_env = use_precompiled_binaries_env_p;
 
-	if (use_asm_kernels_env == "enable" || (use_asm_kernels_env != "disable" && mloCheckWinograd3x3FwdConvCondition()))
+	if (use_precompiled_binaries_env != "disable" && mloCheckWinograd3x3FwdConvCondition())
 	{
 		return (mloConstructWinograd3x3FwdConv());
 	}
-	else
-#endif // MLOPEN_BACKEND_OPENCL
-	if (_gen && getDirection())
+	else if (_gen && getDirection())
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
@@ -436,7 +433,7 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
-	const auto n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	const auto grid_workgroup_count_x = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
 
 	const auto device_is_opencl_on_rocm =
 		   (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
@@ -486,7 +483,7 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 		&& _n_outputs							<	std::pow(2, 16)
 		&& _in_height							<	std::pow(2, 16)
 		&& _in_width							<	std::pow(2, 16)
-		&& n_groups								<	std::pow(2, 16)
+		&& grid_workgroup_count_x								<	std::pow(2, 16)
 		&& _n_inputs * _in_height * _in_width	<=	std::pow(2, 28)
 		&& _n_outputs * _in_height * _in_width	<=	std::pow(2, 28)
 		&& _n_inputs % 2 == 0
