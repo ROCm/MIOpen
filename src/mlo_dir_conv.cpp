@@ -474,6 +474,8 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 	const auto kernel_is_valid_for_problem_description =
 		   _in_layout == "NCHW"
 		// && _weights_layout						== "NKCHW" // FIXME see above
+		&& _kernel_size0 == 3
+		&& _kernel_size1 == 3
 		&& _kernel_stride0 == 1
 		&& _kernel_stride1 == 1
 		&& _pad0 == 1
