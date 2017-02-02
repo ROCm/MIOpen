@@ -1054,15 +1054,15 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_out_pix_tile0 = _kernel_size0;
 	_out_pix_tile1 = _kernel_size1;
 	_in_tile1 = 1;
-	_in_tile0 = 2;
+	_in_tile0 = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : 2;
 	int n_spans = (_in_width + _in_tile0 - 1) / _in_tile0;
 
 	// TODO: search
-	int n_waves = (_in_width <= 16) ? 1 : 2;
+	int n_waves = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : (_in_width <= 16) ? 1 : 2;
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 
-	_n_out_pix_tiles = 2;
+	_n_out_pix_tiles = 1;
 	int n_out_stacks = std::max(1, GRP_SZ / n_spans);
 	_n_in_data_tiles = 1;
 
