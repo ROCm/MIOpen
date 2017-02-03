@@ -485,7 +485,7 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 		&& _n_outputs							<	std::pow(2, 16)
 		&& _in_height							<	std::pow(2, 16)
 		&& _in_width							<	std::pow(2, 16)
-		&& grid_workgroup_count_x								<	std::pow(2, 16)
+		&& grid_workgroup_count_x				<	std::pow(2, 16)
 		&& _n_inputs * _in_height * _in_width	<=	std::pow(2, 28)
 		&& _n_outputs * _in_height * _in_width	<=	std::pow(2, 28)
 		&& _n_inputs % 2 == 0
