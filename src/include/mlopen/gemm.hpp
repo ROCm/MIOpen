@@ -1,7 +1,6 @@
 #ifndef GUARD_MLOPEN_GEMM_HPP_
 #define GUARD_MLOPEN_GEMM_HPP_
 
-#include <tinygemm/tinygemm.hpp>
 #include <mlopen/tensor.hpp>
 #include <mlopen/gemm_geometry.hpp>
 
