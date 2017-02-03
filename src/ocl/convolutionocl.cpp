@@ -128,6 +128,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         construct_params.setOutputDescFromMLDesc(yDesc);
         construct_params.setInputDescFromMLDesc(xDesc);
         construct_params.setWeightDescFromMLDesc(wDesc);
+
+		construct_params.setStream(&handle);
     }
 
     std::string network_config;

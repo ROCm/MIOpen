@@ -244,7 +244,9 @@ public:
 		*H = _in_height;
 		*W = _in_width;
 		*K = _n_outputs;
-		*n_groups = _n_groups;
+
+		const auto dev = mlopen::GetDevice(_stream->GetStream());
+		*n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
 	}
 
 	/*
