@@ -350,16 +350,19 @@ __kernel void MLOpenCvBwdWrW(
 
 // 3x3 out mask
 #if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
-	_FLOAT out_mask[MLO_IN_TILE0];
-	for (int i = 0; i < MLO_IN_TILE0; ++i)
-	{
-		out_mask[i] = 1;
-	}
+	_FLOAT out_mask[MLO_IN_TILE0 - MLO_OUT_N_PIXS_OFF];
 	if (spn == MLO_N_SPANS_PER_SCAN - 1)
 	{
-		for (int i = MLO_OUT_N_PIXS_OFF; i < MLO_IN_TILE0; ++i)
+		for (int i = 0; i < MLO_IN_TILE0 - MLO_OUT_N_PIXS_OFF; ++i)
 		{
 			out_mask[i] = 0;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < MLO_IN_TILE0 - MLO_OUT_N_PIXS_OFF; ++i)
+		{
+			out_mask[i] = 1;
 		}
 	}
 
@@ -424,11 +427,16 @@ __kernel void MLOpenCvBwdWrW(
 					for (int i = 0; i < MLO_IN_TILE0; ++i)
 					{
 						top_dat[pvt_off + i] = top_df[top_df_off + i] * mask
-#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
-							* out_mask[i]
-#endif
 							;
 					}
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+							
+					for (int i = MLO_OUT_N_PIXS_OFF; i < MLO_IN_TILE0; ++i)
+					{
+						top_dat[pvt_off + i] *= out_mask[i-MLO_OUT_N_PIXS_OFF];
+						
+					}
+#endif
 				}
 
 			}
@@ -489,11 +497,17 @@ __kernel void MLOpenCvBwdWrW(
 					for (int i = 0; i < MLO_IN_TILE0; ++i)
 					{
 						top_dat[pvt_off + i] = top_df[top_df_off + i] * mask
-#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
-							* out_mask[i]
-#endif
 						;
 					}
+#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+							
+					for (int i = MLO_OUT_N_PIXS_OFF; i < MLO_IN_TILE0; ++i)
+					{
+						top_dat[pvt_off + i] *= out_mask[i-MLO_OUT_N_PIXS_OFF];
+						
+					}
+#endif
+
 				}
 
 			}

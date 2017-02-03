@@ -1054,7 +1054,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_out_pix_tile0 = _kernel_size0;
 	_out_pix_tile1 = _kernel_size1;
 	_in_tile1 = 1;
-	_in_tile0 = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? ((_in_width == 27) ? 3 : 4) : 2;
+	_in_tile0 = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : 2;
 	int n_spans = (_in_width + _in_tile0 - 1) / _in_tile0;
 
 	// TODO: search
