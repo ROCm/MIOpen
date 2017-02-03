@@ -500,10 +500,10 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 	int ret = 0;
 
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
-	_n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	const auto n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
 
 	_g_wk.clear();
-	_g_wk.push_back(512 * _n_groups);
+	_g_wk.push_back(512 * n_groups);
 	_g_wk.push_back(1);
 	_g_wk.push_back(1);
 
@@ -512,7 +512,7 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 	_l_wk.push_back(1);
 	_l_wk.push_back(1);
 
-	_kernel_file = "conv_3x3_wheel_alpha_v0_2b_gfx803.so";
+	_kernel_file = "conv_3x3_wheel_alpha_v2_0b_gfx803.so";
 	_kernel_name = "sp3AsmConv3x3F";
 
 	return (ret);
