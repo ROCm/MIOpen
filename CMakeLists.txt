@@ -45,6 +45,7 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
 	find_package( OpenCL REQUIRED )
+	find_package(tinygemm QUIET)
 endif()
 # HCC
 if( MLOPEN_BACKEND STREQUAL "HCC")
@@ -60,6 +61,7 @@ if( MLOPEN_BACKEND STREQUAL "HIP")
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=1 )
 	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
+	message( SEND_ERROR "${MLOPEN_BACKEND} backend not yet supported." )
 endif()
 # HIPOC
 if( MLOPEN_BACKEND STREQUAL "HIPOC")
@@ -88,8 +90,11 @@ if( MLOPEN_BACKEND STREQUAL "HIPOC")
 endif()
 message( STATUS "${MLOPEN_BACKEND} backend selected." )
 
-# If Cobalt is used in future
-if( USE_Cobalt)
+# tinygemm
+if(tinygemm_FOUND)
+	add_definitions(-DMLOPEN_USE_TINYGEMM=1)
+else()
+	add_definitions(-DMLOPEN_USE_TINYGEMM=0)
 endif()
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )

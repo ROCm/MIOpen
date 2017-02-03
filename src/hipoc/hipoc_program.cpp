@@ -99,5 +99,6 @@ HIPOCProgram::HIPOCProgram()
 HIPOCProgram::HIPOCProgram(const std::string &program_name, std::string params, bool is_kernel_str)
 {
     this->module = CreateModule(program_name, params, is_kernel_str);
+}
 
 }

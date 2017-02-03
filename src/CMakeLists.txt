@@ -65,9 +65,6 @@ set( MLOpen_Source
 	convolution.cpp
 	convolution_api.cpp
 	errors.cpp
-	gemm.cpp
-	gemm_api.cpp
-	gemm_geometry.cpp
 	pooling_api.cpp
 	lrn_api.cpp
 	activ_api.cpp
@@ -138,6 +135,14 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 	install(FILES 
 		Kernels/Fiji.cd.pdb.txt
 	 DESTINATION share/mlopen/db)
+endif()
+
+if(tinygemm_FOUND)
+    list(APPEND MLOpen_Source 
+        gemm.cpp
+        gemm_api.cpp
+        gemm_geometry.cpp
+    )
 endif()
 
 if( MLOPEN_BACKEND STREQUAL "OpenCL" )
@@ -221,5 +226,6 @@ endif()
 
 ############################################################
 # MLOpen depends on tinygemm
-find_package(tinygemm REQUIRED)
-target_link_libraries( MLOpen tinygemm )
+if(tinygemm_FOUND)
+	target_link_libraries( MLOpen tinygemm )
+endif()

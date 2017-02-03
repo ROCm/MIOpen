@@ -2,8 +2,9 @@
 #include <mlopen/util.hpp>
 #include <mlopen/mlo_internal.hpp>
 
-#include <tinygemm/tinygemm.hpp>
+#if MLOPEN_USE_TINYGEMM
 #include <mlopen/gemm.hpp>
+#endif
 
 namespace mlopen {
 
@@ -43,8 +44,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
-
     std::string network_config;
+#if MLOPEN_USE_TINYGEMM
     if(workSpace != nullptr) {
         if(wei_h != 1 && wei_w != 1) {
             size_t in_offset = 0;
@@ -54,6 +55,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
         gg.FindSolution(.003, handle, workSpace, w, y, false);
     }
+#else
+    (void)workSpace; // Suppress warning
+#endif
 
     // Direct algo
     // Generate kernels if OpenCL
@@ -194,6 +198,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 
             std::string network_config;
+#if MLOPEN_USE_TINYGEMM
             CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
             GemmGeometry gg = GetGemmGeometry("mlopenConvolutionFwdAlgoGEMM", network_config);
 
@@ -229,6 +234,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
                 } 
             }
+#else
+            MLOPEN_THROW("GEMM is not supported");
+#endif
         }
         break;
         case mlopenConvolutionFwdAlgoFFT:
@@ -416,9 +424,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     }
 
     std::string network_config;
+#if MLOPEN_USE_TINYGEMM
     GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
     gg.FindSolution(.003, handle, workSpace, dy, dw, false);
-
+#endif
     // temprorary guard
     if((u == 1 && v == 1) || (wei_w >= 7 && u == 2 && v == 2))
     {
@@ -549,6 +558,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         case mlopenConvolutionBwdWeightsAlgoGEMM:
         {
             std::string network_config;
+#if MLOPEN_USE_TINYGEMM
             CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
             GemmGeometry gg = GetGemmGeometry("mlopenConvolutionBwdWeightsAlgoGEMM", network_config);
 
@@ -585,7 +595,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     }
                 }
             }
-
+#else
+            MLOPEN_THROW("GEMM is not supported");
+#endif
         }
         break;
 
