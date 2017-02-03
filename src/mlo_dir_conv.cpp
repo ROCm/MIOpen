@@ -1041,8 +1041,8 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	// number  of batch iterations
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
-// defines how to proceed : 1 grouop per batch or with a loop over all batches
-// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
+	// defines how to proceed : 1 grouop per batch or with a loop over all batches
+	// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
 	int N_BATCH_LOOPS = (_in_width > 16) ? 1 : _batch_sz / _n_stacks;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 	// number of filter taps in the processing wk_item
@@ -1052,11 +1052,11 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_out_pix_tile0 = _kernel_size0;
 	_out_pix_tile1 = _kernel_size1;
 	_in_tile1 = 1;
-	_in_tile0 = 2;
+	_in_tile0 = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? ((_in_width == 27) ? 3 : 4) : 2;
 	int n_spans = (_in_width + _in_tile0 - 1) / _in_tile0;
 
-// TODO: search
-	int n_waves = (_in_width <= 16) ? 1 : 2;
+	// TODO: search
+	int n_waves = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : (_in_width <= 16) ? 1 : 2;
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 
@@ -1071,8 +1071,9 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
 
 
-	// select output mapping
+// TO DO: ADJUST 																		 // select output mapping
 	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
+
 	total_out_maps = (total_out_maps > _n_inputs) ? _n_inputs : total_out_maps;
 
 	_grp_tile0 = GRP_SZ;
@@ -1203,7 +1204,6 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 	return(ret);
 }
-
 
 
 int mlo_construct_BwdWrW2D::mloConstruct2()
@@ -1407,7 +1407,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		ret = mloConstruct2();
 		return(ret);
 	}
-	else if ((_kernel_size0 >= 5) && (_kernel_size1 <= 5) && (_kernel_stride0 == 1 || _kernel_stride1 == 1)){
+	else if ((_kernel_size0 >= 3) && (_kernel_size1 >= 3) && (_kernel_stride0 == 1 || _kernel_stride1 == 1) && (_in_width * _in_height) <= 8*1024 ){
 		ret = mloConstruct53();
 		return(ret);
 	}
