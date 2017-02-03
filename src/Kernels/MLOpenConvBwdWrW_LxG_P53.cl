@@ -531,8 +531,7 @@ __kernel void MLOpenCvBwdWrW(
 
 		}
 
-// handling out of range
-// 3x3
+// handling 3x3 out of range
 #if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
 		{
 			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
