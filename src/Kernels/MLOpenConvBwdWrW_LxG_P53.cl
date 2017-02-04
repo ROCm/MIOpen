@@ -645,7 +645,8 @@ __kernel void MLOpenCvBwdWrW(
 		{
 			barrier(CLK_LOCAL_MEM_FENCE);
 // read 1 scan line less
-// padding processing takes care of the bottom border
+// padding processing takes care of the bottom border.
+// TO DD: verify it with 5x5 
 			readInput(lcl_id, gbl_in_scan_off, MLO_IN_EXTENT1, bot, lcl_bot);
 
 			// point to the start of the local buffer
