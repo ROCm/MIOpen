@@ -1064,6 +1064,26 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int n_out_stacks = std::max(1, GRP_SZ / n_spans);
 	_n_in_data_tiles = 1;
 
+// calculate number of input scans in the input block
+// max size is 4K
+	int in_lcl_width = ((_in_width + read_unit - 1) / read_unit) * read_unit + 2 * _pad0;
+	int in_n_vert_reads = _in_height;
+	while (in_lcl_width * in_n_vert_reads * _n_in_data_tiles > 4 * 1024)
+	{
+		in_n_vert_reads = std::max(1, in_n_vert_reads/2);
+		if (in_n_vert_reads < 2 && _n_in_data_tiles >= 2)
+		{
+			in_n_vert_reads = _in_height;
+			_n_in_data_tiles /= 2;
+		}
+		else if (in_n_vert_reads < 2)
+		{
+			printf("CONFIG ERROR: not enough local memory for the configuration\n");
+			return(-1);
+		}
+	}
+	int in_n_vert_read_loops = (_in_height + in_n_vert_reads - 1) / in_n_vert_reads;
+
 
 	// input is output
 
@@ -1133,6 +1153,8 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		+ std::string(" -DMLO_ALIGNED_OUT_SCAN_LN=") + std::to_string(ALIGNED_OUT_SCAN_LN) // image aligned scan
 		+ std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
 		+ std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
+		+ std::string(" -DMLO_IN_VERT_READS=") + std::to_string(in_n_vert_reads)
+		+ std::string(" -DMLO_IN_N_VERT_LOOPS=") + std::to_string(in_n_vert_read_loops)
 
 		+ std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias)
 
@@ -1407,7 +1429,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		ret = mloConstruct2();
 		return(ret);
 	}
-	else if ((_kernel_size0 >= 3) && (_kernel_size1 >= 3) && (_kernel_stride0 == 1 || _kernel_stride1 == 1) && (_in_width * _in_height) <= 8*1024 ){
+	else if ((_kernel_size0 >= 3) && (_kernel_size1 >= 3) && (_kernel_stride0 == 1 || _kernel_stride1 == 1)/* && (_in_width * _in_height) <= 8*1024*/ ){
 		ret = mloConstruct53();
 		return(ret);
 	}
