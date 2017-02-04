@@ -1065,9 +1065,9 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_n_in_data_tiles = 1;
 
 // calculate number of input scans in the input block
-// max size is 8K
+// max LDS size is 8K
 	int in_lcl_width = ((_in_width + read_unit - 1) / read_unit) * read_unit + 2 * _pad0;
-	int in_n_vert_reads = _in_height;
+	int in_n_vert_reads = (_in_height >= 28 && _in_width <= 64) ? _in_height/2 : _in_height;
 	while (in_lcl_width * in_n_vert_reads * _n_in_data_tiles > (_dev_local_mem_sz/(2*sizeof(float))))
 	{
 		in_n_vert_reads = (in_n_vert_reads + 1)/2;
