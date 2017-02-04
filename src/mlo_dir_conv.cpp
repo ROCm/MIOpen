@@ -1432,7 +1432,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		ret = mloConstruct2();
 		return(ret);
 	}
-	else if ((_kernel_size0 >= 3) && (_kernel_size1 >= 3) && (_kernel_stride0 == 1 || _kernel_stride1 == 1)/* && (_in_width * _in_height) <= 8*1024*/ ){
+	else if ((_kernel_size0 >= 3) && (_kernel_size1 >= 3) && (_kernel_stride0 == 1 || _kernel_stride1 == 1) ){
 		ret = mloConstruct53();
 		return(ret);
 	}
