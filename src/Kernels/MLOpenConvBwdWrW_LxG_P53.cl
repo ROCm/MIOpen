@@ -391,6 +391,16 @@ __kernel void MLOpenCvBwdWrW(
 		)
 	{
 		barrier(CLK_LOCAL_MEM_FENCE);
+		// top border input block
+		int gbl_in_scan_off = gbl_in_off;
+		int gbl_out_scan_off = gbl_out_off;
+
+
+		// read input map
+		readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
+		// move input pointer
+		gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1;
+		barrier(CLK_LOCAL_MEM_FENCE);
 
 		for (int i = 0; i < MLO_TOP_DAT_SZ; ++i)
 		{
@@ -398,8 +408,6 @@ __kernel void MLOpenCvBwdWrW(
 		}
 
 
-		int gbl_in_scan_off = gbl_in_off;
-		int gbl_out_scan_off = gbl_out_off;
 
 
 		// prefetch output
@@ -462,12 +470,7 @@ __kernel void MLOpenCvBwdWrW(
 
 		// prolog
 		// handling padding
-		// top border input block
-		// read input map
-		readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
-		// move input pointer
-		gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1;
-		barrier(CLK_LOCAL_MEM_FENCE);
+
 
 
 		// pad0
@@ -769,15 +772,6 @@ __kernel void MLOpenCvBwdWrW(
 					}
 				}
 
-			}
-
-			if (get_global_id(1) == 0 && get_global_id(2) == 0 && get_local_id(0) == 0)
-			{
-				printf("G:l3: %d %d %d\n",
-					sc,
-					gbl_in_scan_off,
-					sc_lcl_off
-				);
 			}
 
 			// processing
