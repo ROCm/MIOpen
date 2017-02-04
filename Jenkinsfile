@@ -13,7 +13,7 @@ parallel opencl: {
                         mkdir build
                         cd build
                         CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
-                        make tidy 2>&1 | tee tidy_out
+                        dumb-init make tidy 2>&1 | tee tidy_out
                         ! grep -q "warning:" tidy_out
                     '''
                 }
@@ -23,7 +23,7 @@ parallel opencl: {
                         mkdir build
                         cd build
                         CXX='clang++-3.8' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
-                        make -j32 check
+                        dumb-init make -j32 check
                     '''
                 }
                 stage('Clang Release') {
@@ -32,7 +32,7 @@ parallel opencl: {
                         mkdir build
                         cd build
                         CXX='clang++-3.8' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release .. 
-                        make -j32 check
+                        dumb-init make -j32 check
                     '''
                 }
                 stage('GCC Debug') {
@@ -41,7 +41,7 @@ parallel opencl: {
                         mkdir build
                         cd build
                         CXX='g++-4.8' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
-                        make -j32 check
+                        dumb-init make -j32 check
                     '''
                 }
                 stage('GCC Release') {
@@ -50,7 +50,7 @@ parallel opencl: {
                         mkdir build
                         cd build
                         CXX='g++-4.8' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release .. 
-                        make -j32 check
+                        dumb-init make -j32 check
                     '''
                 }
             }
@@ -71,7 +71,7 @@ parallel opencl: {
                         mkdir build
                         cd build
                         CXX='hcc' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
-                        make -j32 check
+                        dumb-init make -j32 check
                     '''
                 }
                 stage('Hip Release') {
@@ -80,7 +80,7 @@ parallel opencl: {
                         mkdir build
                         cd build
                         CXX='hcc' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release .. 
-                        make -j32 check
+                        dumb-init make -j32 check
                     '''
                 }
             }
