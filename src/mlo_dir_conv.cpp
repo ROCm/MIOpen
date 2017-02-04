@@ -1022,8 +1022,10 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 * backward with regard to weights
 * inputs == output, outputs == input
 */
+// TODO: search params
 int mlo_construct_BwdWrW2D::mloConstruct53()
 {
+
 	int ret = 0;
 	size_t localMemSize = 64 * 1024;
 
@@ -1043,31 +1045,37 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 	// defines how to proceed : 1 grouop per batch or with a loop over all batches
 	// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
-	int N_BATCH_LOOPS = (_in_width > 16) ? 1 : _batch_sz / _n_stacks;
+	// param
+	int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8*1024) ? 1 : _batch_sz / _n_stacks;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
-	// number of filter taps in the processing wk_item
-
-
 
 	_out_pix_tile0 = _kernel_size0;
 	_out_pix_tile1 = _kernel_size1;
 	_in_tile1 = 1;
+
+	// span size
+	// param
 	_in_tile0 = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : 2;
 	int n_spans = (_in_width + _in_tile0 - 1) / _in_tile0;
 
-	// TODO: search
+	// n of wvaefront in a group
+	// param
 	int n_waves = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : (_in_width <= 16) ? 1 : 2;
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 
 	_n_out_pix_tiles = 1;
 	int n_out_stacks = std::max(1, GRP_SZ / n_spans);
+	// number of input maps per group
+	// param
 	_n_in_data_tiles = 1;
 
 // calculate number of input scans in the input block
 // max LDS size is 8K
 	int in_lcl_width = ((_in_width + read_unit - 1) / read_unit) * read_unit + 2 * _pad0;
-	int in_n_vert_reads = (_in_height >= 28 && _in_width <= 64) ? _in_height/2 : _in_height;
+	// number of input map blocks being process at once
+	// param
+	int in_n_vert_reads = (_in_height >= 27 && _in_width <= 64) ? _in_height/2 : _in_height;
 	while (in_lcl_width * in_n_vert_reads * _n_in_data_tiles > (_dev_local_mem_sz/(2*sizeof(float))))
 	{
 		in_n_vert_reads = (in_n_vert_reads + 1)/2;
@@ -1084,14 +1092,9 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	}
 	int in_n_vert_read_loops = (_in_height + in_n_vert_reads - 1) / in_n_vert_reads;
 
-
-	// input is output
-
-
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
 
-
-// TO DO: ADJUST 																		 // select output mapping
+// select output mapping
 	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
 
 	total_out_maps = (total_out_maps > _n_inputs) ? _n_inputs : total_out_maps;
