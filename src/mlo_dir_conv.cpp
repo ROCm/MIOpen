@@ -1190,7 +1190,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
+		_kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
 		_kernel_name = "MLOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -1205,7 +1205,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	{
 
 
-		std::string kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
+		std::string kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
 		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
