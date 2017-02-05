@@ -438,7 +438,6 @@ __kernel void MLOpenCvBwdWrW(
 		readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
 		// move input pointer
 		gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1;
-		barrier(CLK_LOCAL_MEM_FENCE);
 
 		for (int i = 0; i < MLO_TOP_DAT_SZ; ++i)
 		{
@@ -489,6 +488,8 @@ __kernel void MLOpenCvBwdWrW(
 
 			}
 		}
+
+		barrier(CLK_LOCAL_MEM_FENCE);
 
 		gbl_out_scan_off += (MLO_FILTER_SIZE1 - 1) * MLO_OUT_STRIDE;
 
@@ -762,7 +763,7 @@ __kernel void MLOpenCvBwdWrW(
 	} // 	for (int b = 0;
 
 
-	barrier(CLK_LOCAL_MEM_FENCE);
+
 
 
 	// final summation over all output maps and each filter row
@@ -771,6 +772,8 @@ __kernel void MLOpenCvBwdWrW(
 	{
 		for (int l = 0; l < MLO_FILTER_SIZE1; ++l)
 		{
+
+			barrier(CLK_LOCAL_MEM_FENCE);
 			for (int n = 0; n < MLO_FILTER_SIZE0; ++n)
 			{
 				int pvt_off = k*MLO_FILTER_SIZE0 * MLO_FILTER_SIZE1 + l*MLO_FILTER_SIZE0 + n;
@@ -809,7 +812,7 @@ __kernel void MLOpenCvBwdWrW(
 				}
 			}
 
-			barrier(CLK_LOCAL_MEM_FENCE);
+//			barrier(CLK_LOCAL_MEM_FENCE);
 		}
 	}
 

@@ -107,7 +107,8 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MLOpenConvBwdWrW.cl
 		Kernels/MLOpenConvBwdWrW_LxL.cl
 		Kernels/MLOpenConvBwdWrW_LxL_P.cl
-		Kernels/MLOpenConvBwdWrW_LxG_P53.cl)
+		Kernels/MLOpenConvBwdWrW_LxG_P53.cl
+		Kernels/MLOpenConvBwdWrW_LxG_5x5.cl)
 	
 	add_kernels("${MLOPEN_KERNELS}")
 	configure_file(db.cpp.in db.cpp)
