@@ -48,29 +48,37 @@
 //     }
 // }
 
-node ('rocmtest') {
-    stage('OCL Checkout') {
-        checkout scm
-    }
-    cmake_step(image: 'rocm-opencl:1.4', stage: 'Clang Debug', compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
-    cmake_step(image: 'rocm-opencl:1.4', stage: 'Clang Release', compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
-    cmake_step(image: 'rocm-opencl:1.4', stage: 'Gcc Debug', compiler: 'g++-4.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
-    cmake_step(image: 'rocm-opencl:1.4', stage: 'Gcc Release', compiler: 'g++-4.8', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+// node ('rocmtest') {
+//     stage('OCL Checkout') {
+//         checkout scm
+//     }
+//     cmake_step(image: 'rocm-opencl:1.4', stage: 'Clang Debug', compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+// }
+
+rocmtest('rocm-opencl:1.4') {
+    cmake_step(stage: 'Clang Debug', compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
 }
 
-def cmake_step(image, stage, compiler, flags) {
-    withDockerContainer(image: image, args: '--device=/dev/kfd') {
-        timeout(time: 30, unit: 'MINUTES') {
-            stage(stage) {
-                sh '''
-                    rm -rf build
-                    mkdir build
-                    cd build
-                    CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-                    CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
-                '''
+def rocmtest(image, body) {
+    node('rocmtest') {
+        checkout scm
+        withDockerContainer(image: image, args: '--device=/dev/kfd') {
+            timeout(time: 1, unit: 'HOUR') {
+                body()
             }
         }
+    }
+}
+
+def cmake_step(stage, compiler, flags) {
+    stage(stage) {
+        sh '''
+            rm -rf build
+            mkdir build
+            cd build
+            CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
+            CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
+        '''
     }
 }
 
