@@ -8,8 +8,7 @@ parallel opencl: {
         withDockerContainer(image: 'rocm-opencl:1.4', args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
                 stage('Clang Tidy') {
-                    sh '''
-                        #!/usr/bin/dumb-init /bin/bash
+                    sh '''#!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
@@ -19,8 +18,7 @@ parallel opencl: {
                     '''
                 }
                 stage('Clang Debug') {
-                    sh '''
-                        #!/usr/bin/dumb-init /bin/bash
+                    sh '''#!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
@@ -29,8 +27,7 @@ parallel opencl: {
                     '''
                 }
                 stage('Clang Release') {
-                    sh '''
-                        #!/usr/bin/dumb-init /bin/bash
+                    sh '''#!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
@@ -39,8 +36,7 @@ parallel opencl: {
                     '''
                 }
                 stage('GCC Debug') {
-                    sh '''
-                        #!/usr/bin/dumb-init /bin/bash
+                    sh '''#!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
@@ -49,8 +45,7 @@ parallel opencl: {
                     '''
                 }
                 stage('GCC Release') {
-                    sh '''
-                        #!/usr/bin/dumb-init /bin/bash
+                    sh '''#!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
@@ -71,8 +66,7 @@ parallel opencl: {
         withDockerContainer(image: 'aoc2:latest', args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
                 stage('Hip Debug') {
-                    sh '''
-                        #!/usr/bin/dumb-init /bin/bash
+                    sh '''#!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
@@ -81,8 +75,7 @@ parallel opencl: {
                     '''
                 }
                 stage('Hip Release') {
-                    sh '''
-                        #!/usr/bin/dumb-init /bin/bash
+                    sh '''#!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
