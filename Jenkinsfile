@@ -70,7 +70,7 @@ def rocmtest(image, body) {
     }
 }
 
-def cmake_step(stage, compiler, flags) {
+def cmake_step(String stage, String compiler, String flags) {
     stage(stage) {
         sh '''
             rm -rf build
