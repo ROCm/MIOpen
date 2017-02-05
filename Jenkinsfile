@@ -56,16 +56,16 @@
 // }
 parallel opencl: {
     rocmtest('rocm-opencl:1.4') { cmake_build ->
-        stage('Clang Tidy') {
-            sh '''
-                rm -rf build
-                mkdir build
-                cd build
-                CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
-                make tidy 2>&1 | tee tidy_out
-                ! grep -q "warning:" tidy_out
-            '''
-        }
+        // stage('Clang Tidy') {
+        //     sh '''
+        //         rm -rf build
+        //         mkdir build
+        //         cd build
+        //         CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
+        //         make tidy 2>&1 | tee tidy_out
+        //         ! grep -q "warning:" tidy_out
+        //     '''
+        // }
         stage('Clang Debug') {
             cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
         }
@@ -92,7 +92,7 @@ parallel opencl: {
 
 def rocmtest(image, body) {
     def cmake_build = { compiler, flags ->
-        echo compiler.toString()
+        echo "compiler: ${compiler}"
         sh '''
             rm -rf build
             mkdir build
