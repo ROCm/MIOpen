@@ -30,15 +30,6 @@ parallel opencl: {
             }
         }
     }
-    def cmake_build(compiler, flags) {
-        sh '''
-            rm -rf build
-            mkdir build
-            cd build
-            CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-            CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
-        '''
-    }
 }, hip: {
     node ('rocmtest') {
         stage('HIP Checkout') {
@@ -55,13 +46,14 @@ parallel opencl: {
             }
         }
     }
-    def cmake_build(compiler, flags) {
-        sh '''
-            rm -rf build
-            mkdir build
-            cd build
-            CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-            CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
-        '''
-    }
+}
+
+def cmake_build(compiler, flags) {
+    sh '''
+        rm -rf build
+        mkdir build
+        cd build
+        CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
+        CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
+    '''
 }
