@@ -1,4 +1,4 @@
-def build(compiler, flags) {
+def cmake_build(compiler, flags) {
     sh '''
         rm -rf build
         mkdir build
@@ -26,16 +26,16 @@ parallel opencl: {
                     '''
                 }
                 stage('Clang Debug') {
-                    build(compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+                    cmake_build(compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                 }
                 stage('Clang Release') {
-                    build(compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+                    cmake_build(compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
                 }
                 stage('GCC Debug') {
-                    build(compiler: 'g++-4.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+                    cmake_build(compiler: 'g++-4.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                 }
                 stage('GCC Release') {
-                    build(compiler: 'g++-4.8', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+                    cmake_build(compiler: 'g++-4.8', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
                 }
             }
         }
@@ -48,10 +48,10 @@ parallel opencl: {
         withDockerContainer(image: 'aoc2:latest', args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
                 stage('Hip Debug') {
-                    build(compiler: 'hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+                    cmake_build(compiler: 'hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
                 }
                 stage('Hip Release') {
-                    build(compiler: 'hcc', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+                    cmake_build(compiler: 'hcc', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
                 }
             }
         }
