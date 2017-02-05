@@ -63,7 +63,7 @@ def rocmtest(image, body) {
     node('rocmtest') {
         checkout scm
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
-            timeout(time: 1, unit: 'HOUR') {
+            timeout(time: 1, unit: 'HOURS') {
                 body()
             }
         }
