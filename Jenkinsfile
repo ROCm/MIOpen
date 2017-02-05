@@ -55,7 +55,7 @@
 //     cmake_step(image: 'rocm-opencl:1.4', stage: 'Clang Debug', compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
 // }
 
-rocmtest('rocm-opencl:1.4') { cmake_step ->
+rocmtest('rocm-opencl:1.4') {
     cmake_step(stage: 'Clang Debug', compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
 }
 
@@ -75,12 +75,24 @@ def rocmtest(image, body) {
                         '''
                     }
                 }
-                body(cmake_step)
+                body()
             }
         }
     }
 }
 
+@Whitelisted
+def cmake_step(stage, compiler, flags) {
+    stage(stage) {
+        sh '''
+            rm -rf build
+            mkdir build
+            cd build
+            CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
+            CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
+        '''
+    }
+}
 
 def cmake_build(compiler, flags) {
     sh '''
