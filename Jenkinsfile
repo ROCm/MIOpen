@@ -60,7 +60,7 @@ rocmtest('rocm-opencl:1.4') { cmake_step ->
 }
 
 def rocmtest(image, body) {
-    def cmake_step = cmake_step
+    def cmake_step = owner.cmake_step
     node('rocmtest') {
         checkout scm
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
