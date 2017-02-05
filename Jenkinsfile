@@ -64,7 +64,7 @@ def rocmtest(image, body) {
         checkout scm
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
-                def cmake_step(stage, compiler, flags) {
+                def cmake_step = { stage, compiler, flags ->
                     stage(stage) {
                         sh '''
                             rm -rf build
