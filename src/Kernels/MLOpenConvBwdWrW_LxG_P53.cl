@@ -114,7 +114,7 @@ inline int iMod(int v, int u, int d)
 	return(r);
 }
 
-inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
+inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
 {
 // read first half
 	if (scan_lcl < (sum_stride >> 1))
@@ -146,7 +146,7 @@ inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int l
 
 
 
-inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
+inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c, _FLOAT v)
 {
 	_FLOAT y = v - *c;    //So far, so good: c is zero.
 	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.

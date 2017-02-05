@@ -72,7 +72,7 @@ static inline int getWaveId()
 	return(wave_id);
 }
 #else
-static inline int getWaveId()
+inline int getWaveId()
 {
 	int wave_id = 0;
 
@@ -82,25 +82,25 @@ static inline int getWaveId()
 }
 #endif
 
-static inline int gePhysLocalId()
+inline int gePhysLocalId()
 {
 	int lcl_wave_id = get_local_id(0) - ((get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ) << MLO_LG2_PHYS_WAVE_SZ);
 	return(lcl_wave_id);
 }
 
-static inline int iDiv(int v, int d)
+inline int iDiv(int v, int d)
 {
 	int r = (int)((float)v / d + 0.00001f);
 	return(r);
 }
 
-static inline int iMod(int v, int u, int d)
+inline int iMod(int v, int u, int d)
 {
 	int r = v - mul24((int)u, (int)d);
 	return(r);
 }
 
-static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
+inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
 {
 // read first half
 	if (scan_lcl < (sum_stride >> 1))
@@ -132,7 +132,7 @@ static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum
 
 
 
-static inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
+static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c, _FLOAT v)
 {
 	_FLOAT y = v - *c;    //So far, so good: c is zero.
 	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
