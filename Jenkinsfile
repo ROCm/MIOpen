@@ -9,48 +9,53 @@ parallel opencl: {
             timeout(time: 1, unit: 'HOURS') {
                 stage('Clang Tidy') {
                     sh '''
+                        #!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
                         CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
-                        dumb-init make tidy 2>&1 | tee tidy_out
+                        make tidy 2>&1 | tee tidy_out
                         ! grep -q "warning:" tidy_out
                     '''
                 }
                 stage('Clang Debug') {
                     sh '''
+                        #!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
                         CXX='clang++-3.8' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
-                        dumb-init make -j32 check
+                        make -j32 check
                     '''
                 }
                 stage('Clang Release') {
                     sh '''
+                        #!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
                         CXX='clang++-3.8' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release .. 
-                        dumb-init make -j32 check
+                        make -j32 check
                     '''
                 }
                 stage('GCC Debug') {
                     sh '''
+                        #!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
                         CXX='g++-4.8' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
-                        dumb-init make -j32 check
+                        make -j32 check
                     '''
                 }
                 stage('GCC Release') {
                     sh '''
+                        #!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
                         CXX='g++-4.8' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release .. 
-                        dumb-init make -j32 check
+                        make -j32 check
                     '''
                 }
             }
@@ -67,20 +72,22 @@ parallel opencl: {
             timeout(time: 1, unit: 'HOURS') {
                 stage('Hip Debug') {
                     sh '''
+                        #!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
                         CXX='hcc' cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug .. 
-                        dumb-init make -j32 check
+                        make -j32 check
                     '''
                 }
                 stage('Hip Release') {
                     sh '''
+                        #!/usr/bin/dumb-init /bin/bash
                         rm -rf build
                         mkdir build
                         cd build
                         CXX='hcc' cmake -DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release .. 
-                        dumb-init make -j32 check
+                        make -j32 check
                     '''
                 }
             }
