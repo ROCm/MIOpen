@@ -1065,7 +1065,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 
 	_n_out_pix_tiles = 1;
-	int n_out_stacks = std::max(1, GRP_SZ / n_spans);
+	int n_out_stacks = std::min(_n_inputs, std::max(1, GRP_SZ / n_spans));
 	// number of input maps per group
 	// param
 	_n_in_data_tiles = 1;
