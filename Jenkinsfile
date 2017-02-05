@@ -64,23 +64,23 @@ def rocmtest(image, body) {
         checkout scm
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
+                def cmake_step(stage, compiler, flags) {
+                    stage(stage) {
+                        sh '''
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
+                            CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
+                        '''
+                    }
+                }
                 body()
             }
         }
     }
 }
 
-def cmake_step(stage, compiler, flags) {
-    stage(stage) {
-        sh '''
-            rm -rf build
-            mkdir build
-            cd build
-            CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-            CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
-        '''
-    }
-}
 
 def cmake_build(compiler, flags) {
     sh '''
