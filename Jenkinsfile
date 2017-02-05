@@ -60,6 +60,7 @@ rocmtest('rocm-opencl:1.4') {
 }
 
 def rocmtest(image, body) {
+    cmake_step(stage: 'Clang Debug', compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     node('rocmtest') {
         checkout scm
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
@@ -70,7 +71,7 @@ def rocmtest(image, body) {
     }
 }
 
-def cmake_step(String stage, String compiler, String flags) {
+def cmake_step(stage, compiler, flags) {
     stage(stage) {
         sh '''
             rm -rf build
