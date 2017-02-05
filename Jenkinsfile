@@ -54,15 +54,44 @@
 //     }
 //     cmake_step(image: 'rocm-opencl:1.4', stage: 'Clang Debug', compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
 // }
-
-rocmtest('rocm-opencl:1.4') { cmake_step ->
-    stage('Clang Debug') {
-        cmake_step(compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+parallel opencl: {
+    rocmtest('rocm-opencl:1.4') { cmake_build ->
+        stage('Clang Tidy') {
+            sh '''
+                rm -rf build
+                mkdir build
+                cd build
+                CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
+                make tidy 2>&1 | tee tidy_out
+                ! grep -q "warning:" tidy_out
+            '''
+        }
+        stage('Clang Debug') {
+            cmake_build(compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+        }
+        stage('Clang Release') {
+            cmake_build(compiler: 'clang++-3.8', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+        }
+        stage('GCC Debug') {
+            cmake_build(compiler: 'g++-4.8', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+        }
+        stage('GCC Release') {
+            cmake_build(compiler: 'g++-4.8', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+        }
+    }
+}, hip: {
+    rocmtest('rocm-opencl:1.4') { cmake_build ->
+        stage('Hip Debug') {
+            cmake_build(compiler: 'hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+        }
+        stage('Hip Release') {
+            cmake_build(compiler: 'hcc', flags: '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+        }
     }
 }
 
 def rocmtest(image, body) {
-    def cmake_step = { compiler, flags ->
+    def cmake_build = { compiler, flags ->
         sh '''
             rm -rf build
             mkdir build
@@ -75,30 +104,30 @@ def rocmtest(image, body) {
         checkout scm
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
-                body(cmake_step)
+                body(cmake_build)
             }
         }
     }
 }
 
-def cmake_step(stage, compiler, flags) {
-    stage(stage) {
-        sh '''
-            rm -rf build
-            mkdir build
-            cd build
-            CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-            CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
-        '''
-    }
-}
+// def cmake_step(stage, compiler, flags) {
+//     stage(stage) {
+//         sh '''
+//             rm -rf build
+//             mkdir build
+//             cd build
+//             CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
+//             CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
+//         '''
+//     }
+// }
 
-def cmake_build(compiler, flags) {
-    sh '''
-        rm -rf build
-        mkdir build
-        cd build
-        CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-        CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
-    '''
-}
+// def cmake_build(compiler, flags) {
+//     sh '''
+//         rm -rf build
+//         mkdir build
+//         cd build
+//         CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
+//         CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
+//     '''
+// }
