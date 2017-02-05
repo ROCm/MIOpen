@@ -80,7 +80,7 @@ parallel opencl: {
         }
     }
 }, hip: {
-    rocmtest('rocm-opencl:1.4') { cmake_build ->
+    rocmtest('aoc2:latest') { cmake_build ->
         stage('Hip Debug') {
             cmake_build(compiler: 'hcc', flags: '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
         }
