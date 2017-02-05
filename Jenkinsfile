@@ -1,4 +1,4 @@
-def cmake_build(compiler, flags) {
+static def cmake_build(compiler, flags) {
     sh '''
         rm -rf build
         mkdir build
