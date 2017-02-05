@@ -92,6 +92,7 @@ parallel opencl: {
 
 def rocmtest(image, body) {
     def cmake_build = { compiler, flags ->
+        echo compiler
         sh '''
             rm -rf build
             mkdir build
