@@ -695,13 +695,9 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 				// move in the last output scans
 			
-				if (spn == MLO_N_SPANS_PER_SCAN - 1 && ib + b >= MLO_BATCH_SZ-1 && o_idx + o + k*MLO_OUT_STACKS >= MLO_N_OUTPUTS - 1 )
+				if (spn == MLO_N_SPANS_PER_SCAN - 1 )
 				{
 					spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
-				}
-				else if (spn == MLO_N_SPANS_PER_SCAN - 1)
-				{
-					spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask, out_mask, top_dat, top_df);
 				}
 				else
 				{
