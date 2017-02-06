@@ -231,18 +231,24 @@ int mlo_construct_direct2D::mloConstruct()
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
 #if MLOPEN_BACKEND_OPENCL
-	const auto use_asm_kernels_env_p = std::getenv("MLOPEN_DEBUG_GCN_ASM_KERNELS");
-	std::string use_asm_kernels_env;
+	const auto use_precompiled_binaries_env_p = std::getenv("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+	const auto use_precompiled_binaries = ((use_precompiled_binaries_env_p == nullptr) || (std::strcmp(use_precompiled_binaries_env_p, "disable") != 0));
 
-	if (use_asm_kernels_env_p != nullptr)
-		use_asm_kernels_env = use_asm_kernels_env_p;
+	/*
+	Our testing shows that for some corner cases (i.e. specific problem descriptions),
+	assembly-written kernels may have worse performance than kernels written in high-level language, e.g. OpenCL.
+	For example, forward 3x3 convolution kernel employing Winograd algorithm (conv_3x3_wheel) is very slow when InputWidth x InputHeight is 7x7.
+	miOpen avoids asm kernels in such corner cases. This setting overrides that.
+	*/
+	const auto use_asm_kernels_perf_filtering_env_p = std::getenv("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+	const auto use_asm_kernels_perf_filtering = ((use_asm_kernels_perf_filtering_env_p == nullptr) || (std::strcmp(use_asm_kernels_perf_filtering_env_p, "disable") != 0));
 
-	if (use_asm_kernels_env == "enable" || (use_asm_kernels_env != "disable" && mloCheckWinograd3x3FwdConvCondition()))
+	if (use_precompiled_binaries && mloCheckWinograd3x3FwdConvCondition() && (!use_asm_kernels_perf_filtering || mloCheckWinograd3x3FwdConvPerfFilter()))
 	{
 		return (mloConstructWinograd3x3FwdConv());
 	}
-	else
-#endif // MLOPEN_BACKEND_OPENCL
+#endif
+
 	if (_gen && getDirection())
 	{
 		ret = mloConstructDirect2DFwdGen();
@@ -434,10 +440,10 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
 	const auto platform = mlopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
 	const auto vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
-	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	const auto name = _stream->GetDeviceName();
 	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
-	const auto n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
 
 	const auto device_is_opencl_on_rocm =
 		   (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
@@ -478,6 +484,8 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 	const auto kernel_is_valid_for_problem_description =
 		   _in_layout == "NCHW"
 		// && _weights_layout						== "NKCHW" // FIXME see above
+		&& _kernel_size0 == 3
+		&& _kernel_size1 == 3
 		&& _kernel_stride0 == 1
 		&& _kernel_stride1 == 1
 		&& _pad0 == 1
@@ -487,7 +495,7 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 		&& _n_outputs							<	std::pow(2, 16)
 		&& _in_height							<	std::pow(2, 16)
 		&& _in_width							<	std::pow(2, 16)
-		&& n_groups								<	std::pow(2, 16)
+		&& grid_workgroup_count_x				<	std::pow(2, 16)
 		&& _n_inputs * _in_height * _in_width	<=	std::pow(2, 28)
 		&& _n_outputs * _in_height * _in_width	<=	std::pow(2, 28)
 		&& _n_inputs % 2 == 0
@@ -497,15 +505,22 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 		&& kernel_is_valid_for_problem_description;
 }
 
+bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvPerfFilter() const
+{
+	return
+		   _in_width	!= 7
+		|| _in_height	!= 7;
+}
+
 int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 {
 	int ret = 0;
 
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
-	_n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	const auto n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
 
 	_g_wk.clear();
-	_g_wk.push_back(512 * _n_groups);
+	_g_wk.push_back(512 * n_groups);
 	_g_wk.push_back(1);
 	_g_wk.push_back(1);
 
@@ -514,12 +529,13 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 	_l_wk.push_back(1);
 	_l_wk.push_back(1);
 
-	_kernel_file = "conv_3x3_wheel_alpha_v0_2b_gfx803.so";
+	_kernel_file = "conv_3x3_wheel_alpha_v2_0b_gfx803.so";
 	_kernel_name = "sp3AsmConv3x3F";
 
 	return (ret);
 }
 #endif
+
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;
