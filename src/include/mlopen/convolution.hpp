@@ -18,6 +18,11 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& inputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 
+	std::tuple<int, int, int, int> GetBacwardsWeightsDim(const TensorDescriptor& inputTensorDesc, 
+										const TensorDescriptor& outputTensorDesc) const;
+	TensorDescriptor GetBackwardWeightsTensor(const TensorDescriptor& inputTensorDesc,
+										const TensorDescriptor& outputTensorDesc) const;
+
 	std::tuple<int, int, int, int> GetBackwardOutputDim(const TensorDescriptor& outputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 	TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
@@ -87,7 +92,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const TensorDescriptor&		dyDesc,
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		dwDesc,
-		size_t								*workSpaceSize);
+		size_t								*workSpaceSize) const;
 
 	void FindConvBwdWeightsAlgorithm(Handle& handle,
 		const TensorDescriptor&			dyDesc,
