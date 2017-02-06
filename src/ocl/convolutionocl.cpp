@@ -516,7 +516,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     // FIXME: MD temporary hack for hipcaffe
     // should be ideally wrapped under mlopen::deref to check 
     // for the size of perfResults == requestedAlgoCount
+#if MLOPEN_USE_TINYGEMM
+    perfResults->bwd_weights_algo = mlopenConvolutionBwdWeightsAlgoGEMM;
+#else
     perfResults->bwd_weights_algo = mlopenConvolutionBwdWeightsAlgoDirect;
+#endif
 }
 
 // BackwardWeightsAlgorithm()
