@@ -183,6 +183,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		)
 	
 	add_dependencies(MLOpen addkernels_run)
+	add_dependencies(tidy addkernels_run)
 endif()
 
 clang_tidy_check(MLOpen)
@@ -211,5 +212,7 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	MESSAGE( STATUS "MLOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MLOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )
+elseif(MLOPEN_BACKEND STREQUAL "HIPOC")
+	target_link_libraries( MLOpen ${hip_LIBRARIES} )
 endif()
 

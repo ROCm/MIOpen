@@ -127,19 +127,19 @@
 #define MLO_LCL_WEIGHTS 1
 
 
-inline void calculateXYPos(int linPos, int width, int *x, int *y)
+static inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
 	(*y) = (int)((float)linPos / (float)width + 0.00001f);
 	(*x) = linPos - mul24((*y), width); 
 }
 
-inline int calculateOffset(int stride, int x, int y)
+static inline int calculateOffset(int stride, int x, int y)
 {
 	int ret = y * stride + x;
 	return(ret);
 }
 
-inline void readDataElem(int linPos,__local _FLOAT *lcl_data, int lcl_base, int lcl_height, int lcl_width, int lcl_stride, int lcl_y, int lcl_x,
+static inline void readDataElem(int linPos,__local _FLOAT *lcl_data, int lcl_base, int lcl_height, int lcl_width, int lcl_stride, int lcl_y, int lcl_x,
 					 const __global _FLOAT * gbl_data, int gbl_base, int gbl_height, int gbl_width, int gbl_stride, int gbl_y, int gbl_x,
 					 bool vis,
 					 bool debug)
@@ -173,7 +173,7 @@ inline void readDataElem(int linPos,__local _FLOAT *lcl_data, int lcl_base, int 
 }
 
 
-inline void readData(int lcl_id, int size, int lcl_p_stride, __local _FLOAT *lcl_data, int lcl_base, int lcl_height, int lcl_width, int lcl_stride, int lcl_y, int lcl_x,
+static inline void readData(int lcl_id, int size, int lcl_p_stride, __local _FLOAT *lcl_data, int lcl_base, int lcl_height, int lcl_width, int lcl_stride, int lcl_y, int lcl_x,
 					 const __global _FLOAT * gbl_data, int gbl_base, int gbl_height, int gbl_width, int gbl_stride, int gbl_y, int gbl_x,
 					 bool vis,
 					 bool debug
@@ -190,7 +190,7 @@ inline void readData(int lcl_id, int size, int lcl_p_stride, __local _FLOAT *lcl
 
 }
 
-inline void loadData(int lcl_id, int lcl_p_stride,
+static inline void loadData(int lcl_id, int lcl_p_stride,
 					__local _FLOAT * lcl_data,
 					int lcl_off, int lcl_size, int lcl_height, int lcl_width, int lcl_stride, int lcl_bot_y, int lcl_bot_x,
 					const __global _FLOAT * gbl_data,
@@ -214,7 +214,7 @@ inline void loadData(int lcl_id, int lcl_p_stride,
 }
 
 
-inline void Conv(int o_map_base,
+static inline void Conv(int o_map_base,
 				int in_stg_off,
 				__private _FLOAT *pvt_in_stage, __local _FLOAT * lcl_indata,
 				__private _FLOAT *pvt_wei_stage, __local _FLOAT * lcl_wei,

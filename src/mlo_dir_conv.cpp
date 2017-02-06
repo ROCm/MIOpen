@@ -431,6 +431,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	return(ret);
 }
 
+#if MLOPEN_BACKEND_OPENCL
 bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 {
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
@@ -530,7 +531,7 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 
 	return (ret);
 }
-
+#endif
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;

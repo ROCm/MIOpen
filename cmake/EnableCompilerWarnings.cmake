@@ -193,10 +193,13 @@ else()
                 -Wweak-template-vtables
                 # -Wweak-vtables
                 -Wwrite-strings
+
+                -Wno-unused-command-line-argument
             )
         else()
             list(APPEND CMAKE_COMPILER_WARNINGS
                 -Wno-missing-field-initializers
+                -Wno-deprecated-declarations
             )
         endif()
 
