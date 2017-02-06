@@ -184,7 +184,7 @@ struct verify_backward_conv
             &ret_algo_count,
             &perf,
             mlopenConvolutionFastest,
-            NULL,
+            nullptr,
             10,
             0); // MD: Not performing exhaustiveSearch by default for now
 
@@ -198,7 +198,7 @@ struct verify_backward_conv
             &beta,
             input.desc,
             in_dev.get(),
-            NULL,
+            nullptr,
             0);
 
         input.data = handle.Read<T>(in_dev, input.data.size());
@@ -216,6 +216,110 @@ struct verify_backward_conv
     
 };
 
+template<class T>
+tensor<T> get_weight_tensor(const mlopen::ConvolutionDescriptor& filter, const tensor<T>& input, const tensor<T>& out)
+{
+    return tensor<T>{filter.GetBackwardWeightsTensor(input.desc, out.desc)};
+}
+
+struct verify_backward_weights_conv
+{
+    template<class T>
+    tensor<T> cpu(const tensor<T>& input, const tensor<T>& out, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
+    {
+        auto weights = get_weight_tensor(filter, input, out);
+        std::fill(weights.begin(), weights.end(), 0);
+
+        int in_h, in_w;
+        std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
+
+        int wei_c, wei_h, wei_w;
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(weights.desc.GetLengths());
+
+        int out_n, out_c, out_h, out_w;
+        std::tie(out_n, out_c, out_h, out_w) = mlopen::tie4(out.desc.GetLengths());
+
+        par_ford(out_n, out_c, wei_c)([&](int o, int w, int k)
+        {
+            ford(out_h, out_w, wei_h, wei_w)([&](int i, int j, int x, int y)
+            {
+                const int start_x = i * filter.v - filter.pad_h;
+                const int start_y = j * filter.u - filter.pad_w;
+                const int in_x = start_x + x;
+                const int in_y = start_y + y;
+                if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
+                    weights(w, k, x, y) += input(o, k, in_x, in_y) * out(o, w, i, j);
+                }
+            });
+        });
+        return weights;
+    }
+
+    template<class T>
+    tensor<T> gpu(const tensor<T>& input, const tensor<T>& out, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
+    {
+        auto&& handle = get_handle();
+        auto weights = get_weight_tensor(filter, input, out);
+        std::fill(weights.begin(), weights.end(), 0);
+
+        auto out_dev = handle.Write(out.data);
+        auto wei_dev = handle.Create<T>(weights.data.size());
+        auto in_dev = handle.Write(input.data);
+
+        std::size_t workspace_size;
+        filter.ConvolutionBackwardWeightsGetWorkSpaceSize(out.desc, input.desc, weights.desc, &workspace_size);
+
+        std::vector<char> workspace(workspace_size);
+        auto workspace_dev = handle.Write(workspace);
+
+        int ret_algo_count;
+        mlopenConvAlgoPerf_t perf;
+
+        int alpha = 1, beta = 1;
+
+        filter.FindConvBwdWeightsAlgorithm(handle,
+            out.desc,
+            out_dev.get(),
+            input.desc,
+            in_dev.get(),
+            weights.desc,
+            wei_dev.get(),
+            1,
+            &ret_algo_count,
+            &perf,
+            mlopenConvolutionFastest,
+            workspace_dev.get(),
+            workspace_size,
+            0); // MD: Not performing exhaustiveSearch by default for now
+
+        filter.ConvolutionBackwardWeights(handle,
+            &alpha,
+            out.desc,
+            out_dev.get(),
+            input.desc,
+            in_dev.get(),
+            mlopenConvolutionBwdWeightsAlgoDirect, // TODO: Use returned algo
+            &beta,
+            weights.desc,
+            wei_dev.get(),
+            workspace_dev.get(),
+            workspace_size);
+
+        weights.data = handle.Read<T>(wei_dev, weights.data.size());
+        return weights;
+    }
+
+    template<class T>
+    void fail(float, const tensor<T>& input, const tensor<T>& output, const mlopen::ConvolutionDescriptor& filter, int /*bias*/ = 0)
+    {
+        std::cout << "Backward weights convolution: " << std::endl;
+        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
+        std::cout << "Output tensor: " << output.desc.ToString() << std::endl;
+        std::cout << "Weights tensor: " << filter.GetBackwardWeightsTensor(input.desc, output.desc).ToString() << std::endl;
+    }
+    
+};
+
 struct verify_conv_filter
 {
     template<class T>
@@ -224,6 +328,7 @@ struct verify_conv_filter
         mlopen::ConvolutionDescriptor filter{0, 0};
         auto out_p = verify(verify_forward_conv{}, input, weights, filter);
         verify(verify_backward_conv{}, out_p.first, weights, filter);
+        verify(verify_backward_weights_conv{}, input, out_p.first, filter);
 
     }
 };

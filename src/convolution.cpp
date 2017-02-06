@@ -71,6 +71,47 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 
 	return workspace_size;
 }
+// weights_n = output_c
+// weights_c = input_c
+// weights_h = 2*pad_h + input_h - u*(output_h - 1)
+// weights_w = 2*pad_w + input_w - v*(output_w - 1)
+std::tuple<int, int, int, int> ConvolutionDescriptor::GetBacwardsWeightsDim(
+	const TensorDescriptor& inputTensorDesc, 
+	const TensorDescriptor& outputTensorDesc) 
+const
+{
+	assert(inputTensorDesc.GetLengths().size() == 4);
+	assert(outputTensorDesc.GetLengths().size() == 4);
+
+	if (inputTensorDesc.GetType() != outputTensorDesc.GetType()) {
+		MLOPEN_THROW(mlopenStatusBadParm, "Types do not match for the filter");
+	}
+
+	int input_n;
+	int input_c;
+	int input_h;
+	int input_w;
+
+	std::tie(input_n, input_c, input_h, input_w) = mlopen::tie4(inputTensorDesc.GetLengths());
+
+	int output_n;
+	int output_c;
+	int output_h;
+	int output_w;
+
+	std::tie(output_n, output_c, output_h, output_w) = mlopen::tie4(outputTensorDesc.GetLengths());
+
+	// if(input_c != filter_c) {
+	// 	MLOPEN_THROW(mlopenStatusBadParm, "Channels do not match for the filter");
+	// }
+
+	return std::make_tuple(
+		output_c, 
+		input_c, 
+		2*pad_h + input_h - u*(output_h - 1), 
+		2*pad_w + input_w - v*(output_w - 1)
+	);
+}
 
 std::tuple<int, int, int, int> ConvolutionDescriptor::GetBackwardOutputDim(
 	const TensorDescriptor& outputTensorDesc, 
@@ -127,6 +168,18 @@ TensorDescriptor ConvolutionDescriptor::GetBackwardOutputTensor(
 	const TensorDescriptor& filterDesc) const
 {
 	auto dims = this->GetBackwardOutputDim(outputTensorDesc, filterDesc);
+	return TensorDescriptor(outputTensorDesc.GetType(), {
+		std::get<0>(dims),
+		std::get<1>(dims),
+		std::get<2>(dims),
+		std::get<3>(dims)});
+}
+
+TensorDescriptor ConvolutionDescriptor::GetBackwardWeightsTensor(
+	const TensorDescriptor& inputTensorDesc, 
+	const TensorDescriptor& outputTensorDesc) const
+{
+	auto dims = this->GetBacwardsWeightsDim(inputTensorDesc, outputTensorDesc);
 	return TensorDescriptor(outputTensorDesc.GetType(), {
 		std::get<0>(dims),
 		std::get<1>(dims),

@@ -371,10 +371,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
 // ConvolutionBackwardWeightsGetWorkSpaceSize
 void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
-        const TensorDescriptor&      dyDesc,
-        const TensorDescriptor&      xDesc,
-        const TensorDescriptor&      dwDesc,
-        size_t                      *workSpaceSize)
+	const TensorDescriptor&		 dyDesc,
+	const TensorDescriptor&		 xDesc,
+	const TensorDescriptor&		 dwDesc,
+	size_t						*workSpaceSize) const
 {
     mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
     construct_params.doSearch(false);
