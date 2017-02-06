@@ -47,7 +47,9 @@ def rocmtest(image, body) {
         sh cmd
     }
     node('rocmtest') {
-        checkout scm
+        stage("checkout ${image}") {
+            checkout scm
+        }
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
                 body(cmake_build)
