@@ -154,6 +154,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 	float padding_val = 0;
 	auto kernel = handle.GetKernel(algorithm_name, network_config);
 
+#if MLOPEN_BACKEND_OPENCL
 	if (kernel.GetName() == "sp3AsmConv3x3F")
 	{
 		int flags = 0;
@@ -162,11 +163,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 		int N, C, H, W, K, n_groups;
 		construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
 		kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+
+		return;
 	}
-	else
-	{
-		kernel(x, w, y, padding_val);
-	}
+#endif
+
+	kernel(x, w, y, padding_val);
 }
 
 // FindBackwardDataAlgorithm()

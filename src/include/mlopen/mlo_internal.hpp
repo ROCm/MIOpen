@@ -233,21 +233,22 @@ public:
 		_n_stacks = n_stacks;
 	}
 
+#if MLOPEN_BACKEND_OPENCL
 	/*
 	* returns parameter values that are compiled in legacy kernels for kernels using them as arguments.
 	*/
 	inline void getCompiledInParameters(int* N, int* C, int* H, int* W, int* K, int* n_groups)
 	{
 		assert(N && C && H && W && K && n_groups);
+
 		*N = _batch_sz;
 		*C = _n_inputs;
 		*H = _in_height;
 		*W = _in_width;
 		*K = _n_outputs;
-
-		const auto dev = mlopen::GetDevice(_stream->GetStream());
-		*n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+		*n_groups = _stream->GetMaxComputeUnits();
 	}
+#endif
 
 	/*
 	* returns kernel file name without location
