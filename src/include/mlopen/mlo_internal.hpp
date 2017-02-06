@@ -716,6 +716,7 @@ protected:
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
 	bool mloCheckWinograd3x3FwdConvCondition() const;
+	bool mloCheckWinograd3x3FwdConvPerfFilter() const;
 	int mloConstructWinograd3x3FwdConv();
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
