@@ -239,12 +239,13 @@ public:
 	inline void getCompiledInParameters(int* N, int* C, int* H, int* W, int* K, int* n_groups)
 	{
 		assert(N && C && H && W && K && n_groups);
+
 		*N = _batch_sz;
 		*C = _n_inputs;
 		*H = _in_height;
 		*W = _in_width;
 		*K = _n_outputs;
-		*n_groups = _n_groups;
+		*n_groups = _stream->GetMaxComputeUnits();
 	}
 
 	/*
@@ -715,6 +716,7 @@ protected:
 	int mloConstructDirect2DFwd();
 #if MLOPEN_BACKEND_OPENCL
 	bool mloCheckWinograd3x3FwdConvCondition() const;
+	bool mloCheckWinograd3x3FwdConvPerfFilter() const;
 	int mloConstructWinograd3x3FwdConv();
 #endif
 	int mloConstructDirect2DFwdC(void);

@@ -157,6 +157,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             construct_params.setInputDescFromMLDesc(xDesc);
             construct_params.setWeightDescFromMLDesc(wDesc);
 
+            construct_params.setStream(&handle);
+
             std::string network_config;
             construct_params.mloBuildConf_Key(network_config);
 
