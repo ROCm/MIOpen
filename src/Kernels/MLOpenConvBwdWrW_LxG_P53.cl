@@ -307,7 +307,11 @@ static inline void spanRightSiding5x5(int k, int top_df_off, int j, _FLOAT mask,
 #endif
 
 //#define MLO_OUT_MASK_SZ (1)
-static inline void spanReadingOutput3x3(int k, int j, int top_df_off, _FLOAT mask, __private _FLOAT * out_mask, __private _FLOAT * top_dat, const __global _FLOAT * top_df)
+static inline void spanReadingOutput3x3(int k, int j, int top_df_off, _FLOAT mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+	__private _FLOAT * out_mask, 
+#endif
+	__private _FLOAT * top_dat, const __global _FLOAT * top_df)
 {
 	int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j *MLO_IN_TILE0;
 	for (int i = 0; i < MLO_IN_TILE0; ++i)
@@ -500,7 +504,11 @@ __kernel void MLOpenCvBwdWrW(
 				else
 #endif
 				{
-					spanReadingOutput3x3(k, j, top_df_off, mask, out_mask, top_dat, top_df);
+					spanReadingOutput3x3(k, j, top_df_off, mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+						out_mask,
+#endif
+						top_dat, top_df);
 				}
 
 			}
@@ -552,7 +560,11 @@ __kernel void MLOpenCvBwdWrW(
 				else
 #endif
 				{
-					spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask, out_mask, top_dat, top_df);
+					spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+						out_mask,
+#endif
+						top_dat, top_df);
 				}
 
 			}
@@ -604,7 +616,11 @@ __kernel void MLOpenCvBwdWrW(
 					else
 #endif
 					{
-						spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask, out_mask, top_dat, top_df);
+						spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+							out_mask,
+#endif
+							top_dat, top_df);
 
 					}
 
@@ -664,7 +680,11 @@ __kernel void MLOpenCvBwdWrW(
 					else
 #endif
 					{
-						spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask, out_mask, top_dat, top_df);
+						spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+							out_mask,
+#endif
+							top_dat, top_df);
 					}
 
 				}
