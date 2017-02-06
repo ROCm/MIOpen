@@ -731,15 +731,7 @@ __kernel void MLOpenCvBwdWrW(
 				}
 				else
 				{
-#if 1
-					if (get_global_id(1) == 0 && get_global_id(2) == 0 && (get_local_id(0) == 0 || get_local_id(0) == 1))
-					{
-						printf("G:b21: %d %d\n",
-							get_local_id(0),
-							sc
-						);
-					}
-#endif
+
 					int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + (MLO_FILTER_SIZE1 - 1) *MLO_IN_TILE0;
 					for (int i = 0; i < MLO_IN_TILE0; ++i)
 					{
