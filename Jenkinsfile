@@ -99,8 +99,8 @@ def rocmtest(image, body) {
             CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
             CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
         '''
-        echo "command: ${cmd}"
-        sh "${cmd}"
+        echo "command: $cmd.toString()"
+        sh "$cmd.toString()"
     }
     node('rocmtest') {
         checkout scm
