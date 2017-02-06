@@ -239,9 +239,9 @@ struct verify_backward_weights_conv
         int out_n, out_c, out_h, out_w;
         std::tie(out_n, out_c, out_h, out_w) = mlopen::tie4(out.desc.GetLengths());
 
-        par_ford(out_n, out_c, wei_c)([&](int o, int w, int k)
+        par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y)
         {
-            ford(out_h, out_w, wei_h, wei_w)([&](int i, int j, int x, int y)
+            ford(out_n, out_h, out_w)([&](int o, int i, int j)
             {
                 const int start_x = i * filter.v - filter.pad_h;
                 const int start_y = j * filter.u - filter.pad_w;
@@ -297,7 +297,8 @@ struct verify_backward_weights_conv
             out_dev.get(),
             input.desc,
             in_dev.get(),
-            perf.bwd_weights_algo, // TODO: Use returned algo
+            // perf.bwd_weights_algo,
+            mlopenConvolutionBwdWeightsAlgoGEMM,
             &beta,
             weights.desc,
             wei_dev.get(),
