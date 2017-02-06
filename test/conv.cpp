@@ -271,6 +271,12 @@ struct verify_backward_weights_conv
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = handle.Write(workspace);
 
+#if MLOPEN_USE_TINYGEMM
+        auto algo = mlopenConvolutionBwdWeightsAlgoGEMM;
+#else
+        auto algo = mlopenConvolutionBwdWeightsAlgoDirect;
+#endif
+
         int ret_algo_count;
         mlopenConvAlgoPerf_t perf;
 
@@ -283,7 +289,7 @@ struct verify_backward_weights_conv
             in_dev.get(),
             weights.desc,
             wei_dev.get(),
-            mlopenConvolutionBwdWeightsAlgoGEMM,
+            algo,
             &ret_algo_count,
             &perf,
             mlopenConvolutionFastest,
@@ -298,7 +304,7 @@ struct verify_backward_weights_conv
             input.desc,
             in_dev.get(),
             // perf.bwd_weights_algo,
-            mlopenConvolutionBwdWeightsAlgoGEMM,
+            algo,
             &beta,
             weights.desc,
             wei_dev.get(),
