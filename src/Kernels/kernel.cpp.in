@@ -1,5 +1,5 @@
 #include <mlopen/kernel.hpp>
-#include <mlopen/replace.hpp>
+#include <mlopen/stringutils.hpp>
 #include <map>
 #include <algorithm>
 #include "mlopen_kernels.h"
@@ -10,7 +10,7 @@ static const std::map<std::string, std::string> kernels{
 	${INIT_KERNELS}
 };
 
-std::string GetKernelSrc(const std::string& name, std::string& ext)
+std::string GetKernelSrc(std::string name)
 {
     // Use the base name of the string
     int start = 0;
@@ -21,26 +21,17 @@ std::string GetKernelSrc(const std::string& name, std::string& ext)
     }
 
     int len = name.size();
-    auto ext_start = name.rfind(".");
-    if (ext_start != std::string::npos)
+    auto ex = name.rfind(".");
+    if (ex != std::string::npos)
     {
-        ext = name.substr(ext_start + 1);
-        len = ext_start - start;
-    }
-    else
-    {
-        ext = "";
+        len = ex - start;
     }
 
     auto key = name.substr(start, len);
     // Convert to uppercase
     std::transform(key.begin(), key.end(), key.begin(), ::toupper);
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
 
-    if (ext == "CL")
-        return ReplaceString(kernels.at(key), "inline", "static inline");
-    else
-        return kernels.at(key);
+    return kernels.at(key);
 }
 
 } // namespace mlopen

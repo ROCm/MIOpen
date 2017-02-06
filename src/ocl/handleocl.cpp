@@ -255,7 +255,14 @@ Handle::Handle ()
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
     cl_int status = 0;
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
     impl->queues.emplace_back(clCreateCommandQueue(impl->context.get(), device, CL_QUEUE_PROFILING_ENABLE, &status));
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
     if(status != CL_SUCCESS)
     {
         MLOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
@@ -333,7 +340,7 @@ KernelInvoke Handle::GetKernel(
     }
 }
 
-Program Handle::LoadProgram(const std::string &program_name, const std::string& params)
+Program Handle::LoadProgram(const std::string &program_name, std::string params)
 {
     return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params);
 }

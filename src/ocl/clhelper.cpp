@@ -2,6 +2,7 @@
 #include <mlopen/clhelper.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/stringutils.hpp>
 
 namespace mlopen {
 
@@ -61,14 +62,12 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 
 ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params)
 {
-	std::string ext;
-	cl_program result;
-
-	auto source = mlopen::GetKernelSrc(program_name, ext);
+	auto source = mlopen::GetKernelSrc(program_name);
 	auto char_source = source.c_str();
 	auto size = source.size();
-	auto is_binary = ext == "SO";
+	auto is_binary = mlopen::EndsWith(program_name, ".so");
 
+	cl_program result;
 	if (is_binary)
 		result = CreateBinaryProgram(ctx, device, char_source, size);
 	else
@@ -119,7 +118,14 @@ cl_context GetContext(cl_command_queue q)
 ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev) 
 {
 	cl_int status;
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 	ClAqPtr q{clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &status)};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 	if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
 
