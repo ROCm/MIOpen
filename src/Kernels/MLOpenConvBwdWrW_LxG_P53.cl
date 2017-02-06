@@ -243,7 +243,7 @@ static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, 
 						// each wk-it process an input
 						+= bot_val*top_val;
 #if 0
-					if (bot_val * top_val != 0 && get_global_id(1) == 0 && get_global_id(2) == 0 && (get_local_id(0) == 0 || get_local_id(0) == 1) && k == 0 && l == 0 && n == 0)
+					if (bot_val * top_val != 0 && get_global_id(1) == 0 && get_global_id(2) == 0 && (get_local_id(0) == 0  || get_local_id(0) == 1 )&& k == 0 && l == 0 && n == 0)
 					{
 						printf("G: %d %d %d %d  %f %f %f %f\n",
 							get_local_id(0),
@@ -616,7 +616,6 @@ __kernel void MLOpenCvBwdWrW(
 					else
 #endif
 					{
-
 						spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
 #if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
 							out_mask,
@@ -643,21 +642,10 @@ __kernel void MLOpenCvBwdWrW(
 		for (int i_loop = 0; i_loop < (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS - 1); ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
 		{
 			barrier(CLK_LOCAL_MEM_FENCE);
-			// read 1 scan line less
-			// padding processing takes care of the bottom border.
-			// do need sync with the real read: non intersecting areas.
-#define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
-#if 0 //MLO_IN_N_VERT_LOOPS > 1
-			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
-			{
-				for (int i = lcl_id; i < MLO_IN_VERT_READS - MLO_LAST_VERT_READS; i += MLO_GRP_SZ)
-				{
-					lcl_bot[c*MLO_IN_LCL_SZ + MLO_LAST_VERT_READS *MLO_IN_LCL_WIDTH + i] = 0;
-				}
-			}
-#endif
-
-			readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
+// read 1 scan line less
+// padding processing takes care of the bottom border.
+// TO DD: verify it with 5x5 
+			readInput(lcl_id, gbl_in_scan_off, MLO_IN_EXTENT1, bot, lcl_bot);
 
 			// point to the start of the local buffer
 
@@ -683,18 +671,20 @@ __kernel void MLOpenCvBwdWrW(
 					mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
 					// move in the last output scans
-
+					// 5x5 out of range
+#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) > 16
 					if (spn == MLO_N_SPANS_PER_SCAN - 1)
 					{
 						spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
 					}
 					else
+#endif
 					{
-						int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + (MLO_FILTER_SIZE1 - 1) *MLO_IN_TILE0;
-						for (int i = 0; i < MLO_IN_TILE0; ++i)
-						{
-							top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
-						}
+						spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+							out_mask,
+#endif
+							top_dat, top_df);
 					}
 
 				}
@@ -712,7 +702,7 @@ __kernel void MLOpenCvBwdWrW(
 
 
 // handling 3x3 out of range
-#if MLO_IN_N_VERT_LOOPS == 1 && MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
 		{
 			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 			{
@@ -731,7 +721,6 @@ __kernel void MLOpenCvBwdWrW(
 				}
 				else
 				{
-
 					int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + (MLO_FILTER_SIZE1 - 1) *MLO_IN_TILE0;
 					for (int i = 0; i < MLO_IN_TILE0; ++i)
 					{
