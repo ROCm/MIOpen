@@ -230,6 +230,7 @@ int mlo_construct_direct2D::mloConstruct()
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
+#if MLOPEN_BACKEND_OPENCL
 	const auto use_precompiled_binaries_env_p = std::getenv("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
 	const auto use_precompiled_binaries = ((use_precompiled_binaries_env_p == nullptr) || (std::strcmp(use_precompiled_binaries_env_p, "disable") != 0));
 
@@ -246,7 +247,9 @@ int mlo_construct_direct2D::mloConstruct()
 	{
 		return (mloConstructWinograd3x3FwdConv());
 	}
-	else if (_gen && getDirection())
+#endif
+
+	if (_gen && getDirection())
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
@@ -437,10 +440,10 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
 	const auto platform = mlopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
 	const auto vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
-	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	const auto name = _stream->GetDeviceName();
 	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
-	const auto grid_workgroup_count_x = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
 
 	const auto device_is_opencl_on_rocm =
 		   (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
@@ -532,6 +535,7 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 	return (ret);
 }
 #endif
+
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;
