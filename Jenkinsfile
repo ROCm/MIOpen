@@ -92,14 +92,15 @@ parallel opencl: {
 
 def rocmtest(image, body) {
     def cmake_build = { compiler, flags ->
-        echo "compiler: ${compiler}"
-        sh '''
+        def cmd = '''
             rm -rf build
             mkdir build
             cd build
             CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
             CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
         '''
+        echo cmd
+        sh cmd
     }
     node('rocmtest') {
         checkout scm
