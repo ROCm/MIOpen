@@ -266,8 +266,7 @@ struct verify_backward_weights_conv
         auto wei_dev = handle.Create<T>(weights.data.size());
         auto in_dev = handle.Write(input.data);
 
-        std::size_t workspace_size;
-        filter.ConvolutionBackwardWeightsGetWorkSpaceSize(out.desc, input.desc, weights.desc, &workspace_size);
+        std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(out.desc, input.desc, weights.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = handle.Write(workspace);
@@ -284,7 +283,7 @@ struct verify_backward_weights_conv
             in_dev.get(),
             weights.desc,
             wei_dev.get(),
-            1,
+            mlopenConvolutionBwdWeightsAlgoGEMM,
             &ret_algo_count,
             &perf,
             mlopenConvolutionFastest,
@@ -298,7 +297,7 @@ struct verify_backward_weights_conv
             out_dev.get(),
             input.desc,
             in_dev.get(),
-            mlopenConvolutionBwdWeightsAlgoDirect, // TODO: Use returned algo
+            perf.bwd_weights_algo, // TODO: Use returned algo
             &beta,
             weights.desc,
             wei_dev.get(),

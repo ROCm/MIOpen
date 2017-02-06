@@ -370,11 +370,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 }
 
 // ConvolutionBackwardWeightsGetWorkSpaceSize
-void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
-	const TensorDescriptor&		 dyDesc,
+size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
+    const TensorDescriptor&      dyDesc,
 	const TensorDescriptor&		 xDesc,
-	const TensorDescriptor&		 dwDesc,
-	size_t						*workSpaceSize) const
+	const TensorDescriptor&		 dwDesc) const
 {
     mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
     construct_params.doSearch(false);
@@ -384,7 +383,14 @@ void ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
     construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
     construct_params.mloConstruct();
 
-    *workSpaceSize = construct_params.getWorkSpaceSzBytes();
+    // Compute for gemm
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(dyDesc.GetLengths());
+    int wei_c, wei_h, wei_w;
+    std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(dwDesc.GetLengths());
+    auto gemm_size = wei_c*wei_h*wei_w * out_h*out_w * sizeof(dyDesc.GetType()); // FIXME: sizeof is wrong
+
+    return std::max(construct_params.getWorkSpaceSzBytes(), gemm_size);
 }
 
 // FindBackwardWeightsAlgorithm()
