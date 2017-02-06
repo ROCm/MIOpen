@@ -645,7 +645,10 @@ __kernel void MLOpenCvBwdWrW(
 // read 1 scan line less
 // padding processing takes care of the bottom border.
 // TO DD: verify it with 5x5 
-			readInput(lcl_id, gbl_in_scan_off, MLO_IN_EXTENT1, bot, lcl_bot);
+            // do need sync with the real read: non intersecting areas.
+#define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
+
+            readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
 
 			// point to the start of the local buffer
 
