@@ -21,8 +21,6 @@
 
 #include <mlopen/db.hpp>
 
-#define ENABLE_FWD_UNI_WITH_STRIDE 0
-
 static int mloLg2(int v)
 {
 	int ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
@@ -230,21 +228,20 @@ bool mloSearchConfigDB(
 int mlo_construct_direct2D::mloConstruct()
 {
 	int ret = 0;
-#if ENABLE_FWD_UNI_WITH_STRIDE
-	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11);
-#else
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
+#if 1
+	if (_kernel_size0 == 10 && _kernel_size1 == 5 && _kernel_stride0 == 2 && _kernel_stride1 == 2 && _pad0 == 0 && _pad1 == 0)
+	{
+		// don't use general kernel for 5x10 u2v2
+		_gen = 0;
+	}
 #endif
 	if (_gen && getDirection())
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
 #if 1
-#if ENABLE_FWD_UNI_WITH_STRIDE
 	else if ((_kernel_size0 == 3 && _kernel_size1 == 3 && _pad1 == 1 && _pad0 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1 && getDirection()) && (_out_width == 512 || _out_width == 64 || _out_width == 128 || _out_width == 256))
-#else
-	else if ((_kernel_size0 == 3 && _kernel_size1 == 3 && _pad1 == 1 && _pad0 == 1 && getDirection()) && (_out_width == 512 || _out_width == 64 || _out_width == 128 || _out_width == 256))
-#endif
 	{
 		return(mloConstructDirect2D3x3());
 	}
@@ -264,14 +261,6 @@ int mlo_construct_direct2D::mloConstruct()
 
 		}
 
-#if ENABLE_FWD_UNI_WITH_STRIDE
-		if(getDirection() && (_kernel_stride0 > 1 || _kernel_stride1 > 1))
-		{
-			// TBD: need better way to set these flags
-			//_out_pix_tile1 = _out_pix_tile0 = 1;
-		}
-#endif
-
 		std::cout << "Selected run : "
 			<< _grp_tile1 << ", "
 			<< _grp_tile0 << ", "
@@ -287,7 +276,7 @@ int mlo_construct_direct2D::mloConstruct()
 		// construct found configuration
 
 		ret = mloConstructDirect2DFwd();
-#if ENABLE_FWD_UNI_WITH_STRIDE
+#if 0
 		if(ret)
 		{
 			// try general
@@ -312,11 +301,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
 
 	// no 1x1 backward yet
-#if ENABLE_FWD_UNI_WITH_STRIDE
 	if (_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
-#else
-	if (_kernel_size0 == 1 && _kernel_size1 == 1 )
-#endif
 	{
 
 		return(mloConstructDirect2D1x1());
@@ -447,13 +432,11 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;
 
-#if ENABLE_FWD_UNI_WITH_STRIDE
 	if (_kernel_stride0 > 1 || _kernel_stride1 > 1)
 	{
 		//                      std::cout << "ERROR: stride > 1 not supported in mloConstructDirect2DFwdC\n";
 		return(-1);
 	}
-#endif
 
 	size_t localMemSize = _stream->GetLocalMemorySize();
 
