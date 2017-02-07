@@ -890,11 +890,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	int n_v_proc0 = (_out_width + n_out_pix_horiz - 1) / n_out_pix_horiz;
 	int n_v_proc1 = (_out_height + n_out_pix_vert - 1) / n_out_pix_vert;
 	
-	int big = 0;
-	if (ocl_group_sz0 * n_in_pix_horiz < _in_width || ocl_group_sz1 * n_in_pix_vert < _in_height)
-	{
-		big = 1;
-	}
+	int big = 1;
+
 	int n_procs0 = n_proc_supertile0 / n_ins0;
 	int n_procs1 = n_proc_supertile1 / n_ins1;
 
