@@ -58,7 +58,7 @@ Kernel KernelCache::GetKernel(Handle &h,
         // >1 space can cause an Apple compiler bug. See clSPARSE issue #141.
         if (params.at(0) != ' ') { params = " " + params; }
 #ifndef NDEBUG
-#if 0 // dump kernel parameters for kernel debug
+        // dump kernel parameters for kernel debug
         const char * keys[] = {
             "MLO_FILTER_SIZE0", "MLO_FILTER_SIZE1", "MLO_N_INPUTS", "MLO_N_OUTPUTS",
             "MLO_BATCH_SZ", "MLO_IN_HEIGHT", "MLO_IN_WIDTH", "MLO_OUT_HEIGHT", "MLO_OUT_WIDTH",
@@ -85,7 +85,6 @@ Kernel KernelCache::GetKernel(Handle &h,
                   << " -dumpilisa" << " if#" << isize * 4 << ": if#" << msize * 4 << ": if#"
                   << osize * 4 << ": iv#0 " << vgd[0] << "," << vgd[1] << "," << vgd[2] << "/"
                   << vld[0] << "," << vld[1] << "," << vld[2] << std::endl;
-#endif
 #endif
     }
 
