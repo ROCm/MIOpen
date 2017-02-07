@@ -79,7 +79,7 @@ range_value<R1> rms_range(R1&& r1, R2&& r2)
 template<class V, class... Ts>
 auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
 {
-    const double tolerance = 10e-6;
+    const double tolerance = 10e-5;
     // v.fail(0.0, xs...);
     auto out_cpu = v.cpu(xs...);
     auto out_gpu = v.gpu(xs...);
