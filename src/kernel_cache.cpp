@@ -57,6 +57,36 @@ Kernel KernelCache::GetKernel(Handle &h,
         // Ensure only one space after the -cl-std.
         // >1 space can cause an Apple compiler bug. See clSPARSE issue #141.
         if (params.at(0) != ' ') { params = " " + params; }
+#ifndef NDEBUG
+#if 0 // dump kernel parameters for kernel debug
+        const char * keys[] = {
+            "MLO_FILTER_SIZE0", "MLO_FILTER_SIZE1", "MLO_N_INPUTS", "MLO_N_OUTPUTS",
+            "MLO_BATCH_SZ", "MLO_IN_HEIGHT", "MLO_IN_WIDTH", "MLO_OUT_HEIGHT", "MLO_OUT_WIDTH",
+            "MLO_FLTR_SZ0", "MLO_FLTR_SZ1", "MLO_N_IN_CHNLS", "MLO_N_OUT_CHNLS"
+        };
+        int value[sizeof(keys) / sizeof(keys[0])] = { 0 };
+        for (const char * p = params.c_str(); p && (p = strstr(p, "-D")) != nullptr; ) {
+            p += (p[2] == ' ') ? 3 : 2;
+            const char * q = strstr(p, "=");
+            if (!q) break;
+            q++;
+            for (int i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
+                if (!strncmp(p, keys[i], strlen(keys[i]))) {
+                    value[i - ((i >= 9) ? 9 : 0)] = atoi(q);
+                    break;
+                }
+            }
+        }
+        //for(int i = 0; i < sizeof(keys)/sizeof(keys[0]); i++) printf("%s = %d\n", keys[i], value[i]);
+        int msize = value[0] * value[1] * value[2] * value[3];
+        int isize = value[4] * value[2] * value[5] * value[6];
+        int osize = value[4] * value[3] * value[7] * value[8];
+        std::cout << "runcl " << params << " src/Kernels/" << program_name << " -k " << kernel_name
+                  << " -dumpilisa" << " if#" << isize * 4 << ": if#" << msize * 4 << ": if#"
+                  << osize * 4 << ": iv#0 " << vgd[0] << "," << vgd[1] << "," << vgd[2] << "/"
+                  << vld[0] << "," << vld[1] << "," << vld[2] << std::endl;
+#endif
+#endif
     }
 
 	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
