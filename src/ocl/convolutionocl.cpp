@@ -53,7 +53,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         }
 
         GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
-        gg.FindSolution(.003, handle, workSpace, w, y, false);
+        gg.FindSolution(.003, handle, workSpace, w, y, true);
     }
 #else
     (void)workSpace; // Suppress warning
@@ -434,7 +434,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     std::string network_config;
 #if MLOPEN_USE_TINYGEMM
     GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
-    gg.FindSolution(.003, handle, workSpace, dy, dw, false);
+    gg.FindSolution(.003, handle, workSpace, dy, dw, true);
 #endif
     // temprorary guard
     if((u == 1 && v == 1) || (wei_w >= 7 && u == 2 && v == 2))
