@@ -251,12 +251,12 @@ static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, 
 						// each wk-it process an input
 							+= bot_val*top_val;
 #if 0
-					if (bot_val * top_val != 0 && get_global_id(1) == 0 && get_global_id(2) == 0 && (get_local_id(0) == 0  || get_local_id(0) == 1 )&& k == 0 && l == 0 && n == 0)
+					if (bot_val * top_val != 0 && get_global_id(1) == 0 && get_global_id(2) == 0 && (get_local_id(0) == 0  || get_local_id(0) == 1 || get_local_id(0) == 2)&& k == 0 && l == 0 && n == 0)
 					{
 						printf("G: %d %d %d %d  %f %f %f %f\n",
 							get_local_id(0),
 							sc,
-							sc_lcl_off + n + m,
+							sc_lcl_off + c*MLO_IN_LCL_SZ + n + m,
 							pvt_top_off,
 							pvt_accum[pvt_accum_off],
 							bot_val * top_val,
@@ -787,7 +787,7 @@ __kernel void MLOpenCvBwdWrW(
 				barrier(CLK_LOCAL_MEM_FENCE);
 				for (int n = 0; n < MLO_FILTER_SIZE0; ++n)
 				{
-					int pvt_off = k*MLO_FILTER_SIZE0 * MLO_FILTER_SIZE1 + l*MLO_FILTER_SIZE0 + n;
+					int pvt_off = (k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + l*MLO_FILTER_SIZE0 + n;
 					lcl[lcl_id * MLO_FILTER_SIZE0 + n] =
 						pvt_accum[pvt_off];
 
@@ -802,7 +802,7 @@ __kernel void MLOpenCvBwdWrW(
 						
 						for (int n = 0; n < MLO_FILTER_SIZE0; ++n)
 						{
-							int pvt_off = k*MLO_FILTER_SIZE0 * MLO_FILTER_SIZE1 + l*MLO_FILTER_SIZE0 + n;
+							int pvt_off = (k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + l*MLO_FILTER_SIZE0 + n;
 							pvt_accum[pvt_off]
 								+= lcl[(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n];
 #if 0
@@ -844,7 +844,7 @@ __kernel void MLOpenCvBwdWrW(
 
 			for (int i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
 			{
-				weights_df[wei_df_off + k*MLO_OUT_STACKS*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + i] = pvt_accum[k*MLO_FILTER_SIZE0 * MLO_FILTER_SIZE1 + i];
+				weights_df[wei_df_off + k*MLO_OUT_STACKS*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + i] = pvt_accum[(k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + i];
 #if 0
 				if (wei_df_off + k*MLO_OUT_STACKS*MLO_WEI_BATCH_STRIDE + i == 12)
 				{
