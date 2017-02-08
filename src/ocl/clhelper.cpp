@@ -34,27 +34,31 @@ static void Assemble(std::string& source, const std::string& params)
 		asm_path_env_p,
 		const_cast<char*>("-x"),
 		const_cast<char*>("assembler"),
-		const_cast<char*>("-target amdgcn--amdhsa"),
+		const_cast<char*>("-target"),
+		const_cast<char*>("amdgcn--amdhsa"),
 		const_cast<char*>("-mcpu=fiji"), // FIXME set to actual architecture probably
-		const_cast<char*>("-Xassembler"),
-		const_cast<char*>("-I"),
-		const_cast<char*>("-Xassembler"),
-		const_cast<char*>("-Wa")
 	});
 
 	std::istringstream iss(params);
+	std::vector<std::string> paramsVector;
+	std::string outPath = std::tmpnam(nullptr);
 
 	do
 	{
 		std::string param;
 		iss >> param;
-		args.push_back(const_cast<char*>(param.c_str()));
+		paramsVector.push_back(param);
+		args.push_back(const_cast<char*>(paramsVector.rbegin()->c_str()));
 	} while (iss);
 
-	args.push_back(nullptr);
+	/*for (const auto& arg : args)
+		std::cout << arg << " ";
+	std::cout << std::endl;*/
 
-	int status;
-	pid_t pid = fork();
+	args.push_back(const_cast<char*>("-"));
+	args.push_back(const_cast<char*>("-o"));
+	args.push_back(const_cast<char*>(outPath.c_str()));
+	args.push_back(nullptr);
 
 	static const int parent_read_pipe = 0;
 	static const int parent_write_pipe = 1;
@@ -70,6 +74,9 @@ static void Assemble(std::string& source, const std::string& params)
 
 	write(pipes[parent_write_pipe][write_fd], source.data(), source.size());
 
+	int status;
+	pid_t pid = fork();
+
 	if (pid == 0)
 	{
 		/* This is the child process. Execute the shell command. */
@@ -83,16 +90,23 @@ static void Assemble(std::string& source, const std::string& params)
 		execv(asm_path_env_p, args.data());
 		_exit(EXIT_FAILURE);
 	}
-	else if (pid < 0)
-	{
-		/* The fork failed.  Report failure.  */
-		status = -1;
-	}
 	else
 	{
-		/* This is the parent process.  Wait for the child to complete.  */
-		if (waitpid(pid, &status, 0) != pid)
+		for (auto pipe = 0; pipe < pipes_count; ++pipe)
+			for (auto side = 0; side < pipe_sides; ++side)
+				close(pipes[pipe][side]);
+
+		if (pid < 0)
+		{
+			/* The fork failed.  Report failure.  */
 			status = -1;
+		}
+		else
+		{
+			/* This is the parent process.  Wait for the child to complete.  */
+			if (waitpid(pid, &status, 0) != pid)
+				status = -1;
+		}
 	}
 
 	if (status != 0)
@@ -108,15 +122,13 @@ static void Assemble(std::string& source, const std::string& params)
 		MLOPEN_THROW(stringStream.str());
 	}
 
-	auto size = lseek(pipes[parent_read_pipe][read_fd], 0, SEEK_END);
-	auto buffer = new char[size];
-	read(pipes[parent_read_pipe][read_fd], buffer, size);
-	source = buffer;
-	delete[] buffer;
+	std::ifstream file(outPath, std::ios::binary | std::ios::ate);
+	auto size = file.tellg();
 
-	for (auto pipe = 0; pipe < pipes_count; ++pipe)
-		for (auto side = 0; side < pipe_sides; ++side)
-			close(pipes[pipe][side]);
+	file.seekg(std::ios::beg);
+	source.resize(size, ' ');
+	file.rdbuf()->sgetn(const_cast<char*>(source.c_str()), size);
+	std::remove(outPath.c_str());
 }
 
 static cl_program CreateBinaryProgram(cl_context ctx, cl_device_id device, const char* char_source, size_t size)
