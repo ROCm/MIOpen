@@ -1,8 +1,14 @@
+#include <vector>
+#include <string>
 #include <fstream>
 #include <mlopen/clhelper.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
 #include <mlopen/stringutils.hpp>
+/* FIXME check if linux */
+#include <unistd.h>
+#include <sys/types.h> 
+#include <sys/wait.h>
 
 namespace mlopen {
 
@@ -18,6 +24,99 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()"); }
 
 	return result;
+}
+
+static void Assemble(std::string& source, const std::string& params)
+{
+	const auto asm_path_env_p = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
+
+	std::vector<char*> args({
+		asm_path_env_p,
+		const_cast<char*>("-x"),
+		const_cast<char*>("assembler"),
+		const_cast<char*>("-target amdgcn--amdhsa"),
+		const_cast<char*>("-mcpu=fiji"), // FIXME set to actual architecture probably
+		const_cast<char*>("-Xassembler"),
+		const_cast<char*>("-I"),
+		const_cast<char*>("-Xassembler"),
+		const_cast<char*>("-Wa")
+	});
+
+	std::istringstream iss(params);
+
+	do
+	{
+		std::string param;
+		iss >> param;
+		args.push_back(const_cast<char*>(param.c_str()));
+	} while (iss);
+
+	args.push_back(nullptr);
+
+	int status;
+	pid_t pid = fork();
+
+	static const int parent_read_pipe = 0;
+	static const int parent_write_pipe = 1;
+	static const int read_fd = 0;
+	static const int write_fd = 1;
+	static const int pipes_count = 2;
+	static const int pipe_sides = 2;
+
+	int pipes[pipes_count][pipe_sides];
+
+	pipe(pipes[parent_read_pipe]);
+	pipe(pipes[parent_write_pipe]);
+
+	write(pipes[parent_write_pipe][write_fd], source.data(), source.size());
+
+	if (pid == 0)
+	{
+		/* This is the child process. Execute the shell command. */
+		dup2(pipes[parent_write_pipe][read_fd], STDIN_FILENO);
+		dup2(pipes[parent_read_pipe][write_fd], STDOUT_FILENO);
+
+		for (auto pipe = 0; pipe < pipes_count; ++pipe)
+			for (auto side = 0; side < pipe_sides; ++side)
+				close(pipes[pipe][side]);
+
+		execv(asm_path_env_p, args.data());
+		_exit(EXIT_FAILURE);
+	}
+	else if (pid < 0)
+	{
+		/* The fork failed.  Report failure.  */
+		status = -1;
+	}
+	else
+	{
+		/* This is the parent process.  Wait for the child to complete.  */
+		if (waitpid(pid, &status, 0) != pid)
+			status = -1;
+	}
+
+	if (status != 0)
+	{
+		std::ostringstream stringStream;
+		stringStream << "Error assembling kernel source: ";
+
+		if (status > 0)
+			stringStream << "clang error code " << status;
+		else
+			stringStream << "unable to fork or call waitpid";
+
+		MLOPEN_THROW(stringStream.str());
+	}
+
+	auto size = lseek(pipes[parent_read_pipe][read_fd], 0, SEEK_END);
+	auto buffer = new char[size];
+	read(pipes[parent_read_pipe][read_fd], buffer, size);
+	source = buffer;
+	delete[] buffer;
+
+	for (auto pipe = 0; pipe < pipes_count; ++pipe)
+		for (auto side = 0; side < pipe_sides; ++side)
+			close(pipes[pipe][side]);
 }
 
 static cl_program CreateBinaryProgram(cl_context ctx, cl_device_id device, const char* char_source, size_t size)
@@ -36,7 +135,7 @@ static cl_program CreateBinaryProgram(cl_context ctx, cl_device_id device, const
 	return result;
 }
 
-static void BuildProgram(cl_program program, cl_device_id device, const std::string& params)
+static void BuildProgram(cl_program program, cl_device_id device, const std::string& params = "")
 {
 	auto status = clBuildProgram(program,
 		1, &device, params.c_str(),
@@ -62,18 +161,33 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 
 ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params)
 {
+	bool is_binary;
 	auto source = mlopen::GetKernelSrc(program_name);
-	auto char_source = source.c_str();
-	auto size = source.size();
-	auto is_binary = mlopen::EndsWith(program_name, ".so");
+	auto is_asm = mlopen::EndsWith(program_name, ".s");
+
+	if (is_asm)
+	{
+		Assemble(source, params);
+		is_binary = true;
+	}
+	else
+	{
+		is_binary = mlopen::EndsWith(program_name, ".so");
+	}
 
 	cl_program result;
+	auto char_source = source.data();
+	auto size = source.size();
+
 	if (is_binary)
 		result = CreateBinaryProgram(ctx, device, char_source, size);
 	else
 		result = CreateProgram(ctx, char_source, size);
-
-	BuildProgram(result, device, params + " -cl-std=CL1.2");
+	
+	if (is_binary)
+		BuildProgram(result, device);
+	else
+		BuildProgram(result, device, params + " -cl-std=CL1.2");
 
 	return ClProgramPtr{ result };
 }

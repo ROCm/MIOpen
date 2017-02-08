@@ -220,6 +220,12 @@ bool mloSearchConfigDB(
  **
  ************************************************************************************************************************/
 
+static bool CheckIfEnvFlagIsNotDisabled(const char* name)
+{
+	const auto value_env_p = std::getenv(name);
+	return ((value_env_p == nullptr) || (std::strcmp(value_env_p, "disable") != 0));
+}
+
 /*
    construction has been split into 2
    generic convlution forward 
@@ -231,21 +237,37 @@ int mlo_construct_direct2D::mloConstruct()
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
 #if MLOPEN_BACKEND_OPENCL
-	const auto use_precompiled_binaries_env_p = std::getenv("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
-	const auto use_precompiled_binaries = ((use_precompiled_binaries_env_p == nullptr) || (std::strcmp(use_precompiled_binaries_env_p, "disable") != 0));
-
-	/*
-	Our testing shows that for some corner cases (i.e. specific problem descriptions),
-	assembly-written kernels may have worse performance than kernels written in high-level language, e.g. OpenCL.
-	For example, forward 3x3 convolution kernel employing Winograd algorithm (conv_3x3_wheel) is very slow when InputWidth x InputHeight is 7x7.
-	miOpen avoids asm kernels in such corner cases. This setting overrides that.
-	*/
-	const auto use_asm_kernels_perf_filtering_env_p = std::getenv("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
-	const auto use_asm_kernels_perf_filtering = ((use_asm_kernels_perf_filtering_env_p == nullptr) || (std::strcmp(use_asm_kernels_perf_filtering_env_p, "disable") != 0));
-
-	if (use_precompiled_binaries && mloCheckWinograd3x3FwdConvCondition() && (!use_asm_kernels_perf_filtering || mloCheckWinograd3x3FwdConvPerfFilter()))
+	if (mloValidateROCm())
 	{
-		return (mloConstructWinograd3x3FwdConv());
+		const auto use_precompiled_binaries = CheckIfEnvFlagIsNotDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+
+		/*
+		Our testing shows that for some corner cases (i.e. specific problem descriptions),
+		assembly-written kernels may have worse performance than kernels written in high-level language, e.g. OpenCL.
+		For example, forward 3x3 convolution kernel employing Winograd algorithm (conv_3x3_wheel) is very slow when InputWidth x InputHeight is 7x7.
+		miOpen avoids asm kernels in such corner cases. This setting overrides that.
+		*/
+		const auto use_asm_kernels_perf_filtering = CheckIfEnvFlagIsNotDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+
+		if (use_precompiled_binaries && mloCheckWinograd3x3FwdConvCondition() && (!use_asm_kernels_perf_filtering || mloCheckWinograd3x3FwdConvPerfFilter()))
+		{
+			return (mloConstructWinograd3x3FwdConv());
+		}
+
+		const auto use_asm_kernels = CheckIfEnvFlagIsNotDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS");
+
+		if (use_asm_kernels)
+		{
+			const auto asm_path = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
+
+			if (mloValidateAssemblerPath(asm_path))
+			{
+				if (mloCheckDirectAsmCondition())
+				{
+					return (mloConstructDirectAsm());
+				}
+			}
+		}
 	}
 #endif
 
@@ -435,15 +457,18 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 }
 
 #if MLOPEN_BACKEND_OPENCL
-bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
+bool mlo_construct_direct2D::mloValidateAssemblerPath(const char* path) const
+{
+	return path != nullptr;
+}
+
+bool mlo_construct_direct2D::mloValidateROCm() const
 {
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
 	const auto platform = mlopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
-	const auto vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
-	const auto name = _stream->GetDeviceName();
 	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
-	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
+	const auto vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
 
 	const auto device_is_opencl_on_rocm =
 		   (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
@@ -464,20 +489,24 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 		   device_is_opencl_on_rocm
 		&& driver_is_v1_or_v2;
 
+	const auto platform_is_amd = platform_vendor == "Advanced Micro Devices, Inc.";
+	const auto device_is_amd = vendor_id == 0x1002;
+
+	return device_is_opencl_on_rocm_supports_metadata_1_0
+		&& device_is_amd
+		&& platform_is_amd;
+}
+
+bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
+{
+	const auto name = _stream->GetDeviceName();
+	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
+
 	const auto device_is_gfx8_no_xnack =
 		   name == "gfx800"
 		|| name == "gfx802"
 		|| name == "gfx803"
 		|| name == "gfx804";
-
-	const auto platform_is_amd = platform_vendor == "Advanced Micro Devices, Inc.";
-	const auto device_is_amd = vendor_id == 0x1002;
-
-	const auto device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0 =
-		   device_is_opencl_on_rocm_supports_metadata_1_0
-		&& device_is_gfx8_no_xnack
-		&& device_is_amd
-		&& platform_is_amd;
 
 	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
 
@@ -496,12 +525,12 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 		&& _in_height							<	std::pow(2, 16)
 		&& _in_width							<	std::pow(2, 16)
 		&& grid_workgroup_count_x				<	std::pow(2, 16)
-		&& _n_inputs * _in_height * _in_width	<=	std::pow(2, 28)
-		&& _n_outputs * _in_height * _in_width	<=	std::pow(2, 28)
+		&& _n_inputs * _in_height * _in_width <= std::pow(2, 28)
+		&& _n_outputs * _in_height * _in_width <= std::pow(2, 28)
 		&& _n_inputs % 2 == 0
 		&& _n_inputs >= 16;
 
-	return device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0
+	return device_is_gfx8_no_xnack
 		&& kernel_is_valid_for_problem_description;
 }
 
@@ -516,8 +545,7 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 {
 	int ret = 0;
 
-	const auto dev = mlopen::GetDevice(_stream->GetStream());
-	const auto n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	const auto n_groups = _stream->GetMaxComputeUnits();
 
 	_g_wk.clear();
 	_g_wk.push_back(512 * n_groups);
@@ -531,6 +559,97 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 
 	_kernel_file = "conv_3x3_wheel_alpha_v2_0b_gfx803.so";
 	_kernel_name = "sp3AsmConv3x3F";
+
+	return (ret);
+}
+
+bool mlo_construct_direct2D::mloCheckDirectAsmCondition() const
+{
+	const auto name = _stream->GetDeviceName();
+
+	const auto device_is_gfx8_no_xnack =
+		   name == "gfx800"
+		|| name == "gfx802"
+		|| name == "gfx803"
+		|| name == "gfx804";
+
+	const auto kernel_is_valid_for_problem_description =
+		   _pad0			== 1
+		&& _pad1			== 1
+		&& _kernel_stride0	== 1
+		&& _kernel_stride1	== 1
+		&& _kernel_size0	== 3
+		&& _kernel_size1	== 3
+		&& _n_inputs % 4	== 0
+		&& _in_width		>= 50
+		&& _in_width		<= 1000;
+
+	const auto weights_format_is_valid =
+		   (_direction == 0 && _weights_layout == "KCHW")
+		|| (_direction == 1 && _weights_layout == "CKHW");
+
+	return device_is_gfx8_no_xnack
+		&& weights_format_is_valid
+		&& kernel_is_valid_for_problem_description;
+}
+
+template<typename TValue>
+static std::string PrepareClangDefsym(const std::string& name, TValue value)
+{
+	return PrepareClangDefsym<const std::string&>(name, std::to_string(value));
+}
+
+template<>
+std::string PrepareClangDefsym<const std::string&>(const std::string& name, const std::string& value)
+{
+	std::ostringstream ss;
+	ss << " -defsym," << name << "=" << value;
+	return ss.str();
+}
+
+int mlo_construct_direct2D::mloConstructDirectAsm()
+{
+	auto ret = 0;
+
+	auto w64_chunks = (_in_width + 63) / 64;
+	auto active_lanes = (_in_width + w64_chunks - 1) / w64_chunks;
+	auto filters_per_wave = 2;
+	auto output_lines_per_wave = 2;
+	auto limit_wave_cnt = 0;
+	std::stringstream paramsSS;
+
+	paramsSS << PrepareClangDefsym("batch_size", _batch_sz);
+	paramsSS << PrepareClangDefsym("img_width", _in_width);
+	paramsSS << PrepareClangDefsym("img_height", _in_height);
+	paramsSS << PrepareClangDefsym("input_channels", _n_inputs);
+	paramsSS << PrepareClangDefsym("output_channels", _n_outputs);
+
+	paramsSS << PrepareClangDefsym("weights_layout", _direction);
+	paramsSS << PrepareClangDefsym("reverse_weights", _direction);
+
+	paramsSS << PrepareClangDefsym("filters_per_wave", filters_per_wave);
+	paramsSS << PrepareClangDefsym("output_lines_per_wave", output_lines_per_wave);
+	paramsSS << PrepareClangDefsym("limit_wave_cnt", limit_wave_cnt);
+
+	paramsSS << PrepareClangDefsym("no_params_file", 1);
+	paramsSS << PrepareClangDefsym("enable_debug_output", 0);
+
+	_comp_options = paramsSS.str();
+
+	_l_wk.clear();
+	_l_wk.push_back(active_lanes);
+	_l_wk.push_back(1);
+	_l_wk.push_back(1);
+
+	_g_wk.clear();
+	_g_wk.push_back(active_lanes * ((_n_outputs + filters_per_wave - 1) / filters_per_wave));
+	_g_wk.push_back((_in_height + output_lines_per_wave - 1) / output_lines_per_wave);
+	_g_wk.push_back(_batch_sz);
+
+	MLOPEN_THROW("Direct Asm is not implemented yet.");
+
+	_kernel_file = "conv3x3.s";
+	_kernel_name = "gcnAsmConv3x3U";
 
 	return (ret);
 }
