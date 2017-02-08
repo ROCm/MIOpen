@@ -41,7 +41,9 @@ static void Assemble(std::string& source, const std::string& params)
 
 	std::istringstream iss(params);
 	std::vector<std::string> paramsVector;
-	std::string outPath = std::tmpnam(nullptr);
+	std::string outPath("MLOpen_CLang_Out_XXXXXX");
+	
+	auto outFD = mkstemp(const_cast<char*>(outPath.c_str()));
 
 	do
 	{
@@ -51,59 +53,43 @@ static void Assemble(std::string& source, const std::string& params)
 		args.push_back(const_cast<char*>(paramsVector.rbegin()->c_str()));
 	} while (iss);
 
-	/*for (const auto& arg : args)
-		std::cout << arg << " ";
-	std::cout << std::endl;*/
-
 	args.push_back(const_cast<char*>("-"));
 	args.push_back(const_cast<char*>("-o"));
 	args.push_back(const_cast<char*>(outPath.c_str()));
 	args.push_back(nullptr);
 
-	static const int parent_read_pipe = 0;
-	static const int parent_write_pipe = 1;
 	static const int read_fd = 0;
 	static const int write_fd = 1;
-	static const int pipes_count = 2;
 	static const int pipe_sides = 2;
 
-	int pipes[pipes_count][pipe_sides];
+	int pipes[pipe_sides];
 
-	pipe(pipes[parent_read_pipe]);
-	pipe(pipes[parent_write_pipe]);
-
-	write(pipes[parent_write_pipe][write_fd], source.data(), source.size());
+	pipe(pipes);
+	write(pipes[write_fd], source.data(), source.size());
 
 	int status;
 	pid_t pid = fork();
 
 	if (pid == 0)
 	{
-		/* This is the child process. Execute the shell command. */
-		dup2(pipes[parent_write_pipe][read_fd], STDIN_FILENO);
-		dup2(pipes[parent_read_pipe][write_fd], STDOUT_FILENO);
-
-		for (auto pipe = 0; pipe < pipes_count; ++pipe)
-			for (auto side = 0; side < pipe_sides; ++side)
-				close(pipes[pipe][side]);
+		dup2(pipes[read_fd], STDIN_FILENO);
+		close(pipes[read_fd]);
+		close(pipes[write_fd]);
 
 		execv(asm_path_env_p, args.data());
 		_exit(EXIT_FAILURE);
 	}
 	else
 	{
-		for (auto pipe = 0; pipe < pipes_count; ++pipe)
-			for (auto side = 0; side < pipe_sides; ++side)
-				close(pipes[pipe][side]);
+		close(pipes[read_fd]);
+		close(pipes[write_fd]);
 
 		if (pid < 0)
 		{
-			/* The fork failed.  Report failure.  */
 			status = -1;
 		}
 		else
 		{
-			/* This is the parent process.  Wait for the child to complete.  */
 			if (waitpid(pid, &status, 0) != pid)
 				status = -1;
 		}
@@ -128,6 +114,9 @@ static void Assemble(std::string& source, const std::string& params)
 	file.seekg(std::ios::beg);
 	source.resize(size, ' ');
 	file.rdbuf()->sgetn(const_cast<char*>(source.c_str()), size);
+	file.close();
+	close(outFD);
+
 	std::remove(outPath.c_str());
 }
 
