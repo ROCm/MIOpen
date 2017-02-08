@@ -40,7 +40,7 @@ struct verify_forward_conv
             const int start_x = i * filter.v - filter.pad_h;
             const int start_y = j * filter.u - filter.pad_w;
 
-            T acc = bias;
+            double acc = bias;
             ford(wei_c, wei_h, wei_w)([&](int k, int x, int y)
             {
                 const int in_x = start_x + x;
@@ -241,6 +241,7 @@ struct verify_backward_weights_conv
 
         par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y)
         {
+            double acc = 0.0;
             ford(out_n, out_h, out_w)([&](int o, int i, int j)
             {
                 const int start_x = i * filter.v - filter.pad_h;
@@ -248,9 +249,10 @@ struct verify_backward_weights_conv
                 const int in_x = start_x + x;
                 const int in_y = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w) {
-                    weights(w, k, x, y) += input(o, k, in_x, in_y) * out(o, w, i, j);
+                    acc += input(o, k, in_x, in_y) * out(o, w, i, j);
                 }
             });
+            weights(w, k, x, y) = acc;
         });
         return weights;
     }
@@ -332,6 +334,7 @@ struct verify_conv_filter
     {
         mlopen::ConvolutionDescriptor filter{0, 0};
         auto out_p = verify(verify_forward_conv{}, input, weights, filter);
+        for(auto& x:out_p.first) x = long(x) % 17; // Clamp big numbers
         verify(verify_backward_conv{}, out_p.first, weights, filter);
         verify(verify_backward_weights_conv{}, input, out_p.first, filter);
 
