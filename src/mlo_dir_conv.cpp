@@ -499,7 +499,8 @@ bool mlo_construct_direct2D::mloValidateROCm() const
 
 bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 {
-	const auto name = _stream->GetDeviceName();
+	const auto dev = mlopen::GetDevice(_stream->GetStream());
+	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
 
 	const auto device_is_gfx8_no_xnack =
@@ -565,7 +566,8 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 
 bool mlo_construct_direct2D::mloCheckDirectAsmCondition() const
 {
-	const auto name = _stream->GetDeviceName();
+	const auto dev = mlopen::GetDevice(_stream->GetStream());
+	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 
 	const auto device_is_gfx8_no_xnack =
 		   name == "gfx800"
@@ -584,9 +586,12 @@ bool mlo_construct_direct2D::mloCheckDirectAsmCondition() const
 		&& _in_width		>= 50
 		&& _in_width		<= 1000;
 
+	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
+
 	const auto weights_format_is_valid =
-		   (_direction == 0 && _weights_layout == "KCHW")
-		|| (_direction == 1 && _weights_layout == "CKHW");
+		true;
+		/*   (_direction == 0 && _weights_layout == "KCHW")
+		|| (_direction == 1 && _weights_layout == "CKHW");*/
 
 	return device_is_gfx8_no_xnack
 		&& weights_format_is_valid
@@ -594,17 +599,15 @@ bool mlo_construct_direct2D::mloCheckDirectAsmCondition() const
 }
 
 template<typename TValue>
-static std::string PrepareClangDefsym(const std::string& name, TValue value)
+void GenerateClangDefsym(std::ostream& stream, const std::string& name, TValue value)
 {
-	return PrepareClangDefsym<const std::string&>(name, std::to_string(value));
+	GenerateClangDefsym<const std::string&>(stream, name, std::to_string(value));
 }
 
 template<>
-std::string PrepareClangDefsym<const std::string&>(const std::string& name, const std::string& value)
+void GenerateClangDefsym<const std::string&>(std::ostream& stream, const std::string& name, const std::string& value)
 {
-	std::ostringstream ss;
-	ss << " -defsym," << name << "=" << value;
-	return ss.str();
+	stream << " -Wa,-defsym," << name << "=" << value;
 }
 
 int mlo_construct_direct2D::mloConstructDirectAsm()
@@ -616,23 +619,23 @@ int mlo_construct_direct2D::mloConstructDirectAsm()
 	auto filters_per_wave = 2;
 	auto output_lines_per_wave = 2;
 	auto limit_wave_cnt = 0;
-	std::stringstream paramsSS;
+	std::ostringstream paramsSS;
 
-	paramsSS << PrepareClangDefsym("batch_size", _batch_sz);
-	paramsSS << PrepareClangDefsym("img_width", _in_width);
-	paramsSS << PrepareClangDefsym("img_height", _in_height);
-	paramsSS << PrepareClangDefsym("input_channels", _n_inputs);
-	paramsSS << PrepareClangDefsym("output_channels", _n_outputs);
+	GenerateClangDefsym(paramsSS, "batch_size", _batch_sz);
+	GenerateClangDefsym(paramsSS, "img_width", _in_width);
+	GenerateClangDefsym(paramsSS, "img_height", _in_height);
+	GenerateClangDefsym(paramsSS, "input_channels", _n_inputs);
+	GenerateClangDefsym(paramsSS, "output_channels", _n_outputs);
 
-	paramsSS << PrepareClangDefsym("weights_layout", _direction);
-	paramsSS << PrepareClangDefsym("reverse_weights", _direction);
+	GenerateClangDefsym(paramsSS, "weights_layout", _direction);
+	GenerateClangDefsym(paramsSS, "reverse_weights", _direction);
 
-	paramsSS << PrepareClangDefsym("filters_per_wave", filters_per_wave);
-	paramsSS << PrepareClangDefsym("output_lines_per_wave", output_lines_per_wave);
-	paramsSS << PrepareClangDefsym("limit_wave_cnt", limit_wave_cnt);
+	GenerateClangDefsym(paramsSS, "filters_per_wave", filters_per_wave);
+	GenerateClangDefsym(paramsSS, "output_lines_per_wave", output_lines_per_wave);
+	GenerateClangDefsym(paramsSS, "limit_wave_cnt", limit_wave_cnt);
 
-	paramsSS << PrepareClangDefsym("no_params_file", 1);
-	paramsSS << PrepareClangDefsym("enable_debug_output", 0);
+	GenerateClangDefsym(paramsSS, "no_params_file", 1);
+	GenerateClangDefsym(paramsSS, "enable_debug_output", 0);
 
 	_comp_options = paramsSS.str();
 
@@ -645,8 +648,6 @@ int mlo_construct_direct2D::mloConstructDirectAsm()
 	_g_wk.push_back(active_lanes * ((_n_outputs + filters_per_wave - 1) / filters_per_wave));
 	_g_wk.push_back((_in_height + output_lines_per_wave - 1) / output_lines_per_wave);
 	_g_wk.push_back(_batch_sz);
-
-	MLOPEN_THROW("Direct Asm is not implemented yet.");
 
 	_kernel_file = "conv3x3.s";
 	_kernel_name = "gcnAsmConv3x3U";
