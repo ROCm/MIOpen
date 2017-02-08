@@ -283,7 +283,7 @@ struct verify_backward_weights_conv
         mlopenConvAlgoPerf_t perf;
 
         int alpha = 1, beta = 1;
-
+        std::cout << "FindConvBwdWeightsAlgorithm" << std::endl;
         filter.FindConvBwdWeightsAlgorithm(handle,
             out.desc,
             out_dev.get(),
@@ -299,6 +299,7 @@ struct verify_backward_weights_conv
             workspace_size,
             0); // MD: Not performing exhaustiveSearch by default for now
 
+        std::cout << "ConvolutionBackwardWeights" << std::endl;
         filter.ConvolutionBackwardWeights(handle,
             &alpha,
             out.desc,

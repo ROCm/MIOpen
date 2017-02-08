@@ -20,7 +20,11 @@ void GemmGeometry::FindSolution(float time,
         bool            enforce_determinism)
 {
     // alloted_time, queue, a, b, c, enforce_determinism, float_type, geometry, alpha, beta, verbose 
-    TinyGemmSolution soln = tinygemm::find(time, handle.GetStream(), a, b, c, enforce_determinism, 'f', tgg, alpha, beta, false);
+#if MLOPEN_BACKEND_OPENCL
+    TinyGemmSolution soln = tinygemm::find(time, handle.GetStream(), a, b, c, enforce_determinism, 'f', tgg, alpha, beta);
+#else
+    TinyGemmSolution soln = tinygemm::get_default(enforce_determinism, 'f', tgg);
+#endif
 
     std::string program_name = soln.main_kernel;
     std::string kernel_name = soln.main_kernel_function_name;
