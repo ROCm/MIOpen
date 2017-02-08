@@ -38,6 +38,7 @@ set( MLOPEN_BACKEND ${MLOPEN_DEFAULT_BACKEND} CACHE STRING
 	"Which of MLOpens's backends to use?" )
 set_property( CACHE MLOPEN_BACKEND PROPERTY STRINGS
 	OpenCL HCC HIP HIPOC )
+find_package(tinygemm)
 # OpenCL 1.2
 if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	add_definitions( -DMLOPEN_BACKEND_OPENCL=1 )
@@ -45,7 +46,6 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
 	find_package( OpenCL REQUIRED )
-	find_package(tinygemm QUIET)
 endif()
 # HCC
 if( MLOPEN_BACKEND STREQUAL "HCC")
