@@ -440,7 +440,7 @@ bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
 	const auto platform = mlopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
 	const auto vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
-	const auto name = _stream->GetDeviceName();
+	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
 	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
 	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
@@ -516,8 +516,7 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 {
 	int ret = 0;
 
-	const auto dev = mlopen::GetDevice(_stream->GetStream());
-	const auto n_groups = mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(dev);
+	const auto n_groups = _stream->GetMaxComputeUnits();
 
 	_g_wk.clear();
 	_g_wk.push_back(512 * n_groups);
