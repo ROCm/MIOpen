@@ -49,6 +49,8 @@ def rocmtest(image, body) {
     }
     node('rocmtest') {
         stage("checkout ${image}") {
+            env.HCC_SERIALIZE_KERNEL=3
+            env.HCC_SERIALIZE_COPY=3
             env.HSA_ENABLE_SDMA=0
             checkout scm
         }
