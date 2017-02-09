@@ -229,19 +229,12 @@ int mlo_construct_direct2D::mloConstruct()
 {
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
-#if 1
-	if (_kernel_size0 == 10 && _kernel_size1 == 5 && _kernel_stride0 == 2 && _kernel_stride1 == 2 && _pad0 == 0 && _pad1 == 0)
-	{
-		// don't use general kernel for 5x10 u2v2
-		_gen = 0;
-	}
-#endif
 	if (_gen && getDirection())
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
 #if 1
-	else if ((_kernel_size0 == 3 && _kernel_size1 == 3 && _pad1 == 1 && _pad0 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1 && getDirection()) && (_out_width == 512 || _out_width == 64 || _out_width == 128 || _out_width == 256))
+	else if ((_kernel_size0 == 3 && _kernel_size1 == 3 && _pad1 == 1 && _pad0 == 1 && getDirection()) && (_out_width == 512 || _out_width == 64 || _out_width == 128 || _out_width == 256))
 	{
 		return(mloConstructDirect2D3x3());
 	}
@@ -276,13 +269,6 @@ int mlo_construct_direct2D::mloConstruct()
 		// construct found configuration
 
 		ret = mloConstructDirect2DFwd();
-#if 0
-		if(ret)
-		{
-			// try general
-			ret = mloConstructDirect2DFwdGen();
-		}
-#endif
 
 	}
 
@@ -301,7 +287,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
 
 	// no 1x1 backward yet
-	if (_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
+	if (_kernel_size0 == 1 && _kernel_size1 == 1 )
 	{
 
 		return(mloConstructDirect2D1x1());
@@ -431,12 +417,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;
-
-	if (_kernel_stride0 > 1 || _kernel_stride1 > 1)
-	{
-		//                      std::cout << "ERROR: stride > 1 not supported in mloConstructDirect2DFwdC\n";
-		return(-1);
-	}
 
 	size_t localMemSize = _stream->GetLocalMemorySize();
 
@@ -1017,7 +997,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		;
 
 
-	_kernel_file = "MLOpenConvDirGenFwd.cl";
+	_kernel_file = "MlOpenConvDirGenFwd.cl";
 	_kernel_name = (n_proc_supertiles == 1) ? "MLOpenCDFGen" : "MLOpenCDFGen4";
 
 	_l_wk.clear();
