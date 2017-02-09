@@ -89,6 +89,8 @@ if( MLOPEN_BACKEND STREQUAL "HIPOC")
 	)
 	message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
 	message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
+	find_package(hip)
+	link_libraries(stdc++)
 	add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
 	add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
 endif()
@@ -119,6 +121,7 @@ enable_clang_tidy(
 		# Disable this because it doesn't recognize clean up in the destructor
 		-clang-analyzer-alpha.unix.Stream
 		-clang-analyzer-optin.performance.Padding
+		-clang-diagnostic-deprecated-declarations
 		-clang-diagnostic-extern-c-compat
 		-cppcoreguidelines-pro-bounds-array-to-pointer-decay
 		-cppcoreguidelines-pro-bounds-constant-array-index

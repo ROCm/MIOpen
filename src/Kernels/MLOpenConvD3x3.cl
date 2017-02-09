@@ -31,11 +31,12 @@
 #endif
 
 #define MLO_HW_WAVE_ID_SETTING 1
+// FIXME Conduct enabling from the host code.
 extern __attribute__((const)) uint __hsail_get_dynwave_id(void);
 
 #define MLO_IN_LCL_WIDTH (MLO_IN_STRIDE + 2 * MLO_FILTER_PAD0)
 
-inline int getWaveId()
+static inline int getWaveId()
 {
 	int wave_id = 0;
 #if MLO_HW_WAVE_ID_SETTING
@@ -47,13 +48,13 @@ inline int getWaveId()
 	return(wave_id);
 }
 
-inline int getWaveLocalId()
+static inline int getWaveLocalId()
 {
 	int lcl_wave_id = get_local_id(0) - ((get_local_id(0) >> MLO_LG2_WAVE_SZ) << MLO_LG2_WAVE_SZ);;
 	return(lcl_wave_id);
 }
 
-inline int getWaveLocalIds(int * lcl_wave_id1, int * lcl_wave_id0)
+static inline int getWaveLocalIds(int * lcl_wave_id1, int * lcl_wave_id0)
 {
 	int lcl_wave_id = getWaveLocalId();
 	*lcl_wave_id1 = (lcl_wave_id >> MLO_LG2_WAVE_SZ0);
@@ -61,7 +62,7 @@ inline int getWaveLocalIds(int * lcl_wave_id1, int * lcl_wave_id0)
 	return(lcl_wave_id);
 }
 
-inline int getLocalIds(int * lcl_id1, int * lcl_id0)
+static inline int getLocalIds(int * lcl_id1, int * lcl_id0)
 {
     int lcl_wave_id = getWaveLocalId();
 	int wave_id = getWaveId();

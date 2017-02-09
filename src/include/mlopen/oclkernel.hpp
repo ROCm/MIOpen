@@ -37,16 +37,22 @@ struct OCLSetKernelArg
 	void operator()(cl_kernel kernel, I i, const T& x) const
 	{
 		cl_int status = clSetKernelArg(kernel, i, sizeof(T), reinterpret_cast<const void*>(&x));
-		if (status != CL_SUCCESS) { MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
-}
+		if (status != CL_SUCCESS) {
+			MLOPEN_THROW(
+			"Error setting argument #" + std::to_string(i) + " to kernel (size = " + std::to_string(sizeof(T)) + "): "
+			+ std::to_string(status));
+		}
 	}
 
 	template<class I>
 	void operator()(cl_kernel kernel, I i, const LocalMemArg& lmem) const
 	{
 		cl_int status = clSetKernelArg(kernel, i, lmem.GetSize(), NULL);
-		if (status != CL_SUCCESS) { MLOPEN_THROW("Error setting argument to kernel: " + std::to_string(status));
-}
+		if (status != CL_SUCCESS) {
+			MLOPEN_THROW(
+				"Error setting argument #" + std::to_string(i) + " to kernel: "
+				+ std::to_string(status));
+		}
 	}
 };
 
@@ -68,6 +74,7 @@ struct OCLKernelInvoke
 	}
 
 	void run() const;
+	std::string GetName() const;
 };
 
 class OCLKernel {
@@ -92,13 +99,13 @@ public:
 	{
 		assert(!gdims.empty() && gdims.size() <= 3);
 		assert(!ldims.empty() && ldims.size() <= 3);
-		if(std::accumulate(ldims.begin(), ldims.end(), 1, std::multiplies<size_t>{}) > 256)
+		if(std::accumulate(ldims.begin(), ldims.end(), 1, std::multiplies<size_t>{}) > 256) // FIXME: get ldims limit from runtime
 		{
 			std::fill(ldims.begin(), ldims.end(), 0);
 		}
 	}
 
-	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr);
+	OCLKernelInvoke Invoke(cl_command_queue q, std::function<void(cl_event&)> callback=nullptr) const;
 
 	cl_kernel GetKernel() { return kernel.get(); } 
 

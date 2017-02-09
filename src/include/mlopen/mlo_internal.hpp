@@ -232,8 +232,21 @@ public:
 		_n_in_data_tiles = n_in_data_tiles;
 		_n_stacks = n_stacks;
 	}
-	
 
+	/*
+	* returns parameter values that are compiled in legacy kernels for kernels using them as arguments.
+	*/
+	inline void getCompiledInParameters(int* N, int* C, int* H, int* W, int* K, int* n_groups)
+	{
+		assert(N && C && H && W && K && n_groups);
+
+		*N = _batch_sz;
+		*C = _n_inputs;
+		*H = _in_height;
+		*W = _in_width;
+		*K = _n_outputs;
+		*n_groups = _stream->GetMaxComputeUnits();
+	}
 
 	/*
 	* returns kernel file name without location
@@ -701,6 +714,11 @@ protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
+#if MLOPEN_BACKEND_OPENCL
+	bool mloCheckWinograd3x3FwdConvCondition() const;
+	bool mloCheckWinograd3x3FwdConvPerfFilter() const;
+	int mloConstructWinograd3x3FwdConv();
+#endif
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
 	int mloConstructDirect2D3x3(void);
@@ -858,6 +876,8 @@ protected:
 	size_t _bias_sz; // bytes
 
 	size_t _workspce_sz;
+
+	unsigned int _n_groups;
 };
 
 

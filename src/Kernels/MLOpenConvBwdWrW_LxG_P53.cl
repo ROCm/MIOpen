@@ -114,6 +114,7 @@ static inline int iMod(int v, int u, int d)
 	return(r);
 }
 
+
 static inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
 {
 // read first half
@@ -146,6 +147,7 @@ static inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *wei
 
 
 
+
 static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c, _FLOAT v)
 {
 	_FLOAT y = v - *c;    //So far, so good: c is zero.
@@ -161,6 +163,7 @@ static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c,
 
 	no guard against number of inputs
 */
+
 static inline void readInput(int lcl_id, int gbl_in_scan_off, int n_v_reads, const __global _FLOAT * bot, __local _FLOAT *lcl_bot)
 {
 	for (int p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * n_v_reads;

@@ -54,7 +54,7 @@ function(add_kernels KERNEL_FILES)
 		get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
 		string(TOUPPER "${BASE_NAME}" KEY_NAME)
 		string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
-		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", reinterpret_cast<const char*>(${VAR_NAME}) }")
+		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
 	endforeach()
 	string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
 	configure_file(Kernels/kernel.cpp.in kernel.cpp)
@@ -109,6 +109,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MLOpenConvBwdWrW_LxL_P.cl
 		Kernels/MLOpenConvBwdWrW_LxG_P53.cl
 		Kernels/MLOpenConvBwdWrW_LxG_5x5.cl)
+		Kernels/conv_3x3_wheel_alpha_v2_0b_gfx803.so)
 	
 	add_kernels("${MLOPEN_KERNELS}")
 	configure_file(db.cpp.in db.cpp)
@@ -183,6 +184,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		)
 	
 	add_dependencies(MLOpen addkernels_run)
+	add_dependencies(tidy addkernels_run)
 endif()
 
 clang_tidy_check(MLOpen)
@@ -211,5 +213,7 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	MESSAGE( STATUS "MLOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MLOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )
+elseif(MLOPEN_BACKEND STREQUAL "HIPOC")
+	target_link_libraries( MLOpen ${hip_LIBRARIES} )
 endif()
 
