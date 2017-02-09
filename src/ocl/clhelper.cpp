@@ -43,7 +43,7 @@ static void Assemble(std::string& source, const std::string& params)
 	std::vector<std::string> paramsVector;
 	std::string outPath("MLOpen_CLang_Out_XXXXXX");
 	
-	auto outFD = mkstemp(const_cast<char*>(outPath.c_str()));
+	close(mkstemp(const_cast<char*>(outPath.c_str())));
 
 	do
 	{
@@ -62,61 +62,48 @@ static void Assemble(std::string& source, const std::string& params)
 	static const int write_fd = 1;
 	static const int pipe_sides = 2;
 
-	int pipes[pipe_sides];
+	int childStdin[pipe_sides];
 
-	pipe(pipes);
-	write(pipes[write_fd], source.data(), source.size());
+	pipe(childStdin);
 
 	int status;
 	pid_t pid = fork();
 
 	if (pid == 0)
 	{
-		dup2(pipes[read_fd], STDIN_FILENO);
-		close(pipes[read_fd]);
-		close(pipes[write_fd]);
+		dup2(childStdin[read_fd], STDIN_FILENO);
+
+		close(childStdin[read_fd]);
+		close(childStdin[write_fd]);
 
 		execv(asm_path_env_p, args.data());
 		_exit(EXIT_FAILURE);
 	}
 	else
 	{
-		close(pipes[read_fd]);
-		close(pipes[write_fd]);
+		close(childStdin[read_fd]);
 
 		if (pid < 0)
 		{
-			status = -1;
+			close(childStdin[write_fd]);
+			MLOPEN_THROW("Error assembling kernel source: fork failed.");
 		}
-		else
-		{
-			if (waitpid(pid, &status, 0) != pid)
-				status = -1;
-		}
+
+		write(childStdin[write_fd], source.data(), source.size());
+		close(childStdin[write_fd]);
+
+		if (waitpid(pid, &status, 0) != pid) { MLOPEN_THROW("Error assembling kernel source: waitpid failed."); }
 	}
 
-	if (status != 0)
-	{
-		std::ostringstream stringStream;
-		stringStream << "Error assembling kernel source: ";
-
-		if (status > 0)
-			stringStream << "clang error code " << status;
-		else
-			stringStream << "unable to fork or call waitpid";
-
-		MLOPEN_THROW(stringStream.str());
-	}
+	if (status != 0) { MLOPEN_THROW("Error assembling kernel source, clang error code " + std::to_string(status)); }
 
 	std::ifstream file(outPath, std::ios::binary | std::ios::ate);
-	auto size = file.tellg();
+	const auto size = file.tellg();
 
-	file.seekg(std::ios::beg);
 	source.resize(size, ' ');
+	file.seekg(std::ios::beg);
 	file.rdbuf()->sgetn(const_cast<char*>(source.c_str()), size);
 	file.close();
-	close(outFD);
-
 	std::remove(outPath.c_str());
 }
 
