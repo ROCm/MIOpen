@@ -52,8 +52,8 @@ const
 	return std::make_tuple(
 		input_n, 
 		filter_k, 
-		(input_h - filter_h + 2*pad_h) / u + 1, 
-		(input_w - filter_w + 2*pad_w) / v + 1
+		std::max(1, (input_h - filter_h + 2*pad_h) / u + 1), 
+		std::max(1, (input_w - filter_w + 2*pad_w) / v + 1)
 	);
 }
 
