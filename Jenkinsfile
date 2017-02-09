@@ -37,6 +37,7 @@ parallel opencl: {
 def rocmtest(image, body) {
     def cmake_build = { compiler, flags ->
         def cmd = """
+            echo \$HSA_ENABLE_SDMA
             rm -rf build
             mkdir build
             cd build
@@ -48,6 +49,7 @@ def rocmtest(image, body) {
     }
     node('rocmtest') {
         stage("checkout ${image}") {
+            env.HSA_ENABLE_SDMA=0
             checkout scm
         }
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
