@@ -75,19 +75,19 @@
 
 
 
-inline void calculateXYPos(int linPos, int width, int *x, int *y)
+static inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
 	(*y) = (int)((float)linPos/width + 0.0001f);
 	(*x) = linPos - (*y) * width; 
 }
 
-inline int calculateOffset(int stride, int x, int y)
+static inline int calculateOffset(int stride, int x, int y)
 {
 	int ret = y * stride + x;
 	return(ret);
 }
 
-inline void readDataElem(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data, int linPos, int gbl_width, int gbl_stride, int gbl_base, int lcl_stride, int lcl_base)
+static inline void readDataElem(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data, int linPos, int gbl_width, int gbl_stride, int gbl_base, int lcl_stride, int lcl_base)
 {
 	int x, y;
 	calculateXYPos(linPos, gbl_width, &x, &y);
@@ -100,7 +100,7 @@ inline void readDataElem(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_d
 
 // split the group into several input vector processors
 // each processor reads its own input channel
-inline void readData(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data, int lcl_p_id, int lcl_p_stride, int size, int gbl_width, int gbl_stride, int gbl_base, int lcl_stride, int lcl_base)
+static inline void readData(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data, int lcl_p_id, int lcl_p_stride, int size, int gbl_width, int gbl_stride, int gbl_base, int lcl_stride, int lcl_base)
 {
 	
 	for(int i = lcl_p_id; i < size; i+= lcl_p_stride)
@@ -110,7 +110,7 @@ inline void readData(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data,
 
 }
 
-inline void readDataTile(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data,
+static inline void readDataTile(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data,
 						int tile_y, int tile_x,
 						int gbl_stride, int gbl_base,
 						int lcl_stride, int lcl_base,
@@ -150,7 +150,7 @@ inline void readDataTile(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_d
 
 
 
-inline void readWeights(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data, int p_id, int p_stride, int size, int lcl_stride, int gbl_stride)
+static inline void readWeights(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data, int p_id, int p_stride, int size, int lcl_stride, int gbl_stride)
 {
 	for(int i = p_id; i < size; i+= p_stride)
 	{

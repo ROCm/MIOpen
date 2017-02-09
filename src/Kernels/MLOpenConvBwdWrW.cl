@@ -37,19 +37,19 @@
 
 
 
-inline void calculateXYPos(int linPos, int width, int *x, int *y)
+static inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
 	(*y) = linPos /width;
 	(*x) = linPos - (*y) * width; 
 }
 
-inline int calculateOffset(int stride, int x, int y)
+static inline int calculateOffset(int stride, int x, int y)
 {
 	int ret = y * stride + x;
 	return(ret);
 }
 
-inline void readDataElem(int linPos,__local _FLOAT *lcl_data, int lcl_base, int lcl_height, int lcl_width, int lcl_stride, int lcl_y, int lcl_x,
+static inline void readDataElem(int linPos,__local _FLOAT *lcl_data, int lcl_base, int lcl_height, int lcl_width, int lcl_stride, int lcl_y, int lcl_x,
 					 const __global _FLOAT * gbl_data, int gbl_base, int gbl_height, int gbl_width, int gbl_stride, int gbl_y, int gbl_x,
 					 bool vis,
 					 bool debug)
@@ -79,7 +79,7 @@ inline void readDataElem(int linPos,__local _FLOAT *lcl_data, int lcl_base, int 
 }
 
 
-inline void readData(int lcl_id, int size, int lcl_p_stride, __local _FLOAT *lcl_data, int lcl_base, int lcl_height, int lcl_width, int lcl_stride, int lcl_y, int lcl_x,
+static inline void readData(int lcl_id, int size, int lcl_p_stride, __local _FLOAT *lcl_data, int lcl_base, int lcl_height, int lcl_width, int lcl_stride, int lcl_y, int lcl_x,
 					 const __global _FLOAT * gbl_data, int gbl_base, int gbl_height, int gbl_width, int gbl_stride, int gbl_y, int gbl_x,
 					 bool vis,
 					 bool debug
@@ -96,7 +96,7 @@ inline void readData(int lcl_id, int size, int lcl_p_stride, __local _FLOAT *lcl
 
 }
 
-inline void dWeightsHoriz(_FLOAT * horiz_weights_accum, _FLOAT * bot, _FLOAT d_top, bool debug)
+static inline void dWeightsHoriz(_FLOAT * horiz_weights_accum, _FLOAT * bot, _FLOAT d_top, bool debug)
 {
 	for(int i = 0; i < MLO_CONV_KERNEL_SZ0; ++i)
 	{
@@ -113,7 +113,7 @@ inline void dWeightsHoriz(_FLOAT * horiz_weights_accum, _FLOAT * bot, _FLOAT d_t
 	}
 }
 
-inline void dWeightsAccum(_FLOAT * weights_accum, _FLOAT * bias_accum, _FLOAT * bot_stage, __local _FLOAT *lcl_bot, __local _FLOAT*lcl_top_df, int top_lcl_sz,
+static inline void dWeightsAccum(_FLOAT * weights_accum, _FLOAT * bias_accum, _FLOAT * bot_stage, __local _FLOAT *lcl_bot, __local _FLOAT*lcl_top_df, int top_lcl_sz,
 							bool debug)
 {
 	_FLOAT d_top[MLO_CONVBWD_N_OUTSPERIN * MLO_CONVBWD_N_ACCUM_SCAN];
@@ -188,7 +188,7 @@ inline void dWeightsAccum(_FLOAT * weights_accum, _FLOAT * bias_accum, _FLOAT * 
 
 
 
-inline void loadData(int lcl_id, int lcl_p_stride,
+static inline void loadData(int lcl_id, int lcl_p_stride,
 					__local _FLOAT * lcl_data,
 					int lcl_off, int lcl_size, int lcl_height, int lcl_width, int lcl_stride, int lcl_bot_y, int lcl_bot_x,
 					const __global _FLOAT * gbl_data,
@@ -212,7 +212,7 @@ inline void loadData(int lcl_id, int lcl_p_stride,
 }
 
 
-inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
+static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
 {
 	for(int j = (sum_stride>>1); j > 0; j >>= 1)
 	{

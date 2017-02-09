@@ -255,7 +255,14 @@ Handle::Handle ()
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
     cl_int status = 0;
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
     impl->queues.emplace_back(clCreateCommandQueue(impl->context.get(), device, CL_QUEUE_PROFILING_ENABLE, &status));
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
     if(status != CL_SUCCESS)
     {
         MLOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
@@ -299,7 +306,7 @@ KernelInvoke Handle::GetKernel(
         const std::string& params)
 {
     auto q = this->GetStream();
-    OCLKernel obj = this->impl->cache.GetKernel(*this, 
+    auto obj = this->impl->cache.GetKernel(*this, 
             algorithm,
             network_config,
             program_name, 
@@ -307,13 +314,14 @@ KernelInvoke Handle::GetKernel(
             vld,
             vgd,
             params);
+
 #ifndef NDEBUG
 	//dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
 #endif
     if (this->impl->enable_profiling) { 
-        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1)); 
+        return obj.Invoke(q, std::bind(&HandleImpl::SetProfilingResult, std::ref(*this->impl), std::placeholders::_1));
     } else { 
-        return obj.Invoke(q); 
+        return obj.Invoke(q);
     }
 }
 
@@ -322,7 +330,7 @@ KernelInvoke Handle::GetKernel(
     const std::string& network_config)
 {
     auto q = this->GetStream();
-    OCLKernel obj = this->impl->cache.GetKernel(
+    const auto obj = this->impl->cache.GetKernel(
             algorithm,
             network_config);
     if (this->impl->enable_profiling) { 

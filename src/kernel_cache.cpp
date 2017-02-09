@@ -45,11 +45,11 @@ Kernel KernelCache::GetKernel(const std::string& algorithm,
 Kernel KernelCache::GetKernel(Handle &h,
 										const std::string& algorithm,
 										const std::string& network_config,
-                                        const std::string& program_name,
-                                        const std::string& kernel_name,
+										const std::string& program_name,
+										const std::string& kernel_name,
 										const std::vector<size_t>& vld,
 										const std::vector<size_t>& vgd,
-                                        std::string params)
+										std::string params)
 {
 
     if (params.length() > 0)
@@ -59,7 +59,7 @@ Kernel KernelCache::GetKernel(Handle &h,
         if (params.at(0) != ' ') { params = " " + params; }
     }
 
-	std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
+    std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
 #ifndef NDEBUG
     std::cout << "key: " << key.first << ',' << key.second << std::endl;
 #endif
@@ -73,11 +73,13 @@ Kernel KernelCache::GetKernel(Handle &h,
     }
     else
     {
-        program = h.LoadProgram(program_name, params);
+		program = h.LoadProgram(program_name, params);
 		program_map[std::make_pair(program_name, params)] = program;
     }
-    Kernel kernel{program, kernel_name, vld, vgd};
-    if (!network_config.empty() && !algorithm.empty()) { kernel_map[key] = kernel; }
+	Kernel kernel { program, kernel_name, vld, vgd };
+    if (!network_config.empty() && !algorithm.empty()) {
+        kernel_map[key] = kernel;
+    }
     return kernel;
 }
 

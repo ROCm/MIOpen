@@ -15,6 +15,13 @@ inline std::string ReplaceString(std::string subject, const std::string& search,
     return subject;
 }
 
+inline bool EndsWith(const std::string& value, const std::string& suffix)
+{
+    if (suffix.size() > value.size()) return false;
+    else return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin());
+
+}
+
 } // namespace mlopen
 
 #endif

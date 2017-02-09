@@ -62,20 +62,35 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     const std::vector<size_t> & vld = construct_params.getLocalWkSize();
     const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-    float padding_val = 0;
-    handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
-            network_config,
-            program_name, 
-            kernel_name,
-            vld,
-            vgd,
-            parms)(x, w, y, padding_val);
+	float padding_val = 0;
 
-    // FIXME: MD temporary hack for hipcaffe
-    // should be ideally wrapped under mlopen::deref to check 
-    // for the size of perfResults == requestedAlgoCount
-    perfResults->fwd_algo = mlopenConvolutionFwdAlgoDirect;
-    perfResults->time = handle.GetKernelTime();
+	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+		network_config,
+		program_name,
+		kernel_name,
+		vld,
+		vgd,
+		parms);
+
+	if (kernel.GetName() == "sp3AsmConv3x3F")
+	{
+		int flags = 0;
+		int reserved = 0;
+		int *return_addr = nullptr;
+		int N, C, H, W, K, n_groups;
+		construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+		kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+	}
+	else
+	{
+		kernel(x, w, y, padding_val);
+	}
+	
+	// FIXME: MD temporary hack for hipcaffe
+	// should be ideally wrapped under mlopen::deref to check 
+	// for the size of perfResults == requestedAlgoCount
+	perfResults->fwd_algo = mlopenConvolutionFwdAlgoDirect;
+	perfResults->time = handle.GetKernelTime();
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
@@ -113,6 +128,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         construct_params.setOutputDescFromMLDesc(yDesc);
         construct_params.setInputDescFromMLDesc(xDesc);
         construct_params.setWeightDescFromMLDesc(wDesc);
+
+		construct_params.setStream(&handle);
     }
 
     std::string network_config;
@@ -134,8 +151,24 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             break;
     }
 
-    float padding_val = 0;
-    handle.GetKernel(algorithm_name, network_config)(x, w, y, padding_val);
+	float padding_val = 0;
+	auto kernel = handle.GetKernel(algorithm_name, network_config);
+
+#if MLOPEN_BACKEND_OPENCL
+	if (kernel.GetName() == "sp3AsmConv3x3F")
+	{
+		int flags = 0;
+		int reserved = 0;
+		int *return_addr = nullptr;
+		int N, C, H, W, K, n_groups;
+		construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+		kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+
+		return;
+	}
+#endif
+
+	kernel(x, w, y, padding_val);
 }
 
 // FindBackwardDataAlgorithm()
