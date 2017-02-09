@@ -45,12 +45,12 @@
 #define MLO_N_WEI_BLK (MLO_GRP_SZ/ MLO_WEI_BLK_SZ)
 // n of steps per scan line to be made in the inner loop
 // extended scan to deal with overshot in the inner loop
-#define MLO_OUT_WEI_EXT_SCAN_BLK ((MLO_OUT_HORIZ_PIX_SZ + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
+#define MLO_OUT_WEI_EXT_SCAN_BLK ((MLO_OUT_WIDTH + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
 
 #define MLO_OUT_WEI_SCAN_BLK (MLO_OUT_WEI_EXT_SCAN_BLK)
 
 // max loop over virtual blocks for small images
-#define MLO_MAX_WEI_BLK_LOOP_TMP ((MLO_OUT_HORIZ_PIX_SZ + MLO_OUT_WEI_SCAN_BLK - 1)/MLO_OUT_WEI_SCAN_BLK)
+#define MLO_MAX_WEI_BLK_LOOP_TMP ((MLO_OUT_WIDTH + MLO_OUT_WEI_SCAN_BLK - 1)/MLO_OUT_WEI_SCAN_BLK)
 #if MLO_MAX_WEI_BLK_LOOP_TMP < MLO_N_WEI_BLK
 #define MLO_MAX_WEI_BLK_LOOP MLO_MAX_WEI_BLK_LOOP_TMP
 #else
@@ -63,7 +63,11 @@
 #define MLO_OUT_BLK_GRP_PIX_SZ (MLO_OUT_HORIZ_PIX_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_BLK_GRP_WK_SZ (MLO_OUT_BLK_GRP_PIX_SZ / MLO_READ_UNIT)
 
+#if MLO_OUT_HORIZ_PIX_SZ <  (MLO_OUT_WEI_EXT_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP)
 #define MLO_OUT_HORIZ_PIX_EXT_SZ (MLO_OUT_WEI_EXT_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP)
+#else
+#define MLO_OUT_HORIZ_PIX_EXT_SZ MLO_OUT_HORIZ_PIX_SZ
+#endif
 #define MLO_OUT_BLK_GRP_EXT_PIX_SZ (MLO_OUT_HORIZ_PIX_EXT_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_LCL_SZ (MLO_OUT_BLK_GRP_EXT_PIX_SZ)
 // LDS OUT SIZE
@@ -561,10 +565,13 @@ __kernel void MLOpenCvBwdWrW(
 									pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
 #if 0
 									int w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-									if (i_val * o_val != 0 && ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 6 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
+									if (i_val * o_val != 0 && ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 1 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
 									{
 										int i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
-										printf("K:s: %d %d %d %d %d %d %d %d %d   %f %f %f %f %f\n",
+										printf("K:s: %d %d %d %d %d %d %d %d %d %d %d %d   %f %f %f %f\n",
+											MLO_IN_LCL_WIDTH,
+											MLO_MAX_WEI_BLK_LOOP,
+											MLO_OUT_WEI_SCAN_BLK,
 											lcl_id,
 											b,
 											ob,
@@ -577,7 +584,6 @@ __kernel void MLOpenCvBwdWrW(
 											pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w],
 											i_val * o_val,
 											i_val,
-											lcl_bot[i_off],
 											o_val
 										);
 									}

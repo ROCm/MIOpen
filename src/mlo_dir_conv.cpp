@@ -1242,7 +1242,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 	// number of filter taps in the processing wk_item
-	int WEI_WKITEM = (_kernel_size0 == 7) ? 7 : (_kernel_size0==10) ? 5 : 10; // 5x20=10, 5x10 = 5
+	int WEI_WKITEM = (_kernel_size0 <= 7 || (((_kernel_size0 / 2)*2) != _kernel_size0) )? _kernel_size0 : _kernel_size0 / 2;
 
 	_in_tile0 = 1;
 	_in_tile1 = 1;
@@ -1250,7 +1250,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	_out_pix_tile1 = (_kernel_size0 == 20) ? 1 : 2; //700 = 1, 350 = 2
 
 						// major parameters
-	int n_waves =(_out_width>512) ? 4 : 2; // 700 = 4, 350 == 2
+	int n_waves = (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
 
 	_n_in_data_tiles = 1;
 	// n of out blocks in lcl memory
@@ -1379,7 +1379,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = (_pad0 > 1 || _pad1 > 1) ? "MLOpenConvBwdWrW_LxL_P.cl" : "MLOpenConvBwdWrW_LxL.cl";
+		_kernel_file = (_pad0 > 0 || _pad1 > 0) ? "MLOpenConvBwdWrW_LxL_P.cl" : "MLOpenConvBwdWrW_LxL.cl";
 		_kernel_name = "MLOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -1394,7 +1394,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	{
 
 
-		std::string kernel_file = (_pad0 > 1 || _pad1 > 1) ? "MLOpenConvBwdWrW_LxL_P.cl" : "MLOpenConvBwdWrW_LxL.cl";
+		std::string kernel_file = (_pad0 > 0 || _pad1 > 0) ? "MLOpenConvBwdWrW_LxL_P.cl" : "MLOpenConvBwdWrW_LxL.cl";
 		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
@@ -1424,7 +1424,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 {
 	int ret = 0;
 
-	if ((_kernel_size0 >= 7 ) && (_kernel_stride0 > 1 || _kernel_stride1 > 1))
+	if (/*_kernel_size0 >= 7) &&*/ (_kernel_stride0 > 1 || _kernel_stride1 > 1))
 	{
 		ret = mloConstruct2();
 		return(ret);
