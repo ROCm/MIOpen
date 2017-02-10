@@ -1545,7 +1545,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 {
 	int ret = 0;
 
-	if (/*_kernel_size0 >= 7) &&*/ (_kernel_stride0 > 1 || _kernel_stride1 > 1))
+	if ((_kernel_size0>=_kernel_size1) && (_kernel_stride0 > 1 || _kernel_stride1 > 1))
 	{
 		ret = mloConstruct2();
 		return(ret);
