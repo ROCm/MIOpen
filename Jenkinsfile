@@ -1,5 +1,5 @@
 parallel opencl: {
-    rocmtest('rocm-opencl:1.4') { cmake_build ->
+    rocmtest('tinygemm:1.4') { cmake_build ->
         stage('Clang Tidy') {
             sh '''
                 rm -rf build
