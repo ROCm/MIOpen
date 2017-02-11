@@ -237,8 +237,6 @@ __kernel void MLOpenCDFGen(
 		}
 
 
-#if MLO_BIG
-
 		readDataTile(lcl_img,
 				bot,
 				y_in_grp,
@@ -259,20 +257,7 @@ __kernel void MLOpenCDFGen(
 				MLO_FLTR_PAD_SZ0,
 				padding_val);
 
-#else
-		int lcl_base = MLO_LCL_IMG_WIDTH * MLO_FLTR_PAD_SZ1 + MLO_FLTR_PAD_SZ0;
-		readData(&lcl_img[lcl_proc * MLO_LCL_IMG_SIZE + lcl_base],
-				bot,
-				lcl_in_proc_id,
-				(MLO_N_PROCS0*MLO_N_PROCS1),
-				(MLO_IN_WIDTH*MLO_IN_HEIGHT),
-				MLO_IN_WIDTH,
-				MLO_IN_STRIDE,
-				in_off,
-				MLO_LCL_IMG_WIDTH,
-				0);
 
-#endif
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 
@@ -487,7 +472,6 @@ _FLOAT padding_val
 		}
 
 
-#if MLO_BIG
 
 		readDataTile(&lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1],
 			bot,
@@ -509,20 +493,6 @@ _FLOAT padding_val
 			MLO_FLTR_PAD_SZ0,
 			padding_val);
 
-#else
-		int lcl_base = MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1 + MLO_LCL_IMG_WIDTH * MLO_FLTR_PAD_SZ1 + MLO_FLTR_PAD_SZ0;
-		readData(&lcl_img[lcl_proc * MLO_LCL_IMG_SIZE + lcl_base],
-			bot,
-			lcl_in_proc_id,
-			(MLO_N_PROCS0*MLO_N_PROCS1),
-			(MLO_IN_WIDTH*MLO_IN_HEIGHT),
-			MLO_IN_WIDTH,
-			MLO_IN_STRIDE,
-			in_off,
-			MLO_LCL_IMG_WIDTH,
-			0);
-
-#endif
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 

@@ -436,8 +436,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
     gg.FindSolution(.003, handle, workSpace, dy, dw, false);
 #endif
-    // temprorary guard
-    if((u == 1 && v == 1) || (wei_w >= 7 && u == 2 && v == 2))
+// temprorary guard
+//    if((u == 1 && v == 1) || (wei_w >= 7 && (u > 1 || v > 1))
     {
         mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
         construct_params.doSearch(false);
@@ -615,7 +615,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
         case mlopenConvolutionBwdWeightsAlgoDirect:
         {
-            if ((u == 1 && v == 1) || (wei_w >= 7 && u == 2 && v == 2))
+
+ //           if ((u == 1 && v == 1) || (wei_w >= 7 && (u > 1 || v > 1)))
             {
                 mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
                 construct_params.setOutputDescFromMLDesc(dyDesc);
