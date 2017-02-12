@@ -896,6 +896,7 @@ public:
 protected:
 	int mloConstruct2();
 	int mloConstruct53();
+	int mloConstruct1x1();
 };
 
 

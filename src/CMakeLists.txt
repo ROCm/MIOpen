@@ -109,6 +109,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MLOpenConvBwdWrW_LxL_P.cl
 		Kernels/MLOpenConvBwdWrW_LxG_P53.cl
 		Kernels/MLOpenConvBwdWrW_LxG_5x5.cl
+		Kernels/MLOpenConvBwdWrW_GxG_1x1.cl
 		Kernels/conv_3x3_wheel_alpha_v2_0b_gfx803.so)
 	
 	add_kernels("${MLOPEN_KERNELS}")
