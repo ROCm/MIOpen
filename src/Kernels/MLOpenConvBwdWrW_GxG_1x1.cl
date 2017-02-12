@@ -87,6 +87,7 @@ inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_ac
 				weights_accum[i] += lcl_blob[(lcl_id + j) * unit_len + i];
 
 				lcl_blob[lcl_id * unit_len + i] = weights_accum[i];
+
 			}
 
 		}
@@ -135,7 +136,7 @@ static inline void readData(int n, int gbl_data_off, int gbl_data_stride,  const
 		else
 #endif
 		{
-			*(MLO_READ_TYPE*)&p_data[j*MLO_READ_UNIT] = *(__global MLO_READ_TYPE*)&g_data[gbl_data_off + j*gbl_data_stride];
+			*(MLO_READ_TYPE*)&p_data[j*MLO_READ_UNIT] = *(__global MLO_READ_TYPE*)&g_data[gbl_data_off + j*gbl_data_stride*MLO_OUT_STACKS];
 		}
 
 
@@ -145,49 +146,22 @@ static inline void readData(int n, int gbl_data_off, int gbl_data_stride,  const
 
 }
 
-/*
-	core processing loop
-	bot - input, from local (1 span)
-	top - output diff, from global (array of spans, filters vertical size)
 
-	loop over filter vertical size
-
-*/
-
-static inline void Processing(int k, int c, __private _FLOAT * pvt_accum, __private _FLOAT * bot_dat, __private _FLOAT * top_dat)
-{
-	for (int j = 0; j < k; ++j)
-	{
-		for (int i = 0; i < c; ++i)
-		{
-			for (int n = 0; n < MLO_READ_UINT; ++n)
-			{
-				pvt_accum[j*MLO_N_IN_MAPS + i] +=
-					bot_dat[i*MLO_READ_UINT + n] * top_dat[j*MLO_READ_UINT + n];
-			}
-
-		}
-
-	}
-
-}
 
 /*********************************************************************************************************
 // wrw algorithm for large filters
 // idea:
-// split output scan-line on number of spans by the  MLO_IN_TILE0 (2 for example)
-// 1 scan-line has ((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1/MLO_IN_TILE0) spans
-// group will process MLO_GRP_SZ/((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1/MLO_IN_TILE0) output maps
+// read MLO_OUT_STACKS per group, MLO_N_LCL_IN_MAPS per wk_item input maps
+// read MLO_OUT_STACKS per group, MLO_N_LCL_OUT_MAPS per wk_item output maps
 
 // alg
-// load a block of input map (or full map) into LDS
-// loop
-// read MLO_FILTER_SIZE1 number of spans from output map into VGPRs (for example 5 *2 = 10)
-// read 1 input line for  maps into LDS
-// accumulate
+// loop in MLO_N_LCL_OUT_MAPS
+// load MLO_OUT_STACKS of output into LDS
+loop in MLO_OUT_STACKS
+// convolve with MLO_N_LCL_IN_MAPS per wk-item
 
-// accumulate all spans at the end
-// start new loop for the next batch (if defined)
+// reduce
+
 // write out 
 
 
@@ -206,42 +180,47 @@ __kernel void MLOpenCvBwdWrW(
 {
 	// reduction memory.
 	// ceil pow2 of the number of wk-items keeping the map
+#if (MLO_POW2_MAP_WK_SZ * MLO_OUT_STACKS) > (MLO_GRP_SZ * MLO_READ_UNIT)
 #define MLO_LCL_MEM_SZ (MLO_POW2_MAP_WK_SZ * MLO_OUT_STACKS)
+#else
+#define MLO_LCL_MEM_SZ (MLO_GRP_SZ * MLO_READ_UNIT)
+#endif
 
-	__local _FLOAT red_mem[MLO_LCL_MEM_SZ];
+	__local _FLOAT lcl_mem[MLO_LCL_MEM_SZ];
+	__local _FLOAT * red_mem = lcl_mem;
+	__local _FLOAT * proc_mem = lcl_mem;
 
 	// guarnteeing an uniformity over a wave
 	int wave_id = getWaveId();
 	int lcl_id = get_local_id(0);
 	int lcl_wv_id = gePhysLocalId();
 
-	int m_idx_base = get_group_id(0); // map index base
+	int k_idx = get_group_id(0) * (MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS); // output map index base
 
-	int ib = get_group_id(1); // batch id
+	int c_idx = get_group_id(1) * (MLO_OUT_STACKS * MLO_N_LCL_IN_MAPS); // input map index based
 
-	int c_idx = m_idx_base * (MLO_N_LCL_IN_MAPS * MLO_OUT_STACKS); // input map index
+	int ib = get_group_id(2); // batch id
 
-	int o_idx = m_idx_base * (MLO_N_LCL_OUT_MAPS * MLO_OUT_STACKS); // output map index
 
 	int gbl_in_off = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
-	int gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
+	int gbl_out_off = k_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
 
-// map id inside group
+	// map id inside group
 	int m_idx = iDiv(lcl_id, MLO_MAP_WK_SZ);
-// read pixel inside the map
+	// read pixel inside the map
 	int p4 = iMod(lcl_id, m_idx, MLO_MAP_WK_SZ);
 
 	bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 	bool out_of_range = (m_idx >= MLO_OUT_STACKS);
-	bool out_of_range_in = (m_idx + c_idx >= MLO_N_INPUTS) && out_of_range;
-	bool out_of_range_out = (m_idx + o_idx >= MLO_N_OUTPUTS) && out_of_range;
+	bool out_of_range_in = (m_idx + c_idx >= MLO_N_INPUTS);
+	bool out_of_range_out = (m_idx + k_idx >= MLO_N_OUTPUTS);
 
 	gbl_in_off += m_idx * MLO_IN_CHANNEL_STRIDE + p4*MLO_READ_UNIT;
-	gbl_out_off += m_idx * MLO_IN_CHANNEL_STRIDE + p4*MLO_READ_UNIT;
+	gbl_out_off += m_idx * MLO_OUT_CHANNEL_STRIDE + p4*MLO_READ_UNIT;
 
-// read guards
-	gbl_in_off = (out_of_range_in) ? 0 : gbl_in_off;
-	gbl_out_off = (out_of_range_out) ? 0 : gbl_out_off;
+	// read guards
+	gbl_in_off = (out_of_range_in || out_of_range) ? 0 : gbl_in_off;
+	gbl_out_off = (out_of_range_out || out_of_range) ? 0 : gbl_out_off;
 
 
 #define MLO_TOP_DAT_SZ (MLO_N_LCL_OUT_MAPS * MLO_READ_UNIT)
@@ -262,7 +241,7 @@ __kernel void MLOpenCvBwdWrW(
 		bot_dat[i] = 0;
 	}
 
-#define MLO_ACCUM_SZ (MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS)
+#define MLO_ACCUM_SZ (MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS * MLO_OUT_STACKS)
 
 	__private _FLOAT pvt_accum[MLO_ACCUM_SZ];
 
@@ -273,7 +252,7 @@ __kernel void MLOpenCvBwdWrW(
 
 	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
 	{
-		red_mem[i] = 0;
+		lcl_mem[i] = 0;
 	}
 	// over all batches
 
@@ -296,43 +275,110 @@ __kernel void MLOpenCvBwdWrW(
 		// read output maps
 		readData(MLO_N_LCL_OUT_MAPS, gbl_out_scan_off, MLO_OUT_CHANNEL_STRIDE, top_df, top_dat, last_pixel);
 
-		Processing(MLO_N_LCL_OUT_MAPS, MLO_N_LCL_IN_MAPS, pvt_accum, bot_dat, top_dat);
-
-
-
-
-// final summation over each filter row
-	for (int l = 0; l < MLO_ACCUM_SZ; ++l)
-	{
-		barrier(CLK_LOCAL_MEM_FENCE);
-// write data
-		rad_mem[m_idx * MLO_POW2_MAP_WK_SZ + p4] = pvt_accum[l];
-
-// barrier inside
-		ReduceKernel(&rad_mem[m_idx * MLO_POW2_MAP_WK_SZ], &pvt_accum[l], lcl_id, p4, MLO_POW2_MAP_WK_SZ, 1, false);
-
-	}
-
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-// output 
-// inputs are outputs
-// TODO : for more than 1 input
-	int wei_df_off = ((ib * MLO_N_OUTPUTS + o_idx + m_idx) * (int)MLO_WEI_BATCH_STRIDE) + ((c_idx + m_idx) * MLO_WEI_CHANNEL_STRIDE);
-	
-	
-	for (int o = 0; o < MLO_N_LCL_OUT_MAPS && p4==0 && m_idx < MLO_OUT_STACKS && o_idx + m_idx + o*MLO_OUT_STACKS < MLO_N_OUTPUTS; ++o)
-	{
-		for (int c = 0; c < MLO_N_LCL_IN_MAPS && c_idx + m_idx + c*MLO_OUT_STACKS < MLO_N_INPUTS; ++c)
+		for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 		{
-			weights_df[wei_df_off + o*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE] = pvt_accum[o*MLO_N_LCL_IN_MAPS + c];
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+	// move 1 set of output maps into LDS
+			for (int i = 0; i < MLO_READ_UNIT; ++i)
+			{
+				proc_mem[lcl_id*MLO_READ_UNIT + i] = top_dat[k*MLO_READ_UNIT + i];
+			}
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			/*
+			core processing loop
+			bot - input
+			top - output diff
+
+			do convolution with all available input maps
+
+			*/
+
+	
+			for (int n = 0; n < MLO_OUT_STACKS; ++n)
+			{
+				__private _FLOAT pvt_top[MLO_READ_UNIT];
+
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					pvt_top[i] = proc_mem[(n*MLO_MAP_WK_SZ + p4)*MLO_READ_UNIT + i];
+				}
+
+				for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
+				{
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+						pvt_accum[(k*MLO_OUT_STACKS + n)*MLO_N_LCL_IN_MAPS + c]
+							+= bot_dat[c*MLO_READ_UNIT + i] * pvt_top[i];
+#if 0
+						if (k_idx + k*MLO_OUT_STACKS + n == 0 && c_idx + m_idx + c * MLO_OUT_STACKS == 1)
+						{
+							printf("K:s: %d %d %d %d %f %f %f %f\n",
+								get_group_id(1),
+								get_local_id(0),
+								k,
+								c,
+								pvt_accum[(n* MLO_N_LCL_OUT_MAPS + k)*MLO_N_LCL_IN_MAPS + c],
+								bot_dat[c*MLO_READ_UNIT + i] * pvt_top[i],
+								bot_dat[c*MLO_READ_UNIT + i],
+								pvt_top[i]
+							);
+						}
+#endif
+
+					}
+					
+				}
+//				Processing(MLO_N_LCL_OUT_MAPS, o_idx, m_idx, MLO_N_LCL_IN_MAPS, c_idx, m_idx, pvt_accum, bot_dat, top_dat, (p4 == 0 && (lcl_id == 0 || lcl_id == 1)));
+			}
+		}
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
+		{
+			red_mem[i] = 0;
+		}
+
+		int red_base_off = (m_idx >= MLO_OUT_STACKS) ? MLO_LCL_MEM_SZ : m_idx * MLO_POW2_MAP_WK_SZ;
+		// final summation over each filter row
+		for (int l = 0; l < MLO_ACCUM_SZ; ++l)
+		{
+			barrier(CLK_LOCAL_MEM_FENCE);
+			// write data
+			red_mem[red_base_off + p4] = pvt_accum[l];
+
+			// barrier inside
+			ReduceKernel(&red_mem[red_base_off], &pvt_accum[l], p4, p4, MLO_POW2_MAP_WK_SZ, 1, false);
+
+		}
+
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+
+		// write out 
+		// inputs are outputs
+		int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + ((c_idx + m_idx) * MLO_WEI_CHANNEL_STRIDE);
+
+		for (int n = 0; n < MLO_OUT_STACKS && p4 == 0 && m_idx < MLO_OUT_STACKS; ++n)
+		{
+			for (int k = 0; k < MLO_N_LCL_OUT_MAPS && k_idx + k*MLO_OUT_STACKS + n < MLO_N_OUTPUTS; ++k)
+			{
+				for (int c = 0; c < MLO_N_LCL_IN_MAPS && c_idx + m_idx + c*MLO_OUT_STACKS < MLO_N_INPUTS; ++c)
+				{
+					weights_df[wei_df_off + (k*MLO_OUT_STACKS + n)*MLO_WEI_BATCH_STRIDE + c*MLO_OUT_STACKS*MLO_WEI_CHANNEL_STRIDE] = pvt_accum[(k*MLO_OUT_STACKS + n)*MLO_N_LCL_IN_MAPS + c];
+
+				}
+
+			}
 		}
 
 	}
 
 }
-
 
 // final reduction kernel
 // add filters over batches
