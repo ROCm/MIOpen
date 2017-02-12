@@ -335,47 +335,49 @@ __kernel void MLOpenCvBwdWrW(
 			}
 		}
 
+
+	}
+
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
+	{
+		red_mem[i] = 0;
+	}
+
+	int red_base_off = (m_idx >= MLO_OUT_STACKS) ? MLO_LCL_MEM_SZ : m_idx * MLO_POW2_MAP_WK_SZ;
+	// final summation over each filter row
+	for (int l = 0; l < MLO_ACCUM_SZ; ++l)
+	{
 		barrier(CLK_LOCAL_MEM_FENCE);
+		// write data
+		red_mem[red_base_off + p4] = pvt_accum[l];
 
-		for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
+		// barrier inside
+		ReduceKernel(&red_mem[red_base_off], &pvt_accum[l], p4, p4, MLO_POW2_MAP_WK_SZ, 1, false);
+
+	}
+
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+
+	// write out 
+	// inputs are outputs
+	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + ((c_idx + m_idx) * MLO_WEI_CHANNEL_STRIDE);
+
+	for (int n = 0; n < MLO_OUT_STACKS && p4 == 0 && m_idx < MLO_OUT_STACKS; ++n)
+	{
+		for (int k = 0; k < MLO_N_LCL_OUT_MAPS && k_idx + k*MLO_OUT_STACKS + n < MLO_N_OUTPUTS; ++k)
 		{
-			red_mem[i] = 0;
-		}
-
-		int red_base_off = (m_idx >= MLO_OUT_STACKS) ? MLO_LCL_MEM_SZ : m_idx * MLO_POW2_MAP_WK_SZ;
-		// final summation over each filter row
-		for (int l = 0; l < MLO_ACCUM_SZ; ++l)
-		{
-			barrier(CLK_LOCAL_MEM_FENCE);
-			// write data
-			red_mem[red_base_off + p4] = pvt_accum[l];
-
-			// barrier inside
-			ReduceKernel(&red_mem[red_base_off], &pvt_accum[l], p4, p4, MLO_POW2_MAP_WK_SZ, 1, false);
-
-		}
-
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-
-		// write out 
-		// inputs are outputs
-		int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + ((c_idx + m_idx) * MLO_WEI_CHANNEL_STRIDE);
-
-		for (int n = 0; n < MLO_OUT_STACKS && p4 == 0 && m_idx < MLO_OUT_STACKS; ++n)
-		{
-			for (int k = 0; k < MLO_N_LCL_OUT_MAPS && k_idx + k*MLO_OUT_STACKS + n < MLO_N_OUTPUTS; ++k)
+			for (int c = 0; c < MLO_N_LCL_IN_MAPS && c_idx + m_idx + c*MLO_OUT_STACKS < MLO_N_INPUTS; ++c)
 			{
-				for (int c = 0; c < MLO_N_LCL_IN_MAPS && c_idx + m_idx + c*MLO_OUT_STACKS < MLO_N_INPUTS; ++c)
-				{
-					weights_df[wei_df_off + (k*MLO_OUT_STACKS + n)*MLO_WEI_BATCH_STRIDE + c*MLO_OUT_STACKS*MLO_WEI_CHANNEL_STRIDE] = pvt_accum[(k*MLO_OUT_STACKS + n)*MLO_N_LCL_IN_MAPS + c];
-
-				}
+				weights_df[wei_df_off + (k*MLO_OUT_STACKS + n)*MLO_WEI_BATCH_STRIDE + c*MLO_OUT_STACKS*MLO_WEI_CHANNEL_STRIDE] = pvt_accum[(k*MLO_OUT_STACKS + n)*MLO_N_LCL_IN_MAPS + c];
 
 			}
-		}
 
+		}
 	}
 
 }
