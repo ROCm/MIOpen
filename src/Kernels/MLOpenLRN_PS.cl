@@ -87,7 +87,7 @@ __kernel void MLOpenLRNWithinChannel_PS(
 
 				//				bot_x_act = (bot_x_act < 0) ? 0 : (bot_x_act >= MLO_LRN_BOT_WIDTH) ? MLO_LRN_BOT_WIDTH - 1: bot_x_act;
 
-				MLO_READ_TYPE bot_val4 = *(MLO_READ_TYPE*)&bot[bot_off + bot_y_off + bot_x_act];
+				MLO_READ_TYPE bot_val4 = *(__global MLO_READ_TYPE*)&bot[bot_off + bot_y_off + bot_x_act];
 
 				bool invisibleX;
 				for (int i = 0; i < 4; ++i)
@@ -605,7 +605,7 @@ __kernel void MLOpenLRNAcrossChannels4(
 
 		for( c_i = 0; c_i < MLO_LRN_PAD; c_i++)
 		{
-			MLO_READ_TYPE prv_in = *(MLO_READ_TYPE*)&bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + (pix_id * MLO_READ_UNIT)];
+			MLO_READ_TYPE prv_in = *(__global MLO_READ_TYPE*)&bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + (pix_id * MLO_READ_UNIT)];
 #if !MLO_DIVBY4
 
 			// if the last one
@@ -631,7 +631,7 @@ __kernel void MLOpenLRNAcrossChannels4(
 
 		for( ; c_i < MLO_LRN_KERNEL_SZ; c_i++, c_o++)
 		{
-			MLO_READ_TYPE prv_in = *(MLO_READ_TYPE*)&bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + (pix_id * MLO_READ_UNIT)];
+			MLO_READ_TYPE prv_in = *(__global MLO_READ_TYPE*)&bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + (pix_id * MLO_READ_UNIT)];
 #if !MLO_DIVBY4
 
 			// if the last one
@@ -692,9 +692,9 @@ __kernel void MLOpenLRNAcrossChannels4(
 #endif
 				{
 
-					*((MLO_READ_TYPE*)&top[top_off]) = out_val;
+					*((__global MLO_READ_TYPE*)&top[top_off]) = out_val;
 #if MLO_LRN_DO_SCALE
-					*((MLO_READ_TYPE*)&scale[scale_off]) = prv_scale;
+					*((__global MLO_READ_TYPE*)&scale[scale_off]) = prv_scale;
 #endif
 				}
 
@@ -705,7 +705,7 @@ __kernel void MLOpenLRNAcrossChannels4(
 		for( ; c_i < MLO_LRN_N_CHANNELS; c_i++, c_o++)
 		{
 
-			MLO_READ_TYPE prv_in = *(MLO_READ_TYPE*)&bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + (pix_id * MLO_READ_UNIT)];
+			MLO_READ_TYPE prv_in = *(__global MLO_READ_TYPE*)&bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE *c_i + (pix_id * MLO_READ_UNIT)];
 #if MLO_LOW_CHNL_COUNT
 			prv_in = (c_i < MLO_LRN_N_INPUTS) ? prv_in : 0;
 #endif
@@ -780,9 +780,9 @@ __kernel void MLOpenLRNAcrossChannels4(
 #endif
 				{
 
-					*((MLO_READ_TYPE*)&top[top_off]) = out_val;
+					*((__global MLO_READ_TYPE*)&top[top_off]) = out_val;
 #if MLO_LRN_DO_SCALE
-					*((MLO_READ_TYPE*)&scale[scale_off]) = prv_scale;
+					*((__global MLO_READ_TYPE*)&scale[scale_off]) = prv_scale;
 #endif
 				}
 
@@ -844,9 +844,9 @@ __kernel void MLOpenLRNAcrossChannels4(
 #endif
 				{
 
-					*((MLO_READ_TYPE*)&top[top_off]) = out_val;
+					*((__global MLO_READ_TYPE*)&top[top_off]) = out_val;
 #if MLO_LRN_DO_SCALE
-					*((MLO_READ_TYPE*)&scale[scale_off]) = prv_scale;
+					*((__global MLO_READ_TYPE*)&scale[scale_off]) = prv_scale;
 #endif
 				}
 

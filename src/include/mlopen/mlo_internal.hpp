@@ -233,7 +233,6 @@ public:
 		_n_stacks = n_stacks;
 	}
 
-#if MLOPEN_BACKEND_OPENCL
 	/*
 	* returns parameter values that are compiled in legacy kernels for kernels using them as arguments.
 	*/
@@ -248,7 +247,6 @@ public:
 		*K = _n_outputs;
 		*n_groups = _stream->GetMaxComputeUnits();
 	}
-#endif
 
 	/*
 	* returns kernel file name without location

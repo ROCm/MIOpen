@@ -365,7 +365,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     }
 
 // temprorary guard
-    if((u == 1 && v == 1) || (wei_w >= 7 && u == 2 && v == 2))
+//    if((u == 1 && v == 1) || (wei_w >= 7 && (u > 1 || v > 1))
     {
         mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
         {
@@ -518,7 +518,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             int out_h, out_w;
             std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
-            if ((u == 1 && v == 1) || (wei_w >= 7 && u == 2 && v == 2))
+ //           if ((u == 1 && v == 1) || (wei_w >= 7 && (u > 1 || v > 1)))
             {
                 mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
                 construct_params.doSearch(false);

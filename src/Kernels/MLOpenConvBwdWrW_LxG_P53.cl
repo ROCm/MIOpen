@@ -38,10 +38,24 @@
 #define MLO_N_OUT_HORIZ_PIX_READS (MLO_N_OUT_HORIZ_READS * MLO_IN_TILE0)
 #define MLO_OUT_N_PIXS_OFF (MLO_OUT_WIDTH - ((MLO_OUT_WIDTH / MLO_IN_TILE0)*MLO_IN_TILE0))
 #define MLO_N_OUT_VERTICAL_READS (MLO_FILTER_SIZE1)
+// won't run non-border blocks if  MLO_IN_N_VERT_LOOPS < 2
+#if MLO_FILTER_PAD1 > 0 
+
+#if  MLO_IN_N_VERT_LOOPS >= 2
+#define MLO_N_GENERIC_LOOPS ((int)(MLO_IN_N_VERT_LOOPS - 2))
+#define MLO_IN_VERT_READS (MLO_IN_EXTENT1 + MLO_FILTER_PAD1)
+#else
+#define MLO_N_GENERIC_LOOPS 0
+#define MLO_IN_VERT_READS MLO_IN_EXTENT1
+#endif
+
+#else
+#define MLO_N_GENERIC_LOOPS (MLO_IN_N_VERT_LOOPS)
+#define MLO_IN_VERT_READS MLO_IN_EXTENT1
+#endif
 
 
 
-#define MLO_IN_VERT_READS (MLO_IN_HEIGHT)
 // there is an assumption that the scanline fits into LDS
 #define MLO_N_IN_HORIZ_PIX_READS (MLO_IN_WIDTH) 
 #define MLO_N_IN_HORIZ_READS ((MLO_N_IN_HORIZ_PIX_READS + MLO_READ_UNIT - 1) / MLO_READ_UNIT)
@@ -100,7 +114,8 @@ static inline int iMod(int v, int u, int d)
 	return(r);
 }
 
-static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
+
+static inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
 {
 // read first half
 	if (scan_lcl < (sum_stride >> 1))
@@ -132,7 +147,8 @@ static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum
 
 
 
-static inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
+
+static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c, _FLOAT v)
 {
 	_FLOAT y = v - *c;    //So far, so good: c is zero.
 	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
@@ -147,17 +163,24 @@ static inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
 
 	no guard against number of inputs
 */
-static inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * bot, __local _FLOAT *lcl_bot)
+
+static inline void readInput(int lcl_id, int gbl_in_scan_off, int n_v_reads, const __global _FLOAT * bot, __local _FLOAT *lcl_bot)
 {
-	for (int p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * MLO_IN_VERT_READS;
+	for (int p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * n_v_reads;
 		p4 += MLO_GRP_SZ)
 	{
 		__private _FLOAT in_rd_data[MLO_READ_UNIT];
 // TODO : more than 1 input
 		int c = 0;
-		int c_scan = iDiv(p4, (MLO_N_IN_HORIZ_READS));
+		int t_p4 = p4;
+#if MLO_N_LCL_IN_MAPS > 1
+		c = iDiv(p4, (MLO_N_IN_HORIZ_READS * n_v_reads));
+		t_p4 = iMod(p4, c, (MLO_N_IN_HORIZ_READS * n_v_reads));
+#endif
 
-		int c_pix4 = iMod(p4, c_scan, (MLO_N_IN_HORIZ_READS));
+		int c_scan = iDiv(t_p4, (MLO_N_IN_HORIZ_READS));
+
+		int c_pix4 = iMod(t_p4, c_scan, (MLO_N_IN_HORIZ_READS));
 
 //		if (c < MLO_N_INPUTS)
 
@@ -185,7 +208,7 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FL
 				*(MLO_READ_TYPE*)in_rd_data = *(__global MLO_READ_TYPE*)&bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
 			}
 
-// stack of inputs, each has 1 line
+// MLO_N_LCL_IN_MAPS inputs
 			for (int i = 0; i < MLO_READ_UNIT; ++i)
 			{
 				int lcl_in_off = c*MLO_IN_LCL_SZ + c_scan* MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i;
@@ -199,6 +222,7 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FL
 
 
 }
+
 
 /*
 	core processing loop
@@ -216,26 +240,36 @@ static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, 
 		{
 			for (int n = 0; n < MLO_FILTER_SIZE0; ++n)
 			{
-				_FLOAT bot_val = lcl_bot[sc_lcl_off + n + m];
-				_FLOAT top_val = top_dat[(top_lim - l) * MLO_IN_TILE0 + m];
-				pvt_accum[l*MLO_FILTER_SIZE0 + n]
-					// each wk-item process an input
-					+= bot_val * top_val;
-#if 0
-				if (/*bot_val * top_val != 0 && */get_global_id(1) == 0 && get_global_id(2) == 0 /*&& get_local_id(0) == 0*/ && l == 2 && n == 1)
+				for(int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 				{
-					printf("G: %d %d %d  %f %f %f %f\n",
-						MLO_OUT_N_PIXS_OFF,
-						sc,
-						sc_lcl_off,
-						pvt_accum[l*MLO_FILTER_SIZE0 + n],
-						bot_val * top_val,
-						bot_val,
-						top_val
-					);
-				}
-#endif
+					_FLOAT bot_val = lcl_bot[sc_lcl_off + c*MLO_IN_LCL_SZ + n + m];
+					for(int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+					{
+						int pvt_top_off =  k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + (top_lim - l) * MLO_IN_TILE0 + m;
+						int pvt_accum_off = (k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + l*MLO_FILTER_SIZE0 + n;
 
+						_FLOAT top_val = top_dat[pvt_top_off];
+
+						pvt_accum[pvt_accum_off]
+						// each wk-it process an input
+							+= bot_val*top_val;
+#if 0
+					if (bot_val * top_val != 0 && get_global_id(1) == 0 && get_global_id(2) == 0 && (get_local_id(0) == 0  || get_local_id(0) == 1 || get_local_id(0) == 2)&& k == 0 && l == 0 && n == 0)
+					{
+						printf("G: %d %d %d %d  %f %f %f %f\n",
+							get_local_id(0),
+							sc,
+							sc_lcl_off + c*MLO_IN_LCL_SZ + n + m,
+							pvt_top_off,
+							pvt_accum[pvt_accum_off],
+							bot_val * top_val,
+							bot_val,
+							top_val
+						);
+					}
+#endif
+					}
+				}
 			}
 
 		}
@@ -243,6 +277,71 @@ static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, 
 	}
 
 }
+
+static inline void moveOutputUp(__private _FLOAT * top_dat)
+{
+	// move up output to reduce overfetch
+	for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+	{
+		for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
+		{
+			for (int i = 0; i < MLO_IN_TILE0; ++i)
+			{
+				int pvt_off_n = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j *MLO_IN_TILE0 + i;
+				int pvt_off_o = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + (j + 1) *MLO_IN_TILE0 + i;
+				top_dat[pvt_off_n] = top_dat[pvt_off_o];
+			}
+		}
+	}
+}
+
+static inline void spanRightSiding5x5(int k, int top_df_off, int j, _FLOAT mask, __private _FLOAT * top_dat, __global const _FLOAT * top_df)
+{
+	int i = 0;
+	int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j *MLO_IN_TILE0;
+	for (; i < MLO_OUT_N_PIXS_OFF; ++i)
+	{
+		top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
+	}
+	for (; i < MLO_IN_TILE0; ++i)
+	{
+		top_dat[pvt_off + i] = 0;
+	}
+
+
+}
+#if 1
+#if (MLO_IN_TILE0 - MLO_OUT_N_PIXS_OFF <= MLO_FILTER_PAD0)
+#define MLO_OUT_MASK_SZ (MLO_IN_TILE0 - MLO_OUT_N_PIXS_OFF)
+#else
+#define MLO_OUT_MASK_SZ (MLO_FILTER_PAD0)
+#endif
+#endif
+
+//#define MLO_OUT_MASK_SZ (1)
+static inline void spanReadingOutput3x3(int k, int j, int top_df_off, _FLOAT mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+	__private _FLOAT * out_mask, 
+#endif
+	__private _FLOAT * top_dat, const __global _FLOAT * top_df)
+{
+	int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j *MLO_IN_TILE0;
+	for (int i = 0; i < MLO_IN_TILE0; ++i)
+	{
+		top_dat[pvt_off + i] = top_df[top_df_off + i] * mask
+			;
+	}
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+
+	for (int i = MLO_OUT_N_PIXS_OFF; i < MLO_OUT_N_PIXS_OFF + MLO_OUT_MASK_SZ; ++i)
+	{
+		top_dat[pvt_off + i] *= out_mask[i - MLO_OUT_N_PIXS_OFF];
+
+	}
+#endif
+}
+
+
 /*********************************************************************************************************
 // wrw algorithm for large filters
 // idea:
@@ -261,6 +360,11 @@ static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, 
 // start new loop for the next batch (if defined)
 // write out 
 
+// kerenl handles 5x5, 3x3 with padding
+// small images in 1 short- MLO_N_GENERIC_LOOPS == 0
+// big images  in 2 blocks - MLO_IN_N_VERT_LOOPS == 2 or multiple blocks - MLO_IN_N_VERT_LOOPS > 2
+// there are prolog and apilog that deal with top/bottom padding.
+// left/right padding handles as a LDS border pixels zeroed at the beginning.
 
 **********************************************************************************************************/
 
@@ -303,10 +407,10 @@ __kernel void MLOpenCvBwdWrW(
 
 	int gbl_in_off = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
 	int gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
-// 1 span per wk_item, total scanline with MLO_N_SPANS_PER_SCAN spans 
-// TODO: more than 1 input
+	// 1 span per wk_item, total scanline with MLO_N_SPANS_PER_SCAN spans 
+	// TODO: more than 1 input
 	int o = iDiv(lcl_id, MLO_N_SPANS_PER_SCAN);
-//	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
+	//	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
 	int spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 
 
@@ -315,7 +419,7 @@ __kernel void MLOpenCvBwdWrW(
 	gbl_out_off += out_wk_item_off;
 
 
-#define MLO_TOP_DAT_SZ (MLO_IN_TILE0 * MLO_FILTER_SIZE1)
+#define MLO_TOP_DAT_SZ (MLO_N_LCL_OUT_MAPS * MLO_IN_TILE0 * MLO_FILTER_SIZE1)
 
 	__private _FLOAT top_dat[MLO_TOP_DAT_SZ];
 
@@ -324,7 +428,7 @@ __kernel void MLOpenCvBwdWrW(
 		top_dat[i] = 0;
 	}
 
-#define MLO_ACCUM_SZ (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0)
+#define MLO_ACCUM_SZ (MLO_N_LCL_OUT_MAPS * MLO_N_LCL_IN_MAPS * MLO_FILTER_SIZE1*MLO_FILTER_SIZE0)
 
 	__private _FLOAT pvt_accum[MLO_ACCUM_SZ];
 
@@ -340,14 +444,29 @@ __kernel void MLOpenCvBwdWrW(
 		lcl[i] = 0;
 	}
 
-//	barrier(CLK_LOCAL_MEM_FENCE);
 
+// 3x3 out mask
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
 
+	_FLOAT out_mask[MLO_OUT_MASK_SZ];
+	if (spn == MLO_N_SPANS_PER_SCAN - 1)
+	{
+		for (int i = 0; i < MLO_OUT_MASK_SZ; ++i)
+		{
+			out_mask[i] = 0;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < MLO_OUT_MASK_SZ; ++i)
+		{
+			out_mask[i] = 1;
+		}
+	}
 
-
+#endif
 
 	// over all batches
-
 	for (int b = 0;
 		b < MLO_N_BATCH_LOOPS;
 		++b,
@@ -355,208 +474,393 @@ __kernel void MLOpenCvBwdWrW(
 		gbl_out_off += MLO_N_LCL_BATCHS*MLO_OUT_BATCH_STRIDE
 		)
 	{
+		barrier(CLK_LOCAL_MEM_FENCE);
+		// top border input block
+		int gbl_in_scan_off = gbl_in_off;
+		int gbl_out_scan_off = gbl_out_off;
+
+
+		// read input map
+		readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
+		// move input pointer
+		gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1;
+
 		for (int i = 0; i < MLO_TOP_DAT_SZ; ++i)
 		{
 			top_dat[i] = 0;
 		}
 
-
-		int gbl_in_scan_off = gbl_in_off;
-		int gbl_out_scan_off = gbl_out_off;
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-		// read input map
-		readInput(lcl_id, gbl_in_scan_off, bot, lcl_bot);
-
-
 		// prefetch output
-		for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j, gbl_out_scan_off += MLO_OUT_STRIDE)
+
+		int gbl_out_scan_off1 = gbl_out_scan_off;
+		for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k, gbl_out_scan_off1 += MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE)
 		{
-			int top_df_off = gbl_out_scan_off;
-			_FLOAT mask = 1;
+			for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
+			{
+				// loop around all output maps
+				int top_df_off = gbl_out_scan_off1 + j*MLO_OUT_STRIDE;
+				_FLOAT mask = 1;
 #if MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
-			top_df_off = (j < MLO_OUT_HEIGHT) ? top_df_off : 0;
-			mask = (j < MLO_OUT_HEIGHT) ? 1 : 0;
+				top_df_off = (j < MLO_OUT_HEIGHT) ? top_df_off : 0;
+				mask = (j < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
 
-#if MLO_OUT_N_PIXS_OFF > 0
-				if (spn == MLO_N_SPANS_PER_SCAN -1)
+// 5x5 out of range
+#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) > 16
+				if (spn == MLO_N_SPANS_PER_SCAN - 1)
 				{
-					int i = 0;
-					for (; i < MLO_OUT_N_PIXS_OFF; ++i)
-					{
-						top_dat[j *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
-					}
-					for (; i < MLO_IN_TILE0; ++i)
-					{
-						top_dat[j *MLO_IN_TILE0 + i] = 0;
-					}
+
+					spanRightSiding5x5(k, top_df_off, j, mask, top_dat, top_df);
+
 				}
 				else
 #endif
 				{
-					for (int i = 0; i < MLO_IN_TILE0; ++i)
-					{
-						top_dat[j *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
-					}
+					spanReadingOutput3x3(k, j, top_df_off, mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+						out_mask,
+#endif
+						top_dat, top_df);
 				}
 
+			}
 		}
 
-
 		barrier(CLK_LOCAL_MEM_FENCE);
+
+		gbl_out_scan_off += (MLO_FILTER_SIZE1 - 1) * MLO_OUT_STRIDE;
+
+		int sc = 0;
+		int sc_lcl_off = lcl_bot_off;
+		
 
 		// prolog
 		// handling padding
 
-		int sc = 0;
-		int sc_lcl_off = lcl_bot_off;
-// pad0
-
-		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
-		sc++;
-		sc_lcl_off += MLO_IN_LCL_WIDTH;
-
-
-// pad1
-		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1 + 1, 0, pvt_accum, lcl_bot, top_dat);
-		sc++;
-		sc_lcl_off += MLO_IN_LCL_WIDTH;
-
-// generic loop
-
-		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		// pad0
+		for (; sc < MLO_FILTER_PAD1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
+			Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
+		}
 
-			int top_df_off = gbl_out_scan_off;
-			_FLOAT mask = 1;
+		for (; sc < MLO_IN_EXTENT1
+#if MLO_IN_N_VERT_LOOPS == 1
+			- MLO_FILTER_PAD1
+			// 3x3 out of range
+#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+			- 1
+#endif
+#endif
+			; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		{
+			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+			{
+				int top_df_off = gbl_out_scan_off + k*MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
+				_FLOAT mask = 1;
 
 #if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
-			top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
-			mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
+				top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
+				mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
-			// move in the last output scans
-#if MLO_OUT_N_PIXS_OFF > 0
-				if (spn == MLO_N_SPANS_PER_SCAN -1)
+				// move in the last output scans
+// 5x5 out of range
+#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) > 16
+				if (spn == MLO_N_SPANS_PER_SCAN - 1)
 				{
-					int i = 0;
-					for (; i < MLO_OUT_N_PIXS_OFF; ++i)
-					{
-						top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
-					}
-					for (; i < MLO_IN_TILE0; ++i)
-					{
-						top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = 0;
-					}
+					spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
 				}
 				else
 #endif
 				{
+					spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+						out_mask,
+#endif
+						top_dat, top_df);
+				}
+
+			}
+
+			// processing
+			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
+
+			// move up output to reduce overfetch
+			moveOutputUp(top_dat);
+		}
+
+
+
+
+// non-border input blocks
+		for (int i_loop = 0;i_loop < MLO_N_GENERIC_LOOPS; ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
+		{
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
+
+// point to the start of the local buffer
+
+			sc_lcl_off = lcl_bot_off;
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			for (; sc < (i_loop + 2) * MLO_IN_EXTENT1
+				// 3x3 out of range
+				; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
+			{
+
+				for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+				{
+					int top_df_off = gbl_out_scan_off + k*MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
+					_FLOAT mask = 1;
+
+#if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
+					top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
+					mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
+#endif
+					// move in the last output scans
+					// 5x5 out of range
+#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) > 16
+					if (spn == MLO_N_SPANS_PER_SCAN - 1)
+					{
+						spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
+					}
+					else
+#endif
+					{
+						spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+							out_mask,
+#endif
+							top_dat, top_df);
+
+					}
+
+				}
+
+				// processing
+				Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
+
+				// move up output to reduce overfetch
+				moveOutputUp(top_dat);
+
+			}
+		}
+
+
+
+// bottom border block
+
+		for (int i_loop = 0; i_loop < (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS - 1); ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
+		{
+			barrier(CLK_LOCAL_MEM_FENCE);
+// read 1 scan line less
+// padding processing takes care of the bottom border.
+// TO DD: verify it with 5x5 
+            // do need sync with the real read: non intersecting areas.
+#define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
+
+            readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
+
+			// point to the start of the local buffer
+
+			sc_lcl_off = lcl_bot_off;
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1
+				// 3x3 out of range
+#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+				- 1
+#endif
+				; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
+			{
+
+				for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+				{
+					int top_df_off = gbl_out_scan_off + k*MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
+					_FLOAT mask = 1;
+
+#if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
+					top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
+					mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
+#endif
+					// move in the last output scans
+					// 5x5 out of range
+#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) > 16
+					if (spn == MLO_N_SPANS_PER_SCAN - 1)
+					{
+						spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
+					}
+					else
+#endif
+					{
+						spanReadingOutput3x3(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+							out_mask,
+#endif
+							top_dat, top_df);
+					}
+
+				}
+
+				// processing
+				Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
+
+				// move up output to reduce overfetch
+				moveOutputUp(top_dat);
+
+			}
+		}
+
+
+
+
+// handling 3x3 out of range
+#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
+		{
+			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+			{
+				int top_df_off = gbl_out_scan_off + k*MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
+				_FLOAT mask = 1;
+
+#if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
+				top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
+				mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
+#endif
+				// move in the last output scans
+			
+				if (spn == MLO_N_SPANS_PER_SCAN - 1 )
+				{
+					spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
+				}
+				else
+				{
+					int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + (MLO_FILTER_SIZE1 - 1) *MLO_IN_TILE0;
 					for (int i = 0; i < MLO_IN_TILE0; ++i)
 					{
-						top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+						top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
 					}
 				}
 
-
-
-// processing
-			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
-
-// move up output to reduce overfetch
-			for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
-			{
-				for (int i = 0; i < MLO_IN_TILE0; ++i)
-				{
-					top_dat[j*MLO_IN_TILE0 + i] = top_dat[(j+1)*MLO_IN_TILE0 + i];
-				}
 			}
 
+			// processing
+			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
+
+			// move up output to reduce overfetch
+			moveOutputUp(top_dat);
 
 		}
 
-// epilog 
-// handling padding
-// pad1
-		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
-		{
+		++sc; gbl_out_scan_off += MLO_OUT_STRIDE; sc_lcl_off += MLO_IN_LCL_WIDTH;
+#endif
 
+		// epilog 
+		// handling padding
+		// pad0/1
 
-			  // processing
-			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, MLO_FILTER_PAD1 - 1, pvt_accum, lcl_bot, top_dat);
-			  // move up output
-			for (int j = 0; j < MLO_FILTER_SIZE1 - 2; ++j)
-			{
-				for (int i = 0; i < MLO_IN_TILE0; ++i)
-				{
-					top_dat[j*MLO_IN_TILE0 + i] = top_dat[(j + 1)*MLO_IN_TILE0 + i];
-				}
-			}
-
-
-		} // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
-
-
-
-// pad0
-		for (; sc < MLO_OUT_HEIGHT; ++sc,sc_lcl_off += MLO_IN_LCL_WIDTH)
+		for (; sc < MLO_OUT_HEIGHT; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
 			// processing
-			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, MLO_FILTER_PAD1, pvt_accum, lcl_bot, top_dat);
+			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, (MLO_FILTER_PAD1 + 1 - (MLO_OUT_HEIGHT - sc)), pvt_accum, lcl_bot, top_dat);
+			// move up output to reduce overfetch
+			moveOutputUp(top_dat);
+
+
 		} // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 2; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
 
 
 	} // 	for (int b = 0;
 
 
-	barrier(CLK_LOCAL_MEM_FENCE);
 
 
-// final summation over each filter row
-	for (int l = 0; l < MLO_FILTER_SIZE1; ++l)
+
+	// final summation over all output maps and each filter row
+	// this coudl be done with log but it negligeble anyway
+	for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 	{
-		for (int n = 0; n < MLO_FILTER_SIZE0; ++n)
+		for(int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 		{
-			lcl[lcl_id * MLO_FILTER_SIZE0 + n] =
-				pvt_accum[l*MLO_FILTER_SIZE0 + n];
 
-		}
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-		if (spn==0)
-		{
-			for (int s = 0; s < MLO_N_SPANS_PER_SCAN - 1; ++s)
+			for (int l = 0; l < MLO_FILTER_SIZE1; ++l)
 			{
 
+				barrier(CLK_LOCAL_MEM_FENCE);
 				for (int n = 0; n < MLO_FILTER_SIZE0; ++n)
 				{
-					pvt_accum[l*MLO_FILTER_SIZE0 + n]
-						+= lcl[(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n];
+					int pvt_off = (k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + l*MLO_FILTER_SIZE0 + n;
+					lcl[lcl_id * MLO_FILTER_SIZE0 + n] =
+						pvt_accum[pvt_off];
+
 				}
 
+				barrier(CLK_LOCAL_MEM_FENCE);
+
+				if (spn == 0)
+				{
+					for (int s = 0; s < MLO_N_SPANS_PER_SCAN - 1; ++s)
+					{
+						
+						for (int n = 0; n < MLO_FILTER_SIZE0; ++n)
+						{
+							int pvt_off = (k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + l*MLO_FILTER_SIZE0 + n;
+							pvt_accum[pvt_off]
+								+= lcl[(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n];
+#if 0
+						if (/*fabs(pvt_accum[pvt_off] - 0.020364f) < 0.0001f*/ pvt_off == 12 && get_global_id(1) == 0 && get_global_id(2) == 0 && get_local_id(0) == 0 && k == 0/* && l == 2 && n == 2*/)
+						{
+							printf("G:s: %d %d %d  %f %f\n",
+								get_local_id(0),
+								(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n,
+								pvt_off,
+								pvt_accum[pvt_off],
+								lcl[(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n]
+							);
+						}
+#endif
+
+						}
+
+					}
+				}
+
+//				barrier(CLK_LOCAL_MEM_FENCE);
 			}
 		}
-
-		barrier(CLK_LOCAL_MEM_FENCE);
 	}
+
+
 
 // output 
 // inputs are outputs
 // TODO : for more than 1 input
-	int c = 0;
 
 	int wei_df_off = ((ib * MLO_N_OUTPUTS + o_idx + o) * (int)MLO_WEI_BATCH_STRIDE)
 		// this input channel
-		+ mul24((c_idx + c), (int)MLO_WEI_CHANNEL_STRIDE);
-	if (spn==0 && o_idx + o < MLO_N_OUTPUTS && o < MLO_OUT_STACKS)
+		+ mul24(c_idx, (int)MLO_WEI_CHANNEL_STRIDE);
+	for (int k = 0; k < MLO_N_LCL_OUT_MAPS && spn == 0 && o_idx + o + k*MLO_OUT_STACKS < MLO_N_OUTPUTS && o < MLO_OUT_STACKS; ++k)
 	{
-		for (int i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
+		for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 		{
-			weights_df[wei_df_off + i] = pvt_accum[i];
-		}
 
+			for (int i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
+			{
+				weights_df[wei_df_off + k*MLO_OUT_STACKS*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + i] = pvt_accum[(k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + i];
+#if 0
+				if (wei_df_off + k*MLO_OUT_STACKS*MLO_WEI_BATCH_STRIDE + i == 12)
+				{
+					printf("G:o: %d %d  %f\n",
+						get_local_id(0),
+						k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + i,
+						pvt_accum[k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + i]
+					);
+				}
+#endif
+			}
+
+		}
 	}
 
 
