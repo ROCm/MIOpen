@@ -57,6 +57,33 @@ void AddTensor(Handle&              handle,
 			const TensorDescriptor& cTensorDesc,
 			Data_t                  CTensor) {
 
+    if(ATensor == nullptr || CTensor == nullptr) {
+        MLOPEN_THROW(mlopenStatusBadParm);
+    }
+
+    auto a_lens = aTensorDesc.GetLengths();
+    auto c_lens = cTensorDesc.GetLengths();
+
+    if(aTensorDesc.GetSize() != cTensorDesc.GetSize()) {
+        MLOPEN_THROW("Number of Tensor dims do not match: " + std::to_string(aTensorDesc.GetSize()) + 
+                ", " + std::to_string(cTensorDesc.GetSize()));
+    }
+
+    for(auto i = 0; i < a_lens.size(); i++) {
+        if(a_lens[i] != 1 && a_lens[i] != c_lens[i]) {
+            MLOPEN_THROW("ATensor dim != 1 && ATensor dim != CTensor dim: " + i);
+        }
+    }
+
+    auto first_n = std::find_if(a_lens.rbegin(), a_lens.rend(), [](int i){ return i != 1; });
+    auto d = std::distance(a_lens.begin(), first_n.base());
+
+    int num_wg = *first_n;
+    int work_per_thread = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
+
+    int n, c, h, w;
+    std::tie(n, c, h, w) = tie4(aTensorDesc.GetLengths());
+
 }
 
 void TransformTensor(Handle& /* handle */,
