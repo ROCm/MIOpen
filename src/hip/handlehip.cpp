@@ -87,8 +87,8 @@ Handle::Handle ()
 : impl(new HandleImpl())
 {
     set_default_device();
-    this->impl->streams.push_back(impl->create_stream());
-    // this->impl->streams.push_back(HandleImpl::reference_stream(nullptr));
+    // this->impl->streams.push_back(impl->create_stream());
+    this->impl->streams.push_back(HandleImpl::reference_stream(nullptr));
 }
 
 Handle::~Handle() {}
