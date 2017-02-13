@@ -155,6 +155,27 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 }
 
 extern "C"
+mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
+		const void						*alpha,
+		const mlopenTensorDescriptor_t	aDesc,
+		const void						*A,
+		const void						*beta,
+		const mlopenTensorDescriptor_t	cDesc,
+		void							*C) {
+
+	return mlopen::try_([&] {
+		return AddTensor(mlopen::deref(handle), 
+				alpha,
+				mlopen::deref(aDesc),
+				DataCast(A),
+				beta,
+				mlopen::deref(cDesc),
+				DataCast(C));
+	});
+
+}
+
+extern "C"
 mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 		mlopenTensorOp_t				tensorOp,
 		const void						*alpha1,
