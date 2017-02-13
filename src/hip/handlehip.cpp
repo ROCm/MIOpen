@@ -19,6 +19,14 @@ hipDevice_t get_device(int id)
     return device;
 }
 
+int get_device_id() // Get random device
+{
+    int device;
+    auto status = hipGetDevice(&device);
+    if (status != hipSuccess) MLOPEN_THROW("No device");
+    return device;
+}
+
 void set_device(int id)
 {
     auto status = hipSetDevice(id);
@@ -196,7 +204,7 @@ void Handle::AccumKernelTime(float x)
 std::size_t Handle::GetLocalMemorySize()
 {
     int result;
-    auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMaxSharedMemoryPerBlock, get_device());
+    auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMaxSharedMemoryPerBlock, get_device_id());
     if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status);
 
     return result;
@@ -205,7 +213,7 @@ std::size_t Handle::GetLocalMemorySize()
 std::size_t Handle::GetMaxComputeUnits()
 {
     int result;
-    hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, get_device());
+    auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, get_device_id());
     if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status);
 
     return result;
