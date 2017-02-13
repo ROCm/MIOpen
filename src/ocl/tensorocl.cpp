@@ -48,6 +48,17 @@ void TensorDescriptor::ScaleTensor(Handle& /* handle */,
 }
 
 // Free Tensor Functions
+// 
+void AddTensor(Handle&              handle,
+			const void              * /*alpha*/,
+			const TensorDescriptor& aTensorDesc,
+			ConstData_t             ATensor,
+			const void              * /*beta*/,
+			const TensorDescriptor& cTensorDesc,
+			Data_t                  CTensor) {
+
+}
+
 void TransformTensor(Handle& /* handle */,
 			const void * /*alpha*/,
 			const TensorDescriptor& srcTensorDesc,

@@ -169,8 +169,6 @@ MLOPEN_EXPORT mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescripto
  * cannot be transformed in place). This function can be used
  * to convert a tensor with an unsupported format to a supported one.
  *
- * [MD]: Can this routine also suffice the requirements of AddTensor() routine? Both are doing the same thing -
- * dstValue = alpha*srcValue + beta*dstValue;
  */
 MLOPEN_EXPORT mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const void						*alpha,
@@ -180,15 +178,6 @@ MLOPEN_EXPORT mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	 yDesc,
 		void							*y);
 
-#if 0
-/* This function adds the scaled values of a bias tensor to another tensor.
- * Each dimension of the bias tensor A must match the corresponding dimension
- * of the destination tensor C or must be equal to 1. In the latter case, the
- * same value from the bias tensor for those dimensions will be used to blend
- * into the C tensor.
- *
- * [MD]: See above; may be just TransformTensor is sufficient
- */
 mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
 		const void						*alpha,
 		const mlopenTensorDescriptor_t	aDesc,
@@ -196,7 +185,6 @@ mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
 		const void						*beta,
 		const mlopenTensorDescriptor_t	 cDesc,
 		void							*C);
-#endif // AddTensor API
 
 /* This function implements the equation C = op ( alpha1[0] * A, alpha2[0] * B
  * ) + beta[0] * C, given tensors A, B, and C and scaling factors alpha1,
