@@ -52,7 +52,7 @@ mlopenPoolingMode_t PoolingDescriptor::GetMode()
 
 int PoolingDescriptor::GetSize() const
 {
-	assert(lens.size() == strides.size() && lens.size() == pads.size());
+    assert(lens.size() == strides.size() && lens.size() == pads.size());
 	return lens.size();
 }
 
@@ -73,9 +73,11 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 	std::tie(pad_h, pad_w) = mlopen::tie2(GetPads());
 	std::tie(window_h, window_w) = mlopen::tie2(GetLengths());
 
-	return std::make_tuple(input_n, input_c, 
-	static_cast<int>(ceil((input_h - window_h + 2*pad_h) / static_cast<float>(u)) + 1),
-	static_cast<int>(ceil((input_w - window_w + 2*pad_w) / static_cast<float>(v)) + 1));
+	return std::make_tuple(
+            input_n, input_c, 
+        	std::max(1, static_cast<int>(ceil((input_h - window_h + 2*pad_h) / static_cast<float>(u)) + 1)),
+        	std::max(1, static_cast<int>(ceil((input_w - window_w + 2*pad_w) / static_cast<float>(v)) + 1))
+    );
 
 }
 
