@@ -26,7 +26,7 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 	return result;
 }
 
-static void Assemble(std::string& source, const std::string& params)
+static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& params)
 {
 	const auto asm_path_env_p = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
 
@@ -36,7 +36,7 @@ static void Assemble(std::string& source, const std::string& params)
 		const_cast<char*>("assembler"),
 		const_cast<char*>("-target"),
 		const_cast<char*>("amdgcn--amdhsa"),
-		const_cast<char*>("-mcpu=fiji"), // FIXME set to actual architecture probably
+		const_cast<char*>("-mcpu=fiji"), // TODO Set to the "device name" reported by OpenCL-on-ROCm runtime.
 	});
 
 	std::istringstream iss(params);
@@ -107,7 +107,7 @@ static void Assemble(std::string& source, const std::string& params)
 	std::remove(outPath.c_str());
 }
 
-static cl_program CreateBinaryProgram(cl_context ctx, cl_device_id device, const char* char_source, size_t size)
+static cl_program CreateProgramWithBinary(cl_context ctx, cl_device_id device, const char* char_source, size_t size)
 {
 	cl_int status, binaryStatus;
 	auto result = clCreateProgramWithBinary(ctx,
@@ -155,7 +155,8 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 
 	if (is_asm)
 	{
-		Assemble(source, params);
+		// Overwrites source (asm text) by binary results of assembly:
+		ExperimentalAmdgcnAssemble(source, params);
 		is_binary = true;
 	}
 	else
@@ -168,10 +169,10 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 	auto size = source.size();
 
 	if (is_binary)
-		result = CreateBinaryProgram(ctx, device, char_source, size);
+		result = CreateProgramWithBinary(ctx, device, char_source, size);
 	else
 		result = CreateProgram(ctx, char_source, size);
-	
+
 	if (is_binary)
 		BuildProgram(result, device);
 	else
