@@ -337,7 +337,9 @@ struct verify_conv_filter
         auto out_p = verify(verify_forward_conv{}, input, weights, filter);
         for(auto& x:out_p.first) x = long(x) % 17; // Clamp big numbers
         verify(verify_backward_conv{}, out_p.first, weights, filter);
+#if MLOPEN_USE_TINYGEMM
         verify(verify_backward_weights_conv{}, input, out_p.first, filter);
+#endif
 
     }
 };
