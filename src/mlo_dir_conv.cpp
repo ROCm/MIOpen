@@ -1185,7 +1185,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
     int POW2_MAP_WK_SZ = (1 << mloLg2(MAP_WK_SZ));
 	// param
-	int n_out_stacks = (GRP_SZ/MAP_WK_SZ);
+	int n_out_stacks = (GRP_SZ / MAP_WK_SZ);
 
 	n_out_stacks = std::min(std::min(_n_inputs, _n_outputs), n_out_stacks);
 
@@ -1193,7 +1193,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	_n_out_pix_tiles = std::min(1, (_n_inputs + n_out_stacks - 1) / n_out_stacks);
 
 	// param
-	_n_in_data_tiles = std::min(2, (_n_outputs + n_out_stacks - 1) / n_out_stacks);
+	_n_in_data_tiles = std::min(4, (_n_outputs + n_out_stacks - 1) / n_out_stacks);
 	 // select output mapping
 	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
 	int total_in_maps = _n_in_data_tiles * n_out_stacks;
@@ -1734,7 +1734,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 {
 	int ret = 0;
 
-	if ((_kernel_size0>=_kernel_size1) && (_kernel_stride0 > 1 || _kernel_stride1 > 1) || (((_pad0 == 0 || _pad1 == 0)) && (_kernel_size0 != 1) || (_kernel_size1 != 1) ))
+	if ((_kernel_size0>=_kernel_size1) && (_kernel_stride0 > 1 || _kernel_stride1 > 1) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)) )
 	{
 		ret = mloConstruct2();
 		return(ret);
