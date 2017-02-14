@@ -113,9 +113,9 @@ static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c,
 */
 static inline void readData(int n, int gbl_data_off, int gbl_data_stride, int map_stride, int map_base,  int map_limit, const __global _FLOAT * g_data, __private _FLOAT * p_data, bool last_pixel)
 {
-	for (int j = 0; j < n && j*map_stride + map_base < map_limit; ++j)
+	for (int j = 0; j < n; ++j)
 	{
-
+		int gbl_data_off0 = (j*map_stride + map_base < map_limit) ? gbl_data_off + j*gbl_data_stride : 0;
 
 #if MLO_N_PIXS_OFF > 0
 
@@ -124,7 +124,7 @@ static inline void readData(int n, int gbl_data_off, int gbl_data_stride, int ma
 			for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
 			{
 
-				p_data[j*MLO_READ_UNIT + i] = g_data[gbl_data_off + j*gbl_data_stride + i];
+				p_data[j*MLO_READ_UNIT + i] = g_data[gbl_data_off0 + i];
 			}
 
 			for (int i = MLO_IN_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
@@ -139,7 +139,7 @@ static inline void readData(int n, int gbl_data_off, int gbl_data_stride, int ma
 //			*(MLO_READ_TYPE*)&p_data[j*MLO_READ_UNIT] = *(__global MLO_READ_TYPE*)&g_data[gbl_data_off + j*gbl_data_stride*MLO_OUT_STACKS];
 			for (int i = 0; i < MLO_READ_UNIT; ++i)
 			{
-				p_data[j*MLO_READ_UNIT + i] = g_data[gbl_data_off + j*gbl_data_stride*MLO_OUT_STACKS + i];
+				p_data[j*MLO_READ_UNIT + i] = g_data[gbl_data_off0 + i];
 			}
 		}
 
@@ -277,11 +277,11 @@ __kernel void MLOpenCvBwdWrW(
 		readData(MLO_N_LCL_IN_MAPS, gbl_in_scan_off, MLO_IN_CHANNEL_STRIDE, MLO_OUT_STACKS, (m_idx + c_idx), MLO_N_INPUTS, bot, bot_dat, last_pixel);
 
 		// read output maps
-//		readData(MLO_N_LCL_OUT_MAPS, gbl_out_scan_off, MLO_OUT_CHANNEL_STRIDE, top_df, top_dat, last_pixel);
+		readData(MLO_N_LCL_OUT_MAPS, gbl_out_scan_off, MLO_OUT_CHANNEL_STRIDE, MLO_OUT_STACKS, (m_idx + k_idx), MLO_N_OUTPUTS, top_df, top_dat, last_pixel);
 
 		for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 		{
-#if 0
+#if 1
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 	// move 1 set of output maps into LDS
@@ -305,10 +305,10 @@ __kernel void MLOpenCvBwdWrW(
 			for (int n = 0; n < MLO_OUT_STACKS; ++n)
 			{
 				__private _FLOAT pvt_top[MLO_READ_UNIT];
-				int n0 = ((m_idx + n) < MLO_OUT_STACKS) ? (n) : (n - MLO_OUT_STACKS);
+		//		int n0 = ((m_idx + n) < MLO_OUT_STACKS) ? (n) : (n - MLO_OUT_STACKS);
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					pvt_top[i] = top_df[gbl_out_scan_off + (k*MLO_OUT_STACKS + n0)*MLO_IN_CHANNEL_STRIDE + i]; //proc_mem[(n*MLO_MAP_WK_SZ + p4)*MLO_READ_UNIT + i];
+					pvt_top[i] = proc_mem[(n*MLO_MAP_WK_SZ + p4)*MLO_READ_UNIT + i]; //top_df[gbl_out_scan_off + (k*MLO_OUT_STACKS + n0)*MLO_IN_CHANNEL_STRIDE + i]; //proc_mem[(n*MLO_MAP_WK_SZ + p4)*MLO_READ_UNIT + i];
 				}
 
 				for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
@@ -318,17 +318,15 @@ __kernel void MLOpenCvBwdWrW(
 						pvt_accum[(k*MLO_OUT_STACKS + n)*MLO_N_LCL_IN_MAPS + c]
 							+= bot_dat[c*MLO_READ_UNIT + i] * pvt_top[i];
 #if 0
-						int k0 = ((m_idx + n) < MLO_OUT_STACKS) ? (m_idx + n) : (m_idx + n) - MLO_OUT_STACKS;
+						int k0 = n; // ((m_idx + n) < MLO_OUT_STACKS) ? (m_idx + n) : (m_idx + n) - MLO_OUT_STACKS;
 
-						if (k_idx + k*MLO_OUT_STACKS + k0 == 18 && c_idx + c * MLO_OUT_STACKS + m_idx == 14)
+						if (k_idx + k*MLO_OUT_STACKS + k0 == 1 && c_idx + c * MLO_OUT_STACKS + m_idx == 15)
 						{
-							printf("K:s: %d %d %d %d %d %d %d %d %d %d %f %f %f %f\n",
+							printf("K:s: %d %d %d %d %d %d %d %d %f %f %f %f\n",
 								MLO_OUT_STACKS,
 								n,
-								n0,
 								m_idx,
 								gbl_out_scan_off,
-								gbl_out_scan_off + (k*MLO_OUT_STACKS + n0)*MLO_IN_CHANNEL_STRIDE + i,
 								get_group_id(1),
 								get_local_id(0),
 								k,
@@ -352,9 +350,10 @@ __kernel void MLOpenCvBwdWrW(
 	}
 
 
-#if 0
+
 	barrier(CLK_LOCAL_MEM_FENCE);
 
+#if 0
 	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
 	{
 		red_mem[i] = 0;
@@ -402,7 +401,7 @@ __kernel void MLOpenCvBwdWrW(
 
 	for (int n = 0; n < MLO_OUT_STACKS && p4 == 0 && m_idx < MLO_OUT_STACKS; ++n)
 	{
-		int k0 = ((m_idx + n) < MLO_OUT_STACKS) ? (m_idx + n) : (m_idx + n - MLO_OUT_STACKS);
+		int k0 = n; // ((m_idx + n) < MLO_OUT_STACKS) ? (m_idx + n) : (m_idx + n - MLO_OUT_STACKS);
 		for (int k = 0; k < MLO_N_LCL_OUT_MAPS && k_idx + k*MLO_OUT_STACKS + k0 < MLO_N_OUTPUTS; ++k)
 		{
 			for (int c = 0; c < MLO_N_LCL_IN_MAPS && c_idx + m_idx + c*MLO_OUT_STACKS < MLO_N_INPUTS; ++c)
