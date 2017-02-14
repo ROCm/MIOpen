@@ -160,8 +160,10 @@ int ConvDriver<T>::GetandSetData() {
 	std::vector<int> out_len = GetOutputTensorLengths();
 	SetTensor4d(outputTensor, out_len);
 
-    std::vector<int> b_len {1, inflags.GetValueInt("out_channels"), 1, 1};
-    SetTensor4d(biasTensor, b_len); 
+    if(inflags.GetValueInt("bias") == 1) {
+        std::vector<int> b_len {1, inflags.GetValueInt("out_channels"), 1, 1};
+        SetTensor4d(biasTensor, b_len); 
+    }
 	return(0);
 }
 
@@ -189,6 +191,7 @@ int ConvDriver<T>::AddCmdLineArgs() {
     inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
     inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
     inflags.AddInputFlag("weights", 'e', "", "Input weights filename (Default=)", "string");
+    inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
 
 	return 0;
 }
@@ -242,7 +245,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t in_sz = GetTensorSize(inputTensor); 
 	size_t wei_sz = GetTensorSize(weightTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
-    size_t b_sz = GetTensorSize(biasTensor);
 	size_t workSpaceSize = 0; 
 	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize);
 
@@ -256,7 +258,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
-	b_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, b_sz, sizeof(float)));
 	workspace_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, workSpaceSize/sizeof(T), sizeof(T)));
 	
 	in = std::vector<T>(in_sz);
@@ -265,7 +266,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	dwei = std::vector<T>(wei_sz, 0);
 	dout = std::vector<T>(out_sz, 0);
 	out = std::vector<T>(out_sz, 0);
-	b = std::vector<T>(b_sz);
 	workspace = std::vector<T>(workSpaceSize/sizeof(T), 0);
 	outhost = std::vector<T>(out_sz, 0);
 	inhost = std::vector<T>(in_sz, 0);
@@ -296,8 +296,16 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 		dout[i] = (T)(scale*(double)rand() * (1.0 / RAND_MAX));
 	}
 
-    for(int i = 0; i < b_sz; i++) {
-        b[i] = i%8;
+    if (inflags.GetValueInt("bias") != 0){
+        size_t b_sz = GetTensorSize(biasTensor);
+        b_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, b_sz, sizeof(float)));
+	    b = std::vector<T>(b_sz);
+
+        for(int i = 0; i < b_sz; i++) {
+            b[i] = i%8;
+        }
+
+	    b_dev->ToGPU(q, b.data());
     }
 
     bool weiRead = false;
@@ -324,7 +332,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	status |= dwei_dev->ToGPU(q, dwei.data());
 	status |= dout_dev->ToGPU(q, dout.data());
 	status |= out_dev->ToGPU(q, out.data());
-	status |= b_dev->ToGPU(q, b.data());
 	status |= workspace_dev->ToGPU(q, workspace.data());
 	
 	if(status != CL_SUCCESS) 
@@ -382,14 +389,6 @@ int ConvDriver<T>::RunForwardGPU() {
 			0);
 	}
 
-    mlopenConvolutionForwardBias(GetHandle(),
-            &alpha,
-            biasTensor,
-            b_dev->GetMem(),
-            &beta,
-            outputTensor,
-            out_dev->GetMem());
-
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
@@ -401,6 +400,16 @@ int ConvDriver<T>::RunForwardGPU() {
 		printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
 
 	}
+
+    if(inflags.GetValueInt("bias") != 0) {
+        mlopenConvolutionForwardBias(GetHandle(),
+                &alpha,
+                biasTensor,
+                b_dev->GetMem(),
+                &beta,
+                outputTensor,
+                out_dev->GetMem());
+    }
 
 	out_dev->FromGPU(GetStream(), out.data());
 
@@ -458,7 +467,7 @@ int ConvDriver<T>::RunForwardCPU() {
 							}
 						}
 					}
-					acc = b[w] != 0 ? acc+b[w] : acc;
+					acc = inflags.GetValueInt("bias") != 0 ? acc+b[w] : acc;
 					outhost[o*out_nstride + w*out_cstride + i*out_hstride + j] = acc;
 				}
 			}

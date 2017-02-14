@@ -49,7 +49,7 @@ void TensorDescriptor::ScaleTensor(Handle& /* handle */,
 
 // Free Tensor Functions
 // 
-void AddTensor(Handle&              handle,
+mlopenStatus_t AddTensor(Handle&              handle,
 			const void              * /*alpha*/,
 			const TensorDescriptor& aTensorDesc,
 			ConstData_t             ATensor,
@@ -78,11 +78,35 @@ void AddTensor(Handle&              handle,
     auto d = std::distance(a_lens.begin(), first_not_one.base());
 
     int num_wg = *first_not_one;
-    int work_per_thread = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
+    int work_per_wg = std::accumulate(a_lens.begin(), a_lens.begin() + (d-1), 1, std::multiplies<int>()) *
+                    std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
 
-    int n, c, h, w;
-    std::tie(n, c, h, w) = tie4(aTensorDesc.GetLengths());
+    int n_not_ones = std::count_if(a_lens.begin(), a_lens.end(), [](int i){ return i != 1; });
 
+    int a_n, a_c, a_h, a_w;
+    std::tie(a_n, a_c, a_h, a_w) = tie4(aTensorDesc.GetLengths());
+
+    int c_n, c_c, c_h, c_w;
+    std::tie(c_n, c_c, c_h, c_w) = tie4(cTensorDesc.GetLengths());
+
+    std::string program_name = "MLOpenTensorKernels.cl";
+    std::string kernel_name = "AddTensor";
+
+	const std::vector<size_t> vld(1, 256);
+	const std::vector<size_t> vgd(1, num_wg*256);
+
+    std::string parms = " -DFIRST_N=" + std::to_string(d-1)
+                    + " -DN_NOT_ONES=" + std::to_string(n_not_ones);
+
+    handle.GetKernel(kernel_name,
+            "placeholder",
+            program_name,
+            kernel_name,
+            vld,
+            vgd,
+            parms) (ATensor, a_n, a_c, a_h, a_w, CTensor, c_n, c_c, c_h, c_w, n_not_ones, work_per_wg);
+
+    return mlopenStatusSuccess;
 }
 
 void TransformTensor(Handle& /* handle */,
@@ -156,7 +180,7 @@ void OpTensor(Handle& /* handle */,
 
 }
 
-void CopyTensor(Handle &handle, 
+mlopenStatus_t CopyTensor(Handle &handle, 
 		const TensorDescriptor &srcDesc,
 		ConstData_t src,
 		const TensorDescriptor &destDesc,
@@ -168,6 +192,8 @@ void CopyTensor(Handle &handle,
 	size_t srcSize = srcDesc.GetElementSize();
 
 	handle.Copy(src, dest, srcSize*sizeof(srcDesc.GetType()));
+
+    return mlopenStatusSuccess;
 }
 
 } // namespace mlopen
