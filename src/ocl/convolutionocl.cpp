@@ -105,11 +105,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		int *return_addr = nullptr;
 		int N, C, H, W, K, n_groups;
 		construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-		kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+		// kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
 	}
 	else
 	{
-		kernel(x, w, y, padding_val);
+		// kernel(x, w, y, padding_val);
 	}
 	
 	// FIXME: MD temporary hack for hipcaffe
