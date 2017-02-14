@@ -50,6 +50,7 @@ struct tmp_dir
 
 void WriteFile(const std::string& content, const std::string& name)
 {
+    // std::cerr << "Write file: " << name << std::endl;
     HIPOCProgram::FilePtr f{std::fopen(name.c_str(), "w")};
     if (std::fwrite(content.c_str(), 1, content.size(), f.get()) != content.size()) 
         MLOPEN_THROW("Failed to write to src file");
@@ -57,15 +58,16 @@ void WriteFile(const std::string& content, const std::string& name)
 
 hipModulePtr CreateModule(const std::string& program_name, std::string params, bool is_kernel_str)
 {
-    tmp_dir dir{program_name};
+    std::string filename = is_kernel_str ? "tinygemm" : program_name;
+    tmp_dir dir{filename};
 
     std::string src = is_kernel_str ? program_name : GetKernelSrc(program_name);
 
-    WriteFile(src, dir.path(program_name));
+    WriteFile(src, dir.path(filename));
         
-    std::string bin_file = dir.path(program_name) + ".bin";
-    std::string hsaco_file = dir.path(program_name) + ".hsaco";
-    std::string obj_file = dir.path(program_name) + ".obj";
+    std::string bin_file = dir.path(filename) + ".bin";
+    std::string hsaco_file = dir.path(filename) + ".hsaco";
+    std::string obj_file = dir.path(filename) + ".obj";
 
 #if 1
     // Adding the same flags / defines to aoc2 that the OCL runtime adds for calls
@@ -101,7 +103,7 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
     dir.execute(HIP_OC_COMPILER, 
         "-march=hsail64 -mdevice=Fiji -save-temps=dump -nobin " +  
         params + " " +
-        program_name);
+        filename);
     dir.execute(HIP_OC_FINALIZER,
         "-target=8:0:3 -hsail dump_0_Fiji.hsail -output=" + hsaco_file
     );
