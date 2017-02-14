@@ -61,6 +61,7 @@ class ConvDriver : public Driver
 		mlopenCreateTensorDescriptor(&inputTensor);
 		mlopenCreateTensorDescriptor(&weightTensor);
 		mlopenCreateTensorDescriptor(&outputTensor);
+		mlopenCreateTensorDescriptor(&biasTensor);
 
 		mlopenCreateConvolutionDescriptor(&convDesc);
 	}
@@ -93,6 +94,7 @@ class ConvDriver : public Driver
 	int VerifyForward();
 	~ConvDriver() {
 
+		mlopenDestroyTensorDescriptor(biasTensor);
 		mlopenDestroyTensorDescriptor(outputTensor);
 		mlopenDestroyTensorDescriptor(weightTensor);
 		mlopenDestroyTensorDescriptor(inputTensor);
@@ -107,6 +109,7 @@ class ConvDriver : public Driver
 	mlopenTensorDescriptor_t inputTensor;
 	mlopenTensorDescriptor_t weightTensor;
 	mlopenTensorDescriptor_t outputTensor;
+	mlopenTensorDescriptor_t biasTensor;
 
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> din_dev;
@@ -115,6 +118,7 @@ class ConvDriver : public Driver
 	std::unique_ptr<GPUMem> out_dev;
 	std::unique_ptr<GPUMem> dout_dev;
 	std::unique_ptr<GPUMem> workspace_dev;
+	std::unique_ptr<GPUMem> b_dev;
 
 	std::vector<T> in;
 	std::vector<T> din;
@@ -128,6 +132,7 @@ class ConvDriver : public Driver
 	std::vector<T> workspace_host;
 	std::vector<T> din_host;
 	std::vector<T> dwei_host;
+	std::vector<T> b;
 
 	mlopenConvolutionDescriptor_t convDesc;
 };
@@ -154,6 +159,9 @@ int ConvDriver<T>::GetandSetData() {
 
 	std::vector<int> out_len = GetOutputTensorLengths();
 	SetTensor4d(outputTensor, out_len);
+
+    std::vector<int> b_len {1, inflags.GetValueInt("out_channels"), 1, 1};
+    SetTensor4d(biasTensor, b_len); 
 	return(0);
 }
 
@@ -234,6 +242,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t in_sz = GetTensorSize(inputTensor); 
 	size_t wei_sz = GetTensorSize(weightTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
+    size_t b_sz = GetTensorSize(biasTensor);
 	size_t workSpaceSize = 0; 
 	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize);
 
@@ -247,6 +256,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
+	b_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, b_sz, sizeof(float)));
 	workspace_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, workSpaceSize/sizeof(T), sizeof(T)));
 	
 	in = std::vector<T>(in_sz);
@@ -255,6 +265,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	dwei = std::vector<T>(wei_sz, 0);
 	dout = std::vector<T>(out_sz, 0);
 	out = std::vector<T>(out_sz, 0);
+	b = std::vector<T>(b_sz);
 	workspace = std::vector<T>(workSpaceSize/sizeof(T), 0);
 	outhost = std::vector<T>(out_sz, 0);
 	inhost = std::vector<T>(in_sz, 0);
@@ -285,6 +296,10 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 		dout[i] = (T)(scale*(double)rand() * (1.0 / RAND_MAX));
 	}
 
+    for(int i = 0; i < b_sz; i++) {
+        b[i] = i%8;
+    }
+
     bool weiRead = false;
     if(!weiFileName.empty()) {
         weiRead = readBufferFromFile(wei.data(), wei_sz, weiFileName.c_str());
@@ -309,6 +324,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	status |= dwei_dev->ToGPU(q, dwei.data());
 	status |= dout_dev->ToGPU(q, dout.data());
 	status |= out_dev->ToGPU(q, out.data());
+	status |= b_dev->ToGPU(q, b.data());
 	status |= workspace_dev->ToGPU(q, workspace.data());
 	
 	if(status != CL_SUCCESS) 
@@ -366,6 +382,14 @@ int ConvDriver<T>::RunForwardGPU() {
 			0);
 	}
 
+    mlopenConvolutionForwardBias(GetHandle(),
+            &alpha,
+            biasTensor,
+            b_dev->GetMem(),
+            &beta,
+            outputTensor,
+            out_dev->GetMem());
+
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
@@ -413,8 +437,6 @@ int ConvDriver<T>::RunForwardCPU() {
 	mlopenConvolutionMode_t mode;
 	mlopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
 
-	int bias = 0;
-
 	for(int o = 0; o < out_n; o++) { // mini-batch size
 		for(int w = 0; w < out_c; w++) { // out_channels (num filters)
 			for(int i = 0; i < out_h; i++) { // output_height (from getforwardoutputdim())
@@ -436,7 +458,7 @@ int ConvDriver<T>::RunForwardCPU() {
 							}
 						}
 					}
-					acc = bias != 0 ? acc+bias : acc;
+					acc = b[w] != 0 ? acc+b[w] : acc;
 					outhost[o*out_nstride + w*out_cstride + i*out_hstride + j] = acc;
 				}
 			}

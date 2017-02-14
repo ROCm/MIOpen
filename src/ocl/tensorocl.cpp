@@ -64,9 +64,8 @@ void AddTensor(Handle&              handle,
     auto a_lens = aTensorDesc.GetLengths();
     auto c_lens = cTensorDesc.GetLengths();
 
-    if(aTensorDesc.GetSize() != cTensorDesc.GetSize()) {
-        MLOPEN_THROW("Number of Tensor dims do not match: " + std::to_string(aTensorDesc.GetSize()) + 
-                ", " + std::to_string(cTensorDesc.GetSize()));
+    if(a_lens.size() != c_lens.size()) {
+        MLOPEN_THROW("Number of Tensor dims do not match: " + std::to_string(a_lens.size()) + ", " + std::to_string(c_lens.size()));
     }
 
     for(auto i = 0; i < a_lens.size(); i++) {
@@ -75,10 +74,10 @@ void AddTensor(Handle&              handle,
         }
     }
 
-    auto first_n = std::find_if(a_lens.rbegin(), a_lens.rend(), [](int i){ return i != 1; });
-    auto d = std::distance(a_lens.begin(), first_n.base());
+    auto first_not_one = std::find_if(a_lens.rbegin(), a_lens.rend(), [](int i){ return i != 1; });
+    auto d = std::distance(a_lens.begin(), first_not_one.base());
 
-    int num_wg = *first_n;
+    int num_wg = *first_not_one;
     int work_per_thread = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
 
     int n, c, h, w;

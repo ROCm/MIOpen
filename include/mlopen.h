@@ -178,7 +178,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	 yDesc,
 		void							*y);
 
-mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
+MLOPEN_EXPORT mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
 		const void						*alpha,
 		const mlopenTensorDescriptor_t	aDesc,
 		const void						*A,
@@ -366,6 +366,14 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 		void								*y,
 		void								*workSpace,
 		size_t								workSpaceSize);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionForwardBias(mlopenHandle_t handle,
+		const void						*alpha,
+		const mlopenTensorDescriptor_t	bDesc,
+		const void						*b,
+		const void						*beta,
+		const mlopenTensorDescriptor_t	yDesc,
+		void							*y);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t		dyDesc,
