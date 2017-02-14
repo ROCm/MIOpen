@@ -9,7 +9,7 @@
 
 namespace mlopen {
 
-void AddTensor(Handle&          handle,
+mlopenStatus_t AddTensor(Handle&          handle,
         const void              *alpha,
         const TensorDescriptor& aTensorDesc,
         ConstData_t             ATensor,
@@ -37,7 +37,7 @@ void OpTensor(Handle& handle,
         const TensorDescriptor& destTensorDesc,
         Data_t                  destTensor);
 
-void CopyTensor(Handle          &handle,
+mlopenStatus_t CopyTensor(Handle          &handle,
         const TensorDescriptor  &srcDesc,
         ConstData_t             src,
         const TensorDescriptor  &destDesc,
