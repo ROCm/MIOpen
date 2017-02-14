@@ -9,6 +9,9 @@
 #include <unistd.h>
 #endif
 
+#include <chrono>
+#include <thread>
+
 namespace mlopen {
 
 hipDevice_t get_device(int id)
@@ -112,8 +115,13 @@ ManageDataPtr Handle::Create(int sz)
 {
     this->Finish();
     void * result;
+    // int tries = 10;
     auto status = hipMalloc(&result, sz);
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer " + std::to_string(sz) + ": ");
+    if (status != hipSuccess)
+    {
+        status = hipHostMalloc(&result, sz);
+        if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer " + std::to_string(sz) + ": ");
+    }
     return ManageDataPtr{result};
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
