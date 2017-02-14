@@ -113,7 +113,7 @@ ManageDataPtr Handle::Create(int sz)
     this->Finish();
     void * result;
     auto status = hipMalloc(&result, sz);
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer: ");
+    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer " + std::to_string(sz) + ": ");
     return ManageDataPtr{result};
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
