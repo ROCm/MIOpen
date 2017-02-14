@@ -30,6 +30,9 @@ void GemmGeometry::FindSolution(float time,
     std::string kernel_name = soln.main_kernel_function_name;
     std::string network_config = tgg.get_networkconfig_string();
 
+    // std::cerr << "tinygemm get_networkconfig_string: " << network_config << std::endl;
+    // std::cerr << "tinygemm get_hyper_param_string: " << soln.get_hyper_param_string() << std::endl;
+
     auto main_kernel_worksize_params =  soln.get_main_kernel_worksize_params(dims[0], dims[1]);
 
     size_t local_work_size = main_kernel_worksize_params.at("local_work_size");
