@@ -88,7 +88,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     const std::vector<size_t> & vld = construct_params.getLocalWkSize();
     const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	float padding_val = 0;
+	// float padding_val = 0;
 
 	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
 		network_config,
@@ -98,19 +98,19 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 		vgd,
 		parms);
 
-	if (kernel.GetName() == "sp3AsmConv3x3F")
-	{
-		int flags = 0;
-		int reserved = 0;
-		int *return_addr = nullptr;
-		int N, C, H, W, K, n_groups;
-		construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-		// kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
-	}
-	else
-	{
-		// kernel(x, w, y, padding_val);
-	}
+	// if (kernel.GetName() == "sp3AsmConv3x3F")
+	// {
+	// 	int flags = 0;
+	// 	int reserved = 0;
+	// 	int *return_addr = nullptr;
+	// 	int N, C, H, W, K, n_groups;
+	// 	construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+	// 	kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+	// }
+	// else
+	// {
+	// 	kernel(x, w, y, padding_val);
+	// }
 	
 	// FIXME: MD temporary hack for hipcaffe
 	// should be ideally wrapped under mlopen::deref to check 
