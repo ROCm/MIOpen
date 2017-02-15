@@ -160,7 +160,7 @@ int ConvDriver<T>::GetandSetData() {
 	std::vector<int> out_len = GetOutputTensorLengths();
 	SetTensor4d(outputTensor, out_len);
 
-    if(inflags.GetValueInt("bias") == 1) {
+    if(inflags.GetValueInt("bias") != 0) {
         std::vector<int> b_len {1, inflags.GetValueInt("out_channels"), 1, 1};
         SetTensor4d(biasTensor, b_len); 
     }
