@@ -28,36 +28,51 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 
 static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& params)
 {
-	const auto asm_path_env_p = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
-
-	std::vector<char*> args({
-		asm_path_env_p,
-		const_cast<char*>("-x"),
-		const_cast<char*>("assembler"),
-		const_cast<char*>("-target"),
-		const_cast<char*>("amdgcn--amdhsa"),
-		const_cast<char*>("-mcpu=fiji"), // TODO Set to the "device name" reported by OpenCL-on-ROCm runtime.
+	std::string exec_path(std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH")); // asciz
+	{	// shut clang-analyzer-alpha.security.taint.TaintPropagation
+		static const char bad[] = "!#$*;<>?@\\^`{|}";
+		for (char * c = &exec_path[0]; c < (&exec_path[0] + exec_path.length()) ; ++c) {
+			if (std::iscntrl(*c)) {
+				*c = '_';
+				continue;
+			}
+			for (const char * b = &bad[0]; b < (&bad[0] + sizeof(bad) - 1); ++b) {
+				if (*b == *c) {
+					*c = '_';
+					break;
+				}
+			}
+		}
+	}
+	std::vector<std::string> opt_storage ({
+		"-x",
+		"assembler",
+		"-target",
+		"amdgcn--amdhsa",
+		"-mcpu=fiji",  // TODO Set to the "device name" reported by OpenCL-on-ROCm runtime.
 	});
 
-	std::istringstream iss(params);
-	std::vector<std::string> paramsVector;
-	std::string outPath("MLOpen_CLang_Out_XXXXXX");
-	
-	close(mkstemp(const_cast<char*>(outPath.c_str())));
-
-	do
 	{
+		std::istringstream iss(params);
 		std::string param;
-		iss >> param;
-		paramsVector.push_back(param);
-		args.push_back(const_cast<char*>(paramsVector.rbegin()->c_str()));
-	} while (iss);
+		while (iss >> param) {
+			opt_storage.push_back(param);
+		};
+	}
+	opt_storage.push_back("-");
+	opt_storage.push_back("-o");
 
-	args.push_back(const_cast<char*>("-"));
-	args.push_back(const_cast<char*>("-o"));
-	args.push_back(const_cast<char*>(outPath.c_str()));
+	std::vector<char*> args;
+	args.push_back(&exec_path[0]);
+	for (auto& opt : opt_storage) {
+		args.push_back(&opt[0]);
+	}
+	
+	char outfile[] ="amdgcn-asm-out-XXXXXX";
+	close(mkstemp(&outfile[0]));
+	args.push_back(outfile);
 	args.push_back(nullptr);
-
+	
 	static const int read_fd = 0;
 	static const int write_fd = 1;
 	static const int pipe_sides = 2;
@@ -76,7 +91,7 @@ static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& p
 		close(childStdin[read_fd]);
 		close(childStdin[write_fd]);
 
-		execv(asm_path_env_p, args.data());
+		execv(exec_path.c_str(), args.data());
 		_exit(EXIT_FAILURE);
 	}
 	else
@@ -97,14 +112,14 @@ static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& p
 
 	if (status != 0) { MLOPEN_THROW("Error assembling kernel source, clang error code " + std::to_string(status)); }
 
-	std::ifstream file(outPath, std::ios::binary | std::ios::ate);
+	std::ifstream file(outfile, std::ios::binary | std::ios::ate);
 	const auto size = file.tellg();
 
 	source.resize(size, ' ');
 	file.seekg(std::ios::beg);
-	file.rdbuf()->sgetn(const_cast<char*>(source.c_str()), size);
+	file.rdbuf()->sgetn(&source[0], size);
 	file.close();
-	std::remove(outPath.c_str());
+	std::remove(outfile);
 }
 
 static cl_program CreateProgramWithBinary(cl_context ctx, cl_device_id device, const char* char_source, size_t size)
