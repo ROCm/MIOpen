@@ -220,6 +220,7 @@ bool mloSearchConfigDB(
  **
  ************************************************************************************************************************/
 
+#if MLOPEN_BACKEND_OPENCL
 /*
  * Returns false if a feature-controlling environment variable is defined
  * and set to something which disables a feature.
@@ -234,6 +235,7 @@ static bool IsEnvvarValueDisabled(const char* name)
 		|| std::strcmp(value_env_p, "no") == 0
 		|| std::strcmp(value_env_p, "false") == 0 );
 }
+#endif
 
 /*
    construction has been split into 2
