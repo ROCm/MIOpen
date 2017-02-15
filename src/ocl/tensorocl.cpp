@@ -77,11 +77,31 @@ mlopenStatus_t AddTensor(Handle&              handle,
     auto first_not_one = std::find_if(a_lens.rbegin(), a_lens.rend(), [](int i){ return i != 1; });
     auto d = std::distance(a_lens.begin(), first_not_one.base());
 
-    int num_wg = std::accumulate(a_lens.begin(), a_lens.begin() + d, 1, std::multiplies<int>());
+    int num_wg = *first_not_one;
     int work_per_wg = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
 
-    int c_n, c_c, c_h, c_w;
-    std::tie(c_n, c_c, c_h, c_w) = tie4(cTensorDesc.GetLengths());
+    int c_c, c_h, c_w;
+    std::tie(std::ignore, c_c, c_h, c_w) = tie4(cTensorDesc.GetLengths());
+
+    int a_c, a_h, a_w;
+    std::tie(std::ignore, a_c, a_h, a_w) = tie4(aTensorDesc.GetLengths());
+
+    int c_nstride, c_cstride;
+    std::tie(c_nstride, c_cstride, std::ignore, std::ignore) = tie4(cTensorDesc.GetStrides());
+    
+    int a_nstride, a_cstride;
+    std::tie(a_nstride, a_cstride, std::ignore, std::ignore) = tie4(aTensorDesc.GetStrides());
+
+    unsigned int bitmap = 0;
+    bitmap |= (1 << (a_lens.size() - d)); // update bitmap for first_not_one
+    for(int i = (d-2); i>= 0; i--) {
+        if(a_lens[i] != 1) {
+            bitmap |= (1 << (a_lens.size()-(i+1))); // works only 4d tensors in NCHW
+            num_wg *= a_lens[i];
+        }
+        else
+            work_per_wg *= c_lens[i];
+    }
 
     std::string program_name = "MLOpenTensorKernels.cl";
     std::string kernel_name = "AddTensor";
@@ -89,15 +109,13 @@ mlopenStatus_t AddTensor(Handle&              handle,
 	const std::vector<size_t> vld(1, 256);
 	const std::vector<size_t> vgd(1, num_wg*256);
 
-    std::string parms = " -DFIRST_N=" + std::to_string(d-1);
-
     handle.GetKernel(kernel_name,
             "placeholder",
             program_name,
             kernel_name,
             vld,
             vgd,
-            parms) (ATensor, CTensor, c_n, c_c, c_h, c_w, work_per_wg);
+            "") (ATensor, a_c, a_h, a_w, a_nstride, a_cstride, CTensor, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg);
 
     return mlopenStatusSuccess;
 }
