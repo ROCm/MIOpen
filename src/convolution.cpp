@@ -75,7 +75,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 // weights_c = input_c
 // weights_h = 2*pad_h + input_h - u*(output_h - 1)
 // weights_w = 2*pad_w + input_w - v*(output_w - 1)
-std::tuple<int, int, int, int> ConvolutionDescriptor::GetBacwardsWeightsDim(
+std::tuple<int, int, int, int> ConvolutionDescriptor::GetBackwardsWeightsDim(
 	const TensorDescriptor& inputTensorDesc, 
 	const TensorDescriptor& outputTensorDesc) 
 const
@@ -179,7 +179,7 @@ TensorDescriptor ConvolutionDescriptor::GetBackwardWeightsTensor(
 	const TensorDescriptor& inputTensorDesc, 
 	const TensorDescriptor& outputTensorDesc) const
 {
-	auto dims = this->GetBacwardsWeightsDim(inputTensorDesc, outputTensorDesc);
+	auto dims = this->GetBackwardsWeightsDim(inputTensorDesc, outputTensorDesc);
 	return TensorDescriptor(outputTensorDesc.GetType(), {
 		std::get<0>(dims),
 		std::get<1>(dims),

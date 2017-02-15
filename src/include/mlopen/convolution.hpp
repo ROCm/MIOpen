@@ -18,7 +18,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& inputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 
-	std::tuple<int, int, int, int> GetBacwardsWeightsDim(const TensorDescriptor& inputTensorDesc, 
+	std::tuple<int, int, int, int> GetBackwardsWeightsDim(const TensorDescriptor& inputTensorDesc, 
 										const TensorDescriptor& outputTensorDesc) const;
 	TensorDescriptor GetBackwardWeightsTensor(const TensorDescriptor& inputTensorDesc,
 										const TensorDescriptor& outputTensorDesc) const;
