@@ -88,7 +88,7 @@ auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs
         // const double tolerance = std::numeric_limits<value_type>::epsilon() * 4;
         const double tolerance = 10e-6;
         auto error = rms_range(out_cpu, out_gpu);
-        if (error > tolerance)
+        if (not(error <= tolerance))
         {
             std::cout << "FAILED: " << error << std::endl;
             v.fail(error, xs...);
