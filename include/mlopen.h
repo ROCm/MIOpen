@@ -50,9 +50,11 @@ typedef enum {
 
 // TODO: C does not really have default function arguments. Need to modify this
 // later or is it OK to leave it like this?
-MLOPEN_EXPORT mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
-		int							numStreams = 0,
-		mlopenAcceleratorQueue_t				*streams = NULL);
+MLOPEN_EXPORT mlopenStatus_t mlopenCreate(mlopenHandle_t *handle);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenCreateWithStream(mlopenHandle_t *handle,
+		int							numStreams,
+		mlopenAcceleratorQueue_t				*streams);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroy(mlopenHandle_t handle);
 
