@@ -26,6 +26,11 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 	return result;
 }
 
+/*
+ * Temporary function which emulates online assembly feature of OpenCL-on-ROCm being developed.
+ * Not intended to be used in production code, so error handling is very straghtforward,
+ * just catch whatever possible and throw an exception.
+ */
 static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& params)
 {
 	std::string exec_path(std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH")); // asciz
@@ -69,57 +74,65 @@ static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& p
 	}
 	
 	char outfile[] ="amdgcn-asm-out-XXXXXX";
-	close(mkstemp(&outfile[0]));
+	{	// We need filename for -o, so tmpfile() is not ok.
+		const int fd_temp = mkstemp(&outfile[0]);
+		if (fd_temp == -1) { MLOPEN_THROW("Error: X-AMDGCN-ASM: mkstemp()"); }
+		if (close(fd_temp)) { MLOPEN_THROW("Error: X-AMDGCN-ASM: close(fd_temp)"); }
+	}
 	args.push_back(outfile);
 	args.push_back(nullptr);
 	
-	static const int read_fd = 0;
-	static const int write_fd = 1;
+	static const int read_side = 0;
+	static const int write_side = 1;
 	static const int pipe_sides = 2;
+	int clang_stdin[pipe_sides];
+	if (pipe(clang_stdin)) { MLOPEN_THROW("Error: X-AMDGCN-ASM: pipe()"); }
 
-	int childStdin[pipe_sides];
-
-	pipe(childStdin);
-
-	int status;
+	int wstatus;
 	pid_t pid = fork();
-
-	if (pid == 0)
-	{
-		dup2(childStdin[read_fd], STDIN_FILENO);
-
-		close(childStdin[read_fd]);
-		close(childStdin[write_fd]);
-
+	if (pid == 0) {
+		if (dup2(clang_stdin[read_side], STDIN_FILENO) == -1 ) { _exit(EXIT_FAILURE); }
+		if (close(clang_stdin[read_side])) { _exit(EXIT_FAILURE); }
+		if (close(clang_stdin[write_side])) { _exit(EXIT_FAILURE); }
 		execv(exec_path.c_str(), args.data());
 		_exit(EXIT_FAILURE);
-	}
-	else
-	{
-		close(childStdin[read_fd]);
-
-		if (pid < 0)
-		{
-			close(childStdin[write_fd]);
-			MLOPEN_THROW("Error assembling kernel source: fork failed.");
+	} else {
+		if (close(clang_stdin[read_side])) { MLOPEN_THROW("Error: X-AMDGCN-ASM: close(clang_stdin[read_side])"); }
+		if (pid == -1) {
+			(void)close(clang_stdin[write_side]);
+			MLOPEN_THROW("Error X-AMDGCN-ASM: fork()");
 		}
-
-		write(childStdin[write_fd], source.data(), source.size());
-		close(childStdin[write_fd]);
-
-		if (waitpid(pid, &status, 0) != pid) { MLOPEN_THROW("Error assembling kernel source: waitpid failed."); }
+		if (write(clang_stdin[write_side], source.data(), source.size()) == -1) {
+			MLOPEN_THROW("Error: X-AMDGCN-ASM: write()");
+		}
+		if (close(clang_stdin[write_side])) { MLOPEN_THROW("Error: X-AMDGCN-ASM: close(clang_stdin[write_side])"); }
+		if (waitpid(pid, &wstatus, 0) != pid) { MLOPEN_THROW("Error: X-AMDGCN-ASM: waitpid()"); }
 	}
-
-	if (status != 0) { MLOPEN_THROW("Error assembling kernel source, clang error code " + std::to_string(status)); }
+	
+	if (WIFEXITED(wstatus)) {
+		const int exit_status = WEXITSTATUS(wstatus);
+		if (exit_status != 0) {
+			MLOPEN_THROW("Error: X-AMDGCN-ASM: Assembly error (" + std::to_string(exit_status) + ")");
+		}
+	} else {
+		MLOPEN_THROW("Error: X-AMDGCN-ASM: clang terminated abnormally");
+	}
 
 	std::ifstream file(outfile, std::ios::binary | std::ios::ate);
-	const auto size = file.tellg();
-
-	source.resize(size, ' ');
-	file.seekg(std::ios::beg);
-	file.rdbuf()->sgetn(&source[0], size);
+	bool outfile_read_failed = false;
+	do {
+		const auto size = file.tellg();
+		if (size == -1) { outfile_read_failed = true; break; }
+		source.resize(size, '\0');
+		file.seekg(std::ios::beg);
+		if (file.fail()) { outfile_read_failed = true; break; }
+		if (file.rdbuf()->sgetn(&source[0], size) != size) { outfile_read_failed = true; break; }
+	} while (0);
 	file.close();
 	std::remove(outfile);
+	if (outfile_read_failed) {
+		MLOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
+	}
 }
 
 static cl_program CreateProgramWithBinary(cl_context ctx, cl_device_id device, const char* char_source, size_t size)
@@ -164,35 +177,25 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 
 ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params)
 {
-	bool is_binary;
+	bool is_binary = false;
+	cl_program result = nullptr;
 	auto source = mlopen::GetKernelSrc(program_name);
 	auto is_asm = mlopen::EndsWith(program_name, ".s");
 
-	if (is_asm)
-	{
-		// Overwrites source (asm text) by binary results of assembly:
+	if (is_asm) { // Overwrites source (asm text) by binary results of assembly:
 		ExperimentalAmdgcnAssemble(source, params);
 		is_binary = true;
-	}
-	else
-	{
+	} else {
 		is_binary = mlopen::EndsWith(program_name, ".so");
 	}
 
-	cl_program result;
-	auto char_source = source.data();
-	auto size = source.size();
-
-	if (is_binary)
-		result = CreateProgramWithBinary(ctx, device, char_source, size);
-	else
-		result = CreateProgram(ctx, char_source, size);
-
-	if (is_binary)
+	if (is_binary) {
+		result = CreateProgramWithBinary(ctx, device, source.data(), source.size());
 		BuildProgram(result, device);
-	else
+	} else {
+		result = CreateProgram(ctx, source.data(), source.size());
 		BuildProgram(result, device, params + " -cl-std=CL1.2");
-
+	}
 	return ClProgramPtr{ result };
 }
 

@@ -277,7 +277,8 @@ int mlo_construct_direct2D::mloConstruct()
 		const auto use_assembly = !IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
 								  && mloExperimentalValidateAssemblerPath(asm_path);
 		if (use_assembly) {
-			if (mloIsCorrectAsmDirect3x3U()) {
+			if (mloIsCorrectAsmDirect3x3U()
+				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
 				return (mloConstructAsmDirect3x3U());
 			}
 		}
@@ -559,9 +560,7 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 {
-	return
-		   _in_width	!= 7
-		|| _in_height	!= 7;
+	return !(_in_width == 7 && _in_height == 7);
 }
 
 int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd()
@@ -599,10 +598,15 @@ bool mlo_construct_direct2D::mloIsCorrectAsmDirect3x3U() const
 		&& _kernel_size0	== 3
 		&& _kernel_size1	== 3
 		&& _n_inputs % 4	== 0
-		&& _in_width		>= 50
+		&& _in_width		> 3
 		&& _in_width		<= 1000
 		&& _in_layout		== "NCHW";
 		// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+}
+
+bool mlo_construct_direct2D::mloIsFastAsmDirect3x3U() const
+{
+	return _in_width >= 50;
 }
 
 template<typename TValue>
@@ -659,7 +663,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U()
 
 	return 0;
 }
-#endif
+#endif //MLOPEN_BACKEND_OPENCL
 
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
