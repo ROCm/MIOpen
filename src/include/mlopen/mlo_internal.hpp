@@ -721,10 +721,11 @@ protected:
 
 	bool mloIsCorrectBinaryWinograd3x3Fwd() const;
 	bool mloIsFastBinaryWinograd3x3Fwd() const;
-	int mloConstructBinaryWinograd3x3Fwd();
+	int  mloConstructBinaryWinograd3x3Fwd();
 
 	bool mloIsCorrectAsmDirect3x3U() const;
-	int mloConstructAsmDirect3x3U();
+	bool mloIsFastAsmDirect3x3U() const;
+	int  mloConstructAsmDirect3x3U();
 #endif
 
 	int mloConstructDirect2DFwdC(void);
