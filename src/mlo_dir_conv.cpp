@@ -1173,27 +1173,29 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	// n of wvaefront in a group
 	// param
-	int n_waves = (_in_width > 16) ? 4 : 2;
+	int n_waves = (_in_width <=  8) ? 1: (_in_width <= 16) ? 2 : 4;
 	int GRP_SZ = _hw_wave_sz * n_waves;
 	// number of input maps per group
 
 	int map_sz = _in_width*_in_height;
 	// param
-	int read_unit = (_in_width == 7 || _in_width == 14) ? 7 : (((map_sz / 8) * 8) == map_sz) ? 8 : (((map_sz / 4) * 4) == map_sz) ? 4 : (((map_sz / 2) * 2) == map_sz) ? 2 : 1;
+	int read_unit = (_in_width == 7 || _in_width == 14) ? 7 : (_in_width == 28) ? 14 : (((map_sz / 8) * 8) == map_sz) ? 8 : (((map_sz / 4) * 4) == map_sz) ? 4 : (((map_sz / 2) * 2) == map_sz) ? 2 : 1;
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
     int POW2_MAP_WK_SZ = (1 << mloLg2(MAP_WK_SZ));
 	// param
-	int n_out_stacks = (GRP_SZ / MAP_WK_SZ);
+	int n_out_stacks = ((_in_width == 7) || (_in_width == 14) || (_in_width == 28)) ? 8 : (GRP_SZ / MAP_WK_SZ);
+	int n_in_stacks = (GRP_SZ / MAP_WK_SZ);
 
-	n_out_stacks = std::min(std::min(_n_inputs, _n_outputs), n_out_stacks);
+	n_out_stacks = std::min(_n_inputs, n_out_stacks);
+	n_in_stacks = std::min(_n_outputs, n_in_stacks);
 
 	// param
 	_n_out_pix_tiles = std::min(1, (_n_inputs + n_out_stacks - 1) / n_out_stacks);
 
 	// param
-	_n_in_data_tiles = std::min(4, (_n_outputs + n_out_stacks - 1) / n_out_stacks);
+	_n_in_data_tiles = std::min(4, (_n_outputs + n_in_stacks - 1) / n_in_stacks);
 	 // select output mapping
 	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
 	int total_in_maps = _n_in_data_tiles * n_out_stacks;
@@ -1249,6 +1251,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		+ std::string(" -DMLO_OUT_TILE0=") + std::to_string(_out_pix_tile0)  // size of ouptput tile per wk-item (ALU)
 		+ std::string(" -DMLO_OUT_TILE1=") + std::to_string(_out_pix_tile1)  //
 		+ std::string(" -DMLO_OUT_STACKS=") + std::to_string(n_out_stacks)
+		+ std::string(" -DMLO_IN_STACKS=") + std::to_string(n_in_stacks)
 		+ std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves)
 		+ std::string(" -DMLO_MAP_WK_SZ=") + std::to_string(MAP_WK_SZ)
 		+ std::string(" -DMLO_POW2_MAP_WK_SZ=") + std::to_string(POW2_MAP_WK_SZ)

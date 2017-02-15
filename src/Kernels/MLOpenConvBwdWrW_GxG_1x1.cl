@@ -147,6 +147,61 @@ static inline void readData(int n, int gbl_data_off, int gbl_data_stride, int ma
 
 	} // for (int j = 0; j < n; ++j)
 
+}
+
+static inline void readDataFlex(int n, int gbl_data_off, int gbl_data_stride, int map_stride, int map_base,  int map_limit, const __global _FLOAT * g_data, __local _FLOAT * l_data)
+{
+
+
+	for( int l = get_local_id(0); l < n*map_stride* MLO_MAP_WK_SZ; l += MLO_GRP_SZ)
+	{
+
+	    int r = 0;
+		int c0 = l;
+#if MLO_N_LCL_OUT_MAPS > 1
+		r = iDiv(l, map_stride* MLO_MAP_WK_SZ);  // maps row
+		c0 = iMod(l, r, map_stride* MLO_MAP_WK_SZ);
+#endif
+		int c = iDiv(c0, MLO_MAP_WK_SZ);  // map column
+		int p4 = iMod(c0, c, MLO_MAP_WK_SZ); // pixel block
+
+		bool last_pixel = (p4 == MLO_MAP_WK_SZ -1);
+
+		int gbl_data_off0 = (c*map_stride + map_base < map_limit) ? gbl_data_off + c*gbl_data_stride : 0;
+		__private _FLOAT p_data[MLO_READ_UNIT];
+
+#if MLO_N_PIXS_OFF > 0
+
+		if (last_pixel)
+		{
+			for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
+			{
+
+				p_data[i] = g_data[gbl_data_off0 + i];
+			}
+
+			for (int i = MLO_IN_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
+			{
+				p_data[i] = 0;
+			}
+
+		}
+		else
+#endif
+		{
+//			*(MLO_READ_TYPE*)&p_data[j*MLO_READ_UNIT] = *(__global MLO_READ_TYPE*)&g_data[gbl_data_off + j*gbl_data_stride*MLO_OUT_STACKS];
+			for (int i = 0; i < MLO_READ_UNIT; ++i)
+			{
+				p_data[i] = g_data[gbl_data_off0 + i];
+			}
+		}
+
+		for(int i = 0; i < MLO_READ_UNIT; ++i)
+		{
+			l_data[c*MLO_MAP_WK_SZ * p4*MLO_READ_UNIT + i] = p_data[i];
+		}
+
+	}
 
 }
 
@@ -201,7 +256,7 @@ __kernel void MLOpenCvBwdWrW(
 
 	int k_idx = get_group_id(0) * (MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS); // output map index base
 
-	int c_idx = get_group_id(1) * (MLO_OUT_STACKS * MLO_N_LCL_IN_MAPS); // input map index based
+	int c_idx = get_group_id(1) * (MLO_IN_STACKS * MLO_N_LCL_IN_MAPS); // input map index based
 
 	int ib = get_group_id(2); // batch id
 
@@ -220,7 +275,7 @@ __kernel void MLOpenCvBwdWrW(
 //	bool out_of_range_out = (m_idx + k_idx >= MLO_N_OUTPUTS);
 
 	gbl_in_off += m_idx * MLO_IN_CHANNEL_STRIDE + p4*MLO_READ_UNIT;
-	gbl_out_off += m_idx * MLO_OUT_CHANNEL_STRIDE + p4*MLO_READ_UNIT;
+//	gbl_out_off += m_idx * MLO_OUT_CHANNEL_STRIDE + p4*MLO_READ_UNIT;
 
 	// read guards
 //	gbl_in_off = (out_of_range_in || out_of_range) ? 0 : gbl_in_off;
@@ -274,16 +329,16 @@ __kernel void MLOpenCvBwdWrW(
 
 
 		// read input maps
-		readData(MLO_N_LCL_IN_MAPS, gbl_in_scan_off, MLO_IN_CHANNEL_STRIDE, MLO_OUT_STACKS, (m_idx + c_idx), MLO_N_INPUTS, bot, bot_dat, last_pixel);
+		readData(MLO_N_LCL_IN_MAPS, gbl_in_scan_off, MLO_IN_CHANNEL_STRIDE, MLO_IN_STACKS, (m_idx + c_idx), MLO_N_INPUTS, bot, bot_dat, last_pixel);
 
 		// read output maps
-		readData(MLO_N_LCL_OUT_MAPS, gbl_out_scan_off, MLO_OUT_CHANNEL_STRIDE, MLO_OUT_STACKS, (m_idx + k_idx), MLO_N_OUTPUTS, top_df, top_dat, last_pixel);
+		readDataFlex(MLO_N_LCL_OUT_MAPS, gbl_out_scan_off, MLO_OUT_CHANNEL_STRIDE, MLO_OUT_STACKS, (k_idx), MLO_N_OUTPUTS, top_df, proc_mem);
 
 		for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 		{
-#if 1
-			barrier(CLK_LOCAL_MEM_FENCE);
 
+			barrier(CLK_LOCAL_MEM_FENCE);
+#if 0
 	// move 1 set of output maps into LDS
 			for (int i = 0; i < MLO_READ_UNIT; ++i)
 			{
@@ -352,8 +407,8 @@ __kernel void MLOpenCvBwdWrW(
 
 
 	barrier(CLK_LOCAL_MEM_FENCE);
-
-#if 0
+#if 1
+#if 0 //MLO_IN_WIDTH > 24
 	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
 	{
 		red_mem[i] = 0;
@@ -394,6 +449,7 @@ __kernel void MLOpenCvBwdWrW(
 
 #endif
 
+#endif
 
 	// write out 
 	// inputs are outputs
@@ -414,6 +470,7 @@ __kernel void MLOpenCvBwdWrW(
 	}
 
 }
+
 
 // final reduction kernel
 // add filters over batches
