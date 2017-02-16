@@ -3,17 +3,20 @@
 #include <cstdio>
 
 extern "C" 
-mlopenStatus_t mlopenCreate(mlopenHandle_t *handle,
+mlopenStatus_t mlopenCreate(mlopenHandle_t *handle) {
+
+	return mlopen::try_([&] {
+			mlopen::deref(handle) = new mlopen::Handle();
+	});
+}
+
+extern "C" 
+mlopenStatus_t mlopenCreateWithStream(mlopenHandle_t *handle,
 		int numStreams,
 		mlopenAcceleratorQueue_t *streams ) {
 
 	return mlopen::try_([&] {
-		if(numStreams != 0) {
 			mlopen::deref(handle) = new mlopen::Handle(numStreams, streams);
-		}
-		else {
-			mlopen::deref(handle) = new mlopen::Handle();
-		}
 	});
 }
 
