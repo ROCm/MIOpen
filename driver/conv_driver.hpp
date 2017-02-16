@@ -409,6 +409,14 @@ int ConvDriver<T>::RunForwardGPU() {
                 &beta,
                 outputTensor,
                 out_dev->GetMem());
+
+        if(inflags.GetValueInt("time") == 1) {
+            float time = 0.0;
+            mlopenGetKernelTime(GetHandle(), &time);
+
+            printf("GPU Kernel Time Forward Conv. Bias Elapsed: %f ms\n", time);
+
+        }
     }
 
 	out_dev->FromGPU(GetStream(), out.data());
