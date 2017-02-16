@@ -10,35 +10,49 @@
 
 __kernel void AddTensor(global float *a, 
         const int a_c, const int a_h, const int a_w,
-        const int a_nstride, a_cstride,
+        const int a_nstride, const int a_cstride,
         global float *c,
-        const int c_c, const int c_h, const int c_w,
-        const int c_nstride, c_cstride,
-        const unsigned int bitmap, const int work_per_wg)
+        const int c_n, const int c_c, const int c_h, const int c_w,
+        const int c_nstride, const int c_cstride,
+        const unsigned int bitmap, const int work_per_wg, int fwd_conv_bias)
 {   
     int gid = get_group_id(0);
     int lid = get_local_id(0);
 
-    float add = a[gid];
+    if(fwd_conv_bias == 1) {
+        int o_n = gid / a_c;
+        int o_c = gid % a_c;
+        float add = a[o_c];
 
-    int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
-    int o_c_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
-    int o_n_div = o_c_div * (bitmap & (1 << 2) ? 1 : c_c);
+        while(lid < work_per_wg) {
+            float x = c[o_n*c_nstride + o_c*c_cstride + lid];
+            x += add;
+            c[o_n*c_nstride + o_c*c_cstride + lid] = x;
 
-    int o_w_gid_off = gid % a_w; 
-    int o_h_gid_off = (gid / a_w) % a_h;
-    int o_c_gid_off = (gid / a_cstride) % a_c;
-    int o_n_gid_off = gid / a_nstride;
+            lid += get_local_size(0);
+        }
+    }
+    else {
+        float add = a[gid];
+        int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
+        int o_c_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
+        int o_n_div = o_c_div * (bitmap & (1 << 2) ? 1 : c_c);
 
-    while(lid < work_per_wg) {
-        int o_w = (bitmap & (1 << 0)) ? o_w_gid_off : lid % c_w;
-        int o_h = (bitmap & (1 << 1)) ? o_h_gid_off : (lid / o_h_div) % c_h;
-        int o_c = (bitmap & (1 << 2)) ? o_c_gid_off : (lid / o_c_div) % c_c;
-        int o_n = (bitmap & (1 << 3)) ? o_n_gid_off : lid / o_n_div;
+        int o_w_gid_off = gid % a_w; 
+        int o_h_gid_off = (gid / a_w) % a_h;
+        int o_c_gid_off = (gid / a_cstride) % a_c;
+        int o_n_gid_off = gid / a_nstride;
 
-        c[o_n*c_nstride + o_c*c_cstride + o_h*c_w + o_w] += add;
+        while(lid < work_per_wg) {
+            int o_w = (bitmap & (1 << 0)) ? o_w_gid_off : lid % c_w;
+            int o_h = (bitmap & (1 << 1)) ? o_h_gid_off : (lid / o_h_div) % c_h;
+            int o_c = (bitmap & (1 << 2)) ? o_c_gid_off : (lid / o_c_div) % c_c;
+            int o_n = (bitmap & (1 << 3)) ? o_n_gid_off : lid / o_n_div;
 
-        lid += get_local_size(0);
+            c[o_n*c_nstride + o_c*c_cstride + o_h*c_w + o_w] += add;
+
+            lid += get_local_size(0);
+        }
     }
 }
 

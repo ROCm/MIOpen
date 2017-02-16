@@ -48,7 +48,20 @@ void TensorDescriptor::ScaleTensor(Handle& /* handle */,
 }
 
 // Free Tensor Functions
-// 
+//
+static void CreateBitmapAndGrid(unsigned int &bitmap, std::vector<int> &a_lens, std::vector<int> &c_lens, int &num_wg, int &work, int d)
+{
+    bitmap |= (1 << (a_lens.size() - d)); // update bitmap for first_not_one
+    for(int i = (d-2); i>= 0; i--) {
+        if(a_lens[i] != 1) {
+            bitmap |= (1 << (a_lens.size()-(i+1))); // works only 4d tensors in NCHW
+            num_wg *= a_lens[i];
+        }
+        else
+            work *= c_lens[i];
+    }
+}
+
 mlopenStatus_t AddTensor(Handle&              handle,
 			const void              * /*alpha*/,
 			const TensorDescriptor& aTensorDesc,
@@ -80,8 +93,8 @@ mlopenStatus_t AddTensor(Handle&              handle,
     int num_wg = *first_not_one;
     int work_per_wg = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
 
-    int c_c, c_h, c_w;
-    std::tie(std::ignore, c_c, c_h, c_w) = tie4(cTensorDesc.GetLengths());
+    int c_n, c_c, c_h, c_w;
+    std::tie(c_n, c_c, c_h, c_w) = tie4(cTensorDesc.GetLengths());
 
     int a_c, a_h, a_w;
     std::tie(std::ignore, a_c, a_h, a_w) = tie4(aTensorDesc.GetLengths());
@@ -93,19 +106,20 @@ mlopenStatus_t AddTensor(Handle&              handle,
     std::tie(a_nstride, a_cstride, std::ignore, std::ignore) = tie4(aTensorDesc.GetStrides());
 
     unsigned int bitmap = 0;
-    bitmap |= (1 << (a_lens.size() - d)); // update bitmap for first_not_one
-    for(int i = (d-2); i>= 0; i--) {
-        if(a_lens[i] != 1) {
-            bitmap |= (1 << (a_lens.size()-(i+1))); // works only 4d tensors in NCHW
-            num_wg *= a_lens[i];
-        }
-        else
-            work_per_wg *= c_lens[i];
+    CreateBitmapAndGrid(bitmap, a_lens, c_lens, num_wg, work_per_wg, d);
+
+    // Forward Convolution Bias specialization
+    int fwd_conv_bias = bitmap & 4 ? 1 : 0;
+    if(fwd_conv_bias == 1
+            && num_wg < 640 && work_per_wg > 256) {
+        work_per_wg /= c_n;
+        num_wg *= c_n;
     }
 
     std::string program_name = "MLOpenTensorKernels.cl";
     std::string kernel_name = "AddTensor";
 
+    //num_wg *= 4;
 	const std::vector<size_t> vld(1, 256);
 	const std::vector<size_t> vgd(1, num_wg*256);
 
@@ -115,7 +129,7 @@ mlopenStatus_t AddTensor(Handle&              handle,
             kernel_name,
             vld,
             vgd,
-            "") (ATensor, a_c, a_h, a_w, a_nstride, a_cstride, CTensor, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg);
+            "") (ATensor, a_c, a_h, a_w, a_nstride, a_cstride, CTensor, c_n, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg, fwd_conv_bias);
 
     return mlopenStatusSuccess;
 }
