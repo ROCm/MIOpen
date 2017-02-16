@@ -14,25 +14,35 @@ __kernel void AddTensor(global float *a,
         global float *c,
         const int c_n, const int c_c, const int c_h, const int c_w,
         const int c_nstride, const int c_cstride,
-        const unsigned int bitmap, const int work_per_wg, int fwd_conv_bias)
+        const unsigned int bitmap, const int work_per_wg)
 {   
     int gid = get_group_id(0);
     int lid = get_local_id(0);
 
-    if(fwd_conv_bias == 1) {
-        int o_n = gid / a_c;
-        int o_c = gid % a_c;
-        float add = a[o_c];
+#if FWD_CONV_BIAS == 1 && INCR_WG == 1 // case when num_wg = c_n*c_c;
+    int o_n = gid / a_c;
+    int o_c = gid % a_c;
+    float add = a[o_c];
 
-        while(lid < work_per_wg) {
-            float x = c[o_n*c_nstride + o_c*c_cstride + lid];
-            x += add;
-            c[o_n*c_nstride + o_c*c_cstride + lid] = x;
+    while(lid < work_per_wg) {
+        c[o_n*c_nstride + o_c*c_cstride + lid] += add;
 
-            lid += get_local_size(0);
-        }
+        lid += get_local_size(0);
     }
-    else {
+
+#elif FWD_CONV_BIAS == 1 && INCR_WG == 0 // case when num_wg = c_c (or a_c)
+    float add = a[gid];
+    int work_off = work_per_wg / c_n;
+
+    while(lid < work_per_wg) {
+        int o_hw = lid % work_off;
+        int o_n =  lid / work_off;
+        c[o_n*c_nstride + gid*c_cstride + o_hw] += add;
+
+        lid += get_local_size(0);
+    }
+
+#else // generic add tensor
         float add = a[gid];
         int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
         int o_c_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
@@ -53,7 +63,7 @@ __kernel void AddTensor(global float *a,
 
             lid += get_local_size(0);
         }
-    }
+#endif // FWD_CONV_BIAS
 }
 
 
