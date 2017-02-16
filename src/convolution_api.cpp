@@ -71,6 +71,22 @@ mlopenStatus_t mlopenDestroyConvolutionDescriptor(mlopenConvolutionDescriptor_t 
 }
 
 extern "C"
+mlopenStatus_t mlopenConvolutionForwardGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		wDesc,
+		const mlopenTensorDescriptor_t		yDesc,
+		const mlopenConvolutionDescriptor_t convDesc,
+		size_t								*workSpaceSize) {
+
+	mlopen::try_([&] {
+		mlopen::deref(workSpaceSize) = mlopen::deref(convDesc).ForwardGetWorkSpaceSize(
+			mlopen::deref(wDesc),
+			mlopen::deref(yDesc));
+	});
+
+	return(mlopenStatusSuccess);
+}
+
+extern "C"
 mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t		xDesc,
 		const void							*x,
@@ -78,7 +94,7 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		const void							*w,
 		const mlopenConvolutionDescriptor_t	convDesc,
 		const mlopenTensorDescriptor_t		yDesc,
-		const void							*y,
+		void							*y,
 		const int							requestAlgoCount,
 		int									*returnedAlgoCount,
 		mlopenConvAlgoPerf_t				*perfResults,
@@ -99,7 +115,7 @@ mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 				returnedAlgoCount,
 				perfResults,
 				preference,
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize,
 				exhaustiveSearch);
 	});
@@ -132,7 +148,7 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 				beta,
 				mlopen::deref(yDesc),
 				DataCast(y),
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize);
 	});
 
@@ -215,26 +231,12 @@ mlopenStatus_t mlopenConvolutionBackwardWeightsGetWorkSpaceSize(
 		const mlopenTensorDescriptor_t		dwDesc,
 		size_t								*workSpaceSize) {
 
-	size_t size_0, size_1 = 0;
-	mlopen::try_([&] {
-		mlopen::deref(convDesc).ConvolutionBackwardWeightsGetWorkSpaceSize(
+	return mlopen::try_([&] {
+		mlopen::deref(workSpaceSize) = mlopen::deref(convDesc).ConvolutionBackwardWeightsGetWorkSpaceSize(
 			mlopen::deref(dyDesc),
 			mlopen::deref(xDesc),
-			mlopen::deref(dwDesc),
-			&size_0);
+			mlopen::deref(dwDesc));
 	});
-
-	mlopen::try_([&] {
-		int out_h, out_w;
-		std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(mlopen::deref(dyDesc).GetLengths());
-		
-		int wei_c, wei_h, wei_w;
-		std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(mlopen::deref(dwDesc).GetLengths());
-		size_1 = wei_c*wei_h*wei_w * out_h*out_w * sizeof(mlopen::deref(dyDesc).GetType());
-	});
-
-	mlopen::deref(workSpaceSize) = std::max(size_0, size_1);
-	return(mlopenStatusSuccess);
 }
 
 extern "C"
@@ -245,7 +247,7 @@ mlopenStatus_t mlopenFindConvolutionBackwardWeightsAlgorithm(mlopenHandle_t hand
 		const void							*x,
 		const mlopenConvolutionDescriptor_t	convDesc,
 		const mlopenTensorDescriptor_t		dwDesc,
-		const void							*dw,
+		void							*dw,
 		const int							requestAlgoCount,
 		int									*returnedAlgoCount,
 		mlopenConvAlgoPerf_t				*perfResults,
