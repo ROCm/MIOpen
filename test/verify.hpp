@@ -29,7 +29,11 @@ struct float_equal_fn
     template<class T>
     bool operator()(T x, T y) const
     {
-        return std::nextafter(x, std::numeric_limits<T>::lowest()) <= y && std::nextafter(x, std::numeric_limits<T>::max()) >= y;
+        return 
+            std::isfinite(x) and 
+            std::isfinite(y) and
+            std::nextafter(x, std::numeric_limits<T>::lowest()) <= y and 
+            std::nextafter(x, std::numeric_limits<T>::max()) >= y;
     }
 };
 
@@ -69,7 +73,7 @@ double rms_range(R1&& r1, R2&& r2)
         double square_diff = std::inner_product(r1.begin(), r1.end(), r2.begin(), 0.0, sum_fn{}, square_diff_fn{});
         double mag1 = *std::max_element(r1.begin(), r1.end(), compare_mag_fn{});
         double mag2 = *std::max_element(r2.begin(), r2.end(), compare_mag_fn{});
-        double mag = std::max({std::fabs(mag1), std::fabs(mag2)});
+        double mag = std::max({std::fabs(mag1), std::fabs(mag2), std::numeric_limits<double>::min()});
         return std::sqrt(square_diff) / (std::sqrt(n)*mag);
     }
     else return std::numeric_limits<range_value<R1>>::max();
@@ -97,6 +101,9 @@ auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs
             auto p = std::mismatch(out_cpu.begin(), out_cpu.end(), out_gpu.begin(), float_equal);
             auto idx = std::distance(out_cpu.begin(), p.first);
             std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
+        } else if (range_zero(out_cpu) and range_zero(out_gpu)) {
+            std::cout << "Warning: data is all zero" << std::endl;
+            v.fail(error, xs...);
         }
         return std::make_pair(std::move(out_cpu), std::move(out_gpu));
     } catch(const std::exception& ex) {
