@@ -13,7 +13,7 @@ struct HIPOCProgram
     using SharedModulePtr = std::shared_ptr<typename std::remove_pointer<hipModule_t>::type>;
     using FilePtr = MLOPEN_MANAGE_PTR(FILE*, std::fclose);
     HIPOCProgram();
-    HIPOCProgram(const std::string &program_name, std::string params);
+    HIPOCProgram(const std::string &program_name, std::string params, bool is_kernel_str);
     SharedModulePtr module;
 };
 }
