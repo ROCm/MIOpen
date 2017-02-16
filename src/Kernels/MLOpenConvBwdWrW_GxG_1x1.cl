@@ -404,7 +404,23 @@ __kernel void MLOpenCvBwdWrW(
 
 
 	barrier(CLK_LOCAL_MEM_FENCE);
-#if 1
+
+#if 0
+	int red_base_off = m_idx * MLO_MAP_WK_SZ*MLO_ACCUM_SZ;
+	for (int l = 0; l < MLO_ACCUM_SZ; ++l)
+	{
+		// write data
+		red_mem[red_base_off + p4*MLO_ACCUM_SZ + l] = pvt_accum[l];
+
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	__private _FLOAT final_sum[1] = { 0 };
+	for (int s = 0; s < MLO_MAP_WK_SZ; ++s)
+	{
+		final_sum[0] += red_mem[red_base_off + p4*MLO_MAP_WK_SZ + s];
+	}
+#else
+
 #if 0 //MLO_IN_WIDTH > 24
 	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
 	{
