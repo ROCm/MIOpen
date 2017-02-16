@@ -354,7 +354,7 @@ int ConvDriver<T>::RunForwardGPU() {
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
-			mlopenConvolutionFwdAlgoGEMM,
+			mlopenConvolutionFwdAlgoDirect,
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
