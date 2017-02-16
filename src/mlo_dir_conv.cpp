@@ -1186,9 +1186,10 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
     int POW2_MAP_WK_SZ = (1 << mloLg2(MAP_WK_SZ));
 	// param
 	int n_out_stacks = (_in_width == 28)? 10 : ((_in_width == 7) || (_in_width == 14)) ? 8 : (GRP_SZ / MAP_WK_SZ);
-	int lcl_size_limit = (n_waves == 1) ? _dev_local_mem_sz / (2 * 4 * sizeof(float)) : _dev_local_mem_sz / (2 * sizeof(float));
+	int lcl_size_limit = (_in_width <= 8) ? n_out_stacks*MAP_WK_SZ*read_unit : _dev_local_mem_sz / (2 * sizeof(float));
+
 // not to exeed local memory size
-	while (n_out_stacks*MAP_WK_SZ*read_unit > lcl_size_limit)
+	while ((_in_width > 8) && n_out_stacks*MAP_WK_SZ*read_unit > lcl_size_limit)
 	{
 		n_out_stacks--;
 	}
@@ -1205,7 +1206,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	// param
 	_n_in_data_tiles = std::min(((_in_width == 28) ? 2 : 4), (_n_outputs + n_in_stacks - 1) / n_in_stacks);
 // to be able to do easy funa transform and summation
-	while (n_in_stacks*_n_in_data_tiles* n_out_stacks > GRP_SZ)
+	while ((_in_width > 8) && n_in_stacks*_n_in_data_tiles* n_out_stacks > GRP_SZ)
 	{
 		n_in_stacks--;
 	}

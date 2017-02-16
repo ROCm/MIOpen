@@ -406,7 +406,7 @@ __kernel void MLOpenCvBwdWrW(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 
-#if 1
+#if MLO_MAP_WK_SZ > 8
 // transpose
 	int red_base_off = m_idx * MLO_MAP_WK_SZ*MLO_ACCUM_SZ;
 	for (int l = 0; l < MLO_ACCUM_SZ; ++l)
