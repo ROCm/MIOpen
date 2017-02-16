@@ -175,20 +175,24 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 	}
 }
 
-ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params)
+ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params, bool is_kernel_str)
 {
 	bool is_binary = false;
-	cl_program result = nullptr;
-	auto source = mlopen::GetKernelSrc(program_name);
-	auto is_asm = mlopen::EndsWith(program_name, ".s");
-
-	if (is_asm) { // Overwrites source (asm text) by binary results of assembly:
-		ExperimentalAmdgcnAssemble(source, params);
-		is_binary = true;
+	std::string source;
+	if (is_kernel_str) {
+		source = program_name;
 	} else {
-		is_binary = mlopen::EndsWith(program_name, ".so");
+		source = mlopen::GetKernelSrc(program_name);
+		auto is_asm = mlopen::EndsWith(program_name, ".s");
+		if (is_asm) { // Overwrites source (asm text) by binary results of assembly:
+			ExperimentalAmdgcnAssemble(source, params);
+			is_binary = true;
+		} else {
+			is_binary = mlopen::EndsWith(program_name, ".so");
+		}
 	}
 
+	cl_program result = nullptr;
 	if (is_binary) {
 		result = CreateProgramWithBinary(ctx, device, source.data(), source.size());
 		BuildProgram(result, device);

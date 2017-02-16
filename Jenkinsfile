@@ -1,5 +1,5 @@
 parallel opencl: {
-    rocmtest('rocm-opencl:1.4') { cmake_build ->
+    rocmtest('tinygemm:1.4') { cmake_build ->
         stage('Clang Tidy') {
             sh '''
                 rm -rf build
@@ -25,9 +25,9 @@ parallel opencl: {
     }
 }, hip: {
     rocmtest('aoc2:latest') { cmake_build ->
-        stage('Hip Debug') {
-            cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
-        }
+        // stage('Hip Debug') {
+        //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+        // }
         stage('Hip Release') {
             cmake_build('hcc', '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
         }
