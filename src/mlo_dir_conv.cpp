@@ -1173,7 +1173,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	// n of wvaefront in a group
 	// param
-	int n_waves = (_in_width <=  8) ? 1: (_in_width <= 16) ? 2 : 4;
+	int n_waves = (_in_width <=  8) ? 1: 4;
 	int GRP_SZ = _hw_wave_sz * n_waves;
 	// number of input maps per group
 
@@ -1198,7 +1198,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	_n_in_data_tiles = std::min(4, (_n_outputs + n_in_stacks - 1) / n_in_stacks);
 	 // select output mapping
 	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
-	int total_in_maps = _n_in_data_tiles * n_out_stacks;
+	int total_in_maps = _n_in_data_tiles * n_in_stacks;
 
 	_grp_tile0 = GRP_SZ;
 	_grp_tile1 = 1;
