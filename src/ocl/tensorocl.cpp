@@ -109,17 +109,21 @@ mlopenStatus_t AddTensor(Handle&              handle,
     CreateBitmapAndGrid(bitmap, a_lens, c_lens, num_wg, work_per_wg, d);
 
     // Forward Convolution Bias specialization
-    int fwd_conv_bias = bitmap & 4 ? 1 : 0;
+    auto fwd_conv_bias = bitmap & 4 ? 1 : 0;
+    auto incr_wg = 0;
     if(fwd_conv_bias == 1
-            && num_wg < 640 && work_per_wg > 256) {
+            && num_wg < 640 && work_per_wg > 256) { //640 workgroups of size 256 needed to completely fill the GPU
         work_per_wg /= c_n;
         num_wg *= c_n;
+        incr_wg = 1;
     }
+
+    std::string parms = " -DFWD_CONV_BIAS=" + std::to_string(fwd_conv_bias) +
+                        " -DINCR_WG=" + std::to_string(incr_wg);
 
     std::string program_name = "MLOpenTensorKernels.cl";
     std::string kernel_name = "AddTensor";
 
-    //num_wg *= 4;
 	const std::vector<size_t> vld(1, 256);
 	const std::vector<size_t> vgd(1, num_wg*256);
 
@@ -129,7 +133,7 @@ mlopenStatus_t AddTensor(Handle&              handle,
             kernel_name,
             vld,
             vgd,
-            "") (ATensor, a_c, a_h, a_w, a_nstride, a_cstride, CTensor, c_n, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg, fwd_conv_bias);
+            parms) (ATensor, a_c, a_h, a_w, a_nstride, a_cstride, CTensor, c_n, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg);
 
     return mlopenStatusSuccess;
 }
