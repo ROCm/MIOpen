@@ -238,9 +238,9 @@ __kernel void MLOpenCvBwdWrW(
 {
 	// reduction memory.
 	// ceil pow2 of the number of wk-items keeping the map
-#if (MLO_POW2_MAP_WK_SZ * MLO_OUT_STACKS) > (MLO_OUT_STACKS * MLO_MAP_WK_SZ * MLO_READ_UNIT)
+#if 0 //(MLO_POW2_MAP_WK_SZ * MLO_OUT_STACKS) > (MLO_OUT_STACKS * MLO_MAP_WK_SZ * MLO_READ_UNIT)
 #define MLO_LCL_MEM_SZ (MLO_POW2_MAP_WK_SZ * MLO_OUT_STACKS)
-#else
+//#else
 #define MLO_LCL_MEM_SZ (MLO_OUT_STACKS * MLO_MAP_WK_SZ * MLO_READ_UNIT)
 #endif
 
@@ -405,19 +405,41 @@ __kernel void MLOpenCvBwdWrW(
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-#if 0
+
+#if 1
+// transpose
 	int red_base_off = m_idx * MLO_MAP_WK_SZ*MLO_ACCUM_SZ;
 	for (int l = 0; l < MLO_ACCUM_SZ; ++l)
 	{
 		// write data
-		red_mem[red_base_off + p4*MLO_ACCUM_SZ + l] = pvt_accum[l];
+		red_mem[red_base_off + p4* MLO_ACCUM_SZ + l] = pvt_accum[l];
 
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// do final summation
+
 	__private _FLOAT final_sum[1] = { 0 };
+	int new_m_idx = iDiv(lcl_id, MLO_ACCUM_SZ);
+	int new_p4 = iMod(lcl_id, new_m_idx, MLO_ACCUM_SZ);
+	int new_red_base_off = new_m_idx * MLO_MAP_WK_SZ*MLO_ACCUM_SZ;
+
 	for (int s = 0; s < MLO_MAP_WK_SZ; ++s)
 	{
-		final_sum[0] += red_mem[red_base_off + p4*MLO_MAP_WK_SZ + s];
+		final_sum[0] += red_mem[new_red_base_off + s*MLO_ACCUM_SZ + new_p4];
+	}
+
+	// write out 
+	// inputs are outputs
+	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + ((c_idx + new_m_idx) * MLO_WEI_CHANNEL_STRIDE);
+
+	int n = iDiv(new_p4, MLO_N_LCL_IN_MAPS);
+	int c = iMod(new_p4, n, MLO_N_LCL_IN_MAPS);
+	int k = 0;
+
+	if (new_m_idx < MLO_IN_STACKS &&k_idx + k*MLO_OUT_STACKS + n < MLO_N_OUTPUTS && c_idx + new_m_idx + c*MLO_IN_STACKS < MLO_N_INPUTS)
+	{
+		weights_df[wei_df_off + (k*MLO_OUT_STACKS + n)*MLO_WEI_BATCH_STRIDE + c*MLO_IN_STACKS*MLO_WEI_CHANNEL_STRIDE] = final_sum[0];
 	}
 #else
 
@@ -462,11 +484,11 @@ __kernel void MLOpenCvBwdWrW(
 
 #endif
 
-#endif
 
 	// write out 
 	// inputs are outputs
 	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + ((c_idx + m_idx) * MLO_WEI_CHANNEL_STRIDE);
+
 
 	for (int n = 0; n < MLO_OUT_STACKS && p4 == 0 && m_idx < MLO_IN_STACKS; ++n)
 	{
@@ -481,6 +503,7 @@ __kernel void MLOpenCvBwdWrW(
 		}
 	}
 
+#endif
 }
 
 
