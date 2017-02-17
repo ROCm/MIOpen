@@ -60,9 +60,9 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 	}
 }
 
-ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params)
+ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params, bool is_kernel_str)
 {
-	auto source = mlopen::GetKernelSrc(program_name);
+	auto source = is_kernel_str ? program_name : mlopen::GetKernelSrc(program_name);
 	auto char_source = source.c_str();
 	auto size = source.size();
 	auto is_binary = mlopen::EndsWith(program_name, ".so");

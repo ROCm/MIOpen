@@ -9,6 +9,9 @@
 #include <unistd.h>
 #endif
 
+#include <chrono>
+#include <thread>
+
 namespace mlopen {
 
 hipDevice_t get_device(int id)
@@ -120,8 +123,13 @@ ManageDataPtr Handle::Create(int sz)
 {
     this->Finish();
     void * result;
+    // int tries = 10;
     auto status = hipMalloc(&result, sz);
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer: ");
+    if (status != hipSuccess)
+    {
+        status = hipHostMalloc(&result, sz);
+        if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer " + std::to_string(sz) + ": ");
+    }
     return ManageDataPtr{result};
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
@@ -177,9 +185,9 @@ KernelInvoke Handle::GetKernel(
     else return k.Invoke(this->GetStream());
 }
 
-Program Handle::LoadProgram(const std::string &program_name, std::string params)
+Program Handle::LoadProgram(const std::string &program_name, std::string params, bool is_kernel_str)
 {
-    return HIPOCProgram{program_name, params};
+    return HIPOCProgram{program_name, params, is_kernel_str};
 }
 
 void Handle::Finish() const
@@ -190,6 +198,11 @@ void Handle::Finish() const
 void Handle::Flush() const
 {
 
+}
+
+bool Handle::IsProfilingEnabled() const
+{
+	return this->impl->enable_profiling;
 }
 
 void Handle::ResetKernelTime(void)

@@ -203,9 +203,13 @@ struct conv_forward : output_tensor_fixture
 		STATUS(mlopenGet4dTensorDescriptorLengths(outputTensor, &n, &c, &h, &w));
 		size_t sz_out = n*c*h*w;
 
+		size_t sz_fwd_workspace;
+		STATUS(mlopenConvolutionForwardGetWorkSpaceSize(convFilter, outputTensor, convDesc, &sz_fwd_workspace));
+
         std::vector<float> in(sz_in);
         std::vector<float> wei(sz_wei);
         std::vector<float> out(sz_out);
+        std::vector<float> fwd_workspace(sz_fwd_workspace/4);
 
         for(int i = 0; i < sz_in; i++) {
             in[i] = rand() * (1.0 / RAND_MAX);
@@ -223,10 +227,12 @@ struct conv_forward : output_tensor_fixture
 		cl_mem in_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz_in,NULL, &status);
 		cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4*sz_wei,NULL, NULL);
 		cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4*sz_out,NULL, NULL);
+		cl_mem fwd_workspace_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sz_fwd_workspace, NULL, NULL);
 
 		status = clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4*sz_in, in.data(), 0, NULL, NULL);
 		status |= clEnqueueWriteBuffer(q, wei_dev, CL_TRUE, 0, 4*sz_wei, wei.data(), 0, NULL, NULL);
 		status |= clEnqueueWriteBuffer(q, out_dev, CL_TRUE, 0, 4*sz_out, out.data(), 0, NULL, NULL);
+		status |= clEnqueueWriteBuffer(q, fwd_workspace_dev, CL_TRUE, 0, sz_fwd_workspace, fwd_workspace.data(), 0, NULL, NULL);
 		EXPECT(status == CL_SUCCESS);
 
 #elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
@@ -234,13 +240,17 @@ struct conv_forward : output_tensor_fixture
         void * in_dev;
         void * wei_dev;
         void * out_dev;
+		void * fwd_workspace_dev;
+
         EXPECT(hipMalloc(&in_dev, 4*sz_in) == hipSuccess);
         EXPECT(hipMalloc(&wei_dev, 4*sz_wei) == hipSuccess);
         EXPECT(hipMalloc(&out_dev, 4*sz_out) == hipSuccess);
+        EXPECT(hipMalloc(&fwd_workspace_dev, sz_fwd_workspace) == hipSuccess);
 
         EXPECT(hipMemcpy(in_dev, in.data(), 4*sz_in, hipMemcpyHostToDevice) == hipSuccess);
         EXPECT(hipMemcpy(wei_dev, wei.data(), 4*sz_wei, hipMemcpyHostToDevice) == hipSuccess);
         EXPECT(hipMemcpy(out_dev, out.data(), 4*sz_out, hipMemcpyHostToDevice) == hipSuccess);
+        EXPECT(hipMemcpy(fwd_workspace_dev, fwd_workspace.data(), sz_fwd_workspace, hipMemcpyHostToDevice) == hipSuccess);
 
 #endif
 
@@ -259,8 +269,8 @@ struct conv_forward : output_tensor_fixture
             &ret_algo_count,
             &perf,
             mlopenConvolutionFastest,
-            NULL,
-            10,
+            fwd_workspace_dev,
+            sz_fwd_workspace,
 			0)); // MD: Not performing exhaustiveSearch by default for now
 
         STATUS(mlopenConvolutionForward(handle,
@@ -274,8 +284,8 @@ struct conv_forward : output_tensor_fixture
             &beta,
             outputTensor,
 			out_dev,
-            NULL,
-            0));
+            fwd_workspace_dev,
+            sz_fwd_workspace));
 
         float time;
         STATUS(mlopenGetKernelTime(handle, &time));
@@ -290,11 +300,16 @@ struct conv_forward : output_tensor_fixture
 
         // Potential memory leak free memory at end of function
 #if MLOPEN_BACKEND_OPENCL
+		clReleaseMemObject(in_dev);
+		clReleaseMemObject(wei_dev);
+		clReleaseMemObject(out_dev);
+		clReleaseMemObject(fwd_workspace_dev);
 
 #elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
         hipFree(in_dev);
         hipFree(wei_dev);
         hipFree(out_dev);
+		hipFree(fwd_workspace_dev);
 #endif
     }
 };

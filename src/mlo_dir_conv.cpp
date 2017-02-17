@@ -273,7 +273,7 @@ int mlo_construct_direct2D::mloConstruct()
 			}
 
 		}
-
+#ifdef MLOPEN_LOG_CONVOLUTION
 		std::cout << "Selected run : "
 			<< _grp_tile1 << ", "
 			<< _grp_tile0 << ", "
@@ -285,6 +285,7 @@ int mlo_construct_direct2D::mloConstruct()
 			<< _n_in_data_tiles << ", "
 			<< _n_stacks
 			<< std::endl;
+#endif
 
 		// construct found configuration
 
@@ -1994,8 +1995,9 @@ int mlo_construct_direct2D :: mloAddConfigReq(const std::string & conf_key) cons
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.rdb.txt");
-
+#ifdef MLOPEN_LOG_CONVOLUTION
 	printf("file %s\n", conf_file.c_str());
+#endif
 	std::vector<std::string>::iterator it;
 	bool found = mloFindConfigReq(conf_file, conf_key, req_conf_db, it);
 
