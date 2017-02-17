@@ -21,6 +21,7 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
         hipEventRecord(start, nullptr);
     }
 
+    // std::cerr << "Launch kernel: " << name << std::endl;
     auto status = hipModuleLaunchKernel(fun, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], 0, stream, nullptr, (void**)&config);
     if(status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed to launch kernel");
 

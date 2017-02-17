@@ -351,6 +351,13 @@ typedef struct{
  * routime works as both cuDNN's FindAlgorithm and GetAlgorithm
  * routines. I do not see any need of having two similar routines
  */
+
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionForwardGetWorkSpaceSize(
+		const mlopenTensorDescriptor_t		wDesc,
+		const mlopenTensorDescriptor_t		yDesc,
+		const mlopenConvolutionDescriptor_t convDesc,
+		size_t								*workSpaceSize);
+
 MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t		xDesc,
 		const void							*x,
@@ -358,7 +365,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_
 		const void							*w,
 		const mlopenConvolutionDescriptor_t	convDesc,
 		const mlopenTensorDescriptor_t		yDesc,
-		const void							*y,
+		void							*y,
 		const int							requestAlgoCount,
 		int									*returnedAlgoCount,
 		mlopenConvAlgoPerf_t				*perfResults,
@@ -425,7 +432,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionBackwardWeightsAlgorithm(mlope
 		const void							*x,
 		const mlopenConvolutionDescriptor_t	convDesc,
 		const mlopenTensorDescriptor_t		dwDesc,
-		const void							*dw,
+		void							*dw,
 		const int							requestAlgoCount,
 		int									*returnedAlgoCount,
 		mlopenConvAlgoPerf_t				*perfResults,
@@ -658,6 +665,20 @@ MLOPEN_EXPORT mlopenStatus_t mlopenSoftmaxBackward(
 	const void							*beta,
 	const mlopenTensorDescriptor_t		dxDesc,
 	void								*dx);
+
+// GEMM API
+
+MLOPEN_EXPORT mlopenStatus_t mlopenGemm(
+		mlopenHandle_t			handle,
+		bool					isDataColMajor,
+		bool					transA, 
+		bool					transB, 
+		int M, int N, int K, 
+		const void *alpha, 
+		const void *A, int lda, 
+		const void *B, int ldb, 
+		const void *beta, 
+		void *C, int ldc );
 
 #ifdef __cplusplus
 }
