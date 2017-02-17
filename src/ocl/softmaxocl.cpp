@@ -53,7 +53,7 @@ mlopenStatus_t SoftmaxForward(
 		const std::vector<size_t> vgd(1, workgroups*vld[0]);
 
 		handle.GetKernel("mlopenSoftmaxForward",
-				"placeholder",
+				"",
 				program_name,
 				kernel_name,
 				vld,
@@ -74,7 +74,7 @@ mlopenStatus_t SoftmaxForward(
 			" -DU_BATCH_SIZE=" + std::to_string(u_batch_size);
 
 		handle.GetKernel("mlopenSoftmaxForward",
-				"placeholder",
+				"",
 				program_name,
 				kernel_name,
 				vld,
@@ -122,7 +122,7 @@ mlopenStatus_t SoftmaxBackward(
 		const std::vector<size_t> vgd(1, workgroups*vld[0]);
 
 		handle.GetKernel("mlopenSoftmaxBackward",
-				"placeholder",
+				"",
 				program_name,
 				kernel_name,
 				vld,
@@ -141,7 +141,7 @@ mlopenStatus_t SoftmaxBackward(
 			" -DU_BATCH_SIZE=" + std::to_string(u_batch_size);
 
 		handle.GetKernel("mlopenSoftmaxBackward",
-				"placeholder",
+				"",
 				program_name,
 				kernel_name,
 				vld,
