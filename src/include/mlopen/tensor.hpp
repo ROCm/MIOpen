@@ -14,12 +14,14 @@ namespace mlopen {
 template<class T>
 auto tie4(T&& x) -> decltype(std::tie(x[0], x[1], x[2], x[3]))
 {
+	assert(x.size() == 4);
 	return std::tie(x[0], x[1], x[2], x[3]);
 }
 
 template<class T>
 auto tie2(T&& x) -> decltype(std::tie(x[0], x[1]))
 {
+	assert(x.size() == 2);
 	return std::tie(x[0], x[1]);
 }
 
