@@ -243,7 +243,7 @@ int mlo_construct_direct2D::mloConstruct()
 	const auto use_asm_kernels_perf_filtering_env_p = std::getenv("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 	const auto use_asm_kernels_perf_filtering = ((use_asm_kernels_perf_filtering_env_p == nullptr) || (std::strcmp(use_asm_kernels_perf_filtering_env_p, "disable") != 0));
 
-	if (use_precompiled_binaries && mloCheckWinograd3x3FwdConvCondition() && (!use_asm_kernels_perf_filtering || mloCheckWinograd3x3FwdConvPerfFilter()))
+	if (getDirection() && use_precompiled_binaries && mloCheckWinograd3x3FwdConvCondition() && (!use_asm_kernels_perf_filtering || mloCheckWinograd3x3FwdConvPerfFilter()))
 	{
 		return (mloConstructWinograd3x3FwdConv());
 	}

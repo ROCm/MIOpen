@@ -1,5 +1,6 @@
 #include <mlopen/convolution.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/tensor_ops.hpp>
 
 extern "C"
 mlopenStatus_t mlopenCreateConvolutionDescriptor(
@@ -152,6 +153,27 @@ mlopenStatus_t mlopenConvolutionForward(mlopenHandle_t handle,
 				workSpaceSize);
 	});
 
+
+}
+
+extern "C"
+mlopenStatus_t mlopenConvolutionForwardBias(mlopenHandle_t handle,
+		const void						*alpha,
+		const mlopenTensorDescriptor_t	bDesc,
+		const void						*b,
+		const void						*beta,
+		const mlopenTensorDescriptor_t	yDesc,
+		void							*y) {
+
+    return mlopen::try_([&] {
+		return AddTensor(mlopen::deref(handle), 
+				alpha,
+				mlopen::deref(bDesc),
+				DataCast(b),
+				beta,
+				mlopen::deref(yDesc),
+				DataCast(y));
+	});
 
 }
 
