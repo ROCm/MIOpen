@@ -243,7 +243,7 @@ int mlo_construct_direct2D::mloConstruct()
 	const auto use_asm_kernels_perf_filtering_env_p = std::getenv("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 	const auto use_asm_kernels_perf_filtering = ((use_asm_kernels_perf_filtering_env_p == nullptr) || (std::strcmp(use_asm_kernels_perf_filtering_env_p, "disable") != 0));
 
-	if (getDirection() && use_precompiled_binaries && mloCheckWinograd3x3FwdConvCondition() && (!use_asm_kernels_perf_filtering || mloCheckWinograd3x3FwdConvPerfFilter()))
+	if (use_precompiled_binaries && mloCheckWinograd3x3FwdConvCondition() && (!use_asm_kernels_perf_filtering || mloCheckWinograd3x3FwdConvPerfFilter()))
 	{
 		return (mloConstructWinograd3x3FwdConv());
 	}
@@ -1769,6 +1769,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 int mlo_construct_BwdWrW2D::mloConstruct()
 {
 	int ret = 0;
+	_workspce_sz = 0;
 
     if (((_kernel_size0>=_kernel_size1) && (_kernel_stride0 > 1 || _kernel_stride1 > 1)) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
 	{
@@ -1780,7 +1781,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		{
 			ret = mloConstruct53();
 		}
-		else
+		else if ( _in_width * _in_height <= (8*1024))
 		{
 			ret = mloConstruct1x1();
 		}
