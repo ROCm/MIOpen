@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 	else if (base_arg == "softmax") {
 		drv = new SoftmaxDriver<float>();
 	}
-#ifdef MLOPEN_USE_TINYGEMMM
+#ifdef MLOPEN_USE_TINYGEMM
 	else if (base_arg == "gemm") {
 		drv = new GemmDriver<float>();
 	}
