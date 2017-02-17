@@ -237,8 +237,8 @@ std::string Handle::GetDeviceName()
 {
     hipDeviceProp_t props;
     hipGetDeviceProperties(&props, get_device_id());
-
-	return GetDeviceNameFromMap(props.name);
+    std::string n(props.name);
+	return GetDeviceNameFromMap(n);
 }
 #endif
 }
