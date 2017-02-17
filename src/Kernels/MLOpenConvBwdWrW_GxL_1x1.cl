@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 AMD Inc.
+ * Copyright (c) 2017 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -209,16 +209,16 @@ static inline void readDataFlex(int n, int gbl_data_off, int gbl_data_stride, in
 /*********************************************************************************************************
 // wrw algorithm for large filters
 // idea:
-// read MLO_OUT_STACKS per group, MLO_N_LCL_IN_MAPS per wk_item input maps
-// read MLO_OUT_STACKS per group, MLO_N_LCL_OUT_MAPS per wk_item output maps
+// read MLO_OUT_STACKS output maps into LDS
+// read MLO_IN_STACKS per group, MLO_N_LCL_IN_MAPS per wk_item input maps
 
 // alg
-// loop in MLO_N_LCL_OUT_MAPS
-// load MLO_OUT_STACKS of output into LDS
-loop in MLO_OUT_STACKS
+
+// loop over MLO_OUT_STACKS of output
+
 // convolve with MLO_N_LCL_IN_MAPS per wk-item
 
-// reduce
+// reduce with transform
 
 // write out 
 
@@ -237,18 +237,11 @@ __kernel void MLOpenCvBwdWrW(
 )
 {
 	// reduction memory.
-	// ceil pow2 of the number of wk-items keeping the map
-#if 0 //(MLO_POW2_MAP_WK_SZ * MLO_OUT_STACKS) > (MLO_OUT_STACKS * MLO_MAP_WK_SZ * MLO_READ_UNIT)
-#define MLO_LCL_MEM_SZ (MLO_POW2_MAP_WK_SZ * MLO_OUT_STACKS)
-//#else
-#define MLO_LCL_MEM_SZ (MLO_OUT_STACKS * MLO_MAP_WK_SZ * MLO_READ_UNIT)
-#endif
 
 	__local _FLOAT lcl_mem[MLO_LCL_MEM_SZ];
 	__local _FLOAT * red_mem = lcl_mem;
 	__local _FLOAT * proc_mem = lcl_mem;
 
-	// guarnteeing an uniformity over a wave
 	int wave_id = getWaveId();
 	int lcl_id = get_local_id(0);
 	int lcl_wv_id = gePhysLocalId();
@@ -269,16 +262,8 @@ __kernel void MLOpenCvBwdWrW(
 	int p4 = iMod(lcl_id, m_idx, MLO_MAP_WK_SZ);
 
 	bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
-//	bool out_of_range = false; // (m_idx >= MLO_OUT_STACKS);
-//	bool out_of_range_in = (m_idx + c_idx >= MLO_N_INPUTS);
-//	bool out_of_range_out = (m_idx + k_idx >= MLO_N_OUTPUTS);
 
 	gbl_in_off += m_idx * MLO_IN_CHANNEL_STRIDE + p4*MLO_READ_UNIT;
-//	gbl_out_off += m_idx * MLO_OUT_CHANNEL_STRIDE + p4*MLO_READ_UNIT;
-
-	// read guards
-//	gbl_in_off = (out_of_range_in || out_of_range) ? 0 : gbl_in_off;
-//	gbl_out_off = (out_of_range_out || out_of_range) ? 0 : gbl_out_off;
 
 
 #define MLO_TOP_DAT_SZ (MLO_N_LCL_OUT_MAPS * MLO_READ_UNIT)
@@ -330,22 +315,14 @@ __kernel void MLOpenCvBwdWrW(
 		// read input maps
 		readData(MLO_N_LCL_IN_MAPS, gbl_in_scan_off, MLO_IN_CHANNEL_STRIDE, MLO_IN_STACKS, (m_idx + c_idx), MLO_N_INPUTS, bot, bot_dat, last_pixel);
 
-		// read output maps
+		// read output maps into LDS
 		readDataFlex(MLO_N_LCL_OUT_MAPS, gbl_out_scan_off, MLO_OUT_CHANNEL_STRIDE, MLO_OUT_STACKS, (k_idx), MLO_N_OUTPUTS, top_df, proc_mem);
 
 		for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 		{
 
 			barrier(CLK_LOCAL_MEM_FENCE);
-#if 0
-	// move 1 set of output maps into LDS
-			for (int i = 0; i < MLO_READ_UNIT; ++i)
-			{
-				proc_mem[lcl_id*MLO_READ_UNIT + i] = top_dat[k*MLO_READ_UNIT + i];
-			}
 
-			barrier(CLK_LOCAL_MEM_FENCE);
-#endif
 			/*
 			core processing loop
 			bot - input
@@ -394,7 +371,6 @@ __kernel void MLOpenCvBwdWrW(
 					}
 					
 				}
-//				Processing(MLO_N_LCL_OUT_MAPS, o_idx, m_idx, MLO_N_LCL_IN_MAPS, c_idx, m_idx, pvt_accum, bot_dat, top_dat, (p4 == 0 && (lcl_id == 0 || lcl_id == 1)));
 			}
 		}
 
@@ -444,6 +420,7 @@ __kernel void MLOpenCvBwdWrW(
 #else
 
 #if 0 //MLO_IN_WIDTH > 24
+// logar reduction
 	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
 	{
 		red_mem[i] = 0;
@@ -465,7 +442,7 @@ __kernel void MLOpenCvBwdWrW(
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 #else
-
+	// direct reduction
 	for (int l = 0; l < MLO_ACCUM_SZ; ++l)
 	{
 		lcl_mem[lcl_id] = pvt_accum[l];

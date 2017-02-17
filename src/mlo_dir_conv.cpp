@@ -1178,12 +1178,14 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	// number of input maps per group
 
 	int map_sz = _in_width*_in_height;
+	// define a special size for a specific width as a devisor to avoid dealing with out of range
 	// param
 	int read_unit = (_in_width == 7 || _in_width == 14) ? 7 : (_in_width == 28) ? 14 : (((map_sz / 8) * 8) == map_sz) ? 8 : (((map_sz / 4) * 4) == map_sz) ? 4 : (((map_sz / 2) * 2) == map_sz) ? 2 : 1;
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
     int POW2_MAP_WK_SZ = (1 << mloLg2(MAP_WK_SZ));
+	// number of output maps fetched into LDS and to be shred with the input mapped kept in registers
 	// param
 	int n_out_stacks = (_in_width == 28)? 10 : ((_in_width == 7) || (_in_width == 14)) ? 8 : (GRP_SZ / MAP_WK_SZ);
 	int lcl_size_limit = (_in_width <= 8) ? n_out_stacks*MAP_WK_SZ*read_unit : _dev_local_mem_sz / (2 * sizeof(float));
@@ -1194,24 +1196,27 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		n_out_stacks--;
 	}
 
-
+	// number input maps stacks.
+	// n_in_stacks input map wil be written in teh local memory sequentially
 	int n_in_stacks = (GRP_SZ / MAP_WK_SZ);
 
 	n_out_stacks = std::min(_n_inputs, n_out_stacks);
 	n_in_stacks = std::min(_n_outputs, n_in_stacks);
 
 	// param
+	// this is 1 currently
 	_n_out_pix_tiles = std::min(1, (_n_inputs + n_out_stacks - 1) / n_out_stacks);
 
+	// number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
 	// param
 	_n_in_data_tiles = std::min(((_in_width == 28) ? 2 : 4), (_n_outputs + n_in_stacks - 1) / n_in_stacks);
-// to be able to do easy funa transform and summation
+// to be able to do an easy final transform and summation
 	while ((_in_width > 8) && n_in_stacks*_n_in_data_tiles* n_out_stacks > GRP_SZ)
 	{
 		n_in_stacks--;
 	}
 
-	 // select output mapping
+	 // total maps per group
 	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
 	int total_in_maps = _n_in_data_tiles * n_in_stacks;
 
@@ -1308,7 +1313,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = "MLOpenConvBwdWrW_GxG_1x1.cl";
+		_kernel_file = "MLOpenConvBwdWrW_GxL_1x1.cl";
 		_kernel_name = "MLOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -1323,7 +1328,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	{
 
 
-		std::string kernel_file = "MLOpenConvBwdWrW_GxG_1x1.cl";
+		std::string kernel_file = "MLOpenConvBwdWrW_GxL_1x1.cl";
 		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
