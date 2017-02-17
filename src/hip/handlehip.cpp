@@ -1,5 +1,6 @@
 #include <mlopen/handle.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/device_name.hpp>
 #if MLOPEN_BACKEND_HIPOC
 #include <mlopen/kernel_cache.hpp>
 #endif
