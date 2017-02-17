@@ -35,7 +35,6 @@ struct test_driver
     template<class T, class... Fs>
     void add(T& x, std::string name, Fs... fs)
     {
-        std::cout << "Add: " << name << std::endl;
         argument arg;
         arg.write_value = [&](std::vector<std::string> params)
         {
