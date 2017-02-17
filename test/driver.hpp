@@ -3,122 +3,90 @@
 #include "tensor_holder.hpp"
 #include "network_data.hpp"
 
-template<class F, class Base>
-struct test_driver : Base
+struct rand_gen
 {
-    struct empty_args
+    double operator()(int n, int c, int h, int w) const
     {
-        template<class T>
-        void operator()(bool& b, T&& x) const
+        return double((547*n+701*c+877*h+1049*w+173)%17);
+    };
+};
+
+struct test_driver
+{
+    struct argument
+    {
+        std::function<void(std::vector<std::string>)> write_value;
+        std::vector<std::function<void()>> post_write_actions;
+        // std::string name;
+    };
+
+    std::unordered_map<std::string, argument> arguments;
+
+
+    struct per_arg
+    {
+        template<class T, class Action>
+        void operator()(T& x, argument& a, Action action) const
         {
-            b = b && x.empty();
+            action(x, a);
         }
     };
 
-    void run()
+    template<class T, class... Fs>
+    void add(T& x, std::string name, Fs... fs)
     {
-        auto g0 = [](int, int, int, int) { return 0; };
-        auto g1 = [](int, int, int, int) { return 1; };
-        auto g_id = [](int, int, int h, int w) { return h == w ? 1 : 0; };
-        auto g = [](int n, int c, int h, int w)
+        std::cout << "Add: " << name << std::endl;
+        argument arg;
+        arg.write_value = [&](std::vector<std::string> params)
         {
-            return double((547*n+701*c+877*h+1049*w+173)%17);
+            args::write_value{}(x, params);
         };
-        (void)g0;
-        (void)g1;
-        (void)g_id;
-        (void)g;
+        mlopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1), fs...);
+        arguments.insert(std::make_pair(name, arg));
+    }
 
-        bool empty = true;
-        this->visit(std::bind(empty_args{}, std::ref(empty), std::placeholders::_1));
-
-        if (empty)
+    struct generate_tensor_t
+    {
+        template<class T>
+        void operator()(T& x, argument& arg) const
         {
-        #if MLOPEN_TEST_ALL
-        #if MLOPEN_TEST_ALL_GENERATORS
-            printf("verify_all\n");
-            this->template generate_all<float>(F{}, g0, g1, g_id, g);
-        #else
-            printf("verify_all debug\n");
-            this->template generate_all<float>(F{}, g);
-        #endif
-        #else
-            printf("verify_one\n");
-            this->template generate_default<float>(F{}, g);
-        #endif
+            arg.post_write_actions.push_back([&]
+            {
+                tensor_generate{}(x, rand_gen{});
+            });
         }
-        else
-        {
-            this->template generate_one<float>(F{}, g);
-        }
+    };
+
+    // Tensors: {16, 32, 8, 8}, {64, 32, 5, 5}
+    generate_tensor_t generate_tensor()
+    {
+        return {};
     }
 };
 
-struct unary_input
-{
-    std::vector<int> input_dims;
-
-    template<class V>
-    void visit(V v)
-    {
-        v(input_dims, "--input");
-    }
-
-    template<class T, class F, class... Gs>
-    void generate_all(F f, Gs... gs)
-    {
-        generate_unary_all<T>(f, gs...);
-    }
-
-    template<class T, class F, class G>
-    void generate_default(F f, G g)
-    {
-        generate_unary_one<T>(f, {16, 32, 8, 8}, g);
-    }
-
-    template<class T, class F, class G>
-    void generate_one(F f, G g)
-    {
-        generate_unary_one<T>(f, input_dims, g);
-    }
-};
-
-struct binary_input
-{
-    std::vector<int> input_dims;
-    std::vector<int> weights_dims;
-
-    template<class V>
-    void visit(V v)
-    {
-        v(input_dims, "--input");
-        v(weights_dims, "--weights");
-    }
-
-    template<class T, class F, class... Gs>
-    void generate_all(F f, Gs... gs)
-    {
-        generate_binary_all<T>(f, gs...);
-    }
-
-    template<class T, class F, class G>
-    void generate_default(F f, G g)
-    {
-        generate_binary_one<T>(f, {16, 32, 8, 8}, {64, 32, 5, 5}, g);
-    }
-
-    template<class T, class F, class G>
-    void generate_one(F f, G g)
-    {
-        generate_binary_one<T>(f, input_dims, weights_dims, g);
-    }
-};
-
-
-template<class F, class Base>
+template<class Driver>
 void test_drive(int argc, const char *argv[])
 {
-    args::parse<test_driver<F, Base>>(argc, argv);
-}
+    std::vector<std::string> as(argv+1, argv+argc);
+    Driver d{};
 
+    auto arg_map = args::parse(as, [&](std::string x)
+    {
+        return (x.compare(0, 2, "--") == 0) and d.arguments.count(x.substr(2)) > 0;
+    });
+
+    for(auto&& p:arg_map)
+    {
+        auto name = p.first.substr(2);
+        auto&& arg = d.arguments[name];
+        arg.write_value(p.second);
+        for(auto post_write:arg.post_write_actions)
+        {
+            post_write();
+        }
+
+    }
+
+    d.run();
+}
 

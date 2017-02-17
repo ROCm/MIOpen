@@ -11,6 +11,9 @@ struct tensor
     mlopen::TensorDescriptor desc;
     std::vector<T> data;
 
+    tensor()
+    {}
+
     tensor(int n, int c, int h, int w)
     : desc(mlopenFloat, {n,c,h,w}), data(n*c*h*w)
     {}

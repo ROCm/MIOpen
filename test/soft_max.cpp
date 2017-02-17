@@ -126,10 +126,17 @@ struct verify_backward_sofmax
     }
 };
 
-struct verify_softmax
+template<class T>
+struct softmax_driver : test_driver
 {
-    template<class T>
-    void operator()(const tensor<T>& input) const
+    tensor<T> input;
+
+    softmax_driver()
+    {
+        add(input, "input", generate_tensor());
+    }
+
+    void run()
     {
         auto out = verify(verify_forward_sofmax{}, input);
         auto dout = input;
@@ -145,6 +152,6 @@ struct verify_softmax
 
 int main(int argc, const char *argv[]) 
 {
-    test_drive<verify_softmax, unary_input>(argc, argv);
+    test_drive<softmax_driver<float>>(argc, argv);
 }
 

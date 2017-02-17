@@ -241,10 +241,16 @@ struct verify_backward_pooling
     
 };
 
-struct verify_pooling
+template<class T>
+struct pooling_driver : test_driver
 {
-    template<class T>
-    void operator()(const tensor<T>& input) const
+    tensor<T> input;
+
+    pooling_driver()
+    {
+        add(input, "input", generate_tensor());
+    }
+    void run()
     {
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
@@ -277,5 +283,5 @@ struct verify_pooling
 
 int main(int argc, const char *argv[]) 
 {
-    test_drive<verify_pooling, unary_input>(argc, argv);
+    test_drive<pooling_driver<float>>(argc, argv);
 }
