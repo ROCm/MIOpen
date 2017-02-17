@@ -62,7 +62,7 @@ static void CreateBitmapAndGrid(unsigned int &bitmap, std::vector<int> &a_lens, 
     }
 }
 
-mlopenStatus_t AddTensor(Handle&              handle,
+void AddTensor(Handle&              handle,
 			const void              * /*alpha*/,
 			const TensorDescriptor& aTensorDesc,
 			ConstData_t             ATensor,
@@ -135,7 +135,6 @@ mlopenStatus_t AddTensor(Handle&              handle,
             vgd,
             parms) (ATensor, a_c, a_h, a_w, a_nstride, a_cstride, CTensor, c_n, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg);
 
-    return mlopenStatusSuccess;
 }
 
 void TransformTensor(Handle& /* handle */,
@@ -209,7 +208,7 @@ void OpTensor(Handle& /* handle */,
 
 }
 
-mlopenStatus_t CopyTensor(Handle &handle, 
+void CopyTensor(Handle &handle, 
 		const TensorDescriptor &srcDesc,
 		ConstData_t src,
 		const TensorDescriptor &destDesc,
@@ -221,8 +220,6 @@ mlopenStatus_t CopyTensor(Handle &handle,
 	size_t srcSize = srcDesc.GetElementSize();
 
 	handle.Copy(src, dest, srcSize*sizeof(srcDesc.GetType()));
-
-    return mlopenStatusSuccess;
 }
 
 } // namespace mlopen
