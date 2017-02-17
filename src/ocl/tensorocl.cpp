@@ -128,7 +128,7 @@ void AddTensor(Handle&              handle,
 	const std::vector<size_t> vgd(1, num_wg*256);
 
     handle.GetKernel(kernel_name,
-            "placeholder",
+            "",
             program_name,
             kernel_name,
             vld,
