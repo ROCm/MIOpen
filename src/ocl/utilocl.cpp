@@ -16,7 +16,6 @@ mlopenStatus_t Im2ColGPU(
 {
 	std::string program_name = "MLOpenUtilKernels.cl";
 	std::string kernel_name = "Im2Col";
-	std::string network = "placeholder";
 
 	std::string params;
 	int num_ch_per_wg;
@@ -43,7 +42,7 @@ mlopenStatus_t Im2ColGPU(
 	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*num_blks);
 
 	handle.GetKernel("mlopenIm2Col",
-			network,
+			"",
 			program_name,
 			kernel_name,
 			vld,

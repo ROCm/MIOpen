@@ -64,9 +64,8 @@ void GemmGeometry::FindSolution(float time,
         vld[0] = local_work_size;
         vgd[1] = global_work_size;
 
-        // TODO: remove placeholder
         handle.GetKernel(algorithm_name+"_beta",
-                "placeholder",
+                "",
                 beta_program_name,
                 beta_kernel_name,
                 vld,
@@ -90,8 +89,7 @@ void GemmGeometry::RunGemm(Handle &handle,
 
     // beta kernel, if required
     if(beta_kern_req) {
-        handle.GetKernel(algorithm_name+"_beta", "placeholder") (beta_kern_args[0], beta_kern_args[1],
-                strides[2], c_offset, c, beta);
+        handle.GetKernel(algorithm_name+"_beta", "") (beta_kern_args[0], beta_kern_args[1], strides[2], c_offset, c, beta);
     }
 
     // main kernel

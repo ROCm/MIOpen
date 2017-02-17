@@ -152,7 +152,7 @@ int GemmDriver<T>::RunForwardGPU() {
             a_dev->GetMem(), lda, 
             b_dev->GetMem(), ldb,
             &beta,
-            c_dev->GetMem(), M);
+            c_dev->GetMem(), N);
 
     if(inflags.GetValueInt("time") == 1) {
         float time = 0.0;
