@@ -6,6 +6,7 @@
 #include "lrn_driver.hpp"
 #include "activ_driver.hpp"
 #include "softmax_driver.hpp"
+#include "gemm_driver.hpp"
 
 int main(int argc, char *argv[]) {
 
@@ -27,6 +28,11 @@ int main(int argc, char *argv[]) {
 	else if (base_arg == "softmax") {
 		drv = new SoftmaxDriver<float>();
 	}
+#ifndef WIN32 // so Linux and APPLE
+	else if (base_arg == "gemm") {
+		drv = new GemmDriver<float>();
+	}
+#endif
 	else {
 		printf("Incorrect BaseArg\n");
 		exit(0);
@@ -41,13 +47,18 @@ int main(int argc, char *argv[]) {
 	drv->RunForwardGPU();
 
 	if(drv->GetInputFlags().GetValueInt("verify") == 1) {
-		drv->VerifyForward();
+		if(base_arg == "gemm")
+			printf("GEMM verification done in the GEMM library\n");
+		else
+			drv->VerifyForward();
 	}
 	
 	if(drv->GetInputFlags().GetValueInt("forw") == 0) {
-		drv->RunBackwardGPU();
-		if(drv->GetInputFlags().GetValueInt("verify") == 1) {
-			drv->VerifyBackward();
+		if(!(base_arg == "gemm")) {
+			drv->RunBackwardGPU();
+			if(drv->GetInputFlags().GetValueInt("verify") == 1) {
+				drv->VerifyBackward();
+			}
 		}
 	}
 

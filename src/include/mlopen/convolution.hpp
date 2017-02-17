@@ -18,10 +18,19 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& inputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 
+	std::tuple<int, int, int, int> GetBackwardsWeightsDim(const TensorDescriptor& inputTensorDesc, 
+										const TensorDescriptor& outputTensorDesc) const;
+	TensorDescriptor GetBackwardWeightsTensor(const TensorDescriptor& inputTensorDesc,
+										const TensorDescriptor& outputTensorDesc) const;
+
 	std::tuple<int, int, int, int> GetBackwardOutputDim(const TensorDescriptor& outputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 	TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
+
+	size_t ForwardGetWorkSpaceSize(
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		yDesc) const;
 
 	void FindConvFwdAlgorithm(Handle& handle,
 		const TensorDescriptor&			xDesc,
@@ -29,12 +38,12 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const TensorDescriptor&			wDesc,
 		ConstData_t						w,
 		const TensorDescriptor&			yDesc,
-		ConstData_t						y,
+		Data_t						y,
 		int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,
 		mlopenConvPreference_t			preference,
-		void							*workSpace,
+		Data_t							workSpace,
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
@@ -48,7 +57,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const void						*beta,
 		const TensorDescriptor&			yDesc,
 		Data_t							y,
-		void							*workSpace,
+		Data_t							workSpace,
 		size_t							workSpaceSize) const;
 
 	void FindConvBwdDataAlgorithm(Handle& handle,
@@ -79,11 +88,10 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		void							*workSpace,
 		size_t							workSpaceSize) const;
 
-	void ConvolutionBackwardWeightsGetWorkSpaceSize(
+	size_t ConvolutionBackwardWeightsGetWorkSpaceSize(
 		const TensorDescriptor&		dyDesc,
 		const TensorDescriptor&		xDesc,
-		const TensorDescriptor&		dwDesc,
-		size_t								*workSpaceSize);
+		const TensorDescriptor&		dwDesc) const;
 
 	void FindConvBwdWeightsAlgorithm(Handle& handle,
 		const TensorDescriptor&			dyDesc,
@@ -91,7 +99,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const TensorDescriptor&			xDesc,
 		ConstData_t						x,
 		const TensorDescriptor&			dwDesc,
-		ConstData_t						dw,
+		Data_t						dw,
 		int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,

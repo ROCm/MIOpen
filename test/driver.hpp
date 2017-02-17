@@ -22,8 +22,7 @@ struct test_driver : Base
         auto g_id = [](int, int, int h, int w) { return h == w ? 1 : 0; };
         auto g = [](int n, int c, int h, int w)
         {
-            double x = (547*n+701*c+877*h+1049*w+173)%1223;
-            return x/691.0;
+            return double((547*n+701*c+877*h+1049*w+173)%17);
         };
         (void)g0;
         (void)g1;

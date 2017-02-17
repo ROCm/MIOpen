@@ -75,6 +75,16 @@ struct tensor
         return this->data[this->desc.GetIndex(n, c, h, w)];
     }
 
+    T& operator[](std::size_t i)
+    {
+        return data.at(i);
+    }
+
+    const T& operator[](std::size_t i) const
+    {
+        return data.at(i);
+    }
+
     typename std::vector<T>::iterator begin()
     {
         return data.begin();

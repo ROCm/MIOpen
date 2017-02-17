@@ -139,6 +139,14 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 	 DESTINATION share/mlopen/db)
 endif()
 
+if(tinygemm_FOUND)
+    list(APPEND MLOpen_Source 
+        gemm.cpp
+        gemm_api.cpp
+        gemm_geometry.cpp
+    )
+endif()
+
 if( MLOPEN_BACKEND STREQUAL "OpenCL" )
 	list(APPEND MLOpen_Source 
 		ocl/handleocl.cpp
@@ -218,3 +226,8 @@ elseif(MLOPEN_BACKEND STREQUAL "HIPOC")
 	target_link_libraries( MLOpen ${hip_LIBRARIES} )
 endif()
 
+############################################################
+# MLOpen depends on tinygemm
+if(tinygemm_FOUND)
+	target_link_libraries( MLOpen tinygemm )
+endif()
