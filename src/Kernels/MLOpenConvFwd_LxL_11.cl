@@ -182,16 +182,17 @@ __kernel void MLOpenCvFwd(
 
 
 
-	int k_idx = get_group_id(0) * (MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS); // output map index base
 
-	int c_idx = get_group_id(1) * (MLO_IN_STACKS * MLO_N_LCL_IN_MAPS); // input map index based
+	int k_idx = get_group_id(1) * (MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS); // input map index based
+
+	int c_idx = 0;
 
 	int ib_idx = get_group_id(2)*MLO_N_LCL_BATCHS; // batch idx
 
 	int ib = ib_idx;
 
 
-	int gbl_in_off = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
+	int gbl_in_off = /*c_idx * MLO_IN_CHANNEL_STRIDE + */ib * MLO_IN_BATCH_STRIDE;
 	int gbl_wei_off = k_idx * MLO_WEI_BATCH_STRIDE;
 
 

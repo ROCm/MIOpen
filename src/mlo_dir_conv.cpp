@@ -984,7 +984,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 
 	_out_pix_tile0 = 1;
-	_out_pix_tile1 = 2;
+	_out_pix_tile1 = 4;
 	_in_tile1 = 1;
 	_in_tile0 = 1;
 
@@ -1008,12 +1008,12 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	// n_in_stacks input map wil be written in the local memory.
 	int n_in_stacks = 1;
 
-	n_out_stacks = std::min(_n_inputs, n_out_stacks);
-	n_in_stacks = std::min(_n_outputs, n_in_stacks);
+	n_in_stacks = std::min(_n_inputs, n_in_stacks);
+	n_out_stacks = std::min(_n_outputs, n_out_stacks);
 
 	// param
 	// this is 1 currently
-	_n_out_pix_tiles = std::min(1, (_n_inputs + n_out_stacks - 1) / n_out_stacks);
+	_n_out_pix_tiles = std::min(1, (_n_inputs + n_in_stacks - 1) / n_in_stacks);
 
 	// number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
 	// param
@@ -1044,22 +1044,22 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 		+ std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1)
 		+ std::string(" -DSTRIDE_W=") + std::to_string(_kernel_stride0)
 		+ std::string(" -DSTRIDE_H=") + std::to_string(_kernel_stride1)
-		+ std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_inputs)
-		+ std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_outputs)
+		+ std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_outputs)
+		+ std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_inputs)
 		+ std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz)
 		+ std::string(" -DMLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS)
-		+ std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_in_batch_stride)
-		+ std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride)
-		+ std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_in_stride)
-		+ std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_out_batch_stride)
-		+ std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride)
-		+ std::string(" -DMLO_IN_STRIDE=") + std::to_string(_out_stride)
+		+ std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_out_batch_stride)
+		+ std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride)
+		+ std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_out_stride)
+		+ std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_in_batch_stride)
+		+ std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride)
+		+ std::string(" -DMLO_IN_STRIDE=") + std::to_string(_in_stride)
 		+ std::string(" -DMLO_WEI_BATCH_STRIDE=") + std::to_string(wei_bstride)
 		+ std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride)
-		+ std::string(" -DMLO_IN_WIDTH=") + std::to_string(_out_width)
-		+ std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_out_height)
-		+ std::string(" -DMLO_OUT_WIDTH=") + std::to_string(_in_width)
-		+ std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(_in_height)
+		+ std::string(" -DMLO_IN_WIDTH=") + std::to_string(_in_width)
+		+ std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_in_height)
+		+ std::string(" -DMLO_OUT_WIDTH=") + std::to_string(_out_width)
+		+ std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(_out_height)
 		+ std::string(" -DMLO_IN_TILE1=") + std::to_string(_in_tile1)
 		+ std::string(" -DMLO_IN_TILE0=") + std::to_string(_in_tile0)
 		+ std::string(" -DMLO_N_LCL_BATCHS=") + std::to_string(_n_stacks) // # of diff stacks (part of batch).
@@ -1093,8 +1093,8 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 		_l_wk.push_back(grp_tile2);
 		// input is output
 
-		size_t gbl_wk0 = GRP_SZ * ((_n_inputs + total_out_maps - 1) / total_out_maps);
-		size_t gbl_wk1 = ((_n_outputs + total_in_maps - 1) / total_in_maps);
+		size_t gbl_wk0 = GRP_SZ;
+		size_t gbl_wk1 = ((_n_outputs + total_out_maps - 1) / total_out_maps);
 		size_t gbl_wk2 = n_batch_blks;
 
 
@@ -1136,7 +1136,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	_hw_wave_sz = 64;
 
 	int n_in_stacks = 0;
-#if 0
+#if 1
 	if (_kernel_size1 == 11 && _kernel_size0 == 11)
 	{
 		return(mloConstructDirect2D_11x11());
