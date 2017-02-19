@@ -228,20 +228,16 @@ __kernel void MLOpenCvFwd(
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// read all weights assuming they are fit into LDS
-
-		for (int k = 0; k < MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS; ++k)
+		for (int w = lcl_id; w < MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS*MLO_N_INPUTS*MLO_FILTER_SIZE1*MLO_FILTER_SIZE0; w += MLO_GRP_SZ)
 		{
-			for (int c = 0; c < MLO_N_INPUTS; ++c)
-			{
-				for (int j = 0; j < MLO_FILTER_SIZE1; ++j)
-				{
-					for (int i = 0; i < MLO_FILTER_SIZE0; ++i)
-					{
+			int k = iDiv(w, MLO_N_INPUTS*MLO_FILTER_SIZE1*MLO_FILTER_SIZE0);
+			int t0 = iMod(w, k, MLO_N_INPUTS*MLO_FILTER_SIZE1*MLO_FILTER_SIZE0);
+			int c = iDiv(t0, MLO_FILTER_SIZE1*MLO_FILTER_SIZE0);
+			int t1 = iMod(t0, c, MLO_FILTER_SIZE1*MLO_FILTER_SIZE0);
+			int j = iDiv(t1, MLO_FILTER_SIZE0);
+			int i = iMod(t1, j, MLO_FILTER_SIZE0);
+			wei_mem[(k*MLO_N_INPUTS + c)* MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[gbl_wei_off + j*MLO_FILTER_SIZE0 + i];
 
-						wei_mem[(k*MLO_N_INPUTS + c)* MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[gbl_wei_off + j*MLO_FILTER_SIZE0 + i];
-					}
-				}
-			}
 		}
 
 
