@@ -34,9 +34,9 @@
 
 // filter size for all filters with small n of input maps (first layer)
 // split a long filter by stride
-#define MLO_N_FILTER_SPLITS0 ((MLO_FILTER_SZ0 + MLO_FILTER_STRIDE0 - 1)/ MLO_FILTER_STRIDE0)
+#define MLO_N_FILTER_SPLITS0 ((MLO_FILTER_SIZE0 + MLO_FILTER_STRIDE0 - 1)/ MLO_FILTER_STRIDE0)
 #define MLO_WEI_LCL_WIDTH (MLO_N_FILTER_SPLITS0*MLO_FILTER_STRIDE0)
-#define MLO_WEI_SZ (MLO_FILTER_SZ1*MLO_WEI_LCL_WIDTH)
+#define MLO_WEI_SZ (MLO_FILTER_SIZE1*MLO_WEI_LCL_WIDTH)
 #define MLO_WEI_LCL_SZ (MLO_WEI_SZ * MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS* MLO_N_INPUTS)
 
 
@@ -52,9 +52,9 @@
 #define MLO_TOTAL_IN_LCL_SZ (MLO_N_LCL_BATCHS*MLO_IN_LCL_SZ* MLO_N_LCL_IN_MAPS)
 
 #if (MLO_WEI_LCL_SZ + MLO_TOTAL_IN_LCL_SZ) > (MLO_N_FILTER_SPLITS0 *MLO_OUT_WIDTH*MLO_OUT_STACKS)
-#define MLO_LCL_SZ (MLO_WEI_LCL_SZ + MLO_TOTAL_IN_LCL_SZ)
+#define MLO_LCL_MEM_SZ (MLO_WEI_LCL_SZ + MLO_TOTAL_IN_LCL_SZ)
 #else
-#define MLO_LCL_SZ (MLO_N_FILTER_SPLITS0 *MLO_OUT_WIDTH*MLO_OUT_STACKS)
+#define MLO_LCL_MEM_SZ (MLO_N_FILTER_SPLITS0 *MLO_OUT_WIDTH*MLO_OUT_STACKS)
 #endif
 
 // number of loops to flush put full output map
@@ -195,18 +195,15 @@ __kernel void MLOpenCvFwd(
 	int gbl_wei_off = k_idx * MLO_WEI_BATCH_STRIDE;
 
 
-	int lcl_id = get_local_id(0);
-
-
 #define MLO_ACCUM_SZ (MLO_OUT_PIX_TILE1 * MLO_N_FILTER_SPLITS0 * MLO_N_OUT_FOLDS1)
 
 	__private _FLOAT pvt_accum[MLO_ACCUM_SZ];
 
 
 	// zero out LDS
-	for (int i = lcl_id; i < (MLO_LCL_SZ); i += MLO_GRP_SZ)
+	for (int i = lcl_id; i < (MLO_LCL_MEM_SZ); i += MLO_GRP_SZ)
 	{
-		lcl[i] = 0;
+		lcl_mem[i] = 0;
 	}
 
 // processing arrangement
@@ -218,19 +215,18 @@ __kernel void MLOpenCvFwd(
 	int k_pix = iMod(lcl_id, k, MLO_PROCESSING_WIDTH);
 
 
-#if 1
 	// over all batches
 
 	for (int b = 0;
-			b < MLO_N_BATCH_LOOPS;
-			b += MLO_N_LCL_BATCHS,
-			gbl_in_off += MLO_N_LCL_BATCHS*MLO_IN_BATCH_STRIDE
+		b < MLO_N_BATCH_LOOPS;
+		b += MLO_N_LCL_BATCHS,
+		gbl_in_off += MLO_N_LCL_BATCHS*MLO_IN_BATCH_STRIDE
 		)
 	{
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-// read all weights assuming they are fit into LDS
+		// read all weights assuming they are fit into LDS
 
 		for (int k = 0; k < MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS; ++k)
 		{
@@ -241,26 +237,27 @@ __kernel void MLOpenCvFwd(
 					for (int i = 0; i < MLO_FILTER_SIZE0; ++i)
 					{
 
-						wei_mem[(k*MLO_N_INPUTS + c)* MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[gbl_wei_off + j*MLO_FILTER_SIZE0 + i]
+						wei_mem[(k*MLO_N_INPUTS + c)* MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[gbl_wei_off + j*MLO_FILTER_SIZE0 + i];
 					}
 				}
 			}
 		}
 
 
-		int out_y == 0;
+		int out_y = 0;
+		int in_y0 = 0;
 
-// prefetch MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1 input scans
+		// prefetch MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1 input scans
 		__private _FLOAT in_rd_data[MLO_READ_UNIT];
 
 		int gbl_in_scan_off0 = gbl_in_off;
 
-// generate pixels all MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS output maps
-		for (int ob = 0; ob < MLO_N_OUT_BLKS; ++ob, gbl_in_scan_off0 += (MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1*MLO_N_OUT_FOLDS1) * MLO_IN_CHANNEL_STRIDE, out_y += MLO_OUT_PIX_TILE1 *MLO_N_OUT_FOLDS1)
+		// generate pixels all MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS output maps
+		for (int ob = 0; ob < MLO_N_OUT_BLKS; ++ob, in_y0 += (MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1*MLO_N_OUT_FOLDS1), gbl_in_scan_off0 += (MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1*MLO_N_OUT_FOLDS1) * MLO_IN_CHANNEL_STRIDE, out_y += MLO_OUT_PIX_TILE1 *MLO_N_OUT_FOLDS1)
 		{
 
 
-			for (int = 0; i < MLO_ACCUM_SZ; ++i)
+			for (int i = 0; i < MLO_ACCUM_SZ; ++i)
 			{
 				pvt_accum[i] = 0;
 			}
@@ -268,13 +265,13 @@ __kernel void MLOpenCvFwd(
 			int n_prefetch_reads = (ob == 0) ? MLO_IN_LCL_HEIGHT - MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1 : MLO_IN_LCL_HEIGHT - MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1;
 			int prefetch_lcl_scan = (ob == 0) ? MLO_FILTER_PAD1 : 0;
 
-// all input maps
-			for (int c = 0, gbl_in_scan_off = gbl_in_scan_off0; c < MLO_N_INPUTS; ++c, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
+			// all input maps
+			for (int c = 0, gbl_in_scan_off = gbl_in_scan_off0, in_y = in_y0; c < MLO_N_INPUTS; ++c, ++in_y, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
 			{
 
 				barrier(CLK_LOCAL_MEM_FENCE);
 
-// prefetch 
+				// prefetch 
 				for (int p4 = lcl_id, c_scan = 0;  p4 < MLO_N_IN_HORIZ_READS * n_prefetch_reads && in_y + c_scan < MLO_IN_HEIGHT;
 					p4 += MLO_GRP_SZ)
 				{
@@ -309,21 +306,21 @@ __kernel void MLOpenCvFwd(
 					}
 					for (int i = 0; i < MLO_READ_UNIT; ++i)
 					{
-						lcl_bot[(c_scan + MLO_FILTER_PAD1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+						bot_mem[(c_scan + MLO_FILTER_PAD1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
 					}
 
 
 				}
 
 
-// folds
+				// folds
 				int lcl_scan = MLO_IN_LCL_HEIGHT - MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1;
-				for (int of = 0; of < MLO_N_OUT_FOLDS1; ++of, gbl_in_scan_off += (MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1 * MLO_IN_STRIDE))
+				for (int of = 0; of < MLO_N_OUT_FOLDS1; ++of, in_y += (MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1), gbl_in_scan_off += ((MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1) * MLO_IN_STRIDE))
 				{
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 
-				// fetch next input
+					// fetch next input
 					for (int p4 = lcl_id, c_scan = 0; p4 < MLO_N_IN_HORIZ_READS * (MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1);
 						p4 += MLO_GRP_SZ)
 					{
@@ -370,7 +367,7 @@ __kernel void MLOpenCvFwd(
 
 						for (int i = 0; i < MLO_READ_UNIT; ++i)
 						{
-							lcl_bot[(c_scan + lcl_scan)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+							bot_mem[(c_scan + lcl_scan)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
 #if 0
 							if (lcl_id == 0 && p4 == 0)
 							{
@@ -418,10 +415,10 @@ __kernel void MLOpenCvFwd(
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 
-// move input data to free space for the next fold
-// watch for barrier.
-					// barrier can be skipped for sure if (MLO_IN_LCL_HEIGHT - MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1) < MLO_IN_LCL_HEIGHT / 2 && MLO_N_IN_HORIZ_READS <= MLO_WAVE_SZ
-	 
+					// move input data to free space for the next fold
+					// watch for barrier.
+										// barrier can be skipped for sure if (MLO_IN_LCL_HEIGHT - MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1) < MLO_IN_LCL_HEIGHT / 2 && MLO_N_IN_HORIZ_READS <= MLO_WAVE_SZ
+
 					for (int p4 = lcl_id, c_scan = 0;  p4 < MLO_N_IN_HORIZ_READS * (MLO_IN_LCL_HEIGHT - MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1);
 						p4 += MLO_GRP_SZ)
 					{
@@ -466,14 +463,13 @@ __kernel void MLOpenCvFwd(
 
 						// write out 
 						// inputs are outputs
-						int out_off = (ib + b)_ * MLO_OUT_BATCH_STRIDE + (k_idx + k) * MLO_OUT_CHANNEL_STRIDE + (out_y + of*MLO_OUT_PIX_TILE1 + j) *MLO_OUT_STRIDE
-							+ k_pix;
+						int out_off = (ib + b) * MLO_OUT_BATCH_STRIDE + (k_idx + k) * MLO_OUT_CHANNEL_STRIDE + (out_y + of*MLO_OUT_PIX_TILE1 + j) *MLO_OUT_STRIDE + k_pix;
 						top[out_off] = final_sum;
 					}
 				}
 			}
 
 		} // ob
-		
 
+	}
 }
