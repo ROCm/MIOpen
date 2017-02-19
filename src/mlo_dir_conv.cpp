@@ -1136,7 +1136,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	_hw_wave_sz = 64;
 
 	int n_in_stacks = 0;
-#if 1
+#if 0
 	if (_kernel_size1 == 11 && _kernel_size0 == 11)
 	{
 		return(mloConstructDirect2D_11x11());
