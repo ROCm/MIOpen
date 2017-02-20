@@ -5,10 +5,11 @@
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
 #include <mlopen/stringutils.hpp>
-/* FIXME check if linux */
+#ifndef WIN32 //Linux or APPLE
 #include <unistd.h>
 #include <sys/types.h> 
 #include <sys/wait.h>
+#endif //WIN32
 
 namespace mlopen {
 
@@ -33,6 +34,7 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
  */
 static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& params)
 {
+#ifndef WIN32 //Linux or APPLE
 	std::string exec_path(std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH")); // asciz
 	{	// shut clang-analyzer-alpha.security.taint.TaintPropagation
 		static const char bad[] = "!#$*;<>?@\\^`{|}";
@@ -91,11 +93,11 @@ static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& p
 	int wstatus;
 	pid_t pid = fork();
 	if (pid == 0) {
-		if (dup2(clang_stdin[read_side], STDIN_FILENO) == -1 ) { _exit(EXIT_FAILURE); }
-		if (close(clang_stdin[read_side])) { _exit(EXIT_FAILURE); }
-		if (close(clang_stdin[write_side])) { _exit(EXIT_FAILURE); }
+		if (dup2(clang_stdin[read_side], STDIN_FILENO) == -1 ) { std::exit(EXIT_FAILURE); }
+		if (close(clang_stdin[read_side])) { std::exit(EXIT_FAILURE); }
+		if (close(clang_stdin[write_side])) { std::exit(EXIT_FAILURE); }
 		execv(exec_path.c_str(), args.data());
-		_exit(EXIT_FAILURE);
+		std::exit(EXIT_FAILURE);
 	} else {
 		if (close(clang_stdin[read_side])) { MLOPEN_THROW("Error: X-AMDGCN-ASM: close(clang_stdin[read_side])"); }
 		if (pid == -1) {
@@ -133,6 +135,11 @@ static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& p
 	if (outfile_read_failed) {
 		MLOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
 	}
+#else
+	(void)source; // -warning
+	(void)params; // -warning
+	MLOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
+#endif //WIN32
 }
 
 static cl_program CreateProgramWithBinary(cl_context ctx, cl_device_id device, const char* char_source, size_t size)
