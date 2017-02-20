@@ -2118,7 +2118,7 @@ int mlo_construct_direct2D :: mloAddConfigReq(const std::string & conf_key) cons
 	std::vector<std::string> req_conf_db;
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.rdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
 #ifdef MLOPEN_LOG_CONVOLUTION
 	printf("file %s\n", conf_file.c_str());
 #endif
@@ -2144,7 +2144,7 @@ int mlo_construct_direct2D :: mloRemoveConfigReq(
 	std::vector<std::string>::iterator it;
 
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
-	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.rdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
 
 	bool found = mloFindConfigReq(conf_file, conf_key, req_conf_db, it);
 
@@ -2165,7 +2165,7 @@ int mlo_construct_direct2D :: mloReadConfigDB(
 	int ret = 0;
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.pdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
 
 	std::vector<std::string> db;
 	mloReadDb(conf_file, db);
@@ -2194,7 +2194,7 @@ int mlo_construct_direct2D :: mloWriteConfigDB(
 	//serialize
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.pdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
 
 	std::vector<std::string> db;
 
