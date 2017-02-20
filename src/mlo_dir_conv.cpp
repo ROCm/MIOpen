@@ -598,6 +598,7 @@ bool mlo_construct_direct2D::mloIsCorrectAsmDirect3x3U() const
 		&& _kernel_stride1	== 1
 		&& _kernel_size0	== 3
 		&& _kernel_size1	== 3
+		&& _n_inputs		> 0
 		&& _n_inputs % 4	== 0
 		&& _in_width		> 3
 		&& _in_width		<= 1000
