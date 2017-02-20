@@ -143,13 +143,34 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		void							*y) {
 
 	return mlopen::try_([&] {
-		return TransformTensor(mlopen::deref(handle), 
+		TransformTensor(mlopen::deref(handle), 
 				alpha,
 				mlopen::deref(xDesc),
 				DataCast(x),
 				beta,
 				mlopen::deref(yDesc),
 				DataCast(y));
+	});
+
+}
+
+extern "C"
+mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
+		const void						*alpha,
+		const mlopenTensorDescriptor_t	aDesc,
+		const void						*A,
+		const void						*beta,
+		const mlopenTensorDescriptor_t	cDesc,
+		void							*C) {
+
+	return mlopen::try_([&] {
+		AddTensor(mlopen::deref(handle), 
+				alpha,
+				mlopen::deref(aDesc),
+				DataCast(A),
+				beta,
+				mlopen::deref(cDesc),
+				DataCast(C));
 	});
 
 }
@@ -168,7 +189,7 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 		void							*C) {
 
 	return mlopen::try_([&] {
-		return OpTensor(mlopen::deref(handle),
+		OpTensor(mlopen::deref(handle),
 				tensorOp,
 				alpha1,
 				mlopen::deref(aDesc),
@@ -191,7 +212,7 @@ mlopenStatus_t mlopenSetTensor(mlopenHandle_t handle,
 		const void						*valuePtr) {
 
 	return mlopen::try_([&] {
-		return mlopen::deref(yDesc).SetTensor(mlopen::deref(handle),
+		mlopen::deref(yDesc).SetTensor(mlopen::deref(handle),
 				DataCast(y),
 				valuePtr);
 	});
@@ -206,7 +227,7 @@ mlopenStatus_t mlopenScaleTensor(mlopenHandle_t handle,
 		const void						*alpha) {
 
 	return mlopen::try_([&] {
-		return mlopen::deref(yDesc).ScaleTensor(mlopen::deref(handle),
+		mlopen::deref(yDesc).ScaleTensor(mlopen::deref(handle),
 				DataCast(y),
 				alpha);
 	});

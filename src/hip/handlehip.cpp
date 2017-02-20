@@ -1,5 +1,6 @@
 #include <mlopen/handle.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/device_name.hpp>
 #if MLOPEN_BACKEND_HIPOC
 #include <mlopen/kernel_cache.hpp>
 #endif
@@ -234,8 +235,10 @@ std::size_t Handle::GetMaxComputeUnits()
 
 std::string Handle::GetDeviceName()
 {
-    // TODO
-    return "Fiji";
+    hipDeviceProp_t props;
+    hipGetDeviceProperties(&props, get_device_id());
+    std::string n(props.name);
+	return GetDeviceNameFromMap(n);
 }
 #endif
 }
