@@ -975,7 +975,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 
 
 	// number  of batch iterations
-	_n_stacks = 2;
+	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 	// defines how to proceed : 1 grouop per batch or with a loop over all batches
 	// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
@@ -1022,7 +1022,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 
 	// param
 	// this is 1 currently
-	_n_out_pix_tiles = std::min(4, (_n_outputs + n_out_stacks - 1) / n_out_stacks);
+	_n_out_pix_tiles = std::min(6, (_n_outputs + n_out_stacks - 1) / n_out_stacks);
 
 	// number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
 	// param
