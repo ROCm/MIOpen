@@ -304,7 +304,7 @@ __kernel void MLOpenCvFwd(
 						int c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
 						int in_scan = c_scan* MLO_FILTER_STRIDE1 + f_s;
 
-						if (ob*MLO_OUT_EXTENT1 + in_scan < MLO_IN_HEIGHT)
+						if (ob*MLO_OUT_EXTENT1*MLO_FILTER_STRIDE1 + in_scan < MLO_IN_HEIGHT)
 						{
 
 							// still problems with unaligned LDS access
@@ -329,7 +329,7 @@ __kernel void MLOpenCvFwd(
 
 								for (int i = 0; i < MLO_READ_UNIT; ++i)
 								{
-									in_rd_data[i] = bot[gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + in_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
+									in_rd_data[i] = bot[gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + (ob*MLO_OUT_EXTENT1*MLO_FILTER_STRIDE1 + in_scan) * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
 								}
 							}
 							for (int i = 0; i < MLO_READ_UNIT; ++i)
