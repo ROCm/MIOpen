@@ -278,11 +278,11 @@ __kernel void MLOpenCvFwd(
 						int t0 = iMod(w, k, MLO_OUT_STACKS);
 						int j = iDiv(t0, MLO_FILTER_SIZE0);
 						int i = iMod(t0, j, MLO_FILTER_SIZE0);
-						int wei_off = gbl_wei_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i;
+						int wei_off = gbl_wei_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE;
 
 						if ((j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i < MLO_WEI_CHANNEL_STRIDE)
 						{
-							wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[gbl_wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i];
+							wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i];
 						}
 						else
 						{
@@ -307,6 +307,7 @@ __kernel void MLOpenCvFwd(
 						if (ob*MLO_OUT_EXTENT1*MLO_FILTER_STRIDE1 + in_scan < MLO_IN_HEIGHT)
 						{
 
+							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + in_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
 							// still problems with unaligned LDS access
 #if MLO_IN_N_PIXS_OFF > 0
 							if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -314,7 +315,7 @@ __kernel void MLOpenCvFwd(
 								int i = 0;
 								for (; i < MLO_IN_N_PIXS_OFF; ++i)
 								{
-									in_rd_data[i] = bot[gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + in_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
+									in_rd_data[i] = bot[gbl_off + i];
 								}
 								for (; i < MLO_READ_UNIT; ++i)
 								{
@@ -329,12 +330,13 @@ __kernel void MLOpenCvFwd(
 
 								for (int i = 0; i < MLO_READ_UNIT; ++i)
 								{
-									in_rd_data[i] = bot[gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + (ob*MLO_OUT_EXTENT1*MLO_FILTER_STRIDE1 + in_scan) * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
+									in_rd_data[i] = bot[gbl_off + i];
 								}
 							}
+							int lcl_off = (lcl_scan + c_scan)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
 							for (int i = 0; i < MLO_READ_UNIT; ++i)
 							{
-								bot_mem[(lcl_scan + c_scan)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+								bot_mem[lcl_off + i] = in_rd_data[i];
 							}
 
 						}
@@ -349,7 +351,7 @@ __kernel void MLOpenCvFwd(
 						// select all vertical scans that matches the vertical filter tap 
 						__private _FLOAT in_vals[MLO_N_LCL_BATCHS * ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0)];
 						// read input values for this filter phase
-						for (int bb = 0; bb < MLO_N_LCL_IN_MAPS; ++bb)
+						for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
 						{
 							for (int i = 0; i < ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0); ++i)
 							{
@@ -358,7 +360,7 @@ __kernel void MLOpenCvFwd(
 							}
 
 						}
-						// only for 11 with
+// only for 11 
 						__private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS*MLO_FILTER_STRIDE0];
 						// first 2 splits
 						int l;
