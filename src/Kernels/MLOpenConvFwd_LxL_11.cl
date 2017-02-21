@@ -366,13 +366,13 @@ __kernel void MLOpenCvFwd(
 						int l;
 						for (l = 0; l < MLO_N_FILTER_SPLITS0 - 1; ++l)
 						{
-
+// read all weights
 							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 							{
 								for (int i = 0; i < MLO_FILTER_STRIDE0; ++i)
 								{
 									wei_vals[k*MLO_FILTER_STRIDE0 + i]
-										= wei_mem[k*MLO_WEI_SZ + m*MLO_WEI_LCL_WIDTH + i];
+										= wei_mem[k*MLO_WEI_SZ + m*MLO_WEI_LCL_WIDTH + l*MLO_FILTER_STRIDE0 + i];
 								}
 							}
 
