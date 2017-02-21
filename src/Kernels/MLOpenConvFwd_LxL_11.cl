@@ -230,6 +230,8 @@ __kernel void MLOpenCvFwd(
 	int ex_col = iMod(lcl_id, ex_row, MLO_PROCESSING_WIDTH);
 	int ex_pix = ex_col * MLO_OUT_PIX_TILE0;
 
+	int out_y = ob*MLO_OUT_EXTENT1;
+
 	// over all batches
 
 	for (int b = 0;
@@ -263,9 +265,6 @@ __kernel void MLOpenCvFwd(
 			// all input maps
 			for (int c = 0, gbl_in_scan_off = gbl_in_scan_off0; c < MLO_N_INPUTS; ++c, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
 			{
-
-
-
 				for (int f_s = 0; f_s < MLO_FILTER_STRIDE1; ++f_s)
 				{
 
@@ -304,10 +303,10 @@ __kernel void MLOpenCvFwd(
 						int c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
 						int in_scan = c_scan* MLO_FILTER_STRIDE1 + f_s;
 
-						if (ob*MLO_OUT_EXTENT1*MLO_FILTER_STRIDE1 + in_scan < MLO_IN_HEIGHT)
+						if (out_y*MLO_FILTER_STRIDE1 + in_scan < MLO_IN_HEIGHT)
 						{
 
-							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + in_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
+							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + (out_y*MLO_FILTER_STRIDE1 + in_scan) * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
 							// still problems with unaligned LDS access
 #if MLO_IN_N_PIXS_OFF > 0
 							if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -438,7 +437,6 @@ __kernel void MLOpenCvFwd(
 
 
 			barrier(CLK_LOCAL_MEM_FENCE);
-			int out_y = ob*MLO_OUT_EXTENT1;
 
 			for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
 			{
