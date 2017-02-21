@@ -975,7 +975,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 
 
 	// number  of batch iterations
-	_n_stacks = 1;
+	_n_stacks = 2;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 	// defines how to proceed : 1 grouop per batch or with a loop over all batches
 	// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
@@ -983,8 +983,10 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	int N_BATCH_LOOPS = 1; // (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : _batch_sz / _n_stacks;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 
-	_out_pix_tile0 = 1;
-	_out_pix_tile1 = 4;
+	int N_FILTER_SPLITS0 = ((_kernel_size0 + _kernel_stride0 - 1) / _kernel_stride0);
+
+	_out_pix_tile0 = N_FILTER_SPLITS0;
+	_out_pix_tile1 = 1;
 	_in_tile1 = 1;
 	_in_tile0 = 1;
 
@@ -993,6 +995,13 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	int n_waves = 4;
 	int GRP_SZ = _hw_wave_sz * n_waves;
 	// number of input maps per group
+	// processing arrangement
+	// generate full output width
+	// extent1 == MLO_GRP_SZ / MLO_PROCESING_WIDTH
+	int PROCESING_WIDTH = ((_out_width + _out_pix_tile0 - 1) / _out_pix_tile0);
+
+	int OUT_EXTENT1 = (GRP_SZ / PROCESING_WIDTH);
+
 
 	// define a special size for a specific width as a devisor to avoid dealing with out of range
 	// param
@@ -1003,7 +1012,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
 	// param
-	int n_out_stacks = n_waves;
+	int n_out_stacks = 1;
 
 	// n_in_stacks input map wil be written in the local memory.
 	int n_in_stacks = 1;
@@ -1013,7 +1022,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 
 	// param
 	// this is 1 currently
-	_n_out_pix_tiles = std::min(1, (_n_inputs + n_in_stacks - 1) / n_in_stacks);
+	_n_out_pix_tiles = std::min(8, (_n_inputs + n_in_stacks - 1) / n_in_stacks);
 
 	// number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
 	// param
@@ -1024,7 +1033,6 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	int total_in_maps = _n_in_data_tiles * n_in_stacks;
 
 	// n of mini tiles of the same output map in vertical dir per wk_item
-	int N_OUT_FOLDS1 = 2;
 	_grp_tile0 = GRP_SZ;
 	_grp_tile1 = 1;
 	int grp_tile2 = 1;
@@ -1066,11 +1074,13 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 		+ std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(_n_out_pix_tiles)  // # output pixel tiles per wk-item (ALU)
 		+ std::string(" -DMLO_N_LCL_IN_MAPS=") + std::to_string(_n_in_data_tiles) // total # of blocks of different inputs in LDS
 		+ std::string(" -DMLO_OUT_PIX_TILE1=") + std::to_string(_out_pix_tile1)  // size of ouptput tile per wk-item (ALU)
-		+ std::string(" -DMLO_OUT_PIC_TILE0=") + std::to_string(_out_pix_tile0)  //
-		+ std::string(" -DMLO_N_OUT_FOLDS1=") + std::to_string(N_OUT_FOLDS1)
+		+ std::string(" -DMLO_OUT_PIX_TILE0=") + std::to_string(_out_pix_tile0)  //
 		+ std::string(" -DMLO_OUT_STACKS=") + std::to_string(n_out_stacks)
 		+ std::string(" -DMLO_IN_STACKS=") + std::to_string(n_in_stacks)
 		+ std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves)
+		+ std::string(" -DMLO_N_FILTER_SPLITS0=") + std::to_string(N_FILTER_SPLITS0)
+		+ std::string(" -DMLO_PROCESSING_WIDTH=") + std::to_string(PROCESING_WIDTH)
+		+ std::string(" -DMLO_OUT_EXTENT1=") + std::to_string(OUT_EXTENT1)
 
 		+ std::string(" -DMLO_READ_TYPE=") + READ_TYPE
 		+ std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit)
@@ -1093,7 +1103,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 		_l_wk.push_back(grp_tile2);
 		// input is output
 
-		size_t gbl_wk0 = GRP_SZ;
+		size_t gbl_wk0 = GRP_SZ * (( _out_height + OUT_EXTENT1 - 1) / OUT_EXTENT1);
 		size_t gbl_wk1 = ((_n_outputs + total_out_maps - 1) / total_out_maps);
 		size_t gbl_wk2 = n_batch_blks;
 
