@@ -14,6 +14,11 @@ struct tensor
     tensor()
     {}
 
+    template<class X>
+    tensor(const std::vector<X>& dims)
+    : desc(mlopenFloat, dims.data(), static_cast<int>(dims.size())), data(desc.GetElementSize())
+    {}
+
     tensor(int n, int c, int h, int w)
     : desc(mlopenFloat, {n,c,h,w}), data(n*c*h*w)
     {}

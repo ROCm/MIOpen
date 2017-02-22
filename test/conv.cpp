@@ -335,9 +335,9 @@ struct conv_driver : test_driver
 
     conv_driver()
     {
-        add(input, "input", generate_tensor());
-        add(weights, "weights", generate_tensor());
-        add(filter, "filter");
+        add(input, "input", get_input_tensor());
+        add(weights, "weights", get_weights_tensor());
+        add(filter, "filter", generate_single(mlopen::ConvolutionDescriptor{0, 0}));
     }
 
     void run()
