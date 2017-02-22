@@ -133,7 +133,7 @@ struct softmax_driver : test_driver
 
     softmax_driver()
     {
-        add(input, "input", generate_tensor());
+        add(input, "input", get_input_tensor());
     }
 
     void run()

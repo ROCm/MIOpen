@@ -248,7 +248,7 @@ struct pooling_driver : test_driver
 
     pooling_driver()
     {
-        add(input, "input", generate_tensor());
+        add(input, "input", get_input_tensor());
     }
     void run()
     {
