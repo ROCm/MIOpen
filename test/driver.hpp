@@ -2,6 +2,7 @@
 #include "args.hpp"
 #include "tensor_holder.hpp"
 #include "network_data.hpp"
+#include "verify.hpp"
 
 #include <functional>
 
@@ -57,15 +58,15 @@ struct test_driver
     std::unordered_map<std::string, argument> arguments;
     bool full_set = false;
     bool verbose = false;
+    double tolerance = 80;
 
-    template<class ArgMap>
-    void parse(const ArgMap& m)
+    template<class Visitor>
+    void parse(Visitor v)
     {
-        if (m.count("--all") > 0) full_set = true;
-        if (m.count("--verbose") > 0) verbose = true;
-        if (m.count("-v") > 0) verbose = true;
+        v(full_set, {"--all"});
+        v(verbose, {"--verbose", "-v"});
+        v(tolerance, {"--tolerance", "-t"});
     }
-
 
     struct per_arg
     {
@@ -159,11 +160,12 @@ struct test_driver
             auto out_gpu = v.gpu(xs...);
             CHECK(range_distance(out_cpu) == range_distance(out_gpu));
             
-            // using value_type = range_value<decltype(out_gpu)>;
             // const double tolerance = std::numeric_limits<value_type>::epsilon() * 4;
-            const double tolerance = 10e-6;
+            // const double tolerance = 10e-6;
+            using value_type = range_value<decltype(out_gpu)>;
+            double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
             auto error = rms_range(out_cpu, out_gpu);
-            if (not(error <= tolerance))
+            if (not(error <= threshold))
             {
                 std::cout << "FAILED: " << error << std::endl;
                 v.fail(error, xs...);
@@ -216,8 +218,50 @@ void run_data(Iterator start, Iterator last, Action a)
             run_data(std::next(start), last, a);
         });
     }
-
 }
+
+struct keyword_set
+{
+    std::set<std::string> * value;
+    keyword_set(std::set<std::string> & x) : value(&x)
+    {}
+    template<class T>
+    void operator()(T&&, std::initializer_list<std::string> x) const
+    {
+        value->insert(x);
+    }
+};
+
+struct parser
+{
+    args::string_map * m;
+    parser(args::string_map & x) : m(&x)
+    {}
+    template<class T>
+    void operator()(T& x, std::initializer_list<std::string> keywords) const
+    {
+        for(auto&& keyword:keywords)
+        {
+            if (m->count(keyword) > 0)
+            {
+                args::write_value{}(x, (*m)[keyword]);
+                return;
+            }
+        }
+    }
+
+    void operator()(bool& x, std::initializer_list<std::string> keywords) const
+    {
+        for(auto&& keyword:keywords)
+        {
+            if (m->count(keyword) > 0)
+            {
+                x = true;
+                return;
+            }
+        }
+    }
+};
 
 template<class Driver>
 void test_drive(int argc, const char *argv[])
@@ -225,7 +269,8 @@ void test_drive(int argc, const char *argv[])
     std::vector<std::string> as(argv+1, argv+argc);
     Driver d{};
 
-    const std::set<std::string> keywords{"--help", "-h", "--all", "--verbose", "-v"};
+    std::set<std::string> keywords{"--help", "-h"};
+    d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x)
     {
         return 
@@ -233,7 +278,7 @@ void test_drive(int argc, const char *argv[])
             ((x.compare(0, 2, "--") == 0) and d.arguments.count(x.substr(2)) > 0);
     });
 
-    d.parse(arg_map);
+    d.parse(parser{arg_map});
 
     for(auto&& p:arg_map)
     {
