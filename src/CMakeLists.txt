@@ -136,7 +136,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		)
 	# Install db files
 	install(FILES 
-		Kernels/Fiji.cd.pdb.txt
+		Kernels/gfx803_64.cd.pdb.txt
 	 DESTINATION share/mlopen/db)
 endif()
 
