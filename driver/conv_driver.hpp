@@ -377,7 +377,11 @@ int ConvDriver<T>::RunForwardGPU() {
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
+#if MLOPEN_USE_TINYGEMM
+			mlopenConvolutionFwdAlgoGEMM,
+#else
 			mlopenConvolutionFwdAlgoDirect,
+#endif
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
@@ -619,7 +623,11 @@ int ConvDriver<T>::RunBackwardGPU() {
 		inputTensor,
 		in_dev->GetMem(),
 		convDesc,
+#if MLOPEN_USE_TINYGEMM
 		mlopenConvolutionBwdWeightsAlgoGEMM,
+#else
+		mlopenConvolutionBwdWeightsAlgoDirect,
+#endif
 		&beta,
 		weightTensor,
 		dwei_dev->GetMem(),

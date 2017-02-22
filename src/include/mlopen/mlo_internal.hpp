@@ -311,7 +311,7 @@ public:
 	/*
 	* return direction: true - forward, false - backward
 	*/
-	inline bool getDirection() const
+	inline bool isForwardDirection() const
 	{
 		return(_direction == 1);
 	}
@@ -714,11 +714,20 @@ protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
+
 #if MLOPEN_BACKEND_OPENCL
-	bool mloCheckWinograd3x3FwdConvCondition() const;
-	bool mloCheckWinograd3x3FwdConvPerfFilter() const;
-	int mloConstructWinograd3x3FwdConv();
+	bool mloIsAmdOpenclRocm(bool &is_metadata_v10) const;
+	bool mloExperimentalValidateAssemblerPath(const char* path) const;
+
+	bool mloIsCorrectBinaryWinograd3x3Fwd() const;
+	bool mloIsFastBinaryWinograd3x3Fwd() const;
+	int  mloConstructBinaryWinograd3x3Fwd();
+
+	bool mloIsCorrectAsmDirect3x3U() const;
+	bool mloIsFastAsmDirect3x3U() const;
+	int  mloConstructAsmDirect3x3U();
 #endif
+
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
 	int mloConstructDirect2D3x3(void);
