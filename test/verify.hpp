@@ -79,42 +79,4 @@ double rms_range(R1&& r1, R2&& r2)
     else return std::numeric_limits<range_value<R1>>::max();
 }
 
-template<class V, class... Ts>
-auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
-{
-    // v.fail(0.0, xs...);
-    try {
-        auto out_cpu = v.cpu(xs...);
-        auto out_gpu = v.gpu(xs...);
-        CHECK(range_distance(out_cpu) == range_distance(out_gpu));
-        
-        // using value_type = range_value<decltype(out_gpu)>;
-        // const double tolerance = std::numeric_limits<value_type>::epsilon() * 4;
-        const double tolerance = 10e-6;
-        auto error = rms_range(out_cpu, out_gpu);
-        if (not(error <= tolerance))
-        {
-            std::cout << "FAILED: " << error << std::endl;
-            v.fail(error, xs...);
-            if (range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
-            if (range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
-            auto p = std::mismatch(out_cpu.begin(), out_cpu.end(), out_gpu.begin(), float_equal);
-            auto idx = std::distance(out_cpu.begin(), p.first);
-            std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
-        } else if (range_zero(out_cpu) and range_zero(out_gpu)) {
-            std::cout << "Warning: data is all zero" << std::endl;
-            v.fail(error, xs...);
-        }
-        return std::make_pair(std::move(out_cpu), std::move(out_gpu));
-    } catch(const std::exception& ex) {
-        std::cout << "FAILED: " << ex.what() << std::endl;
-        v.fail(0.0, xs...);
-        throw;
-    } catch(...) {
-        std::cout << "FAILED with unknown exception" << std::endl;
-        v.fail(0.0, xs...);
-        throw;
-    }
-}
-
 #endif
