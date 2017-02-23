@@ -158,24 +158,25 @@ struct test_driver
         {
             auto out_cpu = v.cpu(xs...);
             auto out_gpu = v.gpu(xs...);
-            CHECK(range_distance(out_cpu) == range_distance(out_gpu));
+            CHECK(mlopen::range_distance(out_cpu) == mlopen::range_distance(out_gpu));
             
-            // const double tolerance = std::numeric_limits<value_type>::epsilon() * 4;
-            // const double tolerance = 10e-6;
-            using value_type = range_value<decltype(out_gpu)>;
+            using value_type = mlopen::range_value<decltype(out_gpu)>;
             double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
-            auto error = rms_range(out_cpu, out_gpu);
+            auto error = mlopen::rms_range(out_cpu, out_gpu);
             if (not(error <= threshold))
             {
                 std::cout << "FAILED: " << error << std::endl;
+                auto mxdiff = mlopen::max_diff(out_cpu, out_gpu);
+                std::cout << "Max diff: " << mxdiff << std::endl;
                 v.fail(error, xs...);
-                if (range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
-                if (range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
-                auto p = std::mismatch(out_cpu.begin(), out_cpu.end(), out_gpu.begin(), float_equal);
-                auto idx = std::distance(out_cpu.begin(), p.first);
+                auto max_idx = mlopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
+                std::cout << "Max diff at " << max_idx << ": " << out_cpu[max_idx] << " != " << out_gpu[max_idx] << std::endl;
+                if (mlopen::range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
+                if (mlopen::range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
+                auto idx = mlopen::mismatch_idx(out_cpu, out_gpu, mlopen::float_equal);
                 std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
             } 
-            else if (range_zero(out_cpu) and range_zero(out_gpu)) 
+            else if (mlopen::range_zero(out_cpu) and mlopen::range_zero(out_gpu)) 
             {
                 std::cout << "Warning: data is all zero" << std::endl;
                 v.fail(error, xs...);
