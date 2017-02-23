@@ -188,7 +188,7 @@ __kernel void MLOpenCDFGen(
 	int x_in_grp = x_out_grp * MLO_FLTR_STRIDE0;
 
 
-	int lcl_id = mad24(get_local_id(1),MLO_GRP_SZ0, get_local_id(0));
+	int lcl_id = mad24(get_local_id(1),(uint)MLO_GRP_SZ0, get_local_id(0));
 	int lcl_proc = lcl_id/(MLO_N_PROCS0*MLO_N_PROCS1);  // input id from diff stack
 	int lcl_in_proc_id = -mad24(lcl_proc, (MLO_N_PROCS0*MLO_N_PROCS1), -lcl_id);  // wk item id for the input to make a coalesed read
 	int lcl_proc_id1 = lcl_in_proc_id/ MLO_N_PROCS0;  // 
@@ -424,7 +424,7 @@ _FLOAT padding_val
 	int y_in_grp = y_out_grp * MLO_FLTR_STRIDE1;
 	int x_in_grp = x_out_grp * MLO_FLTR_STRIDE0;
 
-	int lcl_id = mad24(get_local_id(1), MLO_GRP_SZ0, get_local_id(0));
+	int lcl_id = mad24(get_local_id(1), (uint)MLO_GRP_SZ0, get_local_id(0));
 	int proc_tile1 = (get_local_id(1) >> MLO_LG2N_PROC_TILE1);
 	int lcl_proc_id1 = get_local_id(1) - (proc_tile1 << MLO_LG2N_PROC_TILE1);  // 
 	int lcl_proc_id0 = get_local_id(0);  // 
@@ -655,7 +655,7 @@ __kernel void aDNNConv_img2col(
 	int x_in_grp = x_out_grp * MLO_FLTR_STRIDE0;
 
 
-	int lcl_id = mad24(get_local_id(1),MLO_GRP_SZ0, get_local_id(0));
+	int lcl_id = mad24(get_local_id(1),(uint)MLO_GRP_SZ0, get_local_id(0));
 	int lcl_proc = (int)((float)lcl_id/(MLO_N_PROCS0*MLO_N_PROCS1));  // input id from diff stack
 	int lcl_in_proc_id = -mad24(lcl_proc, (MLO_N_PROCS0*MLO_N_PROCS1), -lcl_id);  // wk item id for the input to make a coalesed read
 	int lcl_proc_id1 = (int)((float)lcl_in_proc_id/ MLO_N_PROCS0);  // 
