@@ -6,6 +6,9 @@ if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
 	set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
 endif()
 
+# Default installation path
+set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
+
 project ( SuperBuild.MLOpen C CXX )
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
