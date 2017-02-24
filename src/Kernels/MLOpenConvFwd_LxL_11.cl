@@ -447,7 +447,7 @@ __kernel void MLOpenCvFwd(
 								for (int i = 0; i < MLO_FILTER_STRIDE0 - 1; ++i)
 								{
 									wei_vals[k*MLO_FILTER_STRIDE0 + i]
-										= wei_mem[k*MLO_WEI_SZ + m*MLO_WEI_LCL_WIDTH + i];
+										= wei_mem[k*MLO_WEI_SZ + m*MLO_WEI_LCL_WIDTH + l*MLO_FILTER_STRIDE0 + i];
 								}
 							}
 
