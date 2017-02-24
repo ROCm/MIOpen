@@ -321,9 +321,9 @@ __kernel void MLOpenCvFwd(
 						int t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
 						c_scan = iDiv(t0, MLO_N_IN_HORIZ_READS);
 						int c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
-						int in_scan = c_scan* MLO_FILTER_STRIDE1 + f_s;
+						int in_scan = (c_scan + lcl_scan) * MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1;
 
-						if (out_y*MLO_FILTER_STRIDE1 + in_scan < MLO_IN_HEIGHT)
+						if (0 <= out_y*MLO_FILTER_STRIDE1 + in_scan && out_y*MLO_FILTER_STRIDE1 + in_scan < MLO_IN_HEIGHT)
 						{
 
 							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + (out_y*MLO_FILTER_STRIDE1 + in_scan) * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
@@ -375,7 +375,7 @@ __kernel void MLOpenCvFwd(
 							for (int i = 0; i < ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0); ++i)
 							{
 								in_vals[bb* ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0) + i]
-									= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row* MLO_N_FILTER_SPLITS1 + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i];
+									= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i];
 							}
 
 						}
@@ -411,11 +411,18 @@ __kernel void MLOpenCvFwd(
 											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
 												+= wei_val * in_val;
 #if 0
-											if (/*wei_val * in_val != 0 && */ib+b+bb == 0 && k_idx+k == 0 && out_y + ex_row == 0 && ex_pix + n == 2)
+											if (wei_val * in_val != 0 && ib+b+bb == 0 && k_idx+k == 0 && out_y + ex_row == 0 && ex_pix + n == 0)
 											{
-												printf("G:c: %d %d %d %d  %f %f %f %f\n",
-													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s,
-													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i, // actual input horiz pos (assuming full scan is inside LDS)
+												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+													f_s,
+													out_y,
+													ex_row,
+													ex_pix,
+													m,
+													l,
+													i,
+													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
+													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
 													m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
 													l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
 													pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
@@ -460,11 +467,18 @@ __kernel void MLOpenCvFwd(
 											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
 												+= wei_val * in_val;
 #if 0
-											if (/*wei_val * in_val != 0 && */ib + b + bb == 0 && k_idx + k == 0 && out_y + ex_row == 0 && ex_pix + n == 2)
+											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 0 && out_y + ex_row == 0 && ex_pix + n == 0)
 											{
-												printf("G:c: %d %d %d %d  %f %f %f %f\n",
-													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s,
-													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i, // actual input horiz pos (assuming full scan is inside LDS)
+												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+													f_s,
+													out_y,
+													ex_row,
+													ex_pix,
+													m,
+													l,
+													i,
+													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1,
+													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
 													m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
 													l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
 													pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
