@@ -410,7 +410,7 @@ __kernel void MLOpenCvFwd(
 											_FLOAT wei_val = wei_vals[k*MLO_FILTER_STRIDE0 + i];
 											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
 												+= wei_val * in_val;
-#if 1
+#if 0
 											if (wei_val * in_val != 0 && ib+b+bb == 0 && k_idx+k == 0 && out_y + ex_row == 0 && ex_pix + n == 2)
 											{
 												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
@@ -467,7 +467,7 @@ __kernel void MLOpenCvFwd(
 											_FLOAT wei_val = wei_vals[k*MLO_FILTER_STRIDE0 + i];
 											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
 												+= wei_val * in_val;
-#if 1
+#if 0
 											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 0 && out_y + ex_row == 0 && ex_pix + n == 2)
 											{
 												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
