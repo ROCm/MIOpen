@@ -406,19 +406,20 @@ __kernel void MLOpenCvFwd(
 
 										for (int i = 0; i < MLO_FILTER_STRIDE0; ++i)
 										{
-											_FLOAT in_val = in_vals[bb* ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0) + l*MLO_FILTER_STRIDE0 + i];
+											_FLOAT in_val = in_vals[bb* ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0) + (n+l)*MLO_FILTER_STRIDE0 + i];
 											_FLOAT wei_val = wei_vals[k*MLO_FILTER_STRIDE0 + i];
 											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
 												+= wei_val * in_val;
-#if 0
-											if (wei_val * in_val != 0 && ib+b+bb == 0 && k_idx+k == 0 && out_y + ex_row == 0 && ex_pix + n == 0)
+#if 1
+											if (wei_val * in_val != 0 && ib+b+bb == 0 && k_idx+k == 0 && out_y + ex_row == 0 && ex_pix + n == 2)
 											{
-												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
 													f_s,
 													out_y,
 													ex_row,
 													ex_pix,
 													m,
+													n,
 													l,
 													i,
 													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
@@ -462,19 +463,20 @@ __kernel void MLOpenCvFwd(
 
 										for (int i = 0; i < MLO_FILTER_STRIDE0 - 1; ++i)
 										{
-											_FLOAT in_val = in_vals[bb* ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0) + l*MLO_FILTER_STRIDE0 + i];
+											_FLOAT in_val = in_vals[bb* ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0) + (n+l)*MLO_FILTER_STRIDE0 + i];
 											_FLOAT wei_val = wei_vals[k*MLO_FILTER_STRIDE0 + i];
 											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
 												+= wei_val * in_val;
-#if 0
-											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 0 && out_y + ex_row == 0 && ex_pix + n == 0)
+#if 1
+											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 0 && out_y + ex_row == 0 && ex_pix + n == 2)
 											{
-												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
 													f_s,
 													out_y,
 													ex_row,
 													ex_pix,
 													m,
+													n,
 													l,
 													i,
 													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1,
