@@ -969,9 +969,8 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	_dev_local_mem_sz = localMemSize; // in bytes
 									  // major parameters
 
-									  // inpout are outputs
 	int wei_cstride = _kernel_size0*_kernel_size1;
-	int wei_bstride = _n_outputs*wei_cstride;
+	int wei_bstride = _n_inputs*wei_cstride;
 
 
 	// number  of batch iterations
@@ -1021,7 +1020,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	n_out_stacks = std::min(_n_outputs, n_out_stacks);
 
 	// param
-	// this is 1 currently
+	// 6 get us the min
 	_n_out_pix_tiles = std::min(6, (_n_outputs + n_out_stacks - 1) / n_out_stacks);
 
 	// number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
@@ -1146,7 +1145,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	_hw_wave_sz = 64;
 
 	int n_in_stacks = 0;
-#if 0
+#if 1
 	if (_kernel_size1 == 11 && _kernel_size0 == 11)
 	{
 		return(mloConstructDirect2D_11x11());
