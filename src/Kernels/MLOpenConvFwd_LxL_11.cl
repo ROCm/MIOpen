@@ -212,7 +212,8 @@ __kernel void MLOpenCvFwd(
 	int gbl_in_off = /*c_idx * MLO_IN_CHANNEL_STRIDE + */ib * MLO_IN_BATCH_STRIDE;
 	int gbl_wei_off = k_idx * MLO_WEI_BATCH_STRIDE;
 	int out_y = ob*MLO_OUT_EXTENT1;
-	gbl_in_off += out_y*MLO_FILTER_STRIDE1 * MLO_IN_STRIDE;
+	int in_y = out_y*MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1;
+	gbl_in_off += in_y * MLO_IN_STRIDE;
 
 #define MLO_ACCUM_SZ (MLO_OUT_PIX_TILE1 * MLO_OUT_PIX_TILE0 * MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS*MLO_N_LCL_BATCHS)
 
@@ -324,14 +325,14 @@ __kernel void MLOpenCvFwd(
 #endif
 						c_scan = iDiv(t0, MLO_N_IN_HORIZ_READS);
 						int c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
-						int in_scan = (c_scan + lcl_scan) * MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1;
+						int in_scan = (c_scan + lcl_scan) * MLO_FILTER_STRIDE1 + f_s;
 
 						for (int i = 0; i < MLO_READ_UNIT; ++i)
 						{
 							in_rd_data[i] = 0;
 						}
 
-						if (0 <= out_y*MLO_FILTER_STRIDE1 + in_scan && out_y*MLO_FILTER_STRIDE1 + in_scan < MLO_IN_HEIGHT)
+						if (0 <= in_y + in_scan && in_y + in_scan < MLO_IN_HEIGHT)
 						{
 
 							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + in_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
@@ -532,7 +533,7 @@ __kernel void MLOpenCvFwd(
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			for (int bb = 0; bb < MLO_N_LCL_BATCHS && (out_y + ex_row) < MLO_OUT_HEIGHT; ++bb)
+			for (int bb = 0; bb < MLO_N_LCL_BATCHS && ex_row < MLO_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT; ++bb)
 			{
 				for (int k = 0; k < MLO_N_LCL_OUT_MAPS && (k_idx + k) < MLO_N_OUTPUTS; ++k)
 				{
