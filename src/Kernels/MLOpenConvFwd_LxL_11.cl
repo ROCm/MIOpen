@@ -391,6 +391,8 @@ __kernel void MLOpenCvFwd(
 #endif
 // only for 11 
 						__private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS*MLO_N_FILTER_SPLITS0];
+						__private _FLOAT in_vals[MLO_N_LCL_BATCHS * (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1)];
+
 						// first 2 splits
 						int l;
 						for (l = 0; l <  MLO_FILTER_STRIDE0 - 1; ++l)
@@ -409,7 +411,6 @@ __kernel void MLOpenCvFwd(
 							for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
 							{
 
-								__private _FLOAT in_vals[MLO_N_LCL_BATCHS * (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 -1)];
 								for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
 								{
 									in_vals[bb*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
@@ -462,7 +463,7 @@ __kernel void MLOpenCvFwd(
 // read all weights
 							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 							{
-								for (int i = 0; i < MLO_N_FILTER_SPLITS0; ++i)
+								for (int i = 0; i < MLO_N_FILTER_SPLITS0-1; ++i)
 								{
 									wei_vals[k*MLO_N_FILTER_SPLITS0 + i]
 										= wei_mem[k*MLO_WEI_SZ + m*MLO_WEI_LCL_WIDTH + i*MLO_FILTER_STRIDE0 + l];
@@ -473,7 +474,6 @@ __kernel void MLOpenCvFwd(
 							for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
 							{
 
-								__private _FLOAT in_vals[MLO_N_LCL_BATCHS * (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 -1)];
 								for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
 								{
 									in_vals[bb*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
@@ -485,7 +485,7 @@ __kernel void MLOpenCvFwd(
 									for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
 									{
 
-										for (int i = 0; i <  MLO_N_FILTER_SPLITS0; ++i)
+										for (int i = 0; i <  MLO_N_FILTER_SPLITS0 - 1; ++i)
 										{
 											_FLOAT in_val = in_vals[bb* (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + n + i];
 											_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
