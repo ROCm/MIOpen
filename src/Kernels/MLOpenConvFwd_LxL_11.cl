@@ -376,7 +376,7 @@ __kernel void MLOpenCvFwd(
 					__private _FLOAT wei_vals[MLO_N_FILTER_SPLITS1*MLO_N_FILTER_SPLITS0];
 					__private _FLOAT in_vals[MLO_N_FILTER_SPLITS1 * (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1)];
 
-					// first 2 splits
+					// first 3 splits
 					int l;
 					for (l = 0; l < MLO_FILTER_STRIDE0 - 1; ++l)
 					{
@@ -384,8 +384,8 @@ __kernel void MLOpenCvFwd(
 						{
 							for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
 							{
-								in_vals[m*MLO_N_FILTER_SPLITS0 + i]
-									= bot_mem[(ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
+								in_vals[m*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
+									= bot_mem[(ex_row + m) * MLO_IN_LCL_WIDTH + (ex_pix + i)*MLO_FILTER_STRIDE0 + l];
 							}
 
 						}
@@ -405,7 +405,7 @@ __kernel void MLOpenCvFwd(
 								{
 									for (int i = 0; i < MLO_N_FILTER_SPLITS0; ++i)
 									{
-										_FLOAT in_val = in_vals[m*MLO_N_FILTER_SPLITS0 + n + i];
+										_FLOAT in_val = in_vals[m*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + n + i];
 										_FLOAT wei_val = wei_vals[m*MLO_N_FILTER_SPLITS0 + i];
 										pvt_accum[(k) * MLO_OUT_PIX_TILE0 + n]
 											+= wei_val * in_val;
@@ -440,15 +440,14 @@ __kernel void MLOpenCvFwd(
 						} // k
 
 					} // l
-
-// 3d
+					
 					{
 						for (int m = 0; m < MLO_N_FILTER_SPLITS1; ++m)
 						{
 							for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 2); ++i)
 							{
-								in_vals[m*MLO_N_FILTER_SPLITS0 + i]
-									= bot_mem[(ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
+								in_vals[m*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
+									= bot_mem[(ex_row + m) * MLO_IN_LCL_WIDTH + (ex_pix + i)*MLO_FILTER_STRIDE0 + l];
 							}
 
 						}
@@ -468,7 +467,7 @@ __kernel void MLOpenCvFwd(
 								{
 									for (int i = 0; i < MLO_N_FILTER_SPLITS0 - 1; ++i)
 									{
-										_FLOAT in_val = in_vals[m*MLO_N_FILTER_SPLITS0 + n + i];
+										_FLOAT in_val = in_vals[m*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + n + i];
 										_FLOAT wei_val = wei_vals[m*MLO_N_FILTER_SPLITS0 + i];
 										pvt_accum[(k) * MLO_OUT_PIX_TILE0 + n]
 											+= wei_val * in_val;
