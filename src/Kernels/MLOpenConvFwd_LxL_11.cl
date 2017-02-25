@@ -211,7 +211,8 @@ __kernel void MLOpenCvFwd(
 
 	int gbl_in_off = /*c_idx * MLO_IN_CHANNEL_STRIDE + */ib * MLO_IN_BATCH_STRIDE;
 	int gbl_wei_off = k_idx * MLO_WEI_BATCH_STRIDE;
-
+	int out_y = ob*MLO_OUT_EXTENT1;
+	gbl_in_off += out_y*MLO_FILTER_STRIDE1 * MLO_IN_STRIDE;
 
 #define MLO_ACCUM_SZ (MLO_OUT_PIX_TILE1 * MLO_OUT_PIX_TILE0 * MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS*MLO_N_LCL_BATCHS)
 
@@ -230,7 +231,6 @@ __kernel void MLOpenCvFwd(
 	int ex_col = iMod(lcl_id, ex_row, MLO_PROCESSING_WIDTH);
 	int ex_pix = ex_col * MLO_OUT_PIX_TILE0;
 
-	int out_y = ob*MLO_OUT_EXTENT1;
 
 	// over all batches
 
@@ -283,16 +283,15 @@ __kernel void MLOpenCvFwd(
 						{
 							wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i];
 #if 0
-								if (ob==0)
+								if (ob==0 && k == 1)
 								{
-									printf("G:w: %d %d %d   %f %f\n",
+									printf("G:w: %d %d %d %d   %f %f\n",
 //										lcl_id,
 //										w,
 //										f_s,
 //										j,
 //										i,
 //										k_idx,
-//										k,
 										k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i,
 										gbl_wei_off,
 										wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i,
@@ -310,15 +309,19 @@ __kernel void MLOpenCvFwd(
 						}
 					}
 
-					int n_reads = ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0)-1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
-					int lcl_scan = (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
+					int n_reads = MLO_IN_LCL_HEIGHT; // ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0) - 1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
+					int lcl_scan = 0; // (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
 
 					// fetch input by stride
 					for (int p4 = lcl_id, c_scan = 0;  p4 < MLO_N_IN_HORIZ_READS * n_reads * MLO_N_LCL_BATCHS;
 						p4 += MLO_GRP_SZ)
 					{
-						int b = iDiv(p4, MLO_N_IN_HORIZ_READS * n_reads);
-						int t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
+						int b = 0;
+						int t0 = p4;
+#if MLO_N_LCL_BATCHS > 1
+						b = iDiv(p4, MLO_N_IN_HORIZ_READS * n_reads);
+						t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
+#endif
 						c_scan = iDiv(t0, MLO_N_IN_HORIZ_READS);
 						int c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
 						int in_scan = (c_scan + lcl_scan) * MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1;
@@ -331,7 +334,7 @@ __kernel void MLOpenCvFwd(
 						if (0 <= out_y*MLO_FILTER_STRIDE1 + in_scan && out_y*MLO_FILTER_STRIDE1 + in_scan < MLO_IN_HEIGHT)
 						{
 
-							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + (out_y*MLO_FILTER_STRIDE1 + in_scan) * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
+							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + in_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
 							// still problems with unaligned LDS access
 #if MLO_IN_N_PIXS_OFF > 0
 							if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -350,8 +353,7 @@ __kernel void MLOpenCvFwd(
 							else
 #endif
 							{
-								//					*(MLO_READ_TYPE*)in_rd_data = *(__global MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
-
+	
 								for (int i = 0; i < MLO_READ_UNIT; ++i)
 								{
 									in_rd_data[i] = bot[gbl_off + i];
@@ -417,7 +419,7 @@ __kernel void MLOpenCvFwd(
 											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
 												+= wei_val * in_val;
 #if 0
-											if (wei_val * in_val != 0 && ib+b+bb == 0 && k_idx+k == 0 && out_y + ex_row == 2 && ex_pix + n == 0)
+											if (wei_val * in_val != 0 && ib+b+bb == 0 && k_idx+k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
 											{
 												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
 													f_s,
@@ -474,7 +476,7 @@ __kernel void MLOpenCvFwd(
 											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
 												+= wei_val * in_val;
 #if 0
-											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 0 && out_y + ex_row == 2 && ex_pix + n == 0)
+											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
 											{
 												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
 													f_s,
