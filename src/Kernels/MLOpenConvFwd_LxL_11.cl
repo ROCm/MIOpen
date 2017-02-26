@@ -164,6 +164,9 @@ static inline void Kahan_summation2(_FLOAT *sum, _FLOAT *c, _FLOAT *v, int n)
 		sum[i] = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
 	}
 }
+
+
+// TO DO: remove f_s and c from offest calculation
 static inline fetchWeights(int c, int f_s, int lcl_id, int wei_read, int gbl_wei_off, __local _FLOAT * wei_mem, const __global _FLOAT * weights)
 {
 	// read weights by stride
@@ -312,51 +315,8 @@ __kernel void MLOpenCvFwd(
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 
-#if 1
+// get set of taps
 					fetchWeights(c, f_s, lcl_id, MLO_WEI_SZ, gbl_wei_off, wei_mem, weights);
-
-#else
-
-					// read weights by stride
-					for (int w = lcl_id; w < MLO_WEI_LCL_SZ; w += MLO_GRP_SZ)
-					{
-						int k = iDiv(w, MLO_WEI_SZ);
-						int t0 = iMod(w, k, MLO_WEI_SZ);
-						int j = iDiv(t0, MLO_FILTER_SIZE0);
-						int i = iMod(t0, j, MLO_FILTER_SIZE0);
-						int wei_off = gbl_wei_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE;
-
-						if ((j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i < MLO_WEI_CHANNEL_STRIDE)
-						{
-							wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i];
-#if 0
-								if (ob==0 && k == 1)
-								{
-									printf("G:w: %d %d %d %d   %f %f\n",
-//										lcl_id,
-//										w,
-//										f_s,
-//										j,
-//										i,
-//										k_idx,
-										k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i,
-										gbl_wei_off,
-										wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i,
-										weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i],
-										wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i]
-									);
-								}
-
-#endif
-
-						}
-						else
-						{
-							wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = 0;
-						}
-					}
-
-#endif
 
 					int n_reads = MLO_IN_LCL_HEIGHT; // ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0) - 1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
 					int lcl_scan = 0; // (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
@@ -567,49 +527,9 @@ __kernel void MLOpenCvFwd(
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 #define MLO_WEI_READ ((MLO_N_FILTER_SPLITS1 - 1)*MLO_WEI_LCL_WIDTH)
-#if 1
+
 					fetchWeights(c, f_s, lcl_id, MLO_WEI_READ, gbl_wei_off, wei_mem, weights);
-#else
-					// read weights by stride
-					for (int w = lcl_id; w < MLO_WEI_READ* MLO_N_LCL_OUT_MAPS; w += MLO_GRP_SZ)
-					{
-						int k = iDiv(w, MLO_WEI_READ);
-						int t0 = iMod(w, k, MLO_WEI_READ);
-						int j = iDiv(t0, MLO_FILTER_SIZE0);
-						int i = iMod(t0, j, MLO_FILTER_SIZE0);
-						int wei_off = gbl_wei_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE;
 
-						if ((j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i < MLO_WEI_CHANNEL_STRIDE)
-						{
-							wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i];
-#if 0
-							if (ob == 0 && k == 1)
-							{
-								printf("G:w: %d %d %d %d   %f %f\n",
-									//										lcl_id,
-									//										w,
-									//										f_s,
-									//										j,
-									//										i,
-									//										k_idx,
-									k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i,
-									gbl_wei_off,
-									wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i,
-									weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i],
-									wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i]
-								);
-							}
-
-#endif
-
-						}
-						else
-						{
-							wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = 0;
-						}
-					}
-
-#endif
 					int n_reads = MLO_IN_LCL_HEIGHT - 1; // ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0) - 1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
 					int lcl_scan = 0; // (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
 
