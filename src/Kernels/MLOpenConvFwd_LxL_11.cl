@@ -560,8 +560,9 @@ __kernel void MLOpenCvFwd(
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 #define MLO_WEI_READ ((MLO_N_FILTER_SPLITS1 - 1)*MLO_WEI_LCL_WIDTH)
-					// LDS size
- 
+#if 1
+					fetchWeights(c, f_s, lcl_id, MLO_WEI_READ, gbl_wei_off, wei_mem, weights);
+#else
 					// read weights by stride
 					for (int w = lcl_id; w < MLO_WEI_READ* MLO_N_LCL_OUT_MAPS; w += MLO_GRP_SZ)
 					{
@@ -601,6 +602,7 @@ __kernel void MLOpenCvFwd(
 						}
 					}
 
+#endif
 					int n_reads = MLO_IN_LCL_HEIGHT - 1; // ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0) - 1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
 					int lcl_scan = 0; // (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
 
