@@ -164,7 +164,47 @@ static inline void Kahan_summation2(_FLOAT *sum, _FLOAT *c, _FLOAT *v, int n)
 		sum[i] = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
 	}
 }
+static inline fetchWeights(int c, int f_s, int lcl_id, int wei_read, int gbl_wei_off, __local _FLOAT * wei_mem, const __global _FLOAT * weights)
+{
+	// read weights by stride
+	for (int w = lcl_id; w < wei_read* MLO_N_LCL_OUT_MAPS; w += MLO_GRP_SZ)
+	{
+		int k = iDiv(w, wei_read);
+		int t0 = iMod(w, k, wei_read);
+		int j = iDiv(t0, MLO_FILTER_SIZE0);
+		int i = iMod(t0, j, MLO_FILTER_SIZE0);
+		int wei_off = gbl_wei_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE;
 
+		if ((j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i < MLO_WEI_CHANNEL_STRIDE)
+		{
+			wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i];
+#if 0
+			if (ob == 0 && k == 1)
+			{
+				printf("G:w: %d %d %d %d   %f %f\n",
+					//										lcl_id,
+					//										w,
+					//										f_s,
+					//										j,
+					//										i,
+					//										k_idx,
+					k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i,
+					gbl_wei_off,
+					wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i,
+					weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i],
+					wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i]
+				);
+			}
+
+#endif
+
+		}
+		else
+		{
+			wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = 0;
+		}
+	}
+}
 /*********************************************************************************************************
 // wrw algorithm for large filters
 // idea:
