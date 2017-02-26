@@ -266,7 +266,8 @@ __kernel void MLOpenCvFwd(
 			// all input maps
 			for (int c = 0, gbl_in_scan_off = gbl_in_scan_off0; c < MLO_N_INPUTS; ++c, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
 			{
-				for (int f_s = 0; f_s < MLO_FILTER_STRIDE1; ++f_s)
+				int f_s = 0;
+				for (; f_s < MLO_FILTER_STRIDE1 - 1; ++f_s)
 				{
 
 					barrier(CLK_LOCAL_MEM_FENCE);
@@ -376,20 +377,6 @@ __kernel void MLOpenCvFwd(
 					// along vertical filter
 					for (int m = 0; m < MLO_N_FILTER_SPLITS1; ++m)
 					{
-#if 0
-						// select all vertical scans that matches the vertical filter tap 
-						__private _FLOAT in_vals[MLO_N_LCL_BATCHS * ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0)];
-						// read input values for this filter phase
-						for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
-						{
-							for (int i = 0; i < ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0); ++i)
-							{
-								in_vals[bb* ((MLO_OUT_PIX_TILE0 - 1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0) + i]
-									= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i];
-							}
-
-						}
-#endif
 // only for 11 
 						__private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS*MLO_N_FILTER_SPLITS0];
 						__private _FLOAT in_vals[MLO_N_LCL_BATCHS * (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1)];
@@ -527,6 +514,257 @@ __kernel void MLOpenCvFwd(
 					} // m
 
 				} // f_s
+
+// last f_s
+				{
+
+					barrier(CLK_LOCAL_MEM_FENCE);
+#define MLO_WEI_READ ((MLO_N_FILTER_SPLITS1 - 1)*MLO_WEI_LCL_WIDTH)
+					// LDS size
+ 
+					// read weights by stride
+					for (int w = lcl_id; w < MLO_WEI_READ* MLO_N_LCL_OUT_MAPS; w += MLO_GRP_SZ)
+					{
+						int k = iDiv(w, MLO_WEI_READ);
+						int t0 = iMod(w, k, MLO_WEI_READ);
+						int j = iDiv(t0, MLO_FILTER_SIZE0);
+						int i = iMod(t0, j, MLO_FILTER_SIZE0);
+						int wei_off = gbl_wei_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE;
+
+						if ((j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i < MLO_WEI_CHANNEL_STRIDE)
+						{
+							wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i];
+#if 0
+							if (ob == 0 && k == 1)
+							{
+								printf("G:w: %d %d %d %d   %f %f\n",
+									//										lcl_id,
+									//										w,
+									//										f_s,
+									//										j,
+									//										i,
+									//										k_idx,
+									k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i,
+									gbl_wei_off,
+									wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i,
+									weights[wei_off + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 + i],
+									wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i]
+								);
+							}
+
+#endif
+
+						}
+						else
+						{
+							wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = 0;
+						}
+					}
+
+					int n_reads = MLO_IN_LCL_HEIGHT - 1; // ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0) - 1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
+					int lcl_scan = 0; // (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
+
+									  // fetch input by stride
+					for (int p4 = lcl_id, c_scan = 0;  p4 < MLO_N_IN_HORIZ_READS * n_reads * MLO_N_LCL_BATCHS;
+						p4 += MLO_GRP_SZ)
+					{
+						int b = 0;
+						int t0 = p4;
+#if MLO_N_LCL_BATCHS > 1
+						b = iDiv(p4, MLO_N_IN_HORIZ_READS * n_reads);
+						t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
+#endif
+						c_scan = iDiv(t0, MLO_N_IN_HORIZ_READS);
+						int c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
+						int in_scan = (c_scan + lcl_scan) * MLO_FILTER_STRIDE1 + f_s;
+
+						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						{
+							in_rd_data[i] = 0;
+						}
+
+						if (0 <= in_y + in_scan && in_y + in_scan < MLO_IN_HEIGHT)
+						{
+
+							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + in_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
+							// still problems with unaligned LDS access
+#if MLO_IN_N_PIXS_OFF > 0
+							if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
+							{
+								int i = 0;
+								for (; i < MLO_IN_N_PIXS_OFF; ++i)
+								{
+									in_rd_data[i] = bot[gbl_off + i];
+								}
+								//								for (; i < MLO_READ_UNIT; ++i)
+								//								{
+								//									in_rd_data[i] = 0;
+								//								}
+
+							}
+							else
+#endif
+							{
+
+								for (int i = 0; i < MLO_READ_UNIT; ++i)
+								{
+									in_rd_data[i] = bot[gbl_off + i];
+								}
+							}
+
+						}
+						int lcl_off = (lcl_scan + c_scan)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
+						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						{
+							bot_mem[lcl_off + i] = in_rd_data[i];
+						}
+
+					}
+
+					barrier(CLK_LOCAL_MEM_FENCE);
+
+					// convolution
+					// along vertical filter
+					for (int m = 0; m < MLO_N_FILTER_SPLITS1 - 1; ++m)
+					{
+						// only for 11 
+						__private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS*MLO_N_FILTER_SPLITS0];
+						__private _FLOAT in_vals[MLO_N_LCL_BATCHS * (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1)];
+
+						// first 2 splits
+						int l;
+						for (l = 0; l < MLO_FILTER_STRIDE0 - 1; ++l)
+						{
+							// read all weights
+							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+							{
+								for (int i = 0; i < MLO_N_FILTER_SPLITS0; ++i)
+								{
+									wei_vals[k*MLO_N_FILTER_SPLITS0 + i]
+										= wei_mem[k*MLO_WEI_SZ + m*MLO_WEI_LCL_WIDTH + i*MLO_FILTER_STRIDE0 + l];
+								}
+							}
+
+							// convolve 
+							for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
+							{
+
+								for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
+								{
+									in_vals[bb*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
+										= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
+								}
+
+								for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+								{
+									for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
+									{
+
+										for (int i = 0; i < MLO_N_FILTER_SPLITS0; ++i)
+										{
+											_FLOAT in_val = in_vals[bb* (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + n + i];
+											_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
+											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
+												+= wei_val * in_val;
+#if 0
+											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
+											{
+												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+													f_s,
+													out_y,
+													ex_row,
+													ex_pix,
+													m,
+													n,
+													l,
+													i,
+													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
+													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
+													m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
+													l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
+													pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
+													wei_val * in_val,
+													wei_val,
+													in_val
+												);
+											}
+
+#endif
+
+										}
+									}
+								}
+							} // b
+						} // l
+						  // 3d
+						{
+							// read all weights
+							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+							{
+								for (int i = 0; i < MLO_N_FILTER_SPLITS0 - 1; ++i)
+								{
+									wei_vals[k*MLO_N_FILTER_SPLITS0 + i]
+										= wei_mem[k*MLO_WEI_SZ + m*MLO_WEI_LCL_WIDTH + i*MLO_FILTER_STRIDE0 + l];
+								}
+							}
+
+							// convolve 
+							for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
+							{
+
+								for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
+								{
+									in_vals[bb*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
+										= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
+								}
+
+								for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+								{
+									for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
+									{
+
+										for (int i = 0; i < MLO_N_FILTER_SPLITS0 - 1; ++i)
+										{
+											_FLOAT in_val = in_vals[bb* (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + n + i];
+											_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
+											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
+												+= wei_val * in_val;
+#if 0
+											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
+											{
+												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+													f_s,
+													out_y,
+													ex_row,
+													ex_pix,
+													m,
+													n,
+													l,
+													i,
+													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
+													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
+													m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
+													l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
+													pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
+													wei_val * in_val,
+													wei_val,
+													in_val
+												);
+											}
+
+#endif
+
+										}
+									}
+								}
+							} // b
+						} // l
+
+
+					} // m
+
+				} // f_s
+
 
 			} // c
 
