@@ -415,13 +415,6 @@ __kernel void MLOpenCvFwd(
 		)
 	{
 
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-
-
-
-		__private _FLOAT in_rd_data[MLO_READ_UNIT];
-
 		int gbl_in_scan_off0 = gbl_in_off;
 
 		// generate pixels from all MLO_N_LCL_OUT_MAPS output maps
@@ -451,6 +444,8 @@ __kernel void MLOpenCvFwd(
 				int lcl_scan = 0; // (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
 
 				fetchData(f_s, lcl_id, lcl_scan, n_reads, in_y, gbl_in_scan_off, bot_mem, bot);
+
+
 				barrier(CLK_LOCAL_MEM_FENCE);
 
 				// convolution
@@ -477,6 +472,7 @@ __kernel void MLOpenCvFwd(
 			{
 
 				barrier(CLK_LOCAL_MEM_FENCE);
+
 #define MLO_WEI_READ ((MLO_N_FILTER_SPLITS1 - 1)*MLO_WEI_LCL_WIDTH)
 				// fetch a set of weight vertical taps
 
@@ -516,8 +512,6 @@ __kernel void MLOpenCvFwd(
 
 		} // c
 
-
-//		barrier(CLK_LOCAL_MEM_FENCE);
 
 		//			for (int bb = 0; bb < MLO_N_LCL_BATCHS && ex_row < MLO_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT; ++bb)
 		{
