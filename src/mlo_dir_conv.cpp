@@ -999,7 +999,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	// extent1 == MLO_GRP_SZ / MLO_PROCESING_WIDTH
 	int PROCESING_WIDTH = ((_out_width + _out_pix_tile0 - 1) / _out_pix_tile0);
 
-	int OUT_EXTENT1 = (GRP_SZ / PROCESING_WIDTH);
+	int OUT_EXTENT1 = std::min(_out_height, (GRP_SZ / PROCESING_WIDTH));
 
 
 	// define a special size for a specific width as a devisor to avoid dealing with out of range
@@ -1035,6 +1035,20 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 	_grp_tile0 = GRP_SZ;
 	_grp_tile1 = 1;
 	int grp_tile2 = 1;
+
+// second pass if needed
+	int n_extents = ((_out_height + OUT_EXTENT1 - 1) / OUT_EXTENT1);
+	int n_output_map_blocks = ((_n_outputs + total_out_maps - 1) / total_out_maps);
+	int last_out_extent1 =  _out_height - (std::max(1, _out_height / OUT_EXTENT1) * OUT_EXTENT1);
+	last_out_extent1 = (last_out_extent1 < 0) ? 0  : last_out_extent1;
+	int n_batches_pass2 = 1;
+	bool second_pass = false;
+	if (0 < last_out_extent1 && last_out_extent1 <= OUT_EXTENT1 / 2)
+	{
+		n_extents = std::max(1, _out_height / OUT_EXTENT1);
+		n_batches_pass2 = std::max(1, GRP_SZ / (PROCESING_WIDTH*last_out_extent1));
+		second_pass = true;
+	}
 
 	// it's backward - inputs are outputs and vs versa
 	_comp_options =
@@ -1080,6 +1094,8 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 		+ std::string(" -DMLO_N_FILTER_SPLITS0=") + std::to_string(N_FILTER_SPLITS0)
 		+ std::string(" -DMLO_PROCESSING_WIDTH=") + std::to_string(PROCESING_WIDTH)
 		+ std::string(" -DMLO_OUT_EXTENT1=") + std::to_string(OUT_EXTENT1)
+		+ std::string(" -DMLO_LAST_OUT_EXTENT1=") + std::to_string(last_out_extent1)
+		+ std::string(" -DMLO_N_LCL_BATCHS_PASS2=") + std::to_string(n_batches_pass2)
 
 		+ std::string(" -DMLO_READ_TYPE=") + READ_TYPE
 		+ std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit)
@@ -1088,13 +1104,13 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 
 		+ std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias)
 
-		//		+ std::string(" -limit-vector-registers=64 ")
+		//		+ std::string(" -limit-vector-registers=64 ")_batch_sz
 		+ getGeneralCompOptions()
 		;
 
 
 	_mlo_kernels_info.clear();
-	// wrt to W
+	// 1st pass
 	{
 		_l_wk.clear();
 		_l_wk.push_back(_grp_tile0);
@@ -1102,8 +1118,8 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 		_l_wk.push_back(grp_tile2);
 		// input is output
 
-		size_t gbl_wk0 = GRP_SZ * (( _out_height + OUT_EXTENT1 - 1) / OUT_EXTENT1);
-		size_t gbl_wk1 = ((_n_outputs + total_out_maps - 1) / total_out_maps);
+		size_t gbl_wk0 = GRP_SZ * n_extents;
+		size_t gbl_wk1 = n_output_map_blocks;
 		size_t gbl_wk2 = n_batch_blks;
 
 
@@ -1121,7 +1137,35 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 		_workspce_sz = 0;
 
 	}
+	// 2nd  pass
+	if (second_pass)
+	{
+		std::string kernel_file = "MLOpenConvFwd_LxL_11.cl";
+		std::string kernel_name = "MLOpenCvFwd2";
 
+		std::vector<size_t> l_wk;
+		std::vector<size_t> g_wk;
+
+		l_wk.clear();
+		l_wk.push_back(_grp_tile0);
+		l_wk.push_back(_grp_tile1);
+		l_wk.push_back(grp_tile2);
+		// input is output
+
+		size_t gbl_wk0 = GRP_SZ;
+		size_t gbl_wk1 = n_output_map_blocks;
+		n_batch_blks = (_batch_sz + n_batches_pass2 - 1) / n_batches_pass2;
+		size_t gbl_wk2 = n_batch_blks;
+
+		g_wk.clear();
+		g_wk.push_back(gbl_wk0);
+		g_wk.push_back(gbl_wk1);
+		g_wk.push_back(gbl_wk2);
+
+		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
+		_mlo_kernels_info.push_back(kern_info);
+
+	}
 
 	return(ret);
 }
