@@ -378,75 +378,15 @@ __kernel void MLOpenCvFwd(
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 
-// get set of taps
+// get a set of horizaontal taps
 					fetchWeights(c, f_s, lcl_id, MLO_WEI_SZ, gbl_wei_off, wei_mem, weights);
+
+// fetch a set of input scanlines
 
 					int n_reads = MLO_IN_LCL_HEIGHT; // ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0) - 1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
 					int lcl_scan = 0; // (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
 
-
-					// fetch input by stride
-
-#if 1
 					fetchData(f_s, lcl_id, lcl_scan, n_reads, in_y, gbl_in_scan_off, bot_mem, bot);
-#else
-					for (int p4 = lcl_id, c_scan = 0;  p4 < MLO_N_IN_HORIZ_READS * n_reads * MLO_N_LCL_BATCHS;
-						p4 += MLO_GRP_SZ)
-					{
-						int b = 0;
-						int t0 = p4;
-#if MLO_N_LCL_BATCHS > 1
-						b = iDiv(p4, MLO_N_IN_HORIZ_READS * n_reads);
-						t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
-#endif
-						c_scan = iDiv(t0, MLO_N_IN_HORIZ_READS);
-						int c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
-						int in_scan = (c_scan + lcl_scan) * MLO_FILTER_STRIDE1 + f_s;
-
-						for (int i = 0; i < MLO_READ_UNIT; ++i)
-						{
-							in_rd_data[i] = 0;
-						}
-
-						if (0 <= in_y + in_scan && in_y + in_scan < MLO_IN_HEIGHT)
-						{
-
-							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + in_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
-							// still problems with unaligned LDS access
-#if MLO_IN_N_PIXS_OFF > 0
-							if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
-							{
-								int i = 0;
-								for (; i < MLO_IN_N_PIXS_OFF; ++i)
-								{
-									in_rd_data[i] = bot[gbl_off + i];
-								}
-//								for (; i < MLO_READ_UNIT; ++i)
-//								{
-//									in_rd_data[i] = 0;
-//								}
-
-							}
-							else
-#endif
-							{
-	
-								for (int i = 0; i < MLO_READ_UNIT; ++i)
-								{
-									in_rd_data[i] = bot[gbl_off + i];
-								}
-							}
-
-						}
-						int lcl_off = (lcl_scan + c_scan)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
-						for (int i = 0; i < MLO_READ_UNIT; ++i)
-						{
-							bot_mem[lcl_off + i] = in_rd_data[i];
-						}
-
-					}
-
-#endif
 					barrier(CLK_LOCAL_MEM_FENCE);
 
 					// convolution
@@ -596,76 +536,18 @@ __kernel void MLOpenCvFwd(
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 #define MLO_WEI_READ ((MLO_N_FILTER_SPLITS1 - 1)*MLO_WEI_LCL_WIDTH)
-// fetch set of weight vertical taps
+// fetch a set of weight vertical taps
 
 					fetchWeights(c, f_s, lcl_id, MLO_WEI_READ, gbl_wei_off, wei_mem, weights);
+
+// fetch a set of input scanlines
+
 
 					int n_reads = MLO_IN_LCL_HEIGHT - 1; // ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0) - 1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
 					int lcl_scan = 0; // (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
 
-									  // fetch input by stride
 
-#if 1
 					fetchData(f_s, lcl_id, lcl_scan, n_reads, in_y, gbl_in_scan_off, bot_mem, bot);
-#else
-
-					for (int p4 = lcl_id, c_scan = 0;  p4 < MLO_N_IN_HORIZ_READS * n_reads * MLO_N_LCL_BATCHS;
-						p4 += MLO_GRP_SZ)
-					{
-						int b = 0;
-						int t0 = p4;
-#if MLO_N_LCL_BATCHS > 1
-						b = iDiv(p4, MLO_N_IN_HORIZ_READS * n_reads);
-						t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
-#endif
-						c_scan = iDiv(t0, MLO_N_IN_HORIZ_READS);
-						int c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
-						int in_scan = (c_scan + lcl_scan) * MLO_FILTER_STRIDE1 + f_s;
-
-						for (int i = 0; i < MLO_READ_UNIT; ++i)
-						{
-							in_rd_data[i] = 0;
-						}
-
-						if (0 <= in_y + in_scan && in_y + in_scan < MLO_IN_HEIGHT)
-						{
-
-							int gbl_off = gbl_in_scan_off + b*MLO_IN_BATCH_STRIDE + in_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
-							// still problems with unaligned LDS access
-#if MLO_IN_N_PIXS_OFF > 0
-							if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
-							{
-								int i = 0;
-								for (; i < MLO_IN_N_PIXS_OFF; ++i)
-								{
-									in_rd_data[i] = bot[gbl_off + i];
-								}
-								//								for (; i < MLO_READ_UNIT; ++i)
-								//								{
-								//									in_rd_data[i] = 0;
-								//								}
-
-							}
-							else
-#endif
-							{
-
-								for (int i = 0; i < MLO_READ_UNIT; ++i)
-								{
-									in_rd_data[i] = bot[gbl_off + i];
-								}
-							}
-
-						}
-						int lcl_off = (lcl_scan + c_scan)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
-						for (int i = 0; i < MLO_READ_UNIT; ++i)
-						{
-							bot_mem[lcl_off + i] = in_rd_data[i];
-						}
-
-					}
-
-#endif
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 
