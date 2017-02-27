@@ -54,7 +54,7 @@
 #define MLO_WEI_EXTENT1 MLO_N_FILTER_SPLITS1
 #define MLO_WEI_SZ (MLO_WEI_EXTENT1*MLO_WEI_LCL_WIDTH)
 // LDS size
-#define MLO_WEI_LCL_SZ (MLO_WEI_SZ * MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS)
+#define MLO_WEI_LCL_SZ (MLO_WEI_SZ * MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS)
 
 
 #define MLO_IN_LCL_HEIGHT (MLO_OUT_EXTENT1 + MLO_N_FILTER_SPLITS1 - 1)
@@ -307,7 +307,7 @@ __kernel void MLOpenCvFwd(
 	
 	int ob = get_group_id(0);  // output map extent id
 
-	int k_idx = get_group_id(1) * (MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS); // input map index based
+	int k_idx = get_group_id(1) * (MLO_N_LCL_OUT_MAPS); // input map index based
 
 	int c_idx = 0;
 
@@ -322,7 +322,7 @@ __kernel void MLOpenCvFwd(
 	int in_y = out_y*MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1;
 	gbl_in_off += in_y * MLO_IN_STRIDE;
 
-#define MLO_ACCUM_SZ (MLO_OUT_PIX_TILE1 * MLO_OUT_PIX_TILE0 * MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS*MLO_N_LCL_BATCHS)
+#define MLO_ACCUM_SZ (MLO_OUT_PIX_TILE1 * MLO_OUT_PIX_TILE0 * MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS)
 
 	__private _FLOAT pvt_accum[MLO_ACCUM_SZ];
 
@@ -344,8 +344,8 @@ __kernel void MLOpenCvFwd(
 
 	for (int b = 0;
 		b < MLO_N_BATCH_LOOPS;
-		b += MLO_N_LCL_BATCHS,
-		gbl_in_off += MLO_N_LCL_BATCHS*MLO_IN_BATCH_STRIDE
+		++b,
+		gbl_in_off += MLO_IN_BATCH_STRIDE
 		)
 	{
 
@@ -358,8 +358,7 @@ __kernel void MLOpenCvFwd(
 
 		int gbl_in_scan_off0 = gbl_in_off;
 
-		// generate pixels all MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS output maps
-//		for (int ob = 0; ob < MLO_N_OUT_BLKS; ++ob, in_y0 += (MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1*MLO_N_OUT_FOLDS1), gbl_in_scan_off0 += (MLO_OUT_PIX_TILE1 *MLO_FILTER_STRIDE1*MLO_N_OUT_FOLDS1) * MLO_IN_CHANNEL_STRIDE, out_y += MLO_OUT_PIX_TILE1 *MLO_N_OUT_FOLDS1)
+		// generate pixels from all MLO_N_LCL_OUT_MAPS output maps
 		{
 
 
@@ -378,10 +377,10 @@ __kernel void MLOpenCvFwd(
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 
-// get a set of horizaontal taps
+					// get a set of horizaontal taps
 					fetchWeights(c, f_s, lcl_id, MLO_WEI_SZ, gbl_wei_off, wei_mem, weights);
 
-// fetch a set of input scanlines
+					// fetch a set of input scanlines
 
 					int n_reads = MLO_IN_LCL_HEIGHT; // ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0) - 1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
 					int lcl_scan = 0; // (ob == 0 && (f_s < MLO_FILTER_PAD1)) ? 1 : 0;
@@ -393,15 +392,15 @@ __kernel void MLOpenCvFwd(
 					// along vertical filter
 					for (int m = 0; m < MLO_N_FILTER_SPLITS1; ++m)
 					{
-// only for 11 
+						// only for 11 
 						__private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS*MLO_N_FILTER_SPLITS0];
-						__private _FLOAT in_vals[MLO_N_LCL_BATCHS * (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1)];
+						__private _FLOAT in_vals[(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1)];
 
-						// first 2 splits
+						// first 3 splits
 						int l;
-						for (l = 0; l <  MLO_FILTER_STRIDE0 - 1; ++l)
+						for (l = 0; l < MLO_FILTER_STRIDE0 - 1; ++l)
 						{
-// read all weights
+							// read all weights
 							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 							{
 								for (int i = 0; i < MLO_N_FILTER_SPLITS0; ++i)
@@ -412,62 +411,59 @@ __kernel void MLOpenCvFwd(
 							}
 
 							// convolve 
-							for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
+
+							for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
 							{
+								in_vals[i]
+									= bot_mem[(ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
+							}
 
-								for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
+							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+							{
+								for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
 								{
-									in_vals[bb*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
-										= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
-								}
 
-								for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
-								{
-									for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
+									for (int i = 0; i < MLO_N_FILTER_SPLITS0; ++i)
 									{
-
-										for (int i = 0; i <  MLO_N_FILTER_SPLITS0; ++i)
-										{
-											_FLOAT in_val = in_vals[bb* (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + n + i];
-											_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
-											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
-												+= wei_val * in_val;
+										_FLOAT in_val = in_vals[n + i];
+										_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
+										pvt_accum[k * MLO_OUT_PIX_TILE0 + n]
+											+= wei_val * in_val;
 #if 0
-											if (wei_val * in_val != 0 && ib+b+bb == 0 && k_idx+k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
-											{
-												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
-													f_s,
-													out_y,
-													ex_row,
-													ex_pix,
-													m,
-													n,
-													l,
-													i,
-													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
-													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
-													m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
-													l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
-													pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
-													wei_val * in_val,
-													wei_val,
-													in_val
-												);
-											}
+										if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
+										{
+											printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+												f_s,
+												out_y,
+												ex_row,
+												ex_pix,
+												m,
+												n,
+												l,
+												i,
+												(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
+												(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
+												m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
+												l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
+												pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
+												wei_val * in_val,
+												wei_val,
+												in_val
+											);
+										}
 
 #endif
 
-										}
 									}
 								}
-							} // b
+							}
 						} // l
-// 3d
+// 4th
 						{
-// read all weights
+							// read all weights
 							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 							{
-								for (int i = 0; i < MLO_N_FILTER_SPLITS0-1; ++i)
+								for (int i = 0; i < MLO_N_FILTER_SPLITS0 - 1; ++i)
 								{
 									wei_vals[k*MLO_N_FILTER_SPLITS0 + i]
 										= wei_mem[k*MLO_WEI_SZ + m*MLO_WEI_LCL_WIDTH + i*MLO_FILTER_STRIDE0 + l];
@@ -475,55 +471,51 @@ __kernel void MLOpenCvFwd(
 							}
 
 							// convolve 
-							for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
+							for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
 							{
+								in_vals[i]
+									= bot_mem[(ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
+							}
 
-								for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
+							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+							{
+								for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
 								{
-									in_vals[bb*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
-										= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
-								}
 
-								for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
-								{
-									for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
+									for (int i = 0; i < MLO_N_FILTER_SPLITS0 - 1; ++i)
 									{
-
-										for (int i = 0; i <  MLO_N_FILTER_SPLITS0 - 1; ++i)
-										{
-											_FLOAT in_val = in_vals[bb* (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + n + i];
-											_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
-											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
-												+= wei_val * in_val;
+										_FLOAT in_val = in_vals[n + i];
+										_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
+										pvt_accum[k * MLO_OUT_PIX_TILE0 + n]
+											+= wei_val * in_val;
 #if 0
-											if (wei_val * in_val != 0 && ib+b+bb == 0 && k_idx+k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
-											{
-												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
-													f_s,
-													out_y,
-													ex_row,
-													ex_pix,
-													m,
-													n,
-													l,
-													i,
-													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
-													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
-													m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
-													l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
-													pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
-													wei_val * in_val,
-													wei_val,
-													in_val
-												);
-											}
+										if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
+										{
+											printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+												f_s,
+												out_y,
+												ex_row,
+												ex_pix,
+												m,
+												n,
+												l,
+												i,
+												(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
+												(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
+												m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
+												l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
+												pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
+												wei_val * in_val,
+												wei_val,
+												in_val
+											);
+										}
 
 #endif
 
-										}
 									}
 								}
-							} // b
+							}
 						} // l
 
 
@@ -536,11 +528,11 @@ __kernel void MLOpenCvFwd(
 
 					barrier(CLK_LOCAL_MEM_FENCE);
 #define MLO_WEI_READ ((MLO_N_FILTER_SPLITS1 - 1)*MLO_WEI_LCL_WIDTH)
-// fetch a set of weight vertical taps
+					// fetch a set of weight vertical taps
 
 					fetchWeights(c, f_s, lcl_id, MLO_WEI_READ, gbl_wei_off, wei_mem, weights);
 
-// fetch a set of input scanlines
+					// fetch a set of input scanlines
 
 
 					int n_reads = MLO_IN_LCL_HEIGHT - 1; // ((ob == 0 && (f_s < MLO_FILTER_PAD1)) || (ob == get_local_size(0) - 1 && (MLO_FILTER_STRIDE1 - f_s) < MLO_FILTER_PAD1)) ? MLO_IN_LCL_HEIGHT - 1 : MLO_IN_LCL_HEIGHT;
@@ -557,9 +549,9 @@ __kernel void MLOpenCvFwd(
 					{
 						// only for 11 
 						__private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS*MLO_N_FILTER_SPLITS0];
-						__private _FLOAT in_vals[MLO_N_LCL_BATCHS * (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1)];
+						__private _FLOAT in_vals[(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1)];
 
-						// first 2 splits
+						// first 3 splits
 						int l;
 						for (l = 0; l < MLO_FILTER_STRIDE0 - 1; ++l)
 						{
@@ -574,57 +566,53 @@ __kernel void MLOpenCvFwd(
 							}
 
 							// convolve 
-							for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
+							for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
 							{
+								in_vals[i]
+									= bot_mem[(ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
+							}
 
-								for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
+							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+							{
+								for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
 								{
-									in_vals[bb*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
-										= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
-								}
 
-								for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
-								{
-									for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
+									for (int i = 0; i < MLO_N_FILTER_SPLITS0; ++i)
 									{
-
-										for (int i = 0; i < MLO_N_FILTER_SPLITS0; ++i)
-										{
-											_FLOAT in_val = in_vals[bb* (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + n + i];
-											_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
-											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
-												+= wei_val * in_val;
+										_FLOAT in_val = in_vals[n + i];
+										_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
+										pvt_accum[k * MLO_OUT_PIX_TILE0 + n]
+											+= wei_val * in_val;
 #if 0
-											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
-											{
-												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
-													f_s,
-													out_y,
-													ex_row,
-													ex_pix,
-													m,
-													n,
-													l,
-													i,
-													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
-													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
-													m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
-													l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
-													pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
-													wei_val * in_val,
-													wei_val,
-													in_val
-												);
-											}
+										if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
+										{
+											printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+												f_s,
+												out_y,
+												ex_row,
+												ex_pix,
+												m,
+												n,
+												l,
+												i,
+												(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
+												(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
+												m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
+												l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
+												pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
+												wei_val * in_val,
+												wei_val,
+												in_val
+											);
+										}
 
 #endif
 
-										}
 									}
 								}
-							} // b
+							}
 						} // l
-						  // 3d
+// 4th
 						{
 							// read all weights
 							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
@@ -637,55 +625,51 @@ __kernel void MLOpenCvFwd(
 							}
 
 							// convolve 
-							for (int bb = 0; bb < MLO_N_LCL_BATCHS; ++bb)
+							for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
 							{
+								in_vals[i]
+									= bot_mem[(ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
+							}
 
-								for (int i = 0; i < (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1); ++i)
+							for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+							{
+								for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
 								{
-									in_vals[bb*(MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + i]
-										= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
-								}
 
-								for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
-								{
-									for (int n = 0; n < MLO_OUT_PIX_TILE0; ++n)
+									for (int i = 0; i < MLO_N_FILTER_SPLITS0 - 1; ++i)
 									{
-
-										for (int i = 0; i < MLO_N_FILTER_SPLITS0 - 1; ++i)
-										{
-											_FLOAT in_val = in_vals[bb* (MLO_OUT_PIX_TILE0 + MLO_N_FILTER_SPLITS0 - 1) + n + i];
-											_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
-											pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n]
-												+= wei_val * in_val;
+										_FLOAT in_val = in_vals[n + i];
+										_FLOAT wei_val = wei_vals[k*MLO_N_FILTER_SPLITS0 + i];
+										pvt_accum[k * MLO_OUT_PIX_TILE0 + n]
+											+= wei_val * in_val;
 #if 0
-											if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
-											{
-												printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
-													f_s,
-													out_y,
-													ex_row,
-													ex_pix,
-													m,
-													n,
-													l,
-													i,
-													(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
-													(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
-													m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
-													l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
-													pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
-													wei_val * in_val,
-													wei_val,
-													in_val
-												);
-											}
+										if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
+										{
+											printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+												f_s,
+												out_y,
+												ex_row,
+												ex_pix,
+												m,
+												n,
+												l,
+												i,
+												(out_y + ex_row)*MLO_FILTER_STRIDE1 + m*MLO_FILTER_STRIDE1 + f_s - MLO_FILTER_PAD1, // actual input vertical position
+												(ex_pix + n)*MLO_FILTER_STRIDE0 + l*MLO_FILTER_STRIDE0 + i - MLO_FILTER_PAD0, // actual input horiz pos (assuming full scan is inside LDS)
+												m*MLO_FILTER_STRIDE1 + f_s, // actual filter vet pos
+												l*MLO_FILTER_STRIDE0 + i, // actual filter horiz pos
+												pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + n],
+												wei_val * in_val,
+												wei_val,
+												in_val
+											);
+										}
 
 #endif
 
-										}
 									}
 								}
-							} // b
+							}
 						} // l
 
 
@@ -699,16 +683,16 @@ __kernel void MLOpenCvFwd(
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			for (int bb = 0; bb < MLO_N_LCL_BATCHS && ex_row < MLO_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT; ++bb)
+//			for (int bb = 0; bb < MLO_N_LCL_BATCHS && ex_row < MLO_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT; ++bb)
 			{
-				for (int k = 0; k < MLO_N_LCL_OUT_MAPS && (k_idx + k) < MLO_N_OUTPUTS; ++k)
+				for (int k = 0; k < MLO_N_LCL_OUT_MAPS && (k_idx + k) < MLO_N_OUTPUTS && ex_row < MLO_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT; ++k)
 				{
 					// write out 
 					// inputs are outputs
-					int out_off = (ib + b + bb) * MLO_OUT_BATCH_STRIDE + (k_idx + k) * MLO_OUT_CHANNEL_STRIDE + (out_y + ex_row) *MLO_OUT_STRIDE + ex_pix;
+					int out_off = (ib + b) * MLO_OUT_BATCH_STRIDE + (k_idx + k) * MLO_OUT_CHANNEL_STRIDE + (out_y + ex_row) *MLO_OUT_STRIDE + ex_pix;
 					for (int i = 0; i < MLO_OUT_PIX_TILE0 && ex_pix + i < MLO_OUT_WIDTH; ++i)
 					{
-						top[out_off + i] = pvt_accum[(bb*MLO_N_LCL_OUT_MAPS + k) * MLO_OUT_PIX_TILE0 + i];
+						top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
 					}
 				}
 			}
