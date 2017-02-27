@@ -380,7 +380,7 @@ int ConvDriver<T>::RunForwardGPU() {
 #if MLOPEN_USE_TINYGEMM
 			mlopenConvolutionFwdAlgoGEMM,
 #else
-			mlopenConvolutionFwdAlgoDirect,
+			mlopenConvolutionFwdAlgoWinograd,
 #endif
 			&beta,
 			outputTensor,

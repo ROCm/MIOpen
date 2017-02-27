@@ -44,7 +44,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+
     std::string network_config;
+    std::string program_name;
+    std::string kernel_name;
+    std::string parms;
+
 #if MLOPEN_USE_TINYGEMM
     if(workSpace != nullptr) {
         if(wei_h != 1 && wei_w != 1) {
@@ -59,38 +64,67 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     (void)workSpace; // Suppress warning
 #endif
 
+    // Winograd algo
+    // TODO: duplicating code for now
+    
+    mlo_construct_winograd construct_params_wino(1);
+    construct_params_wino.setStream(&handle);
+
+    construct_params_wino.setOutputDescFromMLDesc(yDesc);
+    construct_params_wino.setInputDescFromMLDesc(xDesc);
+    construct_params_wino.setWeightDescFromMLDesc(wDesc);
+
+    construct_params_wino.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+
+    construct_params_wino.mloConstruct();
+    program_name = construct_params_wino.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
+    kernel_name = construct_params_wino.getKernelName(); // "hello_world_kernel"; // kernel name
+    parms = construct_params_wino.getCompilerOptions(); // kernel parameters
+
+    construct_params_wino.mloBuildConf_Key(network_config);
+
+    const std::vector<size_t> & vld_wino = construct_params_wino.getLocalWkSize();
+    const std::vector<size_t> & vgd_wino = construct_params_wino.getGlobalWkSize();
+
+	handle.GetKernel("mlopenConvolutionFwdAlgoWinograd",
+		network_config,
+		program_name,
+		kernel_name,
+		vld_wino,
+		vgd_wino,
+		parms);
+
     // Direct algo
     // Generate kernels if OpenCL
     // Compile, cache kernels, etc.
     // Launch all kernels and store the perf, workspace limits, etc.
+    mlo_construct_direct2D construct_params_direct(1); // forward
+    construct_params_direct.doSearch(exhaustiveSearch);
+    construct_params_direct.saveSearchRequest(true);
 
-    mlo_construct_direct2D construct_params(1); // forward
-    construct_params.doSearch(exhaustiveSearch);
-    construct_params.saveSearchRequest(true);
+    construct_params_direct.setGeneralCompOptions("");
 
-    construct_params.setGeneralCompOptions("");
+    construct_params_direct.setStream(&handle);
 
-    construct_params.setStream(&handle);
+    construct_params_direct.setOutputDescFromMLDesc(yDesc);
+    construct_params_direct.setInputDescFromMLDesc(xDesc);
+    construct_params_direct.setWeightDescFromMLDesc(wDesc);
 
-    construct_params.setOutputDescFromMLDesc(yDesc);
-    construct_params.setInputDescFromMLDesc(xDesc);
-    construct_params.setWeightDescFromMLDesc(wDesc);
+    construct_params_direct.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
-    construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+    construct_params_direct.mloConstruct();
+    program_name = construct_params_direct.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
+    kernel_name = construct_params_direct.getKernelName(); // "hello_world_kernel"; // kernel name
+    parms = construct_params_direct.getCompilerOptions(); // kernel parameters
 
-    construct_params.mloConstruct();
-    std::string program_name = construct_params.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
-    std::string kernel_name = construct_params.getKernelName(); // "hello_world_kernel"; // kernel name
-    std::string parms = construct_params.getCompilerOptions(); // kernel parameters
+    construct_params_direct.mloBuildConf_Key(network_config);
 
-    construct_params.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t> & vld = construct_params.getLocalWkSize();
-    const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
+    const std::vector<size_t> & vld = construct_params_direct.getLocalWkSize();
+    const std::vector<size_t> & vgd = construct_params_direct.getGlobalWkSize();
 
 	// float padding_val = 0;
 
-	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+	handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
 		network_config,
 		program_name,
 		kernel_name,
@@ -157,8 +191,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             construct_params.setInputDescFromMLDesc(xDesc);
             construct_params.setWeightDescFromMLDesc(wDesc);
 
-            construct_params.setStream(&handle);
-
             std::string network_config;
             construct_params.mloBuildConf_Key(network_config);
 
@@ -166,21 +198,31 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             float padding_val = 0;
             auto kernel = handle.GetKernel(algorithm_name, network_config);
 
-            // TODO(mayank): winograd should move to a separate case
-            // waiting for fixes
-            if (kernel.GetName() == "sp3AsmConv3x3F")
-            {
-                int flags = 0;
-                int reserved = 0;
-                int *return_addr = nullptr;
-                int N, C, H, W, K, n_groups;
-                construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
-            }
-            else
-            {
-                kernel(x, w, y, padding_val);
-            }
+            kernel(x, w, y, padding_val);
+        }
+        break;
+
+        case mlopenConvolutionFwdAlgoWinograd:
+        {
+            mlo_construct_winograd construct_params(1); // forward
+            construct_params.setOutputDescFromMLDesc(yDesc);
+            construct_params.setInputDescFromMLDesc(xDesc);
+            construct_params.setWeightDescFromMLDesc(wDesc);
+
+            construct_params.setStream(&handle);
+
+            std::string network_config;
+            construct_params.mloBuildConf_Key(network_config);
+
+            std::string algorithm_name = "mlopenConvolutionFwdAlgoWinograd";
+            auto kernel = handle.GetKernel(algorithm_name, network_config);
+
+            int flags = 0;
+            int reserved = 0;
+            int *return_addr = nullptr;
+            int N, C, H, W, K, n_groups;
+            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+            kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
         }
         break;
 
@@ -242,8 +284,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         }
         break;
         case mlopenConvolutionFwdAlgoFFT:
-            break;
-        case mlopenConvolutionFwdAlgoWinograd:
             break;
     }
 }
