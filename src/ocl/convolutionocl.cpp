@@ -35,6 +35,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         }
 #endif 
 
+    auto tmp_output = handle.Create(yDesc.GetElementSize() * sizeof(yDesc.GetType()));
+    handle.Copy(y, tmp_output.get(), (yDesc.GetElementSize() * sizeof(yDesc.GetType())));
+
     // GEMM based
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
