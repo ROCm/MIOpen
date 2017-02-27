@@ -89,14 +89,75 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	// float padding_val = 0;
+// if not 11x11
+	if (program_name.compare("MLOpenConvFwd_LxL_11.cl"))
+	{
+		auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+			network_config,
+			program_name,
+			kernel_name,
+			vld,
+			vgd,
+			parms);
+	}
+	else
+	{
+		const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
+		/*
+		* get info for all kernels of the layer
+		* std::string _kernel_name;
+		* std::string _kernel_file;
+		* std::string _comp_options;
+		* std::vector<size_t> _g_wk;
+		* std::vector<size_t> _l_wk;
+		*/
 
-	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
-		network_config,
-		program_name,
-		kernel_name,
-		vld,
-		vgd,
-		parms);
+		if (bwd_wrw_info.size() == 1)
+		{
+			const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
+
+			handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+				network_config,
+				std::get<1>(bwd_wrw),
+				std::get<0>(bwd_wrw),
+				std::get<4>(bwd_wrw),
+				std::get<3>(bwd_wrw),
+				std::get<2>(bwd_wrw));
+		}
+		else
+		{
+			auto bwd_wrw_main = bwd_wrw_info[0];
+
+			handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+				network_config,
+				std::get<1>(bwd_wrw_main),
+				std::get<0>(bwd_wrw_main),
+				std::get<4>(bwd_wrw_main),
+				std::get<3>(bwd_wrw_main),
+				std::get<2>(bwd_wrw_main));
+
+			float time0 = handle.GetKernelTime();
+			// second kernel hash
+			network_config += "x1";
+			// second pass  kernel
+			auto bwd_wrw_red = bwd_wrw_info[1];
+
+			handle.GetKernel("mlopenConvolutionFwdAlgoDirect_Pass2",
+				network_config,
+				std::get<1>(bwd_wrw_red),
+				std::get<0>(bwd_wrw_red),
+				std::get<4>(bwd_wrw_red),
+				std::get<3>(bwd_wrw_red),
+				std::get<2>(bwd_wrw_red));
+
+			handle.AccumKernelTime(time0);
+
+		}
+
+	}
+
+
+
 
 	// if (kernel.GetName() == "sp3AsmConv3x3F")
 	// {
@@ -179,7 +240,30 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-                kernel(x, w, y, padding_val);
+				const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
+
+				// if not 11x11
+				if ((kernel.GetName() != "MLOpenCvFwd") || ((bwd_wrw_info.size() == 1) && kernel.GetName() == "MLOpenCvFwd2"))
+				{
+
+					kernel(x, w, y, padding_val);
+				}
+				else
+				{
+					std::string algorithm_name = "mlopenConvolutionFwdAlgoDirect_Pass2";
+					// second kernel has
+					network_config += "x1";
+					auto kernel2 = handle.GetKernel(algorithm_name, network_config);
+
+					handle.ResetKernelTime();
+					kernel(x, w, y, padding_val);
+
+					float time0 = handle.GetKernelTime();
+					kernel2(x, w, y, padding_val);
+
+					handle.AccumKernelTime(time0);
+					
+				}
             }
         }
         break;
