@@ -217,6 +217,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             construct_params.setOutputDescFromMLDesc(yDesc);
             construct_params.setInputDescFromMLDesc(xDesc);
             construct_params.setWeightDescFromMLDesc(wDesc);
+			construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
             construct_params.setStream(&handle);
 
@@ -240,29 +241,38 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-				const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
 
 				// if not 11x11
-				if ((kernel.GetName() != "MLOpenCvFwd") || ((bwd_wrw_info.size() == 1) && kernel.GetName() == "MLOpenCvFwd2"))
+				if ((kernel.GetName() != "MLOpenCvFwd") )
 				{
 
 					kernel(x, w, y, padding_val);
 				}
 				else
 				{
-					std::string algorithm_name = "mlopenConvolutionFwdAlgoDirect_Pass2";
-					// second kernel has
-					network_config += "x1";
-					auto kernel2 = handle.GetKernel(algorithm_name, network_config);
+					construct_params.mloConstruct();
 
-					handle.ResetKernelTime();
-					kernel(x, w, y, padding_val);
+					const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
 
-					float time0 = handle.GetKernelTime();
-					kernel2(x, w, y, padding_val);
+					if (bwd_wrw_info.size() == 1)
+					{
+						kernel(x, w, y, padding_val);
+					}
+					else
+					{
+						std::string algorithm_name = "mlopenConvolutionFwdAlgoDirect_Pass2";
+						// second kernel has
+						network_config += "x1";
+						auto kernel2 = handle.GetKernel(algorithm_name, network_config);
 
-					handle.AccumKernelTime(time0);
-					
+						handle.ResetKernelTime();
+						kernel(x, w, y, padding_val);
+
+						float time0 = handle.GetKernelTime();
+						kernel2(x, w, y, padding_val);
+
+						handle.AccumKernelTime(time0);
+					}
 				}
             }
         }

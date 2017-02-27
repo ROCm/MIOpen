@@ -737,7 +737,7 @@ __kernel void MLOpenCvFwd2(
 	int t0 = iMod(lcl_id, bb, (MLO_PROCESSING_WIDTH*MLO_LAST_OUT_EXTENT1));
 	int ex_row = iDiv(t0, MLO_PROCESSING_WIDTH);
 	// 
-	int ex_col = iMod(lcl_id, t0, MLO_PROCESSING_WIDTH);
+	int ex_col = iMod(t0, ex_row, MLO_PROCESSING_WIDTH);
 	int ex_pix = ex_col * MLO_OUT_PIX_TILE0;
 
 
@@ -856,6 +856,18 @@ __kernel void MLOpenCvFwd2(
 			for (int i = 0; i < MLO_OUT_PIX_TILE0 && ex_pix + i < MLO_OUT_WIDTH; ++i)
 			{
 				top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
+#if 0
+				if (out_off + i == 0)
+				{
+					printf("G:p2:o: %d %d %d %d\n",
+						lcl_id,
+						out_y,
+						ex_row,
+						ex_pix
+					);
+				}
+#endif
+
 			}
 		}
 
