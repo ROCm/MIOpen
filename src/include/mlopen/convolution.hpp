@@ -49,16 +49,18 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
-    KernelInvoke FindFwdWinogradKernel(Handle& handle,
+    int FindFwdWinogradKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
-        WinogradKernelParams&           k_p) const;
+        WinogradKernelParams&           k_p,
+        KernelInvoke&                   kernel) const;
 
-    KernelInvoke FindDirectKernel(Handle& handle,
+    int FindDirectKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
+        KernelInvoke&                   kernel,
         bool                            exhaustiveSearch,
         int                             direction) const;
 

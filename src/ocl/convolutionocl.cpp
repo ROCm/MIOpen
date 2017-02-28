@@ -8,11 +8,12 @@
 
 namespace mlopen {
 
-KernelInvoke ConvolutionDescriptor::FindFwdWinogradKernel(Handle& handle,
+int ConvolutionDescriptor::FindFwdWinogradKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
-        WinogradKernelParams            &k_p) const {
+        WinogradKernelParams&           k_p,
+        KernelInvoke&                   kernel) const {
 
     mlo_construct_winograd construct_params(1);
     construct_params.setStream(&handle);
@@ -23,36 +24,40 @@ KernelInvoke ConvolutionDescriptor::FindFwdWinogradKernel(Handle& handle,
 
     construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
-    construct_params.mloConstruct();
-    std::string program_name = construct_params.getKernelFile(); 
-    std::string kernel_name = construct_params.getKernelName(); 
-    std::string parms = construct_params.getCompilerOptions();
+    if(construct_params.mloConstruct() != -1) { //TODO: be more graceful with the check for whether a config is supported by winograd
+        std::string program_name = construct_params.getKernelFile(); 
+        std::string kernel_name = construct_params.getKernelName(); 
+        std::string parms = construct_params.getCompilerOptions();
 
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
+        std::string network_config;
+        construct_params.mloBuildConf_Key(network_config);
 
-    const std::vector<size_t> & vld = construct_params.getLocalWkSize();
-    const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
+        const std::vector<size_t> & vld = construct_params.getLocalWkSize();
+        const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoWinograd",
-		network_config,
-		program_name,
-		kernel_name,
-		vld,
-		vgd,
-		parms);
+        kernel = handle.GetKernel("mlopenConvolutionFwdAlgoWinograd",
+                network_config,
+                program_name,
+                kernel_name,
+                vld,
+                vgd,
+                parms);
 
-	int N, C, H, W, K, n_groups;
-	construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-    k_p = std::make_tuple(N, C, H, W, K, n_groups);
+        int N, C, H, W, K, n_groups;
+        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+        k_p = std::make_tuple(N, C, H, W, K, n_groups);
 
-    return kernel;
+        return 0;
+    }
+    else
+        return -1;
 }
 
-KernelInvoke ConvolutionDescriptor::FindDirectKernel(Handle& handle,
+int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
+        KernelInvoke&                   kernel,
         bool                            exhaustiveSearch,
         int                             direction) const {
 
@@ -81,7 +86,7 @@ KernelInvoke ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     const std::vector<size_t> & vld = construct_params.getLocalWkSize();
     const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+	kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
 		network_config,
 		program_name,
 		kernel_name,
@@ -89,7 +94,7 @@ KernelInvoke ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 		vgd,
 		parms);
 
-    return kernel;
+    return 0;
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -153,26 +158,32 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 #endif
 
     // Winograd algo
+    float time_wino = 0;
     WinogradKernelParams k_p;
-    auto kernel_wino = FindFwdWinogradKernel(handle, xDesc, wDesc, yDesc, k_p);
-    // Execute the winograd kernel
-	int flags = 0;
-	int reserved = 0;
-	int *return_addr = nullptr;
-	int N, C, H, W, K, n_groups;
-    std::tie(N, C, H, W, K, n_groups) = k_p;
-	kernel_wino (N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
+    KernelInvoke kernel_wino;
+    if( FindFwdWinogradKernel(handle, xDesc, wDesc, yDesc, k_p, kernel_wino) == 0) { //TODO: be more graceful
+        // Execute the winograd kernel
+        int flags = 0;
+        int reserved = 0;
+        int *return_addr = nullptr;
+        int N, C, H, W, K, n_groups;
+        std::tie(N, C, H, W, K, n_groups) = k_p;
+        kernel_wino (N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
 
-    float time_wino = handle.GetKernelTime();
+        time_wino = handle.GetKernelTime();
+    }
 
     // Direct algo
-    auto kernel_direct = FindDirectKernel(handle, xDesc, wDesc, yDesc, exhaustiveSearch, 1); //Forward 
+    float time_direct = 0;
+    KernelInvoke kernel_direct;
+    if( FindDirectKernel(handle, xDesc, wDesc, yDesc, kernel_direct, exhaustiveSearch, 1) == 0) { //Forward 
 
-    // Execute the direct kernel
-    float padding_val = 0;
-	kernel_direct(x, w, tmp_y.get(), padding_val);
+        // Execute the direct kernel
+        float padding_val = 0;
+        kernel_direct(x, w, tmp_y.get(), padding_val);
 
-    float time_direct = handle.GetKernelTime();
+        time_direct = handle.GetKernelTime();
+    }
 	
 	// FIXME: MD temporary hack for hipcaffe
 	// should be ideally wrapped under mlopen::deref to check 
@@ -345,9 +356,11 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         }
 #endif 
 
-    auto kernel_direct = FindDirectKernel(handle, dyDesc, wDesc, dxDesc, exhaustiveSearch, 0); //Backward
-    float padding_val = 0;
-    kernel_direct(dy, w, dx, padding_val);
+    KernelInvoke kernel_direct;
+    if( FindDirectKernel(handle, dyDesc, wDesc, dxDesc, kernel_direct, exhaustiveSearch, 0) == 0) { //Backward
+        float padding_val = 0;
+        kernel_direct(dy, w, dx, padding_val);
+    }
 
     // FIXME: MD temporary hack for hipcaffe
     // should be ideally wrapped under mlopen::deref to check 
