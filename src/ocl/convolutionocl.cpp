@@ -170,7 +170,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     // Execute the direct kernel
     float padding_val = 0;
-	kernel_direct(x, w, y, padding_val);
+	kernel_direct(x, w, tmp_y.get(), padding_val);
 
     float time_direct = handle.GetKernelTime();
 	
