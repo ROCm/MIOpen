@@ -8,6 +8,8 @@
 
 namespace mlopen {
 
+using WinogradKernelParams = std::tuple<int, int, int, int, int, int>;
+
 struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	
 	ConvolutionDescriptor(int p_pad_h = 0, int p_pad_w = 0, int p_u = 1, int p_v = 1, int p_upscalex = 1, int p_upscaley = 1);
@@ -46,6 +48,12 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		Data_t							workSpace,
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
+
+    KernelInvoke FindFwdWinogradKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			yDesc,
+        WinogradKernelParams&           k_p) const;
 
 	void ConvolutionForward(Handle& handle,
 		const void						*alpha,
