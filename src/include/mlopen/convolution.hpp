@@ -55,6 +55,13 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const TensorDescriptor&			yDesc,
         WinogradKernelParams&           k_p) const;
 
+    KernelInvoke FindDirectKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			yDesc,
+        bool                            exhaustiveSearch,
+        int                             direction) const;
+
 	void ConvolutionForward(Handle& handle,
 		const void						*alpha,
 		const TensorDescriptor&			xDesc,
