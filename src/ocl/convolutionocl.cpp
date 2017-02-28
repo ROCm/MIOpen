@@ -49,6 +49,49 @@ KernelInvoke ConvolutionDescriptor::FindFwdWinogradKernel(Handle& handle,
     return kernel;
 }
 
+KernelInvoke ConvolutionDescriptor::FindDirectKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			yDesc,
+        bool                            exhaustiveSearch,
+        int                             direction) const {
+
+    mlo_construct_direct2D construct_params(direction); 
+    construct_params.doSearch(exhaustiveSearch);
+    construct_params.saveSearchRequest(true);
+
+    construct_params.setGeneralCompOptions("");
+
+    construct_params.setStream(&handle);
+
+    construct_params.setOutputDescFromMLDesc(yDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(wDesc);
+
+    construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+
+    construct_params.mloConstruct();
+    std::string program_name = construct_params.getKernelFile();
+    std::string kernel_name = construct_params.getKernelName(); 
+    std::string parms = construct_params.getCompilerOptions(); 
+
+    std::string network_config;
+    construct_params.mloBuildConf_Key(network_config);
+
+    const std::vector<size_t> & vld = construct_params.getLocalWkSize();
+    const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
+
+	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+		network_config,
+		program_name,
+		kernel_name,
+		vld,
+		vgd,
+		parms);
+
+    return kernel;
+}
+
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         const TensorDescriptor&     xDesc,
         ConstData_t             x,
@@ -110,7 +153,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 #endif
 
     // Winograd algo
-
     WinogradKernelParams k_p;
     auto kernel_wino = FindFwdWinogradKernel(handle, xDesc, wDesc, yDesc, k_p);
     // Execute the winograd kernel
@@ -124,50 +166,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     float time_wino = handle.GetKernelTime();
 
     // Direct algo
-    // Generate kernels if OpenCL
-    // Compile, cache kernels, etc.
-    // Launch all kernels and store the perf, workspace limits, etc.
-    mlo_construct_direct2D construct_params_direct(1); // forward
-    construct_params_direct.doSearch(exhaustiveSearch);
-    construct_params_direct.saveSearchRequest(true);
+    auto kernel_direct = FindDirectKernel(handle, xDesc, wDesc, yDesc, exhaustiveSearch, 1); //Forward 
 
-    construct_params_direct.setGeneralCompOptions("");
+    // Execute the direct kernel
+    float padding_val = 0;
+	kernel_direct(x, w, y, padding_val);
 
-    construct_params_direct.setStream(&handle);
-
-    construct_params_direct.setOutputDescFromMLDesc(yDesc);
-    construct_params_direct.setInputDescFromMLDesc(xDesc);
-    construct_params_direct.setWeightDescFromMLDesc(wDesc);
-
-    construct_params_direct.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
-
-    construct_params_direct.mloConstruct();
-    program_name = construct_params_direct.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
-    kernel_name = construct_params_direct.getKernelName(); // "hello_world_kernel"; // kernel name
-    parms = construct_params_direct.getCompilerOptions(); // kernel parameters
-
-    construct_params_direct.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t> & vld = construct_params_direct.getLocalWkSize();
-    const std::vector<size_t> & vgd = construct_params_direct.getGlobalWkSize();
-
-	// float padding_val = 0;
-
-	handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
-		network_config,
-		program_name,
-		kernel_name,
-		vld,
-		vgd,
-		parms);
-
-	// if (kernel.GetName() == "sp3AsmConv3x3F")
-	// {
-	// }
-	// else
-	// {
-	// 	kernel(x, w, y, padding_val);
-	// }
+    float time_direct = handle.GetKernelTime();
 	
 	// FIXME: MD temporary hack for hipcaffe
 	// should be ideally wrapped under mlopen::deref to check 
@@ -340,43 +345,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         }
 #endif 
 
-    // Generate kernels if OpenCL
-    // Compile, cache kernels, etc.
-    // Launch all kernels and store the perf, workspace limits, etc.
-    mlo_construct_direct2D construct_params(0); // backward
-    construct_params.doSearch(exhaustiveSearch);
-    construct_params.saveSearchRequest(true);
-
-    construct_params.setGeneralCompOptions("");
-
-    construct_params.setStream(&handle);
-
-    construct_params.setOutputDescFromMLDesc(dyDesc);
-    construct_params.setInputDescFromMLDesc(dxDesc);
-    construct_params.setWeightDescFromMLDesc(wDesc);
-
-    construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
-
-    construct_params.mloConstruct();
-
-    std::string program_name = construct_params.getKernelFile();
-    std::string kernel_name = construct_params.getKernelName(); // kernel name
-    std::string parms = construct_params.getCompilerOptions(); // kernel parameters
-
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t> & vld = construct_params.getLocalWkSize();
-    const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
-
+    auto kernel_direct = FindDirectKernel(handle, dyDesc, wDesc, dxDesc, exhaustiveSearch, 0); //Backward
     float padding_val = 0;
-    handle.GetKernel("mlopenConvolutionBwdDataAlgo_0",
-            network_config,
-            program_name,
-            kernel_name,
-            vld,
-            vgd,
-            parms)(dy, w, dx, padding_val);
+    kernel_direct(dy, w, dx, padding_val);
 
     // FIXME: MD temporary hack for hipcaffe
     // should be ideally wrapped under mlopen::deref to check 
