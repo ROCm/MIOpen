@@ -8,6 +8,47 @@
 
 namespace mlopen {
 
+KernelInvoke ConvolutionDescriptor::FindFwdWinogradKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			yDesc,
+        WinogradKernelParams            &k_p) const {
+
+    mlo_construct_winograd construct_params(1);
+    construct_params.setStream(&handle);
+
+    construct_params.setOutputDescFromMLDesc(yDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(wDesc);
+
+    construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+
+    construct_params.mloConstruct();
+    std::string program_name = construct_params.getKernelFile(); 
+    std::string kernel_name = construct_params.getKernelName(); 
+    std::string parms = construct_params.getCompilerOptions();
+
+    std::string network_config;
+    construct_params.mloBuildConf_Key(network_config);
+
+    const std::vector<size_t> & vld = construct_params.getLocalWkSize();
+    const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
+
+	auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoWinograd",
+		network_config,
+		program_name,
+		kernel_name,
+		vld,
+		vgd,
+		parms);
+
+	int N, C, H, W, K, n_groups;
+	construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+    k_p = std::make_tuple(N, C, H, W, K, n_groups);
+
+    return kernel;
+}
+
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         const TensorDescriptor&     xDesc,
         ConstData_t             x,
@@ -35,8 +76,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         }
 #endif 
 
-    auto tmp_output = handle.Create(yDesc.GetElementSize() * sizeof(yDesc.GetType()));
-    handle.Copy(y, tmp_output.get(), (yDesc.GetElementSize() * sizeof(yDesc.GetType())));
+    // create a dummy buffer for use as output for the kernel calls
+    // because kernels are called purely for timing purposes
+    auto tmp_y = handle.Create(yDesc.GetElementSize() * sizeof(yDesc.GetType()));
 
     // GEMM based
     int in_n, in_c, in_h, in_w;
@@ -68,34 +110,18 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 #endif
 
     // Winograd algo
-    // TODO: duplicating code for now
-    
-    mlo_construct_winograd construct_params_wino(1);
-    construct_params_wino.setStream(&handle);
 
-    construct_params_wino.setOutputDescFromMLDesc(yDesc);
-    construct_params_wino.setInputDescFromMLDesc(xDesc);
-    construct_params_wino.setWeightDescFromMLDesc(wDesc);
+    WinogradKernelParams k_p;
+    auto kernel_wino = FindFwdWinogradKernel(handle, xDesc, wDesc, yDesc, k_p);
+    // Execute the winograd kernel
+	int flags = 0;
+	int reserved = 0;
+	int *return_addr = nullptr;
+	int N, C, H, W, K, n_groups;
+    std::tie(N, C, H, W, K, n_groups) = k_p;
+	kernel_wino (N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
 
-    construct_params_wino.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
-
-    construct_params_wino.mloConstruct();
-    program_name = construct_params_wino.getKernelFile();  //"../src/Hello.cl"; // CL kernel filename
-    kernel_name = construct_params_wino.getKernelName(); // "hello_world_kernel"; // kernel name
-    parms = construct_params_wino.getCompilerOptions(); // kernel parameters
-
-    construct_params_wino.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t> & vld_wino = construct_params_wino.getLocalWkSize();
-    const std::vector<size_t> & vgd_wino = construct_params_wino.getGlobalWkSize();
-
-	handle.GetKernel("mlopenConvolutionFwdAlgoWinograd",
-		network_config,
-		program_name,
-		kernel_name,
-		vld_wino,
-		vgd_wino,
-		parms);
+    float time_wino = handle.GetKernelTime();
 
     // Direct algo
     // Generate kernels if OpenCL
@@ -137,12 +163,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
 	// if (kernel.GetName() == "sp3AsmConv3x3F")
 	// {
-	// 	int flags = 0;
-	// 	int reserved = 0;
-	// 	int *return_addr = nullptr;
-	// 	int N, C, H, W, K, n_groups;
-	// 	construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-	// 	kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
 	// }
 	// else
 	// {
