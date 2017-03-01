@@ -2,6 +2,7 @@
 #include <mlopen/tensor_ops.hpp>
 #include <mlopen/errors.hpp>
 #include <algorithm>
+#include <numeric>
 
 namespace mlopen {
 
