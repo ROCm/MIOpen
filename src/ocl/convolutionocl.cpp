@@ -151,7 +151,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
         time_gemm = in_n * handle.GetKernelTime();
         perf_db.push_back(
-                std::make_tuple("MLOpenConvolutionFwdAlgoGEMM", time_gemm, 0)
+                std::make_tuple("mlopenConvolutionFwdAlgoGEMM", time_gemm, 0)
                 );
     }
 
@@ -165,7 +165,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         gg.RunGemm(handle, workSpace, w, tmp_y, 0, 0, 0);
         time_gemm = in_n * (time_im2col + handle.GetKernelTime());
         perf_db.push_back(
-                std::make_tuple("MLOpenConvolutionFwdAlgoGEMM", 
+                std::make_tuple("mlopenConvolutionFwdAlgoGEMM", 
                     time_gemm,
                     workspace_req)
                 );
@@ -189,7 +189,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         kernel_wino (N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
 
         time_wino = handle.GetKernelTime();
-        perf_db.push_back(std::make_tuple("MLOpenConvolutionFwdAlgoWinograd", time_wino, 0));
+        perf_db.push_back(std::make_tuple("mlopenConvolutionFwdAlgoWinograd", time_wino, 0));
     }
 
     // Direct algo
@@ -202,7 +202,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         kernel_direct(x, w, tmp_y.get(), padding_val);
 
         time_direct = handle.GetKernelTime();
-        perf_db.push_back(std::make_tuple("MLOpenConvolutionFwdAlgoDirect", time_direct, 0));
+        perf_db.push_back(std::make_tuple("mlopenConvolutionFwdAlgoDirect", time_direct, 0));
     }
 
     // sort the perf_db
