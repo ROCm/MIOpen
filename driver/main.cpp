@@ -28,13 +28,10 @@ int main(int argc, char *argv[]) {
 	else if (base_arg == "softmax") {
 		drv = new SoftmaxDriver<float>();
 	}
-
-#ifndef WIN32 // so Linux and APPLE
 #ifdef MLOPEN_USE_TINYGEMMM
 	else if (base_arg == "gemm") {
 		drv = new GemmDriver<float>();
 	}
-#endif
 #endif
 	else {
 		printf("Incorrect BaseArg\n");
