@@ -4,7 +4,7 @@
 
 namespace mlopen {
 
-mlopenStatus_t Im2ColGPU(
+float Im2ColGPU(
 		Handle	&handle,
 		ConstData_t im, size_t im_offset,
 		const int c, const int h, const int w,
@@ -12,7 +12,7 @@ mlopenStatus_t Im2ColGPU(
 		const int out_h, const int out_w,
 		const int pad_h, const int	pad_w,
 		const int stride_h, const int stride_w,
-		Data_t col) 
+		Data_t col)
 {
 	std::string program_name = "MLOpenUtilKernels.cl";
 	std::string kernel_name = "Im2Col";
@@ -49,7 +49,7 @@ mlopenStatus_t Im2ColGPU(
 			vgd,
 			params)(im, im_offset, h, w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, stride_h, stride_w, col);
 
-	return mlopenStatusSuccess;
+    return handle.GetKernelTime();
 }
 
 } // namespace mlopen
