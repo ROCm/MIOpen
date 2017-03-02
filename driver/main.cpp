@@ -50,10 +50,14 @@ int main(int argc, char *argv[]) {
 	drv->RunForwardGPU();
 
 	if(drv->GetInputFlags().GetValueInt("verify") == 1) {
-		if(base_arg == "gemm")
+		if (base_arg == "gemm")
+		{
 			printf("GEMM verification done in the GEMM library\n");
+		}
 		else
+		{
 			drv->VerifyForward();
+		}
 	}
 	
 	if(drv->GetInputFlags().GetValueInt("forw") == 0) {
