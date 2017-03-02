@@ -80,7 +80,7 @@ class ConvDriver : public Driver
 
 	int AllocateBuffersAndCopy();
 	
-	int FindForward();
+	int FindForward(int &ret_algo_count, int request_algo_count, std::vector<mlopenConvAlgoPerf_t> &perf_results);
 	int RunForwardGPU();
 	int RunForwardCPU();
 	
@@ -337,10 +337,8 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 }
 
 template<typename T>
-int ConvDriver<T>::FindForward() {
-
-	int ret_algo_count;
-	mlopenConvAlgoPerf_t perf;
+int ConvDriver<T>::FindForward(int &ret_algo_count, int request_algo_count,
+        std::vector<mlopenConvAlgoPerf_t> &perf_results) {
 
 	return mlopenFindConvolutionForwardAlgorithm(GetHandle(),
 			inputTensor,
@@ -350,20 +348,26 @@ int ConvDriver<T>::FindForward() {
 			convDesc,
 			outputTensor,
 			out_dev->GetMem(),
-			1,
+			request_algo_count,
 			&ret_algo_count,
-			&perf,
+			perf_results.data(),
 			mlopenConvolutionFastest,
 			workspace_dev->GetMem(),
 			workspace_dev->GetSize(),
 			(inflags.GetValueInt("search")==1)?true:false
 	);
+
 }
 
 template<typename T>
 int ConvDriver<T>::RunForwardGPU() {
 
-	FindForward();
+    int ret_algo_count;
+    int request_algo_count = 2;
+    std::vector<mlopenConvAlgoPerf_t> perf_results(request_algo_count);
+
+	FindForward(ret_algo_count, request_algo_count, perf_results);
+
 	int alpha = 1, beta = 1;
 
 	Timer t;
@@ -377,11 +381,7 @@ int ConvDriver<T>::RunForwardGPU() {
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
-#if MLOPEN_USE_TINYGEMM
-			mlopenConvolutionFwdAlgoGEMM,
-#else
-			mlopenConvolutionFwdAlgoWinograd,
-#endif
+			perf_results[0].fwd_algo, // use the fastest algo
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
