@@ -424,7 +424,7 @@ int LRNDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
 
-	auto error = rms_range(outhost, out);
+	auto error = mlopen::rms_range(outhost, out);
 	const double tolerance = 1e-6;
 	if (error > tolerance)
 	{
@@ -549,7 +549,7 @@ int LRNDriver<T>::VerifyBackward() {
 
 	RunBackwardCPU();
 	
-	auto error = rms_range(dinhost, din);
+	auto error = mlopen::rms_range(dinhost, din);
 	const double tolerance = 1e-6;
 	if (error > tolerance)
 	{

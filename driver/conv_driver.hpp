@@ -751,7 +751,7 @@ int ConvDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
 
-	auto error = rms_range(outhost, out);
+	auto error = mlopen::rms_range(outhost, out);
 	const double tolerance = 1e-6;
 	if (!(error < tolerance))
 	{
@@ -771,7 +771,7 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardDataCPU();
 
-	auto error_data = rms_range(din_host, din);
+	auto error_data = mlopen::rms_range(din_host, din);
 	if (!(error_data < tolerance))
 	{
 		std::cout<<"Backward Convolution Data Failed: " << error_data <<"\n";
@@ -784,7 +784,7 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardWeightsCPU();
 
-	auto error_weights = rms_range(dwei_host, dwei);
+	auto error_weights = mlopen::rms_range(dwei_host, dwei);
 	if (!(error_weights < tolerance))
 	{
 		std::cout<<"Backward Convolution Weights Failed: " << error_weights <<"\n";
