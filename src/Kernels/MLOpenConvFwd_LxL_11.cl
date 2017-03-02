@@ -613,7 +613,7 @@ static inline void  fetchData2(int ib, int f_s, int lcl_id, int lcl_scan, int n_
 
 }
 
-static inline void Convolve2(int bb, int ex_row, int ex_pix, int l, int m, int wei_h, int bot_h, __local _FLOAT * wei_mem, __local _FLOAT * bot_mem, __private _FLOAT *pvt_accum)
+static inline void Convolve2(int b, int ex_row, int ex_pix, int l, int m, int wei_h, int bot_h, __local _FLOAT * wei_mem, __local _FLOAT * bot_mem, __private _FLOAT *pvt_accum)
 {
 	// only for 11 
 	__private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS*MLO_N_FILTER_SPLITS0];
@@ -633,7 +633,7 @@ static inline void Convolve2(int bb, int ex_row, int ex_pix, int l, int m, int w
 	for (int i = 0; i < bot_h; ++i)
 	{
 		in_vals[i]
-			= bot_mem[bb*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
+			= bot_mem[b*MLO_IN_LCL_SZ + (ex_row + m) * MLO_IN_LCL_WIDTH + ex_pix*MLO_FILTER_STRIDE0 + i*MLO_FILTER_STRIDE0 + l];
 	}
 
 	for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
@@ -714,7 +714,7 @@ __kernel void MLOpenCvFwd2(
 	int gbl_in_off = /*c_idx * MLO_IN_CHANNEL_STRIDE + */ib * MLO_IN_BATCH_STRIDE;
 	int gbl_wei_off = k_idx * MLO_WEI_BATCH_STRIDE;
 // last extent
-// the firts major part of the output map has been processed in the previous pass to avoid the granularity loss
+// the major part of the output map has been processed in the previous pass to avoid the granularity loss
 	int out_y = MLO_OUT_HEIGHT - MLO_LAST_OUT_EXTENT1;
 
 	int in_y = out_y*MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1;
