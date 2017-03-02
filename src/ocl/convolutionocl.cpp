@@ -99,13 +99,13 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         const TensorDescriptor&     xDesc,
-        ConstData_t             x,
+        ConstData_t                 x,
         const TensorDescriptor&     wDesc,
-        ConstData_t             w,
+        ConstData_t                 w,
         const TensorDescriptor&     yDesc,
-        Data_t             y,
-        const int                    /*requestAlgoCount*/,
-        int                         * /*returnedAlgoCount*/,
+        Data_t                      y,
+        const int                   requestAlgoCount,
+        int                         *returnedAlgoCount,
         mlopenConvAlgoPerf_t        *perfResults,
         mlopenConvPreference_t       /*preference*/,
         Data_t                      workSpace,
@@ -143,6 +143,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     std::string kernel_name;
     std::string parms;
 
+    // < algorith_name, <time, workspace_size> >
+    std::vector< PerfField > perf_db;
+
 #if MLOPEN_USE_TINYGEMM
     if(workSpace != nullptr) {
         if(wei_h != 1 && wei_w != 1) {
@@ -171,6 +174,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         kernel_wino (N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
 
         time_wino = handle.GetKernelTime();
+        perf_db.push_back(std::make_tuple("MLOpenConvolutionFwdAlgoWinograd", time_wino, 0));
     }
 
     // Direct algo
@@ -183,12 +187,20 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         kernel_direct(x, w, tmp_y.get(), padding_val);
 
         time_direct = handle.GetKernelTime();
+        perf_db.push_back(std::make_tuple("MLOpenConvolutionFwdAlgoDirect", time_direct, 0));
     }
-	
-	// FIXME: MD temporary hack for hipcaffe
-	// should be ideally wrapped under mlopen::deref to check 
-	// for the size of perfResults == requestedAlgoCount
-	perfResults->fwd_algo = mlopenConvolutionFwdAlgoDirect;
+
+    // sort the perf_db
+    std::sort(begin(perf_db), begin(perf_db), PerfCompare<1>());
+
+    // update perfResults
+    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
+
+    for(int i = 0; i < *returnedAlgoCount; i++) {
+        perfResults[i].fwd_algo = static_cast<mlopenConvFwdAlgorithm_t>(FwdAlgoResolver[ std::get<0>(perf_db[i]) ]);
+        perfResults[i].time = std::get<1>(perf_db[i]);
+        perfResults[i].memory = std::get<2>(perf_db[i]);
+    }
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,

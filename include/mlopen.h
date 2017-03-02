@@ -322,7 +322,6 @@ typedef struct{
 		mlopenConvBwdWeightsAlgorithm_t bwd_weights_algo;
 		mlopenConvBwdDataAlgorithm_t bwd_data_algo;
 	};
-	mlopenStatus_t status;
 	float time;
 	size_t memory;
 } mlopenConvAlgoPerf_t;

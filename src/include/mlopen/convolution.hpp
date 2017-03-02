@@ -5,10 +5,23 @@
 #include <mlopen/handle.hpp>
 #include <mlopen/tensor.hpp>
 #include <mlopen/common.hpp>
+#include <mlopen/conv_algo_name.hpp>
+#include <functional>
 
 namespace mlopen {
 
 using WinogradKernelParams = std::tuple<int, int, int, int, int, int>;
+using PerfField = std::tuple<std::string, float, size_t>;
+
+template<int N, template<typename> class F = std::less>
+struct PerfCompare
+{
+    template<typename T>
+    bool operator()(T const &t1, T const &t2)
+    {
+        return F<typename std::tuple_element<N, T>::type>()(std::get<N>(t1), std::get<N>(t2));
+    }
+};
 
 struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	
