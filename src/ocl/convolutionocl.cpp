@@ -86,7 +86,10 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     const std::vector<size_t> & vld = construct_params.getLocalWkSize();
     const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+    std::string algorithm = direction == 1 ? "mlopenConvolutionFwdAlgoDirect"
+                            : "mlopenConvolutionBwdDataAlgoDirect";
+
+	kernel = handle.GetKernel(algorithm,
 		network_config,
 		program_name,
 		kernel_name,
@@ -147,7 +150,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     // 1x1 does not require im2col or workspace
     if(wei_h == 1 && wei_w == 1) {
         gg.FindSolution(.003, handle, x, w, y, false);
-        gg.RunGemm(handle, x, w, tmp_y, 0, 0, 0);
+        gg.RunGemm(handle, x, w, tmp_y.get(), 0, 0, 0);
 
         time_gemm = in_n * handle.GetKernelTime();
         perf_db.push_back(
@@ -162,7 +165,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         time_im2col = Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 
         gg.FindSolution(.003, handle, workSpace, w, y, false);
-        gg.RunGemm(handle, workSpace, w, tmp_y, 0, 0, 0);
+        gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
         time_gemm = in_n * (time_im2col + handle.GetKernelTime());
         perf_db.push_back(
                 std::make_tuple("mlopenConvolutionFwdAlgoGEMM", 
@@ -384,12 +387,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     std::vector< PerfField > perf_db;
 
     KernelInvoke kernel_direct;
-    if( FindDirectKernel(handle, dyDesc, wDesc, dxDesc, kernel_direct, exhaustiveSearch, 0) == 0) { //Backward
+    if( FindDirectKernel(handle, dxDesc, wDesc, dyDesc, kernel_direct, exhaustiveSearch, 0) == 0) { //Backward
         float padding_val = 0;
-        kernel_direct(dy, w, tmp_dx, padding_val);
+        kernel_direct(dy, w, tmp_dx.get(), padding_val);
         
         float time_direct = handle.GetKernelTime();
-        perf_db.push_back(std::make_tuple("mlopenConvolutionBwdDataDirect", time_direct, 0));
+        perf_db.push_back(std::make_tuple("mlopenConvolutionBwdDataAlgoDirect", time_direct, 0));
     }
     else
         MLOPEN_THROW(mlopenStatusUnknownError, "Backward Data Algo cannot be executed");
@@ -450,7 +453,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     construct_params.mloBuildConf_Key(network_config);
 
     float padding_val = 0;
-    handle.GetKernel("mlopenConvolutionBwdDataAlgo_0", network_config) (dy, w, dx, padding_val);
+    handle.GetKernel("mlopenConvolutionBwdDataAlgoDirect", network_config) (dy, w, dx, padding_val);
 }
 
 // ConvolutionBackwardWeightsGetWorkSpaceSize
