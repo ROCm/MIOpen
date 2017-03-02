@@ -377,7 +377,11 @@ int ConvDriver<T>::RunForwardGPU() {
 			weightTensor,
 			wei_dev->GetMem(),
 			convDesc,
+#if MLOPEN_USE_TINYGEMM
+			mlopenConvolutionFwdAlgoGEMM,
+#else
 			mlopenConvolutionFwdAlgoDirect,
+#endif
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
@@ -619,10 +623,10 @@ int ConvDriver<T>::RunBackwardGPU() {
 		inputTensor,
 		in_dev->GetMem(),
 		convDesc,
-#ifdef WIN32
-		mlopenConvolutionBwdWeightsAlgoDirect,
-#else // !WIN32 so Linux and APPLE
+#if MLOPEN_USE_TINYGEMM
 		mlopenConvolutionBwdWeightsAlgoGEMM,
+#else
+		mlopenConvolutionBwdWeightsAlgoDirect,
 #endif
 		&beta,
 		weightTensor,
@@ -747,11 +751,11 @@ int ConvDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
 
-	auto error = rms_range(outhost, out);
+	auto error = mlopen::rms_range(outhost, out);
 	const double tolerance = 1e-6;
 	if (!(error < tolerance))
 	{
-		std::cout<< "Forward Convolution Failed: " << error << "\n";
+		std::cout << std::string("Forward Convolution Failed: ") << error << "\n";
 	}
 	else
 	{
@@ -767,10 +771,10 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardDataCPU();
 
-	auto error_data = rms_range(din_host, din);
+	auto error_data = mlopen::rms_range (din_host, din);
 	if (!(error_data < tolerance))
 	{
-		std::cout<<"Backward Convolution Data Failed: " << error_data <<"\n";
+		std::cout << std::string("Backward Convolution Data Failed: ") << error_data << std::string("\n");
 	}
 	else
 	{
@@ -780,10 +784,10 @@ int ConvDriver<T>::VerifyBackward() {
 
 	RunBackwardWeightsCPU();
 
-	auto error_weights = rms_range(dwei_host, dwei);
+	auto error_weights = mlopen::rms_range(dwei_host, dwei);
 	if (!(error_weights < tolerance))
 	{
-		std::cout<<"Backward Convolution Weights Failed: " << error_weights <<"\n";
+		std::cout << std::string("Backward Convolution Weights Failed: ") << error_weights << std::string("\n");
 	}
 	else
 	{

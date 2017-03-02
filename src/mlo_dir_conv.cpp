@@ -220,6 +220,23 @@ bool mloSearchConfigDB(
  **
  ************************************************************************************************************************/
 
+#if MLOPEN_BACKEND_OPENCL
+/*
+ * Returns false if a feature-controlling environment variable is defined
+ * and set to something which disables a feature.
+ */
+static bool IsEnvvarValueDisabled(const char* name)
+{
+	const auto value_env_p = std::getenv(name);
+	return value_env_p != nullptr && 
+		 ( std::strcmp(value_env_p, "disable") == 0
+		|| std::strcmp(value_env_p, "disabled") == 0
+		|| std::strcmp(value_env_p, "0") == 0
+		|| std::strcmp(value_env_p, "no") == 0
+		|| std::strcmp(value_env_p, "false") == 0 );
+}
+#endif
+
 /*
    construction has been split into 2
    generic convlution forward 
@@ -243,18 +260,49 @@ int mlo_construct_direct2D::mloConstruct()
 	const auto use_asm_kernels_perf_filtering_env_p = std::getenv("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 	const auto use_asm_kernels_perf_filtering = ((use_asm_kernels_perf_filtering_env_p == nullptr) || (std::strcmp(use_asm_kernels_perf_filtering_env_p, "disable") != 0));
 
-	if (!_gen && use_precompiled_binaries && mloCheckWinograd3x3FwdConvCondition() && (!use_asm_kernels_perf_filtering || mloCheckWinograd3x3FwdConvPerfFilter()))
+	bool is_ocl_rocm_metadata_v10 = false; // when false, v2.0 metadata is supported.
+	/// Filter out cases when runtime does not support v1.0 metadata.
+	/// \todo Provide asm-sources and precompiled binaries with both v1.0 and v2.0
+	///       metadata and select appropriate ones in Construct.
+	/// \todo Finally, get gid of this var, v1.0 files and decline support for old runtime.
+	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10) && is_ocl_rocm_metadata_v10)
 	{
-		return (mloConstructWinograd3x3FwdConv());
+		const auto use_binaries = !IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
+		// assembly-written kernels may have worse performance than kernels written in high-level
+		// language, e.g. OpenCL. For example, forward 3x3 convolution kernel employing Winograd
+		// algorithm (conv_3x3_wheel) is very slow when InputWidth x InputHeight is 7x7.
+		// MiOpen avoids asm kernels in such corner cases. This setting overrides that.
+		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+
+		// Assembly-written Winograd convolution kernels are normally faster than Direct ones.
+		// Therefore Winograd has higher precedence for now.
+		if (use_binaries) {
+			if (isForwardDirection()
+				&& mloIsCorrectBinaryWinograd3x3Fwd()
+				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
+				return (mloConstructBinaryWinograd3x3Fwd());
+			}
+		}
+
+		const auto asm_path = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
+		const auto use_assembly = !IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
+								  && mloExperimentalValidateAssemblerPath(asm_path);
+		if (use_assembly) {
+			if (mloIsCorrectAsmDirect3x3U()
+				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
+				return (mloConstructAsmDirect3x3U());
+			}
+		}
 	}
 #endif
 
-	if (_gen && getDirection())
+	if (_gen && isForwardDirection())
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
 #if 1
-	else if ((_kernel_size0 == 3 && _kernel_size1 == 3 && _pad1 == 1 && _pad0 == 1 && getDirection()) && (_out_width == 512 || _out_width == 64 || _out_width == 128 || _out_width == 256))
+	else if ((_kernel_size0 == 3 && _kernel_size1 == 3 && _pad1 == 1 && _pad0 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1 && isForwardDirection()) && (_out_width == 512 || _out_width == 64 || _out_width == 128 || _out_width == 256))
 	{
 		return(mloConstructDirect2D3x3());
 	}
@@ -308,7 +356,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
 
 	// no 1x1 backward yet
-	if (_kernel_size0 == 1 && _kernel_size1 == 1 )
+	if (_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 
 		return(mloConstructDirect2D1x1());
@@ -436,87 +484,100 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 }
 
 #if MLOPEN_BACKEND_OPENCL
-bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvCondition() const
+bool mlo_construct_direct2D::mloExperimentalValidateAssemblerPath(const char* path) const
+{
+	return path != nullptr;
+}
+
+static bool IsTokenInOpenclDriverVersion(const std::string& driver_version, const std::string& s)
+{
+	// Assume "(, )" are token separators in Driver Version string.
+	return (driver_version.find('(' + s +')') != std::string::npos)
+		|| (driver_version.find('(' + s +',') != std::string::npos)
+		|| (driver_version.find('(' + s +' ') != std::string::npos)
+		|| (driver_version.find(',' + s +')') != std::string::npos)
+		|| (driver_version.find(',' + s +',') != std::string::npos)
+		|| (driver_version.find(',' + s +' ') != std::string::npos)
+		|| (driver_version.find(' ' + s +')') != std::string::npos)
+		|| (driver_version.find(' ' + s +',') != std::string::npos)
+		|| (driver_version.find(' ' + s +' ') != std::string::npos);
+}
+
+bool mlo_construct_direct2D::mloIsAmdOpenclRocm(bool &is_metadata_v10) const
 {
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
+
+	// Only suitable Opencl platform is from AMD.
 	const auto platform = mlopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
-	const auto vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
-	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
-	const auto driver = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
+	if (platform_vendor != "Advanced Micro Devices, Inc.") { return false; }
+
+	// Only AMD devices is suitable
+	const auto device_vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
+	if (device_vendor_id != 0x1002) { return false; }
+
+	// Our binaries are in OpenCL-on-ROCm Code Object format.
+	// OpenCL-on-ROCm uses Lightning Compiler.
+	const auto driver_version = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
+	if (! IsTokenInOpenclDriverVersion(driver_version, "LC")) { return false; }
+
+	// At once, extract version of OpenCL metadata.
+	is_metadata_v10 = true;
+	std::istringstream platform_extensions(mlopen::GetPlatformInfo<CL_PLATFORM_EXTENSIONS>(platform));
+	std::string extension;
+	while (platform_extensions >> extension) {
+		if (extension == "cl_amd_object_metadata") {
+			is_metadata_v10 = false;
+			break;
+		}
+	}
+	
+	return true;
+}
+
+bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
+{
+	// Check if device is able to run this kernel.
+	const auto dev = mlopen::GetDevice(_stream->GetStream());
+	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	const bool device_is_gfx8_no_xnack = (name == "gfx800"
+									   || name == "gfx802"
+									   || name == "gfx803"
+									   || name == "gfx804");
+	if (!device_is_gfx8_no_xnack) {
+		return false;
+	}
+	// Check if kernel is suitable for the problem description
+	// and able to correctly run with given parameters.
 	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
-
-	const auto device_is_opencl_on_rocm =
-		   (driver.find("(LC)") != std::string::npos) // Indicates ROCm - our binaries are in OpenCL-on-ROCm Code Object format
-		|| (driver.find("(LC,") != std::string::npos)
-		|| (driver.find(",LC)") != std::string::npos)
-		|| (driver.find("(LC ") != std::string::npos)
-		|| (driver.find(" LC)") != std::string::npos)
-		|| (driver.find(" LC,") != std::string::npos)
-		|| (driver.find(",LC ") != std::string::npos)
-		|| (driver.find(" LC ") != std::string::npos)
-		|| (driver.find(",LC,") != std::string::npos);
-
-	const auto driver_is_v1_or_v2 =
-		   (driver[0] == '1' || driver[0] == '2')
-		&& driver[1] == '.'; // Both shall support Metadata for Runtime v1.0 we are using for now
-
-	const auto device_is_opencl_on_rocm_supports_metadata_1_0 =
-		   device_is_opencl_on_rocm
-		&& driver_is_v1_or_v2;
-
-	const auto device_is_gfx8_no_xnack =
-		   name == "gfx800"
-		|| name == "gfx802"
-		|| name == "gfx803"
-		|| name == "gfx804";
-
-	const auto platform_is_amd = platform_vendor == "Advanced Micro Devices, Inc.";
-	const auto device_is_amd = vendor_id == 0x1002;
-
-	const auto device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0 =
-		   device_is_opencl_on_rocm_supports_metadata_1_0
-		&& device_is_gfx8_no_xnack
-		&& device_is_amd
-		&& platform_is_amd;
-
-	assert(_weights_layout.length() == 0); // FIXME: Uncomment validation below when _weights_layout content will be updated anywahere.
-
-	const auto kernel_is_valid_for_problem_description =
-		   _in_layout == "NCHW"
-		// && _weights_layout						== "NKCHW" // FIXME see above
-		&& _kernel_size0 == 3
-		&& _kernel_size1 == 3
-		&& _kernel_stride0 == 1
-		&& _kernel_stride1 == 1
-		&& _pad0 == 1
-		&& _pad1 == 1
-		&& _batch_sz							<	std::pow(2, 16)
-		&& _n_inputs							<	std::pow(2, 16)
-		&& _n_outputs							<	std::pow(2, 16)
-		&& _in_height							<	std::pow(2, 16)
-		&& _in_width							<	std::pow(2, 16)
-		&& grid_workgroup_count_x				<	std::pow(2, 16)
-		&& _n_inputs * _in_height * _in_width	<=	std::pow(2, 28)
-		&& _n_outputs * _in_height * _in_width	<=	std::pow(2, 28)
-		&& _n_inputs % 2 == 0
-		&& _n_inputs >= 16;
-
-	return device_is_gfx8_no_xnack_with_amd_opencl_on_rocm_supports_metadata_1_0
-		&& kernel_is_valid_for_problem_description;
+	assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+	return _pad0			== 1
+		&& _pad1			== 1
+		&& _kernel_size0	== 3
+		&& _kernel_size1	== 3
+		&& _kernel_stride0	== 1
+		&& _kernel_stride1	== 1
+		&& _batch_sz	< std::pow(2, 16)
+		&& _n_inputs	< std::pow(2, 16)
+		&& _n_outputs	< std::pow(2, 16)
+		&& _in_height	< std::pow(2, 16)
+		&& _in_width	< std::pow(2, 16)
+		&& grid_workgroup_count_x				 <  std::pow(2, 16)
+		&& (_n_inputs * _in_height * _in_width)  <= std::pow(2, 28)
+		&& (_n_outputs * _in_height * _in_width) <= std::pow(2, 28)
+		&& _n_inputs % 2	== 0
+		&& _n_inputs		>= 16
+		&& _in_layout		== "NCHW";
+		// && _weights_layout == std::string("NKCHW") // See fixme above.
 }
 
-bool mlo_construct_direct2D::mloCheckWinograd3x3FwdConvPerfFilter() const
+bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 {
-	return
-		   _in_width	!= 7
-		|| _in_height	!= 7;
+	return !(_in_width == 7 && _in_height == 7);
 }
 
-int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
+int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd()
 {
-	int ret = 0;
-
 	const auto n_groups = _stream->GetMaxComputeUnits();
 
 	_g_wk.clear();
@@ -532,13 +593,101 @@ int mlo_construct_direct2D::mloConstructWinograd3x3FwdConv()
 	_kernel_file = "conv_3x3_wheel_alpha_v2_0b_gfx803.so";
 	_kernel_name = "sp3AsmConv3x3F";
 
-	return (ret);
+	return 0;
 }
-#endif
+
+bool mlo_construct_direct2D::mloIsCorrectAsmDirect3x3U() const
+{
+	const auto dev = mlopen::GetDevice(_stream->GetStream());
+	const std::string name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	if (name.find("gfx8") == std::string::npos) { // Any gfx8 device is ok.
+		return false;
+	}
+	assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+	return _pad0			== 1
+		&& _pad1			== 1
+		&& _kernel_stride0	== 1
+		&& _kernel_stride1	== 1
+		&& _kernel_size0	== 3
+		&& _kernel_size1	== 3
+		&& _n_inputs		> 0
+		&& _n_inputs % 4	== 0
+		&& _in_width		> 3
+		&& _in_width		<= 1000
+		&& _in_layout		== "NCHW";
+		// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+}
+
+bool mlo_construct_direct2D::mloIsFastAsmDirect3x3U() const
+{
+	return _in_width >= 50;
+}
+
+template<typename TValue>
+void GenerateClangDefsym(std::ostream& stream, const std::string& name, TValue value)
+{
+	GenerateClangDefsym<const std::string&>(stream, name, std::to_string(value));
+}
+
+template<>
+void GenerateClangDefsym<const std::string&>(std::ostream& stream, const std::string& name, const std::string& value)
+{
+	stream << " -Wa,-defsym," << name << "=" << value;
+}
+
+int mlo_construct_direct2D::mloConstructAsmDirect3x3U()
+{
+	auto w64_chunks = (_in_width + 63) / 64;
+	auto active_lanes = (_in_width + w64_chunks - 1) / w64_chunks;
+	auto filters_per_wave = 2;
+	auto output_lines_per_wave = 2;
+	auto limit_wave_cnt = 0;
+	std::ostringstream paramsSS;
+
+	GenerateClangDefsym(paramsSS, "batch_size", _batch_sz);
+	GenerateClangDefsym(paramsSS, "img_width", _in_width);
+	GenerateClangDefsym(paramsSS, "img_height", _in_height);
+
+	GenerateClangDefsym(paramsSS, "input_channels" , _n_inputs);
+	GenerateClangDefsym(paramsSS, "output_channels", _n_outputs);
+	GenerateClangDefsym(paramsSS, "weights_layout" , isForwardDirection() ? 0 : 1);
+	GenerateClangDefsym(paramsSS, "reverse_weights", isForwardDirection() ? 0 : 1);
+
+	GenerateClangDefsym(paramsSS, "filters_per_wave", filters_per_wave);
+	GenerateClangDefsym(paramsSS, "output_lines_per_wave", output_lines_per_wave);
+	GenerateClangDefsym(paramsSS, "limit_wave_cnt", limit_wave_cnt);
+
+	GenerateClangDefsym(paramsSS, "no_params_file", 1);
+	GenerateClangDefsym(paramsSS, "enable_debug_output", 0);
+
+	_comp_options = paramsSS.str();
+
+	_l_wk.clear();
+	_l_wk.push_back(active_lanes);
+	_l_wk.push_back(1);
+	_l_wk.push_back(1);
+
+	_g_wk.clear();
+	_g_wk.push_back(active_lanes * ((_n_outputs + filters_per_wave - 1) / filters_per_wave));
+	_g_wk.push_back((_in_height + output_lines_per_wave - 1) / output_lines_per_wave);
+	_g_wk.push_back(_batch_sz);
+
+	_kernel_file = "conv3x3.s";
+	_kernel_name = "gcnAsmConv3x3U";
+
+	return 0;
+}
+#endif //MLOPEN_BACKEND_OPENCL
 
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
 	int ret = 0;
+
+	if (_kernel_stride0 > 1 || _kernel_stride1 > 1)
+	{
+		// std::cout << "ERROR: stride > 1 not supported in mloConstructDirect2DFwdC\n";
+		return (-1);
+	}
 
 	size_t localMemSize = _stream->GetLocalMemorySize();
 
@@ -689,7 +838,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
 	int wei_cstride = _kernel_size0*_kernel_size1;
 	// backward: inputs are forward outputs
-	int wei_bstride = ((getDirection() == 1) ? _n_inputs : _n_outputs)*wei_cstride;
+	int wei_bstride = (isForwardDirection() ? _n_inputs : _n_outputs)*wei_cstride;
     int read_unit = 4;
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
     
@@ -807,7 +956,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	//	_kernel_name = "MLOpenConv1x1";
 	// too much overhead for small maps and few inputs
 
-	if ((getDirection() == 0) || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256))
+	if (!isForwardDirection() || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256))
 	{
 		_kernel_file = "MLOpenConv1x1PS.cl";
 		_kernel_name = "MLOpenConv1x1PS";
@@ -1337,7 +1486,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		;
 
 
-	_kernel_file = "MlOpenConvDirGenFwd.cl";
+	_kernel_file = "MLOpenConvDirGenFwd.cl";
 	_kernel_name = (n_proc_supertiles == 1) ? "MLOpenCDFGen" : "MLOpenCDFGen4";
 
 	_l_wk.clear();
@@ -2294,7 +2443,7 @@ int mlo_construct_direct2D :: mloAddConfigReq(const std::string & conf_key) cons
 	std::vector<std::string> req_conf_db;
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.rdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
 #ifdef MLOPEN_LOG_CONVOLUTION
 	printf("file %s\n", conf_file.c_str());
 #endif
@@ -2320,7 +2469,7 @@ int mlo_construct_direct2D :: mloRemoveConfigReq(
 	std::vector<std::string>::iterator it;
 
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
-	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.rdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
 
 	bool found = mloFindConfigReq(conf_file, conf_key, req_conf_db, it);
 
@@ -2341,7 +2490,7 @@ int mlo_construct_direct2D :: mloReadConfigDB(
 	int ret = 0;
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.pdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
 
 	std::vector<std::string> db;
 	mloReadDb(conf_file, db);
@@ -2370,7 +2519,7 @@ int mlo_construct_direct2D :: mloWriteConfigDB(
 	//serialize
 	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
 
-	conf_file += std::string("/") + _stream->GetDeviceName() + "." + std::string("cd.pdb.txt");
+	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
 
 	std::vector<std::string> db;
 

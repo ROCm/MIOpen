@@ -4,7 +4,6 @@
 #ifndef WIN32 // so Linux and APPLE
 #include <cstdlib>
 #include <mlopen.h>
-#include <CL/cl.h>
 #include "driver.hpp"
 #include "InputFlags.hpp"
 #include <vector>
@@ -144,6 +143,7 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
 template<typename T>
 int GemmDriver<T>::RunForwardGPU() {
 
+#if MLOPEN_USE_TINYGEMM
     mlopenGemm(GetHandle(),
             false,              // isDataColMajor
             transA, transB,
@@ -161,7 +161,9 @@ int GemmDriver<T>::RunForwardGPU() {
     }
 
     c_dev->FromGPU(GetStream(), c.data());
-
+#else 
+    std::cerr<<"GEMM is not supported\n";
+#endif
     return mlopenStatusSuccess;
 }
 

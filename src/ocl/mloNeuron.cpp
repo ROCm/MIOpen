@@ -24,7 +24,7 @@ int mlo_construct_neuron::mloConstruct()
 	int ret = 0;
 
 
-	if (getDirection())
+	if (isForwardDirection())
 	{
 
 		ret = mloConstructFwd();
