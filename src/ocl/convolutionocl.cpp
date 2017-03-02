@@ -109,24 +109,20 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         mlopenConvAlgoPerf_t        *perfResults,
         mlopenConvPreference_t       /*preference*/,
         Data_t                      workSpace,
-        size_t                       /*workSpaceSize*/,
+        size_t                      workSpaceSize,
         bool                        exhaustiveSearch) const {
 
-    if(x == nullptr || w == nullptr || y == nullptr) {
-        MLOPEN_THROW(mlopenStatusBadParm);
-    }
-#if 0
-        if(returnedAlgoCount == nullptr || perfResults == nullptr) {
-            MLOPEN_THROW(mlopenStatusBadParm);
-        }
-        if(requestAlgoCount < 1) {
-            MLOPEN_THROW(mlopenStatusBadParm);
-        }
-#endif 
+    if(x == nullptr || w == nullptr || y == nullptr) MLOPEN_THROW(mlopenStatusBadParm, "Buffers cannot be NULL");
+    if(returnedAlgoCount == nullptr) MLOPEN_THROW(mlopenStatusBadParm, "returnedAlgoCount cannot be nullptr");
+    if(perfResults == nullptr) MLOPEN_THROW(mlopenStatusBadParm, "perfResults cannot be nullptr");
+    if(requestAlgoCount < 1) MLOPEN_THROW(mlopenStatusBadParm, "requestAlgoCount cannot be < 1");
 
     // create a dummy buffer for use as output for the kernel calls
     // because kernels are called purely for timing purposes
     auto tmp_y = handle.Create(yDesc.GetElementSize() * sizeof(yDesc.GetType()));
+    
+    // < algorith_name, <time, workspace_size> >
+    std::vector< PerfField > perf_db;
 
     // GEMM based
     int in_n, in_c, in_h, in_w;
@@ -143,21 +139,40 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     std::string kernel_name;
     std::string parms;
 
-    // < algorith_name, <time, workspace_size> >
-    std::vector< PerfField > perf_db;
-
 #if MLOPEN_USE_TINYGEMM
-    if(workSpace != nullptr) {
-        if(wei_h != 1 && wei_w != 1) {
-            size_t in_offset = 0;
-            Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
-        }
+    size_t workspace_req = ForwardGetWorkSpaceSize(wDesc, yDesc);
+    float time_gemm = 0;
+    GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
 
-        GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+    // 1x1 does not require im2col or workspace
+    if(wei_h == 1 && wei_w == 1) {
+        gg.FindSolution(.003, handle, x, w, y, false);
+        gg.RunGemm(handle, x, w, tmp_y, 0, 0, 0);
+
+        time_gemm = in_n * handle.GetKernelTime();
+        perf_db.push_back(
+                std::make_tuple("MLOpenConvolutionFwdAlgoGEMM", time_gemm, 0)
+                );
+    }
+
+    // if not 1x1
+    else if(workSpace != nullptr && workSpaceSize >= workspace_req) {
+        float time_im2col = 0;
+        size_t in_offset = 0;
+        time_im2col = Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+
         gg.FindSolution(.003, handle, workSpace, w, y, false);
+        gg.RunGemm(handle, workSpace, w, tmp_y, 0, 0, 0);
+        time_gemm = in_n * (time_im2col + handle.GetKernelTime());
+        perf_db.push_back(
+                std::make_tuple("MLOpenConvolutionFwdAlgoGEMM", 
+                    time_gemm,
+                    workspace_req)
+                );
     }
 #else
     (void)workSpace; // Suppress warning
+    (void)workSpaceSize; // Suppress warning
 #endif
 
     // Winograd algo
