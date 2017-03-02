@@ -358,42 +358,52 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 //
 void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         const TensorDescriptor&     dyDesc,
-        ConstData_t             dy,
+        ConstData_t                 dy,
         const TensorDescriptor&     wDesc,
-        ConstData_t             w,
+        ConstData_t                 w,
         const TensorDescriptor&     dxDesc,
-        ConstData_t             dx,
-        const int                    /*requestAlgoCount*/,
-        int                         * /*returnedAlgoCount*/,
+        ConstData_t                 dx,
+        const int                   requestAlgoCount,
+        int                         *returnedAlgoCount,
         mlopenConvAlgoPerf_t        *perfResults,
         mlopenConvPreference_t       /*preference*/,
         void                        * /*workSpace*/,
-        size_t                       /*workSpaceSize*/,
+        size_t                      /* workSpaceSize*/,
         bool                        exhaustiveSearch) const {
 
-    if(dx == nullptr || w == nullptr || dy == nullptr) {
-        MLOPEN_THROW(mlopenStatusBadParm);
-    }
-#if 0
-        if(returnedAlgoCount == nullptr || perfResults == nullptr) {
-            MLOPEN_THROW(mlopenStatusBadParm);
-        }
-        if(requestAlgoCount < 1) {
-            MLOPEN_THROW(mlopenStatusBadParm);
-        }
-#endif 
+    if(dx == nullptr || w == nullptr || dy == nullptr) MLOPEN_THROW(mlopenStatusBadParm, "Buffers cannot be NULL");
+    if(returnedAlgoCount == nullptr) MLOPEN_THROW(mlopenStatusBadParm, "returnedAlgoCount cannot be nullptr");
+    if(perfResults == nullptr) MLOPEN_THROW(mlopenStatusBadParm, "perfResults cannot be nullptr");
+    if(requestAlgoCount < 1) MLOPEN_THROW(mlopenStatusBadParm, "requestAlgoCount cannot be < 1");
+
+    // create a dummy buffer for use as output for the kernel calls
+    // because kernels are called purely for timing purposes
+    auto tmp_dx = handle.Create(dxDesc.GetElementSize() * sizeof(dxDesc.GetType()));
+
+    // < algorith_name, <time, workspace_size> >
+    std::vector< PerfField > perf_db;
 
     KernelInvoke kernel_direct;
     if( FindDirectKernel(handle, dyDesc, wDesc, dxDesc, kernel_direct, exhaustiveSearch, 0) == 0) { //Backward
         float padding_val = 0;
-        kernel_direct(dy, w, dx, padding_val);
+        kernel_direct(dy, w, tmp_dx, padding_val);
+        
+        float time_direct = handle.GetKernelTime();
+        perf_db.push_back(std::make_tuple("mlopenConvolutionBwdDataDirect", time_direct, 0));
     }
+    else
+        MLOPEN_THROW(mlopenStatusUnknownError, "Backward Data Algo cannot be executed");
 
-    // FIXME: MD temporary hack for hipcaffe
-    // should be ideally wrapped under mlopen::deref to check 
-    // for the size of perfResults == requestedAlgoCount
-    perfResults->bwd_data_algo = mlopenConvolutionBwdDataAlgo_0;
-    perfResults->time = handle.GetKernelTime();
+    // sorting not required because we implement only one algorithm
+
+    // update perfResults
+    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
+
+    for(int i = 0; i < *returnedAlgoCount; i++) {
+        perfResults[i].bwd_data_algo = static_cast<mlopenConvBwdDataAlgorithm_t>(BwdDataAlgoResolver[ std::get<0>(perf_db[i]) ]);
+        perfResults[i].time = std::get<1>(perf_db[i]);
+        perfResults[i].memory = std::get<2>(perf_db[i]);
+    }
 
 }
 
