@@ -162,7 +162,7 @@ struct verify_backward_pooling
                     auto idx = indices.at(dout.desc.GetIndex(o, w, i, j));
                     auto idx_h = idx / in_w;
                     auto idx_w = idx % in_w;
-                    CHECK(float_equal(input(o, w, idx_h, idx_w), out(o, w, i, j)));
+                    CHECK(mlopen::float_equal(input(o, w, idx_h, idx_w), out(o, w, i, j)));
                     dinput(o, w, idx_h, idx_w) += dout(o, w, i, j);
                 });
             }
@@ -241,10 +241,16 @@ struct verify_backward_pooling
     
 };
 
-struct verify_pooling
+template<class T>
+struct pooling_driver : test_driver
 {
-    template<class T>
-    void operator()(const tensor<T>& input) const
+    tensor<T> input;
+
+    pooling_driver()
+    {
+        add(input, "input", get_input_tensor());
+    }
+    void run()
     {
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
@@ -277,5 +283,5 @@ struct verify_pooling
 
 int main(int argc, const char *argv[]) 
 {
-    test_drive<verify_pooling, unary_input>(argc, argv);
+    test_drive<pooling_driver<float>>(argc, argv);
 }
