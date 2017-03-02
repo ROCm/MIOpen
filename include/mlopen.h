@@ -311,7 +311,7 @@ typedef enum {
 } mlopenConvBwdWeightsAlgorithm_t;
 
 typedef enum {
-	mlopenConvolutionBwdDataDirect = 0,
+	mlopenConvolutionBwdDataAlgoDirect = 0,
 } mlopenConvBwdDataAlgorithm_t;
 
 // Same perf struct for forward, backward filter and backward
