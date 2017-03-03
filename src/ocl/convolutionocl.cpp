@@ -299,10 +299,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         case mlopenConvolutionFwdAlgoGEMM:
         {
-            if(workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, yDesc)) {
-                MLOPEN_THROW("Workspace is required");
-            }
-
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
@@ -311,6 +307,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
             int out_h, out_w;
             std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+
+            if((wei_h != 1 && wei_w != 1) && 
+                (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, yDesc))) {
+                MLOPEN_THROW("Workspace is required");
+            }
 
             std::string network_config;
 #if MLOPEN_USE_TINYGEMM
