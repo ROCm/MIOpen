@@ -207,7 +207,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         perf_db.push_back(std::make_tuple("mlopenConvolutionFwdAlgoDirect", time_direct, 0));
     }
 
-    if(perf_db.size() == 0)
+    if(perf_db.empty())
         MLOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
 
     // sort the perf_db
@@ -626,7 +626,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         }
     }
 
-    if(perf_db.size() == 0)
+    if(perf_db.empty())
         MLOPEN_THROW("Bwd Weights Convolution cannot be executed due to incorrect params");
 
     // sort the perf_db
