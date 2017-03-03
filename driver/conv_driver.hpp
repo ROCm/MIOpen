@@ -531,6 +531,7 @@ int ConvDriver<T>::FindBackwardWeights(int &ret_algo_count, int request_algo_cou
 			(inflags.GetValueInt("search") == 1) ? true : false
 		);
 
+#if MLOPEN_USE_TINYGEMM
 	float time = 0;
 	mlopenGetKernelTime(GetHandle(), &time);
 	printf("im time %f\n", time);
@@ -571,6 +572,7 @@ int ConvDriver<T>::FindBackwardWeights(int &ret_algo_count, int request_algo_cou
 			}
 		}
 	}
+#endif
 	return 0;
 }
 
@@ -619,7 +621,7 @@ int ConvDriver<T>::RunBackwardGPU() {
 
     std::vector<mlopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
 	
-    FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_data);
+    FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
 
 	ret = mlopenConvolutionBackwardWeights(GetHandle(),
 		&alpha,
