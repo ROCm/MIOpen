@@ -502,10 +502,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
     std::string network_config;
+    size_t workspace_req = 0;
 
 #if MLOPEN_USE_TINYGEMM
     GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
-    size_t workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
+    workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
     float time_gemm = 0;
 
     // 1x1 does not require im2col or workspace
@@ -585,7 +586,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         }
         else
         {
-            size_t workspace_req = BackwardWeightsGetWorkSpaceSizeDirect(dyDesc, xDesc, dwDesc);
+            workspace_req = BackwardWeightsGetWorkSpaceSizeDirect(dyDesc, xDesc, dwDesc);
 
             if(workSpace != nullptr && workSpaceSize >= workspace_req) {
                 auto bwd_wrw_main = bwd_wrw_info[0];
