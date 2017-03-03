@@ -2,123 +2,308 @@
 #include "args.hpp"
 #include "tensor_holder.hpp"
 #include "network_data.hpp"
+#include "verify.hpp"
 
-template<class F, class Base>
-struct test_driver : Base
+#include <functional>
+
+struct rand_gen
 {
-    struct empty_args
+    double operator()(int n, int c, int h, int w) const
     {
-        template<class T>
-        void operator()(bool& b, T&& x) const
+        return double((547*n+701*c+877*h+1049*w+173)%17);
+    };
+};
+
+struct test_driver
+{
+    test_driver()=default;
+    test_driver(const test_driver&)=delete;
+    test_driver& operator=(const test_driver&)=delete;
+
+    struct argument
+    {
+        std::function<void(std::vector<std::string>)> write_value;
+        std::vector<std::function<void()>> post_write_actions;
+        std::vector<std::function<void(std::function<void()>)>> data_sources;
+
+        void post_write()
         {
-            b = b && x.empty();
+            for(auto pw:post_write_actions)
+            {
+                pw();
+            }
+        }
+        void write(std::vector<std::string> c)
+        {
+            write_value(c);
+            post_write();
+        }
+
+        template<class Source, class T>
+        void add_source(Source src, T& x)
+        {
+            data_sources.push_back([=, &x](std::function<void()> callback)
+            {
+                for(auto&& y:src())
+                {
+                    x = T(y);
+                    post_write();
+                    callback();
+                }
+                
+            });
         }
     };
 
-    void run()
+    std::unordered_map<std::string, argument> arguments;
+    bool full_set = false;
+    bool verbose = false;
+    double tolerance = 80;
+
+    template<class Visitor>
+    void parse(Visitor v)
     {
-        auto g0 = [](int, int, int, int) { return 0; };
-        auto g1 = [](int, int, int, int) { return 1; };
-        auto g_id = [](int, int, int h, int w) { return h == w ? 1 : 0; };
-        auto g = [](int n, int c, int h, int w)
+        v(full_set, {"--all"});
+        v(verbose, {"--verbose", "-v"});
+        v(tolerance, {"--tolerance", "-t"});
+    }
+
+    struct per_arg
+    {
+        template<class T, class Action>
+        void operator()(T& x, argument& a, Action action) const
         {
-            return double((547*n+701*c+877*h+1049*w+173)%17);
+            action(x, a);
+        }
+    };
+
+    template<class T, class... Fs>
+    void add(T& x, std::string name, Fs... fs)
+    {
+        arguments.insert(std::make_pair(name, argument{}));
+
+        argument& arg = arguments[name];
+        arg.write_value = [&](std::vector<std::string> params)
+        {
+            args::write_value{}(x, params);
         };
-        (void)g0;
-        (void)g1;
-        (void)g_id;
-        (void)g;
+        mlopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1), fs...);
+    }
 
-        bool empty = true;
-        this->visit(std::bind(empty_args{}, std::ref(empty), std::placeholders::_1));
-
-        if (empty)
+    struct generate_tensor_t
+    {
+        std::function<std::set<std::vector<int>>()> get_data;
+        template<class T>
+        void operator()(T& x, argument& arg) const
         {
-        #if MLOPEN_TEST_ALL
-        #if MLOPEN_TEST_ALL_GENERATORS
-            printf("verify_all\n");
-            this->template generate_all<float>(F{}, g0, g1, g_id, g);
-        #else
-            printf("verify_all debug\n");
-            this->template generate_all<float>(F{}, g);
-        #endif
-        #else
-            printf("verify_one\n");
-            this->template generate_default<float>(F{}, g);
-        #endif
+            arg.add_source(get_data, x);
+            arg.post_write_actions.push_back([&x]
+            {
+                tensor_generate{}(x, rand_gen{});
+            });
         }
-        else
+    };
+
+    generate_tensor_t generate_tensor(std::set<std::vector<int>> dims, std::vector<int> single)
+    {
+        return {[=]() -> std::set<std::vector<int>> {
+            if (full_set) return dims; 
+            else return {single};
+        }};
+    }
+
+    generate_tensor_t get_input_tensor()
+    {
+        return generate_tensor(get_inputs(), {16, 32, 8, 8});
+    }
+
+    generate_tensor_t get_weights_tensor()
+    {
+        return generate_tensor(get_weights(), {64, 32, 5, 5});
+    }
+
+    template<class X>
+    struct generate_data_t
+    {
+        std::function<std::vector<X>()> get_data;
+        template<class T>
+        void operator()(T& x, argument& arg) const
         {
-            this->template generate_one<float>(F{}, g);
+            arg.add_source(get_data, x);
+        }
+    };
+
+    template<class T>
+    generate_data_t<T> generate_data(std::vector<T> dims, T single)
+    {
+        return {[=]() -> std::vector<T> {
+            if (full_set) return dims; 
+            else return {single};
+        }};
+    }
+
+    template<class T>
+    generate_data_t<T> generate_single(T single)
+    {
+        return {[=]() -> std::vector<T> {
+            return {single};
+        }};
+    }
+
+    template<class V, class... Ts>
+    auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    {
+        if (verbose) v.fail(0.0, xs...);
+        try 
+        {
+            auto out_cpu = v.cpu(xs...);
+            auto out_gpu = v.gpu(xs...);
+            CHECK(mlopen::range_distance(out_cpu) == mlopen::range_distance(out_gpu));
+            
+            using value_type = mlopen::range_value<decltype(out_gpu)>;
+            double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
+            auto error = mlopen::rms_range(out_cpu, out_gpu);
+            if (not(error <= threshold))
+            {
+                std::cout << "FAILED: " << error << std::endl;
+                auto mxdiff = mlopen::max_diff(out_cpu, out_gpu);
+                std::cout << "Max diff: " << mxdiff << std::endl;
+                v.fail(error, xs...);
+                auto max_idx = mlopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
+                std::cout << "Max diff at " << max_idx << ": " << out_cpu[max_idx] << " != " << out_gpu[max_idx] << std::endl;
+                if (mlopen::range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
+                if (mlopen::range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
+                auto idx = mlopen::mismatch_idx(out_cpu, out_gpu, mlopen::float_equal);
+                std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
+            } 
+            else if (mlopen::range_zero(out_cpu) and mlopen::range_zero(out_gpu)) 
+            {
+                std::cout << "Warning: data is all zero" << std::endl;
+                v.fail(error, xs...);
+            }
+            return std::make_pair(std::move(out_cpu), std::move(out_gpu));
+        } 
+        catch(const std::exception& ex) 
+        {
+            std::cout << "FAILED: " << ex.what() << std::endl;
+            v.fail(0.0, xs...);
+            throw;
+        } 
+        catch(...) 
+        {
+            std::cout << "FAILED with unknown exception" << std::endl;
+            v.fail(0.0, xs...);
+            throw;
         }
     }
 };
 
-struct unary_input
+template<class Iterator, class Action>
+void run_data(Iterator start, Iterator last, Action a)
 {
-    std::vector<int> input_dims;
-
-    template<class V>
-    void visit(V v)
+    if (start == last) 
     {
-        v(input_dims, "--input");
+        a();
+        return;
     }
 
-    template<class T, class F, class... Gs>
-    void generate_all(F f, Gs... gs)
+    auto&& sources = (*start)->data_sources;
+    if (sources.empty())
     {
-        generate_unary_all<T>(f, gs...);
+        run_data(std::next(start), last, a);
     }
-
-    template<class T, class F, class G>
-    void generate_default(F f, G g)
+    else for(auto&& src:sources)
     {
-        generate_unary_one<T>(f, {16, 32, 8, 8}, g);
+        src([=]
+        {
+            run_data(std::next(start), last, a);
+        });
     }
-
-    template<class T, class F, class G>
-    void generate_one(F f, G g)
-    {
-        generate_unary_one<T>(f, input_dims, g);
-    }
-};
-
-struct binary_input
-{
-    std::vector<int> input_dims;
-    std::vector<int> weights_dims;
-
-    template<class V>
-    void visit(V v)
-    {
-        v(input_dims, "--input");
-        v(weights_dims, "--weights");
-    }
-
-    template<class T, class F, class... Gs>
-    void generate_all(F f, Gs... gs)
-    {
-        generate_binary_all<T>(f, gs...);
-    }
-
-    template<class T, class F, class G>
-    void generate_default(F f, G g)
-    {
-        generate_binary_one<T>(f, {16, 32, 8, 8}, {64, 32, 5, 5}, g);
-    }
-
-    template<class T, class F, class G>
-    void generate_one(F f, G g)
-    {
-        generate_binary_one<T>(f, input_dims, weights_dims, g);
-    }
-};
-
-
-template<class F, class Base>
-void test_drive(int argc, const char *argv[])
-{
-    args::parse<test_driver<F, Base>>(argc, argv);
 }
 
+struct keyword_set
+{
+    std::set<std::string> * value;
+    keyword_set(std::set<std::string> & x) : value(&x)
+    {}
+    template<class T>
+    void operator()(T&&, std::initializer_list<std::string> x) const
+    {
+        value->insert(x);
+    }
+};
+
+struct parser
+{
+    args::string_map * m;
+    parser(args::string_map & x) : m(&x)
+    {}
+    template<class T>
+    void operator()(T& x, std::initializer_list<std::string> keywords) const
+    {
+        for(auto&& keyword:keywords)
+        {
+            if (m->count(keyword) > 0)
+            {
+                args::write_value{}(x, (*m)[keyword]);
+                return;
+            }
+        }
+    }
+
+    void operator()(bool& x, std::initializer_list<std::string> keywords) const
+    {
+        for(auto&& keyword:keywords)
+        {
+            if (m->count(keyword) > 0)
+            {
+                x = true;
+                return;
+            }
+        }
+    }
+};
+
+template<class Driver>
+void test_drive(int argc, const char *argv[])
+{
+    std::vector<std::string> as(argv+1, argv+argc);
+    Driver d{};
+
+    std::set<std::string> keywords{"--help", "-h"};
+    d.parse(keyword_set{keywords});
+    auto arg_map = args::parse(as, [&](std::string x)
+    {
+        return 
+            (keywords.count(x) > 0) or 
+            ((x.compare(0, 2, "--") == 0) and d.arguments.count(x.substr(2)) > 0);
+    });
+
+    d.parse(parser{arg_map});
+
+    for(auto&& p:arg_map)
+    {
+        if (keywords.count(p.first) == 0)
+        {
+            auto name = p.first.substr(2);
+            auto&& arg = d.arguments[name];
+            arg.write(p.second);
+        }
+    }
+
+    // Run data on arguments that are not passed in
+    std::vector<typename Driver::argument*> data_args; 
+    for(auto&& p:d.arguments)
+    {
+        if (arg_map.count("--" + p.first) == 0)
+        {
+            data_args.push_back(&p.second);
+        }
+    }
+
+    run_data(data_args.begin(), data_args.end(), [&]
+    {
+        d.run();
+    });
+}
 
