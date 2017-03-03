@@ -67,7 +67,7 @@ struct verify_forward_conv
 		size_t workspace_size = filter.ForwardGetWorkSpaceSize(weights.desc, out.desc);
 
 		std::vector<char> workspace(workspace_size);
-		auto workspace_dev = handle.Write(workspace);
+		auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         int ret_algo_count;
         mlopenConvAlgoPerf_t perf;
@@ -273,13 +273,6 @@ struct verify_backward_weights_conv
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = handle.Write(workspace);
 
-#if 0
-#if MLOPEN_USE_TINYGEMM
-        auto algo = mlopenConvolutionBwdWeightsAlgoGEMM;
-#else
-        auto algo = mlopenConvolutionBwdWeightsAlgoDirect;
-#endif
-#endif
         int ret_algo_count;
         mlopenConvAlgoPerf_t perf;
 
