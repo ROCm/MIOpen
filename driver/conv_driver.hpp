@@ -85,7 +85,7 @@ class ConvDriver : public Driver
 	int RunForwardCPU();
 	
 	int FindBackwardData(int &ret_algo_count, int request_algo_count, std::vector<mlopenConvAlgoPerf_t> &perf_results);
-	int FindBackwardWeights();
+	int FindBackwardWeights(int &ret_algo_count, int request_algo_count, std::vector<mlopenConvAlgoPerf_t> &perf_results);
 	int RunBackwardGPU();
 	int RunBackwardDataCPU();
 	int RunBackwardWeightsCPU();
@@ -511,11 +511,10 @@ int ConvDriver<T>::FindBackwardData(int &ret_algo_count, int request_algo_count,
 }
 
 template<typename T>
-int ConvDriver<T>::FindBackwardWeights() {
-	int ret_algo_count;
-	mlopenConvAlgoPerf_t perf;
+int ConvDriver<T>::FindBackwardWeights(int &ret_algo_count, int request_algo_count,
+        std::vector<mlopenConvAlgoPerf_t> &perf_results) {
 
-	mlopenFindConvolutionBackwardWeightsAlgorithm(GetHandle(),
+    mlopenFindConvolutionBackwardWeightsAlgorithm(GetHandle(),
 			outputTensor,
 			dout_dev->GetMem(),
 			inputTensor,
@@ -523,9 +522,9 @@ int ConvDriver<T>::FindBackwardWeights() {
 			convDesc,
 			weightTensor,
 			wei_dev->GetMem(),
-			1,
+			request_algo_count,
 			&ret_algo_count,
-			&perf,
+			perf_results.data(),
 			mlopenConvolutionFastest,
 			workspace_dev->GetMem(),
 			workspace_dev->GetSize(),
@@ -618,7 +617,10 @@ int ConvDriver<T>::RunBackwardGPU() {
 
 	din_dev->FromGPU(GetStream(), din.data());
 
-	FindBackwardWeights();
+    std::vector<mlopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
+	
+    FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_data);
+
 	ret = mlopenConvolutionBackwardWeights(GetHandle(),
 		&alpha,
 		outputTensor,
@@ -626,11 +628,7 @@ int ConvDriver<T>::RunBackwardGPU() {
 		inputTensor,
 		in_dev->GetMem(),
 		convDesc,
-#if MLOPEN_USE_TINYGEMM
-		mlopenConvolutionBwdWeightsAlgoGEMM,
-#else
-		mlopenConvolutionBwdWeightsAlgoDirect,
-#endif
+        perf_results_weights[0].bwd_weights_algo,
 		&beta,
 		weightTensor,
 		dwei_dev->GetMem(),

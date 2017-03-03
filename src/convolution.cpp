@@ -186,4 +186,46 @@ TensorDescriptor ConvolutionDescriptor::GetBackwardWeightsTensor(
 		std::get<2>(dims),
 		std::get<3>(dims)});
 }
+
+size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
+    const TensorDescriptor&      dyDesc,
+	const TensorDescriptor&		 dwDesc) const
+{
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(dyDesc.GetLengths());
+    int wei_c, wei_h, wei_w;
+    std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(dwDesc.GetLengths());
+    size_t gemm_size = wei_c*wei_h*wei_w * out_h*out_w * sizeof(dyDesc.GetType()); 
+
+    return gemm_size;
+}
+
+size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
+    const TensorDescriptor&      dyDesc,
+	const TensorDescriptor&		 xDesc,
+	const TensorDescriptor&		 dwDesc) const
+{
+    mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+    construct_params.doSearch(false);
+    construct_params.setOutputDescFromMLDesc(dyDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(dwDesc);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+    construct_params.mloConstruct();
+
+    return construct_params.getWorkSpaceSzBytes();
+}
+
+size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
+    const TensorDescriptor&      dyDesc,
+	const TensorDescriptor&		 xDesc,
+	const TensorDescriptor&		 dwDesc) const
+{
+    return std::max(
+            BackwardWeightsGetWorkSpaceSizeDirect(dyDesc, xDesc, dwDesc),
+            BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc)
+        );
+}
+
+
 } // namespace mlopen
