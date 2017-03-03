@@ -39,7 +39,7 @@ float Im2ColGPU(
 	params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
 
 	const std::vector<size_t> vld(1, 256);
-	const std::vector<size_t> vgd(1, 256*(c/num_ch_per_wg)*num_blks);
+	const std::vector<size_t> vgd(1, 256*std::max(1, (c/num_ch_per_wg))*num_blks);
 
 	handle.GetKernel("mlopenIm2Col",
 			"",
