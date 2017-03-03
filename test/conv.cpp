@@ -290,7 +290,7 @@ struct verify_backward_weights_conv
             in_dev.get(),
             weights.desc,
             wei_dev.get(),
-            algo,
+            1,
             &ret_algo_count,
             &perf,
             mlopenConvolutionFastest,
