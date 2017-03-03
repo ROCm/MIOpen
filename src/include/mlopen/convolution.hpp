@@ -6,6 +6,7 @@
 #include <mlopen/tensor.hpp>
 #include <mlopen/common.hpp>
 #include <mlopen/conv_algo_name.hpp>
+#include <mlopen/mlo_internal.hpp>
 #include <functional>
 
 namespace mlopen {
@@ -119,6 +120,15 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		size_t							workSpaceSize) const;
 
 	size_t ConvolutionBackwardWeightsGetWorkSpaceSize(
+		const TensorDescriptor&		dyDesc,
+		const TensorDescriptor&		xDesc,
+		const TensorDescriptor&		dwDesc) const;
+
+	size_t BackwardWeightsGetWorkSpaceSizeGEMM(
+		const TensorDescriptor&		dyDesc,
+		const TensorDescriptor&		dwDesc) const;
+
+	size_t BackwardWeightsGetWorkSpaceSizeDirect(
 		const TensorDescriptor&		dyDesc,
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		dwDesc) const;
