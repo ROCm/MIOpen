@@ -488,7 +488,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     // create a dummy buffer for use as output for the kernel calls
     // because kernels are called purely for timing purposes
     auto tmp_dw = handle.Create(dwDesc.GetElementSize() * sizeof(dwDesc.GetType()));
-    
+
     // < algorith_name, <time, workspace_size> >
     std::vector< PerfField > perf_db;
 
@@ -569,7 +569,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         if (bwd_wrw_info.size() == 1)
         {
             const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
-            float padding_val = 0;
+//            float padding_val = 0;
 
             handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
                     network_config,
@@ -577,8 +577,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     std::get<0>(bwd_wrw),
                     std::get<4>(bwd_wrw),
                     std::get<3>(bwd_wrw),
-                    std::get<2>(bwd_wrw))
-                        (dy, x, tmp_dw.get(), padding_val);
+                    std::get<2>(bwd_wrw));
+//                        (dy, x, tmp_dw.get(), padding_val);
 
             time_direct = handle.GetKernelTime();
             perf_db.push_back(
@@ -591,7 +591,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
             if(workSpace != nullptr && workSpaceSize >= workspace_req) {
                 auto bwd_wrw_main = bwd_wrw_info[0];
-                float padding_val = 0;
+                //float padding_val = 0;
 
                 handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
                         network_config,
@@ -599,8 +599,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         std::get<0>(bwd_wrw_main),
                         std::get<4>(bwd_wrw_main),
                         std::get<3>(bwd_wrw_main),
-                        std::get<2>(bwd_wrw_main))
-                    (dy, x, workSpace, padding_val);
+                        std::get<2>(bwd_wrw_main));
+//                    (dy, x, workSpace, padding_val);
 
                 time_direct += handle.GetKernelTime();
             
@@ -615,8 +615,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         std::get<0>(bwd_wrw_red),
                         std::get<4>(bwd_wrw_red),
                         std::get<3>(bwd_wrw_red),
-                        std::get<2>(bwd_wrw_red))
-                    (workSpace, tmp_dw.get());
+                        std::get<2>(bwd_wrw_red));
+  //                  (workSpace, tmp_dw.get());
 
                 time_direct += handle.GetKernelTime();
                 perf_db.push_back(
@@ -696,8 +696,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         {
             std::string network_config;
 
-            if(workSpace == nullptr || workSpaceSize < BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc)) {
-                MLOPEN_THROW("Workspace is requried");
+            if((wei_h != 1 && wei_w != 1) &&
+                    (workSpace == nullptr || workSpaceSize < BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc))) {
+                MLOPEN_THROW("Workspace is required");
             }
 #if MLOPEN_USE_TINYGEMM
             CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
