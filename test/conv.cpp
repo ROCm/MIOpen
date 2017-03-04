@@ -292,7 +292,6 @@ struct verify_backward_weights_conv
             workspace_size,
             0); // MD: Not performing exhaustiveSearch by default for now
 
-        std::cerr<<perf.bwd_weights_algo<<"\n";
         filter.ConvolutionBackwardWeights(handle,
             &alpha,
             out.desc,
