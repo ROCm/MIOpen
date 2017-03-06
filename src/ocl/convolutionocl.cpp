@@ -152,9 +152,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         gg.RunGemm(handle, x, w, tmp_y.get(), 0, 0, 0);
 
         time_gemm = in_n * handle.GetKernelTime();
-        perf_db.push_back(
-                std::make_tuple("mlopenConvolutionFwdAlgoGEMM", time_gemm, 0)
-                );
+        perf_db.push_back( PerfField{"mlopenConvolutionFwdAlgoGEMM", time_gemm, 0} );
     }
 
     // if not 1x1
@@ -166,11 +164,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
         gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
         time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-        perf_db.push_back(
-                std::make_tuple("mlopenConvolutionFwdAlgoGEMM", 
-                    time_gemm,
-                    workspace_req)
-                );
+        perf_db.push_back( PerfField{"mlopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req} );
     }
 #else
     (void)workSpace; // Suppress warning
@@ -191,7 +185,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         kernel_wino (N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
 
         time_wino = handle.GetKernelTime();
-        perf_db.push_back(std::make_tuple("mlopenConvolutionFwdAlgoWinograd", time_wino, 0));
+        perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoWinograd", time_wino, 0});
     }
 
     // Direct algo
@@ -204,22 +198,22 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         kernel_direct(x, w, tmp_y.get(), padding_val);
 
         time_direct = handle.GetKernelTime();
-        perf_db.push_back(std::make_tuple("mlopenConvolutionFwdAlgoDirect", time_direct, 0));
+        perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoDirect", time_direct, 0});
     }
 
     if(perf_db.empty())
         MLOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
 
     // sort the perf_db
-    std::sort(begin(perf_db), begin(perf_db), PerfCompare<1>());
+    std::sort(begin(perf_db), end(perf_db));
 
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++) {
-        perfResults[i].fwd_algo = static_cast<mlopenConvFwdAlgorithm_t>(FwdAlgoResolver[ std::get<0>(perf_db[i]) ]);
-        perfResults[i].time = std::get<1>(perf_db[i]);
-        perfResults[i].memory = std::get<2>(perf_db[i]);
+        perfResults[i].fwd_algo = static_cast<mlopenConvFwdAlgorithm_t>(FwdAlgoResolver[ perf_db[i].name ]);
+        perfResults[i].time = perf_db[i].time;
+        perfResults[i].memory = perf_db[i].workspace;
     }
 }
 
@@ -395,9 +389,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         kernel_direct(dy, w, tmp_dx.get(), padding_val);
         
         float time_direct = handle.GetKernelTime();
-        perf_db.push_back(
-                std::make_tuple("mlopenConvolutionBwdDataAlgoDirect",
-                    time_direct, 0));
+        perf_db.push_back(PerfField{"mlopenConvolutionBwdDataAlgoDirect", time_direct, 0});
     }
     else
         MLOPEN_THROW(mlopenStatusUnknownError, "Backward Data Algo cannot be executed");
@@ -408,10 +400,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++) {
-        perfResults[i].bwd_data_algo = static_cast<mlopenConvBwdDataAlgorithm_t>
-            (BwdDataAlgoResolver[ std::get<0>(perf_db[i]) ]);
-        perfResults[i].time = std::get<1>(perf_db[i]);
-        perfResults[i].memory = std::get<2>(perf_db[i]);
+        perfResults[i].bwd_data_algo = static_cast<mlopenConvBwdDataAlgorithm_t>(BwdDataAlgoResolver[ perf_db[i].name ]);
+        perfResults[i].time = perf_db[i].time;
+        perfResults[i].memory = perf_db[i].workspace;
     }
 
 }
@@ -516,9 +507,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         gg.RunGemm(handle, x, dy, tmp_dw.get(), 0, 0, 0);
 
         time_gemm = in_n * handle.GetKernelTime();
-        perf_db.push_back(
-                std::make_tuple("mlopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0)
-                );
+        perf_db.push_back( PerfField{"mlopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0} );
     }
     // if not 1x1
     else if(workSpace != nullptr && workSpaceSize >= workspace_req) {
@@ -529,11 +518,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         gg.FindSolution(.003, handle, workSpace, dy, tmp_dw.get(), false);
         gg.RunGemm(handle, workSpace, dy, tmp_dw.get(), 0, 0, 0);
         time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-        perf_db.push_back(
-                std::make_tuple("mlopenConvolutionBwdWeightsAlgoGEMM", 
-                    time_gemm,
-                    workspace_req)
-                );
+        perf_db.push_back( PerfField{"mlopenConvolutionBwdWeightsAlgoGEMM", time_gemm, workspace_req} );
     }
 #else
     (void)workSpace; // Suppress warning
@@ -569,7 +554,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         if (bwd_wrw_info.size() == 1)
         {
             const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
-//            float padding_val = 0;
+         //   float padding_val = 0;
 
             handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
                     network_config,
@@ -581,9 +566,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 //                        (dy, x, tmp_dw.get(), padding_val);
 
             time_direct = handle.GetKernelTime();
-            perf_db.push_back(
-                    std::make_tuple("mlopenConvolutionBwdWeightsAlgoDirect", time_direct, 0)
-            );
+            perf_db.push_back( PerfField{"mlopenConvolutionBwdWeightsAlgoDirect", time_direct, 0} );
         }
         else
         {
@@ -591,7 +574,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
             if(workSpace != nullptr && workSpaceSize >= workspace_req) {
                 auto bwd_wrw_main = bwd_wrw_info[0];
-                //float padding_val = 0;
+       //         float padding_val = 0;
 
                 handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
                         network_config,
@@ -619,11 +602,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
   //                  (workSpace, tmp_dw.get());
 
                 time_direct += handle.GetKernelTime();
-                perf_db.push_back(
-                        std::make_tuple("mlopenConvolutionBwdWeightsAlgoDirect",
-                            time_direct, 
-                            workspace_req)
-                );
+                perf_db.push_backu( PerfField{"mlopenConvolutionBwdWeightsAlgoDirect", time_direct, workspace_req} );
             }
         }
     }
@@ -632,16 +611,16 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         MLOPEN_THROW("Bwd Weights Convolution cannot be executed due to incorrect params");
 
     // sort the perf_db
-    std::sort(begin(perf_db), begin(perf_db), PerfCompare<1>());
+    std::sort(begin(perf_db), end(perf_db));
 
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
     // TODO: Uncomment this block after direct/gemm algos are tested on hip
     // for(int i = 0; i < *returnedAlgoCount; i++) {
-    //     perfResults[i].bwd_weights_algo = static_cast<mlopenConvBwdWeightsAlgorithm_t>(BwdWeightsAlgoResolver[ std::get<0>(perf_db[i]) ]);
-    //     perfResults[i].time = std::get<1>(perf_db[i]);
-    //     perfResults[i].memory = std::get<2>(perf_db[i]);
+    //     perfResults[i].bwd_weights_algo = static_cast<mlopenConvBwdWeightsAlgorithm_t>(BwdWeightsAlgoResolver[ perf_db[i].name ]);
+    //     perfResults[i].time = perf_db[i].time;
+    //     perfResults[i].memory = perf_db[i].workspace;
     // }
 
 #if MLOPEN_USE_TINYGEMM
