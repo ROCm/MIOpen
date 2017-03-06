@@ -602,7 +602,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
   //                  (workSpace, tmp_dw.get());
 
                 time_direct += handle.GetKernelTime();
-                perf_db.push_backu( PerfField{"mlopenConvolutionBwdWeightsAlgoDirect", time_direct, workspace_req} );
+                perf_db.push_back( PerfField{"mlopenConvolutionBwdWeightsAlgoDirect", time_direct, workspace_req} );
             }
         }
     }
