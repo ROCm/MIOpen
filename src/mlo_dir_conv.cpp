@@ -237,16 +237,8 @@ static bool IsEnvvarValueDisabled(const char* name)
 }
 #endif
 
-/*
-   construction has been split into 2
-   generic convlution forward 
-   non-generic stride = 1, forward and backward
-   */
-int mlo_construct_direct2D::mloConstruct()
+int mlo_construct_winograd::mloConstruct()
 {
-	int ret = 0;
-	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
-
 #if MLOPEN_BACKEND_OPENCL
 	bool is_ocl_rocm_metadata_v10 = false; // when false, v2.0 metadata is supported.
 	/// Filter out cases when runtime does not support v1.0 metadata.
@@ -272,6 +264,36 @@ int mlo_construct_direct2D::mloConstruct()
 				return (mloConstructBinaryWinograd3x3Fwd());
 			}
 		}
+	}
+#endif
+    
+    return -1;
+}
+
+/*
+   construction has been split into 2
+   generic convlution forward 
+   non-generic stride = 1, forward and backward
+   */
+int mlo_construct_direct2D::mloConstruct()
+{
+	int ret = 0;
+	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
+
+#if MLOPEN_BACKEND_OPENCL
+	bool is_ocl_rocm_metadata_v10 = false; // when false, v2.0 metadata is supported.
+	/// Filter out cases when runtime does not support v1.0 metadata.
+	/// \todo Provide asm-sources and precompiled binaries with both v1.0 and v2.0
+	///       metadata and select appropriate ones in Construct.
+	/// \todo Finally, get gid of this var, v1.0 files and decline support for old runtime.
+	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10) && is_ocl_rocm_metadata_v10)
+	{
+		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
+		// assembly-written kernels may have worse performance than kernels written in high-level
+		// language, e.g. OpenCL. For example, forward 3x3 convolution kernel employing Winograd
+		// algorithm (conv_3x3_wheel) is very slow when InputWidth x InputHeight is 7x7.
+		// MiOpen avoids asm kernels in such corner cases. This setting overrides that.
+		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 
 		const auto asm_path = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
 		const auto use_assembly = !IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
