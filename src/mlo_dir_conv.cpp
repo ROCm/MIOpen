@@ -1153,7 +1153,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 
 	// define a special size for a specific width as a devisor to avoid dealing with out of range
 	// param
-	int read_unit = (((_in_width / 8) * 8) == _in_width) ? 8 : (((_in_width / 4) * 4) == _in_width) ? 4 : (((_in_width / 2) * 2) == _in_width) ? 2 : 1;
+	int read_unit = 10; // (((_in_width / 8) * 8) == _in_width) ? 8 : (((_in_width / 4) * 4) == _in_width) ? 4 : (((_in_width / 2) * 2) == _in_width) ? 2 : 1;
 
 	// this one is valid only till _FLOAT8
 	// but it's not an error, the kernel does not use these types at all 
