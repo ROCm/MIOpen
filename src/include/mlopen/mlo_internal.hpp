@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright (c)2016 Advanced Micro Devices, Inc. All rights reserved.
+Copyright (c)2017 Advanced Micro Devices, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -710,7 +710,7 @@ public:
 	size_t setWeightDescFromMLDesc(const mlopen::TensorDescriptor &weight_tensor);
 protected:
 
-	int mloConstructDirect2DFwd2();
+
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
@@ -731,7 +731,9 @@ protected:
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
 	int mloConstructDirect2D3x3(void);
-	int mloConstructDirect2DFwdGen();
+	int mloConstructDirect2DFwdGen(void);
+	int mloConstructDirect2D_11x11(void);
+
 	int mloConstructBwd()
 	{
 		return(0);
@@ -905,6 +907,7 @@ public:
 protected:
 	int mloConstruct2();
 	int mloConstruct53();
+	int mloConstruct1x1();
 };
 
 /*

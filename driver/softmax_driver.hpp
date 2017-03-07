@@ -12,6 +12,7 @@
 #include <float.h>
 #include <memory>
 #include <numeric>
+#include <../test/verify.hpp>
 #include "timer.hpp"
 
 template<typename T>
@@ -296,7 +297,7 @@ int SoftmaxDriver<T>::VerifyForward() {
 	const double tolerance = 1e-6;
 	if (error > tolerance)
 	{
-		std::cout<<"Forward Softmax Failed: " << error <<"\n";
+		std::cout<<std::string("Forward Softmax Failed: ") << error <<std::string("\n");
 	}
 	else
 	{
@@ -338,7 +339,7 @@ int SoftmaxDriver<T>::VerifyBackward() {
 	const double tolerance = 1e-6;
 	if (error > tolerance)
 	{
-		std::cout<<"Backward Softmax Failed: " << error <<"\n";
+		std::cout << std::string("Backward Softmax Failed: ") << error << std::string("\n");
 	}
 	else
 	{

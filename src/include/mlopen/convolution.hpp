@@ -75,7 +75,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
-        KernelInvoke&                   kernel,
+        std::vector<KernelInvoke>&      kernels,
         bool                            exhaustiveSearch,
         int                             direction) const;
 
