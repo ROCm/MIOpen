@@ -286,7 +286,7 @@ int mlo_construct_direct2D::mloConstruct()
 	/// \todo Provide asm-sources and precompiled binaries with both v1.0 and v2.0
 	///       metadata and select appropriate ones in Construct.
 	/// \todo Finally, get gid of this var, v1.0 files and decline support for old runtime.
-	if (!_gen && mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10) && is_ocl_rocm_metadata_v10)
+	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10) && is_ocl_rocm_metadata_v10)
 	{
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
 		// assembly-written kernels may have worse performance than kernels written in high-level
