@@ -3,6 +3,7 @@
 
 #include <mlopen/hipoc_program.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/stringutils.hpp>
 #include <array>
 
 namespace mlopen {
@@ -36,6 +37,15 @@ struct KernelArgs
     KernelArgsPack<Ts...> pack;
 };
 
+template<class... Ts>
+struct AsmKernelArgs
+{
+    AsmKernelArgs(Ts... xs)
+    : pack(xs...)
+    {}
+    KernelArgsPack<Ts...> pack;
+};
+
 struct HIPOCKernelInvoke
 {
     hipStream_t stream;
@@ -44,12 +54,21 @@ struct HIPOCKernelInvoke
     std::array<size_t, 3> gdims;
     std::string name;
     std::function<void(hipEvent_t, hipEvent_t)> callback;
+    bool is_asm;
 
     template<class... Ts>
     void operator()(Ts... xs) const
     {
-        KernelArgs<Ts...> args{xs...};
-        run(&args, sizeof(args));
+        if (is_asm) 
+        {
+            AsmKernelArgs<Ts...> args{xs...};
+            run(&args, sizeof(args));
+        }
+        else
+        {
+            KernelArgs<Ts...> args{xs...};
+            run(&args, sizeof(args));
+        }
     }
 
     void run(void* args, std::size_t size) const;
@@ -84,7 +103,8 @@ struct HIPOCKernel
             gdims[i] = (global_dims[i] - 1)/ldims[i] + 1;
         }
 
-        kernel_module = "&__OpenCL_" + name + "_kernel";
+        if (EndsWith(p.name, ".s")) kernel_module = name;
+        else kernel_module = "&__OpenCL_" + name + "_kernel";
         auto status = hipModuleGetFunction(&fun, program.module.get(), kernel_module.c_str());
         if (hipSuccess != status)
             MLOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);
