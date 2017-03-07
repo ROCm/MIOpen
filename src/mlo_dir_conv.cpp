@@ -240,18 +240,6 @@ static bool IsEnvvarValueDisabled(const char* name)
 int mlo_construct_winograd::mloConstruct()
 {
 #if MLOPEN_BACKEND_OPENCL
-	const auto use_precompiled_binaries_env_p = std::getenv("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
-	const auto use_precompiled_binaries = ((use_precompiled_binaries_env_p == nullptr) || (std::strcmp(use_precompiled_binaries_env_p, "disable") != 0));
-
-	/*
-	Our testing shows that for some corner cases (i.e. specific problem descriptions),
-	assembly-written kernels may have worse performance than kernels written in high-level language, e.g. OpenCL.
-	For example, forward 3x3 convolution kernel employing Winograd algorithm (conv_3x3_wheel) is very slow when InputWidth x InputHeight is 7x7.
-	miOpen avoids asm kernels in such corner cases. This setting overrides that.
-	*/
-	const auto use_asm_kernels_perf_filtering_env_p = std::getenv("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
-	const auto use_asm_kernels_perf_filtering = ((use_asm_kernels_perf_filtering_env_p == nullptr) || (std::strcmp(use_asm_kernels_perf_filtering_env_p, "disable") != 0));
-
 	bool is_ocl_rocm_metadata_v10 = false; // when false, v2.0 metadata is supported.
 	/// Filter out cases when runtime does not support v1.0 metadata.
 	/// \todo Provide asm-sources and precompiled binaries with both v1.0 and v2.0
@@ -1200,7 +1188,6 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
 
 	// total maps per group
 	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
-	int total_in_maps = _n_in_data_tiles * n_in_stacks;
 
 	// n of mini tiles of the same output map in vertical dir per wk_item
 	_grp_tile0 = GRP_SZ;
