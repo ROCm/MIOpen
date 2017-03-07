@@ -56,7 +56,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
-        KernelInvoke&                   kernel,
+        std::vector<KernelInvoke>&      kernels,
         bool                            exhaustiveSearch,
         int                             direction) const {
 
@@ -85,17 +85,22 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     const std::vector<size_t> & vld = construct_params.getLocalWkSize();
     const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	// float padding_val = 0;
-// if not 11x11
-	if (program_name.compare("MLOpenConvFwd_LxL_11.cl"))
+    std::string algorithm = (direction == 1) ? "mlopenConvolutionFwdAlgoDirect"
+                            : "mlopenConvolutionBwdDataAlgoDirect";
+
+    // if not 11x11
+	if (program_name.compare("MLOpenConvFwd_LxL_11.cl") != 0)
 	{
-		auto kernel = handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+        
+		auto k = handle.GetKernel(algorithm,
 			network_config,
 			program_name,
 			kernel_name,
 			vld,
 			vgd,
 			parms);
+
+        kernels.push_back(k);
 	}
 	else
 	{
@@ -113,19 +118,21 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 		{
 			const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
 
-			handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+		    auto k1 = handle.GetKernel(algorithm,
 				network_config,
 				std::get<1>(bwd_wrw),
 				std::get<0>(bwd_wrw),
 				std::get<4>(bwd_wrw),
 				std::get<3>(bwd_wrw),
 				std::get<2>(bwd_wrw));
+            
+            kernels.push_back(k1);
 		}
 		else
 		{
 			auto bwd_wrw_main = bwd_wrw_info[0];
 
-			handle.GetKernel("mlopenConvolutionFwdAlgoDirect",
+			auto k1 = handle.GetKernel(algorithm,
 				network_config,
 				std::get<1>(bwd_wrw_main),
 				std::get<0>(bwd_wrw_main),
@@ -133,13 +140,14 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 				std::get<3>(bwd_wrw_main),
 				std::get<2>(bwd_wrw_main));
 
-			float time0 = handle.GetKernelTime();
+            kernels.push_back(k1);
+
 			// second kernel hash
 			network_config += "x1";
 			// second pass  kernel
 			auto bwd_wrw_red = bwd_wrw_info[1];
 
-			handle.GetKernel("mlopenConvolutionFwdAlgoDirect_Pass2",
+			auto k2 = handle.GetKernel(algorithm+"_pass2",
 				network_config,
 				std::get<1>(bwd_wrw_red),
 				std::get<0>(bwd_wrw_red),
@@ -147,24 +155,10 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 				std::get<3>(bwd_wrw_red),
 				std::get<2>(bwd_wrw_red));
 
-			handle.AccumKernelTime(time0);
-
+            kernels.push_back(k2);
 		}
 
 	}
-
-
-    std::string algorithm =( direction == 1) ? "mlopenConvolutionFwdAlgoDirect"
-                            : "mlopenConvolutionBwdDataAlgoDirect";
-
-	kernel = handle.GetKernel(algorithm,
-		network_config,
-		program_name,
-		kernel_name,
-		vld,
-		vgd,
-		parms);
-
 
     return 0;
 }
@@ -260,14 +254,16 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     // Direct algo
     float time_direct = 0;
-    KernelInvoke kernel_direct;
+    std::vector< KernelInvoke > kernel_direct;
     if( FindDirectKernel(handle, xDesc, wDesc, yDesc, kernel_direct, exhaustiveSearch, 1) == 0) { //Forward 
 
         // Execute the direct kernel
         float padding_val = 0;
-        kernel_direct(x, w, tmp_y.get(), padding_val);
+        for(auto &k : kernel_direct) {
+            k(x, w, tmp_y.get(), padding_val);
+            time_direct += handle.GetKernelTime();
+        }
 
-        time_direct = handle.GetKernelTime();
         perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoDirect", time_direct, 0});
     }
 
@@ -335,52 +331,36 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             auto kernel = handle.GetKernel(algorithm_name, network_config);
 
 
-            // TODO(mayank): winograd should move to a separate case
-            // waiting for fixes
-            if (kernel.GetName() == "sp3AsmConv3x3F")
+            // if not 11x11
+            if ((kernel.GetName() != "MLOpenCvFwd11x11") )
             {
-                int flags = 0;
-                int reserved = 0;
-                int *return_addr = nullptr;
-                int N, C, H, W, K, n_groups;
-                construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+
+                kernel(x, w, y, padding_val);
             }
             else
             {
+                construct_params.mloConstruct();
 
-				// if not 11x11
-				if ((kernel.GetName() != "MLOpenCvFwd11x11") )
-				{
+                const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
 
-					kernel(x, w, y, padding_val);
-				}
-				else
-				{
-					construct_params.mloConstruct();
+                if (bwd_wrw_info.size() == 1)
+                {
+                    kernel(x, w, y, padding_val);
+                }
+                else
+                {
+                    // second kernel has
+                    network_config += "x1";
+                    auto kernel2 = handle.GetKernel(algorithm_name+"_pass2", network_config);
 
-					const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
+                    handle.ResetKernelTime();
+                    kernel(x, w, y, padding_val);
 
-					if (bwd_wrw_info.size() == 1)
-					{
-						kernel(x, w, y, padding_val);
-					}
-					else
-					{
-						std::string algorithm_name = "mlopenConvolutionFwdAlgoDirect_Pass2";
-						// second kernel has
-						network_config += "x1";
-						auto kernel2 = handle.GetKernel(algorithm_name, network_config);
+                    float time0 = handle.GetKernelTime();
+                    kernel2(x, w, y, padding_val);
 
-						handle.ResetKernelTime();
-						kernel(x, w, y, padding_val);
-
-						float time0 = handle.GetKernelTime();
-						kernel2(x, w, y, padding_val);
-
-						handle.AccumKernelTime(time0);
-					}
-				}
+                    handle.AccumKernelTime(time0);
+                }
             }
         }
         break;
@@ -501,12 +481,16 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     // < algorith_name, <time, workspace_size> >
     std::vector< PerfField > perf_db;
 
-    KernelInvoke kernel_direct;
+    std::vector<KernelInvoke> kernel_direct;
+    float time_direct = 0;
     if( FindDirectKernel(handle, dxDesc, wDesc, dyDesc, kernel_direct, exhaustiveSearch, 0) == 0) { //Backward
         float padding_val = 0;
-        kernel_direct(dy, w, tmp_dx.get(), padding_val);
-        
-        float time_direct = handle.GetKernelTime();
+
+        for(auto &k : kernel_direct) {
+            k(dy, w, tmp_dx.get(), padding_val);
+            time_direct += handle.GetKernelTime();
+        }
+
         perf_db.push_back(PerfField{"mlopenConvolutionBwdDataAlgoDirect", time_direct, 0});
     }
     else
