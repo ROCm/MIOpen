@@ -402,7 +402,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 
             if((wei_h != 1 && wei_w != 1) && 
-                (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, yDesc))) {
+                (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, xDesc, yDesc))) {
                 MLOPEN_THROW("Workspace is required");
             }
 

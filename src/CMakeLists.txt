@@ -64,6 +64,7 @@ list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MLOpen_Source
 	convolution.cpp
 	convolution_api.cpp
+	convolution_fft.cpp
 	errors.cpp
 	pooling_api.cpp
 	lrn_api.cpp

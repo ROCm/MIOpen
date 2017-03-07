@@ -45,8 +45,18 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 
+	size_t ForwardGetWorkSpaceSizeGEMM(
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		yDesc) const;
+
+	size_t ForwardGetWorkSpaceSizeFFT(
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		xDesc,
+		const TensorDescriptor&		yDesc) const;
+
 	size_t ForwardGetWorkSpaceSize(
 		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		yDesc) const;
 
 	void FindConvFwdAlgorithm(Handle& handle,

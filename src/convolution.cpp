@@ -57,7 +57,7 @@ const
 	);
 }
 
-size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
+size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(
 		const TensorDescriptor& wDesc,
 		const TensorDescriptor& yDesc) const
 {
@@ -71,6 +71,21 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 
 	return (wei_h == 1 && wei_w == 1) ? 0 : workspace_size;
 }
+
+
+size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
+		const TensorDescriptor& wDesc,
+		const TensorDescriptor& xDesc,
+		const TensorDescriptor& yDesc) const
+{
+	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
+	size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
+
+	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+}
+
+
+
 // weights_n = output_c
 // weights_c = input_c
 // weights_h = 2*pad_h + input_h - u*(output_h - 1)
