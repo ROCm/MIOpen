@@ -1,7 +1,6 @@
 #ifndef GUARD_MLOPEN_GEMM_DRIVER_HPP
 #define GUARD_MLOPEN_GEMM_DRIVER_HPP
 
-#ifndef WIN32 // so Linux and APPLE
 #include <cstdlib>
 #include <mlopen.h>
 #include "driver.hpp"
@@ -181,7 +180,5 @@ template<typename T>
 int GemmDriver<T>::VerifyBackward() {
     return 0;
 }
-
-#endif
 
 #endif // GUARD_MLOPEN_GEMM_DRIVER_HPP
