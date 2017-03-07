@@ -342,7 +342,7 @@ static inline void Convolve(int ex_row, int ex_pix, int l, int m, int wei_h, int
 **********************************************************************************************************/
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
-__kernel void MLOpenCvFwd(
+__kernel void MLOpenCvFwd11x11(
 	const __global _FLOAT * bot,
 	const __global _FLOAT * weights,
 #if MLO_CONV_BIAS == 1
@@ -673,7 +673,7 @@ static inline void Convolve2(int b, int ex_row, int ex_pix, int l, int m, int we
 
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
-__kernel void MLOpenCvFwd2(
+__kernel void MLOpenCvFwd11x11_2(
 	const __global _FLOAT * bot,
 	const __global _FLOAT * weights,
 #if MLO_CONV_BIAS == 1

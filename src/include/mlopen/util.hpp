@@ -10,7 +10,7 @@
 
 namespace mlopen {
 
-mlopenStatus_t Im2ColGPU(
+float Im2ColGPU(
 	Handle	&handle,
 	ConstData_t im, size_t im_offset,
 	const int c, const int h, const int w,
@@ -18,7 +18,7 @@ mlopenStatus_t Im2ColGPU(
 	const int out_h, const int out_w,
 	const int pad_h, const int	pad_w,
 	const int stride_h, const int stride_w,
-	Data_t					col); 
+	Data_t					col);
 
 } // namespace mlopen
 #endif // _MLOPEN_UTIL_HPP_

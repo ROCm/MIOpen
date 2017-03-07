@@ -5,8 +5,25 @@
 #include <mlopen/handle.hpp>
 #include <mlopen/tensor.hpp>
 #include <mlopen/common.hpp>
+#include <mlopen/conv_algo_name.hpp>
+#include <mlopen/mlo_internal.hpp>
+#include <functional>
 
 namespace mlopen {
+
+using WinogradKernelParams = std::tuple<int, int, int, int, int, int>;
+
+struct PerfField
+{
+    std::string name;
+    float time;
+    std::size_t workspace;
+
+    bool operator < (const PerfField &p) const 
+    {
+        return (time < p.time);
+    }
+};
 
 struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	
@@ -46,6 +63,21 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		Data_t							workSpace,
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
+
+    int FindFwdWinogradKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			yDesc,
+        WinogradKernelParams&           k_p,
+        KernelInvoke&                   kernel) const;
+
+    int FindDirectKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			yDesc,
+        KernelInvoke&                   kernel,
+        bool                            exhaustiveSearch,
+        int                             direction) const;
 
 	void ConvolutionForward(Handle& handle,
 		const void						*alpha,
@@ -89,6 +121,15 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		size_t							workSpaceSize) const;
 
 	size_t ConvolutionBackwardWeightsGetWorkSpaceSize(
+		const TensorDescriptor&		dyDesc,
+		const TensorDescriptor&		xDesc,
+		const TensorDescriptor&		dwDesc) const;
+
+	size_t BackwardWeightsGetWorkSpaceSizeGEMM(
+		const TensorDescriptor&		dyDesc,
+		const TensorDescriptor&		dwDesc) const;
+
+	size_t BackwardWeightsGetWorkSpaceSizeDirect(
 		const TensorDescriptor&		dyDesc,
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		dwDesc) const;
