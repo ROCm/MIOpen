@@ -623,7 +623,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         time_gemm = in_n * (time_im2col + handle.GetKernelTime());
         perf_db.push_back( PerfField{"mlopenConvolutionBwdWeightsAlgoGEMM", time_gemm, workspace_req} );
     }
-#else
+#endif
+
     (void)workSpace; // Suppress warning
     (void)workSpaceSize; // Suppress warning
 
@@ -707,7 +708,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         }
     }
 
-#endif
     if(perf_db.empty())
         MLOPEN_THROW("Bwd Weights Convolution cannot be executed due to incorrect params");
 
