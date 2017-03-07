@@ -220,7 +220,6 @@ bool mloSearchConfigDB(
  **
  ************************************************************************************************************************/
 
-#if MLOPEN_BACKEND_OPENCL
 /*
  * Returns false if a feature-controlling environment variable is defined
  * and set to something which disables a feature.
@@ -235,7 +234,6 @@ static bool IsEnvvarValueDisabled(const char* name)
 		|| std::strcmp(value_env_p, "no") == 0
 		|| std::strcmp(value_env_p, "false") == 0 );
 }
-#endif
 
 int mlo_construct_winograd::mloConstruct()
 {
@@ -246,6 +244,7 @@ int mlo_construct_winograd::mloConstruct()
 	///       metadata and select appropriate ones in Construct.
 	/// \todo Finally, get gid of this var, v1.0 files and decline support for old runtime.
 	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10) && is_ocl_rocm_metadata_v10)
+#endif
 	{
 		const auto use_binaries = !IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
@@ -265,7 +264,6 @@ int mlo_construct_winograd::mloConstruct()
 			}
 		}
 	}
-#endif
     
     return -1;
 }
@@ -544,12 +542,11 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(bool &is_metadata_v10) const
 	
 	return true;
 }
-
+#endif //MLOPEN_BACKEND_OPENCL
 bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 {
 	// Check if device is able to run this kernel.
-	const auto dev = mlopen::GetDevice(_stream->GetStream());
-	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	const auto name = _stream->GetDeviceName();
 	const bool device_is_gfx8_no_xnack = (name == "gfx800"
 									   || name == "gfx802"
 									   || name == "gfx803"
@@ -608,8 +605,7 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd()
 
 bool mlo_construct_direct2D::mloIsCorrectAsmDirect3x3U() const
 {
-	const auto dev = mlopen::GetDevice(_stream->GetStream());
-	const std::string name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	const std::string name = _stream->GetDeviceName();
 	if (name.find("gfx8") == std::string::npos) { // Any gfx8 device is ok.
 		return false;
 	}
@@ -687,7 +683,6 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U()
 
 	return 0;
 }
-#endif //MLOPEN_BACKEND_OPENCL
 
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {

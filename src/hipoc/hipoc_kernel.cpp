@@ -35,6 +35,7 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 
 HIPOCKernelInvoke HIPOCKernel::Invoke(hipStream_t stream, std::function<void(hipEvent_t, hipEvent_t)> callback)
 {
-    return HIPOCKernelInvoke{stream, fun, ldims, gdims, name, callback};
+    bool is_asm = not StartsWith(kernel_module, "&__OpenCL_");
+    return HIPOCKernelInvoke{stream, fun, ldims, gdims, name, callback, is_asm};
 }
 }

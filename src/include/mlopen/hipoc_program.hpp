@@ -15,6 +15,7 @@ struct HIPOCProgram
     HIPOCProgram();
     HIPOCProgram(const std::string &program_name, std::string params, bool is_kernel_str);
     SharedModulePtr module;
+    std::string name;
 };
 }
 
