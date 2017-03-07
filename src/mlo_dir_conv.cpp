@@ -1119,7 +1119,7 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 }
 
 
-int mlo_construct_direct2D::mloConstructDirect2D_11x11(void)
+int mlo_construct_direct2D::mloConstructDirect2D_11x11()
 {
 	int ret = 0;
 	size_t localMemSize = 64 * 1024;
