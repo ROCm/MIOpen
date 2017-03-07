@@ -776,6 +776,7 @@ int ConvDriver<T>::VerifyBackward() {
 
 
 	auto error_data = mlopen::rms_range (din_host, din);
+
 	if (!(error_data < tolerance))
 	{
 		std::cout << std::string("Backward Convolution Data Failed: ") << error_data << std::string("\n");
