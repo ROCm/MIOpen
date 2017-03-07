@@ -910,6 +910,20 @@ protected:
 	int mloConstruct1x1();
 };
 
+/*
+* winograd algorithm
+*/
+
+class mlo_construct_winograd : public mlo_construct_direct2D
+{
+public:
+	mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias)
+	{
+	}
+
+	int mloConstruct() override;
+};
+
 
 #define MLO_POOLING_OP_AVE			0
 #define MLO_POOLING_OP_MAX			1
