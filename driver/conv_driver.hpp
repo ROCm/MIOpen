@@ -244,8 +244,13 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t in_sz = GetTensorSize(inputTensor); 
 	size_t wei_sz = GetTensorSize(weightTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
-	size_t workSpaceSize = 0; 
-	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize);
+
+	size_t workSpaceSize_back_wrw = 0;
+	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_back_wrw);
+	size_t workSpaceSize_fwd = 0;
+	mlopenConvolutionForwardGetWorkSpaceSize(weightTensor, inputTensor, outputTensor, convDesc, &workSpaceSize_fwd);
+
+	size_t workSpaceSize = (workSpaceSize_fwd > workSpaceSize_back_wrw ? workSpaceSize_fwd : workSpaceSize_back_wrw);
 
 	cl_context ctx;
 
