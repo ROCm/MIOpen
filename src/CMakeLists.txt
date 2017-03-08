@@ -111,6 +111,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MLOpenConvBwdWrW_GxL_1x1.cl
 		Kernels/MLOpenConvFwd_LxL_11.cl
 		Kernels/conv3x3.s
+		Kernels/MLOpenConvFFT.cl
 		Kernels/MLOpenTensorKernels.cl
 		Kernels/conv_3x3_wheel_alpha_v2_0b_gfx803.so)
 	
@@ -123,6 +124,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		mlo_dir_conv.cpp
 		ocl/activ_ocl.cpp
 		ocl/convolutionocl.cpp
+		ocl/convolutionocl_fft.cpp
 		ocl/lrn_ocl.cpp
 		ocl/mloNeuron.cpp
 		ocl/mloNorm.cpp
