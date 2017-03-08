@@ -206,7 +206,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     std::string parms;
 
 #if MLOPEN_USE_TINYGEMM
-    size_t workspace_req = ForwardGetWorkSpaceSize(wDesc, yDesc);
+    size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
     float time_gemm = 0;
     GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
 
@@ -270,7 +270,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	// FFT algo
 	float time_fft = 0;
 	std::vector< KernelInvoke > kernels_fft;
-	FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, kernels_fft);
+	if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, kernels_fft) == 0)
+	{
+		size_t workspace_req = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+		ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, kernels_fft, time_fft);
+		perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoFFT", time_fft, workspace_req});
+	}
 
     if(perf_db.empty())
         MLOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");

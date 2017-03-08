@@ -87,6 +87,18 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const TensorDescriptor&			yDesc,
         std::vector<KernelInvoke>&      kernels) const;
 
+	void ExecuteFwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		ConstData_t						x,
+		const TensorDescriptor&			wDesc,
+		ConstData_t						w,
+		const TensorDescriptor&			yDesc,
+		Data_t							y,
+		Data_t							workSpace,
+		size_t							workSpaceSize,
+		std::vector<KernelInvoke>&      kernels,
+		float&							timev) const;
+
     int FindDirectKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
