@@ -235,10 +235,11 @@ std::size_t Handle::GetMaxComputeUnits()
 
 std::string Handle::GetDeviceName()
 {
-    hipDeviceProp_t props;
-    hipGetDeviceProperties(&props, get_device_id());
-    std::string n(props.name);
-	return GetDeviceNameFromMap(n);
+    // hipDeviceProp_t props;
+    // hipGetDeviceProperties(&props, get_device_id());
+    // std::string n(props.name);
+    // return GetDeviceNameFromMap(n);
+	return GetDeviceNameFromMap("Fiji");
 }
 #endif
 }

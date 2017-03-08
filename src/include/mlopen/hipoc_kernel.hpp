@@ -25,6 +25,24 @@ template<>
 struct KernelArgsPack<>
 {};
 
+
+template<class... Ts>
+struct KernelReverseArgsPack;
+
+template<class T, class... Ts>
+struct KernelReverseArgsPack<T, Ts...>
+{
+    KernelReverseArgsPack(T x, Ts... xs)
+    : tail(xs...), head(x)
+    {}
+    KernelReverseArgsPack<Ts...> tail;
+    T head;
+};
+
+template<>
+struct KernelReverseArgsPack<>
+{};
+
 template<class... Ts>
 struct KernelArgs
 {
@@ -43,6 +61,8 @@ struct AsmKernelArgs
     AsmKernelArgs(Ts... xs)
     : pack(xs...)
     {}
+    // KernelReverseArgsPack<Ts...> pack;
+    // uint64_t hidden[6];
     KernelArgsPack<Ts...> pack;
 };
 
@@ -103,7 +123,7 @@ struct HIPOCKernel
             gdims[i] = (global_dims[i] - 1)/ldims[i] + 1;
         }
 
-        if (EndsWith(p.name, ".s")) kernel_module = name;
+        if (EndsWith(p.name, ".s") || EndsWith(p.name, ".so")) kernel_module = name;
         else kernel_module = "&__OpenCL_" + name + "_kernel";
         auto status = hipModuleGetFunction(&fun, program.module.get(), kernel_module.c_str());
         if (hipSuccess != status)
