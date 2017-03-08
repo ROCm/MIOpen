@@ -1765,7 +1765,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	// defines how to proceed : 1 grouop per batch or with a loop over all batches
 	// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
 	// param
-	int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : (_batch_sz <= 16) ? (_batch_sz / _n_stacks) : 4;
+	int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : (_batch_sz <= 16 || _in_width <= 32) ? (_batch_sz / _n_stacks) : 4;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 
 	_out_pix_tile0 = _kernel_size0;
