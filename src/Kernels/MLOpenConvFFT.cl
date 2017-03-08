@@ -665,7 +665,7 @@ void fft_fwd_we(__global const float * restrict gbIn, __global float2 * restrict
 
 
 __kernel __attribute__((reqd_work_group_size (256,1,1)))
-void fft_transpose1(__global const float2 * restrict gbIn, __global float2 * restrict gbOut)
+void fft_transpose1(__global float2 * restrict gb)
 {
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
@@ -683,10 +683,10 @@ void fft_transpose1(__global const float2 * restrict gbIn, __global float2 * res
 	uint bd = batch/9;
 	
 	iOffset = bm*64 + bd*34816; 
-	oOffset = bm*528384 + bd*64; 
+	oOffset = 544*(192*128 + 64) + bm*528384 + bd*64; 
 	
-	lwbIn = gbIn + iOffset;
-	lwbOut = gbOut + oOffset;
+	lwbIn = gb + iOffset;
+	lwbOut = gb + oOffset;
 	
 	if(bm == 8)
 	{
@@ -728,7 +728,7 @@ void fft_transpose1(__global const float2 * restrict gbIn, __global float2 * res
 
 
 __kernel __attribute__((reqd_work_group_size (256,1,1)))
-void fft_transpose2(__global const float2 * restrict gbIn, __global float2 * restrict gbOut)
+void fft_transpose2(__global float2 * restrict gb)
 {
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
@@ -745,11 +745,11 @@ void fft_transpose2(__global const float2 * restrict gbIn, __global float2 * res
 	uint bm = batch%9;
 	uint bd = batch/9;
 	
-	iOffset = 4456448 + bm*64 + bd*34816; 
-	oOffset = 4491264 + bm*790528 + bd*64;
+	iOffset = 544*64*128 + bm*64 + bd*34816; 
+	oOffset = 544*(192*128 + 64) + 544*(64*128 + 64) + bm*790528 + bd*64;
 	
-	lwbIn = gbIn + iOffset;
-	lwbOut = gbOut + oOffset;
+	lwbIn = gb + iOffset;
+	lwbOut = gb + oOffset;
 	
 	if(bm == 8)
 	{
@@ -792,7 +792,7 @@ void fft_transpose2(__global const float2 * restrict gbIn, __global float2 * res
 
 
 __kernel __attribute__((reqd_work_group_size (256,1,1)))
-void fft_transpose3(__global const float2 * restrict gbIn, __global float2 * restrict gbOut)
+void fft_transpose3(__global float2 * restrict gb)
 {
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
@@ -810,11 +810,11 @@ void fft_transpose3(__global const float2 * restrict gbIn, __global float2 * res
 	uint bd = batch/9;
 	
 	iOffset = bm*1576960 + bd*64;	
-	oOffset = bm*64 + bd*34816; 
+	oOffset = 544*(192*128 + 64) + bm*64 + bd*34816; 
 
 	
-	lwbIn = gbIn + iOffset;
-	lwbOut = gbOut + oOffset;
+	lwbIn = gb + iOffset;
+	lwbOut = gb + oOffset;
 	
 	if(bm == 8)
 	{
@@ -1236,7 +1236,7 @@ void fft_back(__global const float2 * restrict gbIn, __global float * restrict g
 	float2 R0, R1, R2, R3, R4, R5, R6, R7;
 
 
-	lwbIn = gbIn + batch*544;
+	lwbIn = 544*(192*128 + 64) + gbIn + batch*544;
 	lwbOut = gbOut + batch*729;
 
 	InvPassA(me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7);
@@ -1359,9 +1359,7 @@ void fft_back(__global const float2 * restrict gbIn, __global float * restrict g
 /* kernel */
 __attribute__((reqd_work_group_size(WG_0I,WG_1J,1)))
 __kernel void cgemm(
-  __global float2       *          C,
-  __global float2 const * restrict A,
-  __global float2 const * restrict B,
+  __global float2 *gb,
   float2 const alpha,
   float2 const beta,
   unsigned int const offsetC,
@@ -1379,9 +1377,10 @@ __kernel void cgemm(
   unsigned int const sizeL ) {
 
   /* apply offsets */
-  C += offsetC;
-  A += offsetA;
-  B += offsetB;
+  __global float2       * C = gb + offsetC;
+  __global float2 const * A = gb + offsetA;
+  __global float2 const * B = gb + offsetB;
+
 
   /* allocate registers */
   TYPE_C rC[UT_0I][UT_1J] = {{0}};
