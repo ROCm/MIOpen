@@ -1765,7 +1765,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	// defines how to proceed : 1 grouop per batch or with a loop over all batches
 	// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
 	// param
-	int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : _batch_sz / _n_stacks;
+	int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : (_batch_sz <= 16) ? (_batch_sz / _n_stacks) : 4;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 
 	_out_pix_tile0 = _kernel_size0;
@@ -1789,6 +1789,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	// param
 	_n_in_data_tiles = ((_in_width <= 8 || (_in_width >= 28 && _in_width <= 32)) && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 2 : 1;
 
+	_n_in_data_tiles = std::min(_n_in_data_tiles, _n_outputs);
 // calculate number of input scans in the input block
 // max LDS size is 8K
 	int in_lcl_width = ((_in_width + read_unit - 1) / read_unit) * read_unit + 2 * _pad0;
