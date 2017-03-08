@@ -273,7 +273,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, kernels_fft) == 0)
 	{
 		size_t workspace_req = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
-		ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, kernels_fft, time_fft);
+		ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, tmp_y.get(), workSpace, workSpaceSize, kernels_fft, time_fft);
 		perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoFFT", time_fft, workspace_req});
 	}
 

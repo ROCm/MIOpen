@@ -1,4 +1,5 @@
 #include <mlopen/convolution.hpp>
+#include <mlopen/convolution_fft.hpp>
 #include <mlopen/errors.hpp>
 
 namespace mlopen {
@@ -34,14 +35,12 @@ namespace mlopen {
 	if(yDesc.GetType() != mlopenFloat)
 		supported = false;
 
-	int NY = 32; // nearest pow2, 27+5-1
-	int NX = 32; // nearest pow2, 27+5-1
-	int NXc = (1 + NX/2);
-	int N = NY*NXc;
+	const int N = FFTConvParams::N;
+	const int Padding = FFTConvParams::TransposePadding;
 
 	if(supported)
 	{
-		return 2*2*N*(out_n*out_c + 64)*sizeof(float);
+		return 2*2*N*(out_n*out_c + Padding)*sizeof(float);
 	}
 	else
 		return 0;
