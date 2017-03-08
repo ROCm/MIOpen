@@ -1314,7 +1314,7 @@ void fft_back(__global const float2 * restrict gbIn, __global float * restrict g
   DST.s0 = MAD( -MULA.s1, MULB.s1, DST.s0 ); \
   DST.s1 = MAD(  MULA.s0, MULB.s1, DST.s1 ); \
   DST.s1 = MAD(  MULA.s1, MULB.s0, DST.s1 );
-#define TYPE_MAD_WRITE( DST, ALPHA, REG, BETA ) \
+#define TYPE_MAD_WRITE( DST, REG ) \
   /* (1) */ \
   /* (2) */ \
   /* (3) */ \
@@ -1360,8 +1360,6 @@ void fft_back(__global const float2 * restrict gbIn, __global float * restrict g
 __attribute__((reqd_work_group_size(WG_0I,WG_1J,1)))
 __kernel void cgemm(
   __global float2 *gb,
-  float2 const alpha,
-  float2 const beta,
   unsigned int const offsetC,
   unsigned int const offsetA,
   unsigned int const offsetB,
@@ -1493,22 +1491,22 @@ __kernel void cgemm(
 
   /* write global C */
   float type_fma_tmp;
-  if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], alpha, rC[0][0], beta) } }
-  if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], alpha, rC[0][1], beta) } }
-  if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], alpha, rC[0][2], beta) } }
-  if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 3*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 3*WG_1J, (unsigned long) globalCK) ], alpha, rC[0][3], beta) } }
-  if (globalC0I + 1*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 1*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], alpha, rC[1][0], beta) } }
-  if (globalC0I + 1*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 1*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], alpha, rC[1][1], beta) } }
-  if (globalC0I + 1*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 1*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], alpha, rC[1][2], beta) } }
-  if (globalC0I + 1*WG_0I < size0I) {  if (globalC1J + 3*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 1*WG_0I, (unsigned long) globalC1J + 3*WG_1J, (unsigned long) globalCK) ], alpha, rC[1][3], beta) } }
-  if (globalC0I + 2*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 2*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], alpha, rC[2][0], beta) } }
-  if (globalC0I + 2*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 2*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], alpha, rC[2][1], beta) } }
-  if (globalC0I + 2*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 2*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], alpha, rC[2][2], beta) } }
-  if (globalC0I + 2*WG_0I < size0I) {  if (globalC1J + 3*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 2*WG_0I, (unsigned long) globalC1J + 3*WG_1J, (unsigned long) globalCK) ], alpha, rC[2][3], beta) } }
-  if (globalC0I + 3*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 3*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], alpha, rC[3][0], beta) } }
-  if (globalC0I + 3*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 3*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], alpha, rC[3][1], beta) } }
-  if (globalC0I + 3*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 3*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], alpha, rC[3][2], beta) } }
-  if (globalC0I + 3*WG_0I < size0I) {  if (globalC1J + 3*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 3*WG_0I, (unsigned long) globalC1J + 3*WG_1J, (unsigned long) globalCK) ], alpha, rC[3][3], beta) } }
+  if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], rC[0][0]) } }
+  if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], rC[0][1]) } }
+  if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], rC[0][2]) } }
+  if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 3*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 3*WG_1J, (unsigned long) globalCK) ], rC[0][3]) } }
+  if (globalC0I + 1*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 1*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], rC[1][0]) } }
+  if (globalC0I + 1*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 1*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], rC[1][1]) } }
+  if (globalC0I + 1*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 1*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], rC[1][2]) } }
+  if (globalC0I + 1*WG_0I < size0I) {  if (globalC1J + 3*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 1*WG_0I, (unsigned long) globalC1J + 3*WG_1J, (unsigned long) globalCK) ], rC[1][3]) } }
+  if (globalC0I + 2*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 2*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], rC[2][0]) } }
+  if (globalC0I + 2*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 2*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], rC[2][1]) } }
+  if (globalC0I + 2*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 2*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], rC[2][2]) } }
+  if (globalC0I + 2*WG_0I < size0I) {  if (globalC1J + 3*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 2*WG_0I, (unsigned long) globalC1J + 3*WG_1J, (unsigned long) globalCK) ], rC[2][3]) } }
+  if (globalC0I + 3*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 3*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], rC[3][0]) } }
+  if (globalC0I + 3*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 3*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], rC[3][1]) } }
+  if (globalC0I + 3*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 3*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], rC[3][2]) } }
+  if (globalC0I + 3*WG_0I < size0I) {  if (globalC1J + 3*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 3*WG_0I, (unsigned long) globalC1J + 3*WG_1J, (unsigned long) globalCK) ], rC[3][3]) } }
 
 }
 #undef UNROLL

@@ -73,6 +73,7 @@ set( MLOpen_Source
 	softmax_api.cpp
 	include/mlopen/common.hpp
 	include/mlopen/convolution.hpp
+	include/mlopen/convolution_fft.hpp
 	include/mlopen/errors.hpp
 	include/mlopen/handle.hpp
 	include/mlopen/kernel_cache.hpp

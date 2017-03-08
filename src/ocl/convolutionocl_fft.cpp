@@ -1,4 +1,5 @@
 #include <mlopen/convolution.hpp>
+#include <mlopen/convolution_fft.hpp>
 #include <mlopen/util.hpp>
 
 namespace mlopen {
@@ -19,11 +20,7 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	int out_n, out_c;
 	std::tie(out_n, out_c, std::ignore, std::ignore) = mlopen::tie4(yDesc.GetLengths());
 
-
-	int NY = 32;
-	int NX = 32;
-	int NXc = (1 + NX/2);
-	int N = NY*NXc;
+	const int N = FFTConvParams::N;
 
 
 	const int FFT_NUM_KERNELS = 7;
@@ -140,6 +137,52 @@ void ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 		std::vector<KernelInvoke>&      kernels,
 		float&							timev) const {
 
+
+	int in_n, in_c;
+	std::tie(in_n, in_c, std::ignore, std::ignore) = mlopen::tie4(xDesc.GetLengths());
+
+	int out_n, out_c;
+	std::tie(out_n, out_c, std::ignore, std::ignore) = mlopen::tie4(yDesc.GetLengths());
+
+	const int N = FFTConvParams::N;
+	const int Padding = FFTConvParams::TransposePadding;
+
+	int ik = 0;
+    for(auto &k : kernels) {
+
+		switch(ik)
+		{
+		case 0:	k(x, workSpace); break;
+		case 1: k(w, workSpace); break;
+		case 2: k(workSpace); break;
+		case 3: k(workSpace); break;
+		case 4:
+			{
+				k(
+					workSpace,
+					0,
+					N*(out_n*out_c + Padding) + N*(in_n*in_c + Padding),
+					N*(out_n*out_c + Padding) + 0,
+					out_c,
+					out_n*out_c + Padding,
+					in_c,
+					in_c*out_c + Padding,
+					in_c,
+					in_n*in_c + Padding,
+					out_c,
+					in_n,
+					N,
+					in_c
+				);
+			}
+			break;
+		case 5: k(workSpace); break;
+		case 6: k(workSpace, y); break;
+		}
+
+		timev += handle.GetKernelTime();
+		ik++;
+    }
 	
 }
 
