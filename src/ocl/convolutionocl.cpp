@@ -267,6 +267,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoDirect", time_direct, 0});
     }
 
+	// FFT algo
+	float time_fft = 0;
+	std::vector< KernelInvoke > kernels_fft;
+	FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, kernels_fft);
+
     if(perf_db.empty())
         MLOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
 

@@ -27,6 +27,8 @@ namespace mlopen {
 		supported = false;
 	if(std::tie(wei_k, wei_c, wei_h, wei_w) != std::make_tuple<int>(192, 64, 5, 5))
 		supported = false;
+	if(std::tie(out_n, out_c, out_h, out_w) != std::make_tuple<int>(128, 192, 27, 27))
+		supported = false;
 	if(std::tie(pad_h, pad_w, u, v) != std::make_tuple<int>(2, 2, 1, 1))
 		supported = false;
 	if(yDesc.GetType() != mlopenFloat)

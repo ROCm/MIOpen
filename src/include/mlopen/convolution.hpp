@@ -81,6 +81,12 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
         WinogradKernelParams&           k_p,
         KernelInvoke&                   kernel) const;
 
+    int FindFwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			yDesc,
+        std::vector<KernelInvoke>&      kernels) const;
+
     int FindDirectKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
