@@ -22,10 +22,41 @@ tensor<T> get_output_tensor(const mlopen::ConvolutionDescriptor& filter, const t
     return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
 }
 
-struct verify_forward_conv
+template<class T>
+struct conv_base
 {
-    template<class T>
-    tensor<T> cpu(const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int bias = 0)
+    tensor<T> input;
+    tensor<T> weights;
+    tensor<T> out;
+    mlopen::ConvolutionDescriptor filter;
+    int bias;
+
+    void fail(float=0)
+    {
+        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
+        std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
+        std::cout << "Output tensor: " << out.desc.ToString() << std::endl;
+    }
+};
+
+template<class T>
+struct verify_forward_conv : conv_base<T>
+{
+    using conv_base<T>::input;
+    using conv_base<T>::weights;
+    using conv_base<T>::out;
+    using conv_base<T>::filter;
+    using conv_base<T>::bias;
+
+    verify_forward_conv(const tensor<T>& pinput, const tensor<T>& pweights, const mlopen::ConvolutionDescriptor& pfilter, int pbias = 0)
+    {
+        input = pinput;
+        weights = pweights;
+        filter = pfilter;
+        bias = pbias;
+    }
+
+    tensor<T> cpu()
     {
         auto out = get_output_tensor(filter, input, weights);
 
@@ -54,8 +85,7 @@ struct verify_forward_conv
         return out;
     }
 
-    template<class T>
-    tensor<T> gpu(const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
+    tensor<T> gpu()
     {
         auto&& handle = get_handle();
         auto out = get_output_tensor(filter, input, weights);
@@ -106,13 +136,10 @@ struct verify_forward_conv
         return out;
     }
 
-    template<class T>
-    void fail(float, const tensor<T>& input, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /*bias*/ = 0)
+    void fail(float=0)
     {
         std::cout << "Forward convolution: " << std::endl;
-        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
-        std::cout << "Output tensor: " << filter.GetForwardOutputTensor(input.desc, weights.desc).ToString() << std::endl;
-        std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
+        this->conv_base<T>::fail();
     }
     
 };
@@ -124,12 +151,26 @@ tensor<T> get_input_tensor(const mlopen::ConvolutionDescriptor& filter, const te
     return tensor<T>{filter.GetBackwardOutputTensor(out.desc, weights.desc)};
 }
 
-struct verify_backward_conv
+template<class T>
+struct verify_backward_conv : conv_base<T>
 {
-    template<class T>
-    tensor<T> cpu(const tensor<T>& out, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
+    using conv_base<T>::input;
+    using conv_base<T>::weights;
+    using conv_base<T>::out;
+    using conv_base<T>::filter;
+    using conv_base<T>::bias;
+
+    verify_backward_conv(const tensor<T>& pinput, const tensor<T>& pweights, const tensor<T>& pout, const mlopen::ConvolutionDescriptor& pfilter, int pbias = 0)
     {
-        auto input = get_input_tensor(filter, out, weights);
+        input = pinput;
+        weights = pweights;
+        out = pout;
+        filter = pfilter;
+        bias = pbias;
+    }
+
+    tensor<T> cpu()
+    {
         std::fill(input.begin(), input.end(), 0);
 
         int in_h, in_w;
@@ -157,11 +198,9 @@ struct verify_backward_conv
         return input;
     }
 
-    template<class T>
-    tensor<T> gpu(const tensor<T>& out, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
+    tensor<T> gpu()
     {
         auto&& handle = get_handle();
-        auto input = get_input_tensor(filter, out, weights);
         std::fill(input.begin(), input.end(), 0);
 
         auto out_dev = handle.Write(out.data);
@@ -205,13 +244,10 @@ struct verify_backward_conv
         return input;
     }
 
-    template<class T>
-    void fail(float, const tensor<T>& output, const tensor<T>& weights, const mlopen::ConvolutionDescriptor& filter, int /*bias*/ = 0)
+    void fail(float)
     {
         std::cout << "Backward convolution: " << std::endl;
-        std::cout << "Input tensor: " << filter.GetBackwardOutputTensor(output.desc, weights.desc).ToString() << std::endl;
-        std::cout << "Output tensor: " << output.desc.ToString() << std::endl;
-        std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
+        this->conv_base<T>::fail();
     }
     
 };
@@ -222,12 +258,26 @@ tensor<T> get_weight_tensor(const mlopen::ConvolutionDescriptor& filter, const t
     return tensor<T>{filter.GetBackwardWeightsTensor(input.desc, out.desc)};
 }
 
-struct verify_backward_weights_conv
+template<class T>
+struct verify_backward_weights_conv : conv_base<T>
 {
-    template<class T>
-    tensor<T> cpu(const tensor<T>& input, const tensor<T>& out, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
+    using conv_base<T>::input;
+    using conv_base<T>::weights;
+    using conv_base<T>::out;
+    using conv_base<T>::filter;
+    using conv_base<T>::bias;
+
+    verify_backward_weights_conv(const tensor<T>& pinput, const tensor<T>& pweights, const tensor<T>& pout, const mlopen::ConvolutionDescriptor& pfilter, int pbias = 0)
     {
-        auto weights = get_weight_tensor(filter, input, out);
+        input = pinput;
+        weights = pweights;
+        out = pout;
+        filter = pfilter;
+        bias = pbias;
+    }
+
+    tensor<T> cpu()
+    {
         std::fill(weights.begin(), weights.end(), 0);
 
         int in_h, in_w;
@@ -257,11 +307,9 @@ struct verify_backward_weights_conv
         return weights;
     }
 
-    template<class T>
-    tensor<T> gpu(const tensor<T>& input, const tensor<T>& out, const mlopen::ConvolutionDescriptor& filter, int /* bias */ = 0)
+    tensor<T> gpu()
     {
         auto&& handle = get_handle();
-        auto weights = get_weight_tensor(filter, input, out);
         std::fill(weights.begin(), weights.end(), 0);
 
         auto out_dev = handle.Write(out.data);
@@ -309,13 +357,10 @@ struct verify_backward_weights_conv
         return weights;
     }
 
-    template<class T>
-    void fail(float, const tensor<T>& input, const tensor<T>& output, const mlopen::ConvolutionDescriptor& filter, int /*bias*/ = 0)
+    void fail(float)
     {
         std::cout << "Backward weights convolution: " << std::endl;
-        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
-        std::cout << "Output tensor: " << output.desc.ToString() << std::endl;
-        std::cout << "Weights tensor: " << filter.GetBackwardWeightsTensor(input.desc, output.desc).ToString() << std::endl;
+        this->conv_base<T>::fail();
     }
     
 };
@@ -351,11 +396,11 @@ struct conv_driver : test_driver
             wei_w > filter.pad_w
         )
         {
-            auto out_p = verify(verify_forward_conv{}, input, weights, filter);
+            auto out_p = verify(verify_forward_conv<T>{input, weights, filter});
             for(auto& x:out_p.first) x = (long(x+1)*2) % 17; // Clamp big numbers
-            verify(verify_backward_conv{}, out_p.first, weights, filter);
+            verify(verify_backward_conv<T>{input, weights, out_p.first, filter});
 #if MLOPEN_USE_TINYGEMM
-            verify(verify_backward_weights_conv{}, input, out_p.first, filter);
+            verify(verify_backward_weights_conv<T>{input, weights, out_p.first, filter});
 #endif
         }
     }
