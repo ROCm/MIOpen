@@ -331,12 +331,25 @@ struct conv_driver : test_driver
     {
         add(input, "input", get_input_tensor());
         add(weights, "weights", get_weights_tensor());
-        add(filter, "filter", generate_single(mlopen::ConvolutionDescriptor{0, 0}));
+        add(filter, "filter", generate_data(get_filters()));
+    }
+
+    std::vector<mlopen::ConvolutionDescriptor> get_filters()
+    {
+        return {
+            mlopen::ConvolutionDescriptor{0, 0}
+            // mlopen::ConvolutionDescriptor{1, 1}
+        };
     }
 
     void run()
     {
-        if (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1))
+        int wei_h, wei_w;
+        std::tie(std::ignore, std::ignore, wei_h, wei_w) = mlopen::tie4(weights.desc.GetLengths());
+        if (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) && 
+            wei_h > filter.pad_h && 
+            wei_w > filter.pad_w
+        )
         {
             auto out_p = verify(verify_forward_conv{}, input, weights, filter);
             for(auto& x:out_p.first) x = (long(x+1)*2) % 17; // Clamp big numbers

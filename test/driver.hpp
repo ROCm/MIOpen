@@ -143,6 +143,15 @@ struct test_driver
     }
 
     template<class T>
+    generate_data_t<T> generate_data(std::vector<T> dims)
+    {
+        return {[=]() -> std::vector<T> {
+            if (full_set) return dims; 
+            else return {dims.front()};
+        }};
+    }
+
+    template<class T>
     generate_data_t<T> generate_single(T single)
     {
         return {[=]() -> std::vector<T> {
