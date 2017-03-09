@@ -464,8 +464,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         break;
         case mlopenConvolutionFwdAlgoFFT:
 		{
-			size_t workspace_req = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
-			if(workSpace != nullptr && workSpaceSize >= workspace_req)
+			size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+			if(workSpace != nullptr && workSpaceSize >= workspace_fft)
 			{
 				ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize);
 			}
