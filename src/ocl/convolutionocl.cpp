@@ -272,9 +272,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	std::vector< KernelInvoke > kernels_fft;
 	if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, kernels_fft) == 0)
 	{
+		(void)kernels_fft; // not used now, but needed as fft coverage widens
 		size_t workspace_req = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
-		ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, tmp_y.get(), workSpace, workSpaceSize, kernels_fft, time_fft);
-		perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoFFT", time_fft, workspace_req});
+		if(workSpace != nullptr && workSpaceSize >= workspace_req)
+		{
+			time_fft = ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, tmp_y.get(), workSpace, workSpaceSize, true);
+			perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoFFT", time_fft, workspace_req});
+		}
 	}
 
     if(perf_db.empty())
@@ -459,7 +463,14 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         }
         break;
         case mlopenConvolutionFwdAlgoFFT:
-            break;
+		{
+			size_t workspace_req = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+			if(workSpace != nullptr && workSpaceSize >= workspace_req)
+			{
+				ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize);
+			}
+		}
+        break;
     }
 }
 

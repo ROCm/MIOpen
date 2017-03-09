@@ -21,13 +21,12 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	std::tie(out_n, out_c, std::ignore, std::ignore) = mlopen::tie4(yDesc.GetLengths());
 
 	const int N = FFTConvParams::N;
+	const int NumKernels = 	FFTConvParams::NumKernels;
 
+	size_t global_work_size[NumKernels][3];
+	size_t  local_work_size[NumKernels][3];
 
-	const int FFT_NUM_KERNELS = 7;
-	size_t global_work_size[FFT_NUM_KERNELS][3];
-	size_t  local_work_size[FFT_NUM_KERNELS][3];
-
-	for(int ik=0; ik<FFT_NUM_KERNELS; ik++)
+	for(int ik=0; ik<NumKernels; ik++)
 	{
 		global_work_size[ik][0] = local_work_size[ik][0] = 1;
 		global_work_size[ik][1] = local_work_size[ik][1] = 1;
@@ -82,19 +81,19 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
     std::string algorithm = "mlopenConvolutionFwdAlgoFFT";
     std::string program_name = "MLOpenConvFFT.cl";
     std::string parms = ""; 
-	for(int ik=0; ik<FFT_NUM_KERNELS; ik++)
+	for(int ik=0; ik<NumKernels; ik++)
 	{
 		std::string kernel_name = ""; 
 
 		switch(ik)
 		{
-		case 0: kernel_name += "fft_fwd_in";		break;
-		case 1: kernel_name += "fft_fwd_we";		break;
-		case 2: kernel_name += "fft_transpose1";	break;
-		case 3: kernel_name += "fft_transpose2";	break;
-		case 4: kernel_name += "cgemm";				break;
-		case 5: kernel_name += "fft_transpose3";	break;
-		case 6: kernel_name += "fft_back";			break;
+		case 0: kernel_name += "MLOpenConvFFT_fwd_in";			break;
+		case 1: kernel_name += "MLOpenConvFFT_fwd_we";			break;
+		case 2: kernel_name += "MLOpenConvFFT_transpose_in";	break;
+		case 3: kernel_name += "MLOpenConvFFT_transpose_we";	break;
+		case 4: kernel_name += "MLOpenConvFFT_cgemm";			break;
+		case 5: kernel_name += "MLOpenConvFFT_transpose_out";	break;
+		case 6: kernel_name += "MLOpenConvFFT_inv_out";			break;
 		}
 		
 		std::string network_config = "FFT_"; network_config += std::to_string(ik);
@@ -125,7 +124,7 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 }
 
 
-void ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
+float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		ConstData_t						x,
 		const TensorDescriptor&			wDesc,
@@ -134,8 +133,7 @@ void ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 		Data_t							y,
 		Data_t							workSpace,
 		size_t							workSpaceSize,
-		std::vector<KernelInvoke>&      kernels,
-		float&							timev) const {
+		bool							timed) const {
 
 
 	int in_n, in_c;
@@ -146,9 +144,14 @@ void ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 
 	const int N = FFTConvParams::N;
 	const int Padding = FFTConvParams::TransposePadding;
+	const int NumKernels = 	FFTConvParams::NumKernels;
 
-	int ik = 0;
-    for(auto &k : kernels) {
+	float time_fft = 0;
+	for(int ik=0; ik<NumKernels; ik++)
+	{
+		std::string network_config = "FFT_"; network_config += std::to_string(ik);
+
+		auto k = handle.GetKernel("mlopenConvolutionFwdAlgoFFT", network_config);
 
 		switch(ik)
 		{
@@ -180,10 +183,13 @@ void ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 		case 6: k(workSpace, y); break;
 		}
 
-		timev += handle.GetKernelTime();
-		ik++;
+		if(timed)
+		{
+			time_fft += handle.GetKernelTime();
+		}
     }
 	
+	return time_fft;
 }
 
 
