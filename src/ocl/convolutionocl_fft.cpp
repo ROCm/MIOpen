@@ -48,7 +48,6 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	//cgemm
 	{
 		/* grid sizes */
-		const unsigned int workDim = 3;
 		const unsigned int threadTile[2] = { 4, 4 };
 
 		local_work_size[4][0] = 16;
@@ -135,6 +134,9 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 		size_t							workSpaceSize,
 		bool							timed) const {
 
+
+	(void)wDesc; // suppress warning
+	(void)workSpaceSize; // suppress warning
 
 	int in_n, in_c;
 	std::tie(in_n, in_c, std::ignore, std::ignore) = mlopen::tie4(xDesc.GetLengths());
