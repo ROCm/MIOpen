@@ -24,16 +24,11 @@ namespace mlopen {
 	// FFT convolutions only works for specific config(s)
 	// coverage to expand gradually
 
-	if(std::tie(in_n, in_c, in_h, in_w) != std::make_tuple<int>(128, 64, 27, 27))
-		supported = false;
-	if(std::tie(wei_k, wei_c, wei_h, wei_w) != std::make_tuple<int>(192, 64, 5, 5))
-		supported = false;
-	if(std::tie(out_n, out_c, out_h, out_w) != std::make_tuple<int>(128, 192, 27, 27))
-		supported = false;
-	if(std::tie(pad_h, pad_w, u, v) != std::make_tuple<int>(2, 2, 1, 1))
-		supported = false;
-	if(yDesc.GetType() != mlopenFloat)
-		supported = false;
+	supported = (std::tie(in_n, in_c, in_h, in_w) != std::make_tuple(128, 64, 27, 27)) ? false : supported;
+	supported = (std::tie(wei_k, wei_c, wei_h, wei_w) != std::make_tuple(192, 64, 5, 5)) ? false : supported;
+	supported = (std::tie(out_n, out_c, out_h, out_w) != std::make_tuple(128, 192, 27, 27)) ? false : supported;
+	supported = (std::tie(pad_h, pad_w, u, v) != std::make_tuple(2, 2, 1, 1)) ? false : supported;
+	supported = (yDesc.GetType() != mlopenFloat) ? false : supported;
 
 	const int N = FFTConvParams::N;
 	const int Padding = FFTConvParams::TransposePadding;
