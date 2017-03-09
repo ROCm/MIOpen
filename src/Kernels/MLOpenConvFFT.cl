@@ -577,7 +577,7 @@ FwdPass4(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __global
 
 
 __kernel __attribute__((reqd_work_group_size (64,1,1)))
-void fft_fwd_in(__global const float * restrict gbIn, __global float2 * restrict gbOut )
+void MLOpenConvFFT_fwd_in(__global const float * restrict gbIn, __global float2 * restrict gbOut )
 {
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
@@ -620,7 +620,7 @@ void fft_fwd_in(__global const float * restrict gbIn, __global float2 * restrict
 
 
 __kernel __attribute__((reqd_work_group_size (64,1,1)))
-void fft_fwd_we(__global const float * restrict gbIn, __global float2 * restrict gbOut )
+void MLOpenConvFFT_fwd_we(__global const float * restrict gbIn, __global float2 * restrict gbOut )
 {
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
@@ -665,7 +665,7 @@ void fft_fwd_we(__global const float * restrict gbIn, __global float2 * restrict
 
 
 __kernel __attribute__((reqd_work_group_size (256,1,1)))
-void fft_transpose1(__global float2 * restrict gb)
+void MLOpenConvFFT_transpose_in(__global float2 * restrict gb)
 {
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
@@ -728,7 +728,7 @@ void fft_transpose1(__global float2 * restrict gb)
 
 
 __kernel __attribute__((reqd_work_group_size (256,1,1)))
-void fft_transpose2(__global float2 * restrict gb)
+void MLOpenConvFFT_transpose_we(__global float2 * restrict gb)
 {
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
@@ -792,7 +792,7 @@ void fft_transpose2(__global float2 * restrict gb)
 
 
 __kernel __attribute__((reqd_work_group_size (256,1,1)))
-void fft_transpose3(__global float2 * restrict gb)
+void MLOpenConvFFT_transpose_out(__global float2 * restrict gb)
 {
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
@@ -1223,7 +1223,7 @@ InvPassOUT(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __glob
 
 
 __kernel __attribute__((reqd_work_group_size (64,1,1)))
-void fft_back(__global const float2 * restrict gbIn, __global float * restrict gbOut)
+void MLOpenConvFFT_inv_out(__global const float2 * restrict gbIn, __global float * restrict gbOut)
 {
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
@@ -1358,7 +1358,7 @@ void fft_back(__global const float2 * restrict gbIn, __global float * restrict g
 
 /* kernel */
 __attribute__((reqd_work_group_size(WG_0I,WG_1J,1)))
-__kernel void cgemm(
+__kernel void MLOpenConvFFT_cgemm(
   __global float2 *gb,
   unsigned int const offsetC,
   unsigned int const offsetA,
