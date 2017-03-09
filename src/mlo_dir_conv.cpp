@@ -1401,8 +1401,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	n_outs = std::min(n_outs, _n_outputs);
 	n_ins = std::min(n_ins, _batch_sz);
 
-	n_out_stacks = (n_outs * n_out_stacks < _n_outputs) ? n_out_stacks : 1;
-	n_in_stacks = (n_ins * n_in_stacks < _batch_sz) ? n_in_stacks : 1;
+	n_out_stacks = (n_outs * n_out_stacks <= _n_outputs) ? n_out_stacks : 1;
+	n_in_stacks = (n_ins * n_in_stacks <= _batch_sz) ? n_in_stacks : 1;
 	int total_ins = n_ins * n_in_stacks;
 	int total_outs = n_outs * n_out_stacks;
 
