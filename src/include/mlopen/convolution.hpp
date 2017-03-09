@@ -87,7 +87,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		const TensorDescriptor&			yDesc,
         std::vector<KernelInvoke>&      kernels) const;
 
-float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
+    float ExecuteFwdFFTKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		ConstData_t						x,
 		const TensorDescriptor&			wDesc,
