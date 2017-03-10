@@ -177,6 +177,14 @@ struct HandleImpl
         }
         return result;
     }
+    ContextPtr create_context_from_queue()
+    {
+        //FIXME: hack for all the queues on the same context
+        // do we need anything special to handle multiple GPUs
+        cl_context ctx;
+        clGetCommandQueueInfo(queues[0].get(), CL_QUEUE_CONTEXT, sizeof(ctx), &ctx, NULL);
+        return ContextPtr{ctx};
+    }
 	void ResetProfilingResult()
 	{
 		profiling_result = 0.0;
@@ -201,6 +209,7 @@ Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams)
     // TODO(paul): Retain the queues
     for(int i=0;i<numStreams;i++) { impl->queues.emplace_back(streams[i]);
 }
+    impl->context = impl->create_context_from_queue();
 }
 
 Handle::Handle () 
