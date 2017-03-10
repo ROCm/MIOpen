@@ -189,6 +189,33 @@ struct test_driver
         }};
     }
 
+    template<class X>
+    struct set_value_t
+    {
+        X value;
+        template<class T>
+        void operator()(T& x, argument& arg) const
+        {
+            auto y = value;
+            arg.type = "";
+            arg.write_value = [&x, y](std::vector<std::string>)
+            {
+                x = y;
+            };
+        }
+    };
+
+    template<class T>
+    set_value_t<T> set_value(T x)
+    {
+        return {x};
+    }
+    
+    set_value_t<bool> flag()
+    {
+        return set_value(true);
+    }
+
     template<class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
@@ -352,7 +379,9 @@ void test_drive(int argc, const char *argv[])
         std::cout << "Test inputs: " << std::endl;
         for(auto&& p:d.arguments)
         {
-            std::cout << "    --" << p.first << " [" << p.second.type << "]" << std::endl;
+            std::cout << "    --" << p.first;
+            if(not p.second.type.empty()) std::cout << " [" << p.second.type << "]";
+            std::cout << std::endl;
         }
         std::cout << std::endl;
         return;

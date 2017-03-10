@@ -358,12 +358,14 @@ struct conv_driver : test_driver
     tensor<T> input;
     tensor<T> weights;
     mlopen::ConvolutionDescriptor filter;
+    bool enable_backward_weights = false;
 
     conv_driver()
     {
         add(input, "input", get_input_tensor());
         add(weights, "weights", get_weights_tensor());
         add(filter, "filter", generate_data(get_filters()));
+        add(enable_backward_weights, "enable-backward-weights", flag());
     }
 
     std::vector<mlopen::ConvolutionDescriptor> get_filters()
@@ -386,9 +388,10 @@ struct conv_driver : test_driver
             auto out_p = verify(verify_forward_conv<T>{input, weights, filter});
             for(auto& x:out_p.first) x = (long(x+1)*2) % 17; // Clamp big numbers
             verify(verify_backward_conv<T>{input, weights, out_p.first, filter});
-#if MLOPEN_USE_TINYGEMM
-            verify(verify_backward_weights_conv<T>{input, weights, out_p.first, filter});
-#endif
+            if(enable_backward_weights or MLOPEN_USE_TINYGEMM)
+            {
+                verify(verify_backward_weights_conv<T>{input, weights, out_p.first, filter});
+            }
         }
     }
 };
