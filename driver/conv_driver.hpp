@@ -117,7 +117,8 @@ class ConvDriver : public Driver
 	std::unique_ptr<GPUMem> dwei_dev;
 	std::unique_ptr<GPUMem> out_dev;
 	std::unique_ptr<GPUMem> dout_dev;
-	std::unique_ptr<GPUMem> workspace_dev;
+	std::unique_ptr<GPUMem> workspace_bwd_dev;
+	std::unique_ptr<GPUMem> workspace_fwd_dev;
 	std::unique_ptr<GPUMem> b_dev;
 
 	std::vector<T> in;
@@ -126,9 +127,11 @@ class ConvDriver : public Driver
 	std::vector<T> dwei;
 	std::vector<T> out;
 	std::vector<T> dout;
-	std::vector<T> workspace;
+	std::vector<T> workspace_bwd;
+	std::vector<T> workspace_fwd;
 	std::vector<T> outhost;
-	std::vector<T> workspace_host;
+	std::vector<T> workspace_bwd_host;
+	std::vector<T> workspace_fwd_host;
 	std::vector<T> din_host;
 	std::vector<T> dwei_host;
 	std::vector<T> b;
@@ -245,12 +248,10 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t wei_sz = GetTensorSize(weightTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
 
-	size_t workSpaceSize_back_wrw = 0;
-	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_back_wrw);
+	size_t workSpaceSize_bwd = 0;
+	mlopenConvolutionBackwardWeightsGetWorkSpaceSize(outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_bwd);
 	size_t workSpaceSize_fwd = 0;
 	mlopenConvolutionForwardGetWorkSpaceSize(weightTensor, inputTensor, outputTensor, convDesc, &workSpaceSize_fwd);
-
-	size_t workSpaceSize = (workSpaceSize_fwd > workSpaceSize_back_wrw ? workSpaceSize_fwd : workSpaceSize_back_wrw);
 
 	cl_context ctx;
 
@@ -262,7 +263,8 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
-	workspace_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, workSpaceSize/sizeof(T), sizeof(T)));
+	workspace_bwd_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, workSpaceSize_bwd/sizeof(T), sizeof(T)));
+	workspace_fwd_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, workSpaceSize_fwd/sizeof(T), sizeof(T)));
 	
 	in = std::vector<T>(in_sz);
 	din = std::vector<T>(in_sz);
@@ -270,9 +272,11 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	dwei = std::vector<T>(wei_sz, 0);
 	dout = std::vector<T>(out_sz, 0);
 	out = std::vector<T>(out_sz, 0);
-	workspace = std::vector<T>(workSpaceSize/sizeof(T), 0);
+	workspace_bwd = std::vector<T>(workSpaceSize_bwd/sizeof(T), 0);
+	workspace_fwd = std::vector<T>(workSpaceSize_fwd/sizeof(T), 0);
 	outhost = std::vector<T>(out_sz, 0);
-	workspace_host = std::vector<T>(workSpaceSize/sizeof(T), 0);
+	workspace_bwd_host = std::vector<T>(workSpaceSize_bwd/sizeof(T), 0);
+	workspace_fwd_host = std::vector<T>(workSpaceSize_fwd/sizeof(T), 0);
 	dwei_host = std::vector<T>(wei_sz, 0);
 	din_host = std::vector<T>(in_sz, 0);
 
@@ -333,7 +337,8 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	status |= dwei_dev->ToGPU(q, dwei.data());
 	status |= dout_dev->ToGPU(q, dout.data());
 	status |= out_dev->ToGPU(q, out.data());
-	status |= workspace_dev->ToGPU(q, workspace.data());
+	status |= workspace_bwd_dev->ToGPU(q, workspace_bwd.data());
+	status |= workspace_fwd_dev->ToGPU(q, workspace_fwd.data());
 	
 	if(status != CL_SUCCESS) 
 		printf("Error copying data to GPU\n");
@@ -357,8 +362,8 @@ int ConvDriver<T>::FindForward(int &ret_algo_count, int request_algo_count,
 			&ret_algo_count,
 			perf_results.data(),
 			mlopenConvolutionFastest,
-			workspace_dev->GetMem(),
-			workspace_dev->GetSize(),
+			workspace_fwd_dev->GetMem(),
+			workspace_fwd_dev->GetSize(),
 			(inflags.GetValueInt("search")==1)?true:false
 	);
 
@@ -390,8 +395,8 @@ int ConvDriver<T>::RunForwardGPU() {
 			&beta,
 			outputTensor,
 			out_dev->GetMem(),
-			workspace_dev->GetMem(),
-			workspace_dev->GetSize());
+			workspace_fwd_dev->GetMem(),
+			workspace_fwd_dev->GetSize());
 	}
 
 	if(inflags.GetValueInt("time") == 1) {
@@ -531,8 +536,8 @@ int ConvDriver<T>::FindBackwardWeights(int &ret_algo_count, int request_algo_cou
 			&ret_algo_count,
 			perf_results.data(),
 			mlopenConvolutionFastest,
-			workspace_dev->GetMem(),
-			workspace_dev->GetSize(),
+			workspace_bwd_dev->GetMem(),
+			workspace_bwd_dev->GetSize(),
 			(inflags.GetValueInt("search") == 1) ? true : false
 		);
 
@@ -639,8 +644,8 @@ int ConvDriver<T>::RunBackwardGPU() {
 		&beta,
 		weightTensor,
 		dwei_dev->GetMem(),
-		workspace_dev->GetMem(),
-		workspace_dev->GetSize());
+		workspace_bwd_dev->GetMem(),
+		workspace_bwd_dev->GetSize());
 
 	if (inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
