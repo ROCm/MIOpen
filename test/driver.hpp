@@ -284,8 +284,13 @@ struct parser
         {
             if (m->count(keyword) > 0)
             {
-                args::write_value{}(x, (*m)[keyword]);
-                return;
+                try {
+                    args::write_value{}(x, (*m)[keyword]);
+                    return;
+                } catch(...) {
+                    std::cerr << "Invalid argument: " << keyword << std::endl;
+                    throw;
+                }
             }
         }
     }
@@ -360,8 +365,15 @@ void test_drive(int argc, const char *argv[])
         if (keywords.count(p.first) == 0)
         {
             auto name = p.first.substr(2);
-            auto&& arg = d.arguments[name];
-            arg.write(p.second);
+            try {
+                auto&& arg = d.arguments.at(name);
+                arg.write(p.second);
+            } catch(...) {
+                std::cerr << "Invalid argument: " << name << std::endl;
+                std::cerr << "With parameters: " << std::endl;
+                for(auto&& s:p.second) std::cerr << "    " << s << std::endl;
+                throw;
+            }
         }
     }
 
