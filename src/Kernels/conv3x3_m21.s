@@ -265,7 +265,7 @@ acc_y_blocks = output_lines_per_wave
     enable_zero_line_padding_on_read = 0
 .endif
 
- 
+
 .if img_height == output_lines_per_wave
     input_lines_per_wave = output_lines_per_wave
     acc_lines_per_wave = output_lines_per_wave
@@ -399,7 +399,7 @@ sgprs_to_allocate_after_filters = 4 + 2 + 2*load_weights_using_buffer + 2 + 3 + 
         .SGPR_ALLOC filtersA, weights_per_filter * filters_per_wave
         padding = (4 - (.SGPR_NEXT_FREE & 0x3)) & 0x3
         .SGPR_ALLOC_FROM (.SGPR_NEXT_FREE+padding) // padding to align filtersB to 4 sgprs
-        .SGPR_ALLOC filtersB, weights_per_filter * filters_per_wave 
+        .SGPR_ALLOC filtersB, weights_per_filter * filters_per_wave
     .endif
     filtersA_part = 0xFFFF // should generate error if filters_part is used
     filtersB_part = 0xFFFF
@@ -441,7 +441,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
     wei_id = fy * weights_w + fx
     .if weights_layout == 1  // CKHW
         \w = \base + \k * weights_per_filter + wei_id
-    .elseif wei_id < filter_base_size // KCHW 
+    .elseif wei_id < filter_base_size // KCHW
         \w = \base + \k * filter_base_size + wei_id
     .else  // KCHW
         \w = \part + \k * filter_part_size + wei_id - filter_base_size
@@ -572,7 +572,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
             v_mov_b32 v[in_l], v[in0] wave_shl:1 bound_ctrl:0
             v_mov_b32 v[in_r], v[in0+gprs_per_input_line-1] wave_shr:1 bound_ctrl:0
         .endif
-        
+
         k = 0
         .rept filters_per_wave // iterate over output channels
             aline = 0
@@ -586,7 +586,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
             .endr
             k = k + 1
         .endr
-        
+
         iline = iline + 1
     .endr
 .endm
@@ -596,7 +596,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
         .if imm_off >= (1 << 12)
             .error "Error: Immediate offset is too large for buffer_load instruction"
         .endif
-        
+
         .if \count == 1
             .if \partial
                 buffer_load_dword v[\base+vals_loaded], v[in_off_p], s[in_desc:in_desc+3], s[\s_offset] offen offset:0+imm_off
@@ -614,7 +614,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
                 buffer_load_dwordx\count v[\base+vals_loaded:\base+vals_loaded+\count-1], off, s[in_desc:in_desc+3], s[\s_offset] offset:0+imm_off
             .endif
         .endif
-        
+
         vals_to_load = vals_to_load - \count
         vals_loaded = vals_loaded + \count
         imm_off = imm_off + 4 * \count
@@ -662,7 +662,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
     imm_off = \start_offset
     s_off = img_offset
     .load_input_lines_on_same_sgpr input_lines_per_sgpr
-    
+
     .rept additional_input_sgprs
         .if enable_zero_line_padding_on_read
             imm_off = input_line_stride
@@ -672,7 +672,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
         .load_input_lines_on_same_sgpr input_lines_per_additional_sgpr
     .endr
 .endm
-  
+
 .macro .move_input_ptr, num // 0 - linesA, 1 - linesB
     .if (\num == 1) || !small_image
         s_add_u32 s[in_desc], s[in_desc], input_ptr_step
@@ -705,7 +705,7 @@ gcnAsmConv3x3U:
      compute_pgm_rsrc1_vgprs = .AUTO_VGPR_GRANULATED_COUNT
      compute_pgm_rsrc1_sgprs = .AUTO_SGPR_GRANULATED_COUNT
      compute_pgm_rsrc2_tidig_comp_cnt = 1
-     compute_pgm_rsrc2_user_sgpr = 2    
+     compute_pgm_rsrc2_user_sgpr = 2
      //compute_pgm_rsrc2_lds_size = 0
      kernarg_segment_byte_size = 56
      wavefront_sgpr_count = .AUTO_SGPR_COUNT
@@ -743,11 +743,11 @@ gcnAsmConv3x3U:
     s_mov_b32 s[gid_y], debug_gid_y //debug line batch
     s_mov_b32 s[gid_z], debug_gid_z //debug image
   .endif
-  
+
   s_load_dwordx2 s[in_desc:in_desc+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
   s_load_dwordx2 s[weights_ptr:weights_ptr+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
   s_load_dwordx2 s[out_ptr:out_ptr+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
-  
+
   // compute offsets for input
   .if enable_zero_line_padding_on_read
     s_cmpk_eq_u32 s[gid_y], 0
@@ -765,7 +765,7 @@ gcnAsmConv3x3U:
     s_add_u32 s[img_offset+i+1], s[img_offset], 0 + input_line_stride * offset_in_lines
     i=i+1
   .endr
-  
+
   // construct v[in_off_p] that is used to mask out unnecessary memory operations when number of elements to read/write is not a multiple of active lanes
   .if uneven_line_read_mode || uneven_line_write_mode
     v_mov_b32 v[in_off_p], 0x7fffFFFF
@@ -777,7 +777,7 @@ gcnAsmConv3x3U:
         s_xor_b32 exec_hi, exec_hi, last_active_lane_mask
         v_mov_b32 v[in_off_p], 0
         s_xor_b32 exec_hi, exec_hi, last_active_lane_mask
-    .else 
+    .else
         last_active_lane_mask = 1 << (active_lanes - 1)
         s_xor_b32 exec_lo, exec_lo, last_active_lane_mask
         v_mov_b32 v[in_off_p], 0
@@ -787,9 +787,9 @@ gcnAsmConv3x3U:
         v_add_u32 v[in_off_p], vcc, v[in_off_p], v[in_off]
     .endif
   .endif
-  
+
   s_waitcnt 0
-  
+
   // compute offset for weights
   s_mul_i32 s[tmp], s[gid_x], filters_per_wave * filter_k_stride
   s_add_u32 s[weights_ptr], s[weights_ptr], s[tmp]
@@ -798,7 +798,7 @@ gcnAsmConv3x3U:
     .GPR_REUSE weights_ptr, wei_desc
     s_sub_u32 s[wei_desc+2], filters_size, s[tmp]
   .endif
-  
+
   // construct input buffer descriptor
   .if batch_size > 1
     s_mul_i32 s[tmp], s[gid_z], input_feature_map_stride * input_channels
@@ -809,7 +809,7 @@ gcnAsmConv3x3U:
   .endif
   s_mov_b32 s[in_desc+2], input_buffer_window // size
   s_mov_b32 s[in_desc+3], 0x00804fac // format
-  
+
   .if uneven_outputs
 	s_mul_i32 s[out_k], s[gid_x], filters_per_wave
   .endif
@@ -825,39 +825,39 @@ gcnAsmConv3x3U:
   .GPR_INVALIDATE gid_x
   .GPR_INVALIDATE gid_y
   .GPR_INVALIDATE gid_z
-  
-  
+
+
   // zeroing acc
   i=accums
   .rept gprs_per_input_line * filters_per_wave * acc_lines_per_wave
     v_mov_b32 v[i], 0
     i = i + 1
   .endr
-  
+
   // zeroing loop counter
   s_mov_b32 s[loop_cnt], 0
-    
+
 .if disable_filter_prefetch
   .load_filters filtersA, filtersA_part, 0
   .load_input linesA
   .move_input_ptr 0
-    
+
 loop_begin:
-    
+
   .load_input linesB, linesB_start_offset
   .move_input_ptr 1
-  
+
   s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
-  
+
   .conv3x3 linesA, filtersA, filtersA_part
   // load 2nd set of filters and adjust weights pointer
   .load_filters filtersB, filtersB_part, filter_c_stride
   .move_wei_ptr filter_c_stride * 2
-  
+
   // load input data and move ptr to next feature map
   .load_input linesA
   .move_input_ptr 0
-  
+
   s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
   .conv3x3 linesB, filtersB, filtersB_part
   .load_filters filtersA, filtersA_part, 0
@@ -866,7 +866,7 @@ loop_end:
   s_addk_i32 s[loop_cnt], 1
   s_cmpk_ge_u32 s[loop_cnt], 0 + input_channels/2 - 1
   s_cbranch_scc0 loop_begin
-  
+
   .load_input linesB, linesB_start_offset
   s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
   .conv3x3 linesA, filtersA, filtersA_part
@@ -877,33 +877,33 @@ loop_end:
   // load input data and move ptr to next feature map
   .load_input linesA
   .move_input_ptr 0
-  
+
   // load set of filters
   .load_filters filtersA, filtersA_part, 0
-    
+
 loop_begin:
-    
+
   // load 2nd feature map and move to next feature map
   .load_input linesB, linesB_start_offset
   .move_input_ptr 1
-  
+
   s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
-  
+
   // load 2nd set of filters and adjust weights pointer
   .load_filters filtersB, filtersB_part, filter_c_stride
   .move_wei_ptr filter_c_stride * 2
-  
+
   // perform convolution A
   .conv3x3 linesA, filtersA, filtersA_part
-  
+
   // load input data and move ptr to next feature map
   .load_input linesA
   .move_input_ptr 0
-  
+
   s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
   // load set of 4 filters
   .load_filters filtersA, filtersA_part, 0
-  
+
   // perform convolution B
   .conv3x3 linesB, filtersB, filtersB_part
 
@@ -911,8 +911,8 @@ loop_end:
   s_addk_i32 s[loop_cnt], 1
   s_cmpk_ge_u32 s[loop_cnt], 0 + input_channels/2 - 1
   s_cbranch_scc0 loop_begin
-  
-  
+
+
   // load 2nd feature map and move to next feature map
   .load_input linesB, linesB_start_offset
   s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
@@ -921,7 +921,7 @@ loop_end:
   s_waitcnt 0
   .conv3x3 linesB, filtersB, filtersB_part
 .endif
-  
+
   // construct output descriptor
   .GPR_REUSE in_desc, out_desc
   s_mov_b64 s[out_desc:out_desc+1], s[out_ptr:out_ptr+1]
@@ -930,8 +930,8 @@ loop_end:
   .rept additional_output_sgprs
     i = i + 1
     s_add_u32 s[img_offset+i], s[out_img_off], 0 + output_line_stride * output_lines_per_sgpr * i
-  .endr  
-  
+  .endr
+
   // store output
 .macro .single_vstore base, s_offset, count, partial=0
     .if ((vals_to_store - \count) >= 0) && vals_to_store > 0
@@ -970,7 +970,7 @@ loop_end:
     .single_vstore \base, \s_offset, 3
     .single_vstore \base, \s_offset, 2
     .single_vstore \base, \s_offset, 1
-    
+
     .if uneven_line_write_mode
         vals_to_store = partial_output_chunks
         .rept (gprs_per_output_line / 4)
@@ -1000,7 +1000,7 @@ loop_end:
     imm_off = 0
     s_off = out_img_off
     .store_output_lines_on_same_sgpr s_off
-    
+
     s_off = img_offset + 1
     .rept additional_output_sgprs
         imm_off = 0
@@ -1012,9 +1012,9 @@ loop_end:
     v_sub_u32 v[in_off_p], vcc, v[in_off_p], v[in_off]
   .endif
 
-  
+
   .GPR_REUSE accums, outputs
-  
+
   // store output
   out0 = outputs
   .rept filters_per_wave-1
@@ -1028,7 +1028,7 @@ loop_end:
       s_add_u32 s[img_offset+i], s[img_offset+i], 0 + output_feature_map_stride
     .endr
     out0 = out0 + output_lines_per_wave * gprs_per_output_line
-	
+
 	.if uneven_outputs
 		s_addk_i32 s[out_k], 1
 		s_cmpk_lt_u32 s[out_k], 0 + output_channels
@@ -1038,7 +1038,7 @@ loop_end:
 	.else
 		s_add_u32 s[out_desc+2], s[out_desc+2], 0 + output_feature_map_stride
 	.endif
-  .endr 
+  .endr
   .store_output out0
 
   s_endpgm
@@ -1049,246 +1049,33 @@ loop_end:
 .section    .note,#alloc
     .long 4
     .long .Lmeta_end - .Lmeta_begin
-    .long 7
+    .long 8
     .asciz "AMD"
     .p2align 2
     .Lmeta_begin:
-.byte 0x01
-.byte 0x00
-.byte 0x01
-.byte 0x02
-.byte 0x00
-.byte 0x03
-.byte 0xC8
-.byte 0x00
-.byte 0x04
-.byte 0x06
-.byte 0x0E
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.ascii "gcnAsmConv3x3U"
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x06
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x2A
-.byte 0x0C
-.byte 0x02
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x69
-.byte 0x6E
-.byte 0x11
-.byte 0x0D
-.byte 0x01
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x0F
-.byte 0x01
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x06
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x2A
-.byte 0x0C
-.byte 0x07
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x77
-.byte 0x65
-.byte 0x69
-.byte 0x67
-.byte 0x68
-.byte 0x74
-.byte 0x73
-.byte 0x11
-.byte 0x0D
-.byte 0x01
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x0F
-.byte 0x01
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x06
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x2A
-.byte 0x0C
-.byte 0x03
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x6F
-.byte 0x75
-.byte 0x74
-.byte 0x0D
-.byte 0x01
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x0F
-.byte 0x01
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x04
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x04
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x05
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x0C
-.byte 0x0B
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x70
-.byte 0x61
-.byte 0x64
-.byte 0x64
-.byte 0x69
-.byte 0x6E
-.byte 0x67
-.byte 0x5F
-.byte 0x76
-.byte 0x61
-.byte 0x6C
-.byte 0x0D
-.byte 0x00
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0D
-.byte 0x07
-.byte 0x0E
-.byte 0x09
-.byte 0x00
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0D
-.byte 0x08
-.byte 0x0E
-.byte 0x09
-.byte 0x00
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0D
-.byte 0x09
-.byte 0x0E
-.byte 0x09
-.byte 0x00
-.byte 0x08
-.byte 0x05
+.ascii "---\n"
+.ascii "{ amd.MDVersion: [ 2, 1 ], "
+.ascii "amd.IsaInfo: { "
+.ascii      "amd.IsaInfoWavefrontSize: 64, "
+.ascii      "amd.IsaInfoLocalMemorySize: 65536, "
+.ascii      "amd.IsaInfoEUsPerCU: 4, "
+.ascii      "amd.IsaInfoMaxWavesPerEU: 10, "
+.ascii      "amd.IsaInfoMaxFlatWorkGroupSize: 2048, "
+.ascii      "amd.IsaInfoSGPRAllocGranule: 16, "
+.ascii      "amd.IsaInfoTotalNumSGPRs: 800, "
+.ascii      "amd.IsaInfoAddressableNumSGPRs: 102, "
+.ascii      "amd.IsaInfoVGPRAllocGranule: 4, "
+.ascii      "amd.IsaInfoTotalNumVGPRs: 256, "
+.ascii      "amd.IsaInfoAddressableNumVGPRs: 256 }, "
+.ascii "amd.Kernels: \n"
+.ascii "  - { amd.KernelName: gcnAsmConv3x3U, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ], amd.Args: \n"
+.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: in, amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }\n"
+.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: weights, amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }\n"
+.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: out, amd.ArgAddrQual: 1, amd.ArgAccQual: 0 }\n"
+.ascii "      - { amd.ArgSize: 4, amd.ArgAlign: 4, amd.ArgKind: 0, amd.ArgValueType: 8, amd.ArgTypeName: float, amd.ArgName: padding_val, amd.ArgAccQual: 0 }\n"
+.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 7, amd.ArgValueType: 9 }\n"
+.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 8, amd.ArgValueType: 9 }\n"
+.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 9, amd.ArgValueType: 9 } } }\n"
+.asciz "...\n"
     .Lmeta_end:
     .p2align 2

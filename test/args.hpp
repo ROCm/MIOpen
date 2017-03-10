@@ -61,6 +61,17 @@ auto is_streamable(args::rank<1>, T&& x, U&& y) -> decltype(
 template<class T, class U>
 std::false_type is_streamable(args::rank<0>, T&&, U&&);
 
+template<bool B>
+struct requires_bool
+{
+    static const bool value = B;
+};
+
+template<class T, long N>
+struct requires_unwrap
+: T
+{};
+
 }
 
 template<class T>
@@ -73,7 +84,13 @@ struct is_streamable
 : decltype(detail::is_streamable(args::rank<1>{}, std::declval<std::istream>(), std::declval<typename std::add_lvalue_reference<T>::type>()))
 {};
 
-#define ARGS_REQUIRES(...) bool RequiresBool ## __LINE__ = true, typename std::enable_if<(RequiresBool ## __LINE__ && (__VA_ARGS__)), int>::type = 0
+#ifdef _MSC_VER
+#define ARGS_REQUIRES_BOOL(...) args::detail::requires_unwrap<decltype(args::detail::requires_bool<(__VA_ARGS__)>{}), __LINE__>::value
+#else
+#define ARGS_REQUIRES_BOOL(...) (__VA_ARGS__)
+#endif
+
+#define ARGS_REQUIRES(...) bool RequiresBool ## __LINE__ = true, typename std::enable_if<ARGS_REQUIRES_BOOL(RequiresBool ## __LINE__ && (__VA_ARGS__)), int>::type = 0
 
 template<class T>
 struct value_parser
