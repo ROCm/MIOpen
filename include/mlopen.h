@@ -53,15 +53,13 @@ typedef enum {
 MLOPEN_EXPORT mlopenStatus_t mlopenCreate(mlopenHandle_t *handle);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenCreateWithStream(mlopenHandle_t *handle,
-		int							numStreams,
-		mlopenAcceleratorQueue_t				*streams);
+		mlopenAcceleratorQueue_t				*stream);
 
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroy(mlopenHandle_t handle);
 
 // Returns numStream'th stream for that particular handle
 MLOPEN_EXPORT mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
-		mlopenAcceleratorQueue_t				*streamID,
-		int							numStream = 0);
+		mlopenAcceleratorQueue_t				*streamID);
 
 // Get time for last kernel launched
 MLOPEN_EXPORT mlopenStatus_t mlopenGetKernelTime(mlopenHandle_t handle, float* time);
