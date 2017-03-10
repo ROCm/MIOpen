@@ -145,13 +145,6 @@ struct verify_forward_conv : conv_base<T>
 };
 
 template<class T>
-tensor<T> get_input_tensor(const mlopen::ConvolutionDescriptor& filter, const tensor<T>& out, const tensor<T>& weights)
-{
-    assert(filter.GetForwardOutputTensor(filter.GetBackwardOutputTensor(out.desc, weights.desc), weights.desc) == out.desc);
-    return tensor<T>{filter.GetBackwardOutputTensor(out.desc, weights.desc)};
-}
-
-template<class T>
 struct verify_backward_conv : conv_base<T>
 {
     using conv_base<T>::input;
@@ -251,12 +244,6 @@ struct verify_backward_conv : conv_base<T>
     }
     
 };
-
-template<class T>
-tensor<T> get_weight_tensor(const mlopen::ConvolutionDescriptor& filter, const tensor<T>& input, const tensor<T>& out)
-{
-    return tensor<T>{filter.GetBackwardWeightsTensor(input.desc, out.desc)};
-}
 
 template<class T>
 struct verify_backward_weights_conv : conv_base<T>
