@@ -188,6 +188,7 @@ struct HandleImpl
         {
             MLOPEN_THROW_CL_STATUS(status, "Error: Creating Handle. Cannot Initialize Handle from Queue");
         }
+        clRetainContext(ctx);
         return ContextPtr{ctx};
     }
     void ResetProfilingResult()
@@ -211,9 +212,11 @@ struct HandleImpl
 Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
 : impl(new HandleImpl())
 {
-    // TODO(paul): Retain the queues
-    for(int i=0;i<numStreams;i++) { impl->queues.emplace_back(streams[i]);
-}
+    for(int i=0;i<numStreams;i++) 
+    {
+        clRetainCommandQueue(streams[i]);
+        impl->queues.emplace_back(streams[i]);
+    }
     impl->context = impl->create_context_from_queue();
 }
 
