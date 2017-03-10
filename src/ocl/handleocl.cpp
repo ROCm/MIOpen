@@ -177,16 +177,29 @@ struct HandleImpl
         }
         return result;
     }
-	void ResetProfilingResult()
-	{
-		profiling_result = 0.0;
-	}
-	void AccumProfilingResult(float curr_res)
-	{
-		profiling_result += curr_res;
-	}
+    ContextPtr create_context_from_queue()
+    {
+        //FIXME: hack for all the queues on the same context
+        // do we need anything special to handle multiple GPUs
+        cl_context ctx;
+        cl_int status = 0;
+        status = clGetCommandQueueInfo(queues[0].get(), CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+        if(status != CL_SUCCESS)
+        {
+            MLOPEN_THROW_CL_STATUS(status, "Error: Creating Handle. Cannot Initialize Handle from Queue");
+        }
+        return ContextPtr{ctx};
+    }
+    void ResetProfilingResult()
+    {
+        profiling_result = 0.0;
+    }
+    void AccumProfilingResult(float curr_res)
+    {
+        profiling_result += curr_res;
+    }
 
-	void SetProfilingResult(cl_event& e)
+    void SetProfilingResult(cl_event& e)
     {
         size_t st, end;
         clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
@@ -201,6 +214,7 @@ Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams)
     // TODO(paul): Retain the queues
     for(int i=0;i<numStreams;i++) { impl->queues.emplace_back(streams[i]);
 }
+    impl->context = impl->create_context_from_queue();
 }
 
 Handle::Handle () 
