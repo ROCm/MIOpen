@@ -6,6 +6,34 @@
 
 #include <functional>
 
+template<class Test_Driver_Private_TypeName_>
+const std::string& get_type_name()
+{
+    static std::string name;
+
+    if (name.empty())
+    {
+#ifdef _MSC_VER
+        name = typeid(Test_Driver_Private_TypeName_).name();
+        name = name.substr(7);
+#else
+        const char parameter_name[] = "Test_Driver_Private_TypeName_ =";
+
+        name = __PRETTY_FUNCTION__;
+
+        auto begin = name.find(parameter_name) + sizeof(parameter_name);
+#if (defined(__GNUC__) && !defined (__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
+        auto length = name.find_last_of(",") - begin;
+#else
+        auto length = name.find_first_of("];", begin) - begin;
+#endif
+        name = name.substr(begin, length);
+#endif
+    }
+
+    return name;
+}
+
 struct rand_gen
 {
     double operator()(int n, int c, int h, int w) const
@@ -25,6 +53,7 @@ struct test_driver
         std::function<void(std::vector<std::string>)> write_value;
         std::vector<std::function<void()>> post_write_actions;
         std::vector<std::function<void(std::function<void()>)>> data_sources;
+        std::string type;
 
         void post_write()
         {
@@ -63,9 +92,9 @@ struct test_driver
     template<class Visitor>
     void parse(Visitor v)
     {
-        v(full_set, {"--all"});
-        v(verbose, {"--verbose", "-v"});
-        v(tolerance, {"--tolerance", "-t"});
+        v(full_set, {"--all"}, "Run all tests");
+        v(verbose, {"--verbose", "-v"}, "Run verbose mode");
+        v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
     }
 
     struct per_arg
@@ -83,6 +112,7 @@ struct test_driver
         arguments.insert(std::make_pair(name, argument{}));
 
         argument& arg = arguments[name];
+        arg.type = get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params)
         {
             args::write_value{}(x, params);
@@ -236,7 +266,7 @@ struct keyword_set
     keyword_set(std::set<std::string> & x) : value(&x)
     {}
     template<class T>
-    void operator()(T&&, std::initializer_list<std::string> x) const
+    void operator()(T&&, std::initializer_list<std::string> x, std::string) const
     {
         value->insert(x);
     }
@@ -248,7 +278,7 @@ struct parser
     parser(args::string_map & x) : m(&x)
     {}
     template<class T>
-    void operator()(T& x, std::initializer_list<std::string> keywords) const
+    void operator()(T& x, std::initializer_list<std::string> keywords, std::string) const
     {
         for(auto&& keyword:keywords)
         {
@@ -260,7 +290,7 @@ struct parser
         }
     }
 
-    void operator()(bool& x, std::initializer_list<std::string> keywords) const
+    void operator()(bool& x, std::initializer_list<std::string> keywords, std::string) const
     {
         for(auto&& keyword:keywords)
         {
@@ -270,6 +300,26 @@ struct parser
                 return;
             }
         }
+    }
+};
+
+struct show_help
+{
+    template<class T>
+    void operator()(const T&, std::initializer_list<std::string> x, std::string help) const
+    {
+        std::cout << std::endl;
+        std::string prefix = "    ";
+        for(std::string a:x)
+        {
+            std::cout << prefix;
+            std::cout << a;
+            prefix = ", ";
+        }
+        if (not std::is_same<T, bool>{})
+            std::cout << " [" << get_type_name<T>() << "]";
+        std::cout << std::endl;
+        std::cout << "        " << help << std::endl;
     }
 };
 
@@ -287,6 +337,21 @@ void test_drive(int argc, const char *argv[])
             (keywords.count(x) > 0) or 
             ((x.compare(0, 2, "--") == 0) and d.arguments.count(x.substr(2)) > 0);
     });
+
+    // Show help
+    if(arg_map.count("-h") or arg_map.count("--help"))
+    {
+        std::cout << "Driver arguments: " << std::endl;
+        d.parse(show_help{});
+        std::cout << std::endl;
+        std::cout << "Test inputs: " << std::endl;
+        for(auto&& p:d.arguments)
+        {
+            std::cout << "    --" << p.first << " [" << p.second.type << "]" << std::endl;
+        }
+        std::cout << std::endl;
+        return;
+    }
 
     d.parse(parser{arg_map});
 
