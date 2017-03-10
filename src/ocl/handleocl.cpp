@@ -182,19 +182,24 @@ struct HandleImpl
         //FIXME: hack for all the queues on the same context
         // do we need anything special to handle multiple GPUs
         cl_context ctx;
-        clGetCommandQueueInfo(queues[0].get(), CL_QUEUE_CONTEXT, sizeof(ctx), &ctx, NULL);
+        cl_int status = 0;
+        status = clGetCommandQueueInfo(queues[0].get(), CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+        if(status != CL_SUCCESS)
+        {
+            MLOPEN_THROW_CL_STATUS(status, "Error: Creating Handle. Cannot Initialize Handle from Queue");
+        }
         return ContextPtr{ctx};
     }
-	void ResetProfilingResult()
-	{
-		profiling_result = 0.0;
-	}
-	void AccumProfilingResult(float curr_res)
-	{
-		profiling_result += curr_res;
-	}
+    void ResetProfilingResult()
+    {
+        profiling_result = 0.0;
+    }
+    void AccumProfilingResult(float curr_res)
+    {
+        profiling_result += curr_res;
+    }
 
-	void SetProfilingResult(cl_event& e)
+    void SetProfilingResult(cl_event& e)
     {
         size_t st, end;
         clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
