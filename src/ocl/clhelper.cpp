@@ -32,7 +32,7 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& params)
+static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source, const std::string& params)
 {
 #ifndef WIN32 //Linux or APPLE
 	std::string exec_path(std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH")); // asciz
@@ -56,8 +56,15 @@ static void ExperimentalAmdgcnAssemble(std::string& source, const std::string& p
 		"assembler",
 		"-target",
 		"amdgcn--amdhsa",
-		"-mcpu=fiji",  // TODO Set to the "device name" reported by OpenCL-on-ROCm runtime.
 	});
+
+	{ 	// Add -mcpu=name as reported by OpenCL-on-ROCm runtime.
+		char name[64] = {0};
+		if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(name), name, nullptr)) {
+			MLOPEN_THROW("Error: X-AMDGCN-ASM: clGetDeviceInfo()");
+		}
+		opt_storage.push_back("-mcpu=" + std::string(name));
+	}
 
 	{
 		std::istringstream iss(params);
@@ -192,7 +199,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 		source = mlopen::GetKernelSrc(program_name);
 		auto is_asm = mlopen::EndsWith(program_name, ".s");
 		if (is_asm) { // Overwrites source (asm text) by binary results of assembly:
-			ExperimentalAmdgcnAssemble(source, params);
+			ExperimentalAmdgcnAssemble(device, source, params);
 			is_binary = true;
 		} else {
 			is_binary = mlopen::EndsWith(program_name, ".so");
