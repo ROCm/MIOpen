@@ -80,34 +80,32 @@ struct HandleImpl
     }
 
     bool enable_profiling = false;
-    std::vector<StreamPtr> streams;
+    StreamPtr stream;
     float profiling_result = 0.0;
 #if MLOPEN_BACKEND_HIPOC
     KernelCache cache;
 #endif
 };
 
-Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
+Handle::Handle (mlopenAcceleratorQueue_t *stream) 
 : impl(new HandleImpl())
 {
-    std::transform(streams, streams+numStreams, std::back_inserter(this->impl->streams), [](hipStream_t x) {
-        return HandleImpl::reference_stream(x); 
-    });
+    this->impl->stream = HandleImpl::reference_stream(x);
 }
 
 Handle::Handle () 
 : impl(new HandleImpl())
 {
     set_default_device();
-    // this->impl->streams.push_back(impl->create_stream());
-    this->impl->streams.push_back(HandleImpl::reference_stream(nullptr));
+    // this->impl->stream = impl->create_stream();
+    this->impl->stream = HandleImpl::reference_stream(nullptr);
 }
 
 Handle::~Handle() {}
 
 mlopenAcceleratorQueue_t Handle::GetStream() const
 {
-    return impl->streams.front().get();
+    return impl->stream.get();
 }
 
 void Handle::EnableProfiling(bool enable)

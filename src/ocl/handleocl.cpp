@@ -126,7 +126,7 @@ struct HandleImpl
     using ContextPtr = mlopen::manage_ptr<typename std::remove_pointer<cl_context>::type, decltype(&clReleaseContext), &clReleaseContext>;
 
     ContextPtr context;
-    std::vector<AqPtr> queues;
+    AqPtr queue;
     KernelCache cache;
     bool enable_profiling = false;
     float profiling_result = 0.0;
@@ -183,7 +183,7 @@ struct HandleImpl
         // do we need anything special to handle multiple GPUs
         cl_context ctx;
         cl_int status = 0;
-        status = clGetCommandQueueInfo(queues[0].get(), CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+        status = clGetCommandQueueInfo(queue.get(), CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
         if(status != CL_SUCCESS)
         {
             MLOPEN_THROW_CL_STATUS(status, "Error: Creating Handle. Cannot Initialize Handle from Queue");
@@ -209,14 +209,11 @@ struct HandleImpl
     }
 };
 
-Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
+Handle::Handle (mlopenAcceleratorQueue_t *stream) 
 : impl(new HandleImpl())
 {
-    for(int i=0;i<numStreams;i++) 
-    {
-        clRetainCommandQueue(streams[i]);
-        impl->queues.emplace_back(streams[i]);
-    }
+    clRetainCommandQueue(mlopen::deref(stream));
+    impl->queue = HandleImpl::AqPtr{mlopen::deref(stream)};
     impl->context = impl->create_context_from_queue();
 }
 
@@ -276,7 +273,7 @@ Handle::Handle ()
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
-    impl->queues.emplace_back(clCreateCommandQueue(impl->context.get(), device, CL_QUEUE_PROFILING_ENABLE, &status));
+    impl->queue = HandleImpl::AqPtr{clCreateCommandQueue(impl->context.get(), device, CL_QUEUE_PROFILING_ENABLE, &status)};
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -291,7 +288,7 @@ Handle::~Handle()=default;
 
 mlopenAcceleratorQueue_t Handle::GetStream() const
 {
-    return impl->queues.front().get();
+    return impl->queue.get();
 }
 
 void Handle::EnableProfiling(bool enable)
