@@ -372,7 +372,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		return(mloConstructDirect2D1x1());
 	}
 
-	else if (unaligned)
+	else if (isForwardDirection() && unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2DFwdC());
 	}
@@ -382,7 +382,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
 
-	if (_direction == 0)
+	if (!isForwardDirection())
 	{
 		// backward
 		_pad0 = _kernel_size0 - 1 - _pad0;
