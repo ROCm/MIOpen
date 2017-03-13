@@ -232,15 +232,26 @@ struct test_driver
             if (not(error <= threshold))
             {
                 std::cout << "FAILED: " << error << std::endl;
+                v.fail(error, xs...);
+                
                 auto mxdiff = mlopen::max_diff(out_cpu, out_gpu);
                 std::cout << "Max diff: " << mxdiff << std::endl;
-                v.fail(error, xs...);
                 auto max_idx = mlopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
                 std::cout << "Max diff at " << max_idx << ": " << out_cpu[max_idx] << " != " << out_gpu[max_idx] << std::endl;
+
                 if (mlopen::range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
                 if (mlopen::range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
+                
                 auto idx = mlopen::mismatch_idx(out_cpu, out_gpu, mlopen::float_equal);
                 std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
+
+                auto cpu_nan_idx = find_idx(out_cpu, mlopen::not_finite);
+                if (cpu_nan_idx >= 0) 
+                    std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": " << out_cpu[cpu_nan_idx] << std::endl;
+
+                auto gpu_nan_idx = find_idx(out_gpu, mlopen::not_finite);
+                if (gpu_nan_idx >= 0) 
+                    std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": " << out_gpu[gpu_nan_idx] << std::endl;
             } 
             else if (mlopen::range_zero(out_cpu) and mlopen::range_zero(out_gpu)) 
             {
