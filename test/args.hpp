@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <functional>
 #include <cassert>
+#include <stdexcept>
 #include <iso646.h>
 
 namespace args {
@@ -126,7 +127,7 @@ auto any_construct_impl(rank<1>, mlopen::detail::seq<Ns...>, const Data& d) -> d
 template<class T, std::size_t ... Ns, class Data>
 T any_construct_impl(rank<0>, mlopen::detail::seq<Ns...>, const Data&)
 {
-    std::abort(); // TODO: Throw exception
+    throw std::runtime_error("Cannot construct type");
 }
 
 template<class T, std::size_t N, class Data>
@@ -153,7 +154,7 @@ struct write_value
     template<class T, ARGS_REQUIRES(not is_multi_value<T>{} and is_streamable<T>{})>
     void operator()(T& result, std::vector<std::string> params) const
     {
-        assert(params.size() > 0);
+        if (params.empty()) throw std::runtime_error("Missing argument");
         result = value_parser<T>::apply(params.back());
     }
 
@@ -171,7 +172,7 @@ struct write_value
             case 6: { result = any_construct<T, 6>(params); break; }
             case 7: { result = any_construct<T, 7>(params); break; }
             default:
-                std::abort(); // TODO: Throw exception
+                throw std::runtime_error("Cannot construct type");
         }
     }
 };
