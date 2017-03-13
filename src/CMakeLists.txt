@@ -93,6 +93,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 	set(MLOPEN_KERNELS
 		Kernels/MLOpenConvDirUni.cl
 		Kernels/MLOpenConvDirGenFwd.cl
+		Kernels/MLOpenLRN.cl
 		Kernels/MLOpenLRN_PS.cl
 		Kernels/MLOpenNeuron.cl
 		Kernels/MLOpenPooling.cl
