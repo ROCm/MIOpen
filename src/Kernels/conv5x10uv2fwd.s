@@ -24,7 +24,7 @@
 .set inp_u       ,   2
 .set inp_v       ,   2
 // ******* LDS allocation
-.set LDS_SIZE    ,(64*inp_u-1-(wei_w-1))*(4*inp_v-1-(wei_h-1)) // = 5984 bytes
+.set LDS_SIZE    ,4*(64*inp_u-1+(wei_w-1))*(4*inp_v-1+(wei_h-1)) // = 5984 bytes
 // ******* SGPR allocation
 // For used during initialization
 .set sreg_karg   ,   0   // [2]
@@ -49,7 +49,7 @@
 // For used during initialization
 .set vreg_local_0 ,  0   // [1]
 .set vreg_local_1 ,  1   // [1]
-.set vreg_local_2 ,  2   // [1]
+.set vreg_local_2 ,  2   // [1] unused
 .set vreg_tmp0    ,  3   // [1]
 .set vreg_tmp1    ,  4   // [1]
 .set vreg_tmp2    ,  5   // [1]
@@ -105,22 +105,32 @@
 conv5x10uv2fwd:
 
 	.amd_kernel_code_t
+	   enable_sgpr_private_segment_buffer = 0
+	   enable_sgpr_dispatch_ptr = 0
+	   enable_sgpr_queue_ptr = 0
 	   enable_sgpr_kernarg_segment_ptr = 1
-	   compute_pgm_rsrc2_tgid_x_en = 1
-	   compute_pgm_rsrc2_tgid_y_en = 1
-	   compute_pgm_rsrc2_tgid_z_en = 1
+	   enable_sgpr_dispatch_id = 0
+	   enable_sgpr_flat_scratch_init = 0
+	   enable_sgpr_private_segment_size = 0
+	   enable_sgpr_grid_workgroup_count_x = 0
+	   enable_sgpr_grid_workgroup_count_y = 0
+	   enable_sgpr_grid_workgroup_count_z = 0
+	   enable_sgpr_workgroup_id_x = 1
+	   enable_sgpr_workgroup_id_y = 1
+	   enable_sgpr_workgroup_id_z = 1
+	   enable_sgpr_workgroup_info = 0
+	   enable_sgpr_private_segment_wave_byte_offset = 0
+	   enable_vgpr_workitem_id = 1
 	   is_ptr64 = 1
 	   float_mode = 192
-	   compute_pgm_rsrc1_vgprs = (VGPR_COUNT-1)/4
-	   compute_pgm_rsrc1_sgprs = (SGPR_COUNT-1)/8
-	   compute_pgm_rsrc2_tidig_comp_cnt = 1
-	   compute_pgm_rsrc2_user_sgpr = 2    
-	   compute_pgm_rsrc2_lds_size = 0
-	   kernarg_segment_byte_size = 56
+	   workgroup_group_segment_byte_size = LDS_SIZE
 	   wavefront_sgpr_count = SGPR_COUNT
 	   workitem_vgpr_count = VGPR_COUNT
-	   workgroup_group_segment_byte_size = LDS_SIZE
-	   #TODO required_workgroup_size = (WGSIZE_0, WGSIZE_1, WGSIZE_2)
+	   granulated_lds_size = (LDS_SIZE + 31)/32
+	   granulated_wavefront_sgpr_count = (SGPR_COUNT-1)/8
+	   granulated_workitem_vgpr_count = (VGPR_COUNT-1)/8
+	   kernarg_segment_byte_size = 64
+	   user_sgpr_count = 8 // TODO: ???
 	.end_amd_kernel_code_t
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -228,7 +238,7 @@ conv5x10uv2fwd:
 	v_lshlrev_b32 v[vreg_inp_dsrd0], 3, v[vreg_local_0]
 	v_add_u32     v[vreg_inp_dsrd1], vcc, 2 * 136 * 4, v[vreg_inp_dsrd0]
 	// wait for load completion
-	s_waitcnt vmcnt(0) & lgkmcnt(0)
+	s_waitcnt lgkmcnt(0)
 	// update address registers
 	s_add_u32  s[sreg_wei_addr], s[sreg_wei_addr], s[sreg_winc]
 	s_addc_u32 s[sreg_wei_addr+1], s[sreg_wei_addr+1], 0
@@ -283,6 +293,7 @@ loop_channel:
 	flat_load_dwordx2 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_addr1:vreg_inp_addr1+1]
 skip_load0:
 	flat_load_dwordx2 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_addr0:vreg_inp_addr0+1]
+	s_waitcnt lgkmcnt(0) vmcnt(0)
 	s_barrier
 	s_cbranch_scc1 skip_load1
 	ds_write_b64 v[vreg_inp_dswr1], v[vreg_ival+2:vreg_ival+3]
@@ -290,6 +301,7 @@ skip_load1:
 	ds_write_b64 v[vreg_inp_dswr0], v[vreg_ival+0:vreg_ival+1]
 	v_add_u32 v[vreg_inp_dsrd2], vcc, 4 * 136 * 4, v[vreg_inp_dsrd0]
 	v_add_u32 v[vreg_inp_dsrd3], vcc, 4 * 136 * 4, v[vreg_inp_dsrd1]
+	s_waitcnt lgkmcnt(0)
 	s_barrier
 
 	// compute 2D conv
@@ -602,252 +614,26 @@ end_of_text:
 ///////////////////////////////////////////////////
 // ******* meta-data section of the kernels
 ///////////////////////////////////////////////////
-
-/////// meta data
-.section    .note,#alloc
-    .long 4
-    .long .Lmeta_end - .Lmeta_begin
-    .long 7
-    .asciz "AMD"
-    .p2align 2
-    .Lmeta_begin:
-.byte 0x01
-.byte 0x00
-.byte 0x01
-.byte 0x02
-.byte 0x00
-.byte 0x03
-.byte 0xC8
-.byte 0x00
-.byte 0x04
-.byte 0x06
-.byte 0x0E
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.ascii "conv5x10uv2fwd"
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x06
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x2A
-.byte 0x0C
-.byte 0x02
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x69
-.byte 0x6E
-.byte 0x11
-.byte 0x0D
-.byte 0x01
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x0F
-.byte 0x01
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x06
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x2A
-.byte 0x0C
-.byte 0x07
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x77
-.byte 0x65
-.byte 0x69
-.byte 0x67
-.byte 0x68
-.byte 0x74
-.byte 0x73
-.byte 0x11
-.byte 0x0D
-.byte 0x01
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x0F
-.byte 0x01
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x06
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x2A
-.byte 0x0C
-.byte 0x03
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x6F
-.byte 0x75
-.byte 0x74
-.byte 0x0D
-.byte 0x01
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x0F
-.byte 0x01
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x04
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x04
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x05
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x0C
-.byte 0x0B
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x70
-.byte 0x61
-.byte 0x64
-.byte 0x64
-.byte 0x69
-.byte 0x6E
-.byte 0x67
-.byte 0x5F
-.byte 0x76
-.byte 0x61
-.byte 0x6C
-.byte 0x0D
-.byte 0x00
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0D
-.byte 0x07
-.byte 0x0E
-.byte 0x09
-.byte 0x00
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0D
-.byte 0x08
-.byte 0x0E
-.byte 0x09
-.byte 0x00
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0D
-.byte 0x09
-.byte 0x0E
-.byte 0x09
-.byte 0x00
-.byte 0x08
-.byte 0x05
-    .Lmeta_end:
-    .p2align 2
-
+.section .note
+	.long  0x00000004
+	.long  0x00000106
+	.long  0x00000007
+	.asciz "AMD"
+	.long  0x02010001, 0x00780300
+	.short 0x0604, 14, 0
+	.ascii "conv5x10uv2fwd"
+	.long  0x00080907, 0x080a0000, 0x0b000000, 0x00000006
+	.long  0x616f6c66, 0x030c2a74, 0x69000000, 0x010d706e
+	.long  0x1000080e, 0x08010f00, 0x00080907, 0x080a0000
+	.long  0x0b000000, 0x00000006, 0x616f6c66, 0x070c2a74
+	.long  0x77000000, 0x68676965, 0x010d7374, 0x1000080e
+	.long  0x08010f00, 0x00080907, 0x080a0000, 0x0b000000
+	.long  0x00000006, 0x616f6c66, 0x030c2a74, 0x6f000000
+	.long  0x010d7475, 0x1000080e, 0x08010f00, 0x00040907
+	.long  0x040a0000, 0x0b000000, 0x00000005, 0x616f6c66
+	.long  0x000b0c74, 0x61700000, 0x6e696464, 0x61765f67
+	.long  0x0e000d6c, 0x00100008, 0x08090708, 0x0a000000
+	.long  0x00000008, 0x090e070d, 0x09070800, 0x00000008
+	.long  0x0000080a, 0x0e080d00, 0x07080009, 0x00000809
+	.long  0x00080a00, 0x090d0000, 0x0800090e, 0x00004015
+	.long  0x00000800, 0x00000100, 0x00000500
