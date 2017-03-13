@@ -35,6 +35,8 @@
 #define MLO_LRN_GROUP_SZ (MLO_LRN_GROUP_SZ2 * MLO_LRN_GROUP_SZ1 * MLO_LRN_GROUP_SZ0)
 //#define MLO_LRN_PREPAD_SZ (MLO_LRN_KERNEL_SZ - 1)/2
 
+
+#if 0
 __attribute__((reqd_work_group_size(MLO_LRN_GROUP_SZ0,MLO_LRN_GROUP_SZ1,MLO_LRN_GROUP_SZ2)))
 __kernel void MLOpenLRNWithinChannel(
        const __global _FLOAT * bot,
@@ -184,6 +186,7 @@ __kernel void MLOpenLRNWithinChannel(
 
 }
 
+#endif
 
 __attribute__((reqd_work_group_size(MLO_LRN_GROUP_SZ0,MLO_LRN_GROUP_SZ1,MLO_LRN_GROUP_SZ2)))
 __kernel void MLOpenLRNWithinChannelBwd(
@@ -423,6 +426,8 @@ __kernel void MLOpenLRNWithinChannelBwd(
 
 }
 
+#if 0
+
 #if (MLO_LRN_N_INPUTS + 2* MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ || MLO_LRN_N_OUTPUTSS + 2* MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ)
 #define MLO_LOW_CHNL_COUNT 1
 #else
@@ -588,6 +593,7 @@ __kernel void MLOpenLRNAcrossChannels1(
 
 }
 
+#endif
 
 __attribute__((reqd_work_group_size(MLO_LRN_GROUP_SZ0,MLO_LRN_GROUP_SZ1,MLO_LRN_GROUP_SZ2)))
 __kernel void MLOpenLRNAcrossChannelsBwd1(
