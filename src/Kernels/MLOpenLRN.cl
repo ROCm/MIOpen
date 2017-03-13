@@ -74,7 +74,7 @@ __kernel void MLOpenLRNWithinChannel(
 
 			bool invisibleY = (bot_y_act < 0) || (bot_y_act >= MLO_LRN_BOT_HEIGHT);
 
-			bot_y_act = (bot_y_act < 0) ? 0 : (bot_y_act >= MLO_LRN_BOT_HEIGHT) ? MLO_LRN_BOT_HEIGHT - 1: bot_y_act;
+			bot_y_act = (invisibleY) ? 0 : bot_y_act;
 
 			int bot_y_off = bot_y_act * MLO_LRN_BOT_STRIDE;
 
@@ -87,8 +87,8 @@ __kernel void MLOpenLRNWithinChannel(
 
 				bool invisibleX = (bot_x_act < 0) || (bot_x_act >= MLO_LRN_BOT_WIDTH);
 			
-				bot_x_act = (bot_x_act < 0) ? 0 : (bot_x_act >= MLO_LRN_BOT_WIDTH) ? MLO_LRN_BOT_WIDTH - 1: bot_x_act;
-
+				bot_x_act = (invisibleX) ? 0 : bot_x_act;
+				
 				_FLOAT bot_val = bot[bot_off + bot_y_off + bot_x_act];
 
 				bot_val = (invisibleX || invisibleY)?
@@ -225,7 +225,7 @@ __kernel void MLOpenLRNWithinChannelBwd(
 
 			bool invisibleY = (top_y_act < 0) || (top_y_act >= MLO_LRN_TOP_HEIGHT);
 
-//			top_y_act = (bot_y_act < 0) ? 0 : (bot_y_act >= MLO_LRN_BOT_HEIGHT) ? MLO_LRN_BOT_HEIGHT - 1: bot_y_act;
+			top_y_act = (invisibleY) ? 0 : top_y_act;
 
 			int top_df_y_off = top_y_act * MLO_LRN_TOPDF_STRIDE;
 			int scale_y_off = top_y_act * MLO_LRN_SCALE_STRIDE;
@@ -239,7 +239,7 @@ __kernel void MLOpenLRNWithinChannelBwd(
 
 				bool invisibleX = (top_x_act < 0) || (top_x_act >= MLO_LRN_TOP_WIDTH);
 			
-//				bot_x_act = (bot_x_act < 0) ? 0 : (bot_x_act >= MLO_LRN_BOT_WIDTH) ? MLO_LRN_BOT_WIDTH - 1: bot_x_act;
+				top_x_act = (invisibleX) ? 0 : top_x_act;
 
 				_FLOAT top_df_val = top_df[top_df_off + top_df_y_off + top_x_act];
 				_FLOAT scale_val = scale[scale_off + scale_y_off + top_x_act];
@@ -293,7 +293,7 @@ __kernel void MLOpenLRNWithinChannelBwd(
 
 			bool invisibleY = (top_y_act < 0) || (top_y_act >= MLO_LRN_TOP_HEIGHT);
 
-//			top_y_act = (bot_y_act < 0) ? 0 : (bot_y_act >= MLO_LRN_BOT_HEIGHT) ? MLO_LRN_BOT_HEIGHT - 1: bot_y_act;
+			top_y_act = (invisibleY) ? 0 : top_y_act;
 
 			int top_y_off = top_y_act * MLO_LRN_TOP_STRIDE;
 
@@ -306,7 +306,7 @@ __kernel void MLOpenLRNWithinChannelBwd(
 
 				bool invisibleX = (top_x_act < 0) || (top_x_act >= MLO_LRN_TOP_WIDTH);
 			
-//				bot_x_act = (bot_x_act < 0) ? 0 : (bot_x_act >= MLO_LRN_BOT_WIDTH) ? MLO_LRN_BOT_WIDTH - 1: bot_x_act;
+				top_x_act = (invisibleX) ? 0 : top_x_act;
 
 				_FLOAT top_val = top[top_off + top_y_off + top_x_act];
 
