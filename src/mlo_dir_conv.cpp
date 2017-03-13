@@ -2355,11 +2355,14 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 	}
 	else if (_kernel_size0 >= _kernel_size1)
 	{
+#if 0
 		if ((_kernel_size0 == 3 && _kernel_size1 == 3) && (_out_width < 8 && _out_height < 8))
 		{
 			ret = mloConstruct3x3();
 		}
-		else if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+		else 
+#endif
+			if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
 		{
 			ret = mloConstruct53();
 		}
