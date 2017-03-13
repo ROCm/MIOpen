@@ -7,6 +7,25 @@
 
 namespace mlopen {
 
+struct AutoEnableProfiling
+{
+    AutoEnableProfiling(Handle& x)
+    : h(x)
+    {
+        prev_state = h.IsProfilingEnabled();
+        h.EnableProfiling();
+    }
+
+    ~AutoEnableProfiling()
+    {
+        h.EnableProfiling(prev_state);
+        h.ResetKernelTime();
+    }
+private:
+    Handle& h;
+    bool prev_state;
+};
+
 int ConvolutionDescriptor::FindFwdWinogradKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
@@ -182,6 +201,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     if(returnedAlgoCount == nullptr) MLOPEN_THROW(mlopenStatusBadParm, "returnedAlgoCount cannot be nullptr");
     if(perfResults == nullptr) MLOPEN_THROW(mlopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1) MLOPEN_THROW(mlopenStatusBadParm, "requestAlgoCount cannot be < 1");
+
+    AutoEnableProfiling enableProfiling{handle};
 
     // create a dummy buffer for use as output for the kernel calls
     // because kernels are called purely for timing purposes
@@ -479,6 +500,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     // because kernels are called purely for timing purposes
     auto tmp_dx = handle.Create(dxDesc.GetElementSize() * sizeof(dxDesc.GetType()));
 
+    AutoEnableProfiling enableProfiling{handle};
+
     // < algorith_name, <time, workspace_size> >
     std::vector< PerfField > perf_db;
 
@@ -582,6 +605,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     // create a dummy buffer for use as output for the kernel calls
     // because kernels are called purely for timing purposes
     auto tmp_dw = handle.Create(dwDesc.GetElementSize() * sizeof(dwDesc.GetType()));
+
+    AutoEnableProfiling enableProfiling{handle};
 
     // < algorith_name, <time, workspace_size> >
     std::vector< PerfField > perf_db;
