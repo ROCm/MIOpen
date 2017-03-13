@@ -36,6 +36,13 @@
 //#define MLO_LRN_PREPAD_SZ (MLO_LRN_KERNEL_SZ - 1)/2
 
 
+/*
+
+This is a naive implementation.
+The "sliding window" -based implementation is in MLOpenLRNFwd.cl file
+
+*/
+
 #if 0
 __attribute__((reqd_work_group_size(MLO_LRN_GROUP_SZ0,MLO_LRN_GROUP_SZ1,MLO_LRN_GROUP_SZ2)))
 __kernel void MLOpenLRNWithinChannel(
@@ -425,6 +432,8 @@ __kernel void MLOpenLRNWithinChannelBwd(
 
 
 }
+
+
 
 #if 0
 
