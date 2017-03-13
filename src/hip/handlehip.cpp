@@ -87,15 +87,15 @@ struct HandleImpl
 #endif
 };
 
-Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams) 
+Handle::Handle (int numStreams, mlopenAcceleratorQueue_t *streams)
 : impl(new HandleImpl())
 {
     std::transform(streams, streams+numStreams, std::back_inserter(this->impl->streams), [](hipStream_t x) {
-        return HandleImpl::reference_stream(x); 
+        return HandleImpl::reference_stream(x);
     });
 }
 
-Handle::Handle () 
+Handle::Handle ()
 : impl(new HandleImpl())
 {
     set_default_device();
@@ -163,10 +163,10 @@ KernelInvoke Handle::GetKernel(
         const std::vector<size_t>& vgd,
         const std::string& params)
 {
-    auto k = this->impl->cache.GetKernel(*this, 
+    auto k = this->impl->cache.GetKernel(*this,
             algorithm,
             network_config,
-            program_name, 
+            program_name,
             kernel_name,
             vld,
             vgd,
@@ -237,9 +237,8 @@ std::string Handle::GetDeviceName()
 {
     hipDeviceProp_t props;
     hipGetDeviceProperties(&props, get_device_id());
-    std::string n(props.name);
+    std::string n("gfx"+std::to_string(props.gcnArch));
 	return GetDeviceNameFromMap(n);
 }
 #endif
 }
-

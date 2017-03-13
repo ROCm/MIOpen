@@ -39,11 +39,18 @@ extern __attribute__((const)) uint __hsail_get_dynwave_id(void);
 static inline int getWaveId()
 {
 	int wave_id = 0;
-#if MLO_HW_WAVE_ID_SETTING
-	wave_id = __hsail_get_dynwave_id();
-	wave_id &= MLO_N_WAVES_MASK;
+
+#if MLO_HW_WAVE_ID_SETTING && MLO_COMPILER_AMD_OPENCL_HSAIL==1
+		wave_id = __hsail_get_dynwave_id();
+		wave_id &= MLO_N_WAVES_MASK;
+#elif MLO_HW_WAVE_ID_SETTING && MLO_COMPILER_AMD_OPENCL_LC==1 && MLO_GRP_SZ1==1 && MLO_GRP_SZ2==1 && (MLO_GRP_SZ % (1 << MLO_LG2_WAVE_SZ))==0
+		// (local_id/wavesize) has the same value in all workitems.
+		// Make it scalar to enable scalarization optimizations.
+		wave_id = __llvm_amdgcn_readfirstlane((uint)(get_local_id(0) >> MLO_LG2_WAVE_SZ));
+		// Alternate implementation:
+		//__asm__ ("v_readfirstlane_b32 %0, %1" : "=s" (wave_id) : "v" ((int)(get_local_id(0) >> MLO_LG2_WAVE_SZ)) );
 #else
-	wave_id = (get_local_id(0) >> MLO_LG2_WAVE_SZ);
+		wave_id = (get_local_id(0) >> MLO_LG2_WAVE_SZ);
 #endif
 	return(wave_id);
 }

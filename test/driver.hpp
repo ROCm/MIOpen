@@ -6,6 +6,34 @@
 
 #include <functional>
 
+template<class Test_Driver_Private_TypeName_>
+const std::string& get_type_name()
+{
+    static std::string name;
+
+    if (name.empty())
+    {
+#ifdef _MSC_VER
+        name = typeid(Test_Driver_Private_TypeName_).name();
+        name = name.substr(7);
+#else
+        const char parameter_name[] = "Test_Driver_Private_TypeName_ =";
+
+        name = __PRETTY_FUNCTION__;
+
+        auto begin = name.find(parameter_name) + sizeof(parameter_name);
+#if (defined(__GNUC__) && !defined (__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
+        auto length = name.find_last_of(",") - begin;
+#else
+        auto length = name.find_first_of("];", begin) - begin;
+#endif
+        name = name.substr(begin, length);
+#endif
+    }
+
+    return name;
+}
+
 struct rand_gen
 {
     double operator()(int n, int c, int h, int w) const
@@ -25,6 +53,7 @@ struct test_driver
         std::function<void(std::vector<std::string>)> write_value;
         std::vector<std::function<void()>> post_write_actions;
         std::vector<std::function<void(std::function<void()>)>> data_sources;
+        std::string type;
 
         void post_write()
         {
@@ -63,9 +92,9 @@ struct test_driver
     template<class Visitor>
     void parse(Visitor v)
     {
-        v(full_set, {"--all"});
-        v(verbose, {"--verbose", "-v"});
-        v(tolerance, {"--tolerance", "-t"});
+        v(full_set, {"--all"}, "Run all tests");
+        v(verbose, {"--verbose", "-v"}, "Run verbose mode");
+        v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
     }
 
     struct per_arg
@@ -83,6 +112,7 @@ struct test_driver
         arguments.insert(std::make_pair(name, argument{}));
 
         argument& arg = arguments[name];
+        arg.type = get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params)
         {
             args::write_value{}(x, params);
@@ -143,11 +173,47 @@ struct test_driver
     }
 
     template<class T>
+    generate_data_t<T> generate_data(std::vector<T> dims)
+    {
+        return {[=]() -> std::vector<T> {
+            if (full_set) return dims; 
+            else return {dims.front()};
+        }};
+    }
+
+    template<class T>
     generate_data_t<T> generate_single(T single)
     {
         return {[=]() -> std::vector<T> {
             return {single};
         }};
+    }
+
+    template<class X>
+    struct set_value_t
+    {
+        X value;
+        template<class T>
+        void operator()(T& x, argument& arg) const
+        {
+            auto y = value;
+            arg.type = "";
+            arg.write_value = [&x, y](std::vector<std::string>)
+            {
+                x = y;
+            };
+        }
+    };
+
+    template<class T>
+    set_value_t<T> set_value(T x)
+    {
+        return {x};
+    }
+    
+    set_value_t<bool> flag()
+    {
+        return set_value(true);
     }
 
     template<class V, class... Ts>
@@ -166,15 +232,26 @@ struct test_driver
             if (not(error <= threshold))
             {
                 std::cout << "FAILED: " << error << std::endl;
+                v.fail(error, xs...);
+                
                 auto mxdiff = mlopen::max_diff(out_cpu, out_gpu);
                 std::cout << "Max diff: " << mxdiff << std::endl;
-                v.fail(error, xs...);
                 auto max_idx = mlopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
                 std::cout << "Max diff at " << max_idx << ": " << out_cpu[max_idx] << " != " << out_gpu[max_idx] << std::endl;
+
                 if (mlopen::range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
                 if (mlopen::range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
+                
                 auto idx = mlopen::mismatch_idx(out_cpu, out_gpu, mlopen::float_equal);
                 std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
+
+                auto cpu_nan_idx = find_idx(out_cpu, mlopen::not_finite);
+                if (cpu_nan_idx >= 0) 
+                    std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": " << out_cpu[cpu_nan_idx] << std::endl;
+
+                auto gpu_nan_idx = find_idx(out_gpu, mlopen::not_finite);
+                if (gpu_nan_idx >= 0) 
+                    std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": " << out_gpu[gpu_nan_idx] << std::endl;
             } 
             else if (mlopen::range_zero(out_cpu) and mlopen::range_zero(out_gpu)) 
             {
@@ -227,7 +304,7 @@ struct keyword_set
     keyword_set(std::set<std::string> & x) : value(&x)
     {}
     template<class T>
-    void operator()(T&&, std::initializer_list<std::string> x) const
+    void operator()(T&&, std::initializer_list<std::string> x, std::string) const
     {
         value->insert(x);
     }
@@ -239,19 +316,24 @@ struct parser
     parser(args::string_map & x) : m(&x)
     {}
     template<class T>
-    void operator()(T& x, std::initializer_list<std::string> keywords) const
+    void operator()(T& x, std::initializer_list<std::string> keywords, std::string) const
     {
         for(auto&& keyword:keywords)
         {
             if (m->count(keyword) > 0)
             {
-                args::write_value{}(x, (*m)[keyword]);
-                return;
+                try {
+                    args::write_value{}(x, (*m)[keyword]);
+                    return;
+                } catch(...) {
+                    std::cerr << "Invalid argument: " << keyword << std::endl;
+                    throw;
+                }
             }
         }
     }
 
-    void operator()(bool& x, std::initializer_list<std::string> keywords) const
+    void operator()(bool& x, std::initializer_list<std::string> keywords, std::string) const
     {
         for(auto&& keyword:keywords)
         {
@@ -261,6 +343,26 @@ struct parser
                 return;
             }
         }
+    }
+};
+
+struct show_help
+{
+    template<class T>
+    void operator()(const T&, std::initializer_list<std::string> x, std::string help) const
+    {
+        std::cout << std::endl;
+        std::string prefix = "    ";
+        for(std::string a:x)
+        {
+            std::cout << prefix;
+            std::cout << a;
+            prefix = ", ";
+        }
+        if (not std::is_same<T, bool>{})
+            std::cout << " [" << get_type_name<T>() << "]";
+        std::cout << std::endl;
+        std::cout << "        " << help << std::endl;
     }
 };
 
@@ -279,6 +381,23 @@ void test_drive(int argc, const char *argv[])
             ((x.compare(0, 2, "--") == 0) and d.arguments.count(x.substr(2)) > 0);
     });
 
+    // Show help
+    if(arg_map.count("-h") or arg_map.count("--help"))
+    {
+        std::cout << "Driver arguments: " << std::endl;
+        d.parse(show_help{});
+        std::cout << std::endl;
+        std::cout << "Test inputs: " << std::endl;
+        for(auto&& p:d.arguments)
+        {
+            std::cout << "    --" << p.first;
+            if(not p.second.type.empty()) std::cout << " [" << p.second.type << "]";
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+        return;
+    }
+
     d.parse(parser{arg_map});
 
     for(auto&& p:arg_map)
@@ -286,8 +405,15 @@ void test_drive(int argc, const char *argv[])
         if (keywords.count(p.first) == 0)
         {
             auto name = p.first.substr(2);
-            auto&& arg = d.arguments[name];
-            arg.write(p.second);
+            try {
+                auto&& arg = d.arguments.at(name);
+                arg.write(p.second);
+            } catch(...) {
+                std::cerr << "Invalid argument: " << name << std::endl;
+                std::cerr << "With parameters: " << std::endl;
+                for(auto&& s:p.second) std::cerr << "    " << s << std::endl;
+                throw;
+            }
         }
     }
 
