@@ -471,7 +471,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 				float timev = ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed);
 
 				if(timed)
+				{
+					handle.ResetKernelTime();
 					handle.AccumKernelTime(timev);
+				}
 			}
 		}
         break;
