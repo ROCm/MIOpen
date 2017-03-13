@@ -32,6 +32,18 @@
 
 #define _LEN_OF_TYPE            MLO_READ_UNIT
 
+static inline int iDiv(int v, int d)
+{
+	int r = (int)((float)v / d + 0.00001f);
+	return(r);
+}
+
+static inline int iMod(int v, int u, int d)
+{
+	int r = v - mul24((int)u, (int)d);
+	return(r);
+}
+
 /*
 Layout:
 
@@ -114,25 +126,29 @@ __kernel void MLOpenConv1x1PS(
 			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, in_off2 += MLO_IN_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP)
 			{
 				// read data
-				//				in_stage[ib][ilc] = 0;
-				//				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
+
+				in_stage[ib][ilc] = 0;
+
+
+				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
 				{
-
-					in_stage[ib][ilc] = *(__global MLO_READ_TYPE*)&in_ptr[in_off2];
-					in_stage[ib][ilc] = (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS) ? in_stage[ib][ilc] : 0;
-#if !MLO_DIVBY4
-
+#if MLO_C1x1_PIXLEFT > 0
 					// if the last one
 					if (pix_id == MLO_MAP_SZ4 - 1)
 					{
-						for (int j = 3; j >= MLO_C1x1_PIXLEFT; --j)
+						for (int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
 						{
-							((_FLOAT*)&in_stage[ib][ilc])[j] = 0;
+							((_FLOAT*)&in_stage[ib][ilc])[j] = in_ptr[in_off2 + j];
 						}
 					}
+					else
 
 #endif
+					{
+						in_stage[ib][ilc] = *(__global MLO_READ_TYPE*)&in_ptr[in_off2];
+					}
 				}
+
 
 			}
 		}
@@ -165,7 +181,10 @@ __kernel void MLOpenConv1x1PS(
 				)
 			{
 				// read weights
-				wei_stage = wei_ptr[wei_off2];
+				int wei_off_r = (wei_off2 < MLO_N_INPUTS * MLO_N_OUTPUTS) ? wei_off2 : 0;
+
+				wei_stage = wei_ptr[wei_off_r];
+				wei_stage = (wei_off2 < MLO_N_INPUTS * MLO_N_OUTPUTS) ? wei_stage : 0;
 				for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 				{
 					out_tiles[ib][olc] += in_stage[ib][ilc] * (MLO_READ_TYPE)wei_stage;

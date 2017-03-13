@@ -241,27 +241,21 @@ int mlo_construct_winograd::mloConstruct()
 {
 #if MLOPEN_BACKEND_OPENCL
 	bool is_ocl_rocm_metadata_v10 = false; // when false, v2.0 metadata is supported.
-	/// Filter out cases when runtime does not support v1.0 metadata.
-	/// \todo Provide asm-sources and precompiled binaries with both v1.0 and v2.0
-	///       metadata and select appropriate ones in Construct.
-	/// \todo Finally, get gid of this var, v1.0 files and decline support for old runtime.
-	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10) && is_ocl_rocm_metadata_v10)
+	/// \todo As soon as metadata v1.0 support not needed, drop it: 
+	/// get gid of this var and v1.0 files.
+	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 	{
 		const auto use_binaries = !IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
 		// assembly-written kernels may have worse performance than kernels written in high-level
-		// language, e.g. OpenCL. For example, forward 3x3 convolution kernel employing Winograd
-		// algorithm (conv_3x3_wheel) is very slow when InputWidth x InputHeight is 7x7.
-		// MiOpen avoids asm kernels in such corner cases. This setting overrides that.
+		// language, e.g. OpenCL. MiOpen avoids asm kernels in such corner cases, but
+		// this setting allows to override that.
 		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
-
-		// Assembly-written Winograd convolution kernels are normally faster than Direct ones.
-		// Therefore Winograd has higher precedence for now.
 		if (use_binaries) {
 			if (isForwardDirection()
 				&& mloIsCorrectBinaryWinograd3x3Fwd()
 				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
-				return (mloConstructBinaryWinograd3x3Fwd());
+				return (mloConstructBinaryWinograd3x3Fwd(is_ocl_rocm_metadata_v10));
 			}
 		}
 	}
@@ -282,26 +276,18 @@ int mlo_construct_direct2D::mloConstruct()
 
 #if MLOPEN_BACKEND_OPENCL
 	bool is_ocl_rocm_metadata_v10 = false; // when false, v2.0 metadata is supported.
-	/// Filter out cases when runtime does not support v1.0 metadata.
-	/// \todo Provide asm-sources and precompiled binaries with both v1.0 and v2.0
-	///       metadata and select appropriate ones in Construct.
-	/// \todo Finally, get gid of this var, v1.0 files and decline support for old runtime.
-	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10) && is_ocl_rocm_metadata_v10)
+	/// \todo See todo in mlo_construct_winograd::mloConstruct().
+	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 	{
-		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
-		// assembly-written kernels may have worse performance than kernels written in high-level
-		// language, e.g. OpenCL. For example, forward 3x3 convolution kernel employing Winograd
-		// algorithm (conv_3x3_wheel) is very slow when InputWidth x InputHeight is 7x7.
-		// MiOpen avoids asm kernels in such corner cases. This setting overrides that.
-		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
-
 		const auto asm_path = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
 		const auto use_assembly = !IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
 								  && mloExperimentalValidateAssemblerPath(asm_path);
+		// See comment in mlo_construct_winograd::mloConstruct().
+		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
-				return (mloConstructAsmDirect3x3U());
+				return (mloConstructAsmDirect3x3U(is_ocl_rocm_metadata_v10));
 			}
 		}
 	}
@@ -372,7 +358,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		return(mloConstructDirect2D1x1());
 	}
 
-	else if (unaligned)
+	else if (isForwardDirection() && unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2DFwdC());
 	}
@@ -382,7 +368,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
 
-	if (_direction == 0)
+	if (!isForwardDirection())
 	{
 		// backward
 		_pad0 = _kernel_size0 - 1 - _pad0;
@@ -532,16 +518,14 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(bool &is_metadata_v10) const
 	if (! IsTokenInOpenclDriverVersion(driver_version, "LC")) { return false; }
 
 	// At once, extract version of OpenCL metadata.
-	is_metadata_v10 = true;
-	std::istringstream platform_extensions(mlopen::GetPlatformInfo<CL_PLATFORM_EXTENSIONS>(platform));
-	std::string extension;
-	while (platform_extensions >> extension) {
-		if (extension == "cl_amd_object_metadata") {
-			is_metadata_v10 = false;
-			break;
-		}
+	// \todo Discard this code as soon as metadata is stabilized and v1.0 support is not required.
+	is_metadata_v10 = false; // assume v2.x if something fails
+	const std::string platform_version = mlopen::GetPlatformInfo<CL_PLATFORM_VERSION>(platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
+	size_t num_begin = platform_version.find('(');
+	if (num_begin != std::string::npos) {
+		int num = std::stoi(platform_version.substr(num_begin+1));
+		is_metadata_v10 = !(num >= 2338); // v1 switched to v2 somewhere within [2337,2338]
 	}
-	
 	return true;
 }
 
@@ -586,7 +570,7 @@ bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 	return !(_in_width == 7 && _in_height == 7);
 }
 
-int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd()
+int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v10)
 {
 	const auto n_groups = _stream->GetMaxComputeUnits();
 
@@ -600,7 +584,9 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd()
 	_l_wk.push_back(1);
 	_l_wk.push_back(1);
 
-	_kernel_file = "conv_3x3_wheel_alpha_v2_0b_gfx803.so";
+	_kernel_file = is_metadata_v10
+				 ? "conv_3x3_wheel_alpha_v2_0b_gfx803_m10.so"
+				 : "conv_3x3_wheel_alpha_v2_0b_gfx803_m21.so";
 	_kernel_name = "sp3AsmConv3x3F";
 
 	return 0;
@@ -645,7 +631,7 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream, const std::st
 	stream << " -Wa,-defsym," << name << "=" << value;
 }
 
-int mlo_construct_direct2D::mloConstructAsmDirect3x3U()
+int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
 {
 	auto w64_chunks = (_in_width + 63) / 64;
 	auto active_lanes = (_in_width + w64_chunks - 1) / w64_chunks;
@@ -682,7 +668,9 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U()
 	_g_wk.push_back((_in_height + output_lines_per_wave - 1) / output_lines_per_wave);
 	_g_wk.push_back(_batch_sz);
 
-	_kernel_file = "conv3x3.s";
+	_kernel_file = is_metadata_v10
+				 ? "conv3x3_m10.s"
+				 : "conv3x3_m21.s";
 	_kernel_name = "gcnAsmConv3x3U";
 
 	return 0;
@@ -1401,8 +1389,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 	n_outs = std::min(n_outs, _n_outputs);
 	n_ins = std::min(n_ins, _batch_sz);
 
-	n_out_stacks = (n_outs * n_out_stacks < _n_outputs) ? n_out_stacks : 1;
-	n_in_stacks = (n_ins * n_in_stacks < _batch_sz) ? n_in_stacks : 1;
+	n_out_stacks = (n_outs * n_out_stacks <= _n_outputs) ? n_out_stacks : 1;
+	n_in_stacks = (n_ins * n_in_stacks <= _batch_sz) ? n_in_stacks : 1;
 	int total_ins = n_ins * n_in_stacks;
 	int total_outs = n_outs * n_out_stacks;
 

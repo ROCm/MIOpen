@@ -124,6 +124,8 @@
 
 #define MLO_LCL_WEIGHTS 1
 
+#define MLO_PADDING_SHIFT1 (MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1)
+#define MLO_PADDING_SHIFT0 (MLO_FILTER_SIZE0 - MLO_FILTER_PAD0 - 1)
 
 static inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
@@ -242,7 +244,7 @@ static inline void Conv(int o_map_base,
 			for(int k = 0; k < MLO_FILTER_SIZE1; ++k, in_stg_off2+=MLO_IN_LCL_WIDTH
 			)
 #else
-			for(int k = 0; k < MLO_FILTER_SIZE1; ++k, in_stg_off2 += (((k + (MLO_FILTER_SIZE1%MLO_OUT_TILE1)) % MLO_FILTER_STRIDE1) ? 0 : MLO_IN_LCL_WIDTH)
+			for(int k = 0; k < MLO_FILTER_SIZE1; ++k, in_stg_off2 += (((k - MLO_PADDING_SHIFT1 + (MLO_FILTER_SIZE1%MLO_OUT_TILE1)) % MLO_FILTER_STRIDE1) ? 0 : MLO_IN_LCL_WIDTH)
 			)
 #endif
 			{	
@@ -274,7 +276,7 @@ static inline void Conv(int o_map_base,
 					for( int j = 0; j < MLO_OUT_TILE1; ++j)
 					{
 #if MLO_DIR_FORWARD == 0
-						if (((j + k + 1 + (MLO_FILTER_SIZE1 % MLO_FILTER_STRIDE1)) % MLO_FILTER_STRIDE1) == 0)
+						if (((j + k + 1 - MLO_PADDING_SHIFT1 + (MLO_FILTER_SIZE1 % MLO_FILTER_STRIDE1)) % MLO_FILTER_STRIDE1) == 0)
 #endif
 						for(int i = 0; i < MLO_OUT_TILE0; ++i)
 						{
@@ -295,7 +297,7 @@ static inline void Conv(int o_map_base,
 								pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i]
 								     += pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 + i * MLO_FILTER_STRIDE0 + l] * pvt_wei_stage[l_act];
 #else
-								if (((i + l + 1 + (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) % MLO_FILTER_STRIDE0) == 0)
+								if (((i + l + 1 - MLO_PADDING_SHIFT0 + (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) % MLO_FILTER_STRIDE0) == 0)
 								{
 									pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i]
 										+= pvt_in_stage[(j / MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH + (i + l) / MLO_FILTER_STRIDE0] * pvt_wei_stage[l_act];

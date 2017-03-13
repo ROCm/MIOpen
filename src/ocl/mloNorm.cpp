@@ -85,7 +85,7 @@ int mlo_construct_norm::mloConstructFwd()
 
 
 #if 1
-	_kernel_file = "MLOpenLRN_PS.cl";
+	_kernel_file = "MLOpenLRNFwd.cl";
 	_kernel_name = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? "MLOpenLRNAcrossChannels4" : "MLOpenLRNWithinChannel_PS";
 	if (_norm_region == MLO_LRN_ACROSS_CHANNELS)
 	{
@@ -268,7 +268,7 @@ int mlo_construct_norm::mloConstructBwd()
 		+ getGeneralCompOptions()
 		;
 
-	_kernel_file = "MLOpenLRN.cl";
+	_kernel_file = "MLOpenLRNBwd.cl";
 
 	_l_wk.clear();
 	_g_wk.clear();

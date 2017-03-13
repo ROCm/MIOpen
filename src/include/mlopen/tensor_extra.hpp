@@ -1,7 +1,7 @@
 #include <mlopen.h>
 #include <initializer_list>
 
-int mlopenGetTensorIndex(mlopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices);
+MLOPEN_EXPORT int mlopenGetTensorIndex(mlopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices);
 
 int mlopenGetTensorDescriptorElementSize(mlopenTensorDescriptor_t tensorDesc);
 
