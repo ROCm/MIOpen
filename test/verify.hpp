@@ -39,6 +39,16 @@ struct abs_diff_fn
 
 static constexpr abs_diff_fn abs_diff{};
 
+struct not_finite_fn
+{
+    template<class T>
+    bool operator()(T x) const
+    {
+        return not std::isfinite(x);
+    }
+};
+static constexpr not_finite_fn not_finite{};
+
 template<class T, class U>
 T as(T, U x)
 {
@@ -85,6 +95,12 @@ struct square_diff_fn
 static constexpr square_diff_fn square_diff{};
 
 template<class R1>
+bool range_empty(R1&& r1)
+{
+    return r1.begin() == r1.end();
+}
+
+template<class R1>
 auto range_distance(R1&& r1) MLOPEN_RETURNS
 (std::distance(r1.begin(), r1.end()));
 
@@ -105,6 +121,14 @@ std::size_t mismatch_idx(R1&& r1, R2&& r2, Compare compare)
 {
     auto p = std::mismatch(r1.begin(), r1.end(), r2.begin(), compare);
     return std::distance(r1.begin(), p.first);
+}
+
+template<class R1, class Predicate>
+long find_idx(R1&& r1, Predicate p)
+{
+    auto it = std::find_if(r1.begin(), r1.end(), p);
+    if (it == r1.end()) return -1;
+    else return std::distance(r1.begin(), it);
 }
 
 template<class R1, class R2>
