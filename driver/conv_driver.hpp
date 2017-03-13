@@ -572,13 +572,13 @@ int ConvDriver<T>::FindBackwardWeights(int &ret_algo_count, int request_algo_cou
 	if(wei_h != 1 && wei_w != 1) {
 		Im2ColCPU(in, 0, in_c, in_h, in_w,
 				wei_h, wei_w,
-				out_h, out_w, pad_h, pad_w, v, u, workspace_host);
+				out_h, out_w, pad_h, pad_w, v, u, workspace_bwd_host);
 		
-		workspace_dev->FromGPU(GetStream(), workspace.data());
+		workspace_bwd_dev->FromGPU(GetStream(), workspace_bwd.data());
 		
-		for(int i = 0; i < workspace.size(); i++) {
-			if(workspace[i] != workspace_host[i]) {
-				printf("Im2col error: %d %f %f\n ", i, workspace[i], workspace_host[i]);
+		for(int i = 0; i < workspace_bwd.size(); i++) {
+			if(workspace_bwd[i] != workspace_bwd_host[i]) {
+				printf("Im2col error: %d %f %f\n ", i, workspace_bwd[i], workspace_bwd_host[i]);
 			}
 		}
 	}
