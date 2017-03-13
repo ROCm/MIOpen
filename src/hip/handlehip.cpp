@@ -90,7 +90,8 @@ struct HandleImpl
 Handle::Handle (mlopenAcceleratorQueue_t *stream) 
 : impl(new HandleImpl())
 {
-    this->impl->stream = HandleImpl::reference_stream(x);
+    if (stream) this->impl->stream = HandleImpl::reference_stream(nullptr);
+    else this->impl->stream = HandleImpl::reference_stream(*stream);
 }
 
 Handle::Handle ()
