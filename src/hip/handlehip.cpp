@@ -93,7 +93,7 @@ Handle::Handle (mlopenAcceleratorQueue_t *stream)
     this->impl->stream = HandleImpl::reference_stream(x);
 }
 
-Handle::Handle () 
+Handle::Handle ()
 : impl(new HandleImpl())
 {
     set_default_device();
@@ -161,10 +161,10 @@ KernelInvoke Handle::GetKernel(
         const std::vector<size_t>& vgd,
         const std::string& params)
 {
-    auto k = this->impl->cache.GetKernel(*this, 
+    auto k = this->impl->cache.GetKernel(*this,
             algorithm,
             network_config,
-            program_name, 
+            program_name,
             kernel_name,
             vld,
             vgd,
@@ -235,9 +235,8 @@ std::string Handle::GetDeviceName()
 {
     hipDeviceProp_t props;
     hipGetDeviceProperties(&props, get_device_id());
-    std::string n(props.name);
+    std::string n("gfx"+std::to_string(props.gcnArch));
 	return GetDeviceNameFromMap(n);
 }
 #endif
 }
-

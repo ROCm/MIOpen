@@ -27,7 +27,7 @@ static constexpr sum_fn sum{};
 struct max_fn
 {
     template<class T, class U>
-    auto operator()(T x, U y) const MLOPEN_RETURNS(std::max<common_type<T, U>>(x, y));
+    auto operator()(T x, U y) const MLOPEN_RETURNS(x > y ? x : y);
 };
 static constexpr max_fn max{};
 

@@ -66,6 +66,19 @@
 #define MLO_LCL_MEM_SZ MLO_WEIGHTS_LCL_SZ
 #endif
 
+
+static inline int iDiv(int v, int d)
+{
+	int r = (int)((float)v / d + 0.00001f);
+	return(r);
+}
+
+static inline int iMod(int v, int u, int d)
+{
+	int r = v - mul24((int)u, (int)d);
+	return(r);
+}
+
 /*
 Layout:
 assuming NCHW data layout.
@@ -153,10 +166,14 @@ __kernel void MLOpenConv1x1PS_LW(
 		{
 			for (int w = lcl_id0; w < MLO_WEIGHTS_LCL_SZ ; w += MLO_GRP_SZ0)
 			{
-				int oi = (int)(((float)w + 0.25f) / (float)MLO_WEIGHTS_ROW);
-				int lwi = -mad24(oi, (int)MLO_WEIGHTS_ROW, -w);
+				int oi = iDiv(w, MLO_WEIGHTS_ROW);
+				int lwi = iMod(w, oi, MLO_WEIGHTS_ROW);
 				int wi = mad24(wc, (int)(MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP*MLO_WEI_CHANNEL_STRIDE),lwi);
-				lcl_wei_stage[mad24(oi, MLO_WEIGHTS_ROW, lwi)] = wei_ptr[wei_off + mad24(oi, MLO_WEI_BSTRIDE, wi)];
+				int wei_off_r = wei_off + mad24(oi, MLO_WEI_BSTRIDE, wi);
+				wei_off_r = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_off_r : 0;
+				_FLOAT wei_val = wei_ptr[wei_off_r];
+				wei_val = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_val : 0;
+				lcl_wei_stage[mad24(oi, MLO_WEIGHTS_ROW, lwi)] = wei_val;
 
 #if 0
 				if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
@@ -190,25 +207,28 @@ __kernel void MLOpenConv1x1PS_LW(
 			// lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP
 			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, in_off2 += MLO_IN_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP)
 			{
-				// read data
+				in_stage[ib][ilc] = 0;
+
+
+				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
 				{
-
-					in_stage[ib][ilc] = *(__global MLO_READ_TYPE*)&in_ptr[in_off2];
-					in_stage[ib][ilc] = (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS) ? in_stage[ib][ilc] : 0;
-#if !MLO_DIVBY4
-
+#if MLO_C1x1_PIXLEFT > 0
 					// if the last one
 					if (pix_id == MLO_MAP_SZ4 - 1)
 					{
-						for (int j = 3; j >= MLO_C1x1_PIXLEFT; --j)
+
+						for (int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
 						{
-							((_FLOAT*)&in_stage[ib][ilc])[j] = 0;
+							((_FLOAT*)&in_stage[ib][ilc])[j] = in_ptr[in_off2 + j];
 						}
 					}
+					else
 
 #endif
+					{
+						in_stage[ib][ilc] = *(__global MLO_READ_TYPE*)&in_ptr[in_off2];
+					}
 				}
-
 			}
 		}
 
@@ -348,7 +368,7 @@ __kernel void MLOpenConv1x1PS_LW(
 #if MLO_CONV_BIAS
 					bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
-#if !MLO_DIVBY4
+#if MLO_C1x1_PIXLEFT > 0
 
 					// if the last one
 					if (pix_id == MLO_MAP_SZ4 - 1)
