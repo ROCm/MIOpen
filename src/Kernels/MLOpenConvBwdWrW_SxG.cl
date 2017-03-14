@@ -210,7 +210,7 @@ __kernel void MLOpenCvBwdWrW_7x7(
 // out address based on wave and batch
 	int out_map = lcl_wv_id;
 
-	gbl_out_off +=  (wave_id * MLO_HW_WAVE_SZ  + out_map) * MLO_IN_CHANNEL_STRIDE;
+	gbl_out_off +=  (wave_id * MLO_HW_WAVE_SZ  + out_map) * MLO_OUT_CHANNEL_STRIDE;
 
 
 #define MLO_DAT_SZ (MLO_IN_HEIGHT * MLO_IN_WIDTH)
