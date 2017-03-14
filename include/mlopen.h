@@ -288,14 +288,6 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGetConvolutionForwardOutputDim(mlopenConvolut
 
 MLOPEN_EXPORT mlopenStatus_t mlopenDestroyConvolutionDescriptor(mlopenConvolutionDescriptor_t convDesc);
 
-// Same enum type for forward, backward filter and backward data
-// algorthms
-typedef enum {
-	mlopenConvolutionNoWorkspace = 0,
-	mlopenConvolutionFastest = 1,
-	mlopenConvolutionWorkSpaceLimit = 2,
-} mlopenConvPreference_t;
-
 typedef enum {
 	mlopenConvolutionFwdAlgoGEMM = 0,
 	mlopenConvolutionFwdAlgoDirect = 1,
@@ -327,14 +319,6 @@ typedef struct{
  * and outputs performance metrics to a user- allocated array of
  * mlopenConvolutionFwdAlgoPerf_t. These metrics are written in sorted fashion
  * where the first element has the lowest compute time.
- *
- * [MD]: Ideally we want all the kernels to be
- * compiled, cached, etc. in this routine. Does this
- * mean that the user is required to call this
- * routine?
- * [MD]: Adding algo preference here itself such that this
- * routime works as both cuDNN's FindAlgorithm and GetAlgorithm
- * routines. I do not see any need of having two similar routines
  */
 
 MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionForwardGetWorkSpaceSize(
@@ -354,7 +338,6 @@ MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionForwardAlgorithm(mlopenHandle_
 		const int							requestAlgoCount,
 		int									*returnedAlgoCount,
 		mlopenConvAlgoPerf_t				*perfResults,
-		mlopenConvPreference_t				preference,
 		void								*workSpace,
 		size_t								workSpaceSize,
 		bool								exhaustiveSearch);
@@ -392,7 +375,6 @@ MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionBackwardDataAlgorithm(mlopenHa
 		const int							requestAlgoCount,
 		int									*returnedAlgoCount,
 		mlopenConvAlgoPerf_t				*perfResults,
-		mlopenConvPreference_t				preference,
 		void								*workSpace,
 		size_t								workSpaceSize,
 		bool								exhaustiveSearch);
@@ -429,7 +411,6 @@ MLOPEN_EXPORT mlopenStatus_t mlopenFindConvolutionBackwardWeightsAlgorithm(mlope
 		const int							requestAlgoCount,
 		int									*returnedAlgoCount,
 		mlopenConvAlgoPerf_t				*perfResults,
-		mlopenConvPreference_t				preference,
 		void								*workSpace,
 		size_t								workSpaceSize,
 		bool								exhaustiveSearch);
