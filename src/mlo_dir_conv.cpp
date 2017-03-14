@@ -252,8 +252,7 @@ int mlo_construct_winograd::mloConstruct()
 		// this setting allows to override that.
 		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_binaries) {
-			if (isForwardDirection()
-				&& mloIsCorrectBinaryWinograd3x3Fwd()
+			if (mloIsCorrectBinaryWinograd3x3Fwd()
 				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
 				return (mloConstructBinaryWinograd3x3Fwd(is_ocl_rocm_metadata_v10));
 			}
@@ -557,17 +556,20 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 		&& _in_height	< std::pow(2, 16)
 		&& _in_width	< std::pow(2, 16)
 		&& grid_workgroup_count_x				 <  std::pow(2, 16)
-		&& (_n_inputs * _in_height * _in_width)  <= std::pow(2, 28)
+		&& (_n_inputs  * _in_height * _in_width) <= std::pow(2, 28)
 		&& (_n_outputs * _in_height * _in_width) <= std::pow(2, 28)
+		&& (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+		&& (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
 		&& _n_inputs % 2	== 0
 		&& _n_inputs		>= 16
 		&& _in_layout		== "NCHW";
-		// && _weights_layout == std::string("NKCHW") // See fixme above.
+		// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+		// Actually, K<->C flpping is controlled by separate flag, so we can support either layout both directions.
 }
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 {
-	return !(_in_width == 7 && _in_height == 7);
+	return true;
 }
 
 int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v10)
@@ -585,8 +587,8 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v1
 	_l_wk.push_back(1);
 
 	_kernel_file = is_metadata_v10
-				 ? "conv_3x3_wheel_alpha_v2_0b_gfx803_m10.so"
-				 : "conv_3x3_wheel_alpha_v2_0b_gfx803_m21.so";
+				 ? "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so"
+				 : "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
 	_kernel_name = "sp3AsmConv3x3F";
 
 	return 0;
