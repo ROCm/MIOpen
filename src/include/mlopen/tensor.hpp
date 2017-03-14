@@ -6,6 +6,7 @@
 #include <mlopen.h>
 #include <mlopen/common.hpp>
 #include <vector>
+#include <cassert>
 // TODO(paul): remove this include later
 #include <cstdio>
 
