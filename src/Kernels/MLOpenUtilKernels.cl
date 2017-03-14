@@ -50,7 +50,7 @@ kernel void Im2Col(const int data_size_off, global float *im, size_t im_offset,
 #if USE_IM_OFF_GUARD
 #define IM_OFF_GUARD(idx) (idx) < data_size_off ? im_off[(idx)] : 0
 #else
-#define IM_OFF_GUARD(idx) im_off[(idx)]
+#define IM_OFF_GUARD(idx) im_off[idx]
 #endif
 
 	global float *im_off = im + im_offset;

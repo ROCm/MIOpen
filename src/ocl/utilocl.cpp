@@ -37,11 +37,7 @@ float Im2ColGPU(
 	params += " -DSTRIDE_GT_1=" + std::to_string(stride_h*stride_w > 1);
 	params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
 	params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
-#if MLOPEN_BACKEND_HIPOC
 	params += " -DUSE_IM_OFF_GUARD=1";
-#else
-	params += " -DUSE_IM_OFF_GUARD=0";
-#endif
 
 	const std::vector<size_t> vld(1, 256);
 	const std::vector<size_t> vgd(1, 256*std::max(1, (c/num_ch_per_wg))*num_blks);
