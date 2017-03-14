@@ -59,7 +59,7 @@
 #endif
 
 
-#define MLO_HW_WAVE_ID_SETTING 1
+#define MLO_HW_WAVE_ID_SETTING 0
 #if MLO_HW_WAVE_ID_SETTING //&& MLO_COMPILER_AMD_OPENCL_HSAIL==1
 
 // FIXME Conduct enabling from the host code.
@@ -276,7 +276,7 @@ __kernel void MLOpenCvBwdWrW_7x7(
 
 // convolve
 // internals
-			for (int m = 0; m < MLO_FILTER_SIZE1; ++m)
+			for (int m = 0; m < MLO_FILTER_SIZE1 - 1; ++m)
 			{
 				for (int l = 0; l < MLO_FILTER_SIZE0; ++l)
 				{
@@ -287,6 +287,23 @@ __kernel void MLOpenCvBwdWrW_7x7(
 
 							pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l]
 								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+
+#if 0
+							_FLOAT bot_val = bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+							_FLOAT top_val = top_dat[j*MLO_IN_WIDTH + i];
+
+							if (bot_val*top_val != 0 && lcl_id == 0 && m == 0 && l == 0)
+							{
+								printf("K:si: %d %d %f %f %f %f\n",
+									j,
+									i,
+									pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l],
+									bot_val*top_val,
+									bot_val,
+									top_val
+								);
+							}
+#endif
 						}  // i
 					} // j
  				} // l
@@ -294,7 +311,7 @@ __kernel void MLOpenCvBwdWrW_7x7(
 			} // m
 
 
-#if 1
+
 
 // top
 			for (int m = MLO_FILTER_PAD1; m < MLO_FILTER_SIZE1; ++m)
@@ -308,11 +325,31 @@ __kernel void MLOpenCvBwdWrW_7x7(
 
 							pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l]
 								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1)*MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+
+#if 0
+							_FLOAT bot_val = bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+							_FLOAT top_val = top_dat[j*MLO_IN_WIDTH + i];
+
+							if (bot_val*top_val != 0 && lcl_id == 0 && m == 0 && l == 0)
+							{
+								printf("K:st: %d %d %f %f %f %f\n",
+									j,
+									i,
+									pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l],
+									bot_val*top_val,
+									bot_val,
+									top_val
+								);
+							}
+#endif
+
+
 						}  // i
 					} // j
 				} // l
 
 			} // m
+
 
 // bot
 			for (int m = 0; m < MLO_FILTER_SIZE1 - MLO_FILTER_PAD1; ++m)
@@ -325,12 +362,29 @@ __kernel void MLOpenCvBwdWrW_7x7(
 						{
 
 							pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l]
-								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m)*MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1)*MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+#if 0
+							_FLOAT bot_val = bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+							_FLOAT top_val = top_dat[j*MLO_IN_WIDTH + i];
+
+							if (bot_val*top_val != 0 && lcl_id == 0 && m == 0 && l == 0)
+							{
+								printf("K:sb: %d %d %f %f %f %f\n",
+									j,
+									i,
+									pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l],
+									bot_val*top_val,
+									bot_val,
+									top_val
+								);
+							}
+#endif
 						}  // i
 					} // j
 				} // l
 
 			} // m
+
 
 
 // left 
@@ -344,11 +398,28 @@ __kernel void MLOpenCvBwdWrW_7x7(
 						{
 							pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l]
 								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+#if 0
+							_FLOAT bot_val = bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+							_FLOAT top_val = top_dat[j*MLO_IN_WIDTH + i];
+
+							if (bot_val*top_val != 0 && lcl_id == 0 && m == 0 && l == 0)
+							{
+								printf("K:sl: %d %d %f %f %f %f\n",
+									j,
+									i,
+									pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l],
+									bot_val*top_val,
+									bot_val,
+									top_val
+								);
+							}
+#endif
 						}  // i
 					} // j
 				} // l
 
 			} // m
+
 
 // right
 			for (int m = 0; m < MLO_FILTER_SIZE1; ++m)
@@ -360,12 +431,30 @@ __kernel void MLOpenCvBwdWrW_7x7(
 						int i = MLO_IN_WIDTH -1;
 						{
 							pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l]
-								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l];
+								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+#if 0
+							_FLOAT bot_val = bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+							_FLOAT top_val = top_dat[j*MLO_IN_WIDTH + i];
+
+							if (bot_val*top_val != 0 && lcl_id == 0 && m == 0 && l == 0)
+							{
+								printf("K:sr: %d %d %f %f %f %f\n",
+									j,
+									i,
+									pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l],
+									bot_val*top_val,
+									bot_val,
+									top_val
+								);
+							}
+#endif
 						}  // i
 					} // j
 				} // l
 
 			} // m
+
+
 
 // top - left
 			for (int m = MLO_FILTER_PAD1; m < MLO_FILTER_SIZE1; ++m)
@@ -379,12 +468,29 @@ __kernel void MLOpenCvBwdWrW_7x7(
 
 							pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l]
 								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1)*MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+#if 0
+							_FLOAT bot_val = bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+							_FLOAT top_val = top_dat[j*MLO_IN_WIDTH + i];
+
+							if (bot_val*top_val != 0 && lcl_id == 0 && m == 0 && l == 0)
+							{
+								printf("K:stl: %d %d %f %f %f %f\n",
+									j,
+									i,
+									pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l],
+									bot_val*top_val,
+									bot_val,
+									top_val
+								);
+							}
+#endif
 						}  // i
 					} // j
 				} // l
 
 			} // m
 
+#if 1
 // top - right
 			for (int m = MLO_FILTER_PAD1; m < MLO_FILTER_SIZE1; ++m)
 			{
@@ -396,7 +502,23 @@ __kernel void MLOpenCvBwdWrW_7x7(
 						{
 
 							pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l]
-								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1)*MLO_IN_WIDTH + i + l];
+								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1)*MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+#if 0
+							_FLOAT bot_val = bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+							_FLOAT top_val = top_dat[j*MLO_IN_WIDTH + i];
+
+							if (bot_val*top_val != 0 && lcl_id == 0 && m == 0 && l == 0)
+							{
+								printf("K:str: %d %d %f %f %f %f\n",
+									j,
+									i,
+									pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l],
+									bot_val*top_val,
+									bot_val,
+									top_val
+								);
+							}
+#endif
 						}  // i
 					} // j
 				} // l
@@ -414,7 +536,23 @@ __kernel void MLOpenCvBwdWrW_7x7(
 						{
 
 							pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l]
-								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m)*MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1)*MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+#if 0
+							_FLOAT bot_val = bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+							_FLOAT top_val = top_dat[j*MLO_IN_WIDTH + i];
+
+							if (bot_val*top_val != 0 && lcl_id == 0 && m == 0 && l == 0)
+							{
+								printf("K:sbl: %d %d %f %f %f %f\n",
+									j,
+									i,
+									pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l],
+									bot_val*top_val,
+									bot_val,
+									top_val
+								);
+							}
+#endif
 						}  // i
 					} // j
 				} // l
@@ -432,7 +570,23 @@ __kernel void MLOpenCvBwdWrW_7x7(
 						{
 
 							pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l]
-								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m)* MLO_IN_WIDTH + i + l];
+								+= top_dat[j*MLO_IN_WIDTH + i] * bot_dat[(j + m - MLO_FILTER_PAD1)* MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+#if 0
+							_FLOAT bot_val = bot_dat[(j + m - MLO_FILTER_PAD1) *MLO_IN_WIDTH + i + l - MLO_FILTER_PAD0];
+							_FLOAT top_val = top_dat[j*MLO_IN_WIDTH + i];
+
+							if (bot_val*top_val != 0 && lcl_id == 0 && m == 0 && l == 0)
+							{
+								printf("K:sbl: %d %d %f %f %f %f\n",
+									j,
+									i,
+									pvt_accum[(wave_id_r * MLO_FILTER_SIZE1 + m) * MLO_FILTER_SIZE0 + l],
+									bot_val*top_val,
+									bot_val,
+									top_val
+								);
+							}
+#endif
 						}  // i
 					} // j
 				} // l
