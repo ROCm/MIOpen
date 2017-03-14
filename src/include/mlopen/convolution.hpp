@@ -69,7 +69,6 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
 		Data_t							workSpace,
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
@@ -129,7 +128,6 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
 		void							*workSpace,
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
@@ -171,7 +169,6 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		mlopenConvAlgoPerf_t			*perfResults,
-		mlopenConvPreference_t			preference,
 		Data_t							workSpace,
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;

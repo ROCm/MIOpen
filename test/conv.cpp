@@ -114,7 +114,6 @@ struct verify_forward_conv : conv_base<T>
             1,
             &ret_algo_count,
             &perf,
-            mlopenConvolutionFastest,
             workspace_dev.get(),
             workspace_size,
             0); // MD: Not performing exhaustiveSearch by default for now
@@ -215,7 +214,6 @@ struct verify_backward_conv : conv_base<T>
             1,
             &ret_algo_count,
             &perf,
-            mlopenConvolutionFastest,
             nullptr,
             10,
             0); // MD: Not performing exhaustiveSearch by default for now
@@ -322,7 +320,6 @@ struct verify_backward_weights_conv : conv_base<T>
             1,
             &ret_algo_count,
             &perf,
-            mlopenConvolutionFastest,
             workspace_dev.get(),
             workspace_size,
             0); // MD: Not performing exhaustiveSearch by default for now

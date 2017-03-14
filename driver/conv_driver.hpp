@@ -361,7 +361,6 @@ int ConvDriver<T>::FindForward(int &ret_algo_count, int request_algo_count,
 			request_algo_count,
 			&ret_algo_count,
 			perf_results.data(),
-			mlopenConvolutionFastest,
 			workspace_fwd_dev->GetMem(),
 			workspace_fwd_dev->GetSize(),
 			(inflags.GetValueInt("search")==1)?true:false
@@ -513,7 +512,6 @@ int ConvDriver<T>::FindBackwardData(int &ret_algo_count, int request_algo_count,
 			request_algo_count,
 			&ret_algo_count,
 			perf_results.data(),
-			mlopenConvolutionFastest,
 			NULL,
 			0,
 			(inflags.GetValueInt("search") == 1) ? true : false
@@ -535,7 +533,6 @@ int ConvDriver<T>::FindBackwardWeights(int &ret_algo_count, int request_algo_cou
 			request_algo_count,
 			&ret_algo_count,
 			perf_results.data(),
-			mlopenConvolutionFastest,
 			workspace_bwd_dev->GetMem(),
 			workspace_bwd_dev->GetSize(),
 			(inflags.GetValueInt("search") == 1) ? true : false

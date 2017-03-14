@@ -268,7 +268,6 @@ struct conv_forward : output_tensor_fixture
             1,
             &ret_algo_count,
             &perf,
-            mlopenConvolutionFastest,
             fwd_workspace_dev,
             sz_fwd_workspace,
 			0)); // MD: Not performing exhaustiveSearch by default for now
