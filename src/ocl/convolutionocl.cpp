@@ -529,7 +529,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     // Direct algo
     std::vector<KernelInvoke> kernel_direct;
     if( FindDirectKernel(handle, dxDesc, wDesc, dyDesc, kernel_direct, exhaustiveSearch, 0) == 0) { //Backward
-    float time_direct = 0;
         float time_direct = 0;
         float padding_val = 0;
 
