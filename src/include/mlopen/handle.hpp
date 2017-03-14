@@ -17,7 +17,7 @@ struct HandleImpl;
 struct Handle : mlopenHandle {
 	
 	Handle();
-	Handle(int numStreams, mlopenAcceleratorQueue_t *streams);
+	Handle(mlopenAcceleratorQueue_t *stream);
     Handle(Handle&&) noexcept;
 	~Handle();
 
