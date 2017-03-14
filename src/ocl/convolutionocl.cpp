@@ -243,7 +243,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     else if(workSpace != nullptr && workSpaceSize >= workspace_req) {
         float time_im2col = 0;
         size_t in_offset = 0;
-        time_im2col = Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+        time_im2col = Im2ColGPU(handle, xDesc.GetElementSize(), x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 
         gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
         gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
@@ -437,7 +437,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 int out_offset = i * wei_n * out_h * out_w;
                 if(wei_h != 1 && wei_w != 1) {
                     size_t in_offset = i * in_c * in_h * in_w;
-                    Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+                    Im2ColGPU(handle, xDesc.GetElementSize(), x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
                     if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
 
@@ -638,7 +638,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     else if(workSpace != nullptr && workSpaceSize >= workspace_req) {
         float time_im2col = 0;
         size_t in_offset = 0;
-        time_im2col = Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+        time_im2col = Im2ColGPU(handle, xDesc.GetElementSize(), x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
 
         gg.FindSolution(.003, handle, workSpace, dy, tmp_dw.get(), false);
         gg.RunGemm(handle, workSpace, dy, tmp_dw.get(), 0, 0, 0);
@@ -813,7 +813,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 int out_offset = i * wei_n * out_h * out_w;
                 if(wei_h != 1 && wei_w != 1) {
                     size_t in_offset = i * in_c * in_h * in_w;
-                    Im2ColGPU(handle, x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
+                    Im2ColGPU(handle, xDesc.GetElementSize(), x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
                     if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
 
