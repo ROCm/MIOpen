@@ -467,7 +467,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 			size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
 			if(workSpace != nullptr && workSpaceSize >= workspace_fft)
 			{
-				bool timed = handle.IsProfilingEnabled() ? true : false;
+				bool timed = handle.IsProfilingEnabled();
 				float timev = ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed);
 
 				if(timed)
