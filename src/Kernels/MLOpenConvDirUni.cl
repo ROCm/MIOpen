@@ -611,34 +611,24 @@ __kernel void MLOpenConvUni(
 // over all local outputs
 		int out_off1 = out_off;
 		for(int o = 0; o < MLO_N_OUT_TILES
+#if MLO_OUTPUTS_ALIGNED == 0
+						&& o_map + o < MLO_N_OUTPUTS
+#endif
 						; ++o, out_off1 += MLO_OUT_CHANNEL_STRIDE
 						)
 		{
 // over output tile
 
 			int out_off2 = out_off1;
-			for( int j = 0; j < MLO_OUT_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
+			for( int j = 0; j < MLO_OUT_TILE1 && y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT; ++j, out_off2 += MLO_OUT_STRIDE)
 			{
-				for(int i = 0; i < MLO_OUT_TILE0; ++i)
+				for(int i = 0; i < MLO_OUT_TILE0 && x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH; ++i)
 				{
-					if (true
-
-#if MLO_OUT_ALIGNED == 0
-						&& y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT &&  x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH
-#endif
-#if MLO_OUTPUTS_ALIGNED == 0
-						&& o_map + o < MLO_N_OUTPUTS
-#endif
-
-						)
-					{
 						out[out_off2 + i] = pvt_accum[o*MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
 #if MLO_CONV_BIAS
 						+ bias_val = bias[o_map + o];
 #endif
 						 ;
-
-					}	
 
 				}
 			}
