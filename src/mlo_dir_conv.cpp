@@ -358,7 +358,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		return(mloConstructDirect2D1x1());
 	}
 
-	else if (isForwardDirection() && unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
+	else if (unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2DFwdC());
 	}
