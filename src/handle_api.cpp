@@ -12,19 +12,16 @@ mlopenStatus_t mlopenCreate(mlopenHandle_t *handle) {
 
 extern "C" 
 mlopenStatus_t mlopenCreateWithStream(mlopenHandle_t *handle,
-		int numStreams,
-		mlopenAcceleratorQueue_t *streams ) {
+		mlopenAcceleratorQueue_t *stream ) {
 
 	return mlopen::try_([&] {
-			mlopen::deref(handle) = new mlopen::Handle(numStreams, streams);
+			mlopen::deref(handle) = new mlopen::Handle(stream);
 	});
 }
 
-// TODO(paul): Stream size should be a spearate parameter
 extern "C"
 mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
-		mlopenAcceleratorQueue_t *streamID,
-		int  /*numStream*/) {
+		mlopenAcceleratorQueue_t *streamID) {
 	return mlopen::try_([&] {
 		mlopen::deref(streamID) = mlopen::deref(handle).GetStream();
 	});

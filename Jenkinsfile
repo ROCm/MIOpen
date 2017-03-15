@@ -17,10 +17,10 @@ parallel opencl: {
             cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
         }
         stage('GCC Debug') {
-            cmake_build('g++-4.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+            cmake_build('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
         }
         stage('GCC Release') {
-            cmake_build('g++-4.8', '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+            cmake_build('g++-5', '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
         }
     }
 }, hip: {
