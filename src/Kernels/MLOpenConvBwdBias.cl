@@ -41,10 +41,12 @@ __kernel void MLOpenConvBwdB(
     {
         int map_id = iDiv(j, (MLO_OUT_WIDTH*MLO_OUT_HEIGHT / MLO_CONVBWDB_UNITSIZE));
         int read_id = iMod(j, map_id, (MLO_OUT_WIDTH*MLO_OUT_HEIGHT / MLO_CONVBWDB_UNITSIZE));
-
-        int glb_top_df_offset = output_map * MLO_OUT_CHANNEL_STRIDE + (map_id * MLO_OUT_BATCH_STRIDE) + (read_id * MLO_CONVBWDB_UNITSIZE);
-        for (int j = 0; j < MLO_CONVBWDB_UNITSIZE; j++)
-            sum += top_df[glb_top_df_offset + j];
+	if(read_id < MLO_OUT_WIDTH*MLO_OUT_HEIGHT)
+	{
+		int glb_top_df_offset = output_map * MLO_OUT_CHANNEL_STRIDE + (map_id * MLO_OUT_BATCH_STRIDE) + (read_id * MLO_CONVBWDB_UNITSIZE);
+	        for (int j = 0; j < MLO_CONVBWDB_UNITSIZE; j++)
+	            sum += top_df[glb_top_df_offset + j];
+	}
     }
     lcl_sum[lid] = sum;
 
