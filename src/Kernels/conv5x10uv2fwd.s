@@ -46,10 +46,11 @@
 // For use during core-loop and later
 .set sreg_wval    ,  8   // [50]
 .set sreg_wei_addr, 58   // [2]
-.set sreg_k       , 60   // [1]
-.set sreg_c       , 61   // [1]
-.set sreg_dy      , 62   // [1]
-.set SGPR_COUNT   , 64   // COUNT
+.set sreg_dswr1vcc, 60   // [1]
+.set sreg_k       , 62   // [1]
+.set sreg_c       , 63   // [1]
+.set sreg_dy      , 64   // [1]
+.set SGPR_COUNT   , 65   // COUNT
 // ******* VGPR allocation
 // For used during initialization
 .set vreg_local_0 ,  0   // [1]
@@ -273,20 +274,30 @@ conv5x10uv2fwd:
 	v_cndmask_b32 v[vreg_iinc1], v[vreg_tmp2], v[vreg_iinc1], vcc
 	v_cndmask_b32 v[vreg_inp_dswr1], v[vreg_tmp3], v[vreg_inp_dswr1], vcc
 	v_lshlrev_b32 v[vreg_inp_dsrd0], 3, v[vreg_local_0]
+	// check validity of vreg_inp_dswr1 and set a flag in vreg_dx
+	//   flag = (local_1 * 64 + local_0 < 3*64+44) ? 0 : 1
+	//   vreg_inp_dswr1 = flag ? 4*136*11 : vreg_inp_dswr1
+	//   sreg_dswr1vcc(b64) = flag
+	v_lshlrev_b32 v[vreg_tmp0], 6, v[vreg_local_1]
+	v_add_i32     v[vreg_tmp0], vcc, v[vreg_local_0], v[vreg_tmp0]
+	v_mov_b32     v[vreg_tmp1], 3*64+44
+	v_cmp_ge_u32  vcc, v[vreg_tmp0], v[vreg_tmp1]
+	v_mov_b32     v[vreg_tmp1], 4*136*11
+	v_cndmask_b32 v[vreg_inp_dswr1], v[vreg_inp_dswr1], v[vreg_tmp1], vcc
+	s_mov_b64     s[sreg_dswr1vcc:sreg_dswr1vcc+1], vcc
 	// wait for load completion
 	s_waitcnt lgkmcnt(0)
 	// update address registers
-	v_mov_b32 v[vreg_out_addr], s[sreg_out_addr]
-	v_mov_b32 v[vreg_out_addr+1], s[sreg_out_addr+1]
-	v_mov_b32 v[vreg_inp_addr1], s[sreg_inp_addr]
-	v_mov_b32 v[vreg_inp_addr1+1], s[sreg_inp_addr+1]
 	s_add_u32  s[sreg_wei_addr], s[sreg_wei_addr], s[sreg_winc]
 	s_addc_u32 s[sreg_wei_addr+1], s[sreg_wei_addr+1], 0
-	v_add_u32  v[vreg_out_addr], vcc, v[vreg_out_addr], v[vreg_oinc]
+	v_add_u32  v[vreg_out_addr], vcc, s[sreg_out_addr], v[vreg_oinc]
+	v_mov_b32  v[vreg_out_addr+1], s[sreg_out_addr+1]
 	v_addc_u32 v[vreg_out_addr+1], vcc, v[vreg_out_addr+1], 0, vcc
-	v_add_u32  v[vreg_inp_addr0], vcc, v[vreg_inp_addr1], v[vreg_iinc0]
-	v_addc_u32 v[vreg_inp_addr0+1], vcc, v[vreg_inp_addr1+1], 0, vcc
-	v_add_u32  v[vreg_inp_addr1], vcc, v[vreg_inp_addr1], v[vreg_iinc1]
+	v_add_u32  v[vreg_inp_addr0], vcc, s[sreg_inp_addr], v[vreg_iinc0]
+	v_mov_b32  v[vreg_inp_addr0+1], s[sreg_inp_addr+1]
+	v_addc_u32 v[vreg_inp_addr0+1], vcc, v[vreg_inp_addr0+1], 0, vcc
+	v_add_u32  v[vreg_inp_addr1], vcc, s[sreg_inp_addr], v[vreg_iinc1]
+	v_mov_b32  v[vreg_inp_addr1+1], s[sreg_inp_addr+1]
 	v_addc_u32 v[vreg_inp_addr1+1], vcc, v[vreg_inp_addr1+1], 0, vcc
 	// initialize output values and channel count
 	s_movk_i32 s[sreg_c], 0+wei_c
@@ -327,18 +338,22 @@ loop_channel:
 	s_add_u32  s[sreg_wei_addr], s[sreg_wei_addr], wei_stride_c
 	s_addc_u32 s[sreg_wei_addr+1], s[sreg_wei_addr+1], 0
 	// load input row into LDS and precompute vreg_dsrd1/vreg_dsrd2 registers
-	s_bitcmp1_b32 s[sreg_k], 2
-	s_cbranch_scc1 skip_load0
-	flat_load_dwordx2 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_addr1:vreg_inp_addr1+1]
-skip_load0:
 	flat_load_dwordx2 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_addr0:vreg_inp_addr0+1]
+	s_mov_b64 exec, s[sreg_dswr1vcc:sreg_dswr1vcc+1]
+	flat_load_dwordx2 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_addr1:vreg_inp_addr1+1]
+	s_mov_b64 exec, -1
+	v_mov_b32  v[vreg_ival+4], 0+inp_stride_c
+	v_add_u32  v[vreg_inp_addr0], vcc, v[vreg_inp_addr0], v[vreg_ival+4]
+	v_addc_u32 v[vreg_inp_addr0+1], vcc, v[vreg_inp_addr0+1], 0, vcc
+	v_add_u32  v[vreg_inp_addr1], vcc, v[vreg_inp_addr1], v[vreg_ival+4]
+	v_addc_u32 v[vreg_inp_addr1+1], vcc, v[vreg_inp_addr1+1], 0, vcc
 	s_waitcnt lgkmcnt(0) vmcnt(0)
 	s_barrier
-	s_cbranch_scc1 skip_load1
-	ds_write_b64 v[vreg_inp_dswr1], v[vreg_ival+2:vreg_ival+3]
-skip_load1:
 	ds_write_b64 v[vreg_inp_dswr0], v[vreg_ival+0:vreg_ival+1]
-	v_add_u32 v[vreg_inp_dsrd1], vcc, 1 * 136 * 4, v[vreg_inp_dsrd0]
+	s_mov_b64 exec, s[sreg_dswr1vcc:sreg_dswr1vcc+1]
+	ds_write_b64 v[vreg_inp_dswr1], v[vreg_ival+2:vreg_ival+3]
+	s_mov_b64 exec, -1
+	v_add_u32 v[vreg_inp_dsrd1], vcc, 2 * 136 * 4, v[vreg_inp_dsrd0]
 	v_add_u32 v[vreg_inp_dsrd2], vcc, 4 * 136 * 4, v[vreg_inp_dsrd0]
 	s_waitcnt lgkmcnt(0)
 	s_barrier
@@ -357,7 +372,7 @@ skip_load1:
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+5], s[sreg_wval+0*10+5]
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+6], s[sreg_wval+0*10+6]
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+7], s[sreg_wval+0*10+7]
-	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd0] offset0:0*136+8 offset1:1*136+9
+	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd0] offset0:0*136+8 offset1:0*136+9
 	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd0] offset0:1*136+0 offset1:1*136+1
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd0] offset0:1*136+2 offset1:1*136+3
 	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd0] offset0:1*136+4 offset1:1*136+5
@@ -481,7 +496,7 @@ skip_load1:
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+5], s[sreg_wval+1*10+3]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+6], s[sreg_wval+1*10+4]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+7], s[sreg_wval+1*10+5]
-	v_add_u32 v[vreg_inp_dsrd1], vcc, 5 * 136 * 4, v[vreg_inp_dsrd0]
+	v_add_u32 v[vreg_inp_dsrd1], vcc, 6 * 136 * 4, v[vreg_inp_dsrd0]
 	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd2] offset0:1*136+6 offset1:1*136+7
 	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd2] offset0:1*136+8 offset1:1*136+9
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:0*136+0 offset1:0*136+1
@@ -539,7 +554,7 @@ skip_load1:
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:1*136+6 offset1:1*136+7
 	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd1] offset0:1*136+8 offset1:1*136+9
 	v_add_u32 v[vreg_inp_dsrd2], vcc, 8 * 136 * 4, v[vreg_inp_dsrd0]
-	v_add_u32 v[vreg_inp_dsrd1], vcc, 9 * 136 * 4, v[vreg_inp_dsrd0]
+	v_add_u32 v[vreg_inp_dsrd1], vcc,10 * 136 * 4, v[vreg_inp_dsrd0]
 	s_waitcnt lgkmcnt(0)
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+0], s[sreg_wval+3*10+2]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+1], s[sreg_wval+3*10+3]
