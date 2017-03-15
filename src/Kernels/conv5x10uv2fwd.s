@@ -258,7 +258,6 @@ conv5x10uv2fwd:
 	v_mad_u32_u24 v[vreg_iinc0], v[vreg_local_1], s[sreg_tmp2], v[vreg_tmp0]
 	v_mad_u32_u24 v[vreg_inp_dswr0], v[vreg_local_1], s[sreg_tmp1], v[vreg_tmp0]
 	v_add_u32     v[vreg_iinc0], vcc, s[sreg_iinc], v[vreg_iinc0]
-	v_lshlrev_b32 v[vreg_inp_dswr0], 3, v[vreg_inp_dswr0]
 	v_add_u32     v[vreg_iinc1], vcc, 8 * inp_stride_y, v[vreg_iinc0]
 	v_add_u32     v[vreg_inp_dswr1], vcc, 8 * 136 * 4, v[vreg_inp_dswr0]
 	v_and_b32     v[vreg_tmp0], 3, v[vreg_local_0]
@@ -314,8 +313,8 @@ conv5x10uv2fwd:
 	// temporary registers used inside this loop:
 	//  - s[sreg_wval:sreg_wval+49]
 	//  - v[vreg_ival:vreg_ival+7]
+	//  - v[vreg_dsrd1]
 	//  - v[vreg_dsrd2]
-	//  - v[vreg_dsrd3]
 	//////////////////////////////////////////////////////////////////////////////
 loop_channel:
 	// load channel weights
@@ -327,7 +326,7 @@ loop_channel:
 	s_sub_u32  s[sreg_c], s[sreg_c], 1
 	s_add_u32  s[sreg_wei_addr], s[sreg_wei_addr], wei_stride_c
 	s_addc_u32 s[sreg_wei_addr+1], s[sreg_wei_addr+1], 0
-	// load input row into LDS and precompute vreg_dsrd2/vreg_dsrd3 registers
+	// load input row into LDS and precompute vreg_dsrd1/vreg_dsrd2 registers
 	s_bitcmp1_b32 s[sreg_k], 2
 	s_cbranch_scc1 skip_load0
 	flat_load_dwordx2 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_addr1:vreg_inp_addr1+1]
