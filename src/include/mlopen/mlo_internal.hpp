@@ -908,6 +908,7 @@ protected:
 	int mloConstruct2();
 	int mloConstruct53();
 	int mloConstruct1x1();
+	int mloConstruct3x3();
 };
 
 /*
