@@ -127,6 +127,19 @@
 #define MLO_PADDING_SHIFT1 (MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1)
 #define MLO_PADDING_SHIFT0 (MLO_FILTER_SIZE0 - MLO_FILTER_PAD0 - 1)
 
+static inline int iDiv(int v, int d)
+{
+	int r = (int)((float)v / d + 0.00001f);
+	return(r);
+}
+
+static inline int iMod(int v, int u, int d)
+{
+	int r = v - mul24((int)u, (int)d);
+	return(r);
+}
+
+
 static inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
 	(*y) = (int)((float)linPos / (float)width + 0.00001f);
@@ -347,28 +360,28 @@ __kernel void MLOpenConvUni(
 
 
 	int grp_id0 = get_group_id(0);
-	int y_tile_blk = (int)((float)grp_id0 / (float)MLO_N_OUT_TILE_BLOCKS0 + 0.00001f);
-	int x_tile_blk = -mad24(y_tile_blk, (int)MLO_N_OUT_TILE_BLOCKS0, -grp_id0);
+	int y_tile_blk = iDiv(grp_id0, MLO_N_OUT_TILE_BLOCKS0);
+	int x_tile_blk = iMod(grp_id0, y_tile_blk, MLO_N_OUT_TILE_BLOCKS0);
 	int o_pack = get_group_id(1); // block of outputs
 	int b_pack = get_group_id(2); // batch block
 
 	int lcl_id = get_local_id(0);
-	int stack = (int)((float)lcl_id/(float)MLO_ALUTILES_STACK_SZ + 0.00001f);  // stack
-	int alu_stack_id = -mad24(stack, (int)MLO_ALUTILES_STACK_SZ, -lcl_id);  // alu index in stack
+	int stack = iDiv(lcl_id, MLO_ALUTILES_STACK_SZ);  // stack
+	int alu_stack_id = iMod(lcl_id, stack, MLO_ALUTILES_STACK_SZ);  // alu index in stack
 // ALU plane inside stack
-	int alu_out_plane_id = (int)((float)alu_stack_id / (float)MLO_ALU_TILE_SZ + 0.00001f);  // alu output plane index
-	int alu_out_id = -mad24(alu_out_plane_id, (int)MLO_ALU_TILE_SZ, -alu_stack_id); // alu index inside an ALU output plane
+	int alu_out_plane_id = iDiv(alu_stack_id, MLO_ALU_TILE_SZ);  // alu output plane index
+	int alu_out_id = iMod(alu_stack_id, alu_out_plane_id, MLO_ALU_TILE_SZ); // alu index inside an ALU output plane
 // pos inside ALU tile
-	int alu_tl1 = (int)((float)alu_out_id/(float)MLO_ALU_VTILE0 + 0.00001f);
-	int alu_tl0 = -mad24(alu_tl1, (int)MLO_ALU_VTILE0, -alu_out_id);
+	int alu_tl1 = iDiv(alu_out_id, MLO_ALU_VTILE0);
+	int alu_tl0 = iMod(alu_out_id, alu_tl1, MLO_ALU_VTILE0);
 
 	int o_map_plane = o_pack * MLO_N_OUT_TILES_PERSTACK; // first output maps index per full ALU plane stack
 	int o_map_base = alu_out_plane_id*MLO_N_OUT_TILES;  // local output map offset
 	int o_map = o_map_plane + o_map_base; // output map index per ALU plane
 	int b_index = b_pack * MLO_N_STACKS;
 
-	int wave_id = (int)((float)lcl_id / (float)MLO_N_READ_PROCS + 0.00001f);
-	int wave_lcl_id = -mad24(wave_id, (int)MLO_N_READ_PROCS, -lcl_id);
+	int wave_id = iDiv(lcl_id, MLO_N_READ_PROCS);
+	int wave_lcl_id = iMod(lcl_id, wave_id, MLO_N_READ_PROCS);
 
 #if MLO_DIR_FORWARD == 1
 	int x_grp = x_tile_blk * MLO_IN_TILE0 * MLO_FILTER_STRIDE0;
@@ -467,8 +480,8 @@ __kernel void MLOpenConvUni(
 #else
 		for(int i = wave_id; i < MLO_N_IN_TILES_TOTAL;  i += MLO_N_PROC_WAVES)
 		{
-			int i_b = (int)((float)i/ (float)MLO_N_IN_TILES_PERSTACK + 0.00001f);
-			int i_c = i - mul24(i_b, (int)MLO_N_IN_TILES_PERSTACK);
+			int i_b = iDiv(i, MLO_N_IN_TILES_PERSTACK);
+			int i_c = iMod(i, i_b, MLO_N_IN_TILES_PERSTACK);
 
 			bool vis = true;
 
@@ -518,16 +531,22 @@ __kernel void MLOpenConvUni(
 		{
 #if MLO_DIR_FORWARD==1
 // here is [tops][bottoms]
-			int lcl_o = (int)((float)i/(float)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) + 0.00001f);
-			int gbl_i = i - mul24(lcl_o, (int)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
-			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i];
+			int lcl_o = iDiv(i, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
+			int gbl_i = iMod(i, lcl_o, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
+			int gbl_we_off = wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i;
+			bool within_range = gbl_we_off < (MLO_N_OUTPUTS*MLO_N_INPUTS*MLO_FILTER_SZ);
+
+			gbl_we_off = (within_range) ? gbl_we_off : 0;
+			_FLOAT wei = weights[gbl_we_off];
+			wei = (within_range) ? wei : 0;
+			lcl_wei[i] = wei;
 #else
 // outputs are botoms(inputs))
 // inputs are tops(outputs)
-			int lcl_o = (int)((float)i/ (float)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) + 0.00001f);
-			int gbl_i = i - mul24(lcl_o, (int)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
-			int lcl_c = (int)((float)gbl_i/ (float)MLO_FILTER_SZ + 0.00001f);
-			int lcl_i = gbl_i - mul24(lcl_c, (int)MLO_FILTER_SZ);
+			int lcl_o = iDiv(i, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
+			int gbl_i = iMod(i, lcl_o, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
+			int lcl_c = iDiv(gbl_i, MLO_FILTER_SZ);
+			int lcl_i = iMod(gbl_i, lcl_c, MLO_FILTER_SZ);
 
 			int lcl_we_off = mad24(mad24(lcl_c, (int)MLO_N_IN_TILES_PERSTACK, lcl_o), (int)MLO_FILTER_SZ, lcl_i);
 			int gbl_we_off = mad24(mad24(lcl_o, (int)MLO_N_OUTPUTS, lcl_c), (int)MLO_FILTER_SZ, wei_off + lcl_i);
@@ -592,26 +611,26 @@ __kernel void MLOpenConvUni(
 // over all local outputs
 		int out_off1 = out_off;
 		for(int o = 0; o < MLO_N_OUT_TILES
-
 						; ++o, out_off1 += MLO_OUT_CHANNEL_STRIDE
 						)
 		{
 // over output tile
-
 
 			int out_off2 = out_off1;
 			for( int j = 0; j < MLO_OUT_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
 			{
 				for(int i = 0; i < MLO_OUT_TILE0; ++i)
 				{
-				if (true 
+					if (out_off2 + i <  MLO_OUT_BATCH_STRIDE*MLO_BATCH_SZ
+
 #if MLO_OUT_ALIGNED == 0
-					&& y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT &&  x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH
+						&& y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT &&  x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH
 #endif
 #if MLO_OUTPUTS_ALIGNED == 0
 						&& o_map + o < MLO_N_OUTPUTS
 #endif
-					)
+
+						)
 					{
 						out[out_off2 + i] = pvt_accum[o*MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
 #if MLO_CONV_BIAS
@@ -619,7 +638,7 @@ __kernel void MLOpenConvUni(
 #endif
 						 ;
 
-					}
+					}	
 
 				}
 			}
