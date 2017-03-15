@@ -621,7 +621,7 @@ __kernel void MLOpenConvUni(
 			{
 				for(int i = 0; i < MLO_OUT_TILE0; ++i)
 				{
-					if (out_off2 + i <  MLO_OUT_BATCH_STRIDE*MLO_BATCH_SZ
+					if (true
 
 #if MLO_OUT_ALIGNED == 0
 						&& y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT &&  x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH
