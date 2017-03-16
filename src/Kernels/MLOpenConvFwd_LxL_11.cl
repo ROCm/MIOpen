@@ -511,9 +511,10 @@ __kernel void MLOpenCvFwd11x11(
 				// write out 
 				// inputs are outputs
 				int out_off = (ib + b) * MLO_OUT_BATCH_STRIDE + (k_idx + k) * MLO_OUT_CHANNEL_STRIDE + (out_y + ex_row) *MLO_OUT_STRIDE + ex_pix;
-				for (int i = 0; i < MLO_OUT_PIX_TILE0 && ex_pix + i < MLO_OUT_WIDTH; ++i)
+				for (int i = 0; i < MLO_OUT_PIX_TILE0; ++i)
 				{
-					top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
+					if (ex_pix + i < MLO_OUT_WIDTH)
+						top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
 				}
 			}
 		}
@@ -847,9 +848,10 @@ __kernel void MLOpenCvFwd11x11_2(
 			// write out 
 			// inputs are outputs
 			int out_off = (ib + bb + b) * MLO_OUT_BATCH_STRIDE + (k_idx + k) * MLO_OUT_CHANNEL_STRIDE + (out_y + ex_row) *MLO_OUT_STRIDE + ex_pix;
-			for (int i = 0; i < MLO_OUT_PIX_TILE0 && ex_pix + i < MLO_OUT_WIDTH; ++i)
+			for (int i = 0; i < MLO_OUT_PIX_TILE0; ++i)
 			{
-				top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
+				if (ex_pix + i < MLO_OUT_WIDTH)
+					top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
 #if 0
 				if (out_off + i == 0)
 				{
