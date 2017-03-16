@@ -31,7 +31,7 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
-
+#define DBG_OUT_OF_RNGE 0
 
 #define MLO_N_OUT_HORIZ_READS ((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1) / MLO_IN_TILE0)
 #define MLO_N_SPANS_PER_SCAN (MLO_N_OUT_HORIZ_READS)
@@ -162,7 +162,7 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FL
 //		if (c < MLO_N_INPUTS)
 
 		{
-
+			int bot_off = gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
 #if MLO_IN_N_PIXS_OFF > 0
 
 			if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -170,7 +170,13 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FL
 				for (int i = 0; i < MLO_IN_N_PIXS_OFF; ++i)
 				{
 
-					in_rd_data[i] = bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
+					in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					{
+						printf("k:err:in-of-range\n");
+					}
+#endif
 				}
 
 				for (int i = MLO_IN_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
@@ -182,7 +188,17 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FL
 			else
 #endif
 			{
-				*(MLO_READ_TYPE*)in_rd_data = *(__global MLO_READ_TYPE*)&bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
+
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					{
+						printf("k:err:in-of-range\n");
+					}
+#endif
+				}
 			}
 
 // stack of inputs, each has 1 line
@@ -313,6 +329,8 @@ __kernel void MLOpenCvBwdWrW(
 	int lcl_bot_off = spn * MLO_IN_TILE0;
 	int out_wk_item_off = o * MLO_OUT_CHANNEL_STRIDE + lcl_bot_off;
 	gbl_out_off += out_wk_item_off;
+	// no output out of range
+	gbl_out_off = (o_idx + o < MLO_N_OUTPUTS && o < MLO_OUT_STACKS) ? gbl_out_off : 0;
 
 
 #define MLO_TOP_DAT_SZ (MLO_IN_TILE0 * MLO_FILTER_SIZE1)
@@ -387,6 +405,13 @@ __kernel void MLOpenCvBwdWrW(
 					for (; i < MLO_OUT_N_PIXS_OFF; ++i)
 					{
 						top_dat[j *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+#if DBG_OUT_OF_RNGE
+						if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
+						}
+#endif
+
 					}
 					for (; i < MLO_IN_TILE0; ++i)
 					{
@@ -399,6 +424,12 @@ __kernel void MLOpenCvBwdWrW(
 					for (int i = 0; i < MLO_IN_TILE0; ++i)
 					{
 						top_dat[j *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+#if DBG_OUT_OF_RNGE
+						if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
+						}
+#endif
 					}
 				}
 
@@ -444,6 +475,12 @@ __kernel void MLOpenCvBwdWrW(
 					for (; i < MLO_OUT_N_PIXS_OFF; ++i)
 					{
 						top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+#if DBG_OUT_OF_RNGE
+						if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
+						}
+#endif
 					}
 					for (; i < MLO_IN_TILE0; ++i)
 					{
@@ -456,6 +493,12 @@ __kernel void MLOpenCvBwdWrW(
 					for (int i = 0; i < MLO_IN_TILE0; ++i)
 					{
 						top_dat[(MLO_FILTER_SIZE1 -1) *MLO_IN_TILE0 + i] = top_df[top_df_off + i] * mask;
+#if DBG_OUT_OF_RNGE
+						if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
+						}
+#endif
 					}
 				}
 

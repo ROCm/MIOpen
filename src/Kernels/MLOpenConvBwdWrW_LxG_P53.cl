@@ -31,7 +31,7 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
-
+#define DBG_OUT_OF_RNGE 0
 
 #define MLO_N_OUT_HORIZ_READS ((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1) / MLO_IN_TILE0)
 #define MLO_N_SPANS_PER_SCAN (MLO_N_OUT_HORIZ_READS)
@@ -185,7 +185,7 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, int n_v_reads, con
 //		if (c < MLO_N_INPUTS)
 
 		{
-
+			int bot_off = gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
 #if MLO_IN_N_PIXS_OFF > 0
 
 			if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -193,9 +193,9 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, int n_v_reads, con
 				for (int i = 0; i < MLO_IN_N_PIXS_OFF; ++i)
 				{
 
-					in_rd_data[i] = bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
-#if 0
-					if (gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
 					{
 						printf("k:err:in-of-range\n");
 					}
@@ -214,9 +214,9 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, int n_v_reads, con
 				
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					in_rd_data[i] = bot[gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
-#if 0
-					if (gbl_in_scan_off + c*MLO_IN_CHANNEL_STRIDE + c_scan* MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
 					{
 						printf("k:err:in-of-range\n");
 					}
@@ -318,7 +318,7 @@ static inline void spanRightSiding5x5(int k, int top_df_off, int j, _FLOAT mask,
 	for (; i < MLO_OUT_N_PIXS_OFF; ++i)
 	{
 		top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
-#if 0
+#if DBG_OUT_OF_RNGE
 		if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
 		{
 			printf("k:err:out-of-range\n");
@@ -341,7 +341,7 @@ static inline void spanReadingOutput(int k, int j, int top_df_off, _FLOAT mask,
 		; ++i)
 	{
 		top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
-#if 0
+#if DBG_OUT_OF_RNGE
 		if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
 		{
 			printf("k:err:out-of-range\n");

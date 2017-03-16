@@ -1777,7 +1777,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int n_out_stacks = std::min(_n_inputs, std::max(1, GRP_SZ / n_spans));
 	// number of input maps per group
 	// param
-	_n_in_data_tiles = (_in_width <= 32) ? 4 : 1; // ((_in_width <= 8 || (_in_width >= 28 && _in_width <= 32)) && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 2 : 1;
+	_n_in_data_tiles = (_in_width <= 32 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 4 : 1; // ((_in_width <= 8 || (_in_width >= 28 && _in_width <= 32)) && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 2 : 1;
 
 	_n_in_data_tiles = std::min(_n_in_data_tiles, _n_outputs);
 // calculate number of input scans in the input block
