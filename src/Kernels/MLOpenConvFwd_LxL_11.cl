@@ -506,14 +506,17 @@ __kernel void MLOpenCvFwd11x11(
 
 		//			for (int bb = 0; bb < MLO_N_LCL_BATCHS && ex_row < MLO_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT; ++bb)
 		{
-			for (int k = 0; k < MLO_N_LCL_OUT_MAPS && (k_idx + k) < MLO_N_OUTPUTS && ex_row < MLO_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT; ++k)
+			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 			{
 				// write out 
 				// inputs are outputs
 				int out_off = (ib + b) * MLO_OUT_BATCH_STRIDE + (k_idx + k) * MLO_OUT_CHANNEL_STRIDE + (out_y + ex_row) *MLO_OUT_STRIDE + ex_pix;
-				for (int i = 0; i < MLO_OUT_PIX_TILE0 && ex_pix + i < MLO_OUT_WIDTH; ++i)
+				for (int i = 0; i < MLO_OUT_PIX_TILE0 ; ++i)
 				{
-					top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
+				    if ( (k_idx + k) < MLO_N_OUTPUTS && ex_row < MLO_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT && ex_pix + i < MLO_OUT_WIDTH)
+					{
+							top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
+					}
 				}
 			}
 		}
@@ -842,14 +845,18 @@ __kernel void MLOpenCvFwd11x11_2(
 		} // c
 
 
-		for (int k = 0; k < MLO_N_LCL_OUT_MAPS && (ib + bb + b) < MLO_BATCH_SZ && bb < MLO_N_LCL_BATCHS && (k_idx + k) < MLO_N_OUTPUTS && ex_row < MLO_LAST_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT; ++k)
+		for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 		{
 			// write out 
 			// inputs are outputs
 			int out_off = (ib + bb + b) * MLO_OUT_BATCH_STRIDE + (k_idx + k) * MLO_OUT_CHANNEL_STRIDE + (out_y + ex_row) *MLO_OUT_STRIDE + ex_pix;
-			for (int i = 0; i < MLO_OUT_PIX_TILE0 && ex_pix + i < MLO_OUT_WIDTH; ++i)
+			for (int i = 0; i < MLO_OUT_PIX_TILE0; ++i)
 			{
-				top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
+				if ((ib + bb + b) < MLO_BATCH_SZ && bb < MLO_N_LCL_BATCHS && (k_idx + k) < MLO_N_OUTPUTS && ex_row < MLO_LAST_OUT_EXTENT1 && (out_y + ex_row) < MLO_OUT_HEIGHT
+				    && ex_pix + i < MLO_OUT_WIDTH )
+				{
+					top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
+				}
 #if 0
 				if (out_off + i == 0)
 				{
