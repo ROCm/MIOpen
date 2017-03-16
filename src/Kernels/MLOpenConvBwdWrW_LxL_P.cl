@@ -31,7 +31,7 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
-#define DBG_OUT_OF_RNGE 1
+#define DBG_OUT_OF_RNGE 0
 // number of filter taps in the processing wk_item
 //#define MLO_WEI_WKITEM 5
 
