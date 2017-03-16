@@ -279,7 +279,7 @@ int ActivationDriver<T>::VerifyForward() {
 		(T)v_Power,
 		(T)v_Alpha,
 		(T)v_Beta,
-		in.size(),
+		in.size()/ sizeof(T),
 		in.data(),
 		out.data(),
 		allowedEps
@@ -316,7 +316,7 @@ int ActivationDriver<T>::VerifyBackward() {
 		(T)v_Power,
 		(T)v_Alpha,
 		(T)v_Beta,
-		dinhost.size(),		
+		dinhost.size() / sizeof(T),
 		in.data(),
 		out.data(),
 		din.data(),
