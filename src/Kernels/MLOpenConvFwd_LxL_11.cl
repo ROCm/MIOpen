@@ -517,6 +517,7 @@ __kernel void MLOpenCvFwd11x11(
 					{
 							top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
 					}
+
 				}
 			}
 		}
@@ -857,6 +858,7 @@ __kernel void MLOpenCvFwd11x11_2(
 				{
 					top[out_off + i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
 				}
+
 #if 0
 				if (out_off + i == 0)
 				{

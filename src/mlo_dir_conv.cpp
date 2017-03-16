@@ -569,7 +569,9 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 {
-	return true;
+
+    return !(_in_width == 7 && _in_height == 7);
+//	return true;
 }
 
 int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v10)
