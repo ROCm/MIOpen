@@ -17,7 +17,7 @@
 //   inp_w      - input image width
 //   inp_h      - input image height
 //   wei_c      - input image channels
-//   wei_k      - output image channels
+//   wei_k      - output image channels (must be multiple of 2)
 //   wei_layout - weights layout 0:"KCHW" or 1:"CKHW"
 .ifndef params_defined
 .set inp_w       , 341
