@@ -1,5 +1,5 @@
 /*
- * Convolution Kernel for 5x10 stride=2 pad=0 
+ * Convolution Kernel for 5x10 kernel with stride=2 pad=0 
  *
  */
 
@@ -7,11 +7,9 @@
 .hsa_code_object_isa
 
 ///////////////////////////////////////////////////
-// ******* configuration and resource allocation
-// This kernel uses supports 10x5 convolution with stride=2 pad=0
 // ******* global-work and work-group-size
-//  global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k,8), batch_n]
 //  work-group-size = [64, 8, 1]
+//  global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k,8), batch_n]
 //    * def align(a,b) = ((a + b - 1)/b)*b
 ///////////////////////////////////////////////////
 // ******* changeable configuration parameters
@@ -19,14 +17,12 @@
 //   inp_h      - input image height
 //   wei_c      - input image channels
 //   wei_k      - output image channels
-//   batch_n    - batch size
 //   wei_layout - weights layout 0:"KCHW" or 1:"CKHW"
 .ifndef params_defined
 .set inp_w       , 341
 .set inp_h       ,  79
 .set wei_c       ,  32
 .set wei_k       ,  32
-.set batch_n     ,  32
 .set wei_layout  ,   0
 .endif
 // ******* fixed configuration parameters
@@ -35,7 +31,7 @@
 .set inp_u       ,   2
 .set inp_v       ,   2
 // ******* LDS allocation
-.set LDS_SIZE    ,4*(64*inp_u-1+(wei_w-1))*(4*inp_v-1+(wei_h-1)) // = 5984 bytes
+.set LDS_SIZE    ,4*(64*inp_u-1+(wei_w-1))*(4*inp_v-1+(wei_h-1))+32 // = 6016 bytes
 // ******* SGPR allocation
 // For used during initialization
 .set sreg_karg   ,   4   // [2]
@@ -88,19 +84,15 @@
 .set inp_stride_y,(inp_w * 4)
 .set inp_stride_c,(inp_h * inp_stride_y)
 .set inp_stride_n,(wei_c * inp_stride_c)
-.set inp_size    ,(batch_n * inp_stride_n)
 .set out_stride_y,(out_w * 4)
 .set out_stride_k,(out_h * out_stride_y)
 .set out_stride_n,(wei_k * out_stride_k)
-.set out_size    ,(batch_n * out_stride_n)
 .if wei_layout == 0 // KCHW
 .set wei_stride_c,(wei_h * wei_w * 4)
 .set wei_stride_k,(wei_c * wei_stride_c)
-.set wei_size    ,(wei_k * wei_stride_k)
 .elseif wei_layout == 1 // CKHW
 .set wei_stride_k,(wei_h * wei_w * 4)
 .set wei_stride_c,(wei_c * wei_stride_k)
-.set wei_size    ,(wei_k * wei_stride_c)
 .else
 .err "ERROR: wei_layout should be 0 (for:KCHW) or 1 (for:CKHW)"
 .endif
