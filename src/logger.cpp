@@ -1,10 +1,12 @@
 #include <mlopen/logger.hpp>
+#include <cstdlib>
 
 namespace mlopen {
 
 bool IsLogging()
 {
-    return true;
+    char* cs = std::getenv("MIOPEN_ENABLE_LOGGING");
+    return cs != nullptr && cs != std::string("0");
 }
 
 }
