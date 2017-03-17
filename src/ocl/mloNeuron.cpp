@@ -29,12 +29,12 @@ int mlo_construct_neuron::mloConstruct()
 	int read_unit = 4;
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
-	size_t map_size = _in_width*_in_height;
+	size_t map_size = _in_width*_in_height * _n_inputs * _batch_sz;
 	size_t map_size_aligned = (map_size + read_unit - 1) / read_unit;
 	int N_PIXS_OFF = map_size - (map_size / read_unit) * read_unit;
 
 
-	size_t glbl_wk = map_size_aligned * _batch_sz;
+	size_t glbl_wk = map_size_aligned;
 
 
 
@@ -46,6 +46,7 @@ int mlo_construct_neuron::mloConstruct()
 		+ std::string(" -DMLO_NRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
 		+ std::string(" -DMLO_NRN_OP_ID=") + std::to_string(static_cast<long long>(_neuron_type))
 		+ std::string(" -DMLO_N_PIXS_OFF=") + std::to_string(static_cast<long long>(N_PIXS_OFF))
+		+ std::string(" -DMLO_MAP_SZ=") + std::to_string(static_cast<long long>(map_size))
 		+ std::string(" -DMLO_MAP_SZ_ALIGNED=") + std::to_string(static_cast<long long>(map_size_aligned))
 		+ std::string(" -DMLO_READ_UNIT=") + std::to_string(static_cast<long long>(read_unit))
 		+ getGeneralCompOptions()
