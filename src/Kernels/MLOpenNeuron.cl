@@ -300,7 +300,7 @@ __kernel void MLOpenNeuronFwd(
 	_FLOAT data[MLO_READ_UNIT];
 	_FLOAT response[MLO_READ_UNIT];
 #if MLO_N_PIXS_OFF > 0
-	if (x == MLO_MAP_SZ_ALIGNED)
+	if (x == MLO_MAP_SZ_ALIGNED - 1)
 	{
 		int i = 0;
 		for (; i < MLO_N_PIXS_OFF; ++i)
@@ -324,7 +324,7 @@ __kernel void MLOpenNeuronFwd(
 
 
 #if MLO_N_PIXS_OFF > 0
-	if (x == MLO_MAP_SZ_ALIGNED)
+	if (x == MLO_MAP_SZ_ALIGNED - 1)
 	{
 		int i = 0;
 		for (; i < MLO_N_PIXS_OFF; ++i)
@@ -359,6 +359,7 @@ __kernel void MLOpenNeuronBwd(__global _FLOAT * bot_diff,
 							_FLOAT scale,
 							_FLOAT shift	   )
 {
+
 	int x = get_global_id(0); // channel x
 
 	_FLOAT bot_diff_dat[MLO_READ_UNIT];
@@ -366,7 +367,7 @@ __kernel void MLOpenNeuronBwd(__global _FLOAT * bot_diff,
 	_FLOAT bot_dat[MLO_READ_UNIT];
 	_FLOAT top_dat[MLO_READ_UNIT];
 #if MLO_N_PIXS_OFF > 0
-	if (x == MLO_MAP_SZ_ALIGNED)
+	if (x == MLO_MAP_SZ_ALIGNED - 1)
 	{
 		int i = 0;
 		for (; i < MLO_N_PIXS_OFF; ++i)
@@ -424,7 +425,7 @@ __kernel void MLOpenNeuronBwd(__global _FLOAT * bot_diff,
 
 
 #if MLO_N_PIXS_OFF > 0
-	if (x == MLO_MAP_SZ_ALIGNED)
+	if (x == MLO_MAP_SZ_ALIGNED - 1)
 	{
 		int i = 0;
 		for (; i < MLO_N_PIXS_OFF; ++i)
