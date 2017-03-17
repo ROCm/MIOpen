@@ -958,7 +958,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	//	_kernel_name = "MLOpenConv1x1";
 	// too much overhead for small maps and few inputs
 
-	if (!isForwardDirection() || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256))
+	if (!isForwardDirection()/* || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256)*/)
 	{
 		_kernel_file = "MLOpenConv1x1PS.cl";
 		_kernel_name = "MLOpenConv1x1PS";
