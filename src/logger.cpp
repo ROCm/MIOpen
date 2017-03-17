@@ -9,4 +9,4 @@ bool IsLogging()
     return cs != nullptr && cs != std::string("0");
 }
 
-}
+} // namespace mlopen
