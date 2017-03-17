@@ -229,9 +229,10 @@ __kernel void MLOpenConv1x1PS(
 
 	for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 	{
-		barrier(CLK_LOCAL_MEM_FENCE);
 		for (int t = 0, p = 0; t < MLO_N_LCL_OUT_MAPS; t += MLO_EXCHANGE_STEP)
 		{
+
+			barrier(CLK_LOCAL_MEM_FENCE);
 
 			if (lcl_id0 < MLO_MAP_SZ4 * MLO_N_MAPS_PERGROUP)
 			{
