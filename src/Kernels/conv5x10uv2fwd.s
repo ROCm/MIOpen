@@ -187,6 +187,7 @@ conv5x10uv2fwd:
 	//        else:
 	//          vreg_inp_addr1 & vreg_inp_dswr1 are not used
 	//////////////////////////////////////////////////////////////////////////////
+	s_mov_b32 m0, LDS_SIZE
 	// load for parameters
 	s_load_dwordx2 s[sreg_inp_addr:sreg_inp_addr+1], s[sreg_karg:sreg_karg+1], 0x00
 	s_load_dwordx2 s[sreg_wei_addr:sreg_wei_addr+1], s[sreg_karg:sreg_karg+1], 0x08
