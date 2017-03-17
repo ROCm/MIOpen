@@ -157,7 +157,8 @@ void ActivationFunction_BNLL(int n, _FLOAT * res, const _FLOAT* data)
 	for(int i = 0; i < n; i++)
 	{
 //	log(1 + exp(x))
-		res[i] = log(1.f + exp(data[i]));
+		res[i] = (data[i] > 0) ? data[i] + log(1.f + exp(-data[i]))
+			: log(1.f + exp(data[i]));
 	}
 }
 
@@ -213,6 +214,9 @@ void ActivationFunction(int n, _FLOAT * res, const _FLOAT* data,
 /******************************************************************************/
 /*									DIFF                                      */
 /******************************************************************************/
+
+__constant _FLOAT kBNLL_THRESHOLD = 50.;
+
 __attribute__((always_inline))
 void ActivationFunction_ReLU_Diff(int n, _FLOAT * bot_diff, const _FLOAT* top_diff, const _FLOAT *bot_data, _FLOAT negative_slope)
 {
@@ -281,7 +285,9 @@ void ActivationFunction_BNLL_Diff(int n, _FLOAT * bot_diff, const _FLOAT* top_di
 	for (int i = 0; i < n; i++)
 	{
 		//	(log(1 + exp(x)))' = 1/ (1 + exp(-x))
-		bot_diff[i] = top_diff[i] * (1.f + native_exp(-bot_data[i]));
+		_FLOAT expval = exp(fmin(bot_data[i], kBNLL_THRESHOLD));
+		bot_diff[i] = top_diff[i] * expval / (expval + 1.f);
+
 	}
 }
 
