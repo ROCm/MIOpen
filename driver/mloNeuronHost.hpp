@@ -38,13 +38,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define MLO_NEURON_LOGISTIC	MLO_NEURON_PASTHRU + 1		//	1 / (1 + e^-x)	//Sigmoid
 #define MLO_NEURON_TANH		MLO_NEURON_LOGISTIC + 1	//	a * tanh( b * x)
 #define MLO_NEURON_RELU		MLO_NEURON_TANH + 1		//	max(0, x)
-#define MLO_NEURON_BRELU		MLO_NEURON_RELU + 1		//	min(a, max(0, x))
-#define MLO_NEURON_SOFTRELU	MLO_NEURON_BRELU + 1		//	log(1 + e^x)   // bonomial normal log likelihood
+#define MLO_NEURON_SOFTRELU	MLO_NEURON_RELU + 1		//	log(1 + e^x)   // bonomial normal log likelihood
 #define MLO_NEURON_ABS			MLO_NEURON_SOFTRELU + 1	//	abs(x)
-#define MLO_NEURON_SQUARE		MLO_NEURON_ABS + 1			//	x^2
-#define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
-#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
-#define MLO_NEURON_POWER		MLO_NEURON_LINEAR + 1		// (a + b * x ) ^power
+#define MLO_NEURON_POWER		MLO_NEURON_ABS + 1		// (a + b * x ) ^power
+//#define MLO_NEURON_BRELU		MLO_NEURON_POWER + 1		//	min(a, max(0, x))
+//#define MLO_NEURON_SQUARE		BRELU + 1			//	x^2
+//#define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
+//#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
 #define MLO_NEURON_TOTAL		MLO_NEURON_POWER + 1
 
 template<typename _T>
@@ -199,14 +199,18 @@ int mloNeuronForwardRunHostAndVerify(
 	case MLO_NEURON_RELU:		//	max(0, x)
 		ActivationFunction_ReLU<_T>(isize, c_res, data, scale);
 		break;
-	case MLO_NEURON_BRELU:		//	min(a, max(0, x))
-		ActivationFunction_BReLU<_T>(isize, c_res, data, shift);
-		break;
 	case MLO_NEURON_SOFTRELU:	//	log(1 + e^x)   // bonomial normal log likelihood
 		ActivationFunction_BNLL<_T>(isize, c_res, data);
 		break;
 	case MLO_NEURON_ABS:			//	abs(x)
 		ActivationFunction_Abs<_T>(isize, c_res, data);
+		break;
+	case MLO_NEURON_POWER:		// (a + b * x ) ^power
+		ActivationFunction_Power<_T>(isize, c_res, data, power, shift, scale);
+		break;
+#if 0
+	case MLO_NEURON_BRELU:		//	min(a, max(0, x))
+		ActivationFunction_BReLU<_T>(isize, c_res, data, shift);
 		break;
 	case MLO_NEURON_SQUARE:		//	x^2
 		ActivationFunction_Square<_T>(isize, c_res, data);
@@ -217,9 +221,7 @@ int mloNeuronForwardRunHostAndVerify(
 	case MLO_NEURON_LINEAR:		//	a + b *x
 		ActivationFunction_Linear<_T>(isize, c_res, data, shift, scale);
 		break;
-	case MLO_NEURON_POWER:		// (a + b * x ) ^power
-		ActivationFunction_Power<_T>(isize, c_res, data, power, shift, scale);
-		break;
+#endif
 	default:
 		printf("ERROR: unknown neuron tyoe: %d\n", neuron_type);
 		break;
@@ -354,21 +356,17 @@ int mloNeuronBackwardRunHostAndVerify(
 	case MLO_NEURON_LOGISTIC:
 	{
 		// 1/(1 + exp(-x))  
-		ActivationFunction_Sigmoid_Diff(isize, bot_df, top_df_ptr, bot_ptr);
-//		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
+		ActivationFunction_Sigmoid_Diff(isize, bot_df, top_df_ptr, top_ptr);
 	}
 	break;
 	case MLO_NEURON_TANH:
 	{
 		// (exp(2x) -1) / (exp(2x) + 1)
-		ActivationFunction_TanH_Diff(isize, bot_df, top_df_ptr, bot_ptr);
-
-//		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
+		ActivationFunction_TanH_Diff(isize, bot_df, top_df_ptr, top_ptr);
 	}
 	case MLO_NEURON_ABS:
 	{
 		ActivationFunction_Abs_Diff(isize, bot_df, top_df_ptr, bot_ptr);
-//		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
 	}
 	break;
 	case MLO_NEURON_POWER:
@@ -379,14 +377,12 @@ int mloNeuronBackwardRunHostAndVerify(
 			static_cast<_T>(1),
 			scale,
 			shift);
-//		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
 	}
 	break;
 	case MLO_NEURON_SOFTRELU:
 	{
 		//	log(1 + exp(x))
 		ActivationFunction_BNLL_Diff(isize, bot_df, top_df_ptr, bot_ptr);
-//		printf("Neuron: ERROR: bwd host func %d has not been plugged in yet\n", neuron_type);
 	}
 	break;
 	default:
