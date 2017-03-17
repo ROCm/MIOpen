@@ -9,8 +9,9 @@
 ///////////////////////////////////////////////////
 // ******* global-work and work-group-size
 //  work-group-size = [64, 8, 1]
-//  global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k,8), batch_n]
+//  global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
 //    * def align(a,b) = ((a + b - 1)/b)*b
+//    * NOTE: wei_k must be multiple of 2
 ///////////////////////////////////////////////////
 // ******* changeable configuration parameters
 //   inp_w      - input image width
@@ -25,6 +26,9 @@
 .set wei_k       ,  32
 .set wei_layout  ,   0
 .endif
+.if (wei_k % 2) != 0
+.err "ERROR: wei_k must be multiple of 2"
+.endif
 // ******* fixed configuration parameters
 .set wei_w       ,  10
 .set wei_h       ,   5
@@ -33,7 +37,7 @@
 // ******* LDS allocation
 .set LDS_SIZE    ,4*(64*inp_u-1+(wei_w-1))*(4*inp_v-1+(wei_h-1))+32 // = 6016 bytes
 // ******* SGPR allocation
-// For used during initialization
+// For used during initialization or as temporary
 .set sreg_karg   ,   4   // [2]
 .set sreg_group_0,   6   // [1]
 .set sreg_group_1,   7   // [1]
@@ -45,14 +49,14 @@
 .set sreg_winc   ,  13   // [1]
 .set sreg_inp_addr, 14   // [2]
 .set sreg_out_addr, 16   // [2]
+.set sreg_dswr1vcc, 18   // [2]
+.set sreg_k       , 20   // [1]
+.set sreg_c       , 21   // [1]
+.set sreg_dy      , 22   // [1]
 // For use during core-loop and later
-.set sreg_wval    ,  8   // [50]
-.set sreg_wei_addr, 58   // [2]
-.set sreg_dswr1vcc, 60   // [1]
-.set sreg_k       , 62   // [1]
-.set sreg_c       , 63   // [1]
-.set sreg_dy      , 64   // [1]
-.set SGPR_COUNT   , 65   // COUNT
+.set sreg_wval    ,  0   // [50]
+.set sreg_wei_addr,100   // [2]
+.set SGPR_COUNT   ,102   // COUNT
 // ******* VGPR allocation
 // For used during initialization
 .set vreg_local_0 ,  0   // [1]
@@ -68,16 +72,16 @@
 // For use during core-loop and later
 .set vreg_ival    ,  0   // [8]
 .set vreg_oval    ,  8   // [4]
-.set vreg_out_addr, 12   // [2]
-.set vreg_inp_addr0,14   // [2]
-.set vreg_inp_addr1,16   // [2]
-.set vreg_inp_dswr0,18   // [1]
-.set vreg_inp_dswr1,19   // [1]
-.set vreg_inp_dsrd0,20   // [1]
-.set vreg_inp_dsrd1,21   // [1]
-.set vreg_inp_dsrd2,22   // [1]
-.set vreg_dx      , 23   // [1]
-.set VGPR_COUNT    ,24   // COUNT
+.set vreg_out_addr, 16   // [2]
+.set vreg_inp_addr0,18   // [2]
+.set vreg_inp_addr1,20   // [2]
+.set vreg_inp_dswr0,22   // [1]
+.set vreg_inp_dswr1,23   // [1]
+.set vreg_inp_dsrd0,24   // [1]
+.set vreg_inp_dsrd1,25   // [1]
+.set vreg_dx      , 26   // [1]
+.set vreg_save    , 27   // [1]
+.set VGPR_COUNT    ,28   // COUNT
 // ******* derived constants
 .set out_w       ,(inp_w + inp_u - wei_w) / inp_u
 .set out_h       ,(inp_h + inp_v - wei_h) / inp_v
@@ -143,16 +147,16 @@ conv5x10uv2fwd:
 	// initialization
 	//  - work-items:
 	//      work-group-size = [64, 8, 1]
-	//      global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k,8), batch_n]
+	//      global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
 	//      work-item relation to output buffer:
 	//        dx =  global-work[0]
-	//        dy = (global-work[1] >> wei_k_bits) * 4
-	//        k  =  global-work[1]  & wei_k_mask
+	//        dy = (global-work[1] >> (wei_k_bits-4)) * 4
+	//        k  = (global-work[1] << 1) & wei_k_mask
 	//        n  =  global-work[2]
 	//      calculation:
 	//        dx =  group_id(0) * 64 + local_id(0)
-	//        dy = (group_id(1) >> (wei_k_bits-3)) * 4
-	//        k  =((group_id(1) << 3) + local_id(1)) & wei_k_mask
+	//        dy = (group_id(1) >> (wei_k_bits-4)) * 4
+	//        k  =((group_id(1) << 3) + local_id(1))*2 & wei_k_mask
 	//        n  =  group_id(2)
 	// - calculate vreg_wei_addr for current wave
 	//      vreg_wei_addr += k * wei_stride_k
@@ -163,7 +167,6 @@ conv5x10uv2fwd:
 	//      Note-2: since work-item has 4 values, make sure not to write values outside out_h
 	//  - calculate vreg_inp_addr0&1, vreg_inp_dswr0&1, vreg_inp_dsrd0&1
 	//        vreg_inp_dsrd0 = local_id(0) * 8
-	//        vreg_inp_dsrd1 = vreg_inp_dsrd0 + 2 * 136 * 4
 	//        vreg_inp_addr0 = sreg_inp_addr + n * inp_stride_n +
 	//            (dy * inp_v + local_id(1)) * inp_stride_y + dx * 4 * inp_u
 	//        vreg_inp_dswr0 = local_id(0) * 8 + local_id(1) * 136 * 4
@@ -185,15 +188,16 @@ conv5x10uv2fwd:
 	s_load_dwordx2 s[sreg_wei_addr:sreg_wei_addr+1], s[sreg_karg:sreg_karg+1], 0x08
 	s_load_dwordx2 s[sreg_out_addr:sreg_out_addr+1], s[sreg_karg:sreg_karg+1], 0x10
 	// compute: sreg_dx =  group_id(0) * 64 + local_id(0)
-	//          sreg_dy = (group_id(1) >> (wei_k_bits-3)) * 4
-	//          sreg_k  = (group_id(1) * 8 + local_id(1)) & wei_k_mask
+	//          sreg_dy = (group_id(1) >> (wei_k_bits-4)) * 4
+	//          sreg_k  = (group_id(1) * 8 + local_id(1))*2 & wei_k_mask
 	s_lshl_b32 s[sreg_tmp0], s[sreg_group_0], 6
 	v_add_u32  v[vreg_dx], vcc, s[sreg_tmp0], v[vreg_local_0]
-	s_lshr_b32 s[sreg_dy], s[sreg_group_1], wei_k_bits-3
+	s_lshr_b32 s[sreg_dy], s[sreg_group_1], wei_k_bits-4
 	s_lshl_b32 s[sreg_dy], s[sreg_dy], 2
 	v_readfirstlane_b32 s[sreg_k], v[vreg_local_1]
 	s_lshl_b32 s[sreg_tmp0], s[sreg_group_1], 3
 	s_add_u32  s[sreg_k], s[sreg_k], s[sreg_tmp0]
+	s_lshl_b32 s[sreg_k], s[sreg_k], 1
 	s_and_b32  s[sreg_k], s[sreg_k], wei_k_mask
 	// compute: sreg_winc = k * wei_stride_k
 	s_mul_i32  s[sreg_winc], s[sreg_k], wei_stride_k
@@ -268,18 +272,26 @@ conv5x10uv2fwd:
 	v_addc_u32 v[vreg_inp_addr1+1], vcc, v[vreg_inp_addr1+1], 0, vcc
 	// initialize output values and channel count
 	s_movk_i32 s[sreg_c], 0+wei_c
-	v_mov_b32 v[vreg_oval], 0
+	v_mov_b32 v[vreg_oval+0], 0
 	v_mov_b32 v[vreg_oval+1], 0
 	v_mov_b32 v[vreg_oval+2], 0
 	v_mov_b32 v[vreg_oval+3], 0
+	v_mov_b32 v[vreg_oval+4], 0
+	v_mov_b32 v[vreg_oval+5], 0
+	v_mov_b32 v[vreg_oval+6], 0
+	v_mov_b32 v[vreg_oval+7], 0
+	// save sreg_c, sreg_k, sreg_dy, sreg_dswrvcc:sreg_dswrvcc+1 into vreg_save
+	v_writelane_b32 v[vreg_save], s[sreg_dswr1vcc], 0
+	v_writelane_b32 v[vreg_save], s[sreg_dswr1vcc+1], 1
+	v_writelane_b32 v[vreg_save], s[sreg_c], 2
+	v_writelane_b32 v[vreg_save], s[sreg_k], 3
+	v_writelane_b32 v[vreg_save], s[sreg_dy], 4
 
 	//////////////////////////////////////////////////////////////////////////////
 	// loop though all channels:
 	// registers with valid data from initialization
-	//  - s[sreg_c]
-	//  - s[sreg_k]
-	//  - s[sreg_dy]
 	//  - s[sreg_wei_addr:sreg_wei_addr+1]
+	//  - v[vreg_save]
 	//  - v[vreg_dx]
 	//  - v[vreg_inp_addr0:vreg_inp_addr0+1]
 	//  - v[vreg_inp_addr1:vreg_inp_addr1+1]
@@ -287,24 +299,16 @@ conv5x10uv2fwd:
 	//  - v[vreg_dswr1]
 	//  - v[vreg_dsrd0]
 	//  - v[vreg_out_addr:vreg_out_addr+1]
-	//  - v[vreg_oval:vreg_oval+3]
+	//  - v[vreg_oval:vreg_oval+7]
 	// temporary registers used inside this loop:
-	//  - s[sreg_wval:sreg_wval+49]
+	//  - s[sreg_wval:sreg_wval+99]
 	//  - v[vreg_ival:vreg_ival+7]
 	//  - v[vreg_dsrd1]
-	//  - v[vreg_dsrd2]
 	//////////////////////////////////////////////////////////////////////////////
 loop_channel:
-	// load channel weights
-	s_load_dwordx16 s[sreg_wval   :sreg_wval+15], s[sreg_wei_addr:sreg_wei_addr+1], 0
-	s_load_dwordx16 s[sreg_wval+16:sreg_wval+31], s[sreg_wei_addr:sreg_wei_addr+1], 4*16
-	s_load_dwordx16 s[sreg_wval+32:sreg_wval+47], s[sreg_wei_addr:sreg_wei_addr+1], 4*32
-	s_load_dwordx2  s[sreg_wval+48:sreg_wval+49], s[sreg_wei_addr:sreg_wei_addr+1], 4*48
-	// update remaining channels and sreg_wei_addr for next channel
-	s_sub_u32  s[sreg_c], s[sreg_c], 1
-	s_add_u32  s[sreg_wei_addr], s[sreg_wei_addr], wei_stride_c
-	s_addc_u32 s[sreg_wei_addr+1], s[sreg_wei_addr+1], 0
-	// load input row into LDS and precompute vreg_dsrd1/vreg_dsrd2 registers
+	// load input row into LDS and precompute vreg_dsrd1 register
+	v_readlane_b32 s[sreg_dswr1vcc], v[vreg_save], 0
+	v_readlane_b32 s[sreg_dswr1vcc+1], v[vreg_save], 1
 	flat_load_dwordx2 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_addr0:vreg_inp_addr0+1]
 	s_mov_b64 exec, s[sreg_dswr1vcc:sreg_dswr1vcc+1]
 	flat_load_dwordx2 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_addr1:vreg_inp_addr1+1]
@@ -321,9 +325,22 @@ loop_channel:
 	ds_write_b64 v[vreg_inp_dswr1], v[vreg_ival+2:vreg_ival+3]
 	s_mov_b64 exec, -1
 	v_add_u32 v[vreg_inp_dsrd1], vcc, 2 * 136 * 4, v[vreg_inp_dsrd0]
-	v_add_u32 v[vreg_inp_dsrd2], vcc, 4 * 136 * 4, v[vreg_inp_dsrd0]
 	s_waitcnt lgkmcnt(0)
 	s_barrier
+	// load channel weights and update sreg_wei_addr for next loop iteration
+	s_load_dwordx16 s[sreg_wval   :sreg_wval+15], s[sreg_wei_addr:sreg_wei_addr+1], 0
+	s_load_dwordx16 s[sreg_wval+16:sreg_wval+31], s[sreg_wei_addr:sreg_wei_addr+1], 4*16
+	s_load_dwordx16 s[sreg_wval+32:sreg_wval+47], s[sreg_wei_addr:sreg_wei_addr+1], 4*32
+	s_load_dwordx2  s[sreg_wval+96:sreg_wval+97], s[sreg_wei_addr:sreg_wei_addr+1], 4*48
+	s_add_u32  s[sreg_wei_addr], s[sreg_wei_addr], wei_stride_k
+	s_addc_u32 s[sreg_wei_addr+1], s[sreg_wei_addr+1], 0
+	s_load_dwordx16 s[sreg_wval+48:sreg_wval+63], s[sreg_wei_addr:sreg_wei_addr+1], 0
+	s_load_dwordx16 s[sreg_wval+64:sreg_wval+79], s[sreg_wei_addr:sreg_wei_addr+1], 4*16
+	s_load_dwordx16 s[sreg_wval+80:sreg_wval+95], s[sreg_wei_addr:sreg_wei_addr+1], 4*32
+	s_load_dwordx2  s[sreg_wval+98:sreg_wval+99], s[sreg_wei_addr:sreg_wei_addr+1], 4*48
+	s_add_u32  s[sreg_wei_addr], s[sreg_wei_addr], wei_stride_c-wei_stride_k
+	s_addc_u32 s[sreg_wei_addr+1], s[sreg_wei_addr+1], -1
+	s_waitcnt lgkmcnt(0) vmcnt(0)
 
 	// compute 2D conv
 	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd0] offset0:0*136+0 offset1:0*136+1
@@ -339,6 +356,14 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+5], s[sreg_wval+0*10+5]
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+6], s[sreg_wval+0*10+6]
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+7], s[sreg_wval+0*10+7]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+0], s[sreg_wval+0*10+0+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+1], s[sreg_wval+0*10+1+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+2], s[sreg_wval+0*10+2+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+3], s[sreg_wval+0*10+3+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+4], s[sreg_wval+0*10+4+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+5], s[sreg_wval+0*10+5+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+6], s[sreg_wval+0*10+6+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+7], s[sreg_wval+0*10+7+48]
 	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd0] offset0:0*136+8 offset1:0*136+9
 	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd0] offset0:1*136+0 offset1:1*136+1
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd0] offset0:1*136+2 offset1:1*136+3
@@ -352,6 +377,14 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+5], s[sreg_wval+1*10+3]
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+6], s[sreg_wval+1*10+4]
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+7], s[sreg_wval+1*10+5]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+0], s[sreg_wval+0*10+8+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+1], s[sreg_wval+0*10+9+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+2], s[sreg_wval+1*10+0+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+3], s[sreg_wval+1*10+1+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+4], s[sreg_wval+1*10+2+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+5], s[sreg_wval+1*10+3+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+6], s[sreg_wval+1*10+4+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+7], s[sreg_wval+1*10+5+48]
 	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd0] offset0:1*136+6 offset1:1*136+7
 	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd0] offset0:1*136+8 offset1:1*136+9
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:0*136+0 offset1:0*136+1
@@ -369,6 +402,18 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+5], s[sreg_wval+0*10+1]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+6], s[sreg_wval+0*10+2]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+7], s[sreg_wval+0*10+3]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+0], s[sreg_wval+1*10+6+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+1], s[sreg_wval+1*10+7+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+2], s[sreg_wval+1*10+8+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+3], s[sreg_wval+1*10+9+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+4], s[sreg_wval+2*10+0+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+5], s[sreg_wval+2*10+1+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+6], s[sreg_wval+2*10+2+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+7], s[sreg_wval+2*10+3+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+4], s[sreg_wval+0*10+0+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+5], s[sreg_wval+0*10+1+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+6], s[sreg_wval+0*10+2+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+7], s[sreg_wval+0*10+3+48]
 	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:0*136+4 offset1:0*136+5
 	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:0*136+6 offset1:0*136+7
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:0*136+8 offset1:0*136+9
@@ -390,6 +435,22 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+5], s[sreg_wval+0*10+9]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+6], s[sreg_wval+1*10+0]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+7], s[sreg_wval+1*10+1]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+0], s[sreg_wval+2*10+4+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+1], s[sreg_wval+2*10+5+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+2], s[sreg_wval+2*10+6+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+3], s[sreg_wval+2*10+7+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+4], s[sreg_wval+2*10+8+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+5], s[sreg_wval+2*10+9+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+6], s[sreg_wval+3*10+0+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+7], s[sreg_wval+3*10+1+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+0], s[sreg_wval+0*10+4+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+1], s[sreg_wval+0*10+5+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+2], s[sreg_wval+0*10+6+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+3], s[sreg_wval+0*10+7+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+4], s[sreg_wval+0*10+8+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+5], s[sreg_wval+0*10+9+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+6], s[sreg_wval+1*10+0+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+7], s[sreg_wval+1*10+1+48]
 	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:1*136+2 offset1:1*136+3
 	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:1*136+4 offset1:1*136+5
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:1*136+6 offset1:1*136+7
@@ -411,10 +472,27 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+5], s[sreg_wval+1*10+7]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+6], s[sreg_wval+1*10+8]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+7], s[sreg_wval+1*10+9]
-	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd2] offset0:0*136+0 offset1:0*136+1
-	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd2] offset0:0*136+2 offset1:0*136+3
-	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd2] offset0:0*136+4 offset1:0*136+5
-	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd2] offset0:0*136+6 offset1:0*136+7
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+0], s[sreg_wval+3*10+2+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+1], s[sreg_wval+3*10+3+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+2], s[sreg_wval+3*10+4+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+3], s[sreg_wval+3*10+5+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+4], s[sreg_wval+3*10+6+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+5], s[sreg_wval+3*10+7+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+6], s[sreg_wval+3*10+8+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+7], s[sreg_wval+3*10+9+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+0], s[sreg_wval+1*10+2+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+1], s[sreg_wval+1*10+3+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+2], s[sreg_wval+1*10+4+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+3], s[sreg_wval+1*10+5+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+4], s[sreg_wval+1*10+6+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+5], s[sreg_wval+1*10+7+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+6], s[sreg_wval+1*10+8+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+7], s[sreg_wval+1*10+9+48]
+	v_add_u32 v[vreg_inp_dsrd1], vcc, 4 * 136 * 4, v[vreg_inp_dsrd0]
+	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:0*136+0 offset1:0*136+1
+	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:0*136+2 offset1:0*136+3
+	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:0*136+4 offset1:0*136+5
+	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd1] offset0:0*136+6 offset1:0*136+7
 	s_waitcnt lgkmcnt(0)
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+0], s[sreg_wval+4*10+0]
 	v_mac_f32 v[vreg_oval+0], v[vreg_ival+1], s[sreg_wval+4*10+1]
@@ -440,13 +518,37 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+5], s[sreg_wval+0*10+5]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+6], s[sreg_wval+0*10+6]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+7], s[sreg_wval+0*10+7]
-	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd2] offset0:0*136+8 offset1:0*136+9
-	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd2] offset0:1*136+0 offset1:1*136+1
-	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd2] offset0:1*136+2 offset1:1*136+3
-	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd2] offset0:1*136+4 offset1:1*136+5
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+0], s[sreg_wval+4*10+0+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+1], s[sreg_wval+4*10+1+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+2], s[sreg_wval+4*10+2+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+3], s[sreg_wval+4*10+3+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+4], s[sreg_wval+4*10+4+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+5], s[sreg_wval+4*10+5+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+6], s[sreg_wval+4*10+6+48]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+7], s[sreg_wval+4*10+7+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+0], s[sreg_wval+2*10+0+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+1], s[sreg_wval+2*10+1+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+2], s[sreg_wval+2*10+2+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+3], s[sreg_wval+2*10+3+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+4], s[sreg_wval+2*10+4+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+5], s[sreg_wval+2*10+5+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+6], s[sreg_wval+2*10+6+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+7], s[sreg_wval+2*10+7+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+0], s[sreg_wval+0*10+0+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+1], s[sreg_wval+0*10+1+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+2], s[sreg_wval+0*10+2+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+3], s[sreg_wval+0*10+3+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+4], s[sreg_wval+0*10+4+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+5], s[sreg_wval+0*10+5+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+6], s[sreg_wval+0*10+6+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+7], s[sreg_wval+0*10+7+48]
+	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:0*136+8 offset1:0*136+9
+	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:1*136+0 offset1:1*136+1
+	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:1*136+2 offset1:1*136+3
+	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd1] offset0:1*136+4 offset1:1*136+5
 	s_waitcnt lgkmcnt(0)
-	v_mac_f32 v[vreg_oval+0], v[vreg_ival+0], s[sreg_wval+4*10+8]
-	v_mac_f32 v[vreg_oval+0], v[vreg_ival+1], s[sreg_wval+4*10+9]
+	v_mac_f32 v[vreg_oval+0], v[vreg_ival+0], s[sreg_wval+4*10+8+48]
+	v_mac_f32 v[vreg_oval+0], v[vreg_ival+1], s[sreg_wval+4*10+9+48]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+0], s[sreg_wval+2*10+8]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+1], s[sreg_wval+2*10+9]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+2], s[sreg_wval+3*10+0]
@@ -463,9 +565,27 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+5], s[sreg_wval+1*10+3]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+6], s[sreg_wval+1*10+4]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+7], s[sreg_wval+1*10+5]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+0], s[sreg_wval+4*10+8+50]
+	v_mac_f32 v[vreg_oval+4], v[vreg_ival+1], s[sreg_wval+4*10+9+50]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+0], s[sreg_wval+2*10+8+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+1], s[sreg_wval+2*10+9+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+2], s[sreg_wval+3*10+0+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+3], s[sreg_wval+3*10+1+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+4], s[sreg_wval+3*10+2+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+5], s[sreg_wval+3*10+3+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+6], s[sreg_wval+3*10+4+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+7], s[sreg_wval+3*10+5+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+0], s[sreg_wval+0*10+8+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+1], s[sreg_wval+0*10+9+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+2], s[sreg_wval+1*10+0+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+3], s[sreg_wval+1*10+1+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+4], s[sreg_wval+1*10+2+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+5], s[sreg_wval+1*10+3+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+6], s[sreg_wval+1*10+4+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+7], s[sreg_wval+1*10+5+48]
+	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:1*136+6 offset1:1*136+7
+	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:1*136+8 offset1:1*136+9
 	v_add_u32 v[vreg_inp_dsrd1], vcc, 6 * 136 * 4, v[vreg_inp_dsrd0]
-	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd2] offset0:1*136+6 offset1:1*136+7
-	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd2] offset0:1*136+8 offset1:1*136+9
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:0*136+0 offset1:0*136+1
 	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd1] offset0:0*136+2 offset1:0*136+3
 	s_waitcnt lgkmcnt(0)
@@ -489,6 +609,26 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+5], s[sreg_wval+0*10+1]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+6], s[sreg_wval+0*10+2]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+7], s[sreg_wval+0*10+3]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+0], s[sreg_wval+3*10+6+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+1], s[sreg_wval+3*10+7+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+2], s[sreg_wval+3*10+8+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+3], s[sreg_wval+3*10+9+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+4], s[sreg_wval+4*10+0+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+5], s[sreg_wval+4*10+1+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+6], s[sreg_wval+4*10+2+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+7], s[sreg_wval+4*10+3+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+0], s[sreg_wval+1*10+6+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+1], s[sreg_wval+1*10+7+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+2], s[sreg_wval+1*10+8+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+3], s[sreg_wval+1*10+9+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+4], s[sreg_wval+2*10+0+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+5], s[sreg_wval+2*10+1+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+6], s[sreg_wval+2*10+2+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+7], s[sreg_wval+2*10+3+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+4], s[sreg_wval+0*10+0+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+5], s[sreg_wval+0*10+1+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+6], s[sreg_wval+0*10+2+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+7], s[sreg_wval+0*10+3+48]
 	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:0*136+4 offset1:0*136+5
 	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:0*136+6 offset1:0*136+7
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:0*136+8 offset1:0*136+9
@@ -498,8 +638,8 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+1], s[sreg_wval+4*10+5]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+2], s[sreg_wval+4*10+6]
 	v_mac_f32 v[vreg_oval+1], v[vreg_ival+3], s[sreg_wval+4*10+7]
-	v_mac_f32 v[vreg_oval+1], v[vreg_ival+4], s[sreg_wval+4*10+8]
-	v_mac_f32 v[vreg_oval+1], v[vreg_ival+5], s[sreg_wval+4*10+9]
+	v_mac_f32 v[vreg_oval+1], v[vreg_ival+4], s[sreg_wval+4*10+8+48]
+	v_mac_f32 v[vreg_oval+1], v[vreg_ival+5], s[sreg_wval+4*10+9+48]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+0], s[sreg_wval+2*10+4]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+1], s[sreg_wval+2*10+5]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+2], s[sreg_wval+2*10+6]
@@ -516,12 +656,33 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+5], s[sreg_wval+0*10+9]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+6], s[sreg_wval+1*10+0]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+7], s[sreg_wval+1*10+1]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+0], s[sreg_wval+4*10+4+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+1], s[sreg_wval+4*10+5+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+2], s[sreg_wval+4*10+6+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+3], s[sreg_wval+4*10+7+48]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+4], s[sreg_wval+4*10+8+50]
+	v_mac_f32 v[vreg_oval+5], v[vreg_ival+5], s[sreg_wval+4*10+9+50]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+0], s[sreg_wval+2*10+4+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+1], s[sreg_wval+2*10+5+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+2], s[sreg_wval+2*10+6+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+3], s[sreg_wval+2*10+7+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+4], s[sreg_wval+2*10+8+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+5], s[sreg_wval+2*10+9+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+6], s[sreg_wval+3*10+0+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+7], s[sreg_wval+3*10+1+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+0], s[sreg_wval+0*10+4+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+1], s[sreg_wval+0*10+5+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+2], s[sreg_wval+0*10+6+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+3], s[sreg_wval+0*10+7+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+4], s[sreg_wval+0*10+8+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+5], s[sreg_wval+0*10+9+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+6], s[sreg_wval+1*10+0+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+7], s[sreg_wval+1*10+1+48]
 	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:1*136+2 offset1:1*136+3
 	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:1*136+4 offset1:1*136+5
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:1*136+6 offset1:1*136+7
 	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd1] offset0:1*136+8 offset1:1*136+9
-	v_add_u32 v[vreg_inp_dsrd2], vcc, 8 * 136 * 4, v[vreg_inp_dsrd0]
-	v_add_u32 v[vreg_inp_dsrd1], vcc,10 * 136 * 4, v[vreg_inp_dsrd0]
+	v_add_u32 v[vreg_inp_dsrd1], vcc, 8 * 136 * 4, v[vreg_inp_dsrd0]
 	s_waitcnt lgkmcnt(0)
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+0], s[sreg_wval+3*10+2]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+1], s[sreg_wval+3*10+3]
@@ -539,10 +700,26 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+5], s[sreg_wval+1*10+7]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+6], s[sreg_wval+1*10+8]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+7], s[sreg_wval+1*10+9]
-	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd2] offset0:0*136+0 offset1:0*136+1
-	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd2] offset0:0*136+2 offset1:0*136+3
-	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd2] offset0:0*136+4 offset1:0*136+5
-	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd2] offset0:0*136+6 offset1:0*136+7
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+0], s[sreg_wval+3*10+2+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+1], s[sreg_wval+3*10+3+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+2], s[sreg_wval+3*10+4+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+3], s[sreg_wval+3*10+5+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+4], s[sreg_wval+3*10+6+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+5], s[sreg_wval+3*10+7+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+6], s[sreg_wval+3*10+8+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+7], s[sreg_wval+3*10+9+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+0], s[sreg_wval+1*10+2+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+1], s[sreg_wval+1*10+3+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+2], s[sreg_wval+1*10+4+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+3], s[sreg_wval+1*10+5+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+4], s[sreg_wval+1*10+6+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+5], s[sreg_wval+1*10+7+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+6], s[sreg_wval+1*10+8+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+7], s[sreg_wval+1*10+9+48]
+	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:0*136+0 offset1:0*136+1
+	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:0*136+2 offset1:0*136+3
+	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:0*136+4 offset1:0*136+5
+	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd1] offset0:0*136+6 offset1:0*136+7
 	s_waitcnt lgkmcnt(0)
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+0], s[sreg_wval+4*10+0]
 	v_mac_f32 v[vreg_oval+2], v[vreg_ival+1], s[sreg_wval+4*10+1]
@@ -560,13 +737,29 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+5], s[sreg_wval+2*10+5]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+6], s[sreg_wval+2*10+6]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+7], s[sreg_wval+2*10+7]
-	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd2] offset0:0*136+8 offset1:0*136+9
-	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd2] offset0:1*136+0 offset1:1*136+1
-	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd2] offset0:1*136+2 offset1:1*136+3
-	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd2] offset0:1*136+4 offset1:1*136+5
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+0], s[sreg_wval+4*10+0+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+1], s[sreg_wval+4*10+1+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+2], s[sreg_wval+4*10+2+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+3], s[sreg_wval+4*10+3+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+4], s[sreg_wval+4*10+4+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+5], s[sreg_wval+4*10+5+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+6], s[sreg_wval+4*10+6+48]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+7], s[sreg_wval+4*10+7+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+0], s[sreg_wval+2*10+0+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+1], s[sreg_wval+2*10+1+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+2], s[sreg_wval+2*10+2+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+3], s[sreg_wval+2*10+3+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+4], s[sreg_wval+2*10+4+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+5], s[sreg_wval+2*10+5+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+6], s[sreg_wval+2*10+6+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+7], s[sreg_wval+2*10+7+48]
+	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:0*136+8 offset1:0*136+9
+	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:1*136+0 offset1:1*136+1
+	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:1*136+2 offset1:1*136+3
+	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd1] offset0:1*136+4 offset1:1*136+5
 	s_waitcnt lgkmcnt(0)
-	v_mac_f32 v[vreg_oval+2], v[vreg_ival+0], s[sreg_wval+4*10+8]
-	v_mac_f32 v[vreg_oval+2], v[vreg_ival+1], s[sreg_wval+4*10+9]
+	v_mac_f32 v[vreg_oval+2], v[vreg_ival+0], s[sreg_wval+4*10+8+48]
+	v_mac_f32 v[vreg_oval+2], v[vreg_ival+1], s[sreg_wval+4*10+9+48]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+0], s[sreg_wval+2*10+8]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+1], s[sreg_wval+2*10+9]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+2], s[sreg_wval+3*10+0]
@@ -575,8 +768,19 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+5], s[sreg_wval+3*10+3]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+6], s[sreg_wval+3*10+4]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+7], s[sreg_wval+3*10+5]
-	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd2] offset0:1*136+6 offset1:1*136+7
-	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd2] offset0:1*136+8 offset1:1*136+9
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+0], s[sreg_wval+4*10+8+50]
+	v_mac_f32 v[vreg_oval+6], v[vreg_ival+1], s[sreg_wval+4*10+9+50]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+0], s[sreg_wval+2*10+8+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+1], s[sreg_wval+2*10+9+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+2], s[sreg_wval+3*10+0+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+3], s[sreg_wval+3*10+1+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+4], s[sreg_wval+3*10+2+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+5], s[sreg_wval+3*10+3+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+6], s[sreg_wval+3*10+4+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+7], s[sreg_wval+3*10+5+48]
+	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:1*136+6 offset1:1*136+7
+	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:1*136+8 offset1:1*136+9
+	v_add_u32 v[vreg_inp_dsrd1], vcc,10 * 136 * 4, v[vreg_inp_dsrd0]
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:0*136+0 offset1:0*136+1
 	ds_read2_b32 v[vreg_ival+6:vreg_ival+7], v[vreg_inp_dsrd1] offset0:0*136+2 offset1:0*136+3
 	s_waitcnt lgkmcnt(0)
@@ -588,6 +792,14 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+5], s[sreg_wval+4*10+1]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+6], s[sreg_wval+4*10+2]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+7], s[sreg_wval+4*10+3]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+0], s[sreg_wval+3*10+6+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+1], s[sreg_wval+3*10+7+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+2], s[sreg_wval+3*10+8+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+3], s[sreg_wval+3*10+9+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+4], s[sreg_wval+4*10+0+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+5], s[sreg_wval+4*10+1+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+6], s[sreg_wval+4*10+2+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+7], s[sreg_wval+4*10+3+48]
 	ds_read2_b32 v[vreg_ival+0:vreg_ival+1], v[vreg_inp_dsrd1] offset0:0*136+4 offset1:0*136+5
 	ds_read2_b32 v[vreg_ival+2:vreg_ival+3], v[vreg_inp_dsrd1] offset0:0*136+6 offset1:0*136+7
 	ds_read2_b32 v[vreg_ival+4:vreg_ival+5], v[vreg_inp_dsrd1] offset0:0*136+8 offset1:0*136+9
@@ -596,10 +808,19 @@ loop_channel:
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+1], s[sreg_wval+4*10+5]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+2], s[sreg_wval+4*10+6]
 	v_mac_f32 v[vreg_oval+3], v[vreg_ival+3], s[sreg_wval+4*10+7]
-	v_mac_f32 v[vreg_oval+3], v[vreg_ival+4], s[sreg_wval+4*10+8]
-	v_mac_f32 v[vreg_oval+3], v[vreg_ival+5], s[sreg_wval+4*10+9]
+	v_mac_f32 v[vreg_oval+3], v[vreg_ival+4], s[sreg_wval+4*10+8+48]
+	v_mac_f32 v[vreg_oval+3], v[vreg_ival+5], s[sreg_wval+4*10+9+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+0], s[sreg_wval+4*10+4+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+1], s[sreg_wval+4*10+5+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+2], s[sreg_wval+4*10+6+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+3], s[sreg_wval+4*10+7+48]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+4], s[sreg_wval+4*10+8+50]
+	v_mac_f32 v[vreg_oval+7], v[vreg_ival+5], s[sreg_wval+4*10+9+50]
 
 	// loop if more channels needs to be processed
+	v_readlane_b32 s[sreg_c], v[vreg_save], 2
+	s_sub_u32  s[sreg_c], s[sreg_c], 1
+	v_writelane_b32 v[vreg_save], s[sreg_c], 2
 	s_cmp_gt_u32 s[sreg_c], 0
 	s_cbranch_scc1 loop_channel
 
@@ -607,26 +828,51 @@ loop_channel:
 	// write output values
 	//  - do bound checks before writing
 	//  - use s[sreg_wei_addr:sreg_wei_addr+1] as temporary registers
+	v_readlane_b32 s[sreg_k], v[vreg_save], 3
+	v_readlane_b32 s[sreg_dy], v[vreg_save], 4
+	v_mov_b32 v[vreg_ival+0], v[vreg_out_addr+0]
+	v_mov_b32 v[vreg_ival+1], v[vreg_out_addr+1]
 	v_cmpx_gt_u32 vcc, 0+out_w, v[vreg_dx]
 	s_cmpk_ge_u32 s[sreg_k], 0+wei_k
-	s_cbranch_scc1 skip_write
+	s_cbranch_scc1 skip_write0
 	flat_store_dword v[vreg_out_addr:vreg_out_addr+1], v[vreg_oval]
 	s_cmpk_ge_u32 s[sreg_dy], 0+out_h-1
-	s_cbranch_scc1 skip_write
+	s_cbranch_scc1 skip_write0
 	v_add_u32  v[vreg_out_addr], vcc, 0+out_stride_y, v[vreg_out_addr]
 	v_addc_u32 v[vreg_out_addr+1], vcc, v[vreg_out_addr+1], 0, vcc
 	flat_store_dword v[vreg_out_addr:vreg_out_addr+1], v[vreg_oval+1]
 	s_cmpk_ge_u32 s[sreg_dy], 0+out_h-2
-	s_cbranch_scc1 skip_write
+	s_cbranch_scc1 skip_write0
 	v_add_u32  v[vreg_out_addr], vcc, 0+out_stride_y, v[vreg_out_addr]
 	v_addc_u32 v[vreg_out_addr+1], vcc, v[vreg_out_addr+1], 0, vcc
 	flat_store_dword v[vreg_out_addr:vreg_out_addr+1], v[vreg_oval+2]
 	s_cmpk_ge_u32 s[sreg_dy], 0+out_h-3
-	s_cbranch_scc1 skip_write
+	s_cbranch_scc1 skip_write0
 	v_add_u32  v[vreg_out_addr], vcc, 0+out_stride_y, v[vreg_out_addr]
 	v_addc_u32 v[vreg_out_addr+1], vcc, v[vreg_out_addr+1], 0, vcc
 	flat_store_dword v[vreg_out_addr:vreg_out_addr+1], v[vreg_oval+3]
-skip_write:
+skip_write0:
+	s_cmpk_ge_u32 s[sreg_k], -1+wei_k
+	s_cbranch_scc1 skip_write1
+	v_add_u32  v[vreg_out_addr], vcc, 0+out_stride_k, v[vreg_ival]
+	v_addc_u32 v[vreg_out_addr+1], vcc, v[vreg_ival+1], 0, vcc
+	flat_store_dword v[vreg_out_addr:vreg_out_addr+1], v[vreg_oval+4]
+	s_cmpk_ge_u32 s[sreg_dy], 0+out_h-1
+	s_cbranch_scc1 skip_write1
+	v_add_u32  v[vreg_out_addr], vcc, 0+out_stride_y, v[vreg_out_addr]
+	v_addc_u32 v[vreg_out_addr+1], vcc, v[vreg_out_addr+1], 0, vcc
+	flat_store_dword v[vreg_out_addr:vreg_out_addr+1], v[vreg_oval+5]
+	s_cmpk_ge_u32 s[sreg_dy], 0+out_h-2
+	s_cbranch_scc1 skip_write1
+	v_add_u32  v[vreg_out_addr], vcc, 0+out_stride_y, v[vreg_out_addr]
+	v_addc_u32 v[vreg_out_addr+1], vcc, v[vreg_out_addr+1], 0, vcc
+	flat_store_dword v[vreg_out_addr:vreg_out_addr+1], v[vreg_oval+6]
+	s_cmpk_ge_u32 s[sreg_dy], 0+out_h-3
+	s_cbranch_scc1 skip_write1
+	v_add_u32  v[vreg_out_addr], vcc, 0+out_stride_y, v[vreg_out_addr]
+	v_addc_u32 v[vreg_out_addr+1], vcc, v[vreg_out_addr+1], 0, vcc
+	flat_store_dword v[vreg_out_addr:vreg_out_addr+1], v[vreg_oval+7]
+skip_write1:
 	s_endpgm
 
 ///////////////////////////////////////////////////
