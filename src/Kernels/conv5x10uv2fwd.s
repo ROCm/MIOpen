@@ -4,25 +4,31 @@
  */
 
 .hsa_code_object_version 2,1
-.hsa_code_object_isa     8,0,3,"AMD","AMDGPU"
+.hsa_code_object_isa
 
 ///////////////////////////////////////////////////
 // ******* configuration and resource allocation
+// This kernel uses supports 10x5 convolution with stride=2 pad=0
+// ******* global-work and work-group-size
+//  global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k,8), batch_n]
+//  work-group-size = [64, 8, 1]
+//    * def align(a,b) = ((a + b - 1)/b)*b
 ///////////////////////////////////////////////////
 // ******* changeable configuration parameters
+//   inp_w      - input image width
+//   inp_h      - input image height
+//   wei_c      - input image channels
+//   wei_k      - output image channels
+//   batch_n    - batch size
+//   wei_layout - weights layout 0:"KCHW" or 1:"CKHW"
+.ifndef params_defined
 .set inp_w       , 341
 .set inp_h       ,  79
 .set wei_c       ,  32
 .set wei_k       ,  32
-.set out_w       , 166
-.set out_h       ,  38
 .set batch_n     ,  32
-// ******* global-work and work-group-size
-//  global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k,8), batch_n]
-//  work-group-size = [64, 8, 1]
-.set WGSIZE_0    , 64
-.set WGSIZE_1    ,  8
-.set WGSIZE_2    ,  1
+.set wei_layout  ,   0
+.endif
 // ******* fixed configuration parameters
 .set wei_w       ,  10
 .set wei_h       ,   5
@@ -77,17 +83,27 @@
 .set vreg_dx      , 23   // [1]
 .set VGPR_COUNT    ,24   // COUNT
 // ******* derived constants
+.set out_w       ,(inp_w + inp_u - wei_w) / inp_u
+.set out_h       ,(inp_h + inp_v - wei_h) / inp_v
 .set inp_stride_y,(inp_w * 4)
 .set inp_stride_c,(inp_h * inp_stride_y)
 .set inp_stride_n,(wei_c * inp_stride_c)
 .set inp_size    ,(batch_n * inp_stride_n)
-.set wei_stride_c,(wei_h * wei_w * 4)
-.set wei_stride_k,(wei_c * wei_stride_c)
-.set wei_size    ,(wei_k * wei_stride_k)
 .set out_stride_y,(out_w * 4)
 .set out_stride_k,(out_h * out_stride_y)
 .set out_stride_n,(wei_k * out_stride_k)
 .set out_size    ,(batch_n * out_stride_n)
+.if wei_layout == 0 // KCHW
+.set wei_stride_c,(wei_h * wei_w * 4)
+.set wei_stride_k,(wei_c * wei_stride_c)
+.set wei_size    ,(wei_k * wei_stride_k)
+.elseif wei_layout == 1 // CKHW
+.set wei_stride_k,(wei_h * wei_w * 4)
+.set wei_stride_c,(wei_c * wei_stride_k)
+.set wei_size    ,(wei_k * wei_stride_c)
+.else
+.err "ERROR: wei_layout should be 0 (for:KCHW) or 1 (for:CKHW)"
+.endif
 .macro .bitcount, n, bits
   .if (1 << \bits) < \n
     .set \bits, \bits + 1
@@ -109,68 +125,26 @@
 conv5x10uv2fwd:
 
 	.amd_kernel_code_t
-		amd_code_version_major = 1
-		amd_code_version_minor = 0
-		amd_machine_kind = 1
-		amd_machine_version_major = 8
-		amd_machine_version_minor = 0
-		amd_machine_version_stepping = 3
-		kernel_code_entry_byte_offset = 256
-		kernel_code_prefetch_byte_size = 0
-		max_scratch_backing_memory_byte_size = 0
-		granulated_workitem_vgpr_count = (VGPR_COUNT+3)/4
-		granulated_wavefront_sgpr_count = (SGPR_COUNT+7)/8
-		priority = 0
 		float_mode = 192
-		priv = 0
-		enable_dx10_clamp = 1
-		debug_mode = 0
-		enable_ieee_mode = 1
-		enable_sgpr_private_segment_wave_byte_offset = 0
 		user_sgpr_count = 6
 		enable_sgpr_workgroup_id_x = 1
 		enable_sgpr_workgroup_id_y = 1
 		enable_sgpr_workgroup_id_z = 1
 		enable_sgpr_workgroup_info = 0
 		enable_vgpr_workitem_id = 1
-		enable_exception_msb = 0
-		granulated_lds_size = 12
-		enable_exception = 0
 		enable_sgpr_private_segment_buffer = 1
 		enable_sgpr_dispatch_ptr = 0
 		enable_sgpr_queue_ptr = 0
 		enable_sgpr_kernarg_segment_ptr = 1
-		enable_sgpr_dispatch_id = 0
-		enable_sgpr_flat_scratch_init = 0
-		enable_sgpr_private_segment_size = 0
 		enable_sgpr_grid_workgroup_count_x = 0
 		enable_sgpr_grid_workgroup_count_y = 0
 		enable_sgpr_grid_workgroup_count_z = 0
-		enable_ordered_append_gds = 0
-		private_element_size = 1
-		is_ptr64 = 1
-		is_dynamic_callstack = 0
-		is_debug_enabled = 0
-		is_xnack_enabled = 0
-		workitem_private_segment_byte_size = 0
-		workgroup_group_segment_byte_size = 5984
-		gds_segment_byte_size = 0
-		kernarg_segment_byte_size = 64
-		workgroup_fbarrier_count = 0
-		wavefront_sgpr_count = SGPR_COUNT
 		workitem_vgpr_count = VGPR_COUNT
-		reserved_vgpr_first = 0
-		reserved_vgpr_count = 0
-		reserved_sgpr_first = 0
-		reserved_sgpr_count = 0
-		debug_wavefront_private_segment_offset_sgpr = 0
-		debug_private_segment_buffer_sgpr = 0
-		kernarg_segment_alignment = 4
-		group_segment_alignment = 4
-		private_segment_alignment = 4
-		wavefront_size = 6
-		call_convention = 0
-		runtime_loader_kernel_symbol = 0
+		wavefront_sgpr_count = SGPR_COUNT
+		workgroup_group_segment_byte_size = LDS_SIZE
+		granulated_workitem_vgpr_count = (VGPR_COUNT-1)/4
+		granulated_wavefront_sgpr_count = (SGPR_COUNT-1)/8
+		granulated_lds_size = (LDS_SIZE+511)/512
 	.end_amd_kernel_code_t
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -284,7 +258,7 @@ conv5x10uv2fwd:
 	v_cmp_ge_u32  vcc, v[vreg_tmp0], v[vreg_tmp1]
 	v_mov_b32     v[vreg_tmp1], 4*136*11
 	v_cndmask_b32 v[vreg_inp_dswr1], v[vreg_inp_dswr1], v[vreg_tmp1], vcc
-	s_mov_b64     s[sreg_dswr1vcc:sreg_dswr1vcc+1], vcc
+	s_not_b64     s[sreg_dswr1vcc:sreg_dswr1vcc+1], vcc
 	// wait for load completion
 	s_waitcnt lgkmcnt(0)
 	// update address registers
@@ -640,10 +614,9 @@ loop_channel:
 	// write output values
 	//  - do bound checks before writing
 	//  - use s[sreg_wei_addr:sreg_wei_addr+1] as temporary registers
+	v_cmpx_gt_u32 vcc, 0+out_w, v[vreg_dx]
 	s_cmpk_ge_u32 s[sreg_k], 0+wei_k
 	s_cbranch_scc1 skip_write
-	v_cmp_gt_u32 vcc, 0+out_w, v[vreg_dx]
-	s_and_saveexec_b64 s[sreg_wei_addr:sreg_wei_addr+1], vcc
 	flat_store_dword v[vreg_out_addr:vreg_out_addr+1], v[vreg_oval]
 	s_cmpk_ge_u32 s[sreg_dy], 0+out_h-1
 	s_cbranch_scc1 skip_write
@@ -667,10 +640,28 @@ skip_write:
 // ******* meta-data section of the kernels
 ///////////////////////////////////////////////////
 .section .note
-	.long  0x00000004
-	.long  0x00000106
-	.long  0x00000007
+.ifdef ROCM_METADATA_V2
+.amdgpu_runtime_metadata
+{ amd.MDVersion: [ 2, 1 ],
+    amd.Kernels:
+    - { amd.KernelName: conv5x10uv2fwd, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ],
+        # FIXME amd.ReqdWorkGroupSize: [ 64, 8, 1 ], 
+        amd.Args:
+        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: in,          amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
+        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: weights,     amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
+        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: out,         amd.ArgAddrQual: 1, amd.ArgAccQual: 0 }
+        - { amd.ArgSize: 4, amd.ArgAlign: 4, amd.ArgKind: 0, amd.ArgValueType: 8, amd.ArgTypeName:  float,   amd.ArgName: padding_val,                     amd.ArgAccQual: 0 }
+      }
+}
+.end_amdgpu_runtime_metadata
+.else
+	// old ROCm metadata
+	.long 4
+	.long .Lmeta_end - .Lmeta_begin
+	.long 7
 	.asciz "AMD"
+	.p2align 2
+	.Lmeta_begin:
 	.long  0x02010001, 0x00780300
 	.short 0x0604, 14, 0
 	.ascii "conv5x10uv2fwd"
@@ -689,3 +680,6 @@ skip_write:
 	.long  0x0000080a, 0x0e080d00, 0x07080009, 0x00000809
 	.long  0x00080a00, 0x090d0000, 0x0800090e, 0x00004015
 	.long  0x00000800, 0x00000100, 0x00000500
+	.Lmeta_end:
+	.p2align 2
+.endif
