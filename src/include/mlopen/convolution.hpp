@@ -168,6 +168,7 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	int upscalex;
 	int upscaley;
 };
+std::ostream& operator<< (std::ostream& stream, const ConvolutionDescriptor& c);
 }  // namespace mlopen
 MLOPEN_DEFINE_OBJECT(mlopenConvolutionDescriptor, mlopen::ConvolutionDescriptor);
 

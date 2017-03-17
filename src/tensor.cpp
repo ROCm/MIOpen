@@ -1,5 +1,6 @@
 #include <mlopen/tensor.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/logger.hpp>
 #include <string>
 #include <algorithm>
 #include <numeric>
@@ -84,6 +85,11 @@ std::string TensorDescriptor::ToString() const
 		result += std::to_string(i) + ", ";
 	}
 	return result.substr(0, result.length()-2);
+}
+
+std::ostream& operator<< (std::ostream& stream, const TensorDescriptor& t)
+{
+	return LogRange(stream, t.lens, ", ");
 }
 
 } // namespace mlopen

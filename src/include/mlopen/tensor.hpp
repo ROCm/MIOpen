@@ -6,6 +6,7 @@
 #include <mlopen.h>
 #include <mlopen/common.hpp>
 #include <vector>
+#include <iostream>
 // TODO(paul): remove this include later
 #include <cstdio>
 
@@ -64,12 +65,15 @@ struct TensorDescriptor : mlopenTensorDescriptor {
 			Data_t							dstTensor,
 			const void						*alpha);
 
+	friend std::ostream& operator<< (std::ostream& stream, const TensorDescriptor& t);
 private:
 	std::vector<int> lens;
 	std::vector<int> strides;
 
 	mlopenDataType_t type;
 };
+
+
 }  // namespace mlopen
 
 MLOPEN_DEFINE_OBJECT(mlopenTensorDescriptor, mlopen::TensorDescriptor)
