@@ -1,10 +1,13 @@
 /*
- * Convolution Kernel for 5x10 kernel with stride=2 pad=0 
- *
+ * Convolution Kernel for 5x10 kernel with stride=2 pad=0
+ * works on devices compatible with GCN3 ISA.
  */
 
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
+.if (.option.machine_version_major != 8) && (.option.machine_version_major != 9)
+.err "ERROR: spefied target machine not supported"
+.endif
 
 ///////////////////////////////////////////////////
 // ******* global-work and work-group-size
@@ -14,12 +17,16 @@
 //    * NOTE: wei_k must be multiple of 2
 ///////////////////////////////////////////////////
 // ******* changeable configuration parameters
-//   inp_w      - input image width
-//   inp_h      - input image height
-//   wei_c      - input image channels
-//   wei_k      - output image channels (must be multiple of 2)
-//   wei_layout - weights layout 0:"KCHW" or 1:"CKHW"
+//   params_defined - set this value to 0:use-defaults 1:user-specified-values
+//   inp_w          - input image width
+//   inp_h          - input image height
+//   wei_c          - input image channels
+//   wei_k          - output image channels (must be multiple of 2)
+//   wei_layout     - weights layout 0:"KCHW" or 1:"CKHW"
 .ifndef params_defined
+.set params_defined , 0
+.endif
+.if params_defined == 0
 .set inp_w       , 341
 .set inp_h       ,  79
 .set wei_c       ,  32
@@ -38,21 +45,21 @@
 .set LDS_SIZE    ,4*(64*inp_u-1+(wei_w-1))*(4*inp_v-1+(wei_h-1))+32 // = 6016 bytes
 // ******* SGPR allocation
 // For used during initialization or as temporary
-.set sreg_karg   ,   4   // [2]
-.set sreg_group_0,   6   // [1]
-.set sreg_group_1,   7   // [1]
-.set sreg_group_2,   8   // [1]
-.set sreg_tmp0   ,   9   // [1]
-.set sreg_tmp1   ,  10   // [1]
-.set sreg_tmp2   ,  11   // [1]
-.set sreg_iinc   ,  12   // [1]
-.set sreg_winc   ,  13   // [1]
-.set sreg_inp_addr, 14   // [2]
-.set sreg_out_addr, 16   // [2]
-.set sreg_dswr1vcc, 18   // [2]
-.set sreg_k       , 20   // [1]
-.set sreg_c       , 21   // [1]
-.set sreg_dy      , 22   // [1]
+.set sreg_karg   ,   0   // [2]
+.set sreg_group_0,   2   // [1]
+.set sreg_group_1,   3   // [1]
+.set sreg_group_2,   4   // [1]
+.set sreg_tmp0   ,   5   // [1]
+.set sreg_tmp1   ,   6   // [1]
+.set sreg_tmp2   ,   7   // [1]
+.set sreg_iinc   ,   8   // [1]
+.set sreg_winc   ,   9   // [1]
+.set sreg_inp_addr, 10   // [2]
+.set sreg_out_addr, 12   // [2]
+.set sreg_dswr1vcc, 14   // [2]
+.set sreg_k       , 16   // [1]
+.set sreg_c       , 17   // [1]
+.set sreg_dy      , 18   // [1]
 // For use during core-loop and later
 .set sreg_wval    ,  0   // [50]
 .set sreg_wei_addr,100   // [2]
@@ -121,26 +128,22 @@
 conv5x10uv2fwd:
 
 	.amd_kernel_code_t
+		amd_machine_version_major = .option.machine_version_major
+		amd_machine_version_minor = .option.machine_version_minor
+		amd_machine_version_stepping = .option.machine_version_stepping
+		is_ptr64 = 1
 		float_mode = 192
-		user_sgpr_count = 6
+		user_sgpr_count = 2
 		enable_sgpr_workgroup_id_x = 1
 		enable_sgpr_workgroup_id_y = 1
 		enable_sgpr_workgroup_id_z = 1
-		enable_sgpr_workgroup_info = 0
 		enable_vgpr_workitem_id = 1
-		enable_sgpr_private_segment_buffer = 1
-		enable_sgpr_dispatch_ptr = 0
-		enable_sgpr_queue_ptr = 0
 		enable_sgpr_kernarg_segment_ptr = 1
-		enable_sgpr_grid_workgroup_count_x = 0
-		enable_sgpr_grid_workgroup_count_y = 0
-		enable_sgpr_grid_workgroup_count_z = 0
 		workitem_vgpr_count = VGPR_COUNT
 		wavefront_sgpr_count = SGPR_COUNT
 		workgroup_group_segment_byte_size = LDS_SIZE
 		granulated_workitem_vgpr_count = (VGPR_COUNT-1)/4
 		granulated_wavefront_sgpr_count = (SGPR_COUNT-1)/8
-		granulated_lds_size = (LDS_SIZE+511)/512
 	.end_amd_kernel_code_t
 
 	//////////////////////////////////////////////////////////////////////////////
