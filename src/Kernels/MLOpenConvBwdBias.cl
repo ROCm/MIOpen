@@ -29,24 +29,27 @@ __kernel void MLOpenConvBwdB(
        __global _FLOAT * bias_df
 	   )
 {
-    int gid = (int) get_global_id(0);
     int lid = (int) get_local_id(0);
-    int grp_id = (int) get_group_id(0);
     int output_map = get_group_id(1);
  
     __local _FLOAT lcl_sum[MLO_CONVBWDB_LCL_MEMSZ];
     _FLOAT sum = 0;
 
-    for (int j = lid; j < (MLO_OUT_WIDTH*MLO_OUT_HEIGHT / MLO_CONVBWDB_UNITSIZE) * MLO_OUT_BATCH_SZ; j += MLO_CONVBWD_GROUP_SZ0)
+    for (int j = lid; j < MLO_WK_SIZE * MLO_OUT_BATCH_SZ; j += MLO_CONVBWD_GROUP_SZ0)
     {
-        int map_id = iDiv(j, (MLO_OUT_WIDTH*MLO_OUT_HEIGHT / MLO_CONVBWDB_UNITSIZE));
-        int read_id = iMod(j, map_id, (MLO_OUT_WIDTH*MLO_OUT_HEIGHT / MLO_CONVBWDB_UNITSIZE));
-	if(read_id < MLO_OUT_WIDTH*MLO_OUT_HEIGHT)
-	{
-		int glb_top_df_offset = output_map * MLO_OUT_CHANNEL_STRIDE + (map_id * MLO_OUT_BATCH_STRIDE) + (read_id * MLO_CONVBWDB_UNITSIZE);
-	        for (int j = 0; j < MLO_CONVBWDB_UNITSIZE; j++)
-	            sum += top_df[glb_top_df_offset + j];
-	}
+        int map_id = iDiv(j, MLO_WK_SIZE);
+        int read_id = iMod(j, map_id, MLO_WK_SIZE);
+        int glb_top_df_offset = output_map * MLO_OUT_CHANNEL_STRIDE + (map_id * MLO_OUT_BATCH_STRIDE) + (read_id * MLO_CONVBWDB_UNITSIZE);
+#if MLO_N_PIX_OFF
+        if (read_id == MLO_WK_SIZE - 1)
+        {
+        for (int j = 0; j < MLO_N_PIX_OFF; j++)
+            sum += top_df[glb_top_df_offset + j];
+        }
+#else
+        for (int j = 0; j < MLO_CONVBWDB_UNITSIZE; j++)
+            sum += top_df[glb_top_df_offset + j];
+#endif
     }
     lcl_sum[lid] = sum;
 

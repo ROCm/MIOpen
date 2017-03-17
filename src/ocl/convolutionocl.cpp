@@ -918,17 +918,23 @@ void ConvolutionBackwardBias(Handle& handle,
     size_t lcl_grp_size0 = 256;
     size_t lcl_grp_size1 = 1;
     size_t local_mem_sz = 256;
-    size_t unit_size = ((out_w * out_h) + 255) >> 8;       // 256 units per w x h image
+
+    size_t map_size = out_w * out_h;
+    size_t read_unit = 4;
+    size_t map_size_aligned = (map_size + (read_unit - 1)) / read_unit;
+    size_t off_pix = map_size - (map_size / read_unit) * read_unit;
 
     params = " -DMLO_CONVBWD_GROUP_SZ0=" + std::to_string(lcl_grp_size0);
     params += " -DMLO_CONVBWD_GROUP_SZ1=" + std::to_string(lcl_grp_size1);
     params += " -DMLO_CONVBWDB_LCL_MEMSZ=" + std::to_string(local_mem_sz);
-    params += " -DMLO_CONVBWDB_UNITSIZE=" + std::to_string(unit_size);
+    params += " -DMLO_CONVBWDB_UNITSIZE=" + std::to_string(read_unit);
     params += " -DMLO_OUT_WIDTH=" + std::to_string(out_w);
     params += " -DMLO_OUT_HEIGHT=" + std::to_string(out_h);
     params += " -DMLO_OUT_BATCH_SZ=" + std::to_string(out_n);
     params += " -DMLO_OUT_CHANNEL_STRIDE=" + std::to_string(stride_c);
     params += " -DMLO_OUT_BATCH_STRIDE=" + std::to_string(stride_n);
+    params += " -DMLO_WK_SIZE=" + std::to_string(map_size_aligned);
+    params += " -DMLO_N_PIX_OFF=" + std::to_string(off_pix);
 
     const std::vector<size_t> vld = {lcl_grp_size0, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {lcl_grp_size0, static_cast<size_t>(out_c), size_t{1}};
