@@ -24,8 +24,6 @@ int mlo_construct_neuron::mloConstruct()
 	int ret = 0;
 	_hw_wave_sz = 64;
 
-	int data_len = (!_in_data_type.compare("FP32") ? 4 : 8);
-
 	int read_unit = 4;
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
@@ -37,8 +35,7 @@ int mlo_construct_neuron::mloConstruct()
 	size_t glbl_wk = map_size_aligned;
 
 
-
-	_grp_tile0 = std::min((int)((glbl_wk + _hw_wave_sz - 1) / _hw_wave_sz)*_hw_wave_sz, (int)256);
+	_grp_tile0 = std::min(static_cast<int>((glbl_wk + _hw_wave_sz - 1) / _hw_wave_sz)*_hw_wave_sz, 256);
 	_grp_tile1 = 1;
 
 	_comp_options =
