@@ -1,6 +1,6 @@
 /*
- * Convolution Kernel for 5x10 kernel with stride=2 pad=0
- * works on devices compatible with GCN3 ISA.
+ * Convolution Kernel for 10x5 kernel (i.e., -x10 -y5) with stride=2 pad=0
+ * works on devices compatible with GCN3 ISA, but not XNACK.
  */
 
 .hsa_code_object_version 2,1
