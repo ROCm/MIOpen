@@ -6,7 +6,7 @@
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
 .if (.option.machine_version_major != 8) && (.option.machine_version_major != 9)
-.err "ERROR: spefied target machine not supported"
+.err "ERROR: specified target machine not supported"
 .endif
 
 ///////////////////////////////////////////////////
@@ -17,21 +17,17 @@
 //    * NOTE: wei_k must be multiple of 2
 ///////////////////////////////////////////////////
 // ******* changeable configuration parameters
-//   params_defined - set this value to 0:use-defaults 1:user-specified-values
+//   params_inline  - param source 0:"conv10x5uv2fwd.inc" 1:specified-values-inline
 //   inp_w          - input image width
 //   inp_h          - input image height
 //   wei_c          - input image channels
 //   wei_k          - output image channels (must be multiple of 2)
 //   wei_layout     - weights layout 0:"KCHW" or 1:"CKHW"
 .ifndef params_defined
-.set params_defined , 0
+.set params_inline , 0
 .endif
-.if params_defined == 0
-.set inp_w       , 341
-.set inp_h       ,  79
-.set wei_c       ,  32
-.set wei_k       ,  32
-.set wei_layout  ,   0
+.if params_inline == 0
+.include "conv10x5uv2fwd.inc"
 .endif
 .if (wei_k % 2) != 0
 .err "ERROR: wei_k must be multiple of 2"
@@ -63,7 +59,8 @@
 // For use during core-loop and later
 .set sreg_wval    ,  0   // [50]
 .set sreg_wei_addr,100   // [2]
-.set SGPR_COUNT   ,102   // COUNT
+.set sreg_vcc_resv,102   // [2]
+.set SGPR_COUNT   ,104   // COUNT
 // ******* VGPR allocation
 // For used during initialization
 .set vreg_local_0 ,  0   // [1]
@@ -122,10 +119,10 @@
 ///////////////////////////////////////////////////
 .text
 .p2align 8
-.global conv5x10uv2fwd
-.type conv5x10uv2fwd, @function
-.amdgpu_hsa_kernel conv5x10uv2fwd
-conv5x10uv2fwd:
+.global conv10x5uv2fwd
+.type conv10x5uv2fwd, @function
+.amdgpu_hsa_kernel conv10x5uv2fwd
+conv10x5uv2fwd:
 
 	.amd_kernel_code_t
 		amd_machine_version_major = .option.machine_version_major
@@ -134,6 +131,7 @@ conv5x10uv2fwd:
 		is_ptr64 = 1
 		float_mode = 192
 		user_sgpr_count = 2
+		is_xnack_enabled = 0
 		enable_sgpr_workgroup_id_x = 1
 		enable_sgpr_workgroup_id_y = 1
 		enable_sgpr_workgroup_id_z = 1
@@ -886,8 +884,8 @@ skip_write1:
 .amdgpu_runtime_metadata
 { amd.MDVersion: [ 2, 1 ],
     amd.Kernels:
-    - { amd.KernelName: conv5x10uv2fwd, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ],
-        # FIXME amd.ReqdWorkGroupSize: [ 64, 8, 1 ], 
+    - { amd.KernelName: conv10x5uv2fwd, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ],
+        amd.ReqdWorkGroupSize: [ 64, 8, 1 ], 
         amd.Args:
         - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: in,          amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
         - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: weights,     amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
@@ -906,7 +904,7 @@ skip_write1:
 	.Lmeta_begin:
 	.long  0x02010001, 0x00780300
 	.short 0x0604, 14, 0
-	.ascii "conv5x10uv2fwd"
+	.ascii "conv10x5uv2fwd"
 	.long  0x00080907, 0x080a0000, 0x0b000000, 0x00000006
 	.long  0x616f6c66, 0x030c2a74, 0x69000000, 0x010d706e
 	.long  0x1000080e, 0x08010f00, 0x00080907, 0x080a0000
