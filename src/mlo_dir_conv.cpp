@@ -18,6 +18,7 @@
 #define MLOPEN
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
+#include <mlopen/env.hpp>
 
 #include <mlopen/db.hpp>
 
@@ -220,23 +221,6 @@ bool mloSearchConfigDB(
  **
  ************************************************************************************************************************/
 
-#if MLOPEN_BACKEND_OPENCL
-/*
- * Returns false if a feature-controlling environment variable is defined
- * and set to something which disables a feature.
- */
-static bool IsEnvvarValueDisabled(const char* name)
-{
-	const auto value_env_p = std::getenv(name);
-	return value_env_p != nullptr && 
-		 ( std::strcmp(value_env_p, "disable") == 0
-		|| std::strcmp(value_env_p, "disabled") == 0
-		|| std::strcmp(value_env_p, "0") == 0
-		|| std::strcmp(value_env_p, "no") == 0
-		|| std::strcmp(value_env_p, "false") == 0 );
-}
-#endif
-
 int mlo_construct_winograd::mloConstruct()
 {
 #if MLOPEN_BACKEND_OPENCL
@@ -245,12 +229,12 @@ int mlo_construct_winograd::mloConstruct()
 	/// get gid of this var and v1.0 files.
 	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 	{
-		const auto use_binaries = !IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+		const auto use_binaries = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
 		// assembly-written kernels may have worse performance than kernels written in high-level
 		// language, e.g. OpenCL. MiOpen avoids asm kernels in such corner cases, but
 		// this setting allows to override that.
-		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_binaries) {
 			if (mloIsCorrectBinaryWinograd3x3Fwd()
 				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
@@ -279,10 +263,10 @@ int mlo_construct_direct2D::mloConstruct()
 	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 	{
 		const auto asm_path = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
-		const auto use_assembly = !IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
+		const auto use_assembly = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
 								  && mloExperimentalValidateAssemblerPath(asm_path);
 		// See comment in mlo_construct_winograd::mloConstruct().
-		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
