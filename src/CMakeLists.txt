@@ -113,9 +113,9 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/conv3x3_m10.s
 		Kernels/conv3x3_m21.s
 		Kernels/MLOpenTensorKernels.cl
-		Kernels/conv_3x3_wheel_alpha_v2_0b_gfx803_m21.so
-    Kernels/conv_3x3_wheel_alpha_v2_0b_gfx803_m10.so
-    Kernels/MLOpenConvBwdBias.cl)
+		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
+		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
+		Kernels/MLOpenConvBwdBias.cl)
 	
 	add_kernels("${MLOPEN_KERNELS}")
 	configure_file(db.cpp.in db.cpp)
