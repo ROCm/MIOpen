@@ -20,6 +20,6 @@ inline bool IsEnvvarValueDisabled(const char* name)
         || std::strcmp(value_env_p, "no") == 0
         || std::strcmp(value_env_p, "false") == 0 );
 }
-}
+} // namespace mlopen
 
 #endif
