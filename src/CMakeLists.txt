@@ -228,7 +228,7 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	target_include_directories(MLOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )
 elseif(MLOPEN_BACKEND STREQUAL "HIPOC")
-	target_link_libraries( MLOpen ${hip_LIBRARIES} )
+	target_link_libraries( MLOpen hip::hip_hcc )
 endif()
 
 ############################################################

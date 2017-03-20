@@ -18,7 +18,7 @@
 #endif
 
 #elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
-#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
 #endif
 
 #define MLOPEN_DECLARE_OBJECT(name) \
