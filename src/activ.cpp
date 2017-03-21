@@ -1,4 +1,5 @@
-#include<mlopen/activ.hpp>
+#include <mlopen/activ.hpp>
+#include <mlopen/logger.hpp>
 #include <cassert>
 
 namespace mlopen {
@@ -26,5 +27,11 @@ double ActivationDescriptor::GetBeta() const
 double ActivationDescriptor::GetPower() const
 {
 	return this->parms[2];
+}
+std::ostream& operator<< (std::ostream& stream, const ActivationDescriptor& x)
+{
+    MLOPEN_LOG_ENUM(stream, x.mode, mlopenActivationPATHTRU, mlopenActivationLOGISTIC, mlopenActivationTANH, mlopenActivationRELU, mlopenActivationBRELU, mlopenActivationSOFTRELU, mlopenActivationABS, mlopenActivationSQUARE, mlopenActivationSQR, mlopenActivationLINEAR, mlopenActivationPOWER) << ", ";
+    LogRange(stream, x.parms, ", ") << ", ";
+    return stream;
 }
 }  // namespace mlopen
