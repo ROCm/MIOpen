@@ -1,13 +1,14 @@
 #include <mlopen/tensor.hpp>
 #include <mlopen/tensor_ops.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/logger.hpp>
 #include <initializer_list>
 #include <array>
 
 extern "C"
 mlopenStatus_t mlopenCreateTensorDescriptor(
 		mlopenTensorDescriptor_t *tensorDesc) {
-
+	MLOPEN_LOG_FUNCTION(tensorDesc);
 	return mlopen::try_([&] {
 		mlopen::deref(tensorDesc) = new mlopen::TensorDescriptor();
 	});
@@ -22,6 +23,7 @@ mlopenStatus_t mlopenSet4dTensorDescriptor(
 		int h,
 		int w) {
 
+	MLOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w);
 	return mlopen::try_([&] {
 		std::initializer_list<int> lens = {n, c, h, w};
 		mlopen::deref(tensorDesc) = mlopen::TensorDescriptor(dataType, lens.begin(), 4);
@@ -41,6 +43,7 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(
 		int *hStride,
 		int *wStride) {
 
+	MLOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w, nStride, cStride, hStride, wStride);
 	return mlopen::try_([&] {
 		mlopen::deref(dataType) = mlopen::deref(tensorDesc).GetType();
 		mlopen::tie_deref(n, c, h, w) = mlopen::tie4(mlopen::deref(tensorDesc).GetLengths());
@@ -57,6 +60,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
 		int *h,
 		int *w) {
 
+	MLOPEN_LOG_FUNCTION(tensorDesc, n, c, h, w);
 	return mlopen::try_([&] {
 		mlopen::tie_deref(n, c, h, w) = mlopen::tie4(mlopen::deref(tensorDesc).GetLengths());
 	});
@@ -71,6 +75,7 @@ MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
 		int *hStride,
 		int *wStride) {
 
+	MLOPEN_LOG_FUNCTION(tensorDesc, nStride, cStride, hStride, wStride);
 	return mlopen::try_([&] {
 		mlopen::tie_deref(nStride, cStride, hStride, wStride) = mlopen::tie4(mlopen::deref(tensorDesc).GetStrides());
 	});
@@ -84,6 +89,7 @@ mlopenStatus_t mlopenSetTensorDescriptor(
 		int *dimsA,
 		int *stridesA) {
 
+	MLOPEN_LOG_FUNCTION(tensorDesc, dataType, nbDims, dimsA, stridesA);
 	return mlopen::try_([&] {
 		if (stridesA == nullptr) {
 			mlopen::deref(tensorDesc) = mlopen::TensorDescriptor(dataType, dimsA, nbDims);
@@ -100,6 +106,7 @@ int mlopenGetTensorDescriptorElementSize(mlopenTensorDescriptor_t tensorDesc) {
 
 extern "C" 
 mlopenStatus_t mlopenGetTensorDescriptorSize(mlopenTensorDescriptor_t tensorDesc, int* size) {
+	MLOPEN_LOG_FUNCTION(tensorDesc, size);
 	return mlopen::try_([&] {
 		mlopen::deref(size) = mlopen::deref(tensorDesc).GetSize();
 	});
@@ -112,6 +119,7 @@ mlopenStatus_t mlopenGetTensorDescriptor(
 		int *dimsA,
 		int *stridesA) {
 
+	MLOPEN_LOG_FUNCTION(tensorDesc, dataType, dimsA, stridesA);
 	return mlopen::try_([&] {
 		if (dataType != nullptr) {
 			*dataType = mlopen::deref(tensorDesc).GetType();
@@ -128,6 +136,7 @@ mlopenStatus_t mlopenGetTensorDescriptor(
 
 extern "C"
 mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc) {
+	MLOPEN_LOG_FUNCTION(tensorDesc);
 	return mlopen::try_([&] {
 		mlopen_destroy_object(tensorDesc);
 	});
@@ -142,6 +151,7 @@ mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	yDesc,
 		void							*y) {
 
+	MLOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
 	return mlopen::try_([&] {
 		TransformTensor(mlopen::deref(handle), 
 				alpha,
@@ -163,6 +173,7 @@ mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	cDesc,
 		void							*C) {
 
+	MLOPEN_LOG_FUNCTION(alpha, aDesc, A, beta, cDesc, C);
 	return mlopen::try_([&] {
 		AddTensor(mlopen::deref(handle), 
 				alpha,
@@ -188,6 +199,7 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 		const mlopenTensorDescriptor_t	cDesc,
 		void							*C) {
 
+	MLOPEN_LOG_FUNCTION(tensorOp, alpha1, aDesc, A, alpha2, bDesc, B, beta, cDesc, C);
 	return mlopen::try_([&] {
 		OpTensor(mlopen::deref(handle),
 				tensorOp,
@@ -211,6 +223,7 @@ mlopenStatus_t mlopenSetTensor(mlopenHandle_t handle,
 		void							*y,
 		const void						*valuePtr) {
 
+	MLOPEN_LOG_FUNCTION(yDesc, y, valuePtr);
 	return mlopen::try_([&] {
 		mlopen::deref(yDesc).SetTensor(mlopen::deref(handle),
 				DataCast(y),
@@ -226,6 +239,7 @@ mlopenStatus_t mlopenScaleTensor(mlopenHandle_t handle,
 		void							*y,
 		const void						*alpha) {
 
+	MLOPEN_LOG_FUNCTION(yDesc, y, alpha);
 	return mlopen::try_([&] {
 		mlopen::deref(yDesc).ScaleTensor(mlopen::deref(handle),
 				DataCast(y),
