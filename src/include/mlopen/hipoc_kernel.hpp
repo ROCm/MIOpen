@@ -30,9 +30,13 @@ struct KernelArgs
     KernelArgs(Ts... xs)
     : pack(xs...)
     {
+#ifdef HIP_OC_FINALIZER
         for(int i=0;i<6;i++) hidden[i] = 0;
+#endif
     }
+#ifdef HIP_OC_FINALIZER
     uint64_t hidden[6];
+#endif
     KernelArgsPack<Ts...> pack;
 };
 
@@ -83,8 +87,11 @@ struct HIPOCKernel
         {
             gdims[i] = (global_dims[i] - 1)/ldims[i] + 1;
         }
-
+#ifdef HIP_OC_FINALIZER
         kernel_module = "&__OpenCL_" + name + "_kernel";
+#else
+        kernel_module = name;
+#endif
         auto status = hipModuleGetFunction(&fun, program.module.get(), kernel_module.c_str());
         if (hipSuccess != status)
             MLOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);

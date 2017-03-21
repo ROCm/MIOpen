@@ -28,7 +28,7 @@ struct tmp_dir
     void execute(std::string exe, std::string args)
     {
         std::string cd = "cd " + this->name + "; ";
-        std::string cmd = cd + exe + " " + args + " > /dev/null";
+        std::string cmd = cd + exe + " " + args;// + " > /dev/null";
         // std::cout << cmd << std::endl;
         if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
     }
@@ -58,7 +58,7 @@ void WriteFile(const std::string& content, const std::string& name)
 
 hipModulePtr CreateModule(const std::string& program_name, std::string params, bool is_kernel_str)
 {
-    std::string filename = is_kernel_str ? "tinygemm" : program_name;
+    std::string filename = is_kernel_str ? "tinygemm.cl" : program_name;
     tmp_dir dir{filename};
 
     std::string src = is_kernel_str ? program_name : GetKernelSrc(program_name);
@@ -66,10 +66,11 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
     WriteFile(src, dir.path(filename));
         
     std::string bin_file = dir.path(filename) + ".bin";
-    std::string hsaco_file = dir.path(filename) + ".hsaco";
+    std::string hsaco_file = dir.path(filename) + ".o";
     std::string obj_file = dir.path(filename) + ".obj";
 
-#if 1
+#ifdef HIP_OC_FINALIZER
+
     // Adding the same flags / defines to aoc2 that the OCL runtime adds for calls
     // to clBuildProgram(). This has been shown to significantly affect performance.
     params +=
@@ -87,7 +88,6 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
       "-Dcl_khr_gl_event=1 -Dcl_khr_depth_images=1 -Dcl_khr_mipmap_image=1 "
       "-Dcl_khr_mipmap_image_writes=1"
       " ";
-#endif
 
 #if 0
     execute(HIP_OC_COMPILER, 
@@ -106,6 +106,11 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
         filename);
     dir.execute(HIP_OC_FINALIZER,
         "-target=8:0:3 -hsail dump_0_Fiji.hsail -output=" + hsaco_file
+    );
+#endif
+#else
+    dir.execute(HIP_OC_COMPILER, 
+        "-mcpu=gfx803 " + params + " " + filename + " -o " + hsaco_file
     );
 #endif
 
