@@ -1,5 +1,6 @@
 #include <mlopen/softmax.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/logger.hpp>
 
 extern "C"
 mlopenStatus_t mlopenSoftmaxForward(
@@ -10,7 +11,7 @@ mlopenStatus_t mlopenSoftmaxForward(
 	const void							*beta,
 	const mlopenTensorDescriptor_t		yDesc,
 	void								*y) {
-
+	MLOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
 	return mlopen::try_([&] {
 		CopyTensor(mlopen::deref(handle),
 			mlopen::deref(xDesc),
@@ -37,6 +38,7 @@ mlopenStatus_t mlopenSoftmaxBackward(
 	const mlopenTensorDescriptor_t		dxDesc,
 	void								*dx) {
 
+	MLOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx);
 	return mlopen::try_([&] {
 		CopyTensor(mlopen::deref(handle),
 			mlopen::deref(dyDesc),
