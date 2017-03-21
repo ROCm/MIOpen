@@ -37,7 +37,7 @@
  * }
  */
 
-kernel void Im2Col(global float *im, size_t im_offset,
+kernel void Im2Col(const int data_size_off, global float *im, size_t im_offset,
 		const int h, const int w,
 		const int wei_h, const int wei_w,
 		const int out_h, const int out_w,
@@ -46,6 +46,12 @@ kernel void Im2Col(global float *im, size_t im_offset,
 		global float *col)
 {
 #define THREADS_PER_CH (256 / NUM_CH_PER_WG)
+
+#if USE_IM_OFF_GUARD
+#define IM_OFF_GUARD(idx) (idx) < data_size_off ? im_off[(idx)] : 0
+#else
+#define IM_OFF_GUARD(idx) im_off[idx]
+#endif
 
 	global float *im_off = im + im_offset;
 	int lid = get_local_id(0);
@@ -58,7 +64,7 @@ kernel void Im2Col(global float *im, size_t im_offset,
 
 	int witem_ch = lid / THREADS_PER_CH;
 	if(lid < NUM_CH_PER_WG*h*w)
-		local_im[lid] = im_off[(gid*NUM_CH_PER_WG)*h*w + lid]; 
+		local_im[lid] = IM_OFF_GUARD((gid*NUM_CH_PER_WG)*h*w + lid); 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// where will each thread to col
@@ -109,7 +115,7 @@ kernel void Im2Col(global float *im, size_t im_offset,
         {
 			int im_off_h = im_y*stride_h + row_to_use - pad_h;
 			int im_off_w = im_x*stride_w + col_to_use - pad_w;
-			local_im[lm_offset] = im_off[wg_ch*h*w + im_off_h*w + im_off_w];
+			local_im[lm_offset] = IM_OFF_GUARD(wg_ch*h*w + im_off_h*w + im_off_w);
 		}
 		else
 			local_im[lm_offset] = 0;
