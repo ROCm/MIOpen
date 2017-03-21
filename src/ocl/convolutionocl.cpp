@@ -952,4 +952,59 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     };
 }
 
+void ConvolutionBackwardBias(Handle& handle,
+                                                    const void              * /*alpha*/,
+                                                    const TensorDescriptor& dyDesc,
+                                                    ConstData_t             dy,
+                                                    const void              * /*beta*/,
+                                                    const TensorDescriptor& dbDesc,
+                                                    Data_t                  db) {
+    if(dy == nullptr || db == nullptr) {
+        MLOPEN_THROW(mlopenStatusBadParm);
+    }
+    if(dyDesc.GetLengths()[1] != dbDesc.GetLengths()[1]) {
+        MLOPEN_THROW(mlopenStatusBadParm);
+    }
+
+    int out_n, out_c, out_h, out_w, stride_n, stride_c, stride_h, stride_w;
+    std::tie(out_n, out_c, out_h, out_w) = tie4(dyDesc.GetLengths());
+    std::tie(stride_n, stride_c, stride_h, stride_w) = tie4(dyDesc.GetStrides());
+    std::string program_name = "MLOpenConvBwdBias.cl";
+    std::string kernel_name = "MLOpenConvBwdB";
+
+    std::string params;
+    size_t lcl_grp_size0 = 256;
+    size_t lcl_grp_size1 = 1;
+    size_t local_mem_sz = 256;
+
+    size_t map_size = out_w * out_h;
+    size_t read_unit = 4;
+    size_t map_size_aligned = (map_size + (read_unit - 1)) / read_unit;
+    size_t off_pix = map_size - (map_size / read_unit) * read_unit;
+
+    params = " -DMLO_CONVBWD_GROUP_SZ0=" + std::to_string(lcl_grp_size0);
+    params += " -DMLO_CONVBWD_GROUP_SZ1=" + std::to_string(lcl_grp_size1);
+    params += " -DMLO_CONVBWDB_LCL_MEMSZ=" + std::to_string(local_mem_sz);
+    params += " -DMLO_CONVBWDB_UNITSIZE=" + std::to_string(read_unit);
+    params += " -DMLO_OUT_WIDTH=" + std::to_string(out_w);
+    params += " -DMLO_OUT_HEIGHT=" + std::to_string(out_h);
+    params += " -DMLO_OUT_BATCH_SZ=" + std::to_string(out_n);
+    params += " -DMLO_OUT_CHANNEL_STRIDE=" + std::to_string(stride_c);
+    params += " -DMLO_OUT_BATCH_STRIDE=" + std::to_string(stride_n);
+    params += " -DMLO_WK_SIZE=" + std::to_string(map_size_aligned);
+    params += " -DMLO_N_PIX_OFF=" + std::to_string(off_pix);
+
+    const std::vector<size_t> vld = {lcl_grp_size0, size_t{1}, size_t{1}};
+    const std::vector<size_t> vgd = {lcl_grp_size0, static_cast<size_t>(out_c), size_t{1}};
+
+    handle.GetKernel("mlopenConvolutionBwdBias",
+            "",
+            program_name,
+            kernel_name,
+            vld,
+            vgd,
+            params)(dy, db);
+
+}
+
 }  // namespace mlopen

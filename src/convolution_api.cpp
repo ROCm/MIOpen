@@ -327,7 +327,7 @@ mlopenStatus_t mlopenConvolutionBackwardWeights(mlopenHandle_t handle,
 
 	MLOPEN_LOG_FUNCTION(alpha, dyDesc, dy, xDesc, x, convDesc, algo, beta, dwDesc, dw, workSpace, workSpaceSize);
 	return mlopen::try_([&] {
-		mlopen::deref(convDesc).ConvolutionBackwardWeights(mlopen::deref(handle),
+        mlopen::deref(convDesc).ConvolutionBackwardWeights(mlopen::deref(handle),
 				alpha,
 				mlopen::deref(dyDesc),
 				DataCast(dy),
@@ -341,5 +341,24 @@ mlopenStatus_t mlopenConvolutionBackwardWeights(mlopenHandle_t handle,
 				workSpaceSize);
 	});
 
+}
+
+extern "C"
+mlopenStatus_t mlopenConvolutionBackwardBias(mlopenHandle_t handle,
+                                             const void						*alpha,
+                                             const mlopenTensorDescriptor_t	dyDesc,
+                                             const void						*dy,
+                                             const void						*beta,
+                                             const mlopenTensorDescriptor_t	dbDesc,
+                                             void							*db) {
+    return mlopen::try_([&] {
+        ConvolutionBackwardBias(mlopen::deref(handle),
+                                alpha,
+                                mlopen::deref(dyDesc),
+                                DataCast(dy),
+                                beta,
+                                mlopen::deref(dbDesc),
+                                DataCast(db));
+    });
 }
 
