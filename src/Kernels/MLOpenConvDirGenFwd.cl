@@ -370,24 +370,27 @@ __kernel void MLOpenCDFGen(
 
 			for(int j = 0; j < MLO_N_OUT_PIX_SZ1; ++j, top_off2 += MLO_OUT_STRIDE)
 			{
-				for(int i = 0; i < MLO_N_OUT_PIX_SZ0; ++i)
+				if (y_out + j < MLO_OUT_HEIGHT)
 				{
-#if MLO_ALIGNED == 0
-					if ( y_out + j < MLO_OUT_HEIGHT && x_out + i < MLO_OUT_WIDTH)
-#endif
-						top[top_off2 + i] = pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i] + bias_val;
-#if 0
-					if (y_out + j == 0 && x_out + i == 14)
+					for(int i = 0; i < MLO_N_OUT_PIX_SZ0; ++i)
 					{
+#if MLO_ALIGNED == 0
+						if ( x_out + i < MLO_OUT_WIDTH)
+#endif
+							top[top_off2 + i] = pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i] + bias_val;
+#if 0
+						if (y_out + j == 0 && x_out + i == 14)
+						{
 
-						printf("K:out: %d %f %f\n",
-							top_off2 + i,
-							pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i],
-							top[top_off2 + i]
-							);
-					}
+							printf("K:out: %d %f %f\n",
+								top_off2 + i,
+								pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i],
+								top[top_off2 + i]
+								);
+						}
 
 #endif
+					}
 				}
 			}
 		}
@@ -608,24 +611,27 @@ _FLOAT padding_val
 
 			for (int j = 0; j < MLO_N_OUT_PIX_SZ1; ++j, top_off2 += MLO_OUT_STRIDE)
 			{
-				for (int i = 0; i < MLO_N_OUT_PIX_SZ0; ++i)
+				if (y_out + j < MLO_OUT_HEIGHT)
 				{
-#if MLO_ALIGNED == 0
-					if (y_out + j < MLO_OUT_HEIGHT && x_out + i < MLO_OUT_WIDTH)
-#endif
-						top[top_off2 + i] = pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i] + bias_val;
-#if 0
-					if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + j == 2 && x_out + i == 0)
+					for (int i = 0; i < MLO_N_OUT_PIX_SZ0; ++i)
 					{
+#if MLO_ALIGNED == 0
+						if (x_out + i < MLO_OUT_WIDTH)
+#endif
+							top[top_off2 + i] = pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i] + bias_val;
+#if 0
+						if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + j == 2 && x_out + i == 0)
+						{
 
-						printf("K:out: %d %f %f\n",
-							top_off2 + i,
-							pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i],
-							top[top_off2 + i]
-							);
-					}
+							printf("K:out: %d %f %f\n",
+								top_off2 + i,
+								pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i],
+								top[top_off2 + i]
+								);
+						}
 
 #endif
+					}
 				}
 			}
 		}
