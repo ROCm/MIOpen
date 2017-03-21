@@ -430,6 +430,14 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeights(mlopenHandle_t han
 		void								*workSpace,
 		size_t								workSpaceSize);
 
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardBias(mlopenHandle_t handle,
+		const void						*alpha,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void						*dy,
+		const void						*beta,
+		const mlopenTensorDescriptor_t		dbDesc,
+		void							*db);
+
 // Pooling APIs
 
 MLOPEN_EXPORT mlopenStatus_t mlopenCreatePoolingDescriptor(mlopenPoolingDescriptor_t *poolDesc);

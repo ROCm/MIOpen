@@ -168,7 +168,17 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	int upscalex;
 	int upscaley;
 };
+
+void ConvolutionBackwardBias(Handle& handle,
+                             const void              *alpha,
+                             const TensorDescriptor& dyDesc,
+                             ConstData_t             dy,
+                             const void              *beta,
+                             const TensorDescriptor& dbDesc,
+                             Data_t                  db);
+
 std::ostream& operator<< (std::ostream& stream, const ConvolutionDescriptor& c);
+
 }  // namespace mlopen
 MLOPEN_DEFINE_OBJECT(mlopenConvolutionDescriptor, mlopen::ConvolutionDescriptor);
 
