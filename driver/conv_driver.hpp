@@ -89,6 +89,7 @@ class ConvDriver : public Driver
 	int RunBackwardGPU();
 	int RunBackwardDataCPU();
 	int RunBackwardWeightsCPU();
+    int RunBackwardBiasCPU();
 	
 	int VerifyBackward();
 	int VerifyForward();
@@ -119,6 +120,7 @@ class ConvDriver : public Driver
 	std::unique_ptr<GPUMem> dout_dev;
 	std::unique_ptr<GPUMem> workspace_dev;
 	std::unique_ptr<GPUMem> b_dev;
+    std::unique_ptr<GPUMem> db_dev;
 
 	std::vector<T> in;
 	std::vector<T> din;
@@ -132,6 +134,8 @@ class ConvDriver : public Driver
 	std::vector<T> din_host;
 	std::vector<T> dwei_host;
 	std::vector<T> b;
+    std::vector<T> db;
+    std::vector<T> db_host;
 
 	mlopenConvolutionDescriptor_t convDesc;
 };
@@ -295,13 +299,18 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
     if (inflags.GetValueInt("bias") != 0){
         size_t b_sz = GetTensorSize(biasTensor);
         b_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, b_sz, sizeof(float)));
+        db_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, b_sz, sizeof(float)));
 	    b = std::vector<T>(b_sz);
+        db = std::vector<T>(b_sz);
+        db_host = std::vector<T>(b_sz, 0);
 
         for(int i = 0; i < b_sz; i++) {
             b[i] = i%8;
+            db[i] = i%8;
         }
 
 	    b_dev->ToGPU(q, b.data());
+        db_dev->ToGPU(q, db.data());
     }
 
     bool weiRead = false;
@@ -646,6 +655,27 @@ int ConvDriver<T>::RunBackwardGPU() {
         dumpBufferToFile("dump_bwd_dwei_gpu.bin", dwei.data(), dwei.size());
     }
 
+    if (inflags.GetValueInt("bias") != 0) {
+        ret = mlopenConvolutionBackwardBias(GetHandle(),
+                                            &alpha,
+                                            outputTensor,
+                                            dout_dev->GetMem(),
+                                            &beta,
+                                            biasTensor,
+                                            db_dev->GetMem());
+
+        if (inflags.GetValueInt("time") == 1) {
+            float time = 0.0;
+            mlopenGetKernelTime(GetHandle(), &time);
+            printf("GPU Kernel Time Backward Bias Conv. Elapsed: %f ms\n", time);
+        }
+
+        db_dev->FromGPU(GetStream(), db.data());
+        if(inflags.GetValueInt("dump_output")) {
+            dumpBufferToFile("dump_bwd_db_gpu.bin", db.data(), db.size());
+        }
+
+    }
 	return ret;
 }
 
@@ -747,6 +777,38 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 }
 
 template<typename T>
+int ConvDriver<T>::RunBackwardBiasCPU() {
+
+    mlopenDataType_t dt;
+    int out_n, out_c, out_h, out_w;
+    int out_nstride, out_cstride, out_hstride, out_wstride;
+
+    mlopenGet4dTensorDescriptor(outputTensor, &dt,
+                                &out_n, &out_c, &out_h, &out_w,
+                                &out_nstride, &out_cstride, &out_hstride, &out_wstride);
+
+    for(int c = 0; c < out_c; c++)
+    {
+        db_host[c] = 0.0f;
+        for(int n = 0; n < out_n; n++)
+        {
+            for(int h = 0; h < out_h; h++)
+            {
+                for(int w = 0; w < out_w; w++)
+                {
+                    db_host[c] += dout[n*out_nstride + c*out_cstride + h*out_hstride + w];
+                }
+            }
+        }
+    }
+
+    if (inflags.GetValueInt("dump_output")) {
+        dumpBufferToFile("dump_bwd_db_cpu.bin", db_host.data(), db_host.size());
+    }
+    return 0;
+}
+
+template<typename T>
 int ConvDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
@@ -795,6 +857,20 @@ int ConvDriver<T>::VerifyBackward() {
 	{
 		printf("Backward Convolution Weights Verifies on CPU and GPU\n");
 	}
+
+    if (inflags.GetValueInt("bias") != 0){
+        RunBackwardBiasCPU();
+
+        auto error_data = mlopen::rms_range(db_host, db);
+        if (!(error_data < tolerance))
+        {
+            std::cout << std::string("Backward Convolution Bias Failed: ") << error_data << std::string("\n");
+        }
+        else
+        {
+            printf("Backward Convolution Bias Verifies on CPU and GPU\n");
+        }
+    }
 
 	return 0;
 }
