@@ -30,7 +30,19 @@ double ActivationDescriptor::GetPower() const
 }
 std::ostream& operator<< (std::ostream& stream, const ActivationDescriptor& x)
 {
-    MLOPEN_LOG_ENUM(stream, x.mode, mlopenActivationPATHTRU, mlopenActivationLOGISTIC, mlopenActivationTANH, mlopenActivationRELU, mlopenActivationBRELU, mlopenActivationSOFTRELU, mlopenActivationABS, mlopenActivationSQUARE, mlopenActivationSQR, mlopenActivationLINEAR, mlopenActivationPOWER) << ", ";
+    MLOPEN_LOG_ENUM(stream, x.mode,
+        mlopenActivationPATHTRU,
+        mlopenActivationLOGISTIC,
+        mlopenActivationTANH,
+        mlopenActivationRELU,
+        mlopenActivationSOFTRELU,
+        mlopenActivationABS,
+        mlopenActivationPOWER
+        // mlopenActivationBRELU,
+        // mlopenActivationSQUARE,
+        // mlopenActivationSQR,
+        // mlopenActivationLINEAR
+    ) << ", ";
     LogRange(stream, x.parms, ", ") << ", ";
     return stream;
 }
