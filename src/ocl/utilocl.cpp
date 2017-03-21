@@ -6,7 +6,7 @@ namespace mlopen {
 
 float Im2ColGPU(
 		Handle	&handle,
-		ConstData_t im, size_t im_offset,
+		const int data_size, ConstData_t im, size_t im_offset,
 		const int c, const int h, const int w,
 		const int wei_h, const int wei_w,
 		const int out_h, const int out_w,
@@ -29,6 +29,7 @@ float Im2ColGPU(
 	int num_blks_x = std::ceil(static_cast<float>(out_w)/tile_sz_x);
 	int num_blks = num_blks_x * std::ceil(static_cast<float>(out_h)/tile_sz_y);
 	int local_mem_sz = (tile_sz_x*stride_w+wei_w)*(tile_sz_y*stride_h+wei_h);
+	int data_size_off = data_size-im_offset;
 
 	params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
 	params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
@@ -37,9 +38,11 @@ float Im2ColGPU(
 	params += " -DSTRIDE_GT_1=" + std::to_string(stride_h*stride_w > 1);
 	params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
 	params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
+	params += " -DUSE_IM_OFF_GUARD=1";
 
 	const std::vector<size_t> vld(1, 256);
 	const std::vector<size_t> vgd(1, 256*std::max(1, (c/num_ch_per_wg))*num_blks);
+
 
 	handle.GetKernel("mlopenIm2Col",
 			"",
@@ -47,7 +50,7 @@ float Im2ColGPU(
 			kernel_name,
 			vld,
 			vgd,
-			params)(im, im_offset, h, w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, stride_h, stride_w, col);
+			params)(data_size_off, im, im_offset, h, w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, stride_h, stride_w, col);
 
     return handle.GetKernelTime();
 }

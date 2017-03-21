@@ -12,7 +12,7 @@ namespace mlopen {
 
 float Im2ColGPU(
 	Handle	&handle,
-	ConstData_t im, size_t im_offset,
+	const int data_size, ConstData_t im, size_t im_offset,
 	const int c, const int h, const int w,
 	const int wei_h, const int wei_w,
 	const int out_h, const int out_w,
