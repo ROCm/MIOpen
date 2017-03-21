@@ -1,4 +1,5 @@
 #include <mlopen/lrn.hpp>
+#include <mlopen/logger.hpp>
 #include <cassert>
 
 namespace mlopen {
@@ -32,5 +33,12 @@ double LRNDescriptor::GetBeta() const
 double LRNDescriptor::GetK() const
 {
 	return this->parms[2];
+}
+std::ostream& operator<< (std::ostream& stream, const LRNDescriptor& x)
+{
+    MLOPEN_LOG_ENUM(stream, x.mode, mlopenLRNWithinChannel, mlopenLRNCrossChannel) << ", ";
+    stream << x.lrnN << ", ";
+    LogRange(stream, x.parms, ", ") << ", ";
+    return stream;
 }
 }  // namespace mlopen
