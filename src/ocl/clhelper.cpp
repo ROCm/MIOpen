@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <cstdio>
 #include <mlopen/clhelper.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
@@ -25,10 +26,12 @@ public:
 
     ~TempFile()
     {
-        const auto file_removed = std::remove(_path.c_str()) == 0;
-        const auto fd_closed = close(_fd) == 0;
-        if (! (file_removed && fd_closed)) {
-            assert(file_removed && fd_closed); // Nice copypaste do shut make tidy.
+        const int remove_rc = std::remove(_path.c_str());
+        const int close_rc = close(_fd);
+        if (remove_rc != 0 || close_rc != 0) {
+#ifndef NDEBUG // Be quiet in release versions.
+            std::fprintf(stderr, "Error: TempFile: On removal of '%s', remove_rc = %d, close_rc = %d.\n", _path.c_str(), remove_rc, close_rc);
+#endif
         }
     }
 
