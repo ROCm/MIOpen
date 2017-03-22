@@ -316,7 +316,7 @@ int ActivationDriver<T>::VerifyBackward() {
 		(T)v_Power,
 		(T)v_Alpha,
 		(T)v_Beta,
-		dinhost.size(),		
+		dinhost.size(),
 		in.data(),
 		out.data(),
 		din.data(),

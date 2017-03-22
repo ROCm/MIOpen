@@ -1,5 +1,6 @@
 #include <mlopen/pooling.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/logger.hpp>
 #include <initializer_list>
 #include <array>
 #include <algorithm>
@@ -8,7 +9,7 @@
 extern "C"
 mlopenStatus_t mlopenCreatePoolingDescriptor(
 		mlopenPoolingDescriptor_t *poolDesc) {
-
+	MLOPEN_LOG_FUNCTION(poolDesc);
 	return mlopen::try_([&] {
 		mlopen::deref(poolDesc) = new mlopen::PoolingDescriptor();
 	});
@@ -25,6 +26,7 @@ mlopenStatus_t mlopenSet2dPoolingDescriptor(
 		int									u,
 		int									v) {
 
+	MLOPEN_LOG_FUNCTION(poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, u, v);
 	return mlopen::try_([&] {
 		std::initializer_list<int> lens = {windowHeight, windowWidth};
 		std::initializer_list<int> pads = {pad_h, pad_w};
@@ -47,6 +49,7 @@ mlopenStatus_t mlopenGet2dPoolingDescriptor(
 		int									*u,
 		int									*v) {
 
+	MLOPEN_LOG_FUNCTION(poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, u, v);
 	return mlopen::try_([&] {
 		mlopen::deref(mode) = mlopen::deref(poolDesc).mode;
 		std::tie(mlopen::deref(windowHeight), mlopen::deref(windowWidth)) = mlopen::tie2(mlopen::deref(poolDesc).GetLengths());
@@ -107,6 +110,7 @@ mlopenStatus_t mlopenGetPoolingForwardOutputDim(
 		int									*h,
 		int									*w) {
 
+	MLOPEN_LOG_FUNCTION(poolDesc, tensorDesc, n, c, h, w);
 	return mlopen::try_([&] {
 		mlopen::tie_deref(n, c, h, w) = mlopen::deref(poolDesc).GetForwardOutputDim(mlopen::deref(tensorDesc)); 
 	});
@@ -118,6 +122,7 @@ mlopenStatus_t mlopenPoolingGetWorkSpaceSize(
 		const mlopenTensorDescriptor_t		yDesc,
 		size_t								*workSpaceSize) {
 	
+	MLOPEN_LOG_FUNCTION(yDesc, workSpaceSize);
 	return mlopen::try_([&] {
 		std::vector<int> len = mlopen::deref(yDesc).GetLengths();
 		size_t sz = std::accumulate(len.begin(), len.end(), 1, std::multiplies<int>());
@@ -139,6 +144,7 @@ mlopenStatus_t mlopenPoolingForward(
 		void								*workSpace,
 		size_t								workSpaceSize) {
 
+	MLOPEN_LOG_FUNCTION(poolDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace, workSpaceSize);
 	return mlopen::try_([&] {
 			mlopen::deref(poolDesc).Forward(mlopen::deref(handle),
 				alpha,
@@ -170,6 +176,7 @@ mlopenStatus_t mlopenPoolingBackward(
 		void								*dx,
 		const void							*workSpace) {
 
+	MLOPEN_LOG_FUNCTION(poolDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
 	return mlopen::try_([&] {
 			mlopen::deref(poolDesc).Backward(mlopen::deref(handle),
 				alpha,
@@ -189,6 +196,7 @@ mlopenStatus_t mlopenPoolingBackward(
 
 extern "C"
 mlopenStatus_t mlopenDestroyPoolingDescriptor(mlopenPoolingDescriptor_t poolDesc) {
+	MLOPEN_LOG_FUNCTION(poolDesc);
 	return mlopen::try_([&] {
 		delete poolDesc;
 	});
