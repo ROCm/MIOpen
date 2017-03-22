@@ -296,7 +296,7 @@ void ActivationFunction_Abs_Diff(int n, _T * bot_diff, const _T* top_diff, const
 {
 	for (int i = 0; i < n; i++)
 	{
-		bot_diff[i] = top_diff[i] * ((bot_data >= 0) ? 1 : -1);
+		bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0) ? 1 : -1);
 	}
 }
 
