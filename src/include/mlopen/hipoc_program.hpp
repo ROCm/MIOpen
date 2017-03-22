@@ -3,7 +3,7 @@
 
 #include <string>
 #include <mlopen/manage_ptr.hpp>
-#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
 
 namespace mlopen {
 
