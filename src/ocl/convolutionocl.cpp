@@ -26,14 +26,15 @@ private:
     bool prev_state;
 };
 
-int ConvolutionDescriptor::FindFwdWinogradKernel(Handle& handle,
+int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
         WinogradKernelParams&           k_p,
-        KernelInvoke&                   kernel) const {
+        KernelInvoke&                   kernel,
+        int                             direction) const {
 
-    mlo_construct_winograd construct_params(1);
+    mlo_construct_winograd construct_params(direction);
     construct_params.setStream(&handle);
 
     construct_params.setOutputDescFromMLDesc(yDesc);
@@ -53,7 +54,9 @@ int ConvolutionDescriptor::FindFwdWinogradKernel(Handle& handle,
         const std::vector<size_t> & vld = construct_params.getLocalWkSize();
         const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-        kernel = handle.GetKernel("mlopenConvolutionFwdAlgoWinograd",
+        std::string algorithm = (direction == 1) ? "mlopenConvolutionFwdAlgoWinograd"
+                                : "mlopenConvolutionBwdDataAlgoWinograd";
+        kernel = handle.GetKernel(algorithm,
                 network_config,
                 program_name,
                 kernel_name,
@@ -259,7 +262,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     float time_wino = 0;
     WinogradKernelParams k_p;
     KernelInvoke kernel_wino;
-    if( FindFwdWinogradKernel(handle, xDesc, wDesc, yDesc, k_p, kernel_wino) == 0) { //TODO: be more graceful
+    if( FindWinogradKernel(handle, xDesc, wDesc, yDesc, k_p, kernel_wino, 1) == 0) { //TODO: be more graceful
         // Execute the winograd kernel
         int flags = 0;
         int reserved = 0;
@@ -503,9 +506,30 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     // < algorith_name, <time, workspace_size> >
     std::vector< PerfField > perf_db;
 
+    // Winograd algo
+    WinogradKernelParams k_p;
+    KernelInvoke kernel_wino;
+    if( FindWinogradKernel(handle, dxDesc, wDesc, dyDesc, k_p, kernel_wino, 0) == 0) { //TODO: be more graceful
+        float time_wino = 0;
+        // Execute the winograd kernel
+        static const int F_REVERSE_R = 1 << 0; // Reverse indexing of r, r -> R-1-r if set.
+        static const int F_REVERSE_S = 1 << 1; // Reverse indexing of s, s -> S-1-s if set.
+        static const int F_FLIP_K_C  = 1 << 2;  // The <filter_addr> to be interpreted as float F [C][K][3][3] instead of float F [K][C][3][3].
+        int flags = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+        int reserved = 0;
+        int *return_addr = nullptr;
+        int N, C, H, W, K, n_groups;
+        std::tie(N, C, H, W, K, n_groups) = k_p;
+        kernel_wino(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
+
+        time_wino = handle.GetKernelTime();
+        perf_db.push_back(PerfField{"mlopenConvolutionBwdDataAlgoWinograd", time_wino, 0});
+    }
+
+    // Direct algo
     std::vector<KernelInvoke> kernel_direct;
-    float time_direct = 0;
     if( FindDirectKernel(handle, dxDesc, wDesc, dyDesc, kernel_direct, exhaustiveSearch, 0) == 0) { //Backward
+        float time_direct = 0;
         float padding_val = 0;
 
         for(auto &k : kernel_direct) {
@@ -515,10 +539,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
         perf_db.push_back(PerfField{"mlopenConvolutionBwdDataAlgoDirect", time_direct, 0});
     }
-    else
+
+    if(perf_db.empty())
         MLOPEN_THROW(mlopenStatusUnknownError, "Backward Data Algo cannot be executed");
 
-    // sorting not required because we implement only one algorithm
+    // sort the perf_db
+    std::sort(begin(perf_db), end(perf_db));
 
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
@@ -538,7 +564,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         ConstData_t                 dy,
         const TensorDescriptor&         wDesc,
         ConstData_t                 w,
-        mlopenConvBwdDataAlgorithm_t    /* algo */,
+        mlopenConvBwdDataAlgorithm_t    algo,
         const void                      * /*beta*/,
         const TensorDescriptor&         dxDesc,
         Data_t                          dx, 
@@ -562,19 +588,51 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     }
 
     // Launch all kernels and store the perf, workspace limits, etc.
-    mlo_construct_direct2D construct_params(0); // backward
+    switch (algo)
     {
-        construct_params.setOutputDescFromMLDesc(dyDesc);
-        construct_params.setInputDescFromMLDesc(dxDesc);
-        construct_params.setWeightDescFromMLDesc(wDesc);
-        construct_params.setStream(&handle);
+        case mlopenConvolutionBwdDataAlgoDirect:
+        {
+            mlo_construct_direct2D construct_params(0); // backward
+            {
+                construct_params.setOutputDescFromMLDesc(dyDesc);
+                construct_params.setInputDescFromMLDesc(dxDesc);
+                construct_params.setWeightDescFromMLDesc(wDesc);
+                construct_params.setStream(&handle);
+            }
+
+            std::string network_config;
+            construct_params.mloBuildConf_Key(network_config);
+
+            float padding_val = 0;
+            handle.GetKernel("mlopenConvolutionBwdDataAlgoDirect", network_config) (dy, w, dx, padding_val);
+            break;
+        }
+
+        case mlopenConvolutionBwdDataAlgoWinograd:
+        {
+            mlo_construct_winograd construct_params(0); // backward data
+            construct_params.setOutputDescFromMLDesc(dyDesc);
+            construct_params.setInputDescFromMLDesc(dxDesc);
+            construct_params.setWeightDescFromMLDesc(wDesc);
+
+            construct_params.setStream(&handle);
+            std::string network_config;
+            construct_params.mloBuildConf_Key(network_config);
+
+            auto kernel = handle.GetKernel("mlopenConvolutionBwdDataAlgoWinograd", network_config);
+
+            static const int F_REVERSE_R = 1 << 0; // Reverse indexing of r, r -> R-1-r if set.
+            static const int F_REVERSE_S = 1 << 1; // Reverse indexing of s, s -> S-1-s if set.
+            static const int F_FLIP_K_C  = 1 << 2;  // The <filter_addr> to be interpreted as float F [C][K][3][3] instead of float F [K][C][3][3].
+            int flags = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+            int reserved = 0;
+            int *return_addr = nullptr;
+            int N, C, H, W, K, n_groups;
+            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+            kernel(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
+            break;
+        }
     }
-
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
-
-    float padding_val = 0;
-    handle.GetKernel("mlopenConvolutionBwdDataAlgoDirect", network_config) (dy, w, dx, padding_val);
 }
 
 // ConvolutionBackwardWeightsGetWorkSpaceSize
@@ -892,6 +950,61 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         }
         break;
     };
+}
+
+void ConvolutionBackwardBias(Handle& handle,
+                                                    const void              * /*alpha*/,
+                                                    const TensorDescriptor& dyDesc,
+                                                    ConstData_t             dy,
+                                                    const void              * /*beta*/,
+                                                    const TensorDescriptor& dbDesc,
+                                                    Data_t                  db) {
+    if(dy == nullptr || db == nullptr) {
+        MLOPEN_THROW(mlopenStatusBadParm);
+    }
+    if(dyDesc.GetLengths()[1] != dbDesc.GetLengths()[1]) {
+        MLOPEN_THROW(mlopenStatusBadParm);
+    }
+
+    int out_n, out_c, out_h, out_w, stride_n, stride_c, stride_h, stride_w;
+    std::tie(out_n, out_c, out_h, out_w) = tie4(dyDesc.GetLengths());
+    std::tie(stride_n, stride_c, stride_h, stride_w) = tie4(dyDesc.GetStrides());
+    std::string program_name = "MLOpenConvBwdBias.cl";
+    std::string kernel_name = "MLOpenConvBwdB";
+
+    std::string params;
+    size_t lcl_grp_size0 = 256;
+    size_t lcl_grp_size1 = 1;
+    size_t local_mem_sz = 256;
+
+    size_t map_size = out_w * out_h;
+    size_t read_unit = 4;
+    size_t map_size_aligned = (map_size + (read_unit - 1)) / read_unit;
+    size_t off_pix = map_size - (map_size / read_unit) * read_unit;
+
+    params = " -DMLO_CONVBWD_GROUP_SZ0=" + std::to_string(lcl_grp_size0);
+    params += " -DMLO_CONVBWD_GROUP_SZ1=" + std::to_string(lcl_grp_size1);
+    params += " -DMLO_CONVBWDB_LCL_MEMSZ=" + std::to_string(local_mem_sz);
+    params += " -DMLO_CONVBWDB_UNITSIZE=" + std::to_string(read_unit);
+    params += " -DMLO_OUT_WIDTH=" + std::to_string(out_w);
+    params += " -DMLO_OUT_HEIGHT=" + std::to_string(out_h);
+    params += " -DMLO_OUT_BATCH_SZ=" + std::to_string(out_n);
+    params += " -DMLO_OUT_CHANNEL_STRIDE=" + std::to_string(stride_c);
+    params += " -DMLO_OUT_BATCH_STRIDE=" + std::to_string(stride_n);
+    params += " -DMLO_WK_SIZE=" + std::to_string(map_size_aligned);
+    params += " -DMLO_N_PIX_OFF=" + std::to_string(off_pix);
+
+    const std::vector<size_t> vld = {lcl_grp_size0, size_t{1}, size_t{1}};
+    const std::vector<size_t> vgd = {lcl_grp_size0, static_cast<size_t>(out_c), size_t{1}};
+
+    handle.GetKernel("mlopenConvolutionBwdBias",
+            "",
+            program_name,
+            kernel_name,
+            vld,
+            vgd,
+            params)(dy, db);
+
 }
 
 }  // namespace mlopen

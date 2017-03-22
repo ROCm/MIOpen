@@ -15,6 +15,7 @@ static std::unordered_map<std::string, int> FwdAlgoResolver {
 
 static std::unordered_map<std::string, int> BwdDataAlgoResolver {
     {"mlopenConvolutionBwdDataAlgoDirect", 0},
+    {"mlopenConvolutionBwdDataAlgoWinograd", 1},
 };
 
 static std::unordered_map<std::string, int> BwdWeightsAlgoResolver {

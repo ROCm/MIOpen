@@ -4,6 +4,8 @@
 #include <mlopen/hipoc_program.hpp>
 #include <mlopen/errors.hpp>
 #include <array>
+#include <vector>
+#include <cassert>
 
 namespace mlopen {
 
