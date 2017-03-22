@@ -15,49 +15,37 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 ********************************************************************/
 // to share code with between CPU and GPU
 
-#define MLOPEN
+//#define MLOPEN
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
 
 int mlo_construct_neuron::mloConstruct()
 {
 	int ret = 0;
+	_hw_wave_sz = 64;
+
+	int read_unit = 4;
+	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
+
+	size_t map_size = _in_width*_in_height * _n_inputs * _batch_sz;
+	size_t map_size_aligned = (map_size + read_unit - 1) / read_unit;
+	int N_PIXS_OFF = map_size - (map_size / read_unit) * read_unit;
 
 
-	if (isForwardDirection())
-	{
+	size_t glbl_wk = map_size_aligned;
 
-		ret = mloConstructFwd();
-	}
-	else
-	{
-		ret = mloConstructBwd();
-	}
-	return(ret);
-} 
 
-int mlo_construct_neuron::mloConstructFwd()
-{
-	int ret = 0;
-	int data_len = (!_in_data_type.compare("FP32") ? 4 : 8);
-
-	size_t size = (_bot_sz / data_len);
-	if (((size / 4) * 4) != size)
-	{
-		printf("Error: buffer size is not multipel of 4.\n");
-	//	ret = -1;
-	//	return(ret);
-	}
-
-	size_t glbl_wk = size / 4;
-
-	_grp_tile0 = 256;
+	_grp_tile0 = std::min(static_cast<int>((glbl_wk + _hw_wave_sz - 1) / _hw_wave_sz)*_hw_wave_sz, 256);
 	_grp_tile1 = 1;
 
 	_comp_options =
 		std::string(" -DMLO_NRN_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
 		+ std::string(" -DMLO_NRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
 		+ std::string(" -DMLO_NRN_OP_ID=") + std::to_string(static_cast<long long>(_neuron_type))
+		+ std::string(" -DMLO_N_PIXS_OFF=") + std::to_string(static_cast<long long>(N_PIXS_OFF))
+		+ std::string(" -DMLO_MAP_SZ=") + std::to_string(static_cast<long long>(map_size))
+		+ std::string(" -DMLO_MAP_SZ_ALIGNED=") + std::to_string(static_cast<long long>(map_size_aligned))
+		+ std::string(" -DMLO_READ_UNIT=") + std::to_string(static_cast<long long>(read_unit))
 		+ getGeneralCompOptions()
 		;
 
@@ -73,8 +61,15 @@ int mlo_construct_neuron::mloConstructFwd()
 
 
 	_kernel_file = "MLOpenNeuron.cl";
-	_kernel_name = "MLOpenNeuron4";
+	_kernel_name = (isForwardDirection()) ? "MLOpenNeuronFwd" : "MLOpenNeuronBwd";
 
+
+	return(ret);
+} 
+
+int mlo_construct_neuron::mloConstructFwd()
+{
+	int ret = 0;
 	return(ret);
 }
 
@@ -82,39 +77,5 @@ int mlo_construct_neuron::mloConstructFwd()
 int mlo_construct_neuron::mloConstructBwd()
 {
 	int ret = 0;
-	int data_len = (!_in_data_type.compare("FP32") ? 4 : 8);
-
-	size_t size = (_bot_sz / data_len);
-	if (((size / 4) * 4) != size)
-	{
-		printf("Error: buffer size is not multipel of 4.\n");
-	//	ret = -1;
-	//	return(ret);
-	}
-
-	size_t glbl_wk = size / 4;
-
-	_grp_tile0 = 256;
-	_grp_tile1 = 1;
-
-	_comp_options =
-		std::string(" -DMLO_NRN_GROUP_SZ0=") + std::to_string(static_cast<long long>(_grp_tile0))
-		+ std::string(" -DMLO_NRN_GROUP_SZ1=") + std::to_string(static_cast<long long>(_grp_tile1))
-		+ std::string(" -DMLO_NRN_OP_ID=") + std::to_string(static_cast<long long>(_neuron_type))
-		+ getGeneralCompOptions()
-		;
-
-	_l_wk.clear();
-	_l_wk.push_back(_grp_tile0);
-	_l_wk.push_back(_grp_tile1);
-	_l_wk.push_back(1);
-
-	_g_wk.clear();
-	_g_wk.push_back(glbl_wk);
-	_g_wk.push_back(1);
-	_g_wk.push_back(1);
-	_kernel_file = "MLOpenNeuron.cl";
-	_kernel_name = "MLOpenNeuron4_Bwd";
-
 	return(ret);
 }
