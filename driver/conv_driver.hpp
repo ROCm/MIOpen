@@ -573,7 +573,7 @@ int ConvDriver<T>::FindBackwardWeights(int &ret_algo_count, int request_algo_cou
 		workspace_dev->FromGPU(GetStream(), workspace.data());
 		
 		for(int i = 0; i < workspace.size(); i++) {
-			if((workspace[i] - workspace_host[i]) > 0.0) {
+			if(std::abs(workspace[i] - workspace_host[i]) > 0.0) {
 				printf("Im2col error: %d %f %f\n ", i, workspace[i], workspace_host[i]);
 			}
 		}
