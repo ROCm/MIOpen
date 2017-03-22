@@ -16,26 +16,28 @@
 class TempFile
 {
 public:
-	TempFile(const std::string& path_template)
-		: _path(path_template)
-	{
-		_fd = mkstemp(&_path[0]);
-		if (_fd == -1) { MLOPEN_THROW("Error: TempFile: mkstemp()"); }
-	}
+    TempFile(const std::string& path_template)
+        : _path(path_template)
+    {
+        _fd = mkstemp(&_path[0]);
+        if (_fd == -1) { MLOPEN_THROW("Error: TempFile: mkstemp()"); }
+    }
 
-	~TempFile()
-	{
-		const auto file_removed = std::remove(_path.c_str()) == 0;
-		const auto fd_closed = close(_fd) == 0;
-		assert(file_removed && fd_closed);
-	}
+    ~TempFile()
+    {
+        const auto file_removed = std::remove(_path.c_str()) == 0;
+        const auto fd_closed = close(_fd) == 0;
+        if (! (file_removed && fd_closed)) {
+            assert(file_removed && fd_closed); // Nice copypaste do shut make tidy.
+        }
+    }
 
-	inline operator char*() { return &_path[0]; }
-	inline operator const char*() const { return _path.c_str(); }
+    inline operator char*() { return &_path[0]; }
+    inline operator const char*() const { return _path.c_str(); }
 
 private:
-	std::string _path;
-	int _fd;
+    std::string _path;
+    int _fd;
 };
 #endif
 
