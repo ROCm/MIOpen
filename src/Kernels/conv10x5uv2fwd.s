@@ -22,7 +22,6 @@
 //   wei_c          - input image channels
 //   wei_k          - output image channels (must be multiple of 2)
 //   wei_layout     - weights layout 0:"KCHW" or 1:"CKHW"
-#.include "conv10x5uv2fwd.inc"
 .ifndef inp_w
 .error "ERROR: configurable parameter: inp_w must be defined"
 .endif
