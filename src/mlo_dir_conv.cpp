@@ -16,11 +16,12 @@
 // to share code with between CPU and GPU
 
 #define MLOPEN
-#include <unordered_map>
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
-
 #include <mlopen/db.hpp>
+
+#include <unordered_map>
+#include <cstring>
 
 static int mloLg2(int v)
 {
@@ -636,110 +637,99 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream, const std::st
 	stream << " -Wa,-defsym," << name << "=" << value;
 }
 
-static std::string constructAsmDirect3x3UCaseKey(int cus, int w, int h, int c, int n, int k, int dir)
+/// @param dir 1: fwd, 0: bwd wrt data
+static std::string constructAsmDirect3x3UCaseKey(int w, int h, int c, int n, int k, int dir)
 {
 	std::ostringstream ss;
-	ss << cus << ";" << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << dir;
+	ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << dir;
 	return ss.str();
 }
 
 int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
 {
-	const auto perf_vals_prt = std::getenv("MLOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS");
-	std::string perf_vals = perf_vals_prt ? perf_vals_prt : "";
-
-	if (perf_vals.empty() || perf_vals.length() != 3)
-	{
-		const static std::unordered_map<std::string, std::string> perf_vals_map({
-			//                              CUs  W    H    c    n    k   dir  fpw olpw lwc
-			{ constructAsmDirect3x3UCaseKey(56,  54,  54,  64,  8,   64,  0), "820" },
-			{ constructAsmDirect3x3UCaseKey(56,  54,  54,  64,  8,   64,  1), "820" },
-			{ constructAsmDirect3x3UCaseKey(56,  56,  56,  128, 8,   256, 0), "840" },
-			{ constructAsmDirect3x3UCaseKey(56,  56,  56,  128, 8,   256, 1), "840" },
-			{ constructAsmDirect3x3UCaseKey(56,  56,  56,  128, 16,  256, 0), "840" },
-			{ constructAsmDirect3x3UCaseKey(56,  56,  56,  128, 16,  256, 1), "840" },
-			{ constructAsmDirect3x3UCaseKey(56,  60,  6,   64,  16,  128, 0), "420" },
-			{ constructAsmDirect3x3UCaseKey(56,  60,  6,   64,  16,  128, 1), "260" },
-			{ constructAsmDirect3x3UCaseKey(56,  112, 112, 64,  8,   128, 0), "820" },
-			{ constructAsmDirect3x3UCaseKey(56,  112, 112, 64,  8,   128, 1), "820" },
-			{ constructAsmDirect3x3UCaseKey(56,  112, 112, 64,  16,  128, 0), "820" },
-			{ constructAsmDirect3x3UCaseKey(56,  112, 112, 64,  16,  128, 1), "820" },
-			{ constructAsmDirect3x3UCaseKey(56,  120, 12,  32,  16,  64,  0), "413" },
-			{ constructAsmDirect3x3UCaseKey(56,  120, 12,  32,  16,  64,  1), "420" },
-			{ constructAsmDirect3x3UCaseKey(56,  240, 24,  16,  16,  32, 0),  "420" },
-			{ constructAsmDirect3x3UCaseKey(56,  240, 24,  16,  16,  32, 0),  "810" },
-
-			// TODO: 64 CUs were not tested so here will be same values for now. It should be tested on R9 Nano and values should be adjusted.
-			{ constructAsmDirect3x3UCaseKey(64,  54,  54,  64,  8,   64,  0), "820" },
-			{ constructAsmDirect3x3UCaseKey(64,  54,  54,  64,  8,   64,  1), "820" },
-			{ constructAsmDirect3x3UCaseKey(64,  56,  56,  128, 8,   256, 0), "840" },
-			{ constructAsmDirect3x3UCaseKey(64,  56,  56,  128, 8,   256, 1), "840" },
-			{ constructAsmDirect3x3UCaseKey(64,  56,  56,  128, 16,  256, 0), "840" },
-			{ constructAsmDirect3x3UCaseKey(64,  56,  56,  128, 16,  256, 1), "840" },
-			{ constructAsmDirect3x3UCaseKey(64,  60,  6,   64,  16,  128, 0), "420" },
-			{ constructAsmDirect3x3UCaseKey(64,  60,  6,   64,  16,  128, 1), "260" },
-			{ constructAsmDirect3x3UCaseKey(64,  112, 112, 64,  8,   128, 0), "820" },
-			{ constructAsmDirect3x3UCaseKey(64,  112, 112, 64,  8,   128, 1), "820" },
-			{ constructAsmDirect3x3UCaseKey(64,  112, 112, 64,  16,  128, 0), "820" },
-			{ constructAsmDirect3x3UCaseKey(64,  112, 112, 64,  16,  128, 1), "820" },
-			{ constructAsmDirect3x3UCaseKey(64,  120, 12,  32,  16,  64,  0), "413" },
-			{ constructAsmDirect3x3UCaseKey(64,  120, 12,  32,  16,  64,  1), "420" },
-			{ constructAsmDirect3x3UCaseKey(64,  240, 24,  16,  16,  32, 0),  "420" },
-			{ constructAsmDirect3x3UCaseKey(64,  240, 24,  16,  16,  32, 0),  "810" },
-		});
-
-		const auto cus = _stream->GetMaxComputeUnits();
-		const auto search = perf_vals_map.find(constructAsmDirect3x3UCaseKey(cus, _in_width, _in_height, _n_inputs, _batch_sz, _n_outputs, _direction));
-
-		if (search != perf_vals_map.end()) {
-			perf_vals = search->second;
-		}
-		else {
-			perf_vals = "220";
-		}
+    std::string perf_vals;
+    {
+        const auto p_asciz = std::getenv("MLOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS");
+        if (p_asciz && std::strlen(p_asciz) == 3) {
+            perf_vals = std::string(p_asciz);
+        }
+    }
+    if (perf_vals.empty())
+    {
+        perf_vals = "220";
+        {
+            /// Optimal values found on Gfx8 with 56 CUs (R9 Fury).
+            /// \todo Test on devices with 64 CUs (e.g. R9 Nano) and expand
+            /// implementation if optimal values are different.
+            static
+            const std::unordered_map<std::string, std::string> perf_vals_map({
+                //                              W    H    c    n    k   dir  fpw olpw lwc
+                { constructAsmDirect3x3UCaseKey(54,  54,  64,  8,   64,  0), "820" },
+                { constructAsmDirect3x3UCaseKey(54,  54,  64,  8,   64,  1), "820" },
+                { constructAsmDirect3x3UCaseKey(56,  56,  128, 8,   256, 0), "840" },
+                { constructAsmDirect3x3UCaseKey(56,  56,  128, 8,   256, 1), "840" },
+                { constructAsmDirect3x3UCaseKey(56,  56,  128, 16,  256, 0), "840" },
+                { constructAsmDirect3x3UCaseKey(56,  56,  128, 16,  256, 1), "840" },
+                { constructAsmDirect3x3UCaseKey(60,  6,   64,  16,  128, 0), "420" },
+                { constructAsmDirect3x3UCaseKey(60,  6,   64,  16,  128, 1), "260" },
+                { constructAsmDirect3x3UCaseKey(112, 112, 64,  8,   128, 0), "820" },
+                { constructAsmDirect3x3UCaseKey(112, 112, 64,  8,   128, 1), "820" },
+                { constructAsmDirect3x3UCaseKey(112, 112, 64,  16,  128, 0), "820" },
+                { constructAsmDirect3x3UCaseKey(112, 112, 64,  16,  128, 1), "820" },
+                { constructAsmDirect3x3UCaseKey(120, 12,  32,  16,  64,  0), "413" },
+                { constructAsmDirect3x3UCaseKey(120, 12,  32,  16,  64,  1), "420" },
+                { constructAsmDirect3x3UCaseKey(240, 24,  16,  16,  32,  0), "420" },
+                { constructAsmDirect3x3UCaseKey(240, 24,  16,  16,  32,  1), "810" },
+            });
+            const auto key = constructAsmDirect3x3UCaseKey(_in_width, _in_height, _n_inputs, _batch_sz, _n_outputs, isForwardDirection() ? 1 : 0);
+            const auto found = perf_vals_map.find(key);
+            if (found != perf_vals_map.end()) {
+                perf_vals = found->second;
+            }
+        }
 	}
 
-	const int filters_per_wave = perf_vals[0] - '0';
-	const int output_lines_per_wave = perf_vals[1] - '0';
-	const int limit_wave_cnt = perf_vals[2] - '0';
-	const auto w64_chunks = (_in_width + 63) / 64;
-	const auto active_lanes = (_in_width + w64_chunks - 1) / w64_chunks;
-	std::ostringstream paramsSS;
+    const int filters_per_wave = perf_vals[0] - '0';
+    const int output_lines_per_wave = perf_vals[1] - '0';
+    const int limit_wave_cnt = perf_vals[2] - '0';
+    const auto w64_chunks = (_in_width + 63) / 64;
+    const auto active_lanes = (_in_width + w64_chunks - 1) / w64_chunks;
+    std::ostringstream paramsSS;
 
-	GenerateClangDefsym(paramsSS, "batch_size", _batch_sz);
-	GenerateClangDefsym(paramsSS, "img_width", _in_width);
-	GenerateClangDefsym(paramsSS, "img_height", _in_height);
+    GenerateClangDefsym(paramsSS, "batch_size", _batch_sz);
+    GenerateClangDefsym(paramsSS, "img_width", _in_width);
+    GenerateClangDefsym(paramsSS, "img_height", _in_height);
 
-	GenerateClangDefsym(paramsSS, "input_channels" , _n_inputs);
-	GenerateClangDefsym(paramsSS, "output_channels", _n_outputs);
-	GenerateClangDefsym(paramsSS, "weights_layout" , isForwardDirection() ? 0 : 1);
-	GenerateClangDefsym(paramsSS, "reverse_weights", isForwardDirection() ? 0 : 1);
+    GenerateClangDefsym(paramsSS, "input_channels" , _n_inputs);
+    GenerateClangDefsym(paramsSS, "output_channels", _n_outputs);
+    GenerateClangDefsym(paramsSS, "weights_layout" , isForwardDirection() ? 0 : 1);
+    GenerateClangDefsym(paramsSS, "reverse_weights", isForwardDirection() ? 0 : 1);
 
-	GenerateClangDefsym(paramsSS, "filters_per_wave", filters_per_wave);
-	GenerateClangDefsym(paramsSS, "output_lines_per_wave", output_lines_per_wave);
-	GenerateClangDefsym(paramsSS, "limit_wave_cnt", limit_wave_cnt);
+    GenerateClangDefsym(paramsSS, "filters_per_wave", filters_per_wave);
+    GenerateClangDefsym(paramsSS, "output_lines_per_wave", output_lines_per_wave);
+    GenerateClangDefsym(paramsSS, "limit_wave_cnt", limit_wave_cnt);
 
-	GenerateClangDefsym(paramsSS, "no_params_file", 1);
-	GenerateClangDefsym(paramsSS, "enable_debug_output", 0);
+    GenerateClangDefsym(paramsSS, "no_params_file", 1);
+    GenerateClangDefsym(paramsSS, "enable_debug_output", 0);
 
-	_comp_options = paramsSS.str();
+    _comp_options = paramsSS.str();
 
-	_l_wk.clear();
-	_l_wk.push_back(active_lanes);
-	_l_wk.push_back(1);
-	_l_wk.push_back(1);
+    _l_wk.clear();
+    _l_wk.push_back(active_lanes);
+    _l_wk.push_back(1);
+    _l_wk.push_back(1);
 
-	_g_wk.clear();
-	_g_wk.push_back(active_lanes * ((_n_outputs + filters_per_wave - 1) / filters_per_wave));
-	_g_wk.push_back((_in_height + output_lines_per_wave - 1) / output_lines_per_wave);
-	_g_wk.push_back(_batch_sz);
+    _g_wk.clear();
+    _g_wk.push_back(active_lanes * ((_n_outputs + filters_per_wave - 1) / filters_per_wave));
+    _g_wk.push_back((_in_height + output_lines_per_wave - 1) / output_lines_per_wave);
+    _g_wk.push_back(_batch_sz);
 
-	_kernel_file = is_metadata_v10
-				 ? "conv3x3_m10.s"
-				 : "conv3x3_m21.s";
-	_kernel_name = "gcnAsmConv3x3U";
+    _kernel_file = is_metadata_v10
+                 ? "conv3x3_m10.s"
+                 : "conv3x3_m21.s";
+    _kernel_name = "gcnAsmConv3x3U";
 
-	return 0;
+    return 0;
 }
 #endif //MLOPEN_BACKEND_OPENCL
 
