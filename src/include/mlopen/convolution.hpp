@@ -63,12 +63,13 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
-    int FindFwdWinogradKernel(Handle& handle,
+    int FindWinogradKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
         WinogradKernelParams&           k_p,
-        KernelInvoke&                   kernel) const;
+        KernelInvoke&                   kernel,
+        int                             direction) const;
 
     int FindDirectKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
@@ -167,6 +168,17 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	int upscalex;
 	int upscaley;
 };
+
+void ConvolutionBackwardBias(Handle& handle,
+                             const void              *alpha,
+                             const TensorDescriptor& dyDesc,
+                             ConstData_t             dy,
+                             const void              *beta,
+                             const TensorDescriptor& dbDesc,
+                             Data_t                  db);
+
+std::ostream& operator<< (std::ostream& stream, const ConvolutionDescriptor& c);
+
 }  // namespace mlopen
 MLOPEN_DEFINE_OBJECT(mlopenConvolutionDescriptor, mlopen::ConvolutionDescriptor);
 

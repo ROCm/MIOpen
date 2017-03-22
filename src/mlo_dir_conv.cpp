@@ -18,6 +18,7 @@
 #define MLOPEN
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
+#include <mlopen/env.hpp>
 
 #include <mlopen/db.hpp>
 
@@ -220,23 +221,6 @@ bool mloSearchConfigDB(
  **
  ************************************************************************************************************************/
 
-#if MLOPEN_BACKEND_OPENCL
-/*
- * Returns false if a feature-controlling environment variable is defined
- * and set to something which disables a feature.
- */
-static bool IsEnvvarValueDisabled(const char* name)
-{
-	const auto value_env_p = std::getenv(name);
-	return value_env_p != nullptr && 
-		 ( std::strcmp(value_env_p, "disable") == 0
-		|| std::strcmp(value_env_p, "disabled") == 0
-		|| std::strcmp(value_env_p, "0") == 0
-		|| std::strcmp(value_env_p, "no") == 0
-		|| std::strcmp(value_env_p, "false") == 0 );
-}
-#endif
-
 int mlo_construct_winograd::mloConstruct()
 {
 #if MLOPEN_BACKEND_OPENCL
@@ -245,15 +229,14 @@ int mlo_construct_winograd::mloConstruct()
 	/// get gid of this var and v1.0 files.
 	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 	{
-		const auto use_binaries = !IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+		const auto use_binaries = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
 		// assembly-written kernels may have worse performance than kernels written in high-level
 		// language, e.g. OpenCL. MiOpen avoids asm kernels in such corner cases, but
 		// this setting allows to override that.
-		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_binaries) {
-			if (isForwardDirection()
-				&& mloIsCorrectBinaryWinograd3x3Fwd()
+			if (mloIsCorrectBinaryWinograd3x3Fwd()
 				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
 				return (mloConstructBinaryWinograd3x3Fwd(is_ocl_rocm_metadata_v10));
 			}
@@ -280,10 +263,10 @@ int mlo_construct_direct2D::mloConstruct()
 	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 	{
 		const auto asm_path = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
-		const auto use_assembly = !IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
+		const auto use_assembly = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
 								  && mloExperimentalValidateAssemblerPath(asm_path);
 		// See comment in mlo_construct_winograd::mloConstruct().
-		const auto no_perf_filtering = IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
@@ -358,7 +341,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		return(mloConstructDirect2D1x1());
 	}
 
-	else if (isForwardDirection() && unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
+	else if (unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2DFwdC());
 	}
@@ -557,17 +540,20 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 		&& _in_height	< std::pow(2, 16)
 		&& _in_width	< std::pow(2, 16)
 		&& grid_workgroup_count_x				 <  std::pow(2, 16)
-		&& (_n_inputs * _in_height * _in_width)  <= std::pow(2, 28)
+		&& (_n_inputs  * _in_height * _in_width) <= std::pow(2, 28)
 		&& (_n_outputs * _in_height * _in_width) <= std::pow(2, 28)
+		&& (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+		&& (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
 		&& _n_inputs % 2	== 0
 		&& _n_inputs		>= 16
 		&& _in_layout		== "NCHW";
-		// && _weights_layout == std::string("NKCHW") // See fixme above.
+		// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+		// Actually, K<->C flpping is controlled by separate flag, so we can support either layout both directions.
 }
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 {
-	return !(_in_width == 7 && _in_height == 7);
+	return true;
 }
 
 int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v10)
@@ -585,8 +571,8 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v1
 	_l_wk.push_back(1);
 
 	_kernel_file = is_metadata_v10
-				 ? "conv_3x3_wheel_alpha_v2_0b_gfx803_m10.so"
-				 : "conv_3x3_wheel_alpha_v2_0b_gfx803_m21.so";
+				 ? "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so"
+				 : "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
 	_kernel_name = "sp3AsmConv3x3F";
 
 	return 0;
@@ -954,7 +940,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	//	_kernel_name = "MLOpenConv1x1";
 	// too much overhead for small maps and few inputs
 
-	if (!isForwardDirection() || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256))
+	if (!isForwardDirection()/* || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256)*/)
 	{
 		_kernel_file = "MLOpenConv1x1PS.cl";
 		_kernel_name = "MLOpenConv1x1PS";
@@ -1762,7 +1748,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 	// span size
 	// param
-	_in_tile0 = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : 2;
+	_in_tile0 = read_unit; // ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : 2;
 	int n_spans = (_in_width + _in_tile0 - 1) / _in_tile0;
 
 	// n of wvaefront in a group
@@ -1775,7 +1761,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int n_out_stacks = std::min(_n_inputs, std::max(1, GRP_SZ / n_spans));
 	// number of input maps per group
 	// param
-	_n_in_data_tiles = ((_in_width <= 8 || (_in_width >= 28 && _in_width <= 32)) && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 2 : 1;
+	_n_in_data_tiles = (_in_width <= 32 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 4 : 1; // ((_in_width <= 8 || (_in_width >= 28 && _in_width <= 32)) && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 2 : 1;
 
 	_n_in_data_tiles = std::min(_n_in_data_tiles, _n_outputs);
 // calculate number of input scans in the input block
@@ -1783,7 +1769,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int in_lcl_width = ((_in_width + read_unit - 1) / read_unit) * read_unit + 2 * _pad0;
 	// number of input map blocks being process at once
 	// param
-	int in_n_vert_reads = (_in_height > 32 && _in_width <= 64 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? _in_height/2 : _in_height;
+	int in_n_vert_reads = (_in_height > 32 && _in_width <= 64 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? _in_height / 2 : _in_height;
 	while (in_lcl_width * in_n_vert_reads * _n_in_data_tiles > (_dev_local_mem_sz/(2*sizeof(float))))
 	{
 		in_n_vert_reads = (in_n_vert_reads + 1)/2;
@@ -2142,7 +2128,14 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 	}
 	else if (_kernel_size0 >= _kernel_size1)
 	{
-		if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+#if 0
+		if ((_kernel_size0 == 3 && _kernel_size1 == 3) && (_out_width < 8 && _out_height < 8))
+		{
+			ret = mloConstruct3x3();
+		}
+		else 
+#endif
+			if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
 		{
 			ret = mloConstruct53();
 		}

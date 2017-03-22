@@ -31,12 +31,14 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define DBG_OUT_OF_RNGE 0
 // number of filter taps in the processing wk_item
 //#define MLO_WEI_WKITEM 5
 
 
 #define MLO_N_OUT_HORIZ_READS (MLO_ALIGNED_OUT_SCAN_LN)
 #define MLO_OUT_HORIZ_PIX_SZ (MLO_N_OUT_HORIZ_READS * MLO_READ_UNIT)
+
 
 // n of of filter blks
 #define MLO_WEI_BLK_SZ0 ((MLO_FILTER_SIZE0 + MLO_WEI_WKITEM -1)/MLO_WEI_WKITEM)
@@ -326,7 +328,7 @@ __kernel void MLOpenCvBwdWrW(
 
 			c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
 			int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
-
+			int bot_off = gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
 // still problems with unaligned LDS access
 #if MLO_IN_N_PIXS_OFF > 0
 			if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -334,7 +336,13 @@ __kernel void MLOpenCvBwdWrW(
 				int i = 0;
 				for (; i < MLO_IN_N_PIXS_OFF; ++i)
 				{
-					in_rd_data[i] = bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
+					in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					{
+						printf("k:err:in-of-range\n");
+					}
+#endif
 				}
 				for (; i < MLO_READ_UNIT; ++i)
 				{
@@ -345,7 +353,16 @@ __kernel void MLOpenCvBwdWrW(
 			else
 #endif
 			{
-				*(MLO_READ_TYPE*)in_rd_data = *(__global MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					{
+						printf("k:err:in-of-range\n");
+					}
+#endif
+				}
 
 			}
 			for (int i = 0; i < MLO_READ_UNIT; ++i)
@@ -387,7 +404,7 @@ __kernel void MLOpenCvBwdWrW(
 
 				if (in_y + c_scan < MLO_IN_HEIGHT)
 				{
-
+					int bot_off = gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
 
 #if MLO_IN_N_PIXS_OFF > 0
 					if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -396,7 +413,13 @@ __kernel void MLOpenCvBwdWrW(
 						int i = 0;
 						for (; i < MLO_IN_N_PIXS_OFF; ++i)
 						{
-							in_rd_data[i] = bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
+							in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+							if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
+#endif
 						}
 						for (; i < MLO_READ_UNIT; ++i)
 						{
@@ -408,15 +431,24 @@ __kernel void MLOpenCvBwdWrW(
 #endif
 					{
 
-						*(MLO_READ_TYPE*)in_rd_data = *(__global MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
-						//					*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
+						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						{
+							in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+							if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
+#endif
+						}
 					}
 
 				} // if (in_y + c_scan < MLO_IN_HEIGHT)
 
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					lcl_bot[(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+					int lcl_off = (c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
+					lcl_bot[lcl_off + i] = in_rd_data[i];
 #if 0
 					if (lcl_id == 0 && p4 == 0)
 					{
@@ -463,11 +495,12 @@ __kernel void MLOpenCvBwdWrW(
 					{
 						out_rd_data[i] = 0;
 					}
+					int top_df_off = gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT;
+
 					if (out_y + o_scan < MLO_OUT_HEIGHT
 						&& o_idx + og *MLO_N_LCL_OUT_MAPS + o < MLO_N_OUTPUTS
 						)
 					{
-
 // scan has been fetch by 4
 // here the non-multiple of 4 scan has been handled
 // also makes sure the input garbage hs been multipled by 0
@@ -477,29 +510,45 @@ __kernel void MLOpenCvBwdWrW(
 							int i = 0;
 							for (; i < MLO_OUT_N_PIXS_OFF; ++i)
 							{
-								out_rd_data[i] = top_df[gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT + i];
-							}
+								out_rd_data[i] = top_df[top_df_off + i];
+#if DBG_OUT_OF_RNGE
+								if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+								{
+									printf("k:err:out-of-range\n");
+								}
+#endif
+					}
 							for (; i < MLO_READ_UNIT; ++i)
 							{
 								out_rd_data[i] = 0;
 							}
 						}
+
+						else
 #endif
+						
 						{
-							*(MLO_READ_TYPE*)out_rd_data
-								= *(__global MLO_READ_TYPE*)&top_df[gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
+							for (int i = 0; i < MLO_READ_UNIT; ++i)
+							{
+								out_rd_data[i] = top_df[top_df_off + i];
+#if DBG_OUT_OF_RNGE
+								if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+								{
+									printf("k:err:out-of-range\n");
+								}
+#endif
+							}
 						}
 
 					} // if (out_y + o_scan < MLO_OUT_HEIGHT && o_idx + og *MLO_N_LCL_OUT_MAPS + o < MLO_N_OUTPUTS)
 
 
 // write into LDS with MLO_OUT_HORIZ_PIX_EXT_SZ stride to zero out weights block overshoot
-						//						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)out_rd_data;
-						//
 
 					for (int i = 0; i < MLO_READ_UNIT; ++i)
 					{
-							lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + i] = out_rd_data[i];
+						int lcl_off = o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT;
+						lcl_top[lcl_off + i] = out_rd_data[i];
 					}
 
 				} //	for (int oo_p4 = lcl_id; oo_p4 < (MLO_N_LCL_OUT_MAPS*MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS); oo_p4 += MLO_GRP_SZ)

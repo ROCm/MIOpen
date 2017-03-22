@@ -44,7 +44,9 @@ struct ActivationDescriptor : mlopenActivationDescriptor{
 		Data_t						dx,
 		ConstData_t				workSpace);
 
-	private:
+	friend std::ostream& operator<< (std::ostream& stream, const ActivationDescriptor& x);
+
+private:
 	std::vector<double> parms;
 
 	mlopenActivationMode_t mode;

@@ -18,7 +18,7 @@
 #endif
 
 #elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
-#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
 #endif
 
 #define MLOPEN_DECLARE_OBJECT(name) \
@@ -110,13 +110,13 @@ typedef enum {
 	mlopenActivationLOGISTIC	= 1,	//	1 / (1 + e^-x)	//Sigmoid
 	mlopenActivationTANH		= 2,	//	a * tanh( b * x)
 	mlopenActivationRELU		= 3,	//	max(0, x)
-	mlopenActivationBRELU		= 4, //	min(a, max(0, x))
-	mlopenActivationSOFTRELU	= 5,	//	log(1 + e^x)   // bonomial normal log likelihood
-	mlopenActivationABS			= 6, //	abs(x)
-	mlopenActivationSQUARE		= 7,//	x^2
-	mlopenActivationSQR			= 8,//	sqr(x)
-	mlopenActivationLINEAR		= 9,//	a + b * x
-	mlopenActivationPOWER		= 10 // (a + b * x ) ^power
+	mlopenActivationSOFTRELU	= 4,	//	log(1 + e^x)   // bonomial normal log likelihood
+	mlopenActivationABS			= 5, //	abs(x)
+	mlopenActivationPOWER		= 6, // (a + b * x ) ^power
+//	mlopenActivationBRELU		= 7, //	min(a, max(0, x))
+//	mlopenActivationSQUARE		= 8,//	x^2
+//	mlopenActivationSQR			= 9,//	sqr(x)
+//	mlopenActivationLINEAR		= 10,//	a + b * x
 } mlopenActivationMode_t;
 // Create a Tensor Descriptor
 MLOPEN_EXPORT mlopenStatus_t mlopenCreateTensorDescriptor(mlopenTensorDescriptor_t *tensorDesc);
@@ -302,6 +302,7 @@ typedef enum {
 
 typedef enum {
 	mlopenConvolutionBwdDataAlgoDirect = 0,
+	mlopenConvolutionBwdDataAlgoWinograd = 1,
 } mlopenConvBwdDataAlgorithm_t;
 
 // Same perf struct for forward, backward filter and backward
@@ -428,6 +429,14 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeights(mlopenHandle_t han
 		void								*dw,
 		void								*workSpace,
 		size_t								workSpaceSize);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardBias(mlopenHandle_t handle,
+		const void						*alpha,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void						*dy,
+		const void						*beta,
+		const mlopenTensorDescriptor_t		dbDesc,
+		void							*db);
 
 // Pooling APIs
 
