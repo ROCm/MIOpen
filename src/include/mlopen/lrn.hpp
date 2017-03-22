@@ -45,7 +45,9 @@ struct LRNDescriptor : mlopenLRNDescriptor{
 		Data_t						dx,
 		ConstData_t				workSpace);
 
-	private:
+	friend std::ostream& operator<< (std::ostream& stream, const LRNDescriptor& x);
+
+private:
 	unsigned int lrnN = 0;
 	std::vector<double> parms;
 
