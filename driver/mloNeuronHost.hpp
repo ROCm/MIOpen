@@ -296,7 +296,7 @@ void ActivationFunction_Abs_Diff(int n, _T * bot_diff, const _T* top_diff, const
 {
 	for (int i = 0; i < n; i++)
 	{
-		bot_diff[i] = top_diff[i] * ((bot_data >= 0) ? 1 : -1);
+		bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0) ? 1 : -1);
 	}
 }
 
@@ -369,6 +369,7 @@ int mloNeuronBackwardRunHostAndVerify(
 		// (exp(2x) -1) / (exp(2x) + 1)
 		ActivationFunction_TanH_Diff(isize, bot_df, top_df_ptr, top_ptr);
 	}
+    break;
 	case MLO_NEURON_ABS:
 	{
 		ActivationFunction_Abs_Diff(isize, bot_df, top_df_ptr, bot_ptr);
