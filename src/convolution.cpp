@@ -241,6 +241,15 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
             BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc)
         );
 }
-
+std::ostream& operator<< (std::ostream& stream, const ConvolutionDescriptor& c)
+{
+	stream << c.pad_h << ", ";
+	stream << c.pad_w << ", ";
+	stream << c.u << ", ";
+	stream << c.v << ", ";
+	stream << c.upscalex << ", ";
+	stream << c.upscaley << ", ";
+	return stream;
+}
 
 } // namespace mlopen
