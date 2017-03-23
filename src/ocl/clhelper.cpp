@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <cstdio>
+#include <mlopen/gcn_asm_utils.h>
 #include <mlopen/clhelper.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
@@ -35,8 +36,7 @@ public:
         }
     }
 
-    inline operator char*() { return &_path[0]; }
-    inline operator const char*() const { return _path.c_str(); }
+    inline operator const std::string&() { return _path; }
 
 private:
     std::string _path;
@@ -68,23 +68,9 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source, const std::string& params)
 {
 #ifndef WIN32 //Linux or APPLE
-	std::string exec_path(std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH")); // asciz
-	{	// shut clang-analyzer-alpha.security.taint.TaintPropagation
-		static const char bad[] = "!#$*;<>?@\\^`{|}";
-		for (char * c = &exec_path[0]; c < (&exec_path[0] + exec_path.length()) ; ++c) {
-			if (std::iscntrl(*c)) {
-				*c = '_';
-				continue;
-			}
-			for (const char * b = &bad[0]; b < (&bad[0] + sizeof(bad) - 1); ++b) {
-				if (*b == *c) {
-					*c = '_';
-					break;
-				}
-			}
-		}
-	}
-	std::vector<std::string> opt_storage ({
+    TempFile outfile("amdgcn-asm-out-XXXXXX");
+
+	std::vector<std::string> args ({
 		"-x",
 		"assembler",
 		"-target",
@@ -96,64 +82,22 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 		if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(name), name, nullptr)) {
 			MLOPEN_THROW("Error: X-AMDGCN-ASM: clGetDeviceInfo()");
 		}
-		opt_storage.push_back("-mcpu=" + std::string(name));
+        args.push_back("-mcpu=" + std::string(name));
 	}
 
 	{
 		std::istringstream iss(params);
 		std::string param;
 		while (iss >> param) {
-			opt_storage.push_back(param);
+            args.push_back(param);
 		};
 	}
-	opt_storage.push_back("-");
-	opt_storage.push_back("-o");
-
-	std::vector<char*> args;
-	args.push_back(&exec_path[0]);
-	for (auto& opt : opt_storage) {
-		args.push_back(&opt[0]);
-	}
+    args.push_back("-");
+    args.push_back("-o");
+    args.push_back(outfile);
 	
-	TempFile outfile("amdgcn-asm-out-XXXXXX");
-	args.push_back(outfile);
-	args.push_back(nullptr);
-	
-	static const int read_side = 0;
-	static const int write_side = 1;
-	static const int pipe_sides = 2;
-	int clang_stdin[pipe_sides];
-	if (pipe(clang_stdin)) { MLOPEN_THROW("Error: X-AMDGCN-ASM: pipe()"); }
-
-	int wstatus;
-	pid_t pid = fork();
-	if (pid == 0) {
-		if (dup2(clang_stdin[read_side], STDIN_FILENO) == -1 ) { std::exit(EXIT_FAILURE); }
-		if (close(clang_stdin[read_side])) { std::exit(EXIT_FAILURE); }
-		if (close(clang_stdin[write_side])) { std::exit(EXIT_FAILURE); }
-		execv(exec_path.c_str(), args.data());
-		std::exit(EXIT_FAILURE);
-	} else {
-		if (close(clang_stdin[read_side])) { MLOPEN_THROW("Error: X-AMDGCN-ASM: close(clang_stdin[read_side])"); }
-		if (pid == -1) {
-			(void)close(clang_stdin[write_side]);
-			MLOPEN_THROW("Error X-AMDGCN-ASM: fork()");
-		}
-		if (write(clang_stdin[write_side], source.data(), source.size()) == -1) {
-			MLOPEN_THROW("Error: X-AMDGCN-ASM: write()");
-		}
-		if (close(clang_stdin[write_side])) { MLOPEN_THROW("Error: X-AMDGCN-ASM: close(clang_stdin[write_side])"); }
-		if (waitpid(pid, &wstatus, 0) != pid) { MLOPEN_THROW("Error: X-AMDGCN-ASM: waitpid()"); }
-	}
-	
-	if (WIFEXITED(wstatus)) {
-		const int exit_status = WEXITSTATUS(wstatus);
-		if (exit_status != 0) {
-			MLOPEN_THROW("Error: X-AMDGCN-ASM: Assembly error (" + std::to_string(exit_status) + ")");
-		}
-	} else {
-		MLOPEN_THROW("Error: X-AMDGCN-ASM: clang terminated abnormally");
-	}
+    std::istringstream clang_stdin(source);
+    ExecuteGcnAssembler(args, &clang_stdin);
 
 	std::ifstream file(outfile, std::ios::binary | std::ios::ate);
 	bool outfile_read_failed = false;
