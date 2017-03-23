@@ -9,6 +9,7 @@
 #include <mlopen/stringutils.hpp>
 #ifndef WIN32 //Linux or APPLE
 #include <unistd.h>
+#include <paths.h>
 #include <sys/types.h> 
 #include <sys/wait.h>
 #endif //WIN32
@@ -18,7 +19,7 @@ class TempFile
 {
 public:
     TempFile(const std::string& path_template)
-        : _path(path_template)
+        : _path(GetTempDirectoryPath() + "/" + path_template + "-XXXXXX")
     {
         _fd = mkstemp(&_path[0]);
         if (_fd == -1) { MLOPEN_THROW("Error: TempFile: mkstemp()"); }
@@ -41,6 +42,23 @@ public:
 private:
     std::string _path;
     int _fd;
+
+	static const std::string GetTempDirectoryPath()
+	{
+		const auto path = getenv("TMPDIR");
+		
+		if (path != nullptr)
+			return path;
+
+#ifdef P_tempdir
+		path = P_tempdir;
+
+		if (path != nullptr)
+			return path;
+#endif
+
+		return _PATH_TMP;
+	}
 };
 #endif
 
@@ -115,7 +133,7 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 		args.push_back(&opt[0]);
 	}
 	
-	TempFile outfile("amdgcn-asm-out-XXXXXX");
+	TempFile outfile("amdgcn-asm-out");
 	args.push_back(outfile);
 	args.push_back(nullptr);
 	
