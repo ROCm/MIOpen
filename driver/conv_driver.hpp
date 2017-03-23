@@ -583,7 +583,7 @@ int ConvDriver<T>::FindBackwardWeights(int &ret_algo_count, int request_algo_cou
 		workspace_bwd_dev->FromGPU(GetStream(), workspace_bwd.data());
 		
 		for(int i = 0; i < workspace_bwd.size(); i++) {
-			if(workspace_bwd[i] != workspace_bwd_host[i]) {
+			if(std::abs(workspace_bwd[i] - workspace_bwd_host[i]) > 0.0) {
 				printf("Im2col error: %d %f %f\n ", i, workspace_bwd[i], workspace_bwd_host[i]);
 			}
 		}
@@ -871,10 +871,10 @@ int ConvDriver<T>::VerifyBackward() {
     if (inflags.GetValueInt("bias") != 0){
         RunBackwardBiasCPU();
 
-        auto error_data = mlopen::rms_range(db_host, db);
-        if (!(error_data < tolerance))
+        auto error_bias = mlopen::rms_range(db_host, db);
+        if (!(error_bias < tolerance))
         {
-            std::cout << std::string("Backward Convolution Bias Failed: ") << error_data << std::string("\n");
+            std::cout << std::string("Backward Convolution Bias Failed: ") << error_bias << std::string("\n");
         }
         else
         {
