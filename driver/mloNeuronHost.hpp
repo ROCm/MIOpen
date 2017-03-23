@@ -369,6 +369,7 @@ int mloNeuronBackwardRunHostAndVerify(
 		// (exp(2x) -1) / (exp(2x) + 1)
 		ActivationFunction_TanH_Diff(isize, bot_df, top_df_ptr, top_ptr);
 	}
+    break;
 	case MLO_NEURON_ABS:
 	{
 		ActivationFunction_Abs_Diff(isize, bot_df, top_df_ptr, bot_ptr);
