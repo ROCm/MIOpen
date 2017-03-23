@@ -68,7 +68,7 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source, const std::string& params)
 {
 #ifndef WIN32 //Linux or APPLE
-    TempFile outfile("amdgcn-asm-out-XXXXXX");
+	TempFile outfile("amdgcn-asm-out-XXXXXX");
 
 	std::vector<std::string> args ({
 		"-x",
@@ -82,22 +82,23 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 		if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(name), name, nullptr)) {
 			MLOPEN_THROW("Error: X-AMDGCN-ASM: clGetDeviceInfo()");
 		}
-        args.push_back("-mcpu=" + std::string(name));
+		args.push_back("-mcpu=" + std::string(name));
 	}
 
 	{
 		std::istringstream iss(params);
 		std::string param;
 		while (iss >> param) {
-            args.push_back(param);
+			args.push_back(param);
 		};
 	}
-    args.push_back("-");
-    args.push_back("-o");
-    args.push_back(outfile);
+	args.push_back("-");
+	args.push_back("-o");
+	args.push_back(outfile);
 	
-    std::istringstream clang_stdin(source);
-    ExecuteGcnAssembler(args, &clang_stdin);
+	std::istringstream clang_stdin(source);
+	const auto clang_rc = ExecuteGcnAssembler(args, &clang_stdin);
+	if (clang_rc != 0) MLOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")"); 
 
 	std::ifstream file(outfile, std::ios::binary | std::ios::ate);
 	bool outfile_read_failed = false;

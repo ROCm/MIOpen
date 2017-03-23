@@ -29,8 +29,6 @@ public:
     void CloseWrite() { CloseSide(_write_side, _write_side_closed); }
     int DupRead(int target_fd) { assert(!_read_side_closed); return dup2(_read_side, target_fd); }
     int DupWrite(int target_fd) { assert(!_write_side_closed); return dup2(_write_side, target_fd); }
-    int Write(const void* data, size_t data_size) { assert(!_write_side_closed); return write(_write_side, data, data_size); }
-    int Read(void* buffer, size_t data_size) { assert(!_write_side_closed); return read(_write_side, buffer, data_size); }
     int GetReadFd() { return _read_side; }
     int GetWriteFd() { return _write_side; }
 
@@ -88,13 +86,19 @@ bool ValidateGcnAssembler()
     std::vector<std::string> args({"--version"});
     std::stringstream clang_stdout;
     std::string clang_result_line;
-    ExecuteGcnAssembler(path, args, nullptr, &clang_stdout);
-    
+    auto clang_rc = ExecuteGcnAssembler(path, args, nullptr, &clang_stdout);
+
+    if (clang_rc != 0) { return false; }
+
+    std::getline(clang_stdout, clang_result_line);
+    if (clang_result_line.find("clang") != std::string::npos)
+
     while (!clang_stdout.eof()) {
         std::getline(clang_stdout, clang_result_line);
 
-        if (clang_result_line.find("Target: ") != std::string::npos)
+        if (clang_result_line.find("Target: ") != std::string::npos) {
             return clang_result_line.find("amdgcn") != std::string::npos;
+        }
     }
 #endif // !WIN32
     return false;
