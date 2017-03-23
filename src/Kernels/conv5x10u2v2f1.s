@@ -141,10 +141,10 @@
 ///////////////////////////////////////////////////
 .text
 .p2align 8
-.global conv10x5uv2fwd
-.type conv10x5uv2fwd, @function
-.amdgpu_hsa_kernel conv10x5uv2fwd
-conv10x5uv2fwd:
+.global conv5x10u2v2f1
+.type conv5x10u2v2f1, @function
+.amdgpu_hsa_kernel conv5x10u2v2f1
+conv5x10u2v2f1:
 
     .amd_kernel_code_t
         amd_machine_version_major = .option.machine_version_major
@@ -1005,7 +1005,7 @@ skip_write:
 .amdgpu_runtime_metadata
 { amd.MDVersion: [ 2, 1 ],
     amd.Kernels:
-    - { amd.KernelName: conv10x5uv2fwd, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ],
+    - { amd.KernelName: conv5x10u2v2f1, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ],
         amd.ReqdWorkGroupSize: [ 64, 8, 1 ], 
         amd.Args:
         - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: in,          amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
@@ -1025,7 +1025,7 @@ skip_write:
     .Lmeta_begin:
     .long  0x02010001, 0x00780300
     .short 0x0604, 14, 0
-    .ascii "conv10x5uv2fwd"
+    .ascii "conv5x10u2v2f1"
     .long  0x00080907, 0x080a0000, 0x0b000000, 0x00000006
     .long  0x616f6c66, 0x030c2a74, 0x69000000, 0x010d706e
     .long  0x1000080e, 0x08010f00, 0x00080907, 0x080a0000
