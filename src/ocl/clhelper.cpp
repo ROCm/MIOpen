@@ -1,6 +1,8 @@
+#include <cstring>
 #include <vector>
 #include <string>
 #include <fstream>
+#include <cstdio>
 #include <mlopen/clhelper.hpp>
 #include <mlopen/kernel.hpp>
 #include <mlopen/errors.hpp>
@@ -10,6 +12,37 @@
 #include <sys/types.h> 
 #include <sys/wait.h>
 #endif //WIN32
+
+#ifndef WIN32 //Linux or APPLE
+class TempFile
+{
+public:
+    TempFile(const std::string& path_template)
+        : _path(path_template)
+    {
+        _fd = mkstemp(&_path[0]);
+        if (_fd == -1) { MLOPEN_THROW("Error: TempFile: mkstemp()"); }
+    }
+
+    ~TempFile()
+    {
+        const int remove_rc = std::remove(_path.c_str());
+        const int close_rc = close(_fd);
+        if (remove_rc != 0 || close_rc != 0) {
+#ifndef NDEBUG // Be quiet in release versions.
+            std::fprintf(stderr, "Error: TempFile: On removal of '%s', remove_rc = %d, close_rc = %d.\n", _path.c_str(), remove_rc, close_rc);
+#endif
+        }
+    }
+
+    inline operator char*() { return &_path[0]; }
+    inline operator const char*() const { return _path.c_str(); }
+
+private:
+    std::string _path;
+    int _fd;
+};
+#endif
 
 namespace mlopen {
 
@@ -82,12 +115,7 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 		args.push_back(&opt[0]);
 	}
 	
-	char outfile[] ="amdgcn-asm-out-XXXXXX";
-	{	// We need filename for -o, so tmpfile() is not ok.
-		const int fd_temp = mkstemp(&outfile[0]);
-		if (fd_temp == -1) { MLOPEN_THROW("Error: X-AMDGCN-ASM: mkstemp()"); }
-		if (close(fd_temp)) { MLOPEN_THROW("Error: X-AMDGCN-ASM: close(fd_temp)"); }
-	}
+	TempFile outfile("amdgcn-asm-out-XXXXXX");
 	args.push_back(outfile);
 	args.push_back(nullptr);
 	
@@ -138,7 +166,6 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 		if (file.rdbuf()->sgetn(&source[0], size) != size) { outfile_read_failed = true; break; }
 	} while (0);
 	file.close();
-	std::remove(outfile);
 	if (outfile_read_failed) {
 		MLOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
 	}
