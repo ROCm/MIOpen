@@ -6,8 +6,6 @@
 
 std::string GetGcnAssemblerPath();
 bool ValidateGcnAssembler();
-int ExecuteGcnAssembler(std::string& path, std::vector<std::string>& args, std::istream* clang_stdin_content = nullptr, std::ostream* clang_stdout_content = nullptr);
-int ExecuteGcnAssembler(std::vector<std::string>& args, std::istream* clang_stdin_content = nullptr, std::ostream* clang_stdout_content = nullptr);
-void CleanExecutablePath(std::string& path);
+int ExecuteGcnAssembler(std::vector<std::string>& args, std::istream* clang_stdin_content, std::ostream* clang_stdout_content);
 
-#endif
+#endif //GCN_ASM_UTILS_H

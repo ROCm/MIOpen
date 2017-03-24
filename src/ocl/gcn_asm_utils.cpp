@@ -4,12 +4,16 @@
 #include <cassert>
 #include <fstream>
 #include <sstream>
+#include <cstdio>
 
 #ifndef WIN32
 #include <ext/stdio_filebuf.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #endif // !WIN32
+
+static std::string CleanupPath(const char * const p);
+static int ExecuteGcnAssembler(const std::string& path, std::vector<std::string>& args, std::istream* in, std::ostream* out);
 
 #ifndef WIN32
 class Pipe
@@ -71,7 +75,9 @@ private:
 std::string GetGcnAssemblerPath()
 {
     const auto asm_path_env_p = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
-    if (asm_path_env_p) { return asm_path_env_p; }
+    if (asm_path_env_p) {
+        return CleanupPath(asm_path_env_p);
+    }
     static const std::string defaultAsmPath = "/opt/rocm/opencl/bin/x86_64/clang";
     return defaultAsmPath;
 }
@@ -79,7 +85,7 @@ std::string GetGcnAssemblerPath()
 bool ValidateGcnAssembler()
 {
 #ifndef WIN32
-    auto path = GetGcnAssemblerPath();
+    const auto path = GetGcnAssemblerPath();
     if (path.empty()) { return false; }
     if (!std::ifstream(path).good()) { return false; }
     
@@ -104,14 +110,15 @@ bool ValidateGcnAssembler()
     return false;
 }
 
-int ExecuteGcnAssembler(std::string& path, std::vector<std::string>& args, std::istream* clang_stdin_content, std::ostream* clang_stdout_content)
+static
+int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out)
 {
 #ifndef WIN32
     Pipe clang_stdin;
     Pipe clang_stdout;
 
-    const auto redirect_stdin = clang_stdin_content != nullptr;
-    const auto redirect_stdout = clang_stdout_content != nullptr;
+    const auto redirect_stdin = (in != nullptr);
+    const auto redirect_stdout = (out != nullptr);
 
     if (redirect_stdin) { clang_stdin.Open(); }
     if (redirect_stdout) { clang_stdout.Open(); }
@@ -119,8 +126,7 @@ int ExecuteGcnAssembler(std::string& path, std::vector<std::string>& args, std::
     int wstatus;
     pid_t pid = fork();
     if (pid == 0) {
-        CleanExecutablePath(path);
-
+        std::string path(p); // to remove constness 
         std::vector<char*> c_args;
         c_args.push_back(&path[0]);
         for (auto& arg : args) {
@@ -151,7 +157,7 @@ int ExecuteGcnAssembler(std::string& path, std::vector<std::string>& args, std::
             clang_stdin.CloseRead();
             __gnu_cxx::stdio_filebuf<char> clang_stdin_buffer(clang_stdin.GetWriteFd(), std::ios::out);
             std::ostream clang_stdin_stream(&clang_stdin_buffer);
-            clang_stdin_stream << clang_stdin_content->rdbuf();
+            clang_stdin_stream << in->rdbuf();
             clang_stdin.CloseWrite();
         }
 
@@ -160,7 +166,7 @@ int ExecuteGcnAssembler(std::string& path, std::vector<std::string>& args, std::
             clang_stdout.CloseWrite();
             __gnu_cxx::stdio_filebuf<char> clang_stdout_buffer(clang_stdout.GetReadFd(), std::ios::in);
             std::istream clang_stdin_stream(&clang_stdout_buffer);
-            *clang_stdout_content << clang_stdin_stream.rdbuf();
+            *out << clang_stdin_stream.rdbuf();
             clang_stdout.CloseRead();
         }
 
@@ -175,6 +181,10 @@ int ExecuteGcnAssembler(std::string& path, std::vector<std::string>& args, std::
         MLOPEN_THROW("Error: X-AMDGCN-ASM: clang terminated abnormally");
     }
 #else
+    (void)p;
+    (void)args;
+    (void)in;
+    (void)out;
     return -1;
 #endif // !WIN32
 }
@@ -185,8 +195,10 @@ int ExecuteGcnAssembler(std::vector<std::string>& args, std::istream* clang_stdi
     return ExecuteGcnAssembler(path, args, clang_stdin_content, clang_stdout_content);
 }
 
-void CleanExecutablePath(std::string& path)
+static
+std::string CleanupPath(const char * const p)
 {
+    std::string path(p);
     static const char bad[] = "!#$*;<>?@\\^`{|}";
     for (char * c = &path[0]; c < (&path[0] + path.length()); ++c) {
         if (std::iscntrl(*c)) {
@@ -200,4 +212,5 @@ void CleanExecutablePath(std::string& path)
             }
         }
     }
+    return path;
 }

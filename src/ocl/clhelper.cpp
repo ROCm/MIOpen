@@ -97,7 +97,7 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 	args.push_back(outfile);
 	
 	std::istringstream clang_stdin(source);
-	const auto clang_rc = ExecuteGcnAssembler(args, &clang_stdin);
+	const auto clang_rc = ExecuteGcnAssembler(args, &clang_stdin, nullptr);
 	if (clang_rc != 0) MLOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")"); 
 
 	std::ifstream file(outfile, std::ios::binary | std::ios::ate);
