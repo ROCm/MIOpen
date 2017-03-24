@@ -550,7 +550,7 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 		&& _n_inputs		>= 16
 		&& _in_layout		== "NCHW";
 		// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
-		// Actually, K<->C flpping is controlled by separate flag, so we can support either layout both directions.
+		// Actually, K<->C flpping is controlled by separate flag, so we can support either layout in both directions.
 }
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
@@ -620,7 +620,8 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream, const std::st
 }
 
 /// @param dir 1: fwd, 0: bwd wrt data
-static std::string constructAsmDirect3x3UCaseKey(int w, int h, int c, int n, int k, int dir)
+static
+std::string constructAsmDirect3x3UCaseKey(int w, int h, int c, int n, int k, int dir)
 {
 	std::ostringstream ss;
 	ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << dir;
@@ -663,7 +664,9 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
                 { constructAsmDirect3x3UCaseKey(240, 24,  16,  16,  32,  0), "420" },
                 { constructAsmDirect3x3UCaseKey(240, 24,  16,  16,  32,  1), "810" },
             });
-            const auto key = constructAsmDirect3x3UCaseKey(_in_width, _in_height, _n_inputs, _batch_sz, _n_outputs, isForwardDirection() ? 1 : 0);
+            const auto key = isForwardDirection()
+                ? constructAsmDirect3x3UCaseKey(_in_width, _in_height, _n_inputs, _batch_sz, _n_outputs, 1)
+                : constructAsmDirect3x3UCaseKey(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
             const auto found = perf_vals_map.find(key);
             if (found != perf_vals_map.end()) {
                 perf_vals = found->second;
