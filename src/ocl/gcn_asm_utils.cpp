@@ -13,7 +13,7 @@
 #endif // !WIN32
 
 static std::string CleanupPath(const char * const p);
-static int ExecuteGcnAssembler(const std::string& path, std::vector<std::string>& args, std::istream* in, std::ostream* out);
+static int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out);
 
 #ifndef WIN32
 class Pipe
