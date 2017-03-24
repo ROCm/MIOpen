@@ -43,21 +43,20 @@ private:
     std::string _path;
     int _fd;
 
-	static const std::string GetTempDirectoryPath()
-	{
-		const auto path = getenv("TMPDIR");
-		
-		if (path != nullptr)
-			return path;
-
-#ifdef P_tempdir
-		path = P_tempdir;
-
-		if (path != nullptr)
-			return path;
+    static
+    const std::string GetTempDirectoryPath() 
+    {
+        const auto path = getenv("TMPDIR");
+        if (path != nullptr) {
+            return path;
+        }
+#if defined(P_tmpdir)
+        return P_tmpdir; // a string literal, if defined.
+#elif defined(_PATH_TMP)
+        return _PATH_TMP; // a string literal, if defined.
+#else
+        return "/tmp";
 #endif
-
-		return _PATH_TMP;
 	}
 };
 #endif
