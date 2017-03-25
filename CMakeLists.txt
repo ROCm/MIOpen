@@ -89,7 +89,7 @@ if( MLOPEN_BACKEND STREQUAL "HIPOC")
 	# 	bin/x86_64
 	# 	x86_64
 	# )
-	set(HIP_OC_COMPILER ${CMAKE_CURRENT_SOURCE_DIR}/cloc)
+	set(HIP_OC_COMPILER ${CMAKE_CURRENT_SOURCE_DIR}/clang-ocl)
 	message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
 	add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
 	# message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
