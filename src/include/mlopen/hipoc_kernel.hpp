@@ -9,22 +9,41 @@
 
 namespace mlopen {
 
+template<class T, class U>
+struct KernelArgsPair
+{
+    static const int alignment = sizeof(U);
+    static const int padding = (alignment-(sizeof(T)%alignment))%alignment;
+    static const int second_index = sizeof(T) + padding;
+    KernelArgsPair(T x, U y)
+    {
+        new(buffer) T(x);
+        new(buffer+second_index) U(y);
+    }
+    char buffer[second_index+sizeof(U)];
+};
+
 template<class... Ts>
 struct KernelArgsPack;
 
-template<class T, class... Ts>
-struct KernelArgsPack<T, Ts...>
+template<class T, class U, class... Ts>
+struct KernelArgsPack<T, U, Ts...>
 {
-    KernelArgsPack(T x, Ts... xs)
-    : head(x), tail(xs...)
+    using data_t = KernelArgsPack<KernelArgsPair<T, U>, Ts...>;
+    KernelArgsPack(T x, U y, Ts... xs)
+    : data(KernelArgsPair<T, U>(x, y), xs...)
     {}
-    T head;
-    KernelArgsPack<Ts...> tail;
+    data_t data;
 };
 
-template<>
-struct KernelArgsPack<>
-{};
+template<class T>
+struct KernelArgsPack<T>
+{
+    KernelArgsPack(T x)
+    : head(x)
+    {}
+    T head;
+};
 
 template<class... Ts>
 struct KernelArgs

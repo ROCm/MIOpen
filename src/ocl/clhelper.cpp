@@ -172,6 +172,7 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 		nullptr,
 		nullptr);
 
+
 	if (status != CL_SUCCESS)
 	{
 		std::string msg = "Error Building OpenCL Program in BuildProgram()\n";
@@ -185,6 +186,7 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 			&psize);
 
 		msg += errorbuf.data();
+		std::cerr << msg << std::endl;
 		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, msg); }
 	}
 }
