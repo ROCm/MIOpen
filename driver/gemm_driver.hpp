@@ -12,7 +12,7 @@
 #include <numeric>
 
 template<typename T>
-class GemmDriver : public Driver 
+class GemmDriver : public Driver
 {
     public:
         GemmDriver() : Driver() {}
@@ -73,12 +73,12 @@ int GemmDriver<T>::AddCmdLineArgs() {
 
 template<typename T>
 int GemmDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
-    inflags.Parse(argc, argv); 
+    inflags.Parse(argc, argv);
 
     if(inflags.GetValueInt("time") == 1) {
         mlopenEnableProfiling(GetHandle(), true);
     }
-    return 0; 
+    return 0;
 }
 
 template<typename T>
@@ -103,14 +103,16 @@ int GemmDriver<T>::GetandSetData() {
 template<typename T>
 int GemmDriver<T>::AllocateBuffersAndCopy() {
 
-    size_t a_sz = M*K; 
+    size_t a_sz = M*K;
     size_t b_sz = K*N;
-    size_t c_sz = M*N; 
-
+    size_t c_sz = M*N;
+#if MLOPEN_BACKEND_OPENCL
     cl_context ctx;
 
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
+#elif MLOPEN_BACKEND_HIPOC
+    uint32_t ctx = 0;
+#endif
     a_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, a_sz, sizeof(T)));
     b_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, b_sz, sizeof(T)));
     c_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, c_sz, sizeof(T)));
@@ -127,13 +129,16 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
     for (int i = 0; i <b_sz; i++) {
         b[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
     }
-
+#if MLOPEN_BACKEND_OPENCL
     cl_int status;
+#elif MLOPEN_BACKEND_HIPOC
+    int status;
+#endif
     status = a_dev->ToGPU(q, a.data());
     status |= b_dev->ToGPU(q, b.data());
     status |= c_dev->ToGPU(q, c.data());
 
-    if(status != CL_SUCCESS) 
+    if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return mlopenStatusSuccess;
@@ -148,7 +153,7 @@ int GemmDriver<T>::RunForwardGPU() {
             transA, transB,
             M, N, K,
             &alpha,
-            a_dev->GetMem(), lda, 
+            a_dev->GetMem(), lda,
             b_dev->GetMem(), ldb,
             &beta,
             c_dev->GetMem(), N);
@@ -160,7 +165,7 @@ int GemmDriver<T>::RunForwardGPU() {
     }
 
     c_dev->FromGPU(GetStream(), c.data());
-#else 
+#else
     std::cerr<<"GEMM is not supported\n";
 #endif
     return mlopenStatusSuccess;
