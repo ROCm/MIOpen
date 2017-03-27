@@ -1,5 +1,5 @@
 /*
- * Convolution Kernel for 10x5 kernel (i.e., -x10 -y5) with stride=2 pad=0
+ * Convolution Kernel for 5x10 filter (i.e., -x10 -y5), strides fixed to 2, no padding.
  * works on devices compatible with GCN3 ISA, but not XNACK.
  */
 
@@ -14,14 +14,18 @@
 //  work-group-size = [64, 8, 1]
 //  global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
 //    * def align(a,b) = ((a + b - 1)/b)*b
-//    * NOTE: wei_k must be multiple of 2 -- optimized for wei_k multiple of 16
 ///////////////////////////////////////////////////
 // ******* changeable configuration parameters
-//   inp_w          - input image width
-//   inp_h          - input image height
-//   wei_c          - input image channels
-//   wei_k          - output image channels (must be multiple of 2)
-//   wei_layout     - weights layout 0:"KCHW" or 1:"CKHW"
+// The kernel cam work with arbitrary N, C, H, W, K values, except limitations stated below.
+// The code is optimized so that each workgroup will process 64x4 output pixels in 16 output
+// channels.
+//
+// inp_w          - (W) input image width. Shall be >= wei_w and < 8192.
+// inp_h          - (H) input image height. Shall be >= wei_h and < 131077.
+// wei_c          - (C) input image channels.
+// wei_k          - (K) output image channels. Shall be > 0 and multiple of 16.
+// wei_layout     - weights layout 0:"KCHW" or 1:"CKHW"
+//
 .ifndef inp_w
 .error "ERROR: configurable parameter: inp_w must be defined"
 .endif
@@ -37,8 +41,8 @@
 .ifndef wei_layout
 .error "ERROR: configurable parameter: wei_layout must be defined"
 .endif
-.if (wei_k % 2) != 0
-.error "ERROR: wei_k must be multiple of 2"
+.if (wei_k % 16) != 0
+.error "ERROR: wei_k must be multiple of 16"
 .endif
 // ******* build flags
 .set use_ds_read_b128, 0
@@ -48,7 +52,10 @@
 .set inp_u       ,   2
 .set inp_v       ,   2
 // ******* LDS allocation
-.set LDS_SIZE    ,4*(64*inp_u-1+(wei_w-1))*(4*inp_v-1+(wei_h-1))+32 // = 6016 bytes
+.set LDS_SIZE    ,4*(64*inp_u-1+(wei_w-1))*(4*inp_v-1+(wei_h-1))+32
+.if LDS_SIZE != 6016
+.error "Unexpected LDS_SIZE"
+.endif
 // ******* SGPR allocation
 // For used during initialization or as temporary
 .set sreg_karg   ,   0   // [2]
