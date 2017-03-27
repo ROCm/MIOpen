@@ -142,7 +142,7 @@ static inline int iMod(int v, int u, int d)
 
 static inline void calculateXYPos(int linPos, int width, int *x, int *y)
 {
-	(*y) = (int)((float)linPos / (float)width + 0.00001f);
+	(*y) = (int)((float)linPos * (1.0f / (float)width) + 0.00001f);
 	(*x) = linPos - mul24((*y), width); 
 }
 

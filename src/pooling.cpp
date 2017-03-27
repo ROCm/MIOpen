@@ -1,4 +1,5 @@
 #include <mlopen/pooling.hpp>
+#include <mlopen/logger.hpp>
 #include <cassert>
 #include <cmath>
 
@@ -90,6 +91,15 @@ TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(
 		std::get<1>(dims),
 		std::get<2>(dims),
 		std::get<3>(dims)});
+}
+
+std::ostream& operator<< (std::ostream& stream, const PoolingDescriptor& x)
+{
+	MLOPEN_LOG_ENUM(stream, x.mode, mlopenPoolingMax, mlopenPoolingAverage) << ", ";
+	LogRange(stream, x.lens, ", ") << ", ";
+	LogRange(stream, x.strides, ", ") << ", ";
+	LogRange(stream, x.pads, ", ") << ", ";
+	return stream;
 }
 
 } // namespace mlopen

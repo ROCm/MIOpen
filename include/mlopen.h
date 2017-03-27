@@ -18,7 +18,7 @@
 #endif
 
 #elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
-#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
 #endif
 
 #define MLOPEN_DECLARE_OBJECT(name) \
@@ -429,6 +429,14 @@ MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardWeights(mlopenHandle_t han
 		void								*dw,
 		void								*workSpace,
 		size_t								workSpaceSize);
+
+MLOPEN_EXPORT mlopenStatus_t mlopenConvolutionBackwardBias(mlopenHandle_t handle,
+		const void						*alpha,
+		const mlopenTensorDescriptor_t		dyDesc,
+		const void						*dy,
+		const void						*beta,
+		const mlopenTensorDescriptor_t		dbDesc,
+		void							*db);
 
 // Pooling APIs
 

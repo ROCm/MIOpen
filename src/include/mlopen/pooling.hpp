@@ -53,6 +53,8 @@ struct PoolingDescriptor : mlopenPoolingDescriptor {
 		Data_t						dx,
 		ConstData_t                workSpace) const;
 
+	friend std::ostream& operator<< (std::ostream& stream, const PoolingDescriptor& x);
+
 	std::vector<int> lens;
 	std::vector<int> strides;
 	std::vector<int> pads;	
