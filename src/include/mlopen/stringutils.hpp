@@ -35,6 +35,13 @@ inline std::string JoinStrings(Strings strings, std::string delim)
     });
 }
 
+inline bool StartsWith(const std::string& value, const std::string& prefix)
+{
+    if (prefix.size() > value.size()) return false;
+    else return std::equal(prefix.begin(), prefix.end(), value.begin());
+
+}
+
 } // namespace mlopen
 
 #endif
