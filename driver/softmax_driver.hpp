@@ -16,13 +16,13 @@
 #include "timer.hpp"
 
 template<typename T>
-class SoftmaxDriver : public Driver 
+class SoftmaxDriver : public Driver
 {
 	public:
 		SoftmaxDriver() : Driver() {
 		mlopenCreateTensorDescriptor(&inputTensor);
 		mlopenCreateTensorDescriptor(&outputTensor);
-		
+
 		mlopenCreateTensorDescriptor(&dInputTensor);
 		mlopenCreateTensorDescriptor(&dOutputTensor);
 	}
@@ -35,23 +35,23 @@ class SoftmaxDriver : public Driver
 	std::vector<int> GetInputTensorLengthsFromCmdLine();
 
 	int AllocateBuffersAndCopy();
-	
+
 	int RunForwardGPU();
 	int RunForwardCPU();
-	
+
 	int RunBackwardGPU();
 	int RunBackwardCPU();
-	
+
 	int VerifyBackward();
 	int VerifyForward();
 	~SoftmaxDriver() {
 		mlopenDestroyTensorDescriptor(outputTensor);
 		mlopenDestroyTensorDescriptor(inputTensor);
-		
+
 		mlopenDestroyTensorDescriptor(dOutputTensor);
 		mlopenDestroyTensorDescriptor(dInputTensor);
 	}
-		
+
 	private:
 	InputFlags inflags;
 
@@ -79,12 +79,12 @@ class SoftmaxDriver : public Driver
 
 template<typename T>
 int SoftmaxDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
-	inflags.Parse(argc, argv); 
+	inflags.Parse(argc, argv);
 
 	if(inflags.GetValueInt("time") == 1) {
 		mlopenEnableProfiling(GetHandle(), true);
 	}
-	return 0; 
+	return 0;
 }
 
 template<typename T>
@@ -95,7 +95,7 @@ int SoftmaxDriver<T>::GetandSetData() {
 	SetTensor4d(dInputTensor, in_len);
 	SetTensor4d(outputTensor, in_len);
 	SetTensor4d(dOutputTensor, in_len);
-	
+
 	return(0);
 }
 
@@ -128,14 +128,16 @@ std::vector<int> SoftmaxDriver<T>::GetInputTensorLengthsFromCmdLine() {
 
 template<typename T>
 int SoftmaxDriver<T>::AllocateBuffersAndCopy() {
-	
-	size_t in_sz = GetTensorSize(inputTensor); 
-	size_t out_sz = GetTensorSize(outputTensor); 
 
+	size_t in_sz = GetTensorSize(inputTensor);
+	size_t out_sz = GetTensorSize(outputTensor);
+#if MLOPEN_BACKEND_OPENCL
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
+#elif MLOPEN_BACKEND_HIPOC
+uint32_t ctx = 0;
+#endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 
@@ -145,7 +147,7 @@ int SoftmaxDriver<T>::AllocateBuffersAndCopy() {
 	in = std::vector<float>(in_sz);
 	out = std::vector<float>(out_sz, 0);
 	outhost = std::vector<float>(out_sz, 0);
-	
+
 	din = std::vector<T>(in_sz, 0);
 	dout = std::vector<T>(out_sz);
 	dinhost = std::vector<T>(in_sz, 0);
@@ -157,15 +159,18 @@ int SoftmaxDriver<T>::AllocateBuffersAndCopy() {
 	for (int i = 0; i < out_sz; i++) {
 		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
 	}
-
+#if MLOPEN_BACKEND_OPENCL
 	cl_int status;
+#elif MLOPEN_BACKEND_HIPOC
+	int status;
+#endif
 	status = in_dev->ToGPU(q, in.data());
 	status |= out_dev->ToGPU(q, out.data());
 
 	status = din_dev->ToGPU(q, din.data());
 	status |= dout_dev->ToGPU(q, dout.data());
 
-	if(status != CL_SUCCESS) 
+	if(status != CL_SUCCESS)
 		printf("Error copying data to GPU\n");
 
 	return mlopenStatusSuccess;
@@ -176,7 +181,7 @@ int SoftmaxDriver<T>::RunForwardGPU() {
 
 	int alpha = 1, beta = 1;
 
-	mlopenSoftmaxForward(GetHandle(), 
+	mlopenSoftmaxForward(GetHandle(),
 			&alpha,
 			inputTensor,
 			in_dev->GetMem(),
@@ -186,9 +191,9 @@ int SoftmaxDriver<T>::RunForwardGPU() {
 
 	Timer t;
 	START_TIME;
-	
+
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-	mlopenSoftmaxForward(GetHandle(), 
+	mlopenSoftmaxForward(GetHandle(),
 			&alpha,
 			inputTensor,
 			in_dev->GetMem(),
@@ -200,7 +205,7 @@ int SoftmaxDriver<T>::RunForwardGPU() {
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
-		
+
 		STOP_TIME;
 		if(WALL_CLOCK)
 			printf("Wall-clock Time Forward Softmax Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
@@ -261,7 +266,7 @@ int SoftmaxDriver<T>::RunBackwardGPU() {
 
 	Timer t;
 	START_TIME;
-	
+
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
 	mlopenSoftmaxBackward(GetHandle(),
 		&alpha,
@@ -277,7 +282,7 @@ int SoftmaxDriver<T>::RunBackwardGPU() {
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
-		
+
 		STOP_TIME;
 		if(WALL_CLOCK)
 			printf("Wall-clock Time Backward Softmax Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));

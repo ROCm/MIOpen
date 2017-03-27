@@ -54,7 +54,7 @@ bool readBufferFromFile(T * data, size_t dataNumItems, const char * fileName)
 }
 
 template<typename T>
-class ConvDriver : public Driver 
+class ConvDriver : public Driver
 {
 	public:
 	ConvDriver() : Driver() {
@@ -79,18 +79,18 @@ class ConvDriver : public Driver
 	std::vector<int> GetOutputTensorLengths();
 
 	int AllocateBuffersAndCopy();
-	
+
 	int FindForward(int &ret_algo_count, int request_algo_count, std::vector<mlopenConvAlgoPerf_t> &perf_results);
 	int RunForwardGPU();
 	int RunForwardCPU();
-	
+
 	int FindBackwardData(int &ret_algo_count, int request_algo_count, std::vector<mlopenConvAlgoPerf_t> &perf_results);
 	int FindBackwardWeights(int &ret_algo_count, int request_algo_count, std::vector<mlopenConvAlgoPerf_t> &perf_results);
 	int RunBackwardGPU();
 	int RunBackwardDataCPU();
 	int RunBackwardWeightsCPU();
     int RunBackwardBiasCPU();
-	
+
 	int VerifyBackward();
 	int VerifyForward();
 	~ConvDriver() {
@@ -103,7 +103,7 @@ class ConvDriver : public Driver
 		mlopenDestroyConvolutionDescriptor(convDesc);
 
 	}
-		
+
 	private:
 	InputFlags inflags;
 
@@ -144,13 +144,13 @@ class ConvDriver : public Driver
 };
 
 template<typename T>
-int ConvDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) { 
-	inflags.Parse(argc, argv); 
+int ConvDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
+	inflags.Parse(argc, argv);
 
 	if(inflags.GetValueInt("time") == 1) {
 		mlopenEnableProfiling(GetHandle(), true);
 	}
-	return 0; 
+	return 0;
 }
 
 template<typename T>
@@ -160,7 +160,7 @@ int ConvDriver<T>::GetandSetData() {
 
 	SetTensor4d(inputTensor, in_len);
 	SetTensor4d(weightTensor, wei_len);
-	
+
 	SetConvDescriptorFromCmdLineArgs();
 
 	std::vector<int> out_len = GetOutputTensorLengths();
@@ -168,7 +168,7 @@ int ConvDriver<T>::GetandSetData() {
 
     if(inflags.GetValueInt("bias") != 0) {
         std::vector<int> b_len {1, inflags.GetValueInt("out_channels"), 1, 1};
-        SetTensor4d(biasTensor, b_len); 
+        SetTensor4d(biasTensor, b_len);
     }
 	return(0);
 }
@@ -257,10 +257,13 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t workSpaceSize_fwd = 0;
 	mlopenConvolutionForwardGetWorkSpaceSize(weightTensor, inputTensor, outputTensor, convDesc, &workSpaceSize_fwd);
 
-	cl_context ctx;
+  #if MLOPEN_BACKEND_OPENCL
+  	cl_context ctx;
 
-	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
+  	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+  #elif MLOPEN_BACKEND_HIPOC
+    uint32_t ctx = 0;
+  #endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	din_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
 	wei_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, wei_sz, sizeof(float)));
@@ -333,13 +336,17 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 			wei[i] = (T)(scale*(double)(rand() * (1.0 / RAND_MAX) - 0.5) );
         }
     }
-	
+
     if(inflags.GetValueInt("dump_output")) {
         dumpBufferToFile("dump_in.bin", in.data(), in_sz);
         dumpBufferToFile("dump_wei.bin", wei.data(), wei_sz);
     }
-
-	cl_int status;
+    #if MLOPEN_BACKEND_OPENCL
+    	cl_int status;
+    #elif MLOPEN_BACKEND_HIPOC
+      #define CL_SUCCESS 0
+      int status;
+    #endif
 	status = in_dev->ToGPU(q, in.data());
 	status |= din_dev->ToGPU(q, in.data());
 	status |= wei_dev->ToGPU(q, wei.data());
@@ -486,7 +493,7 @@ int ConvDriver<T>::RunForwardCPU() {
 								for(int y = 0; y < wei_w; y++) {
 									int in_y = in_off_w - pad_w + y;
 									if(in_y >= 0 && in_y < in_w) {
-										acc +=	in[o*in_nstride + k*in_cstride + in_x*in_w + in_y] * 
+										acc +=	in[o*in_nstride + k*in_cstride + in_x*in_w + in_y] *
 											wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y];
 									}
 								}
@@ -622,11 +629,11 @@ int ConvDriver<T>::RunBackwardGPU() {
 			NULL,
 			0);
 	}
-	
+
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
-	
+
 		STOP_TIME;
 		if(WALL_CLOCK)
 			printf("Wall-clock Time Backward Data Conv. Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
@@ -636,7 +643,7 @@ int ConvDriver<T>::RunBackwardGPU() {
 	din_dev->FromGPU(GetStream(), din.data());
 
     std::vector<mlopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
-	
+
     FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
 
 	ret = mlopenConvolutionBackwardWeights(GetHandle(),
