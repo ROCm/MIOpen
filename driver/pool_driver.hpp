@@ -17,7 +17,7 @@
 #include "timer.hpp"
 
 template<typename T>
-class PoolDriver : public Driver 
+class PoolDriver : public Driver
 {
 	public:
 	PoolDriver() : Driver() {
@@ -42,13 +42,13 @@ class PoolDriver : public Driver
 	std::vector<int> GetOutputTensorLengths();
 
 	int AllocateBuffersAndCopy();
-	
+
 	int RunForwardGPU();
 	//int RunForwardCPU(); // Verify implements it
-	
+
 	int RunBackwardGPU();
 	//int RunBackwardCPU(); // Verify implements it
-	
+
 	int VerifyBackward();
 	int VerifyForward();
 	~PoolDriver() {
@@ -59,7 +59,7 @@ class PoolDriver : public Driver
 		mlopenDestroyPoolingDescriptor(poolDesc);
 
 	}
-		
+
 	private:
 	InputFlags inflags;
 
@@ -92,15 +92,15 @@ class PoolDriver : public Driver
 };
 
 template<typename T>
-int PoolDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) { 
-	inflags.Parse(argc, argv); 
+int PoolDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
+	inflags.Parse(argc, argv);
 
 	do_backward = !(inflags.GetValueInt("forw"));
 
 	if(inflags.GetValueInt("time") == 1) {
 		mlopenEnableProfiling(GetHandle(), true);
 	}
-	return 0; 
+	return 0;
 }
 
 template<typename T>
@@ -189,21 +189,23 @@ std::vector<int> PoolDriver<T>::GetOutputTensorLengths() {
 
 template<typename T>
 int PoolDriver<T>::AllocateBuffersAndCopy() {
-	
-	size_t in_sz = GetTensorSize(inputTensor); 
-	size_t out_sz = GetTensorSize(outputTensor); 
-	size_t workSpaceSize = 0; 
-	mlopenPoolingGetWorkSpaceSize(outputTensor, &workSpaceSize);
 
+	size_t in_sz = GetTensorSize(inputTensor);
+	size_t out_sz = GetTensorSize(outputTensor);
+	size_t workSpaceSize = 0;
+	mlopenPoolingGetWorkSpaceSize(outputTensor, &workSpaceSize);
+#if MLOPEN_BACKEND_OPENCL
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
+#elif MLOPEN_BACKEND_HIPOC
+	uint32_t ctx = 0;
+#endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize/sizeof(uint16_t), sizeof(uint16_t)));
 	mask = std::vector<uint16_t>(workSpaceSize/sizeof(uint16_t), 0);
-	
+
 	din_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
 
@@ -211,7 +213,7 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	out = std::vector<T>(out_sz, 0);
 	maskhost = std::vector<size_t>(out_sz, 0);
 	outhost = std::vector<T>(out_sz, 0);
-	
+
 	din = std::vector<T>(in_sz, 0);
 	dout = std::vector<T>(out_sz);
 	dinhost = std::vector<T>(in_sz, 0);
@@ -219,19 +221,23 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	for(int i = 0; i < in_sz; i++) {
 		in[i] = rand() * (1.0 / RAND_MAX);
 	}
-	
+
 	for (int i = 0; i < out_sz; i++) {
 		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
 	}
 
+#if MLOPEN_BACKEND_OPENCL
 	cl_int status;
+#elif MLOPEN_BACKEND_HIPOC
+	int status;
+#endif
 	status = in_dev->ToGPU(q, in.data());
 	status |= out_dev->ToGPU(q, out.data());
-	
+
 	status = din_dev->ToGPU(q, din.data());
 	status |= dout_dev->ToGPU(q, dout.data());
 
-	if(status != CL_SUCCESS) 
+	if(status != CL_SUCCESS)
 		printf("Error copying data to GPU\n");
 
 	return mlopenStatusSuccess;
@@ -327,7 +333,7 @@ int PoolDriver<T>::RunBackwardGPU() {
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
-		
+
 		STOP_TIME;
 		if(WALL_CLOCK)
 			printf("Wall-clock Time Backward Pooling Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
