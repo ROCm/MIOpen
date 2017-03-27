@@ -17,7 +17,7 @@
 #include "timer.hpp"
 
 template<typename T>
-class LRNDriver : public Driver 
+class LRNDriver : public Driver
 {
 	public:
 	LRNDriver() : Driver() {
@@ -25,7 +25,7 @@ class LRNDriver : public Driver
 		mlopenCreateTensorDescriptor(&outputTensor);
 
 		mlopenCreateLRNDescriptor(&lrnDesc);
-			
+
 		mlopenCreateTensorDescriptor(&dInputTensor);
 		mlopenCreateTensorDescriptor(&dOutputTensor);
 	}
@@ -40,13 +40,13 @@ class LRNDriver : public Driver
 	int SetLRNDescriptorFromCmdLineArgs();
 
 	int AllocateBuffersAndCopy();
-	
+
 	int RunForwardGPU();
 	int RunForwardCPU();
-	
+
 	int RunBackwardGPU();
 	int RunBackwardCPU();
-	
+
 	int VerifyBackward();
 	int VerifyForward();
 	~LRNDriver() {
@@ -56,7 +56,7 @@ class LRNDriver : public Driver
 
 		mlopenDestroyLRNDescriptor(lrnDesc);
 	}
-		
+
 	private:
 	InputFlags inflags;
 
@@ -76,7 +76,7 @@ class LRNDriver : public Driver
 	mlopenLRNDescriptor_t lrnDesc;
 
 	mlopenTensorDescriptor_t dInputTensor;
-	mlopenTensorDescriptor_t dOutputTensor;	
+	mlopenTensorDescriptor_t dOutputTensor;
 	std::unique_ptr<GPUMem> din_dev;
 	std::unique_ptr<GPUMem> dout_dev;
 
@@ -87,8 +87,8 @@ class LRNDriver : public Driver
 };
 
 template<typename T>
-int LRNDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) { 
-	inflags.Parse(argc, argv); 
+int LRNDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
+	inflags.Parse(argc, argv);
 
 	if(inflags.GetValueInt("time") == 1) {
 		mlopenEnableProfiling(GetHandle(), true);
@@ -99,7 +99,7 @@ int LRNDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
 		exit(0);
 	}
 #endif
-	return 0; 
+	return 0;
 }
 
 template<typename T>
@@ -107,11 +107,11 @@ int LRNDriver<T>::GetandSetData() {
 	std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
 	SetTensor4d(inputTensor, in_len);
-	
+
 	SetLRNDescriptorFromCmdLineArgs();
 
 	SetTensor4d(outputTensor, in_len);
-	
+
 	SetTensor4d(dInputTensor, in_len);
 	SetTensor4d(dOutputTensor, in_len);
 	return(0);
@@ -152,7 +152,7 @@ std::vector<int> LRNDriver<T>::GetInputTensorLengthsFromCmdLine() {
 template<typename T>
 int LRNDriver<T>::SetLRNDescriptorFromCmdLineArgs() {
 
-	mlopenLRNMode_t mode ; 
+	mlopenLRNMode_t mode ;
 	int lrnN = inflags.GetValueInt("lrnN");
 	double lrnAlpha = inflags.GetValueDouble("alpha");
 	double lrnBeta = inflags.GetValueDouble("beta");
@@ -179,20 +179,22 @@ int LRNDriver<T>::SetLRNDescriptorFromCmdLineArgs() {
 
 template<typename T>
 int LRNDriver<T>::AllocateBuffersAndCopy() {
-	
+
 	size_t workspaceSize = 0;
 	mlopenLRNGetWorkSpaceSize(outputTensor, &workspaceSize);
 
-	size_t in_sz = GetTensorSize(inputTensor); 
-	size_t out_sz = GetTensorSize(outputTensor); 
-
+	size_t in_sz = GetTensorSize(inputTensor);
+	size_t out_sz = GetTensorSize(outputTensor);
+#if MLOPEN_BACKEND_OPENCL
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
+#elif MLOPEN_BACKEND_HIPOC
+	uint32_t ctx = 0;
+#endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
-	
+
 	din_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
 
@@ -219,8 +221,11 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 	for (int i = 0; i < out_sz; i++) {
 		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
-
+#if MLOPEN_BACKEND_OPENCL
 	cl_int status;
+#elif MLOPEN_BACKEND_HIPOC
+	int status;
+#endif
 	status = in_dev->ToGPU(q, in.data());
 	if (inflags.GetValueInt("forw") == 0)
 	{
@@ -231,7 +236,7 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 	status = din_dev->ToGPU(q, din.data());
 	status |= dout_dev->ToGPU(q, dout.data());
 
-	if(status != CL_SUCCESS) 
+	if(status != CL_SUCCESS)
 		printf("Error copying data to GPU\n");
 
 	return mlopenStatusSuccess;
@@ -242,8 +247,8 @@ int LRNDriver<T>::RunForwardGPU() {
 
 	int alpha = 1, beta = 1;
 
-	mlopenLRNForward(GetHandle(), 
-			lrnDesc, 
+	mlopenLRNForward(GetHandle(),
+			lrnDesc,
 			&alpha,
 			inputTensor,
 			in_dev->GetMem(),
@@ -255,10 +260,10 @@ int LRNDriver<T>::RunForwardGPU() {
 
 	Timer t;
 	START_TIME;
-	
+
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-	mlopenLRNForward(GetHandle(), 
-			lrnDesc, 
+	mlopenLRNForward(GetHandle(),
+			lrnDesc,
 			&alpha,
 			inputTensor,
 			in_dev->GetMem(),
@@ -272,7 +277,7 @@ int LRNDriver<T>::RunForwardGPU() {
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
-		
+
 		STOP_TIME;
 		if(WALL_CLOCK)
 			printf("Wall-clock Time Forward LRN Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
@@ -387,7 +392,7 @@ int LRNDriver<T>::RunBackwardGPU() {
 
 	Timer t;
 	START_TIME;
-	
+
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
 	mlopenLRNBackward(GetHandle(),
 			lrnDesc,
@@ -407,7 +412,7 @@ int LRNDriver<T>::RunBackwardGPU() {
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
-		
+
 		STOP_TIME;
 		if(WALL_CLOCK)
 			printf("Wall-clock Time Backward LRN Elapsed: %f ms\n", t.gettime_ms() / inflags.GetValueInt("iter"));
@@ -440,7 +445,7 @@ int LRNDriver<T>::VerifyForward() {
 
 template<typename T>
 int LRNDriver<T>::RunBackwardCPU() {
-	
+
 	int nInStride, cInStride, hInStride, wInStride;
 	mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
 	int nIn, cIn, hIn, wIn;
@@ -548,7 +553,7 @@ template<typename T>
 int LRNDriver<T>::VerifyBackward() {
 
 	RunBackwardCPU();
-	
+
 	auto error = mlopen::rms_range(dinhost, din);
 	const double tolerance = 1e-6;
 	if (error > tolerance)

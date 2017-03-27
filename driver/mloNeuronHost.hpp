@@ -47,6 +47,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 //#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
 #define MLO_NEURON_TOTAL		MLO_NEURON_POWER + 1
 
+const float kBNLL_THRESHOLD = 50.;
+
+
 template<typename _T>
 void ActivationFunction_PassThru(int n, _T * res, const _T* data)
 {
@@ -160,7 +163,8 @@ void ActivationFunction_BNLL(int n, _T * res, const _T* data)
 	for (int i = 0; i < n; i++)
 	{
 		//	log(1 + exp(x))
-		res[i] = log(1.f + exp(data[i]));
+		res[i] = (data[i] > 0) ? data[i] +  log(static_cast<_T>(1) + exp(-data[i]))
+			: log(static_cast<_T>(1) + exp(data[i]));
 	}
 }
 
@@ -292,7 +296,7 @@ void ActivationFunction_Abs_Diff(int n, _T * bot_diff, const _T* top_diff, const
 {
 	for (int i = 0; i < n; i++)
 	{
-		bot_diff[i] = top_diff[i] * ((bot_data >= 0) ? 1 : -1);
+		bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0) ? 1 : -1);
 	}
 }
 
@@ -321,7 +325,8 @@ void ActivationFunction_BNLL_Diff(int n, _T * bot_diff, const _T* top_diff, cons
 	for (int i = 0; i < n; i++)
 	{
 		//	(log(1 + exp(x)))' = 1/ (1 + exp(-x))
-		bot_diff[i] = top_diff[i] * (1.f + exp(-bot_data[i]));
+		_T expval = exp(std::min(bot_data[i], static_cast<_T>(kBNLL_THRESHOLD)));
+		bot_diff[i] = top_diff[i] * expval / (expval + static_cast<_T>(1.));
 	}
 }
 
@@ -364,6 +369,7 @@ int mloNeuronBackwardRunHostAndVerify(
 		// (exp(2x) -1) / (exp(2x) + 1)
 		ActivationFunction_TanH_Diff(isize, bot_df, top_df_ptr, top_ptr);
 	}
+    break;
 	case MLO_NEURON_ABS:
 	{
 		ActivationFunction_Abs_Diff(isize, bot_df, top_df_ptr, bot_ptr);
@@ -393,7 +399,7 @@ int mloNeuronBackwardRunHostAndVerify(
 	}
 
 
-	for (size_t i = 0; i < size; ++i)
+	for (size_t i = 0; i < size && match; ++i)
 	{
 		_T c_val = bot_df[i];
 		_T g_val = bot_df_ptr[i];

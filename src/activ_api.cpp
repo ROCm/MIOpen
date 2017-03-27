@@ -1,5 +1,6 @@
 #include <mlopen/activ.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/logger.hpp>
 #include <initializer_list>
 #include <array>
 
@@ -7,6 +8,7 @@ extern "C"
 mlopenStatus_t mlopenCreateActivationDescriptor(
 		mlopenActivationDescriptor_t *activDesc) {
 
+	MLOPEN_LOG_FUNCTION(activDesc);
 	return mlopen::try_([&] {
 		mlopen::deref(activDesc) = new mlopen::ActivationDescriptor();
 	});
@@ -20,6 +22,7 @@ mlopenStatus_t mlopenSetActivationDescriptor(
 		double						activBeta,
 		double						activPower) {
 		
+	MLOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activPower);
 	return mlopen::try_([&] {
 		std::initializer_list<double> parms = {activAlpha, activBeta, activPower};
 		mlopen::deref(activDesc) = mlopen::ActivationDescriptor(mode, 
@@ -35,6 +38,7 @@ mlopenStatus_t mlopenGetActivationDescriptor(
 		double							*activBeta,
 		double							*activPower) {
 
+	MLOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activPower);
 	return mlopen::try_([&] {
 		*mode = mlopen::deref(activDesc).GetMode();
 		*activAlpha = mlopen::deref(activDesc).GetAlpha();
@@ -57,6 +61,7 @@ mlopenStatus_t mlopenActivationForward(
 		void								*workSpace) {
 
 
+	MLOPEN_LOG_FUNCTION(activDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace);
 	return mlopen::try_([&] {
 			mlopen::deref(activDesc).Forward(mlopen::deref(handle),
 			alpha,
@@ -85,6 +90,7 @@ mlopenStatus_t mlopenActivationBackward(
 		const mlopenTensorDescriptor_t		dxDesc,
 		void								*dx,
 		const void							*workSpace) {
+	MLOPEN_LOG_FUNCTION(activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace)
 
 	return mlopen::try_([&] {
 			mlopen::deref(activDesc).Backward(mlopen::deref(handle),
@@ -104,6 +110,8 @@ mlopenStatus_t mlopenActivationBackward(
 
 extern "C"
 mlopenStatus_t mlopenDestroyActivationDescriptor(mlopenActivationDescriptor_t activDesc) {
+	
+	MLOPEN_LOG_FUNCTION(activDesc)
 	return mlopen::try_([&] {
 		delete activDesc;
 	});
