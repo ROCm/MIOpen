@@ -782,10 +782,10 @@ static inline int AlignUp(int val, unsigned step)
 
 int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10)
 {
-	const int out_w = (_in_width  + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + inp_u - wei_w) / inp_u
-	const int out_h = (_in_height + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + inp_v - wei_h) / inp_v
+    const int out_w = (_in_width  + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + inp_u - wei_w) / inp_u
+    const int out_h = (_in_height + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + inp_v - wei_h) / inp_v
 
-	std::ostringstream options;
+    std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", _in_height);
     GenerateClangDefsym(options, "inp_w", _in_width);
     GenerateClangDefsym(options, "wei_c", _n_inputs);
