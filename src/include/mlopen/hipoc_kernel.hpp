@@ -9,6 +9,9 @@
 
 namespace mlopen {
 
+#if 1
+
+#if 1
 template<class T, class U>
 struct KernelArgsPair
 {
@@ -22,6 +25,17 @@ struct KernelArgsPair
     }
     char buffer[second_index+sizeof(U)];
 };
+#else
+template<class T, class U>
+struct KernelArgsPair
+{
+    KernelArgsPair(T x, U y)
+    : first(x), second(y)
+    {}
+    T first;
+    U second;
+};
+#endif
 
 template<class... Ts>
 struct KernelArgsPack;
@@ -45,6 +59,26 @@ struct KernelArgsPack<T>
     T head;
 };
 
+#else
+
+template<class... Ts>
+struct KernelArgsPack;
+
+template<class T, class... Ts>
+struct KernelArgsPack<T, Ts...>
+{
+    KernelArgsPack(T x, Ts... xs)
+    : head(x), tail(xs...)
+    {}
+    T head;
+    KernelArgsPack<Ts...> tail;
+};
+
+template<>
+struct KernelArgsPack<>
+{};
+
+#endif
 template<class... Ts>
 struct KernelArgs
 {
