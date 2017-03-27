@@ -6,7 +6,7 @@ namespace mlopen {
 
 bool IsLogging()
 {
-    return !mlopen::IsEnvvarValueDisabled("MIOPEN_ENABLE_LOGGING");
+    return mlopen::IsEnvvarValueEnabled("MIOPEN_ENABLE_LOGGING");
 }
 
 } // namespace mlopen

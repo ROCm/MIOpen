@@ -42,7 +42,11 @@ def rocmtest(image, body) {
             mkdir build
             cd build
             CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-            CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
+            if [ "${compiler}" != "hcc" ]; then
+                CTEST_PARALLEL_LEVEL=32 dumb-init make MLOpenDriver -j32 check
+            else 
+                CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
+            fi
         """
         echo cmd
         sh cmd

@@ -15,7 +15,7 @@
 #include <numeric>
 
 template<typename T>
-class ActivationDriver : public Driver 
+class ActivationDriver : public Driver
 {
 	public:
 		ActivationDriver() : Driver() {
@@ -23,7 +23,7 @@ class ActivationDriver : public Driver
 		mlopenCreateTensorDescriptor(&outputTensor);
 
 		mlopenCreateActivationDescriptor(&activDesc);
-			
+
 		mlopenCreateTensorDescriptor(&dInputTensor);
 		mlopenCreateTensorDescriptor(&dOutputTensor);
 	}
@@ -38,13 +38,13 @@ class ActivationDriver : public Driver
 	int SetActivationDescriptorFromCmdLineArgs();
 
 	int AllocateBuffersAndCopy();
-	
+
 	int RunForwardGPU();
 	int RunForwardCPU();
-	
+
 	int RunBackwardGPU();
 	int RunBackwardCPU();
-	
+
 	int VerifyBackward();
 	int VerifyForward();
 	~ActivationDriver() {
@@ -54,7 +54,7 @@ class ActivationDriver : public Driver
 
 		mlopenDestroyActivationDescriptor(activDesc);
 	}
-		
+
 	private:
 	InputFlags inflags;
 
@@ -72,7 +72,7 @@ class ActivationDriver : public Driver
 	mlopenActivationDescriptor_t activDesc;
 
 	mlopenTensorDescriptor_t dInputTensor;
-	mlopenTensorDescriptor_t dOutputTensor;	
+	mlopenTensorDescriptor_t dOutputTensor;
 	std::unique_ptr<GPUMem> din_dev;
 	std::unique_ptr<GPUMem> dout_dev;
 
@@ -84,12 +84,12 @@ class ActivationDriver : public Driver
 
 template<typename T>
 int ActivationDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
-	inflags.Parse(argc, argv); 
+	inflags.Parse(argc, argv);
 
 	if(inflags.GetValueInt("time") == 1) {
 		mlopenEnableProfiling(GetHandle(), true);
 	}
-	return 0; 
+	return 0;
 }
 
 template<typename T>
@@ -97,11 +97,11 @@ int ActivationDriver<T>::GetandSetData() {
 	std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
 	SetTensor4d(inputTensor, in_len);
-	
+
 	SetActivationDescriptorFromCmdLineArgs();
 
 	SetTensor4d(outputTensor, in_len);
-	
+
 	SetTensor4d(dInputTensor, in_len);
 	SetTensor4d(dOutputTensor, in_len);
 	return(0);
@@ -138,7 +138,7 @@ std::vector<int> ActivationDriver<T>::GetInputTensorLengthsFromCmdLine() {
 template<typename T>
 int ActivationDriver<T>::SetActivationDescriptorFromCmdLineArgs() {
 
-	mlopenActivationMode_t mode; 
+	mlopenActivationMode_t mode;
 	double Alpha = inflags.GetValueDouble("alpha");
 	double Beta = inflags.GetValueDouble("beta");
 	double Power = inflags.GetValueDouble("power");
@@ -154,17 +154,19 @@ int ActivationDriver<T>::SetActivationDescriptorFromCmdLineArgs() {
 
 template<typename T>
 int ActivationDriver<T>::AllocateBuffersAndCopy() {
-	
-	size_t in_sz = GetTensorSize(inputTensor); 
-	size_t out_sz = GetTensorSize(outputTensor); 
 
+	size_t in_sz = GetTensorSize(inputTensor);
+	size_t out_sz = GetTensorSize(outputTensor);
+#if MLOPEN_BACKEND_OPENCL
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-
+#elif MLOPEN_BACKEND_HIPOC
+uint32_t ctx = 0;
+#endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
-	
+
 	din_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
 
@@ -184,15 +186,18 @@ int ActivationDriver<T>::AllocateBuffersAndCopy() {
 	for (int i = 0; i < out_sz; i++) {
 		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
-
+#if MLOPEN_BACKEND_OPENCL
 	cl_int status;
+#elif MLOPEN_BACKEND_HIPOC
+	int status;
+#endif
 	status = in_dev->ToGPU(q, in.data());
 	status |= out_dev->ToGPU(q, out.data());
 
 	status = din_dev->ToGPU(q, din.data());
 	status |= dout_dev->ToGPU(q, dout.data());
 
-	if(status != CL_SUCCESS) 
+	if(status != CL_SUCCESS)
 		printf("Error copying data to GPU\n");
 
 	return mlopenStatusSuccess;
@@ -203,8 +208,8 @@ int ActivationDriver<T>::RunForwardGPU() {
 
 	int alpha = 1, beta = 1;
 
-	mlopenActivationForward(GetHandle(), 
-			activDesc, 
+	mlopenActivationForward(GetHandle(),
+			activDesc,
 			&alpha,
 			inputTensor,
 			in_dev->GetMem(),
@@ -247,7 +252,7 @@ int ActivationDriver<T>::RunBackwardGPU() {
 		dInputTensor,
 		din_dev->GetMem(),
 		NULL);
-	
+
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
 		mlopenGetKernelTime(GetHandle(), &time);
@@ -291,7 +296,7 @@ int ActivationDriver<T>::VerifyForward() {
 
 template<typename T>
 int ActivationDriver<T>::RunBackwardCPU() {
-	
+
 	return 0;
 }
 
