@@ -3,6 +3,7 @@
 
 #include <mlopen/hipoc_program.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/stringutils.hpp>
 #include <array>
 #include <vector>
 #include <cassert>

@@ -223,11 +223,10 @@ bool mloSearchConfigDB(
 
 int mlo_construct_winograd::mloConstruct()
 {
-#if MLOPEN_BACKEND_OPENCL
-	bool is_ocl_rocm_metadata_v10 = false; // when false, v2.0 metadata is supported.
+	bool is_ocl_rocm_metadata_v10 = true; // when false, v2.0 metadata is supported.
 	/// \todo As soon as metadata v1.0 support not needed, drop it: 
 	/// get gid of this var and v1.0 files.
-	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
+	// if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 	{
 		const auto use_binaries = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
@@ -242,7 +241,6 @@ int mlo_construct_winograd::mloConstruct()
 			}
 		}
 	}
-#endif
     
     return -1;
 }
@@ -511,12 +509,11 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(bool &is_metadata_v10) const
 	}
 	return true;
 }
-
+#endif //MLOPEN_BACKEND_OPENCL
 bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 {
 	// Check if device is able to run this kernel.
-	const auto dev = mlopen::GetDevice(_stream->GetStream());
-	const auto name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	const auto name = _stream->GetDeviceName();
 	const bool device_is_gfx8_no_xnack = (name == "gfx800"
 									   || name == "gfx802"
 									   || name == "gfx803"
@@ -580,8 +577,7 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v1
 
 bool mlo_construct_direct2D::mloIsCorrectAsmDirect3x3U() const
 {
-	const auto dev = mlopen::GetDevice(_stream->GetStream());
-	const std::string name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+	const std::string name = _stream->GetDeviceName();
 	if (name.find("gfx8") == std::string::npos) { // Any gfx8 device is ok.
 		return false;
 	}
@@ -661,7 +657,6 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
 
 	return 0;
 }
-#endif //MLOPEN_BACKEND_OPENCL
 
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
