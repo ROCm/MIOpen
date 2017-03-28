@@ -72,30 +72,32 @@ if( MLOPEN_BACKEND STREQUAL "HIPOC")
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIPOC=1 )
-	# find_program(HIP_OC_COMPILER aoc2
-	# 	PATH_SUFFIXES
-	# 		bin
-	# 		bin/x86_64
-	# 		x86_64
-	# )
-	# find_program(HIP_OC_FINALIZER amdhsafin
-	# 	PATH_SUFFIXES
-	# 		bin
-	# 		bin/x86_64
-	# 		x86_64
-	# )
-	# find_program(HIP_OC_COMPILER cloc
-	# 	bin
-	# 	bin/x86_64
-	# 	x86_64
-	# )
-	set(HIP_OC_COMPILER ${CMAKE_CURRENT_SOURCE_DIR}/clang-ocl)
-	message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
-	add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
-	# message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
-	# add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
+	find_program(HIP_OC_COMPILER clang-ocl
+		PATHS /opt/rocm
+	)
+	if(HIP_OC_COMPILER_FOUND)
+		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
+		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
+	else()
+		find_program(HIP_OC_COMPILER aoc2
+			PATH_SUFFIXES
+				bin
+				bin/x86_64
+				x86_64
+		)
+		find_program(HIP_OC_FINALIZER amdhsafin
+			PATH_SUFFIXES
+				bin
+				bin/x86_64
+				x86_64
+		)
+		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
+		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
+		message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
+		add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
+	endif()
 	
-	find_package(hip)
+	find_package(hip PATHS /opt/rocm)
 	link_libraries(stdc++)
 endif()
 message( STATUS "${MLOPEN_BACKEND} backend selected." )
