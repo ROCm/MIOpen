@@ -31,6 +31,8 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define DBG_OUT_OF_RNGE 0
+
 // number of filter taps in the processing wk_item
 //#define MLO_WEI_WKITEM 5
 
@@ -325,31 +327,52 @@ __kernel void MLOpenCvBwdWrW(
 
 			c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
 			int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
-#if MLO_IN_N_PIXS_OFF > 0
-			if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
-			{
-				int i = 0;
-				for (; i < MLO_IN_N_PIXS_OFF; ++i)
-				{
-					in_rd_data[i] = bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
-				}
-
-				for (; i < MLO_READ_UNIT; ++i)
-				{
-					in_rd_data[i] = 0;
-				}
-			}
-			else
-#endif
-			{
-
-				*(MLO_READ_TYPE*)in_rd_data = *(__global MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
-			}
-// still problems with unaligned LDS access
-			//			*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_PAD1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
 			for (int i = 0; i < MLO_READ_UNIT; ++i)
 			{
-				lcl_bot[(c_scan + MLO_FILTER_PAD1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+				in_rd_data[i] = 0;
+			}
+			if (in_y + c_scan < MLO_IN_HEIGHT)
+			{
+				int bot_off = gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
+#if MLO_IN_N_PIXS_OFF > 0
+				if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
+				{
+					int i = 0;
+					for (; i < MLO_IN_N_PIXS_OFF; ++i)
+					{
+						in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+						if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:in-of-range\n");
+						}
+#endif
+
+					}
+
+				}
+				else
+#endif
+				{
+
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+						in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+						if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:in-of-range\n");
+						}
+#endif
+					}
+				}
+			}
+
+			int lcl_off = (c_scan + MLO_FILTER_PAD1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
+
+			for (int i = 0; i < MLO_READ_UNIT; ++i)
+			{
+				lcl_bot[lcl_off + i] = in_rd_data[i];
 			}
 
 
@@ -380,34 +403,57 @@ __kernel void MLOpenCvBwdWrW(
 // an overshoot has to be hadled by zero outing output			
 			gbl_in_scan_off = gbl_in_off + mul24(in_y, MLO_IN_STRIDE);
 			int c_scan = 0;
-			for (int p4 = lcl_id; p4 < MLO_N_IN_HORIZ_READS * (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1) && in_y + c_scan < MLO_IN_HEIGHT;
+			for (int p4 = lcl_id; p4 < MLO_N_IN_HORIZ_READS * (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1)/* && in_y + c_scan < MLO_IN_HEIGHT*/;
 				p4 += MLO_GRP_SZ)
 			{
 				c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
 				int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
+				for(int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					in_rd_data[i] = 0;
+				}
+				if (in_y + c_scan < MLO_IN_HEIGHT)
+				{
+					int bot_off = gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
 #if MLO_IN_N_PIXS_OFF > 0
-				if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
-				{
-					int i = 0;
-					for (; i < MLO_IN_N_PIXS_OFF; ++i)
+					if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
 					{
-						in_rd_data[i] = bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT + i];
-					}
-					for (; i < MLO_READ_UNIT; ++i)
-					{
-						in_rd_data[i] = 0;
-					}
-				}
-				else
+						int i = 0;
+						for (; i < MLO_IN_N_PIXS_OFF; ++i)
+						{
+							in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+							if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
 #endif
-				{
-					*(MLO_READ_TYPE*)in_rd_data = *(__global MLO_READ_TYPE*)&bot[gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT];
+						}
+					}
+					else
+#endif
+					{
+						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						{
+							in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+							if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
+#endif
+
+						}
+					}
+
 				}
-				//					*(MLO_READ_TYPE*)&lcl_bot[(c_scan + MLO_FILTER_SIZE1 - 1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)in_rd_data;
+
+
+				int lcl_off = (c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
 
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					lcl_bot[(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] = in_rd_data[i];
+					lcl_bot[lcl_off + i] = in_rd_data[i];
 				}
 
 			}
@@ -436,48 +482,61 @@ __kernel void MLOpenCvBwdWrW(
 					int o_pX4 = iMod(oo_p4, o, (MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS));
 					int o_scan = iDiv(o_pX4, MLO_N_OUT_HORIZ_READS);
 					int o_pix4 = iMod(o_pX4, o_scan, MLO_N_OUT_HORIZ_READS);
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+						out_rd_data[i] = 0;
+					}
+
 					if (out_y + o_scan < MLO_OUT_HEIGHT
 						&& o_idx + og *MLO_N_LCL_OUT_MAPS + o < MLO_N_OUTPUTS
 						)
 					{
-// scan has been fetch by 4
-// here the non-multiple of 4 scan has been handled
-// also makes sure the input garbage hs been multipled by 0
+						// scan has been fetch by 4
+						// here the non-multiple of 4 scan has been handled
+						// also makes sure the input garbage hs been multipled by 0
+						int top_off = gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT;
 #if MLO_OUT_N_PIXS_OFF > 0
 						if (o_pix4 == (MLO_N_OUT_HORIZ_READS - 1))
 						{
 							int i = 0;
 							for (; i < MLO_OUT_N_PIXS_OFF; ++i)
 							{
-								out_rd_data[i] = top_df[gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT + i];
+								out_rd_data[i] = top_df[top_off + i];
+#if DBG_OUT_OF_RNGE
+								if (top_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+								{
+									printf("k:err:out-of-range\n");
+								}
+#endif
+
 							}
 
-							for (; i < MLO_READ_UNIT; ++i)
-							{
-								out_rd_data[i] = 0;
-							}
 						}
 						else
 #endif
 						{
-							*(MLO_READ_TYPE*)out_rd_data
-								= *(__global MLO_READ_TYPE*)&top_df[gbl_out_scan_off1 + o*MLO_OUT_CHANNEL_STRIDE + o_scan * MLO_OUT_STRIDE + o_pix4*MLO_READ_UNIT];
+							for (int i = 0; i < MLO_READ_UNIT; ++i)
+							{
+								out_rd_data[i] = top_df[top_off + i];
+#if DBG_OUT_OF_RNGE
+								if (top_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+								{
+									printf("k:err:out-of-range\n");
+								}
+#endif
+							}
 						}
 
-// write into LDS with MLO_OUT_HORIZ_PIX_EXT_SZ stride to zero out weights block overshoot
-						//						*(MLO_READ_TYPE*)&lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT] = *(MLO_READ_TYPE*)out_rd_data;
-						//
-						lcl_top[(o)* MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 0] = out_rd_data[0];
-						lcl_top[(o)* MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 1] = out_rd_data[1];
-						lcl_top[(o)* MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 2] = out_rd_data[2];
-						lcl_top[(o)* MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + 3] = out_rd_data[3];
-						//						for (int i = 0; i < MLO_READ_UNIT; ++i)
-						//						{
-						//							lcl_top[o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT + i] = out_rd_data[o*MLO_READ_UNIT + i];
-						//						}
-
-
 					} // if (out_y + o_scan < MLO_OUT_HEIGHT && o_idx + og *MLO_N_LCL_OUT_MAPS + o < MLO_N_OUTPUTS)
+
+
+					int lcl_off = (o)* MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ + o_pix4*MLO_READ_UNIT;
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+						lcl_top[lcl_off + i] = out_rd_data[i];
+					}
+
+
 
 				} //	for (int oo_p4 = lcl_id; oo_p4 < (MLO_N_LCL_OUT_MAPS*MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS); oo_p4 += MLO_GRP_SZ)
 
@@ -716,7 +775,11 @@ __kernel void MLOpenCvBwdWrW_rdc(
 	int wei_blk_idx = iDiv(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
 	int wei_idx = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 
-	_FLOAT pvt_accum_wei[MLO_UT_READ_UNIT] = { 0,0 };
+	_FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];
+	for (int i = 0; i < MLO_UT_READ_UNIT; ++i)
+	{
+		pvt_accum_wei[i] = 0;
+	}
 
 	int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS) - 1) / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS);
 	for (int i = 0; i < batch_loop; ++i)
