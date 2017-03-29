@@ -79,7 +79,7 @@ RUN curl http://$GITLAB1/pfultz/mlopen/uploads/c7176412a214f66d466b2ad744020978/
 RUN dpkg -i /rocm-opencl.deb && rm /rocm-opencl.deb
 
 # Install clang-ocl
-RUN cget -p $PREFIX install clang-ocl,http://gitlab1.amd.com/pfultz/clang-ocl/repository/archive.tar.bz2?ref=master
+RUN cget -p $PREFIX install clang-ocl,http://$GITLAB1/pfultz/clang-ocl/repository/archive.tar.bz2?ref=master
 
 # Install tinygemm
 RUN cget -p /usr/local install tinygemm,http://$GITLAB1/pfultz/tinygemm/repository/archive.tar.gz?ref=master
