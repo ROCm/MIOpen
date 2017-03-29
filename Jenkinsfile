@@ -62,7 +62,7 @@ def rocmtest(variant, body) {
         }
         stage("image ${variant}")
         {
-            docker.build("${image}", "--build-arg PREFIX=/usr/local")
+            docker.build("${image}", "--build-arg PREFIX=/usr/local .")
         }
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
