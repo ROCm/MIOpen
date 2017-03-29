@@ -298,7 +298,7 @@ struct verify_backward_weights_conv : conv_base<T>
         std::fill(weights.begin(), weights.end(), 0);
 
         auto out_dev = handle.Write(out.data);
-        auto wei_dev = handle.Create<T>(weights.data.size());
+        auto wei_dev = handle.Write(weights.data);
         auto in_dev = handle.Write(input.data);
 
         std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(out.desc, input.desc, weights.desc);
