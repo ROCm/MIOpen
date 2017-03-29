@@ -124,9 +124,6 @@ ManageDataPtr Handle::Create(int sz)
 {
     this->Finish();
     void * result;
-    // int tries = 10;
-    // std::cerr << "hipMalloc: " << sz << std::endl;
-    sz += 65536;
     auto status = hipMalloc(&result, sz);
     if (status != hipSuccess)
     {
