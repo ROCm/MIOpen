@@ -75,7 +75,7 @@ if( MLOPEN_BACKEND STREQUAL "HIPOC")
 	find_program(HIP_OC_COMPILER clang-ocl
 		PATHS /opt/rocm
 	)
-	if(HIP_OC_COMPILER_FOUND)
+	if(HIP_OC_COMPILER)
 		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
 		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
 	else()
