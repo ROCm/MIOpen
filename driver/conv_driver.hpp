@@ -388,21 +388,25 @@ int ConvDriver<T>::RunForwardGPU() {
 	Timer t;
 	START_TIME;
 
-	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-	mlopenConvolutionForward(GetHandle(),
-			&alpha,
-			inputTensor,
-			in_dev->GetMem(),
-			weightTensor,
-			wei_dev->GetMem(),
-			convDesc,
-			perf_results[0].fwd_algo, // use the fastest algo
-			&beta,
-			outputTensor,
-			out_dev->GetMem(),
-			workspace_dev->GetMem(),
-			workspace_dev->GetSize());
-	}
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
+        // Clearing out the output incase GEMM is chosen as the algo
+        std::fill(out.begin(), out.end(), 0);
+        out_dev->ToGPU(GetStream(), out.data());
+
+        mlopenConvolutionForward(GetHandle(),
+                &alpha,
+                inputTensor,
+                in_dev->GetMem(),
+                weightTensor,
+                wei_dev->GetMem(),
+                convDesc,
+                perf_results[0].fwd_algo, // use the fastest algo
+                &beta,
+                outputTensor,
+                out_dev->GetMem(),
+                workspace_dev->GetMem(),
+                workspace_dev->GetSize());
+    }
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
