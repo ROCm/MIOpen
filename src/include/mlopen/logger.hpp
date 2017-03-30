@@ -73,7 +73,11 @@ std::array<T, sizeof...(Ts)+1> make_array(T x, Ts... xs)
 }
 
 #define MLOPEN_LOG_ENUM_EACH(x) std::pair<std::string, decltype(x)>(#x, x)
+#ifdef _MSC_VER
+#define MLOPEN_LOG_ENUM(os, ...) os
+#else
 #define MLOPEN_LOG_ENUM(os, x, ...) mlopen::LogEnum(os, x, make_array(MLOPEN_PP_TRANSFORM_ARGS(MLOPEN_LOG_ENUM_EACH, __VA_ARGS__)))
+#endif
 
 template<class T, class Range>
 std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
@@ -108,6 +112,7 @@ inline const void* LogObjImpl(const void* x)
     return x;
 }
 
+#ifndef _MSC_VER
 template<class T, typename std::enable_if<(std::is_pointer<T>{}), int>::type = 0>
 std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 {
@@ -123,7 +128,6 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
     os << name << " = " << get_object(x);
     return os;
 }
-
 #define MLOPEN_LOG_FUNCTION_EACH(param) mlopen::LogParam(std::cerr, #param, param) << std::endl;
 
 #define MLOPEN_LOG_FUNCTION(...) \
@@ -132,7 +136,9 @@ if (mlopen::IsLogging()) { \
     MLOPEN_PP_EACH_ARGS(MLOPEN_LOG_FUNCTION_EACH, __VA_ARGS__) \
     std::cerr << "}" << std::endl; \
 }
-
+#else
+#define MLOPEN_LOG_FUNCTION(...)
+#endif
 
 } // namespace mlopen
 
