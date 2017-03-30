@@ -558,7 +558,7 @@ int ConvDriver<T>::FindBackwardWeights(int &ret_algo_count, int request_algo_cou
 			(inflags.GetValueInt("search") == 1) ? true : false
 		);
 
-#if MLOPEN_USE_TINYGEMM
+#if 0 // Disable im2col check
 	float time = 0;
 	mlopenGetKernelTime(GetHandle(), &time);
 	printf("im time %f\n", time);
