@@ -23,6 +23,13 @@ void GemmGeometry::FindSolution(float time,
 #if MLOPEN_BACKEND_OPENCL
     TinyGemmSolution soln = tinygemm::find(time, handle.GetStream(), a, b, c, enforce_determinism, 'f', tgg, alpha, beta);
 #else
+    (void)time;
+    (void)a;
+    (void)b;
+    (void)c;
+    (void)tgg;
+    (void)alpha;
+    (void)beta;
     TinyGemmSolution soln = tinygemm::get_default(enforce_determinism, 'f', tgg);
 #endif
 
