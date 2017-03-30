@@ -45,8 +45,18 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
 	TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
 
+	size_t ForwardGetWorkSpaceSizeGEMM(
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		yDesc) const;
+
+	size_t ForwardGetWorkSpaceSizeFFT(
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		xDesc,
+		const TensorDescriptor&		yDesc) const;
+
 	size_t ForwardGetWorkSpaceSize(
 		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		yDesc) const;
 
 	void FindConvFwdAlgorithm(Handle& handle,
@@ -70,6 +80,23 @@ struct ConvolutionDescriptor : mlopenConvolutionDescriptor {
         WinogradKernelParams&           k_p,
         KernelInvoke&                   kernel,
         int                             direction) const;
+
+    int FindFwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			yDesc,
+        std::vector<KernelInvoke>&      kernels) const;
+
+    float ExecuteFwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		ConstData_t						x,
+		const TensorDescriptor&			wDesc,
+		ConstData_t						w,
+		const TensorDescriptor&			yDesc,
+		Data_t							y,
+		Data_t							workSpace,
+		size_t							workSpaceSize,
+		bool							timed = false) const;
 
     int FindDirectKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,

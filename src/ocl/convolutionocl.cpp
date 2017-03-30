@@ -229,7 +229,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     std::string parms;
 
 #if MLOPEN_USE_TINYGEMM
-    size_t workspace_req = ForwardGetWorkSpaceSize(wDesc, yDesc);
+    size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
     float time_gemm = 0;
     GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
 
@@ -289,6 +289,20 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
         perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoDirect", time_direct, 0});
     }
+
+	// FFT algo
+	float time_fft = 0;
+	std::vector< KernelInvoke > kernels_fft;
+	if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, kernels_fft) == 0)
+	{
+		(void)kernels_fft; // not used now, but needed as fft coverage widens
+		size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+		if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+		{
+			time_fft = ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, tmp_y.get(), workSpace, workSpaceSize, true);
+			perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoFFT", time_fft, workspace_fft});
+		}
+	}
 
     if(perf_db.empty())
         MLOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
@@ -425,7 +439,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 
             if((wei_h != 1 && wei_w != 1) && 
-                (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, yDesc))) {
+                (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, xDesc, yDesc))) {
                 MLOPEN_THROW("Workspace is required");
             }
 
@@ -472,7 +486,21 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         }
         break;
         case mlopenConvolutionFwdAlgoFFT:
-            break;
+		{
+			size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+			if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+			{
+				bool timed = handle.IsProfilingEnabled();
+				float timev = ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed);
+
+				if(timed)
+				{
+					handle.ResetKernelTime();
+					handle.AccumKernelTime(timev);
+				}
+			}
+		}
+        break;
     }
 }
 
