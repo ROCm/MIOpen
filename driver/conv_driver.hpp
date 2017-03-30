@@ -399,6 +399,10 @@ int ConvDriver<T>::RunForwardGPU() {
 	START_TIME;
 
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
+        // Clearing out the output incase GEMM is chosen as the algo
+        std::fill(out.begin(), out.end(), 0);
+        out_dev->ToGPU(GetStream(), out.data());		
+		
 	mlopenConvolutionForward(GetHandle(),
 			&alpha,
 			inputTensor,
