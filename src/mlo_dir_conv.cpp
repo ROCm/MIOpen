@@ -225,10 +225,13 @@ bool mloSearchConfigDB(
 
 int mlo_construct_winograd::mloConstruct()
 {
+#ifdef HIP_OC_FINALIZER
 	bool is_ocl_rocm_metadata_v10 = true; // when false, v2.0 metadata is supported.
 	/// \todo As soon as metadata v1.0 support not needed, drop it: 
 	/// get gid of this var and v1.0 files.
-	// if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
+#ifdef MLOPEN_BACKEND_OPENCL
+	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
+#endif
 	{
 		const auto use_binaries = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
@@ -243,7 +246,7 @@ int mlo_construct_winograd::mloConstruct()
 			}
 		}
 	}
-    
+#endif
     return -1;
 }
 
@@ -335,6 +338,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
 
 	// no 1x1 backward yet
+	// TODO: This currently doesn't work with the hip runtime
 #if MLOPEN_BACKEND_OPENCL
 	if (_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
