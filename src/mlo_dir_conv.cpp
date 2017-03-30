@@ -225,11 +225,11 @@ bool mloSearchConfigDB(
 
 int mlo_construct_winograd::mloConstruct()
 {
-#ifdef HIP_OC_FINALIZER
+#ifndef HIP_OC_FINALIZER
 	bool is_ocl_rocm_metadata_v10 = true; // when false, v2.0 metadata is supported.
 	/// \todo As soon as metadata v1.0 support not needed, drop it: 
 	/// get gid of this var and v1.0 files.
-#ifdef MLOPEN_BACKEND_OPENCL
+#if MLOPEN_BACKEND_OPENCL
 	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 #endif
 	{
