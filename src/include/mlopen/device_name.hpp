@@ -6,7 +6,7 @@
 
 namespace mlopen {
     
-std::string inline GetDeviceNameFromMap(std::string &name){
+std::string inline GetDeviceNameFromMap(const std::string &name){
 
     static std::map<std::string, std::string> device_name_map = {
                                                                     {"Ellesmere", "gfx803"},

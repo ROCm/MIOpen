@@ -124,7 +124,6 @@ ManageDataPtr Handle::Create(int sz)
 {
     this->Finish();
     void * result;
-    // int tries = 10;
     auto status = hipMalloc(&result, sz);
     if (status != hipSuccess)
     {
