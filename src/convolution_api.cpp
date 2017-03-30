@@ -85,6 +85,7 @@ mlopenStatus_t mlopenDestroyConvolutionDescriptor(mlopenConvolutionDescriptor_t 
 extern "C"
 mlopenStatus_t mlopenConvolutionForwardGetWorkSpaceSize(
 		const mlopenTensorDescriptor_t		wDesc,
+		const mlopenTensorDescriptor_t		xDesc,
 		const mlopenTensorDescriptor_t		yDesc,
 		const mlopenConvolutionDescriptor_t convDesc,
 		size_t								*workSpaceSize) {
@@ -93,6 +94,7 @@ mlopenStatus_t mlopenConvolutionForwardGetWorkSpaceSize(
 	mlopen::try_([&] {
 		mlopen::deref(workSpaceSize) = mlopen::deref(convDesc).ForwardGetWorkSpaceSize(
 			mlopen::deref(wDesc),
+			mlopen::deref(xDesc),
 			mlopen::deref(yDesc));
 	});
 
