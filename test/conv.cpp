@@ -94,7 +94,7 @@ struct verify_forward_conv : conv_base<T>
         auto wei_dev = handle.Write(weights.data);
         auto out_dev = handle.Create<T>(out.data.size());
 
-		size_t workspace_size = filter.ForwardGetWorkSpaceSize(weights.desc, out.desc);
+		size_t workspace_size = filter.ForwardGetWorkSpaceSize(weights.desc, input.desc, out.desc);
 
 		std::vector<char> workspace(workspace_size);
 		auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -298,7 +298,7 @@ struct verify_backward_weights_conv : conv_base<T>
         std::fill(weights.begin(), weights.end(), 0);
 
         auto out_dev = handle.Write(out.data);
-        auto wei_dev = handle.Create<T>(weights.data.size());
+        auto wei_dev = handle.Write(weights.data);
         auto in_dev = handle.Write(input.data);
 
         std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(out.desc, input.desc, weights.desc);

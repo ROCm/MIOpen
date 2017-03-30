@@ -191,7 +191,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         const TensorDescriptor&     wDesc,
         ConstData_t                 w,
         const TensorDescriptor&     yDesc,
-        Data_t                      y,
+        ConstData_t                 y,
         const int                   requestAlgoCount,
         int                         *returnedAlgoCount,
         mlopenConvAlgoPerf_t        *perfResults,
@@ -229,7 +229,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     std::string parms;
 
 #if MLOPEN_USE_TINYGEMM
-    size_t workspace_req = ForwardGetWorkSpaceSize(wDesc, yDesc);
+    size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
     float time_gemm = 0;
     GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
 
@@ -289,6 +289,20 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
         perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoDirect", time_direct, 0});
     }
+
+	// FFT algo
+	float time_fft = 0;
+	std::vector< KernelInvoke > kernels_fft;
+	if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, kernels_fft) == 0)
+	{
+		(void)kernels_fft; // not used now, but needed as fft coverage widens
+		size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+		if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+		{
+			time_fft = ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, tmp_y.get(), workSpace, workSpaceSize, true);
+			perf_db.push_back(PerfField{"mlopenConvolutionFwdAlgoFFT", time_fft, workspace_fft});
+		}
+	}
 
     if(perf_db.empty())
         MLOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
@@ -425,7 +439,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 
             if((wei_h != 1 && wei_w != 1) && 
-                (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, yDesc))) {
+                (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, xDesc, yDesc))) {
                 MLOPEN_THROW("Workspace is required");
             }
 
@@ -472,7 +486,21 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         }
         break;
         case mlopenConvolutionFwdAlgoFFT:
-            break;
+		{
+			size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+			if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+			{
+				bool timed = handle.IsProfilingEnabled();
+				float timev = ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed);
+
+				if(timed)
+				{
+					handle.ResetKernelTime();
+					handle.AccumKernelTime(timev);
+				}
+			}
+		}
+        break;
     }
 }
 
@@ -644,7 +672,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         const TensorDescriptor&     xDesc,
         ConstData_t                 x,
         const TensorDescriptor&     dwDesc,
-        Data_t                      dw,
+        ConstData_t                 dw,
         const int                   requestAlgoCount,
         int                         *returnedAlgoCount,
         mlopenConvAlgoPerf_t        *perfResults,
@@ -735,7 +763,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         if (bwd_wrw_info.size() == 1)
         {
             const mlo_kernel_info &bwd_wrw = bwd_wrw_info[0];
-         //   float padding_val = 0;
+            float padding_val = 0;
 
             handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
                     network_config,
@@ -743,8 +771,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     std::get<0>(bwd_wrw),
                     std::get<4>(bwd_wrw),
                     std::get<3>(bwd_wrw),
-                    std::get<2>(bwd_wrw));
-//                        (dy, x, tmp_dw.get(), padding_val);
+                    std::get<2>(bwd_wrw))
+                        (dy, x, tmp_dw.get(), padding_val);
 
             time_direct = handle.GetKernelTime();
             perf_db.push_back( PerfField{"mlopenConvolutionBwdWeightsAlgoDirect", time_direct, 0} );
@@ -755,7 +783,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
             if(workSpace != nullptr && workSpaceSize >= workspace_req) {
                 auto bwd_wrw_main = bwd_wrw_info[0];
-       //         float padding_val = 0;
+                float padding_val = 0;
 
                 handle.GetKernel("mlopenConvolutionBwdWeightsAlgoDirect_Main",
                         network_config,
@@ -763,8 +791,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         std::get<0>(bwd_wrw_main),
                         std::get<4>(bwd_wrw_main),
                         std::get<3>(bwd_wrw_main),
-                        std::get<2>(bwd_wrw_main));
-//                    (dy, x, workSpace, padding_val);
+                        std::get<2>(bwd_wrw_main))
+                    (dy, x, workSpace, padding_val);
 
                 time_direct += handle.GetKernelTime();
             
@@ -779,8 +807,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         std::get<0>(bwd_wrw_red),
                         std::get<4>(bwd_wrw_red),
                         std::get<3>(bwd_wrw_red),
-                        std::get<2>(bwd_wrw_red));
-  //                  (workSpace, tmp_dw.get());
+                        std::get<2>(bwd_wrw_red))
+                    (workSpace, tmp_dw.get());
 
                 time_direct += handle.GetKernelTime();
                 perf_db.push_back( PerfField{"mlopenConvolutionBwdWeightsAlgoDirect", time_direct, workspace_req} );
@@ -797,18 +825,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
-    // TODO: Uncomment this block after direct/gemm algos are tested on hip
-    // for(int i = 0; i < *returnedAlgoCount; i++) {
-    //     perfResults[i].bwd_weights_algo = static_cast<mlopenConvBwdWeightsAlgorithm_t>(BwdWeightsAlgoResolver[ perf_db[i].name ]);
-    //     perfResults[i].time = perf_db[i].time;
-    //     perfResults[i].memory = perf_db[i].workspace;
-    // }
+     for(int i = 0; i < *returnedAlgoCount; i++) {
+         perfResults[i].bwd_weights_algo = static_cast<mlopenConvBwdWeightsAlgorithm_t>(BwdWeightsAlgoResolver[ perf_db[i].name ]);
+         perfResults[i].time = perf_db[i].time;
+         perfResults[i].memory = perf_db[i].workspace;
+     }
 
-#if MLOPEN_USE_TINYGEMM
-    perfResults[0].bwd_weights_algo = mlopenConvolutionBwdWeightsAlgoGEMM;
-#else
-    perfResults[0].bwd_weights_algo = mlopenConvolutionBwdWeightsAlgoDirect;
-#endif
 }
 
 // BackwardWeightsAlgorithm()
