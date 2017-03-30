@@ -11,15 +11,26 @@
 #include <memory>
 #include <numeric>
 
+#if MLOPEN_BACKEND_OPENCL
+
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
 #else
 #include <CL/cl.h>
 #endif
 
+#elif MLOPEN_BACKEND_HIPOC
+#include <hip/hip_runtime_api.h>
+
+#define printf(...) fprintf(stdout, __VA_ARGS__)
+
+#endif
+
 #define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
 
 struct GPUMem {
+
+#if MLOPEN_BACKEND_OPENCL
 	GPUMem() {};
 	GPUMem(cl_context &ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz) {	buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz*sz, NULL, NULL); }
 
@@ -34,6 +45,25 @@ struct GPUMem {
 	cl_mem buf;
 	size_t sz;
 	size_t data_sz;
+
+#elif MLOPEN_BACKEND_HIPOC
+
+	GPUMem() {};
+	GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz) {	hipMalloc((void**)&buf, data_sz*sz); }
+
+	int ToGPU(hipStream_t q, void *p) { _q = q; return (int)hipMemcpy(buf, p, data_sz*sz, hipMemcpyHostToDevice); }
+	int FromGPU(hipStream_t q, void *p) { _q = q; return (int)hipMemcpy(p, buf, data_sz*sz, hipMemcpyDeviceToHost); }
+
+	void* GetMem() { return buf; }
+	size_t GetSize() { return sz*data_sz; }
+
+	~GPUMem() { hipFree(buf); }
+	hipStream_t _q; // Place holder for opencl context
+	uint32_t _ctx;
+	void* buf;
+	size_t sz;
+	size_t data_sz;
+#endif
 };
 
 void Usage() {
@@ -64,15 +94,18 @@ std::string ParseBaseArg(int argc, char *argv[]) {
 
 class Driver
 {
-	public: 
+	public:
 	Driver() {
 		mlopenCreate(&handle);
 		mlopenGetStream(handle, &q);
 	}
 
 	mlopenHandle_t GetHandle() { return handle; }
+#if MLOPEN_BACKEND_OPENCL
 	cl_command_queue& GetStream() { return q; }
-
+#elif MLOPEN_BACKEND_HIPOC
+	hipStream_t& GetStream() { return q; }
+#endif
 	virtual ~Driver() {
 		mlopenDestroy(handle);
 	}
@@ -91,7 +124,11 @@ class Driver
 	protected:
 
 	mlopenHandle_t handle;
+#if MLOPEN_BACKEND_OPENCL
 	cl_command_queue q;
+#elif MLOPEN_BACKEND_HIPOC
+	hipStream_t q;
+#endif
 };
 
 #endif // GUARD_MLOPEN_DRIVER_HPP
