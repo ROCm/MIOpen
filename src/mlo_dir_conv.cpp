@@ -812,7 +812,6 @@ int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10
     _kernel_name = "conv5x10u2v2f1";
     return 0;
 }
-#endif //MLOPEN_BACKEND_OPENCL
 
 int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 {
