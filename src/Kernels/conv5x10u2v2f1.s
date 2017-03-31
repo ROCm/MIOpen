@@ -12,8 +12,8 @@
 ///////////////////////////////////////////////////
 // ******* global-work and work-group-size
 //  work-group-size = [64, 8, 1]
-//  global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
-//    * def align(a,b) = ((a + b - 1)/b)*b
+//  global-work = [alignUp(out_w,64), (alignUp(out_h,4)/4)*alignUp(wei_k/2,8), batch_n]
+//    * def alignUp(a,b) = ((a + b - 1)/b)*b
 //    * def out_w = (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
 //    * def out_h = (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
 //  NOTE: Each workgroup will process 1x16x4x64(NCHW) tile of output tensor.
@@ -28,7 +28,6 @@
 //   wei_layout     - weights layout 0:"KCHW" or 1:"CKHW"
 //   pad_w          - input padding on left and right
 //   pad_h          - input padding on top and bottom
-// TODO: pad_w and pad_h functionality is work-in-progress. Set them to zero for now.
 .ifndef inp_w
 .error "ERROR: configurable parameter: inp_w must be defined"
 .endif
@@ -174,11 +173,10 @@
 .set wei_k_mask  , ((1 << wei_k_bits) - 1)
 // ******* derived flags
 .set padding_enabled     , ((pad_w != 0) || (pad_h != 0))
-.set dspl0_enabled       , ((pad_w % 2) == 1) && (pad_w < 128)
-.set dspl1_enabled       , ((pad_w % 2) == 1) && (pad_w > 128)
+.set dspl0_enabled       ,  (pad_w % 2) == 1
+.set dspl1_enabled       ,  (pad_w % 2) == 1
 .set dspr0_enabled       ,  (pad_w > 0) && (((inp_w + pad_w) % 2) == 1) && (((inp_w + pad_w) % 128) >= 8)
-.set dspr1_enabled       ,  (pad_w > 0) && (((inp_w + pad_w) % 2) == 1) && (((inp_w + pad_w) % 128) <  8)
-.set padding_width_is_odd, ((pad_w % 2) == 1)
+.set dspr1_enabled       ,  (pad_w > 0) && (((inp_w + pad_w) % 2) == 1)
 // ******* macros for ds_read_b128
 .macro macro_ds_read_b128 dest, addr, offset=0
   .short 0x0+\offset, 0xd9fe
@@ -219,7 +217,7 @@ conv5x10u2v2f1:
     // initialization
     //  - work-items:
     //      work-group-size = [64, 8, 1]
-    //      global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
+    //      global-work = [alignUp(out_w,64), (alignUp(out_h,4)/4)*alignUp(wei_k/2,8), batch_n]
     //      work-item relation to output buffer:
     //        dx =  global-work[0]
     //        dy = (global-work[1] >> (wei_k_bits-4)) * 4
@@ -252,13 +250,15 @@ conv5x10u2v2f1:
     //      sy1 = sy + ly1 - pad_h
     //      vreg_iinc0 = sy0 * inp_stride_y + max(0, sx0) * 4
     //      vreg_iinc1 = sy1 * inp_stride_y + max(0, sx1) * 4
-    //      sreg_dsrd0vcc = (sx0 >= -1 && sx0 <= inp_w && sy0 >= 0 && sy0 < inp_h)
-    //      sreg_dsrd1vcc = (sx1 >= -1 && sx1 <= inp_w && sy1 >= 0 && sy1 < inp_h) && (ly1 < 11)
+    //      dsr_right_pos = inp_w + (inp_w & 1) - (pad_w & inp_w & 1)
+    //      sreg_dsrd0vcc = (sx0 >= -1 && sx0 < dsr_right_pos && sy0 >= 0 && sy0 < inp_h)
+    //      sreg_dsrd1vcc = (sx1 >= -1 && sx1 < dsr_right_pos && sy1 >= 0 && sy1 < inp_h) && (ly1 < 11)
     //      sreg_dswr1vcc = (ly1 < 11)
+    //      dsp_right_pos = inp_w - (inp_w & 1) - (pad_w & 1)
     //      sreg_dspl0vcc = (sx0 == -1)
-    //      sreg_dspr0vcc = (sx0 == inp_w)
+    //      sreg_dspr0vcc = (sx0 == dsp_right_pos)
     //      sreg_dspl1vcc = (sx1 == -1)
-    //      sreg_dspr1vcc = (sx1 == inp_w)
+    //      sreg_dspr0vcc = (sx1 == dsp_right_pos)
     //  - save sreg values in vreg_save
     //  - initialize sreg_c and output values
     //////////////////////////////////////////////////////////////////////////////
@@ -270,9 +270,7 @@ conv5x10u2v2f1:
 .if padding_enabled
     s_load_dword   s[sreg_pad_val                 ], s[sreg_karg:sreg_karg+1], 0x18
 .endif
-    // compute: sreg_dx =  group_id(0) * 64 + local_id(0)
-    //          sreg_dy = (group_id(1) >> (wei_k_bits-4)) * 4
-    //          sreg_k  = (group_id(1) * 8 + local_id(1))*2 & wei_k_mask
+    // compute: sreg_dx, sreg_dy, sreg_k
     s_lshl_b32 s[sreg_tmp0], s[sreg_group_0], 6
     v_add_u32  v[vreg_dx], vcc, s[sreg_tmp0], v[vreg_local_0]
     s_lshr_b32 s[sreg_dy], s[sreg_group_1], wei_k_bits-4
@@ -292,28 +290,6 @@ conv5x10u2v2f1:
     s_mul_i32  s[sreg_tmp1], s[sreg_dy], out_stride_y
     s_add_u32  s[sreg_oinc], s[sreg_oinc], s[sreg_tmp1]
     // compute: registers for transfering input into LDS
-    //          lx0 = local_id(0) * 2
-    //          ly0 = local_id(1)
-    //          lx1 = (local_id(1) < 3) ? ((local_id(0)  & 3)*2 + 128) ?  lx0
-    //          ly1 = (local_id(1) < 3) ?  (local_id(0) >> 2)          : (ly0 + 8)
-    //          vreg_inp_dswr0 = lx0 * 4 + ly0 * 136 * 4
-    //          vreg_inp_dswr1 = lx1 * 4 + ly1 * 136 * 4
-    //          vreg_inp_dsrd0 = lx0 * 4
-    //          sx  = 2 * group_id(0) * 64
-    //          sy  = 2 * sreg_dy
-    //          sx0 = sx + lx0 - pad_w
-    //          sy0 = sy + ly0 - pad_h
-    //          sx1 = sx + lx1 - pad_w
-    //          sy1 = sy + ly1 - pad_h
-    //          vreg_iinc0 = sy0 * inp_stride_y + max(0, sx0) * 4
-    //          vreg_iinc1 = sy1 * inp_stride_y + max(0, sx1) * 4
-    //          sreg_dsrd0vcc = (sx0 >= -1 && sx0 <= inp_w && sy0 >= 0 && sy0 < inp_h)
-    //          sreg_dsrd1vcc = (sx1 >= -1 && sx1 <= inp_w && sy1 >= 0 && sy1 < inp_h) && (ly1 < 11)
-    //          sreg_dswr1vcc = (ly1 < 11)
-    //          sreg_dspl0vcc = (sx0 == -1)
-    //          sreg_dspr0vcc = (sx0 == inp_w)
-    //          sreg_dspl1vcc = (sx1 == -1)
-    //          sreg_dspr1vcc = (sx1 == inp_w)
     v_lshlrev_b32 v[vreg_lx0], 1, v[vreg_local_0]
     v_mov_b32     v[vreg_ly0], v[vreg_local_1]
     v_and_b32     v[vreg_lx1], 3, v[vreg_local_0]
@@ -344,12 +320,12 @@ conv5x10u2v2f1:
     v_mov_b32     v[vreg_tmp0], 0+inp_stride_y
     v_mad_u32_u24 v[vreg_iinc0], v[vreg_sy0], v[vreg_tmp0], v[vreg_iinc0]
     v_mad_u32_u24 v[vreg_iinc1], v[vreg_sy1], v[vreg_tmp0], v[vreg_iinc1]
-    v_mov_b32     v[vreg_tmp0], 0+inp_w
-    v_mov_b32     v[vreg_tmp1], 0+inp_h
 .if padding_enabled
+    v_mov_b32     v[vreg_tmp0], 0+inp_w+(inp_w & 1)-(inp_w & pad_w & 1)
+    v_mov_b32     v[vreg_tmp1], 0+inp_h
     v_cmp_le_i32  vcc, -1, v[vreg_sx0]
     s_mov_b64     s[sreg_dsrd0vcc:sreg_dsrd0vcc+1], vcc
-    v_cmp_ge_i32  vcc, v[vreg_tmp0], v[vreg_sx0]
+    v_cmp_gt_i32  vcc, v[vreg_tmp0], v[vreg_sx0]
     s_and_b64     s[sreg_dsrd0vcc:sreg_dsrd0vcc+1], s[sreg_dsrd0vcc:sreg_dsrd0vcc+1], vcc
     v_cmp_le_i32  vcc, 0, v[vreg_sy0]
     s_and_b64     s[sreg_dsrd0vcc:sreg_dsrd0vcc+1], s[sreg_dsrd0vcc:sreg_dsrd0vcc+1], vcc
@@ -361,12 +337,15 @@ conv5x10u2v2f1:
 .if padding_enabled
     v_cmp_le_i32  vcc, -1, v[vreg_sx1]
     s_and_b64     s[sreg_dsrd1vcc:sreg_dsrd1vcc+1], s[sreg_dswr1vcc:sreg_dswr1vcc+1], vcc
-    v_cmp_ge_i32  vcc, v[vreg_tmp0], v[vreg_sx1]
+    v_cmp_gt_i32  vcc, v[vreg_tmp0], v[vreg_sx1]
     s_and_b64     s[sreg_dsrd1vcc:sreg_dsrd1vcc+1], s[sreg_dsrd1vcc:sreg_dsrd1vcc+1], vcc
     v_cmp_le_i32  vcc, 0, v[vreg_sy1]
     s_and_b64     s[sreg_dsrd1vcc:sreg_dsrd1vcc+1], s[sreg_dsrd1vcc:sreg_dsrd1vcc+1], vcc
     v_cmp_gt_i32  vcc, v[vreg_tmp1], v[vreg_sy1]
     s_and_b64     s[sreg_dsrd1vcc:sreg_dsrd1vcc+1], s[sreg_dsrd1vcc:sreg_dsrd1vcc+1], vcc
+.if dspr0_enabled || dspr1_enabled
+    v_mov_b32     v[vreg_tmp0], 0+inp_w-(inp_w & 1)-(pad_w & 1)
+.endif
 .if dspl0_enabled
     v_cmp_eq_i32  vcc, -1, v[vreg_sx0]
     s_mov_b64     s[sreg_dspl0vcc:sreg_dspl0vcc+1], vcc
@@ -490,7 +469,7 @@ loop_channel:
     v_mov_b32  v[vreg_ival+4], 0+inp_stride_c
     v_add_u32  v[vreg_iinc0], vcc, v[vreg_iinc0], v[vreg_ival+4]
     v_add_u32  v[vreg_iinc1], vcc, v[vreg_iinc1], v[vreg_ival+4]
-    s_waitcnt lgkmcnt(0) vmcnt(0)
+.if padding_enabled
 .if dspl0_enabled
     v_readlane_b32 s[sreg_dspl0vcc+0], v[vreg_save], 0+lane_vreg_save_pl0vcc0
     v_readlane_b32 s[sreg_dspl0vcc+1], v[vreg_save], 0+lane_vreg_save_pl0vcc1
@@ -507,6 +486,9 @@ loop_channel:
     v_readlane_b32 s[sreg_dspr1vcc+0], v[vreg_save], 0+lane_vreg_save_pr1vcc0
     v_readlane_b32 s[sreg_dspr1vcc+1], v[vreg_save], 0+lane_vreg_save_pr1vcc1
 .endif
+.endif
+    s_waitcnt lgkmcnt(0) vmcnt(0)
+.if padding_enabled
 .if dspl0_enabled
     s_mov_b64 exec, s[sreg_dspl0vcc:sreg_dspl0vcc+1]
     v_mov_b32 v[vreg_ival+1], v[vreg_ival+0]
@@ -527,6 +509,7 @@ loop_channel:
 .endif
 .if dspl0_enabled || dspr0_enabled || dspl1_enabled || dspr1_enabled
     s_mov_b64 exec, -1
+.endif
 .endif
     s_barrier
     ds_write_b64 v[vreg_inp_dswr0], v[vreg_ival+0:vreg_ival+1]
