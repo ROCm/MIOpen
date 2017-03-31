@@ -4,18 +4,30 @@
 
 namespace mlopen {
 
+static std::string make_config_prefix(int in_n, int out_c)
+{
+	std::string config_prefix = "FFT_x";
+	config_prefix += "_in_n_";
+	config_prefix += std::to_string(in_n);
+	config_prefix += "_out_c_";
+	config_prefix += std::to_string(out_c);
+	config_prefix += "_kernel_";
+
+	return config_prefix;
+}
+
 int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
         std::vector<KernelInvoke>&      kernels) const {
 
-
-	if(ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc) == 0)
+	size_t wSize = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+	if(wSize == 0)
 		return -1;
 
-	int in_c;
-	std::tie(std::ignore, in_c, std::ignore, std::ignore) = mlopen::tie4(xDesc.GetLengths());
+	int in_n, in_c;
+	std::tie(in_n, in_c, std::ignore, std::ignore) = mlopen::tie4(xDesc.GetLengths());
 
 	int out_n, out_c;
 	std::tie(out_n, out_c, std::ignore, std::ignore) = mlopen::tie4(yDesc.GetLengths());
@@ -79,8 +91,19 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 
     const std::string algorithm = "mlopenConvolutionFwdAlgoFFT";
     const std::string program_name = "MLOpenConvFFT.cl";
-    const std::string parms = "";
-	const std::string config_prefix = "FFT_";
+
+	std::string parms = "";
+	parms += " -D CFF_BATCH=";
+	parms += std::to_string(in_n);
+	parms += " -D CFF_NFILTER=";
+	parms += std::to_string(out_c);
+	parms += " -D CFF_CHANNELS=";
+	parms += std::to_string(in_c);
+	parms += " -D CFF_HALFW=";
+	parms += std::to_string(wSize/(2*2*sizeof(float)));
+
+	const std::string config_prefix = make_config_prefix(in_n, out_c);
+
 	for(int ik=0; ik<NumKernels; ik++)
 	{
 		std::string kernel_name = ""; 
@@ -150,7 +173,7 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 	const int NumKernels = 	FFTConvParams::NumKernels;
 
 	float time_fft = 0;
-	const std::string config_prefix = "FFT_";
+	const std::string config_prefix = make_config_prefix(in_n, out_c);
 	for(int ik=0; ik<NumKernels; ik++)
 	{
 		std::string network_config = config_prefix + std::to_string(ik);
