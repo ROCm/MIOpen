@@ -257,10 +257,10 @@ __kernel void MLOpenCvBwdWrW(
 	// guarnteeing an uniformity over a wave
 	int wave_id = getWaveId();
 
-	int c_idx_base = get_group_id(1); // input map index base
+	int c_idx_base = get_group_id(0); // input map index base
 
-	int o_idx_base = iDiv(get_group_id(2), (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS))); // output map index base
-	int ib_base = iMod(get_group_id(2), o_idx_base, (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS)));
+	int o_idx_base = get_group_id(1); // output map index base
+	int ib_base = get_group_id(2); // batch index base
 
 	int ib = ib_base*MLO_N_LCL_BATCHS;
 
@@ -320,7 +320,7 @@ __kernel void MLOpenCvBwdWrW(
 		int gbl_out_scan_off = gbl_out_off;
 		int c_scan = 0;
 
-		for (int p4 = lcl_id;  p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) && in_y + c_scan < MLO_IN_HEIGHT;
+		for (int p4 = lcl_id;  p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1);
 			//				c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS),
 			p4 += MLO_GRP_SZ)
 		{
@@ -731,7 +731,16 @@ __kernel void MLOpenCvBwdWrW(
 #if 1
 
 			weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i] = final_sum; //lcl_bot[lcl_id]; //
+#if 1
+			if (o_idx + (og *  MLO_N_LCL_OUT_MAPS + oo) == 0 && c_idx == 3 && wei_i == 0)
+			{
+				printf("K:o: %d %f\n",
+					ib,
+					weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i]
+					);
+			}
 
+#endif
 #else
 			_FLOAT t_accum = 0;
 

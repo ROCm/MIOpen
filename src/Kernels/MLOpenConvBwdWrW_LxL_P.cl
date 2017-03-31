@@ -105,94 +105,20 @@
 #define MLO_LCL_SZ (MLO_WEI_BLKS_LCL_SZ)
 #endif
 
-
-#define MLO_HW_WAVE_ID_SETTING 0
-
-#if MLO_HW_WAVE_ID_SETTING
-extern __attribute__((const)) uint __hsail_get_dynwave_id(void);
-static inline int getWaveId()
-{
-	int wave_id = 0;
-
-	wave_id = __hsail_get_dynwave_id();
-	wave_id = wave_id & MLO_N_PHYS_WAVES_MASK;
-	return(wave_id);
-}
-#else
-static inline int getWaveId()
-{
-	int wave_id = 0;
-
-	wave_id = (get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ);
-
-	return(wave_id);
-}
-#endif
-
-static inline int gePhysLocalId()
-{
-	int lcl_wave_id = get_local_id(0) - ((get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ) << MLO_LG2_PHYS_WAVE_SZ);
-	return(lcl_wave_id);
-}
-
-static inline int iDiv(int v, int d)
+__attribute__((always_inline))
+int iDiv(int v, int d)
 {
 	int r = (int)((float)v / d + 0.00001f);
 	return(r);
 }
 
-static inline int iMod(int v, int u, int d)
+__attribute__((always_inline))
+int iMod(int v, int u, int d)
 {
 	int r = v - mul24((int)u, (int)d);
 	return(r);
 }
 
-static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
-{
-	for (int j = (sum_stride >> 1); j > 0; j >>= 1)
-	{
-		barrier(CLK_LOCAL_MEM_FENCE);
-		if (scan_lcl < j)
-		{
-			for (int i = 0; i < unit_len; ++i)
-			{
-
-				weights_accum[i] += lcl_blob[(lcl_id + j) * unit_len + i];
-
-				lcl_blob[lcl_id * unit_len + i] = weights_accum[i];
-			}
-
-		}
-	}
-}
-
-static inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
-{
-	_FLOAT y = v - *c;    //So far, so good: c is zero.
-	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-	*c = (t - *sum) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-}
-
-static inline void  Kahan_summation_tricked(_FLOAT *sum, _FLOAT * c, _FLOAT v, _FLOAT mod)
-{
-	_FLOAT y = v - *c;    //So far, so good: c is zero.
-	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-	*c = (t - *sum) * mod - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-}
-
-
-static inline void Kahan_summation2(_FLOAT *sum, _FLOAT *c, _FLOAT *v, int n)
-{
-	for (int i = 0; i < n; ++i)
-	{
-		_FLOAT y = v[i] - c[i];    //So far, so good: c is zero.
-		_FLOAT t = sum[i] + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-		c[i] = (t - sum[i]) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-		sum[i] = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-	}
-}
 
 /*********************************************************************************************************
 // wrw algorithm for large filters
@@ -236,11 +162,11 @@ static inline void Kahan_summation2(_FLOAT *sum, _FLOAT *c, _FLOAT *v, int n)
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
 __kernel void MLOpenCvBwdWrW(
-	const __global _FLOAT * top_df,
-	const __global _FLOAT * bot,
-	__global _FLOAT * weights_df,
+	const __global _FLOAT * __restrict top_df,
+	const __global _FLOAT * __restrict bot,
+	__global _FLOAT * __restrict weights_df,
 #if MLO_CONV_BIAS
-	__global _FLOAT * bias_df,
+	__global _FLOAT * __restrict bias_df,
 #endif
 	_FLOAT padding_val
 )
@@ -253,13 +179,10 @@ __kernel void MLOpenCvBwdWrW(
 	__local _FLOAT * lcl_top = lcl + MLO_TOTAL_IN_LCL_SZ;
 
 
-	// guarnteeing an uniformity over a wave
-	int wave_id = getWaveId();
+	int c_idx_base = get_group_id(0); // input map index base
 
-	int c_idx_base = get_group_id(1); // input map index base
-
-	int o_idx_base = iDiv(get_group_id(2), (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS))); // output map index base
-	int ib_base = iMod(get_group_id(2), o_idx_base, (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS)));
+	int o_idx_base = get_group_id(1); // output map index base
+	int ib_base = get_group_id(2); // batch index base
 
 	int ib = ib_base*MLO_N_LCL_BATCHS;
 
@@ -321,49 +244,52 @@ __kernel void MLOpenCvBwdWrW(
 		int gbl_out_scan_off = gbl_out_off;
 		int c_scan = 0;
 
-		for (int p4 = lcl_id;  p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1) && in_y + c_scan < MLO_IN_HEIGHT;
+		for (int p4 = lcl_id;  p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1);
 			//				c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS),
 			p4 += MLO_GRP_SZ)
 		{
 
 			c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
 			int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
-			int bot_off = gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
-// still problems with unaligned LDS access
-#if MLO_IN_N_PIXS_OFF > 0
-			if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
+			for (int i = 0; i < MLO_READ_UNIT; ++i)
 			{
-				int i = 0;
-				for (; i < MLO_IN_N_PIXS_OFF; ++i)
-				{
-					in_rd_data[i] = bot[bot_off + i];
-#if DBG_OUT_OF_RNGE
-					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-					{
-						printf("k:err:in-of-range\n");
-					}
-#endif
-				}
-				for (; i < MLO_READ_UNIT; ++i)
-				{
-					in_rd_data[i] = 0;
-				}
-
+				in_rd_data[i] = 0;
 			}
-			else
-#endif
+			if (in_y + c_scan < MLO_IN_HEIGHT)
 			{
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				int bot_off = gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
+				// still problems with unaligned LDS access
+#if MLO_IN_N_PIXS_OFF > 0
+				if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
 				{
-					in_rd_data[i] = bot[bot_off + i];
-#if DBG_OUT_OF_RNGE
-					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					int i = 0;
+					for (; i < MLO_IN_N_PIXS_OFF; ++i)
 					{
-						printf("k:err:in-of-range\n");
-					}
+						in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+						if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:in-of-range\n");
+						}
 #endif
-				}
+					}
 
+				}
+				else
+#endif
+				{
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+						in_rd_data[i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+						if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:in-of-range\n");
+						}
+#endif
+					}
+
+				}
 			}
 			for (int i = 0; i < MLO_READ_UNIT; ++i)
 			{
@@ -479,6 +405,7 @@ __kernel void MLOpenCvBwdWrW(
 			for (int og = 0; og < MLO_N_OUT_BLK_GRP
 				; ++og, gbl_out_scan_off1 += MLO_N_LCL_OUT_MAPS*MLO_OUT_CHANNEL_STRIDE)
 			{
+				barrier(CLK_LOCAL_MEM_FENCE);
 
 // fetch output. MLO_N_ALIGNED_OUT_SCAN_BLK output scans, each of size MLO_N_OUT_HORIZ_READS
 
@@ -666,43 +593,30 @@ __kernel void MLOpenCvBwdWrW(
 
 			} // for(; og < (MLO_N_OUT_BLK_GRP; ++og )
 
-			barrier(CLK_LOCAL_MEM_FENCE);
+
 
 // move the input data tail inside LDS to reduce mem bandwidth
-			c_scan = 0;
-			for (int p4 = lcl_id; p4 < MLO_N_IN_HORIZ_READS * (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1);
-				p4 += MLO_GRP_SZ )
+			for (int c_scan = 0; c_scan < (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1); ++c_scan)
 			{
+				barrier(CLK_LOCAL_MEM_FENCE);
 
-				c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
-				int c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
-
-
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				for (int p4 = lcl_id; p4 < MLO_N_IN_HORIZ_READS;
+					p4 += MLO_GRP_SZ)
 				{
-					lcl_bot[c_scan*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i] =
-						lcl_bot[(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i];
-#if 0
-					if (c_scan == 0 && c_pix4 == 0)
-					{
-						printf("K:l:%d %d %d %d %d %f\n",
-							ob,
-							(MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1),
-							(MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1),
-							c_scan*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i,
-							(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i,
-							lcl_bot[c_scan*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i]
-						);
-					}
-#endif
-				}
+					int c_pix4 = p4;
 
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+						lcl_bot[c_scan*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i]
+							= lcl_bot[(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i];
+					}
+
+				}
 			}
 
 		} // for (int ob = 0; ob < MLO_N_OUT_BLK; ++ob, in_y += (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1), out_y += MLO_N_ALIGNED_OUT_SCAN_BLK)
 	} // for (int b = 0;
 
-	barrier(CLK_LOCAL_MEM_FENCE);
 
 #endif
 
@@ -724,6 +638,8 @@ __kernel void MLOpenCvBwdWrW(
 // TO DO:: DEPENDING ON THE GROUP SIZE
 	for (int og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
 	{
+		barrier(CLK_LOCAL_MEM_FENCE);
+
 		for (int o = 0; w_blk_idx < MLO_MAX_WEI_BLK_LOOP/* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/ && o < MLO_N_LCL_OUT_MAPS; ++o)
 		{
 			int w = 0;
@@ -764,6 +680,17 @@ __kernel void MLOpenCvBwdWrW(
 #if 1
 
 			weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i] = final_sum; //lcl_bot[lcl_id]; //
+#if 0
+			if (o_idx + (og *  MLO_N_LCL_OUT_MAPS + oo) == 0 && c_idx == 3 && wei_i_y == 0 && wei_i_x == 0)
+			{
+				printf("K:o: %d %f\n",
+					ib,
+					weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i]
+				);
+			}
+
+#endif
+
 
 #else
 			_FLOAT t_accum = 0;
