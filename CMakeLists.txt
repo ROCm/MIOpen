@@ -49,6 +49,16 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
 	find_package( OpenCL REQUIRED )
+	find_program(AMDGCN_ASSEMBLER
+		NAMES clang
+		PATHS ${MLOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
+		PATH_SUFFIXES /opencl/bin/x86_64
+		NO_DEFAULT_PATH
+	)
+	if(AMDGCN_ASSEMBLER)
+		add_definitions(-DMLOPEN_AMDGCN_ASSEMBLER="${AMDGCN_ASSEMBLER}")
+	endif()
+	message(STATUS "AMDGCN assembler: ${AMDGCN_ASSEMBLER}")
 endif()
 # HCC
 if( MLOPEN_BACKEND STREQUAL "HCC")
