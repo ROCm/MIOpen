@@ -718,6 +718,7 @@ protected:
 #if MLOPEN_BACKEND_OPENCL
 	bool mloIsAmdOpenclRocm(bool &is_metadata_v10) const;
 	bool mloExperimentalValidateAssemblerPath(const char* path) const;
+#endif
 
 	bool mloIsCorrectBinaryWinograd3x3Fwd() const;
 	bool mloIsFastBinaryWinograd3x3Fwd() const;
@@ -730,7 +731,6 @@ protected:
 	bool mloIsCorrectAsmDirect5x10u2v2f1() const;
 	bool mloIsFastAsmDirect5x10u2v2f1() const;
 	int  mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10);
-#endif
 
 	int mloConstructDirect2DFwdC(void);
 	int mloConstructDirect2D1x1(void);
