@@ -746,8 +746,10 @@ bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2f1() const
     const int max_in_height	= 131077 - 1;
 
     return                                      // Opt. Param   Restrictions in source
-           _pad0            == 0                // -q           hardcoded
-        && _pad1            == 0                // -p           hardcoded
+           _pad0            >= 0                // -q   pad_w   // [0..5] for now FIXME
+        && _pad0            <= 5                //
+        && _pad1            >= 0                // -p   pad_h   // [0..5] for now FIXME
+        && _pad1            <= 5                //
         && _kernel_stride0  == 2                // -u   inp_u   fixed
         && _kernel_stride1  == 2                // -v   inp_v   fixed
         && _kernel_size0    == 10               // -x   wei_w   fixed
@@ -783,8 +785,8 @@ static inline int AlignUp(int val, unsigned step)
 
 int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10)
 {
-    const int out_w = (_in_width  + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + inp_u - wei_w) / inp_u
-    const int out_h = (_in_height + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + inp_v - wei_h) / inp_v
+    const int out_w = (_in_width  + _pad0*2 + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
+    const int out_h = (_in_height + _pad1*2 + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
 
     std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", _in_height);
@@ -792,6 +794,8 @@ int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10
     GenerateClangDefsym(options, "wei_c", _n_inputs);
     GenerateClangDefsym(options, "wei_k", _n_outputs);
     GenerateClangDefsym(options, "wei_layout", 0); //0: KCHW, 1: CKHW
+    GenerateClangDefsym(options, "pad_w", _pad0);
+    GenerateClangDefsym(options, "pad_h", _pad1);
     if (!is_metadata_v10) {
         GenerateClangDefsym(options, "ROCM_METADATA_V2", 1);
     }
