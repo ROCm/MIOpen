@@ -64,6 +64,7 @@ list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MLOpen_Source
 	convolution.cpp
 	convolution_api.cpp
+	convolution_fft.cpp
 	errors.cpp
 	pooling_api.cpp
 	logger.cpp
@@ -73,6 +74,7 @@ set( MLOpen_Source
 	softmax_api.cpp
 	include/mlopen/common.hpp
 	include/mlopen/convolution.hpp
+	include/mlopen/convolution_fft.hpp
 	include/mlopen/errors.hpp
 	include/mlopen/handle.hpp
 	include/mlopen/kernel_cache.hpp
@@ -111,6 +113,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MLOpenConvBwdWrW_LxG_5x5.cl
 		Kernels/MLOpenConvBwdWrW_GxL_1x1.cl
 		Kernels/MLOpenConvFwd_LxL_11.cl
+		Kernels/MLOpenConvFFT.cl
 		Kernels/conv3x3_m10.s
 		Kernels/conv3x3_m21.s
 		Kernels/MLOpenTensorKernels.cl
@@ -127,6 +130,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		mlo_dir_conv.cpp
 		ocl/activ_ocl.cpp
 		ocl/convolutionocl.cpp
+		ocl/convolutionocl_fft.cpp
 		ocl/lrn_ocl.cpp
 		ocl/mloNeuron.cpp
 		ocl/mloNorm.cpp
