@@ -160,8 +160,8 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 
 
 	(void)wDesc; // suppress warning
-	(void)workSpaceSize; // suppress warning
 
+	int halfw = (int)workSpaceSize / (2*2*sizeof(float));
 	int in_n, in_c;
 	std::tie(in_n, in_c, std::ignore, std::ignore) = mlopen::tie4(xDesc.GetLengths());
 
@@ -191,8 +191,8 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 				k(
 					workSpace,
 					0,
-					N*(out_n*out_c + Padding) + N*(in_n*in_c + Padding),
-					N*(out_n*out_c + Padding) + 0,
+					halfw + N*(in_n*in_c + Padding),
+					halfw + 0,
 					out_c,
 					out_n*out_c + Padding,
 					in_c,
