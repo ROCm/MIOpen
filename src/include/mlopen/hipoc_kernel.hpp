@@ -139,18 +139,8 @@ struct HIPOCKernel
         ldims.fill(1);
         gdims.fill(1);
         std::copy(local_dims.begin(), local_dims.end(), ldims.begin());
-        for(int i=0;i<global_dims.size();i++)
-        {
-            gdims[i] = (global_dims[i] - 1)/ldims[i] + 1;
-            if(global_dims[i] != (gdims[i] * ldims[i]))
-            {
-                std::cerr 
-                    << "Warning: Extra read guard is needed for kernel " 
-                    << kernel_name << " as global_dims are not equal(" 
-                    << global_dims[i] << " != " << (gdims[i] * ldims[i]) 
-                    << ")" << std::endl;
-            }
-        }
+        std::copy(global_dims.begin(), global_dims.end(), gdims.begin());
+
 #ifdef HIP_OC_FINALIZER
         kernel_module = "&__OpenCL_" + name + "_kernel";
 #else
