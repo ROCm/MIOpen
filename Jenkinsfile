@@ -6,8 +6,7 @@ parallel opencl: {
                 mkdir build
                 cd build
                 CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
-                make tidy 2>&1 | tee tidy_out
-                ! grep -q "warning:" tidy_out
+                make tidy
             '''
         }
         stage('Clang Debug') {
