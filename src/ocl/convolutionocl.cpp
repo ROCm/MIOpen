@@ -314,7 +314,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++) {
-        perfResults[i].fwd_algo = static_cast<mlopenConvFwdAlgorithm_t>(FwdAlgoResolver[ perf_db[i].name ]);
+        perfResults[i].fwd_algo = static_cast<mlopenConvFwdAlgorithm_t>(FwdAlgoResolver(perf_db[i].name));
         perfResults[i].time = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
     }
@@ -578,7 +578,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++) {
-        perfResults[i].bwd_data_algo = static_cast<mlopenConvBwdDataAlgorithm_t>(BwdDataAlgoResolver[ perf_db[i].name ]);
+        perfResults[i].bwd_data_algo = static_cast<mlopenConvBwdDataAlgorithm_t>(BwdDataAlgoResolver( perf_db[i].name ));
         perfResults[i].time = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
     }
@@ -826,7 +826,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
      for(int i = 0; i < *returnedAlgoCount; i++) {
-         perfResults[i].bwd_weights_algo = static_cast<mlopenConvBwdWeightsAlgorithm_t>(BwdWeightsAlgoResolver[ perf_db[i].name ]);
+         perfResults[i].bwd_weights_algo = static_cast<mlopenConvBwdWeightsAlgorithm_t>(BwdWeightsAlgoResolver( perf_db[i].name ));
          perfResults[i].time = perf_db[i].time;
          perfResults[i].memory = perf_db[i].workspace;
      }

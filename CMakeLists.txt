@@ -145,11 +145,15 @@ enable_clang_tidy(
 		-google-readability-todo
 		-google-runtime-int
 		-google-runtime-references
+		-llvm-header-guard
 		-llvm-include-order
 		-misc-macro-parentheses
 		-misc-misplaced-const
 		-modernize-loop-convert
 		-modernize-pass-by-value
+		-modernize-use-default-member-init
+		-modernize-use-emplace
+		-modernize-use-equals-default
 		-performance-unnecessary-value-param
 		-readability-braces-around-statements
 		-readability-else-after-return
