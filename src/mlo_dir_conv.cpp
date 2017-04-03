@@ -298,6 +298,7 @@ int mlo_construct_direct2D::mloConstruct()
 		if (!known_config)
 		{
 			if (doSearch())
+
 			{
 				mloSearchDirect2D();
 			}
@@ -2176,8 +2177,9 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 {
 	int ret = 0;
 	_workspce_sz = 0;
+	size_t localMemSize = 64 * 1024;
 
-    if (((_kernel_size0>=_kernel_size1) && (_kernel_stride0 > 1 || _kernel_stride1 > 1)) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
+    if (((_kernel_size0>=_kernel_size1) && (_kernel_stride0 > 1 || _kernel_stride1 > 1 || _in_width > 64)) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
 	{
 		ret = mloConstruct2();
 	}
@@ -2194,7 +2196,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		{
 			ret = mloConstruct53();
 		}
-		else if ( _in_width * _in_height <= (8*1024))
+		else if ( _in_width * _in_height <= (localMemSize / (2*sizeof(float))))
 		{
 			ret = mloConstruct1x1();
 		}
