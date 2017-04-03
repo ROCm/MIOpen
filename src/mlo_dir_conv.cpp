@@ -16,6 +16,7 @@
 // to share code with between CPU and GPU
 
 #define MLOPEN
+#include <cmath>
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
 #include <mlopen/env.hpp>
@@ -26,7 +27,7 @@
 
 static int mloLg2(int v)
 {
-	int ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
+	auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
 	return(ret);
 }
 
@@ -1040,9 +1041,9 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 	int ALU_EXTENT_X = (_out_width + read_unit - 1) / read_unit;
-	int LG2ALU_EXTENT_X = static_cast<int>(std::ceil(std::log(ALU_EXTENT_X) / std::log(2)));
+	auto LG2ALU_EXTENT_X = static_cast<int>(std::ceil(std::log(ALU_EXTENT_X) / std::log(2)));
 	int ALU_EXTENT_Y = (GRP_SZ >> LG2ALU_EXTENT_X);
-	int LG2ALU_EXTENT_Y = static_cast<int>(std::ceil(std::log(ALU_EXTENT_Y) / std::log(2)));
+	auto LG2ALU_EXTENT_Y = static_cast<int>(std::ceil(std::log(ALU_EXTENT_Y) / std::log(2)));
 
 	// the wave is logical is a unit of shareing weights in SGPRs
 	// it cannot be less than HW_WAVE_SIZE = 64
@@ -1393,11 +1394,11 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		n_in_stacks = ((_batch_sz / 2) * 2 == _batch_sz) ? 2 : 1;  // n of input batches
 	}
 	int n_proc_supertiles = n_in_stacks; // n of prosessing groups
-	int lg2n_proc_supertiles = static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::log(2)));
+	auto lg2n_proc_supertiles = static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::log(2)));
 	int n_out_stacks = 1; // n of output sets
 	int n_proc_supertile0 = ((n_in_stacks > 1) ? 32 : 16) / _kernel_stride0; // n  processor in process supertile
 	int n_proc_supertile1 = ((n_in_stacks > 1 && (_kernel_size1 >= 11 || _kernel_size0 >= 11)) ? 32 : 16) / n_in_stacks;
-	int lg2n_proc_supertile1 = static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
+	auto lg2n_proc_supertile1 = static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
 	int ocl_group_sz0 = n_proc_supertile0;
 	int ocl_group_sz1 = n_proc_supertile1 * n_proc_supertiles;
 	int ocl_group_sz2 = 1;
@@ -2983,7 +2984,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 											exchange_step = std::min(std::min(exchange_step, _n_out_pix_tiles), N_MAPS_PERGROUP);
 											if (exchange_step < _n_out_pix_tiles)
 											{
-												int tmp_stp = static_cast<int>(ceil(sqrt(static_cast<float>(exchange_step))));
+												auto tmp_stp = static_cast<int>(ceil(std::sqrt(static_cast<float>(exchange_step))));
 												n_in_tiles_rg[0] = tmp_stp;
 												n_in_tiles_rg[1] = exchange_step;
 											}

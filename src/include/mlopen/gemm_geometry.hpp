@@ -11,14 +11,14 @@ using tinygemm::TinyGemmGeometry;
 using tinygemm::TinyGemmSolution;
 
 struct GemmGeometry {
-    std::array<int, 3> dims; // m, n, k
-    std::array<int, 3> strides; // lda, ldb, ldc
+    std::array<int, 3> dims{}; // m, n, k
+    std::array<int, 3> strides{}; // lda, ldb, ldc
     std::string algorithm_name;
-    float alpha;
-    float beta;
-    TinyGemmGeometry tgg;
-    bool beta_kern_req;
-    std::array<int, 2> beta_kern_args;
+    float alpha{};
+    float beta{};
+    TinyGemmGeometry tgg{};
+    bool beta_kern_req{};
+    std::array<int, 2> beta_kern_args{};
 
     GemmGeometry(){}
     GemmGeometry(std::array<int, 3> pdims, std::array<int, 3>pstrides, std::string algo_name, float palpha, float pbeta, TinyGemmGeometry ptgg) : 

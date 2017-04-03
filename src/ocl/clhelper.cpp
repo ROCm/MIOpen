@@ -181,7 +181,7 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 		file.seekg(std::ios::beg);
 		if (file.fail()) { outfile_read_failed = true; break; }
 		if (file.rdbuf()->sgetn(&source[0], size) != size) { outfile_read_failed = true; break; }
-	} while (0);
+	} while (false);
 	file.close();
 	if (outfile_read_failed) {
 		MLOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");

@@ -111,7 +111,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                             : "mlopenConvolutionBwdDataAlgoDirect";
 
     // if not 11x11
-	if (program_name.compare("MLOpenConvFwd_LxL_11.cl") != 0)
+	if (program_name != "MLOpenConvFwd_LxL_11.cl")
 	{
         
 		auto k = handle.GetKernel(algorithm,
