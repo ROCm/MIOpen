@@ -888,7 +888,7 @@ protected:
 
 	size_t _workspce_sz;
 
-	unsigned int _n_groups;
+	unsigned int _n_groups{};
 };
 
 

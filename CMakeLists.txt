@@ -137,9 +137,11 @@ enable_clang_tidy(
 		-cppcoreguidelines-pro-bounds-array-to-pointer-decay
 		-cppcoreguidelines-pro-bounds-constant-array-index
 		-cppcoreguidelines-pro-bounds-pointer-arithmetic
+		-cppcoreguidelines-pro-type-member-init
 		-cppcoreguidelines-pro-type-reinterpret-cast
 		-cppcoreguidelines-pro-type-union-access
 		-cppcoreguidelines-pro-type-vararg
+		-cppcoreguidelines-special-member-functions
 		-google-explicit-constructor
 		-google-readability-braces-around-statements
 		-google-readability-todo
@@ -149,6 +151,7 @@ enable_clang_tidy(
 		-llvm-include-order
 		-misc-macro-parentheses
 		-misc-misplaced-const
+		-misc-misplaced-widening-cast
 		-modernize-loop-convert
 		-modernize-pass-by-value
 		-modernize-use-default-member-init

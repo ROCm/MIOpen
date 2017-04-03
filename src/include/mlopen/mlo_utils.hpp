@@ -195,12 +195,12 @@ private:
 	/**
 	* Disable copy constructor
 	*/
-	mloFile(const mloFile &);
+	mloFile(const mloFile &) = delete;
 
 	/**
 	* Disable operator=
 	*/
-	mloFile &operator=(const mloFile &);
+	mloFile &operator=(const mloFile &) = delete;
 
 	std::string source_; //!< source code of the CL program
 
