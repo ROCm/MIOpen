@@ -633,7 +633,7 @@ void MLOpenConvFFT_fwd_we(__global const float * restrict gbIn, __global float2 
 	float2 R0, R1, R2, R3, R4, R5, R6, R7;
 
 	lwbIn = gbIn + batch*25;
-	lwbOut = gbOut + 544*64*128 + batch*544;
+	lwbOut = gbOut + 544*CFF_CHANNELS*CFF_BATCH + batch*544;
 
 	FwdPassWE(me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7);
 	barrier(CLK_LOCAL_MEM_FENCE);	
@@ -682,8 +682,8 @@ void MLOpenConvFFT_transpose_in(__global float2 * restrict gb)
 	uint bm = batch%9;
 	uint bd = batch/9;
 	
-	iOffset = bm*64 + bd*34816; 
-	oOffset = 544*(192*128 + 64) + bm*528384 + bd*64; 
+	iOffset = bm*64 + bd*544*64; 
+	oOffset = CFF_HALFW + bm*(CFF_CHANNELS*CFF_BATCH + 64)*64 + bd*64; 
 	
 	lwbIn = gb + iOffset;
 	lwbOut = gb + oOffset;
@@ -692,7 +692,7 @@ void MLOpenConvFFT_transpose_in(__global float2 * restrict gb)
 	{
 		for(uint t=0; t<8; t++)
 		{
-			R0 = lwbIn[(me%32) + (me/32)*544 + t*4352];
+			R0 = lwbIn[(me%32) + (me/32)*544 + t*8*544];
 			lds[(me%32)*64 + (me/32) + t*8] = R0;
 		}	
 	}
@@ -700,7 +700,7 @@ void MLOpenConvFFT_transpose_in(__global float2 * restrict gb)
 	{
 		for(uint t=0; t<16; t++)
 		{
-			R0 = lwbIn[(me%64) + (me/64)*544 + t*2176];
+			R0 = lwbIn[(me%64) + (me/64)*544 + t*4*544];
 			lds[(me%64)*64 + (me/64) + t*4] = R0;
 		}
 	}
@@ -713,7 +713,7 @@ void MLOpenConvFFT_transpose_in(__global float2 * restrict gb)
 		for(uint t=0; t<8; t++)
 		{
 			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*8256 + t*33024] = R0;
+			lwbOut[(me%64) + (me/64)*(CFF_CHANNELS*CFF_BATCH + 64) + t*4*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;
 		}	
 	}
 	else
@@ -721,7 +721,7 @@ void MLOpenConvFFT_transpose_in(__global float2 * restrict gb)
 		for(uint t=0; t<16; t++)
 		{
 			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*8256 + t*33024] = R0;
+			lwbOut[(me%64) + (me/64)*(CFF_CHANNELS*CFF_BATCH + 64) + t*4*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;
 		}
 	}
 }
@@ -745,8 +745,8 @@ void MLOpenConvFFT_transpose_we(__global float2 * restrict gb)
 	uint bm = batch%9;
 	uint bd = batch/9;
 	
-	iOffset = 544*64*128 + bm*64 + bd*34816; 
-	oOffset = 544*(192*128 + 64) + 544*(64*128 + 64) + bm*790528 + bd*64;
+	iOffset = 544*CFF_CHANNELS*CFF_BATCH + bm*64 + bd*544*64; 
+	oOffset = CFF_HALFW + 544*(CFF_CHANNELS*CFF_BATCH + 64) + bm*(CFF_CHANNELS*CFF_NFILTER + 64)*64 + bd*64;
 	
 	lwbIn = gb + iOffset;
 	lwbOut = gb + oOffset;
@@ -755,7 +755,7 @@ void MLOpenConvFFT_transpose_we(__global float2 * restrict gb)
 	{
 		for(uint t=0; t<8; t++)
 		{
-			R0 = lwbIn[(me%32) + (me/32)*544 + t*4352];
+			R0 = lwbIn[(me%32) + (me/32)*544 + t*8*544];
 			lds[(me%32)*64 + (me/32) + t*8] = R0;
 		}	
 	}
@@ -763,7 +763,7 @@ void MLOpenConvFFT_transpose_we(__global float2 * restrict gb)
 	{	
 		for(uint t=0; t<16; t++)
 		{
-			R0 = lwbIn[(me%64) + (me/64)*544 + t*2176];
+			R0 = lwbIn[(me%64) + (me/64)*544 + t*4*544];
 			lds[(me%64)*64 + (me/64) + t*4] = R0;
 		}
 	}
@@ -775,7 +775,7 @@ void MLOpenConvFFT_transpose_we(__global float2 * restrict gb)
 		for(uint t=0; t<8; t++)
 		{
 			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*12352 + t*49408] = R0;
+			lwbOut[(me%64) + (me/64)*(CFF_CHANNELS*CFF_NFILTER + 64) + t*4*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
 		}	
 	}
 	else
@@ -783,7 +783,7 @@ void MLOpenConvFFT_transpose_we(__global float2 * restrict gb)
 		for(uint t=0; t<16; t++)
 		{
 			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*12352 + t*49408] = R0;
+			lwbOut[(me%64) + (me/64)*(CFF_CHANNELS*CFF_NFILTER + 64) + t*4*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
 		}
 	}
 
@@ -809,8 +809,8 @@ void MLOpenConvFFT_transpose_out(__global float2 * restrict gb)
 	uint bm = batch%9;
 	uint bd = batch/9;
 	
-	iOffset = bm*1576960 + bd*64;	
-	oOffset = 544*(192*128 + 64) + bm*64 + bd*34816; 
+	iOffset = bm*(CFF_NFILTER*CFF_BATCH + 64)*64 + bd*64;	
+	oOffset = CFF_HALFW + bm*64 + bd*544*64; 
 
 	
 	lwbIn = gb + iOffset;
@@ -820,7 +820,7 @@ void MLOpenConvFFT_transpose_out(__global float2 * restrict gb)
 	{
 		for(uint t=0; t<8; t++)
 		{
-			R0 = lwbIn[(me%64) + (me/64)*24640 + t*98560];
+			R0 = lwbIn[(me%64) + (me/64)*(CFF_NFILTER*CFF_BATCH + 64) + t*4*(CFF_NFILTER*CFF_BATCH + 64)];
 			lds[(me%64)*64 + (me/64) + t*4] = R0;
 		}	
 	}
@@ -828,7 +828,7 @@ void MLOpenConvFFT_transpose_out(__global float2 * restrict gb)
 	{	
 		for(uint t=0; t<16; t++)
 		{
-			R0 = lwbIn[(me%64) + (me/64)*24640 + t*98560];
+			R0 = lwbIn[(me%64) + (me/64)*(CFF_NFILTER*CFF_BATCH + 64) + t*4*(CFF_NFILTER*CFF_BATCH + 64)];
 			lds[(me%64)*64 + (me/64) + t*4] = R0;
 		}
 	}
@@ -840,7 +840,7 @@ void MLOpenConvFFT_transpose_out(__global float2 * restrict gb)
 		for(uint t=0; t<8; t++)
 		{
 			R0 = lds[(me%32) + (me/32)*64 + t*512];
-			lwbOut[(me%32) + (me/32)*544 + t*4352] = R0;
+			lwbOut[(me%32) + (me/32)*544 + t*8*544] = R0;
 		}	
 	}
 	else
@@ -848,7 +848,7 @@ void MLOpenConvFFT_transpose_out(__global float2 * restrict gb)
 		for(uint t=0; t<16; t++)
 		{
 			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*544 + t*2176] = R0;
+			lwbOut[(me%64) + (me/64)*544 + t*4*544] = R0;
 		}
 	}
 
@@ -1236,7 +1236,7 @@ void MLOpenConvFFT_inv_out(__global const float2 * restrict gbIn, __global float
 	float2 R0, R1, R2, R3, R4, R5, R6, R7;
 
 
-	lwbIn = 544*(192*128 + 64) + gbIn + batch*544;
+	lwbIn = CFF_HALFW + gbIn + batch*544;
 	lwbOut = gbOut + batch*729;
 
 	InvPassA(me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7);
