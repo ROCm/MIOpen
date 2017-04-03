@@ -1803,10 +1803,10 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 
 	// span size
 	// param
-	_in_tile0 = read_unit; // ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : 2;
+	_in_tile0 =  ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : ((_in_width / 3) * 3 == _in_width) ? 3 : 2;
 	int n_spans = (_in_width + _in_tile0 - 1) / _in_tile0;
 
-	// n of wvaefront in a group
+	// n of wavefronts per group
 	// param
 	int n_waves = ((_out_pix_tile0 *_out_pix_tile1) <= 16 && (_in_width > 8)) ? 4 : (_in_width <= 16) ? 1 : 2;
 	int GRP_SZ = _hw_wave_sz * n_waves;
@@ -1815,8 +1815,8 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	_n_out_pix_tiles = 1;
 	int n_out_stacks = std::min(_n_inputs, std::max(1, GRP_SZ / n_spans));
 	// number of input maps per group
-	// param
-	_n_in_data_tiles = (_in_width <= 32 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 4 : 1; // ((_in_width <= 8 || (_in_width >= 28 && _in_width <= 32)) && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 2 : 1;
+
+	_n_in_data_tiles = (_in_width <= 32 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? 4 : 1;
 
 	_n_in_data_tiles = std::min(_n_in_data_tiles, _n_outputs);
 // calculate number of input scans in the input block
@@ -1824,7 +1824,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int in_lcl_width = ((_in_width + read_unit - 1) / read_unit) * read_unit + 2 * _pad0;
 	// number of input map blocks being process at once
 	// param
-	int in_n_vert_reads = (_in_height > 32 && _in_width <= 64 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? _in_height / 2 : _in_height;
+	int in_n_vert_reads = (_in_height > 32 && _in_width <= 64 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? (_in_height + 1) / 2 : _in_height;
 	while (in_lcl_width * in_n_vert_reads * _n_in_data_tiles > (_dev_local_mem_sz/(2*sizeof(float))))
 	{
 		in_n_vert_reads = (in_n_vert_reads + 1)/2;
@@ -1999,14 +1999,14 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	_in_tile0 = 1;
 	_in_tile1 = 1;
 	_out_pix_tile0 = 1;
-	_out_pix_tile1 = (_kernel_size0 == 20) ? 1 : 2; //700 = 1, 350 = 2
+	_out_pix_tile1 = (_kernel_size0 > 11 ) ? 1 : 2; //700 = 1, 350 = 2
 
 						// major parameters
 	int n_waves = (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
 
 	_n_in_data_tiles = 1;
 	// n of out blocks in lcl memory
-	_n_out_pix_tiles = (_kernel_size0 == 20) ? 2 : 4; // 700 = 2, 350 = 4
+	_n_out_pix_tiles = (_kernel_size0 > 11) ? 2 : 4; // 700 = 2, 350 = 4
 
 						  // select output mapping
 	int total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
@@ -2121,9 +2121,9 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		_l_wk.push_back(grp_tile2);
 		// input is output
 
-		size_t gbl_wk0 = GRP_SZ;
-		size_t gbl_wk1 = _n_outputs;
-		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps) * n_batch_blks;
+		size_t gbl_wk0 = GRP_SZ *  _n_outputs;
+		size_t gbl_wk1 = ((_n_inputs + total_out_maps - 1) / total_out_maps);
+		size_t gbl_wk2 = n_batch_blks;
 
 
 		_g_wk.clear();
@@ -2131,7 +2131,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = (_pad0 > 0 || _pad1 > 0) ? "MLOpenConvBwdWrW_LxL_P.cl" : "MLOpenConvBwdWrW_LxL.cl";
+		_kernel_file = "MLOpenConvBwdWrW_LxL_P.cl";
 		_kernel_name = "MLOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -2146,7 +2146,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	{
 
 
-		std::string kernel_file = (_pad0 > 0 || _pad1 > 0) ? "MLOpenConvBwdWrW_LxL_P.cl" : "MLOpenConvBwdWrW_LxL.cl";
+		std::string kernel_file = "MLOpenConvBwdWrW_LxL_P.cl";
 		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;

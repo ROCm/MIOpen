@@ -24,9 +24,11 @@ namespace mlopen {
 	// FFT convolutions only works for specific config(s)
 	// coverage to expand gradually
 
-	supported = (std::tie(in_n, in_c, in_h, in_w) != std::make_tuple(128, 64, 27, 27)) ? false : supported;
-	supported = (std::tie(wei_k, wei_c, wei_h, wei_w) != std::make_tuple(192, 64, 5, 5)) ? false : supported;
-	supported = (std::tie(out_n, out_c, out_h, out_w) != std::make_tuple(128, 192, 27, 27)) ? false : supported;
+	supported = ((in_n < 1) || (in_n > 512)) ? false : supported;
+	supported = ((wei_k < 1) || (wei_k > 512)) ? false : supported;
+	supported = (std::tie(in_c, in_h, in_w) != std::make_tuple(64, 27, 27)) ? false : supported;
+	supported = (std::tie(wei_c, wei_h, wei_w) != std::make_tuple(64, 5, 5)) ? false : supported;
+	supported = (std::tie(out_h, out_w) != std::make_tuple(27, 27)) ? false : supported;
 	supported = (std::tie(pad_h, pad_w, u, v) != std::make_tuple(2, 2, 1, 1)) ? false : supported;
 	supported = (yDesc.GetType() != mlopenFloat) ? false : supported;
 
@@ -35,7 +37,11 @@ namespace mlopen {
 
 	if(supported)
 	{
-		return 2*2*N*(out_n*out_c + Padding)*sizeof(float);
+		int temp_size1 = (in_c*in_n + Padding) + (wei_k*wei_c + Padding);
+		int temp_size2 = (out_n*out_c + Padding);
+		int temp_size = temp_size1 > temp_size2 ? temp_size1 : temp_size2;
+
+		return 2*2*N*temp_size*sizeof(float);
 	}
 	else
 		return 0;
