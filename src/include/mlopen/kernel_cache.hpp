@@ -42,9 +42,9 @@ class KernelCache
 
 public:
 
-	typedef std::pair<std::string, std::string> Key;
-	typedef std::unordered_map< Key, Kernel, SimpleHash > KernelMap;
-    typedef std::unordered_map< Key, Program, SimpleHash > ProgramMap;
+	using Key = std::pair<std::string, std::string>;
+	using KernelMap = std::unordered_map< Key, Kernel, SimpleHash >;
+    using ProgramMap = std::unordered_map< Key, Program, SimpleHash >;
 
 
 	Kernel GetKernel(Handle &h,

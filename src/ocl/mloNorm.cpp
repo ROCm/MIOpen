@@ -194,7 +194,7 @@ int mlo_construct_norm::mloConstructFwd()
 		_g_wk.push_back(_n_outputs * _batch_sz);
 
 	}
-	int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+	int data_len = (_out_data_type == "FP32" ? 4 : 8);
 
 	// calculate workspace
 	size_t scale_sz = _batch_sz * scale_batch_stride * data_len;

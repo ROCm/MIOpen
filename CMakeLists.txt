@@ -126,11 +126,14 @@ enable_clang_tidy(
 	CHECKS 
 		*
 		-cert-err60-cpp
+		# Yea we shouldn't be using rand()
+		-cert-msc30-c
+		-cert-msc50-cpp
 		-clang-analyzer-alpha.core.CastToStruct
 		# Disable this because of a false-positive in gemm_geometry.cpp
-		-clang-analyzer-alpha.deadcode.UnreachableCode
+		# -clang-analyzer-alpha.deadcode.UnreachableCode
 		# Disable this because it doesn't recognize clean up in the destructor
-		-clang-analyzer-alpha.unix.Stream
+		# -clang-analyzer-alpha.unix.Stream
 		-clang-analyzer-optin.performance.Padding
 		-clang-diagnostic-deprecated-declarations
 		-clang-diagnostic-extern-c-compat
@@ -161,6 +164,7 @@ enable_clang_tidy(
 		-readability-braces-around-statements
 		-readability-else-after-return
 		-readability-implicit-bool-cast
+		-readability-misleading-indentation
 		-readability-named-parameter
 	ERRORS
 		*

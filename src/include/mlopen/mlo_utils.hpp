@@ -19,8 +19,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #ifndef MLO_UITLS_H_
 #define MLO_UITLS_H_
 
-typedef std::pair<size_t, void*> mlo_ocl_arg;
-typedef std::map<int, mlo_ocl_arg> mlo_ocl_args;
+using mlo_ocl_arg = std::pair<size_t, void*>;
+using mlo_ocl_args = std::map<int, mlo_ocl_arg>;
 
 #ifdef MLOPEN
 
@@ -191,7 +191,6 @@ public:
 	*/
 	const std::string &source() const { return source_; }
 
-private:
 	/**
 	* Disable copy constructor
 	*/
@@ -202,6 +201,7 @@ private:
 	*/
 	mloFile &operator=(const mloFile &) = delete;
 
+private:
 	std::string source_; //!< source code of the CL program
 
 };
