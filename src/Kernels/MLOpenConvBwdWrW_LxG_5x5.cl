@@ -58,87 +58,20 @@
 #define MLO_LCL_SZ (MLO_WEI_LCL_SZ)
 #endif
 
-
-#define MLO_HW_WAVE_ID_SETTING 0
-
-#if MLO_HW_WAVE_ID_SETTING
-extern __attribute__((const)) uint __hsail_get_dynwave_id(void);
-static inline int getWaveId()
-{
-	int wave_id = 0;
-
-	wave_id = __hsail_get_dynwave_id();
-	wave_id = wave_id & MLO_N_PHYS_WAVES_MASK;
-	return(wave_id);
-}
-#else
-inline int getWaveId()
-{
-	int wave_id = 0;
-
-	wave_id = (get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ);
-
-	return(wave_id);
-}
-#endif
-
-inline int gePhysLocalId()
-{
-	int lcl_wave_id = get_local_id(0) - ((get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ) << MLO_LG2_PHYS_WAVE_SZ);
-	return(lcl_wave_id);
-}
-
-inline int iDiv(int v, int d)
+__attribute__((always_inline))
+int iDiv(int v, int d)
 {
 	int r = (int)((float)v / d + 0.00001f);
 	return(r);
 }
 
-inline int iMod(int v, int u, int d)
+__attribute__((always_inline))
+int iMod(int v, int u, int d)
 {
 	int r = v - mul24((int)u, (int)d);
 	return(r);
 }
 
-inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
-{
-// read first half
-	if (scan_lcl < (sum_stride >> 1))
-	{
-		for (int i = 0; i < unit_len; ++i)
-		{
-			weights_accum[i] = lcl_blob[(lcl_id + scan_lcl) * unit_len + i];
-
-		}
-
-	}
-// add second half
-// appload accumulated value so far
-	for (int j = (sum_stride >> 1); j > 0; j >>= 1)
-	{
-		barrier(CLK_LOCAL_MEM_FENCE);
-		if (scan_lcl < j)
-		{
-			for (int i = 0; i < unit_len; ++i)
-			{
-				weights_accum[i] += lcl_blob[(lcl_id + j) * unit_len + i];
-
-				lcl_blob[lcl_id * unit_len + i] = weights_accum[i];
-			}
-
-		}
-	}
-}
-
-
-
-static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c, _FLOAT v)
-{
-	_FLOAT y = v - *c;    //So far, so good: c is zero.
-	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-	*c = (t - *sum) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-}
 
 /*
 	group cooperative read
@@ -147,7 +80,8 @@ static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c,
 
 	no guard against number of inputs
 */
-static inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * bot, __local _FLOAT *lcl_bot)
+__attribute__((always_inline))
+void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * __restrict bot, __local _FLOAT * __restrict lcl_bot)
 {
 	for (int p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * MLO_IN_VERT_READS;
 		p4 += MLO_GRP_SZ)
@@ -224,7 +158,8 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, const __global _FL
 	loop over filter vertical size
 
 */
-static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLOAT * pvt_accum, __local _FLOAT * lcl_bot, __private _FLOAT * top_dat)
+__attribute__((always_inline))
+void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLOAT * __restrict pvt_accum, __local _FLOAT * __restrict lcl_bot, __private _FLOAT * __restrict top_dat)
 {
 	for (int l = top_lim; l >= bot_lim; --l)
 	{
@@ -282,11 +217,11 @@ static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, 
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
 __kernel void MLOpenCvBwdWrW(
-	const __global _FLOAT * top_df,
-	const __global _FLOAT * bot,
-	__global _FLOAT * weights_df,
+	const __global _FLOAT * __restrict top_df,
+	const __global _FLOAT * __restrict bot,
+	__global _FLOAT * __restrict weights_df,
 #if MLO_CONV_BIAS
-	__global _FLOAT * bias_df,
+	__global _FLOAT * __restrict bias_df,
 #endif
 	_FLOAT padding_val
 )
@@ -299,11 +234,7 @@ __kernel void MLOpenCvBwdWrW(
 	__local _FLOAT * lcl_bot = lcl;
 
 
-	// guarnteeing an uniformity over a wave
-	int wave_id = getWaveId();
 	int lcl_id = get_local_id(0);
-	int lcl_wv_id = gePhysLocalId();
-
 
 
 	int c_idx_base = get_group_id(1); // input map index base
