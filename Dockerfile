@@ -43,17 +43,6 @@ RUN pip install cget
 # Install latest cmake
 RUN cget -p /usr/local install kitware/cmake@release
 
-# Install llvm toolchain
-RUN cget -p $PREFIX install -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_RTTI=ON -DLLVM_TARGETS_TO_BUILD="AMDGPU;X86" \
-    RadeonOpenCompute/llvm@amd-common \
-    RadeonOpenCompute/clang@amd-common \
-    RadeonOpenCompute/lld@amd-common
-# Install rocm device libs
-RUN CC=$PREFIX/bin/clang cget -p $PREFIX install -DLLVM_DIR=$PREFIX -DAMDHSACOD=/opt/hsa/bin/x86_64/amdhsacod RadeonOpenCompute/ROCm-Device-Libs@master
-
-# Remove llvm toolchain
-RUN cget -p $PREFIX rm -y RadeonOpenCompute/llvm RadeonOpenCompute/clang RadeonOpenCompute/lld
-
 # Build hcc
 RUN git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/hcc.git /hcc && \
     git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/hcc-clang-upgrade.git /hcc/clang && \
@@ -61,6 +50,7 @@ RUN git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenComput
     git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/llvm.git /hcc/compiler && \
     git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/compiler-rt.git /hcc/compiler-rt && \
     git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/lld.git /hcc/lld && \
+    git clone --depth 1 -b remove-promote-change-addr-space https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git /hcc/rocdl && \
     cget -p $PREFIX install hcc,/hcc && \
     rm -rf /hcc
 
@@ -75,7 +65,7 @@ RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 RUN cget -p $PREFIX install hip,http://$GITLAB1/pfultz/hip/repository/archive.tar.gz?ref=cmake-develop
 
 # Install opencl
-RUN curl http://$GITLAB1/pfultz/mlopen/uploads/80e817bc7705c014fd3f06805b8a522e/OpenCL_LC_Linux_x86_64_Release_1393470.deb > /rocm-opencl.deb
+RUN curl http://$GITLAB1/pfultz/mlopen/uploads/6d7ba8e9ef49e45b895637c916ec5cee/OpenCL_LC_Linux_x86_64_Release_1393981.deb > /rocm-opencl.deb
 RUN dpkg -i /rocm-opencl.deb && rm /rocm-opencl.deb
 
 # Install clang-ocl
