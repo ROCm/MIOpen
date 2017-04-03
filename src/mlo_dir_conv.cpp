@@ -186,7 +186,7 @@ bool mloFindConfigReq(
 	ret = false;
 	for (it = req_conf_db.begin(); it != req_conf_db.end(); ++it)
 	{
-		if (!(*it).compare(conf_key))
+		if (*it == conf_key)
 		{
 			ret = true;
 			break;
@@ -345,7 +345,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	{
 		return(mloConstructDirect2D1x1());
 	}
-	else
 #endif
 	if (unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
@@ -1764,7 +1763,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		int data_len = (_out_data_type == "FP32" ? 4 : 8);
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 	}
 
@@ -1973,7 +1972,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		int data_len = (_out_data_type == "FP32" ? 4 : 8);
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 	}
 
@@ -2165,7 +2164,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		int data_len = (_out_data_type == "FP32" ? 4 : 8);
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 	}
 
@@ -2188,10 +2187,10 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		if ((_kernel_size0 == 3 && _kernel_size1 == 3) && (_out_width < 8 && _out_height < 8))
 		{
 			ret = mloConstruct3x3();
-		}
-		else 
+		}  
+		else
 #endif
-			if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+		if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
 		{
 			ret = mloConstruct53();
 		}
@@ -2984,7 +2983,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 											exchange_step = std::min(std::min(exchange_step, _n_out_pix_tiles), N_MAPS_PERGROUP);
 											if (exchange_step < _n_out_pix_tiles)
 											{
-												auto tmp_stp = static_cast<int>(ceil(std::sqrt(static_cast<float>(exchange_step))));
+												auto tmp_stp = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(exchange_step))));
 												n_in_tiles_rg[0] = tmp_stp;
 												n_in_tiles_rg[1] = exchange_step;
 											}

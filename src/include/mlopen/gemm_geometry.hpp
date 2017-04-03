@@ -46,7 +46,7 @@ struct GemmGeometry {
             int             c_offset);
 };
 
-typedef std::pair<std::string, std::string> GemmKey;
+using GemmKey = std::pair<std::string, std::string>;
 extern std::unordered_map< GemmKey, GemmGeometry, SimpleHash> gemm_geo_map;
 
 } // namespace mlopen
