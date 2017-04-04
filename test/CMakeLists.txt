@@ -3,6 +3,7 @@ include(CTest)
 
 option( MLOPEN_TEST_ALL "Run the full test suite" OFF )
 option(MLOPEN_TEST_CONV Off)
+option(MLOPEN_TEST_DEEPBENCH Off)
 
 find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
@@ -38,6 +39,52 @@ foreach(TEST ${TESTS})
     add_test_executable(test_${BASE_NAME} ${TEST})
     target_link_libraries(test_${BASE_NAME} MLOpen)
 endforeach()
+
+function(add_custom_test NAME)
+    add_custom_target(${NAME} ${ARGN})
+    add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+endfunction()
+
+if(MLOPEN_TEST_DEEPBENCH)
+    add_custom_test(test_deepbench
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 32 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 79 341  --weights 32 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 32 79 341  --weights 32 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 32 79 341  --weights 32 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 48 480 --weights 16 1 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 16 24 240 --weights 32 16 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 32 12 120 --weights 64 32 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 64 6 60 --weights 128 64 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 3 108 108 --weights 64 3 3 3 --filter 1 1 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 54 54 --weights 64 64 3 3 --filter 1 1 1 1 
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 27 27 --weights 128 128 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 14 14 --weights 256 128 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 7 7 --weights 512 256 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 3 224 224 --weights 64 3 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 112 112 128 --weights 64 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 56 56 --weights 256 128 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 512 256 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 7 7 --weights 512 512 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 3 224 224 --weights 64 3 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 64 112 112 128 --weights 64 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 128 56 56 --weights 256 128 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 256 28 28 --weights 512 256 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 14 14 --weights 512 512 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 7 7 --weights 512 512 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 3 224 224 --weights 64 3 7 7 --filter 3 3 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 192 5 5 --filter 2 2 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 14 14 --weights 48 512 5 5 --filter 2 2 1 1 
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 832 5 5 --filter 2 2 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 192 1 1 --filter 0 0 1 1 
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 14 14 --weights 48 512 1 1 --filter 0 0 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 832 1 1 --filter 0 0 1 1
+    )
+endif()
 
 if(MLOPEN_TEST_CONV)
     add_test(NAME test_conv_input_1x3x32x32_weights_1x3x7x7_filter_1_1_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 32, 32 --weights 1, 3, 7, 7 --filter 1, 1, 1, 1)
