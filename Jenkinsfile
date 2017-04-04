@@ -6,8 +6,7 @@ parallel opencl: {
                 mkdir build
                 cd build
                 CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
-                make tidy 2>&1 | tee tidy_out
-                ! grep -q "warning:" tidy_out
+                make tidy
             '''
         }
         stage('Clang Debug') {
@@ -54,8 +53,8 @@ def rocmtest(variant, body) {
     }
     node('rocmtest') {
         stage("checkout ${variant}") {
-            env.HCC_SERIALIZE_KERNEL=3
-            env.HCC_SERIALIZE_COPY=3
+            // env.HCC_SERIALIZE_KERNEL=3
+            // env.HCC_SERIALIZE_COPY=3
             env.HSA_ENABLE_SDMA=0
             // env.HSA_ENABLE_INTERRUPT=0
             checkout scm
