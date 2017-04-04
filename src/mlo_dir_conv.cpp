@@ -16,6 +16,8 @@
 // to share code with between CPU and GPU
 
 #define MLOPEN
+
+#include <cmath>
 #include <mlopen/gcn_asm_utils.h>
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
@@ -27,7 +29,7 @@
 
 static int mloLg2(int v)
 {
-	int ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
+	auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
 	return(ret);
 }
 
@@ -186,7 +188,7 @@ bool mloFindConfigReq(
 	ret = false;
 	for (it = req_conf_db.begin(); it != req_conf_db.end(); ++it)
 	{
-		if (!(*it).compare(conf_key))
+		if (*it == conf_key)
 		{
 			ret = true;
 			break;
@@ -344,7 +346,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	{
 		return(mloConstructDirect2D1x1());
 	}
-	else
 #endif
 	if (unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
@@ -1040,9 +1041,9 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 	int ALU_EXTENT_X = (_out_width + read_unit - 1) / read_unit;
-	int LG2ALU_EXTENT_X = static_cast<int>(std::ceil(std::log(ALU_EXTENT_X) / std::log(2)));
+	auto LG2ALU_EXTENT_X = static_cast<int>(std::ceil(std::log(ALU_EXTENT_X) / std::log(2)));
 	int ALU_EXTENT_Y = (GRP_SZ >> LG2ALU_EXTENT_X);
-	int LG2ALU_EXTENT_Y = static_cast<int>(std::ceil(std::log(ALU_EXTENT_Y) / std::log(2)));
+	auto LG2ALU_EXTENT_Y = static_cast<int>(std::ceil(std::log(ALU_EXTENT_Y) / std::log(2)));
 
 	// the wave is logical is a unit of shareing weights in SGPRs
 	// it cannot be less than HW_WAVE_SIZE = 64
@@ -1393,11 +1394,11 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		n_in_stacks = ((_batch_sz / 2) * 2 == _batch_sz) ? 2 : 1;  // n of input batches
 	}
 	int n_proc_supertiles = n_in_stacks; // n of prosessing groups
-	int lg2n_proc_supertiles = static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::log(2)));
+	auto lg2n_proc_supertiles = static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::log(2)));
 	int n_out_stacks = 1; // n of output sets
 	int n_proc_supertile0 = ((n_in_stacks > 1) ? 32 : 16) / _kernel_stride0; // n  processor in process supertile
 	int n_proc_supertile1 = ((n_in_stacks > 1 && (_kernel_size1 >= 11 || _kernel_size0 >= 11)) ? 32 : 16) / n_in_stacks;
-	int lg2n_proc_supertile1 = static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
+	auto lg2n_proc_supertile1 = static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
 	int ocl_group_sz0 = n_proc_supertile0;
 	int ocl_group_sz1 = n_proc_supertile1 * n_proc_supertiles;
 	int ocl_group_sz2 = 1;
@@ -1763,7 +1764,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		int data_len = (_out_data_type == "FP32" ? 4 : 8);
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 	}
 
@@ -1972,7 +1973,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		int data_len = (_out_data_type == "FP32" ? 4 : 8);
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 	}
 
@@ -2164,7 +2165,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		int data_len = (_out_data_type == "FP32" ? 4 : 8);
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 	}
 
@@ -2187,10 +2188,10 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		if ((_kernel_size0 == 3 && _kernel_size1 == 3) && (_out_width < 8 && _out_height < 8))
 		{
 			ret = mloConstruct3x3();
-		}
-		else 
+		}  
+		else
 #endif
-			if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+		if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
 		{
 			ret = mloConstruct53();
 		}
@@ -2983,7 +2984,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 											exchange_step = std::min(std::min(exchange_step, _n_out_pix_tiles), N_MAPS_PERGROUP);
 											if (exchange_step < _n_out_pix_tiles)
 											{
-												int tmp_stp = static_cast<int>(ceil(sqrt(static_cast<float>(exchange_step))));
+												auto tmp_stp = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(exchange_step))));
 												n_in_tiles_rg[0] = tmp_stp;
 												n_in_tiles_rg[1] = exchange_step;
 											}

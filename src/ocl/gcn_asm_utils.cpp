@@ -12,7 +12,7 @@
 #include <sys/wait.h>
 #endif // !WIN32
 
-static std::string CleanupPath(const char * const p);
+static std::string CleanupPath(const char * p);
 static int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out);
 
 #ifndef WIN32
@@ -199,7 +199,7 @@ int ExecuteGcnAssembler(std::vector<std::string>& args, std::istream* clang_stdi
 }
 
 static
-std::string CleanupPath(const char * const p)
+std::string CleanupPath(const char * p)
 {
     std::string path(p);
     static const char bad[] = "!#$*;<>?@\\^`{|}";
