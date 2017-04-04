@@ -237,10 +237,11 @@ __kernel void MLOpenCvBwdWrW(
 	int lcl_id = get_local_id(0);
 
 
-	int c_idx_base = get_group_id(1); // input map index base
+	int c_idx_base = get_group_id(0); // input map index base
 
-	int o_idx_base = iDiv(get_group_id(2), (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS))); // output map index base
-	int ib_base = iMod(get_group_id(2), o_idx_base, (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS)));
+	int o_idx_base = get_group_id(1); // output map index base
+
+	int ib_base = get_group_id(2);
 
 	int ib = ib_base*MLO_N_LCL_BATCHS;
 

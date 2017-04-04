@@ -273,44 +273,45 @@ void moveOutputUp(__private _FLOAT * __restrict top_dat)
 }
 
 __attribute__((always_inline))
-void spanRightSiding5x5(int k, int top_df_off, int j, _FLOAT mask, __private _FLOAT * __restrict top_dat, __global const _FLOAT * __restrict top_df)
-{
-	int i = 0;
-	int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j *MLO_IN_TILE0;
-	for (; i < MLO_OUT_N_PIXS_OFF; ++i)
-	{
-		top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
-#if DBG_OUT_OF_RNGE
-		if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
-		{
-			printf("k:err:out-of-range\n");
-		}
-#endif
-	}
-	for (; i < MLO_IN_TILE0; ++i)
-	{
-		top_dat[pvt_off + i] = 0;
-	}
-
-
-}
 
 __attribute__((always_inline))
-void spanReadingOutput(int k, int j, int top_df_off, _FLOAT mask,
+void spanReadingOutput(int spn, int k, int j, int top_df_off, _FLOAT mask,
 	__private _FLOAT * __restrict top_dat, const __global _FLOAT * __restrict top_df)
 {
 	int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j *MLO_IN_TILE0;
-	for (int i = 0; i < MLO_IN_TILE0
-		; ++i)
+#if MLO_OUT_N_PIXS_OFF > 0
+	if (spn == MLO_N_SPANS_PER_SCAN - 1)
 	{
-		top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
-#if DBG_OUT_OF_RNGE
-		if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+		int i = 0;
+		for (; i < MLO_OUT_N_PIXS_OFF; ++i)
 		{
-			printf("k:err:out-of-range\n");
+			top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
+#if DBG_OUT_OF_RNGE
+			if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+			{
+				printf("k:err:out-of-range\n");
+			}
+#endif
 		}
+		for (; i < MLO_IN_TILE0; ++i)
+		{
+			top_dat[pvt_off + i] = 0;
+		}
+	}
+	else
+#endif
+	{
+		for (int i = 0; i < MLO_IN_TILE0; ++i)
+		{
+			top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
+#if DBG_OUT_OF_RNGE
+			if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+			{
+				printf("k:err:out-of-range\n");
+			}
 #endif
 			
+		}
 	}
 }
 
@@ -362,10 +363,12 @@ __kernel void MLOpenCvBwdWrW(
 	__local _FLOAT * lcl_bot = lcl;
 
 	int lcl_id = get_local_id(0);
-	int c_idx_base = get_group_id(1); // input map index base
 
-	int o_idx_base = iDiv(get_group_id(2), (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS))); // output map index base
-	int ib_base = iMod(get_group_id(2), o_idx_base, (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS)));
+	int c_idx_base = get_group_id(0); // input map index base
+
+	int o_idx_base = get_group_id(1);// output map index base
+
+	int ib_base = get_group_id(2);
 
 	int ib = ib_base*(MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS);
 
@@ -454,20 +457,8 @@ __kernel void MLOpenCvBwdWrW(
 				mask = (j < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
 
-// 5x5 out of range
-#if MLO_OUT_N_PIXS_OFF > 0
-				if (spn == MLO_N_SPANS_PER_SCAN - 1)
-				{
-
-					spanRightSiding5x5(k, top_df_off, j, mask, top_dat, top_df);
-
-				}
-				else
-#endif
-				{
-					spanReadingOutput(k, j, top_df_off, mask,
+					spanReadingOutput(spn, k, j, top_df_off, mask,
 						top_dat, top_df);
-				}
 
 			}
 		}
@@ -505,19 +496,8 @@ __kernel void MLOpenCvBwdWrW(
 				top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
 				mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
-				// move in the last output scans
-// out of range
-#if MLO_OUT_N_PIXS_OFF > 0
-				if (spn == MLO_N_SPANS_PER_SCAN - 1)
-				{
-					spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
-				}
-				else
-#endif
-				{
-					spanReadingOutput(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+					spanReadingOutput(spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
 						top_dat, top_df);
-				}
 
 			}
 
@@ -557,19 +537,9 @@ __kernel void MLOpenCvBwdWrW(
 					top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
 					mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
-					// out of range
-#if MLO_OUT_N_PIXS_OFF > 0
-					if (spn == MLO_N_SPANS_PER_SCAN - 1)
-					{
-						spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
-					}
-					else
-#endif
-					{
-						spanReadingOutput(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+						spanReadingOutput(spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
 							top_dat, top_df);
 
-					}
 
 				}
 
@@ -592,8 +562,7 @@ __kernel void MLOpenCvBwdWrW(
 			barrier(CLK_LOCAL_MEM_FENCE);
 // read 1 scan line less
 // padding processing takes care of the bottom border.
-// TO DD: verify it with 5x5 
-            // do need sync with the real read: non intersecting areas.
+
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
 
             readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
@@ -601,8 +570,6 @@ __kernel void MLOpenCvBwdWrW(
 			// point to the start of the local buffer
 
 			sc_lcl_off = lcl_bot_off;
-
-			barrier(CLK_LOCAL_MEM_FENCE);
 
 			for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1
 				; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
@@ -617,19 +584,8 @@ __kernel void MLOpenCvBwdWrW(
 					top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
 					mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
-					// move in the last output scans
-					// 5x5 out of range
-#if MLO_OUT_N_PIXS_OFF > 0
-					if (spn == MLO_N_SPANS_PER_SCAN - 1)
-					{
-						spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
-					}
-					else
-#endif
-					{
-						spanReadingOutput(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+						spanReadingOutput(spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
 							top_dat, top_df);
-					}
 
 				}
 
@@ -642,12 +598,8 @@ __kernel void MLOpenCvBwdWrW(
 			}
 		}
 
-
-
-
 		// epilog 
 		// handling padding
-		// pad0/1
 
 		for (; sc < MLO_OUT_HEIGHT; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
@@ -715,7 +667,6 @@ __kernel void MLOpenCvBwdWrW(
 					}
 				}
 
-//				barrier(CLK_LOCAL_MEM_FENCE);
 			}
 		}
 	}
