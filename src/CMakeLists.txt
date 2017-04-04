@@ -138,6 +138,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		ocl/tensorocl.cpp
 		ocl/softmaxocl.cpp
 		ocl/utilocl.cpp
+		ocl/gcn_asm_utils.cpp
 		pooling.cpp
         ${PROJECT_BINARY_DIR}/db.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
