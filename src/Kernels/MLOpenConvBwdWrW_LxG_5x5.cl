@@ -193,6 +193,22 @@ void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLO
 	}
 
 }
+
+__attribute__((always_inline))
+void moveOutputUp(__private _FLOAT * __restrict top_dat)
+{
+	// move up output to reduce overfetch
+		for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
+		{
+			for (int i = 0; i < MLO_IN_TILE0; ++i)
+			{
+				int pvt_off_n = j *MLO_IN_TILE0 + i;
+				int pvt_off_o = (j + 1) *MLO_IN_TILE0 + i;
+				top_dat[pvt_off_n] = top_dat[pvt_off_o];
+			}
+		}
+}
+
 /*********************************************************************************************************
 // wrw algorithm for large filters
 // idea:
@@ -319,7 +335,7 @@ __kernel void MLOpenCvBwdWrW(
 		{
 			int top_df_off = gbl_out_scan_off;
 			_FLOAT mask = 1;
-#if MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
+#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
 			top_df_off = (j < MLO_OUT_HEIGHT) ? top_df_off : 0;
 			mask = (j < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
@@ -369,27 +385,24 @@ __kernel void MLOpenCvBwdWrW(
 
 		int sc = 0;
 		int sc_lcl_off = lcl_bot_off;
-// pad0
+		// prolog
+		// handling padding
 
-		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
-		sc++;
-		sc_lcl_off += MLO_IN_LCL_WIDTH;
-
-
-// pad1
-		Processing(sc, sc_lcl_off, MLO_FILTER_PAD1 + 1, 0, pvt_accum, lcl_bot, top_dat);
-		sc++;
-		sc_lcl_off += MLO_IN_LCL_WIDTH;
+		// top padding 
+		for (; sc < MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		{
+			Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
+		}
 
 // generic loop
 
-		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		for (; sc < MLO_IN_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
 
 			int top_df_off = gbl_out_scan_off;
 			_FLOAT mask = 1;
 
-#if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
+#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
 			top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
 			mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
@@ -434,46 +447,22 @@ __kernel void MLOpenCvBwdWrW(
 			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
 
 // move up output to reduce overfetch
-			for (int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
-			{
-				for (int i = 0; i < MLO_IN_TILE0; ++i)
-				{
-					top_dat[j*MLO_IN_TILE0 + i] = top_dat[(j+1)*MLO_IN_TILE0 + i];
-				}
-			}
+
+			moveOutputUp(top_dat);
+		} // for (; sc < MLO_IN_HEIGHT - MLO_FILTER_PAD1; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
 
 
-		}
 
-// epilog 
-// handling padding
-// pad1
-		for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		for (; sc < MLO_IN_HEIGHT; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
 
 
-			  // processing
-			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, MLO_FILTER_PAD1 - 1, pvt_accum, lcl_bot, top_dat);
-			  // move up output
-			for (int j = 0; j < MLO_FILTER_SIZE1 - 2; ++j)
-			{
-				for (int i = 0; i < MLO_IN_TILE0; ++i)
-				{
-					top_dat[j*MLO_IN_TILE0 + i] = top_dat[(j + 1)*MLO_IN_TILE0 + i];
-				}
-			}
-
-
-		} // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 1; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
-
-
-
-// pad0
-		for (; sc < MLO_OUT_HEIGHT; ++sc,sc_lcl_off += MLO_IN_LCL_WIDTH)
-		{
 			// processing
-			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, MLO_FILTER_PAD1, pvt_accum, lcl_bot, top_dat);
-		} // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 2; ++sc, gbl_out_scan_off += MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
+			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, (MLO_FILTER_PAD1 + 1 - (MLO_IN_HEIGHT - sc)), pvt_accum, lcl_bot, top_dat);
+			moveOutputUp(top_dat);
+
+
+		} // for (; sc < MLO_IN_HEIGHT)
 
 
 	} // 	for (int b = 0;
