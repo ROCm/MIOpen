@@ -724,8 +724,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
 
 bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2f1() const
 {
-    const auto dev = mlopen::GetDevice(_stream->GetStream());
-    const std::string name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(dev);
+    const std::string name = _stream->GetDeviceName();
     const bool device_is_gfx8_no_xnack = (name == "gfx800"
                                        || name == "gfx802"
                                        || name == "gfx803"
