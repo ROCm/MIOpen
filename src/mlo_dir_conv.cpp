@@ -277,6 +277,10 @@ int mlo_construct_direct2D::mloConstruct()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
 				return (mloConstructAsmDirect3x3U(is_ocl_rocm_metadata_v10));
 			}
+			if (mloIsCorrectAsmDirect5x10u2v2f1()
+				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2f1())) {
+				return (mloConstructAsmDirect5x10u2v2f1(is_ocl_rocm_metadata_v10));
+			}
 		}
 	}
 #endif
@@ -716,6 +720,100 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
                  : "conv3x3_m21.s";
     _kernel_name = "gcnAsmConv3x3U";
 
+    return 0;
+}
+
+bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2f1() const
+{
+    const std::string name = _stream->GetDeviceName();
+    const bool device_is_gfx8_no_xnack = (name == "gfx800"
+                                       || name == "gfx802"
+                                       || name == "gfx803"
+                                       || name == "gfx804");
+    if (!device_is_gfx8_no_xnack) {
+        return false;
+    }
+    if (!isForwardDirection()){
+        return false;
+    }
+    assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+
+    // Min image + padding shall be not smaller than filter matrix.
+    const int min_in_width  = _kernel_size0 - _pad0*2;
+    const int min_in_height	= _kernel_size1 - _pad1*2;
+    // These two found experimentally.
+    const int max_in_width  = 8192 - 1;
+    const int max_in_height	= 131077 - 1;
+
+    return                                      // Opt. Param   Restrictions in source
+           _pad0            >= 0                // -q   pad_w   // [0..5] for now FIXME
+        && _pad0            <= 5                //
+        && _pad1            >= 0                // -p   pad_h   // [0..5] for now FIXME
+        && _pad1            <= 5                //
+        && _kernel_stride0  == 2                // -u   inp_u   fixed
+        && _kernel_stride1  == 2                // -v   inp_v   fixed
+        && _kernel_size0    == 10               // -x   wei_w   fixed
+        && _kernel_size1    == 5                // -y   wei_h   fixed
+        && _n_inputs        >= 1                // -c   wei_c   no upper limit
+        && _n_outputs % 16  == 0                // -k   wei_k   no upper limit
+        && _n_outputs       >= 1
+        && _in_width        >= min_in_width     // -W   inp_w
+        && _in_width        <= max_in_width
+        && _in_height       >= min_in_height    // -H   inp_h
+        && _in_height       <= max_in_height
+        && _in_layout       == "NCHW";          //              hardcoded
+        // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+}
+
+bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2f1() const
+{
+    // Finding problem configs where this kernel shows bad performance
+    // (i.e. worse than its OpenCL counterpart) seems to be a multi-dimensional
+    // task which is hardly possible to implement. Basically, this kernel
+    // tends to become slower than OpenCL one when H/W is big (several hundreds)
+    // and H is small.
+    return true;
+}
+
+
+static inline int AlignUp(int val, unsigned step)
+{
+    assert(step > 0);
+    return ((val + step - 1) / step) * step;
+}
+
+
+int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10)
+{
+    const int out_w = (_in_width  + _pad0*2 + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
+    const int out_h = (_in_height + _pad1*2 + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
+
+    std::ostringstream options;
+    GenerateClangDefsym(options, "inp_h", _in_height);
+    GenerateClangDefsym(options, "inp_w", _in_width);
+    GenerateClangDefsym(options, "wei_c", _n_inputs);
+    GenerateClangDefsym(options, "wei_k", _n_outputs);
+    GenerateClangDefsym(options, "wei_layout", 0); //0: KCHW, 1: CKHW
+    GenerateClangDefsym(options, "pad_w", _pad0);
+    GenerateClangDefsym(options, "pad_h", _pad1);
+    if (!is_metadata_v10) {
+        GenerateClangDefsym(options, "ROCM_METADATA_V2", 1);
+    }
+    _comp_options = options.str();
+
+    _l_wk.clear();
+    _l_wk.push_back(64);
+    _l_wk.push_back(8);
+    _l_wk.push_back(1);
+
+    // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
+    _g_wk.clear();
+    _g_wk.push_back(AlignUp(out_w, 64));
+    _g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(_n_outputs / 2, 8));
+    _g_wk.push_back(_batch_sz);
+
+    _kernel_file = "conv5x10u2v2f1.s";
+    _kernel_name = "conv5x10u2v2f1";
     return 0;
 }
 

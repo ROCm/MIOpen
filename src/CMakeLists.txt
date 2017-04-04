@@ -115,6 +115,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MLOpenConvFFT.cl
 		Kernels/conv3x3_m10.s
 		Kernels/conv3x3_m21.s
+		Kernels/conv5x10u2v2f1.s
 		Kernels/MLOpenTensorKernels.cl
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
