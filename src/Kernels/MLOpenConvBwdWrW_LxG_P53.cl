@@ -458,7 +458,7 @@ __kernel void MLOpenCvBwdWrW(
 				// loop around all output maps
 				int top_df_off = gbl_out_scan_off1 + j*MLO_OUT_STRIDE;
 				_FLOAT mask = 1;
-#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT
+#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
 				top_df_off = (j < MLO_OUT_HEIGHT) ? top_df_off : 0;
 				mask = (j < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
@@ -498,7 +498,7 @@ __kernel void MLOpenCvBwdWrW(
 				int top_df_off = gbl_out_scan_off + k*MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
 				_FLOAT mask = 1;
 
-#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT
+#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
 				top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
 				mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
