@@ -728,6 +728,11 @@ protected:
 	bool mloIsFastAsmDirect3x3U() const;
 	int  mloConstructAsmDirect3x3U(bool is_metadata_v10);
 
+
+	bool mloIsCorrectAsmDirect5x10u2v2f1() const;
+	bool mloIsFastAsmDirect5x10u2v2f1() const;
+	int  mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10);
+
 	int mloConstructDirect2DFwdC();
 	int mloConstructDirect2D1x1();
 	int mloConstructDirect2D3x3();
