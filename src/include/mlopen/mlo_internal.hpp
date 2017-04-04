@@ -716,16 +716,18 @@ protected:
 	int mloConstructDirect2DFwd();
 
 #if MLOPEN_BACKEND_OPENCL
-	bool mloIsAmdOpenclRocm(bool &is_metadata_v10) const;
+	enum rocm_meta_version { V1, V2, V3 };
+
+	bool mloIsAmdOpenclRocm(rocm_meta_version &rmv) const;
 	bool mloExperimentalValidateAssemblerPath(const char* path) const;
 
 	bool mloIsCorrectBinaryWinograd3x3Fwd() const;
 	bool mloIsFastBinaryWinograd3x3Fwd() const;
-	int  mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v10);
+	int  mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv);
 
 	bool mloIsCorrectAsmDirect3x3U() const;
 	bool mloIsFastAsmDirect3x3U() const;
-	int  mloConstructAsmDirect3x3U(bool is_metadata_v10);
+	int  mloConstructAsmDirect3x3U(rocm_meta_version rmv);
 #endif
 
 	int mloConstructDirect2DFwdC(void);
