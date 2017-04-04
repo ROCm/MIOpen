@@ -1930,9 +1930,9 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		_l_wk.push_back(grp_tile2);
 		// input is output
 
-		size_t gbl_wk0 = GRP_SZ;
-		size_t gbl_wk1 = (_n_outputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
-		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps) * n_batch_blks;
+		size_t gbl_wk0 = GRP_SZ * ((_n_outputs + _n_in_data_tiles - 1) / _n_in_data_tiles);
+		size_t gbl_wk1 = ((_n_inputs + total_out_maps - 1) / total_out_maps);
+		size_t gbl_wk2 =  n_batch_blks;
 
 
 		_g_wk.clear();
@@ -2179,7 +2179,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 	_workspce_sz = 0;
 	size_t localMemSize = 64 * 1024;
 
-    if (((_kernel_size0>=_kernel_size1) && (_kernel_stride0 > 1 || _kernel_stride1 > 1 || _in_width > 64)) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
+    if (((_kernel_size0>=_kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 >= 5 && _in_width >=64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
 	{
 		ret = mloConstruct2();
 	}
