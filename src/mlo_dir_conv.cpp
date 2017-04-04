@@ -16,7 +16,9 @@
 // to share code with between CPU and GPU
 
 #define MLOPEN
+
 #include <cmath>
+#include <mlopen/gcn_asm_utils.h>
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
 #include <mlopen/env.hpp>
@@ -266,9 +268,8 @@ int mlo_construct_direct2D::mloConstruct()
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
 	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 	{
-		const auto asm_path = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
 		const auto use_assembly = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
-								  && mloExperimentalValidateAssemblerPath(asm_path);
+								  && ValidateGcnAssembler();
 		// See comment in mlo_construct_winograd::mloConstruct().
 		const auto no_perf_filtering = mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_assembly) {
