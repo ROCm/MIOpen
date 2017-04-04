@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 AMD Inc.
+ * Copyright (c) 2017 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -173,10 +173,9 @@ void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLO
 					// each wk-item process an input
 					+= bot_val * top_val;
 #if 0
-				if (/*bot_val * top_val != 0 && */get_global_id(1) == 0 && get_global_id(2) == 0 /*&& get_local_id(0) == 0*/ && l == 2 && n == 1)
+				if (bot_val * top_val != 0 && get_global_id(1) == 0 && get_global_id(2) == 0 && get_local_id(0) == 0 && l == 1 && n == 2)
 				{
-					printf("G: %d %d %d  %f %f %f %f\n",
-						MLO_OUT_N_PIXS_OFF,
+					printf("G: %d %d  %f %f %f %f\n",
 						sc,
 						sc_lcl_off,
 						pvt_accum[l*MLO_FILTER_SIZE0 + n],
@@ -289,11 +288,6 @@ __kernel void MLOpenCvBwdWrW(
 	{
 		lcl[i] = 0;
 	}
-
-//	barrier(CLK_LOCAL_MEM_FENCE);
-
-
-
 
 
 	// over all batches
@@ -485,12 +479,13 @@ __kernel void MLOpenCvBwdWrW(
 	} // 	for (int b = 0;
 
 
-	barrier(CLK_LOCAL_MEM_FENCE);
 
 
 // final summation over each filter row
 	for (int l = 0; l < MLO_FILTER_SIZE1; ++l)
 	{
+		barrier(CLK_LOCAL_MEM_FENCE);
+
 		for (int n = 0; n < MLO_FILTER_SIZE0; ++n)
 		{
 			lcl[lcl_id * MLO_FILTER_SIZE0 + n] =
@@ -514,7 +509,6 @@ __kernel void MLOpenCvBwdWrW(
 			}
 		}
 
-		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
 // output 
