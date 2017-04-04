@@ -198,8 +198,11 @@ void Handle::Finish() const
     hipEventRecord(ev.get(), this->GetStream());
     while(hipEventQuery(ev.get()) == hipErrorNotReady)
     {
-        if ((std::chrono::system_clock::now()-start) > std::chrono::seconds(60))
-            MLOPEN_THROW("timeout"); 
+        if ((std::chrono::system_clock::now()-start) > std::chrono::seconds(60)) 
+        {
+            std::cerr << "Timeout" << std::endl;
+            std::abort();
+        }
     }
 #else
     auto status = hipStreamSynchronize(this->GetStream());
