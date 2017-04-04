@@ -1825,7 +1825,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int in_lcl_width = ((_in_width + read_unit - 1) / read_unit) * read_unit + 2 * _pad0;
 	// number of input map blocks being process at once
 	// param
-	int in_n_vert_reads = (_in_height > 32 && _in_width <= 64 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? (_in_height + 1) / 2 : _in_height;
+	int in_n_vert_reads = (_out_height > 32 && _out_width <= 64 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? (_out_height + 1) / 2 : _out_height;
 	while (in_lcl_width * in_n_vert_reads * _n_in_data_tiles > (_dev_local_mem_sz/(2*sizeof(float))))
 	{
 		in_n_vert_reads = (in_n_vert_reads + 1)/2;
@@ -1940,7 +1940,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
+		_kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1 && _pad1 == 2) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
 		_kernel_name = "MLOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -1955,7 +1955,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	{
 
 
-		std::string kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
+		std::string kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1 && _pad1 == 2) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
 		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
@@ -2179,7 +2179,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 	_workspce_sz = 0;
 	size_t localMemSize = 64 * 1024;
 
-    if (((_kernel_size0>=_kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 >= 5 && _in_width >=64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
+    if (((_kernel_size0>=_kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >=64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
 	{
 		ret = mloConstruct2();
 	}
