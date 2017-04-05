@@ -103,7 +103,7 @@ __kernel void MLOpenCvD3x3_WSR0(
 	__private _FLOAT pvt_accum[MLO_N_LCL_OUT_MAPS * MLO_OUT_TILE1*MLO_OUT_TILE0];
 
 	int grp_input_id = get_group_id(0); // tile id inside the input map
-	int grp_gbl_offset = (grp_input_id == 0) ? 0 : (grp_input_id*MLO_OUT_EXTENT1 - 1)*MLO_IN_STRIDE;
+	int grp_gbl_offset = (grp_input_id == 0) ? 0 : (grp_input_id*MLO_OUT_EXTENT1 - MLO_FILTER_PAD1)*MLO_IN_STRIDE;
 	int gpr_lcl_off = (grp_input_id != 0) ? MLO_FILTER_PAD0 : MLO_IN_LCL_WIDTH*MLO_FILTER_PAD1 + MLO_FILTER_PAD0;
 
 	int lcl_id1;
@@ -113,8 +113,10 @@ __kernel void MLOpenCvD3x3_WSR0(
 	gpr_lcl_off += lcl_id1*MLO_IN_LCL_WIDTH;
 
 
-	int n_vert_reads = (MLO_OUT_EXTENT1 + 2 * MLO_FILTER_PAD1);
-	n_vert_reads -= (grp_input_id == 0 || grp_input_id == get_num_groups(0) - 1) ? 1 : 0;
+
+	int n_vert_reads = (grp_input_id == 0)? (MLO_OUT_EXTENT1 + MLO_FILTER_PAD1) :  (MLO_OUT_EXTENT1 + 2 * MLO_FILTER_PAD1);
+	n_vert_reads = (grp_input_id == (get_num_groups(0) - 1)) ? (MLO_IN_HEIGHT - grp_input_id*MLO_OUT_EXTENT1 + MLO_FILTER_PAD1) : n_vert_reads;
+
 
 // output
 	int o_block = get_group_id(1);
@@ -138,16 +140,10 @@ __kernel void MLOpenCvD3x3_WSR0(
 	grp_gbl_offset += b_base * MLO_IN_BATCH_STRIDE;
 
 // padding
-// ATT: padding == 1
-	for (uint i = lcl_id; i < MLO_IN_LCL_WIDTH; i+=MLO_GRP_SZ)
+
+	for (uint i = lcl_id; i < MLO_IN_LCL_WIDTH * (MLO_OUT_EXTENT1 + 2 * MLO_FILTER_PAD1); i+=MLO_GRP_SZ)
 	{
 		in_lcl[i] = 0;
-		in_lcl[i + MLO_IN_LCL_WIDTH * (MLO_OUT_EXTENT1 + MLO_FILTER_PAD1)] = 0;
-	}
-	for (uint i = lcl_id; i < (MLO_OUT_EXTENT1 + 2 * MLO_FILTER_PAD1); i += MLO_GRP_SZ)
-	{
-		in_lcl[i*MLO_IN_LCL_WIDTH] = 0;
-		in_lcl[(i+1)*MLO_IN_LCL_WIDTH - 1] = 0;
 	}
 
 
