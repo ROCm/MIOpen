@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 AMD Inc.
+ * Copyright (c) 2011 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -32,13 +32,15 @@
 
 #define _LEN_OF_TYPE            MLO_READ_UNIT
 
-static inline int iDiv(int v, int d)
+__attribute__((always_inline))
+int iDiv(int v, int d)
 {
 	int r = (int)((float)v / d + 0.00001f);
 	return(r);
 }
 
-static inline int iMod(int v, int u, int d)
+__attribute__((always_inline))
+int iMod(int v, int u, int d)
 {
 	int r = v - mul24((int)u, (int)d);
 	return(r);
@@ -50,23 +52,23 @@ Layout:
 
 */
 
-__kernel void MLOpenConv1x1PS(
-       const __global _FLOAT * restrict in_ptr,
-       const __global _FLOAT * restrict wei_ptr,
+__kernel void MLOpenConv1x1(
+       const __global _FLOAT * __restrict in_ptr,
+       const __global _FLOAT * __restrict wei_ptr,
 #if MLO_CONV_BIAS
-       const __global _FLOAT * bias,
+       const __global _FLOAT * __restrict bias,
 #endif
- 	  __global _FLOAT *out_ptr,
+ 	  __global _FLOAT * __restrict out_ptr,
 	   _FLOAT dummy_val // nothing
 	   )
 {
 // KERNEL
 // private buffers
-	__private MLO_READ_TYPE in_stage[MLO_N_LCL_BATCHS][MLO_N_LCL_IN_MAPS];
+	__private _FLOAT in_stage[MLO_N_LCL_BATCHS][MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
 	__private _FLOAT wei_stage;
-	__private MLO_READ_TYPE out_tiles[MLO_N_LCL_BATCHS][MLO_N_LCL_OUT_MAPS];
+	__private _FLOAT out_tiles[MLO_N_LCL_BATCHS][MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
 #if MLO_N_MAPS_PERGROUP > 1
-	__local MLO_READ_TYPE lcl_out_stage[MLO_MAP_SZ4*MLO_EXCHANGE_STEP * MLO_N_MAPS_PERGROUP];
+	__local  _FLOAT lcl_out_stage[MLO_MAP_SZ4*MLO_EXCHANGE_STEP * MLO_N_MAPS_PERGROUP * MLO_READ_UNIT];
 
 #endif
 
@@ -78,9 +80,9 @@ __kernel void MLOpenConv1x1PS(
 	int out_block = out_grp_block;
 	int batch_block = get_group_id(2); // block of batchs
 // multipe maps per group
-//#if MLO_N_MAPS_PERGROUP > 1
+
 	pix_id = (pix_id - in_map_id * MLO_MAP_SZ4);  // pixel inside map
-//#endif
+
 	int in_map_off_id = (in_map_id >= MLO_N_MAPS_PERGROUP) ? MLO_N_MAPS_PERGROUP - 1 : in_map_id;
 
 	int in_off = batch_block * MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE
@@ -98,7 +100,10 @@ __kernel void MLOpenConv1x1PS(
 	{
 		for (int i = 0; i < MLO_N_LCL_OUT_MAPS; ++i)
 		{
-			out_tiles[j][i] = 0;
+			for (int k = 0; k < MLO_READ_UNIT; ++k)
+			{
+				out_tiles[j][i][k] = 0;
+			}
 		}
 	}
 // over all input maps; with step == MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP; MLO_IN_LOOP
@@ -127,7 +132,10 @@ __kernel void MLOpenConv1x1PS(
 			{
 				// read data
 
-				in_stage[ib][ilc] = 0;
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					in_stage[ib][ilc][i] = 0;
+				}
 
 
 				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
@@ -136,16 +144,20 @@ __kernel void MLOpenConv1x1PS(
 					// if the last one
 					if (pix_id == MLO_MAP_SZ4 - 1)
 					{
-						for (int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
+
+						for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 						{
-							((_FLOAT*)&in_stage[ib][ilc])[j] = in_ptr[in_off2 + j];
+							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
 						}
 					}
 					else
 
 #endif
 					{
-						in_stage[ib][ilc] = *(__global MLO_READ_TYPE*)&in_ptr[in_off2];
+						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						{
+							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
+						}
 					}
 				}
 
@@ -187,24 +199,10 @@ __kernel void MLOpenConv1x1PS(
 				wei_stage = (wei_off2 < MLO_N_INPUTS * MLO_N_OUTPUTS) ? wei_stage : 0;
 				for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 				{
-					out_tiles[ib][olc] += in_stage[ib][ilc] * (MLO_READ_TYPE)wei_stage;
-#if 0
-					if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && in_map_id == 0 && pix_id == 0 && olc == 0 && ib == 0)
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
 					{
-						printf("k:c: %d %d %d %d %d  %11.10f %11.10f %f %f\n",
-							c,
-							wei_off2,
-							in_map_off_id,
-							olc,
-							ilc,
-							out_tiles[ib][olc].s0,
-							in_stage[ib][ilc].s0 * wei_stage,
-							in_stage[ib][ilc].s0,
-							wei_stage
-							);
+						out_tiles[ib][olc][i] += in_stage[ib][ilc][i] * wei_stage;
 					}
-#endif
-
 				}
 			}
 		}
@@ -238,8 +236,11 @@ __kernel void MLOpenConv1x1PS(
 			{
 				for (int om = 0; om < MLO_EXCHANGE_STEP; ++om)
 				{
-					lcl_out_stage[om * MLO_MAP_SZ4*MLO_N_MAPS_PERGROUP + in_map_id*MLO_MAP_SZ4 + pix_id]
-						= out_tiles[ib][t + om];
+					int lcl_off = (om * MLO_MAP_SZ4*MLO_N_MAPS_PERGROUP + in_map_id*MLO_MAP_SZ4 + pix_id) * MLO_READ_UNIT;
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+						lcl_out_stage[lcl_off + i] = out_tiles[ib][t + om][i];
+					}
 				}
 
 			}
@@ -250,14 +251,20 @@ __kernel void MLOpenConv1x1PS(
 			// in_map_id now is an index of the output map
 			if (in_map_id < MLO_EXCHANGE_STEP)
 			{
-				MLO_READ_TYPE sum = 0;
+				_FLOAT sum[MLO_READ_UNIT];
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					sum[i] = 0;
+				}
 				for (int s = 0; s < MLO_N_MAPS_PERGROUP; ++s)
 				{
 					int imp = in_map_id + s;
 					imp = (imp >= MLO_N_MAPS_PERGROUP) ? imp - MLO_N_MAPS_PERGROUP : imp;
-					int lcl_off = in_map_id* MLO_MAP_SZ4*MLO_N_MAPS_PERGROUP // output map offset
-						+ s*MLO_MAP_SZ4 + pix_id;
-					sum += lcl_out_stage[lcl_off];
+					int lcl_off = (in_map_id* MLO_MAP_SZ4*MLO_N_MAPS_PERGROUP + imp*MLO_MAP_SZ4 + pix_id) * MLO_READ_UNIT;
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+						sum[i] += lcl_out_stage[lcl_off + i];
+					}
 				}
 
 
@@ -281,14 +288,18 @@ __kernel void MLOpenConv1x1PS(
 #if MLO_CONV_BIAS
 					bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
-#if !MLO_DIVBY4
+#if MLO_C1x1_PIXLEFT > 0
 
 					// if the last one
 					if (pix_id == MLO_MAP_SZ4 - 1)
 					{
-						for (int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
+						for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 						{
-							out_ptr[out_off2 + j] = ((_FLOAT*)&sum)[j] + bias_val;
+							out_ptr[out_off2 + i] = sum[i]
+#if MLO_CONV_BIAS
+								+ bias_val
+#endif
+								;
 
 						}
 
@@ -297,26 +308,15 @@ __kernel void MLOpenConv1x1PS(
 #endif
 					{
 
-						*((__global MLO_READ_TYPE*)&out_ptr[out_off2]) = (sum + (MLO_READ_TYPE)bias_val);
-					}
-
-
-#if 0
-					if (get_group_id(0) == 0 && get_group_id(1) == 0  && get_group_id(2) == 0 && in_map_id == 0 && pix_id == 0 && olc == 0 && ib ==0)
-					{
-						printf("k:o: %d %d %d %d %d %d   %11.10f %f %11.10f\n",
-							out_off2,
-							get_group_id(0),
-							get_group_id(1),
-							in_map_id,
-							pix_id,
-							olc,
-							out_ptr[out_off2],
-							((_FLOAT*)&sum)[0],
-							bias_val
-							);
-					}
+						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						{
+							out_ptr[out_off2 + i] = sum[i]
+#if MLO_CONV_BIAS
+								+ bias_val
 #endif
+								;
+						}
+					}
 
 				} //if (true
 
@@ -355,14 +355,18 @@ __kernel void MLOpenConv1x1PS(
 #if MLO_CONV_BIAS
 			bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
-#if !MLO_DIVBY4
+#if MLO_C1x1_PIXLEFT > 0
 
 			// if the last one
 			if (pix_id == MLO_MAP_SZ4 - 1)
 			{
-				for (int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
+				for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 				{
-					out_ptr[out_off2 + j] = ((_FLOAT*)&out_tiles[ib][olc])[j] + bias_val;
+					out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+#if MLO_CONV_BIAS
+						+ bias_val
+#endif
+						;
 
 				}
 
@@ -370,28 +374,16 @@ __kernel void MLOpenConv1x1PS(
 			else
 #endif
 			{
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
 
-				*((__global MLO_READ_TYPE*)&out_ptr[out_off2]) = (out_tiles[ib][olc] + (MLO_READ_TYPE)bias_val);
-			}
-
-
-#if 0
-			if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && in_map_id == 0 && pix_id == 0 && olc == 0)
-			{
-				printf("k:o: %d %d %d %d %d %d   %11.10f %f %11.10f\n",
-					out_off2,
-					get_group_id(0),
-					get_group_id(1),
-					in_map_id,
-					pix_id,
-					olc,
-					out_ptr[out_off2],
-					((_FLOAT*)&out_tiles[ib][olc])[0],
-					bias_val
-					);
-			}
+					out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+#if MLO_CONV_BIAS
+						+ bias_val
 #endif
-
+						;
+				}
+			}
 		}
 
 	}
