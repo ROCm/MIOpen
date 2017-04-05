@@ -97,7 +97,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #endif
 
-typedef std::tuple<const std::string, const std::string, const std::string, const std::vector<size_t>, const std::vector<size_t>> mlo_kernel_info;
+using mlo_kernel_info = std::tuple<const std::string, const std::string, const std::string, const std::vector<size_t>, const std::vector<size_t>>;
 
 #if MLOPEN_BACKEND_OPENCL
 #include <mlopen/oclkernel.hpp>
@@ -302,7 +302,7 @@ public:
 	* std::vector<size_t> _l_wk;
 	*/
 
-	inline const std::vector<mlo_kernel_info> & getKernelsInfo(void) const
+	inline const std::vector<mlo_kernel_info> & getKernelsInfo() const
 	{
 		return(_mlo_kernels_info);
 	}
@@ -393,8 +393,8 @@ public:
 	{
 		_kernel_size0 = width;
 		_kernel_size1 = height;
-		int data_len = (!data_type.compare("FP32") ? 4 : 8);
-		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+		int data_len = (data_type == "FP32" ? 4 : 8);
+		size_t size = (layout == "NCHW") ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 		_weights_sz = size;
 	}
 
@@ -416,8 +416,8 @@ public:
 							)
 	{
 		_batch_sz = batch;
-		int data_len = (!data_type.compare("FP32") ? 4 : 8);
-		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+		int data_len = (data_type == "FP32" ? 4 : 8);
+		size_t size = (layout == "NCHW") ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 		if (_direction)
 		{
 
@@ -466,8 +466,8 @@ public:
 							)
 	{
 		_batch_sz = batch;
-		int data_len = (!data_type.compare("FP32") ? 4 : 8);
-		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+		int data_len = (data_type == "FP32" ? 4 : 8);
+		size_t size = (layout == "NCHW") ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 		if (_direction)
 		{
 
@@ -518,8 +518,8 @@ public:
 		)
 	{
 		_batch_sz = batch;
-		int data_len = (!data_type.compare("FP32") ? 4 : 8);
-		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+		int data_len = (data_type == "FP32" ? 4 : 8);
+		size_t size = (layout == "NCHW") ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
 			_out_width = width;
 			_out_height = height;
@@ -552,8 +552,8 @@ public:
 		)
 	{
 		_batch_sz = batch;
-		int data_len = (!data_type.compare("FP32") ? 4 : 8);
-		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+		int data_len = (data_type == "FP32" ? 4 : 8);
+		size_t size = (layout == "NCHW") ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
 			_in_width = width;
 			_in_height = height;
@@ -586,8 +586,8 @@ public:
 		)
 	{
 		_batch_sz = batch;
-		int data_len = (!data_type.compare("FP32") ? 4 : 8);
-		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+		int data_len = (data_type == "FP32" ? 4 : 8);
+		size_t size = (layout == "NCHW") ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
 		_out_df_width = width;
 		_out_df_height = height;
@@ -619,8 +619,8 @@ public:
 		)
 	{
 		_batch_sz = batch;
-		int data_len = (!data_type.compare("FP32") ? 4 : 8);
-		size_t size = (!layout.compare("NCHW")) ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+		int data_len = (data_type == "FP32" ? 4 : 8);
+		size_t size = (layout == "NCHW") ? batch  * depth*height*width * data_len : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
 		_in_df_width = width;
 		_in_df_height = height;
@@ -728,11 +728,16 @@ protected:
 	bool mloIsFastAsmDirect3x3U() const;
 	int  mloConstructAsmDirect3x3U(bool is_metadata_v10);
 
-	int mloConstructDirect2DFwdC(void);
-	int mloConstructDirect2D1x1(void);
-	int mloConstructDirect2D3x3(void);
-	int mloConstructDirect2DFwdGen(void);
-	int mloConstructDirect2D_11x11(void);
+
+	bool mloIsCorrectAsmDirect5x10u2v2f1() const;
+	bool mloIsFastAsmDirect5x10u2v2f1() const;
+	int  mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10);
+
+	int mloConstructDirect2DFwdC();
+	int mloConstructDirect2D1x1();
+	int mloConstructDirect2D3x3();
+	int mloConstructDirect2DFwdGen();
+	int mloConstructDirect2D_11x11();
 
 	int mloConstructBwd()
 	{
@@ -888,7 +893,7 @@ protected:
 
 	size_t _workspce_sz;
 
-	unsigned int _n_groups;
+	unsigned int _n_groups{};
 };
 
 

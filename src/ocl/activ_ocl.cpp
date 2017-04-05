@@ -89,9 +89,9 @@ mlopenStatus_t ActivationDescriptor::Forward(
 
 	int imode = mode;
 	construct_params.getNeuronDescr(imode, activ_power, activ_beta, activ_alpha);
-	float f_activ_alpha = static_cast<float>(activ_alpha);
-	float f_activ_beta = static_cast<float>(activ_beta);
-	float f_activ_power = static_cast<float>(activ_power);
+	auto f_activ_alpha = static_cast<float>(activ_alpha);
+	auto f_activ_beta = static_cast<float>(activ_beta);
+	auto f_activ_power = static_cast<float>(activ_power);
 
 	handle.GetKernel("mlopenActivationForward",
 			network_config,
@@ -239,9 +239,9 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 
-	float f_activ_alpha = static_cast<float>(GetAlpha());
-	float f_activ_beta = static_cast<float>(GetBeta());
-	float f_activ_power = static_cast<float>(GetPower());
+	auto f_activ_alpha = static_cast<float>(GetAlpha());
+	auto f_activ_beta = static_cast<float>(GetBeta());
+	auto f_activ_power = static_cast<float>(GetPower());
 	float f_diff_scale = f_activ_beta * f_activ_power;
 
 	handle.GetKernel("mlopenActivationBackward",
