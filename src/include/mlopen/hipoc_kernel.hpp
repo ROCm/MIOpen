@@ -11,7 +11,7 @@
 namespace mlopen {
 
 using HipEventPtr = MLOPEN_MANAGE_PTR(hipEvent_t, hipEventDestroy);
-HipEventPtr make_hip_event()
+inline HipEventPtr make_hip_event()
 {
     hipEvent_t result = nullptr;
     hipEventCreate(&result);
