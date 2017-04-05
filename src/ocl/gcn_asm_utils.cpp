@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdio>
+#include  <cctype>
 
 #ifndef WIN32
 #include <ext/stdio_filebuf.h>
