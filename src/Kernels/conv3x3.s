@@ -1046,8 +1046,27 @@ loop_end:
 .Lfunc_end0:
     .size gcnAsmConv3x3U, .Lfunc_end0 - gcnAsmConv3x3U
 
-.section .note
-.ifdef ROCM_METADATA_V2
+.ifndef ROCM_METADATA_VERSION
+.error "ROCM_METADATA_VERSION must be defined"
+.endif
+.if ROCM_METADATA_VERSION == 3
+.amdgpu_code_object_metadata
+{ Version: [ 3, 0 ],
+    Kernels:
+    - { Name: gcnAsmConv3x3U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        Args:
+        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
+        - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
+        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
+        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
+        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
+      }
+}
+.end_amdgpu_code_object_metadata
+.endif
+.if ROCM_METADATA_VERSION == 2
 .amdgpu_runtime_metadata
 { amd.MDVersion: [ 2, 1 ],
     amd.Kernels:
@@ -1063,7 +1082,9 @@ loop_end:
       }
 }
 .end_amdgpu_runtime_metadata
-.else
+.endif
+.if ROCM_METADATA_VERSION == 1
+.section .note
     // old ROCm metadata
     .long 4
     .long .Lmeta_end - .Lmeta_begin

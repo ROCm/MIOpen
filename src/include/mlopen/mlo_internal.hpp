@@ -708,30 +708,29 @@ public:
 	size_t setInputDescFromMLDesc(const mlopen::TensorDescriptor &input_tensor);
 	size_t setOutputDescFromMLDesc(const mlopen::TensorDescriptor &output_tensor);
 	size_t setWeightDescFromMLDesc(const mlopen::TensorDescriptor &weight_tensor);
+
 protected:
-
-
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
 
+	enum rocm_meta_version { V1, V2, V3 };
 #if MLOPEN_BACKEND_OPENCL
-	bool mloIsAmdOpenclRocm(bool &is_metadata_v10) const;
+	bool mloIsAmdOpenclRocm(rocm_meta_version &rmv) const;
 	bool mloExperimentalValidateAssemblerPath(const char* path) const;
 #endif
 
 	bool mloIsCorrectBinaryWinograd3x3Fwd() const;
 	bool mloIsFastBinaryWinograd3x3Fwd() const;
-	int  mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v10);
+	int  mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv);
 
 	bool mloIsCorrectAsmDirect3x3U() const;
 	bool mloIsFastAsmDirect3x3U() const;
-	int  mloConstructAsmDirect3x3U(bool is_metadata_v10);
-
+	int  mloConstructAsmDirect3x3U(rocm_meta_version rmv);
 
 	bool mloIsCorrectAsmDirect5x10u2v2f1() const;
 	bool mloIsFastAsmDirect5x10u2v2f1() const;
-	int  mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10);
+	int  mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rmv);
 
 	int mloConstructDirect2DFwdC();
 	int mloConstructDirect2D1x1();
