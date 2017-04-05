@@ -49,6 +49,16 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
 	find_package( OpenCL REQUIRED )
+	find_program(AMDGCN_ASSEMBLER
+		NAMES clang
+		PATHS ${MLOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
+		PATH_SUFFIXES /opencl/bin/x86_64
+		NO_DEFAULT_PATH
+	)
+	if(AMDGCN_ASSEMBLER)
+		add_definitions(-DMLOPEN_AMDGCN_ASSEMBLER="${AMDGCN_ASSEMBLER}")
+	endif()
+	message(STATUS "AMDGCN assembler: ${AMDGCN_ASSEMBLER}")
 endif()
 # HCC
 if( MLOPEN_BACKEND STREQUAL "HCC")
@@ -72,24 +82,33 @@ if( MLOPEN_BACKEND STREQUAL "HIPOC")
 	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIPOC=1 )
-	find_program(HIP_OC_COMPILER aoc2
-		PATH_SUFFIXES
-			bin
-			bin/x86_64
-			x86_64
+	find_program(HIP_OC_COMPILER clang-ocl
+		PATHS /opt/rocm
 	)
-	find_program(HIP_OC_FINALIZER amdhsafin
-		PATH_SUFFIXES
-			bin
-			bin/x86_64
-			x86_64
-	)
-	message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
-	message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
-	find_package(hip)
+	if(HIP_OC_COMPILER)
+		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
+		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
+	else()
+		find_program(HIP_OC_COMPILER aoc2
+			PATH_SUFFIXES
+				bin
+				bin/x86_64
+				x86_64
+		)
+		find_program(HIP_OC_FINALIZER amdhsafin
+			PATH_SUFFIXES
+				bin
+				bin/x86_64
+				x86_64
+		)
+		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
+		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
+		message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
+		add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
+	endif()
+	
+	find_package(hip PATHS /opt/rocm)
 	link_libraries(stdc++)
-	add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
-	add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
 endif()
 message( STATUS "${MLOPEN_BACKEND} backend selected." )
 
@@ -105,8 +124,10 @@ option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 option( BUILD_DEV "Build for development only" OFF)
 
 if(BUILD_DEV)
+	add_definitions(-DMLOPEN_BUILD_DEV=1)
 	set(MLOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
 else()
+	add_definitions(-DMLOPEN_BUILD_DEV=0)
 	set(MLOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/share/mlopen/db" CACHE PATH "Default path to search for db")
 endif()
 
@@ -117,34 +138,41 @@ enable_clang_tidy(
 	CHECKS 
 		*
 		-cert-err60-cpp
+		# Yea we shouldn't be using rand()
+		-cert-msc30-c
+		-cert-msc50-cpp
 		-clang-analyzer-alpha.core.CastToStruct
-		# Disable this because of a false-positive in gemm_geometry.cpp
-		-clang-analyzer-alpha.deadcode.UnreachableCode
-		# Disable this because it doesn't recognize clean up in the destructor
-		-clang-analyzer-alpha.unix.Stream
 		-clang-analyzer-optin.performance.Padding
 		-clang-diagnostic-deprecated-declarations
 		-clang-diagnostic-extern-c-compat
 		-cppcoreguidelines-pro-bounds-array-to-pointer-decay
 		-cppcoreguidelines-pro-bounds-constant-array-index
 		-cppcoreguidelines-pro-bounds-pointer-arithmetic
+		-cppcoreguidelines-pro-type-member-init
 		-cppcoreguidelines-pro-type-reinterpret-cast
 		-cppcoreguidelines-pro-type-union-access
 		-cppcoreguidelines-pro-type-vararg
+		-cppcoreguidelines-special-member-functions
 		-google-explicit-constructor
 		-google-readability-braces-around-statements
 		-google-readability-todo
 		-google-runtime-int
 		-google-runtime-references
+		-llvm-header-guard
 		-llvm-include-order
 		-misc-macro-parentheses
 		-misc-misplaced-const
+		-misc-misplaced-widening-cast
 		-modernize-loop-convert
 		-modernize-pass-by-value
+		-modernize-use-default-member-init
+		-modernize-use-emplace
+		-modernize-use-equals-default
 		-performance-unnecessary-value-param
 		-readability-braces-around-statements
 		-readability-else-after-return
 		-readability-implicit-bool-cast
+		-readability-misleading-indentation
 		-readability-named-parameter
 	ERRORS
 		*

@@ -6,9 +6,14 @@
 
 namespace mlopen {
 
-static const std::map<std::string, std::string> kernels{
-	${INIT_KERNELS}
-};
+const std::map<std::string, std::string>& kernels()
+{
+    static const std::map<std::string, std::string> data{
+    	${INIT_KERNELS}
+    };
+    return data;
+}
+
 
 std::string GetKernelSrc(std::string name)
 {
@@ -21,7 +26,7 @@ std::string GetKernelSrc(std::string name)
     }
 
     int len = name.size();
-    auto ex = name.rfind(".");
+    auto ex = name.rfind('.');
     if (ex != std::string::npos)
     {
         len = ex - start;
@@ -31,8 +36,8 @@ std::string GetKernelSrc(std::string name)
     // Convert to uppercase
     std::transform(key.begin(), key.end(), key.begin(), ::toupper);
 
-    auto it = kernels.find(key);
-    if (it == kernels.end()) MLOPEN_THROW("Failed to load kernel source: " + key);
+    auto it = kernels().find(key);
+    if (it == kernels().end()) MLOPEN_THROW("Failed to load kernel source: " + key);
 
     return it->second;
 }
