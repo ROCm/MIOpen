@@ -714,8 +714,8 @@ protected:
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
 
-#if MLOPEN_BACKEND_OPENCL
 	enum rocm_meta_version { V1, V2, V3 };
+#if MLOPEN_BACKEND_OPENCL
 	bool mloIsAmdOpenclRocm(rocm_meta_version &rmv) const;
 	bool mloExperimentalValidateAssemblerPath(const char* path) const;
 #endif
