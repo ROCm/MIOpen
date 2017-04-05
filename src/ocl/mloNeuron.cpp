@@ -15,9 +15,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 ********************************************************************/
 // to share code with between CPU and GPU
 
-//#define MLOPEN
-#include <mlopen/mlo_internal.hpp>
-#include <mlopen/mlo_utils.hpp>
+//#define MIOPEN
+#include <miopen/mlo_internal.hpp>
+#include <miopen/mlo_utils.hpp>
 
 int mlo_construct_neuron::mloConstruct()
 {
@@ -60,8 +60,8 @@ int mlo_construct_neuron::mloConstruct()
 	_g_wk.push_back(1);
 
 
-	_kernel_file = "MLOpenNeuron.cl";
-	_kernel_name = (isForwardDirection()) ? "MLOpenNeuronFwd" : "MLOpenNeuronBwd";
+	_kernel_file = "MIOpenNeuron.cl";
+	_kernel_name = (isForwardDirection()) ? "MIOpenNeuronFwd" : "MIOpenNeuronBwd";
 
 
 	return(ret);

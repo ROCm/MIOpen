@@ -1,17 +1,17 @@
-#ifndef GUARD_MLOPEN_DRIVER_HPP
-#define GUARD_MLOPEN_DRIVER_HPP
+#ifndef GUARD_MIOPEN_DRIVER_HPP
+#define GUARD_MIOPEN_DRIVER_HPP
 
 #include <cstdio>
 #include <vector>
 #include <cstdlib>
-#include <mlopen.h>
+#include <miopen.h>
 #include "InputFlags.hpp"
 #include <algorithm>
 #include <float.h>
 #include <memory>
 #include <numeric>
 
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
@@ -19,7 +19,7 @@
 #include <CL/cl.h>
 #endif
 
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 #include <hip/hip_runtime_api.h>
 
 #define printf(...) fprintf(stdout, __VA_ARGS__)
@@ -30,7 +30,7 @@
 
 struct GPUMem {
 
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	GPUMem() {};
 	GPUMem(cl_context &ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz) {	buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz*sz, NULL, NULL); }
 
@@ -46,7 +46,7 @@ struct GPUMem {
 	size_t sz;
 	size_t data_sz;
 
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 
 	GPUMem() {};
 	GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz) {	hipMalloc((void**)&buf, data_sz*sz); }
@@ -96,18 +96,18 @@ class Driver
 {
 	public:
 	Driver() {
-		mlopenCreate(&handle);
-		mlopenGetStream(handle, &q);
+		miopenCreate(&handle);
+		miopenGetStream(handle, &q);
 	}
 
-	mlopenHandle_t GetHandle() { return handle; }
-#if MLOPEN_BACKEND_OPENCL
+	miopenHandle_t GetHandle() { return handle; }
+#if MIOPEN_BACKEND_OPENCL
 	cl_command_queue& GetStream() { return q; }
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 	hipStream_t& GetStream() { return q; }
 #endif
 	virtual ~Driver() {
-		mlopenDestroy(handle);
+		miopenDestroy(handle);
 	}
 
 	// TODO: add timing APIs
@@ -123,12 +123,12 @@ class Driver
 
 	protected:
 
-	mlopenHandle_t handle;
-#if MLOPEN_BACKEND_OPENCL
+	miopenHandle_t handle;
+#if MIOPEN_BACKEND_OPENCL
 	cl_command_queue q;
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 	hipStream_t q;
 #endif
 };
 
-#endif // GUARD_MLOPEN_DRIVER_HPP
+#endif // GUARD_MIOPEN_DRIVER_HPP

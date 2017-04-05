@@ -1,8 +1,8 @@
 #ifndef GUARD_FORD_HPP
 #define GUARD_FORD_HPP
 
-#include <mlopen/returns.hpp>
-#include <mlopen/each_args.hpp>
+#include <miopen/returns.hpp>
+#include <miopen/each_args.hpp>
 #include <functional>
 #include <algorithm>
 #include <numeric>
@@ -96,7 +96,7 @@ struct ford_impl
 };
 
 template<class... Ts>
-auto ford(Ts... xs) MLOPEN_RETURNS
+auto ford(Ts... xs) MIOPEN_RETURNS
 (
     std::bind(ford_impl{}, std::placeholders::_1, xs...)
 );
@@ -119,13 +119,13 @@ struct par_ford_impl
             {
                 return (i / stride) % len;
             });
-            mlopen::unpack(f, indices);
+            miopen::unpack(f, indices);
         });
     }
 };
 
 template<class... Ts>
-auto par_ford(Ts... xs) MLOPEN_RETURNS
+auto par_ford(Ts... xs) MIOPEN_RETURNS
 (
     std::bind(par_ford_impl{}, std::placeholders::_1, xs...)
 );

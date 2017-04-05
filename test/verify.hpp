@@ -6,9 +6,9 @@
 #include <cmath>
 #include <iostream>
 #include <functional>
-#include <mlopen/returns.hpp>
+#include <miopen/returns.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 // Compute the value of a range
 template<class R>
@@ -20,21 +20,21 @@ using common_type = typename std::common_type<Ts...>::type;
 struct sum_fn
 {
     template<class T, class U>
-    auto operator()(T x, U y) const MLOPEN_RETURNS(x + y);
+    auto operator()(T x, U y) const MIOPEN_RETURNS(x + y);
 };
 static constexpr sum_fn sum{};
 
 struct max_fn
 {
     template<class T, class U>
-    auto operator()(T x, U y) const MLOPEN_RETURNS(x > y ? x : y);
+    auto operator()(T x, U y) const MIOPEN_RETURNS(x > y ? x : y);
 };
 static constexpr max_fn max{};
 
 struct abs_diff_fn
 {
     template<class T, class U>
-    auto operator()(T x, U y) const MLOPEN_RETURNS(std::fabs(x - y));
+    auto operator()(T x, U y) const MIOPEN_RETURNS(std::fabs(x - y));
 };
 
 static constexpr abs_diff_fn abs_diff{};
@@ -101,7 +101,7 @@ bool range_empty(R1&& r1)
 }
 
 template<class R1>
-auto range_distance(R1&& r1) MLOPEN_RETURNS
+auto range_distance(R1&& r1) MIOPEN_RETURNS
 (std::distance(r1.begin(), r1.end()));
 
 template<class R1>

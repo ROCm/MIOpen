@@ -1,6 +1,6 @@
-#include <mlopen/oclkernel.hpp>
+#include <miopen/oclkernel.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 #ifndef NDEBUG
 static std::string DimToFormattedString(const size_t* dims, size_t count)
@@ -40,7 +40,7 @@ void OCLKernelInvoke::run() const
 	clFlush(queue);
 
 	if (status != CL_SUCCESS) {
-		MLOPEN_THROW_CL_STATUS(status, "Running kernel failed: ");
+		MIOPEN_THROW_CL_STATUS(status, "Running kernel failed: ");
 	}
 	else if (callback) {
 		clFinish(queue);
@@ -61,7 +61,7 @@ std::string OCLKernelInvoke::GetName() const
 
 	if (status != CL_SUCCESS)
 	{
-		MLOPEN_THROW_CL_STATUS(status, "Error getting kernel name");
+		MIOPEN_THROW_CL_STATUS(status, "Error getting kernel name");
 	}
 	return buffer.data();
 }
@@ -90,10 +90,10 @@ std::string OCLKernel::GetName() const
 
 	if(status != CL_SUCCESS) 
 	{
-		MLOPEN_THROW_CL_STATUS(status, "Error getting kernel name");
+		MIOPEN_THROW_CL_STATUS(status, "Error getting kernel name");
 	}
 	return buffer.data();
 }
 
-} // namespace mlopen
+} // namespace miopen
 

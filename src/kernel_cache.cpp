@@ -15,13 +15,13 @@
  * ************************************************************************ */
 
 
-#include <mlopen/kernel_cache.hpp>
-#include <mlopen/errors.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/errors.hpp>
 
 #include <iostream>
 #include <iterator>
 
-namespace mlopen {
+namespace miopen {
 
 #ifndef NDEBUG
 static void dump_kernel_params(const std::string& program_name,
@@ -75,7 +75,7 @@ Kernel KernelCache::GetKernel(const std::string& algorithm,
 	}
 	else
 	{
-        MLOPEN_THROW("looking for default kernel (does not exist): " + algorithm + ", " + network_config);
+        MIOPEN_THROW("looking for default kernel (does not exist): " + algorithm + ", " + network_config);
 	}
 }
 
@@ -125,4 +125,4 @@ Kernel KernelCache::GetKernel(Handle &h,
 KernelCache::KernelCache()
 {}
 
-} // namespace mlopen
+} // namespace miopen

@@ -1,15 +1,15 @@
-#include <mlopen/pooling.hpp>
-#include <mlopen/mlo_internal.hpp>
-#include <mlopen/kernel_cache.hpp>
+#include <miopen/pooling.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/kernel_cache.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& tensorDesc) const
 {
 	return tensorDesc.GetElementSize() * sizeof(int16_t);
 }
 
-mlopenStatus_t PoolingDescriptor::Forward(
+miopenStatus_t PoolingDescriptor::Forward(
 		Handle								&handle,
 		const void							* /*alpha*/,
 		const TensorDescriptor				&xDesc,
@@ -62,7 +62,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
 	if (((hIn * wIn) > std::numeric_limits<uint16_t>::max()) && do_backward) {
-		MLOPEN_THROW("Height and width to large to do backwards");
+		MIOPEN_THROW("Height and width to large to do backwards");
 	}
 
 	construct_params.setBotDescr(
@@ -77,11 +77,11 @@ mlopenStatus_t PoolingDescriptor::Forward(
 			hInStride,
 			wInStride);
 
-	if (mode == mlopenPoolingMax && do_backward && workSpace == nullptr)
+	if (mode == miopenPoolingMax && do_backward && workSpace == nullptr)
 	{
 		throw std::invalid_argument("workSpace cannot be NULL in Forward Pooling MAX mode when backward pass is requested");
 	}
-	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+	int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
 	construct_params.doBackward(do_backward);
@@ -98,7 +98,7 @@ mlopenStatus_t PoolingDescriptor::Forward(
 	const std::vector<size_t> & vld = construct_params.getLocalWkSize();
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
-	handle.GetKernel("mlopenPooling2dDForward",
+	handle.GetKernel("miopenPooling2dDForward",
 		"",
 		program_name,
 		kernel_name,
@@ -106,10 +106,10 @@ mlopenStatus_t PoolingDescriptor::Forward(
 		vgd,
 		parms)(x, y, workSpace);
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
-mlopenStatus_t PoolingDescriptor::Backward(
+miopenStatus_t PoolingDescriptor::Backward(
 		Handle								&handle,
 		const void							* /*alpha*/,
 		const TensorDescriptor				&yDesc,
@@ -124,7 +124,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 		ConstData_t						workSpace) const {
 
 
-	mlopenStatus_t status = mlopenStatusSuccess;
+	miopenStatus_t status = miopenStatusSuccess;
 	mlo_construct_pooling2D construct_params(0); // backward
 
 	construct_params.setStream(&handle);
@@ -214,7 +214,7 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
 	if (((hIn * wIn) > std::numeric_limits<uint16_t>::max())) {
-		MLOPEN_THROW("Height and width to large to do backwards");
+		MIOPEN_THROW("Height and width to large to do backwards");
 	}
 
 	construct_params.setBotDescr(
@@ -229,14 +229,14 @@ mlopenStatus_t PoolingDescriptor::Backward(
 			hInStride,
 			wInStride);
 
-	if (mode == mlopenPoolingMax && workSpace == nullptr)
+	if (mode == miopenPoolingMax && workSpace == nullptr)
 	{
 		throw std::invalid_argument("workSpace cannot be NULL in Backward Pooling MAX mode");
 	}
-	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+	int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 	construct_params.setPoolingDescr(pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
-	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
+	status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
 
 	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
@@ -249,11 +249,11 @@ mlopenStatus_t PoolingDescriptor::Backward(
 	const std::vector<size_t> & vgd = construct_params.getGlobalWkSize();
 
 	// Compile the kernel if not aleady compiled
-	auto k = handle.GetKernel("mlopenPooling2dBackward", "", program_name, kernel_name, vld, vgd, parms);
+	auto k = handle.GetKernel("miopenPooling2dBackward", "", program_name, kernel_name, vld, vgd, parms);
 
 	// Set kernel arguments
 	// Use proper arguments
-	if(mode == mlopenPoolingMax)
+	if(mode == miopenPoolingMax)
 	{
 		k(dy, dx, workSpace);
 	}
@@ -264,4 +264,4 @@ mlopenStatus_t PoolingDescriptor::Backward(
 
 	return(status);
 }
-} // namespace mlopen
+} // namespace miopen

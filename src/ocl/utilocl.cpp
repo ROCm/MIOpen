@@ -1,8 +1,8 @@
-#include <mlopen/util.hpp>
-#include <mlopen/kernel_cache.hpp>
+#include <miopen/util.hpp>
+#include <miopen/kernel_cache.hpp>
 #include <cmath>
 
-namespace mlopen {
+namespace miopen {
 
 float Im2ColGPU(
 		Handle	&handle,
@@ -14,7 +14,7 @@ float Im2ColGPU(
 		const int stride_h, const int stride_w,
 		Data_t col)
 {
-	std::string program_name = "MLOpenUtilKernels.cl";
+	std::string program_name = "MIOpenUtilKernels.cl";
 	std::string kernel_name = "Im2Col";
 
 	std::string params;
@@ -45,7 +45,7 @@ float Im2ColGPU(
 	const std::vector<size_t> vgd {global_threads, 1, 1};
 
 
-	handle.GetKernel("mlopenIm2Col",
+	handle.GetKernel("miopenIm2Col",
 			"",
 			program_name,
 			kernel_name,
@@ -56,4 +56,4 @@ float Im2ColGPU(
     return handle.GetKernelTime();
 }
 
-} // namespace mlopen
+} // namespace miopen

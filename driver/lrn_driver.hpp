@@ -1,13 +1,13 @@
-#ifndef GUARD_MLOPEN_LRN_DRIVER_HPP
-#define GUARD_MLOPEN_LRN_DRIVER_HPP
+#ifndef GUARD_MIOPEN_LRN_DRIVER_HPP
+#define GUARD_MIOPEN_LRN_DRIVER_HPP
 
 #include <cstdlib>
-#include <mlopen.h>
+#include <miopen.h>
 #include "driver.hpp"
 #include "mloNormHost.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
-#include <mlopen/tensor.hpp>
+#include <miopen/tensor.hpp>
 #include <vector>
 #include <algorithm>
 #include <float.h>
@@ -21,13 +21,13 @@ class LRNDriver : public Driver
 {
 	public:
 	LRNDriver() : Driver() {
-		mlopenCreateTensorDescriptor(&inputTensor);
-		mlopenCreateTensorDescriptor(&outputTensor);
+		miopenCreateTensorDescriptor(&inputTensor);
+		miopenCreateTensorDescriptor(&outputTensor);
 
-		mlopenCreateLRNDescriptor(&lrnDesc);
+		miopenCreateLRNDescriptor(&lrnDesc);
 
-		mlopenCreateTensorDescriptor(&dInputTensor);
-		mlopenCreateTensorDescriptor(&dOutputTensor);
+		miopenCreateTensorDescriptor(&dInputTensor);
+		miopenCreateTensorDescriptor(&dOutputTensor);
 	}
 
 	int AddCmdLineArgs();
@@ -51,17 +51,17 @@ class LRNDriver : public Driver
 	int VerifyForward();
 	~LRNDriver() {
 
-		mlopenDestroyTensorDescriptor(outputTensor);
-		mlopenDestroyTensorDescriptor(inputTensor);
+		miopenDestroyTensorDescriptor(outputTensor);
+		miopenDestroyTensorDescriptor(inputTensor);
 
-		mlopenDestroyLRNDescriptor(lrnDesc);
+		miopenDestroyLRNDescriptor(lrnDesc);
 	}
 
 	private:
 	InputFlags inflags;
 
-	mlopenTensorDescriptor_t inputTensor;
-	mlopenTensorDescriptor_t outputTensor;
+	miopenTensorDescriptor_t inputTensor;
+	miopenTensorDescriptor_t outputTensor;
 
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> out_dev;
@@ -73,10 +73,10 @@ class LRNDriver : public Driver
 	std::vector<T> scale;
 	std::vector<T> scalehost;
 
-	mlopenLRNDescriptor_t lrnDesc;
+	miopenLRNDescriptor_t lrnDesc;
 
-	mlopenTensorDescriptor_t dInputTensor;
-	mlopenTensorDescriptor_t dOutputTensor;
+	miopenTensorDescriptor_t dInputTensor;
+	miopenTensorDescriptor_t dOutputTensor;
 	std::unique_ptr<GPUMem> din_dev;
 	std::unique_ptr<GPUMem> dout_dev;
 
@@ -91,7 +91,7 @@ int LRNDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
 	inflags.Parse(argc, argv);
 
 	if(inflags.GetValueInt("time") == 1) {
-		mlopenEnableProfiling(GetHandle(), true);
+		miopenEnableProfiling(GetHandle(), true);
 	}
 #if 0
 	if(inflags.GetValueInt("back") == 0 && inflags.GetValueStr("mode") == "cross") {
@@ -152,23 +152,23 @@ std::vector<int> LRNDriver<T>::GetInputTensorLengthsFromCmdLine() {
 template<typename T>
 int LRNDriver<T>::SetLRNDescriptorFromCmdLineArgs() {
 
-	mlopenLRNMode_t mode ;
+	miopenLRNMode_t mode ;
 	int lrnN = inflags.GetValueInt("lrnN");
 	double lrnAlpha = inflags.GetValueDouble("alpha");
 	double lrnBeta = inflags.GetValueDouble("beta");
 	double lrnK = inflags.GetValueDouble("lrnK");
 	if((inflags.GetValueStr("mode")) == "within") {
-		mode = mlopenLRNWithinChannel;
+		mode = miopenLRNWithinChannel;
 	}
 	else if((inflags.GetValueStr("mode")) == "cross") {
-		mode = mlopenLRNCrossChannel;
+		mode = miopenLRNCrossChannel;
 	}
 	else {
 		printf("Incorrect LRN Mode\n");
 		exit(0);
 	}
 
-	mlopenSetLRNDescriptor(lrnDesc,
+	miopenSetLRNDescriptor(lrnDesc,
 			mode,
 			lrnN,
 			lrnAlpha,
@@ -181,15 +181,15 @@ template<typename T>
 int LRNDriver<T>::AllocateBuffersAndCopy() {
 
 	size_t workspaceSize = 0;
-	mlopenLRNGetWorkSpaceSize(outputTensor, &workspaceSize);
+	miopenLRNGetWorkSpaceSize(outputTensor, &workspaceSize);
 
 	size_t in_sz = GetTensorSize(inputTensor);
 	size_t out_sz = GetTensorSize(outputTensor);
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 	uint32_t ctx = 0;
 #endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
@@ -221,9 +221,9 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 	for (int i = 0; i < out_sz; i++) {
 		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	cl_int status;
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 	int status;
 #endif
 	status = in_dev->ToGPU(q, in.data());
@@ -239,7 +239,7 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 	if(status != CL_SUCCESS)
 		printf("Error copying data to GPU\n");
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
 template<typename T>
@@ -247,7 +247,7 @@ int LRNDriver<T>::RunForwardGPU() {
 
 	int alpha = 1, beta = 1;
 
-	mlopenLRNForward(GetHandle(),
+	miopenLRNForward(GetHandle(),
 			lrnDesc,
 			&alpha,
 			inputTensor,
@@ -262,7 +262,7 @@ int LRNDriver<T>::RunForwardGPU() {
 	START_TIME;
 
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-	mlopenLRNForward(GetHandle(),
+	miopenLRNForward(GetHandle(),
 			lrnDesc,
 			&alpha,
 			inputTensor,
@@ -276,7 +276,7 @@ int LRNDriver<T>::RunForwardGPU() {
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
-		mlopenGetKernelTime(GetHandle(), &time);
+		miopenGetKernelTime(GetHandle(), &time);
 
 		STOP_TIME;
 		if(WALL_CLOCK)
@@ -290,33 +290,33 @@ int LRNDriver<T>::RunForwardGPU() {
 		scale_dev->FromGPU(GetStream(), scale.data());
 	}
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
 template<typename T>
 int LRNDriver<T>::RunForwardCPU() {
 	int nInStride, cInStride, hInStride, wInStride;
-	mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
+	miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
 	int nIn, cIn, hIn, wIn;
-	mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+	miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
 	int nOutStride, cOutStride, hOutStride, wOutStride;
-	mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
+	miopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
 	int nOut, cOut, hOut, wOut;
-	mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
-	mlopenLRNMode_t	v_mode;
+	miopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+	miopenLRNMode_t	v_mode;
 	unsigned int v_lrnN;
 	double	v_lrnAlpha;
 	double	v_lrnBeta;
 	double	v_lrnK;
 
-	mlopenGetLRNDescriptor(lrnDesc,
+	miopenGetLRNDescriptor(lrnDesc,
 			&v_mode,
 			&v_lrnN,
 			&v_lrnAlpha,
 			&v_lrnBeta,
 			&v_lrnK);
 
-	float alphaoverarea = (float)((v_mode == mlopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
+	float alphaoverarea = (float)((v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
 
 	int pre_pad = (v_lrnN - 1) / 2;
 	int pad = v_lrnN - pre_pad - 1;
@@ -376,7 +376,7 @@ template<typename T>
 int LRNDriver<T>::RunBackwardGPU() {
 	float alpha = 1., beta = 1.;
 
-	mlopenLRNBackward(GetHandle(),
+	miopenLRNBackward(GetHandle(),
 			lrnDesc,
 			&alpha,
 			outputTensor,
@@ -394,7 +394,7 @@ int LRNDriver<T>::RunBackwardGPU() {
 	START_TIME;
 
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-	mlopenLRNBackward(GetHandle(),
+	miopenLRNBackward(GetHandle(),
 			lrnDesc,
 			&alpha,
 			outputTensor,
@@ -411,7 +411,7 @@ int LRNDriver<T>::RunBackwardGPU() {
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
-		mlopenGetKernelTime(GetHandle(), &time);
+		miopenGetKernelTime(GetHandle(), &time);
 
 		STOP_TIME;
 		if(WALL_CLOCK)
@@ -429,7 +429,7 @@ int LRNDriver<T>::VerifyForward() {
 
 	RunForwardCPU();
 
-	auto error = mlopen::rms_range(outhost, out);
+	auto error = miopen::rms_range(outhost, out);
 	const double tolerance = 1e-6;
 	if (error > tolerance)
 	{
@@ -447,37 +447,37 @@ template<typename T>
 int LRNDriver<T>::RunBackwardCPU() {
 
 	int nInStride, cInStride, hInStride, wInStride;
-	mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
+	miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
 	int nIn, cIn, hIn, wIn;
-	mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+	miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
 	int nOutStride, cOutStride, hOutStride, wOutStride;
-	mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
+	miopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
 	int nOut, cOut, hOut, wOut;
-	mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+	miopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
 
 	int ndInStride, cdInStride, hdInStride, wdInStride;
-	mlopenGet4dTensorDescriptorStrides(dInputTensor, &ndInStride, &cdInStride, &hdInStride, &wdInStride);
+	miopenGet4dTensorDescriptorStrides(dInputTensor, &ndInStride, &cdInStride, &hdInStride, &wdInStride);
 	int ndIn, cdIn, hdIn, wdIn;
-	mlopenGet4dTensorDescriptorLengths(dInputTensor, &ndIn, &cdIn, &hdIn, &wdIn);
+	miopenGet4dTensorDescriptorLengths(dInputTensor, &ndIn, &cdIn, &hdIn, &wdIn);
 	int ndOutStride, cdOutStride, hdOutStride, wdOutStride;
-	mlopenGet4dTensorDescriptorStrides(dOutputTensor, &ndOutStride, &cdOutStride, &hdOutStride, &wdOutStride);
+	miopenGet4dTensorDescriptorStrides(dOutputTensor, &ndOutStride, &cdOutStride, &hdOutStride, &wdOutStride);
 	int ndOut, cdOut, hdOut, wdOut;
-	mlopenGet4dTensorDescriptorLengths(dOutputTensor, &ndOut, &cdOut, &hdOut, &wdOut);
+	miopenGet4dTensorDescriptorLengths(dOutputTensor, &ndOut, &cdOut, &hdOut, &wdOut);
 
-	mlopenLRNMode_t	v_mode;
+	miopenLRNMode_t	v_mode;
 	unsigned int v_lrnN;
 	double	v_lrnAlpha;
 	double	v_lrnBeta;
 	double	v_lrnK;
 
-	mlopenGetLRNDescriptor(lrnDesc,
+	miopenGetLRNDescriptor(lrnDesc,
 			&v_mode,
 			&v_lrnN,
 			&v_lrnAlpha,
 			&v_lrnBeta,
 			&v_lrnK);
 
-	float alphaoverarea = (float)((v_mode == mlopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
+	float alphaoverarea = (float)((v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
 
 	int pre_pad = (v_lrnN - 1) / 2;
 	int pad = v_lrnN - pre_pad - 1;
@@ -554,7 +554,7 @@ int LRNDriver<T>::VerifyBackward() {
 
 	RunBackwardCPU();
 
-	auto error = mlopen::rms_range(dinhost, din);
+	auto error = miopen::rms_range(dinhost, din);
 	const double tolerance = 1e-6;
 	if (error > tolerance)
 	{
@@ -568,4 +568,4 @@ int LRNDriver<T>::VerifyBackward() {
 	return 0;
 }
 
-#endif // GUARD_MLOPEN_CONV_DRIVER_HPP
+#endif // GUARD_MIOPEN_CONV_DRIVER_HPP

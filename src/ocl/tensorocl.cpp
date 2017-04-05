@@ -1,10 +1,10 @@
-#include <mlopen/tensor.hpp>
-#include <mlopen/tensor_ops.hpp>
-#include <mlopen/errors.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/errors.hpp>
 #include <algorithm>
 #include <numeric>
 
-namespace mlopen {
+namespace miopen {
 
 void TensorDescriptor::SetTensor(Handle& /* handle */,
 		Data_t							dstTensor,
@@ -12,7 +12,7 @@ void TensorDescriptor::SetTensor(Handle& /* handle */,
 
 	printf("To be implemented (SetTensor) \n");
 	if(valuePtr == nullptr || dstTensor == nullptr) {
-		MLOPEN_THROW(mlopenStatusBadParm);
+		MIOPEN_THROW(miopenStatusBadParm);
 	}
 
 	// Launch kernels using the handle
@@ -34,7 +34,7 @@ void TensorDescriptor::ScaleTensor(Handle& /* handle */,
 
 	printf("To be implemented (ScaleTensor) \n");
 	if(dstTensor == nullptr) {
-		MLOPEN_THROW(mlopenStatusBadParm);
+		MIOPEN_THROW(miopenStatusBadParm);
 	}
 
 
@@ -72,19 +72,19 @@ void AddTensor(Handle&              handle,
 			Data_t                  CTensor) {
 
     if(ATensor == nullptr || CTensor == nullptr) {
-        MLOPEN_THROW(mlopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 
     auto a_lens = aTensorDesc.GetLengths();
     auto c_lens = cTensorDesc.GetLengths();
 
     if(a_lens.size() != c_lens.size()) {
-        MLOPEN_THROW("Number of Tensor dims do not match: " + std::to_string(a_lens.size()) + ", " + std::to_string(c_lens.size()));
+        MIOPEN_THROW("Number of Tensor dims do not match: " + std::to_string(a_lens.size()) + ", " + std::to_string(c_lens.size()));
     }
 
     for(auto i = 0; i < a_lens.size(); i++) {
         if(a_lens[i] != 1 && a_lens[i] != c_lens[i]) {
-            MLOPEN_THROW("ATensor dim != 1 && ATensor dim != CTensor dim: " + std::to_string(i));
+            MIOPEN_THROW("ATensor dim != 1 && ATensor dim != CTensor dim: " + std::to_string(i));
         }
     }
 
@@ -122,7 +122,7 @@ void AddTensor(Handle&              handle,
     std::string parms = " -DFWD_CONV_BIAS=" + std::to_string(fwd_conv_bias) +
                         " -DINCR_WG=" + std::to_string(incr_wg);
 
-    std::string program_name = "MLOpenTensorKernels.cl";
+    std::string program_name = "MIOpenTensorKernels.cl";
     std::string kernel_name = "AddTensor";
 
 	const std::vector<size_t> vld(1, 256);
@@ -149,7 +149,7 @@ void TransformTensor(Handle& /* handle */,
 	printf("To be implemented (TransformTensor) \n");
 
 	if(destTensorDesc == srcTensorDesc) {
-		MLOPEN_THROW(mlopenStatusBadParm);
+		MIOPEN_THROW(miopenStatusBadParm);
 	}
 
 	// Check that output tensors do not overlap .. output tensors cannot be transformed in place .. no aliasing
@@ -167,7 +167,7 @@ void TransformTensor(Handle& /* handle */,
 }
 
 void OpTensor(Handle& /* handle */,
-		mlopenTensorOp_t				 /*tensorOp*/,
+		miopenTensorOp_t				 /*tensorOp*/,
 		const void						* /*alpha1*/,
 		const TensorDescriptor&	inputTensorDesc1,
 		ConstData_t					 /*inputTensor1*/,
@@ -182,7 +182,7 @@ void OpTensor(Handle& /* handle */,
 
 	// inputTensor1 and dstTensor must have same dims
 	if(destTensorDesc.GetLengths() != inputTensorDesc1.GetLengths()) {
-		MLOPEN_THROW(mlopenStatusBadParm);
+		MIOPEN_THROW(miopenStatusBadParm);
 	}
 
 	// input Tensor2 and dstTensor must have same dims or all the dims of
@@ -192,11 +192,11 @@ void OpTensor(Handle& /* handle */,
 		! std::all_of(inputTensorDesc2.GetLengths().begin(), inputTensorDesc2.GetLengths().end(), [](int x) { return x == 1; })
 	) 
 	{
-		MLOPEN_THROW(mlopenStatusBadParm);
+		MIOPEN_THROW(miopenStatusBadParm);
 	}
 	
 	if(destTensorDesc.GetType() != inputTensorDesc1.GetType() && destTensorDesc.GetType() != inputTensorDesc2.GetType()) {
-		MLOPEN_THROW(mlopenStatusBadParm);
+		MIOPEN_THROW(miopenStatusBadParm);
 	}
 
 	// Launch kernels using the handle
@@ -216,11 +216,11 @@ void CopyTensor(Handle &handle,
 		Data_t dest) {
 
 	if(srcDesc.GetElementSize() != destDesc.GetElementSize() || srcDesc.GetType() != destDesc.GetType()) {
-		MLOPEN_THROW(mlopenStatusBadParm);
+		MIOPEN_THROW(miopenStatusBadParm);
 	}
 	size_t srcSize = srcDesc.GetElementSize();
 
 	handle.Copy(src, dest, srcSize*sizeof(srcDesc.GetType()));
 }
 
-} // namespace mlopen
+} // namespace miopen

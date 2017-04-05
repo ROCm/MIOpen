@@ -2,26 +2,26 @@
 #ifndef GUARD_GET_HANDLE_HPP
 #define GUARD_GET_HANDLE_HPP
 
-#include <mlopen/handle.hpp>
+#include <miopen/handle.hpp>
 
-#ifndef MLOPEN_TEST_USE_GLOBAL_HANDLE
-#define MLOPEN_TEST_USE_GLOBAL_HANDLE 1
+#ifndef MIOPEN_TEST_USE_GLOBAL_HANDLE
+#define MIOPEN_TEST_USE_GLOBAL_HANDLE 1
 #endif
 
 
-#if MLOPEN_TEST_USE_GLOBAL_HANDLE
+#if MIOPEN_TEST_USE_GLOBAL_HANDLE
 
-static mlopen::Handle& get_handle()
+static miopen::Handle& get_handle()
 {
-    static mlopen::Handle h{};
+    static miopen::Handle h{};
     return h;
 }
 
 #else
 
-static mlopen::Handle get_handle()
+static miopen::Handle get_handle()
 {
-    return mlopen::Handle{};
+    return miopen::Handle{};
 }
 
 #endif

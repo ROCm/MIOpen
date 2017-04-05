@@ -1,13 +1,13 @@
-#include <mlopen/hipoc_program.hpp>
-#include <mlopen/kernel.hpp>
-#include <mlopen/errors.hpp>
-#include <mlopen/stringutils.hpp>
+#include <miopen/hipoc_program.hpp>
+#include <miopen/kernel.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/stringutils.hpp>
 
 #include <sstream>
 
 #include <unistd.h>
 
-namespace mlopen {
+namespace miopen {
 
 std::string quote(std::string s)
 {
@@ -30,7 +30,7 @@ struct tmp_dir
         std::string cd = "cd " + this->name + "; ";
         std::string cmd = cd + exe + " " + args;// + " > /dev/null";
         // std::cout << cmd << std::endl;
-        if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
+        if (std::system(cmd.c_str()) != 0) MIOPEN_THROW("Can't execute " + cmd);
     }
 
     std::string path(std::string f)
@@ -43,7 +43,7 @@ struct tmp_dir
         if(!name.empty())
         {
             std::string cmd = "rm -rf " + name;
-            if (std::system(cmd.c_str()) != 0) MLOPEN_THROW("Can't execute " + cmd);
+            if (std::system(cmd.c_str()) != 0) MIOPEN_THROW("Can't execute " + cmd);
         }
     }
 };
@@ -53,7 +53,7 @@ void WriteFile(const std::string& content, const std::string& name)
     // std::cerr << "Write file: " << name << std::endl;
     HIPOCProgram::FilePtr f{std::fopen(name.c_str(), "w")};
     if (std::fwrite(content.c_str(), 1, content.size(), f.get()) != content.size()) 
-        MLOPEN_THROW("Failed to write to src file");
+        MIOPEN_THROW("Failed to write to src file");
 }
 
 hipModulePtr CreateModule(const std::string& program_name, std::string params, bool is_kernel_str)
@@ -65,7 +65,7 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
     std::string obj_file = dir.path(filename) + ".obj";
 
     std::string src = is_kernel_str ? program_name : GetKernelSrc(program_name);
-    if (!is_kernel_str && mlopen::EndsWith(program_name, ".so"))
+    if (!is_kernel_str && miopen::EndsWith(program_name, ".so"))
     {
         WriteFile(src, hsaco_file);        
     }
@@ -124,7 +124,7 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
     hipModule_t raw_m;
     auto status = hipModuleLoad(&raw_m, hsaco_file.c_str());
     hipModulePtr m{raw_m};
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed creating module");
+    if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Failed creating module");
     return m;
 }
 
