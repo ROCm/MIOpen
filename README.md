@@ -40,12 +40,13 @@ cmake -DMLOPEN_BACKEND=OpenCL -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_
 
 #### For HIP, run:
 
+Set the C++ compiler to `hcc`.
 ```
 cmake -DMLOPEN_BACKEND=HIPOC -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-installed-path>;<clang-ocl-installed-path>" ..
 ```
 An example cmake step can be:
 ```
-cmake -DMLOPEN_BACKEND_HIPOC -DCMAKE_PREFIX_PATH="/opt/rocm;/opt/rocm/hcc;/opt/rocm/hip" ..
+CXX=/opt/rocm/hcc/bin/hcc cmake -DMLOPEN_BACKEND_HIPOC -DCMAKE_PREFIX_PATH="/opt/rocm;/opt/rocm/hcc;/opt/rocm/hip" ..
 ```
 
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:
@@ -78,21 +79,11 @@ The `ccmake` program is not available on windows.
 
 The library can be built, from the `build` directory using the 'Release' configuration:
 
-```
-cmake --build . --config Release
-```
-Or type,
-
-`make`
+` cmake --build . --config Release ` **OR** ` make `
 
 And can be installed by using the 'install' target:
 
-```
-cmake --build . --config Release --target install
-```
-Or type,
-
-`make install`
+` cmake --build . --config Release --target install ` **OR** ` make install `
 
 This will install the library to the `CMAKE_INSTALL_PREFIX` path that was set. 
 
@@ -102,15 +93,9 @@ MIOpen provides an [application-driver](https://github.com/AMDComputeLibraries/M
 
 Documentation on the driver is [here](https://github.com/AMDComputeLibraries/MLOpen/blob/develop/driver/README.md) 
 
-The driver can be built using the 'MLOpenDriver' target:
+The driver can be built using the `MLOpenDriver` target:
 
-```
-cmake --build . --config Release --target MLOpenDriver
-```
-
-Or type,
-
-`make MLOpenDriver`
+` cmake --build . --config Release --target MLOpenDriver ` **OR** ` make MLOpenDriver `
 
 Then it can be ran using, like so:
 
@@ -122,13 +107,7 @@ Then it can be ran using, like so:
 
 The tests can be run by using the 'check' target:
 
-```
-cmake --build . --config Release --target check
-```
-
-Or type,
-
-`make tests`
+` cmake --build . --config Release --target check ` **OR** ` make tests `
 
 A single test can be built and ran, by doing:
 
