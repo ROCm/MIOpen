@@ -1,16 +1,14 @@
 # MLOpen Driver
 
-The driver enables to test forward/backward of any particular layer in MLOpen. The layers supported right now are Convolution, Pooling and LRN.
+The driver enables to test forward/backward of any particular layer in MIOpen. 
+
 To build the driver, type `make MLOpenDriver` from the `build` directory.
 
-To execute from the build directory: `./driver/MLOpenDriver *base_arg* *layer_specific_args*`
+All the supported layers in MIOpen can be found by the supported `base_args` here:
 
-Base_arg can be one of the following:
-```
-conv  Execute Convolution
-pool  Execute Pooling
-lrn   Execute LRN
-```
+` ./driver MLOpenDriver --help `
+
+To execute from the build directory: `./driver/MLOpenDriver *base_arg* *layer_specific_args*`
 
 Sample runs:
 * Convoluton with search on - 

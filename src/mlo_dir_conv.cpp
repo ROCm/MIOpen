@@ -304,6 +304,7 @@ int mlo_construct_direct2D::mloConstruct()
 		if (!known_config)
 		{
 			if (doSearch())
+
 			{
 				mloSearchDirect2D();
 			}
@@ -1093,13 +1094,13 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
 	if (!isForwardDirection()/* || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256)*/)
 	{
-		_kernel_file = "MLOpenConv1x1PS.cl";
-		_kernel_name = "MLOpenConv1x1PS";
+		_kernel_file = "MLOpenConv1x1Bwd.cl";
+		_kernel_name = "MLOpenConv1x1";
 	}
 	else
 	{
-		_kernel_file = "MLOpenConv1x1PS_LW.cl";
-		_kernel_name = "MLOpenConv1x1PS_LW";
+		_kernel_file = "MLOpenConv1x1Fwd.cl";
+		_kernel_name = "MLOpenConv1x1";
 	}
 	// see above comment
 	if (small_map)
@@ -1920,7 +1921,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	int in_lcl_width = ((_in_width + read_unit - 1) / read_unit) * read_unit + 2 * _pad0;
 	// number of input map blocks being process at once
 	// param
-	int in_n_vert_reads = (_in_height > 32 && _in_width <= 64 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? (_in_height + 1) / 2 : _in_height;
+	int in_n_vert_reads = (_out_height > 32 && _out_width <= 64 && (_out_pix_tile0 *_out_pix_tile1) <= 16) ? (_out_height + 1) / 2 : _out_height;
 	while (in_lcl_width * in_n_vert_reads * _n_in_data_tiles > (_dev_local_mem_sz/(2*sizeof(float))))
 	{
 		in_n_vert_reads = (in_n_vert_reads + 1)/2;
@@ -2025,9 +2026,9 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		_l_wk.push_back(grp_tile2);
 		// input is output
 
-		size_t gbl_wk0 = GRP_SZ;
-		size_t gbl_wk1 = (_n_outputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
-		size_t gbl_wk2 = ((_n_inputs + total_out_maps - 1) / total_out_maps) * n_batch_blks;
+		size_t gbl_wk0 = GRP_SZ * ((_n_outputs + _n_in_data_tiles - 1) / _n_in_data_tiles);
+		size_t gbl_wk1 = ((_n_inputs + total_out_maps - 1) / total_out_maps);
+		size_t gbl_wk2 =  n_batch_blks;
 
 
 		_g_wk.clear();
@@ -2272,8 +2273,9 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 {
 	int ret = 0;
 	_workspce_sz = 0;
+	size_t localMemSize = 64 * 1024;
 
-    if (((_kernel_size0>=_kernel_size1) && (_kernel_stride0 > 1 || _kernel_stride1 > 1)) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
+    if (((_kernel_size0>=_kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >=64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
 	{
 		ret = mloConstruct2();
 	}
@@ -2290,7 +2292,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		{
 			ret = mloConstruct53();
 		}
-		else if ( _in_width * _in_height <= (8*1024))
+		else if ( _in_width * _in_height <= (localMemSize / (2*sizeof(float))))
 		{
 			ret = mloConstruct1x1();
 		}
