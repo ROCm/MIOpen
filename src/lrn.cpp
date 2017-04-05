@@ -1,16 +1,16 @@
-#include <mlopen/lrn.hpp>
-#include <mlopen/logger.hpp>
+#include <miopen/lrn.hpp>
+#include <miopen/logger.hpp>
 #include <cassert>
 
-namespace mlopen {
+namespace miopen {
 
 LRNDescriptor::LRNDescriptor() {}
 
-LRNDescriptor::LRNDescriptor(mlopenLRNMode_t m,
+LRNDescriptor::LRNDescriptor(miopenLRNMode_t m,
 		const unsigned int pn, 
 		const double	*pparms) : lrnN(pn), parms(pparms, pparms+3), mode(m) {}
 
-mlopenLRNMode_t LRNDescriptor::GetMode() const
+miopenLRNMode_t LRNDescriptor::GetMode() const
 {
 	return this->mode;
 }
@@ -36,9 +36,9 @@ double LRNDescriptor::GetK() const
 }
 std::ostream& operator<< (std::ostream& stream, const LRNDescriptor& x)
 {
-    MLOPEN_LOG_ENUM(stream, x.mode, mlopenLRNWithinChannel, mlopenLRNCrossChannel) << ", ";
+    MIOPEN_LOG_ENUM(stream, x.mode, miopenLRNWithinChannel, miopenLRNCrossChannel) << ", ";
     stream << x.lrnN << ", ";
     LogRange(stream, x.parms, ", ") << ", ";
     return stream;
 }
-}  // namespace mlopen
+}  // namespace miopen

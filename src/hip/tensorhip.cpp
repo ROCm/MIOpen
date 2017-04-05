@@ -1,6 +1,6 @@
-#include <mlopen/tensor.hpp>
+#include <miopen/tensor.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 void TensorDescriptor::TransformTensor(Handle& handle,
             const void *alpha,
@@ -13,7 +13,7 @@ void TensorDescriptor::TransformTensor(Handle& handle,
 }
 
 void TensorDescriptor::OpTensor(Handle& handle,
-        mlopenTensorOp_t                tensorOp,
+        miopenTensorOp_t                tensorOp,
         const void                      *alpha1,
         const TensorDescriptor& aDesc,
         ConstData_t                 A,

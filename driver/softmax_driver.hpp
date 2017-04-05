@@ -1,12 +1,12 @@
-#ifndef GUARD_MLOPEN_SOFTMAX_DRIVER_HPP
-#define GUARD_MLOPEN_SOFTMAX_DRIVER_HPP
+#ifndef GUARD_MIOPEN_SOFTMAX_DRIVER_HPP
+#define GUARD_MIOPEN_SOFTMAX_DRIVER_HPP
 
 #include <cstdlib>
-#include <mlopen.h>
+#include <miopen.h>
 #include "driver.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
-#include <mlopen/tensor.hpp>
+#include <miopen/tensor.hpp>
 #include <vector>
 #include <algorithm>
 #include <float.h>
@@ -20,11 +20,11 @@ class SoftmaxDriver : public Driver
 {
 	public:
 		SoftmaxDriver() : Driver() {
-		mlopenCreateTensorDescriptor(&inputTensor);
-		mlopenCreateTensorDescriptor(&outputTensor);
+		miopenCreateTensorDescriptor(&inputTensor);
+		miopenCreateTensorDescriptor(&outputTensor);
 
-		mlopenCreateTensorDescriptor(&dInputTensor);
-		mlopenCreateTensorDescriptor(&dOutputTensor);
+		miopenCreateTensorDescriptor(&dInputTensor);
+		miopenCreateTensorDescriptor(&dOutputTensor);
 	}
 
 	int AddCmdLineArgs();
@@ -45,18 +45,18 @@ class SoftmaxDriver : public Driver
 	int VerifyBackward();
 	int VerifyForward();
 	~SoftmaxDriver() {
-		mlopenDestroyTensorDescriptor(outputTensor);
-		mlopenDestroyTensorDescriptor(inputTensor);
+		miopenDestroyTensorDescriptor(outputTensor);
+		miopenDestroyTensorDescriptor(inputTensor);
 
-		mlopenDestroyTensorDescriptor(dOutputTensor);
-		mlopenDestroyTensorDescriptor(dInputTensor);
+		miopenDestroyTensorDescriptor(dOutputTensor);
+		miopenDestroyTensorDescriptor(dInputTensor);
 	}
 
 	private:
 	InputFlags inflags;
 
-	mlopenTensorDescriptor_t inputTensor;
-	mlopenTensorDescriptor_t outputTensor;
+	miopenTensorDescriptor_t inputTensor;
+	miopenTensorDescriptor_t outputTensor;
 
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> out_dev;
@@ -65,8 +65,8 @@ class SoftmaxDriver : public Driver
 	std::vector<T> out;
 	std::vector<T> outhost;
 
-	mlopenTensorDescriptor_t dInputTensor;
-	mlopenTensorDescriptor_t dOutputTensor;
+	miopenTensorDescriptor_t dInputTensor;
+	miopenTensorDescriptor_t dOutputTensor;
 
 	std::unique_ptr<GPUMem> din_dev;
 	std::unique_ptr<GPUMem> dout_dev;
@@ -82,7 +82,7 @@ int SoftmaxDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
 	inflags.Parse(argc, argv);
 
 	if(inflags.GetValueInt("time") == 1) {
-		mlopenEnableProfiling(GetHandle(), true);
+		miopenEnableProfiling(GetHandle(), true);
 	}
 	return 0;
 }
@@ -131,11 +131,11 @@ int SoftmaxDriver<T>::AllocateBuffersAndCopy() {
 
 	size_t in_sz = GetTensorSize(inputTensor);
 	size_t out_sz = GetTensorSize(outputTensor);
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 uint32_t ctx = 0;
 #endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
@@ -159,9 +159,9 @@ uint32_t ctx = 0;
 	for (int i = 0; i < out_sz; i++) {
 		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
 	}
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	cl_int status;
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 	int status;
 #endif
 	status = in_dev->ToGPU(q, in.data());
@@ -173,7 +173,7 @@ uint32_t ctx = 0;
 	if(status != CL_SUCCESS)
 		printf("Error copying data to GPU\n");
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
 template<typename T>
@@ -181,7 +181,7 @@ int SoftmaxDriver<T>::RunForwardGPU() {
 
 	int alpha = 1, beta = 1;
 
-	mlopenSoftmaxForward(GetHandle(),
+	miopenSoftmaxForward(GetHandle(),
 			&alpha,
 			inputTensor,
 			in_dev->GetMem(),
@@ -193,7 +193,7 @@ int SoftmaxDriver<T>::RunForwardGPU() {
 	START_TIME;
 
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-	mlopenSoftmaxForward(GetHandle(),
+	miopenSoftmaxForward(GetHandle(),
 			&alpha,
 			inputTensor,
 			in_dev->GetMem(),
@@ -204,7 +204,7 @@ int SoftmaxDriver<T>::RunForwardGPU() {
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
-		mlopenGetKernelTime(GetHandle(), &time);
+		miopenGetKernelTime(GetHandle(), &time);
 
 		STOP_TIME;
 		if(WALL_CLOCK)
@@ -214,13 +214,13 @@ int SoftmaxDriver<T>::RunForwardGPU() {
 
 	out_dev->FromGPU(GetStream(), out.data());
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
 template<typename T>
 int SoftmaxDriver<T>::RunForwardCPU() {
 	int n, c, h, w;
-	mlopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w);
+	miopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w);
 
 	std::copy(in.begin(), in.end(), outhost.begin());
 	std::vector<float> channel_max(n*h*w, -FLT_MAX);
@@ -254,7 +254,7 @@ template<typename T>
 int SoftmaxDriver<T>::RunBackwardGPU() {
 	float alpha = 1., beta = 1.;
 
-	mlopenSoftmaxBackward(GetHandle(),
+	miopenSoftmaxBackward(GetHandle(),
 		&alpha,
 		outputTensor,
 		out_dev->GetMem(),
@@ -268,7 +268,7 @@ int SoftmaxDriver<T>::RunBackwardGPU() {
 	START_TIME;
 
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-	mlopenSoftmaxBackward(GetHandle(),
+	miopenSoftmaxBackward(GetHandle(),
 		&alpha,
 		outputTensor,
 		out_dev->GetMem(),
@@ -281,7 +281,7 @@ int SoftmaxDriver<T>::RunBackwardGPU() {
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
-		mlopenGetKernelTime(GetHandle(), &time);
+		miopenGetKernelTime(GetHandle(), &time);
 
 		STOP_TIME;
 		if(WALL_CLOCK)
@@ -298,7 +298,7 @@ template<typename T>
 int SoftmaxDriver<T>::VerifyForward() {
 	RunForwardCPU();
 
-	auto error = mlopen::rms_range(outhost, out);
+	auto error = miopen::rms_range(outhost, out);
 	const double tolerance = 1e-6;
 	if (error > tolerance)
 	{
@@ -315,7 +315,7 @@ int SoftmaxDriver<T>::VerifyForward() {
 template<typename T>
 int SoftmaxDriver<T>::RunBackwardCPU() {
 	int n, c, h, w;
-	mlopenGet4dTensorDescriptorLengths(dOutputTensor, &n, &c, &h, &w);
+	miopenGet4dTensorDescriptorLengths(dOutputTensor, &n, &c, &h, &w);
 
 	std::copy(dout.begin(), dout.end(), dinhost.begin());
 	std::vector<float> channel_dot(n*h*w, 0.0);
@@ -340,7 +340,7 @@ template<typename T>
 int SoftmaxDriver<T>::VerifyBackward() {
 	RunBackwardCPU();
 
-	auto error = mlopen::rms_range(dinhost, din);
+	auto error = miopen::rms_range(dinhost, din);
 	const double tolerance = 1e-6;
 	if (error > tolerance)
 	{
@@ -354,4 +354,4 @@ int SoftmaxDriver<T>::VerifyBackward() {
 	return 0;
 }
 
-#endif // GUARD_MLOPEN_SOFTMAX_DRIVER_HPP
+#endif // GUARD_MIOPEN_SOFTMAX_DRIVER_HPP

@@ -1,16 +1,16 @@
-#include <mlopen/handle.hpp>
-#include <mlopen/manage_ptr.hpp>
-#include <mlopen/errors.hpp>
-#include <mlopen/kernel_cache.hpp>
-#include <mlopen/ocldeviceinfo.hpp>
-#include <mlopen/device_name.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/manage_ptr.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/ocldeviceinfo.hpp>
+#include <miopen/device_name.hpp>
 #include <string>
 
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 
-namespace mlopen {
+namespace miopen {
 
 #ifndef NDEBUG
 void dumpKernel(cl_kernel kern, const std::string& kernel_name, const std::vector<size_t>& vld, const std::vector<size_t>& vgd, const std::string& params)
@@ -122,8 +122,8 @@ void dumpKernel(cl_kernel kern, const std::string& kernel_name, const std::vecto
 struct HandleImpl
 {
 
-    using AqPtr = mlopen::manage_ptr<typename std::remove_pointer<mlopenAcceleratorQueue_t>::type, decltype(&clReleaseCommandQueue), &clReleaseCommandQueue>;
-    using ContextPtr = mlopen::manage_ptr<typename std::remove_pointer<cl_context>::type, decltype(&clReleaseContext), &clReleaseContext>;
+    using AqPtr = miopen::manage_ptr<typename std::remove_pointer<miopenAcceleratorQueue_t>::type, decltype(&clReleaseCommandQueue), &clReleaseCommandQueue>;
+    using ContextPtr = miopen::manage_ptr<typename std::remove_pointer<cl_context>::type, decltype(&clReleaseContext), &clReleaseContext>;
 
     ContextPtr context;
     AqPtr queue;
@@ -138,14 +138,14 @@ struct HandleImpl
         cl_platform_id platform = nullptr;
         if(clGetPlatformIDs(0, nullptr, &numPlatforms) != CL_SUCCESS)
         {
-            MLOPEN_THROW("clGetPlatformIDs failed. " + std::to_string(numPlatforms));
+            MIOPEN_THROW("clGetPlatformIDs failed. " + std::to_string(numPlatforms));
         }
         if (0 < numPlatforms) 
         {
             std::vector<cl_platform_id> platforms(numPlatforms);
             if(clGetPlatformIDs(numPlatforms, platforms.data(), nullptr) != CL_SUCCESS)
             {
-                MLOPEN_THROW("clGetPlatformIDs failed.2");
+                MIOPEN_THROW("clGetPlatformIDs failed.2");
             }
             for (int i = 0; i < numPlatforms; ++i) 
             {
@@ -153,7 +153,7 @@ struct HandleImpl
 
                 if(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, sizeof(pbuf), pbuf, nullptr) != CL_SUCCESS)
                 {
-                    MLOPEN_THROW("clGetPlatformInfo failed.");
+                    MIOPEN_THROW("clGetPlatformInfo failed.");
                 }
 
                 platform = platforms[i];
@@ -173,7 +173,7 @@ struct HandleImpl
         ContextPtr result{clCreateContextFromType(cprops, CL_DEVICE_TYPE_GPU, nullptr, nullptr, &status)};
         if(status != CL_SUCCESS)
         {
-            MLOPEN_THROW_CL_STATUS(status, "Error: Creating Handle. (clCreateContextFromType)");
+            MIOPEN_THROW_CL_STATUS(status, "Error: Creating Handle. (clCreateContextFromType)");
         }
         return result;
     }
@@ -186,7 +186,7 @@ struct HandleImpl
         status = clGetCommandQueueInfo(queue.get(), CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
         if(status != CL_SUCCESS)
         {
-            MLOPEN_THROW_CL_STATUS(status, "Error: Creating Handle. Cannot Initialize Handle from Queue");
+            MIOPEN_THROW_CL_STATUS(status, "Error: Creating Handle. Cannot Initialize Handle from Queue");
         }
         clRetainContext(ctx);
         return ContextPtr{ctx};
@@ -209,11 +209,11 @@ struct HandleImpl
     }
 };
 
-Handle::Handle (mlopenAcceleratorQueue_t *stream) 
+Handle::Handle (miopenAcceleratorQueue_t *stream) 
 : impl(new HandleImpl())
 {
-    clRetainCommandQueue(mlopen::deref(stream));
-    impl->queue = HandleImpl::AqPtr{mlopen::deref(stream)};
+    clRetainCommandQueue(miopen::deref(stream));
+    impl->queue = HandleImpl::AqPtr{miopen::deref(stream)};
     impl->context = impl->create_context_from_queue();
 }
 
@@ -229,12 +229,12 @@ Handle::Handle ()
     size_t deviceListSize;
     if(clGetContextInfo(impl->context.get(), CL_CONTEXT_NUM_DEVICES, sizeof(size_t), &deviceListSize, nullptr) != CL_SUCCESS)
     {
-        MLOPEN_THROW("Error: Getting Handle Info (device list size, clGetContextInfo)");
+        MIOPEN_THROW("Error: Getting Handle Info (device list size, clGetContextInfo)");
     }
 
     if(deviceListSize == 0)
     {
-        MLOPEN_THROW("Error: No devices found.");
+        MIOPEN_THROW("Error: No devices found.");
     }
 
     /////////////////////////////////////////////////////////////////
@@ -245,7 +245,7 @@ Handle::Handle ()
     /* Now, get the device list data */
     if(clGetContextInfo( impl->context.get(), CL_CONTEXT_DEVICES, deviceListSize*sizeof(cl_device_id), devices.data(), nullptr) != CL_SUCCESS)
     {
-        MLOPEN_THROW("Error: Getting Handle Info (device list, clGetContextInfo)");
+        MIOPEN_THROW("Error: Getting Handle Info (device list, clGetContextInfo)");
     }
 
 #ifdef _WIN32
@@ -279,14 +279,14 @@ Handle::Handle ()
 #endif
     if(status != CL_SUCCESS)
     {
-        MLOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
+        MIOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
     } 
 }
 
 Handle::Handle(Handle&&) noexcept=default;
 Handle::~Handle()=default;
 
-mlopenAcceleratorQueue_t Handle::GetStream() const
+miopenAcceleratorQueue_t Handle::GetStream() const
 {
     return impl->queue.get();
 }
@@ -356,7 +356,7 @@ KernelInvoke Handle::GetKernel(
 
 Program Handle::LoadProgram(const std::string &program_name, std::string params, bool is_kernel_str)
 {
-    return mlopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params, is_kernel_str);
+    return miopen::LoadProgram(GetContext(this->GetStream()), GetDevice(this->GetStream()), program_name, params, is_kernel_str);
 }
 
 void Handle::Finish() const
@@ -376,44 +376,44 @@ bool Handle::IsProfilingEnabled() const
 
 std::size_t Handle::GetLocalMemorySize()
 {
-    return mlopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(mlopen::GetDevice(this->GetStream()));
+    return miopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(miopen::GetDevice(this->GetStream()));
 }
 
 std::string Handle::GetDeviceName()
 {
-	std::string name = mlopen::GetDeviceInfo<CL_DEVICE_NAME>(mlopen::GetDevice(this->GetStream()));
+	std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
 	return GetDeviceNameFromMap(name);
 }
 
 std::size_t Handle::GetMaxComputeUnits()
 {
-    return mlopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(mlopen::GetDevice(this->GetStream()));
+    return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
 }
 
 ManageDataPtr Handle::Create(int sz)
 {
     cl_int status = CL_SUCCESS;
     auto result = ManageDataPtr{clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
-    if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error creating buffer: " + std::to_string(sz)); }
+    if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "OpenCL error creating buffer: " + std::to_string(sz)); }
     return result;
 }
 ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
     cl_int status = clEnqueueWriteBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
-    if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error writing to buffer: " + std::to_string(sz)); }
+    if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "OpenCL error writing to buffer: " + std::to_string(sz)); }
     return ddata;
 }
 
 void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
 {
     auto status = clEnqueueReadBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
-    if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz)); }
+    if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz)); }
 }
 
 void Handle::Copy(ConstData_t src, Data_t dest, int size)
 {
     auto status = clEnqueueCopyBuffer(this->GetStream(), src, dest, 0, 0, size, 0, nullptr, nullptr);
-    if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "OpenCL error copying buffer: " + std::to_string(size)); }
+    if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "OpenCL error copying buffer: " + std::to_string(size)); }
 }
 
-} // namespace mlopen
+} // namespace miopen

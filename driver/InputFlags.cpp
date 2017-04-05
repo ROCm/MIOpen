@@ -83,7 +83,7 @@ void InputFlags::AddInputFlag(const std::string &_long_name,
 
 void InputFlags::Print()
 {
-	printf("MLOpen Driver Input Flags: \n\n");
+	printf("MIOpen Driver Input Flags: \n\n");
 
 	for(auto &content : MapInputs)
 		std::cout<<std::setw(8)<<"--"<<content.second.long_name<<std::setw(20 - content.second.long_name.length())<<"-"<<content.first<<std::setw(8)<<" "<<content.second.help_text<<"\n";

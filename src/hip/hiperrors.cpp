@@ -1,7 +1,7 @@
-#include <mlopen/errors.hpp>
+#include <miopen/errors.hpp>
 #include <hip/hip_runtime_api.h>
 
-namespace mlopen {
+namespace miopen {
 
 std::string HIPErrorMessage(int error, const std::string& msg)
 {

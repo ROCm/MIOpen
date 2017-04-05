@@ -1,57 +1,57 @@
-#include <mlopen/softmax.hpp>
-#include <mlopen/errors.hpp>
-#include <mlopen/logger.hpp>
+#include <miopen/softmax.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/logger.hpp>
 
 extern "C"
-mlopenStatus_t mlopenSoftmaxForward(
-	mlopenHandle_t						handle,
+miopenStatus_t miopenSoftmaxForward(
+	miopenHandle_t						handle,
 	const void							*alpha,
-	const mlopenTensorDescriptor_t		xDesc,
+	const miopenTensorDescriptor_t		xDesc,
 	const void							*x,
 	const void							*beta,
-	const mlopenTensorDescriptor_t		yDesc,
+	const miopenTensorDescriptor_t		yDesc,
 	void								*y) {
-	MLOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
-	return mlopen::try_([&] {
-		CopyTensor(mlopen::deref(handle),
-			mlopen::deref(xDesc),
+	MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
+	return miopen::try_([&] {
+		CopyTensor(miopen::deref(handle),
+			miopen::deref(xDesc),
 			DataCast(x),
-			mlopen::deref(yDesc),
+			miopen::deref(yDesc),
 			DataCast(y));
 
-		mlopen::SoftmaxForward(mlopen::deref(handle),
+		miopen::SoftmaxForward(miopen::deref(handle),
 			alpha,
 			beta,
-			mlopen::deref(yDesc),
+			miopen::deref(yDesc),
 			DataCast(y));
 	});
 }
 
-mlopenStatus_t mlopenSoftmaxBackward(
-	mlopenHandle_t						handle,
+miopenStatus_t miopenSoftmaxBackward(
+	miopenHandle_t						handle,
 	const void							*alpha,
-	const mlopenTensorDescriptor_t		yDesc,
+	const miopenTensorDescriptor_t		yDesc,
 	const void							*y,
-	const mlopenTensorDescriptor_t		dyDesc,
+	const miopenTensorDescriptor_t		dyDesc,
 	const void							*dy,
 	const void							*beta,
-	const mlopenTensorDescriptor_t		dxDesc,
+	const miopenTensorDescriptor_t		dxDesc,
 	void								*dx) {
 
-	MLOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx);
-	return mlopen::try_([&] {
-		CopyTensor(mlopen::deref(handle),
-			mlopen::deref(dyDesc),
+	MIOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx);
+	return miopen::try_([&] {
+		CopyTensor(miopen::deref(handle),
+			miopen::deref(dyDesc),
 			DataCast(dy),
-			mlopen::deref(dxDesc),
+			miopen::deref(dxDesc),
 			DataCast(dx));
 
-		mlopen::SoftmaxBackward(mlopen::deref(handle),
+		miopen::SoftmaxBackward(miopen::deref(handle),
 			alpha,
-			mlopen::deref(yDesc),
+			miopen::deref(yDesc),
 			DataCast(y),
 			beta,
-			mlopen::deref(dxDesc),
+			miopen::deref(dxDesc),
 			DataCast(dx));
 	});
 }

@@ -1,8 +1,8 @@
-#ifndef GUARD_MLOPEN_GEMM_DRIVER_HPP
-#define GUARD_MLOPEN_GEMM_DRIVER_HPP
+#ifndef GUARD_MIOPEN_GEMM_DRIVER_HPP
+#define GUARD_MIOPEN_GEMM_DRIVER_HPP
 
 #include <cstdlib>
-#include <mlopen.h>
+#include <miopen.h>
 #include "driver.hpp"
 #include "InputFlags.hpp"
 #include <vector>
@@ -76,7 +76,7 @@ int GemmDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
     inflags.Parse(argc, argv);
 
     if(inflags.GetValueInt("time") == 1) {
-        mlopenEnableProfiling(GetHandle(), true);
+        miopenEnableProfiling(GetHandle(), true);
     }
     return 0;
 }
@@ -106,11 +106,11 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
     size_t a_sz = M*K;
     size_t b_sz = K*N;
     size_t c_sz = M*N;
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
     uint32_t ctx = 0;
 #endif
     a_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, a_sz, sizeof(T)));
@@ -129,9 +129,9 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
     for (int i = 0; i <b_sz; i++) {
         b[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
     }
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
     cl_int status;
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
     int status;
 #endif
     status = a_dev->ToGPU(q, a.data());
@@ -141,14 +141,14 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
 
-    return mlopenStatusSuccess;
+    return miopenStatusSuccess;
 }
 
 template<typename T>
 int GemmDriver<T>::RunForwardGPU() {
 
-#if MLOPEN_USE_TINYGEMM
-    mlopenGemm(GetHandle(),
+#if MIOPEN_USE_TINYGEMM
+    miopenGemm(GetHandle(),
             false,              // isDataColMajor
             transA, transB,
             M, N, K,
@@ -160,7 +160,7 @@ int GemmDriver<T>::RunForwardGPU() {
 
     if(inflags.GetValueInt("time") == 1) {
         float time = 0.0;
-        mlopenGetKernelTime(GetHandle(), &time);
+        miopenGetKernelTime(GetHandle(), &time);
         printf("GPU Kernel Time Gemm Elapsed: %f ms\n", time);
     }
 
@@ -168,7 +168,7 @@ int GemmDriver<T>::RunForwardGPU() {
 #else
     std::cerr<<"GEMM is not supported\n";
 #endif
-    return mlopenStatusSuccess;
+    return miopenStatusSuccess;
 }
 
 template<typename T>
@@ -186,4 +186,4 @@ int GemmDriver<T>::VerifyBackward() {
     return 0;
 }
 
-#endif // GUARD_MLOPEN_GEMM_DRIVER_HPP
+#endif // GUARD_MIOPEN_GEMM_DRIVER_HPP

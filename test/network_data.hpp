@@ -1,13 +1,13 @@
 
-#ifndef GUARD_MLOPEN_TEST_NETWORK_DATA_HPP
-#define GUARD_MLOPEN_TEST_NETWORK_DATA_HPP
+#ifndef GUARD_MIOPEN_TEST_NETWORK_DATA_HPP
+#define GUARD_MIOPEN_TEST_NETWORK_DATA_HPP
 
 #include <initializer_list>
 #include <set>
 #include <vector>
 
-#ifndef MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR
-#define MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR 0
+#ifndef MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR
+#define MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR 0
 #endif
 
 int pick_batch_size(int x, int y)
@@ -17,7 +17,7 @@ int pick_batch_size(int x, int y)
     else return x / y;
 }
 
-std::set<std::vector<int>> get_inputs(int n=MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+std::set<std::vector<int>> get_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     return 
     {
@@ -79,7 +79,7 @@ std::set<std::vector<int>> get_inputs(int n=MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTO
     };
 }
 
-std::set<std::vector<int>> get_weights(int n=MLOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     return 
     {

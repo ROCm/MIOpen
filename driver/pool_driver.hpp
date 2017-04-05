@@ -1,14 +1,14 @@
-#ifndef GUARD_MLOPEN_POOL_DRIVER_HPP
-#define GUARD_MLOPEN_POOL_DRIVER_HPP
+#ifndef GUARD_MIOPEN_POOL_DRIVER_HPP
+#define GUARD_MIOPEN_POOL_DRIVER_HPP
 
 #include <cstdlib>
-#include <mlopen.h>
+#include <miopen.h>
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
-#include <mlopen/tensor.hpp>
+#include <miopen/tensor.hpp>
 #include <vector>
 #include <algorithm>
 #include <float.h>
@@ -21,13 +21,13 @@ class PoolDriver : public Driver
 {
 	public:
 	PoolDriver() : Driver() {
-		mlopenCreateTensorDescriptor(&inputTensor);
-		mlopenCreateTensorDescriptor(&outputTensor);
+		miopenCreateTensorDescriptor(&inputTensor);
+		miopenCreateTensorDescriptor(&outputTensor);
 
-		mlopenCreateTensorDescriptor(&dInputTensor);
-		mlopenCreateTensorDescriptor(&dOutputTensor);
+		miopenCreateTensorDescriptor(&dInputTensor);
+		miopenCreateTensorDescriptor(&dOutputTensor);
 
-		mlopenCreatePoolingDescriptor(&poolDesc);
+		miopenCreatePoolingDescriptor(&poolDesc);
 	}
 
 	int AddCmdLineArgs();
@@ -53,18 +53,18 @@ class PoolDriver : public Driver
 	int VerifyForward();
 	~PoolDriver() {
 
-		mlopenDestroyTensorDescriptor(outputTensor);
-		mlopenDestroyTensorDescriptor(inputTensor);
+		miopenDestroyTensorDescriptor(outputTensor);
+		miopenDestroyTensorDescriptor(inputTensor);
 
-		mlopenDestroyPoolingDescriptor(poolDesc);
+		miopenDestroyPoolingDescriptor(poolDesc);
 
 	}
 
 	private:
 	InputFlags inflags;
 
-	mlopenTensorDescriptor_t inputTensor;
-	mlopenTensorDescriptor_t outputTensor;
+	miopenTensorDescriptor_t inputTensor;
+	miopenTensorDescriptor_t outputTensor;
 
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> out_dev;
@@ -76,11 +76,11 @@ class PoolDriver : public Driver
 	std::vector<size_t> maskhost;
 	std::vector<T> outhost;
 
-	mlopenPoolingDescriptor_t poolDesc;
+	miopenPoolingDescriptor_t poolDesc;
 	bool do_backward;
 
-	mlopenTensorDescriptor_t dInputTensor;
-	mlopenTensorDescriptor_t dOutputTensor;
+	miopenTensorDescriptor_t dInputTensor;
+	miopenTensorDescriptor_t dOutputTensor;
 
 	std::unique_ptr<GPUMem> din_dev;
 	std::unique_ptr<GPUMem> dout_dev;
@@ -98,7 +98,7 @@ int PoolDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
 	do_backward = !(inflags.GetValueInt("forw"));
 
 	if(inflags.GetValueInt("time") == 1) {
-		mlopenEnableProfiling(GetHandle(), true);
+		miopenEnableProfiling(GetHandle(), true);
 	}
 	return 0;
 }
@@ -155,7 +155,7 @@ std::vector<int> PoolDriver<T>::GetInputTensorLengthsFromCmdLine() {
 template<typename T>
 int PoolDriver<T>::SetPoolDescriptorFromCmdLineArgs() {
 
-	mlopenPoolingMode_t mode;
+	miopenPoolingMode_t mode;
 	int pad_h = inflags.GetValueInt("pad_h");
 	int pad_w = inflags.GetValueInt("pad_w");
 	int u = inflags.GetValueInt("pool_stride_0");
@@ -163,24 +163,24 @@ int PoolDriver<T>::SetPoolDescriptorFromCmdLineArgs() {
 	int win_h = inflags.GetValueInt("win_h");
 	int win_w = inflags.GetValueInt("win_w");
 	if((inflags.GetValueStr("mode")) == "max") {
-		mode = mlopenPoolingMax;
+		mode = miopenPoolingMax;
 	}
 	else if((inflags.GetValueStr("mode")) == "avg") {
-		mode = mlopenPoolingAverage;
+		mode = miopenPoolingAverage;
 	}
 	else {
 		printf("Incorrect Pooling Mode\n");
 		exit(0);
 	}
 
-	return mlopenSet2dPoolingDescriptor(poolDesc, mode,	win_h, win_w, pad_h, pad_w, u, v);
+	return miopenSet2dPoolingDescriptor(poolDesc, mode,	win_h, win_w, pad_h, pad_w, u, v);
 }
 
 template<typename T>
 std::vector<int> PoolDriver<T>::GetOutputTensorLengths() {
 	int n, c, h, w;
 
-	mlopenGetPoolingForwardOutputDim(poolDesc,
+	miopenGetPoolingForwardOutputDim(poolDesc,
 			inputTensor,
 			&n, &c, &h, &w);
 
@@ -193,12 +193,12 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	size_t in_sz = GetTensorSize(inputTensor);
 	size_t out_sz = GetTensorSize(outputTensor);
 	size_t workSpaceSize = 0;
-	mlopenPoolingGetWorkSpaceSize(outputTensor, &workSpaceSize);
-#if MLOPEN_BACKEND_OPENCL
+	miopenPoolingGetWorkSpaceSize(outputTensor, &workSpaceSize);
+#if MIOPEN_BACKEND_OPENCL
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 	uint32_t ctx = 0;
 #endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
@@ -226,9 +226,9 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
 	}
 
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	cl_int status;
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 	int status;
 #endif
 	status = in_dev->ToGPU(q, in.data());
@@ -240,7 +240,7 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	if(status != CL_SUCCESS)
 		printf("Error copying data to GPU\n");
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
 template<typename T>
@@ -248,7 +248,7 @@ int PoolDriver<T>::RunForwardGPU() {
 
 	int alpha = 1, beta = 1;
 
-	mlopenPoolingForward(GetHandle(),
+	miopenPoolingForward(GetHandle(),
 			poolDesc,
 			&alpha,
 			inputTensor,
@@ -264,7 +264,7 @@ int PoolDriver<T>::RunForwardGPU() {
 	START_TIME;
 
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-		mlopenPoolingForward(GetHandle(),
+		miopenPoolingForward(GetHandle(),
 				poolDesc,
 				&alpha,
 				inputTensor,
@@ -278,7 +278,7 @@ int PoolDriver<T>::RunForwardGPU() {
 	}
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
-		mlopenGetKernelTime(GetHandle(), &time);
+		miopenGetKernelTime(GetHandle(), &time);
 
 		STOP_TIME;
 		if(WALL_CLOCK)
@@ -290,7 +290,7 @@ int PoolDriver<T>::RunForwardGPU() {
 	out_dev->FromGPU(GetStream(), out.data());
 	mask_dev->FromGPU(GetStream(), mask.data());
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
 template<typename T>
@@ -298,7 +298,7 @@ int PoolDriver<T>::RunBackwardGPU() {
 
 	int alpha = 1, beta = 1;
 
-	mlopenPoolingBackward(GetHandle(),
+	miopenPoolingBackward(GetHandle(),
 			poolDesc,
 			&alpha,
 			outputTensor,
@@ -316,7 +316,7 @@ int PoolDriver<T>::RunBackwardGPU() {
 	START_TIME;
 
 	for(int i = 0; i < inflags.GetValueInt("iter"); i++) {
-		mlopenPoolingBackward(GetHandle(),
+		miopenPoolingBackward(GetHandle(),
 				poolDesc,
 				&alpha,
 				outputTensor,
@@ -332,7 +332,7 @@ int PoolDriver<T>::RunBackwardGPU() {
 	}
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
-		mlopenGetKernelTime(GetHandle(), &time);
+		miopenGetKernelTime(GetHandle(), &time);
 
 		STOP_TIME;
 		if(WALL_CLOCK)
@@ -342,34 +342,34 @@ int PoolDriver<T>::RunBackwardGPU() {
 
 	din_dev->FromGPU(GetStream(), din.data());
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
 template<typename T>
 int PoolDriver<T>::VerifyForward() {
 
 	int nInStride, cInStride, hInStride, wInStride;
-	mlopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
+	miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
 
 	int nIn, cIn, hIn, wIn;
-	mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+	miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
 
 	int nOutStride, cOutStride, hOutStride, wOutStride;
-	mlopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
+	miopenGet4dTensorDescriptorStrides(outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
 
 	int nOut, cOut, hOut, wOut;
-	mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+	miopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
 
-	mlopenPoolingMode_t	mode;
+	miopenPoolingMode_t	mode;
 	int	windowHeight;
 	int	windowWidth;
 	int	pad_h;
 	int	pad_w;
 	int	u;
 	int	v;
-	mlopenGet2dPoolingDescriptor(poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
+	miopenGet2dPoolingDescriptor(poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
 
-	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+	int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
 	bool match = mloPoolingForwardRunHostAndVerify<float>(
 			pooling_method,
@@ -408,30 +408,30 @@ template<typename T>
 int PoolDriver<T>::VerifyBackward() {
 
 	int nIn, cIn, hIn, wIn;
-	mlopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+	miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
 	int nOut, cOut, hOut, wOut;
-	mlopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+	miopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
 
 	int ndInStride, cdInStride, hdInStride, wdInStride;
-	mlopenGet4dTensorDescriptorStrides(dInputTensor, &ndInStride, &cdInStride, &hdInStride, &wdInStride);
+	miopenGet4dTensorDescriptorStrides(dInputTensor, &ndInStride, &cdInStride, &hdInStride, &wdInStride);
 	int ndIn, cdIn, hdIn, wdIn;
-	mlopenGet4dTensorDescriptorLengths(dInputTensor, &ndIn, &cdIn, &hdIn, &wdIn);
+	miopenGet4dTensorDescriptorLengths(dInputTensor, &ndIn, &cdIn, &hdIn, &wdIn);
 	int ndOutStride, cdOutStride, hdOutStride, wdOutStride;
-	mlopenGet4dTensorDescriptorStrides(dOutputTensor, &ndOutStride, &cdOutStride, &hdOutStride, &wdOutStride);
+	miopenGet4dTensorDescriptorStrides(dOutputTensor, &ndOutStride, &cdOutStride, &hdOutStride, &wdOutStride);
 	int ndOut, cdOut, hdOut, wdOut;
-	mlopenGet4dTensorDescriptorLengths(dOutputTensor, &ndOut, &cdOut, &hdOut, &wdOut);
+	miopenGet4dTensorDescriptorLengths(dOutputTensor, &ndOut, &cdOut, &hdOut, &wdOut);
 
 
-	mlopenPoolingMode_t	mode;
+	miopenPoolingMode_t	mode;
 	int	windowHeight;
 	int	windowWidth;
 	int	pad_h;
 	int	pad_w;
 	int	u;
 	int	v;
-	mlopenGet2dPoolingDescriptor(poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
+	miopenGet2dPoolingDescriptor(poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
 
-	int pooling_method = (mode == mlopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+	int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
 	mloPoolingBackwardRunHost<float>(
 			pooling_method,
@@ -488,4 +488,4 @@ int PoolDriver<T>::VerifyBackward() {
 
 	return 0;
 }
-#endif //GUARD_MLOPEN_POOL_DRIVER_HPP
+#endif //GUARD_MIOPEN_POOL_DRIVER_HPP

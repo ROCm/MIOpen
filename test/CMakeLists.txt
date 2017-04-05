@@ -1,9 +1,9 @@
 
 include(CTest)
 
-option( MLOPEN_TEST_ALL "Run the full test suite" OFF )
-option(MLOPEN_TEST_CONV Off)
-option(MLOPEN_TEST_DEEPBENCH Off)
+option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
+option(MIOPEN_TEST_CONV Off)
+option(MIOPEN_TEST_DEEPBENCH Off)
 
 find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
@@ -16,7 +16,7 @@ function(add_test_executable TEST_NAME)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
         set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
     endif()
-    if(MLOPEN_TEST_ALL)
+    if(MIOPEN_TEST_ALL)
         set(TEST_COMMAND $<TARGET_FILE:${TEST_NAME}> --all)
     else()
         set(TEST_COMMAND $<TARGET_FILE:${TEST_NAME}>)
@@ -37,7 +37,7 @@ file(GLOB TESTS *.cpp)
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_test_executable(test_${BASE_NAME} ${TEST})
-    target_link_libraries(test_${BASE_NAME} MLOpen)
+    target_link_libraries(test_${BASE_NAME} MIOpen)
 endforeach()
 
 function(add_custom_test NAME)
@@ -45,7 +45,7 @@ function(add_custom_test NAME)
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
 endfunction()
 
-if(MLOPEN_TEST_DEEPBENCH)
+if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
@@ -86,7 +86,7 @@ if(MLOPEN_TEST_DEEPBENCH)
     )
 endif()
 
-if(MLOPEN_TEST_CONV)
+if(MIOPEN_TEST_CONV)
     add_test(NAME test_conv_input_1x3x32x32_weights_1x3x7x7_filter_1_1_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 32, 32 --weights 1, 3, 7, 7 --filter 1, 1, 1, 1)
     add_test(NAME test_conv_input_1x3x227x227_weights_1x3x7x7_filter_1_1_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 227, 227 --weights 1, 3, 7, 7 --filter 1, 1, 1, 1)
     add_test(NAME test_conv_input_1x64x56x56_weights_1x64x1x1_filter_0_0_2_2 COMMAND $<TARGET_FILE:test_conv> --input 1, 64, 56, 56 --weights 1, 64, 1, 1 --filter 0, 0, 2, 2)

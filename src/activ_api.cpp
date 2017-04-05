@@ -1,74 +1,74 @@
-#include <mlopen/activ.hpp>
-#include <mlopen/errors.hpp>
-#include <mlopen/logger.hpp>
+#include <miopen/activ.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/logger.hpp>
 #include <initializer_list>
 #include <array>
 
 extern "C"
-mlopenStatus_t mlopenCreateActivationDescriptor(
-		mlopenActivationDescriptor_t *activDesc) {
+miopenStatus_t miopenCreateActivationDescriptor(
+		miopenActivationDescriptor_t *activDesc) {
 
-	MLOPEN_LOG_FUNCTION(activDesc);
-	return mlopen::try_([&] {
-		mlopen::deref(activDesc) = new mlopen::ActivationDescriptor();
+	MIOPEN_LOG_FUNCTION(activDesc);
+	return miopen::try_([&] {
+		miopen::deref(activDesc) = new miopen::ActivationDescriptor();
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenSetActivationDescriptor(
-		mlopenActivationDescriptor_t		activDesc,
-		mlopenActivationMode_t				mode,
+miopenStatus_t miopenSetActivationDescriptor(
+		miopenActivationDescriptor_t		activDesc,
+		miopenActivationMode_t				mode,
 		double						activAlpha,
 		double						activBeta,
 		double						activPower) {
 		
-	MLOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activPower);
-	return mlopen::try_([&] {
+	MIOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activPower);
+	return miopen::try_([&] {
 		std::initializer_list<double> parms = {activAlpha, activBeta, activPower};
-		mlopen::deref(activDesc) = mlopen::ActivationDescriptor(mode, 
+		miopen::deref(activDesc) = miopen::ActivationDescriptor(mode, 
 			parms.begin());
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenGetActivationDescriptor(
-		mlopenActivationDescriptor_t	activDesc,
-		mlopenActivationMode_t			*mode,
+miopenStatus_t miopenGetActivationDescriptor(
+		miopenActivationDescriptor_t	activDesc,
+		miopenActivationMode_t			*mode,
 		double							*activAlpha,
 		double							*activBeta,
 		double							*activPower) {
 
-	MLOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activPower);
-	return mlopen::try_([&] {
-		*mode = mlopen::deref(activDesc).GetMode();
-		*activAlpha = mlopen::deref(activDesc).GetAlpha();
-		*activBeta = mlopen::deref(activDesc).GetBeta();
-		*activPower = mlopen::deref(activDesc).GetPower();
+	MIOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activPower);
+	return miopen::try_([&] {
+		*mode = miopen::deref(activDesc).GetMode();
+		*activAlpha = miopen::deref(activDesc).GetAlpha();
+		*activBeta = miopen::deref(activDesc).GetBeta();
+		*activPower = miopen::deref(activDesc).GetPower();
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenActivationForward(
-		mlopenHandle_t						handle,
-		mlopenActivationDescriptor_t		activDesc,
+miopenStatus_t miopenActivationForward(
+		miopenHandle_t						handle,
+		miopenActivationDescriptor_t		activDesc,
 		const void							*alpha,
-		const mlopenTensorDescriptor_t		xDesc,
+		const miopenTensorDescriptor_t		xDesc,
 		const void							*x,
 		const void							*beta,
-		const mlopenTensorDescriptor_t		yDesc,
+		const miopenTensorDescriptor_t		yDesc,
 		void								*y,
 		bool                                do_backward,
 		void								*workSpace) {
 
 
-	MLOPEN_LOG_FUNCTION(activDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace);
-	return mlopen::try_([&] {
-			mlopen::deref(activDesc).Forward(mlopen::deref(handle),
+	MIOPEN_LOG_FUNCTION(activDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace);
+	return miopen::try_([&] {
+			miopen::deref(activDesc).Forward(miopen::deref(handle),
 			alpha,
-			mlopen::deref(xDesc),
+			miopen::deref(xDesc),
 			DataCast(x),
 			beta,
-			mlopen::deref(yDesc),
+			miopen::deref(yDesc),
 			DataCast(y),
 			do_backward,
 			DataCast(workSpace));
@@ -76,43 +76,43 @@ mlopenStatus_t mlopenActivationForward(
 }
 
 extern "C"
-mlopenStatus_t mlopenActivationBackward(
-		mlopenHandle_t						handle,
-		mlopenActivationDescriptor_t		activDesc,
+miopenStatus_t miopenActivationBackward(
+		miopenHandle_t						handle,
+		miopenActivationDescriptor_t		activDesc,
 		const void							*alpha,
-		const mlopenTensorDescriptor_t		yDesc,
+		const miopenTensorDescriptor_t		yDesc,
 		const void							*y,
-		const mlopenTensorDescriptor_t		dyDesc,
+		const miopenTensorDescriptor_t		dyDesc,
 		const void							*dy,
-		const mlopenTensorDescriptor_t		xDesc,
+		const miopenTensorDescriptor_t		xDesc,
 		const void							*x,
 		const void							*beta,
-		const mlopenTensorDescriptor_t		dxDesc,
+		const miopenTensorDescriptor_t		dxDesc,
 		void								*dx,
 		const void							*workSpace) {
-	MLOPEN_LOG_FUNCTION(activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace)
+	MIOPEN_LOG_FUNCTION(activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace)
 
-	return mlopen::try_([&] {
-			mlopen::deref(activDesc).Backward(mlopen::deref(handle),
+	return miopen::try_([&] {
+			miopen::deref(activDesc).Backward(miopen::deref(handle),
 			alpha,
-			mlopen::deref(yDesc),
+			miopen::deref(yDesc),
 			DataCast(y),
-			mlopen::deref(dyDesc),
+			miopen::deref(dyDesc),
 			DataCast(dy),
-			mlopen::deref(xDesc),
+			miopen::deref(xDesc),
 			DataCast(x),
 			beta,
-			mlopen::deref(dxDesc),
+			miopen::deref(dxDesc),
 			DataCast(dx),
 			DataCast(workSpace));
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenDestroyActivationDescriptor(mlopenActivationDescriptor_t activDesc) {
+miopenStatus_t miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc) {
 	
-	MLOPEN_LOG_FUNCTION(activDesc)
-	return mlopen::try_([&] {
+	MIOPEN_LOG_FUNCTION(activDesc)
+	return miopen::try_([&] {
 		delete activDesc;
 	});
 }

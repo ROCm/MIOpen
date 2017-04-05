@@ -1,9 +1,9 @@
-#include <mlopen/gemm.hpp>
-#include <mlopen/errors.hpp>
+#include <miopen/gemm.hpp>
+#include <miopen/errors.hpp>
 
 extern "C"
-mlopenStatus_t mlopenGemm(
-        mlopenHandle_t          handle,
+miopenStatus_t miopenGemm(
+        miopenHandle_t          handle,
         bool                    isDataColMajor,
         bool                    transA, 
         bool                    transB, 
@@ -14,20 +14,20 @@ mlopenStatus_t mlopenGemm(
         const void *beta, 
         void *C, int ldc )
 {
-    return mlopen::try_([&] {
-        mlopen::GemmGeometry gg = mlopen::CreateMLOpenGemmGeometry(M, N, K,
+    return miopen::try_([&] {
+        miopen::GemmGeometry gg = miopen::CreateMIOpenGemmGeometry(M, N, K,
             lda, ldb, ldc,
             transA, transB,
             isDataColMajor,
             *(static_cast<const float*>(alpha)), *(static_cast<const float*>(beta)));
 
-        gg.FindSolution(.003, mlopen::deref(handle),
+        gg.FindSolution(.003, miopen::deref(handle),
             DataCast(A),
             DataCast(B),
             DataCast(C),
             false);
 
-        gg.RunGemm(mlopen::deref(handle),
+        gg.RunGemm(miopen::deref(handle),
             DataCast(A),
             DataCast(B),
             DataCast(C),

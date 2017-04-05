@@ -1,7 +1,7 @@
-#include <mlopen/errors.hpp>
+#include <miopen/errors.hpp>
 #include <unordered_map>
 
-namespace mlopen {
+namespace miopen {
 
 std::string OpenCLErrorMessage(int error, const std::string& msg)
 {
@@ -71,4 +71,4 @@ std::string OpenCLErrorMessage(int error, const std::string& msg)
     } else { return msg + "Unknown OpenCL error " + std::to_string(error);
 }
 }
-}  // namespace mlopen
+}  // namespace miopen

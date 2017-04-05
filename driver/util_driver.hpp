@@ -1,5 +1,5 @@
-#ifndef GUARD_MLOPEN_UTIL_DRIVER_HPP
-#define GUARD_MLOPEN_UTIL_DRIVER_HPP
+#ifndef GUARD_MIOPEN_UTIL_DRIVER_HPP
+#define GUARD_MIOPEN_UTIL_DRIVER_HPP
 
 template<typename T>
 void Im2ColCPU(	std::vector<T> &in, const size_t in_offset,
@@ -33,4 +33,4 @@ void Im2ColCPU(	std::vector<T> &in, const size_t in_offset,
 	}
 }
 
-#endif // GUARD_MLOPEN_UTIL_DRIVER_HPP
+#endif // GUARD_MIOPEN_UTIL_DRIVER_HPP

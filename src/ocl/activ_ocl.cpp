@@ -1,10 +1,10 @@
-#include <mlopen/activ.hpp>
-#include <mlopen/mlo_internal.hpp>
-#include <mlopen/kernel_cache.hpp>
+#include <miopen/activ.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/kernel_cache.hpp>
 
-namespace mlopen {
+namespace miopen {
 
-mlopenStatus_t ActivationDescriptor::Forward(
+miopenStatus_t ActivationDescriptor::Forward(
 		Handle						&handle,
 		const void					* /* alpha */,
 		const TensorDescriptor		&xDesc,
@@ -15,7 +15,7 @@ mlopenStatus_t ActivationDescriptor::Forward(
 		bool                        do_backward,
 		Data_t						/* workSpace */) {
 
-	mlopenStatus_t status = mlopenStatusSuccess;
+	miopenStatus_t status = miopenStatusSuccess;
 
 	mlo_construct_neuron construct_params(1); // forward
 
@@ -75,7 +75,7 @@ mlopenStatus_t ActivationDescriptor::Forward(
 	construct_params.doBackward(do_backward);
 	construct_params.setNeuronDescr(static_cast<int>(mode), activ_power, activ_beta, activ_alpha);
 
-	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
+	status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
 
 	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
@@ -93,7 +93,7 @@ mlopenStatus_t ActivationDescriptor::Forward(
 	auto f_activ_beta = static_cast<float>(activ_beta);
 	auto f_activ_power = static_cast<float>(activ_power);
 
-	handle.GetKernel("mlopenActivationForward",
+	handle.GetKernel("miopenActivationForward",
 			network_config,
 			program_name,
 			kernel_name,
@@ -104,7 +104,7 @@ mlopenStatus_t ActivationDescriptor::Forward(
 	return(status);
 }
 
-mlopenStatus_t ActivationDescriptor :: Backward(
+miopenStatus_t ActivationDescriptor :: Backward(
 		Handle						&handle,
 		const void					* /* alpha */,
 		const TensorDescriptor		&yDesc,
@@ -118,7 +118,7 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 		Data_t						dx,
 		ConstData_t				/* workSpace */) {
 
-	mlopenStatus_t status = mlopenStatusSuccess;
+	miopenStatus_t status = miopenStatusSuccess;
 
 	mlo_construct_neuron construct_params(0); // backward
 
@@ -226,7 +226,7 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 
 	construct_params.setNeuronDescr(activ_mode, activ_power, activ_beta, activ_alpha);
 
-	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
+	status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
 
 	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
@@ -244,7 +244,7 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 	auto f_activ_power = static_cast<float>(GetPower());
 	float f_diff_scale = f_activ_beta * f_activ_power;
 
-	handle.GetKernel("mlopenActivationBackward",
+	handle.GetKernel("miopenActivationBackward",
 		network_config,
 		program_name,
 		kernel_name,
@@ -254,4 +254,4 @@ mlopenStatus_t ActivationDescriptor :: Backward(
 
 	return(status);
 }
-}  // namespace mlopen
+}  // namespace miopen

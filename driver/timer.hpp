@@ -1,8 +1,8 @@
-#ifndef GUARD_MLOPEN_TIMER_HPP
-#define GUARD_MLOPEN_TIMER_HPP
+#ifndef GUARD_MIOPEN_TIMER_HPP
+#define GUARD_MIOPEN_TIMER_HPP
 
 #include <ctime>
-#include <mlopen/handle.hpp>
+#include <miopen/handle.hpp>
 
 #define WALL_CLOCK inflags.GetValueInt("wall")
 #ifdef WIN32
@@ -36,4 +36,4 @@ class Timer
 	struct timespec et;
 };
 
-#endif // GUARD_MLOPEN_TIMER_HPP
+#endif // GUARD_MIOPEN_TIMER_HPP

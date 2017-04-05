@@ -13,13 +13,13 @@ parallel opencl: {
             cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
         }
         stage('Clang Release') {
-            cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+            cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
         }
         stage('GCC Debug') {
             cmake_build('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
         }
         stage('GCC Release') {
-            cmake_build('g++-5', '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+            cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
         }
     }
 }, hip: {
@@ -28,7 +28,7 @@ parallel opencl: {
         //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
         // }
         stage('Hip Release') {
-            cmake_build('hcc', '-DBUILD_DEV=On -DMLOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+            cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
         }
     }
 }
@@ -43,7 +43,7 @@ def rocmtest(variant, body) {
             cd build
             CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
             if [ "${compiler}" != "hcc" ]; then
-                CTEST_PARALLEL_LEVEL=32 dumb-init make MLOpenDriver -j32 check
+                CTEST_PARALLEL_LEVEL=32 dumb-init make MIOpenDriver -j32 check
             else 
                 CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
             fi

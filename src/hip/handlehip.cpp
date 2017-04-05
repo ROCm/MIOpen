@@ -1,8 +1,8 @@
-#include <mlopen/handle.hpp>
-#include <mlopen/errors.hpp>
-#include <mlopen/device_name.hpp>
-#if MLOPEN_BACKEND_HIPOC
-#include <mlopen/kernel_cache.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/device_name.hpp>
+#if MIOPEN_BACKEND_HIPOC
+#include <miopen/kernel_cache.hpp>
 #endif
 #include <algorithm>
 
@@ -14,13 +14,13 @@
 #include <chrono>
 #include <thread>
 
-namespace mlopen {
+namespace miopen {
 
 hipDevice_t get_device(int id)
 {
     hipDevice_t device;
     auto status = hipDeviceGet(&device, id);
-    if (status != hipSuccess) MLOPEN_THROW("No device");
+    if (status != hipSuccess) MIOPEN_THROW("No device");
     return device;
 }
 
@@ -28,21 +28,21 @@ int get_device_id() // Get random device
 {
     int device;
     auto status = hipGetDevice(&device);
-    if (status != hipSuccess) MLOPEN_THROW("No device");
+    if (status != hipSuccess) MIOPEN_THROW("No device");
     return device;
 }
 
 void set_device(int id)
 {
     auto status = hipSetDevice(id);
-    if (status != hipSuccess) MLOPEN_THROW("Error setting device");
+    if (status != hipSuccess) MIOPEN_THROW("Error setting device");
 }
 
 void set_default_device()
 {
     int n;
     auto status = hipGetDeviceCount(&n);
-    if (status != hipSuccess) MLOPEN_THROW("Error getting device count");
+    if (status != hipSuccess) MIOPEN_THROW("Error getting device count");
     // Pick device based on process id
     auto pid = ::getpid();
     assert(pid > 0);
@@ -51,7 +51,7 @@ void set_default_device()
 
 struct HandleImpl
 {
-    // typedef MLOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
+    // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
 
     HandleImpl()
@@ -61,7 +61,7 @@ struct HandleImpl
     {
         hipStream_t result;
         auto status = hipStreamCreate(&result);
-        if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed to allocate stream");
+        if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Failed to allocate stream");
         return StreamPtr{result, &hipStreamDestroy};
     }
 
@@ -83,12 +83,12 @@ struct HandleImpl
     bool enable_profiling = false;
     StreamPtr stream;
     float profiling_result = 0.0;
-#if MLOPEN_BACKEND_HIPOC
+#if MIOPEN_BACKEND_HIPOC
     KernelCache cache;
 #endif
 };
 
-Handle::Handle (mlopenAcceleratorQueue_t *stream) 
+Handle::Handle (miopenAcceleratorQueue_t *stream) 
 : impl(new HandleImpl())
 {
     if (stream) this->impl->stream = HandleImpl::reference_stream(nullptr);
@@ -105,7 +105,7 @@ Handle::Handle ()
 
 Handle::~Handle() {}
 
-mlopenAcceleratorQueue_t Handle::GetStream() const
+miopenAcceleratorQueue_t Handle::GetStream() const
 {
     return impl->stream.get();
 }
@@ -128,7 +128,7 @@ ManageDataPtr Handle::Create(int sz)
     if (status != hipSuccess)
     {
         status = hipHostMalloc(&result, sz);
-        if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer " + std::to_string(sz) + ": ");
+        if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error creating buffer " + std::to_string(sz) + ": ");
     }
     return ManageDataPtr{result};
 }
@@ -136,23 +136,23 @@ ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
 {
     this->Finish();
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
+    if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
 void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
 {
     this->Finish();
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
+    if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
 }
 
 void Handle::Copy(ConstData_t src, Data_t dest, int size)
 {
     auto status = hipMemcpy(dest, src, size, hipMemcpyDeviceToDevice);
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
+    if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
 }
 
-#if MLOPEN_BACKEND_HIPOC
+#if MIOPEN_BACKEND_HIPOC
 KernelInvoke Handle::GetKernel(
         const std::string& algorithm,
         const std::string& network_config,
@@ -192,7 +192,7 @@ Program Handle::LoadProgram(const std::string &program_name, std::string params,
 
 void Handle::Finish() const
 {
-#if MLOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV
     auto start = std::chrono::system_clock::now();
     auto ev = make_hip_event();
     hipEventRecord(ev.get(), this->GetStream());
@@ -206,7 +206,7 @@ void Handle::Finish() const
     }
 #else
     auto status = hipStreamSynchronize(this->GetStream());
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed hip sychronization");
+    if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Failed hip sychronization");
 #endif
 }
 void Handle::Flush() const
@@ -232,7 +232,7 @@ std::size_t Handle::GetLocalMemorySize()
 {
     int result;
     auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMaxSharedMemoryPerBlock, get_device_id());
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status);
+    if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status);
 
     return result;
 }
@@ -241,7 +241,7 @@ std::size_t Handle::GetMaxComputeUnits()
 {
     int result;
     auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, get_device_id());
-    if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status);
+    if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status);
 
     return result;
 }

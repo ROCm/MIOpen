@@ -1,0 +1,6 @@
+/* the configured version and settings for miopen
+ *  */
+#define miopenVersionMajor @MIOpen_VERSION_MAJOR@
+#define miopenVersionMinor @MIOpen_VERSION_MINOR@
+#define miopenVersionPatch @MIOpen_VERSION_PATCH@
+#define miopenVersionTweak @MIOpen_VERSION_TWEAK@

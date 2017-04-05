@@ -1,14 +1,14 @@
 #ifndef GUARD_TENSOR_HOLDER_HPP
 #define GUARD_TENSOR_HOLDER_HPP
 
-#include <mlopen/tensor.hpp>
+#include <miopen/tensor.hpp>
 #include "ford.hpp"
 #include "network_data.hpp"
 
 template<class T>
 struct tensor
 {
-    mlopen::TensorDescriptor desc;
+    miopen::TensorDescriptor desc;
     std::vector<T> data;
 
     tensor()
@@ -16,14 +16,14 @@ struct tensor
 
     template<class X>
     tensor(const std::vector<X>& dims)
-    : desc(mlopenFloat, dims.data(), static_cast<int>(dims.size())), data(desc.GetElementSize())
+    : desc(miopenFloat, dims.data(), static_cast<int>(dims.size())), data(desc.GetElementSize())
     {}
 
     tensor(int n, int c, int h, int w)
-    : desc(mlopenFloat, {n,c,h,w}), data(n*c*h*w)
+    : desc(miopenFloat, {n,c,h,w}), data(n*c*h*w)
     {}
 
-    tensor(mlopen::TensorDescriptor rhs)
+    tensor(miopen::TensorDescriptor rhs)
     : desc(std::move(rhs))
     {
         data.resize(desc.GetElementSize());
@@ -59,7 +59,7 @@ struct tensor
     void for_each(F f) const
     {
         int n, c, h, w;
-        std::tie(n, c, h, w) = mlopen::tie4(desc.GetLengths());
+        std::tie(n, c, h, w) = miopen::tie4(desc.GetLengths());
         ford(n, c, h, w)(std::move(f));
     }
 
@@ -67,7 +67,7 @@ struct tensor
     void par_for_each(F f) const
     {
         int n, c, h, w;
-        std::tie(n, c, h, w) = mlopen::tie4(desc.GetLengths());
+        std::tie(n, c, h, w) = miopen::tie4(desc.GetLengths());
         par_ford(n, c, h, w)(std::move(f));
     }
 
@@ -118,14 +118,14 @@ template<class T, class G>
 tensor<T> make_tensor(std::initializer_list<int> dims, G g)
 {
     // TODO: Compute float
-    return tensor<T>{mlopen::TensorDescriptor{mlopenFloat, dims}}.generate(g);
+    return tensor<T>{miopen::TensorDescriptor{miopenFloat, dims}}.generate(g);
 }
 
 template<class T, class X>
 tensor<T> make_tensor(const std::vector<X>& dims)
 {
     // TODO: Compute float
-    return tensor<T>{mlopen::TensorDescriptor{mlopenFloat, dims.data(), static_cast<int>(dims.size())}};
+    return tensor<T>{miopen::TensorDescriptor{miopenFloat, dims.data(), static_cast<int>(dims.size())}};
 }
 
 template<class T, class X, class G>
@@ -151,7 +151,7 @@ struct protect_void_fn
     {}
 
     // template<class... Ts>
-    // auto operator()(Ts&&... xs) const MLOPEN_RETURNS
+    // auto operator()(Ts&&... xs) const MIOPEN_RETURNS
     // (f(std::forward<Ts>(xs)...));
 
     template<class... Ts>
@@ -170,14 +170,14 @@ struct cross_args_apply
     template<class F, class T, class... Ts>
     void operator()(F f, T&& x, Ts&&... xs) const
     {
-        mlopen::each_args(std::bind(f, std::forward<T>(x), std::placeholders::_1), std::forward<Ts>(xs)...);
+        miopen::each_args(std::bind(f, std::forward<T>(x), std::placeholders::_1), std::forward<Ts>(xs)...);
     }
 };
 
 template<class F, class... Ts>
 void cross_args(F f, Ts&&... xs)
 {
-    mlopen::each_args(
+    miopen::each_args(
         std::bind(cross_args_apply{}, protect_void(std::move(f)), std::placeholders::_1, std::forward<Ts>(xs)...),
     std::forward<Ts>(xs)...);
 }
@@ -224,7 +224,7 @@ struct generate_activ_visitation
 template<class T, class F, class... Gs>
 void generate_unary_all(F f, Gs... gs)
 {
-    mlopen::each_args(std::bind(generate_activ_visitation<T>{}, protect_void(f), std::placeholders::_1), gs...);
+    miopen::each_args(std::bind(generate_activ_visitation<T>{}, protect_void(f), std::placeholders::_1), gs...);
 }
 
 

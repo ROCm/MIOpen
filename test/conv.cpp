@@ -1,12 +1,12 @@
-#include <mlopen.h>
+#include <miopen.h>
 #include "test.hpp"
 #include <array>
 #include <iterator>
 #include <memory>
 #include <utility>
 #include <iostream>
-#include <mlopen/tensor.hpp>
-#include <mlopen/convolution.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/convolution.hpp>
 #include <limits>
 
 // #include "network_data.hpp"
@@ -16,7 +16,7 @@
 #include "get_handle.hpp"
 
 template<class T>
-tensor<T> get_output_tensor(const mlopen::ConvolutionDescriptor& filter, const tensor<T>& input, const tensor<T>& weights)
+tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter, const tensor<T>& input, const tensor<T>& weights)
 {
     assert(filter.GetBackwardOutputTensor(filter.GetForwardOutputTensor(input.desc, weights.desc), weights.desc) == input.desc);
     return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
@@ -28,7 +28,7 @@ struct conv_base
     tensor<T> input;
     tensor<T> weights;
     tensor<T> out;
-    mlopen::ConvolutionDescriptor filter;
+    miopen::ConvolutionDescriptor filter;
     int bias;
 
     void fail(float=0)
@@ -49,7 +49,7 @@ struct verify_forward_conv : conv_base<T>
     using conv_base<T>::filter;
     using conv_base<T>::bias;
 
-    verify_forward_conv(const tensor<T>& pinput, const tensor<T>& pweights, const mlopen::ConvolutionDescriptor& pfilter, int pbias = 0)
+    verify_forward_conv(const tensor<T>& pinput, const tensor<T>& pweights, const miopen::ConvolutionDescriptor& pfilter, int pbias = 0)
     {
         input = pinput;
         weights = pweights;
@@ -62,10 +62,10 @@ struct verify_forward_conv : conv_base<T>
         out = get_output_tensor(filter, input, weights);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
 
         out.par_for_each([&](int o, int w, int i, int j)
         {
@@ -101,7 +101,7 @@ struct verify_forward_conv : conv_base<T>
 		auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         int ret_algo_count;
-        mlopenConvAlgoPerf_t perf;
+        miopenConvAlgoPerf_t perf;
 
         int alpha = 1, beta = 1;
 
@@ -153,7 +153,7 @@ struct verify_backward_conv : conv_base<T>
     using conv_base<T>::filter;
     using conv_base<T>::bias;
 
-    verify_backward_conv(const tensor<T>& pinput, const tensor<T>& pweights, const tensor<T>& pout, const mlopen::ConvolutionDescriptor& pfilter, int pbias = 0)
+    verify_backward_conv(const tensor<T>& pinput, const tensor<T>& pweights, const tensor<T>& pout, const miopen::ConvolutionDescriptor& pfilter, int pbias = 0)
     {
         input = pinput;
         weights = pweights;
@@ -167,13 +167,13 @@ struct verify_backward_conv : conv_base<T>
         std::fill(input.begin(), input.end(), 0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
 
         int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = mlopen::tie4(out.desc.GetLengths());
+        std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(out.desc.GetLengths());
 
         par_ford(out_n, wei_c)([&](int o, int k)
         {
@@ -201,7 +201,7 @@ struct verify_backward_conv : conv_base<T>
         auto in_dev = handle.Write(input.data);
 
         int ret_algo_count;
-        mlopenConvAlgoPerf_t perf;
+        miopenConvAlgoPerf_t perf;
 
         int alpha = 1, beta = 1;
 
@@ -253,7 +253,7 @@ struct verify_backward_weights_conv : conv_base<T>
     using conv_base<T>::filter;
     using conv_base<T>::bias;
 
-    verify_backward_weights_conv(const tensor<T>& pinput, const tensor<T>& pweights, const tensor<T>& pout, const mlopen::ConvolutionDescriptor& pfilter, int pbias = 0)
+    verify_backward_weights_conv(const tensor<T>& pinput, const tensor<T>& pweights, const tensor<T>& pout, const miopen::ConvolutionDescriptor& pfilter, int pbias = 0)
     {
         input = pinput;
         weights = pweights;
@@ -267,13 +267,13 @@ struct verify_backward_weights_conv : conv_base<T>
         std::fill(weights.begin(), weights.end(), 0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
 
         int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = mlopen::tie4(out.desc.GetLengths());
+        std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(out.desc.GetLengths());
 
         par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y)
         {
@@ -308,7 +308,7 @@ struct verify_backward_weights_conv : conv_base<T>
         auto workspace_dev = handle.Write(workspace);
 
         int ret_algo_count;
-        mlopenConvAlgoPerf_t perf;
+        miopenConvAlgoPerf_t perf;
 
         int alpha = 1, beta = 1;
         filter.FindConvBwdWeightsAlgorithm(handle,
@@ -355,7 +355,7 @@ struct conv_driver : test_driver
 {
     tensor<T> input;
     tensor<T> weights;
-    mlopen::ConvolutionDescriptor filter;
+    miopen::ConvolutionDescriptor filter;
     bool enable_backward_weights = false;
 
     conv_driver()
@@ -366,24 +366,24 @@ struct conv_driver : test_driver
         add(enable_backward_weights, "enable-backward-weights", flag());
     }
 
-    std::vector<mlopen::ConvolutionDescriptor> get_filters()
+    std::vector<miopen::ConvolutionDescriptor> get_filters()
     {
         return {
-            mlopen::ConvolutionDescriptor{ 0, 0, 1, 1 },
-            // mlopen::ConvolutionDescriptor{ 0, 0, 2, 2 },
-            // mlopen::ConvolutionDescriptor{ 1, 1, 1, 1 },
+            miopen::ConvolutionDescriptor{ 0, 0, 1, 1 },
+            // miopen::ConvolutionDescriptor{ 0, 0, 2, 2 },
+            // miopen::ConvolutionDescriptor{ 1, 1, 1, 1 },
             // This configuration only works on opencl
-            // mlopen::ConvolutionDescriptor{ 1, 1, 2, 2 },
-            // mlopen::ConvolutionDescriptor{ 2, 2, 1, 1 },
+            // miopen::ConvolutionDescriptor{ 1, 1, 2, 2 },
+            // miopen::ConvolutionDescriptor{ 2, 2, 1, 1 },
             // This configuration only works on opencl
-            // mlopen::ConvolutionDescriptor{ 3, 3, 2, 2 }
+            // miopen::ConvolutionDescriptor{ 3, 3, 2, 2 }
         };
     }
 
     void run()
     {
         int wei_h, wei_w;
-        std::tie(std::ignore, std::ignore, wei_h, wei_w) = mlopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
         if (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) && 
             wei_h > 2*filter.pad_h && 
             wei_w > 2*filter.pad_w
@@ -392,7 +392,7 @@ struct conv_driver : test_driver
             auto out_p = verify(verify_forward_conv<T>{input, weights, filter});
             for(auto& x:out_p.first) x = (long(x+1)*2) % 17; // Clamp big numbers
             verify(verify_backward_conv<T>{input, weights, out_p.first, filter});
-            if(enable_backward_weights or MLOPEN_USE_TINYGEMM)
+            if(enable_backward_weights or MIOPEN_USE_TINYGEMM)
             {
                 verify(verify_backward_weights_conv<T>{input, weights, out_p.first, filter});
             }
