@@ -124,7 +124,6 @@ ManageDataPtr Handle::Create(int sz)
 {
     this->Finish();
     void * result;
-    // int tries = 10;
     auto status = hipMalloc(&result, sz);
     if (status != hipSuccess)
     {
@@ -193,8 +192,22 @@ Program Handle::LoadProgram(const std::string &program_name, std::string params,
 
 void Handle::Finish() const
 {
+#if MLOPEN_BUILD_DEV
+    auto start = std::chrono::system_clock::now();
+    auto ev = make_hip_event();
+    hipEventRecord(ev.get(), this->GetStream());
+    while(hipEventQuery(ev.get()) == hipErrorNotReady)
+    {
+        if ((std::chrono::system_clock::now()-start) > std::chrono::seconds(60)) 
+        {
+            std::cerr << "Timeout" << std::endl;
+            std::abort();
+        }
+    }
+#else
     auto status = hipStreamSynchronize(this->GetStream());
     if (status != hipSuccess) MLOPEN_THROW_HIP_STATUS(status, "Failed hip sychronization");
+#endif
 }
 void Handle::Flush() const
 {

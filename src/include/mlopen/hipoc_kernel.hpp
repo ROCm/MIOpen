@@ -3,11 +3,72 @@
 
 #include <mlopen/hipoc_program.hpp>
 #include <mlopen/errors.hpp>
+#include <mlopen/stringutils.hpp>
 #include <array>
 #include <vector>
 #include <cassert>
 
 namespace mlopen {
+
+using HipEventPtr = MLOPEN_MANAGE_PTR(hipEvent_t, hipEventDestroy);
+inline HipEventPtr make_hip_event()
+{
+    hipEvent_t result = nullptr;
+    hipEventCreate(&result);
+    return HipEventPtr{result};
+}
+
+#if 1
+
+#if 1
+template<class T, class U>
+struct KernelArgsPair
+{
+    static const int alignment = sizeof(U);
+    static const int padding = (alignment-(sizeof(T)%alignment))%alignment;
+    static const int second_index = sizeof(T) + padding;
+    KernelArgsPair(T x, U y)
+    {
+        new(buffer) T(x);
+        new(buffer+second_index) U(y);
+    }
+    char buffer[second_index+sizeof(U)];
+};
+#else
+template<class T, class U>
+struct KernelArgsPair
+{
+    KernelArgsPair(T x, U y)
+    : first(x), second(y)
+    {}
+    T first;
+    U second;
+};
+#endif
+
+template<class... Ts>
+struct KernelArgsPack;
+
+template<class T, class U, class... Ts>
+struct KernelArgsPack<T, U, Ts...>
+{
+    using data_t = KernelArgsPack<KernelArgsPair<T, U>, Ts...>;
+    KernelArgsPack(T x, U y, Ts... xs)
+    : data(KernelArgsPair<T, U>(x, y), xs...)
+    {}
+    data_t data;
+};
+
+template<class T>
+struct KernelArgsPack<T>
+{
+    KernelArgsPack(T x)
+    : head(x)
+    {}
+    T head;
+};
+
+#else
 
 template<class... Ts>
 struct KernelArgsPack;
@@ -26,15 +87,20 @@ template<>
 struct KernelArgsPack<>
 {};
 
+#endif
 template<class... Ts>
 struct KernelArgs
 {
     KernelArgs(Ts... xs)
     : pack(xs...)
     {
+#ifdef HIP_OC_FINALIZER
         for(int i=0;i<6;i++) hidden[i] = 0;
+#endif
     }
+#ifdef HIP_OC_FINALIZER
     uint64_t hidden[6];
+#endif
     KernelArgsPack<Ts...> pack;
 };
 
@@ -81,12 +147,13 @@ struct HIPOCKernel
         ldims.fill(1);
         gdims.fill(1);
         std::copy(local_dims.begin(), local_dims.end(), ldims.begin());
-        for(int i=0;i<global_dims.size();i++)
-        {
-            gdims[i] = (global_dims[i] - 1)/ldims[i] + 1;
-        }
+        std::copy(global_dims.begin(), global_dims.end(), gdims.begin());
 
+#ifdef HIP_OC_FINALIZER
         kernel_module = "&__OpenCL_" + name + "_kernel";
+#else
+        kernel_module = name;
+#endif
         auto status = hipModuleGetFunction(&fun, program.module.get(), kernel_module.c_str());
         if (hipSuccess != status)
             MLOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);

@@ -87,6 +87,7 @@ static inline int getWaveId()
 	return(wave_id);
 }
 #else
+__attribute__((always_inline))
 static inline int getWaveId()
 {
 	int wave_id = 0;
@@ -97,24 +98,28 @@ static inline int getWaveId()
 }
 #endif
 
+__attribute__((always_inline))
 static inline int gePhysLocalId()
 {
 	int lcl_wave_id = get_local_id(0) - ((get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ) << MLO_LG2_PHYS_WAVE_SZ);
 	return(lcl_wave_id);
 }
 
+__attribute__((always_inline))
 static inline int iDiv(int v, int d)
 {
 	int r = (int)((float)v / d + 0.00001f);
 	return(r);
 }
 
+__attribute__((always_inline))
 static inline int iMod(int v, int u, int d)
 {
 	int r = v - mul24((int)u, (int)d);
 	return(r);
 }
 
+__attribute__((always_inline))
 static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
 {
 	for (int j = (sum_stride >> 1); j > 0; j >>= 1)
@@ -134,6 +139,7 @@ static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum
 	}
 }
 
+__attribute__((always_inline))
 static inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
 {
 	_FLOAT y = v - *c;    //So far, so good: c is zero.
@@ -142,6 +148,7 @@ static inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
 	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
 }
 
+__attribute__((always_inline))
 static inline void  Kahan_summation_tricked(_FLOAT *sum, _FLOAT * c, _FLOAT v, _FLOAT mod)
 {
 	_FLOAT y = v - *c;    //So far, so good: c is zero.
@@ -151,6 +158,7 @@ static inline void  Kahan_summation_tricked(_FLOAT *sum, _FLOAT * c, _FLOAT v, _
 }
 
 
+__attribute__((always_inline))
 static inline void Kahan_summation2(_FLOAT *sum, _FLOAT *c, _FLOAT *v, int n)
 {
 	for (int i = 0; i < n; ++i)
@@ -164,6 +172,7 @@ static inline void Kahan_summation2(_FLOAT *sum, _FLOAT *c, _FLOAT *v, int n)
 
 
 // TO DO: remove f_s and c from offest calculation
+__attribute__((always_inline))
 static inline void fetchWeights(int c, int f_s, int lcl_id, int wei_read, int gbl_wei_off, __local _FLOAT * wei_mem, const __global _FLOAT * weights)
 {
 	// read weights by stride
@@ -201,6 +210,7 @@ static inline void fetchWeights(int c, int f_s, int lcl_id, int wei_read, int gb
 	}
 }
 
+__attribute__((always_inline))
 static inline void  fetchData(int f_s, int lcl_id, int lcl_scan, int n_reads, int in_y, int gbl_in_scan_off, __local _FLOAT * bot_mem, const __global _FLOAT * bot)
 {
 	__private _FLOAT in_rd_data[MLO_READ_UNIT];
@@ -265,6 +275,7 @@ static inline void  fetchData(int f_s, int lcl_id, int lcl_scan, int n_reads, in
 }
 
 
+__attribute__((always_inline))
 static inline void Convolve(int ex_row, int ex_pix, int l, int m, int wei_h, int bot_h, __local _FLOAT * wei_mem, __local _FLOAT * bot_mem, __private _FLOAT *pvt_accum)
 {
 	// only for 11 
@@ -545,6 +556,7 @@ __kernel void MLOpenCvFwd11x11(
 #define MLO_LCL_MEM_SZ (MLO_WEI_LCL_SZ + MLO_TOTAL_IN_LCL_SZ)
 
 
+__attribute__((always_inline))
 static inline void  fetchData2(int ib, int f_s, int lcl_id, int lcl_scan, int n_reads, int in_y, int gbl_in_scan_off, __local _FLOAT * bot_mem, const __global _FLOAT * bot)
 {
 	__private _FLOAT in_rd_data[MLO_READ_UNIT];
@@ -611,6 +623,7 @@ static inline void  fetchData2(int ib, int f_s, int lcl_id, int lcl_scan, int n_
 
 }
 
+__attribute__((always_inline))
 static inline void Convolve2(int b, int ex_row, int ex_pix, int l, int m, int wei_h, int bot_h, __local _FLOAT * wei_mem, __local _FLOAT * bot_mem, __private _FLOAT *pvt_accum)
 {
 	// only for 11 

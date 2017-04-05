@@ -23,6 +23,13 @@ void GemmGeometry::FindSolution(float time,
 #if MLOPEN_BACKEND_OPENCL
     TinyGemmSolution soln = tinygemm::find(time, handle.GetStream(), a, b, c, enforce_determinism, 'f', tgg, alpha, beta);
 #else
+    (void)time;
+    (void)a;
+    (void)b;
+    (void)c;
+    (void)tgg;
+    (void)alpha;
+    (void)beta;
     TinyGemmSolution soln = tinygemm::get_default(enforce_determinism, 'f', tgg);
 #endif
 
@@ -38,8 +45,8 @@ void GemmGeometry::FindSolution(float time,
     size_t local_work_size = main_kernel_worksize_params.at("local_work_size");
     size_t global_work_size = main_kernel_worksize_params.at("global_work_size");
 
-    std::vector<size_t> vld (1, local_work_size);
-    std::vector<size_t> vgd (1, global_work_size);
+    std::vector<size_t> vld {local_work_size, 1, 1};
+    std::vector<size_t> vgd {global_work_size, 1, 1};
 
     handle.GetKernel(algorithm_name,
             network_config,

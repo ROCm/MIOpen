@@ -36,6 +36,7 @@ struct conv_base
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
         std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
         std::cout << "Output tensor: " << out.desc.ToString() << std::endl;
+        std::cout << "Filter: " << filter << std::endl;
     }
 };
 
@@ -92,9 +93,9 @@ struct verify_forward_conv : conv_base<T>
 
         auto in_dev = handle.Write(input.data);
         auto wei_dev = handle.Write(weights.data);
-        auto out_dev = handle.Create<T>(out.data.size());
+        auto out_dev = handle.Write(out.data);
 
-		size_t workspace_size = filter.ForwardGetWorkSpaceSize(weights.desc, out.desc);
+		size_t workspace_size = filter.ForwardGetWorkSpaceSize(weights.desc, input.desc, out.desc);
 
 		std::vector<char> workspace(workspace_size);
 		auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -197,7 +198,7 @@ struct verify_backward_conv : conv_base<T>
 
         auto out_dev = handle.Write(out.data);
         auto wei_dev = handle.Write(weights.data);
-        auto in_dev = handle.Create<T>(input.data.size());
+        auto in_dev = handle.Write(input.data);
 
         int ret_algo_count;
         mlopenConvAlgoPerf_t perf;
@@ -298,7 +299,7 @@ struct verify_backward_weights_conv : conv_base<T>
         std::fill(weights.begin(), weights.end(), 0);
 
         auto out_dev = handle.Write(out.data);
-        auto wei_dev = handle.Create<T>(weights.data.size());
+        auto wei_dev = handle.Write(weights.data);
         auto in_dev = handle.Write(input.data);
 
         std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(out.desc, input.desc, weights.desc);
@@ -368,8 +369,14 @@ struct conv_driver : test_driver
     std::vector<mlopen::ConvolutionDescriptor> get_filters()
     {
         return {
-            mlopen::ConvolutionDescriptor{0, 0}
-            // mlopen::ConvolutionDescriptor{1, 1}
+            mlopen::ConvolutionDescriptor{ 0, 0, 1, 1 },
+            // mlopen::ConvolutionDescriptor{ 0, 0, 2, 2 },
+            // mlopen::ConvolutionDescriptor{ 1, 1, 1, 1 },
+            // This configuration only works on opencl
+            // mlopen::ConvolutionDescriptor{ 1, 1, 2, 2 },
+            // mlopen::ConvolutionDescriptor{ 2, 2, 1, 1 },
+            // This configuration only works on opencl
+            // mlopen::ConvolutionDescriptor{ 3, 3, 2, 2 }
         };
     }
 
@@ -378,8 +385,8 @@ struct conv_driver : test_driver
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = mlopen::tie4(weights.desc.GetLengths());
         if (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) && 
-            wei_h > filter.pad_h && 
-            wei_w > filter.pad_w
+            wei_h > 2*filter.pad_h && 
+            wei_w > 2*filter.pad_w
         )
         {
             auto out_p = verify(verify_forward_conv<T>{input, weights, filter});
