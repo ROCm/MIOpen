@@ -124,8 +124,10 @@ option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 option( BUILD_DEV "Build for development only" OFF)
 
 if(BUILD_DEV)
+	add_definitions(-DMLOPEN_BUILD_DEV=1)
 	set(MLOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
 else()
+	add_definitions(-DMLOPEN_BUILD_DEV=0)
 	set(MLOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/share/mlopen/db" CACHE PATH "Default path to search for db")
 endif()
 
