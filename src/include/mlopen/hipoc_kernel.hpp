@@ -10,6 +10,14 @@
 
 namespace mlopen {
 
+using HipEventPtr = MLOPEN_MANAGE_PTR(hipEvent_t, hipEventDestroy);
+inline HipEventPtr make_hip_event()
+{
+    hipEvent_t result = nullptr;
+    hipEventCreate(&result);
+    return HipEventPtr{result};
+}
+
 #if 1
 
 #if 1

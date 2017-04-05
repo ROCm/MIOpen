@@ -679,32 +679,31 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
                 perf_vals = found->second;
             }
         }
-	}
+    }
 
     const int filters_per_wave = perf_vals[0] - '0';
     const int output_lines_per_wave = perf_vals[1] - '0';
     const int limit_wave_cnt = perf_vals[2] - '0';
     const auto w64_chunks = (_in_width + 63) / 64;
     const auto active_lanes = (_in_width + w64_chunks - 1) / w64_chunks;
-    std::ostringstream paramsSS;
 
-    GenerateClangDefsym(paramsSS, "batch_size", _batch_sz);
-    GenerateClangDefsym(paramsSS, "img_width", _in_width);
-    GenerateClangDefsym(paramsSS, "img_height", _in_height);
-
-    GenerateClangDefsym(paramsSS, "input_channels" , _n_inputs);
-    GenerateClangDefsym(paramsSS, "output_channels", _n_outputs);
-    GenerateClangDefsym(paramsSS, "weights_layout" , isForwardDirection() ? 0 : 1);
-    GenerateClangDefsym(paramsSS, "reverse_weights", isForwardDirection() ? 0 : 1);
-
-    GenerateClangDefsym(paramsSS, "filters_per_wave", filters_per_wave);
-    GenerateClangDefsym(paramsSS, "output_lines_per_wave", output_lines_per_wave);
-    GenerateClangDefsym(paramsSS, "limit_wave_cnt", limit_wave_cnt);
-
-    GenerateClangDefsym(paramsSS, "no_params_file", 1);
-    GenerateClangDefsym(paramsSS, "enable_debug_output", 0);
-
-    _comp_options = paramsSS.str();
+    std::ostringstream options;
+    GenerateClangDefsym(options, "batch_size", _batch_sz);
+    GenerateClangDefsym(options, "img_width", _in_width);
+    GenerateClangDefsym(options, "img_height", _in_height);
+    GenerateClangDefsym(options, "input_channels" , _n_inputs);
+    GenerateClangDefsym(options, "output_channels", _n_outputs);
+    GenerateClangDefsym(options, "weights_layout" , isForwardDirection() ? 0 : 1);
+    GenerateClangDefsym(options, "reverse_weights", isForwardDirection() ? 0 : 1);
+    GenerateClangDefsym(options, "filters_per_wave", filters_per_wave);
+    GenerateClangDefsym(options, "output_lines_per_wave", output_lines_per_wave);
+    GenerateClangDefsym(options, "limit_wave_cnt", limit_wave_cnt);
+    GenerateClangDefsym(options, "no_params_file", 1);
+    GenerateClangDefsym(options, "enable_debug_output", 0);
+    if (!is_metadata_v10) {
+        GenerateClangDefsym(options, "ROCM_METADATA_V2", 1);
+    }
+    _comp_options = options.str();
 
     _l_wk.clear();
     _l_wk.push_back(active_lanes);
@@ -716,9 +715,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
     _g_wk.push_back((_in_height + output_lines_per_wave - 1) / output_lines_per_wave);
     _g_wk.push_back(_batch_sz);
 
-    _kernel_file = is_metadata_v10
-                 ? "conv3x3_m10.s"
-                 : "conv3x3_m21.s";
+    _kernel_file = "conv3x3.s";
     _kernel_name = "gcnAsmConv3x3U";
 
     return 0;
