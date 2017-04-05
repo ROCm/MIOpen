@@ -83,6 +83,7 @@ if( MLOPEN_BACKEND STREQUAL "HIPOC")
 	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
 	add_definitions( -DMLOPEN_BACKEND_HIPOC=1 )
 	find_program(HIP_OC_COMPILER clang-ocl
+		PATH_SUFFIXES bin
 		PATHS /opt/rocm
 	)
 	if(HIP_OC_COMPILER)
