@@ -101,10 +101,10 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MLOpenNeuron.cl
 		Kernels/MLOpenPooling.cl
 		Kernels/MLOpenPoolingBwd.cl
-		Kernels/MLOpenConvDirUniC.cl
-		Kernels/MLOpenConv1x1PS.cl
+		Kernels/MLOpenConvDirUniC.cl		
+		Kernels/MLOpenConv1x1Fwd.cl
+		Kernels/MLOpenConv1x1Bwd.cl
 		Kernels/MLOpenSoftmax.cl
-		Kernels/MLOpenConv1x1PS_LW.cl
 		Kernels/MLOpenConvD3x3.cl
 		Kernels/MLOpenUtilKernels.cl
 		Kernels/MLOpenConvBwdWrW_LxL_P.cl
