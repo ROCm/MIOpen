@@ -1,18 +1,18 @@
-#include <mlopen/convolution.hpp>
+#include <miopen/convolution.hpp>
 
-namespace mlopen {
+namespace miopen {
 
-void ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
-        const mlopen::TensorDescriptor& xDesc,
+void ConvolutionDescriptor::FindConvFwdAlgorithm(miopen::Handle& handle,
+        const miopen::TensorDescriptor& xDesc,
         ConstData_t                 x,
-        const mlopen::TensorDescriptor& wDesc,
+        const miopen::TensorDescriptor& wDesc,
         ConstData_t                 w,
-        const mlopen::TensorDescriptor& yDesc,
+        const miopen::TensorDescriptor& yDesc,
         ConstData_t                 y,
         const int                       requestAlgoCount,
         int                             *returnedAlgoCount,
-        mlopenConvAlgoPerf_t            *perfResults,
-        mlopenConvPreference_t          preference,
+        miopenConvAlgoPerf_t            *perfResults,
+        miopenConvPreference_t          preference,
         void                            *workSpace,
         size_t                          workSpaceSize,
         bool                            exhaustiveSearch) const
@@ -20,15 +20,15 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(mlopen::Handle& handle,
 
 }
 
-void ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
+void ConvolutionDescriptor::ConvolutionForward(miopen::Handle& handle,
     const void                          *alpha,
-    const mlopen::TensorDescriptor&     xDesc,
+    const miopen::TensorDescriptor&     xDesc,
     ConstData_t                     x,
-    const mlopen::TensorDescriptor&     wDesc,
+    const miopen::TensorDescriptor&     wDesc,
     ConstData_t                     w,
-    mlopenConvFwdAlgorithm_t            algo,
+    miopenConvFwdAlgorithm_t            algo,
     const void                          *beta,
-    const mlopen::TensorDescriptor&     yDesc,
+    const miopen::TensorDescriptor&     yDesc,
     Data_t                              y,
     void                                *workSpace,
     size_t                              workSpaceSize) const
@@ -36,17 +36,17 @@ void ConvolutionDescriptor::ConvolutionForward(mlopen::Handle& handle,
 
 }
 
-void ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
-    const mlopen::TensorDescriptor& dyDesc,
+void ConvolutionDescriptor::FindConvBwdDataAlgorithm(miopen::Handle& handle,
+    const miopen::TensorDescriptor& dyDesc,
     ConstData_t                 dy,
-    const mlopen::TensorDescriptor& wDesc,
+    const miopen::TensorDescriptor& wDesc,
     ConstData_t                 w,
-    const mlopen::TensorDescriptor& dxDesc,
+    const miopen::TensorDescriptor& dxDesc,
     ConstData_t                 dx,
     const int                       requestAlgoCount,
     int                             *returnedAlgoCount,
-    mlopenConvAlgoPerf_t            *perfResults,
-    mlopenConvPreference_t          preference,
+    miopenConvAlgoPerf_t            *perfResults,
+    miopenConvPreference_t          preference,
     void                            *workSpace,
     size_t                          workSpaceSize,
     bool                            exhaustiveSearch) const
@@ -54,15 +54,15 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(mlopen::Handle& handle,
 
 }
 
-void ConvolutionDescriptor::ConvolutionBackwardData(mlopen::Handle& handle,
+void ConvolutionDescriptor::ConvolutionBackwardData(miopen::Handle& handle,
     const void                          *alpha,
-    const mlopen::TensorDescriptor&     dyDesc,
+    const miopen::TensorDescriptor&     dyDesc,
     ConstData_t                     dy,
-    const mlopen::TensorDescriptor&     wDesc,
+    const miopen::TensorDescriptor&     wDesc,
     ConstData_t                     w,
-    mlopenConvBwdDataAlgorithm_t        algo,
+    miopenConvBwdDataAlgorithm_t        algo,
     const void                          *beta,
-    const mlopen::TensorDescriptor&     dxDesc,
+    const miopen::TensorDescriptor&     dxDesc,
     Data_t                              dx,
     void                                *workSpace,
     size_t                              workSpaceSize) const

@@ -1,42 +1,42 @@
-#include <mlopen.h>
+#include <miopen.h>
 #include "test.hpp"
 #include <vector>
 #include <array>
 #include <iterator>
 #include <memory>
-#include <mlopen/tensor_extra.hpp>
+#include <miopen/tensor_extra.hpp>
 
 struct handle_fixture
 {
-    mlopenHandle_t handle;
-#if MLOPEN_BACKEND_OPENCL
+    miopenHandle_t handle;
+#if MIOPEN_BACKEND_OPENCL
     cl_command_queue q;
 #endif
 
     handle_fixture()
     {
-        mlopenCreate(&handle);
-#if MLOPEN_BACKEND_OPENCL
-        mlopenGetStream(handle, &q);
+        miopenCreate(&handle);
+#if MIOPEN_BACKEND_OPENCL
+        miopenGetStream(handle, &q);
 #endif
     }
 
     ~handle_fixture()
     {
-        mlopenDestroy(handle);
+        miopenDestroy(handle);
     }
 };
 
 struct input_tensor_fixture
 {
-    mlopenTensorDescriptor_t inputTensor;
+    miopenTensorDescriptor_t inputTensor;
 
     input_tensor_fixture()
     {
-        STATUS(mlopenCreateTensorDescriptor(&inputTensor));
-        STATUS(mlopenSet4dTensorDescriptor(
+        STATUS(miopenCreateTensorDescriptor(&inputTensor));
+        STATUS(miopenSet4dTensorDescriptor(
                 inputTensor,
-                mlopenFloat,
+                miopenFloat,
                 100,
                 32,
                 8,
@@ -46,16 +46,16 @@ struct input_tensor_fixture
 
     ~input_tensor_fixture()
     {
-        mlopenDestroyTensorDescriptor(inputTensor);
+        miopenDestroyTensorDescriptor(inputTensor);
     }
 
     void run()
     {
         int n, c, h, w;
         int nStride, cStride, hStride, wStride;
-        mlopenDataType_t dt;
+        miopenDataType_t dt;
 
-        STATUS(mlopenGet4dTensorDescriptor(
+        STATUS(miopenGet4dTensorDescriptor(
                 inputTensor,
                 &dt,
                 &n,
@@ -81,26 +81,26 @@ struct input_tensor_fixture
 
 struct conv_filter_fixture : virtual handle_fixture
 {
-    mlopenTensorDescriptor_t convFilter;
-    mlopenConvolutionDescriptor_t convDesc;
+    miopenTensorDescriptor_t convFilter;
+    miopenConvolutionDescriptor_t convDesc;
 
-    static const mlopenConvolutionMode_t mode = mlopenConvolution;
+    static const miopenConvolutionMode_t mode = miopenConvolution;
 
     conv_filter_fixture()
     {
-        STATUS(mlopenCreateTensorDescriptor(&convFilter));
+        STATUS(miopenCreateTensorDescriptor(&convFilter));
         // weights
-        STATUS(mlopenSet4dTensorDescriptor(
+        STATUS(miopenSet4dTensorDescriptor(
             convFilter,
-            mlopenFloat,
+            miopenFloat,
             64,  // outputs
             32,   // inputs
             5,   // kernel size
             5));
         
-        STATUS(mlopenCreateConvolutionDescriptor(&convDesc));
+        STATUS(miopenCreateConvolutionDescriptor(&convDesc));
         // convolution with padding 2
-        STATUS(mlopenInitConvolutionDescriptor(convDesc,
+        STATUS(miopenInitConvolutionDescriptor(convDesc,
                 mode,
                 0,
                 0,
@@ -112,16 +112,16 @@ struct conv_filter_fixture : virtual handle_fixture
     }
     ~conv_filter_fixture()
     {
-        mlopenDestroyTensorDescriptor(convFilter);
-        mlopenDestroyConvolutionDescriptor(convDesc);
+        miopenDestroyTensorDescriptor(convFilter);
+        miopenDestroyConvolutionDescriptor(convDesc);
     }
 
     void run()
     {
         // TODO: Update API to not require mode by pointer
-        mlopenConvolutionMode_t lmode = mode;
+        miopenConvolutionMode_t lmode = mode;
         int pad_w, pad_h, u, v, upx, upy;
-        STATUS(mlopenGetConvolutionDescriptor(convDesc,
+        STATUS(miopenGetConvolutionDescriptor(convDesc,
                 &lmode,
                 &pad_h, &pad_w, &u, &v,
                 &upx, &upy));
@@ -138,17 +138,17 @@ struct conv_filter_fixture : virtual handle_fixture
 
 struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
 {
-    mlopenTensorDescriptor_t outputTensor;
+    miopenTensorDescriptor_t outputTensor;
     output_tensor_fixture()
     {
         int x, y, z, a;
-        STATUS(mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a));
+        STATUS(miopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a));
 
-        STATUS(mlopenCreateTensorDescriptor(&outputTensor));
+        STATUS(miopenCreateTensorDescriptor(&outputTensor));
 
-        STATUS(mlopenSet4dTensorDescriptor(
+        STATUS(miopenSet4dTensorDescriptor(
             outputTensor,
-            mlopenFloat,
+            miopenFloat,
             x,
             y,
             z,
@@ -156,13 +156,13 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
     }
     ~output_tensor_fixture()
     {
-        mlopenDestroyTensorDescriptor(outputTensor);
+        miopenDestroyTensorDescriptor(outputTensor);
     }
 
     void run()
     {
         int x, y, z, a;
-        STATUS(mlopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a));
+        STATUS(miopenGetConvolutionForwardOutputDim(convDesc, inputTensor, convFilter, &x, &y, &z, &a));
 
         EXPECT(x == 100);
         EXPECT(y == 64);
@@ -176,9 +176,9 @@ struct conv_forward : output_tensor_fixture
 {
     void run()
     {
-        STATUS(mlopenEnableProfiling(handle, Profile));
+        STATUS(miopenEnableProfiling(handle, Profile));
         int alpha = 1, beta = 1;
-        STATUS(mlopenTransformTensor(handle,
+        STATUS(miopenTransformTensor(handle,
                 &alpha,
                 inputTensor,
                 NULL,
@@ -187,24 +187,24 @@ struct conv_forward : output_tensor_fixture
                 NULL));
 
         // int value = 10;
-        // STATUS(mlopenSetTensor(handle, inputTensor, NULL, &value));
+        // STATUS(miopenSetTensor(handle, inputTensor, NULL, &value));
 
-        // STATUS(mlopenScaleTensor(handle, inputTensor, NULL, &alpha));
+        // STATUS(miopenScaleTensor(handle, inputTensor, NULL, &alpha));
 
         // Setup OpenCL buffers
 
 		int n, h, c, w;
-		STATUS(mlopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w));
+		STATUS(miopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w));
 		size_t sz_in = n*c*h*w;
 		
-		STATUS(mlopenGet4dTensorDescriptorLengths(convFilter, &n, &c, &h, &w));
+		STATUS(miopenGet4dTensorDescriptorLengths(convFilter, &n, &c, &h, &w));
 		size_t sz_wei = n*c*h*w;
 		
-		STATUS(mlopenGet4dTensorDescriptorLengths(outputTensor, &n, &c, &h, &w));
+		STATUS(miopenGet4dTensorDescriptorLengths(outputTensor, &n, &c, &h, &w));
 		size_t sz_out = n*c*h*w;
 
 		size_t sz_fwd_workspace;
-		STATUS(mlopenConvolutionForwardGetWorkSpaceSize(convFilter, inputTensor, outputTensor, convDesc, &sz_fwd_workspace));
+		STATUS(miopenConvolutionForwardGetWorkSpaceSize(convFilter, inputTensor, outputTensor, convDesc, &sz_fwd_workspace));
 
         std::vector<float> in(sz_in);
         std::vector<float> wei(sz_wei);
@@ -218,7 +218,7 @@ struct conv_forward : output_tensor_fixture
             wei[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
         }
 
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 
         cl_context ctx;
         clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
@@ -235,7 +235,7 @@ struct conv_forward : output_tensor_fixture
 		status |= clEnqueueWriteBuffer(q, fwd_workspace_dev, CL_TRUE, 0, sz_fwd_workspace, fwd_workspace.data(), 0, NULL, NULL);
 		EXPECT(status == CL_SUCCESS);
 
-#elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
 
         void * in_dev;
         void * wei_dev;
@@ -255,9 +255,9 @@ struct conv_forward : output_tensor_fixture
 #endif
 
         int ret_algo_count;
-        mlopenConvAlgoPerf_t perf;
+        miopenConvAlgoPerf_t perf;
 
-        STATUS(mlopenFindConvolutionForwardAlgorithm(handle,
+        STATUS(miopenFindConvolutionForwardAlgorithm(handle,
             inputTensor,
             in_dev,
             convFilter,
@@ -272,14 +272,14 @@ struct conv_forward : output_tensor_fixture
             sz_fwd_workspace,
 			0)); // MD: Not performing exhaustiveSearch by default for now
 
-        STATUS(mlopenConvolutionForward(handle,
+        STATUS(miopenConvolutionForward(handle,
             &alpha,
             inputTensor,
             in_dev,
             convFilter,
             wei_dev,
             convDesc,
-            mlopenConvolutionFwdAlgoDirect,
+            miopenConvolutionFwdAlgoDirect,
             &beta,
             outputTensor,
 			out_dev,
@@ -287,7 +287,7 @@ struct conv_forward : output_tensor_fixture
             sz_fwd_workspace));
 
         float time;
-        STATUS(mlopenGetKernelTime(handle, &time));
+        STATUS(miopenGetKernelTime(handle, &time));
         if (Profile) 
         { 
             CHECK(time > 0.0);
@@ -298,13 +298,13 @@ struct conv_forward : output_tensor_fixture
         }
 
         // Potential memory leak free memory at end of function
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 		clReleaseMemObject(in_dev);
 		clReleaseMemObject(wei_dev);
 		clReleaseMemObject(out_dev);
 		clReleaseMemObject(fwd_workspace_dev);
 
-#elif MLOPEN_BACKEND_HIP || MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
         hipFree(in_dev);
         hipFree(wei_dev);
         hipFree(out_dev);

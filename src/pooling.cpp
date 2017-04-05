@@ -1,10 +1,10 @@
 #include <cmath>
-#include <mlopen/pooling.hpp>
-#include <mlopen/logger.hpp>
+#include <miopen/pooling.hpp>
+#include <miopen/logger.hpp>
 #include <cassert>
 #include <cmath>
 
-namespace mlopen {
+namespace miopen {
 
 template<class T, class U>
 T iciel_div(T x, U y)
@@ -16,19 +16,19 @@ T iciel_div(T x, U y)
 
 PoolingDescriptor::PoolingDescriptor() {}
 
-PoolingDescriptor::PoolingDescriptor(mlopenPoolingMode_t m,
+PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
 		const int *plens,
 		const int *ppads,
 		const int *pstrides,
 		int			size) : lens(plens, plens+size), strides(pstrides, pstrides+size), pads(ppads, ppads+size), mode(m) {}
 
-PoolingDescriptor::PoolingDescriptor(mlopenPoolingMode_t m, std::initializer_list<int> plens, std::initializer_list<int> pstrides, std::initializer_list<int> ppads)
+PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m, std::initializer_list<int> plens, std::initializer_list<int> pstrides, std::initializer_list<int> ppads)
 : lens(plens), strides(pstrides), pads(ppads), mode(m)
 {
 
 }
 
-mlopenPoolingMode_t PoolingDescriptor::GetMode() const
+miopenPoolingMode_t PoolingDescriptor::GetMode() const
 {
 	return(mode);
 }
@@ -47,7 +47,7 @@ const std::vector<int>& PoolingDescriptor::GetPads() const
 	return pads;
 }
 
-mlopenPoolingMode_t PoolingDescriptor::GetMode()
+miopenPoolingMode_t PoolingDescriptor::GetMode()
 {
 	return mode;
 }
@@ -68,12 +68,12 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 	int input_h;
 	int input_w;
 
-	std::tie(input_n, input_c, input_h, input_w) = mlopen::tie4(tensorDesc.GetLengths());
+	std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(tensorDesc.GetLengths());
 
 	int u, v, pad_h, pad_w, window_h, window_w;
-	std::tie(u, v) = mlopen::tie2(GetStrides());
-	std::tie(pad_h, pad_w) = mlopen::tie2(GetPads());
-	std::tie(window_h, window_w) = mlopen::tie2(GetLengths());
+	std::tie(u, v) = miopen::tie2(GetStrides());
+	std::tie(pad_h, pad_w) = miopen::tie2(GetPads());
+	std::tie(window_h, window_w) = miopen::tie2(GetLengths());
 
 	return std::make_tuple(
             input_n, input_c, 
@@ -96,11 +96,11 @@ TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(
 
 std::ostream& operator<< (std::ostream& stream, const PoolingDescriptor& x)
 {
-	MLOPEN_LOG_ENUM(stream, x.mode, mlopenPoolingMax, mlopenPoolingAverage) << ", ";
+	MIOPEN_LOG_ENUM(stream, x.mode, miopenPoolingMax, miopenPoolingAverage) << ", ";
 	LogRange(stream, x.lens, ", ") << ", ";
 	LogRange(stream, x.strides, ", ") << ", ";
 	LogRange(stream, x.pads, ", ") << ", ";
 	return stream;
 }
 
-} // namespace mlopen
+} // namespace miopen

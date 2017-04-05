@@ -1,5 +1,5 @@
 
-#include <mlopen/each_args.hpp>
+#include <miopen/each_args.hpp>
 #include <unordered_map>
 #include <unordered_set>
 #include <string>
@@ -119,13 +119,13 @@ struct any_value
 };
 
 template<class T, std::size_t ... Ns, class Data>
-auto any_construct_impl(rank<1>, mlopen::detail::seq<Ns...>, const Data& d) -> decltype(T(any_value{d[Ns]}...))
+auto any_construct_impl(rank<1>, miopen::detail::seq<Ns...>, const Data& d) -> decltype(T(any_value{d[Ns]}...))
 {
     return T(any_value{d[Ns]}...);
 }
 
 template<class T, std::size_t ... Ns, class Data>
-T any_construct_impl(rank<0>, mlopen::detail::seq<Ns...>, const Data&)
+T any_construct_impl(rank<0>, miopen::detail::seq<Ns...>, const Data&)
 {
     throw std::runtime_error("Cannot construct type");
 }
@@ -133,7 +133,7 @@ T any_construct_impl(rank<0>, mlopen::detail::seq<Ns...>, const Data&)
 template<class T, std::size_t N, class Data>
 T any_construct(const Data& d)
 {
-    return any_construct_impl<T>(rank<1>{}, typename mlopen::detail::gens<N>::type{}, d);
+    return any_construct_impl<T>(rank<1>{}, typename miopen::detail::gens<N>::type{}, d);
 }
 
 struct write_value

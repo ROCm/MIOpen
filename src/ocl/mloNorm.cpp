@@ -15,9 +15,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 ********************************************************************/
 // to share code with between CPU and GPU
 
-#define MLOPEN
-#include <mlopen/mlo_internal.hpp>
-#include <mlopen/mlo_utils.hpp>
+#define MIOPEN
+#include <miopen/mlo_internal.hpp>
+#include <miopen/mlo_utils.hpp>
 
 // KNOWN ISSUES:
 // backward propogagation has a bug in cross map normalization when numper of maps less than normalization region
@@ -85,8 +85,8 @@ int mlo_construct_norm::mloConstructFwd()
 
 
 #if 1
-	_kernel_file = "MLOpenLRNFwd.cl";
-	_kernel_name = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? "MLOpenLRNAcrossChannels4" : "MLOpenLRNWithinChannel_PS";
+	_kernel_file = "MIOpenLRNFwd.cl";
+	_kernel_name = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? "MIOpenLRNAcrossChannels4" : "MIOpenLRNWithinChannel_PS";
 	if (_norm_region == MLO_LRN_ACROSS_CHANNELS)
 	{
 		_grp_tile0 = 8 * 8;
@@ -100,8 +100,8 @@ int mlo_construct_norm::mloConstructFwd()
 
 	}
 #else
-	_kernel_file = "MLOpenLRN.cl";
-	_kernel_name = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? "MLOpenLRNAcrossChannels1" : "MLOpenLRNWithinChannel";
+	_kernel_file = "MIOpenLRN.cl";
+	_kernel_name = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? "MIOpenLRNAcrossChannels1" : "MIOpenLRNWithinChannel";
 #endif
 
 	int scale_stride = _out_stride;
@@ -268,7 +268,7 @@ int mlo_construct_norm::mloConstructBwd()
 		+ getGeneralCompOptions()
 		;
 
-	_kernel_file = "MLOpenLRNBwd.cl";
+	_kernel_file = "MIOpenLRNBwd.cl";
 
 	_l_wk.clear();
 	_g_wk.clear();
@@ -281,7 +281,7 @@ int mlo_construct_norm::mloConstructBwd()
 		_g_wk.push_back(_in_df_width);
 		_g_wk.push_back(_in_df_height);
 		_g_wk.push_back(_batch_sz);
-		_kernel_name = "MLOpenLRNAcrossChannelsBwd1";
+		_kernel_name = "MIOpenLRNAcrossChannelsBwd1";
 	}
 	else
 	{
@@ -291,7 +291,7 @@ int mlo_construct_norm::mloConstructBwd()
 		_g_wk.push_back(g_wk_width * _grp_tile0);
 		_g_wk.push_back(g_wk_height * _grp_tile1);
 		_g_wk.push_back(_n_inputs * _batch_sz);
-		_kernel_name = "MLOpenLRNWithinChannelBwd";
+		_kernel_name = "MIOpenLRNWithinChannelBwd";
 
 	}
 

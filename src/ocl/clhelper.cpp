@@ -3,11 +3,11 @@
 #include <string>
 #include <fstream>
 #include <cstdio>
-#include <mlopen/gcn_asm_utils.h>
-#include <mlopen/clhelper.hpp>
-#include <mlopen/kernel.hpp>
-#include <mlopen/errors.hpp>
-#include <mlopen/stringutils.hpp>
+#include <miopen/gcn_asm_utils.h>
+#include <miopen/clhelper.hpp>
+#include <miopen/kernel.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/stringutils.hpp>
 #ifndef WIN32 //Linux or APPLE
 #include <unistd.h>
 #include <paths.h>
@@ -23,7 +23,7 @@ public:
         : _path(GetTempDirectoryPath() + "/" + path_template + "-XXXXXX")
     {
         _fd = mkstemp(&_path[0]);
-        if (_fd == -1) { MLOPEN_THROW("Error: TempFile: mkstemp()"); }
+        if (_fd == -1) { MIOPEN_THROW("Error: TempFile: mkstemp()"); }
     }
 
     ~TempFile()
@@ -61,7 +61,7 @@ private:
 };
 #endif
 
-namespace mlopen {
+namespace miopen {
 
 static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t size)
 {
@@ -72,7 +72,7 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 		&size,
 		&status);
 
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()"); }
+	if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "Error Creating OpenCL Program (cl_program) in LoadProgram()"); }
 
 	return result;
 }
@@ -97,7 +97,7 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 	{ 	// Add -mcpu=name as reported by OpenCL-on-ROCm runtime.
 		char name[64] = {0};
 		if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(name), name, nullptr)) {
-			MLOPEN_THROW("Error: X-AMDGCN-ASM: clGetDeviceInfo()");
+			MIOPEN_THROW("Error: X-AMDGCN-ASM: clGetDeviceInfo()");
 		}
 		args.push_back("-mcpu=" + std::string(name));
 	}
@@ -115,7 +115,7 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 	
 	std::istringstream clang_stdin(source);
 	const auto clang_rc = ExecuteGcnAssembler(args, &clang_stdin, nullptr);
-	if (clang_rc != 0) MLOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")"); 
+	if (clang_rc != 0) MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")"); 
 
 	std::ifstream file(outfile, std::ios::binary | std::ios::ate);
 	bool outfile_read_failed = false;
@@ -129,12 +129,12 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 	} while (false);
 	file.close();
 	if (outfile_read_failed) {
-		MLOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
+		MIOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
 	}
 #else
 	(void)source; // -warning
 	(void)params; // -warning
-	MLOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
+	MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
 #endif //WIN32
 }
 
@@ -149,7 +149,7 @@ static cl_program CreateProgramWithBinary(cl_context ctx, cl_device_id device, c
 		&status,
 		&binaryStatus);
 
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error creating code object program (cl_program) in LoadProgramFromBinary()"); }
+	if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "Error creating code object program (cl_program) in LoadProgramFromBinary()"); }
 
 	return result;
 }
@@ -175,7 +175,7 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 			&psize);
 
 		msg += errorbuf.data();
-		if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, msg); }
+		if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, msg); }
 	}
 }
 
@@ -186,13 +186,13 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 	if (is_kernel_str) {
 		source = program_name;
 	} else {
-		source = mlopen::GetKernelSrc(program_name);
-		auto is_asm = mlopen::EndsWith(program_name, ".s");
+		source = miopen::GetKernelSrc(program_name);
+		auto is_asm = miopen::EndsWith(program_name, ".s");
 		if (is_asm) { // Overwrites source (asm text) by binary results of assembly:
 			ExperimentalAmdgcnAssemble(device, source, params);
 			is_binary = true;
 		} else {
-			is_binary = mlopen::EndsWith(program_name, ".so");
+			is_binary = miopen::EndsWith(program_name, ".so");
 		}
 	}
 
@@ -214,7 +214,7 @@ ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name)
 			kernel_name.c_str(), 
 			&status)};
 
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
+	if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status); }
 
 	return result;
 }
@@ -227,7 +227,7 @@ cl_device_id GetDevice(cl_command_queue q)
 			sizeof(cl_device_id),
 			&device, 
 			nullptr);
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()"); }
+	if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()"); }
 
 	return device;
 }
@@ -240,7 +240,7 @@ cl_context GetContext(cl_command_queue q)
 			sizeof(cl_context),
 			&context, 
 			nullptr);
-	if (status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()"); }
+	if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "Error Getting Device Info from Queue in GetDevice()"); }
 	return context;
 }
 
@@ -256,9 +256,9 @@ ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev)
 #pragma clang diagnostic pop
 #endif
 
-	if(status != CL_SUCCESS) { MLOPEN_THROW_CL_STATUS(status); }
+	if(status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status); }
 
 	return q;
 }
 
-} // namespace mlopen
+} // namespace miopen

@@ -1,13 +1,13 @@
-#ifndef GUARD_MLOPEN_ACTIV_DRIVER_HPP
-#define GUARD_MLOPEN_ACTIV_DRIVER_HPP
+#ifndef GUARD_MIOPEN_ACTIV_DRIVER_HPP
+#define GUARD_MIOPEN_ACTIV_DRIVER_HPP
 
 #include <cstdlib>
-#include <mlopen.h>
+#include <miopen.h>
 #include "driver.hpp"
 #include "mloNeuronHost.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
-#include <mlopen/tensor.hpp>
+#include <miopen/tensor.hpp>
 #include <vector>
 #include <algorithm>
 #include <float.h>
@@ -19,13 +19,13 @@ class ActivationDriver : public Driver
 {
 	public:
 		ActivationDriver() : Driver() {
-		mlopenCreateTensorDescriptor(&inputTensor);
-		mlopenCreateTensorDescriptor(&outputTensor);
+		miopenCreateTensorDescriptor(&inputTensor);
+		miopenCreateTensorDescriptor(&outputTensor);
 
-		mlopenCreateActivationDescriptor(&activDesc);
+		miopenCreateActivationDescriptor(&activDesc);
 
-		mlopenCreateTensorDescriptor(&dInputTensor);
-		mlopenCreateTensorDescriptor(&dOutputTensor);
+		miopenCreateTensorDescriptor(&dInputTensor);
+		miopenCreateTensorDescriptor(&dOutputTensor);
 	}
 
 	int AddCmdLineArgs();
@@ -49,17 +49,17 @@ class ActivationDriver : public Driver
 	int VerifyForward();
 	~ActivationDriver() {
 
-		mlopenDestroyTensorDescriptor(outputTensor);
-		mlopenDestroyTensorDescriptor(inputTensor);
+		miopenDestroyTensorDescriptor(outputTensor);
+		miopenDestroyTensorDescriptor(inputTensor);
 
-		mlopenDestroyActivationDescriptor(activDesc);
+		miopenDestroyActivationDescriptor(activDesc);
 	}
 
 	private:
 	InputFlags inflags;
 
-	mlopenTensorDescriptor_t inputTensor;
-	mlopenTensorDescriptor_t outputTensor;
+	miopenTensorDescriptor_t inputTensor;
+	miopenTensorDescriptor_t outputTensor;
 
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> out_dev;
@@ -69,10 +69,10 @@ class ActivationDriver : public Driver
 	std::vector<T> out;
 	std::vector<T> outhost;
 
-	mlopenActivationDescriptor_t activDesc;
+	miopenActivationDescriptor_t activDesc;
 
-	mlopenTensorDescriptor_t dInputTensor;
-	mlopenTensorDescriptor_t dOutputTensor;
+	miopenTensorDescriptor_t dInputTensor;
+	miopenTensorDescriptor_t dOutputTensor;
 	std::unique_ptr<GPUMem> din_dev;
 	std::unique_ptr<GPUMem> dout_dev;
 
@@ -87,7 +87,7 @@ int ActivationDriver<T>::ParseCmdLineArgs(int argc, char *argv[]) {
 	inflags.Parse(argc, argv);
 
 	if(inflags.GetValueInt("time") == 1) {
-		mlopenEnableProfiling(GetHandle(), true);
+		miopenEnableProfiling(GetHandle(), true);
 	}
 	return 0;
 }
@@ -138,13 +138,13 @@ std::vector<int> ActivationDriver<T>::GetInputTensorLengthsFromCmdLine() {
 template<typename T>
 int ActivationDriver<T>::SetActivationDescriptorFromCmdLineArgs() {
 
-	mlopenActivationMode_t mode;
+	miopenActivationMode_t mode;
 	double Alpha = inflags.GetValueDouble("alpha");
 	double Beta = inflags.GetValueDouble("beta");
 	double Power = inflags.GetValueDouble("power");
-	mode = (mlopenActivationMode_t)inflags.GetValueInt("mode");
+	mode = (miopenActivationMode_t)inflags.GetValueInt("mode");
 
-	mlopenSetActivationDescriptor(activDesc,
+	miopenSetActivationDescriptor(activDesc,
 			mode,
 			Alpha,
 			Beta,
@@ -157,11 +157,11 @@ int ActivationDriver<T>::AllocateBuffersAndCopy() {
 
 	size_t in_sz = GetTensorSize(inputTensor);
 	size_t out_sz = GetTensorSize(outputTensor);
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 uint32_t ctx = 0;
 #endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
@@ -186,9 +186,9 @@ uint32_t ctx = 0;
 	for (int i = 0; i < out_sz; i++) {
 		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	cl_int status;
-#elif MLOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIPOC
 	int status;
 #endif
 	status = in_dev->ToGPU(q, in.data());
@@ -200,7 +200,7 @@ uint32_t ctx = 0;
 	if(status != CL_SUCCESS)
 		printf("Error copying data to GPU\n");
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
 template<typename T>
@@ -208,7 +208,7 @@ int ActivationDriver<T>::RunForwardGPU() {
 
 	int alpha = 1, beta = 1;
 
-	mlopenActivationForward(GetHandle(),
+	miopenActivationForward(GetHandle(),
 			activDesc,
 			&alpha,
 			inputTensor,
@@ -221,13 +221,13 @@ int ActivationDriver<T>::RunForwardGPU() {
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
-		mlopenGetKernelTime(GetHandle(), &time);
+		miopenGetKernelTime(GetHandle(), &time);
 		printf("GPU Kernel Time Forward Activation Elapsed: %f ms\n", time);
 	}
 
 	out_dev->FromGPU(GetStream(), out.data());
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
 template<typename T>
@@ -239,7 +239,7 @@ template<typename T>
 int ActivationDriver<T>::RunBackwardGPU() {
 	float alpha = 1., beta = 1.;
 
-	mlopenActivationBackward(GetHandle(),
+	miopenActivationBackward(GetHandle(),
 		activDesc,
 		&alpha,
 		outputTensor,
@@ -255,7 +255,7 @@ int ActivationDriver<T>::RunBackwardGPU() {
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
-		mlopenGetKernelTime(GetHandle(), &time);
+		miopenGetKernelTime(GetHandle(), &time);
 		printf("GPU Kernel Time Backward Activation Elapsed: %f ms\n", time);
 	}
 
@@ -267,12 +267,12 @@ int ActivationDriver<T>::RunBackwardGPU() {
 template<typename T>
 int ActivationDriver<T>::VerifyForward() {
 	const double allowedEps = (1 << 2);
-	mlopenActivationMode_t	v_mode;
+	miopenActivationMode_t	v_mode;
 	double	v_Alpha;
 	double	v_Beta;
 	double	v_Power;
 
-	mlopenGetActivationDescriptor(activDesc,
+	miopenGetActivationDescriptor(activDesc,
 		&v_mode,
 		&v_Alpha,
 		&v_Beta,
@@ -304,12 +304,12 @@ template<typename T>
 int ActivationDriver<T>::VerifyBackward() {
 
 	const double allowedEps = (1 << 2);
-	mlopenActivationMode_t	v_mode;
+	miopenActivationMode_t	v_mode;
 	double	v_Alpha;
 	double	v_Beta;
 	double	v_Power;
 
-	mlopenGetActivationDescriptor(activDesc,
+	miopenGetActivationDescriptor(activDesc,
 		&v_mode,
 		&v_Alpha,
 		&v_Beta,
@@ -332,4 +332,4 @@ int ActivationDriver<T>::VerifyBackward() {
 	return 0;
 }
 
-#endif // GUARD_MLOPEN_ACTIV_DRIVER_HPP
+#endif // GUARD_MIOPEN_ACTIV_DRIVER_HPP

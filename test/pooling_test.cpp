@@ -1,12 +1,12 @@
-#include <mlopen.h>
+#include <miopen.h>
 #include "test.hpp"
 #include <array>
 #include <iterator>
 #include <memory>
 #include <utility>
 #include <iostream>
-#include <mlopen/tensor.hpp>
-#include <mlopen/pooling.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/pooling.hpp>
 #include <limits>
 
 // #include "network_data.hpp"
@@ -16,7 +16,7 @@
 #include "get_handle.hpp"
 
 template<class T>
-tensor<T> get_output_tensor(const mlopen::PoolingDescriptor& filter, const tensor<T>& input)
+tensor<T> get_output_tensor(const miopen::PoolingDescriptor& filter, const tensor<T>& input)
 {
     return tensor<T>{filter.GetForwardOutputTensor(input.desc)};
 }
@@ -24,26 +24,26 @@ tensor<T> get_output_tensor(const mlopen::PoolingDescriptor& filter, const tenso
 template<class T>
 struct pooling_operators
 {
-    mlopen::PoolingDescriptor filter;
-    pooling_operators(mlopen::PoolingDescriptor f)
+    miopen::PoolingDescriptor filter;
+    pooling_operators(miopen::PoolingDescriptor f)
     : filter(f)
     {}
 
     T start() const
     {
-        if (filter.GetMode() == mlopenPoolingMax) return std::numeric_limits<T>::lowest();
+        if (filter.GetMode() == miopenPoolingMax) return std::numeric_limits<T>::lowest();
         else return 0.0;
     }
 
     T operator()(T x, T y) const
     {
-        if (filter.GetMode() == mlopenPoolingMax) return std::max(x, y);
+        if (filter.GetMode() == miopenPoolingMax) return std::max(x, y);
         else return x+y;
     }
 
     T final(T x, T y)
     {
-        if (filter.GetMode() == mlopenPoolingMax) return x;
+        if (filter.GetMode() == miopenPoolingMax) return x;
         else return x / y; 
     }
 };
@@ -51,17 +51,17 @@ struct pooling_operators
 struct verify_forward_pooling
 {
     template<class T>
-    tensor<T> cpu(const tensor<T>& input, const mlopen::PoolingDescriptor& filter, std::vector<uint16_t>&)
+    tensor<T> cpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint16_t>&)
     {
         auto out = get_output_tensor(filter, input);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
 
         int u, v, pad_h, pad_w, window_h, window_w;
-        std::tie(u, v) = mlopen::tie2(filter.GetStrides());
-        std::tie(pad_h, pad_w) = mlopen::tie2(filter.GetPads());
-        std::tie(window_h, window_w) = mlopen::tie2(filter.GetLengths());
+        std::tie(u, v) = miopen::tie2(filter.GetStrides());
+        std::tie(pad_h, pad_w) = miopen::tie2(filter.GetPads());
+        std::tie(window_h, window_w) = miopen::tie2(filter.GetLengths());
 
         auto op = pooling_operators<T>{filter};
 
@@ -90,7 +90,7 @@ struct verify_forward_pooling
     }
 
     template<class T>
-    tensor<T> gpu(const tensor<T>& input, const mlopen::PoolingDescriptor& filter, std::vector<uint16_t>& indices)
+    tensor<T> gpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint16_t>& indices)
     {
         auto&& handle = get_handle();
         auto out = get_output_tensor(filter, input);
@@ -120,10 +120,10 @@ struct verify_forward_pooling
     }
 
     template<class T>
-    void fail(float, const tensor<T>& input, const mlopen::PoolingDescriptor& filter, const std::vector<uint16_t>&)
+    void fail(float, const tensor<T>& input, const miopen::PoolingDescriptor& filter, const std::vector<uint16_t>&)
     {
         std::cout << "Forward pooling: ";
-        if (filter.GetMode() == mlopenPoolingAverage) std::cout << "Average";
+        if (filter.GetMode() == miopenPoolingAverage) std::cout << "Average";
         else std::cout << "Max";
         std::cout << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
@@ -136,33 +136,33 @@ struct verify_forward_pooling
 struct verify_backward_pooling
 {
     template<class T>
-    tensor<T> cpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const mlopen::PoolingDescriptor& filter, const std::vector<uint16_t>& indices)
+    tensor<T> cpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const miopen::PoolingDescriptor& filter, const std::vector<uint16_t>& indices)
     {
         auto dinput = input;
         CHECK(dout.desc == out.desc);
         std::fill(dinput.begin(), dinput.end(), 0.0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(dinput.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(dinput.desc.GetLengths());
 
         int u, v, pad_h, pad_w, window_h, window_w;
-        std::tie(u, v) = mlopen::tie2(filter.GetStrides());
-        std::tie(pad_h, pad_w) = mlopen::tie2(filter.GetPads());
-        std::tie(window_h, window_w) = mlopen::tie2(filter.GetLengths());
+        std::tie(u, v) = miopen::tie2(filter.GetStrides());
+        std::tie(pad_h, pad_w) = miopen::tie2(filter.GetPads());
+        std::tie(window_h, window_w) = miopen::tie2(filter.GetLengths());
 
         int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = mlopen::tie4(out.desc.GetLengths());
+        std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(out.desc.GetLengths());
 
         par_ford(out_n, out_c)([&](int o, int w)
         {
-            if (filter.GetMode() == mlopenPoolingMax)
+            if (filter.GetMode() == miopenPoolingMax)
             {
                 ford(out_h, out_w)([&](int i, int j)
                 {
                     auto idx = indices.at(dout.desc.GetIndex(o, w, i, j));
                     auto idx_h = idx / in_w;
                     auto idx_w = idx % in_w;
-                    CHECK(mlopen::float_equal(input(o, w, idx_h, idx_w), out(o, w, i, j)));
+                    CHECK(miopen::float_equal(input(o, w, idx_h, idx_w), out(o, w, i, j)));
                     dinput(o, w, idx_h, idx_w) += dout(o, w, i, j);
                 });
             }
@@ -190,7 +190,7 @@ struct verify_backward_pooling
     }
 
     template<class T>
-    tensor<T> gpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const mlopen::PoolingDescriptor& filter, const std::vector<uint16_t>& indices)
+    tensor<T> gpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const miopen::PoolingDescriptor& filter, const std::vector<uint16_t>& indices)
     {
         auto&& handle = get_handle();
         auto dinput = input;
@@ -229,10 +229,10 @@ struct verify_backward_pooling
     }
 
     template<class T>
-    void fail(float, const tensor<T>& input, const tensor<T>&, const tensor<T>& out, const mlopen::PoolingDescriptor& filter, const std::vector<uint16_t>&)
+    void fail(float, const tensor<T>& input, const tensor<T>&, const tensor<T>& out, const miopen::PoolingDescriptor& filter, const std::vector<uint16_t>&)
     {
         std::cout << "Backward pooling: ";
-        if (filter.GetMode() == mlopenPoolingAverage) std::cout << "Average";
+        if (filter.GetMode() == miopenPoolingAverage) std::cout << "Average";
         else std::cout << "Max";
         std::cout << std::endl;
         std::cout << "Output tensor: " << out.desc.ToString() << std::endl;
@@ -253,17 +253,17 @@ struct pooling_driver : test_driver
     void run()
     {
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
         if ((in_h * in_w) > std::numeric_limits<uint16_t>::max()) return;
 
-        for(auto m:{mlopenPoolingMax, mlopenPoolingAverage})
+        for(auto m:{miopenPoolingMax, miopenPoolingAverage})
         {
             for(auto filter:{
-                mlopen::PoolingDescriptor{m, {2, 2}, {2, 2}, {0, 0}},
-                mlopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {0, 0}}, 
-                mlopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {1, 1}},
-                mlopen::PoolingDescriptor{m, {3, 3}, {2, 2}, {0, 0}},
-                mlopen::PoolingDescriptor{m, {3, 3}, {1, 1}, {1, 1}}
+                miopen::PoolingDescriptor{m, {2, 2}, {2, 2}, {0, 0}},
+                miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {0, 0}}, 
+                miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {1, 1}},
+                miopen::PoolingDescriptor{m, {3, 3}, {2, 2}, {0, 0}},
+                miopen::PoolingDescriptor{m, {3, 3}, {1, 1}, {1, 1}}
             })
             {
                 std::vector<uint16_t> indices{};

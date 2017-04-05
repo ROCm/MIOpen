@@ -15,9 +15,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 ********************************************************************/
 // to share code with between CPU and GPU
 
-#define MLOPEN
-#include <mlopen/mlo_internal.hpp>
-#include <mlopen/mlo_utils.hpp>
+#define MIOPEN
+#include <miopen/mlo_internal.hpp>
+#include <miopen/mlo_utils.hpp>
 
 int mlo_construct_pooling2D::mloConstruct()
 {
@@ -90,7 +90,7 @@ int mlo_construct_pooling2D::mloConstructFwd()
 	_g_wk.push_back(_n_outputs * _batch_sz);
 
 
-	_kernel_file = "MLOpenPooling.cl";
+	_kernel_file = "MIOpenPooling.cl";
 
 	_kernel_name = "mloPooling";
 
@@ -152,7 +152,7 @@ int mlo_construct_pooling2D::mloConstructBwd()
 	_g_wk.push_back(_n_inputs * _batch_sz);
 
 
-	_kernel_file = "MLOpenPoolingBwd.cl";
+	_kernel_file = "MIOpenPoolingBwd.cl";
 	if (_pooling_method == MLO_POOLING_OP_MAX)
 	{
 		_kernel_name = "mloPoolingMaxBwd";

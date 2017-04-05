@@ -1,14 +1,14 @@
 
-#include <mlopen.h>
+#include <miopen.h>
 #include "test.hpp"
 #include <array>
 #include <iterator>
 #include <memory>
 #include <utility>
 #include <iostream>
-#include <mlopen/tensor.hpp>
-#include <mlopen/convolution.hpp>
-#include <mlopen/softmax.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/convolution.hpp>
+#include <miopen/softmax.hpp>
 #include <limits>
 
 #include "tensor_holder.hpp"
@@ -26,7 +26,7 @@ struct verify_forward_sofmax
         std::fill(out.begin(), out.end(), 0);
 
         int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
 
         par_ford(in_n, in_h, in_w)([&](int o, int i, int j)
         {
@@ -61,7 +61,7 @@ struct verify_forward_sofmax
 
         int alpha = 1, beta = 1;
 
-        mlopen::SoftmaxForward(handle, &alpha, &beta, input.desc, out_dev.get());
+        miopen::SoftmaxForward(handle, &alpha, &beta, input.desc, out_dev.get());
 
         out.data = handle.Read<T>(out_dev, out.data.size());
         return out;
@@ -83,7 +83,7 @@ struct verify_backward_sofmax
         auto input = dout;
 
         int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = mlopen::tie4(input.desc.GetLengths());
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
 
         par_ford(in_n, in_h, in_w)([&](int o, int i, int j)
         {
@@ -112,7 +112,7 @@ struct verify_backward_sofmax
 
         int alpha = 1, beta = 1;
 
-        mlopen::SoftmaxBackward(handle, &alpha, out.desc, out_dev.get(), &beta, input.desc, in_dev.get());
+        miopen::SoftmaxBackward(handle, &alpha, out.desc, out_dev.get(), &beta, input.desc, in_dev.get());
 
         input.data = handle.Read<T>(in_dev, input.data.size());
         return input;

@@ -1,9 +1,9 @@
-#include <mlopen/lrn.hpp>
-#include <mlopen/mlo_internal.hpp>
+#include <miopen/lrn.hpp>
+#include <miopen/mlo_internal.hpp>
 
-namespace mlopen {
+namespace miopen {
 
-mlopenStatus_t LRNDescriptor::Forward(
+miopenStatus_t LRNDescriptor::Forward(
 		Handle						&handle,
 		const void					* /*alpha*/,
 		const TensorDescriptor		&xDesc,
@@ -14,7 +14,7 @@ mlopenStatus_t LRNDescriptor::Forward(
 		bool                        do_backward,
 		Data_t						workSpace) {
 
-	mlopenStatus_t status = mlopenStatusSuccess;
+	miopenStatus_t status = miopenStatusSuccess;
 	mlo_construct_norm construct_params(1); // forward
 
 	construct_params.setStream(&handle);
@@ -75,7 +75,7 @@ mlopenStatus_t LRNDescriptor::Forward(
 	construct_params.doBackward(do_backward);
 	construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
+	status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
 
 	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
@@ -101,7 +101,7 @@ mlopenStatus_t LRNDescriptor::Forward(
 	auto f_norm_K = static_cast<float>(norm_K);
 	auto f_norm_alphaoverarea = static_cast<float>(norm_alphaoverarea);
 
-	KernelInvoke obj = 	handle.GetKernel("mlopenLRNForward",
+	KernelInvoke obj = 	handle.GetKernel("miopenLRNForward",
 				network_config,
 				program_name,
 				kernel_name,
@@ -121,7 +121,7 @@ mlopenStatus_t LRNDescriptor::Forward(
 	return(status);
 }
 
-mlopenStatus_t LRNDescriptor :: Backward(
+miopenStatus_t LRNDescriptor :: Backward(
 		Handle						&handle,
 		const void					* /*alpha*/,
 		const TensorDescriptor		&yDesc,
@@ -135,7 +135,7 @@ mlopenStatus_t LRNDescriptor :: Backward(
 		Data_t						dx,
 		ConstData_t				workSpace) {
 
-	mlopenStatus_t status = mlopenStatusSuccess;
+	miopenStatus_t status = miopenStatusSuccess;
 	mlo_construct_norm construct_params(0); // backward
 
 	construct_params.setStream(&handle);
@@ -245,7 +245,7 @@ mlopenStatus_t LRNDescriptor :: Backward(
 
 	construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-	status = static_cast<mlopenStatus_t>(construct_params.mloConstruct());
+	status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
 
 	std::string program_name = construct_params.getKernelFile();  // CL kernel filename
 	std::string kernel_name = construct_params.getKernelName(); // kernel name
@@ -270,7 +270,7 @@ mlopenStatus_t LRNDescriptor :: Backward(
 	auto f_norm_beta = static_cast<float>(norm_beta);
 	auto f_norm_ratio = static_cast<float>(2. *norm_alpha * norm_beta / static_cast<double>(local_ar));
 
-	handle.GetKernel("mlopenLRNBackward",
+	handle.GetKernel("miopenLRNBackward",
 			network_config,
 			program_name,
 			kernel_name,
@@ -281,4 +281,4 @@ mlopenStatus_t LRNDescriptor :: Backward(
 
 	return(status);
 }
-} // namespace mlopen
+} // namespace miopen

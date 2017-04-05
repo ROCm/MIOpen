@@ -9,7 +9,7 @@ endif()
 # Default installation path
 set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 
-project ( SuperBuild.MLOpen C CXX )
+project ( SuperBuild.MIOpen C CXX )
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -27,61 +27,61 @@ else()
 endif()
 
 ############################################################
-# OPTION - MLOpen Backend
+# OPTION - MIOpen Backend
 # - OpenCL
 # - HCC
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
-	set(MLOPEN_DEFAULT_BACKEND "HIPOC")
+	set(MIOPEN_DEFAULT_BACKEND "HIPOC")
 else()
-	set(MLOPEN_DEFAULT_BACKEND "OpenCL")
+	set(MIOPEN_DEFAULT_BACKEND "OpenCL")
 endif()
 
 
-set( MLOPEN_BACKEND ${MLOPEN_DEFAULT_BACKEND} CACHE STRING
-	"Which of MLOpens's backends to use?" )
-set_property( CACHE MLOPEN_BACKEND PROPERTY STRINGS
+set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
+	"Which of MIOpens's backends to use?" )
+set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 	OpenCL HCC HIP HIPOC )
 find_package(tinygemm)
 # OpenCL 1.2
-if( MLOPEN_BACKEND STREQUAL "OpenCL")
-	add_definitions( -DMLOPEN_BACKEND_OPENCL=1 )
-	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
-	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
-	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
+if( MIOPEN_BACKEND STREQUAL "OpenCL")
+	add_definitions( -DMIOPEN_BACKEND_OPENCL=1 )
+	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
+	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
+	add_definitions( -DMIOPEN_BACKEND_HIPOC=0 )
 	find_package( OpenCL REQUIRED )
 	find_program(AMDGCN_ASSEMBLER
 		NAMES clang
-		PATHS ${MLOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
+		PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
 		PATH_SUFFIXES /opencl/bin/x86_64
 		NO_DEFAULT_PATH
 	)
 	if(AMDGCN_ASSEMBLER)
-		add_definitions(-DMLOPEN_AMDGCN_ASSEMBLER="${AMDGCN_ASSEMBLER}")
+		add_definitions(-DMIOPEN_AMDGCN_ASSEMBLER="${AMDGCN_ASSEMBLER}")
 	endif()
 	message(STATUS "AMDGCN assembler: ${AMDGCN_ASSEMBLER}")
 endif()
 # HCC
-if( MLOPEN_BACKEND STREQUAL "HCC")
-	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
-	add_definitions( -DMLOPEN_BACKEND_HCC=1 )
-	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
-	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
-	message( SEND_ERROR "${MLOPEN_BACKEND} backend not yet supported." )
+if( MIOPEN_BACKEND STREQUAL "HCC")
+	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
+	add_definitions( -DMIOPEN_BACKEND_HCC=1 )
+	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
+	add_definitions( -DMIOPEN_BACKEND_HIPOC=0 )
+	message( SEND_ERROR "${MIOPEN_BACKEND} backend not yet supported." )
 endif()
 # HIP
-if( MLOPEN_BACKEND STREQUAL "HIP")
-	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
-	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
-	add_definitions( -DMLOPEN_BACKEND_HIP=1 )
-	add_definitions( -DMLOPEN_BACKEND_HIPOC=0 )
-	message( SEND_ERROR "${MLOPEN_BACKEND} backend not yet supported." )
+if( MIOPEN_BACKEND STREQUAL "HIP")
+	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
+	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
+	add_definitions( -DMIOPEN_BACKEND_HIP=1 )
+	add_definitions( -DMIOPEN_BACKEND_HIPOC=0 )
+	message( SEND_ERROR "${MIOPEN_BACKEND} backend not yet supported." )
 endif()
 # HIPOC
-if( MLOPEN_BACKEND STREQUAL "HIPOC")
-	add_definitions( -DMLOPEN_BACKEND_OPENCL=0 )
-	add_definitions( -DMLOPEN_BACKEND_HCC=0 )
-	add_definitions( -DMLOPEN_BACKEND_HIP=0 )
-	add_definitions( -DMLOPEN_BACKEND_HIPOC=1 )
+if( MIOPEN_BACKEND STREQUAL "HIPOC")
+	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
+	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
+	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
+	add_definitions( -DMIOPEN_BACKEND_HIPOC=1 )
 	find_program(HIP_OC_COMPILER clang-ocl
 		PATH_SUFFIXES bin
 		PATHS /opt/rocm
@@ -111,13 +111,13 @@ if( MLOPEN_BACKEND STREQUAL "HIPOC")
 	find_package(hip PATHS /opt/rocm)
 	link_libraries(stdc++)
 endif()
-message( STATUS "${MLOPEN_BACKEND} backend selected." )
+message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
 # tinygemm
 if(tinygemm_FOUND)
-	add_definitions(-DMLOPEN_USE_TINYGEMM=1)
+	add_definitions(-DMIOPEN_USE_TINYGEMM=1)
 else()
-	add_definitions(-DMLOPEN_USE_TINYGEMM=0)
+	add_definitions(-DMIOPEN_USE_TINYGEMM=0)
 endif()
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
@@ -125,11 +125,11 @@ option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 option( BUILD_DEV "Build for development only" OFF)
 
 if(BUILD_DEV)
-	add_definitions(-DMLOPEN_BUILD_DEV=1)
-	set(MLOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
+	add_definitions(-DMIOPEN_BUILD_DEV=1)
+	set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
 else()
-	add_definitions(-DMLOPEN_BUILD_DEV=0)
-	set(MLOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/share/mlopen/db" CACHE PATH "Default path to search for db")
+	add_definitions(-DMIOPEN_BUILD_DEV=0)
+	set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/share/miopen/db" CACHE PATH "Default path to search for db")
 endif()
 
 include(EnableCompilerWarnings)
@@ -181,7 +181,7 @@ enable_clang_tidy(
 	HEADER_FILTER
 		"hpp$"
 	EXTRA_ARGS
-		-DMLOPEN_USE_CLANG_TIDY
+		-DMIOPEN_USE_CLANG_TIDY
 	ANALYZE_TEMPORARY_DTORS ON
 
 )

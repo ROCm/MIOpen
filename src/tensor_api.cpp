@@ -1,39 +1,39 @@
-#include <mlopen/tensor.hpp>
-#include <mlopen/tensor_ops.hpp>
-#include <mlopen/errors.hpp>
-#include <mlopen/logger.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/logger.hpp>
 #include <initializer_list>
 #include <array>
 
 extern "C"
-mlopenStatus_t mlopenCreateTensorDescriptor(
-		mlopenTensorDescriptor_t *tensorDesc) {
-	MLOPEN_LOG_FUNCTION(tensorDesc);
-	return mlopen::try_([&] {
-		mlopen::deref(tensorDesc) = new mlopen::TensorDescriptor();
+miopenStatus_t miopenCreateTensorDescriptor(
+		miopenTensorDescriptor_t *tensorDesc) {
+	MIOPEN_LOG_FUNCTION(tensorDesc);
+	return miopen::try_([&] {
+		miopen::deref(tensorDesc) = new miopen::TensorDescriptor();
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenSet4dTensorDescriptor(
-		mlopenTensorDescriptor_t tensorDesc,
-		mlopenDataType_t dataType,
+miopenStatus_t miopenSet4dTensorDescriptor(
+		miopenTensorDescriptor_t tensorDesc,
+		miopenDataType_t dataType,
 		int n,
 		int c,
 		int h,
 		int w) {
 
-	MLOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w);
-	return mlopen::try_([&] {
+	MIOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w);
+	return miopen::try_([&] {
 		std::initializer_list<int> lens = {n, c, h, w};
-		mlopen::deref(tensorDesc) = mlopen::TensorDescriptor(dataType, lens.begin(), 4);
+		miopen::deref(tensorDesc) = miopen::TensorDescriptor(dataType, lens.begin(), 4);
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenGet4dTensorDescriptor(
-		mlopenTensorDescriptor_t tensorDesc,
-		mlopenDataType_t *dataType,
+miopenStatus_t miopenGet4dTensorDescriptor(
+		miopenTensorDescriptor_t tensorDesc,
+		miopenDataType_t *dataType,
 		int *n,
 		int *c,
 		int *h,
@@ -43,174 +43,174 @@ mlopenStatus_t mlopenGet4dTensorDescriptor(
 		int *hStride,
 		int *wStride) {
 
-	MLOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w, nStride, cStride, hStride, wStride);
-	return mlopen::try_([&] {
-		mlopen::deref(dataType) = mlopen::deref(tensorDesc).GetType();
-		mlopen::tie_deref(n, c, h, w) = mlopen::tie4(mlopen::deref(tensorDesc).GetLengths());
-		mlopen::tie_deref(nStride, cStride, hStride, wStride) = mlopen::tie4(mlopen::deref(tensorDesc).GetStrides());
+	MIOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w, nStride, cStride, hStride, wStride);
+	return miopen::try_([&] {
+		miopen::deref(dataType) = miopen::deref(tensorDesc).GetType();
+		miopen::tie_deref(n, c, h, w) = miopen::tie4(miopen::deref(tensorDesc).GetLengths());
+		miopen::tie_deref(nStride, cStride, hStride, wStride) = miopen::tie4(miopen::deref(tensorDesc).GetStrides());
 	});
 }
 
 // Internal API
 // MD: This should not be reqired to be exported. Temporary hack
-MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorLengths(
-		mlopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorLengths(
+		miopenTensorDescriptor_t tensorDesc,
 		int *n,
 		int *c,
 		int *h,
 		int *w) {
 
-	MLOPEN_LOG_FUNCTION(tensorDesc, n, c, h, w);
-	return mlopen::try_([&] {
-		mlopen::tie_deref(n, c, h, w) = mlopen::tie4(mlopen::deref(tensorDesc).GetLengths());
+	MIOPEN_LOG_FUNCTION(tensorDesc, n, c, h, w);
+	return miopen::try_([&] {
+		miopen::tie_deref(n, c, h, w) = miopen::tie4(miopen::deref(tensorDesc).GetLengths());
 	});
 }
 
 
 // Internal API
-MLOPEN_EXPORT mlopenStatus_t mlopenGet4dTensorDescriptorStrides(
-		mlopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorStrides(
+		miopenTensorDescriptor_t tensorDesc,
 		int *nStride,
 		int *cStride,
 		int *hStride,
 		int *wStride) {
 
-	MLOPEN_LOG_FUNCTION(tensorDesc, nStride, cStride, hStride, wStride);
-	return mlopen::try_([&] {
-		mlopen::tie_deref(nStride, cStride, hStride, wStride) = mlopen::tie4(mlopen::deref(tensorDesc).GetStrides());
+	MIOPEN_LOG_FUNCTION(tensorDesc, nStride, cStride, hStride, wStride);
+	return miopen::try_([&] {
+		miopen::tie_deref(nStride, cStride, hStride, wStride) = miopen::tie4(miopen::deref(tensorDesc).GetStrides());
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenSetTensorDescriptor(
-		mlopenTensorDescriptor_t tensorDesc,
-		mlopenDataType_t dataType,
+miopenStatus_t miopenSetTensorDescriptor(
+		miopenTensorDescriptor_t tensorDesc,
+		miopenDataType_t dataType,
 		int nbDims,
 		int *dimsA,
 		int *stridesA) {
 
-	MLOPEN_LOG_FUNCTION(tensorDesc, dataType, nbDims, dimsA, stridesA);
-	return mlopen::try_([&] {
+	MIOPEN_LOG_FUNCTION(tensorDesc, dataType, nbDims, dimsA, stridesA);
+	return miopen::try_([&] {
 		if (stridesA == nullptr) {
-			mlopen::deref(tensorDesc) = mlopen::TensorDescriptor(dataType, dimsA, nbDims);
+			miopen::deref(tensorDesc) = miopen::TensorDescriptor(dataType, dimsA, nbDims);
 		} else {
-			mlopen::deref(tensorDesc) = mlopen::TensorDescriptor(dataType, dimsA, stridesA, nbDims);
+			miopen::deref(tensorDesc) = miopen::TensorDescriptor(dataType, dimsA, stridesA, nbDims);
 		}
 	});
 }
 
 // Internal API
-int mlopenGetTensorDescriptorElementSize(mlopenTensorDescriptor_t tensorDesc) {
-	return mlopen::deref(tensorDesc).GetElementSize();
+int miopenGetTensorDescriptorElementSize(miopenTensorDescriptor_t tensorDesc) {
+	return miopen::deref(tensorDesc).GetElementSize();
 }
 
 extern "C" 
-mlopenStatus_t mlopenGetTensorDescriptorSize(mlopenTensorDescriptor_t tensorDesc, int* size) {
-	MLOPEN_LOG_FUNCTION(tensorDesc, size);
-	return mlopen::try_([&] {
-		mlopen::deref(size) = mlopen::deref(tensorDesc).GetSize();
+miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t tensorDesc, int* size) {
+	MIOPEN_LOG_FUNCTION(tensorDesc, size);
+	return miopen::try_([&] {
+		miopen::deref(size) = miopen::deref(tensorDesc).GetSize();
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenGetTensorDescriptor(
-		mlopenTensorDescriptor_t tensorDesc,
-		mlopenDataType_t *dataType,
+miopenStatus_t miopenGetTensorDescriptor(
+		miopenTensorDescriptor_t tensorDesc,
+		miopenDataType_t *dataType,
 		int *dimsA,
 		int *stridesA) {
 
-	MLOPEN_LOG_FUNCTION(tensorDesc, dataType, dimsA, stridesA);
-	return mlopen::try_([&] {
+	MIOPEN_LOG_FUNCTION(tensorDesc, dataType, dimsA, stridesA);
+	return miopen::try_([&] {
 		if (dataType != nullptr) {
-			*dataType = mlopen::deref(tensorDesc).GetType();
+			*dataType = miopen::deref(tensorDesc).GetType();
 		}
 		if (dimsA != nullptr) {
-			std::copy(mlopen::deref(tensorDesc).GetLengths().begin(), mlopen::deref(tensorDesc).GetLengths().end(), dimsA);
+			std::copy(miopen::deref(tensorDesc).GetLengths().begin(), miopen::deref(tensorDesc).GetLengths().end(), dimsA);
 		}
 		if (stridesA != nullptr) {
-			std::copy(mlopen::deref(tensorDesc).GetStrides().begin(), mlopen::deref(tensorDesc).GetStrides().end(), stridesA);
+			std::copy(miopen::deref(tensorDesc).GetStrides().begin(), miopen::deref(tensorDesc).GetStrides().end(), stridesA);
 		}
 	});
 
 }
 
 extern "C"
-mlopenStatus_t mlopenDestroyTensorDescriptor(mlopenTensorDescriptor_t tensorDesc) {
-	MLOPEN_LOG_FUNCTION(tensorDesc);
-	return mlopen::try_([&] {
-		mlopen_destroy_object(tensorDesc);
+miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc) {
+	MIOPEN_LOG_FUNCTION(tensorDesc);
+	return miopen::try_([&] {
+		miopen_destroy_object(tensorDesc);
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenTransformTensor(mlopenHandle_t handle,
+miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
 		const void						*alpha,
-		const mlopenTensorDescriptor_t	xDesc,
+		const miopenTensorDescriptor_t	xDesc,
 		const void						*x,
 		const void						*beta,
-		const mlopenTensorDescriptor_t	yDesc,
+		const miopenTensorDescriptor_t	yDesc,
 		void							*y) {
 
-	MLOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
-	return mlopen::try_([&] {
-		TransformTensor(mlopen::deref(handle), 
+	MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
+	return miopen::try_([&] {
+		TransformTensor(miopen::deref(handle), 
 				alpha,
-				mlopen::deref(xDesc),
+				miopen::deref(xDesc),
 				DataCast(x),
 				beta,
-				mlopen::deref(yDesc),
+				miopen::deref(yDesc),
 				DataCast(y));
 	});
 
 }
 
 extern "C"
-mlopenStatus_t mlopenAddTensor(mlopenHandle_t handle,
+miopenStatus_t miopenAddTensor(miopenHandle_t handle,
 		const void						*alpha,
-		const mlopenTensorDescriptor_t	aDesc,
+		const miopenTensorDescriptor_t	aDesc,
 		const void						*A,
 		const void						*beta,
-		const mlopenTensorDescriptor_t	cDesc,
+		const miopenTensorDescriptor_t	cDesc,
 		void							*C) {
 
-	MLOPEN_LOG_FUNCTION(alpha, aDesc, A, beta, cDesc, C);
-	return mlopen::try_([&] {
-		AddTensor(mlopen::deref(handle), 
+	MIOPEN_LOG_FUNCTION(alpha, aDesc, A, beta, cDesc, C);
+	return miopen::try_([&] {
+		AddTensor(miopen::deref(handle), 
 				alpha,
-				mlopen::deref(aDesc),
+				miopen::deref(aDesc),
 				DataCast(A),
 				beta,
-				mlopen::deref(cDesc),
+				miopen::deref(cDesc),
 				DataCast(C));
 	});
 
 }
 
 extern "C"
-mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
-		mlopenTensorOp_t				tensorOp,
+miopenStatus_t miopenOpTensor(miopenHandle_t handle,
+		miopenTensorOp_t				tensorOp,
 		const void						*alpha1,
-		const mlopenTensorDescriptor_t	aDesc,
+		const miopenTensorDescriptor_t	aDesc,
 		const void						*A,
 		const void						*alpha2,
-		const mlopenTensorDescriptor_t	bDesc,
+		const miopenTensorDescriptor_t	bDesc,
 		const void						*B,
 		const void						*beta,
-		const mlopenTensorDescriptor_t	cDesc,
+		const miopenTensorDescriptor_t	cDesc,
 		void							*C) {
 
-	MLOPEN_LOG_FUNCTION(tensorOp, alpha1, aDesc, A, alpha2, bDesc, B, beta, cDesc, C);
-	return mlopen::try_([&] {
-		OpTensor(mlopen::deref(handle),
+	MIOPEN_LOG_FUNCTION(tensorOp, alpha1, aDesc, A, alpha2, bDesc, B, beta, cDesc, C);
+	return miopen::try_([&] {
+		OpTensor(miopen::deref(handle),
 				tensorOp,
 				alpha1,
-				mlopen::deref(aDesc),
+				miopen::deref(aDesc),
 				DataCast(A),
 				alpha2,
-				mlopen::deref(bDesc),
+				miopen::deref(bDesc),
 				DataCast(B),
 				beta,
-				mlopen::deref(cDesc),
+				miopen::deref(cDesc),
 				DataCast(C));
 	});
 
@@ -218,14 +218,14 @@ mlopenStatus_t mlopenOpTensor(mlopenHandle_t handle,
 }
 
 extern "C"
-mlopenStatus_t mlopenSetTensor(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t	yDesc,
+miopenStatus_t miopenSetTensor(miopenHandle_t handle,
+		const miopenTensorDescriptor_t	yDesc,
 		void							*y,
 		const void						*valuePtr) {
 
-	MLOPEN_LOG_FUNCTION(yDesc, y, valuePtr);
-	return mlopen::try_([&] {
-		mlopen::deref(yDesc).SetTensor(mlopen::deref(handle),
+	MIOPEN_LOG_FUNCTION(yDesc, y, valuePtr);
+	return miopen::try_([&] {
+		miopen::deref(yDesc).SetTensor(miopen::deref(handle),
 				DataCast(y),
 				valuePtr);
 	});
@@ -234,14 +234,14 @@ mlopenStatus_t mlopenSetTensor(mlopenHandle_t handle,
 }
 
 extern "C"
-mlopenStatus_t mlopenScaleTensor(mlopenHandle_t handle,
-		const mlopenTensorDescriptor_t	yDesc,
+miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
+		const miopenTensorDescriptor_t	yDesc,
 		void							*y,
 		const void						*alpha) {
 
-	MLOPEN_LOG_FUNCTION(yDesc, y, alpha);
-	return mlopen::try_([&] {
-		mlopen::deref(yDesc).ScaleTensor(mlopen::deref(handle),
+	MIOPEN_LOG_FUNCTION(yDesc, y, alpha);
+	return miopen::try_([&] {
+		miopen::deref(yDesc).ScaleTensor(miopen::deref(handle),
 				DataCast(y),
 				alpha);
 	});

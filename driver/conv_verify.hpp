@@ -1,5 +1,5 @@
-#ifndef GUARD_MLOPEN_CONV_VERIFY_HPP
-#define GUARD_MLOPEN_CONV_VERIFY_HPP
+#ifndef GUARD_MIOPEN_CONV_VERIFY_HPP
+#define GUARD_MIOPEN_CONV_VERIFY_HPP
 
 #include <cassert>
 
@@ -244,4 +244,4 @@ void RunBackwardWeightsCPUVerify(
 
 }
 
-#endif // GUARD_MLOPEN_CONV_VERIFY_HPP
+#endif // GUARD_MIOPEN_CONV_VERIFY_HPP
