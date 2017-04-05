@@ -50,7 +50,7 @@ Layout:
 
 */
 
-__kernel void MLOpenConv1x1PS(
+__kernel void MLOpenConv1x1(
        const __global _FLOAT * restrict in_ptr,
        const __global _FLOAT * restrict wei_ptr,
 #if MLO_CONV_BIAS
