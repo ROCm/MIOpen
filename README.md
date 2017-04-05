@@ -2,7 +2,7 @@
 
 AMD's library for high peformance machine learning primitives. MIOpen supports two programming models - 
 1. OpenCL 
-2. [HIP](https://github.com/RadeonOpenCompute/HIP).
+2. [HIP](https://github.com/RadeonOpenCompute/HIP)
 
 
 ## Prerequisites
@@ -89,19 +89,13 @@ This will install the library to the `CMAKE_INSTALL_PREFIX` path that was set.
 
 ## Building the driver
 
-MIOpen provides an [application-driver](https://github.com/AMDComputeLibraries/MLOpen/tree/develop/driver) which can be used to execute any one particular layer in isolation and measure performance and verification of the library. 
-
-Documentation on the driver is [here](https://github.com/AMDComputeLibraries/MLOpen/blob/develop/driver/README.md) 
+MIOpen provides an [application-driver](https://github.com/AMDComputeLibraries/MLOpen/tree/develop/driver) which can be used to execute any one particular layer in isolation and measure performance and verification of the library. \
 
 The driver can be built using the `MLOpenDriver` target:
 
 ` cmake --build . --config Release --target MLOpenDriver ` **OR** ` make MLOpenDriver `
 
-Then it can be ran using, like so:
-
-```
-./driver/MLOpenDriver --help
-```
+Documentation on how to run the driver is [here](https://github.com/AMDComputeLibraries/MLOpen/blob/develop/driver/README.md) 
 
 ## Running the tests
 
