@@ -65,7 +65,7 @@ RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 RUN cget -p $PREFIX install hip,http://$GITLAB1/pfultz/hip/repository/archive.tar.gz?ref=cmake-develop
 
 # Install opencl
-RUN curl http://$GITLAB1/pfultz/miopen/uploads/194a8f592aaeabb486e3594e3a4083e6/rocm-opencl-1.4.deb > /rocm-opencl.deb
+RUN curl http://$GITLAB1/pfultz/mlopen/uploads/194a8f592aaeabb486e3594e3a4083e6/rocm-opencl-1.4.deb > /rocm-opencl.deb
 RUN dpkg -i /rocm-opencl.deb && rm /rocm-opencl.deb
 
 # Install clang-ocl
