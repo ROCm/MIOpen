@@ -229,11 +229,11 @@ bool mloSearchConfigDB(
 int mlo_construct_winograd::mloConstruct()
 {
 #ifndef HIP_OC_FINALIZER
-	bool is_ocl_rocm_metadata_v10 = true; // when false, v2.0 metadata is supported.
-	/// \todo As soon as metadata v1.0 support not needed, drop it: 
-	/// get gid of this var and v1.0 files.
+	rocm_meta_version rmv = V1;
+	/// \todo As soon as metadata v1.0 support not needed, drop it. 
+	/// get rid of V1 and v1.0 files.
 #if MLOPEN_BACKEND_OPENCL
-	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
+	if (mloIsAmdOpenclRocm(rmv))
 #endif
 	{
 		const auto use_binaries = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
@@ -245,7 +245,7 @@ int mlo_construct_winograd::mloConstruct()
 		if (use_binaries) {
 			if (mloIsCorrectBinaryWinograd3x3Fwd()
 				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
-				return (mloConstructBinaryWinograd3x3Fwd(is_ocl_rocm_metadata_v10));
+				return (mloConstructBinaryWinograd3x3Fwd(rmv));
 			}
 		}
 	}
@@ -264,9 +264,9 @@ int mlo_construct_direct2D::mloConstruct()
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
 #if MLOPEN_BACKEND_OPENCL
-	bool is_ocl_rocm_metadata_v10 = false; // when false, v2.0 metadata is supported.
+	rocm_meta_version rmv = V2;
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
-	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
+	if (mloIsAmdOpenclRocm(rmv))
 	{
 		const auto use_assembly = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
 								  && ValidateGcnAssembler();
@@ -275,11 +275,11 @@ int mlo_construct_direct2D::mloConstruct()
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
-				return (mloConstructAsmDirect3x3U(is_ocl_rocm_metadata_v10));
+				return (mloConstructAsmDirect3x3U(rmv));
 			}
 			if (mloIsCorrectAsmDirect5x10u2v2f1()
 				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2f1())) {
-				return (mloConstructAsmDirect5x10u2v2f1(is_ocl_rocm_metadata_v10));
+				return (mloConstructAsmDirect5x10u2v2f1(rmv));
 			}
 		}
 	}
@@ -493,7 +493,7 @@ static bool IsTokenInOpenclDriverVersion(const std::string& driver_version, cons
 		|| (driver_version.find(' ' + s +' ') != std::string::npos);
 }
 
-bool mlo_construct_direct2D::mloIsAmdOpenclRocm(bool &is_metadata_v10) const
+bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version &rmv) const
 {
 	const auto dev = mlopen::GetDevice(_stream->GetStream());
 
@@ -513,12 +513,13 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(bool &is_metadata_v10) const
 
 	// At once, extract version of OpenCL metadata.
 	// \todo Discard this code as soon as metadata is stabilized and v1.0 support is not required.
-	is_metadata_v10 = false; // assume v2.x if something fails
+	rmv = V2; // assumed if something fails
 	const std::string platform_version = mlopen::GetPlatformInfo<CL_PLATFORM_VERSION>(platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
 	size_t num_begin = platform_version.find('(');
 	if (num_begin != std::string::npos) {
 		int num = std::stoi(platform_version.substr(num_begin+1));
-		is_metadata_v10 = !(num >= 2338); // v1 switched to v2 somewhere within [2337,2338]
+		if (num <  2338) { rmv = V1; } // v1 switched to v2 somewhere within [2337,2338]
+		if (num >= 2389) { rmv = V3; } // v2 switched to v3 somewhere within [2388,2389]
 	}
 	return true;
 }
@@ -566,26 +567,32 @@ bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 	return true;
 }
 
-int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(bool is_metadata_v10)
+int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv)
 {
-	const auto n_groups = _stream->GetMaxComputeUnits();
+    const auto n_groups = _stream->GetMaxComputeUnits();
 
-	_g_wk.clear();
-	_g_wk.push_back(512 * n_groups);
-	_g_wk.push_back(1);
-	_g_wk.push_back(1);
+    _g_wk.clear();
+    _g_wk.push_back(512 * n_groups);
+    _g_wk.push_back(1);
+    _g_wk.push_back(1);
 
-	_l_wk.clear();
-	_l_wk.push_back(512);
-	_l_wk.push_back(1);
-	_l_wk.push_back(1);
+    _l_wk.clear();
+    _l_wk.push_back(512);
+    _l_wk.push_back(1);
+    _l_wk.push_back(1);
 
-	_kernel_file = is_metadata_v10
-				 ? "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so"
-				 : "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
-	_kernel_name = "sp3AsmConv3x3F";
-
-	return 0;
+    _kernel_name = "sp3AsmConv3x3F";
+    if (rmv == V1) {
+        _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so";
+    } else if (rmv == V2) {
+        _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
+    } else if (rmv == V3) {
+        _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so";
+    } else {
+        _kernel_file = "";
+        return 1;
+    }
+    return 0;
 }
 
 bool mlo_construct_direct2D::mloIsCorrectAsmDirect3x3U() const
@@ -635,7 +642,7 @@ std::string constructAsmDirect3x3UCaseKey(int w, int h, int c, int n, int k, int
 	return ss.str();
 }
 
-int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
+int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
 {
     std::string perf_vals;
     {
@@ -700,9 +707,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
     GenerateClangDefsym(options, "limit_wave_cnt", limit_wave_cnt);
     GenerateClangDefsym(options, "no_params_file", 1);
     GenerateClangDefsym(options, "enable_debug_output", 0);
-    if (!is_metadata_v10) {
-        GenerateClangDefsym(options, "ROCM_METADATA_V2", 1);
-    }
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", (rmv == V1) ? 1 : ((rmv == V2) ? 2 : 3) );
     _comp_options = options.str();
 
     _l_wk.clear();
@@ -781,7 +786,7 @@ static inline int AlignUp(int val, unsigned step)
 }
 
 
-int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10)
+int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rmv)
 {
     const int out_w = (_in_width  + _pad0*2 + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
     const int out_h = (_in_height + _pad1*2 + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
@@ -794,9 +799,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10
     GenerateClangDefsym(options, "wei_layout", 0); //0: KCHW, 1: CKHW
     GenerateClangDefsym(options, "pad_w", _pad0);
     GenerateClangDefsym(options, "pad_h", _pad1);
-    if (!is_metadata_v10) {
-        GenerateClangDefsym(options, "ROCM_METADATA_V2", 1);
-    }
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", (rmv == V1) ? 1 : ((rmv == V2) ? 2 : 3) );
     _comp_options = options.str();
 
     _l_wk.clear();
