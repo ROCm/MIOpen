@@ -26,8 +26,11 @@ namespace mlopen {
 
 	supported = ((in_n < 1) || (in_n > 512)) ? false : supported;
 	supported = ((wei_k < 1) || (wei_k > 512)) ? false : supported;
-	supported = (std::tie(in_c, in_h, in_w) != std::make_tuple(64, 27, 27)) ? false : supported;
-	supported = (std::tie(wei_c, wei_h, wei_w) != std::make_tuple(64, 5, 5)) ? false : supported;
+	supported = ((in_c*in_n)%64 != 0) ? false : supported;
+	supported = ((wei_c*wei_k)%64 != 0) ? false : supported;
+	supported = ((out_c*out_n)%64 != 0) ? false : supported;
+	supported = (std::tie(in_h, in_w) != std::make_tuple(27, 27)) ? false : supported;
+	supported = (std::tie(wei_h, wei_w) != std::make_tuple(5, 5)) ? false : supported;
 	supported = (std::tie(out_h, out_w) != std::make_tuple(27, 27)) ? false : supported;
 	supported = (std::tie(pad_h, pad_w, u, v) != std::make_tuple(2, 2, 1, 1)) ? false : supported;
 	supported = (yDesc.GetType() != mlopenFloat) ? false : supported;

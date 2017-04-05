@@ -1046,36 +1046,268 @@ loop_end:
 .Lfunc_end0:
     .size gcnAsmConv3x3U, .Lfunc_end0 - gcnAsmConv3x3U
 
-.section    .note,#alloc
+.section .note
+.ifdef ROCM_METADATA_V2
+.amdgpu_runtime_metadata
+{ amd.MDVersion: [ 2, 1 ],
+    amd.Kernels:
+    - { amd.KernelName: gcnAsmConv3x3U, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ],
+        amd.Args:
+        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: in,          amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
+        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: weights,     amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
+        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: out,         amd.ArgAddrQual: 1, amd.ArgAccQual: 0 }
+        - { amd.ArgSize: 4, amd.ArgAlign: 4, amd.ArgKind: 0, amd.ArgValueType: 8, amd.ArgTypeName:  float,   amd.ArgName: padding_val,                     amd.ArgAccQual: 0 }
+        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 7, amd.ArgValueType: 9 }
+        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 8, amd.ArgValueType: 9 }
+        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 9, amd.ArgValueType: 9 }
+      }
+}
+.end_amdgpu_runtime_metadata
+.else
+    // old ROCm metadata
     .long 4
     .long .Lmeta_end - .Lmeta_begin
-    .long 8
+    .long 7
     .asciz "AMD"
     .p2align 2
     .Lmeta_begin:
-.ascii "---\n"
-.ascii "{ amd.MDVersion: [ 2, 1 ], "
-.ascii "amd.IsaInfo: { "
-.ascii      "amd.IsaInfoWavefrontSize: 64, "
-.ascii      "amd.IsaInfoLocalMemorySize: 65536, "
-.ascii      "amd.IsaInfoEUsPerCU: 4, "
-.ascii      "amd.IsaInfoMaxWavesPerEU: 10, "
-.ascii      "amd.IsaInfoMaxFlatWorkGroupSize: 2048, "
-.ascii      "amd.IsaInfoSGPRAllocGranule: 16, "
-.ascii      "amd.IsaInfoTotalNumSGPRs: 800, "
-.ascii      "amd.IsaInfoAddressableNumSGPRs: 102, "
-.ascii      "amd.IsaInfoVGPRAllocGranule: 4, "
-.ascii      "amd.IsaInfoTotalNumVGPRs: 256, "
-.ascii      "amd.IsaInfoAddressableNumVGPRs: 256 }, "
-.ascii "amd.Kernels: \n"
-.ascii "  - { amd.KernelName: gcnAsmConv3x3U, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ], amd.Args: \n"
-.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: in, amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }\n"
-.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: weights, amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }\n"
-.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: out, amd.ArgAddrQual: 1, amd.ArgAccQual: 0 }\n"
-.ascii "      - { amd.ArgSize: 4, amd.ArgAlign: 4, amd.ArgKind: 0, amd.ArgValueType: 8, amd.ArgTypeName: float, amd.ArgName: padding_val, amd.ArgAccQual: 0 }\n"
-.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 7, amd.ArgValueType: 9 }\n"
-.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 8, amd.ArgValueType: 9 }\n"
-.ascii "      - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 9, amd.ArgValueType: 9 } } }\n"
-.asciz "...\n"
+.byte 0x01
+.byte 0x00
+.byte 0x01
+.byte 0x02
+.byte 0x00
+.byte 0x03
+.byte 0xC8
+.byte 0x00
+.byte 0x04
+.byte 0x06
+.byte 0x0E
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.ascii "gcnAsmConv3x3U"
+.byte 0x07
+.byte 0x09
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0A
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0B
+.byte 0x06
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x66
+.byte 0x6C
+.byte 0x6F
+.byte 0x61
+.byte 0x74
+.byte 0x2A
+.byte 0x0C
+.byte 0x02
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x69
+.byte 0x6E
+.byte 0x11
+.byte 0x0D
+.byte 0x01
+.byte 0x0E
+.byte 0x08
+.byte 0x00
+.byte 0x10
+.byte 0x00
+.byte 0x0F
+.byte 0x01
+.byte 0x08
+.byte 0x07
+.byte 0x09
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0A
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0B
+.byte 0x06
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x66
+.byte 0x6C
+.byte 0x6F
+.byte 0x61
+.byte 0x74
+.byte 0x2A
+.byte 0x0C
+.byte 0x07
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x77
+.byte 0x65
+.byte 0x69
+.byte 0x67
+.byte 0x68
+.byte 0x74
+.byte 0x73
+.byte 0x11
+.byte 0x0D
+.byte 0x01
+.byte 0x0E
+.byte 0x08
+.byte 0x00
+.byte 0x10
+.byte 0x00
+.byte 0x0F
+.byte 0x01
+.byte 0x08
+.byte 0x07
+.byte 0x09
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0A
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0B
+.byte 0x06
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x66
+.byte 0x6C
+.byte 0x6F
+.byte 0x61
+.byte 0x74
+.byte 0x2A
+.byte 0x0C
+.byte 0x03
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x6F
+.byte 0x75
+.byte 0x74
+.byte 0x0D
+.byte 0x01
+.byte 0x0E
+.byte 0x08
+.byte 0x00
+.byte 0x10
+.byte 0x00
+.byte 0x0F
+.byte 0x01
+.byte 0x08
+.byte 0x07
+.byte 0x09
+.byte 0x04
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0A
+.byte 0x04
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0B
+.byte 0x05
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x66
+.byte 0x6C
+.byte 0x6F
+.byte 0x61
+.byte 0x74
+.byte 0x0C
+.byte 0x0B
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x70
+.byte 0x61
+.byte 0x64
+.byte 0x64
+.byte 0x69
+.byte 0x6E
+.byte 0x67
+.byte 0x5F
+.byte 0x76
+.byte 0x61
+.byte 0x6C
+.byte 0x0D
+.byte 0x00
+.byte 0x0E
+.byte 0x08
+.byte 0x00
+.byte 0x10
+.byte 0x00
+.byte 0x08
+.byte 0x07
+.byte 0x09
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0A
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0D
+.byte 0x07
+.byte 0x0E
+.byte 0x09
+.byte 0x00
+.byte 0x08
+.byte 0x07
+.byte 0x09
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0A
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0D
+.byte 0x08
+.byte 0x0E
+.byte 0x09
+.byte 0x00
+.byte 0x08
+.byte 0x07
+.byte 0x09
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0A
+.byte 0x08
+.byte 0x00
+.byte 0x00
+.byte 0x00
+.byte 0x0D
+.byte 0x09
+.byte 0x0E
+.byte 0x09
+.byte 0x00
+.byte 0x08
+.byte 0x05
     .Lmeta_end:
     .p2align 2
+.endif

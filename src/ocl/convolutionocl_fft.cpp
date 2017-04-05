@@ -71,8 +71,8 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 
 		unsigned int sizeOfC0 = out_c;
 		unsigned int sizeOfC1 = out_n;
-		unsigned int macroTile0 = static_cast<unsigned int>(local_work_size[4][0] * threadTile[0]);
-		unsigned int macroTile1 = static_cast<unsigned int>(local_work_size[4][1] * threadTile[1]);
+		auto macroTile0 = static_cast<unsigned int>(local_work_size[4][0] * threadTile[0]);
+		auto macroTile1 = static_cast<unsigned int>(local_work_size[4][1] * threadTile[1]);
 		unsigned int totalWorkGroups0 = sizeOfC0 / macroTile0;
 		unsigned int totalWorkGroups1 = sizeOfC1 / macroTile1;
 		// b/c single kernel, add extra work-group here if edge needed
@@ -92,7 +92,7 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
     const std::string algorithm = "mlopenConvolutionFwdAlgoFFT";
     const std::string program_name = "MLOpenConvFFT.cl";
 
-	std::string parms = "";
+	std::string parms;
 	parms += " -D CFF_BATCH=";
 	parms += std::to_string(in_n);
 	parms += " -D CFF_NFILTER=";
@@ -106,7 +106,7 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 
 	for(int ik=0; ik<NumKernels; ik++)
 	{
-		std::string kernel_name = ""; 
+		std::string kernel_name; 
 
 		switch(ik)
 		{
@@ -161,7 +161,7 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 
 	(void)wDesc; // suppress warning
 
-	int halfw = (int)workSpaceSize / (2*2*sizeof(float));
+	int halfw = static_cast<int>(workSpaceSize) / (2*2*sizeof(float));
 	int in_n, in_c;
 	std::tie(in_n, in_c, std::ignore, std::ignore) = mlopen::tie4(xDesc.GetLengths());
 

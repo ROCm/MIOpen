@@ -16,6 +16,9 @@
 // to share code with between CPU and GPU
 
 #define MLOPEN
+
+#include <cmath>
+#include <mlopen/gcn_asm_utils.h>
 #include <mlopen/mlo_internal.hpp>
 #include <mlopen/mlo_utils.hpp>
 #include <mlopen/env.hpp>
@@ -26,7 +29,7 @@
 
 static int mloLg2(int v)
 {
-	int ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
+	auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
 	return(ret);
 }
 
@@ -185,7 +188,7 @@ bool mloFindConfigReq(
 	ret = false;
 	for (it = req_conf_db.begin(); it != req_conf_db.end(); ++it)
 	{
-		if (!(*it).compare(conf_key))
+		if (*it == conf_key)
 		{
 			ret = true;
 			break;
@@ -265,15 +268,18 @@ int mlo_construct_direct2D::mloConstruct()
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
 	if (mloIsAmdOpenclRocm(is_ocl_rocm_metadata_v10))
 	{
-		const auto asm_path = std::getenv("MLOPEN_EXPERIMENTAL_GCN_ASM_PATH");
 		const auto use_assembly = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
-								  && mloExperimentalValidateAssemblerPath(asm_path);
+								  && ValidateGcnAssembler();
 		// See comment in mlo_construct_winograd::mloConstruct().
 		const auto no_perf_filtering = mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
 				return (mloConstructAsmDirect3x3U(is_ocl_rocm_metadata_v10));
+			}
+			if (mloIsCorrectAsmDirect5x10u2v2f1()
+				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2f1())) {
+				return (mloConstructAsmDirect5x10u2v2f1(is_ocl_rocm_metadata_v10));
 			}
 		}
 	}
@@ -344,7 +350,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	{
 		return(mloConstructDirect2D1x1());
 	}
-	else
 #endif
 	if (unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
@@ -673,32 +678,31 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
                 perf_vals = found->second;
             }
         }
-	}
+    }
 
     const int filters_per_wave = perf_vals[0] - '0';
     const int output_lines_per_wave = perf_vals[1] - '0';
     const int limit_wave_cnt = perf_vals[2] - '0';
     const auto w64_chunks = (_in_width + 63) / 64;
     const auto active_lanes = (_in_width + w64_chunks - 1) / w64_chunks;
-    std::ostringstream paramsSS;
 
-    GenerateClangDefsym(paramsSS, "batch_size", _batch_sz);
-    GenerateClangDefsym(paramsSS, "img_width", _in_width);
-    GenerateClangDefsym(paramsSS, "img_height", _in_height);
-
-    GenerateClangDefsym(paramsSS, "input_channels" , _n_inputs);
-    GenerateClangDefsym(paramsSS, "output_channels", _n_outputs);
-    GenerateClangDefsym(paramsSS, "weights_layout" , isForwardDirection() ? 0 : 1);
-    GenerateClangDefsym(paramsSS, "reverse_weights", isForwardDirection() ? 0 : 1);
-
-    GenerateClangDefsym(paramsSS, "filters_per_wave", filters_per_wave);
-    GenerateClangDefsym(paramsSS, "output_lines_per_wave", output_lines_per_wave);
-    GenerateClangDefsym(paramsSS, "limit_wave_cnt", limit_wave_cnt);
-
-    GenerateClangDefsym(paramsSS, "no_params_file", 1);
-    GenerateClangDefsym(paramsSS, "enable_debug_output", 0);
-
-    _comp_options = paramsSS.str();
+    std::ostringstream options;
+    GenerateClangDefsym(options, "batch_size", _batch_sz);
+    GenerateClangDefsym(options, "img_width", _in_width);
+    GenerateClangDefsym(options, "img_height", _in_height);
+    GenerateClangDefsym(options, "input_channels" , _n_inputs);
+    GenerateClangDefsym(options, "output_channels", _n_outputs);
+    GenerateClangDefsym(options, "weights_layout" , isForwardDirection() ? 0 : 1);
+    GenerateClangDefsym(options, "reverse_weights", isForwardDirection() ? 0 : 1);
+    GenerateClangDefsym(options, "filters_per_wave", filters_per_wave);
+    GenerateClangDefsym(options, "output_lines_per_wave", output_lines_per_wave);
+    GenerateClangDefsym(options, "limit_wave_cnt", limit_wave_cnt);
+    GenerateClangDefsym(options, "no_params_file", 1);
+    GenerateClangDefsym(options, "enable_debug_output", 0);
+    if (!is_metadata_v10) {
+        GenerateClangDefsym(options, "ROCM_METADATA_V2", 1);
+    }
+    _comp_options = options.str();
 
     _l_wk.clear();
     _l_wk.push_back(active_lanes);
@@ -710,11 +714,103 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(bool is_metadata_v10)
     _g_wk.push_back((_in_height + output_lines_per_wave - 1) / output_lines_per_wave);
     _g_wk.push_back(_batch_sz);
 
-    _kernel_file = is_metadata_v10
-                 ? "conv3x3_m10.s"
-                 : "conv3x3_m21.s";
+    _kernel_file = "conv3x3.s";
     _kernel_name = "gcnAsmConv3x3U";
 
+    return 0;
+}
+
+bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2f1() const
+{
+    const std::string name = _stream->GetDeviceName();
+    const bool device_is_gfx8_no_xnack = (name == "gfx800"
+                                       || name == "gfx802"
+                                       || name == "gfx803"
+                                       || name == "gfx804");
+    if (!device_is_gfx8_no_xnack) {
+        return false;
+    }
+    if (!isForwardDirection()){
+        return false;
+    }
+    assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+
+    // Min image + padding shall be not smaller than filter matrix.
+    const int min_in_width  = _kernel_size0 - _pad0*2;
+    const int min_in_height	= _kernel_size1 - _pad1*2;
+    // These two found experimentally.
+    const int max_in_width  = 8192 - 1;
+    const int max_in_height	= 131077 - 1;
+
+    return                                      // Opt. Param   Restrictions in source
+           _pad0            >= 0                // -q   pad_w   // [0..5] for now FIXME
+        && _pad0            <= 5                //
+        && _pad1            >= 0                // -p   pad_h   // [0..5] for now FIXME
+        && _pad1            <= 5                //
+        && _kernel_stride0  == 2                // -u   inp_u   fixed
+        && _kernel_stride1  == 2                // -v   inp_v   fixed
+        && _kernel_size0    == 10               // -x   wei_w   fixed
+        && _kernel_size1    == 5                // -y   wei_h   fixed
+        && _n_inputs        >= 1                // -c   wei_c   no upper limit
+        && _n_outputs % 16  == 0                // -k   wei_k   no upper limit
+        && _n_outputs       >= 1
+        && _in_width        >= min_in_width     // -W   inp_w
+        && _in_width        <= max_in_width
+        && _in_height       >= min_in_height    // -H   inp_h
+        && _in_height       <= max_in_height
+        && _in_layout       == "NCHW";          //              hardcoded
+        // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+}
+
+bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2f1() const
+{
+    // Finding problem configs where this kernel shows bad performance
+    // (i.e. worse than its OpenCL counterpart) seems to be a multi-dimensional
+    // task which is hardly possible to implement. Basically, this kernel
+    // tends to become slower than OpenCL one when H/W is big (several hundreds)
+    // and H is small.
+    return true;
+}
+
+
+static inline int AlignUp(int val, unsigned step)
+{
+    assert(step > 0);
+    return ((val + step - 1) / step) * step;
+}
+
+
+int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10)
+{
+    const int out_w = (_in_width  + _pad0*2 + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
+    const int out_h = (_in_height + _pad1*2 + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
+
+    std::ostringstream options;
+    GenerateClangDefsym(options, "inp_h", _in_height);
+    GenerateClangDefsym(options, "inp_w", _in_width);
+    GenerateClangDefsym(options, "wei_c", _n_inputs);
+    GenerateClangDefsym(options, "wei_k", _n_outputs);
+    GenerateClangDefsym(options, "wei_layout", 0); //0: KCHW, 1: CKHW
+    GenerateClangDefsym(options, "pad_w", _pad0);
+    GenerateClangDefsym(options, "pad_h", _pad1);
+    if (!is_metadata_v10) {
+        GenerateClangDefsym(options, "ROCM_METADATA_V2", 1);
+    }
+    _comp_options = options.str();
+
+    _l_wk.clear();
+    _l_wk.push_back(64);
+    _l_wk.push_back(8);
+    _l_wk.push_back(1);
+
+    // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
+    _g_wk.clear();
+    _g_wk.push_back(AlignUp(out_w, 64));
+    _g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(_n_outputs / 2, 8));
+    _g_wk.push_back(_batch_sz);
+
+    _kernel_file = "conv5x10u2v2f1.s";
+    _kernel_name = "conv5x10u2v2f1";
     return 0;
 }
 
@@ -1040,9 +1136,9 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 	int ALU_EXTENT_X = (_out_width + read_unit - 1) / read_unit;
-	int LG2ALU_EXTENT_X = static_cast<int>(std::ceil(std::log(ALU_EXTENT_X) / std::log(2)));
+	auto LG2ALU_EXTENT_X = static_cast<int>(std::ceil(std::log(ALU_EXTENT_X) / std::log(2)));
 	int ALU_EXTENT_Y = (GRP_SZ >> LG2ALU_EXTENT_X);
-	int LG2ALU_EXTENT_Y = static_cast<int>(std::ceil(std::log(ALU_EXTENT_Y) / std::log(2)));
+	auto LG2ALU_EXTENT_Y = static_cast<int>(std::ceil(std::log(ALU_EXTENT_Y) / std::log(2)));
 
 	// the wave is logical is a unit of shareing weights in SGPRs
 	// it cannot be less than HW_WAVE_SIZE = 64
@@ -1393,11 +1489,11 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		n_in_stacks = ((_batch_sz / 2) * 2 == _batch_sz) ? 2 : 1;  // n of input batches
 	}
 	int n_proc_supertiles = n_in_stacks; // n of prosessing groups
-	int lg2n_proc_supertiles = static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::log(2)));
+	auto lg2n_proc_supertiles = static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::log(2)));
 	int n_out_stacks = 1; // n of output sets
 	int n_proc_supertile0 = ((n_in_stacks > 1) ? 32 : 16) / _kernel_stride0; // n  processor in process supertile
 	int n_proc_supertile1 = ((n_in_stacks > 1 && (_kernel_size1 >= 11 || _kernel_size0 >= 11)) ? 32 : 16) / n_in_stacks;
-	int lg2n_proc_supertile1 = static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
+	auto lg2n_proc_supertile1 = static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
 	int ocl_group_sz0 = n_proc_supertile0;
 	int ocl_group_sz1 = n_proc_supertile1 * n_proc_supertiles;
 	int ocl_group_sz2 = 1;
@@ -1763,7 +1859,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		int data_len = (_out_data_type == "FP32" ? 4 : 8);
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 	}
 
@@ -1972,7 +2068,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		int data_len = (_out_data_type == "FP32" ? 4 : 8);
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 	}
 
@@ -2164,7 +2260,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
 		_mlo_kernels_info.push_back(kern_info);
 
-		int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+		int data_len = (_out_data_type == "FP32" ? 4 : 8);
 		_workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
 	}
 
@@ -2187,10 +2283,10 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		if ((_kernel_size0 == 3 && _kernel_size1 == 3) && (_out_width < 8 && _out_height < 8))
 		{
 			ret = mloConstruct3x3();
-		}
-		else 
+		}  
+		else
 #endif
-			if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+		if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
 		{
 			ret = mloConstruct53();
 		}
@@ -2983,7 +3079,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 											exchange_step = std::min(std::min(exchange_step, _n_out_pix_tiles), N_MAPS_PERGROUP);
 											if (exchange_step < _n_out_pix_tiles)
 											{
-												int tmp_stp = static_cast<int>(ceil(sqrt(static_cast<float>(exchange_step))));
+												auto tmp_stp = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(exchange_step))));
 												n_in_tiles_rg[0] = tmp_stp;
 												n_in_tiles_rg[1] = exchange_step;
 											}
