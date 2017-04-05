@@ -1171,8 +1171,26 @@ skip_write:
 ///////////////////////////////////////////////////
 // ******* meta-data section of the kernels
 ///////////////////////////////////////////////////
-.section .note
-.ifdef ROCM_METADATA_V2
+.ifndef ROCM_METADATA_VERSION
+.error "ROCM_METADATA_VERSION must be defined"
+.endif
+.if ROCM_METADATA_VERSION == 3
+.amdgpu_code_object_metadata
+{ Version: [ 3, 0 ],
+    Kernels:
+    - { Name: conv5x10u2v2f1, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        Attrs:
+          { ReqdWorkGroupSize: [ 64, 8, 1 ] }
+        Args:
+        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
+        - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
+      }
+}
+.end_amdgpu_code_object_metadata
+.endif
+.if ROCM_METADATA_VERSION == 2
 .amdgpu_runtime_metadata
 { amd.MDVersion: [ 2, 1 ],
     amd.Kernels:
@@ -1186,7 +1204,9 @@ skip_write:
       }
 }
 .end_amdgpu_runtime_metadata
-.else
+.endif
+.if ROCM_METADATA_VERSION == 1
+.section .note
     // old ROCm metadata
     .long 4
     .long .Lmeta_end - .Lmeta_begin

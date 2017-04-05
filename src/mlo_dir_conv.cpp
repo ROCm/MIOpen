@@ -279,7 +279,7 @@ int mlo_construct_direct2D::mloConstruct()
 			}
 			if (mloIsCorrectAsmDirect5x10u2v2f1()
 				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2f1())) {
-				return (mloConstructAsmDirect5x10u2v2f1(is_ocl_rocm_metadata_v10));
+				return (mloConstructAsmDirect5x10u2v2f1(rmv));
 			}
 		}
 	}
@@ -785,7 +785,7 @@ static inline int AlignUp(int val, unsigned step)
 }
 
 
-int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10)
+int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rmv)
 {
     const int out_w = (_in_width  + _pad0*2 + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
     const int out_h = (_in_height + _pad1*2 + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
@@ -798,9 +798,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(bool is_metadata_v10
     GenerateClangDefsym(options, "wei_layout", 0); //0: KCHW, 1: CKHW
     GenerateClangDefsym(options, "pad_w", _pad0);
     GenerateClangDefsym(options, "pad_h", _pad1);
-    if (!is_metadata_v10) {
-        GenerateClangDefsym(options, "ROCM_METADATA_V2", 1);
-    }
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", (rmv == V1) ? 1 : ((rmv == V2) ? 2 : 3) );
     _comp_options = options.str();
 
     _l_wk.clear();
