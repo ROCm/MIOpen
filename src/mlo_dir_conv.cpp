@@ -229,7 +229,7 @@ bool mloSearchConfigDB(
 int mlo_construct_winograd::mloConstruct()
 {
 #ifndef HIP_OC_FINALIZER
-	rocm_meta_version rmv = V2;
+	rocm_meta_version rmv = V1;
 	/// \todo As soon as metadata v1.0 support not needed, drop it. 
 	/// get rid of V1 and v1.0 files.
 #if MLOPEN_BACKEND_OPENCL
