@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 AMD Inc.
+ * Copyright (c) 2017 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -73,49 +73,22 @@
 #endif
 
 
-#define MLO_HW_WAVE_ID_SETTING 0
-
-#if MLO_HW_WAVE_ID_SETTING
-extern __attribute__((const)) uint __hsail_get_dynwave_id(void);
-static inline int getWaveId()
-{
-	int wave_id = 0;
-
-	wave_id = __hsail_get_dynwave_id();
-	wave_id = wave_id & MLO_N_PHYS_WAVES_MASK;
-	return(wave_id);
-}
-#else
-static inline int getWaveId()
-{
-	int wave_id = 0;
-
-	wave_id = (get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ);
-
-	return(wave_id);
-}
-#endif
-
-static inline int gePhysLocalId()
-{
-	int lcl_wave_id = get_local_id(0) - ((get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ) << MLO_LG2_PHYS_WAVE_SZ);
-	return(lcl_wave_id);
-}
-
-static inline int iDiv(int v, int d)
+__attribute__((always_inline))
+int iDiv(int v, int d)
 {
 	int r = (int)((float)v / d + 0.00001f);
 	return(r);
 }
 
-static inline int iMod(int v, int u, int d)
+__attribute__((always_inline))
+int iMod(int v, int u, int d)
 {
 	int r = v - mul24((int)u, (int)d);
 	return(r);
 }
 
-
-static inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
+__attribute__((always_inline))
+void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
 {
 // read first half
 	if (scan_lcl < (sum_stride >> 1))
@@ -146,16 +119,6 @@ static inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *wei
 }
 
 
-
-
-static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c, _FLOAT v)
-{
-	_FLOAT y = v - *c;    //So far, so good: c is zero.
-	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-	*c = (t - *sum) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-}
-
 /*
 	group cooperative read
 	read by MLO_READ_UNIT
@@ -163,8 +126,8 @@ static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c,
 
 	no guard against number of inputs
 */
-
-static inline void readInput(int lcl_id, int gbl_in_scan_off, int n_v_reads, const __global _FLOAT * bot, __local _FLOAT *lcl_bot)
+__attribute__((always_inline))
+void readInput(int lcl_id, int gbl_in_scan_off, int n_v_reads, const __global _FLOAT * __restrict bot, __local _FLOAT * __restrict lcl_bot)
 {
 	for (int p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * n_v_reads;
 		p4 += MLO_GRP_SZ)
@@ -248,7 +211,8 @@ static inline void readInput(int lcl_id, int gbl_in_scan_off, int n_v_reads, con
 	loop over filter vertical size
 
 */
-static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLOAT * pvt_accum, __local _FLOAT * lcl_bot, __private _FLOAT * top_dat)
+__attribute__((always_inline))
+void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLOAT * __restrict pvt_accum, __local _FLOAT * __restrict lcl_bot, __private _FLOAT * __restrict top_dat)
 {
 	for (int l = top_lim; l >= bot_lim; --l)
 	{
@@ -258,10 +222,11 @@ static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, 
 			{
 				for(int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 				{
-					_FLOAT bot_val = lcl_bot[sc_lcl_off + c*MLO_IN_LCL_SZ + n + m];
+					int bot_off = sc_lcl_off + c*MLO_IN_LCL_SZ + n + m;
+					_FLOAT bot_val = lcl_bot[bot_off];
 					for(int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 					{
-						int pvt_top_off =  k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + (top_lim - l) * MLO_IN_TILE0 + m;
+						int pvt_top_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + (top_lim - l) * MLO_IN_TILE0 + m;
 						int pvt_accum_off = (k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + l*MLO_FILTER_SIZE0 + n;
 
 						_FLOAT top_val = top_dat[pvt_top_off];
@@ -270,20 +235,20 @@ static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, 
 						// each wk-it process an input
 							+= bot_val*top_val;
 #if 0
-					if (bot_val * top_val != 0 && get_global_id(1) == 0 && get_global_id(2) == 0 && (get_local_id(0) == 0  || get_local_id(0) == 1 || get_local_id(0) == 2)&& k == 0 && l == 0 && n == 0)
-					{
-						printf("G: %d %d %d %d  %f %f %f %f\n",
-							get_local_id(0),
-							sc,
-							sc_lcl_off + c*MLO_IN_LCL_SZ + n + m,
-							pvt_top_off,
-							pvt_accum[pvt_accum_off],
-							bot_val * top_val,
-							bot_val,
-							top_val
-						);
-					}
+						if (/*bot_val * top_val != 0 && */l == 0 && n == 1 && get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0 && k == 0)
+						{
+							printf("K: %d %d %d %f %f %f %f\n",
+								sc,
+								bot_off,
+								pvt_top_off,
+								pvt_accum[pvt_accum_off],
+								bot_val * top_val,
+								bot_val,
+								top_val
+							);
+						}
 #endif
+
 					}
 				}
 			}
@@ -294,7 +259,8 @@ static inline void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, 
 
 }
 
-static inline void moveOutputUp(__private _FLOAT * top_dat)
+__attribute__((always_inline))
+void moveOutputUp(__private _FLOAT * __restrict top_dat)
 {
 	// move up output to reduce overfetch
 	for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
@@ -311,43 +277,47 @@ static inline void moveOutputUp(__private _FLOAT * top_dat)
 	}
 }
 
-static inline void spanRightSiding5x5(int k, int top_df_off, int j, _FLOAT mask, __private _FLOAT * top_dat, __global const _FLOAT * top_df)
+__attribute__((always_inline))
+
+__attribute__((always_inline))
+void spanReadingOutput(int spn, int k, int j, int top_df_off, _FLOAT mask,
+	__private _FLOAT * __restrict top_dat, const __global _FLOAT * __restrict top_df)
 {
-	int i = 0;
 	int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j *MLO_IN_TILE0;
-	for (; i < MLO_OUT_N_PIXS_OFF; ++i)
+#if MLO_OUT_N_PIXS_OFF > 0
+	if (spn == MLO_N_SPANS_PER_SCAN - 1)
 	{
-		top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
-#if DBG_OUT_OF_RNGE
-		if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+		int i = 0;
+		for (; i < MLO_OUT_N_PIXS_OFF; ++i)
 		{
-			printf("k:err:out-of-range\n");
-		}
+			top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
+
+#if DBG_OUT_OF_RNGE
+			if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+			{
+				printf("k:err:out-of-range\n");
+			}
 #endif
-	}
-	for (; i < MLO_IN_TILE0; ++i)
-	{
-		top_dat[pvt_off + i] = 0;
-	}
-
-
-}
-
-static inline void spanReadingOutput(int k, int j, int top_df_off, _FLOAT mask,
-	__private _FLOAT * top_dat, const __global _FLOAT * top_df)
-{
-	int pvt_off = k*MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j *MLO_IN_TILE0;
-	for (int i = 0; i < MLO_IN_TILE0
-		; ++i)
-	{
-		top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
-#if DBG_OUT_OF_RNGE
-		if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
-		{
-			printf("k:err:out-of-range\n");
 		}
+		for (; i < MLO_IN_TILE0; ++i)
+		{
+			top_dat[pvt_off + i] = 0;
+		}
+	}
+	else
+#endif
+	{
+		for (int i = 0; i < MLO_IN_TILE0; ++i)
+		{
+			top_dat[pvt_off + i] = top_df[top_df_off + i] * mask;
+#if DBG_OUT_OF_RNGE
+			if (top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+			{
+				printf("k:err:out-of-range\n");
+			}
 #endif
 			
+		}
 	}
 }
 
@@ -382,11 +352,11 @@ static inline void spanReadingOutput(int k, int j, int top_df_off, _FLOAT mask,
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
 __kernel void MLOpenCvBwdWrW(
-	const __global _FLOAT * top_df,
-	const __global _FLOAT * bot,
-	__global _FLOAT * weights_df,
+	const __global _FLOAT * __restrict top_df,
+	const __global _FLOAT * __restrict bot,
+	__global _FLOAT * __restrict weights_df,
 #if MLO_CONV_BIAS
-	__global _FLOAT * bias_df,
+	__global _FLOAT * __restrict bias_df,
 #endif
 	_FLOAT padding_val
 )
@@ -395,21 +365,16 @@ __kernel void MLOpenCvBwdWrW(
 
 	// input/output tiles + reduce buffer
 
-	__local _FLOAT lcl[(MLO_LCL_SZ)];
+	__local _FLOAT lcl[(MLO_LCL_SZ) + 1];
 	__local _FLOAT * lcl_bot = lcl;
 
-
-	// guarnteeing an uniformity over a wave
-	int wave_id = getWaveId();
 	int lcl_id = get_local_id(0);
-	int lcl_wv_id = gePhysLocalId();
 
+	int c_idx_base = get_group_id(0); // input map index base
 
+	int o_idx_base = get_group_id(1);// output map index base
 
-	int c_idx_base = get_group_id(1); // input map index base
-
-	int o_idx_base = iDiv(get_group_id(2), (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS))); // output map index base
-	int ib_base = iMod(get_group_id(2), o_idx_base, (MLO_BATCH_SZ / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS)));
+	int ib_base = get_group_id(2);
 
 	int ib = ib_base*(MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS);
 
@@ -493,30 +458,17 @@ __kernel void MLOpenCvBwdWrW(
 				// loop around all output maps
 				int top_df_off = gbl_out_scan_off1 + j*MLO_OUT_STRIDE;
 				_FLOAT mask = 1;
-#if MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
+#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
 				top_df_off = (j < MLO_OUT_HEIGHT) ? top_df_off : 0;
 				mask = (j < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
 
-// 5x5 out of range
-#if MLO_OUT_N_PIXS_OFF > 0
-				if (spn == MLO_N_SPANS_PER_SCAN - 1)
-				{
-
-					spanRightSiding5x5(k, top_df_off, j, mask, top_dat, top_df);
-
-				}
-				else
-#endif
-				{
-					spanReadingOutput(k, j, top_df_off, mask,
+					spanReadingOutput(spn, k, j, top_df_off, mask,
 						top_dat, top_df);
-				}
 
 			}
 		}
 
-		barrier(CLK_LOCAL_MEM_FENCE);
 
 		gbl_out_scan_off += (MLO_FILTER_SIZE1 - 1) * MLO_OUT_STRIDE;
 
@@ -527,8 +479,8 @@ __kernel void MLOpenCvBwdWrW(
 		// prolog
 		// handling padding
 
-		// pad0
-		for (; sc < MLO_FILTER_PAD1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		// top padding 
+		for (; sc < MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
 			Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
 		}
@@ -536,35 +488,22 @@ __kernel void MLOpenCvBwdWrW(
 		for (; sc < MLO_IN_EXTENT1
 #if MLO_IN_N_VERT_LOOPS == 1
 			- MLO_FILTER_PAD1
-			// 3x3 out of range
-#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
-			- 1
-#endif
 #endif
 			; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
+
+
 			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 			{
 				int top_df_off = gbl_out_scan_off + k*MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
 				_FLOAT mask = 1;
 
-#if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
+#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
 				top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
 				mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
-				// move in the last output scans
-// 5x5 out of range
-#if MLO_OUT_N_PIXS_OFF > 0
-				if (spn == MLO_N_SPANS_PER_SCAN - 1)
-				{
-					spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
-				}
-				else
-#endif
-				{
-					spanReadingOutput(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+					spanReadingOutput(spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
 						top_dat, top_df);
-				}
 
 			}
 
@@ -573,8 +512,8 @@ __kernel void MLOpenCvBwdWrW(
 
 			// move up output to reduce overfetch
 			moveOutputUp(top_dat);
-		}
 
+		}
 
 
 
@@ -589,36 +528,24 @@ __kernel void MLOpenCvBwdWrW(
 
 			sc_lcl_off = lcl_bot_off;
 
-			barrier(CLK_LOCAL_MEM_FENCE);
 
 			for (; sc < (i_loop + 2) * MLO_IN_EXTENT1
-				// 3x3 out of range
 				; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
 			{
+
 
 				for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 				{
 					int top_df_off = gbl_out_scan_off + k*MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
 					_FLOAT mask = 1;
 
-#if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
+#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT
 					top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
 					mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
-					// move in the last output scans
-					// 5x5 out of range
-#if MLO_OUT_N_PIXS_OFF > 0
-					if (spn == MLO_N_SPANS_PER_SCAN - 1)
-					{
-						spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
-					}
-					else
-#endif
-					{
-						spanReadingOutput(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+						spanReadingOutput(spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
 							top_dat, top_df);
 
-					}
 
 				}
 
@@ -627,6 +554,7 @@ __kernel void MLOpenCvBwdWrW(
 
 				// move up output to reduce overfetch
 				moveOutputUp(top_dat);
+
 
 			}
 		}
@@ -640,8 +568,7 @@ __kernel void MLOpenCvBwdWrW(
 			barrier(CLK_LOCAL_MEM_FENCE);
 // read 1 scan line less
 // padding processing takes care of the bottom border.
-// TO DD: verify it with 5x5 
-            // do need sync with the real read: non intersecting areas.
+
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
 
             readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
@@ -650,13 +577,7 @@ __kernel void MLOpenCvBwdWrW(
 
 			sc_lcl_off = lcl_bot_off;
 
-			barrier(CLK_LOCAL_MEM_FENCE);
-
 			for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1
-				// 3x3 out of range
-#if MLO_OUT_N_PIXS_OFF > 0 && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
-				- 1
-#endif
 				; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
 			{
 
@@ -665,23 +586,12 @@ __kernel void MLOpenCvBwdWrW(
 					int top_df_off = gbl_out_scan_off + k*MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
 					_FLOAT mask = 1;
 
-#if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
+#if MLO_IN_HEIGHT !=  MLO_OUT_HEIGHT
 					top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
 					mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
-					// move in the last output scans
-					// 5x5 out of range
-#if MLO_OUT_N_PIXS_OFF > 0
-					if (spn == MLO_N_SPANS_PER_SCAN - 1)
-					{
-						spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
-					}
-					else
-#endif
-					{
-						spanReadingOutput(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
+						spanReadingOutput(spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
 							top_dat, top_df);
-					}
 
 				}
 
@@ -694,55 +604,15 @@ __kernel void MLOpenCvBwdWrW(
 			}
 		}
 
-
-
-
-// handling 3x3 out of range
-#if MLO_OUT_N_PIXS_OFF > 0  && (MLO_FILTER_SIZE1*MLO_FILTER_SIZE0) <= 16
-		{
-			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
-			{
-				int top_df_off = gbl_out_scan_off + k*MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
-				_FLOAT mask = 1;
-
-#if MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
-				top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
-				mask = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
-#endif
-				// move in the last output scans
-			
-				if (spn == MLO_N_SPANS_PER_SCAN - 1 )
-				{
-					spanRightSiding5x5(k, top_df_off, (MLO_FILTER_SIZE1 - 1), mask, top_dat, top_df);
-				}
-				else
-				{
-
-					spanReadingOutput(k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask,
-						top_dat, top_df);
-				}
-
-			}
-
-			// processing
-			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
-
-			// move up output to reduce overfetch
-			moveOutputUp(top_dat);
-
-		}
-
-		++sc; gbl_out_scan_off += MLO_OUT_STRIDE; sc_lcl_off += MLO_IN_LCL_WIDTH;
-#endif
-
 		// epilog 
 		// handling padding
-		// pad0/1
 
-		for (; sc < MLO_OUT_HEIGHT; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
+		for (; sc < MLO_IN_HEIGHT; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
 		{
+
+
 			// processing
-			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, (MLO_FILTER_PAD1 + 1 - (MLO_OUT_HEIGHT - sc)), pvt_accum, lcl_bot, top_dat);
+			Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, (MLO_FILTER_PAD1 + 1 - (MLO_IN_HEIGHT - sc)), pvt_accum, lcl_bot, top_dat);
 			// move up output to reduce overfetch
 			moveOutputUp(top_dat);
 
@@ -787,25 +657,11 @@ __kernel void MLOpenCvBwdWrW(
 							int pvt_off = (k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + l*MLO_FILTER_SIZE0 + n;
 							pvt_accum[pvt_off]
 								+= lcl[(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n];
-#if 0
-						if (/*fabs(pvt_accum[pvt_off] - 0.020364f) < 0.0001f*/ pvt_off == 12 && get_global_id(1) == 0 && get_global_id(2) == 0 && get_local_id(0) == 0 && k == 0/* && l == 2 && n == 2*/)
-						{
-							printf("G:s: %d %d %d  %f %f\n",
-								get_local_id(0),
-								(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n,
-								pvt_off,
-								pvt_accum[pvt_off],
-								lcl[(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n]
-							);
-						}
-#endif
-
 						}
 
 					}
 				}
 
-//				barrier(CLK_LOCAL_MEM_FENCE);
 			}
 		}
 	}
@@ -819,27 +675,16 @@ __kernel void MLOpenCvBwdWrW(
 	int wei_df_off = (((ib/MLO_N_BATCH_LOOPS) * MLO_N_OUTPUTS + o_idx + o) * (int)MLO_WEI_BATCH_STRIDE)
 		// this input channel
 		+ mul24(c_idx, (int)MLO_WEI_CHANNEL_STRIDE);
-	for (int k = 0; k < MLO_N_LCL_OUT_MAPS && spn == 0 && o_idx + o + k*MLO_OUT_STACKS < MLO_N_OUTPUTS && o < MLO_OUT_STACKS; ++k)
+	for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 	{
 		for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 		{
-
 			for (int i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
 			{
-				weights_df[wei_df_off + k*MLO_OUT_STACKS*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + i] = pvt_accum[(k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + i];
-#if 0
-				if (((ib/MLO_N_BATCH_LOOPS) == 0 || (ib/MLO_N_BATCH_LOOPS) == 1) && i == 0)
+				if (spn == 0 && o_idx + o + k*MLO_OUT_STACKS < MLO_N_OUTPUTS && o < MLO_OUT_STACKS)
 				{
-					printf("G:o: %d %d %d %d %d  %f\n",
-						get_group_id(2),
-						ib,
-						k,
-						c,
-						wei_df_off + k*MLO_OUT_STACKS*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + i,
-						weights_df[wei_df_off + k*MLO_OUT_STACKS*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + i]
-					);
+					weights_df[wei_df_off + k*MLO_OUT_STACKS*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + i] = pvt_accum[(k*MLO_N_LCL_IN_MAPS + c) *MLO_FILTER_SIZE1*MLO_FILTER_SIZE0 + i];
 				}
-#endif
 			}
 
 		}
