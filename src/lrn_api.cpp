@@ -1,83 +1,83 @@
-#include <mlopen/lrn.hpp>
-#include <mlopen/errors.hpp>
+#include <miopen/lrn.hpp>
+#include <miopen/errors.hpp>
 #include <initializer_list>
 #include <array>
 
 extern "C"
-mlopenStatus_t mlopenCreateLRNDescriptor(
-		mlopenLRNDescriptor_t *lrnDesc) {
+miopenStatus_t miopenCreateLRNDescriptor(
+		miopenLRNDescriptor_t *lrnDesc) {
 
-	return mlopen::try_([&] {
-		mlopen::deref(lrnDesc) = new mlopen::LRNDescriptor();
+	return miopen::try_([&] {
+		miopen::deref(lrnDesc) = new miopen::LRNDescriptor();
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenSetLRNDescriptor(
-		mlopenLRNDescriptor_t		lrnDesc,
-		mlopenLRNMode_t				mode,
+miopenStatus_t miopenSetLRNDescriptor(
+		miopenLRNDescriptor_t		lrnDesc,
+		miopenLRNMode_t				mode,
 		unsigned int				lrnN,	
 		double						lrnAlpha,
 		double						lrnBeta,
 		double						lrnK) {
 		
-	return mlopen::try_([&] {
+	return miopen::try_([&] {
 		std::initializer_list<double> parms = {lrnAlpha, lrnBeta, lrnK};
-		mlopen::deref(lrnDesc) = mlopen::LRNDescriptor(mode, 
+		miopen::deref(lrnDesc) = miopen::LRNDescriptor(mode, 
 			lrnN,
 			parms.begin());
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenGetLRNDescriptor(
-		const mlopenLRNDescriptor_t		lrnDesc,
-		mlopenLRNMode_t					*mode,
+miopenStatus_t miopenGetLRNDescriptor(
+		const miopenLRNDescriptor_t		lrnDesc,
+		miopenLRNMode_t					*mode,
 		unsigned int					*lrnN,
 		double							*lrnAlpha,
 		double							*lrnBeta,
 		double							*lrnK) {
 
-	return mlopen::try_([&] {
-		*mode = mlopen::deref(lrnDesc).GetMode();
-		*lrnN = mlopen::deref(lrnDesc).GetN();
-		*lrnAlpha = mlopen::deref(lrnDesc).GetAlpha();
-		*lrnBeta = mlopen::deref(lrnDesc).GetBeta();
-		*lrnK = mlopen::deref(lrnDesc).GetK();
+	return miopen::try_([&] {
+		*mode = miopen::deref(lrnDesc).GetMode();
+		*lrnN = miopen::deref(lrnDesc).GetN();
+		*lrnAlpha = miopen::deref(lrnDesc).GetAlpha();
+		*lrnBeta = miopen::deref(lrnDesc).GetBeta();
+		*lrnK = miopen::deref(lrnDesc).GetK();
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenLRNGetWorkSpaceSize(
-		const mlopenTensorDescriptor_t		yDesc,
+miopenStatus_t miopenLRNGetWorkSpaceSize(
+		const miopenTensorDescriptor_t		yDesc,
 		size_t								*workSpaceSize) {
 	
 	// TODO: Supporting size 4 bytes only
-	return mlopen::try_([&] {
-		mlopen::deref(workSpaceSize) = mlopen::deref(yDesc).GetLengths()[0] * mlopen::deref(yDesc).GetStrides()[0] * sizeof(float); 
+	return miopen::try_([&] {
+		miopen::deref(workSpaceSize) = miopen::deref(yDesc).GetLengths()[0] * miopen::deref(yDesc).GetStrides()[0] * sizeof(float); 
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenLRNForward(
-		mlopenHandle_t						handle,
-		const mlopenLRNDescriptor_t			lrnDesc,
+miopenStatus_t miopenLRNForward(
+		miopenHandle_t						handle,
+		const miopenLRNDescriptor_t			lrnDesc,
 		const void							*alpha,
-		const mlopenTensorDescriptor_t		xDesc,
+		const miopenTensorDescriptor_t		xDesc,
 		const void							*x,
 		const void							*beta,
-		const mlopenTensorDescriptor_t		yDesc,
+		const miopenTensorDescriptor_t		yDesc,
 		void								*y,
 		bool                                do_backward,
 		void								*workSpace) {
 
-	return mlopen::try_([&] {
-			mlopen::deref(lrnDesc).Forward(mlopen::deref(handle),
+	return miopen::try_([&] {
+			miopen::deref(lrnDesc).Forward(miopen::deref(handle),
 			alpha,
-			mlopen::deref(xDesc),
+			miopen::deref(xDesc),
 			DataCast(x),
 			beta,
-			mlopen::deref(yDesc),
+			miopen::deref(yDesc),
 			DataCast(y),
 			do_backward,
 			DataCast(workSpace));
@@ -85,40 +85,40 @@ mlopenStatus_t mlopenLRNForward(
 }
 
 extern "C"
-mlopenStatus_t mlopenLRNBackward(
-		mlopenHandle_t						handle,
-		const mlopenLRNDescriptor_t			lrnDesc,
+miopenStatus_t miopenLRNBackward(
+		miopenHandle_t						handle,
+		const miopenLRNDescriptor_t			lrnDesc,
 		const void							*alpha,
-		const mlopenTensorDescriptor_t		yDesc,
+		const miopenTensorDescriptor_t		yDesc,
 		const void							*y,
-		const mlopenTensorDescriptor_t		dyDesc,
+		const miopenTensorDescriptor_t		dyDesc,
 		const void							*dy,
-		const mlopenTensorDescriptor_t		xDesc,
+		const miopenTensorDescriptor_t		xDesc,
 		const void							*x,
 		const void							*beta,
-		const mlopenTensorDescriptor_t		dxDesc,
+		const miopenTensorDescriptor_t		dxDesc,
 		void								*dx,
 		const void							*workSpace) {
 
-	return mlopen::try_([&] {
-			mlopen::deref(lrnDesc).Backward(mlopen::deref(handle),
+	return miopen::try_([&] {
+			miopen::deref(lrnDesc).Backward(miopen::deref(handle),
 			alpha,
-			mlopen::deref(yDesc),
+			miopen::deref(yDesc),
 			DataCast(y),
-			mlopen::deref(dyDesc),
+			miopen::deref(dyDesc),
 			DataCast(dy),
-			mlopen::deref(xDesc),
+			miopen::deref(xDesc),
 			DataCast(x),
 			beta,
-			mlopen::deref(dxDesc),
+			miopen::deref(dxDesc),
 			DataCast(dx),
 			DataCast(workSpace));
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenDestroyLRNDescriptor(mlopenLRNDescriptor_t lrnDesc) {
-	return mlopen::try_([&] {
+miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lrnDesc) {
+	return miopen::try_([&] {
 		delete lrnDesc;
 	});
 }

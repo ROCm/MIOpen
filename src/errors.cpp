@@ -1,10 +1,10 @@
-#include <mlopen/errors.hpp>
+#include <miopen/errors.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 const char* Exception::what() const noexcept
 {
     return message.c_str();
 }
 
-} // namespace mlopen
+} // namespace miopen

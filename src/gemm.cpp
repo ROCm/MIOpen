@@ -1,6 +1,6 @@
-#include <mlopen/gemm.hpp>
+#include <miopen/gemm.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 GemmGeometry CreateGemmGeometryConvBwdWeights(
         const TensorDescriptor&     dyDesc,
@@ -40,7 +40,7 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
 
         gg = GemmGeometry{std::array<int, 3>{{N, M, K}},
             std::array<int, 3>{{ldb, lda, ldc}},
-            "mlopenConvolutionBwdWeightsAlgoGEMM",
+            "miopenConvolutionBwdWeightsAlgoGEMM",
             alpha, beta, tgg};
     }
     else {
@@ -48,7 +48,7 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
 
         gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
             std::array<int, 3>{{lda, ldb, ldc}},
-            "mlopenConvolutionBwdWeightsAlgoGEMM", 
+            "miopenConvolutionBwdWeightsAlgoGEMM", 
             alpha, beta, tgg};
     }
     network_config = tgg.get_networkconfig_string();
@@ -93,7 +93,7 @@ GemmGeometry CreateGemmGeometryConvFwd(
 
         gg = GemmGeometry{std::array<int, 3>{{N, M, K}}, 
             std::array<int, 3>{{ldb, lda, ldc}},
-            "mlopenConvolutionFwdAlgoGEMM",
+            "miopenConvolutionFwdAlgoGEMM",
             alpha, beta, tgg};
     }
     else {
@@ -101,14 +101,14 @@ GemmGeometry CreateGemmGeometryConvFwd(
 
         gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
             std::array<int, 3>{{lda, ldb, ldc}},
-            "mlopenConvolutionFwdAlgoGEMM", 
+            "miopenConvolutionFwdAlgoGEMM", 
             alpha, beta, tgg};
     }
     network_config = tgg.get_networkconfig_string();
     return gg;
 }
 
-GemmGeometry CreateMLOpenGemmGeometry( 
+GemmGeometry CreateMIOpenGemmGeometry( 
         int M, int N, int K,
         int lda, int ldb, int ldc,
         bool tA, bool tB,
@@ -125,7 +125,7 @@ GemmGeometry CreateMLOpenGemmGeometry(
 
         return GemmGeometry{std::array<int, 3>{{M, N, K}},
             std::array<int, 3>{{lda, ldb, ldc}},
-            "mlopenGEMM",
+            "miopenGEMM",
             alpha, beta, tgg};
     }
     else {
@@ -133,7 +133,7 @@ GemmGeometry CreateMLOpenGemmGeometry(
 
         return GemmGeometry{std::array<int, 3>{{N, M, K}},
             std::array<int, 3>{{ldb, lda, ldc}}, 
-            "mlopenGEMM",
+            "miopenGEMM",
             alpha, beta, tgg};
     }
 }
@@ -147,8 +147,8 @@ GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_con
     }
     else
     {
-        MLOPEN_THROW("looking for gemm kernel (does not exist): " + algorithm_name + ", " + network_config);
+        MIOPEN_THROW("looking for gemm kernel (does not exist): " + algorithm_name + ", " + network_config);
     }
 }
 
-} // namespace mlopen
+} // namespace miopen

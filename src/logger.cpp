@@ -1,12 +1,12 @@
-#include <mlopen/logger.hpp>
-#include <mlopen/env.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/env.hpp>
 #include <cstdlib>
 
-namespace mlopen {
+namespace miopen {
 
 bool IsLogging()
 {
-    return mlopen::IsEnvvarValueEnabled("MIOPEN_ENABLE_LOGGING");
+    return miopen::IsEnvvarValueEnabled("MIOPEN_ENABLE_LOGGING");
 }
 
-} // namespace mlopen
+} // namespace miopen

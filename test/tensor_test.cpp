@@ -1,19 +1,19 @@
-#include <mlopen.h>
-#include <mlopen/tensor_extra.hpp>
+#include <miopen.h>
+#include <miopen/tensor_extra.hpp>
 #include <array>
 #include <iostream>
 #include "test.hpp"
 
 struct tensor_fixture_4
 {
-    mlopenTensorDescriptor_t tensor;
+    miopenTensorDescriptor_t tensor;
 
     tensor_fixture_4()
     {
-        mlopenCreateTensorDescriptor(&tensor);
-        mlopenSet4dTensorDescriptor(
+        miopenCreateTensorDescriptor(&tensor);
+        miopenSet4dTensorDescriptor(
                 tensor,
-                mlopenFloat,
+                miopenFloat,
                 100,
                 32,
                 8,
@@ -23,22 +23,22 @@ struct tensor_fixture_4
 
     ~tensor_fixture_4()
     {
-        mlopenDestroyTensorDescriptor(tensor);
+        miopenDestroyTensorDescriptor(tensor);
     }
 };
 
 
 struct tensor_fixture_n
 {
-    mlopenTensorDescriptor_t tensor;
+    miopenTensorDescriptor_t tensor;
 
     tensor_fixture_n()
     {
-        mlopenCreateTensorDescriptor(&tensor);
+        miopenCreateTensorDescriptor(&tensor);
         std::array<int, 4> lens = {{100, 32, 8, 8}};
-        mlopenSetTensorDescriptor(
+        miopenSetTensorDescriptor(
                 tensor,
-                mlopenFloat,
+                miopenFloat,
                 4,
                 lens.data(),
                 nullptr);
@@ -47,22 +47,22 @@ struct tensor_fixture_n
 
     ~tensor_fixture_n()
     {
-        mlopenDestroyTensorDescriptor(tensor);
+        miopenDestroyTensorDescriptor(tensor);
     }
 };
 
 struct tensor_fixture_n_strides
 {
-    mlopenTensorDescriptor_t tensor;
+    miopenTensorDescriptor_t tensor;
 
     tensor_fixture_n_strides()
     {
-        mlopenCreateTensorDescriptor(&tensor);
+        miopenCreateTensorDescriptor(&tensor);
         std::array<int, 4> lens = {{100, 32, 8, 8}};
         std::array<int, 4> strides = {{2048, 64, 8, 1}};
-        mlopenSetTensorDescriptor(
+        miopenSetTensorDescriptor(
                 tensor,
-                mlopenFloat,
+                miopenFloat,
                 4,
                 lens.data(),
                 strides.data());
@@ -71,7 +71,7 @@ struct tensor_fixture_n_strides
 
     ~tensor_fixture_n_strides()
     {
-        mlopenDestroyTensorDescriptor(tensor);
+        miopenDestroyTensorDescriptor(tensor);
     }
 };
 
@@ -85,9 +85,9 @@ struct tensor_test_suit
 
             int n, c, h, w;
             int nStride, cStride, hStride, wStride;
-            mlopenDataType_t dt;
+            miopenDataType_t dt;
 
-            mlopenGet4dTensorDescriptor(
+            miopenGet4dTensorDescriptor(
                     this->tensor,
                     &dt,
                     &n,
@@ -99,7 +99,7 @@ struct tensor_test_suit
                     &hStride,
                     &wStride);
 
-            EXPECT(dt == mlopenFloat);
+            EXPECT(dt == miopenFloat);
             EXPECT(n == 100);
             EXPECT(c == 32);
             EXPECT(h == 8);
@@ -118,7 +118,7 @@ struct tensor_test_suit
 
             int nStride, cStride, hStride, wStride;
 
-            mlopenGet4dTensorDescriptorStrides(
+            miopenGet4dTensorDescriptorStrides(
                     this->tensor,
                     &nStride,
                     &cStride,
@@ -139,7 +139,7 @@ struct tensor_test_suit
 
             int n, c, h, w;
 
-            mlopenGet4dTensorDescriptorLengths(
+            miopenGet4dTensorDescriptorLengths(
                     this->tensor,
                     &n,
                     &c,
@@ -158,20 +158,20 @@ struct tensor_test_suit
         void run()
         {
             int size;
-            mlopenGetTensorDescriptorSize(this->tensor, &size);
+            miopenGetTensorDescriptorSize(this->tensor, &size);
             EXPECT(size == 4);
 
             std::array<int, 4> lens;
             std::array<int, 4> strides;
-            mlopenDataType_t dt;
+            miopenDataType_t dt;
 
-            mlopenGetTensorDescriptor(
+            miopenGetTensorDescriptor(
                     this->tensor,
                     &dt,
                     lens.data(),
                     strides.data());
 
-            EXPECT(dt == mlopenFloat);
+            EXPECT(dt == miopenFloat);
 
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
@@ -189,19 +189,19 @@ struct tensor_test_suit
         void run()
         {
             int size;
-            mlopenGetTensorDescriptorSize(this->tensor, &size);
+            miopenGetTensorDescriptorSize(this->tensor, &size);
             EXPECT(size == 4);
 
             std::array<int, 4> lens;
-            mlopenDataType_t dt;
+            miopenDataType_t dt;
 
-            mlopenGetTensorDescriptor(
+            miopenGetTensorDescriptor(
                     this->tensor,
                     &dt,
                     lens.data(),
                     nullptr);
 
-            EXPECT(dt == mlopenFloat);
+            EXPECT(dt == miopenFloat);
 
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
@@ -215,20 +215,20 @@ struct tensor_test_suit
         void run()
         {
             int size;
-            mlopenGetTensorDescriptorSize(this->tensor, &size);
+            miopenGetTensorDescriptorSize(this->tensor, &size);
             EXPECT(size == 4);
 
             std::array<int, 4> lens = {{100, 32, 8, 8}};
             std::array<int, 4> strides;
-            mlopenDataType_t dt;
+            miopenDataType_t dt;
 
-            mlopenGetTensorDescriptor(
+            miopenGetTensorDescriptor(
                     this->tensor,
                     &dt,
                     nullptr,
                     strides.data());
 
-            EXPECT(dt == mlopenFloat);
+            EXPECT(dt == miopenFloat);
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
@@ -244,11 +244,11 @@ struct tensor_test_suit
     {
         void run()
         {
-            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 0}) == 0);
-            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 1}) == 1);
-            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 0, 2}) == 2);
-            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 1, 0}) == 8);
-            EXPECT(mlopenGetTensorIndex(this->tensor, {0, 0, 1, 1}) == 9);
+            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 0, 0}) == 0);
+            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 0, 1}) == 1);
+            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 0, 2}) == 2);
+            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 1, 0}) == 8);
+            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 1, 1}) == 9);
         }
     };
 

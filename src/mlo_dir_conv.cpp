@@ -15,14 +15,14 @@
  ********************************************************************/
 // to share code with between CPU and GPU
 
-#define MLOPEN
+#define MIOPEN
 
 #include <cmath>
-#include <mlopen/gcn_asm_utils.h>
-#include <mlopen/mlo_internal.hpp>
-#include <mlopen/mlo_utils.hpp>
-#include <mlopen/env.hpp>
-#include <mlopen/db.hpp>
+#include <miopen/gcn_asm_utils.h>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/mlo_utils.hpp>
+#include <miopen/env.hpp>
+#include <miopen/db.hpp>
 
 #include <unordered_map>
 #include <cstring>
@@ -232,16 +232,16 @@ int mlo_construct_winograd::mloConstruct()
 	rocm_meta_version rmv = V1;
 	/// \todo As soon as metadata v1.0 support not needed, drop it. 
 	/// get rid of V1 and v1.0 files.
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	if (mloIsAmdOpenclRocm(rmv))
 #endif
 	{
-		const auto use_binaries = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+		const auto use_binaries = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
 		// assembly-written kernels may have worse performance than kernels written in high-level
 		// language, e.g. OpenCL. MiOpen avoids asm kernels in such corner cases, but
 		// this setting allows to override that.
-		const auto no_perf_filtering = mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_binaries) {
 			if (mloIsCorrectBinaryWinograd3x3Fwd()
 				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
@@ -263,15 +263,15 @@ int mlo_construct_direct2D::mloConstruct()
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	rocm_meta_version rmv = V2;
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
 	if (mloIsAmdOpenclRocm(rmv))
 	{
-		const auto use_assembly = !mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_GCN_ASM_KERNELS")
+		const auto use_assembly = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_GCN_ASM_KERNELS")
 								  && ValidateGcnAssembler();
 		// See comment in mlo_construct_winograd::mloConstruct().
-		const auto no_perf_filtering = mlopen::IsEnvvarValueDisabled("MLOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
@@ -310,7 +310,7 @@ int mlo_construct_direct2D::mloConstruct()
 			}
 
 		}
-#ifdef MLOPEN_LOG_CONVOLUTION
+#ifdef MIOPEN_LOG_CONVOLUTION
 		std::cout << "Selected run : "
 			<< _grp_tile1 << ", "
 			<< _grp_tile0 << ", "
@@ -346,7 +346,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 
 	// no 1x1 backward yet
 	// TODO: This currently doesn't work with the hip runtime
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 	if (_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2D1x1());
@@ -465,15 +465,15 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	_kernel_file = "MLOpenConvDirUni.cl";
-	_kernel_name = "MLOpenConvUni";
+	_kernel_file = "MIOpenConvDirUni.cl";
+	_kernel_name = "MIOpenConvUni";
 
 
 
 	return(ret);
 }
 
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
 bool mlo_construct_direct2D::mloExperimentalValidateAssemblerPath(const char* path) const
 {
 	return path != nullptr;
@@ -495,26 +495,26 @@ static bool IsTokenInOpenclDriverVersion(const std::string& driver_version, cons
 
 bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version &rmv) const
 {
-	const auto dev = mlopen::GetDevice(_stream->GetStream());
+	const auto dev = miopen::GetDevice(_stream->GetStream());
 
 	// Only suitable Opencl platform is from AMD.
-	const auto platform = mlopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
-	const auto platform_vendor = mlopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
+	const auto platform = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
+	const auto platform_vendor = miopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
 	if (platform_vendor != "Advanced Micro Devices, Inc.") { return false; }
 
 	// Only AMD devices is suitable
-	const auto device_vendor_id = mlopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
+	const auto device_vendor_id = miopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
 	if (device_vendor_id != 0x1002) { return false; }
 
 	// Our binaries are in OpenCL-on-ROCm Code Object format.
 	// OpenCL-on-ROCm uses Lightning Compiler.
-	const auto driver_version = mlopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
+	const auto driver_version = miopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	if (! IsTokenInOpenclDriverVersion(driver_version, "LC")) { return false; }
 
 	// At once, extract version of OpenCL metadata.
 	// \todo Discard this code as soon as metadata is stabilized and v1.0 support is not required.
 	rmv = V2; // assumed if something fails
-	const std::string platform_version = mlopen::GetPlatformInfo<CL_PLATFORM_VERSION>(platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
+	const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
 	size_t num_begin = platform_version.find('(');
 	if (num_begin != std::string::npos) {
 		int num = std::stoi(platform_version.substr(num_begin+1));
@@ -523,7 +523,7 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version &rmv) const
 	}
 	return true;
 }
-#endif //MLOPEN_BACKEND_OPENCL
+#endif //MIOPEN_BACKEND_OPENCL
 bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 {
 	// Check if device is able to run this kernel.
@@ -646,7 +646,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
 {
     std::string perf_vals;
     {
-        const auto p_asciz = std::getenv("MLOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS");
+        const auto p_asciz = std::getenv("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS");
         if (p_asciz && std::strlen(p_asciz) == 3) {
             perf_vals = std::string(p_asciz);
         }
@@ -951,8 +951,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	_kernel_file = "MLOpenConvDirUniC.cl";
-	_kernel_name = "MLOpenConvUniC";
+	_kernel_file = "MIOpenConvDirUniC.cl";
+	_kernel_name = "MIOpenConvUniC";
 
 	return(ret);
 }
@@ -1091,19 +1091,19 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	//	_kernel_file = "MLOpenConv1x1.cl";
-	//	_kernel_name = "MLOpenConv1x1";
+	//	_kernel_file = "MIOpenConv1x1.cl";
+	//	_kernel_name = "MIOpenConv1x1";
 	// too much overhead for small maps and few inputs
 
 	if (!isForwardDirection()/* || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256)*/)
 	{
-		_kernel_file = "MLOpenConv1x1Bwd.cl";
-		_kernel_name = "MLOpenConv1x1";
+		_kernel_file = "MIOpenConv1x1Bwd.cl";
+		_kernel_name = "MIOpenConv1x1";
 	}
 	else
 	{
-		_kernel_file = "MLOpenConv1x1Fwd.cl";
-		_kernel_name = "MLOpenConv1x1";
+		_kernel_file = "MIOpenConv1x1Fwd.cl";
+		_kernel_name = "MIOpenConv1x1";
 	}
 	// see above comment
 	if (small_map)
@@ -1242,8 +1242,8 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	_kernel_file = "MLOpenConvD3x3.cl";
-	_kernel_name = "MLOpenCvD3x3_WSR0";
+	_kernel_file = "MIOpenConvD3x3.cl";
+	_kernel_name = "MIOpenCvD3x3_WSR0";
 	return(ret);
 }
 
@@ -1415,8 +1415,8 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = "MLOpenConvFwd_LxL_11.cl";
-		_kernel_name = "MLOpenCvFwd11x11";
+		_kernel_file = "MIOpenConvFwd_LxL_11.cl";
+		_kernel_name = "MIOpenCvFwd11x11";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
 		_mlo_kernels_info.push_back(kern_info);
@@ -1427,8 +1427,8 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11()
 	// 2nd  pass
 	if (second_pass)
 	{
-		std::string kernel_file = "MLOpenConvFwd_LxL_11.cl";
-		std::string kernel_name = "MLOpenCvFwd11x11_2";
+		std::string kernel_file = "MIOpenConvFwd_LxL_11.cl";
+		std::string kernel_name = "MIOpenCvFwd11x11_2";
 
 		std::vector<size_t> l_wk;
 		std::vector<size_t> g_wk;
@@ -1624,8 +1624,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 		;
 
 
-	_kernel_file = "MLOpenConvDirGenFwd.cl";
-	_kernel_name = (n_proc_supertiles == 1) ? "MLOpenCDFGen" : "MLOpenCDFGen4";
+	_kernel_file = "MIOpenConvDirGenFwd.cl";
+	_kernel_name = (n_proc_supertiles == 1) ? "MIOpenCDFGen" : "MIOpenCDFGen4";
 
 	_l_wk.clear();
 
@@ -1830,8 +1830,8 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = "MLOpenConvBwdWrW_GxL_1x1.cl";
-		_kernel_name = "MLOpenCvBwdWrW";
+		_kernel_file = "MIOpenConvBwdWrW_GxL_1x1.cl";
+		_kernel_name = "MIOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
 		_mlo_kernels_info.push_back(kern_info);
@@ -1845,8 +1845,8 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	{
 
 
-		std::string kernel_file = "MLOpenConvBwdWrW_GxL_1x1.cl";
-		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
+		std::string kernel_file = "MIOpenConvBwdWrW_GxL_1x1.cl";
+		std::string kernel_name = "MIOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
 		l_wk.clear();
@@ -2039,8 +2039,8 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
-		_kernel_name = "MLOpenCvBwdWrW";
+		_kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1) ? "MIOpenConvBwdWrW_LxG_5x5.cl" : "MIOpenConvBwdWrW_LxG_P53.cl";
+		_kernel_name = "MIOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
 		_mlo_kernels_info.push_back(kern_info);
@@ -2054,8 +2054,8 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	{
 
 
-		std::string kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1) ? "MLOpenConvBwdWrW_LxG_5x5.cl" : "MLOpenConvBwdWrW_LxG_P53.cl";
-		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
+		std::string kernel_file = (_kernel_size0 == 5 && _kernel_size1 == 5 && in_n_vert_read_loops == 1) ? "MIOpenConvBwdWrW_LxG_5x5.cl" : "MIOpenConvBwdWrW_LxG_P53.cl";
+		std::string kernel_name = "MIOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
 		l_wk.clear();
@@ -2231,8 +2231,8 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = "MLOpenConvBwdWrW_LxL_P.cl";
-		_kernel_name = "MLOpenCvBwdWrW";
+		_kernel_file = "MIOpenConvBwdWrW_LxL_P.cl";
+		_kernel_name = "MIOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
 		_mlo_kernels_info.push_back(kern_info);
@@ -2246,8 +2246,8 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	{
 
 
-		std::string kernel_file = "MLOpenConvBwdWrW_LxL_P.cl";
-		std::string kernel_name = "MLOpenCvBwdWrW_rdc";
+		std::string kernel_file = "MIOpenConvBwdWrW_LxL_P.cl";
+		std::string kernel_name = "MIOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
 		l_wk.clear();
@@ -2498,7 +2498,7 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string & conf_val)
 /*
  * mesure the current onfiguration pefformance
  */
-int mlo_construct_direct2D :: mloMeasuredLoop(mlopen::Handle* profile_h,
+int mlo_construct_direct2D :: mloMeasuredLoop(miopen::Handle* profile_h,
 		Data_t bot_ocl_buf,
 		Data_t top_ocl_buf,
 		Data_t wei_ocl_buf,
@@ -2551,7 +2551,7 @@ int mlo_construct_direct2D :: mloMeasuredLoop(mlopen::Handle* profile_h,
 
 			_stream->Finish();
 
-			s = mlopen_mach_absolute_time();
+			s = miopen_mach_absolute_time();
 
 			for (int i = 0; i < iter && ret == 0; i++)
 			{
@@ -2563,12 +2563,12 @@ int mlo_construct_direct2D :: mloMeasuredLoop(mlopen::Handle* profile_h,
 			}
 
 			_stream->Finish();
-			e = mlopen_mach_absolute_time();
+			e = miopen_mach_absolute_time();
 
 			processing_time = subtractTimes(e, s) / iter;
 		}
     }
-    catch(mlopen::Exception&) {
+    catch(miopen::Exception&) {
         return -1;
     }
 
@@ -2588,10 +2588,10 @@ int mlo_construct_direct2D :: mloAddConfigReq(const std::string & conf_key) cons
 {
 	int ret = 0;
 	std::vector<std::string> req_conf_db;
-	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
-#ifdef MLOPEN_LOG_CONVOLUTION
+#ifdef MIOPEN_LOG_CONVOLUTION
 	printf("file %s\n", conf_file.c_str());
 #endif
 	std::vector<std::string>::iterator it;
@@ -2615,7 +2615,7 @@ int mlo_construct_direct2D :: mloRemoveConfigReq(
 
 	std::vector<std::string>::iterator it;
 
-	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
 	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
 
 	bool found = mloFindConfigReq(conf_file, conf_key, req_conf_db, it);
@@ -2635,7 +2635,7 @@ int mlo_construct_direct2D :: mloReadConfigDB(
 {
 
 	int ret = 0;
-	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
 
@@ -2664,7 +2664,7 @@ int mlo_construct_direct2D :: mloWriteConfigDB(
 
 	int ret = 0;
 	//serialize
-	std::string conf_file = (_kernel_path == "") ? mlopen::GetDbPath() : _kernel_path;
+	std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
 
 	conf_file += std::string("/") + _stream->GetDeviceName() + "_" + std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
 
@@ -2790,7 +2790,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 {
 	int ret = 0;
 
-	mlopen::Handle profile_h;
+	miopen::Handle profile_h;
 	double processing_time;
 	std::string conf_key;
 	std::string conf_val;
@@ -3230,7 +3230,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 
 // Tensor Helper APIs
 
-size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopen::TensorDescriptor &weight_tensor) {
+size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor &weight_tensor) {
 
 	int nWei;
 	int cWei;
@@ -3241,8 +3241,8 @@ size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopen::TensorDescr
 	int hWeiStride;
 	int wWeiStride;
 
-	std::tie(nWei, cWei, hWei, wWei) = mlopen::tie4(weight_tensor.GetLengths());
-	std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) = mlopen::tie4(weight_tensor.GetStrides());
+	std::tie(nWei, cWei, hWei, wWei) = miopen::tie4(weight_tensor.GetLengths());
+	std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) = miopen::tie4(weight_tensor.GetStrides());
 
 	setWeightsDescr(
 			"NCHW",
@@ -3262,7 +3262,7 @@ size_t mlo_construct_direct2D::setWeightDescFromMLDesc(const mlopen::TensorDescr
 
 }
 
-size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopen::TensorDescriptor &output_tensor) {
+size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const miopen::TensorDescriptor &output_tensor) {
 
 	int nOut;
 	int cOut;
@@ -3273,8 +3273,8 @@ size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopen::TensorDescr
 	int hOutStride;
 	int wOutStride;
 
-	std::tie(nOut, cOut, hOut, wOut) = mlopen::tie4(output_tensor.GetLengths());
-	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = mlopen::tie4(output_tensor.GetStrides());
+	std::tie(nOut, cOut, hOut, wOut) = miopen::tie4(output_tensor.GetLengths());
+	std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = miopen::tie4(output_tensor.GetStrides());
 
 	setOutputDescr(
 			"NCHW",
@@ -3292,7 +3292,7 @@ size_t mlo_construct_direct2D::setOutputDescFromMLDesc(const mlopen::TensorDescr
 	return output_sz;
 }
 
-size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopen::TensorDescriptor &input_tensor) {
+size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescriptor &input_tensor) {
 
 	int nIn;
 	int cIn;
@@ -3303,8 +3303,8 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const mlopen::TensorDescri
 	int hInStride;
 	int wInStride;
 
-	std::tie(nIn, cIn, hIn, wIn) = mlopen::tie4(input_tensor.GetLengths());
-	std::tie(nInStride, cInStride, hInStride, wInStride) = mlopen::tie4(input_tensor.GetStrides());
+	std::tie(nIn, cIn, hIn, wIn) = miopen::tie4(input_tensor.GetLengths());
+	std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tie4(input_tensor.GetStrides());
 
 	setInputDescr(
 			"NCHW",

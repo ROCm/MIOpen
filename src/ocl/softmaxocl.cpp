@@ -1,7 +1,7 @@
-#include <mlopen/softmax.hpp>
-#include <mlopen/kernel_cache.hpp>
+#include <miopen/softmax.hpp>
+#include <miopen/kernel_cache.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 int nextPow2(int v) {
 	
@@ -20,7 +20,7 @@ int nextPow2(int v) {
 	}
 }
 
-mlopenStatus_t SoftmaxForward(
+miopenStatus_t SoftmaxForward(
 		Handle						&handle,
 		const void					* /*alpha*/,
 		const void					* /*beta*/,
@@ -30,7 +30,7 @@ mlopenStatus_t SoftmaxForward(
 	int n, c, h, w;
 	std::tie(n, c, h, w) = tie4(yDesc.GetLengths());
 	
-	std::string program_name = "MLOpenSoftmax.cl";
+	std::string program_name = "MIOpenSoftmax.cl";
 	std::string kernel_name = "SoftmaxForward";
 
 	// using workgroup size of 256 by default
@@ -44,7 +44,7 @@ mlopenStatus_t SoftmaxForward(
 	// compile parameters
 	std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch);
 
-	// See Kernels/MLOpenSoftmax.cl for description
+	// See Kernels/MIOpenSoftmax.cl for description
 	if(num_batch == 1) { // CSR-Vector like approach
 
 		// Control the max. number of workgroups launched so that we do not
@@ -52,7 +52,7 @@ mlopenStatus_t SoftmaxForward(
 		size_t workgroups = std::min(grid_size, 64*40*8);
 		const std::vector<size_t> vgd(1, workgroups*vld[0]);
 
-		handle.GetKernel("mlopenSoftmaxForward",
+		handle.GetKernel("miopenSoftmaxForward",
 				"",
 				program_name,
 				kernel_name,
@@ -73,7 +73,7 @@ mlopenStatus_t SoftmaxForward(
 		parms += " -DBATCH_SIZE=" + std::to_string(batch_size) + 
 			" -DU_BATCH_SIZE=" + std::to_string(u_batch_size);
 
-		handle.GetKernel("mlopenSoftmaxForward",
+		handle.GetKernel("miopenSoftmaxForward",
 				"",
 				program_name,
 				kernel_name,
@@ -82,10 +82,10 @@ mlopenStatus_t SoftmaxForward(
 				parms)(y, c, grid_size, spatial_dim);
 
 	}
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
-mlopenStatus_t SoftmaxBackward(
+miopenStatus_t SoftmaxBackward(
 		Handle						&handle,
 		const void					* /*alpha*/,
 		const TensorDescriptor		&yDesc,
@@ -95,12 +95,12 @@ mlopenStatus_t SoftmaxBackward(
 		Data_t						dx) 
 {
 	if(yDesc != dxDesc) {
-		MLOPEN_THROW(mlopenStatusBadParm);
+		MIOPEN_THROW(miopenStatusBadParm);
 	}
 	int n, c, h, w;
 	std::tie(n, c, h, w) = tie4(dxDesc.GetLengths());
 	
-	std::string program_name = "MLOpenSoftmax.cl";
+	std::string program_name = "MIOpenSoftmax.cl";
 	std::string kernel_name = "SoftmaxBackward";
 
 	// using workgroup size of 256 by default
@@ -113,7 +113,7 @@ mlopenStatus_t SoftmaxBackward(
 	// compile parameters
 	std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch);
 
-	// See Kernels/MLOpenSoftmax.cl for description
+	// See Kernels/MIOpenSoftmax.cl for description
 	if(num_batch == 1) { // CSR-Vector like approach
 
 		// Control the max. number of workgroups launched so that we do not
@@ -121,7 +121,7 @@ mlopenStatus_t SoftmaxBackward(
 		size_t workgroups = std::min(grid_size, 64*40*8);
 		const std::vector<size_t> vgd(1, workgroups*vld[0]);
 
-		handle.GetKernel("mlopenSoftmaxBackward",
+		handle.GetKernel("miopenSoftmaxBackward",
 				"",
 				program_name,
 				kernel_name,
@@ -140,7 +140,7 @@ mlopenStatus_t SoftmaxBackward(
 		parms += " -DBATCH_SIZE=" + std::to_string(batch_size) + 
 			" -DU_BATCH_SIZE=" + std::to_string(u_batch_size);
 
-		handle.GetKernel("mlopenSoftmaxBackward",
+		handle.GetKernel("miopenSoftmaxBackward",
 				"",
 				program_name,
 				kernel_name,
@@ -150,7 +150,7 @@ mlopenStatus_t SoftmaxBackward(
 
 	}
 
-	return mlopenStatusSuccess;
+	return miopenStatusSuccess;
 }
 
-} // namespace mlopen
+} // namespace miopen

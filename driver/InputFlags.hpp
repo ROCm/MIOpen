@@ -1,5 +1,5 @@
-#ifndef _MLOPEN_INPUT_FLAGS_HPP_
-#define _MLOPEN_INPUT_FLAGS_HPP_
+#ifndef _MIOPEN_INPUT_FLAGS_HPP_
+#define _MIOPEN_INPUT_FLAGS_HPP_
 
 #include <string>
 #include <map>
@@ -90,4 +90,4 @@ class InputFlags
 	virtual ~InputFlags() {}
 };
 
-#endif //_MLOPEN_INPUT_FLAGS_HPP_
+#endif //_MIOPEN_INPUT_FLAGS_HPP_

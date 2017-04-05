@@ -1,8 +1,8 @@
-#include <mlopen/convolution.hpp>
-#include <mlopen/convolution_fft.hpp>
-#include <mlopen/errors.hpp>
+#include <miopen/convolution.hpp>
+#include <miopen/convolution_fft.hpp>
+#include <miopen/errors.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 	size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeFFT(
 		const TensorDescriptor& wDesc,
@@ -11,13 +11,13 @@ namespace mlopen {
 {
 
 	int in_n, in_c, in_h, in_w;
-	std::tie(in_n, in_c, in_h, in_w) = mlopen::tie4(xDesc.GetLengths());
+	std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(xDesc.GetLengths());
 
 	int out_n, out_c, out_h, out_w;
-	std::tie(out_n, out_c, out_h, out_w) = mlopen::tie4(yDesc.GetLengths());
+	std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(yDesc.GetLengths());
 
 	int wei_k, wei_c, wei_h, wei_w;
-	std::tie(wei_k, wei_c, wei_h, wei_w) = mlopen::tie4(wDesc.GetLengths());
+	std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tie4(wDesc.GetLengths());
 
 	bool supported = true;
 
@@ -33,7 +33,7 @@ namespace mlopen {
 	supported = (std::tie(wei_h, wei_w) != std::make_tuple(5, 5)) ? false : supported;
 	supported = (std::tie(out_h, out_w) != std::make_tuple(27, 27)) ? false : supported;
 	supported = (std::tie(pad_h, pad_w, u, v) != std::make_tuple(2, 2, 1, 1)) ? false : supported;
-	supported = (yDesc.GetType() != mlopenFloat) ? false : supported;
+	supported = (yDesc.GetType() != miopenFloat) ? false : supported;
 
 	const int N = FFTConvParams::N;
 	const int Padding = FFTConvParams::TransposePadding;
@@ -50,4 +50,4 @@ namespace mlopen {
 		return 0;
 }
 
-} // namespace mlopen
+} // namespace miopen

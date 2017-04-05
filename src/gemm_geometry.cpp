@@ -1,6 +1,6 @@
-#include <mlopen/gemm_geometry.hpp>
+#include <miopen/gemm_geometry.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 std::unordered_map< GemmKey, GemmGeometry, SimpleHash> gemm_geo_map;
 
@@ -20,7 +20,7 @@ void GemmGeometry::FindSolution(float time,
         bool            enforce_determinism)
 {
     // alloted_time, queue, a, b, c, enforce_determinism, float_type, geometry, alpha, beta, verbose 
-#if MLOPEN_BACKEND_OPENCL
+#if MIOPEN_BACKEND_OPENCL
     TinyGemmSolution soln = tinygemm::find(time, handle.GetStream(), a, b, c, enforce_determinism, 'f', tgg, alpha, beta);
 #else
     (void)time;
@@ -108,4 +108,4 @@ void GemmGeometry::RunGemm(Handle &handle,
             a_offset, b_offset, c_offset);
 }
 
-} // namespace mlopen
+} // namespace miopen

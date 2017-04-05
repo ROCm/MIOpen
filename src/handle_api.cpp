@@ -1,48 +1,48 @@
-#include <mlopen/handle.hpp>
-#include <mlopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/errors.hpp>
 #include <cstdio>
 
 extern "C" 
-mlopenStatus_t mlopenCreate(mlopenHandle_t *handle) {
+miopenStatus_t miopenCreate(miopenHandle_t *handle) {
 
-	return mlopen::try_([&] {
-			mlopen::deref(handle) = new mlopen::Handle();
+	return miopen::try_([&] {
+			miopen::deref(handle) = new miopen::Handle();
 	});
 }
 
 extern "C" 
-mlopenStatus_t mlopenCreateWithStream(mlopenHandle_t *handle,
-		mlopenAcceleratorQueue_t *stream ) {
+miopenStatus_t miopenCreateWithStream(miopenHandle_t *handle,
+		miopenAcceleratorQueue_t *stream ) {
 
-	return mlopen::try_([&] {
-			mlopen::deref(handle) = new mlopen::Handle(stream);
+	return miopen::try_([&] {
+			miopen::deref(handle) = new miopen::Handle(stream);
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenGetStream(mlopenHandle_t handle,
-		mlopenAcceleratorQueue_t *streamID) {
-	return mlopen::try_([&] {
-		mlopen::deref(streamID) = mlopen::deref(handle).GetStream();
+miopenStatus_t miopenGetStream(miopenHandle_t handle,
+		miopenAcceleratorQueue_t *streamID) {
+	return miopen::try_([&] {
+		miopen::deref(streamID) = miopen::deref(handle).GetStream();
 	});
 }
 
 extern "C"
-mlopenStatus_t mlopenDestroy(mlopenHandle_t handle) {
-	return mlopen::try_([&] {
-		mlopen_destroy_object(handle);
+miopenStatus_t miopenDestroy(miopenHandle_t handle) {
+	return miopen::try_([&] {
+		miopen_destroy_object(handle);
 	});
 }
 
-extern "C" mlopenStatus_t mlopenGetKernelTime(mlopenHandle_t handle, float* time)
+extern "C" miopenStatus_t miopenGetKernelTime(miopenHandle_t handle, float* time)
 {
-	return mlopen::try_([&] {
-		mlopen::deref(time) = mlopen::deref(handle).GetKernelTime();
+	return miopen::try_([&] {
+		miopen::deref(time) = miopen::deref(handle).GetKernelTime();
 	});
 }
-extern "C" mlopenStatus_t mlopenEnableProfiling(mlopenHandle_t handle, bool enable)
+extern "C" miopenStatus_t miopenEnableProfiling(miopenHandle_t handle, bool enable)
 {
-	return mlopen::try_([&] {
-		mlopen::deref(handle).EnableProfiling(enable);
+	return miopen::try_([&] {
+		miopen::deref(handle).EnableProfiling(enable);
 	});
 }

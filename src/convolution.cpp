@@ -1,21 +1,21 @@
-#include <mlopen/convolution.hpp>
-#include <mlopen/errors.hpp>
+#include <miopen/convolution.hpp>
+#include <miopen/errors.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 ConvolutionDescriptor::ConvolutionDescriptor(int p_pad_h, int p_pad_w, int p_u, int p_v, int p_upscalex, int p_upscaley) 
-: mode(mlopenConvolution), pad_h(p_pad_h), pad_w(p_pad_w), u(p_u), v(p_v), upscalex(p_upscalex), upscaley(p_upscaley) 
+: mode(miopenConvolution), pad_h(p_pad_h), pad_w(p_pad_w), u(p_u), v(p_v), upscalex(p_upscalex), upscaley(p_upscaley) 
 {
 	if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0) {
-		MLOPEN_THROW(mlopenStatusBadParm, "Parameters to filter cannot be negative");
+		MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
 	}
 }
 
-ConvolutionDescriptor::ConvolutionDescriptor(mlopenConvolutionMode_t p_mode, int p_pad_h, int p_pad_w, int p_u, int p_v, int p_upscalex, int p_upscaley)
+ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode, int p_pad_h, int p_pad_w, int p_u, int p_v, int p_upscalex, int p_upscaley)
 : mode(p_mode), pad_h(p_pad_h), pad_w(p_pad_w), u(p_u), v(p_v), upscalex(p_upscalex), upscaley(p_upscaley)
 {
 	if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0) {
-		MLOPEN_THROW(mlopenStatusBadParm, "Parameters to filter cannot be negative");
+		MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
 	}
 }
 
@@ -28,7 +28,7 @@ const
 	assert(filterDesc.GetLengths().size() == 4);
 
 	if (inputTensorDesc.GetType() != filterDesc.GetType()) {
-		MLOPEN_THROW(mlopenStatusBadParm, "Types do not match for the filter");
+		MIOPEN_THROW(miopenStatusBadParm, "Types do not match for the filter");
 	}
 
 	int input_n;
@@ -36,17 +36,17 @@ const
 	int input_h;
 	int input_w;
 
-	std::tie(input_n, input_c, input_h, input_w) = mlopen::tie4(inputTensorDesc.GetLengths());
+	std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(inputTensorDesc.GetLengths());
 
 	int filter_k;
 	int filter_c;
 	int filter_h;
 	int filter_w;
 	
-	std::tie(filter_k, filter_c, filter_h, filter_w) = mlopen::tie4(filterDesc.GetLengths());
+	std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tie4(filterDesc.GetLengths());
 
 	if(input_c != filter_c) {
-		MLOPEN_THROW(mlopenStatusBadParm, "Channels do not match for the filter");
+		MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
 	}
 
 	return std::make_tuple(
@@ -62,10 +62,10 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(
 		const TensorDescriptor& yDesc) const
 {
 	int out_h, out_w;
-	std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(yDesc.GetLengths());
+	std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tie4(yDesc.GetLengths());
 
 	int wei_c, wei_h, wei_w;
-	std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(wDesc.GetLengths());
+	std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(wDesc.GetLengths());
 	
 	size_t workspace_size = wei_c*wei_h*wei_w * out_h*out_w * sizeof(yDesc.GetType());
 
@@ -99,7 +99,7 @@ const
 	assert(outputTensorDesc.GetLengths().size() == 4);
 
 	if (inputTensorDesc.GetType() != outputTensorDesc.GetType()) {
-		MLOPEN_THROW(mlopenStatusBadParm, "Types do not match for the filter");
+		MIOPEN_THROW(miopenStatusBadParm, "Types do not match for the filter");
 	}
 
 	int input_n;
@@ -107,17 +107,17 @@ const
 	int input_h;
 	int input_w;
 
-	std::tie(input_n, input_c, input_h, input_w) = mlopen::tie4(inputTensorDesc.GetLengths());
+	std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(inputTensorDesc.GetLengths());
 
 	int output_n;
 	int output_c;
 	int output_h;
 	int output_w;
 
-	std::tie(output_n, output_c, output_h, output_w) = mlopen::tie4(outputTensorDesc.GetLengths());
+	std::tie(output_n, output_c, output_h, output_w) = miopen::tie4(outputTensorDesc.GetLengths());
 
 	// if(input_c != filter_c) {
-	// 	MLOPEN_THROW(mlopenStatusBadParm, "Channels do not match for the filter");
+	// 	MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
 	// }
 
 	return std::make_tuple(
@@ -137,7 +137,7 @@ const
 	assert(filterDesc.GetLengths().size() == 4);
 
 	if (outputTensorDesc.GetType() != filterDesc.GetType()) {
-		MLOPEN_THROW(mlopenStatusBadParm, "Types do not match for the filter");
+		MIOPEN_THROW(miopenStatusBadParm, "Types do not match for the filter");
 	}
 
 	int output_n;
@@ -145,17 +145,17 @@ const
 	int output_h;
 	int output_w;
 
-	std::tie(output_n, output_c, output_h, output_w) = mlopen::tie4(outputTensorDesc.GetLengths());
+	std::tie(output_n, output_c, output_h, output_w) = miopen::tie4(outputTensorDesc.GetLengths());
 
 	int filter_k;
 	int filter_c;
 	int filter_h;
 	int filter_w;
 	
-	std::tie(filter_k, filter_c, filter_h, filter_w) = mlopen::tie4(filterDesc.GetLengths());
+	std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tie4(filterDesc.GetLengths());
 
 	if(output_c != filter_k) {
-		MLOPEN_THROW(mlopenStatusBadParm, "Channels do not match for the filter");
+		MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
 	}
 
 	return std::make_tuple(
@@ -207,9 +207,9 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
 	const TensorDescriptor&		 dwDesc) const
 {
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = mlopen::tie4(dyDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tie4(dyDesc.GetLengths());
     int wei_c, wei_h, wei_w;
-    std::tie(std::ignore, wei_c, wei_h, wei_w) = mlopen::tie4(dwDesc.GetLengths());
+    std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(dwDesc.GetLengths());
     size_t gemm_size = wei_c*wei_h*wei_w * out_h*out_w * sizeof(dyDesc.GetType()); 
 
     return gemm_size;
@@ -252,4 +252,4 @@ std::ostream& operator<< (std::ostream& stream, const ConvolutionDescriptor& c)
 	return stream;
 }
 
-} // namespace mlopen
+} // namespace miopen

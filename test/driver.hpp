@@ -117,7 +117,7 @@ struct test_driver
         {
             args::write_value{}(x, params);
         };
-        mlopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1), fs...);
+        miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1), fs...);
     }
 
     struct generate_tensor_t
@@ -224,36 +224,36 @@ struct test_driver
         {
             auto out_cpu = v.cpu(xs...);
             auto out_gpu = v.gpu(xs...);
-            CHECK(mlopen::range_distance(out_cpu) == mlopen::range_distance(out_gpu));
+            CHECK(miopen::range_distance(out_cpu) == miopen::range_distance(out_gpu));
             
-            using value_type = mlopen::range_value<decltype(out_gpu)>;
+            using value_type = miopen::range_value<decltype(out_gpu)>;
             double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
-            auto error = mlopen::rms_range(out_cpu, out_gpu);
+            auto error = miopen::rms_range(out_cpu, out_gpu);
             if (not(error <= threshold))
             {
                 std::cout << "FAILED: " << error << std::endl;
                 v.fail(error, xs...);
                 
-                auto mxdiff = mlopen::max_diff(out_cpu, out_gpu);
+                auto mxdiff = miopen::max_diff(out_cpu, out_gpu);
                 std::cout << "Max diff: " << mxdiff << std::endl;
-                auto max_idx = mlopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
+                auto max_idx = miopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
                 std::cout << "Max diff at " << max_idx << ": " << out_cpu[max_idx] << " != " << out_gpu[max_idx] << std::endl;
 
-                if (mlopen::range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
-                if (mlopen::range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
+                if (miopen::range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
+                if (miopen::range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
                 
-                auto idx = mlopen::mismatch_idx(out_cpu, out_gpu, mlopen::float_equal);
+                auto idx = miopen::mismatch_idx(out_cpu, out_gpu, miopen::float_equal);
                 std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
 
-                auto cpu_nan_idx = find_idx(out_cpu, mlopen::not_finite);
+                auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
                 if (cpu_nan_idx >= 0) 
                     std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": " << out_cpu[cpu_nan_idx] << std::endl;
 
-                auto gpu_nan_idx = find_idx(out_gpu, mlopen::not_finite);
+                auto gpu_nan_idx = find_idx(out_gpu, miopen::not_finite);
                 if (gpu_nan_idx >= 0) 
                     std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": " << out_gpu[gpu_nan_idx] << std::endl;
             } 
-            else if (mlopen::range_zero(out_cpu) and mlopen::range_zero(out_gpu)) 
+            else if (miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu)) 
             {
                 std::cout << "Warning: data is all zero" << std::endl;
                 v.fail(error, xs...);

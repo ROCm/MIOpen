@@ -1,8 +1,8 @@
-#include <mlopen/convolution.hpp>
-#include <mlopen/convolution_fft.hpp>
-#include <mlopen/util.hpp>
+#include <miopen/convolution.hpp>
+#include <miopen/convolution_fft.hpp>
+#include <miopen/util.hpp>
 
-namespace mlopen {
+namespace miopen {
 
 static std::string make_config_prefix(int in_n, int out_c)
 {
@@ -27,10 +27,10 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 		return -1;
 
 	int in_n, in_c;
-	std::tie(in_n, in_c, std::ignore, std::ignore) = mlopen::tie4(xDesc.GetLengths());
+	std::tie(in_n, in_c, std::ignore, std::ignore) = miopen::tie4(xDesc.GetLengths());
 
 	int out_n, out_c;
-	std::tie(out_n, out_c, std::ignore, std::ignore) = mlopen::tie4(yDesc.GetLengths());
+	std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tie4(yDesc.GetLengths());
 
 	const int N = FFTConvParams::N;
 	const int NumKernels = 	FFTConvParams::NumKernels;
@@ -89,8 +89,8 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	global_work_size[6][0] = out_n * out_c * local_work_size[6][0];
 
 
-    const std::string algorithm = "mlopenConvolutionFwdAlgoFFT";
-    const std::string program_name = "MLOpenConvFFT.cl";
+    const std::string algorithm = "miopenConvolutionFwdAlgoFFT";
+    const std::string program_name = "MIOpenConvFFT.cl";
 
 	std::string parms;
 	parms += " -D CFF_BATCH=";
@@ -110,13 +110,13 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 
 		switch(ik)
 		{
-		case 0: kernel_name += "MLOpenConvFFT_fwd_in";			break;
-		case 1: kernel_name += "MLOpenConvFFT_fwd_we";			break;
-		case 2: kernel_name += "MLOpenConvFFT_transpose_in";	break;
-		case 3: kernel_name += "MLOpenConvFFT_transpose_we";	break;
-		case 4: kernel_name += "MLOpenConvFFT_cgemm";			break;
-		case 5: kernel_name += "MLOpenConvFFT_transpose_out";	break;
-		case 6: kernel_name += "MLOpenConvFFT_inv_out";			break;
+		case 0: kernel_name += "MIOpenConvFFT_fwd_in";			break;
+		case 1: kernel_name += "MIOpenConvFFT_fwd_we";			break;
+		case 2: kernel_name += "MIOpenConvFFT_transpose_in";	break;
+		case 3: kernel_name += "MIOpenConvFFT_transpose_we";	break;
+		case 4: kernel_name += "MIOpenConvFFT_cgemm";			break;
+		case 5: kernel_name += "MIOpenConvFFT_transpose_out";	break;
+		case 6: kernel_name += "MIOpenConvFFT_inv_out";			break;
 		}
 		
 		std::string network_config = config_prefix + std::to_string(ik);
@@ -163,10 +163,10 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 
 	int halfw = static_cast<int>(workSpaceSize) / (2*2*sizeof(float));
 	int in_n, in_c;
-	std::tie(in_n, in_c, std::ignore, std::ignore) = mlopen::tie4(xDesc.GetLengths());
+	std::tie(in_n, in_c, std::ignore, std::ignore) = miopen::tie4(xDesc.GetLengths());
 
 	int out_n, out_c;
-	std::tie(out_n, out_c, std::ignore, std::ignore) = mlopen::tie4(yDesc.GetLengths());
+	std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tie4(yDesc.GetLengths());
 
 	const int N = FFTConvParams::N;
 	const int Padding = FFTConvParams::TransposePadding;
@@ -178,7 +178,7 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 	{
 		std::string network_config = config_prefix + std::to_string(ik);
 
-		auto k = handle.GetKernel("mlopenConvolutionFwdAlgoFFT", network_config);
+		auto k = handle.GetKernel("miopenConvolutionFwdAlgoFFT", network_config);
 
 		switch(ik)
 		{
@@ -220,4 +220,4 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 }
 
 
-}  // namespace mlopen
+}  // namespace miopen

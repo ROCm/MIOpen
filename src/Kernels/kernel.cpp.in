@@ -1,10 +1,10 @@
-#include <mlopen/kernel.hpp>
-#include <mlopen/stringutils.hpp>
+#include <miopen/kernel.hpp>
+#include <miopen/stringutils.hpp>
 #include <map>
 #include <algorithm>
-#include "mlopen_kernels.h"
+#include "miopen_kernels.h"
 
-namespace mlopen {
+namespace miopen {
 
 const std::map<std::string, std::string>& kernels()
 {
@@ -37,9 +37,9 @@ std::string GetKernelSrc(std::string name)
     std::transform(key.begin(), key.end(), key.begin(), ::toupper);
 
     auto it = kernels().find(key);
-    if (it == kernels().end()) MLOPEN_THROW("Failed to load kernel source: " + key);
+    if (it == kernels().end()) MIOPEN_THROW("Failed to load kernel source: " + key);
 
     return it->second;
 }
 
-} // namespace mlopen
+} // namespace miopen

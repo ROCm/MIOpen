@@ -1,15 +1,15 @@
-#include <mlopen/activ.hpp>
-#include <mlopen/logger.hpp>
+#include <miopen/activ.hpp>
+#include <miopen/logger.hpp>
 #include <cassert>
 
-namespace mlopen {
+namespace miopen {
 
 ActivationDescriptor::ActivationDescriptor() {}
 
-ActivationDescriptor::ActivationDescriptor(mlopenActivationMode_t m, const double *pparms) 
+ActivationDescriptor::ActivationDescriptor(miopenActivationMode_t m, const double *pparms) 
 : parms(pparms, pparms+3), mode(m) {}
 
-mlopenActivationMode_t ActivationDescriptor::GetMode() const
+miopenActivationMode_t ActivationDescriptor::GetMode() const
 {
 	return this->mode;
 }
@@ -30,20 +30,20 @@ double ActivationDescriptor::GetPower() const
 }
 std::ostream& operator<< (std::ostream& stream, const ActivationDescriptor& x)
 {
-    MLOPEN_LOG_ENUM(stream, x.mode,
-        mlopenActivationPATHTRU,
-        mlopenActivationLOGISTIC,
-        mlopenActivationTANH,
-        mlopenActivationRELU,
-        mlopenActivationSOFTRELU,
-        mlopenActivationABS,
-        mlopenActivationPOWER
-        // mlopenActivationBRELU,
-        // mlopenActivationSQUARE,
-        // mlopenActivationSQR,
-        // mlopenActivationLINEAR
+    MIOPEN_LOG_ENUM(stream, x.mode,
+        miopenActivationPATHTRU,
+        miopenActivationLOGISTIC,
+        miopenActivationTANH,
+        miopenActivationRELU,
+        miopenActivationSOFTRELU,
+        miopenActivationABS,
+        miopenActivationPOWER
+        // miopenActivationBRELU,
+        // miopenActivationSQUARE,
+        // miopenActivationSQR,
+        // miopenActivationLINEAR
     ) << ", ";
     LogRange(stream, x.parms, ", ") << ", ";
     return stream;
 }
-}  // namespace mlopen
+}  // namespace miopen

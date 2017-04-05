@@ -1,31 +1,31 @@
-#include <mlopen/tensor.hpp>
-#include <mlopen/errors.hpp>
-#include <mlopen/logger.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/logger.hpp>
 #include <string>
 #include <algorithm>
 #include <numeric>
 #include <cassert>
 
-namespace mlopen {
+namespace miopen {
 
 TensorDescriptor::TensorDescriptor() {}
 
-TensorDescriptor::TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<int> plens)
 : lens(plens), type(t)
 {
 	this->CalculateStrides();
 }
 	
-TensorDescriptor::TensorDescriptor(mlopenDataType_t t, std::initializer_list<int> plens, std::initializer_list<int> pstrides)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<int> plens, std::initializer_list<int> pstrides)
 : lens(plens), strides(pstrides), type(t)
 {}
 
-TensorDescriptor::TensorDescriptor(mlopenDataType_t t, const int* plens, int size)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int size)
 : lens(plens, plens+size), type(t)
 {
 	this->CalculateStrides();
 }
-TensorDescriptor::TensorDescriptor(mlopenDataType_t t, const int* plens, const int* pstrides, int size)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size)
 : lens(plens, plens+size), strides(pstrides, pstrides+size), type(t)
 {}
 
@@ -55,7 +55,7 @@ int TensorDescriptor::GetElementSize() const
 	assert(lens.size() == strides.size());
 	return std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>());
 }
-mlopenDataType_t TensorDescriptor::GetType() const
+miopenDataType_t TensorDescriptor::GetType() const
 {
 	return this->type;
 }
@@ -92,11 +92,11 @@ std::ostream& operator<< (std::ostream& stream, const TensorDescriptor& t)
 	return LogRange(stream, t.lens, ", ");
 }
 
-} // namespace mlopen
+} // namespace miopen
 
 // TODO(paul): Remove
-MLOPEN_EXPORT
-int mlopenGetTensorIndex(mlopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
+MIOPEN_EXPORT
+int miopenGetTensorIndex(miopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
 {
-	return mlopen::deref(tensorDesc).GetIndex(indices);
+	return miopen::deref(tensorDesc).GetIndex(indices);
 }
