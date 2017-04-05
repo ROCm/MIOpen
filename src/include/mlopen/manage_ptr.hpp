@@ -1,8 +1,8 @@
-#include <memory>
-#include <type_traits>
-
 #ifndef GUARD_MLOPEN_MANAGE_PTR_HPP
 #define GUARD_MLOPEN_MANAGE_PTR_HPP
+
+#include <memory>
+#include <type_traits>
 
 namespace mlopen {
 

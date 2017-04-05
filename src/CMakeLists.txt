@@ -107,15 +107,17 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MLOpenConv1x1PS_LW.cl
 		Kernels/MLOpenConvD3x3.cl
 		Kernels/MLOpenUtilKernels.cl
-		Kernels/MLOpenConvBwdWrW_LxL.cl
 		Kernels/MLOpenConvBwdWrW_LxL_P.cl
 		Kernels/MLOpenConvBwdWrW_LxG_P53.cl
 		Kernels/MLOpenConvBwdWrW_LxG_5x5.cl
 		Kernels/MLOpenConvBwdWrW_GxL_1x1.cl
 		Kernels/MLOpenConvFwd_LxL_11.cl
+
  		Kernels/MLOpenConvFFT.cl
 		Kernels/conv3x3.s
-		Kernels/MLOpenTensorKernels.cl
+		Kernels/conv5x10u2v2f1.s
+
+    Kernels/MLOpenTensorKernels.cl
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
 		Kernels/MLOpenConvBwdBias.cl)
@@ -138,6 +140,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		ocl/tensorocl.cpp
 		ocl/softmaxocl.cpp
 		ocl/utilocl.cpp
+		ocl/gcn_asm_utils.cpp
 		pooling.cpp
         ${PROJECT_BINARY_DIR}/db.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
@@ -232,7 +235,7 @@ if( MLOPEN_BACKEND STREQUAL "OpenCL")
 	target_include_directories(MLOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MLOpen ${OPENCL_LIBRARIES} )
 elseif(MLOPEN_BACKEND STREQUAL "HIPOC")
-	target_link_libraries( MLOpen hip::hip_hcc )
+	target_link_libraries( MLOpen ${hip_LIBRARIES} )
 endif()
 
 ############################################################
