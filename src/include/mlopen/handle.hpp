@@ -25,7 +25,7 @@ struct Handle : mlopenHandle {
 
     void EnableProfiling(bool enable=true);
 	
-	void ResetKernelTime(void);
+	void ResetKernelTime();
 	void AccumKernelTime(float curr_time);
 
     float GetKernelTime() const;

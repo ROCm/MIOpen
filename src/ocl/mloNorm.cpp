@@ -76,8 +76,8 @@ int mlo_construct_norm::mloConstructFwd()
 		_out_pix_tile1 = (_out_height <= 8) ? 1 : 2;
 	}
 
-	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile0) / log(2.))));
-	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile1) / log(2.))));
+	auto ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile0) / log(2.))));
+	auto ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile1) / log(2.))));
 
 	int read_unit = 4;
 	int N4S = 1;
@@ -109,8 +109,8 @@ int mlo_construct_norm::mloConstructFwd()
 	int	scale_batch_stride = _out_batch_stride;
 	int scale = (doBackward()) ? 1 : 0;
 
-	int g_wk_width = static_cast<int>((_out_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
-	int g_wk_height = static_cast<int>((_out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
+	auto g_wk_width = static_cast<int>((_out_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
+	auto g_wk_height = static_cast<int>((_out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
 	int OUT_VERT_ALIGNED = (g_wk_height * (_grp_tile1 * _out_pix_tile1) == _out_height) ? 1 : 0;
 	int OUT_HORIZ_ALIGNED = (g_wk_width * (_grp_tile0 * _out_pix_tile0) == _out_width) ? 1 : 0;
 	// currently always 1
@@ -194,7 +194,7 @@ int mlo_construct_norm::mloConstructFwd()
 		_g_wk.push_back(_n_outputs * _batch_sz);
 
 	}
-	int data_len = (!_out_data_type.compare("FP32") ? 4 : 8);
+	int data_len = (_out_data_type == "FP32" ? 4 : 8);
 
 	// calculate workspace
 	size_t scale_sz = _batch_sz * scale_batch_stride * data_len;
@@ -223,8 +223,8 @@ int mlo_construct_norm::mloConstructBwd()
 		_out_pix_tile0 = (_in_df_width <= 8) ? 1 : (_in_df_width <= 16) ? 2 : 4;
 		_out_pix_tile1 = (_in_df_height <= 8) ? 1 : (_in_df_height <= 16) ? 2 : 4;;
 	}
-	int ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile0)) / log(2.)));
-	int ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile1)) / log(2.)));
+	auto ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile0)) / log(2.)));
+	auto ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile1)) / log(2.)));
 
 	int pre_pad = (_norm_area - 1) / 2;
 	int pad = _norm_area - pre_pad - 1;

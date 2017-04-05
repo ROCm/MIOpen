@@ -96,10 +96,10 @@ mlopenStatus_t LRNDescriptor::Forward(
 	double norm_alphaoverarea;
 
 	construct_params.getNormDescr(norm_region, local_ar, norm_alpha, norm_beta, norm_K, norm_alphaoverarea);
-	float f_norm_alpha = static_cast<float>(norm_alpha);
-	float f_norm_beta = static_cast<float>(norm_beta);
-	float f_norm_K = static_cast<float>(norm_K);
-	float f_norm_alphaoverarea = static_cast<float>(norm_alphaoverarea);
+	auto f_norm_alpha = static_cast<float>(norm_alpha);
+	auto f_norm_beta = static_cast<float>(norm_beta);
+	auto f_norm_K = static_cast<float>(norm_K);
+	auto f_norm_alphaoverarea = static_cast<float>(norm_alphaoverarea);
 
 	KernelInvoke obj = 	handle.GetKernel("mlopenLRNForward",
 				network_config,
@@ -266,9 +266,9 @@ mlopenStatus_t LRNDescriptor :: Backward(
 	double norm_alphaoverarea;
 
 	construct_params.getNormDescr(norm_region, local_ar, norm_alpha, norm_beta, norm_K, norm_alphaoverarea);
-	float f_norm_alpha = static_cast<float>(norm_alpha);
-	float f_norm_beta = static_cast<float>(norm_beta);
-	float f_norm_ratio = static_cast<float>(2. *norm_alpha * norm_beta / static_cast<double>(local_ar));
+	auto f_norm_alpha = static_cast<float>(norm_alpha);
+	auto f_norm_beta = static_cast<float>(norm_beta);
+	auto f_norm_ratio = static_cast<float>(2. *norm_alpha * norm_beta / static_cast<double>(local_ar));
 
 	handle.GetKernel("mlopenLRNBackward",
 			network_config,

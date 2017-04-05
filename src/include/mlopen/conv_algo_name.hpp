@@ -5,23 +5,32 @@
 #include <unordered_map>
 
 namespace mlopen {
-    
-static std::unordered_map<std::string, int> FwdAlgoResolver {
-    {"mlopenConvolutionFwdAlgoGEMM", 0},
-	{"mlopenConvolutionFwdAlgoDirect", 1},
-	{"mlopenConvolutionFwdAlgoFFT", 2},
-	{"mlopenConvolutionFwdAlgoWinograd", 3},
-};
+ 
+inline int FwdAlgoResolver(const std::string& s) {
+    static std::unordered_map<std::string, int> data {
+        {"mlopenConvolutionFwdAlgoGEMM", 0},
+    	{"mlopenConvolutionFwdAlgoDirect", 1},
+    	{"mlopenConvolutionFwdAlgoFFT", 2},
+    	{"mlopenConvolutionFwdAlgoWinograd", 3},
+    };
+    return data.at(s);
+}
 
-static std::unordered_map<std::string, int> BwdDataAlgoResolver {
-    {"mlopenConvolutionBwdDataAlgoDirect", 0},
-    {"mlopenConvolutionBwdDataAlgoWinograd", 1},
-};
+inline int BwdDataAlgoResolver(const std::string& s) {
+    static std::unordered_map<std::string, int> data {
+        {"mlopenConvolutionBwdDataAlgoDirect", 0},
+        {"mlopenConvolutionBwdDataAlgoWinograd", 1},
+    };
+    return data.at(s);
+}
 
-static std::unordered_map<std::string, int> BwdWeightsAlgoResolver {
-    {"mlopenConvolutionBwdWeightsAlgoGEMM", 0},
-	{"mlopenConvolutionBwdWeightsAlgoDirect", 1},
-};
+inline int BwdWeightsAlgoResolver(const std::string& s) {
+    static std::unordered_map<std::string, int> data {
+        {"mlopenConvolutionBwdWeightsAlgoGEMM", 0},
+    	{"mlopenConvolutionBwdWeightsAlgoDirect", 1},
+    };
+    return data.at(s);
+}
 
 } // namespace mlopen
 

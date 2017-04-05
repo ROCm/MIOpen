@@ -32,7 +32,7 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
     float beta = 1.0;
 
     // bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
-    TinyGemmGeometry tgg;
+    TinyGemmGeometry tgg{};
     GemmGeometry gg;
     
     if (!isDataColMajor) {
@@ -85,7 +85,7 @@ GemmGeometry CreateGemmGeometryConvFwd(
     int ldc = N;
 
     // bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
-    TinyGemmGeometry tgg;
+    TinyGemmGeometry tgg{};
     GemmGeometry gg;
     
     if (!isDataColMajor) {
@@ -115,7 +115,7 @@ GemmGeometry CreateMLOpenGemmGeometry(
         bool isDataColMajor,
         float alpha, float beta)
 {
-    TinyGemmGeometry tgg;
+    TinyGemmGeometry tgg{};
     
     // Assuming we are using tinygemm as only col major
     // Therefore, if the user provides data in col. major

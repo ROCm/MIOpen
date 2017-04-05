@@ -1,3 +1,4 @@
+#include <cmath>
 #include <mlopen/pooling.hpp>
 #include <mlopen/logger.hpp>
 #include <cassert>
@@ -76,8 +77,8 @@ std::tuple<int, int, int, int> PoolingDescriptor::GetForwardOutputDim(
 
 	return std::make_tuple(
             input_n, input_c, 
-        	std::max(1, static_cast<int>(ceil((input_h - window_h + 2*pad_h) / static_cast<float>(u)) + 1)),
-        	std::max(1, static_cast<int>(ceil((input_w - window_w + 2*pad_w) / static_cast<float>(v)) + 1))
+        	std::max(1, static_cast<int>(std::ceil((input_h - window_h + 2*pad_h) / static_cast<float>(u)) + 1)),
+        	std::max(1, static_cast<int>(std::ceil((input_w - window_w + 2*pad_w) / static_cast<float>(v)) + 1))
     );
 
 }
