@@ -7,8 +7,8 @@ namespace mlopen {
 
 void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 {
-    hipEvent_t start = nullptr;
-    hipEvent_t stop = nullptr;
+    HipEventPtr start = nullptr;
+    HipEventPtr stop = nullptr;
     void *config[] = {
         HIP_LAUNCH_PARAM_BUFFER_POINTER, args,
         HIP_LAUNCH_PARAM_BUFFER_SIZE, &size,
@@ -16,10 +16,10 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
     };
     if (callback)
     {
-        hipEventCreate(&start);
-        hipEventCreate(&stop);
+        start = make_hip_event();
+        stop = make_hip_event();
 
-        hipEventRecord(start, nullptr);
+        hipEventRecord(start.get(), stream);
     }
 
     // std::cerr << "Launch kernel: " << name << std::endl;
@@ -28,9 +28,9 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 
     if (callback)
     {
-        hipEventRecord(stop, nullptr);
-        hipEventSynchronize(stop);
-        callback(start, stop);
+        hipEventRecord(stop.get(), stream);
+        hipEventSynchronize(stop.get());
+        callback(start.get(), stop.get());
     }
 }
 
