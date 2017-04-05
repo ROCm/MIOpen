@@ -2807,6 +2807,7 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 	int min_n_stacks = 1;
 
 	size_t localMemSize = profile_h.GetLocalMemorySize();
+	profile_h.EnableProfiling();
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -3221,6 +3222,8 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		mloSetConf(conf_val);
 
 	}
+
+	profile_h.EnableProfiling(false);
 
 	return(ret);
 }
