@@ -374,7 +374,7 @@ struct conv_driver : test_driver
             // miopen::ConvolutionDescriptor{ 1, 1, 1, 1 },
             // This configuration only works on opencl
             // miopen::ConvolutionDescriptor{ 1, 1, 2, 2 },
-            // miopen::ConvolutionDescriptor{ 2, 2, 1, 1 },
+            miopen::ConvolutionDescriptor{ 2, 2, 1, 1 },
             // This configuration only works on opencl
             // miopen::ConvolutionDescriptor{ 3, 3, 2, 2 }
         };
