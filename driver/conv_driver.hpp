@@ -736,7 +736,7 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 		dumpBufferToFile("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
 	}
 
-    SaveVerificationCash("bwd_weights", dwei_host);
+    SaveVerificationCash("bwd_wei", dwei_host);
 	return 0;
 }
 
@@ -796,7 +796,7 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 		dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
 	}
 
-    SaveVerificationCash("bwd_data", din_host);
+    SaveVerificationCash("bwd_dat", din_host);
 	return 0;
 }
 
@@ -830,7 +830,7 @@ int ConvDriver<T>::RunBackwardBiasCPU() {
         dumpBufferToFile("dump_bwd_db_cpu.bin", db_host.data(), db_host.size());
     }
 
-    SaveVerificationCash("bwd_baias", db_host);
+    SaveVerificationCash("bwd_bai", db_host);
     return 0;
 }
 
@@ -842,21 +842,41 @@ std::string ConvDriver<T>::GetVerificationCashFileName() {
     int pad_h, pad_w, u, v, sx, sy;
     miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &sx, &sy);
 
-    ss << pad_h
-        << "_" << pad_w
-        << "_" << u
-        << "_" << v
-        << "_" << sx
-        << "_" << sy
-        << "_" << inflags.GetValueInt("pad_val");
+    /*
+          std::to_string(static_cast<long long>(_n_inputs))
+		+ std::string("x") + std::to_string(static_cast<long long>(_in_height))
+		+ std::string("x") + std::to_string(static_cast<long long>(_in_width))
+		+ std::string("x") + std::to_string(static_cast<long long>(_kernel_size1))
+		+ std::string("x") + std::to_string(static_cast<long long>(_kernel_size0))
+		+ std::string("x") + std::to_string(static_cast<long long>(_n_outputs))
+		+ std::string("x") + std::to_string(static_cast<long long>(_out_height))
+		+ std::string("x") + std::to_string(static_cast<long long>(_out_width))
+		+ std::string("x") + std::to_string(static_cast<long long>(_batch_sz))
+		+ std::string("x") + _in_layout
+		+ std::string("x") + _in_data_type
+    */
 
-    for (const auto l : GetTensorLengths(inputTensor)) {
-        ss << "_" << l;
-    }
+    const auto inputDesc = GetTensorLengths(inputTensor);
+    const auto weiDesc = GetTensorLengths(weightTensor);
+    const auto outDesc = GetTensorLengths(outputTensor);
 
-    for (const auto l : GetTensorLengths(weightTensor)) {
-        ss << "_" << l;
-    }
+    ss  <<        inputDesc[1] //_n_inputs
+        << "x" << inputDesc[2] //_in_height
+        << "x" << inputDesc[3] //_in_width
+        << "x" << weiDesc[2]   //_kernel_size1
+        << "x" << weiDesc[3]   //_kernel_size0
+        << "x" << weiDesc[0]   //_n_outputs
+        << "x" << outDesc[2]   //_out_height
+        << "x" << outDesc[3]   //_out_width
+        << "x" << inputDesc[0] //_batch_sz
+        << "_" << weiDesc[1]
+        << "x" << pad_h
+        << "x" << pad_w
+        << "x" << u
+        << "x" << v
+        << "x" << sx
+        << "x" << sy
+        << "x" << inflags.GetValueInt("pad_val");
 
     return ss.str();
 }
@@ -913,7 +933,7 @@ template<typename T>
 int ConvDriver<T>::VerifyBackward() {
 	const double tolerance = 1e-6;
 
-    if (!ReadVerificationCash("bwd_data", inputTensor, din_host.data())) {
+    if (!ReadVerificationCash("bwd_dat", inputTensor, din_host.data())) {
         RunBackwardDataCPU();
     }
 
@@ -928,7 +948,7 @@ int ConvDriver<T>::VerifyBackward() {
 		printf("Backward Convolution Data Verifies on CPU and GPU\n");
 	}
 
-    if (!ReadVerificationCash("bwd_weights", weightTensor, dwei_host.data())) {
+    if (!ReadVerificationCash("bwd_wei", weightTensor, dwei_host.data())) {
         RunBackwardWeightsCPU();
     }
 
@@ -943,7 +963,7 @@ int ConvDriver<T>::VerifyBackward() {
 	}
 
     if (inflags.GetValueInt("bias") != 0){
-        if (!ReadVerificationCash("bwd_baias", biasTensor, db_host.data())) {
+        if (!ReadVerificationCash("bwd_bai", biasTensor, db_host.data())) {
             RunBackwardBiasCPU();
         }
 
