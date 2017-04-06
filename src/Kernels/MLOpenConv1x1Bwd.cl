@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 AMD Inc.
+ * Copyright (c) 2017 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -30,7 +30,7 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
-#define _LEN_OF_TYPE            MLO_READ_UNIT
+#define DBG_OUT_OF_RNGE 0
 
 __attribute__((always_inline))
 int iDiv(int v, int d)
@@ -334,58 +334,61 @@ __kernel void MLOpenConv1x1(
 
 	int out_off1 = out_off;
 	for (int ib = 0; ib < MLO_N_LCL_BATCHS
-#if MLO_BATCH_ALIGNED == 0
-		&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
-#endif
 		; ++ib, out_off1 += MLO_OUT_BATCH_STRIDE)
 	{
 
 
-
-
-		int out_off2 = out_off1;
-		for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS
-#if MLO_OUTPUTS_ALIGNED == 0
-			&& out_block + olc < MLO_N_OUTPUTS
+#if MLO_BATCH_ALIGNED == 0
+		if (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
 #endif
-			; ++olc, out_off2 += MLO_OUT_CHANNEL_STRIDE)
 		{
+			int out_off2 = out_off1;
+			for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS
+				; ++olc, out_off2 += MLO_OUT_CHANNEL_STRIDE)
+			{
 
-			_FLOAT  bias_val = 0;
+
+#if MLO_OUTPUTS_ALIGNED == 0
+				if (out_block + olc < MLO_N_OUTPUTS)
+
+#endif
+				{
+					_FLOAT  bias_val = 0;
 #if MLO_CONV_BIAS
-			bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
+					bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0
 
 			// if the last one
-			if (pix_id == MLO_MAP_SZ4 - 1)
-			{
-				for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
-				{
-					out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+					if (pix_id == MLO_MAP_SZ4 - 1)
+					{
+						for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
+						{
+							out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
 #if MLO_CONV_BIAS
-						+ bias_val
+							+ bias_val
 #endif
-						;
+							;
 
-				}
+						}
 
-			}
-			else
+					}
+					else
 #endif
-			{
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
-				{
+					{
+						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						{
 
-					out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+							out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
 #if MLO_CONV_BIAS
-						+ bias_val
+							+ bias_val
 #endif
-						;
+							;
+						}
+					}
 				}
 			}
 		}
-
 	}
 
 

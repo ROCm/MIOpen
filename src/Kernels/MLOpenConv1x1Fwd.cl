@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 AMD Inc.
+ * Copyright (c) 2017 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -198,9 +198,6 @@ __kernel void MLOpenConv1x1(
 		// over all local batchs
 		int in_off1 = in_off;
 		for (int ib = 0; ib < MLO_N_LCL_BATCHS
-#if MLO_BATCH_ALIGNED == 0
-			&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
-#endif
 			; ++ib, in_off1 += MLO_IN_BATCH_STRIDE)
 		{
 			int in_off2 = in_off1;
@@ -212,7 +209,11 @@ __kernel void MLOpenConv1x1(
 					in_stage[ib][ilc][i] = 0;
 				}
 
-				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
+				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS
+#if MLO_BATCH_ALIGNED == 0
+					&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+#endif
+				)
 				{
 #if MLO_C1x1_PIXLEFT > 0
 					// if the last one
@@ -392,54 +393,57 @@ __kernel void MLOpenConv1x1(
 
 	int out_off1 = out_off;
 	for (int ib = 0; ib < MLO_N_LCL_BATCHS
-#if MLO_BATCH_ALIGNED == 0
-		&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
-#endif
 		; ++ib, out_off1 += MLO_OUT_BATCH_STRIDE)
 	{
 
 		int out_off2 = out_off1;
 		for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS
-#if MLO_OUTPUTS_ALIGNED == 0
-			&& out_block + olc < MLO_N_OUTPUTS
-#endif
 			; ++olc, out_off2 += MLO_OUT_CHANNEL_STRIDE)
 		{
 
-			_FLOAT  bias_val = 0;
+		    if ( true
+#if MLO_BATCH_ALIGNED == 0
+			&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+#endif
+#if MLO_OUTPUTS_ALIGNED == 0
+			&& (out_block + olc < MLO_N_OUTPUTS)
+#endif
+			)
+			{
+				_FLOAT  bias_val = 0;
 #if MLO_CONV_BIAS
-			bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
+				bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0
 
 			// if the last one
-			if (pix_id == MLO_MAP_SZ4 - 1)
-			{
-				for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
+				if (pix_id == MLO_MAP_SZ4 - 1)
 				{
-					out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+					for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
+					{
+						out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+#if MLO_CONV_BIAS
+							+ bias_val
+#endif
+						;
+
+					}
+
+				}
+				else
+#endif
+				{
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+
+						out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
 #if MLO_CONV_BIAS
 						+ bias_val
 #endif
 						;
-
-				}
-
-			}
-			else
-#endif
-			{
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
-				{
-
-					out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
-#if MLO_CONV_BIAS
-						+ bias_val
-#endif
-						;
+					}
 				}
 			}
-
 		}
 
 	}
