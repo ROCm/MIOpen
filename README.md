@@ -16,20 +16,6 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 
 Please find the install instructions on the above dependencies on their respective repositories.
 
-## Using docker
-
-A dockerfile is provided which installs all the required prerequisites. To build the docker file run:
-
-```
-docker build -t miopen .
-```
-
-Then to run the docker image:
-
-```
-docker run --device='/dev/kfd' -v=`pwd`:/data -w /data miopen
-```
-
 ## Configure with cmake
 
 First create a build directory:
