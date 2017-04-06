@@ -94,14 +94,15 @@ struct KernelArgs
     KernelArgs(Ts... xs)
     : pack(xs...)
     {
-#ifdef HIP_OC_FINALIZER
         for(int i=0;i<6;i++) hidden[i] = 0;
-#endif
     }
 #ifdef HIP_OC_FINALIZER
     uint64_t hidden[6];
 #endif
     KernelArgsPack<Ts...> pack;
+#ifndef HIP_OC_FINALIZER
+    uint64_t hidden[6];
+#endif
 };
 
 struct HIPOCKernelInvoke
