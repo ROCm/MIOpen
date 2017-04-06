@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <miopen.h>
+#include <sstream>
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "conv_verify.hpp"
@@ -141,6 +142,10 @@ class ConvDriver : public Driver
     std::vector<T> db_host;
 
 	miopenConvolutionDescriptor_t convDesc;
+
+    std::string GetVerificationCashFileName();
+    bool ReadVerificationCash(std::string file_name, miopenTensorDescriptor_t& tensorDesc, T* data);
+    void SaveVerificationCash(std::string file_name, std::vector<T>& data);
 };
 
 template<typename T>
@@ -190,6 +195,7 @@ int ConvDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
+    inflags.AddInputFlag("fast_verify", 'f', "", "Path to verification results cash (Default=)", "string");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
 	inflags.AddInputFlag("wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 	inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
@@ -289,7 +295,9 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 
     std::string inFileName = inflags.GetValueStr("in_data");
     std::string weiFileName = inflags.GetValueStr("weights");
-
+    
+    srand(0);
+    
     bool dataRead = false;
     if(!inFileName.empty()) {
         dataRead = readBufferFromFile(in.data(), in_sz, inFileName.c_str());
@@ -517,6 +525,8 @@ int ConvDriver<T>::RunForwardCPU() {
     if(inflags.GetValueInt("dump_output")) {
         dumpBufferToFile("dump_fwd_out_cpu.bin", outhost.data(), outhost.size());
     }
+
+    SaveVerificationCash("fwd_out", outhost);
 	return 0;
 }
 
@@ -726,6 +736,7 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 		dumpBufferToFile("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
 	}
 
+    SaveVerificationCash("bwd_weights", dwei_host);
 	return 0;
 }
 
@@ -784,6 +795,8 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 	if (inflags.GetValueInt("dump_output")) {
 		dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
 	}
+
+    SaveVerificationCash("bwd_data", din_host);
 	return 0;
 }
 
@@ -816,13 +829,71 @@ int ConvDriver<T>::RunBackwardBiasCPU() {
     if (inflags.GetValueInt("dump_output")) {
         dumpBufferToFile("dump_bwd_db_cpu.bin", db_host.data(), db_host.size());
     }
+
+    SaveVerificationCash("bwd_baias", db_host);
     return 0;
+}
+
+template<typename T>
+std::string ConvDriver<T>::GetVerificationCashFileName() {
+    std::ostringstream ss;
+
+    miopenConvolutionMode_t mode;
+    int pad_h, pad_w, u, v, sx, sy;
+    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &sx, &sy);
+
+    ss << pad_h
+        << "_" << pad_w
+        << "_" << u
+        << "_" << v
+        << "_" << sx
+        << "_" << sy
+        << "_" << inflags.GetValueInt("pad_val");
+
+    for (const auto l : GetTensorLengths(inputTensor)) {
+        ss << "_" << l;
+    }
+
+    for (const auto l : GetTensorLengths(weightTensor)) {
+        ss << "_" << l;
+    }
+
+    return ss.str();
+}
+
+template<typename T>
+bool ConvDriver<T>::ReadVerificationCash(std::string file_name, miopenTensorDescriptor_t& tensorDesc, T* data)
+{
+    const auto verification_cash_path = inflags.GetValueStr("fast_verify");
+
+    if (!verification_cash_path.empty()) {
+        const auto file_path = verification_cash_path + "/" + file_name + "_" + GetVerificationCashFileName();
+        if (std::ifstream(file_path).good()) {
+            if (readBufferFromFile(data, GetTensorSize(tensorDesc), file_path.c_str())) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+template<typename T>
+void ConvDriver<T>::SaveVerificationCash(std::string file_name, std::vector<T>& data)
+{
+    const auto verification_cash_path = inflags.GetValueStr("fast_verify");
+    if (!verification_cash_path.empty()) {
+        const auto file_path = verification_cash_path + "/" + file_name + "_" + GetVerificationCashFileName();
+        dumpBufferToFile(file_path.c_str(), data.data(), data.size());
+    }
 }
 
 template<typename T>
 int ConvDriver<T>::VerifyForward() {
 
-	RunForwardCPU();
+    if (!ReadVerificationCash("fwd_out", outputTensor, outhost.data())) {
+        RunForwardCPU();
+    }
 
 	auto error = miopen::rms_range(outhost, out);
 	const double tolerance = 1e-6;
@@ -842,8 +913,9 @@ template<typename T>
 int ConvDriver<T>::VerifyBackward() {
 	const double tolerance = 1e-6;
 
-	RunBackwardDataCPU();
-
+    if (!ReadVerificationCash("bwd_data", inputTensor, din_host.data())) {
+        RunBackwardDataCPU();
+    }
 
 	auto error_data = miopen::rms_range (din_host, din);
 
@@ -856,8 +928,9 @@ int ConvDriver<T>::VerifyBackward() {
 		printf("Backward Convolution Data Verifies on CPU and GPU\n");
 	}
 
-
-	RunBackwardWeightsCPU();
+    if (!ReadVerificationCash("bwd_weights", weightTensor, dwei_host.data())) {
+        RunBackwardWeightsCPU();
+    }
 
 	auto error_weights = miopen::rms_range(dwei_host, dwei);
 	if (!(error_weights < tolerance))
@@ -870,7 +943,9 @@ int ConvDriver<T>::VerifyBackward() {
 	}
 
     if (inflags.GetValueInt("bias") != 0){
-        RunBackwardBiasCPU();
+        if (!ReadVerificationCash("bwd_baias", biasTensor, db_host.data())) {
+            RunBackwardBiasCPU();
+        }
 
         auto error_bias = miopen::rms_range(db_host, db);
         if (!(error_bias < tolerance))
