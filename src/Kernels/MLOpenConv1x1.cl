@@ -29,6 +29,10 @@
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
+
+
+#define DBG_OUT_OF_RNGE 0
+
 // calculating the size of the area for weights prefetch
 
 #if MLO_N_MAPS_PERGROUP > 1
@@ -243,6 +247,12 @@ __kernel void MLOpenConv1x1(
 						for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 						{
 							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
+#if DBG_OUT_OF_RNGE
+							if (in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
+#endif
 						}
 					}
 					else
@@ -252,6 +262,12 @@ __kernel void MLOpenConv1x1(
 						for (int i = 0; i < MLO_READ_UNIT; ++i)
 						{
 							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
+#if DBG_OUT_OF_RNGE
+							if (in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
+#endif
 						}
 					}
 				}
@@ -378,6 +394,13 @@ __kernel void MLOpenConv1x1(
 #endif
 								;
 
+#if DBG_OUT_OF_RNGE
+							if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:out-of-range\n");
+							}
+#endif
+
 						}
 
 					}
@@ -392,7 +415,15 @@ __kernel void MLOpenConv1x1(
 								+ bias_val
 #endif
 								;
+#if DBG_OUT_OF_RNGE
+							if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:out-of-range\n");
+							}
+#endif
+
 						}
+
 					}
 
 
@@ -446,6 +477,12 @@ __kernel void MLOpenConv1x1(
 							+ bias_val
 #endif
 						;
+#if DBG_OUT_OF_RNGE
+						if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
+						}
+#endif
 
 					}
 
@@ -461,6 +498,12 @@ __kernel void MLOpenConv1x1(
 						+ bias_val
 #endif
 						;
+#if DBG_OUT_OF_RNGE
+						if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
+						}
+#endif
 					}
 				}
 			}
