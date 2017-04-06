@@ -102,8 +102,7 @@ if( MLOPEN_BACKEND MATCHES "OpenCL" OR MLOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MLOpenPooling.cl
 		Kernels/MLOpenPoolingBwd.cl
 		Kernels/MLOpenConvDirUniC.cl		
-		Kernels/MLOpenConv1x1Fwd.cl
-		Kernels/MLOpenConv1x1Bwd.cl
+		Kernels/MLOpenConv1x1.cl
 		Kernels/MLOpenSoftmax.cl
 		Kernels/MLOpenConvD3x3.cl
 		Kernels/MLOpenUtilKernels.cl

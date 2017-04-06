@@ -1088,20 +1088,10 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	//	_kernel_file = "MLOpenConv1x1.cl";
-	//	_kernel_name = "MLOpenConv1x1";
 	// too much overhead for small maps and few inputs
 
-	if (!isForwardDirection()/* || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256)*/)
-	{
-		_kernel_file = "MLOpenConv1x1Bwd.cl";
-		_kernel_name = "MLOpenConv1x1";
-	}
-	else
-	{
-		_kernel_file = "MLOpenConv1x1Fwd.cl";
-		_kernel_name = "MLOpenConv1x1";
-	}
+	_kernel_file = "MLOpenConv1x1.cl";
+	_kernel_name = "MLOpenConv1x1";
 	// see above comment
 	if (small_map)
 	{
