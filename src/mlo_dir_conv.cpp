@@ -2809,6 +2809,9 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 	int min_n_in_data_tiles = 3;
 	int min_n_stacks = 1;
 
+    // enable profiling for the handle for benchmarking
+    profile_h.EnableProfiling();
+
 	size_t localMemSize = profile_h.GetLocalMemorySize();
 
 	_hw_wave_sz = 64;
