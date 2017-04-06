@@ -1,6 +1,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/convolution_fft.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/env.hpp>
 
 namespace miopen {
 
@@ -9,6 +10,9 @@ namespace miopen {
 		const TensorDescriptor& xDesc,
 		const TensorDescriptor& yDesc) const
 {
+	// return 0 from this function to disable running any FFT based convolutions
+	if(miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_CONV_FFT"))
+		return 0;
 
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(xDesc.GetLengths());
