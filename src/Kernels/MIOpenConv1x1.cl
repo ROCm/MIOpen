@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 AMD Inc.
+ * Copyright (c) 2017 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -25,11 +25,14 @@
 #define _FLOAT2					float2
 #define _FLOAT4					float4
 #define _FLOAT8					float8
-#define _LEN_OF_TYPE          MLO_READ_UNIT
 
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
+
+
+#define DBG_OUT_OF_RNGE 0
+
 // calculating the size of the area for weights prefetch
 
 #if MLO_N_MAPS_PERGROUP > 1
@@ -60,8 +63,8 @@
 #define MLO_EXCHNGE_SZ4 (MLO_MAP_SZ4*MLO_EXCHANGE_STEP * MLO_N_MAPS_PERGROUP)
 
 
-#if MLO_N_MAPS_PERGROUP > 1 && ((MLO_EXCHNGE_SZ4 * _LEN_OF_TYPE) > MLO_WEIGHTS_LCL_SZ)
-#define MLO_LCL_MEM_SZ (MLO_EXCHNGE_SZ4 * _LEN_OF_TYPE)
+#if MLO_N_MAPS_PERGROUP > 1 && ((MLO_EXCHNGE_SZ4 * MLO_READ_UNIT) > MLO_WEIGHTS_LCL_SZ)
+#define MLO_LCL_MEM_SZ (MLO_EXCHNGE_SZ4 * MLO_READ_UNIT)
 #else
 #define MLO_LCL_MEM_SZ MLO_WEIGHTS_LCL_SZ
 #endif
@@ -144,7 +147,13 @@ __kernel void MIOpenConv1x1(
 		+ in_map_off_id * MLO_IN_CHANNEL_STRIDE
 				+ pix_id * MLO_READ_UNIT;
 
-	int wei_off = out_grp_block * MLO_N_LCL_OUT_MAPS * MLO_WEI_BSTRIDE;
+	int wei_off = out_grp_block * MLO_N_LCL_OUT_MAPS *
+#if MLO_DIR_FORWARD==1
+		MLO_WEI_BSTRIDE
+#else
+		MLO_WEI_CHANNEL_STRIDE
+#endif
+		;
 	for (int j = 0; j < MLO_N_LCL_BATCHS; ++j)
 	{
 		for (int i = 0; i < MLO_N_LCL_OUT_MAPS; ++i)
@@ -161,10 +170,12 @@ __kernel void MIOpenConv1x1(
 		)
 	{
 
-		barrier(CLK_LOCAL_MEM_FENCE);
 		// read array of weights
 		if (wc - c == 0)
 		{
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
 			for (int w = lcl_id0; w < MLO_WEIGHTS_LCL_SZ ; w += MLO_GRP_SZ0)
 			{
 
@@ -173,15 +184,26 @@ __kernel void MIOpenConv1x1(
 				int oi = iDiv(w, MLO_WEIGHTS_ROW);
 				int lwi = iMod(w, oi, MLO_WEIGHTS_ROW);
 #else
-				int oi = w / MLO_WEIGHTS_ROW;
-				int lwi = w & (MLO_WEIGHTS_ROW - 1);
+				int oi = (int)((uint)w / MLO_WEIGHTS_ROW);
+				int lwi = (int)( (uint)w & (MLO_WEIGHTS_ROW - 1));
 
 #endif
 
-				int wi = mad24(wc, (int)(MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP*MLO_WEI_CHANNEL_STRIDE),lwi);
+				int wi = (wc * (MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP) + lwi)*
+#if MLO_DIR_FORWARD==1
+					MLO_WEI_CHANNEL_STRIDE;
+#else
+					MLO_WEI_BSTRIDE;
+#endif
 
-				// out of range check
-				int wei_off_r = wei_off + mad24(oi, MLO_WEI_BSTRIDE, wi);
+					// out of range check
+				int wei_off_r = wei_off + wi + oi *
+#if MLO_DIR_FORWARD==1
+					MLO_WEI_BSTRIDE;
+#else
+					MLO_WEI_CHANNEL_STRIDE;
+#endif
+
 				wei_off_r = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_off_r : 0;
 				_FLOAT wei_val = wei_ptr[wei_off_r];
 				wei_val = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_val : 0;
@@ -189,18 +211,17 @@ __kernel void MIOpenConv1x1(
 
 			}
 			wc += MLO_WEIGHTS_PER_LOOP;
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
 		}
 
-		barrier(CLK_LOCAL_MEM_FENCE);
 
 		int wei_indx = c - wc + MLO_WEIGHTS_PER_LOOP;
 		// read data
 		// over all local batchs
 		int in_off1 = in_off;
 		for (int ib = 0; ib < MLO_N_LCL_BATCHS
-#if MLO_BATCH_ALIGNED == 0
-			&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
-#endif
 			; ++ib, in_off1 += MLO_IN_BATCH_STRIDE)
 		{
 			int in_off2 = in_off1;
@@ -212,7 +233,11 @@ __kernel void MIOpenConv1x1(
 					in_stage[ib][ilc][i] = 0;
 				}
 
-				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
+				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS
+#if MLO_BATCH_ALIGNED == 0
+					&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+#endif
+				)
 				{
 #if MLO_C1x1_PIXLEFT > 0
 					// if the last one
@@ -222,6 +247,12 @@ __kernel void MIOpenConv1x1(
 						for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 						{
 							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
+#if DBG_OUT_OF_RNGE
+							if (in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
+#endif
 						}
 					}
 					else
@@ -231,6 +262,12 @@ __kernel void MIOpenConv1x1(
 						for (int i = 0; i < MLO_READ_UNIT; ++i)
 						{
 							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
+#if DBG_OUT_OF_RNGE
+							if (in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
+#endif
 						}
 					}
 				}
@@ -357,6 +394,13 @@ __kernel void MIOpenConv1x1(
 #endif
 								;
 
+#if DBG_OUT_OF_RNGE
+							if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:out-of-range\n");
+							}
+#endif
+
 						}
 
 					}
@@ -371,7 +415,15 @@ __kernel void MIOpenConv1x1(
 								+ bias_val
 #endif
 								;
+#if DBG_OUT_OF_RNGE
+							if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:out-of-range\n");
+							}
+#endif
+
 						}
+
 					}
 
 
@@ -392,54 +444,69 @@ __kernel void MIOpenConv1x1(
 
 	int out_off1 = out_off;
 	for (int ib = 0; ib < MLO_N_LCL_BATCHS
-#if MLO_BATCH_ALIGNED == 0
-		&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
-#endif
 		; ++ib, out_off1 += MLO_OUT_BATCH_STRIDE)
 	{
 
 		int out_off2 = out_off1;
 		for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS
-#if MLO_OUTPUTS_ALIGNED == 0
-			&& out_block + olc < MLO_N_OUTPUTS
-#endif
 			; ++olc, out_off2 += MLO_OUT_CHANNEL_STRIDE)
 		{
 
-			_FLOAT  bias_val = 0;
+		    if ( true
+#if MLO_BATCH_ALIGNED == 0
+			&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+#endif
+#if MLO_OUTPUTS_ALIGNED == 0
+			&& (out_block + olc < MLO_N_OUTPUTS)
+#endif
+			)
+			{
+				_FLOAT  bias_val = 0;
 #if MLO_CONV_BIAS
-			bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
+				bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0
 
 			// if the last one
-			if (pix_id == MLO_MAP_SZ4 - 1)
-			{
-				for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
+				if (pix_id == MLO_MAP_SZ4 - 1)
 				{
-					out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+					for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
+					{
+						out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+#if MLO_CONV_BIAS
+							+ bias_val
+#endif
+						;
+#if DBG_OUT_OF_RNGE
+						if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
+						}
+#endif
+
+					}
+
+				}
+				else
+#endif
+				{
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+
+						out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
 #if MLO_CONV_BIAS
 						+ bias_val
 #endif
 						;
-
-				}
-
-			}
-			else
+#if DBG_OUT_OF_RNGE
+						if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
+						}
 #endif
-			{
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
-				{
-
-					out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
-#if MLO_CONV_BIAS
-						+ bias_val
-#endif
-						;
+					}
 				}
 			}
-
 		}
 
 	}
