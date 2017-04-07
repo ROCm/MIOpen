@@ -2951,8 +2951,8 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		{
 			grp_tl_ln[0] = 64;
 			grp_tl_ln[1] = 128;
-			grp_tl_ln[2] = 192;
-			grp_tl_ln[3] = 256;
+			grp_tl_ln[2] = 256;
+			grp_tl_ln[3] = 512;
 			n_grp_tiles1 = 1;
 			n_grp_tiles0 = 4;
 
