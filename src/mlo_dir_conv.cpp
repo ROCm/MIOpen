@@ -1090,8 +1090,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_g_wk.push_back(gbl_wk2);
 
 
-	_kernel_file = "MLOpenConv1x1.cl";
-	_kernel_name = "MLOpenConv1x1";
+	_kernel_file = "MIOpenConv1x1.cl";
+	_kernel_name = "MIOpenConv1x1";
 
 	// see above comment
 	if (small_map)
