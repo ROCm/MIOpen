@@ -293,10 +293,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 	// FFT algo
 	float time_fft = 0;
 	std::vector< KernelInvoke > kernels_fft;
-	if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, kernels_fft) == 0)
+	size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+	if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, workspace_fft, kernels_fft) == 0)
 	{
 		(void)kernels_fft; // not used now, but needed as fft coverage widens
-		size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
 		if(workSpace != nullptr && workSpaceSize >= workspace_fft)
 		{
 			time_fft = ExecuteFwdFFTKernel(handle, xDesc, x, wDesc, w, yDesc, tmp_y.get(), workSpace, workSpaceSize, true);
