@@ -30,7 +30,44 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+
 #define DBG_OUT_OF_RNGE 0
+
+// calculating the size of the area for weights prefetch
+
+#if MLO_N_MAPS_PERGROUP > 1
+#define MLO_WEIGHTS_PER_LOOP_MAX 8
+#else
+#define MLO_WEIGHTS_PER_LOOP_MAX 16
+#endif
+#if ((MLO_N_MAPS_PERGROUP*MLO_N_LCL_IN_MAPS) < MLO_N_INPUTS)
+#define MLO_LCL_IN_ROW (MLO_N_MAPS_PERGROUP*MLO_N_LCL_IN_MAPS)
+#else
+#define MLO_LCL_IN_ROW (MLO_N_INPUTS)
+#endif
+
+#define MLO_WEIGHTS_PER_LOOP_TMP ((MLO_N_INPUTS + MLO_LCL_IN_ROW - 1)/MLO_LCL_IN_ROW)
+
+#if (MLO_WEIGHTS_PER_LOOP_TMP < MLO_WEIGHTS_PER_LOOP_MAX)
+#define MLO_WEIGHTS_PER_LOOP (MLO_WEIGHTS_PER_LOOP_TMP)
+#else
+#define MLO_WEIGHTS_PER_LOOP (MLO_WEIGHTS_PER_LOOP_MAX)
+#endif
+#define MLO_LCL_WEIGHTS_ROW (MLO_WEIGHTS_PER_LOOP * MLO_LCL_IN_ROW)
+#define MLO_WEIGHTS_ROW (MLO_LCL_WEIGHTS_ROW* MLO_WEI_CHANNEL_STRIDE)
+
+// size of the area for weights prefetch
+#define MLO_WEIGHTS_LCL_SZ (MLO_WEIGHTS_ROW * MLO_N_LCL_OUT_MAPS)
+
+// size of area for exchanging partial sums
+#define MLO_EXCHNGE_SZ4 (MLO_MAP_SZ4*MLO_EXCHANGE_STEP * MLO_N_MAPS_PERGROUP)
+
+
+#if MLO_N_MAPS_PERGROUP > 1 && ((MLO_EXCHNGE_SZ4 * MLO_READ_UNIT) > MLO_WEIGHTS_LCL_SZ)
+#define MLO_LCL_MEM_SZ (MLO_EXCHNGE_SZ4 * MLO_READ_UNIT)
+#else
+#define MLO_LCL_MEM_SZ MLO_WEIGHTS_LCL_SZ
+#endif
 
 __attribute__((always_inline))
 int iDiv(int v, int d)
@@ -48,11 +85,30 @@ int iMod(int v, int u, int d)
 
 /*
 Layout:
+assuming NCHW data layout.
 
+Data:
+data has been fetch by 4 floats sequentially.
+MLO_MAP_SZ4 = (map_width*map_height + 3)/4.
+in case of total size not a multiple of 4 the the last pixel has a special treatment.
+There are 2 cases:
+MLO_N_MAPS_PERGROUP == 1
+and
+MLO_N_MAPS_PERGROUP > 1, when MLO_MAP_SZ4 <= GPROUP_SIZE/2, in other words when more than 1 map can be held by a group.
+Case MLO_N_MAPS_PERGROUP == 1:
+Data, by 4 floats, may come from MLO_N_LCL_IN_MAPS sequential input maps from MLO_N_LCL_BATCHS neighboring batches.
+Weigts:
+on each MLO_WEIGHTS_PER_LOOP input loop set of weight are prefetched for another MLO_WEIGHTS_PER_LOOP loops.
+Each input map contributes to partial sums of MLO_N_LCL_OUT_MAPS output maps.
+Case MLO_N_MAPS_PERGROUP > 1:
+Similar to a previous case.
+The difference is that several input sequential input maps are kept by group.
+Each taking part in the calculation of partial sums of the same MLO_N_LCL_OUT_MAPS output maps.
+After completion of the main MLO_IN_LOOP loop partial sums have been summed up in parallel.
 
 */
 
-__kernel void MIOpenConv1x1(
+__kernel void MLOpenConv1x1(
        const __global _FLOAT * __restrict in_ptr,
        const __global _FLOAT * __restrict wei_ptr,
 #if MLO_CONV_BIAS
@@ -67,8 +123,10 @@ __kernel void MIOpenConv1x1(
 	__private _FLOAT in_stage[MLO_N_LCL_BATCHS][MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
 	__private _FLOAT wei_stage;
 	__private _FLOAT out_tiles[MLO_N_LCL_BATCHS][MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
+	__local _FLOAT lcl_wei_stage[MLO_LCL_MEM_SZ];
+
 #if MLO_N_MAPS_PERGROUP > 1
-	__local  _FLOAT lcl_out_stage[MLO_MAP_SZ4*MLO_EXCHANGE_STEP * MLO_N_MAPS_PERGROUP * MLO_READ_UNIT];
+	__local _FLOAT * lcl_out_stage = lcl_wei_stage;
 
 #endif
 
@@ -107,38 +165,79 @@ __kernel void MIOpenConv1x1(
 		}
 	}
 // over all input maps; with step == MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP; MLO_IN_LOOP
-	for (int c = 0; c < MLO_IN_LOOP; ++c,
-		in_off += MLO_IN_CHANNEL_STRIDE*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP,
-		wei_off += MLO_N_LCL_IN_MAPS* MLO_N_MAPS_PERGROUP *
-#if MLO_DIR_FORWARD==1
-		MLO_WEI_CHANNEL_STRIDE
-#else
-		MLO_WEI_BSTRIDE
-#endif
+	for (int c = 0, wc = 0; c < MLO_IN_LOOP; ++c,
+		in_off += MLO_IN_CHANNEL_STRIDE*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP
 		)
 	{
+
+		// read array of weights
+		if (wc - c == 0)
+		{
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			for (int w = lcl_id0; w < MLO_WEIGHTS_LCL_SZ ; w += MLO_GRP_SZ0)
+			{
+
+#if (MLO_WEIGHTS_ROW) & (MLO_WEIGHTS_ROW - 1)
+
+				int oi = iDiv(w, MLO_WEIGHTS_ROW);
+				int lwi = iMod(w, oi, MLO_WEIGHTS_ROW);
+#else
+				int oi = (int)((uint)w / MLO_WEIGHTS_ROW);
+				int lwi = (int)( (uint)w & (MLO_WEIGHTS_ROW - 1));
+
+#endif
+
+				int wi = (wc * (MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP) + lwi)*
+#if MLO_DIR_FORWARD==1
+					MLO_WEI_CHANNEL_STRIDE;
+#else
+					MLO_WEI_BSTRIDE;
+#endif
+
+					// out of range check
+				int wei_off_r = wei_off + wi + oi *
+#if MLO_DIR_FORWARD==1
+					MLO_WEI_BSTRIDE;
+#else
+					MLO_WEI_CHANNEL_STRIDE;
+#endif
+
+				wei_off_r = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_off_r : 0;
+				_FLOAT wei_val = wei_ptr[wei_off_r];
+				wei_val = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_val : 0;
+				lcl_wei_stage[mad24(oi, MLO_WEIGHTS_ROW, lwi)] = wei_val;
+
+			}
+			wc += MLO_WEIGHTS_PER_LOOP;
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+		}
+
+
+		int wei_indx = c - wc + MLO_WEIGHTS_PER_LOOP;
 		// read data
 		// over all local batchs
 		int in_off1 = in_off;
 		for (int ib = 0; ib < MLO_N_LCL_BATCHS
-#if MLO_BATCH_ALIGNED == 0
-			&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
-#endif
 			; ++ib, in_off1 += MLO_IN_BATCH_STRIDE)
 		{
 			int in_off2 = in_off1;
 			// lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP
 			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, in_off2 += MLO_IN_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP)
 			{
-				// read data
-
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					in_stage[ib][ilc][i] = 0;
 				}
 
-
-				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS)
+				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS
+#if MLO_BATCH_ALIGNED == 0
+					&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+#endif
+				)
 				{
 #if MLO_C1x1_PIXLEFT > 0
 					// if the last one
@@ -148,6 +247,12 @@ __kernel void MIOpenConv1x1(
 						for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 						{
 							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
+#if DBG_OUT_OF_RNGE
+							if (in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
+#endif
 						}
 					}
 					else
@@ -157,46 +262,29 @@ __kernel void MIOpenConv1x1(
 						for (int i = 0; i < MLO_READ_UNIT; ++i)
 						{
 							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
+#if DBG_OUT_OF_RNGE
+							if (in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:in-of-range\n");
+							}
+#endif
 						}
 					}
 				}
-
-
 			}
 		}
 
-		// convolve
-		int wei_off1 = wei_off + in_map_off_id *
-#if MLO_DIR_FORWARD==1
-			MLO_WEI_CHANNEL_STRIDE
-#else
-			MLO_WEI_BSTRIDE
-#endif
-			;
-		for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS; ++olc, wei_off1 += 
-#if MLO_DIR_FORWARD==1
-			MLO_WEI_BSTRIDE
-#else
-			MLO_WEI_CHANNEL_STRIDE
-#endif
-			)
-		{
-			int wei_off2 = wei_off1;
-			// lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP, weights are mapped accordingly
 
-			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, wei_off2 += MLO_N_MAPS_PERGROUP * 
-#if MLO_DIR_FORWARD==1
-				MLO_WEI_CHANNEL_STRIDE
-#else
-				MLO_WEI_BSTRIDE
-#endif
-				)
+		// convolve
+		for (int olc = 0, lcl_wei_off = wei_indx*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP*MLO_WEI_CHANNEL_STRIDE; olc < MLO_N_LCL_OUT_MAPS; ++olc, lcl_wei_off += MLO_WEIGHTS_ROW)
+		{
+			// lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP, weights are mapped accordingly
+			int lcl_wei_off1 = lcl_wei_off;
+			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, lcl_wei_off1 += MLO_N_MAPS_PERGROUP*MLO_WEI_CHANNEL_STRIDE)
 			{
 				// read weights
-				int wei_off_r = (wei_off2 < MLO_N_INPUTS * MLO_N_OUTPUTS) ? wei_off2 : 0;
-
-				wei_stage = wei_ptr[wei_off_r];
-				wei_stage = (wei_off2 < MLO_N_INPUTS * MLO_N_OUTPUTS) ? wei_stage : 0;
+				int lcl_wei_off2 = lcl_wei_off1 + mul24(in_map_id, (int)MLO_WEI_CHANNEL_STRIDE);
+				wei_stage = lcl_wei_stage[lcl_wei_off2];
 				for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 				{
 					for (int i = 0; i < MLO_READ_UNIT; ++i)
@@ -210,6 +298,7 @@ __kernel void MIOpenConv1x1(
 
 	}
 
+// out of range check
 	if (in_map_id >= MLO_N_MAPS_PERGROUP || in_map_id*MLO_N_LCL_IN_MAPS >= MLO_N_INPUTS)
 	{
 		return;
@@ -220,7 +309,9 @@ __kernel void MIOpenConv1x1(
 		+ out_block *  MLO_OUT_CHANNEL_STRIDE
 		+ pix_id * MLO_READ_UNIT;
 
+// small groups
 #if MLO_N_MAPS_PERGROUP > 1
+
 	// calculate reduction over all partial sums
 	// MLO_N_LCL_OUT_MAPS is multiple of MLO_EXCHANGE_STEP
 	// write data into local memory
@@ -248,7 +339,7 @@ __kernel void MIOpenConv1x1(
 
 			// sum partial sum
 			// MLO_N_MAPS_PERGROUP >= MLO_EXCHANGE_STEP
-			// in_map_id now is an index of the output map
+			// in_map_id is an index of the output map now.
 			if (in_map_id < MLO_EXCHANGE_STEP)
 			{
 				_FLOAT sum[MLO_READ_UNIT];
@@ -256,6 +347,7 @@ __kernel void MIOpenConv1x1(
 				{
 					sum[i] = 0;
 				}
+
 				for (int s = 0; s < MLO_N_MAPS_PERGROUP; ++s)
 				{
 					int imp = in_map_id + s;
@@ -265,6 +357,7 @@ __kernel void MIOpenConv1x1(
 					{
 						sum[i] += lcl_out_stage[lcl_off + i];
 					}
+
 				}
 
 
@@ -301,6 +394,13 @@ __kernel void MIOpenConv1x1(
 #endif
 								;
 
+#if DBG_OUT_OF_RNGE
+							if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:out-of-range\n");
+							}
+#endif
+
 						}
 
 					}
@@ -315,8 +415,17 @@ __kernel void MIOpenConv1x1(
 								+ bias_val
 #endif
 								;
+#if DBG_OUT_OF_RNGE
+							if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+							{
+								printf("k:err:out-of-range\n");
+							}
+#endif
+
 						}
+
 					}
+
 
 				} //if (true
 
@@ -327,7 +436,8 @@ __kernel void MIOpenConv1x1(
 	} // 	for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 
 
-#else
+
+#else // #if MLO_N_MAPS_PERGROUP > 1
 
 
 
@@ -337,61 +447,71 @@ __kernel void MIOpenConv1x1(
 		; ++ib, out_off1 += MLO_OUT_BATCH_STRIDE)
 	{
 
-
-#if MLO_BATCH_ALIGNED == 0
-		if (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
-#endif
+		int out_off2 = out_off1;
+		for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS
+			; ++olc, out_off2 += MLO_OUT_CHANNEL_STRIDE)
 		{
-			int out_off2 = out_off1;
-			for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS
-				; ++olc, out_off2 += MLO_OUT_CHANNEL_STRIDE)
-			{
 
-
-#if MLO_OUTPUTS_ALIGNED == 0
-				if (out_block + olc < MLO_N_OUTPUTS)
-
+		    if ( true
+#if MLO_BATCH_ALIGNED == 0
+			&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
 #endif
-				{
-					_FLOAT  bias_val = 0;
+#if MLO_OUTPUTS_ALIGNED == 0
+			&& (out_block + olc < MLO_N_OUTPUTS)
+#endif
+			)
+			{
+				_FLOAT  bias_val = 0;
 #if MLO_CONV_BIAS
-					bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
+				bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0
 
 			// if the last one
-					if (pix_id == MLO_MAP_SZ4 - 1)
+				if (pix_id == MLO_MAP_SZ4 - 1)
+				{
+					for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 					{
-						for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
-						{
-							out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+						out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
 #if MLO_CONV_BIAS
 							+ bias_val
 #endif
-							;
-
+						;
+#if DBG_OUT_OF_RNGE
+						if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
 						}
+#endif
 
 					}
-					else
-#endif
-					{
-						for (int i = 0; i < MLO_READ_UNIT; ++i)
-						{
 
-							out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
-#if MLO_CONV_BIAS
-							+ bias_val
+				}
+				else
 #endif
-							;
+				{
+					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					{
+
+						out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+#if MLO_CONV_BIAS
+						+ bias_val
+#endif
+						;
+#if DBG_OUT_OF_RNGE
+						if (out_off2 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-of-range\n");
 						}
+#endif
 					}
 				}
 			}
 		}
+
 	}
 
 
-#endif
+#endif // #if MLO_N_MAPS_PERGROUP > 1
 
 }
