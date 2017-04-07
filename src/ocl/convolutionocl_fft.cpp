@@ -34,6 +34,8 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	int in_n, in_c;
 	std::tie(in_n, in_c, std::ignore, std::ignore) = miopen::tie4(xDesc.GetLengths());
 
+	(void)wDesc;
+
 	int out_n, out_c;
 	std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tie4(yDesc.GetLengths());
 
