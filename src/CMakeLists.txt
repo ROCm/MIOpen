@@ -102,8 +102,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MIOpenPooling.cl
 		Kernels/MIOpenPoolingBwd.cl
 		Kernels/MIOpenConvDirUniC.cl		
-		Kernels/MIOpenConv1x1Fwd.cl
-		Kernels/MIOpenConv1x1Bwd.cl
+		Kernels/MLOpenConv1x1.cl
 		Kernels/MIOpenSoftmax.cl
 		Kernels/MIOpenConvD3x3.cl
 		Kernels/MIOpenUtilKernels.cl
