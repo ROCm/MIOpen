@@ -1,41 +1,9 @@
 cmake_minimum_required( VERSION 2.8.12 )
 
 include (GenerateExportHeader)
-# This has to be initialized before the project() command appears
-# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
-if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
-	set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
-endif()
-
-# Check if cmake supports the new VERSION tag for project() commands
-# MIOpen becomes the name of the project with a particular version
-if( POLICY CMP0048 )
-	cmake_policy( SET CMP0048 NEW )
-	project( MIOpen VERSION 0.10.0.0 LANGUAGES C CXX )
-else( )
-	project( MIOpen C CXX )
-	# Define a version for the code
-	if( NOT DEFINED MIOpen_VERSION_MAJOR )
-		set( MIOpen_VERSION_MAJOR 0 )
-	endif( )
-
-	if( NOT DEFINED MIOpen_VERSION_MINOR )
-		set( MIOpen_VERSION_MINOR 10 )
-	endif( )
-
-	if( NOT DEFINED MIOpen_VERSION_PATCH )
-		set( MIOpen_VERSION_PATCH 0 )
-	endif( )
-
-	if( NOT DEFINED MIOpen_VERSION_TWEAK )
-		set( MIOpen_VERSION_TWEAK 0 )
-	endif( )
-
-	set( MIOpen_VERSION "${MIOpen_VERSION_MAJOR}.${MIOpen_VERSION_MINOR}.${MIOpen_VERSION_PATCH}.${MIOpen_VERSION_TWEAK}")
-endif( )
 
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
-configure_file( "${PROJECT_SOURCE_DIR}/../include/MIOpen-version.h.in" "${PROJECT_BINARY_DIR}/include/MIOpen-version.h" )
+configure_file( "${PROJECT_SOURCE_DIR}/../include/miopen-version.h.in" "${PROJECT_BINARY_DIR}/include/miopen-version.h" )
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
@@ -224,7 +192,7 @@ install(TARGETS MIOpen
 
 install(FILES ${MIOpen_Headers_Public} DESTINATION include)
 
-GENERATE_EXPORT_HEADER(MIOpen
+generate_export_header(MIOpen
 	EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen_export.h
 )
 ############################################################

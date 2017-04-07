@@ -9,22 +9,40 @@ endif()
 # Default installation path
 set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 
-project ( SuperBuild.MIOpen C CXX )
+project ( MIOpen C CXX )
+
+# Check if cmake supports the new VERSION tag for project() commands
+# MIOpen becomes the name of the project with a particular version
+if( POLICY CMP0048 )
+	cmake_policy( SET CMP0048 NEW )
+	project( MIOpen VERSION 0.10.0.0 LANGUAGES C CXX )
+else( )
+	project( MIOpen C CXX )
+	# Define a version for the code
+	if( NOT DEFINED MIOpen_VERSION_MAJOR )
+		set( MIOpen_VERSION_MAJOR 0 )
+	endif( )
+
+	if( NOT DEFINED MIOpen_VERSION_MINOR )
+		set( MIOpen_VERSION_MINOR 10 )
+	endif( )
+
+	if( NOT DEFINED MIOpen_VERSION_PATCH )
+		set( MIOpen_VERSION_PATCH 0 )
+	endif( )
+
+	if( NOT DEFINED MIOpen_VERSION_TWEAK )
+		set( MIOpen_VERSION_TWEAK 0 )
+	endif( )
+
+	set( MIOpen_VERSION "${MIOpen_VERSION_MAJOR}.${MIOpen_VERSION_MINOR}.${MIOpen_VERSION_PATCH}.${MIOpen_VERSION_TWEAK}")
+endif( )
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
 ############################################################
 # require C++11
 add_compile_options(-std=c++11)
-
-option( USE_Cobalt "Use Cobalt for GEMM operations" OFF )
-
-# Determine whether to build 64-bit (default) or 32-bit
-if( MSVC_IDE )
-	set( BUILD_64 ${CMAKE_CL_64} )
-else()
-	option( BUILD_64 "Build a 64-bit product" ON )
-endif()
 
 ############################################################
 # OPTION - MIOpen Backend
