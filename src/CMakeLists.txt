@@ -159,6 +159,8 @@ add_library( MIOpen
 	${MIOpen_Source}
 	)
 
+set_target_properties(MIOpen PROPERTIES SOVERSION 1)
+
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 	add_custom_target(addkernels_run
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
