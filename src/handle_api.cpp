@@ -12,7 +12,7 @@ miopenStatus_t miopenCreate(miopenHandle_t *handle) {
 
 extern "C" 
 miopenStatus_t miopenCreateWithStream(miopenHandle_t *handle,
-		miopenAcceleratorQueue_t *stream ) {
+		miopenAcceleratorQueue_t stream ) {
 
 	return miopen::try_([&] {
 			miopen::deref(handle) = new miopen::Handle(stream);
