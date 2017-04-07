@@ -130,7 +130,7 @@ For windows you may need to specify the MSVC generator, like so:
 cd .../MIOpen
 mkdir build
 cd ./build
-cmake .. -G "Visual Studio 14 2015 Win64 -DMIOPEN_BACKEND=OpenCL"
+cmake .. -G "Visual Studio 14 2015 Win64" -DMIOPEN_BACKEND=OpenCL
 ```
 * Open VS15
 * Open SuperBuild.MIOpen.sln
