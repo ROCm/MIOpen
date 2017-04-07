@@ -3,7 +3,7 @@ cmake_minimum_required( VERSION 2.8.12 )
 include (GenerateExportHeader)
 
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
-configure_file( "${PROJECT_SOURCE_DIR}/../include/miopen-version.h.in" "${PROJECT_BINARY_DIR}/include/miopen-version.h" )
+configure_file( "${PROJECT_SOURCE_DIR}/include/miopen-version.h.in" "${PROJECT_BINARY_DIR}/include/miopen-version.h" )
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
@@ -25,10 +25,9 @@ function(add_kernels KERNEL_FILES)
 		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
 	endforeach()
 	string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
-	configure_file(Kernels/kernel.cpp.in kernel.cpp)
+	configure_file(Kernels/kernel.cpp.in ${PROJECT_BINARY_DIR}/kernel.cpp)
 endfunction()
 
-list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MIOpen_Source
 	convolution.cpp
 	convolution_api.cpp
@@ -90,7 +89,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MIOpenConvBwdBias.cl)
 	
 	add_kernels("${MIOPEN_KERNELS}")
-	configure_file(db.cpp.in db.cpp)
+	configure_file(db.cpp.in ${PROJECT_BINARY_DIR}/db.cpp)
 	list(APPEND MIOpen_Source 
 		activ.cpp
 		kernel_cache.cpp
@@ -112,10 +111,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         ${PROJECT_BINARY_DIR}/db.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
 		)
-	# Install db files
-	install(FILES 
-		Kernels/gfx803_64.cd.pdb.txt
-	 DESTINATION share/miopen/db)
 endif()
 
 if(tinygemm_FOUND)
@@ -153,8 +148,8 @@ if( MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 set ( MIOpen_Headers_Public
-	${CMAKE_SOURCE_DIR}/include/miopen.h
-	${PROJECT_BINARY_DIR}/include/MIOpen-version.h
+	${PROJECT_SOURCE_DIR}/include/miopen.h
+	${PROJECT_BINARY_DIR}/include/miopen-version.h
 	${PROJECT_BINARY_DIR}/include/miopen_export.h
 	)
 
@@ -177,20 +172,12 @@ endif()
 
 clang_tidy_check(MIOpen)
 set( MIOpen_DIRS_INCLUDE
-	# TODO: Remove this
-	${PROJECT_SOURCE_DIR}
-	${CMAKE_SOURCE_DIR}/include
 	${PROJECT_SOURCE_DIR}/include
-	${PROJECT_BINARY_DIR}/include)
+	${PROJECT_BINARY_DIR}/include
+	${PROJECT_SOURCE_DIR}/src/include
+)
 
 target_include_directories(MIOpen PUBLIC ${MIOpen_DIRS_INCLUDE})
-
-install(TARGETS MIOpen 
-	RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-
-install(FILES ${MIOpen_Headers_Public} DESTINATION include)
 
 generate_export_header(MIOpen
 	EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen_export.h
@@ -210,3 +197,28 @@ endif()
 if(tinygemm_FOUND)
 	target_link_libraries( MIOpen tinygemm )
 endif()
+
+
+############################################################
+# Installation
+include(InstallSymlinks)
+include(GNUInstallDirs)
+set( MIOPEN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/miopen)
+set( BIN_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_BINDIR} )
+set( LIB_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR} )
+set( INCLUDE_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR} )
+set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
+set( CONFIG_PACKAGE_INSTALL_DIR ${LIB_INSTALL_DIR}/cmake/miopen )
+
+# Install db files
+install(FILES 
+	Kernels/gfx803_64.cd.pdb.txt
+ DESTINATION share/miopen/db)
+
+install(TARGETS MIOpen 
+	RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+    LIBRARY DESTINATION ${LIB_INSTALL_DIR}
+    ARCHIVE DESTINATION ${LIB_INSTALL_DIR})
+
+install(FILES ${MIOpen_Headers_Public} DESTINATION ${INCLUDE_INSTALL_DIR})
+install_symlink_subdir(${MIOPEN_INSTALL_DIR})
