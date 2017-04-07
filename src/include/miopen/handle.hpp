@@ -17,7 +17,7 @@ struct HandleImpl;
 struct Handle : miopenHandle {
 	
 	Handle();
-	Handle(miopenAcceleratorQueue_t *stream);
+	Handle(miopenAcceleratorQueue_t stream);
     Handle(Handle&&) noexcept;
 	~Handle();
 

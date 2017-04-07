@@ -53,7 +53,7 @@ typedef enum {
 MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t *handle);
 
 MIOPEN_EXPORT miopenStatus_t miopenCreateWithStream(miopenHandle_t *handle,
-		miopenAcceleratorQueue_t				*stream);
+		miopenAcceleratorQueue_t				stream);
 
 MIOPEN_EXPORT miopenStatus_t miopenDestroy(miopenHandle_t handle);
 
