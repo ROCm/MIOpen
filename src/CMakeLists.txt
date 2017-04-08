@@ -204,18 +204,11 @@ endif()
 ############################################################
 # Installation
 include(InstallSymlinks)
-include(GNUInstallDirs)
-set( MIOPEN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/miopen)
-set( BIN_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_BINDIR} )
-set( LIB_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR} )
-set( INCLUDE_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR} )
-set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
-set( CONFIG_PACKAGE_INSTALL_DIR ${LIB_INSTALL_DIR}/cmake/miopen )
 
 # Install db files
 install(FILES 
 	Kernels/gfx803_64.cd.pdb.txt
- DESTINATION share/miopen/db)
+ DESTINATION ${DATA_INSTALL_DIR}/db)
 
 install(TARGETS MIOpen 
 	RUNTIME DESTINATION ${BIN_INSTALL_DIR}
