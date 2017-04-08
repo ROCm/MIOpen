@@ -142,13 +142,29 @@ option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( BUILD_DEV "Build for development only" OFF)
 
+include(GNUInstallDirs)
+set( MIOPEN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/miopen)
+set( BIN_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_BINDIR} )
+set( LIB_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR} )
+set( INCLUDE_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR} )
+set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
+set( CONFIG_PACKAGE_INSTALL_DIR ${LIB_INSTALL_DIR}/cmake/miopen )
+
 if(BUILD_DEV)
 	add_definitions(-DMIOPEN_BUILD_DEV=1)
 	set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
 else()
 	add_definitions(-DMIOPEN_BUILD_DEV=0)
-	set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/share/miopen/db" CACHE PATH "Default path to search for db")
+	set(MIOPEN_DB_PATH "${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
 endif()
+
+include(CreatePackage)
+create_package(
+	NAME MIOpen-${MIOPEN_BACKEND}
+	DESCRIPTION "AMD's DNN Library"
+	MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
+	LDCONFIG ${LIB_INSTALL_DIR}
+)
 
 include(EnableCompilerWarnings)
 
