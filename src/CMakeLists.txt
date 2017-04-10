@@ -242,3 +242,5 @@ endif()
 if(tinygemm_FOUND)
 	target_link_libraries( MIOpen tinygemm )
 endif()
+
+target_link_libraries(MIOpen -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
