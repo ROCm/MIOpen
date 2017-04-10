@@ -5,7 +5,7 @@
 #include <miopen/handle.hpp>
 
 #define WALL_CLOCK inflags.GetValueInt("wall")
-#ifdef WIN32
+#ifdef _WIN32
 #define CLOCK_MONOTONIC_RAW 0
 static
 int clock_gettime(int, struct timespec *tv)

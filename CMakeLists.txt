@@ -15,7 +15,7 @@ list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
 ############################################################
 # require C++11
-add_compile_options(-std=c++11)
+add_compile_options(-std=gnu++11)
 
 option( USE_Cobalt "Use Cobalt for GEMM operations" OFF )
 
@@ -185,6 +185,10 @@ enable_clang_tidy(
 	ANALYZE_TEMPORARY_DTORS ON
 
 )
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 add_subdirectory(AddKernels)
 add_subdirectory(src)

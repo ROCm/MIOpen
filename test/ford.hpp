@@ -6,11 +6,16 @@
 #include <functional>
 #include <algorithm>
 #include <numeric>
-#include <thread>
 #include <vector>
 #include <array>
 #include <cmath>
 #include <cassert>
+
+#ifdef __MINGW32__
+#include <mingw.thread.h>
+#else
+#include <thread>
+#endif
 
 struct joinable_thread : std::thread
 {
