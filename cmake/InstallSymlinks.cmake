@@ -1,6 +1,9 @@
 
 function(install_symlink_subdir SUBDIR)
     # TODO: Check if SUBDIR is relative path
+    if(NOT IS_ABSOLUTE ${SUBDIR})
+        set(SUBDIR ${CMAKE_INSTALL_PREFIX}/${SUBDIR})
+    endif()
     install(CODE "
         file(GLOB_RECURSE FILES RELATIVE ${SUBDIR} ${SUBDIR}/*)
         foreach(FILE \${FILES})
