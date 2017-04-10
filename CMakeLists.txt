@@ -10,33 +10,16 @@ endif()
 set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 
 project ( MIOpen C CXX )
-
-# Check if cmake supports the new VERSION tag for project() commands
-# MIOpen becomes the name of the project with a particular version
-if( POLICY CMP0048 )
-	cmake_policy( SET CMP0048 NEW )
-	project( MIOpen VERSION 0.10.0.0 LANGUAGES C CXX )
-else( )
-	project( MIOpen C CXX )
-	# Define a version for the code
-	if( NOT DEFINED MIOpen_VERSION_MAJOR )
-		set( MIOpen_VERSION_MAJOR 0 )
-	endif( )
-
-	if( NOT DEFINED MIOpen_VERSION_MINOR )
-		set( MIOpen_VERSION_MINOR 10 )
-	endif( )
-
-	if( NOT DEFINED MIOpen_VERSION_PATCH )
-		set( MIOpen_VERSION_PATCH 0 )
-	endif( )
-
-	if( NOT DEFINED MIOpen_VERSION_TWEAK )
-		set( MIOpen_VERSION_TWEAK 0 )
-	endif( )
-
-	set( MIOpen_VERSION "${MIOpen_VERSION_MAJOR}.${MIOpen_VERSION_MINOR}.${MIOpen_VERSION_PATCH}.${MIOpen_VERSION_TWEAK}")
-endif( )
+set(MIOpen_VERSION_MAJOR 0)
+set(MIOpen_VERSION_MINOR 10)
+set(MIOpen_VERSION_PATCH 0)
+set(MIOpen_VERSION_TWEAK 0)
+set(MIOpen_VERSION "${MIOpen_VERSION_MAJOR}.${MIOpen_VERSION_MINOR}.${MIOpen_VERSION_PATCH}.${MIOpen_VERSION_TWEAK}")
+set(PROJECT_VERSION ${MIOpen_VERSION})
+set(PROJECT_VERSION_MAJOR ${MIOpen_VERSION_MAJOR})
+set(PROJECT_VERSION_MINOR ${MIOpen_VERSION_MINOR})
+set(PROJECT_VERSION_PATCH ${MIOpen_VERSION_PATCH})
+set(PROJECT_VERSION_TWEAK ${MIOpen_VERSION_TWEAK})
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 

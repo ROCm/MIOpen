@@ -173,13 +173,13 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 endif()
 
 clang_tidy_check(MIOpen)
-set( MIOpen_DIRS_INCLUDE
-	${PROJECT_SOURCE_DIR}/include
-	${PROJECT_BINARY_DIR}/include
-	${PROJECT_SOURCE_DIR}/src/include
-)
 
-target_include_directories(MIOpen PUBLIC ${MIOpen_DIRS_INCLUDE})
+target_include_directories(MIOpen PUBLIC 
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
+)
+target_include_directories(MIOpen SYSTEM INTERFACE $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INCLUDE_INSTALL_DIR}>)
 
 generate_export_header(MIOpen
 	EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen_export.h
@@ -190,8 +190,10 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
 	MESSAGE( STATUS "MIOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MIOpen ${OPENCL_LIBRARIES} )
+	set(BACKEND_PACKAGE "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC")
 	target_link_libraries( MIOpen ${hip_LIBRARIES} )
+	set(BACKEND_PACKAGE "hip")
 endif()
 
 ############################################################
@@ -204,6 +206,25 @@ endif()
 ############################################################
 # Installation
 include(InstallSymlinks)
+include( CMakePackageConfigHelpers )
+
+configure_package_config_file(
+  miopen-config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config.cmake
+  INSTALL_DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR}
+  PATH_VARS LIB_INSTALL_DIR INCLUDE_INSTALL_DIR
+)
+
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config-version.cmake
+  VERSION ${miopen_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+install( FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config-version.cmake
+  DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR})
 
 # Install db files
 install(FILES 
@@ -211,9 +232,12 @@ install(FILES
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 install(TARGETS MIOpen 
+	EXPORT miopen-targets
 	RUNTIME DESTINATION ${BIN_INSTALL_DIR}
     LIBRARY DESTINATION ${LIB_INSTALL_DIR}
     ARCHIVE DESTINATION ${LIB_INSTALL_DIR})
+
+install(EXPORT miopen-targets DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR})
 
 install(FILES ${MIOpen_Headers_Public} DESTINATION ${INCLUDE_INSTALL_DIR})
 install_symlink_subdir(${MIOPEN_INSTALL_DIR})
