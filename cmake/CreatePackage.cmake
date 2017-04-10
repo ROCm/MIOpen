@@ -1,6 +1,8 @@
 
 include(CMakeParseArguments)
 
+find_program(MAKE_NSIS_EXE makensis)
+
 macro(create_package)
     set(options)
     set(oneValueArgs NAME DESCRIPTION LDCONFIG SECTION MAINTAINER)
@@ -13,9 +15,13 @@ macro(create_package)
     set(CPACK_PACKAGE_VENDOR "Advanced Micro Devices, Inc")
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY ${PARSE_DESCRIPTION})
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "/opt/rocm")
-    set(CPACK_GENERATOR "DEB")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${PARSE_MAINTAINER})
     set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+    
+    set(CPACK_GENERATOR "DEB")
+    if(EXISTS ${MAKE_NSIS_EXE})
+        list(APPEND CPACK_GENERATOR "NSIS")
+    endif()
 
     if(PARSE_DEB_DEPENDS)
         set(CPACK_DEBIAN_PACKAGE_DEPENDS ${PARSE_DEB_DEPENDS})
