@@ -18,17 +18,14 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
     {
         start = make_hip_event();
         stop = make_hip_event();
-
-        hipEventRecord(start.get(), stream);
     }
 
     // std::cerr << "Launch kernel: " << name << std::endl;
-    auto status = hipHccModuleLaunchKernel(fun, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], 0, stream, nullptr, (void**)&config);
+    auto status = hipHccModuleLaunchKernel(fun, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], 0, stream, nullptr, (void**)&config, start.get(), stop.get());
     if(status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Failed to launch kernel");
 
     if (callback)
     {
-        hipEventRecord(stop.get(), stream);
         hipEventSynchronize(stop.get());
         callback(start.get(), stop.get());
     }
