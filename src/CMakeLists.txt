@@ -245,4 +245,5 @@ endif()
 
 if(WIN32)
 	target_link_libraries(MIOpen -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
+	target_link_libraries(MIOpen -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
