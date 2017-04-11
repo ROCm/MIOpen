@@ -234,7 +234,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
 
     // 1x1 does not require im2col or workspace
-    if(wei_h == 1 && wei_w == 1) {
+    if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
         gg.FindSolution(.003, handle, x, w, tmp_y.get(), false);
         gg.RunGemm(handle, x, w, tmp_y.get(), 0, 0, 0);
 
@@ -438,7 +438,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int out_h, out_w;
             std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 
-            if((wei_h != 1 && wei_w != 1) && 
+            if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) && 
                 (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, xDesc, yDesc))) {
                 MIOPEN_THROW("Workspace is required");
             }
@@ -452,7 +452,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             float t1 = 0;
             for(int i = 0; i < in_n; i++) {
                 int out_offset = i * wei_n * out_h * out_w;
-                if(wei_h != 1 && wei_w != 1) {
+                if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 ) {
                     size_t in_offset = i * in_c * in_h * in_w;
                     Im2ColGPU(handle, xDesc.GetElementSize(), x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
                     if(handle.IsProfilingEnabled())
@@ -469,7 +469,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         time_0 += handle.GetKernelTime();
                     }
                 }
-                else if(wei_h == 1 && wei_w == 1) {
+                else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
                     int in_offset = i * in_c * in_h * in_w;
                     gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
                     if(handle.IsProfilingEnabled()) {
@@ -713,7 +713,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     float time_gemm = 0;
 
     // 1x1 does not require im2col or workspace
-    if(wei_h == 1 && wei_w == 1) {
+    if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
         gg.FindSolution(.003, handle, x, dy, tmp_dw.get(), false);
         gg.RunGemm(handle, x, dy, tmp_dw.get(), 0, 0, 0);
 
@@ -878,7 +878,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         {
             std::string network_config;
 
-            if((wei_h != 1 && wei_w != 1) &&
+            if((wei_h != 1 || wei_w != 1 || v != 1 || u != 1) &&
                     (workSpace == nullptr || workSpaceSize < BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc))) {
                 MIOPEN_THROW("Workspace is required");
             }
@@ -891,7 +891,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             float t1 = 0;
             for(int i = 0; i < in_n; i++) {
                 int out_offset = i * wei_n * out_h * out_w;
-                if(wei_h != 1 && wei_w != 1) {
+                if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1) {
                     size_t in_offset = i * in_c * in_h * in_w;
                     Im2ColGPU(handle, xDesc.GetElementSize(), x, in_offset, in_c, in_h, in_w, wei_h, wei_w, out_h, out_w, pad_h, pad_w, v, u, workSpace);
                     if(handle.IsProfilingEnabled())
@@ -908,7 +908,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                         time_0 += handle.GetKernelTime();
                     }
                 }
-                else if(wei_h == 1 && wei_w == 1) {
+                else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
                     int in_offset = i * in_c * in_h * in_w;
                     gg.RunGemm(handle, x, dy, dw, in_offset, out_offset, 0);
 
