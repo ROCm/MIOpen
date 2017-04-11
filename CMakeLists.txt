@@ -9,22 +9,23 @@ endif()
 # Default installation path
 set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 
-project ( SuperBuild.MIOpen C CXX )
+project ( MIOpen C CXX )
+set(MIOpen_VERSION_MAJOR 0)
+set(MIOpen_VERSION_MINOR 10)
+set(MIOpen_VERSION_PATCH 0)
+set(MIOpen_VERSION_TWEAK 0)
+set(MIOpen_VERSION "${MIOpen_VERSION_MAJOR}.${MIOpen_VERSION_MINOR}.${MIOpen_VERSION_PATCH}.${MIOpen_VERSION_TWEAK}")
+set(PROJECT_VERSION ${MIOpen_VERSION})
+set(PROJECT_VERSION_MAJOR ${MIOpen_VERSION_MAJOR})
+set(PROJECT_VERSION_MINOR ${MIOpen_VERSION_MINOR})
+set(PROJECT_VERSION_PATCH ${MIOpen_VERSION_PATCH})
+set(PROJECT_VERSION_TWEAK ${MIOpen_VERSION_TWEAK})
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
 ############################################################
 # require C++11
 add_compile_options(-std=c++11)
-
-option( USE_Cobalt "Use Cobalt for GEMM operations" OFF )
-
-# Determine whether to build 64-bit (default) or 32-bit
-if( MSVC_IDE )
-	set( BUILD_64 ${CMAKE_CL_64} )
-else()
-	option( BUILD_64 "Build a 64-bit product" ON )
-endif()
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -124,13 +125,29 @@ option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( BUILD_DEV "Build for development only" OFF)
 
+include(GNUInstallDirs)
+set( MIOPEN_INSTALL_DIR miopen)
+set( BIN_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_BINDIR} )
+set( LIB_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR} )
+set( INCLUDE_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR} )
+set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
+set( CONFIG_PACKAGE_INSTALL_DIR ${LIB_INSTALL_DIR}/cmake/miopen )
+
 if(BUILD_DEV)
 	add_definitions(-DMIOPEN_BUILD_DEV=1)
 	set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
 else()
 	add_definitions(-DMIOPEN_BUILD_DEV=0)
-	set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/share/miopen/db" CACHE PATH "Default path to search for db")
+	set(MIOPEN_DB_PATH "${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
 endif()
+
+include(CreatePackage)
+create_package(
+	NAME MIOpen-${MIOPEN_BACKEND}
+	DESCRIPTION "AMD's DNN Library"
+	MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
+	LDCONFIG ${LIB_INSTALL_DIR}
+)
 
 include(EnableCompilerWarnings)
 
