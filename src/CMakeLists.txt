@@ -243,7 +243,7 @@ if(tinygemm_FOUND)
 	target_link_libraries( MIOpen tinygemm )
 endif()
 
-if(WIN32)
+if(WIN32 AND NOT MSVC)
 	target_link_libraries(MIOpen -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
 	target_link_libraries(MIOpen -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
