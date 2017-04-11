@@ -100,13 +100,13 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
     const std::string program_name = "MIOpenConvFFT.cl";
 
 	std::string parms;
-	parms += " -D CFF_BATCH=";
+	parms += " -DCFF_BATCH=";
 	parms += std::to_string(in_n);
-	parms += " -D CFF_NFILTER=";
+	parms += " -DCFF_NFILTER=";
 	parms += std::to_string(out_c);
-	parms += " -D CFF_CHANNELS=";
+	parms += " -DCFF_CHANNELS=";
 	parms += std::to_string(in_c);
-	parms += " -D CFF_HALFW=";
+	parms += " -DCFF_HALFW=";
 	parms += std::to_string(workSpaceSize/(2*2*sizeof(float)));
 
 	const std::string config_prefix = make_config_prefix(in_n, out_c);
