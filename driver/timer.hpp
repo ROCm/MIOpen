@@ -1,18 +1,10 @@
 #ifndef GUARD_MIOPEN_TIMER_HPP
 #define GUARD_MIOPEN_TIMER_HPP
 
-#include <ctime>
 #include <miopen/handle.hpp>
+#include <chrono>
 
 #define WALL_CLOCK inflags.GetValueInt("wall")
-#ifdef _WIN32
-#define CLOCK_MONOTONIC_RAW 0
-static
-int clock_gettime(int, struct timespec *tv)
-{
-	return timespec_get(tv, TIME_UTC);
-}
-#endif
 
 #define START_TIME \
 	if(WALL_CLOCK) { \
@@ -27,13 +19,13 @@ class Timer
 {
 	public:
 	Timer(){};
-	void start() { clock_gettime(CLOCK_MONOTONIC_RAW, &st); }
-	void stop() { clock_gettime(CLOCK_MONOTONIC_RAW, &et); }
-	float gettime_ms() { return ((et.tv_sec - st.tv_sec)*1e3 + (et.tv_nsec - st.tv_nsec)*1e-6); }
+	void start() { st = std::chrono::steady_clock::now(); }
+	void stop() { et = std::chrono::steady_clock::now(); }
+	float gettime_ms() { return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et-st).count(); }
 
 	private:
-	struct timespec st;
-	struct timespec et;
+	std::chrono::time_point<std::chrono::steady_clock> st;
+	std::chrono::time_point<std::chrono::steady_clock> et;
 };
 
 #endif // GUARD_MIOPEN_TIMER_HPP
