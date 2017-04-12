@@ -198,6 +198,7 @@ void Handle::Finish() const
     hipEventRecord(ev.get(), this->GetStream());
     while(hipEventQuery(ev.get()) == hipErrorNotReady)
     {
+        std::this_thread::yield();
         if ((std::chrono::system_clock::now()-start) > std::chrono::seconds(60)) 
         {
             std::cerr << "Timeout: Handle::Finish" << std::endl;
