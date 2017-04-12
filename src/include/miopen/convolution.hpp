@@ -85,6 +85,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
+		size_t							workSpaceSize,
         std::vector<KernelInvoke>&      kernels) const;
 
     float ExecuteFwdFFTKernel(Handle& handle,

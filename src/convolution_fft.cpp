@@ -1,6 +1,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/convolution_fft.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/env.hpp>
 
 namespace miopen {
 
@@ -9,7 +10,6 @@ namespace miopen {
 		const TensorDescriptor& xDesc,
 		const TensorDescriptor& yDesc) const
 {
-
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(xDesc.GetLengths());
 

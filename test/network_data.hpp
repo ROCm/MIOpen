@@ -141,7 +141,7 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
         { pick_batch_size(64, n),  512,  1,  1  },
         { pick_batch_size(64, n),  64,   1,  1  },
         { pick_batch_size(96, n),  192,  1,  1  },
-        // { pick_batch_size(96, n),  3,    11, 11 },
+        { pick_batch_size(96, n),  3,    11, 11 },
         { pick_batch_size(96, n),  32,   5,  5  },
         { pick_batch_size(96, n),  480,  1,  1  }
     };

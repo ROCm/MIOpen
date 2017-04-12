@@ -1,6 +1,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/convolution_fft.hpp>
 #include <miopen/util.hpp>
+#include <miopen/env.hpp>
 
 namespace miopen {
 
@@ -20,14 +21,20 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
+		size_t							workSpaceSize,
         std::vector<KernelInvoke>&      kernels) const {
 
-	size_t wSize = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
-	if(wSize == 0)
+	if(workSpaceSize == 0)
+		return -1;
+
+	// disable running any FFT based convolutions by checking this env variable
+	if(miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_CONV_FFT"))
 		return -1;
 
 	int in_n, in_c;
 	std::tie(in_n, in_c, std::ignore, std::ignore) = miopen::tie4(xDesc.GetLengths());
+
+	(void)wDesc;
 
 	int out_n, out_c;
 	std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tie4(yDesc.GetLengths());
@@ -93,14 +100,14 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
     const std::string program_name = "MIOpenConvFFT.cl";
 
 	std::string parms;
-	parms += " -D CFF_BATCH=";
+	parms += " -DCFF_BATCH=";
 	parms += std::to_string(in_n);
-	parms += " -D CFF_NFILTER=";
+	parms += " -DCFF_NFILTER=";
 	parms += std::to_string(out_c);
-	parms += " -D CFF_CHANNELS=";
+	parms += " -DCFF_CHANNELS=";
 	parms += std::to_string(in_c);
-	parms += " -D CFF_HALFW=";
-	parms += std::to_string(wSize/(2*2*sizeof(float)));
+	parms += " -DCFF_HALFW=";
+	parms += std::to_string(workSpaceSize/(2*2*sizeof(float)));
 
 	const std::string config_prefix = make_config_prefix(in_n, out_c);
 

@@ -1,41 +1,9 @@
 cmake_minimum_required( VERSION 2.8.12 )
 
 include (GenerateExportHeader)
-# This has to be initialized before the project() command appears
-# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
-if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
-	set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
-endif()
-
-# Check if cmake supports the new VERSION tag for project() commands
-# MIOpen becomes the name of the project with a particular version
-if( POLICY CMP0048 )
-	cmake_policy( SET CMP0048 NEW )
-	project( MIOpen VERSION 0.10.0.0 LANGUAGES C CXX )
-else( )
-	project( MIOpen C CXX )
-	# Define a version for the code
-	if( NOT DEFINED MIOpen_VERSION_MAJOR )
-		set( MIOpen_VERSION_MAJOR 0 )
-	endif( )
-
-	if( NOT DEFINED MIOpen_VERSION_MINOR )
-		set( MIOpen_VERSION_MINOR 10 )
-	endif( )
-
-	if( NOT DEFINED MIOpen_VERSION_PATCH )
-		set( MIOpen_VERSION_PATCH 0 )
-	endif( )
-
-	if( NOT DEFINED MIOpen_VERSION_TWEAK )
-		set( MIOpen_VERSION_TWEAK 0 )
-	endif( )
-
-	set( MIOpen_VERSION "${MIOpen_VERSION_MAJOR}.${MIOpen_VERSION_MINOR}.${MIOpen_VERSION_PATCH}.${MIOpen_VERSION_TWEAK}")
-endif( )
 
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
-configure_file( "${PROJECT_SOURCE_DIR}/../include/MIOpen-version.h.in" "${PROJECT_BINARY_DIR}/include/MIOpen-version.h" )
+configure_file( "${PROJECT_SOURCE_DIR}/include/miopen-version.h.in" "${PROJECT_BINARY_DIR}/include/miopen-version.h" )
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
@@ -57,10 +25,9 @@ function(add_kernels KERNEL_FILES)
 		list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
 	endforeach()
 	string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
-	configure_file(Kernels/kernel.cpp.in kernel.cpp)
+	configure_file(Kernels/kernel.cpp.in ${PROJECT_BINARY_DIR}/kernel.cpp)
 endfunction()
 
-list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 set( MIOpen_Source
 	convolution.cpp
 	convolution_api.cpp
@@ -102,8 +69,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MIOpenPooling.cl
 		Kernels/MIOpenPoolingBwd.cl
 		Kernels/MIOpenConvDirUniC.cl		
-		Kernels/MIOpenConv1x1Fwd.cl
-		Kernels/MIOpenConv1x1Bwd.cl
+		Kernels/MIOpenConv1x1.cl
 		Kernels/MIOpenSoftmax.cl
 		Kernels/MIOpenConvD3x3.cl
 		Kernels/MIOpenUtilKernels.cl
@@ -122,7 +88,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 		Kernels/MIOpenConvBwdBias.cl)
 	
 	add_kernels("${MIOPEN_KERNELS}")
-	configure_file(db.cpp.in db.cpp)
+	configure_file(db.cpp.in ${PROJECT_BINARY_DIR}/db.cpp)
 	list(APPEND MIOpen_Source 
 		activ.cpp
 		kernel_cache.cpp
@@ -144,10 +110,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         ${PROJECT_BINARY_DIR}/db.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
 		)
-	# Install db files
-	install(FILES 
-		Kernels/gfx803_64.cd.pdb.txt
-	 DESTINATION share/miopen/db)
 endif()
 
 if(tinygemm_FOUND)
@@ -185,8 +147,8 @@ if( MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 set ( MIOpen_Headers_Public
-	${CMAKE_SOURCE_DIR}/include/miopen.h
-	${PROJECT_BINARY_DIR}/include/MIOpen-version.h
+	${PROJECT_SOURCE_DIR}/include/miopen.h
+	${PROJECT_BINARY_DIR}/include/miopen-version.h
 	${PROJECT_BINARY_DIR}/include/miopen_export.h
 	)
 
@@ -195,6 +157,8 @@ set ( MIOpen_Headers_Public
 add_library( MIOpen
 	${MIOpen_Source}
 	)
+
+set_target_properties(MIOpen PROPERTIES SOVERSION 1)
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 	add_custom_target(addkernels_run
@@ -208,23 +172,15 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 endif()
 
 clang_tidy_check(MIOpen)
-set( MIOpen_DIRS_INCLUDE
-	# TODO: Remove this
-	${PROJECT_SOURCE_DIR}
-	${CMAKE_SOURCE_DIR}/include
-	${PROJECT_SOURCE_DIR}/include
-	${PROJECT_BINARY_DIR}/include)
 
-target_include_directories(MIOpen PUBLIC ${MIOpen_DIRS_INCLUDE})
+target_include_directories(MIOpen PUBLIC 
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
+)
+target_include_directories(MIOpen SYSTEM INTERFACE $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INCLUDE_INSTALL_DIR}>)
 
-install(TARGETS MIOpen 
-	RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
-
-install(FILES ${MIOpen_Headers_Public} DESTINATION include)
-
-GENERATE_EXPORT_HEADER(MIOpen
+generate_export_header(MIOpen
 	EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen_export.h
 )
 ############################################################
@@ -233,8 +189,10 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
 	MESSAGE( STATUS "MIOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MIOpen ${OPENCL_LIBRARIES} )
+	set(BACKEND_PACKAGE "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC")
 	target_link_libraries( MIOpen ${hip_LIBRARIES} )
+	set(BACKEND_PACKAGE "hip")
 endif()
 
 ############################################################
@@ -247,3 +205,42 @@ if(WIN32 AND NOT MSVC)
 	target_link_libraries(MIOpen -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
 	target_link_libraries(MIOpen -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
+
+############################################################
+# Installation
+include(InstallSymlinks)
+include( CMakePackageConfigHelpers )
+
+configure_package_config_file(
+  miopen-config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config.cmake
+  INSTALL_DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR}
+  PATH_VARS LIB_INSTALL_DIR INCLUDE_INSTALL_DIR
+)
+
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config-version.cmake
+  VERSION ${miopen_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+install( FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config-version.cmake
+  DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR})
+
+# Install db files
+install(FILES 
+	Kernels/gfx803_64.cd.pdb.txt
+ DESTINATION ${DATA_INSTALL_DIR}/db)
+
+install(TARGETS MIOpen 
+	EXPORT miopen-targets
+	RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+    LIBRARY DESTINATION ${LIB_INSTALL_DIR}
+    ARCHIVE DESTINATION ${LIB_INSTALL_DIR})
+
+install(EXPORT miopen-targets DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR})
+
+install(FILES ${MIOpen_Headers_Public} DESTINATION ${INCLUDE_INSTALL_DIR})
+install_symlink_subdir(${MIOPEN_INSTALL_DIR})
