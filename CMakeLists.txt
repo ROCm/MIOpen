@@ -37,6 +37,12 @@ else()
 	set(MIOPEN_DEFAULT_BACKEND "OpenCL")
 endif()
 
+if(WIN32 AND CMAKE_CROSSCOMPILING)
+	set(WINE_CMD "wine")
+else()
+	set(WINE_CMD)
+endif()
+
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
 	"Which of MIOpens's backends to use?" )
@@ -116,8 +122,10 @@ message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
 # tinygemm
 if(tinygemm_FOUND)
+	message(STATUS "Build with tinygemm")
 	add_definitions(-DMIOPEN_USE_TINYGEMM=1)
 else()
+	message(STATUS "Build without tinygemm")
 	add_definitions(-DMIOPEN_USE_TINYGEMM=0)
 endif()
 
