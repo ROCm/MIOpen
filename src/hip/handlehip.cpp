@@ -200,7 +200,7 @@ void Handle::Finish() const
     {
         if ((std::chrono::system_clock::now()-start) > std::chrono::seconds(60)) 
         {
-            std::cerr << "Timeout" << std::endl;
+            std::cerr << "Timeout: Handle::Finish" << std::endl;
             std::abort();
         }
     }
