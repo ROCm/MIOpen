@@ -101,7 +101,7 @@ class Driver
 #elif MIOPEN_BACKEND_HIPOC
         hipStream_t s;
         hipStreamCreate(&s);
-        miopenCreateWithStream(&handle,&s);
+        miopenCreateWithStream(&handle,s);
 #endif
 
 		miopenGetStream(handle, &q);

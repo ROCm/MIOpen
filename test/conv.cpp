@@ -371,7 +371,7 @@ struct conv_driver : test_driver
         return {
             miopen::ConvolutionDescriptor{ 0, 0, 1, 1 },
             // miopen::ConvolutionDescriptor{ 0, 0, 2, 2 },
-            // miopen::ConvolutionDescriptor{ 1, 1, 1, 1 },
+            miopen::ConvolutionDescriptor{ 1, 1, 1, 1 },
             miopen::ConvolutionDescriptor{ 1, 1, 2, 2 },
             miopen::ConvolutionDescriptor{ 2, 2, 1, 1 },
             miopen::ConvolutionDescriptor{ 3, 3, 2, 2 }
