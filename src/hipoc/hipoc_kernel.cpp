@@ -2,6 +2,8 @@
 #include <miopen/hipoc_kernel.hpp>
 #include <miopen/errors.hpp>
 #include <hip/hip_hcc.h>
+#include <chrono>
+#include <thread>
 
 namespace miopen {
 
@@ -29,7 +31,20 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
     if (callback)
     {
         hipEventRecord(stop.get(), stream);
+#if MIOPEN_BUILD_DEV
+        auto start_time = std::chrono::system_clock::now();
+        while(hipEventQuery(stop.get()) == hipErrorNotReady)
+        {
+            std::this_thread::yield();
+            if ((std::chrono::system_clock::now()-start_time) > std::chrono::seconds(60)) 
+            {
+                std::cerr << "Timeout: HIPOCKernelInvoke::run" << std::endl;
+                std::abort();
+            }
+        }
+#else
         hipEventSynchronize(stop.get());
+#endif
         callback(start.get(), stop.get());
     }
 }
