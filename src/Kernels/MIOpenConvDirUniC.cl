@@ -222,6 +222,9 @@ static inline void Conv(uint o_map_base,
 			}
 
 		// over filter rows
+#ifdef __AMDGCN__
+			#pragma unroll
+#endif
 			for(uint k = 0; k < MLO_FILTER_SIZE1; ++k, in_stg_off2+=MLO_IN_LCL_WIDTH
 			)
 			{	

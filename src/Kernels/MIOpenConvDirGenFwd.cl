@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 AMD Inc.
+ * Copyright (c) 2017 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -75,42 +75,8 @@
 
 
 
-static inline void calculateXYPos(uint linPos, uint width, uint * __restrict x, uint * __restrict y)
-{
-	(*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
-	(*x) = linPos - (*y) * width; 
-}
-
-static inline uint calculateOffset(uint stride, uint x, uint y)
-{
-	uint ret = y * stride + x;
-	return(ret);
-}
-
-static inline void readDataElem(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data, uint linPos, uint gbl_width, uint gbl_stride, uint gbl_base, uint lcl_stride, uint lcl_base)
-{
-	uint x, y;
-	calculateXYPos(linPos, gbl_width, &x, &y);
-	uint gbl_off = calculateOffset(gbl_stride, x, y);
-	gbl_off += gbl_base;
-	uint lcl_off = calculateOffset(lcl_stride, x, y);
-	lcl_off += lcl_base;
-	lcl_data[lcl_off] = gbl_data[gbl_off];
-}
-
-// split the group into several input vector processors
-// each processor reads its own input channel
-static inline void readData(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data, uint lcl_p_id, uint lcl_p_stride, uint size, uint gbl_width, uint gbl_stride, uint gbl_base, uint lcl_stride, uint lcl_base)
-{
-	
-	for(uint i = lcl_p_id; i < size; i+= lcl_p_stride)
-	{
-		readDataElem(lcl_data, gbl_data, i, gbl_width, gbl_stride, gbl_base, lcl_stride, lcl_base);
-	}
-
-}
-
-static inline void readDataTile(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data,
+__attribute__((always_inline))
+void readDataTile(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data,
 						int tile_y, int tile_x,
 						uint gbl_stride, uint gbl_base,
 						uint lcl_stride, uint lcl_base,
@@ -150,16 +116,7 @@ static inline void readDataTile(__local _FLOAT *lcl_data, const __global _FLOAT 
 
 
 
-static inline void readWeights(__local _FLOAT *lcl_data, const __global _FLOAT * gbl_data, uint p_id, uint p_stride, uint size, uint lcl_stride, uint gbl_stride)
-{
-	for(uint i = p_id; i < size; i+= p_stride)
-	{
-		uint lcl_out = i/lcl_stride;
-		uint lcl_we = i - mul24(lcl_out, lcl_stride);
 
-		lcl_data[i] = gbl_data[mad24(lcl_out,gbl_stride,lcl_we)];
-	}
-}
 
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0,MLO_GRP_SZ1,MLO_GRP_SZ2)))
@@ -247,7 +204,7 @@ __kernel void MIOpenCDFGen(
 			uint lcl_o_i = i - lcl_o * (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
 #else
 			uint lcl_o = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
-			uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1i - 1);
+			uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
 			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
@@ -492,7 +449,7 @@ _FLOAT padding_val
                         uint lcl_o_i = i - lcl_o * (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
 #else
                         uint lcl_o = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
-                        uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1i - 1);
+                        uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
 			lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];

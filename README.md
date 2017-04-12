@@ -89,13 +89,13 @@ This will install the library to the `CMAKE_INSTALL_PREFIX` path that was set.
 
 ## Building the driver
 
-MIOpen provides an [application-driver](https://github.com/AMDComputeLibraries/MIOpen/tree/develop/driver) which can be used to execute any one particular layer in isolation and measure performance and verification of the library. \
+MIOpen provides an [application-driver](https://github.com/AMDComputeLibraries/MLOpen/tree/develop/driver) which can be used to execute any one particular layer in isolation and measure performance and verification of the library. \
 
 The driver can be built using the `MIOpenDriver` target:
 
 ` cmake --build . --config Release --target MIOpenDriver ` **OR** ` make MIOpenDriver `
 
-Documentation on how to run the driver is [here](https://github.com/AMDComputeLibraries/MIOpen/blob/develop/driver/README.md) 
+Documentation on how to run the driver is [here](https://github.com/AMDComputeLibraries/MLOpen/blob/develop/driver/README.md) 
 
 ## Running the tests
 
@@ -130,7 +130,7 @@ For windows you may need to specify the MSVC generator, like so:
 cd .../MIOpen
 mkdir build
 cd ./build
-cmake .. -G "Visual Studio 14 2015 Win64 -DMIOPEN_BACKEND=OpenCL"
+cmake .. -G "Visual Studio 14 2015 Win64" -DMIOPEN_BACKEND=OpenCL
 ```
 * Open VS15
 * Open SuperBuild.MIOpen.sln

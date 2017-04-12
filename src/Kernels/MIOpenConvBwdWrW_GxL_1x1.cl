@@ -33,42 +33,16 @@
 
 
 
-#define MLO_HW_WAVE_ID_SETTING 0
 
-#if MLO_HW_WAVE_ID_SETTING
-extern __attribute__((const)) uint __hsail_get_dynwave_id(void);
-static inline int getWaveId()
-{
-	int wave_id = 0;
-
-	wave_id = __hsail_get_dynwave_id();
-	wave_id = wave_id & MLO_N_PHYS_WAVES_MASK;
-	return(wave_id);
-}
-#else
-inline int getWaveId()
-{
-	int wave_id = 0;
-
-	wave_id = (get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ);
-
-	return(wave_id);
-}
-#endif
-
-inline int gePhysLocalId()
-{
-	int lcl_wave_id = get_local_id(0) - ((get_local_id(0) >> MLO_LG2_PHYS_WAVE_SZ) << MLO_LG2_PHYS_WAVE_SZ);
-	return(lcl_wave_id);
-}
-
-inline int iDiv(int v, int d)
+__attribute__((always_inline))
+int iDiv(int v, int d)
 {
 	int r = (int)((float)v / d + 0.00001f);
 	return(r);
 }
 
-inline int iMod(int v, int u, int d)
+__attribute__((always_inline))
+int iMod(int v, int u, int d)
 {
 	int r = v - mul24((int)u, (int)d);
 	return(r);
@@ -111,7 +85,8 @@ static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c,
 
 	no guard against number of inputs
 */
-static inline void readData(int n, int gbl_data_off, int gbl_data_stride, int map_stride, int map_base,  int map_limit, const __global _FLOAT * g_data, __private _FLOAT * p_data, bool last_pixel)
+__attribute__((always_inline))
+void readData(int n, int gbl_data_off, int gbl_data_stride, int map_stride, int map_base,  int map_limit, const __global _FLOAT * __restrict g_data, __private _FLOAT * __restrict p_data, bool last_pixel)
 {
 	for (int j = 0; j < n; ++j)
 	{
@@ -148,7 +123,8 @@ static inline void readData(int n, int gbl_data_off, int gbl_data_stride, int ma
 
 }
 
-static inline void readDataFlex(int n, int gbl_data_off, int gbl_data_stride, int map_stride, int map_base,  int map_limit, const __global _FLOAT * g_data, __local _FLOAT * l_data)
+__attribute__((always_inline))
+void readDataFlex(int n, int gbl_data_off, int gbl_data_stride, int map_stride, int map_base,  int map_limit, const __global _FLOAT * __restrict g_data, __local _FLOAT * __restrict l_data)
 {
 
 
@@ -158,11 +134,25 @@ static inline void readDataFlex(int n, int gbl_data_off, int gbl_data_stride, in
 	    int r = 0;
 		int k0 = l;
 #if MLO_N_LCL_OUT_MAPS > 1
+#if (map_stride* MLO_MAP_WK_SZ) &  (map_stride*MLO_MAP_WK_SZ - 1)
 		r = iDiv(l, map_stride* MLO_MAP_WK_SZ);  // maps row
 		k0 = iMod(l, r, map_stride* MLO_MAP_WK_SZ);
+#else
+		r = ((uint)l / (map_stride* MLO_MAP_WK_SZ));  // maps row
+		k0 = ((uint)l & (map_stride* MLO_MAP_WK_SZ-1));
+
 #endif
+#endif
+
+#if (MLO_MAP_WK_SZ) &  (MLO_MAP_WK_SZ - 1)
+
 		int k = iDiv(k0, MLO_MAP_WK_SZ);  // map column
 		int p4 = iMod(k0, k, MLO_MAP_WK_SZ); // pixel block
+#else
+		int k = ((uint)k0 / MLO_MAP_WK_SZ);  // map column
+		int p4 = ((uint)k0 & (MLO_MAP_WK_SZ-1)); // pixel block
+
+#endif
 
 		bool last_pixel = (p4 == MLO_MAP_WK_SZ -1);
 
@@ -188,7 +178,6 @@ static inline void readDataFlex(int n, int gbl_data_off, int gbl_data_stride, in
 		else
 #endif
 		{
-//			*(MLO_READ_TYPE*)&p_data[j*MLO_READ_UNIT] = *(__global MLO_READ_TYPE*)&g_data[gbl_data_off + j*gbl_data_stride*MLO_OUT_STACKS];
 			for (int i = 0; i < MLO_READ_UNIT; ++i)
 			{
 				p_data[i] = g_data[gbl_data_off0 + i];
@@ -227,12 +216,9 @@ static inline void readDataFlex(int n, int gbl_data_off, int gbl_data_stride, in
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
 __kernel void MIOpenCvBwdWrW(
-	const __global _FLOAT * top_df,
-	const __global _FLOAT * bot,
-	__global _FLOAT * weights_df,
-#if MLO_CONV_BIAS
-	__global _FLOAT * bias_df,
-#endif
+	const __global _FLOAT * __restrict top_df,
+	const __global _FLOAT * __restrict bot,
+	__global _FLOAT * __restrict weights_df,
 	_FLOAT padding_val
 )
 {
@@ -242,9 +228,7 @@ __kernel void MIOpenCvBwdWrW(
 	__local _FLOAT * red_mem = lcl_mem;
 	__local _FLOAT * proc_mem = lcl_mem;
 
-	int wave_id = getWaveId();
 	int lcl_id = get_local_id(0);
-	int lcl_wv_id = gePhysLocalId();
 
 	int k_idx = get_group_id(0) * (MLO_OUT_STACKS * MLO_N_LCL_OUT_MAPS); // output map index base
 
@@ -396,8 +380,16 @@ __kernel void MIOpenCvBwdWrW(
 	// do final summation
 
 	__private _FLOAT final_sum[1] = { 0 };
+
+#if MLO_ACCUM_SZ & (MLO_ACCUM_SZ-1)
 	int new_m_idx = iDiv(lcl_id, MLO_ACCUM_SZ);
 	int new_p4 = iMod(lcl_id, new_m_idx, MLO_ACCUM_SZ);
+#else
+	int new_m_idx = ((uint)lcl_id / MLO_ACCUM_SZ);
+	int new_p4 = ((uint)lcl_id & (MLO_ACCUM_SZ-1));
+
+#endif
+
 	int new_red_base_off = new_m_idx * MLO_MAP_WK_SZ*MLO_ACCUM_SZ;
 
 	for (int s = 0; s < MLO_MAP_WK_SZ; ++s)
@@ -409,8 +401,17 @@ __kernel void MIOpenCvBwdWrW(
 	// inputs are outputs
 	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + ((c_idx + new_m_idx) * MLO_WEI_CHANNEL_STRIDE);
 
+#if MLO_N_LCL_IN_MAPS & (MLO_N_LCL_IN_MAPS-1)
+
 	int n = iDiv(new_p4, MLO_N_LCL_IN_MAPS);
 	int c = iMod(new_p4, n, MLO_N_LCL_IN_MAPS);
+#else
+
+	int n = ((uint)new_p4 / MLO_N_LCL_IN_MAPS);
+	int c = ((uint)new_p4 & (MLO_N_LCL_IN_MAPS-1));
+#endif
+
+
 	int k = 0;
 
 	if (new_m_idx < MLO_IN_STACKS &&k_idx + k*MLO_OUT_STACKS + n < MLO_N_OUTPUTS && c_idx + new_m_idx + c*MLO_IN_STACKS < MLO_N_INPUTS)
@@ -466,17 +467,22 @@ __kernel void MIOpenCvBwdWrW(
 	// inputs are outputs
 	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + ((c_idx + m_idx) * MLO_WEI_CHANNEL_STRIDE);
 
-
-	for (int n = 0; n < MLO_OUT_STACKS && p4 == 0 && m_idx < MLO_IN_STACKS; ++n)
+	if (p4 == 0)
 	{
-		for (int k = 0; k < MLO_N_LCL_OUT_MAPS && k_idx + k*MLO_OUT_STACKS + n < MLO_N_OUTPUTS; ++k)
+		for (int n = 0; n < MLO_OUT_STACKS  ; ++n)
 		{
-			for (int c = 0; c < MLO_N_LCL_IN_MAPS && c_idx + m_idx + c*MLO_IN_STACKS < MLO_N_INPUTS; ++c)
+			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 			{
-				weights_df[wei_df_off + (k*MLO_OUT_STACKS + n)*MLO_WEI_BATCH_STRIDE + c*MLO_IN_STACKS*MLO_WEI_CHANNEL_STRIDE] = pvt_accum[(k*MLO_OUT_STACKS + n)*MLO_N_LCL_IN_MAPS + c];
+				for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
+				{
+					if (m_idx < MLO_IN_STACKS && k_idx + k*MLO_OUT_STACKS + n < MLO_N_OUTPUTS && c_idx + m_idx + c*MLO_IN_STACKS < MLO_N_INPUTS)
+					{
+						weights_df[wei_df_off + (k*MLO_OUT_STACKS + n)*MLO_WEI_BATCH_STRIDE + c*MLO_IN_STACKS*MLO_WEI_CHANNEL_STRIDE] = pvt_accum[(k*MLO_OUT_STACKS + n)*MLO_N_LCL_IN_MAPS + c];
+					}
+
+				}
 
 			}
-
 		}
 	}
 
