@@ -7,7 +7,11 @@ if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
 endif()
 
 # Default installation path
-set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
+if(WIN32)
+	set(CMAKE_INSTALL_PREFIX "/opt/rocm/x86_64-w64-mingw32" CACHE PATH "")
+else()
+	set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
+endif()
 
 project ( MIOpen C CXX )
 set(MIOpen_VERSION_MAJOR 0)
