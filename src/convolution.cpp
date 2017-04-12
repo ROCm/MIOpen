@@ -69,7 +69,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(
 	
 	size_t workspace_size = wei_c*wei_h*wei_w * out_h*out_w * sizeof(yDesc.GetType());
 
-	return (wei_h == 1 && wei_w == 1) ? 0 : workspace_size;
+	return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : workspace_size;
 }
 
 

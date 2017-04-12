@@ -209,11 +209,11 @@ struct HandleImpl
     }
 };
 
-Handle::Handle (miopenAcceleratorQueue_t *stream) 
+Handle::Handle (miopenAcceleratorQueue_t stream) 
 : impl(new HandleImpl())
 {
-    clRetainCommandQueue(miopen::deref(stream));
-    impl->queue = HandleImpl::AqPtr{miopen::deref(stream)};
+    clRetainCommandQueue(stream);
+    impl->queue = HandleImpl::AqPtr{stream};
     impl->context = impl->create_context_from_queue();
 }
 

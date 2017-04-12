@@ -96,7 +96,14 @@ class Driver
 {
 	public:
 	Driver() {
+#if MIOPEN_BACKEND_OPENCL
 		miopenCreate(&handle);
+#elif MIOPEN_BACKEND_HIPOC
+        hipStream_t s;
+        hipStreamCreate(&s);
+        miopenCreateWithStream(&handle,s);
+#endif
+
 		miopenGetStream(handle, &q);
 	}
 

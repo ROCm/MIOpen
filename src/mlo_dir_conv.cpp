@@ -346,12 +346,10 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 
 	// no 1x1 backward yet
 	// TODO: This currently doesn't work with the hip runtime
-#if MIOPEN_BACKEND_OPENCL
 	if (_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2D1x1());
 	}
-#endif
 	if (unaligned && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2DFwdC());
@@ -1091,20 +1089,10 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	_g_wk.push_back(gbl_wk1);
 	_g_wk.push_back(gbl_wk2);
 
-	//	_kernel_file = "MIOpenConv1x1.cl";
-	//	_kernel_name = "MIOpenConv1x1";
-	// too much overhead for small maps and few inputs
 
-	if (!isForwardDirection()/* || (small_map && (_in_width <= 8 || _in_height <= 8)) || (small_map && _n_inputs <= 256)*/)
-	{
-		_kernel_file = "MIOpenConv1x1Bwd.cl";
-		_kernel_name = "MIOpenConv1x1";
-	}
-	else
-	{
-		_kernel_file = "MIOpenConv1x1Fwd.cl";
-		_kernel_name = "MIOpenConv1x1";
-	}
+	_kernel_file = "MIOpenConv1x1.cl";
+	_kernel_name = "MIOpenConv1x1";
+
 	// see above comment
 	if (small_map)
 	{
@@ -2809,7 +2797,11 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 	int min_n_in_data_tiles = 3;
 	int min_n_stacks = 1;
 
+    // enable profiling for the handle for benchmarking
+    profile_h.EnableProfiling();
+
 	size_t localMemSize = profile_h.GetLocalMemorySize();
+	profile_h.EnableProfiling();
 
 	_hw_wave_sz = 64;
 	_dev_local_mem_sz = localMemSize; // in bytes
@@ -2963,8 +2955,8 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		{
 			grp_tl_ln[0] = 64;
 			grp_tl_ln[1] = 128;
-			grp_tl_ln[2] = 192;
-			grp_tl_ln[3] = 256;
+			grp_tl_ln[2] = 256;
+			grp_tl_ln[3] = 512;
 			n_grp_tiles1 = 1;
 			n_grp_tiles0 = 4;
 
@@ -3224,6 +3216,8 @@ int mlo_construct_direct2D :: mloSearchDirect2D()
 		mloSetConf(conf_val);
 
 	}
+
+	profile_h.EnableProfiling(false);
 
 	return(ret);
 }

@@ -88,11 +88,11 @@ struct HandleImpl
 #endif
 };
 
-Handle::Handle (miopenAcceleratorQueue_t *stream) 
+Handle::Handle (miopenAcceleratorQueue_t stream) 
 : impl(new HandleImpl())
 {
     if (stream == nullptr) this->impl->stream = HandleImpl::reference_stream(nullptr);
-    else this->impl->stream = HandleImpl::reference_stream(*stream);
+    else this->impl->stream = HandleImpl::reference_stream(stream);
 }
 
 Handle::Handle ()
