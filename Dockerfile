@@ -30,6 +30,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libpthread-stubs0-dev \
     mingw-w64 \
     mingw-w64-tools \
+    nsis \
     python \
     python-dev \
     python-pip \
