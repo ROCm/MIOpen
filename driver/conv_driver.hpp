@@ -143,9 +143,9 @@ class ConvDriver : public Driver
 
 	miopenConvolutionDescriptor_t convDesc;
 
-    std::string GetVerificationCashFileName();
-    bool ReadVerificationCash(std::string file_name, miopenTensorDescriptor_t& tensorDesc, T* data);
-    void SaveVerificationCash(std::string file_name, std::vector<T>& data);
+    std::string GetVerificationCacheFileName() const;
+    bool TryReadVerificationCache(const std::string& file_name, miopenTensorDescriptor_t& tensorDesc, T* data) const;
+    void TrySaveVerificationCache(const std::string& file_name, std::vector<T>& data) const;
 };
 
 template<typename T>
@@ -195,7 +195,7 @@ int ConvDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
-    inflags.AddInputFlag("fast_verify", 'f', "", "Path to verification results cash (Default=)", "string");
+	inflags.AddInputFlag("verification_cache", 'C', "", "Use specified directory to cache verification data. Boosts verification. Empty (default) to disable.", "string");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
 	inflags.AddInputFlag("wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 	inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
@@ -295,9 +295,10 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 
     std::string inFileName = inflags.GetValueStr("in_data");
     std::string weiFileName = inflags.GetValueStr("weights");
-    
+
+    /* Unless seed is persistent between runs validation using cash stored in file is impossible. */
     srand(0);
-    
+ 
     bool dataRead = false;
     if(!inFileName.empty()) {
         dataRead = readBufferFromFile(in.data(), in_sz, inFileName.c_str());
@@ -522,11 +523,11 @@ int ConvDriver<T>::RunForwardCPU() {
 		}
 	}
 
-    if(inflags.GetValueInt("dump_output")) {
-        dumpBufferToFile("dump_fwd_out_cpu.bin", outhost.data(), outhost.size());
-    }
+	if(inflags.GetValueInt("dump_output")) {
+		dumpBufferToFile("dump_fwd_out_cpu.bin", outhost.data(), outhost.size());
+	}
 
-    SaveVerificationCash("fwd_out", outhost);
+	TrySaveVerificationCache("fwd_out", outhost);
 	return 0;
 }
 
@@ -736,7 +737,7 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 		dumpBufferToFile("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
 	}
 
-    SaveVerificationCash("bwd_wei", dwei_host);
+	TrySaveVerificationCache("bwd_wei", dwei_host);
 	return 0;
 }
 
@@ -796,7 +797,7 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 		dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
 	}
 
-    SaveVerificationCash("bwd_dat", din_host);
+	TrySaveVerificationCache("bwd_dat", din_host);
 	return 0;
 }
 
@@ -830,35 +831,21 @@ int ConvDriver<T>::RunBackwardBiasCPU() {
         dumpBufferToFile("dump_bwd_db_cpu.bin", db_host.data(), db_host.size());
     }
 
-    SaveVerificationCash("bwd_bai", db_host);
+    TrySaveVerificationCache("bwd_bai", db_host);
     return 0;
 }
 
 template<typename T>
-std::string ConvDriver<T>::GetVerificationCashFileName() {
+std::string ConvDriver<T>::GetVerificationCacheFileName() const {
     std::ostringstream ss;
 
     miopenConvolutionMode_t mode;
     int pad_h, pad_w, u, v, sx, sy;
     miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &sx, &sy);
 
-    /*
-          std::to_string(static_cast<long long>(_n_inputs))
-		+ std::string("x") + std::to_string(static_cast<long long>(_in_height))
-		+ std::string("x") + std::to_string(static_cast<long long>(_in_width))
-		+ std::string("x") + std::to_string(static_cast<long long>(_kernel_size1))
-		+ std::string("x") + std::to_string(static_cast<long long>(_kernel_size0))
-		+ std::string("x") + std::to_string(static_cast<long long>(_n_outputs))
-		+ std::string("x") + std::to_string(static_cast<long long>(_out_height))
-		+ std::string("x") + std::to_string(static_cast<long long>(_out_width))
-		+ std::string("x") + std::to_string(static_cast<long long>(_batch_sz))
-		+ std::string("x") + _in_layout
-		+ std::string("x") + _in_data_type
-    */
-
-    const auto inputDesc = GetTensorLengths(inputTensor);
-    const auto weiDesc = GetTensorLengths(weightTensor);
-    const auto outDesc = GetTensorLengths(outputTensor);
+    const auto inputDesc = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(inputTensor));
+    const auto weiDesc = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(weightTensor));
+    const auto outDesc = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(outputTensor));
 
     ss  <<        inputDesc[1] //_n_inputs
         << "x" << inputDesc[2] //_in_height
@@ -882,12 +869,11 @@ std::string ConvDriver<T>::GetVerificationCashFileName() {
 }
 
 template<typename T>
-bool ConvDriver<T>::ReadVerificationCash(std::string file_name, miopenTensorDescriptor_t& tensorDesc, T* data)
-{
-    const auto verification_cash_path = inflags.GetValueStr("fast_verify");
+bool ConvDriver<T>::TryReadVerificationCache(const std::string& file_name, miopenTensorDescriptor_t& tensorDesc, T* data) const {
+    const auto verification_cache_path = inflags.GetValueStr("fast_verify");
 
-    if (!verification_cash_path.empty()) {
-        const auto file_path = verification_cash_path + "/" + file_name + "_" + GetVerificationCashFileName();
+    if (!verification_cache_path.empty()) {
+        const auto file_path = verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
         if (std::ifstream(file_path).good()) {
             if (readBufferFromFile(data, GetTensorSize(tensorDesc), file_path.c_str())) {
                 return true;
@@ -899,11 +885,10 @@ bool ConvDriver<T>::ReadVerificationCash(std::string file_name, miopenTensorDesc
 }
 
 template<typename T>
-void ConvDriver<T>::SaveVerificationCash(std::string file_name, std::vector<T>& data)
-{
-    const auto verification_cash_path = inflags.GetValueStr("fast_verify");
-    if (!verification_cash_path.empty()) {
-        const auto file_path = verification_cash_path + "/" + file_name + "_" + GetVerificationCashFileName();
+void ConvDriver<T>::TrySaveVerificationCache(const std::string& file_name, std::vector<T>& data) const {
+    const auto verification_cache_path = inflags.GetValueStr("fast_verify");
+    if (!verification_cache_path.empty()) {
+        const auto file_path = verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
         dumpBufferToFile(file_path.c_str(), data.data(), data.size());
     }
 }
@@ -911,7 +896,7 @@ void ConvDriver<T>::SaveVerificationCash(std::string file_name, std::vector<T>& 
 template<typename T>
 int ConvDriver<T>::VerifyForward() {
 
-    if (!ReadVerificationCash("fwd_out", outputTensor, outhost.data())) {
+    if (!TryReadVerificationCache("fwd_out", outputTensor, outhost.data())) {
         RunForwardCPU();
     }
 
@@ -933,9 +918,9 @@ template<typename T>
 int ConvDriver<T>::VerifyBackward() {
 	const double tolerance = 1e-6;
 
-    if (!ReadVerificationCash("bwd_dat", inputTensor, din_host.data())) {
-        RunBackwardDataCPU();
-    }
+	if (!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data())) {
+		RunBackwardDataCPU();
+	}
 
 	auto error_data = miopen::rms_range (din_host, din);
 
@@ -948,9 +933,9 @@ int ConvDriver<T>::VerifyBackward() {
 		printf("Backward Convolution Data Verifies on CPU and GPU\n");
 	}
 
-    if (!ReadVerificationCash("bwd_wei", weightTensor, dwei_host.data())) {
-        RunBackwardWeightsCPU();
-    }
+	if (!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data())) {
+		RunBackwardWeightsCPU();
+	}
 
 	auto error_weights = miopen::rms_range(dwei_host, dwei);
 	if (!(error_weights < tolerance))
@@ -962,21 +947,21 @@ int ConvDriver<T>::VerifyBackward() {
 		printf("Backward Convolution Weights Verifies on CPU and GPU\n");
 	}
 
-    if (inflags.GetValueInt("bias") != 0){
-        if (!ReadVerificationCash("bwd_bai", biasTensor, db_host.data())) {
-            RunBackwardBiasCPU();
-        }
+	if (inflags.GetValueInt("bias") != 0){
+		if (!TryReadVerificationCache("bwd_bai", biasTensor, db_host.data())) {
+			RunBackwardBiasCPU();
+		}
 
-        auto error_bias = miopen::rms_range(db_host, db);
-        if (!(error_bias < tolerance))
-        {
-            std::cout << std::string("Backward Convolution Bias Failed: ") << error_bias << std::string("\n");
-        }
-        else
-        {
-            printf("Backward Convolution Bias Verifies on CPU and GPU\n");
-        }
-    }
+		auto error_bias = miopen::rms_range(db_host, db);
+		if (!(error_bias < tolerance))
+		{
+			std::cout << std::string("Backward Convolution Bias Failed: ") << error_bias << std::string("\n");
+		}
+		else
+		{
+			printf("Backward Convolution Bias Verifies on CPU and GPU\n");
+		}
+	}
 
 	return 0;
 }
