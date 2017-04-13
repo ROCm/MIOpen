@@ -50,6 +50,7 @@ if(MIOPEN_TEST_EXTRA)
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 79 341  --weights 32 32 5 10 --filter 0 0 2 2
     )
+endif()
 
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench
