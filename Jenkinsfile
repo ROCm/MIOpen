@@ -44,6 +44,7 @@ def rocmtest(variant, body) {
     def cmake_build = { compiler, flags ->
         def cmd = """
             echo \$HSA_ENABLE_SDMA
+            mkdir -p $WINEPREFIX
             rm -rf build
             mkdir build
             cd build
@@ -59,6 +60,7 @@ def rocmtest(variant, body) {
             // env.HCC_SERIALIZE_COPY=3
             env.HSA_ENABLE_SDMA=0
             // env.HSA_ENABLE_INTERRUPT=0
+            env.WINEPREFIX="/jenkins/.wine"
             checkout scm
         }
         stage("image ${variant}")
