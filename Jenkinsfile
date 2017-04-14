@@ -31,6 +31,12 @@ parallel opencl: {
             cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
         }
     }
+}, windows: {
+    rocmtest('windows') { cmake_build ->
+        stage('Windows Release') {
+            cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
+        }
+    }
 }
 
 def rocmtest(variant, body) {
@@ -38,15 +44,12 @@ def rocmtest(variant, body) {
     def cmake_build = { compiler, flags ->
         def cmd = """
             echo \$HSA_ENABLE_SDMA
+            mkdir -p $WINEPREFIX
             rm -rf build
             mkdir build
             cd build
             CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-            if [ "${compiler}" != "hcc" ]; then
-                CTEST_PARALLEL_LEVEL=32 dumb-init make MIOpenDriver -j32 check
-            else 
-                CTEST_PARALLEL_LEVEL=32 dumb-init make -j32 check
-            fi
+            CTEST_PARALLEL_LEVEL=32 dumb-init make MIOpenDriver -j32 check
         """
         echo cmd
         sh cmd
@@ -57,6 +60,7 @@ def rocmtest(variant, body) {
             // env.HCC_SERIALIZE_COPY=3
             env.HSA_ENABLE_SDMA=0
             // env.HSA_ENABLE_INTERRUPT=0
+            env.WINEPREFIX="/jenkins/.wine"
             checkout scm
         }
         stage("image ${variant}")
