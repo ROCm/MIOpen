@@ -870,7 +870,7 @@ std::string ConvDriver<T>::GetVerificationCacheFileName() const {
 
 template<typename T>
 bool ConvDriver<T>::TryReadVerificationCache(const std::string& file_name, miopenTensorDescriptor_t& tensorDesc, T* data) const {
-    const auto verification_cache_path = inflags.GetValueStr("fast_verify");
+    const auto verification_cache_path = inflags.GetValueStr("verification_cache");
 
     if (!verification_cache_path.empty()) {
         const auto file_path = verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
@@ -886,7 +886,7 @@ bool ConvDriver<T>::TryReadVerificationCache(const std::string& file_name, miope
 
 template<typename T>
 void ConvDriver<T>::TrySaveVerificationCache(const std::string& file_name, std::vector<T>& data) const {
-    const auto verification_cache_path = inflags.GetValueStr("fast_verify");
+    const auto verification_cache_path = inflags.GetValueStr("verification_cache");
     if (!verification_cache_path.empty()) {
         const auto file_path = verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
         dumpBufferToFile(file_path.c_str(), data.data(), data.size());
