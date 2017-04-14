@@ -203,7 +203,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 		BuildProgram(result, device);
 	} else {
 		result = CreateProgram(ctx, source.data(), source.size());
-#if MIOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV && defined(__linux__)
 		params += " -Werror -Weverything -Wno-shorten-64-to-32 -Wno-unused-macros -Wno-unused-function -Wno-sign-compare -Wno-reserved-id-macro -Wno-sign-conversion -Wno-missing-prototypes -Wno-cast-qual";
 #endif
 		BuildProgram(result, device, params + " -cl-std=CL1.2");
