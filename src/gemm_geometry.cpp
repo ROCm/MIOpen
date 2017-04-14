@@ -54,7 +54,7 @@ void GemmGeometry::FindSolution(float time,
             kernel_name,
             vld,
             vgd,
-            "");
+            " -w ");
 
     // beta kernel
     if(beta != 1.0 && !soln.betac_kernel.empty())

@@ -30,6 +30,8 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define UNUSED __attribute__((__unused__))
+
 #ifndef MLO_FILTER_STRIDE0
 #define MLO_FILTER_STRIDE0 1
 #endif
@@ -159,10 +161,10 @@ static inline uint calculateOffset(uint stride, uint x, uint y)
 	return(ret);
 }
 
-static inline void readDataElem(uint linPos,__local _FLOAT *lcl_data, int lcl_base, uint lcl_height, uint lcl_width, int lcl_stride, int lcl_y, int lcl_x,
-					 const __global _FLOAT * gbl_data, int gbl_base, uint gbl_height, uint gbl_width, int gbl_stride, int gbl_y, int gbl_x,
+static inline void readDataElem(uint linPos,__local _FLOAT *lcl_data, int lcl_base, UNUSED uint lcl_height, uint lcl_width, int lcl_stride, int lcl_y, int lcl_x,
+					 const __global _FLOAT * gbl_data, int gbl_base, UNUSED uint gbl_height, UNUSED uint gbl_width, int gbl_stride, int gbl_y, int gbl_x,
 					 bool vis,
-					 bool debug)
+					 UNUSED bool debug)
 {
 	uint x, y;
 	calculateXYPos(linPos, lcl_width, &x, &y);
@@ -356,7 +358,7 @@ __kernel void MIOpenConvUni(
        const __global _FLOAT * __restrict bias,
 #endif
 	  __global _FLOAT * __restrict out,
-	   _FLOAT padding_val
+	   UNUSED _FLOAT padding_val
 	   )
 {
 	__local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
@@ -433,8 +435,8 @@ __kernel void MIOpenConvUni(
 #else
 	uint x_grp = x_tile_blk * (MLO_IN_TILE0 / MLO_FILTER_STRIDE0);
 	uint y_grp = y_tile_blk * (MLO_IN_TILE1 / MLO_FILTER_STRIDE1);
-	uint x_in_grp = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
-	uint y_in_grp = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
+	// uint x_in_grp = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
+	// uint y_in_grp = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
 	uint x_in_lcl = alu_tl0 * (MLO_OUT_TILE0 / MLO_FILTER_STRIDE0);
 	uint y_in_lcl = alu_tl1 * (MLO_OUT_TILE1 / MLO_FILTER_STRIDE1);
 #endif
