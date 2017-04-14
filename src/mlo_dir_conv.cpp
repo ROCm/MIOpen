@@ -345,7 +345,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
 
 	// no 1x1 backward yet
-	// TODO: This currently doesn't work with the hip runtime
 	if (_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2D1x1());
