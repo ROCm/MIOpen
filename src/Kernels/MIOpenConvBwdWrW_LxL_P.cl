@@ -31,6 +31,8 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define UNUSED __attribute__((__unused__))
+
 #define DBG_OUT_OF_RNGE 0
 // number of filter taps in the processing wk_item
 //#define MLO_WEI_WKITEM 5
@@ -168,7 +170,7 @@ __kernel void MIOpenCvBwdWrW(
 #if MLO_CONV_BIAS
 	__global _FLOAT * __restrict bias_df,
 #endif
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 
@@ -317,22 +319,22 @@ __kernel void MIOpenCvBwdWrW(
 // TODO:: HANDLE multiple INPUTS 
 // an overshoot has to be handled by zero outing output			
 			gbl_in_scan_off = gbl_in_off + mul24(in_y, ( uint )MLO_IN_STRIDE);
-			uint c_scan = 0;
+			uint c_scan2 = 0;
 			for (uint p4 = lcl_id; p4 < MLO_N_IN_HORIZ_READS * (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1);
 				p4 += MLO_GRP_SZ)
 			{
-				c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
+				c_scan2 = iDiv(p4, MLO_N_IN_HORIZ_READS);
 
-				uint c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
+				uint c_pix4 = iMod(p4, c_scan2, MLO_N_IN_HORIZ_READS);
 
 				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					in_rd_data[i] = 0;
 				}
 
-				if (in_y + c_scan < MLO_IN_HEIGHT)
+				if (in_y + c_scan2 < MLO_IN_HEIGHT)
 				{
-					uint bot_off = gbl_in_scan_off + c_scan * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
+					uint bot_off = gbl_in_scan_off + c_scan2 * MLO_IN_STRIDE + c_pix4*MLO_READ_UNIT;
 
 #if MLO_IN_N_PIXS_OFF > 0
 					if (c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -375,7 +377,7 @@ __kernel void MIOpenCvBwdWrW(
 
 				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					uint lcl_off = (c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
+					uint lcl_off = (c_scan2 + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
 					lcl_bot[lcl_off + i] = in_rd_data[i];
 #if 0
 					if (lcl_id == 0 && p4 == 0)
@@ -598,7 +600,7 @@ __kernel void MIOpenCvBwdWrW(
 
 
 // move the input data tail inside LDS to reduce mem bandwidth
-			for (uint c_scan = 0; c_scan < (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1); ++c_scan)
+			for (uint c_scan3 = 0; c_scan3 < (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1); ++c_scan3)
 			{
 				barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -609,8 +611,8 @@ __kernel void MIOpenCvBwdWrW(
 
 					for (uint i = 0; i < MLO_READ_UNIT; ++i)
 					{
-						lcl_bot[c_scan*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i]
-							= lcl_bot[(c_scan + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i];
+						lcl_bot[c_scan3*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i]
+							= lcl_bot[(c_scan3 + (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1))*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i];
 					}
 
 				}
@@ -624,9 +626,6 @@ __kernel void MIOpenCvBwdWrW(
 
 // send it out
 	  // inputs are outputs
-	uint wei_df_off = ((ib * MLO_N_OUTPUTS + o_idx) * (uint)MLO_WEI_BATCH_STRIDE)
-		// this input channel
-		+ mul24(c_idx, (uint)MLO_WEI_CHANNEL_STRIDE);
 
 	uint wei_lcl_off = 0;
 	_FLOAT final_sum = 0;
