@@ -65,10 +65,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <tuple>
 
 
-#ifdef WIN32
+#ifdef _WIN32
  #include <io.h>
  #include <windows.h>
- #include <BaseTsd.h>
+ // #include <BaseTsd.h>
  #include <direct.h>
  #define snprintf _snprintf
  #define vsnprintf _vsnprintf

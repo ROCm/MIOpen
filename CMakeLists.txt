@@ -7,7 +7,11 @@ if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
 endif()
 
 # Default installation path
-set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
+if(WIN32)
+	set(CMAKE_INSTALL_PREFIX "/opt/rocm/x86_64-w64-mingw32" CACHE PATH "")
+else()
+	set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
+endif()
 
 project ( MIOpen C CXX )
 set(MIOpen_VERSION_MAJOR 0)
@@ -25,7 +29,7 @@ list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
 ############################################################
 # require C++11
-add_compile_options(-std=c++11)
+add_compile_options(-std=gnu++11)
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -35,6 +39,12 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
 	set(MIOPEN_DEFAULT_BACKEND "HIPOC")
 else()
 	set(MIOPEN_DEFAULT_BACKEND "OpenCL")
+endif()
+
+if(WIN32 AND CMAKE_CROSSCOMPILING)
+	set(WINE_CMD "wine")
+else()
+	set(WINE_CMD)
 endif()
 
 
@@ -116,8 +126,10 @@ message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
 # tinygemm
 if(tinygemm_FOUND)
+	message(STATUS "Build with tinygemm")
 	add_definitions(-DMIOPEN_USE_TINYGEMM=1)
 else()
+	message(STATUS "Build without tinygemm")
 	add_definitions(-DMIOPEN_USE_TINYGEMM=0)
 endif()
 
@@ -202,6 +214,10 @@ enable_clang_tidy(
 	ANALYZE_TEMPORARY_DTORS ON
 
 )
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 add_subdirectory(AddKernels)
 add_subdirectory(src)
