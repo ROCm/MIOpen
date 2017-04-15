@@ -203,7 +203,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 		BuildProgram(result, device);
 	} else {
 		result = CreateProgram(ctx, source.data(), source.size());
-#if MIOPEN_BUILD_DEV && defined(__linux__)
+#if MIOPEN_BUILD_DEV
 		params += " -Werror";
 #endif
 		params += " -cl-std=CL1.2";
