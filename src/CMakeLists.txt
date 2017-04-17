@@ -164,7 +164,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 	add_custom_target(addkernels_run
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		DEPENDS addkernels
-		COMMAND $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${MIOPEN_KERNELS}
+		COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${MIOPEN_KERNELS}
 		)
 	
 	add_dependencies(MIOpen addkernels_run)
@@ -201,6 +201,12 @@ if(tinygemm_FOUND)
 	target_link_libraries( MIOpen tinygemm )
 endif()
 
+if(WIN32 AND NOT MSVC)
+	if(BUILD_DEV)
+		target_link_libraries(MIOpen -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
+	endif()
+	target_link_libraries(MIOpen -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
+endif()
 
 ############################################################
 # Installation

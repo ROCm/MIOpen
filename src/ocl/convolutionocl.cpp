@@ -1,5 +1,6 @@
 #include <miopen/convolution.hpp>
 #include <miopen/util.hpp>
+#include <miopen/env.hpp>
 
 #if MIOPEN_USE_TINYGEMM
 #include <miopen/gemm.hpp>
@@ -81,6 +82,11 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         std::vector<KernelInvoke>&      kernels,
         bool                            exhaustiveSearch,
         int                             direction) const {
+
+	// Disable running any Direct convolutions (Fwd) by checking this env variable
+    // Cannot disable bwd convolutions until col2im+gemm is functional
+	if(direction == 1 && miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_CONV_DIRECT"))
+		return -1;
 
     mlo_construct_direct2D construct_params(direction); 
     construct_params.doSearch(exhaustiveSearch);
