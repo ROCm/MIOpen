@@ -195,7 +195,7 @@ int ConvDriver<T>::AddCmdLineArgs() {
 	inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
 	inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
 	inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
-	inflags.AddInputFlag("verification_cache", 'C', "", "Use specified directory to cache verification data. Boosts verification. Empty (default) to disable.", "string");
+	inflags.AddInputFlag("verification_cache", 'C', "", "Use specified directory to cache verification data. Off by default.", "string");
 	inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
 	inflags.AddInputFlag("wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 	inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
