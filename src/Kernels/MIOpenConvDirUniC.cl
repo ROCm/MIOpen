@@ -121,14 +121,14 @@ static inline uint calculateOffset(uint stride, uint x, uint y)
 }
 
 static inline void readDataElem(uint linPos,__local _FLOAT *lcl_data, uint lcl_base, uint lcl_height, uint lcl_width, uint lcl_stride, uint lcl_y, uint lcl_x,
-					 const __global _FLOAT * gbl_data, uint gbl_base, uint gbl_height, uint gbl_width, uint gbl_stride, uint gbl_y, uint gbl_x,
+					 const __global _FLOAT * gbl_data, uint gbl_base, uint gbl_height, uint gbl_width, uint gbl_stride, int gbl_y, int gbl_x,
 					 bool vis,
 					 bool debug)
 {
 	uint x, y;
 	calculateXYPos(linPos, lcl_width, &x, &y);
-	uint g_x = x + gbl_x;
-	uint g_y = y + gbl_y;
+	int g_x = x + gbl_x;
+	int g_y = y + gbl_y;
 	uint gbl_off0 = calculateOffset(gbl_stride, g_x, g_y);
 	uint gbl_off = gbl_off0 + gbl_base;
 
@@ -156,7 +156,7 @@ static inline void readDataElem(uint linPos,__local _FLOAT *lcl_data, uint lcl_b
 
 
 static inline void readData(uint lcl_id, uint size, uint lcl_p_stride, __local _FLOAT *lcl_data, uint lcl_base, uint lcl_height, uint lcl_width, uint lcl_stride, uint lcl_y, uint lcl_x,
-					 const __global _FLOAT * gbl_data, uint gbl_base, uint gbl_height, uint gbl_width, uint gbl_stride, uint gbl_y, uint gbl_x,
+					 const __global _FLOAT * gbl_data, uint gbl_base, uint gbl_height, uint gbl_width, uint gbl_stride, int gbl_y, int gbl_x,
 					 bool vis,
 					 bool debug
 					 )
@@ -176,7 +176,7 @@ static inline void loadData(uint lcl_id, uint lcl_p_stride,
 					__local _FLOAT * lcl_data,
 					uint lcl_off, uint lcl_size, uint lcl_height, uint lcl_width, uint lcl_stride, uint lcl_bot_y, uint lcl_bot_x,
 					const __global _FLOAT * gbl_data,
-					uint gbl_off, uint gbl_size, uint gbl_height, uint glb_width, uint gbl_stride, uint gbl_bot_y, uint gbl_bot_x,
+					uint gbl_off, uint gbl_size, uint gbl_height, uint glb_width, uint gbl_stride, int gbl_bot_y, int gbl_bot_x,
 					uint buf_block_ind, uint max_n_bufs, uint lcl_n_bufs,
 					bool debug)
 {
@@ -324,7 +324,7 @@ __kernel void MIOpenConvUniC(
 	uint x_tile_blk = 0;
 #else
 	uint y_tile_blk = (uint)((float)grp_id0 / (float) MLO_N_OUT_TILE_BLOCKS0 + 0.00001f);
-	uint x_tile_blk = grp_id0 - mul24(y_tile_blk, (uint)MLO_N_OUT_TILE_BLOCKS0);
+	int x_tile_blk = grp_id0 - mul24(y_tile_blk, (uint)MLO_N_OUT_TILE_BLOCKS0);
 #endif
 	uint o_pack = get_group_id(1); // block of outputs
 	uint b_pack = get_group_id(2); // batch block
@@ -355,12 +355,12 @@ __kernel void MIOpenConvUniC(
 #endif
 #endif
 
-	uint x_grp = x_tile_blk * MLO_IN_TILE0;
+	int x_grp = x_tile_blk * MLO_IN_TILE0;
 	uint y_grp = y_tile_blk * MLO_IN_TILE1;
 
 // TO DO: scale
-	uint x_in_grp = x_grp - MLO_FILTER_PAD0;
-	uint y_in_grp = y_grp - MLO_FILTER_PAD1;
+	int x_in_grp = x_grp - MLO_FILTER_PAD0;
+	int y_in_grp = y_grp - MLO_FILTER_PAD1;
 
 	uint x_in_lcl = alu_tl0 * MLO_OUT_PIX_TILE0;
 	uint y_in_lcl = alu_tl1 * MLO_OUT_PIX_TILE1;

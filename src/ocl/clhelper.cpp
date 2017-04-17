@@ -8,14 +8,14 @@
 #include <miopen/kernel.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
-#ifndef WIN32 //Linux or APPLE
+#ifndef _WIN32 //Linux or APPLE
 #include <unistd.h>
 #include <paths.h>
 #include <sys/types.h> 
 #include <sys/wait.h>
 #endif //WIN32
 
-#ifndef WIN32 //Linux or APPLE
+#ifndef _WIN32 //Linux or APPLE
 class TempFile
 {
 public:
@@ -84,7 +84,7 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
  */
 static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source, const std::string& params)
 {
-#ifndef WIN32 //Linux or APPLE
+#ifndef _WIN32 //Linux or APPLE
 	TempFile outfile("amdgcn-asm-out-XXXXXX");
 
 	std::vector<std::string> args ({
@@ -132,6 +132,7 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 		MIOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
 	}
 #else
+	(void)device; // -warning
 	(void)source; // -warning
 	(void)params; // -warning
 	MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");

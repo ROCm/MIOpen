@@ -7,7 +7,7 @@
 #include <cstdio>
 #include  <cctype>
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <ext/stdio_filebuf.h>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -16,7 +16,7 @@
 static std::string CleanupPath(const char * p);
 static int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out);
 
-#ifndef WIN32
+#ifndef _WIN32
 class Pipe
 {
 public:
@@ -88,7 +88,7 @@ std::string GetGcnAssemblerPath()
 
 bool ValidateGcnAssembler()
 {
-#ifndef WIN32
+#ifndef _WIN32
     const auto path = GetGcnAssemblerPath();
     if (path.empty()) { return false; }
     if (!std::ifstream(path).good()) { return false; }
@@ -117,7 +117,7 @@ bool ValidateGcnAssembler()
 static
 int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out)
 {
-#ifndef WIN32
+#ifndef _WIN32
     Pipe clang_stdin;
     Pipe clang_stdout;
 
