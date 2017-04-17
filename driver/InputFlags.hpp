@@ -79,13 +79,13 @@ class InputFlags
 					const std::string &_help_text, 
 					const std::string &type);
 	void Parse(int argc, char *argv[]);
-	char FindShortName(const std::string &_long_name);
-	void Print();
+	char FindShortName(const std::string &_long_name) const;
+	void Print() const;
 
-	std::string GetValueStr(const std::string &_long_name);
-	int GetValueInt(const std::string &_long_name);
-	uint64_t GetValueUint64(const std::string &_long_name);
-	double GetValueDouble(const std::string &_long_name);
+	std::string GetValueStr(const std::string &_long_name) const;
+	int GetValueInt(const std::string &_long_name) const;
+	uint64_t GetValueUint64(const std::string &_long_name) const;
+	double GetValueDouble(const std::string &_long_name) const;
 
 	virtual ~InputFlags() {}
 };
