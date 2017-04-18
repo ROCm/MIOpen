@@ -205,6 +205,9 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 		result = CreateProgram(ctx, source.data(), source.size());
 #if MIOPEN_BUILD_DEV
 		params += " -Werror";
+#ifdef __linux__
+		params += " -Wf,-Weverything -Wf,-Wno-shorten-64-to-32 -Wf,-Wno-unused-macros -Wf,-Wno-unused-function -Wf,-Wno-sign-compare -Wf,-Wno-reserved-id-macro -Wf,-Wno-sign-conversion -Wf,-Wno-missing-prototypes -Wf,-Wno-cast-qual";
+#endif
 #endif
 		params += " -cl-std=CL1.2";
 		std::cout << "BuildProgram: " << params << std::endl;
