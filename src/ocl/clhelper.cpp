@@ -210,7 +210,6 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 #endif
 #endif
 		params += " -cl-std=CL1.2";
-		std::cout << "BuildProgram: " << params << std::endl;
 		BuildProgram(result, device, params);
 	}
 	return ClProgramPtr{ result };
