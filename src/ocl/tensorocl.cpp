@@ -202,7 +202,6 @@ void OpTensor(Handle&           handle,
         MIOPEN_THROW("A and C Tensors do not match");
     }
     
-    auto a_lens = aTensorDesc.GetLengths();
     auto b_lens = bTensorDesc.GetLengths();
     auto c_lens = cTensorDesc.GetLengths();
 
@@ -259,7 +258,7 @@ void OpTensor(Handle&           handle,
     // Does the bitmap contain leading ones, i.e. 1,1,1,0 or 1,1,0,0
     // or 1,1,1,1 or 1,0,0,0
     bool leading_ones = IsBitmapLeadingOnes(bitmap, 4, (d-2));
-    if(leading_ones == true && work_per_wg < 64) {
+    if(leading_ones && work_per_wg < 64) {
         local_threads = 64;    
     }
 
