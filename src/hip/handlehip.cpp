@@ -187,6 +187,7 @@ KernelInvoke Handle::GetKernel(
 
 Program Handle::LoadProgram(const std::string &program_name, std::string params, bool is_kernel_str)
 {
+    params += " -mcpu=" + this->GetDeviceName();
     return HIPOCProgram{program_name, params, is_kernel_str};
 }
 
