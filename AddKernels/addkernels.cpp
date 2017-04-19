@@ -73,7 +73,7 @@ void WrongUsage(const std::string& error)
 	std::cout << "Wrong usage: " << error << std::endl;
 	std::cout << std::endl;
 	PrintHelp();
-	exit(1);
+	std::exit(1);
 }
 
 void UnknownArgument(const std::string& arg)
@@ -110,13 +110,23 @@ void Process(std::string sourcePath, std::ostream& target, size_t bufferSize, si
 	if (!sourceFile.good())
 	{
 		std::cerr << "File not found: " << sourcePath << std::endl;
-		exit(1);
+		std::exit(1);
 	}
 
 	if (extension == "s")
 	{
 		SourceInliner inliner;
-		inliner.Process(sourceFile, inlinerTemp, root, sourcePath);
+
+		try
+		{
+			inliner.Process(sourceFile, inlinerTemp, root, sourcePath);
+		}
+		catch (const InlineException& ex)
+		{
+			std::cerr << ex.what() << std::endl;
+			std::exit(1);
+		}
+
 		source = &inlinerTemp;
 	}
 

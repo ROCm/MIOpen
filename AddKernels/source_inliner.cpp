@@ -13,9 +13,14 @@ InlineStackOverflowException::InlineStackOverflowException(const std::string& tr
     _trace = ss.str();
 }
 
-char const* InlineStackOverflowException::what() const
+InlineFileNotFoundException::InlineFileNotFoundException(const std::string& file_name, const std::string& trace)
 {
-    return _trace.c_str();
+    std::ostringstream ss;
+
+    ss << "Include file was not found or can't be opened: <" << file_name << ">." << std::endl;
+    ss << trace;
+
+    _trace = ss.str();
 }
 
 void SourceInliner::Process(std::istream& input, std::ostream& output, const std::string& root, const std::string& file_name)
@@ -46,6 +51,9 @@ void SourceInliner::ProcessCore(std::istream& input, std::ostream& output, const
             include_file_path.pop_back();
             std::string abs_include_file_path = root + "/" + include_file_path; // TODO get abs path
             std::ifstream include_file(abs_include_file_path, std::ios::in);
+
+            if (include_file.bad())
+                throw InlineFileNotFoundException(include_file_path, GetIncludeStackTrace());
 
             ProcessCore(include_file, output, root, include_file_path, current_line);
         }
