@@ -66,7 +66,7 @@ struct GPUMem {
 #endif
 };
 
-void Usage() {
+[[gnu::noreturn]] void Usage() {
 	printf("Usage: ./driver *base_arg* *other_args*\n");
 	printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, gemm\n");
 	exit(0);
