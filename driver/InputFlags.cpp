@@ -81,7 +81,7 @@ void InputFlags::AddInputFlag(const std::string &_long_name,
 		MapInputs[_short_name] = in;
 }
 
-void InputFlags::Print()
+void InputFlags::Print() const
 {
 	printf("MIOpen Driver Input Flags: \n\n");
 
@@ -90,7 +90,7 @@ void InputFlags::Print()
 	exit(0);
 }
 
-char InputFlags::FindShortName(const std::string &long_name)
+char InputFlags::FindShortName(const std::string &long_name) const
 {
 	char short_name = '\0';
 
@@ -159,34 +159,34 @@ void InputFlags::Parse(int argc, char *argv[])
 	}
 }
 
-std::string InputFlags::GetValueStr(const std::string &long_name)
+std::string InputFlags::GetValueStr(const std::string &long_name) const
 {
 	char short_name = FindShortName(long_name);
-	std::string value = MapInputs[short_name].value;
+	std::string value = MapInputs.at(short_name).value;
 
 	return value;
 }	
 
-int InputFlags::GetValueInt(const std::string &long_name)
+int InputFlags::GetValueInt(const std::string &long_name) const
 {
 	char short_name = FindShortName(long_name);
-	int value = atoi(MapInputs[short_name].value.c_str());
+	int value = atoi(MapInputs.at(short_name).value.c_str());
 
 	return value;
 }
 
-uint64_t InputFlags::GetValueUint64(const std::string &long_name)
+uint64_t InputFlags::GetValueUint64(const std::string &long_name) const
 {
     char short_name = FindShortName(long_name);
-    uint64_t value = strtoull(MapInputs[short_name].value.c_str(), NULL, 10);
+    uint64_t value = strtoull(MapInputs.at(short_name).value.c_str(), NULL, 10);
 
     return value;
 }
 
-double InputFlags::GetValueDouble(const std::string &long_name)
+double InputFlags::GetValueDouble(const std::string &long_name) const
 {
     char short_name = FindShortName(long_name);
-    double value = atof(MapInputs[short_name].value.c_str());
+    double value = atof(MapInputs.at(short_name).value.c_str());
 
     return value;
 }
