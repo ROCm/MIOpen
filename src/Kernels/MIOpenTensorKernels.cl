@@ -87,7 +87,9 @@ __kernel void OpTensor(global float *a, global float *b,
     int gid = get_group_id(0);
     int lid = get_local_id(0);
 
-#if FWD_CONV_BIAS == 1 && INCR_WG == 1 // case when num_wg = c_n*c_c;
+    // each workgroup computes H*W for each C (bias-term)
+    // number of workgroups = c_n*c_c;
+#if FWD_CONV_BIAS == 1 && INCR_WG == 1
     int o_n = gid / b_c;
     int o_c = gid % b_c;
     float operand = b[o_c];
@@ -98,7 +100,9 @@ __kernel void OpTensor(global float *a, global float *b,
         lid += get_local_size(0);
     }
 
-#elif FWD_CONV_BIAS == 1 && INCR_WG == 0 // case when num_wg = c_c (or a_c)
+    // each workgroup computes N*H*W for each C (bias-term)
+    // number of workgroups = c_c (b_c)
+#elif FWD_CONV_BIAS == 1 && INCR_WG == 0 
     float operand = b[gid];
     int work_off = work_per_wg / c_n;
 
@@ -110,7 +114,7 @@ __kernel void OpTensor(global float *a, global float *b,
         lid += get_local_size(0);
     }
 
-#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 2 
+#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 2 // bitmap = 1,1,1,0 
     float operand = b[gid];
 
     int o_h = gid % c_h;
@@ -122,7 +126,7 @@ __kernel void OpTensor(global float *a, global float *b,
 
         lid += get_local_size(0);
     }
-#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 3
+#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 3 // bitmap = 1,1,0,0
     float operand = b[gid];
 
     int o_c = gid % c_c;
@@ -134,7 +138,7 @@ __kernel void OpTensor(global float *a, global float *b,
         lid += get_local_size(0);
     }
 
-#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 4
+#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 4 // bitmap = 1,0,0,0
     float operand = b[gid];
 
     while(lid < work_per_wg) {
@@ -164,6 +168,6 @@ __kernel void OpTensor(global float *a, global float *b,
 
         lid += get_local_size(0);
     }
-#endif // FWD_CONV_BIAS
+#endif 
 }
 
