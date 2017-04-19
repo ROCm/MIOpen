@@ -28,10 +28,10 @@ inline ConstData_t DataCast(const void *p) {
 
 #elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
 
-typedef void * Data_t;
-typedef const void * ConstData_t;
+using Data_t = void *;
+using ConstData_t = const void *;
 // TODO: Set the deleter
-typedef MIOPEN_MANAGE_PTR(void, hipFree) ManageDataPtr;
+using ManageDataPtr = MIOPEN_MANAGE_PTR(void, hipFree);
 
 inline Data_t DataCast(void *p) {
 	return p;
