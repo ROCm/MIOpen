@@ -5,11 +5,23 @@
 #include <ostream>
 #include "source_file_desc.hpp"
 
-class InlineStackOverflowException : std::exception
+class InlineException : public std::exception {};
+
+class InlineStackOverflowException : public InlineException
 {
 public:
     InlineStackOverflowException(const std::string& trace);
-    char const* what() const override;
+    char const* what() const override { return _trace.c_str(); }
+
+private:
+    std::string _trace;
+};
+
+class InlineFileNotFoundException : public InlineException
+{
+public:
+    InlineFileNotFoundException(const std::string& file_name, const std::string& trace);
+    char const* what() const override { return _trace.c_str(); }
 
 private:
     std::string _trace;
