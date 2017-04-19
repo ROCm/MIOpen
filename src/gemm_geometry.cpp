@@ -54,7 +54,7 @@ void GemmGeometry::FindSolution(float time,
             kernel_name,
             vld,
             vgd,
-            "");
+            " -w ");
 
     // beta kernel
     if(beta != 1.0 && !soln.betac_kernel.empty())
@@ -69,7 +69,7 @@ void GemmGeometry::FindSolution(float time,
         EnableBetaKernel(true, beta_kernel_worksize_params);
 
         vld[0] = local_work_size;
-        vgd[1] = global_work_size;
+        vgd[0] = global_work_size;
 
         handle.GetKernel(algorithm_name+"_beta",
                 "placeholder", // TODO: hack for now because the kernel is not cached if config is ""

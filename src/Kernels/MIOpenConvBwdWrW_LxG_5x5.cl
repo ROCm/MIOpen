@@ -31,6 +31,8 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define UNUSED __attribute__((__unused__))
+
 #define DBG_OUT_OF_RNGE 0
 
 #define MLO_N_OUT_HORIZ_READS ((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1) / MLO_IN_TILE0)
@@ -159,7 +161,7 @@ void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * __restri
 
 */
 __attribute__((always_inline))
-void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLOAT * __restrict pvt_accum, __local _FLOAT * __restrict lcl_bot, __private _FLOAT * __restrict top_dat)
+void Processing(UNUSED int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLOAT * __restrict pvt_accum, __local _FLOAT * __restrict lcl_bot, __private _FLOAT * __restrict top_dat)
 {
 	for (int l = top_lim; l >= bot_lim; --l)
 	{
@@ -238,7 +240,7 @@ __kernel void MIOpenCvBwdWrW(
 #if MLO_CONV_BIAS
 	__global _FLOAT * __restrict bias_df,
 #endif
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 

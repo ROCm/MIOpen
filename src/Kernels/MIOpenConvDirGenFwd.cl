@@ -30,6 +30,10 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#ifndef MLO_OUT_ALIGNED
+#define MLO_OUT_ALIGNED 0
+#endif
+
 //MLO_GRP_SZ0              group size in dim 0
 //MLO_GRP_SZ1				group size in dim 1
 //MLO_GRP_SZ2				group size in dim 2
