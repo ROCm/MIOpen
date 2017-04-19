@@ -52,7 +52,7 @@ struct thread_factory
 };
 
 template<class F>
-void par_for(std::size_t n, std::size_t threadsize, F f)
+void par_for_impl(std::size_t n, std::size_t threadsize, F f)
 {
     if (threadsize <= 1)
     {
@@ -70,11 +70,17 @@ void par_for(std::size_t n, std::size_t threadsize, F f)
 }
 
 template<class F>
+void par_for(std::size_t n, std::size_t min_grain, F f)
+{
+    const auto threadsize = std::min<std::size_t>(std::thread::hardware_concurrency(), n/min_grain);
+    par_for_impl(n, threadsize, f);
+}
+
+template<class F>
 void par_for(std::size_t n, F f)
 {
     const int min_grain = 8;
-    const auto threadsize = std::min<std::size_t>(std::thread::hardware_concurrency(), n/min_grain);
-    par_for(n, threadsize, f);
+    par_for(n, min_grain, f);
 }
 
 // Multidimensional for loop
