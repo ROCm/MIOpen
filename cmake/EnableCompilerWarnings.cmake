@@ -45,19 +45,22 @@ else()
         if (CMAKE_${COMPILER}_COMPILER_ID MATCHES "Clang")
             list(APPEND CMAKE_COMPILER_WARNINGS
                 -Weverything
-                -Wno-gnu-zero-variadic-macro-arguments
                 -Wno-c++98-compat
                 -Wno-c++98-compat-pedantic
+                -Wno-conversion
+                -Wno-double-promotion
+                -Wno-exit-time-destructors
+                -Wno-extra-semi
+                -Wno-float-conversion
+                -Wno-gnu-anonymous-struct
+                -Wno-gnu-zero-variadic-macro-arguments
+                -Wno-missing-prototypes
+                -Wno-nested-anon-types
+                -Wno-padded
                 -Wno-shorten-64-to-32
                 -Wno-sign-conversion
-                -Wno-padded
-                -Wno-double-promotion
-                -Wno-float-conversion
-                -Wno-missing-prototypes
-                -Wno-gnu-anonymous-struct
-                -Wno-conversion
-                -Wno-nested-anon-types
                 -Wno-unused-command-line-argument
+                -Wno-weak-vtables
             )
         else()
             list(APPEND CMAKE_COMPILER_WARNINGS

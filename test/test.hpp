@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-void failed_abort(const char * msg, const char* file, int line)
+[[gnu::noreturn]] void failed_abort(const char * msg, const char* file, int line)
 {
     printf("FAILED: %s: %s:%i\n", msg, file, line);
     std::abort();
