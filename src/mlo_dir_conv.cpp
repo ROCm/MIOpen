@@ -345,7 +345,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
 
 	// no 1x1 backward yet
-	// TODO: This currently doesn't work with the hip runtime
 	if (_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2D1x1());
@@ -2067,10 +2066,85 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	return(ret);
 }
 
-
 int mlo_construct_BwdWrW2D::mloConstruct2()
 {
 	int ret = 0;
+	static const char * s_stride_table[32][2] =
+	{
+		// 
+		{ "32x38x166x5x10x0x0x2x2x32x79x341x4", "1.2.2.4.12.2" },
+		{ "32x38x166x5x10x0x0x2x2x32x79x341x8", "1.2.2.4.19.2" },
+		{ "32x38x166x5x10x0x0x2x2x32x79x341x16", "1.2.2.4.19.2" },
+		{ "32x38x166x5x10x0x0x2x2x32x79x341x32", "1.2.2.4.19.2" },
+		{ "32x79x341x5x20x0x0x2x2x1x161x700x4", "1.1.4.2.12.2" },
+		{ "32x79x341x5x20x0x0x2x2x1x161x700x8", "1.1.4.2.12.2" },
+		{ "32x79x341x5x20x0x0x2x2x1x161x700x16", "1.1.4.2.12.2" },
+		{ "32x79x341x5x20x0x0x2x2x1x161x700x32", "1.2.4.2.12.2" },
+		{ "96x55x55x11x11x0x0x4x4x3x227x227x50", "1.2.2.4.11.5" },
+		{ "96x55x55x11x11x0x0x4x4x3x227x227x128", "1.2.2.4.11.5" },
+		{ "96x55x55x11x11x0x0x4x4x3x227x227x256", "1.2.2.4.11.5" },
+		{ "64x55x55x11x11x2x2x4x4x3x224x224x128", "1.2.2.4.11.5" },
+		{ "64x112x112x7x7x3x3x2x2x3x224x224x16", "1.2.4.4.8.7" },
+		{ "64x54x54x3x3x1x1x2x2x3x108x108x8",  "1.4.4.4.9.9" },
+		{ nullptr, nullptr },
+	};
+
+	std::string key;
+
+	key = std::to_string(_n_inputs) + "x"
+		+ std::to_string(_in_height) + "x"
+		+ std::to_string(_in_width) + "x"
+		+ std::to_string(_kernel_size1) + "x"
+		+ std::to_string(_kernel_size0) + "x"
+		+ std::to_string(_pad1) + "x"
+		+ std::to_string(_pad0) + "x"
+		+ std::to_string(_kernel_stride1) + "x"
+		+ std::to_string(_kernel_stride0) + "x"
+		+ std::to_string(_n_outputs) + "x"
+		+ std::to_string(_out_height) + "x"
+		+ std::to_string(_out_width) + "x"
+		+ std::to_string(_batch_sz);
+	//	std::map<std::string, std::string> lcl_db;
+	bool found = false;
+	int i = 0;
+	for (; s_stride_table[i][0] != nullptr; ++i)
+	{
+		if (std::string(s_stride_table[i][0]) == key)
+		{
+			found = true;
+			break;
+		}
+	}
+
+
+	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
+						   // n of map in a block (see below)
+	_out_pix_tile1 = (_kernel_size0 > 11) ? 1 : 2; //700 = 1, 350 = 4
+	int n_waves = (_kernel_size0 > 11) ? 2 : 4;
+	// n of shared blocks of output maps in lcl memory
+	_n_out_pix_tiles = 2;
+	int read_unit = 6;
+
+	int N_ALIGNED_OUT_SCAN_BLK = (_kernel_size0 > 11) ? 2 : 4; //700 = 1, 350 = 4
+
+
+	if (found)
+	{
+		std::vector<std::string> val_vec;
+
+		tokenize(std::string(s_stride_table[i][1]),
+			val_vec,
+			std::string("."));
+
+		N_BATCH_LOOPS = std::stoi(val_vec[0]);
+		_out_pix_tile1 = std::stoi(val_vec[1]);
+		n_waves = std::stoi(val_vec[2]);
+		_n_out_pix_tiles = std::stoi(val_vec[3]);
+		read_unit = std::stoi(val_vec[4]);
+		N_ALIGNED_OUT_SCAN_BLK = std::stoi(val_vec[5]);
+	}
+
+
 	size_t localMemSize = 64 * 1024;
 
 	_hw_wave_sz = 64;
@@ -2079,24 +2153,23 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 									  // number  of batch iterations
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
-	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 	// number of filter taps in the processing wk_item
-	int WEI_WKITEM = (_kernel_size0 <= 7 || (((_kernel_size0 / 2)*2) != _kernel_size0) )? _kernel_size0 : _kernel_size0 / 2;
+	int WEI_WKITEM = (_kernel_size0 <= 7 || (((_kernel_size0 / 2) * 2) != _kernel_size0)) ? _kernel_size0 : _kernel_size0 / 2;
 
 	_in_tile0 = 1;
 	_in_tile1 = 1;
 	_out_pix_tile0 = 1;
-	_out_pix_tile1 = (_kernel_size0 > 11 ) ? 1 : 2; //700 = 1, 350 = 2
+	//	_out_pix_tile1 = 2; // (_kernel_size0 > 11) ? 1 : 4; //700 = 1, 350 = 4
 
-						// major parameters
-	int n_waves = (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
+	// major parameters
+	//	int n_waves = (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
 
 	_n_in_data_tiles = 1;
 	// n of out blocks in lcl memory
-	_n_out_pix_tiles = (_kernel_size0 > 11) ? 2 : 4; // 700 = 2, 350 = 4
+	//	_n_out_pix_tiles = 2; // (_kernel_size0 > 11 || _batch_sz < 16) ? 2 : 4; // 700 = 2, 350 = 4
 
-						  // select output mapping
+	// select output mapping
 	int total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
 	_out_pix_tile1 = (total_out_maps > _n_inputs) ? 1 : _out_pix_tile1;
 	total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
@@ -2113,17 +2186,17 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	int wei_cstride = _kernel_size0*_kernel_size1;
 	int wei_bstride = _n_outputs*wei_cstride;
 
-	int read_unit = 4;
+	//	int read_unit = 6;
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
 
 	// input is output
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
-	int N_ALIGNED_OUT_SCAN_BLK = 2;
+																		 //	int N_ALIGNED_OUT_SCAN_BLK = 4; // (_kernel_size0 > 11) ? 2 : 3; //700 = 1, 350 = 4
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
 
-	int OUT_N_PIXS_OFF = _in_width - (_in_width  / read_unit) * read_unit;
+	int OUT_N_PIXS_OFF = _in_width - (_in_width / read_unit) * read_unit;
 
 
 	_grp_tile0 = GRP_SZ;
@@ -2145,16 +2218,14 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		+ std::string(" -DMLO_GRP_SZ0=") + std::to_string((_grp_tile0))
 		+ std::string(" -DMLO_GRP_SZ1=") + std::to_string((_grp_tile1))
 		+ std::string(" -DMLO_GRP_SZ2=") + std::to_string((grp_tile2))
-		+ std::string(" -DMLO_FILTER_SIZE0=") + std::to_string((_kernel_size0))
-		+ std::string(" -DMLO_FILTER_SIZE1=") + std::to_string((_kernel_size1))
-		+ std::string(" -DMLO_FILTER_PAD0=") + std::to_string((_pad0))
-		+ std::string(" -DMLO_FILTER_PAD1=") + std::to_string((_pad1))
-		+ std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string((_kernel_stride0))
-		+ std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string((_kernel_stride1))
-		+ std::string(" -DSTRIDE_W=") + std::to_string((_kernel_stride0))
-		+ std::string(" -DSTRIDE_H=") + std::to_string((_kernel_stride1))
-		+ std::string(" -DMLO_N_OUTPUTS=") + std::to_string((_n_inputs))
-		+ std::string(" -DMLO_N_INPUTS=") + std::to_string((_n_outputs))
+		+ std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0)
+		+ std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1)
+		+ std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0)
+		+ std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1)
+		+ std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0)
+		+ std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1)
+		+ std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_inputs)
+		+ std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_outputs)
 		+ std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz)
 		+ std::string(" -DMLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS)
 		+ std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string((_in_batch_stride))
@@ -2219,7 +2290,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = "MIOpenConvBwdWrW_LxL_P.cl";
+		_kernel_file = "MIOpenConvBwdWrWS2.cl";
 		_kernel_name = "MIOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -2234,7 +2305,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	{
 
 
-		std::string kernel_file = "MIOpenConvBwdWrW_LxL_P.cl";
+		std::string kernel_file = "MIOpenConvBwdWrWS2.cl";
 		std::string kernel_name = "MIOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;

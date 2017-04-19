@@ -119,7 +119,7 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
         params += " -Wno-everything";
 #endif
         dir.execute(HIP_OC_COMPILER, 
-            "-mcpu=gfx803 " + params + " " + filename + " -o " + hsaco_file
+            params + " " + filename + " -o " + hsaco_file
         );
 #endif
     }
