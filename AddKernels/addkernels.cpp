@@ -5,9 +5,11 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#include "source_inliner.hpp"
 
 void Bin2Hex(std::istream& source, std::ostream& target, const std::string& variable, bool nullTerminate, size_t bufferSize, size_t lineSize)
 {
+	source.seekg(0, std::ios::end);
 	std::unique_ptr<unsigned char[]> buffer(new unsigned char[bufferSize]);
 	std::streamoff sourceSize = source.tellg();
 	std::streamoff blockStart = 0;
@@ -81,10 +83,11 @@ void UnknownArgument(const std::string& arg)
 	WrongUsage(ss.str());
 }
 
-void Process(std::string sourcePath, std::ostream* target, size_t bufferSize, size_t lineSize)
+void Process(std::string sourcePath, std::ostream& target, size_t bufferSize, size_t lineSize)
 {
 	std::string fileName(sourcePath);
-	std::string extension;
+	std::string extension, root;
+	std::stringstream inlinerTemp;
 	auto extPos = fileName.rfind('.');
 	auto slashPos = fileName.rfind('/');
 
@@ -96,11 +99,13 @@ void Process(std::string sourcePath, std::ostream* target, size_t bufferSize, si
 
 	if (slashPos != std::string::npos)
 	{
+		root = fileName.substr(0, slashPos + 1);
 		fileName = fileName.substr(slashPos + 1);
 	}
 
 	std::string variable(fileName);
-	std::ifstream sourceFile(sourcePath, std::ios::in | std::ios::binary | std::ios::ate);
+	std::ifstream sourceFile(sourcePath, std::ios::in | std::ios::binary);
+	std::istream* source = &sourceFile;
 
 	if (!sourceFile.good())
 	{
@@ -108,8 +113,15 @@ void Process(std::string sourcePath, std::ostream* target, size_t bufferSize, si
 		exit(1);
 	}
 
+	if (extension == "s")
+	{
+		SourceInliner inliner;
+		inliner.Process(sourceFile, inlinerTemp, root, sourcePath);
+		source = &inlinerTemp;
+	}
+
 	std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
-	Bin2Hex(sourceFile, *target, variable, true, bufferSize, lineSize);
+	Bin2Hex(*source, target, variable, true, bufferSize, lineSize);
 }
 
 int main(int argsn, char** args)
@@ -145,7 +157,7 @@ int main(int argsn, char** args)
 
 			while (++i < argsn)
 			{
-				Process(args[i], target, bufferSize, lineSize);
+				Process(args[i], *target, bufferSize, lineSize);
 			}
 
 			if (guard.length() > 0)
