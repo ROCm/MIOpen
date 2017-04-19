@@ -30,7 +30,21 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define UNUSED __attribute__((__unused__))
+
 #define DBG_OUT_OF_RNGE 0
+
+#ifndef MLO_COMPILER_AMD_OPENCL_HSAIL
+#define MLO_COMPILER_AMD_OPENCL_HSAIL 0
+#endif
+
+#ifndef MLO_COMPILER_AMD_OPENCL_LC
+#define MLO_COMPILER_AMD_OPENCL_LC 0
+#endif
+
+#ifndef MLO_OUTPUTS_ALIGNED
+#define MLO_OUTPUTS_ALIGNED 0
+#endif
 
 #define MLO_HW_WAVE_ID_SETTING 1
 // FIXME Conduct enabling from the host code.
@@ -94,7 +108,7 @@ __kernel void MIOpenCvD3x3_WSR0(
 	const __global _FLOAT * __restrict bias,
 #endif
 	__global _FLOAT * __restrict out_ptr,
-	_FLOAT alpha // LRU fusion
+	UNUSED _FLOAT alpha // LRU fusion
 )
 {
 	// all other allocation should be before this one since we may exceed lcl mem range

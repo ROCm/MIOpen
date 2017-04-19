@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 AMD Inc.
+ * Copyright (c) 2017 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -221,12 +221,6 @@ __kernel void MIOpenCvBwdWrW(
 		lcl[i] = 0;
 	}
 
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-
-
-
-#if 1
 	// over all batches
 
 	for (uint b = 0;
@@ -351,10 +345,6 @@ __kernel void MIOpenCvBwdWrW(
 							}
 #endif
 						}
-						for (; i < MLO_READ_UNIT; ++i)
-						{
-							in_rd_data[i] = 0;
-						}
 
 					}
 					else
@@ -373,25 +363,12 @@ __kernel void MIOpenCvBwdWrW(
 						}
 					}
 
-				} // if (in_y + c_scan < MLO_IN_HEIGHT)
+				} // if (in_y + c_scan2 < MLO_IN_HEIGHT)
 
 				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					uint lcl_off = (c_scan2 + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT;
 					lcl_bot[lcl_off + i] = in_rd_data[i];
-#if 0
-					if (lcl_id == 0 && p4 == 0)
-					{
-						printf("K:g:%d %d %d %d %d %f\n",
-							ob,
-							MLO_IN_LCL_WIDTH,
-							(MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1),
-							MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1,
-							(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i,
-							lcl_bot[(c_scan + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1)*MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i]
-						);
-					}
-#endif
 				}
 
 
@@ -416,7 +393,7 @@ __kernel void MIOpenCvBwdWrW(
 				__private _FLOAT out_rd_data[MLO_READ_UNIT];
 
 				for (uint oo_p4 = lcl_id; oo_p4 < (MLO_N_LCL_OUT_MAPS*MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS);
-					oo_p4 += MLO_GRP_SZ)
+																											oo_p4 += MLO_GRP_SZ)
 				{
 					uint o = iDiv(oo_p4, (MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS));
 					uint o_pX4 = iMod(oo_p4, o, (MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS));
@@ -448,10 +425,6 @@ __kernel void MIOpenCvBwdWrW(
 									printf("k:err:out-of-range\n");
 								}
 #endif
-					}
-							for (; i < MLO_READ_UNIT; ++i)
-							{
-								out_rd_data[i] = 0;
 							}
 						}
 
@@ -490,9 +463,6 @@ __kernel void MIOpenCvBwdWrW(
 // process	
 // algorithm
 
-#if 1
-				//				if (w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
-				{
 					// over all input scans in LDS
 					for (uint j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK; ++j)
 					{
@@ -543,33 +513,6 @@ __kernel void MIOpenCvBwdWrW(
 									i_val = i_vals[w];
 
 									pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] += i_val * o_val;
-#if 0
-									uint w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-									if (i_val * o_val != 0 && ib == 0 && c_idx == 0 && o_idx + og*MLO_N_LCL_OUT_MAPS + o == 0 && w_y == 0 && w_x == 1 && w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
-									{
-										uint i_off = (j*MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
-										printf("K:s: %d %d %d %d %d %d %d %d %d %d %d %d   %f %f %f %f\n",
-											MLO_IN_LCL_WIDTH,
-											MLO_MAX_WEI_BLK_LOOP,
-											MLO_OUT_WEI_SCAN_BLK,
-											lcl_id,
-											b,
-											ob,
-											w_blk_idx,
-											j,
-											i,
-											w,
-											i_off,
-											(o)*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ + (w_blk_idx*MLO_OUT_WEI_SCAN_BLK + i),
-											pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w],
-											i_val * o_val,
-											i_val,
-											o_val
-										);
-									}
-#endif
-
-
 
 								} // for (/*uint w = 0*/; w < MLO_WEI_WKITEM; ++w)
 
@@ -583,17 +526,6 @@ __kernel void MIOpenCvBwdWrW(
 							}
 						} // for (uint i = 0; i < MLO_OUT_WEI_SCAN_BLK; ++i)
 					} // for (uint j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK; ++j)
-				}
-#else
-				for (uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
-				{
-					for (uint w = 0; w < MLO_WEI_WKITEM; ++w)
-					{
-						pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] = lcl_top[(og * MLO_N_LCL_OUT_MAPS + o)] * lcl_bot[w];
-					}
-				}
-#endif			
-
 
 			} // for(; og < (MLO_N_OUT_BLK_GRP; ++og )
 
@@ -605,10 +537,10 @@ __kernel void MIOpenCvBwdWrW(
 				barrier(CLK_LOCAL_MEM_FENCE);
 
 				for (uint p4 = lcl_id; p4 < MLO_N_IN_HORIZ_READS;
-					p4 += MLO_GRP_SZ)
+												p4 += MLO_GRP_SZ)
 				{
-					uint c_pix4 = p4;
 
+					uint c_pix4 = p4;
 					for (uint i = 0; i < MLO_READ_UNIT; ++i)
 					{
 						lcl_bot[c_scan3*(MLO_IN_LCL_WIDTH)+MLO_FILTER_PAD0 + c_pix4*MLO_READ_UNIT + i]
@@ -618,14 +550,14 @@ __kernel void MIOpenCvBwdWrW(
 				}
 			}
 
+
 		} // for (uint ob = 0; ob < MLO_N_OUT_BLK; ++ob, in_y += (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1), out_y += MLO_N_ALIGNED_OUT_SCAN_BLK)
 	} // for (uint b = 0;
 
 
-#endif
+
 
 // send it out
-	  // inputs are outputs
 
 	uint wei_lcl_off = 0;
 	_FLOAT final_sum = 0;
@@ -640,19 +572,21 @@ __kernel void MIOpenCvBwdWrW(
 	for (uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
 	{
 		barrier(CLK_LOCAL_MEM_FENCE);
-
-		for (uint o = 0; w_blk_idx < MLO_MAX_WEI_BLK_LOOP/* && lcl_id < MLO_OUT_WEI_SCAN_BLK * MLO_MAX_WEI_BLK_LOOP * MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM*/ && o < MLO_N_LCL_OUT_MAPS; ++o)
+		if ( w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
 		{
-			uint w = 0;
-			for (; w < MLO_WEI_WKITEM; ++w)
+			for (uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
 			{
-				// save "virtual" filter table
-				uint w_x = w_x0 + w*MLO_WEI_BLK_SZ0;
-				wei_lcl_off = ((o * MLO_MAX_WEI_BLK_LOOP + w_blk_idx) * MLO_FILTER_SIZE1 + w_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + w_x;
-				lcl[wei_lcl_off] = pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
+				uint w = 0;
+				for (; w < MLO_WEI_WKITEM; ++w)
+				{
+					// save "virtual" filter table
+					uint w_x = w_x0 + w*MLO_WEI_BLK_SZ0; 
+					wei_lcl_off = ((o * MLO_MAX_WEI_BLK_LOOP + w_blk_idx) * MLO_FILTER_SIZE1 + w_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + w_x;
+					lcl[wei_lcl_off] = pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
+
+				}
 
 			}
-
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -678,42 +612,10 @@ __kernel void MIOpenCvBwdWrW(
 				final_sum += lcl_bot[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) * (MLO_WEI_BLK_SZ0 *MLO_WEI_WKITEM) + wei_i_x];
 			}
 
-#if 1
 
 			weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i] = final_sum; //lcl_bot[lcl_id]; //
-#if 0
-			if (o_idx + (og *  MLO_N_LCL_OUT_MAPS + oo) == 0 && c_idx == 3 && wei_i_y == 0 && wei_i_x == 0)
-			{
-				printf("K:o: %d %f\n",
-					ib,
-					weights_df[wei_df_off + (og *  MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i]
-				);
-			}
-
-#endif
-
-
-#else
-			_FLOAT t_accum = 0;
-
-			for (uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
-			{
-				for (uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
-				{
-					for (uint w = 0; w < MLO_WEI_WKITEM; ++w)
-					{
-						t_accum += pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
-					}
-				}
-			}
-
-			weights_df[lcl_id] = t_accum;
-#endif
-
-
 		}
 
-		barrier(CLK_LOCAL_MEM_FENCE);
 
 	} // for(uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
 

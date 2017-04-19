@@ -31,8 +31,11 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define UNUSED __attribute__((__unused__))
 
-
+#ifndef MLO_N_PIXS_OFF
+#define MLO_N_PIXS_OFF 0
+#endif
 
 __attribute__((always_inline))
 int iDiv(int v, int d)
@@ -48,7 +51,7 @@ int iMod(int v, int u, int d)
 	return(r);
 }
 
-inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
+inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, UNUSED bool debug)
 {
 
 	for (int j = (sum_stride >> 1); j > 0; j >>= 1)
@@ -109,6 +112,8 @@ void readData(int n, int gbl_data_off, int gbl_data_stride, int map_stride, int 
 
 		}
 		else
+#else
+		(void)last_pixel;
 #endif
 		{
 			for (int i = 0; i < MLO_READ_UNIT; ++i)
@@ -154,13 +159,13 @@ void readDataFlex(int n, int gbl_data_off, int gbl_data_stride, int map_stride, 
 
 #endif
 
-		bool last_pixel = (p4 == MLO_MAP_WK_SZ -1);
 
 		int gbl_data_off0 = (r*map_stride + k + map_base < map_limit) ? gbl_data_off + (r*map_stride + k)*gbl_data_stride + p4*MLO_READ_UNIT : 0;
 		__private _FLOAT p_data[MLO_READ_UNIT];
 
 #if MLO_N_PIXS_OFF > 0
 
+		bool last_pixel = (p4 == MLO_MAP_WK_SZ -1);
 		if (last_pixel)
 		{
 			for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
@@ -219,13 +224,15 @@ __kernel void MIOpenCvBwdWrW(
 	const __global _FLOAT * __restrict top_df,
 	const __global _FLOAT * __restrict bot,
 	__global _FLOAT * __restrict weights_df,
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 	// reduction memory.
 
 	__local _FLOAT lcl_mem[MLO_LCL_MEM_SZ];
+#if MLO_MAP_WK_SZ > 8
 	__local _FLOAT * red_mem = lcl_mem;
+#endif
 	__local _FLOAT * proc_mem = lcl_mem;
 
 	int lcl_id = get_local_id(0);

@@ -113,10 +113,13 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
 #endif
 
 #else
-        //params += " -Weverything -Wno-shorten-64-to-32 -Wno-unused-macros -Wno-unused-function -Wno-sign-compare -Wno-reserved-id-macro ";
+#if MIOPEN_BUILD_DEV
+        params += " -Werror -Weverything -Wno-shorten-64-to-32 -Wno-unused-macros -Wno-unused-function -Wno-sign-compare -Wno-reserved-id-macro -Wno-sign-conversion -Wno-missing-prototypes -Wno-cast-qual";
+#else
         params += " -Wno-everything";
+#endif
         dir.execute(HIP_OC_COMPILER, 
-            "-mcpu=gfx803 " + params + " " + filename + " -o " + hsaco_file
+            params + " " + filename + " -o " + hsaco_file
         );
 #endif
     }
