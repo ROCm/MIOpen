@@ -31,7 +31,11 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+
+#define UNUSED __attribute__((__unused__))
+
 #define DBG_OUT_OF_RNGE 0
+
 
 // filter size for all filters with small n of input maps (first layer)
 // split a long filter by stride
@@ -120,7 +124,7 @@ static inline int iMod(int v, int u, int d)
 }
 
 __attribute__((always_inline))
-static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
+static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, UNUSED bool debug)
 {
 	for (int j = (sum_stride >> 1); j > 0; j >>= 1)
 	{
@@ -338,7 +342,7 @@ __kernel void MIOpenCvFwd11x11(
 	const __global _FLOAT * bias,
 #endif
 	__global _FLOAT *top,
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 
@@ -346,17 +350,13 @@ __kernel void MIOpenCvFwd11x11(
 	__local _FLOAT * bot_mem = lcl_mem;
 	__local _FLOAT * wei_mem = lcl_mem + MLO_TOTAL_IN_LCL_SZ;
 
-	int wave_id = getWaveId();
 	int lcl_id = get_local_id(0);
-	int lcl_wv_id = gePhysLocalId();
 
 
 	
 	int ob = get_group_id(0);  // output map extent id
 
 	int k_idx = get_group_id(1) * (MLO_N_LCL_OUT_MAPS); // input map index based
-
-	int c_idx = 0;
 
 	int ib_idx = get_group_id(2)*MLO_N_LCL_BATCHS; // batch idx
 
@@ -675,7 +675,7 @@ __kernel void MIOpenCvFwd11x11_2(
 	const __global _FLOAT * bias,
 #endif
 	__global _FLOAT *top,
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 
@@ -683,17 +683,11 @@ __kernel void MIOpenCvFwd11x11_2(
 	__local _FLOAT * bot_mem = lcl_mem;
 	__local _FLOAT * wei_mem = lcl_mem + MLO_TOTAL_IN_LCL_SZ;
 
-	int wave_id = getWaveId();
 	int lcl_id = get_local_id(0);
-	int lcl_wv_id = gePhysLocalId();
 
 
-
-	int ob = get_group_id(0);  // output map extent id
 
 	int k_idx = get_group_id(1) * (MLO_N_LCL_OUT_MAPS); // input map index based
-
-	int c_idx = 0;
 
 	int ib_idx = get_group_id(2)*MLO_N_LCL_BATCHS; // batch idx
 

@@ -30,6 +30,7 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define UNUSED __attribute__((__unused__))
 
 #define DBG_OUT_OF_RNGE 0
 
@@ -115,7 +116,7 @@ __kernel void MIOpenConv1x1(
        const __global _FLOAT * __restrict bias,
 #endif
  	  __global _FLOAT * __restrict out_ptr,
-	   _FLOAT dummy_val // nothing
+	   UNUSED _FLOAT dummy_val // nothing
 	   )
 {
 // KERNEL
@@ -318,7 +319,7 @@ __kernel void MIOpenConv1x1(
 
 	for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 	{
-		for (int t = 0, p = 0; t < MLO_N_LCL_OUT_MAPS; t += MLO_EXCHANGE_STEP)
+		for (int t = 0; t < MLO_N_LCL_OUT_MAPS; t += MLO_EXCHANGE_STEP)
 		{
 
 			barrier(CLK_LOCAL_MEM_FENCE);
@@ -377,8 +378,8 @@ __kernel void MIOpenConv1x1(
 				
 					int out_off2 = out_off + ib * MLO_OUT_BATCH_STRIDE + olc * MLO_OUT_CHANNEL_STRIDE;
 
-					_FLOAT  bias_val = 0;
 #if MLO_CONV_BIAS
+					_FLOAT  bias_val = 0;
 					bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0
@@ -461,8 +462,8 @@ __kernel void MIOpenConv1x1(
 #endif
 			)
 			{
-				_FLOAT  bias_val = 0;
 #if MLO_CONV_BIAS
+				_FLOAT  bias_val = 0;
 				bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0

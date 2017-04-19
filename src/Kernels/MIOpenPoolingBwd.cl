@@ -59,7 +59,7 @@ __kernel void mloPoolingAveBwd(
 		int lcl_id1 = get_local_id(1);
 //		int lcl_id = (lcl_id1 << MLO_POOLBWD_GROUP_LG2SZ1) + lcl_id0;
 		int ob = get_global_id(2); // outputs * batch_sz
-		int b = (int)(float)ob / (float)MLO_POOLING_N_OUTPUTS;
+		int b = ob / MLO_POOLING_N_OUTPUTS;
 		int o = ob - b * MLO_POOLING_N_OUTPUTS;
 
 
@@ -202,7 +202,7 @@ __kernel void mloPoolingMaxBwd(
 	int lcl_id0 = get_local_id(0);
 	int lcl_id1 = get_local_id(1);
 	int ob = get_global_id(2); // outputs * batch_sz
-	int b = (int)(float)ob / (float)MLO_POOLING_N_OUTPUTS;
+	int b = ob / MLO_POOLING_N_OUTPUTS;
 	int o = ob - b * MLO_POOLING_N_OUTPUTS;
 
 	int top_x = (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0) < 0 ? 0 : (x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0) / MLO_POOLING_STRIDE0 + 1;
