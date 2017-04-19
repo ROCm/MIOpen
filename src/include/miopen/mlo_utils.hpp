@@ -92,7 +92,7 @@ public:
 	/**
 	* Destructor
 	*/
-	~mloFile()= default;;
+	~mloFile()= default;
 
 	/**
 	* Opens the CL program file
