@@ -88,6 +88,7 @@ struct test_driver
     bool full_set = false;
     bool verbose = false;
     double tolerance = 80;
+    int batch_factor = 0;
 
     template<class Visitor>
     void parse(Visitor v)
@@ -95,6 +96,7 @@ struct test_driver
         v(full_set, {"--all"}, "Run all tests");
         v(verbose, {"--verbose", "-v"}, "Run verbose mode");
         v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
+        v(batch_factor, {"--batch-factor", "-n"}, "Set batch factor");
     }
 
     struct per_arg
@@ -142,14 +144,23 @@ struct test_driver
         }};
     }
 
+    template<class F>
+    generate_tensor_t lazy_generate_tensor(F f, std::vector<int> single)
+    {
+        return {[=]() -> std::set<std::vector<int>> {
+            if (full_set) return f(); 
+            else return {single};
+        }};
+    }
+
     generate_tensor_t get_input_tensor()
     {
-        return generate_tensor(get_inputs(), {16, 32, 8, 8});
+        return lazy_generate_tensor([=] { return get_inputs(batch_factor); }, {16, 32, 8, 8});
     }
 
     generate_tensor_t get_weights_tensor()
     {
-        return generate_tensor(get_weights(), {64, 32, 5, 5});
+        return lazy_generate_tensor([=] { return get_weights(batch_factor); }, {64, 32, 5, 5});
     }
 
     template<class X>

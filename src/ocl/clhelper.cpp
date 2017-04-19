@@ -180,7 +180,7 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 	}
 }
 
-ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params, bool is_kernel_str)
+ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params, bool is_kernel_str)
 {
 	bool is_binary = false;
 	std::string source;
@@ -203,7 +203,14 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 		BuildProgram(result, device);
 	} else {
 		result = CreateProgram(ctx, source.data(), source.size());
-		BuildProgram(result, device, params + " -cl-std=CL1.2");
+#if MIOPEN_BUILD_DEV
+		params += " -Werror";
+#ifdef __linux__
+		params += " -Wf,-Weverything -Wf,-Wno-shorten-64-to-32 -Wf,-Wno-unused-macros -Wf,-Wno-unused-function -Wf,-Wno-sign-compare -Wf,-Wno-reserved-id-macro -Wf,-Wno-sign-conversion -Wf,-Wno-missing-prototypes -Wf,-Wno-cast-qual";
+#endif
+#endif
+		params += " -cl-std=CL1.2";
+		BuildProgram(result, device, params);
 	}
 	return ClProgramPtr{ result };
 }
