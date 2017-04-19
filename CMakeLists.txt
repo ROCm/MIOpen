@@ -101,22 +101,7 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC")
 		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
 		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
 	else()
-		find_program(HIP_OC_COMPILER aoc2
-			PATH_SUFFIXES
-				bin
-				bin/x86_64
-				x86_64
-		)
-		find_program(HIP_OC_FINALIZER amdhsafin
-			PATH_SUFFIXES
-				bin
-				bin/x86_64
-				x86_64
-		)
-		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
-		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
-		message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
-		add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
+		message(FATAL_ERROR "clang-ocl not found")
 	endif()
 	
 	find_package(hip PATHS /opt/rocm)
