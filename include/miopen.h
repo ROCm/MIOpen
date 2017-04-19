@@ -17,7 +17,7 @@
 #include <CL/cl.h>
 #endif
 
-#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 #include <hip/hip_runtime_api.h>
 #endif
 
@@ -31,7 +31,7 @@ extern "C" {
 
 #if MIOPEN_BACKEND_OPENCL
 typedef cl_command_queue miopenAcceleratorQueue_t;
-#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 typedef hipStream_t miopenAcceleratorQueue_t;
 #endif
 
@@ -48,8 +48,6 @@ typedef enum {
 	miopenStatusUnknownError = 7,
 } miopenStatus_t;
 
-// TODO: C does not really have default function arguments. Need to modify this
-// later or is it OK to leave it like this?
 MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t *handle);
 
 MIOPEN_EXPORT miopenStatus_t miopenCreateWithStream(miopenHandle_t *handle,
