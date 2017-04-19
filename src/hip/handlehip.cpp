@@ -221,7 +221,7 @@ bool Handle::IsProfilingEnabled() const
 	return this->impl->enable_profiling;
 }
 
-void Handle::ResetKernelTime(void)
+void Handle::ResetKernelTime()
 {
     this->impl->profiling_result = 0.0;
 }
@@ -256,4 +256,4 @@ std::string Handle::GetDeviceName()
 	return GetDeviceNameFromMap(n);
 }
 #endif
-}
+} // namespace miopen
