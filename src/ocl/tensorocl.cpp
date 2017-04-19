@@ -263,25 +263,37 @@ void OpTensor(Handle&           handle,
     }
 
     std::string parms = " -DFWD_CONV_BIAS=" + std::to_string(fwd_conv_bias) +
-                        " -DINCR_WG=" + std::to_string(incr_wg) + 
-                        " -DLEADING_ONES=" + std::to_string(leading_ones);
+                        " -DINCR_WG=" + std::to_string(incr_wg) +
+                        " -DLEADING_ONES=" + std::to_string(leading_ones) + 
+                        " -DFIRST_NOT_ONE=" + std::to_string(d-1);
 
     std::string program_name = "MIOpenTensorKernels.cl";
-    std::string kernel_name = "OpTensor";
-
-	const std::vector<size_t> vld {local_threads, 1, 1};
+	
+    const std::vector<size_t> vld {local_threads, 1, 1};
     size_t global_threads = num_wg*local_threads;
 	const std::vector<size_t> vgd {global_threads, 1, 1};
 
     int op = tensorOp;
-    handle.GetKernel(kernel_name,
-            "",
-            program_name,
-            kernel_name,
-            vld,
-            vgd,
-            parms) (ATensor, BTensor, b_c, b_h, b_w, b_nstride, b_cstride, CTensor, c_n, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg, op);
 
+    if(fwd_conv_bias) {
+        handle.GetKernel("OpTensorFwdBias",
+                "",
+                program_name,
+                "OpTensorFwdBias",
+                vld,
+                vgd,
+                parms) (ATensor, BTensor, b_c, CTensor, c_nstride, c_cstride, work_per_wg, op);
+
+    }
+    else {
+        handle.GetKernel("OpTensorGeneric",
+                "",
+                program_name,
+                "OpTensorGeneric",
+                vld,
+                vgd,
+                parms) (ATensor, BTensor, b_c, b_h, b_w, b_nstride, b_cstride, CTensor, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg, op);
+    }
 }
 
 void CopyTensor(Handle &handle, 

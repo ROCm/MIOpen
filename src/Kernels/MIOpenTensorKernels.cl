@@ -19,7 +19,17 @@ __kernel void AddTensor(global float *a,
     int gid = get_group_id(0);
     int lid = get_local_id(0);
 
-#if FWD_CONV_BIAS == 1 && INCR_WG == 1 // case when num_wg = c_n*c_c;
+#if FWD_CONV_BIAS == 1
+    (void) a_h;
+    (void) a_w;
+    (void) a_nstride;
+    (void) a_cstride;
+    (void) c_h;
+    (void) c_w;
+    (void) c_n;
+    (void) c_c;
+    (void) bitmap;
+#if INCR_WG == 1 // case when num_wg = c_n*c_c;
     int o_n = gid / a_c;
     int o_c = gid % a_c;
     float add = a[o_c];
@@ -30,7 +40,7 @@ __kernel void AddTensor(global float *a,
         lid += get_local_size(0);
     }
 
-#elif FWD_CONV_BIAS == 1 && INCR_WG == 0 // case when num_wg = c_c (or a_c)
+#elif INCR_WG == 0 // case when num_wg = c_c (or a_c)
     float add = a[gid];
     int work_off = work_per_wg / c_n;
 
@@ -41,6 +51,7 @@ __kernel void AddTensor(global float *a,
 
         lid += get_local_size(0);
     }
+#endif // FwdBias
 
 #else // generic add tensor
         float add = a[gid];
@@ -75,21 +86,17 @@ __kernel void AddTensor(global float *a,
         (op == 1 ? OP_1(a, b) : \
          (op == 2 ? OP_2(a, b) : OP_3(a, b))))
 
-__kernel void OpTensor(global float *a, global float *b,
-        const int b_c, const int b_h, const int b_w,
-        const int b_nstride, const int b_cstride,
+__kernel void OpTensorFwdBias(global float *a, global float *b,
+        const int b_c, 
         global float *c,
-        const int c_n, const int c_c, const int c_h, const int c_w,
         const int c_nstride, const int c_cstride,
-        const unsigned int bitmap, const int work_per_wg,
+        const int work_per_wg,
         int op)
 {   
     int gid = get_group_id(0);
     int lid = get_local_id(0);
 
-    // each workgroup computes H*W for each C (bias-term)
-    // number of workgroups = c_n*c_c;
-#if FWD_CONV_BIAS == 1 && INCR_WG == 1
+#if INCR_WG == 1
     int o_n = gid / b_c;
     int o_c = gid % b_c;
     float operand = b[o_c];
@@ -102,7 +109,7 @@ __kernel void OpTensor(global float *a, global float *b,
 
     // each workgroup computes N*H*W for each C (bias-term)
     // number of workgroups = c_c (b_c)
-#elif FWD_CONV_BIAS == 1 && INCR_WG == 0 
+#elif INCR_WG == 0 
     float operand = b[gid];
     int work_off = work_per_wg / c_n;
 
@@ -113,8 +120,22 @@ __kernel void OpTensor(global float *a, global float *b,
 
         lid += get_local_size(0);
     }
+#endif // INCR_WG
+}
 
-#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 2 // bitmap = 1,1,1,0 
+__kernel void OpTensorGeneric(global float *a, global float *b,
+        const int b_c, const int b_h, const int b_w,
+        const int b_nstride, const int b_cstride,
+        global float *c,
+        const int c_c, const int c_h, const int c_w,
+        const int c_nstride, const int c_cstride,
+        const unsigned int bitmap, const int work_per_wg,
+        int op)
+{   
+    int gid = get_group_id(0);
+    int lid = get_local_id(0);
+
+#if LEADING_ONES == 1 && FIRST_NOT_ONE == 2 // bitmap = 1,1,1,0 
     float operand = b[gid];
 
     int o_h = gid % c_h;
@@ -126,7 +147,7 @@ __kernel void OpTensor(global float *a, global float *b,
 
         lid += get_local_size(0);
     }
-#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 3 // bitmap = 1,1,0,0
+#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 1 // bitmap = 1,1,0,0
     float operand = b[gid];
 
     int o_c = gid % c_c;
@@ -138,7 +159,7 @@ __kernel void OpTensor(global float *a, global float *b,
         lid += get_local_size(0);
     }
 
-#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 4 // bitmap = 1,0,0,0
+#elif LEADING_ONES == 1 && FIRST_NOT_ONE == 0  // bitmap = 1,0,0,0
     float operand = b[gid];
 
     while(lid < work_per_wg) {
@@ -170,4 +191,3 @@ __kernel void OpTensor(global float *a, global float *b,
     }
 #endif 
 }
-
