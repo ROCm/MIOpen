@@ -215,7 +215,7 @@ struct conv_forward : output_tensor_fixture
             in[i] = rand() * (1.0 / RAND_MAX);
         }
         for (int i = 0; i < sz_wei; i++) {
-            wei[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+            wei[i] = static_cast<double>(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
         }
 
 #if MIOPEN_BACKEND_OPENCL

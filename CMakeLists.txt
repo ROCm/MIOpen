@@ -130,7 +130,9 @@ create_package(
 )
 
 include(EnableCompilerWarnings)
-
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+	set(CLANG_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
+endif()
 include(ClangTidy)
 enable_clang_tidy(
 	CHECKS 
@@ -172,6 +174,7 @@ enable_clang_tidy(
 		-readability-implicit-bool-cast
 		-readability-misleading-indentation
 		-readability-named-parameter
+		${CLANG_TIDY_CHECKS}
 	ERRORS
 		*
 		-readability-inconsistent-declaration-parameter-name

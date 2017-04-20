@@ -47,7 +47,7 @@ struct GemmGeometry {
 };
 
 using GemmKey = std::pair<std::string, std::string>;
-extern std::unordered_map< GemmKey, GemmGeometry, SimpleHash> gemm_geo_map;
+std::unordered_map< GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map();
 
 } // namespace miopen
 

@@ -2,7 +2,13 @@
 
 namespace miopen {
 
-std::unordered_map< GemmKey, GemmGeometry, SimpleHash> gemm_geo_map;
+std::unordered_map< GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map()
+{
+    static std::unordered_map< GemmKey, GemmGeometry, SimpleHash> data;
+    return data;
+}
+
+
 
 void GemmGeometry::EnableBetaKernel(bool enable,
         std::map<std::string, size_t> &beta_args)
@@ -80,7 +86,7 @@ void GemmGeometry::FindSolution(float time,
                 "");
     }
 
-    gemm_geo_map[std::make_pair(algorithm_name, network_config)] = *this;
+    gemm_geo_map()[std::make_pair(algorithm_name, network_config)] = *this;
 }
 
 void GemmGeometry::RunGemm(Handle &handle,

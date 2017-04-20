@@ -1,5 +1,5 @@
-#ifndef _MIOPEN_UTIL_HPP_
-#define _MIOPEN_UTIL_HPP_
+#ifndef MIOPEN_UTIL_HPP_
+#define MIOPEN_UTIL_HPP_
 
 #include <miopen.h>
 #include <miopen/errors.hpp>

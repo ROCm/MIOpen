@@ -12,9 +12,16 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
     HipEventPtr start = nullptr;
     HipEventPtr stop = nullptr;
     void *config[] = {
+    // HIP_LAUNCH_PARAM_* are macros that do horrible things
+#ifdef MIOPEN_USE_CLANG_TIDY
+        nullptr, args,
+        nullptr, &size,
+        nullptr
+#else
         HIP_LAUNCH_PARAM_BUFFER_POINTER, args,
         HIP_LAUNCH_PARAM_BUFFER_SIZE, &size,
         HIP_LAUNCH_PARAM_END
+#endif
     };
     if (callback)
     {
@@ -25,7 +32,7 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
     }
 
     // std::cerr << "Launch kernel: " << name << std::endl;
-    auto status = hipHccModuleLaunchKernel(fun, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], 0, stream, nullptr, (void**)&config);
+    auto status = hipHccModuleLaunchKernel(fun, gdims[0], gdims[1], gdims[2], ldims[0], ldims[1], ldims[2], 0, stream, nullptr, reinterpret_cast<void**>(&config));
     if(status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Failed to launch kernel");
 
     if (callback)
@@ -53,4 +60,4 @@ HIPOCKernelInvoke HIPOCKernel::Invoke(hipStream_t stream, std::function<void(hip
 {
     return HIPOCKernelInvoke{stream, fun, ldims, gdims, name, callback};
 }
-}
+} // namespace miopen

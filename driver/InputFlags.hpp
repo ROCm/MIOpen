@@ -1,5 +1,5 @@
-#ifndef _MIOPEN_INPUT_FLAGS_HPP_
-#define _MIOPEN_INPUT_FLAGS_HPP_
+#ifndef MIOPEN_INPUT_FLAGS_HPP_
+#define MIOPEN_INPUT_FLAGS_HPP_
 
 #include <string>
 #include <map>
