@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
-#include "source_inliner.hpp"
+#include "include_inliner.hpp"
 
 void Bin2Hex(std::istream& source, std::ostream& target, const std::string& variable, bool nullTerminate, size_t bufferSize, size_t lineSize)
 {
@@ -115,7 +115,7 @@ void Process(std::string sourcePath, std::ostream& target, size_t bufferSize, si
 
 	if (extension == "s")
 	{
-		SourceInliner inliner;
+		IncludeInliner inliner;
 
 		try
 		{
