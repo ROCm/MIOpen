@@ -153,11 +153,11 @@ uint32_t ctx = 0;
 	dinhost = std::vector<T>(in_sz, 0);
 
 	for (int i = 0; i < in_sz; i++) {
-		in[i] =  (T)((double)rand() * (1.0 / RAND_MAX));
+		in[i] =  static_cast<T>(static_cast<double>(rand()) * (1.0 / RAND_MAX));
 	}
 
 	for (int i = 0; i < out_sz; i++) {
-		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+		dout[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
 	}
 #if MIOPEN_BACKEND_OPENCL
 	cl_int status;
