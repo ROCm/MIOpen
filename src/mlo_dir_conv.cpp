@@ -229,9 +229,7 @@ bool mloSearchConfigDB(
 int mlo_construct_winograd::mloConstruct()
 {
 #ifndef HIP_OC_FINALIZER
-	rocm_meta_version rmv = V1;
-	/// \todo As soon as metadata v1.0 support not needed, drop it. 
-	/// get rid of V1 and v1.0 files.
+	rocm_meta_version rmv = V3;
 #if MIOPEN_BACKEND_OPENCL
 	if (mloIsAmdOpenclRocm(rmv))
 #endif
@@ -264,7 +262,7 @@ int mlo_construct_direct2D::mloConstruct()
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
 #if MIOPEN_BACKEND_OPENCL
-	rocm_meta_version rmv = V2;
+	rocm_meta_version rmv = V3;
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
 	if (mloIsAmdOpenclRocm(rmv))
 	{
@@ -471,11 +469,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 }
 
 #if MIOPEN_BACKEND_OPENCL
-bool mlo_construct_direct2D::mloExperimentalValidateAssemblerPath(const char* path) const
-{
-	return path != nullptr;
-}
-
 static bool IsTokenInOpenclDriverVersion(const std::string& driver_version, const std::string& s)
 {
 	// Assume "(, )" are token separators in Driver Version string.
@@ -508,15 +501,18 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version &rmv) const
 	const auto driver_version = miopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	if (! IsTokenInOpenclDriverVersion(driver_version, "LC")) { return false; }
 
-	// At once, extract version of OpenCL metadata.
-	// \todo Discard this code as soon as metadata is stabilized and v1.0 support is not required.
-	rmv = V2; // assumed if something fails
+	// At once, extract version of OpenCL metadata. Keep rmv unchanged if extraction fails.
 	const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
 	size_t num_begin = platform_version.find('(');
 	if (num_begin != std::string::npos) {
 		int num = std::stoi(platform_version.substr(num_begin+1));
-		if (num <  2338) { rmv = V1; } // v1 switched to v2 somewhere within [2337,2338]
-		if (num >= 2389) { rmv = V3; } // v2 switched to v3 somewhere within [2388,2389]
+		if (num < 2338) {
+		    rmv = V1; // Switched to V2 somewhere within [2337,2338]
+		} else if (num < 2389) {
+		    rmv = V2; // Switched to V3 somewhere within [2388,2389]
+		} else {
+		    rmv = V3;
+		}
 	}
 	return true;
 }
