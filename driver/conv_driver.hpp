@@ -309,12 +309,12 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
     if(!dataRead)
     {
         for(int i = 0; i < in_sz; i++) {
-			in[i] = (T)((double)scale*rand() * (1.0 / RAND_MAX));
+			in[i] = static_cast<T>((static_cast<double>(scale*rand()) * (1.0 / RAND_MAX)));
         }
     }
 
 	for (int i = 0; i < out_sz; i++) {
-		dout[i] = (T)(scale*(double)rand() * (1.0 / RAND_MAX));
+		dout[i] = static_cast<T>((scale*static_cast<double>(rand()) * (1.0 / RAND_MAX)));
 	}
 
     if (inflags.GetValueInt("bias") != 0){
@@ -342,7 +342,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
     if(!weiRead)
     {
         for (int i = 0; i < wei_sz; i++) {
-			wei[i] = (T)(scale*(double)(rand() * (1.0 / RAND_MAX) - 0.5) );
+			wei[i] = static_cast<T>((scale*static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)) );
         }
     }
 
