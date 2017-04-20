@@ -49,10 +49,10 @@ struct GPUMem {
 #elif MIOPEN_BACKEND_HIP
 
 	GPUMem() {};
-	GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz) {	hipMalloc((void**)&buf, data_sz*sz); }
+	GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz) {	hipMalloc(static_cast<void**>(&buf), data_sz*sz); }
 
-	int ToGPU(hipStream_t q, void *p) { _q = q; return (int)hipMemcpy(buf, p, data_sz*sz, hipMemcpyHostToDevice); }
-	int FromGPU(hipStream_t q, void *p) { _q = q; return (int)hipMemcpy(p, buf, data_sz*sz, hipMemcpyDeviceToHost); }
+	int ToGPU(hipStream_t q, void *p) { _q = q; return static_cast<int>(hipMemcpy(buf, p, data_sz*sz, hipMemcpyHostToDevice)); }
+	int FromGPU(hipStream_t q, void *p) { _q = q; return static_cast<int>(hipMemcpy(p, buf, data_sz*sz, hipMemcpyDeviceToHost)); }
 
 	void* GetMem() { return buf; }
 	size_t GetSize() { return sz*data_sz; }
