@@ -14,6 +14,17 @@ std::string quote(std::string s)
     return '"' + s + '"';
 }
 
+void system_cmd(std::string cmd)
+{
+    // std::cout << cmd << std::endl;
+    // We shouldn't call system commands
+#ifdef MIOPEN_USE_CLANG_TIDY
+    (void)cmd;
+#else
+    if (std::system(cmd.c_str()) != 0) MIOPEN_THROW("Can't execute " + cmd);
+#endif
+}
+
 struct tmp_dir
 {
     std::string name;
@@ -29,8 +40,7 @@ struct tmp_dir
     {
         std::string cd = "cd " + this->name + "; ";
         std::string cmd = cd + exe + " " + args;// + " > /dev/null";
-        // std::cout << cmd << std::endl;
-        if (std::system(cmd.c_str()) != 0) MIOPEN_THROW("Can't execute " + cmd);
+        system_cmd(cmd);
     }
 
     std::string path(std::string f)
@@ -43,7 +53,7 @@ struct tmp_dir
         if(!name.empty())
         {
             std::string cmd = "rm -rf " + name;
-            if (std::system(cmd.c_str()) != 0) MIOPEN_THROW("Can't execute " + cmd);
+            system_cmd(cmd);
         }
     }
 };
@@ -99,4 +109,4 @@ HIPOCProgram::HIPOCProgram(const std::string &program_name, std::string params, 
     this->name = program_name;
 }
 
-}
+} // namespace miopen

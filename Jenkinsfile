@@ -24,6 +24,15 @@ parallel opencl: {
     }
 }, hip: {
     rocmtest('hip') { cmake_build ->
+        stage('Hip Tidy') {
+            sh '''
+                rm -rf build
+                mkdir build
+                cd build
+                CXX='hcc' cmake -DBUILD_DEV=On .. 
+                make tidy
+            '''
+        }
         // stage('Hip Debug') {
         //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
         // }

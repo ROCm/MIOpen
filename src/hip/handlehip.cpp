@@ -216,7 +216,7 @@ bool Handle::IsProfilingEnabled() const
 	return this->impl->enable_profiling;
 }
 
-void Handle::ResetKernelTime(void)
+void Handle::ResetKernelTime()
 {
     this->impl->profiling_result = 0.0;
 }
@@ -250,4 +250,4 @@ std::string Handle::GetDeviceName()
     std::string n("gfx"+std::to_string(props.gcnArch));
 	return GetDeviceNameFromMap(n);
 }
-}
+} // namespace miopen

@@ -17,6 +17,6 @@ struct HIPOCProgram
     SharedModulePtr module;
     std::string name;
 };
-}
+} // namespace miopen
 
 #endif

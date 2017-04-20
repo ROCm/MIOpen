@@ -1,5 +1,5 @@
-#ifndef _MIOPEN_SOFTMAX_HPP_
-#define _MIOPEN_SOFTMAX_HPP_
+#ifndef MIOPEN_SOFTMAX_HPP_
+#define MIOPEN_SOFTMAX_HPP_
 
 #include <miopen.h>
 #include <miopen/errors.hpp>

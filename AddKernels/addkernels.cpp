@@ -35,7 +35,7 @@ void Bin2Hex(std::istream& source, std::ostream& target, const std::string& vari
 			size_t end = std::min<size_t>(i + lineSize, blockSize);
 
 			for (; j < end; j++)
-				target << "0x" << std::setw(2) << (unsigned)buffer[j] << ",";
+				target << "0x" << std::setw(2) << static_cast<unsigned>(buffer[j]) << ",";
 
 			target << std::endl;
 			i = end;
@@ -66,7 +66,7 @@ void PrintHelp()
 	std::cout << "           -g[uard] <string>: guard name. Default: no guard" << std::endl;
 }
 
-void WrongUsage(const std::string& error)
+[[gnu::noreturn]] void WrongUsage(const std::string& error)
 {
 	std::cout << "Wrong usage: " << error << std::endl;
 	std::cout << std::endl;
@@ -74,7 +74,7 @@ void WrongUsage(const std::string& error)
 	exit(1);
 }
 
-void UnknownArgument(const std::string& arg)
+[[gnu::noreturn]] void UnknownArgument(const std::string& arg)
 {
 	std::ostringstream ss;
 	ss << "unknown argument - " << arg;
