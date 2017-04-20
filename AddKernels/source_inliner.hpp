@@ -33,7 +33,7 @@ public:
     int include_depth_limit = 256;
 
     void Process(std::istream& input, std::ostream& output, const std::string& root, const std::string& file_name);
-    std::string GetIncludeStackTrace();
+    std::string GetIncludeStackTrace(int line);
 
 private:
     int _include_depth = 0;
