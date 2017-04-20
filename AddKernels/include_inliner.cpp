@@ -1,21 +1,22 @@
 #include <exception>
 #include <sstream>
 #include <fstream>
+#include <algorithm>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #else
 #include <stdlib.h>
 #include <linux/limits.h>
 #endif // !WIN32
 
-#include "source_inliner.hpp"
+#include "include_inliner.hpp"
 
 namespace PathHelpers
 {
     static int GetMaxPath()
     {
-#ifdef WIN32
+#ifdef _WIN32
         return MAX_PATH;
 #else
         return PATH_MAX;
@@ -25,7 +26,7 @@ namespace PathHelpers
     static std::string GetAbsolutePath(const std::string& path)
     {
         std::string result(GetMaxPath(), ' ');
-#ifdef WIN32
+#ifdef _WIN32
         const auto retval = GetFullPathName(path.c_str(),
             result.size(),
             &result[0],
@@ -53,33 +54,12 @@ InlineStackOverflowException::InlineStackOverflowException(const std::string& tr
     _trace = ss.str();
 }
 
-InlineFileNotFoundException::InlineFileNotFoundException(const std::string& file_name, const std::string& trace)
-{
-    std::ostringstream ss;
-
-    ss << "Include file was not found or can't be opened: <" << file_name << ">." << std::endl;
-    ss << trace;
-
-    _trace = ss.str();
-}
-
-InlineWrongIncludeFormatException::InlineWrongIncludeFormatException(const std::string& file_name, const std::string& trace)
-{
-    std::ostringstream ss;
-
-    ss << "Wron format of include directive in file <" << file_name << ">. Expected:" << std::endl;
-    ss << ".include \"path to include\"" << std::endl;
-    ss << trace;
-
-    _trace = ss.str();
-}
-
-void SourceInliner::Process(std::istream& input, std::ostream& output, const std::string& root, const std::string& file_name)
+void IncludeInliner::Process(std::istream& input, std::ostream& output, const std::string& root, const std::string& file_name)
 {
     ProcessCore(input, output, root, file_name, 0);
 }
 
-void SourceInliner::ProcessCore(std::istream& input, std::ostream& output, const std::string& root, const std::string& file_name, int line_number)
+void IncludeInliner::ProcessCore(std::istream& input, std::ostream& output, const std::string& root, const std::string& file_name, int line_number)
 {
     if (_include_depth >= include_depth_limit)
         throw InlineStackOverflowException(GetIncludeStackTrace(0));
@@ -95,23 +75,24 @@ void SourceInliner::ProcessCore(std::istream& input, std::ostream& output, const
         std::istringstream line_parser(line);
         line_parser >> word;
         current_line++;
+        std::transform(word.begin(), word.end(), word.begin(), ::tolower);
 
         if (word == ".include")
         {
             const auto first_quote_pos = line.find('"', (int)line_parser.tellg() + 1);
             if (first_quote_pos == std::string::npos)
-                throw InlineWrongIncludeFormatException(file_name, GetIncludeStackTrace(current_line));
+                continue;
 
             const auto second_quote_pos = line.find('"', first_quote_pos + 1);
             if (second_quote_pos == std::string::npos)
-                throw InlineWrongIncludeFormatException(file_name, GetIncludeStackTrace(current_line));
+                continue;
 
             const std::string include_file_path = line.substr(first_quote_pos + 1, second_quote_pos - first_quote_pos - 1);
             const std::string abs_include_file_path(PathHelpers::GetAbsolutePath(root + "/" + include_file_path));
             std::ifstream include_file(abs_include_file_path, std::ios::in);
 
             if (!include_file.good())
-                throw InlineFileNotFoundException(include_file_path, GetIncludeStackTrace(current_line));
+                continue;
 
             ProcessCore(include_file, output, root, include_file_path, current_line);
         }
@@ -130,7 +111,7 @@ void SourceInliner::ProcessCore(std::istream& input, std::ostream& output, const
     _include_depth--;
 }
 
-std::string SourceInliner::GetIncludeStackTrace(int line)
+std::string IncludeInliner::GetIncludeStackTrace(int line)
 {
     std::ostringstream ss;
 

@@ -20,19 +20,7 @@ public:
     InlineStackOverflowException(const std::string& trace);
 };
 
-class InlineFileNotFoundException : public InlineException
-{
-public:
-    InlineFileNotFoundException(const std::string& file_name, const std::string& trace);
-};
-
-class InlineWrongIncludeFormatException : public InlineException
-{
-public:
-    InlineWrongIncludeFormatException(const std::string& file_name, const std::string& trace);
-};
-
-class SourceInliner
+class IncludeInliner
 {
 public:
     int include_depth_limit = 256;
