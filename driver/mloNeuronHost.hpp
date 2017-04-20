@@ -77,7 +77,7 @@ void ActivationFunction_BReLU(int n, _T * res, const _T* data, _T alpha)
 {
 	for (int i = 0; i < n; i++)
 	{
-		res[i] = (_T)fmin(alpha, fmax(data[i], 0));
+		res[i] = static_cast<_T>(fmin(alpha, fmax(data[i], 0)));
 	}
 }
 

@@ -123,11 +123,11 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
     chost = std::vector<T>(c_sz, 0.);
 
     for (int i = 0; i < a_sz; i++) {
-        a[i] =  (T)((double)rand() * (1.0 / RAND_MAX));
+        a[i] =  static_cast<T>(static_cast<double>(rand()) * (1.0 / RAND_MAX));
     }
 
     for (int i = 0; i <b_sz; i++) {
-        b[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+        b[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
     }
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
