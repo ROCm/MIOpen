@@ -223,7 +223,7 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 	}
 
 	for (int i = 0; i < out_sz; i++) {
-		dout[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+		dout[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
 	}
 
 #if MIOPEN_BACKEND_OPENCL

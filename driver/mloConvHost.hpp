@@ -27,15 +27,15 @@ double CalcErr( _T c_val, _T g_val)
 	double err = 0;
 	if (sizeof(_T) == 4)
 	{
-		int * c_uval = (int *)&c_val;
-		int * g_uval = (int *)&g_val;
-		err = (double)std::abs(*c_uval - *g_uval);
+		int * c_uval = reinterpret_cast<int *>(&c_val);
+		int * g_uval = reinterpret_cast<int *>(&g_val);
+		err = static_cast<double>(std::abs(*c_uval - *g_uval));
 	}
 	else if (sizeof(_T) == 8)
 	{
 		int64_t * c_uval = reinterpret_cast<int64_t *>(&c_val);
 		int64_t * g_uval = reinterpret_cast<int64_t *>(&g_val);
-		err = (double)std::abs(*c_uval - *g_uval);
+		err = static_cast<double>(std::abs(*c_uval - *g_uval));
 
 	}
 
@@ -45,7 +45,7 @@ double CalcErr( _T c_val, _T g_val)
 	return err;
 }
 
-
+#if 0 // disable functions
 ////////////////////////////////////////////////////////////
 //
 ///////////////////////////////////////////////////////////
@@ -963,7 +963,7 @@ int mloDirectSPHost(
 	return(ret);
 }
 
-
+#endif // disable functions
 
 template<typename _T>
 bool mloVerify(
@@ -1023,7 +1023,7 @@ bool mloVerify(
 		}
 	}
 
-	sqr_accum = std::sqrt(sqr_accum / ((double)n_batchs * n_channels*height *width));
+	sqr_accum = std::sqrt(sqr_accum / (static_cast<double>(n_batchs * n_channels*height *width)));
 
 	bool match = true;
 
