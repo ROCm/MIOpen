@@ -135,7 +135,7 @@ int SoftmaxDriver<T>::AllocateBuffersAndCopy() {
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 uint32_t ctx = 0;
 #endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
@@ -161,7 +161,7 @@ uint32_t ctx = 0;
 	}
 #if MIOPEN_BACKEND_OPENCL
 	cl_int status;
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 	int status;
 #endif
 	status = in_dev->ToGPU(q, in.data());
