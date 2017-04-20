@@ -32,6 +32,10 @@
 #endif
 
 
+#define UNUSED __attribute__((__unused__))
+
+#define DBG_OUT_OF_RNGE 0
+
 
 // filter size for all filters with small n of input maps (first layer)
 // split a long filter by stride
@@ -120,7 +124,7 @@ static inline int iMod(int v, int u, int d)
 }
 
 __attribute__((always_inline))
-static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
+static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, UNUSED bool debug)
 {
 	for (int j = (sum_stride >> 1); j > 0; j >>= 1)
 	{
@@ -139,53 +143,31 @@ static inline void ReduceKernel(__local _FLOAT * lcl_blob, _FLOAT *weights_accum
 	}
 }
 
-__attribute__((always_inline))
-static inline void  Kahan_summation(_FLOAT *sum, _FLOAT * c, _FLOAT v)
-{
-	_FLOAT y = v - *c;    //So far, so good: c is zero.
-	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-	*c = (t - *sum) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-}
-
-__attribute__((always_inline))
-static inline void  Kahan_summation_tricked(_FLOAT *sum, _FLOAT * c, _FLOAT v, _FLOAT mod)
-{
-	_FLOAT y = v - *c;    //So far, so good: c is zero.
-	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-	*c = (t - *sum) * mod - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-}
-
-
-__attribute__((always_inline))
-static inline void Kahan_summation2(_FLOAT *sum, _FLOAT *c, _FLOAT *v, int n)
-{
-	for (int i = 0; i < n; ++i)
-	{
-		_FLOAT y = v[i] - c[i];    //So far, so good: c is zero.
-		_FLOAT t = sum[i] + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-		c[i] = (t - sum[i]) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-		sum[i] = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-	}
-}
 
 
 // TO DO: remove f_s and c from offest calculation
 __attribute__((always_inline))
-static inline void fetchWeights(int c, int f_s, int lcl_id, int wei_read, int gbl_wei_off, __local _FLOAT * wei_mem, const __global _FLOAT * weights)
+static inline void fetchWeights(int c, int k_idx, int f_s, int lcl_id, int wei_read, int gbl_wei_off, __local _FLOAT * wei_mem, const __global _FLOAT * weights)
 {
 	// read weights by stride
 	for (int w = lcl_id; w < (wei_read / MLO_FILTER_SIZE0)* MLO_N_LCL_OUT_MAPS; w += MLO_GRP_SZ)
 	{
 		int k = iDiv(w, (wei_read / MLO_FILTER_SIZE0));
 		int j = iMod(w, k, (wei_read / MLO_FILTER_SIZE0));
-		int wei_off = ((j*MLO_FILTER_STRIDE1 + f_s) < MLO_FILTER_SIZE1) ? gbl_wei_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 : 0;
+		int wei_off = ((j*MLO_FILTER_STRIDE1 + f_s) < MLO_FILTER_SIZE1 && k_idx + k < MLO_N_OUTPUTS) ? gbl_wei_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE + (j*MLO_FILTER_STRIDE1 + f_s)*MLO_FILTER_SIZE0 : 0;
 
 		for (int i = 0; i < MLO_FILTER_SIZE0; ++i)
 		{
 			_FLOAT weight = weights[wei_off + i];
 			wei_mem[k*MLO_WEI_SZ + j*MLO_WEI_LCL_WIDTH + i] = weight;
+#if DBG_OUT_OF_RNGE == 1
+			if (wei_off + i >= MLO_N_OUTPUTS*MLO_N_INPUTS*MLO_FILTER_SIZE1*MLO_FILTER_SIZE0)
+			{
+				printf("K:err:weights out-of-range"
+				);
+			}
+#endif
+
 		}
 #if 0
 		if (ob == 0 && k == 1)
@@ -360,7 +342,7 @@ __kernel void MIOpenCvFwd11x11(
 	const __global _FLOAT * bias,
 #endif
 	__global _FLOAT *top,
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 
@@ -368,17 +350,13 @@ __kernel void MIOpenCvFwd11x11(
 	__local _FLOAT * bot_mem = lcl_mem;
 	__local _FLOAT * wei_mem = lcl_mem + MLO_TOTAL_IN_LCL_SZ;
 
-	int wave_id = getWaveId();
 	int lcl_id = get_local_id(0);
-	int lcl_wv_id = gePhysLocalId();
 
 
 	
 	int ob = get_group_id(0);  // output map extent id
 
 	int k_idx = get_group_id(1) * (MLO_N_LCL_OUT_MAPS); // input map index based
-
-	int c_idx = 0;
 
 	int ib_idx = get_group_id(2)*MLO_N_LCL_BATCHS; // batch idx
 
@@ -439,7 +417,7 @@ __kernel void MIOpenCvFwd11x11(
 				barrier(CLK_LOCAL_MEM_FENCE);
 
 				// get a set of horizaontal taps
-				fetchWeights(c, f_s, lcl_id, MLO_WEI_SZ, gbl_wei_off, wei_mem, weights);
+				fetchWeights(c, k_idx, f_s, lcl_id, MLO_WEI_SZ, gbl_wei_off, wei_mem, weights);
 
 				// fetch a set of input scanlines
 
@@ -478,7 +456,7 @@ __kernel void MIOpenCvFwd11x11(
 
 #define MLO_WEI_READ ((MLO_N_FILTER_SPLITS1 - 1)*MLO_WEI_LCL_WIDTH)
 				// fetch a set of weight vertical taps
-				fetchWeights(c, f_s, lcl_id, (MLO_WEI_READ), gbl_wei_off, wei_mem, weights);
+				fetchWeights(c, k_idx, f_s, lcl_id, (MLO_WEI_READ), gbl_wei_off, wei_mem, weights);
 
 				// fetch a set of input scanlines
 
@@ -697,7 +675,7 @@ __kernel void MIOpenCvFwd11x11_2(
 	const __global _FLOAT * bias,
 #endif
 	__global _FLOAT *top,
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 
@@ -705,17 +683,11 @@ __kernel void MIOpenCvFwd11x11_2(
 	__local _FLOAT * bot_mem = lcl_mem;
 	__local _FLOAT * wei_mem = lcl_mem + MLO_TOTAL_IN_LCL_SZ;
 
-	int wave_id = getWaveId();
 	int lcl_id = get_local_id(0);
-	int lcl_wv_id = gePhysLocalId();
 
 
-
-	int ob = get_group_id(0);  // output map extent id
 
 	int k_idx = get_group_id(1) * (MLO_N_LCL_OUT_MAPS); // input map index based
-
-	int c_idx = 0;
 
 	int ib_idx = get_group_id(2)*MLO_N_LCL_BATCHS; // batch idx
 
@@ -724,6 +696,7 @@ __kernel void MIOpenCvFwd11x11_2(
 
 	int gbl_in_off = /*c_idx * MLO_IN_CHANNEL_STRIDE + */ib * MLO_IN_BATCH_STRIDE;
 	int gbl_wei_off = k_idx * MLO_WEI_BATCH_STRIDE;
+
 // last extent
 // the major part of the output map has been processed in the previous pass to avoid the granularity loss
 	int out_y = MLO_OUT_HEIGHT - MLO_LAST_OUT_EXTENT1;
@@ -782,7 +755,7 @@ __kernel void MIOpenCvFwd11x11_2(
 				barrier(CLK_LOCAL_MEM_FENCE);
 
 				// get a set of horizaontal taps
-				fetchWeights(c, f_s, lcl_id, MLO_WEI_SZ, gbl_wei_off, wei_mem, weights);
+				fetchWeights(c, k_idx, f_s, lcl_id, MLO_WEI_SZ, gbl_wei_off, wei_mem, weights);
 
 				// fetch a set of input scanlines
 
@@ -822,7 +795,7 @@ __kernel void MIOpenCvFwd11x11_2(
 #define MLO_WEI_READ ((MLO_N_FILTER_SPLITS1 - 1)*MLO_WEI_LCL_WIDTH)
 				// fetch a set of weight vertical taps
 
-				fetchWeights(c, f_s, lcl_id, (MLO_WEI_READ), gbl_wei_off, wei_mem, weights);
+				fetchWeights(c, k_idx, f_s, lcl_id, (MLO_WEI_READ), gbl_wei_off, wei_mem, weights);
 
 				// fetch a set of input scanlines
 

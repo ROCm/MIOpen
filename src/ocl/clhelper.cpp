@@ -8,14 +8,14 @@
 #include <miopen/kernel.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
-#ifndef WIN32 //Linux or APPLE
+#ifndef _WIN32 //Linux or APPLE
 #include <unistd.h>
 #include <paths.h>
 #include <sys/types.h> 
 #include <sys/wait.h>
 #endif //WIN32
 
-#ifndef WIN32 //Linux or APPLE
+#ifndef _WIN32 //Linux or APPLE
 class TempFile
 {
 public:
@@ -84,7 +84,7 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
  */
 static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source, const std::string& params)
 {
-#ifndef WIN32 //Linux or APPLE
+#ifndef _WIN32 //Linux or APPLE
 	TempFile outfile("amdgcn-asm-out-XXXXXX");
 
 	std::vector<std::string> args ({
@@ -132,6 +132,7 @@ static void ExperimentalAmdgcnAssemble(cl_device_id device, std::string& source,
 		MIOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
 	}
 #else
+	(void)device; // -warning
 	(void)source; // -warning
 	(void)params; // -warning
 	MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
@@ -179,7 +180,7 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 	}
 }
 
-ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, const std::string& params, bool is_kernel_str)
+ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string &program_name, std::string params, bool is_kernel_str)
 {
 	bool is_binary = false;
 	std::string source;
@@ -202,7 +203,14 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 		BuildProgram(result, device);
 	} else {
 		result = CreateProgram(ctx, source.data(), source.size());
-		BuildProgram(result, device, params + " -cl-std=CL1.2");
+#if MIOPEN_BUILD_DEV
+		params += " -Werror";
+#ifdef __linux__
+		params += " -Wf,-Weverything -Wf,-Wno-shorten-64-to-32 -Wf,-Wno-unused-macros -Wf,-Wno-unused-function -Wf,-Wno-sign-compare -Wf,-Wno-reserved-id-macro -Wf,-Wno-sign-conversion -Wf,-Wno-missing-prototypes -Wf,-Wno-cast-qual";
+#endif
+#endif
+		params += " -cl-std=CL1.2";
+		BuildProgram(result, device, params);
 	}
 	return ClProgramPtr{ result };
 }

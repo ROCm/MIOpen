@@ -235,7 +235,7 @@ struct conv_forward : output_tensor_fixture
 		status |= clEnqueueWriteBuffer(q, fwd_workspace_dev, CL_TRUE, 0, sz_fwd_workspace, fwd_workspace.data(), 0, NULL, NULL);
 		EXPECT(status == CL_SUCCESS);
 
-#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 
         void * in_dev;
         void * wei_dev;
@@ -304,7 +304,7 @@ struct conv_forward : output_tensor_fixture
 		clReleaseMemObject(out_dev);
 		clReleaseMemObject(fwd_workspace_dev);
 
-#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
         hipFree(in_dev);
         hipFree(wei_dev);
         hipFree(out_dev);
