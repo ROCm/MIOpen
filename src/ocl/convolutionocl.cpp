@@ -940,7 +940,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 construct_params.setOutputDescFromMLDesc(dyDesc);
                 construct_params.setInputDescFromMLDesc(xDesc);
                 construct_params.setWeightDescFromMLDesc(dwDesc);
-                construct_params.mloConstruct();
+				construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+				construct_params.mloConstruct();
 
                 std::string network_config;
                 construct_params.mloBuildConf_Key(network_config);
