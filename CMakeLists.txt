@@ -87,7 +87,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 		message(FATAL_ERROR "clang-ocl not found")
 	endif()
 	
-	find_package(hip PATHS /opt/rocm)
+	find_package(hip REQUIRED PATHS /opt/rocm)
 	link_libraries(stdc++)
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
