@@ -51,14 +51,13 @@ endif()
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
 	"Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
-	OpenCL HCC HIP HIPOC )
+	OpenCL HIP HIPOC )
 find_package(tinygemm)
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
 	add_definitions( -DMIOPEN_BACKEND_OPENCL=1 )
 	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIPOC=0 )
 	find_package( OpenCL REQUIRED )
 	find_program(AMDGCN_ASSEMBLER
 		NAMES clang
@@ -71,28 +70,12 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
 	endif()
 	message(STATUS "AMDGCN assembler: ${AMDGCN_ASSEMBLER}")
 endif()
-# HCC
-if( MIOPEN_BACKEND STREQUAL "HCC")
-	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
-	add_definitions( -DMIOPEN_BACKEND_HCC=1 )
-	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIPOC=0 )
-	message( SEND_ERROR "${MIOPEN_BACKEND} backend not yet supported." )
-endif()
+
 # HIP
-if( MIOPEN_BACKEND STREQUAL "HIP")
+if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
 	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
 	add_definitions( -DMIOPEN_BACKEND_HIP=1 )
-	add_definitions( -DMIOPEN_BACKEND_HIPOC=0 )
-	message( SEND_ERROR "${MIOPEN_BACKEND} backend not yet supported." )
-endif()
-# HIPOC
-if( MIOPEN_BACKEND STREQUAL "HIPOC")
-	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
-	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIPOC=1 )
 	find_program(HIP_OC_COMPILER clang-ocl
 		PATH_SUFFIXES bin
 		PATHS /opt/rocm
@@ -101,22 +84,7 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC")
 		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
 		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
 	else()
-		find_program(HIP_OC_COMPILER aoc2
-			PATH_SUFFIXES
-				bin
-				bin/x86_64
-				x86_64
-		)
-		find_program(HIP_OC_FINALIZER amdhsafin
-			PATH_SUFFIXES
-				bin
-				bin/x86_64
-				x86_64
-		)
-		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
-		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
-		message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
-		add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
+		message(FATAL_ERROR "clang-ocl not found")
 	endif()
 	
 	find_package(hip PATHS /opt/rocm)
