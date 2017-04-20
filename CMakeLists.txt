@@ -36,7 +36,7 @@ add_compile_options(-std=gnu++11)
 # - OpenCL
 # - HCC
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
-	set(MIOPEN_DEFAULT_BACKEND "HIPOC")
+	set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
 	set(MIOPEN_DEFAULT_BACKEND "OpenCL")
 endif()
