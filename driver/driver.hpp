@@ -19,7 +19,7 @@
 #include <CL/cl.h>
 #endif
 
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 #include <hip/hip_runtime_api.h>
 
 #define printf(...) fprintf(stdout, __VA_ARGS__)
@@ -46,7 +46,7 @@ struct GPUMem {
 	size_t sz;
 	size_t data_sz;
 
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 
 	GPUMem() {};
 	GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz) {	hipMalloc((void**)&buf, data_sz*sz); }
@@ -98,7 +98,7 @@ class Driver
 	Driver() {
 #if MIOPEN_BACKEND_OPENCL
 		miopenCreate(&handle);
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
         hipStream_t s;
         hipStreamCreate(&s);
         miopenCreateWithStream(&handle,s);
@@ -110,7 +110,7 @@ class Driver
 	miopenHandle_t GetHandle() { return handle; }
 #if MIOPEN_BACKEND_OPENCL
 	cl_command_queue& GetStream() { return q; }
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 	hipStream_t& GetStream() { return q; }
 #endif
 	virtual ~Driver() {
@@ -133,7 +133,7 @@ class Driver
 	miopenHandle_t handle;
 #if MIOPEN_BACKEND_OPENCL
 	cl_command_queue q;
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 	hipStream_t q;
 #endif
 };

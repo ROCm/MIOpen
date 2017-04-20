@@ -94,7 +94,6 @@ kernel void Im2Col(const int data_size_off, global float *im, size_t im_offset,
 
 	local float local_im[LOCAL_MEM_SIZE];
 
-	int witem_ch = lid / THREADS_PER_CH;
 	int wg_ch = gid / NUM_IM_BLKS;
 
     int im_x = ((gid % NUM_IM_BLKS) % NUM_IM_BLKS_X) * TILE_SZ_X;

@@ -110,7 +110,7 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
     cl_context ctx;
 
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
     a_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, a_sz, sizeof(T)));
@@ -131,7 +131,7 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
     }
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
     int status;
 #endif
     status = a_dev->ToGPU(q, a.data());

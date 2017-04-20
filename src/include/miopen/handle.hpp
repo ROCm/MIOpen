@@ -30,7 +30,7 @@ struct Handle : miopenHandle {
 
     float GetKernelTime() const;
 	bool IsProfilingEnabled() const;
-#if MIOPEN_BACKEND_OPENCL || MIOPEN_BACKEND_HIPOC
+
     KernelInvoke GetKernel(
             const std::string& algorithm,
             const std::string& network_config,
@@ -48,7 +48,6 @@ struct Handle : miopenHandle {
 
     void Finish() const;
     void Flush() const;
-#endif
 
     std::size_t GetLocalMemorySize();
     std::size_t GetMaxComputeUnits();

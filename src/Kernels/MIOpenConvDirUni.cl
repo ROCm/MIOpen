@@ -30,6 +30,8 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define UNUSED __attribute__((__unused__))
+
 #ifndef MLO_FILTER_STRIDE0
 #define MLO_FILTER_STRIDE0 1
 #endif
@@ -159,10 +161,10 @@ static inline uint calculateOffset(uint stride, uint x, uint y)
 	return(ret);
 }
 
-static inline void readDataElem(uint linPos,__local _FLOAT *lcl_data, int lcl_base, uint lcl_height, uint lcl_width, int lcl_stride, int lcl_y, int lcl_x,
+static inline void readDataElem(uint linPos,__local _FLOAT *lcl_data, int lcl_base, UNUSED uint lcl_height, uint lcl_width, int lcl_stride, int lcl_y, int lcl_x,
 					 const __global _FLOAT * gbl_data, int gbl_base, uint gbl_height, uint gbl_width, int gbl_stride, int gbl_y, int gbl_x,
 					 bool vis,
-					 bool debug)
+					 UNUSED bool debug)
 {
 	uint x, y;
 	calculateXYPos(linPos, lcl_width, &x, &y);
@@ -171,18 +173,22 @@ static inline void readDataElem(uint linPos,__local _FLOAT *lcl_data, int lcl_ba
 	uint gbl_off0 = calculateOffset(gbl_stride, g_x, g_y);
 	int gbl_off = gbl_off0 + gbl_base;
 
+#if MLO_LARGE_MAP == 1
+	int lcl_off = lcl_base + linPos;
+	(void)lcl_stride;
+	(void)lcl_x;
+	(void)lcl_y;
+#else
 	int l_x = x + lcl_x;
 	int l_y = y + lcl_y;
-	int lcl_off = lcl_base +
-#if MLO_LARGE_MAP == 1
-		linPos
-#else
-		mad24(l_y, lcl_stride, l_x);
+	int lcl_off = lcl_base + mad24(l_y, lcl_stride, l_x);
 #endif
-	 ;
 
 #if MLO_LARGE_MAP == 1
 	 vis &= (g_x >= 0 && g_x < gbl_width && g_y >= 0 && g_y < gbl_height);
+#else
+	 (void)gbl_width;
+	 (void)gbl_height;
 #endif
 	 gbl_off = (vis) ? gbl_off : 0;
 	 _FLOAT gbl_val = gbl_data[gbl_off];
@@ -356,7 +362,7 @@ __kernel void MIOpenConvUni(
        const __global _FLOAT * __restrict bias,
 #endif
 	  __global _FLOAT * __restrict out,
-	   _FLOAT padding_val
+	   UNUSED _FLOAT padding_val
 	   )
 {
 	__local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
@@ -415,7 +421,9 @@ __kernel void MIOpenConvUni(
 	uint wave_lcl_id = iMod(lcl_id, wave_id, MLO_N_READ_PROCS);
 #else
 	uint wave_id = lcl_id / MLO_N_READ_PROCS;
+#if MLO_LARGE_MAP != 1
 	uint wave_lcl_id = lcl_id & (MLO_N_READ_PROCS - 1);
+#endif
 #if MLO_N_READ_PROCS >= 64
 	wave_id = uniform(wave_id);
 #endif
@@ -424,17 +432,19 @@ __kernel void MIOpenConvUni(
 #if MLO_DIR_FORWARD == 1
 	uint x_grp = x_tile_blk * MLO_IN_TILE0 * MLO_FILTER_STRIDE0;
 	uint y_grp = y_tile_blk * MLO_IN_TILE1 * MLO_FILTER_STRIDE1;
-
+#if MLO_LARGE_MAP == 1
 	uint x_in_grp = x_grp - MLO_FILTER_PAD0;
 	uint y_in_grp = y_grp - MLO_FILTER_PAD1;
-
+#endif
 	uint x_in_lcl = alu_tl0 * MLO_OUT_TILE0 * MLO_FILTER_STRIDE0;
 	uint y_in_lcl = alu_tl1 * MLO_OUT_TILE1 * MLO_FILTER_STRIDE1;
 #else
 	uint x_grp = x_tile_blk * (MLO_IN_TILE0 / MLO_FILTER_STRIDE0);
 	uint y_grp = y_tile_blk * (MLO_IN_TILE1 / MLO_FILTER_STRIDE1);
+#if MLO_LARGE_MAP == 1
 	uint x_in_grp = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
 	uint y_in_grp = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
+#endif
 	uint x_in_lcl = alu_tl0 * (MLO_OUT_TILE0 / MLO_FILTER_STRIDE0);
 	uint y_in_lcl = alu_tl1 * (MLO_OUT_TILE1 / MLO_FILTER_STRIDE1);
 #endif

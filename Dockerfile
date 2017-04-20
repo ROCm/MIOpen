@@ -3,6 +3,9 @@ FROM ubuntu:16.04
 ARG PREFIX=/opt/rocm
 ARG GITLAB1=10.236.13.205
 
+# Support multiarch
+RUN dpkg --add-architecture i386
+
 # Add rocm repository
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl && \
     curl -sL http://packages.amd.com/rocm/apt/debian/rocm.gpg.key | apt-key add - && \
@@ -16,20 +19,25 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     clang-tidy-3.8 \
     cmake \
     curl \
+    g++-mingw-w64 \
+    g++-mingw-w64-x86-64 \
     g++-multilib \
     git \
-    hsakmt-roct-dev \
     hsa-rocr-dev \
-    libc++-dev \
-    libc++abi-dev \
+    hsakmt-roct-dev \
     libelf-dev \
     libncurses5-dev \
     libpthread-stubs0-dev \
+    mingw-w64 \
+    mingw-w64-tools \
+    nsis \
     python \
     python-dev \
     python-pip \
     software-properties-common \
-    wget && \
+    wget \
+    wine \
+    xvfb && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -42,6 +50,9 @@ RUN pip install cget
 
 # Install latest cmake
 RUN cget -p /usr/local install kitware/cmake@release
+
+# Add the toolchain
+ADD cmake/mingw-toolchain.cmake /usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake
 
 # Build hcc
 RUN git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/hcc.git /hcc && \
@@ -73,3 +84,13 @@ RUN cget -p $PREFIX install clang-ocl,http://$GITLAB1/pfultz/clang-ocl/repositor
 
 # Install tinygemm
 RUN cget -p /usr/local install tinygemm,http://$GITLAB1/pfultz/tinygemm/repository/archive.tar.gz?ref=master
+
+# Install windows opencl
+RUN curl http://$GITLAB1/pfultz/mlopen/uploads/bbab72ad68e65faeee9257b2bb9ca4a1/win-opencl.deb > /win-opencl.deb
+RUN dpkg -i /win-opencl.deb && rm /win-opencl.deb
+
+# Install mingw threads
+RUN cget -p /usr/local/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@master
+
+# Setup wine
+RUN WINEDEBUG=-all DISPLAY=:55.0 wineboot; wineserver -w

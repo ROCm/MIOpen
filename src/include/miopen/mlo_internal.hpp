@@ -65,10 +65,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <tuple>
 
 
-#ifdef WIN32
+#ifdef _WIN32
  #include <io.h>
  #include <windows.h>
- #include <BaseTsd.h>
+ // #include <BaseTsd.h>
  #include <direct.h>
  #define snprintf _snprintf
  #define vsnprintf _vsnprintf
@@ -717,7 +717,6 @@ protected:
 	enum rocm_meta_version { V1, V2, V3 };
 #if MIOPEN_BACKEND_OPENCL
 	bool mloIsAmdOpenclRocm(rocm_meta_version &rmv) const;
-	bool mloExperimentalValidateAssemblerPath(const char* path) const;
 #endif
 
 	bool mloIsCorrectBinaryWinograd3x3Fwd() const;
