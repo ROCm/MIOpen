@@ -1,9 +1,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/device_name.hpp>
-#if MIOPEN_BACKEND_HIPOC
 #include <miopen/kernel_cache.hpp>
-#endif
 #include <algorithm>
 
 #ifndef _WIN32
@@ -83,9 +81,7 @@ struct HandleImpl
     bool enable_profiling = false;
     StreamPtr stream;
     float profiling_result = 0.0;
-#if MIOPEN_BACKEND_HIPOC
     KernelCache cache;
-#endif
 };
 
 Handle::Handle (miopenAcceleratorQueue_t stream) 
@@ -152,7 +148,6 @@ void Handle::Copy(ConstData_t src, Data_t dest, int size)
     if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
 }
 
-#if MIOPEN_BACKEND_HIPOC
 KernelInvoke Handle::GetKernel(
         const std::string& algorithm,
         const std::string& network_config,
@@ -255,5 +250,4 @@ std::string Handle::GetDeviceName()
     std::string n("gfx"+std::to_string(props.gcnArch));
 	return GetDeviceNameFromMap(n);
 }
-#endif
 } // namespace miopen

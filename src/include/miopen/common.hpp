@@ -26,7 +26,7 @@ inline ConstData_t DataCast(const void *p) {
 #endif
 }
 
-#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 
 using Data_t = void *;
 using ConstData_t = const void *;
