@@ -490,7 +490,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
+#if MIOPEN_USE_TINYGEMM
         break;
+#endif
         case miopenConvolutionFwdAlgoFFT:
 		{
 			size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
@@ -929,7 +931,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
+#if MIOPEN_USE_TINYGEMM
         break;
+#endif
 
         case miopenConvolutionBwdWeightsAlgoDirect:
         {
