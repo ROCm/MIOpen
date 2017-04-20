@@ -59,7 +59,7 @@ set( MIOpen_Source
 	tensor_api.cpp
 	)
 
-if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
+if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 	set(MIOPEN_KERNELS
 		Kernels/MIOpenConvDirUni.cl
 		Kernels/MIOpenConvDirGenFwd.cl
@@ -129,20 +129,12 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL" )
 	)
 endif()
 
-if( MIOPEN_BACKEND STREQUAL "HIPOC")
+if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 	list(APPEND MIOpen_Source 
 		hip/hiperrors.cpp
 		hip/handlehip.cpp
 		hipoc/hipoc_kernel.cpp
 		hipoc/hipoc_program.cpp
-		)
-endif()
-
-if( MIOPEN_BACKEND STREQUAL "HIP")
-	list(APPEND MIOpen_Source 
-		hip/handlehip.cpp
-		hip/convolutionhip.cpp
-		hip/tensorhip.cpp
 		)
 endif()
 
@@ -160,7 +152,7 @@ add_library( MIOpen
 
 set_target_properties(MIOpen PROPERTIES SOVERSION 1)
 
-if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC")
+if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 	add_custom_target(addkernels_run
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		DEPENDS addkernels
@@ -190,7 +182,7 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
 	target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
 	target_link_libraries( MIOpen ${OPENCL_LIBRARIES} )
 	set(BACKEND_PACKAGE "OpenCL")
-elseif(MIOPEN_BACKEND STREQUAL "HIPOC")
+elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 	target_link_libraries( MIOpen ${hip_LIBRARIES} )
 	set(BACKEND_PACKAGE "hip")
 endif()
