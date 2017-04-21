@@ -127,7 +127,8 @@ std::size_t GetAvailableMemory()
 ManageDataPtr Handle::Create(int sz)
 {
     this->Finish();
-    if (sz > GetAvailableMemory()) MIOPEN_THROW("Memory not available to allocate buffer " + std::to_string(sz));
+    if (sz < 0) MIOPEN_THROW("Invalid buffer size: " + std::to_string(sz));
+    if (sz > GetAvailableMemory()) MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
     void * result;
     auto status = hipMalloc(&result, sz);
     if (status != hipSuccess)
