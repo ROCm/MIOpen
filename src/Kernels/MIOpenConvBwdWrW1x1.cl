@@ -362,6 +362,69 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 #endif
 
+
+	// write out 
+	// inputs are outputs
+	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + (c_idx + m_id) * MLO_WEI_CHANNEL_STRIDE;
+
+
+#if 1
+// transpose data and usm it up using MLO_REDUC_LOOP_STEP wk-items from each small map 
+	__private _FLOAT final_sum[(MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP)];
+//	if (inside_range_input)
+	{
+		for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+		{
+			final_sum[r] = 0;
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			for (int rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
+			{
+				lcl_mem[lcl_id*MLO_REDUC_LOOP_STEP + rr] = pvt_accum[r*MLO_REDUC_LOOP_STEP + rr];
+			}
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			if (p4 < MLO_REDUC_LOOP_STEP)
+			{
+				for (int j = 0; j < MLO_MAP_WK_SZ; j++)
+				{
+					final_sum[r] += lcl_mem[(m_id*MLO_MAP_WK_SZ + j)*MLO_REDUC_LOOP_STEP + p4];
+				}
+
+			}
+		}
+
+		if (p4 < MLO_REDUC_LOOP_STEP)
+		{
+			for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+			{
+				int wei_idx = p4* (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP) + r;
+
+#if (MLO_N_LCL_OUT_MAPS & (MLO_N_LCL_OUT_MAPS - 1))
+				int c = iDiv(wei_idx, MLO_N_LCL_OUT_MAPS);
+				int k = iMod(wei_idx, c, MLO_N_LCL_OUT_MAPS);
+#else
+				int c = ((uint)wei_idx / MLO_N_LCL_OUT_MAPS);
+				int k = ((uint)wei_idx & (MLO_N_LCL_OUT_MAPS-1));
+#endif
+
+
+				if (m_id < MLO_N_MAPS_PER_GROUP && (c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS
+#if MLO_N_OUT_MAPS_ALIGNED == 0
+					&& k_idx + k < MLO_N_OUTPUTS
+#endif
+					)
+				{
+					int wei_off = wei_df_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_N_MAPS_PER_GROUP*MLO_WEI_CHANNEL_STRIDE;
+					weights_df[wei_off] = final_sum[r];
+				}
+
+
+			} // for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+		} // if (p4 < MLO_REDUC_LOOP_STEP)
+	} // if (inside_range_input)
+#else
 	for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 	{
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -384,11 +447,9 @@ __kernel void MIOpenCvBwdWrWSmap(
 		}
 	}
 
-	// write out 
-	// inputs are outputs
-	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + (c_idx + m_id) * MLO_WEI_CHANNEL_STRIDE;
 
-	if (p4 ==0 && inside_range_input)
+
+	if (p4 == 0)
 	{
 		for (int kb = 0; kb < MLO_N_LCL_OUT; kb++)
 		{
@@ -412,6 +473,8 @@ __kernel void MIOpenCvBwdWrWSmap(
 		}
 
 	}
+
+#endif
 
 
 }
