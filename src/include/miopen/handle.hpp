@@ -22,6 +22,7 @@ struct Handle : miopenHandle {
 	~Handle();
 
 	miopenAcceleratorQueue_t GetStream() const;
+	void SetStream(miopenAcceleratorQueue_t streamID) const;
 
     void EnableProfiling(bool enable=true);
 	

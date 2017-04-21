@@ -286,6 +286,17 @@ Handle::Handle ()
 Handle::Handle(Handle&&) noexcept=default;
 Handle::~Handle()=default;
 
+void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
+{
+    if(streamID == nullptr) {
+        MIOPEN_THROW("Error setting stream to nullptr");
+    }
+    clReleaseCommandQueue(impl->queue.get());
+
+    clRetainCommandQueue(streamID);
+    impl->queue = HandleImpl::AqPtr{streamID};
+}
+
 miopenAcceleratorQueue_t Handle::GetStream() const
 {
     return impl->queue.get();
