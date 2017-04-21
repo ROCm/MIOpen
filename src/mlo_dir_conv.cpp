@@ -1729,7 +1729,17 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	int lcl_comm_size = out_lcl_blk * MAP_WK_SZ * read_unit;
 	// reduction loop step
 	// even or odd depending on number of maps (prefer even)
-	int REDUC_LOOP_STEP = _n_in_data_tiles;
+	int REDUC_LOOP_STEP = _n_out_pix_tiles;
+	int accum_sz = _n_in_data_tiles * _n_out_pix_tiles;
+	while ((REDUC_LOOP_STEP > MAP_WK_SZ || (accum_sz / REDUC_LOOP_STEP)*REDUC_LOOP_STEP != accum_sz) && REDUC_LOOP_STEP > 1  )
+	{
+		REDUC_LOOP_STEP--;
+	}
+
+	int lg2_red_splits = 0;
+	for (; ((REDUC_LOOP_STEP << lg2_red_splits) < GRP_SZ && MAP_WK_SZ >= GRP_SZ); ++lg2_red_splits);
+
+	lg2_red_splits = (lg2_red_splits > 0) ? lg2_red_splits - 1 : lg2_red_splits;
 
 	int lcl_red_size = GRP_SZ * REDUC_LOOP_STEP;
 
