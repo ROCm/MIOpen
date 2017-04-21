@@ -187,7 +187,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 					// reading in order per group and jump over maps been read
 					// read arbitrary data but inside the range
 
-					bool inside_range_input2 = inside_range_input & ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS);
+					bool inside_range_input2 = inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS);
 
 					bot_off = (inside_range_input2) ? bot_off : 0;
 
@@ -213,7 +213,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 					// reading in order per group and jump over maps been read
 					// read arbitrary data but inside the range
 
-					bool inside_range_input2 = inside_range_input & ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS);
+					bool inside_range_input2 = inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS);
 
 					bot_off = (inside_range_input2) ? bot_off : 0;
 
@@ -250,7 +250,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 				int top_off1 = top_off + m * MLO_OUT_CHANNEL_STRIDE + pm*MLO_READ_UNIT;
 #if MLO_N_OUT_MAPS_ALIGNED == 0
-				top_off1 = (k_idx + k < MLO_N_OUTPUTS) ? top_off1 : 0;
+				top_off1 = (k_idx + m < MLO_N_OUTPUTS) ? top_off1 : 0;
 #endif
 #if MLO_N_PIXS_OFF > 0
 				if (pm == MLO_MAP_WK_SZ - 1)
@@ -399,14 +399,14 @@ __kernel void MIOpenCvBwdWrWSmap(
 		{
 			for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 			{
-				int wei_idx = p4* (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP) + r;
+				int wei_idx = r* ( MLO_REDUC_LOOP_STEP) + p4;
 
-#if (MLO_N_LCL_OUT_MAPS & (MLO_N_LCL_OUT_MAPS - 1))
-				int c = iDiv(wei_idx, MLO_N_LCL_OUT_MAPS);
-				int k = iMod(wei_idx, c, MLO_N_LCL_OUT_MAPS);
+#if (MLO_N_LCL_IN_MAPS & (MLO_N_LCL_IN_MAPS - 1))
+				int k = iDiv(wei_idx, MLO_N_LCL_IN_MAPS);
+				int c = iMod(wei_idx, k, MLO_N_LCL_IN_MAPS);
 #else
-				int c = ((uint)wei_idx / MLO_N_LCL_OUT_MAPS);
-				int k = ((uint)wei_idx & (MLO_N_LCL_OUT_MAPS-1));
+				int k = ((uint)wei_idx / MLO_N_LCL_IN_MAPS);
+				int c = ((uint)wei_idx & (MLO_N_LCL_IN_MAPS-1));
 #endif
 
 
