@@ -83,7 +83,7 @@ miopenStatus_t miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t 
 }
 
 extern "C"
-miopenStatus_t miopenConvolutionForwardGetWorkSpaceSize(
+miopenStatus_t miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
 		const miopenTensorDescriptor_t		wDesc,
 		const miopenTensorDescriptor_t		xDesc,
 		const miopenTensorDescriptor_t		yDesc,
@@ -93,6 +93,7 @@ miopenStatus_t miopenConvolutionForwardGetWorkSpaceSize(
 	MIOPEN_LOG_FUNCTION(wDesc, yDesc, convDesc, workSpaceSize);
 	miopen::try_([&] {
 		miopen::deref(workSpaceSize) = miopen::deref(convDesc).ForwardGetWorkSpaceSize(
+            miopen::deref(handle),
 			miopen::deref(wDesc),
 			miopen::deref(xDesc),
 			miopen::deref(yDesc));
@@ -262,6 +263,7 @@ miopenStatus_t miopenConvolutionBackwardData(miopenHandle_t handle,
 
 extern "C"
 miopenStatus_t miopenConvolutionBackwardWeightsGetWorkSpaceSize(
+        miopenHandle_t                      handle,
 		const miopenTensorDescriptor_t		dyDesc,
 		const miopenTensorDescriptor_t		xDesc,
 		const miopenConvolutionDescriptor_t	convDesc,
@@ -271,6 +273,7 @@ miopenStatus_t miopenConvolutionBackwardWeightsGetWorkSpaceSize(
 	MIOPEN_LOG_FUNCTION(dyDesc, xDesc, convDesc, dwDesc, workSpaceSize);
 	return miopen::try_([&] {
 		miopen::deref(workSpaceSize) = miopen::deref(convDesc).ConvolutionBackwardWeightsGetWorkSpaceSize(
+            miopen::deref(handle),
 			miopen::deref(dyDesc),
 			miopen::deref(xDesc),
 			miopen::deref(dwDesc));

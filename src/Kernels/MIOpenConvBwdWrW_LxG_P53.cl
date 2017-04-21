@@ -721,10 +721,16 @@ __kernel void MIOpenCvBwdWrW_rdc(
 	int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS) - 1) / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS);
 	for (int i = 0; i < batch_loop; ++i)
 	{
-		*(MLO_UT_READ_TYPE*)pvt_accum_wei
-			+= *(__global MLO_UT_READ_TYPE*)&weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE)  + wei_idx];
+		for (int j = 0; j < MLO_UT_READ_UNIT; ++j)
+		{
+			pvt_accum_wei[j]
+				+= weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE) + wei_idx + j];
+		}
 	}
 
-	*(__global MLO_UT_READ_TYPE*)&weights_df[wei_idx0] = *(MLO_UT_READ_TYPE*)pvt_accum_wei;
+	for (int j = 0; j < MLO_UT_READ_UNIT; ++j)
+	{
+		weights_df[wei_idx0 + j] = pvt_accum_wei[j];
+	}
 
 }

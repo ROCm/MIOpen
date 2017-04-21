@@ -235,7 +235,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     std::string parms;
 
 #if MIOPEN_USE_TINYGEMM
-    size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
+    size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
     float time_gemm = 0;
     GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
 
@@ -445,7 +445,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 
             if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) && 
-                (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(wDesc, xDesc, yDesc))) {
+                (workSpace == nullptr || workSpaceSize < ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc))) {
                 MIOPEN_THROW("Workspace is required");
             }
 
@@ -717,7 +717,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
 #if MIOPEN_USE_TINYGEMM
     GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
-    workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
+    workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc);
     float time_gemm = 0;
 
     // 1x1 does not require im2col or workspace
@@ -887,7 +887,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             std::string network_config;
 
             if((wei_h != 1 || wei_w != 1 || v != 1 || u != 1) &&
-                    (workSpace == nullptr || workSpaceSize < BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc))) {
+                    (workSpace == nullptr || workSpaceSize < BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc))) {
                 MIOPEN_THROW("Workspace is required");
             }
 #if MIOPEN_USE_TINYGEMM
@@ -944,7 +944,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 construct_params.setOutputDescFromMLDesc(dyDesc);
                 construct_params.setInputDescFromMLDesc(xDesc);
                 construct_params.setWeightDescFromMLDesc(dwDesc);
-                construct_params.mloConstruct();
+				construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+				construct_params.mloConstruct();
 
                 std::string network_config;
                 construct_params.mloBuildConf_Key(network_config);
