@@ -321,6 +321,7 @@ typedef struct{
  */
 
 MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardGetWorkSpaceSize(
+        miopenHandle_t                      handle,
 		const miopenTensorDescriptor_t		wDesc,
 		const miopenTensorDescriptor_t		xDesc,
 		const miopenTensorDescriptor_t		yDesc,
@@ -394,6 +395,7 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardData(miopenHandle_t handle
 		size_t								workSpaceSize);
 
 MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardWeightsGetWorkSpaceSize(
+        miopenHandle_t                      handle,
 		const miopenTensorDescriptor_t		dyDesc,
 		const miopenTensorDescriptor_t		xDesc,
 		const miopenConvolutionDescriptor_t	convDesc,
