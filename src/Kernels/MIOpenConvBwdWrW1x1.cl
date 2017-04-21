@@ -319,50 +319,6 @@ __kernel void MIOpenCvBwdWrWSmap(
 	} // for (int b = 0; b < MLO_BATCH_SZ; ++b, gbl_in_off += MLO_IN_BATCH_STRIDE, gbl_out_off += MLO_OUT_BATCH_STRIDE)
 
 
-
-#if 0 //MLO_IN_WIDTH > 24
-// logar reduction
-	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
-	{
-		red_mem[i] = 0;
-	}
-
-	int red_base_off = (m_idx >= MLO_OUT_STACKS) ? MLO_LCL_MEM_SZ : m_idx * MLO_POW2_MAP_WK_SZ;
-	// final summation over each filter row
-	for (int l = 0; l < MLO_ACCUM_SZ; ++l)
-	{
-		barrier(CLK_LOCAL_MEM_FENCE);
-		// write data
-		red_mem[red_base_off + p4] = pvt_accum[l];
-
-		// barrier inside
-		ReduceKernel(&red_mem[red_base_off], &pvt_accum[l], p4, p4, MLO_POW2_MAP_WK_SZ, 1, false);
-
-	}
-
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-//#else
-	// direct reduction
-	for (int l = 0; l < MLO_ACCUM_SZ; ++l)
-	{
-		lcl_mem[lcl_id] = pvt_accum[l];
-		barrier(CLK_LOCAL_MEM_FENCE);
-		if (lcl_id == 0)
-		{
-			for (int i = 1; i < MLO_MAP_WK_SZ; ++i)
-			{
-				pvt_accum[l] += lcl_mem[lcl_id + i];
-			}
-
-		}	
-		barrier(CLK_LOCAL_MEM_FENCE);
-	}
-
-
-#endif
-
-
 	// write out 
 	// inputs are outputs
 	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + (c_idx + m_id) * MLO_WEI_CHANNEL_STRIDE;
