@@ -116,9 +116,18 @@ float Handle::GetKernelTime() const
     return this->impl->profiling_result;
 }
 
+std::size_t GetAvailableMemory()
+{
+    size_t free, total;
+    auto status = hipMemGetInfo(&free, &total);
+    if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
+    return free;
+}
+
 ManageDataPtr Handle::Create(int sz)
 {
     this->Finish();
+    if (sz > GetAvailableMemory()) MIOPEN_THROW("Memory not available to allocate buffer " + std::to_string(sz));
     void * result;
     auto status = hipMalloc(&result, sz);
     if (status != hipSuccess)
