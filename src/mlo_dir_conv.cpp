@@ -1730,7 +1730,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	// reduction loop step
 	// even or odd depending on number of maps (prefer even)
 	int accum_sz = _n_in_data_tiles * _n_out_pix_tiles;
-	int REDUC_LOOP_STEP = (accum_sz < MAP_WK_SZ) ? accum_sz :  _n_out_pix_tiles;
+	int REDUC_LOOP_STEP = (accum_sz < MAP_WK_SZ && accum_sz < 8) ? accum_sz :  _n_out_pix_tiles;
 	while ((REDUC_LOOP_STEP > MAP_WK_SZ || (accum_sz / REDUC_LOOP_STEP)*REDUC_LOOP_STEP != accum_sz) && REDUC_LOOP_STEP > 1  )
 	{
 		REDUC_LOOP_STEP--;
