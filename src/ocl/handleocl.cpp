@@ -291,7 +291,6 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
     if(streamID == nullptr) {
         MIOPEN_THROW("Error setting stream to nullptr");
     }
-    clReleaseCommandQueue(impl->queue.get());
 
     clRetainCommandQueue(streamID);
     impl->queue = HandleImpl::AqPtr{streamID};
