@@ -101,6 +101,11 @@ Handle::Handle ()
 
 Handle::~Handle() {}
 
+void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
+{
+    this->impl->stream = HandleImpl::reference_stream(streamID);
+}
+
 miopenAcceleratorQueue_t Handle::GetStream() const
 {
     return impl->stream.get();

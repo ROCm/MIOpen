@@ -20,6 +20,14 @@ miopenStatus_t miopenCreateWithStream(miopenHandle_t *handle,
 }
 
 extern "C"
+miopenStatus_t miopenSetStream(miopenHandle_t handle,
+		miopenAcceleratorQueue_t streamID) {
+	return miopen::try_([&] {
+		miopen::deref(handle).SetStream(streamID);
+	});
+}
+
+extern "C"
 miopenStatus_t miopenGetStream(miopenHandle_t handle,
 		miopenAcceleratorQueue_t *streamID) {
 	return miopen::try_([&] {
