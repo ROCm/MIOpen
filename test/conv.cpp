@@ -305,7 +305,7 @@ struct verify_backward_weights_conv : conv_base<T>
         std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(handle, out.desc, input.desc, weights.desc);
 
         std::vector<char> workspace(workspace_size);
-        auto workspace_dev = handle.Write(workspace);
+		auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
