@@ -1,4 +1,4 @@
-__constant float2 twiddles[31] = {
+static __constant float2 twiddles[31] = {
 (float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
 (float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
 (float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
@@ -1032,7 +1032,7 @@ InvPass1b(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local
 	(*R6) = bufIn[inOffset + 17 + ( me +  9  )];
 	(*R7) = bufIn[inOffset + 17 + ( me + 13  )];	
 	
-	float2 dc;
+	float2 dc = 0;
 	if(me < 1)
 	{
 		dc.x = bufIn[inOffset +  0].x;
@@ -1490,7 +1490,7 @@ __kernel void MIOpenConvFFT_cgemm(
   unsigned int globalCK = gK;
 
   /* write global C */
-  float type_fma_tmp;
+//  float type_fma_tmp; // unused variable
   if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], rC[0][0]) } }
   if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], rC[0][1]) } }
   if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], rC[0][2]) } }

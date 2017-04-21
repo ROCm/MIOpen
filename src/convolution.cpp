@@ -58,6 +58,7 @@ const
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(
+        Handle&                 handle,
 		const TensorDescriptor& wDesc,
 		const TensorDescriptor& yDesc) const
 {
@@ -69,16 +70,21 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(
 	
 	size_t workspace_size = wei_c*wei_h*wei_w * out_h*out_w * sizeof(yDesc.GetType());
 
+    // gfx803 devices have 4gb-6gb memory 
+    if(workspace_size > (1 << 30) && handle.GetDeviceName() == "gfx803")
+        workspace_size = 0;
+
 	return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : workspace_size;
 }
 
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
+        Handle&                 handle,
 		const TensorDescriptor& wDesc,
 		const TensorDescriptor& xDesc,
 		const TensorDescriptor& yDesc) const
 {
-	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
+	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
 	size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
 
 	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
@@ -203,8 +209,9 @@ TensorDescriptor ConvolutionDescriptor::GetBackwardWeightsTensor(
 }
 
 size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
-    const TensorDescriptor&      dyDesc,
-	const TensorDescriptor&		 dwDesc) const
+    Handle&                     handle,
+    const TensorDescriptor&     dyDesc,
+	const TensorDescriptor&		dwDesc) const
 {
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tie4(dyDesc.GetLengths());
@@ -212,13 +219,19 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
     std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(dwDesc.GetLengths());
     size_t gemm_size = wei_c*wei_h*wei_w * out_h*out_w * sizeof(dyDesc.GetType()); 
 
+    // gfx803 devices have limited memory
+    // TODO: be graceful, need to ensure we can execute a config on the GPU
+    // what if both the algos require > (1 << 30) memory
+    if(handle.GetDeviceName() == "gfx803" && gemm_size > (1 << 30))
+        gemm_size = 0;
+
     return gemm_size;
 }
 
 size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
-    const TensorDescriptor&      dyDesc,
-	const TensorDescriptor&		 xDesc,
-	const TensorDescriptor&		 dwDesc) const
+    const TensorDescriptor&     dyDesc,
+	const TensorDescriptor&		xDesc,
+	const TensorDescriptor&		dwDesc) const
 {
     mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
     construct_params.doSearch(false);
@@ -232,13 +245,14 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
 }
 
 size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
+    Handle&                     handle,
     const TensorDescriptor&      dyDesc,
 	const TensorDescriptor&		 xDesc,
 	const TensorDescriptor&		 dwDesc) const
 {
     return std::max(
             BackwardWeightsGetWorkSpaceSizeDirect(dyDesc, xDesc, dwDesc),
-            BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc)
+            BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)
         );
 }
 std::ostream& operator<< (std::ostream& stream, const ConvolutionDescriptor& c)
