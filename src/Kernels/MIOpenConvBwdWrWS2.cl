@@ -420,7 +420,7 @@ __kernel void MIOpenCvBwdWrW(
 					uint o_pX4 = iMod(oo_p4, o, (MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS));
 #else
 					uint o = oo_p4 / (MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS);
-					uint o_pX4 = oo_p4 & (MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS) - 1);
+					uint o_pX4 = oo_p4 & ((MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS) - 1);
 #endif
 #if MLO_N_OUT_HORIZ_READS & (MLO_N_OUT_HORIZ_READS - 1)
 					uint o_scan = iDiv(o_pX4, MLO_N_OUT_HORIZ_READS);
