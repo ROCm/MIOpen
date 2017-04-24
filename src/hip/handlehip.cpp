@@ -129,10 +129,9 @@ std::size_t GetAvailableMemory()
     return free;
 }
 
-ManageDataPtr Handle::Create(int sz)
+ManageDataPtr Handle::Create(std::size_t sz)
 {
     this->Finish();
-    if (sz < 0) MIOPEN_THROW("Invalid buffer size: " + std::to_string(sz));
     if (sz > GetAvailableMemory()) MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
     void * result;
     auto status = hipMalloc(&result, sz);
@@ -143,21 +142,21 @@ ManageDataPtr Handle::Create(int sz)
     }
     return ManageDataPtr{result};
 }
-ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
+ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, std::size_t sz)
 {
     this->Finish();
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);
     if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
-void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
+void Handle::ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz)
 {
     this->Finish();
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
     if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
 }
 
-void Handle::Copy(ConstData_t src, Data_t dest, int size)
+void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
 {
     auto status = hipMemcpy(dest, src, size, hipMemcpyDeviceToDevice);
     if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
