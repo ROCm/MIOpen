@@ -1737,9 +1737,19 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	}
 
 	int lg2_red_splits = 0;
-	for (; ((REDUC_LOOP_STEP << lg2_red_splits) < GRP_SZ && MAP_WK_SZ >= GRP_SZ); ++lg2_red_splits);
+	for (; ((REDUC_LOOP_STEP << lg2_red_splits) <= MAP_WK_SZ && (REDUC_LOOP_STEP << lg2_red_splits) <= GRP_SZ); ++lg2_red_splits);
 
-	lg2_red_splits = (lg2_red_splits > 0) ? lg2_red_splits - 1 : lg2_red_splits;
+// more than 1 summation areas
+	int first_round = 0;
+	int can_divide = 1;
+	if (lg2_red_splits > 1)
+	{
+// check if MAP_WK_SZ can be devided into that number at te firts round of summation
+		int firsts_round_split = (1 << (lg2_red_splits - 1));
+		first_round = (MAP_WK_SZ + firsts_round_split - 1) / firsts_round_split;
+		can_divide = ((first_round * firsts_round_split) == MAP_WK_SZ) ? 1 : 0;
+
+	}
 
 	int lcl_red_size = GRP_SZ * REDUC_LOOP_STEP;
 
@@ -1750,13 +1760,6 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	_grp_tile0 = GRP_SZ;
 	_grp_tile1 = 1;
 	int grp_tile2 = 1;
-
-
-	// utility parameters
-	int n_ut_waves = 4;
-	int UT_GRP_SZ0 = _hw_wave_sz * n_ut_waves;
-	int ut_read_unit = ((wei_cstride / 4) * 4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
-	std::string UT_READ_TYPE = (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
 
 
 	// it's backward - inputs are outputs and vs versa
@@ -1807,20 +1810,15 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		+ std::string(" -DMLO_N_MAPS_PER_GROUP=") + std::to_string(N_MAPS_PER_GROUP)
 		+ std::string(" -DMLO_N_LCL_OUT=") + std::to_string(N_out_lcl)
 		+ std::string(" -DMLO_OUT_LCL_BLK=") + std::to_string(out_lcl_blk)
-
+		+ std::string(" -DMLO_FIRST_ROUND=") + std::to_string(first_round)
+		+ std::string(" -DMLO_FIRST_CAN_DIVIDE=") + std::to_string(can_divide)
+		+ std::string(" -DMLO_LG2_REDUC_ROUNDS=") + std::to_string(lg2_red_splits)
 
 
 		+std::string(" -DMLO_READ_TYPE=") + READ_TYPE
 		+ std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit)
 		+ std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
 		+ std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
-
-		+ std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias)
-
-		+ std::string(" -DMLO_UT_READ_TYPE=") + UT_READ_TYPE
-		+ std::string(" -DMLO_UT_READ_UNIT=") + std::to_string(ut_read_unit)
-
-		+ std::string(" -DMLO_UT_GRP_SZ0=") + std::to_string(UT_GRP_SZ0)
 
 		//		+ std::string(" -limit-vector-registers=64 ")
 		+ getGeneralCompOptions()
