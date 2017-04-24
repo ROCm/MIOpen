@@ -500,6 +500,9 @@ __kernel void MIOpenCvBwdWrW(
 			Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
 		}
 
+#ifdef __AMDGCN__
+#pragma unroll 2
+#endif
 		for (; sc < MLO_IN_EXTENT1
 #if MLO_IN_N_VERT_LOOPS == 1
 			- MLO_FILTER_PAD1
@@ -578,9 +581,7 @@ __kernel void MIOpenCvBwdWrW(
 
 // bottom border block
 
-//#if (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS - 1) != 0
 		for (int i_loop = 0; i_loop < (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS - 1); ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
-//#endif
 		{
 			barrier(CLK_LOCAL_MEM_FENCE);
 // read 1 scan line less
