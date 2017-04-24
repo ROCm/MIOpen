@@ -324,9 +324,117 @@ __kernel void MIOpenCvBwdWrWSmap(
 	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + (c_idx + m_id) * MLO_WEI_CHANNEL_STRIDE;
 
 
-#if 1
-// transpose data and usm it up using MLO_REDUC_LOOP_STEP wk-items from each small map 
+
+// final summation optimized.
+
+#define MLO_N_FIRST_SPLITS  (1 << (MLO_LG2_REDUC_ROUNDS - 1))
+// transpose data using MLO_REDUC_LOOP_STEP wk-items from each small map 
 	__private _FLOAT final_sum[(MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP)];
+
+#if 1 // MLO_LG2_REDUC_ROUNDS > 1
+// first round
+// transpose and split into sub-group for logar summation
+	for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+	{
+		final_sum[r] = 0;
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+// write out only valid pixels
+#if MLO_MAP_WK_SZ < MLO_GRP_SZ
+		if (lcl_id < MLO_N_MAPS_PER_GROUP*MLO_MAP_WK_SZ)
+#endif
+
+		{
+
+			for (int rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
+			{
+				lcl_mem[lcl_id*MLO_REDUC_LOOP_STEP + rr] = pvt_accum[r*MLO_REDUC_LOOP_STEP + rr];
+			}
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		if (p4 < (MLO_REDUC_LOOP_STEP<< (MLO_LG2_REDUC_ROUNDS - 1)))
+		{
+			// what split the pix belong to
+#if (MLO_REDUC_LOOP_STEP && (MLO_REDUC_LOOP_STEP -1))
+			int split = iDiv(p4, MLO_REDUC_LOOP_STEP);
+			int split_pix = iMod(p4, split, MLO_REDUC_LOOP_STEP);
+#else
+			int split = ((uint)p4 / MLO_REDUC_LOOP_STEP);
+			int split_pix = ((uint)p4 & (MLO_REDUC_LOOP_STEP - 1));
+#endif
+
+			for (int j = 0; j < MLO_FIRST_ROUND; j++)
+			{
+#if MLO_FIRST_CAN_DIVIDE ==0
+				if (split*MLO_FIRST_ROUND + j < MLO_MAP_WK_SZ)
+#endif
+				{
+					final_sum[r] += lcl_mem[(m_id*MLO_MAP_WK_SZ + split*MLO_FIRST_ROUND + j)*MLO_REDUC_LOOP_STEP + split_pix];
+				}
+			}
+
+		}
+	}
+
+#if MLO_LG2_REDUC_ROUNDS > 1
+// log summation
+	for (int rd = (MLO_LG2_REDUC_ROUNDS - 2); rd >= 0; --rd)
+	{
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+		if (p4 < (MLO_REDUC_LOOP_STEP << (rd + 1)))
+		{
+			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
+			{
+				lcl_mem[(rr*MLO_N_MAPS_PER_GROUP + m_id)*MLO_REDUC_LOOP_STEP*(1 << (rd + 1)) + p4] = final_sum[rr];
+			}
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		if (p4 < (MLO_REDUC_LOOP_STEP << rd))
+		{
+			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
+			{
+				final_sum[rr] += lcl_mem[(rr*MLO_N_MAPS_PER_GROUP + m_id)*MLO_REDUC_LOOP_STEP*(1 << (rd + 1)) + (MLO_REDUC_LOOP_STEP << rd) + p4];
+			}
+		}
+	}
+
+
+#endif
+
+	if (p4 < MLO_REDUC_LOOP_STEP)
+	{
+		for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+		{
+			int wei_idx = r* (MLO_REDUC_LOOP_STEP)+p4;
+
+#if (MLO_N_LCL_IN_MAPS & (MLO_N_LCL_IN_MAPS - 1))
+			int k = iDiv(wei_idx, MLO_N_LCL_IN_MAPS);
+			int c = iMod(wei_idx, k, MLO_N_LCL_IN_MAPS);
+#else
+			int k = ((uint)wei_idx / MLO_N_LCL_IN_MAPS);
+			int c = ((uint)wei_idx & (MLO_N_LCL_IN_MAPS - 1));
+#endif
+
+
+			if (m_id < MLO_N_MAPS_PER_GROUP && (c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS
+#if MLO_N_OUT_MAPS_ALIGNED == 0
+				&& k_idx + k < MLO_N_OUTPUTS
+#endif
+				)
+			{
+				int wei_off = wei_df_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_N_MAPS_PER_GROUP*MLO_WEI_CHANNEL_STRIDE;
+				weights_df[wei_off] = final_sum[r];
+			}
+
+
+		} // for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+	} // if (p4 < MLO_REDUC_LOOP_STEP)
+
+
+#elif 1
 //	if (inside_range_input)
 	{
 		for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
