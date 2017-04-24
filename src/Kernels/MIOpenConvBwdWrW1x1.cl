@@ -356,7 +356,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 		if (p4 < (MLO_REDUC_LOOP_STEP<< (MLO_LG2_REDUC_ROUNDS - 1)))
 		{
 			// what split the pix belong to
-#if (MLO_REDUC_LOOP_STEP && (MLO_REDUC_LOOP_STEP -1))
+#if (MLO_REDUC_LOOP_STEP & (MLO_REDUC_LOOP_STEP -1))
 			int split = iDiv(p4, MLO_REDUC_LOOP_STEP);
 			int split_pix = iMod(p4, split, MLO_REDUC_LOOP_STEP);
 #else
