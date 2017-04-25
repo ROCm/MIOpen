@@ -193,7 +193,6 @@ MIOPEN_EXPORT miopenStatus_t miopenAddTensor(miopenHandle_t handle,
  * [MD]: Not sure if OpTensorDescriptor_t is required?
  */
 MIOPEN_EXPORT miopenStatus_t miopenOpTensor(miopenHandle_t handle,
-		//const miopenOpTensorDescriptor_t opTensorDesc,
 		miopenTensorOp_t				tensorOp,
 		const void						*alpha1,
 		const miopenTensorDescriptor_t	aDesc,
