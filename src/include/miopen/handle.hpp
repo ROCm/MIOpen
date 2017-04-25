@@ -55,14 +55,14 @@ struct Handle : miopenHandle {
 
     std::string GetDeviceName();
 
-    void Copy(ConstData_t src, Data_t dest, int size);
+    void Copy(ConstData_t src, Data_t dest, std::size_t size);
 
-	ManageDataPtr Create(int sz);
-	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, int sz);
-    void ReadTo(void* data, const ManageDataPtr& ddata, int sz);
+	ManageDataPtr Create(std::size_t sz);
+	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, std::size_t sz);
+    void ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz);
 
 	template<class T>
-	ManageDataPtr Create(int sz)
+	ManageDataPtr Create(std::size_t sz)
 	{
 		return this->Create(sz*sizeof(T));
 	}
@@ -76,7 +76,7 @@ struct Handle : miopenHandle {
     }
 
     template<class T>
-    std::vector<T> Read(const ManageDataPtr& ddata, int sz)
+    std::vector<T> Read(const ManageDataPtr& ddata, std::size_t sz)
     {
     	std::vector<T> result(sz);
     	this->ReadTo(result.data(), ddata, sz*sizeof(T));
