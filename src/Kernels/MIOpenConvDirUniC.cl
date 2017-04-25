@@ -349,16 +349,19 @@ __kernel void MIOpenConvUniC(
 	uint o_map = o_map_plane + o_map_base; // output map index per ALU plane
 	uint b_index = b_pack * MLO_N_STACKS;
 
-#if MLO_N_READ_PROCS & (MLO_N_READ_PROCS - 1)
+#if MLO_LARGE_MAP != 1
+#if MLO_GRP_SZ <= MLO_N_READ_PROCS
+	uint wave_id = 0;
+	uint wave_lcl_id = lcl_id;
+#elif MLO_N_READ_PROCS & (MLO_N_READ_PROCS - 1)
 	uint wave_id = (uint)((float)lcl_id / (float)MLO_N_READ_PROCS + 0.00001f);
 	uint wave_lcl_id = lcl_id - mul24(wave_id, (uint)MLO_N_READ_PROCS);
 #else
 	uint wave_id = (uint)((uint)lcl_id / MLO_N_READ_PROCS);
-#if MLO_LARGE_MAP != 1
 	uint wave_lcl_id = lcl_id & (MLO_N_READ_PROCS - 1);
-#endif
 #if MLO_N_READ_PROCS >= 64
         wave_id = uniform(wave_id);
+#endif
 #endif
 #endif
 
