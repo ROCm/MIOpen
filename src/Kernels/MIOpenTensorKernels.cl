@@ -86,9 +86,9 @@ __kernel void AddTensor(global float *a,
         (op == 1 ? OP_1(a, b) : \
          (op == 2 ? OP_2(a, b) : OP_3(a, b))))
 
-__kernel void OpTensorFwdBias(global float *a, global float *b,
+__kernel void OpTensorFwdBias(global MIOPEN_TYPE *a, global MIOPEN_TYPE *b,
         const int b_c, 
-        global float *c,
+        global MIOPEN_TYPE *c,
         const int c_nstride, const int c_cstride,
         const int work_per_wg,
         int op)
@@ -99,7 +99,7 @@ __kernel void OpTensorFwdBias(global float *a, global float *b,
 #if INCR_WG == 1
     int o_n = gid / b_c;
     int o_c = gid % b_c;
-    float operand = b[o_c];
+    MIOPEN_TYPE operand = b[o_c];
 
     while(lid < work_per_wg) {
         c[o_n*c_nstride + o_c*c_cstride + lid] = OP(op, a[o_n*c_nstride + o_c*c_cstride + lid], operand);
@@ -110,7 +110,7 @@ __kernel void OpTensorFwdBias(global float *a, global float *b,
     // each workgroup computes N*H*W for each C (bias-term)
     // number of workgroups = c_c (b_c)
 #elif INCR_WG == 0 
-    float operand = b[gid];
+    MIOPEN_TYPE operand = b[gid];
     int work_off = work_per_wg / c_n;
 
     while(lid < work_per_wg) {
@@ -123,10 +123,10 @@ __kernel void OpTensorFwdBias(global float *a, global float *b,
 #endif // INCR_WG
 }
 
-__kernel void OpTensorGeneric(global float *a, global float *b,
+__kernel void OpTensorGeneric(global MIOPEN_TYPE *a, global MIOPEN_TYPE *b,
         const int b_c, const int b_h, const int b_w,
         const int b_nstride, const int b_cstride,
-        global float *c,
+        global MIOPEN_TYPE *c,
         const int c_c, const int c_h, const int c_w,
         const int c_nstride, const int c_cstride,
         const unsigned int bitmap, const int work_per_wg,
@@ -136,7 +136,7 @@ __kernel void OpTensorGeneric(global float *a, global float *b,
     int lid = get_local_id(0);
 
 #if LEADING_ONES == 1 && FIRST_NOT_ONE == 2 // bitmap = 1,1,1,0 
-    float operand = b[gid];
+    MIOPEN_TYPE operand = b[gid];
 
     int o_h = gid % c_h;
     int o_c = (gid / c_h) % c_c;
@@ -148,7 +148,7 @@ __kernel void OpTensorGeneric(global float *a, global float *b,
         lid += get_local_size(0);
     }
 #elif LEADING_ONES == 1 && FIRST_NOT_ONE == 1 // bitmap = 1,1,0,0
-    float operand = b[gid];
+    MIOPEN_TYPE operand = b[gid];
 
     int o_c = gid % c_c;
     int o_n = gid / c_c;
@@ -160,7 +160,7 @@ __kernel void OpTensorGeneric(global float *a, global float *b,
     }
 
 #elif LEADING_ONES == 1 && FIRST_NOT_ONE == 0  // bitmap = 1,0,0,0
-    float operand = b[gid];
+    MIOPEN_TYPE operand = b[gid];
 
     while(lid < work_per_wg) {
         c[gid*c_nstride + lid] = OP(op, a[gid*c_nstride + lid], operand);
@@ -169,7 +169,7 @@ __kernel void OpTensorGeneric(global float *a, global float *b,
     }
 
 #else // generic op tensor
-    float operand = b[gid];
+    MIOPEN_TYPE operand = b[gid];
     int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
     int o_c_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
     int o_n_div = o_c_div * (bitmap & (1 << 2) ? 1 : c_c);

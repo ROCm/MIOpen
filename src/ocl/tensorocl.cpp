@@ -201,7 +201,11 @@ void OpTensor(Handle&           handle,
     if(aTensorDesc != cTensorDesc) {
         MIOPEN_THROW("A and C Tensors do not match");
     }
-    
+   
+    if(bTensorDesc.GetType() != cTensorDesc.GetType()) {
+        MIOPEN_THROW("Datatypes for B and C tensors do not match !");
+    }
+
     auto b_lens = bTensorDesc.GetLengths();
     auto c_lens = cTensorDesc.GetLengths();
 
@@ -264,7 +268,8 @@ void OpTensor(Handle&           handle,
 
     std::string parms = " -DFWD_CONV_BIAS=" + std::to_string(fwd_conv_bias) +
                         " -DINCR_WG=" + std::to_string(incr_wg) +
-                        " -DLEADING_ONES=" + std::to_string(leading_ones) + 
+                        " -DLEADING_ONES=" + std::to_string(leading_ones) +
+                        " -DMIOPEN_TYPE=" + GetDataType(bTensorDesc.GetType()) +
                         " -DFIRST_NOT_ONE=" + std::to_string(d-1);
 
     std::string program_name = "MIOpenTensorKernels.cl";
