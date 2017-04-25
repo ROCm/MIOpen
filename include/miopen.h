@@ -80,7 +80,6 @@ MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
 typedef enum {
 	miopenHalf = 0,
 	miopenFloat = 1,
-	miopenDouble = 2,
 } miopenDataType_t;
 
 typedef enum {
