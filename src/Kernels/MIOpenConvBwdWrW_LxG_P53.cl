@@ -595,6 +595,7 @@ __kernel void MIOpenCvBwdWrW(
 
 			sc_lcl_off = lcl_bot_off;
 
+#pragma unroll 3
 			for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1
 				; ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
 			{
