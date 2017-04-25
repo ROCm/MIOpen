@@ -180,24 +180,27 @@ generate_export_header(MIOpen
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
 	MESSAGE( STATUS "MIOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
-	target_link_libraries( MIOpen ${OPENCL_LIBRARIES} )
+	target_link_libraries( MIOpen PUBLIC ${OPENCL_LIBRARIES} )
 	set(BACKEND_PACKAGE "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-	target_link_libraries( MIOpen ${hip_LIBRARIES} )
+	target_link_libraries( MIOpen PRIVATE ${hip_LIBRARIES} )
+	target_link_libraries( MIOpen INTERFACE hip::hip_hcc )
+	# This is helpful for the tests
+	target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:${hip_LIBRARIES}> )
 	set(BACKEND_PACKAGE "hip")
 endif()
 
 ############################################################
 # MIOpen depends on tinygemm
 if(tinygemm_FOUND)
-	target_link_libraries( MIOpen tinygemm )
+	target_link_libraries( MIOpen PUBLIC tinygemm )
 endif()
 
 if(WIN32 AND NOT MSVC)
 	if(BUILD_DEV)
-		target_link_libraries(MIOpen -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
+		target_link_libraries(MIOpen PUBLIC -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
 	endif()
-	target_link_libraries(MIOpen -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
+	target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
 ############################################################
