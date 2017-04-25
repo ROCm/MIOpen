@@ -180,7 +180,7 @@ generate_export_header(MIOpen
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
 	MESSAGE( STATUS "MIOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
 	target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
-	target_link_libraries( MIOpen ${OPENCL_LIBRARIES} )
+	target_link_libraries( MIOpen PUBLIC ${OPENCL_LIBRARIES} )
 	set(BACKEND_PACKAGE "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 	target_link_libraries( MIOpen PRIVATE ${hip_LIBRARIES} )
