@@ -700,7 +700,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 	// transpose data using MLO_REDUC_LOOP_STEP wk-items from each small map 
 	__private _FLOAT final_sum[(MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP)];
 
-#if 1 
+#if 0 
 
 	// first round
 	// transpose and split into sub-group for logar summation
@@ -804,7 +804,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 	} // if (p4 < MLO_REDUC_LOOP_STEP)
 
 
-#elif 1
+#elif 0
 	//	if (inside_range_input)
 	{
 		for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
