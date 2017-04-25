@@ -383,20 +383,26 @@ __kernel void MIOpenCvBwdWrWSmap(
 	{
 
 		barrier(CLK_LOCAL_MEM_FENCE);
-		if (p4 < (MLO_REDUC_LOOP_STEP << (rd + 1)))
+
+		if (p4 >= (MLO_REDUC_LOOP_STEP << rd) && p4 < (MLO_REDUC_LOOP_STEP << (rd + 1)) && m_id < MLO_N_MAPS_PER_GROUP)
 		{
 			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
 			{
-				lcl_mem[(rr*MLO_N_MAPS_PER_GROUP + m_id)*MLO_REDUC_LOOP_STEP*(1 << (rd + 1)) + p4] = final_sum[rr];
+				int base_off = (rr*MLO_N_MAPS_PER_GROUP + m_id)*MLO_MAP_WK_SZ;
+				lcl_mem[base_off + p4] = final_sum[rr];
+
 			}
+
+
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (p4 < (MLO_REDUC_LOOP_STEP << rd))
+		if (p4 < (MLO_REDUC_LOOP_STEP << rd) && m_id < MLO_N_MAPS_PER_GROUP)
 		{
 			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
 			{
-				final_sum[rr] += lcl_mem[(rr*MLO_N_MAPS_PER_GROUP + m_id)*MLO_REDUC_LOOP_STEP*(1 << (rd + 1)) + (MLO_REDUC_LOOP_STEP << rd) + p4];
+				int base_off = (rr*MLO_N_MAPS_PER_GROUP + m_id)*MLO_MAP_WK_SZ;
+				final_sum[rr] += lcl_mem[base_off + (MLO_REDUC_LOOP_STEP << rd) + p4];
 			}
 		}
 	}
