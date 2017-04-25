@@ -1840,7 +1840,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 		size_t gbl_wk0 = GRP_SZ * n_out_blocks;
 		size_t gbl_wk1 = n_in_blocks;
-		size_t gbl_wk2 = n_batch_blks;
+		size_t gbl_wk2 = (!large_map) ? n_batch_blks : 1;
 
 
 		_g_wk.clear();
@@ -1849,7 +1849,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		_g_wk.push_back(gbl_wk2);
 
 		_kernel_file = "MIOpenConvBwdWrW1x1.cl";
-		_kernel_name = "MIOpenCvBwdWrWSmap";
+		_kernel_name = (!large_map) ? "MIOpenCvBwdWrWSmap" : "MLOpenCvBwdWrWLmap";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
 		_mlo_kernels_info.push_back(kern_info);
