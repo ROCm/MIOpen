@@ -1,4 +1,3 @@
-project(AddKernels)
 
 set(ADD_KERNELS_SOURCE addkernels.cpp)
 
