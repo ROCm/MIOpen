@@ -1690,7 +1690,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	int N_out_lcl = 1;
 	int out_lcl_blk = ((!big_map) ? 8 : 4) / N_out_lcl;
-	while (out_lcl_blk > 0 && MAP_WK_SZ*read_unit*out_lcl_blk > 8 * 1024)
+	while (out_lcl_blk > 0 && MAP_WK_SZ*read_unit*out_lcl_blk > n_waves * 1024)
 	{
 		N_out_lcl <<= 1;
 		out_lcl_blk >>= 1;
