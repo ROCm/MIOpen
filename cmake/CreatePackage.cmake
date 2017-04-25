@@ -10,7 +10,6 @@ macro(create_package)
 
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-
     set(CPACK_PACKAGE_NAME ${PARSE_NAME})
     set(CPACK_PACKAGE_VENDOR "Advanced Micro Devices, Inc")
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY ${PARSE_DESCRIPTION})
@@ -18,7 +17,7 @@ macro(create_package)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${PARSE_MAINTAINER})
     set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
     set(CPACK_NSIS_MODIFY_PATH On)
-    set(CPACK_NSIS_PACKAGE_NAME MIOpen)
+    set(CPACK_NSIS_PACKAGE_NAME ${PARSE_NAME})
     
     set(CPACK_GENERATOR "DEB")
     if(EXISTS ${MAKE_NSIS_EXE})
@@ -30,7 +29,7 @@ macro(create_package)
     endif()
 
     if(PARSE_LDCONFIG)
-        file(WRITE ${PROJECT_BINARY_DIR}/debian/postint "
+        file(WRITE ${PROJECT_BINARY_DIR}/debian/postinst "
             echo \"${PARSE_LDCONFIG}\" > /etc/ld.so.conf.d/${PARSE_NAME}.conf
             ldconfig
         ")
@@ -40,8 +39,8 @@ macro(create_package)
             ldconfig
         ")
 
-        set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${PROJECT_BINARY_DIR}/debian/postint;${PROJECT_BINARY_DIR}/debian/prerm")
-        set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${PROJECT_BINARY_DIR}/debian/postint")
+        set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${PROJECT_BINARY_DIR}/debian/postinst;${PROJECT_BINARY_DIR}/debian/prerm")
+        set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${PROJECT_BINARY_DIR}/debian/postinst")
         set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${PROJECT_BINARY_DIR}/debian/prerm")
     endif()
     include(CPack)
