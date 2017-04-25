@@ -328,37 +328,63 @@ __kernel void MIOpenConvUniC(
 	uint y_tile_blk = grp_id0;
 	uint x_tile_blk = 0;
 #else
-	uint y_tile_blk = (uint)((float)grp_id0 / (float) MLO_N_OUT_TILE_BLOCKS0 + 0.00001f);
+#if MLO_N_OUT_TILE_BLOCKS0 & (MLO_N_OUT_TILE_BLOCKS0 - 1)
+	uint y_tile_blk = (uint)((float)grp_id0 * (1.0f / (float) MLO_N_OUT_TILE_BLOCKS0) + 0.00001f);
 	int x_tile_blk = grp_id0 - mul24(y_tile_blk, (uint)MLO_N_OUT_TILE_BLOCKS0);
+#else
+	uint y_tile_blk = grp_id0 / MLO_N_OUT_TILE_BLOCKS0;
+	int x_tile_blk = grp_id0 & (MLO_N_OUT_TILE_BLOCKS0 - 1);
+#endif
 #endif
 	uint o_pack = get_group_id(1); // block of outputs
 	uint b_pack = get_group_id(2); // batch block
 
 	uint lcl_id = get_local_id(0);
-	uint stack = (uint)((float)lcl_id/(float)MLO_ALUTILES_STACK_SZ + 0.00001f);  // stack
+#if MLO_ALUTILES_STACK_SZ & (MLO_ALUTILES_STACK_SZ - 1)
+	uint stack = (uint)((float)lcl_id * (1.0f / (float)MLO_ALUTILES_STACK_SZ) + 0.00001f);  // stack
 	uint alu_stack_id = lcl_id - mul24(stack, (uint)MLO_ALUTILES_STACK_SZ);  // alu index in stack
+#else
+	uint stack = lcl_id / MLO_ALUTILES_STACK_SZ;  // stack
+	uint alu_stack_id = lcl_id & (MLO_ALUTILES_STACK_SZ - 1);  // alu index in stack
+#if MLO_ALUTILES_STACK_SZ >= 64
+	stack = uniform(stack);
+#endif
+#endif
 // ALU plane inside stack
-	uint alu_out_plane_id = (uint)((float)alu_stack_id / (float)MLO_ALU_TILE_SZ + 0.00001f);  // alu output plane index
+#if MLO_ALU_TILE_SZ & (MLO_ALU_TILE_SZ - 1)
+	uint alu_out_plane_id = (uint)((float)alu_stack_id * (1.0f / (float)MLO_ALU_TILE_SZ) + 0.00001f);  // alu output plane index
 	uint alu_out_id = alu_stack_id - mul24(alu_out_plane_id, (uint)MLO_ALU_TILE_SZ); // alu index inside an ALU output plane
+#else
+	uint alu_out_plane_id = alu_stack_id / MLO_ALU_TILE_SZ;  // alu output plane index
+	uint alu_out_id = alu_stack_id & (MLO_ALU_TILE_SZ - 1); // alu index inside an ALU output plane
+#endif
 // pos inside ALU tile
-	uint alu_tl1 = (uint)((float)alu_out_id/(float)MLO_ALU_VTILE0 + 0.00001f);
+#if MLO_ALU_VTILE0 & (MLO_ALU_VTILE0 - 1)
+	uint alu_tl1 = (uint)((float)alu_out_id * (1.0f / (float)MLO_ALU_VTILE0) + 0.00001f);
 	uint alu_tl0 = alu_out_id - mul24(alu_tl1, (uint)MLO_ALU_VTILE0);
+#else
+	uint alu_tl1 = alu_out_id / MLO_ALU_VTILE0;
+	uint alu_tl0 = alu_out_id & (MLO_ALU_VTILE0 - 1);
+#endif
 
 	uint o_map_plane = o_pack * MLO_N_OUT_TILES_PERSTACK; // first output maps index per full ALU plane stack
 	uint o_map_base = alu_out_plane_id*MLO_N_OUT_TILES;  // local output map offset
 	uint o_map = o_map_plane + o_map_base; // output map index per ALU plane
 	uint b_index = b_pack * MLO_N_STACKS;
 
-#if MLO_N_READ_PROCS & (MLO_N_READ_PROCS - 1)
-	uint wave_id = (uint)((float)lcl_id / (float)MLO_N_READ_PROCS + 0.00001f);
+#if MLO_LARGE_MAP != 1
+#if MLO_GRP_SZ <= MLO_N_READ_PROCS
+	uint wave_id = 0;
+	uint wave_lcl_id = lcl_id;
+#elif MLO_N_READ_PROCS & (MLO_N_READ_PROCS - 1)
+	uint wave_id = (uint)((float)lcl_id * (1.0f / (float)MLO_N_READ_PROCS) + 0.00001f);
 	uint wave_lcl_id = lcl_id - mul24(wave_id, (uint)MLO_N_READ_PROCS);
 #else
 	uint wave_id = (uint)((uint)lcl_id / MLO_N_READ_PROCS);
-#if MLO_LARGE_MAP != 1
 	uint wave_lcl_id = lcl_id & (MLO_N_READ_PROCS - 1);
-#endif
 #if MLO_N_READ_PROCS >= 64
         wave_id = uniform(wave_id);
+#endif
 #endif
 #endif
 
@@ -455,7 +481,7 @@ __kernel void MIOpenConvUniC(
 		{
 		//(MLO_N_STACKS * MLO_N_OUT_TILES_PERSTACK)
 #if MLO_N_IN_TILES_PERSTACK & (MLO_N_IN_TILES_PERSTACK - 1)
-			uint i_b = (uint)((float)i / (float)MLO_N_IN_TILES_PERSTACK + 0.00001f);
+			uint i_b = (uint)((float)i * (1.0f / (float)MLO_N_IN_TILES_PERSTACK) + 0.00001f);
 			uint i_c = i - mul24(i_b, (uint)MLO_N_IN_TILES_PERSTACK);
 #else
 			uint i_b = (uint)i / MLO_N_IN_TILES_PERSTACK;
@@ -500,13 +526,17 @@ __kernel void MIOpenConvUniC(
 #if 1  // only weights
 
 
-
 		for(uint i = lcl_id; i < MLO_WEIGHTS_SZ; i += MLO_GRP_SZ)
 		{
 #if MLO_DIR_FORWARD==1
 // here is [tops][bottoms]
-			uint lcl_o = (uint)((float)i / (float)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) + 0.00001f);
+#if (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) & ((MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) - 1)
+			uint lcl_o = (uint)((float)i * (1.0f / (float)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ)) + 0.00001f);
 			uint gbl_i = i - mul24(lcl_o, (uint)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
+#else
+			uint lcl_o = i / (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ);
+			uint gbl_i = i & ((MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
+#endif
 			if((wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i) < (MLO_N_OUTPUTS*MLO_N_INPUTS*MLO_FILTER_SZ))
 				lcl_wei[i] = weights[wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i];
 			else
@@ -515,10 +545,20 @@ __kernel void MIOpenConvUniC(
 // outputs are botoms(inputs))
 // inputs are tops(outputs)
 
-			uint lcl_o = (uint)((float)i/ (float)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) + 0.00001f);
+#if (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) & ((MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) - 1)
+			uint lcl_o = (uint)((float)i * (1.0f / (float)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ)) + 0.00001f);
 			uint gbl_i = i - mul24(lcl_o, (uint)(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
-			uint lcl_c = (uint)((float)gbl_i/ (float)MLO_FILTER_SZ + 0.00001f);
+#else
+			uint lcl_o = i / (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ);
+			uint gbl_i = i & ((MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
+#endif
+#if MLO_FILTER_SZ & (MLO_FILTER_SZ - 1)
+			uint lcl_c = (uint)((float)gbl_i * (1.0f / (float)MLO_FILTER_SZ) + 0.00001f);
 			uint lcl_i = gbl_i - mul24(lcl_c, (uint)MLO_FILTER_SZ);
+#else
+			uint lcl_c = gbl_i / MLO_FILTER_SZ;
+			uint lcl_i = gbl_i & (MLO_FILTER_SZ - 1);
+#endif
 
 			uint lcl_we_off = mad24(mad24(lcl_c, (uint)MLO_N_IN_TILES_PERSTACK, lcl_o), (uint)MLO_FILTER_SZ, lcl_i);
 			uint gbl_we_off = mad24(mad24(lcl_o, (uint)MLO_N_OUTPUTS, lcl_c), (uint)MLO_FILTER_SZ, wei_off + lcl_i);
@@ -593,6 +633,7 @@ __kernel void MIOpenConvUniC(
 			uint out_off2 = out_off1;
 			for( uint j = 0; j < MLO_OUT_PIX_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
 			{
+				__global _FLOAT *out_p = &out[out_off2];
 				for(uint i = 0; i < MLO_OUT_PIX_TILE0; ++i)
 				{
 					if ( true
@@ -604,7 +645,7 @@ __kernel void MIOpenConvUniC(
 #endif
 					)
 					{
-						out[out_off2 + i] = pvt_accum[o*MLO_OUT_TILE_SZ + j * MLO_OUT_PIX_TILE0 + i] + bias_val;
+						out_p[i] = pvt_accum[o*MLO_OUT_TILE_SZ + j * MLO_OUT_PIX_TILE0 + i] + bias_val;
 #if 0
 						if ( out_off2 + i == 1 /*y_out_grp + y_out_lcl + j == 2 && x_out_grp + x_out_lcl + i == 0*/)
 						{
