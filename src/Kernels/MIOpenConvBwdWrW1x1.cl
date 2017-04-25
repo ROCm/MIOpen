@@ -702,10 +702,49 @@ __kernel void MLOpenCvBwdWrWLmap(
 	// transpose data using MLO_REDUC_LOOP_STEP wk-items from each small map 
 	__private _FLOAT final_sum[(MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP)];
 
-#if 1 // MLO_LG2_REDUC_ROUNDS > 1
+#if 1 
+
+	// first round
+	// transpose and split into sub-group for logar summation
+	for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+	{
+		final_sum[r] = 0;
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+		// write out only valid pixels
+
+		for (int rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
+		{
+			lcl_mem[lcl_id*MLO_REDUC_LOOP_STEP + rr] = pvt_accum[r*MLO_REDUC_LOOP_STEP + rr];
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		if (lcl_id < (MLO_REDUC_LOOP_STEP << (MLO_LG2_REDUC_ROUNDS - 1)))
+		{
+			// what split the pix belong to
+#if (MLO_REDUC_LOOP_STEP & (MLO_REDUC_LOOP_STEP -1))
+			int split = iDiv(lcl_id, MLO_REDUC_LOOP_STEP);
+			int split_pix = iMod(lcl_id, split, MLO_REDUC_LOOP_STEP);
+#else
+			int split = ((uint)lcl_id / MLO_REDUC_LOOP_STEP);
+			int split_pix = ((uint)lcl_id & (MLO_REDUC_LOOP_STEP - 1));
+#endif
+
+			for (int j = 0; j < MLO_FIRST_ROUND; j++)
+			{
+#if MLO_FIRST_CAN_DIVIDE ==0
+				if (split*MLO_FIRST_ROUND + j < MLO_MAP_WK_SZ)
+#endif
+				{
+					final_sum[r] += lcl_mem[(split*MLO_FIRST_ROUND + j)*MLO_REDUC_LOOP_STEP + split_pix];
+				}
+			}
+
+		}
+	}
 
 	// log summation
-	for (int rd = (MLO_LG2_REDUC_ROUNDS - 1); rd >= 0; --rd)
+	for (int rd = (MLO_LG2_REDUC_ROUNDS - 2); rd >= 0; --rd)
 	{
 
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -749,7 +788,10 @@ __kernel void MLOpenCvBwdWrWLmap(
 #endif
 
 
-			if (c_idx + c < MLO_N_INPUTS
+			if (true
+#if MLO_N_IN_MAPS_ALIGNED == 0
+				&& c_idx + c < MLO_N_INPUTS
+#endif
 #if MLO_N_OUT_MAPS_ALIGNED == 0
 				&& k_idx + k < MLO_N_OUTPUTS
 #endif
