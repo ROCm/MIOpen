@@ -1676,11 +1676,11 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
 	int N_PIXS_OFF = map_sz - (map_sz / read_unit)*read_unit;
-	bool big_map = (MAP_WK_SZ > _hw_wave_sz * 4);
+	bool large_map = (MAP_WK_SZ > _hw_wave_sz * 4);
 
 
 	// param
-	int n_waves = (!big_map) ? 4 : 8;  //(MAP_WK_SZ <= _hw_wave_sz) ? 2 : (MAP_WK_SZ <= _hw_wave_sz * 4) ? 4 : 1;
+	int n_waves = 4;
 	int GRP_SZ = _hw_wave_sz * n_waves;
 
 
@@ -1689,8 +1689,8 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
 	int N_out_lcl = 1;
-	int out_lcl_blk = ((!big_map) ? 8 : 4) / N_out_lcl;
-	while (out_lcl_blk > 0 && MAP_WK_SZ*read_unit*out_lcl_blk > n_waves * 1024)
+	int out_lcl_blk = 8 / N_out_lcl;
+	while (!large_map && out_lcl_blk > 0 && MAP_WK_SZ*read_unit*out_lcl_blk > n_waves * 1024)
 	{
 		N_out_lcl <<= 1;
 		out_lcl_blk >>= 1;
@@ -1712,9 +1712,9 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	// para
 
 	// number of imput maps per group
-	int N_MAPS_PER_GROUP = std::min(_n_outputs, std::max(1, GRP_SZ / MAP_WK_SZ));
+	int N_MAPS_PER_GROUP = (!large_map) ? std::min(_n_outputs, std::max(1, GRP_SZ / MAP_WK_SZ)) : 1;
 
-	_n_in_data_tiles = std::min(_n_outputs / N_MAPS_PER_GROUP, ((!big_map) ? 6 : 8));
+	_n_in_data_tiles = std::min(_n_outputs / N_MAPS_PER_GROUP, ((!large_map) ? 6 : 8));
 
 	_n_in_data_tiles = (_n_outputs >= _n_in_data_tiles *N_MAPS_PER_GROUP) ? _n_in_data_tiles : 1;
 
@@ -1739,7 +1739,9 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 // calculate log of summation loop
 	int lg2_red_splits = 0;
-	for (; ((REDUC_LOOP_STEP << lg2_red_splits) <= MAP_WK_SZ && (REDUC_LOOP_STEP << lg2_red_splits) <= GRP_SZ); ++lg2_red_splits);
+	int range = (!large_map) ? MAP_WK_SZ : GRP_SZ;
+
+	for (; ((REDUC_LOOP_STEP << lg2_red_splits) <= range); ++lg2_red_splits);
 
 // more than 1 summation areas
 	int first_round = 0;
@@ -1748,8 +1750,8 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	{
 // check if MAP_WK_SZ can be devided into that number at te firts round of summation
 		int firsts_round_split = (1 << (lg2_red_splits - 1));
-		first_round = (MAP_WK_SZ + firsts_round_split - 1) / firsts_round_split;
-		can_divide = ((first_round * firsts_round_split) == MAP_WK_SZ) ? 1 : 0;
+		first_round = (range + firsts_round_split - 1) / firsts_round_split;
+		can_divide = ((first_round * firsts_round_split) == range) ? 1 : 0;
 
 	}
 
