@@ -37,7 +37,7 @@
 __attribute__((always_inline))
 int iDiv(int v, int d)
 {
-	int r = (int)((float)v / d + 0.00001f);
+	int r = (int)((float)v *(1.f/ (float)d) + 0.00001f);
 	return(r);
 }
 
@@ -549,3 +549,325 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 }
 
+#undef MLO_N_MAPS_PER_GROUP
+#undef MLO_TOP_DAT_SZ
+#undef MLO_BOT_DAT_SZ
+#undef MLO_ACCUM_SZ
+
+__attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
+__kernel void MLOpenCvBwdWrWLmap(
+	const __global _FLOAT * __restrict top_df,
+	const __global _FLOAT * __restrict bot,
+	__global _FLOAT * __restrict weights_df,
+	_FLOAT padding_val
+)
+{
+	// reduction memory.
+
+	__local _FLOAT lcl_mem[MLO_LCL_MEM_SZ];
+	__local _FLOAT * red_mem = lcl_mem;
+
+	int lcl_id = get_local_id(0);
+
+	int k_idx = get_group_id(0) * (MLO_N_LCL_OUT_MAPS); // output map index base
+
+	int c_idx = get_group_id(1) * (MLO_N_LCL_IN_MAPS); // input map index based
+
+	int ib = get_group_id(2); // batch id
+
+
+	int gbl_in_off = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
+	int gbl_out_off = k_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
+
+
+#define MLO_TOP_DAT_SZ (MLO_N_LCL_OUT_MAPS * MLO_READ_UNIT)
+
+	__private _FLOAT top_dat[MLO_TOP_DAT_SZ];
+
+
+#define MLO_BOT_DAT_SZ (MLO_N_LCL_IN_MAPS * MLO_READ_UNIT)
+
+	__private _FLOAT bot_dat[MLO_BOT_DAT_SZ];
+
+
+#define MLO_ACCUM_SZ (MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS)
+
+	__private _FLOAT pvt_accum[MLO_ACCUM_SZ];
+
+	for (int i = 0; i < MLO_ACCUM_SZ; ++i)
+	{
+		pvt_accum[i] = 0;
+	}
+
+	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
+	{
+		lcl_mem[i] = 0;
+	}
+
+
+	for (int pix4 = lcl_id; pix4 < MLO_MAP_WK_SZ * MLO_BATCH_SZ; pix4 += MLO_GRP_SZ)
+	{
+
+#if (MLO_MAP_WK_SZ) &  (MLO_MAP_WK_SZ - 1)
+
+		int b = iDiv(pix4, MLO_MAP_WK_SZ);  // batch
+		int p4 = iMod(pix4, b, MLO_MAP_WK_SZ); // pixel block
+#else
+		int b = ((uint)pix4 / MLO_MAP_WK_SZ);  // batch
+		int p4 = ((uint)pix4 & (MLO_MAP_WK_SZ - 1)); // pixel block
+
+#endif
+		gbl_in_off = b * MLO_IN_BATCH_STRIDE + p4;
+		gbl_out_off = b * MLO_OUT_BATCH_STRIDE + p4;
+		bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
+
+
+#if MLO_N_PIXS_OFF > 0
+
+		if (last_pixel)
+		{
+			for (int i = 0; i < MLO_TOP_DAT_SZ; ++i)
+			{
+				top_dat[i] = 0;
+			}
+			for (int i = 0; i < MLO_BOT_DAT_SZ; ++i)
+			{
+				bot_dat[i] = 0;
+			}
+			for (int k = 0; k < MLO_N_LCL_IN_MAPS; ++k)
+			{
+				int bot_off = gbl_in_off + k*MLO_IN_CHANNEL_STRIDE;
+				for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
+				{
+					bot_dat[k*MLO_READ_UNIT + i] = bot[bot_off + i];
+				}
+
+			}
+			for (int c = 0; c < MLO_N_LCL_OUT_MAPS; ++c)
+			{
+				int top_off = gbl_out_off + c*MLO_OUT_CHANNEL_STRIDE;
+				for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
+				{
+					top_dat[c*MLO_READ_UNIT + i] = top_df[top_off + i];
+				}
+			}
+
+		}
+		else
+#endif
+		{
+			for (int k = 0; k < MLO_N_LCL_IN_MAPS; ++k)
+			{
+				int bot_off = gbl_in_off + k*MLO_IN_CHANNEL_STRIDE;
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					bot_dat[k*MLO_READ_UNIT + i] = bot[bot_off + i];
+				}
+
+			}
+			for (int c = 0; c < MLO_N_LCL_OUT_MAPS; ++c)
+			{
+				int top_off = gbl_out_off + c*MLO_OUT_CHANNEL_STRIDE;
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					top_dat[c*MLO_READ_UNIT + i] = top_df[top_off + i];
+				}
+			}
+		}
+
+		// processing
+		for (int c = 0; c < MLO_N_LCL_OUT_MAPS; ++c)
+		{
+			for (int k = 0; k < MLO_N_LCL_IN_MAPS; ++k)
+			{
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				{
+					pvt_accum[c * MLO_N_LCL_IN_MAPS + k] += bot_dat[k*MLO_READ_UNIT + i] * top_dat[c*MLO_READ_UNIT + i];
+				}
+			}
+		}
+
+	}
+
+
+
+
+	// write out 
+	// inputs are outputs
+	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + c_idx * MLO_WEI_CHANNEL_STRIDE;
+
+
+	// final summation optimized.
+
+	// transpose data using MLO_REDUC_LOOP_STEP wk-items from each small map 
+	__private _FLOAT final_sum[(MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP)];
+
+#if 1 // MLO_LG2_REDUC_ROUNDS > 1
+
+	// log summation
+	for (int rd = (MLO_LG2_REDUC_ROUNDS - 1); rd >= 0; --rd)
+	{
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		if (lcl_id >= (MLO_REDUC_LOOP_STEP << rd) && lcl_id < (MLO_REDUC_LOOP_STEP << (rd + 1)))
+		{
+			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
+			{
+				int base_off = rr*MLO_GRP_SZ;
+				lcl_mem[base_off + lcl_id] = final_sum[rr];
+
+			}
+
+
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		if (lcl_id < (MLO_REDUC_LOOP_STEP << rd))
+		{
+			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
+			{
+				int base_off = rr*MLO_GRP_SZ;
+				final_sum[rr] += lcl_mem[base_off + (MLO_REDUC_LOOP_STEP << rd) + lcl_id];
+			}
+		}
+	}
+
+
+	if (lcl_id < MLO_REDUC_LOOP_STEP)
+	{
+		for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+		{
+			int wei_idx = r* (MLO_REDUC_LOOP_STEP)+ lcl_id;
+
+#if (MLO_N_LCL_IN_MAPS & (MLO_N_LCL_IN_MAPS - 1))
+			int k = iDiv(wei_idx, MLO_N_LCL_IN_MAPS);
+			int c = iMod(wei_idx, k, MLO_N_LCL_IN_MAPS);
+#else
+			int k = ((uint)wei_idx / MLO_N_LCL_IN_MAPS);
+			int c = ((uint)wei_idx & (MLO_N_LCL_IN_MAPS - 1));
+#endif
+
+
+			if (c_idx + c < MLO_N_INPUTS
+#if MLO_N_OUT_MAPS_ALIGNED == 0
+				&& k_idx + k < MLO_N_OUTPUTS
+#endif
+				)
+			{
+				int wei_off = wei_df_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE;
+				weights_df[wei_off] = final_sum[r];
+			}
+
+
+		} // for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+	} // if (p4 < MLO_REDUC_LOOP_STEP)
+
+
+#elif 1
+	//	if (inside_range_input)
+	{
+		for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+		{
+			final_sum[r] = 0;
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			for (int rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
+			{
+				lcl_mem[lcl_id*MLO_REDUC_LOOP_STEP + rr] = pvt_accum[r*MLO_REDUC_LOOP_STEP + rr];
+			}
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			if (lcl_id < MLO_REDUC_LOOP_STEP)
+			{
+				for (int j = 0; j < MLO_GRP_SZ; j++)
+				{
+					final_sum[r] += lcl_mem[(m_id*MLO_MAP_WK_SZ + j)*MLO_REDUC_LOOP_STEP + lcl_id];
+				}
+
+			}
+		}
+
+		if (lcl_id < MLO_REDUC_LOOP_STEP)
+		{
+			for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+			{
+				int wei_idx = r* (MLO_REDUC_LOOP_STEP)+lcl_id;
+
+#if (MLO_N_LCL_IN_MAPS & (MLO_N_LCL_IN_MAPS - 1))
+				int k = iDiv(wei_idx, MLO_N_LCL_IN_MAPS);
+				int c = iMod(wei_idx, k, MLO_N_LCL_IN_MAPS);
+#else
+				int k = ((uint)wei_idx / MLO_N_LCL_IN_MAPS);
+				int c = ((uint)wei_idx & (MLO_N_LCL_IN_MAPS - 1));
+#endif
+
+
+				if (c_idx + c < MLO_N_INPUTS
+#if MLO_N_OUT_MAPS_ALIGNED == 0
+					&& k_idx + k < MLO_N_OUTPUTS
+#endif
+					)
+				{
+					int wei_off = wei_df_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE;
+					weights_df[wei_off] = final_sum[r];
+				}
+
+
+			} // for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+		} // if (p4 < MLO_REDUC_LOOP_STEP)
+	} // if (inside_range_input)
+#else
+	for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+	{
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		for (int rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
+		{
+			lcl_mem[lcl_id*MLO_REDUC_LOOP_STEP + rr] = pvt_accum[r*MLO_REDUC_LOOP_STEP + rr];
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		if (lcl_id == 0)
+		{
+			for (int j = 1; j < MLO_MAP_WK_SZ; j++)
+			{
+				for (int rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
+				{
+					pvt_accum[r*MLO_REDUC_LOOP_STEP + rr] += lcl_mem[(lcl_id + j)*MLO_REDUC_LOOP_STEP + rr];
+				}
+			}
+		}
+	}
+
+
+
+	if (lcl_id == 0)
+	{
+		for (int kb = 0; kb < MLO_N_LCL_OUT; kb++)
+		{
+			for (int k = kb*MLO_OUT_LCL_BLK; k < (kb + 1)*MLO_OUT_LCL_BLK; ++k)
+			{
+				for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
+				{
+					if ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS
+#if MLO_N_OUT_MAPS_ALIGNED == 0
+						&& k_idx + k < MLO_N_OUTPUTS
+#endif
+						)
+					{
+						int wei_off = wei_df_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_N_MAPS_PER_GROUP*MLO_WEI_CHANNEL_STRIDE;
+						weights_df[wei_off] = pvt_accum[k*MLO_N_LCL_IN_MAPS + c];
+					}
+
+				}
+
+			}
+		}
+
+	}
+
+#endif
+
+}
