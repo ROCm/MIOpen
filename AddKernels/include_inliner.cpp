@@ -79,7 +79,7 @@ void IncludeInliner::ProcessCore(std::istream& input, std::ostream& output, cons
 
         if (word == ".include")
         {
-            const auto first_quote_pos = line.find('"', (int)line_parser.tellg() + 1);
+            const auto first_quote_pos = line.find('"', static_cast<int>(line_parser.tellg()) + 1);
             if (first_quote_pos == std::string::npos)
                 continue;
 

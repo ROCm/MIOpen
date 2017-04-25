@@ -12,8 +12,8 @@ public:
 
     SourceFileDesc(const std::string& path_, SourceFileDesc* from, int line)
         : path(path_)
-        , included_from(from)
         , included_line(line)
+        , included_from(from)
     {
 
     }
