@@ -5,6 +5,7 @@
 #include <miopen/object.hpp>
 #include <miopen.h>
 #include <miopen/common.hpp>
+#include <miopen/datatype.hpp>
 #include <vector>
 
 namespace miopen {
