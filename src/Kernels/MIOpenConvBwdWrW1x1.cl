@@ -627,6 +627,11 @@ __kernel void MLOpenCvBwdWrWLmap(
 			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 			{
 				int bot_off = gbl_in_off + c*MLO_IN_CHANNEL_STRIDE;
+
+#if MLO_N_IN_MAPS_ALIGNED == 0
+// reading garbage, will be thrown away on the way output
+				bot_off - (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
+#endif
 				for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
 				{
 					bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
@@ -636,6 +641,9 @@ __kernel void MLOpenCvBwdWrWLmap(
 			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 			{
 				int top_off = gbl_out_off + k*MLO_OUT_CHANNEL_STRIDE;
+#if MLO_N_OUT_MAPS_ALIGNED == 0
+				top_off = (k_idx + k < MLO_N_OUTPUTS) ? top_off : 0;
+#endif
 				for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
 				{
 					top_dat[k*MLO_READ_UNIT + i] = top_df[top_off + i];
@@ -649,6 +657,10 @@ __kernel void MLOpenCvBwdWrWLmap(
 			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 			{
 				int bot_off = gbl_in_off + c*MLO_IN_CHANNEL_STRIDE;
+#if MLO_N_IN_MAPS_ALIGNED == 0
+				// reading garbage, will be thrown away on the way output
+				bot_off - (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
+#endif
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
@@ -658,6 +670,9 @@ __kernel void MLOpenCvBwdWrWLmap(
 			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 			{
 				int top_off = gbl_out_off + k*MLO_OUT_CHANNEL_STRIDE;
+#if MLO_N_OUT_MAPS_ALIGNED == 0
+				top_off = (k_idx + k < MLO_N_OUTPUTS) ? top_off : 0;
+#endif
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					top_dat[k*MLO_READ_UNIT + i] = top_df[top_off + i];

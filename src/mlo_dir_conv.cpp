@@ -1660,7 +1660,6 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	_in_tile1 = 1;
 	_in_tile0 = 1;
 
-	// n of wvaefront in a group
 
 
 	int map_sz = _in_width*_in_height;
@@ -1678,7 +1677,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	int N_PIXS_OFF = map_sz - (map_sz / read_unit)*read_unit;
 	bool large_map = (MAP_WK_SZ > _hw_wave_sz * 2);
 
-
+	// n of wavefronts in a group
 	// param
 	int n_waves = 4;
 	int GRP_SZ = _hw_wave_sz * n_waves;
@@ -1746,7 +1745,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 // more than 1 summation areas
 	int first_round = 0;
 	int can_divide = 1;
-	if (lg2_red_splits > 1)
+	if (lg2_red_splits > 0)
 	{
 // check if MAP_WK_SZ can be devided into that number at te firts round of summation
 		int firsts_round_split = (1 << (lg2_red_splits - 1));
