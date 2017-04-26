@@ -1671,7 +1671,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		: (((map_sz / 5) * 5) == map_sz) ? 5
 		: (((map_sz / 6) * 6) == map_sz) ? 6 : 4;
 	
-	read_unit = (_in_width*_in_height <= 32 * 32) ? read_unit : 4;
+	read_unit = (_in_width*_in_height < 28 * 28 || _batch_sz <= 16) ? read_unit : 4;
 
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
 	int N_PIXS_OFF = map_sz - (map_sz / read_unit)*read_unit;
@@ -1713,7 +1713,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	// number of imput maps per group
 	int N_MAPS_PER_GROUP = (!large_map) ? std::min(_n_outputs, std::max(1, GRP_SZ / MAP_WK_SZ)) : 1;
 
-	_n_in_data_tiles = std::min(_n_outputs / N_MAPS_PER_GROUP, ((read_unit > 4) ? 6 : 8));
+	_n_in_data_tiles = std::min(_n_outputs / N_MAPS_PER_GROUP, ((read_unit > 4) ? 6 : (read_unit > 2) ? 8 : 10));
 
 	_n_in_data_tiles = (_n_outputs >= _n_in_data_tiles *N_MAPS_PER_GROUP) ? _n_in_data_tiles : 1;
 
