@@ -56,7 +56,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateWithStream(miopenHandle_t *handle,
 MIOPEN_EXPORT miopenStatus_t miopenDestroy(miopenHandle_t handle);
 
 MIOPEN_EXPORT miopenStatus_t miopenSetStream(miopenHandle_t handle,
-        miopenAcceleratorQueue_t            stream);
+        miopenAcceleratorQueue_t            streamID);
 
 MIOPEN_EXPORT miopenStatus_t miopenGetStream(miopenHandle_t handle,
 		miopenAcceleratorQueue_t				*streamID);
@@ -326,8 +326,8 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardGetWorkSpaceSize(
         miopenHandle_t                      handle,
 		const miopenTensorDescriptor_t		wDesc,
 		const miopenTensorDescriptor_t		xDesc,
-		const miopenTensorDescriptor_t		yDesc,
 		const miopenConvolutionDescriptor_t convDesc,
+		const miopenTensorDescriptor_t		yDesc,
 		size_t								*workSpaceSize);
 
 MIOPEN_EXPORT miopenStatus_t miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
@@ -395,6 +395,14 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardData(miopenHandle_t handle
 		void								*dx,
 		void								*workSpace,
 		size_t								workSpaceSize);
+
+MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardDataGetWorkSpaceSize(
+        miopenHandle_t                      handle,
+		const miopenTensorDescriptor_t		dyDesc,
+		const miopenTensorDescriptor_t		wDesc,
+		const miopenConvolutionDescriptor_t convDesc,
+		const miopenTensorDescriptor_t		dxDesc,
+		size_t								*workSpaceSize);
 
 MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardWeightsGetWorkSpaceSize(
         miopenHandle_t                      handle,
