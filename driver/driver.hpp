@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <vector>
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "InputFlags.hpp"
 #include <algorithm>
 #include <float.h>

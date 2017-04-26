@@ -3,7 +3,7 @@ cmake_minimum_required( VERSION 2.8.12 )
 include (GenerateExportHeader)
 
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
-configure_file( "${PROJECT_SOURCE_DIR}/include/miopen-version.h.in" "${PROJECT_BINARY_DIR}/include/miopen-version.h" )
+configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
@@ -173,7 +173,7 @@ target_include_directories(MIOpen PUBLIC
 target_include_directories(MIOpen SYSTEM INTERFACE $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INCLUDE_INSTALL_DIR}>)
 
 generate_export_header(MIOpen
-	EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen_export.h
+	EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
 ############################################################
 # MIOpen depends on OpenCL

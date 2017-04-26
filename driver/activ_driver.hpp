@@ -2,7 +2,7 @@
 #define GUARD_MIOPEN_ACTIV_DRIVER_HPP
 
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "driver.hpp"
 #include "mloNeuronHost.hpp"
 #include "InputFlags.hpp"

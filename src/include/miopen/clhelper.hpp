@@ -1,7 +1,7 @@
 #ifndef MIOPEN_GUARD_OCL_HELPER_HPP_
 #define MIOPEN_GUARD_OCL_HELPER_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <string>
 #include <iostream>
 #include <miopen/manage_ptr.hpp>
