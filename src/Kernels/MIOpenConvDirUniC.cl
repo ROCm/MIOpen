@@ -525,7 +525,13 @@ __kernel void MIOpenConvUniC(
 
 #if 1  // only weights
 
-
+#if (MLO_WEIGHTS_SZ >= MLO_GRP_SZ) && defined(__AMDGCN__)
+#if MLO_WEIGHTS_SZ/MLO_GRP_SZ > 4
+#pragma unroll
+#else
+#pragma unroll (MLO_WEIGHTS_SZ/MLO_GRP_SZ)
+#endif
+#endif
 		for(uint i = lcl_id; i < MLO_WEIGHTS_SZ; i += MLO_GRP_SZ)
 		{
 #if MLO_DIR_FORWARD==1
