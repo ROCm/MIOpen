@@ -266,6 +266,13 @@ static inline void Conv(uint o_map_base,
 			}
 
 		// over filter rows
+#ifdef __AMDGCN__
+#if MLO_FILTER_SIZE1 < 6
+#pragma unroll
+#elif MLO_FILTER_SIZE1 < 9
+#pragma unroll 2
+#endif
+#endif
 #if MLO_DIR_FORWARD == 1
 			for(uint k = 0; k < MLO_FILTER_SIZE1; ++k, in_stg_off2+=MLO_IN_LCL_WIDTH
 			)
@@ -384,7 +391,10 @@ __kernel void MIOpenConvUni(
 	uint b_pack = get_group_id(2); // batch block
 
 	uint lcl_id = get_local_id(0);
-#if MLO_ALUTILES_STACK_SZ & (MLO_ALUTILES_STACK_SZ - 1)
+#if MLO_ALUTILES_STACK_SZ >= MLO_GRP_SZ
+	uint stack = 0;
+	uint alu_stack_id = lcl_id;
+#elif MLO_ALUTILES_STACK_SZ & (MLO_ALUTILES_STACK_SZ - 1)
 	uint stack = iDiv(lcl_id, MLO_ALUTILES_STACK_SZ);  // stack
 	uint alu_stack_id = iMod(lcl_id, stack, MLO_ALUTILES_STACK_SZ);  // alu index in stack
 #else
@@ -416,16 +426,19 @@ __kernel void MIOpenConvUni(
 	uint o_map = o_map_plane + o_map_base; // output map index per ALU plane
 	uint b_index = b_pack * MLO_N_STACKS;
 
-#if MLO_N_READ_PROCS & (MLO_N_READ_PROCS - 1)
+#if MLO_LARGE_MAP != 1
+#if MLO_N_READ_PROCS >= MLO_GRP_SZ
+	uint wave_id = 0;
+	uint wave_lcl_id = lcl_id;
+#elif MLO_N_READ_PROCS & (MLO_N_READ_PROCS - 1)
 	uint wave_id = iDiv(lcl_id, MLO_N_READ_PROCS);
 	uint wave_lcl_id = iMod(lcl_id, wave_id, MLO_N_READ_PROCS);
 #else
 	uint wave_id = lcl_id / MLO_N_READ_PROCS;
-#if MLO_LARGE_MAP != 1
 	uint wave_lcl_id = lcl_id & (MLO_N_READ_PROCS - 1);
-#endif
 #if MLO_N_READ_PROCS >= 64
 	wave_id = uniform(wave_id);
+#endif
 #endif
 #endif
 
@@ -701,7 +714,7 @@ __kernel void MIOpenConvUni(
 #endif
 								out[out_off2 + i] = pvt_accum[o*MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
 #if MLO_CONV_BIAS
-									+ bias_val = bias[o_map + o];
+									+ bias[o_map + o]
 #endif
 									;
 
