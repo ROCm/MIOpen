@@ -6,7 +6,7 @@ find_program(MAKE_NSIS_EXE makensis)
 macro(create_package)
     set(options)
     set(oneValueArgs NAME DESCRIPTION LDCONFIG SECTION MAINTAINER)
-    set(multiValueArgs DEB_DEPENDS)
+    set(multiValueArgs DEB_DEPENDS RPM_DEPENDS DEPENDS)
 
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -24,9 +24,21 @@ macro(create_package)
         list(APPEND CPACK_GENERATOR "NSIS")
     endif()
 
-    if(PARSE_DEB_DEPENDS)
-        set(CPACK_DEBIAN_PACKAGE_DEPENDS ${PARSE_DEB_DEPENDS})
+    if(PARSE_DEPENDS)
+        list(APPEND _create_package_deb_depends ${PARSE_DEPENDS})
+        list(APPEND _create_package_rpm_depends ${PARSE_DEPENDS})
     endif()
+
+    if(PARSE_DEB_DEPENDS)
+        list(APPEND _create_package_deb_depends ${PARSE_DEB_DEPENDS})
+    endif()
+
+    if(PARSE_RPM_DEPENDS)
+        list(APPEND _create_package_rpm_depends ${PARSE_RPM_DEPENDS})
+    endif()
+    # TODO: Debian needs parenthesis around version
+    string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_DEPENDS "${_create_package_deb_depends}")
+    string(REPLACE ";" ", " CPACK_RPM_PACKAGE_REQUIRES "${_create_package_rpm_depends}")
 
     if(PARSE_LDCONFIG)
         file(WRITE ${PROJECT_BINARY_DIR}/debian/postinst "
