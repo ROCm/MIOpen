@@ -141,9 +141,10 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 set ( MIOpen_Headers_Public
-	${PROJECT_SOURCE_DIR}/include/miopen.h
-	${PROJECT_BINARY_DIR}/include/miopen-version.h
-	${PROJECT_BINARY_DIR}/include/miopen_export.h
+	${PROJECT_SOURCE_DIR}/include/miopen/miopen.h
+	${PROJECT_BINARY_DIR}/include/miopen/config.h
+	${PROJECT_BINARY_DIR}/include/miopen/export.h
+	${PROJECT_BINARY_DIR}/include/miopen/version.h
 	)
 
 
@@ -241,5 +242,5 @@ install(TARGETS MIOpen
 
 install(EXPORT miopen-targets DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR})
 
-install(FILES ${MIOpen_Headers_Public} DESTINATION ${INCLUDE_INSTALL_DIR})
+install(FILES ${MIOpen_Headers_Public} DESTINATION ${INCLUDE_INSTALL_DIR}/miopen)
 install_symlink_subdir(${MIOPEN_INSTALL_DIR})
