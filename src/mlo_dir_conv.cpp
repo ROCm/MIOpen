@@ -1671,7 +1671,11 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		: (((map_sz / 5) * 5) == map_sz) ? 5
 		: (((map_sz / 6) * 6) == map_sz) ? 6 : 4;
 	
-	read_unit = (_in_width*_in_height < 28 * 28 || _batch_sz <= 16) ? read_unit : 4;
+	if (_in_width*_in_height == 28 * 28 && _n_inputs * _n_outputs > 192 * 64)
+	{
+		read_unit = 2;
+	}
+//	read_unit = 4;
 
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
 	int N_PIXS_OFF = map_sz - (map_sz / read_unit)*read_unit;
