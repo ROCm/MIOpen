@@ -23,7 +23,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define NOMINMAX // stupid windows.h confused with min() macros in std namespace
 #endif
 
-
+#include <miopen/config.h>
 
 #if MIOPEN_BACKEND_OPENCL
 #ifdef __APPLE__
