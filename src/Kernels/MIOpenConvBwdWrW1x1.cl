@@ -157,6 +157,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 	bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 // inside input range
+
 	bool inside_map_range_input = ((c_idx + m_id) < MLO_N_INPUTS && m_id < MLO_N_MAPS_PER_GROUP);
 	bool inside_range_input = (p4 < MLO_MAP_WK_SZ &&  inside_map_range_input);
 
@@ -218,7 +219,6 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 			} // if (last_pixel)
 
-//			int top_off = (inside_range_output) ? gbl_out_off : 0;
 
 		int top_off = gbl_out_off;
 
@@ -311,19 +311,19 @@ __kernel void MIOpenCvBwdWrWSmap(
 	} // for (int b = 0; b < MLO_BATCH_SZ; ++b, gbl_in_off += MLO_IN_BATCH_STRIDE, gbl_out_off += MLO_OUT_BATCH_STRIDE)
 
 
+
+// FINAL REDUCTION
+
 	// write out 
 	// inputs are outputs
 	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + (c_idx + m_id) * MLO_WEI_CHANNEL_STRIDE;
-
-
-
-// final summation optimized.
 
 #define MLO_N_FIRST_SPLITS  (1 << (MLO_LG2_REDUC_ROUNDS - 1))
 // transpose data using MLO_REDUC_LOOP_STEP wk-items from each small map 
 	__private _FLOAT final_sum[(MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP)];
 
-#if 1 // MLO_LG2_REDUC_ROUNDS > 1
+// final log reduction with the initail input not pow2
+#if 1
 // first round
 // transpose and split into sub-group for logar summation
 	for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
@@ -417,7 +417,10 @@ __kernel void MIOpenCvBwdWrWSmap(
 #endif
 
 
-			if (m_id < MLO_N_MAPS_PER_GROUP && (c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS
+			if (m_id < MLO_N_MAPS_PER_GROUP
+#if MLO_N_IN_MAPS_ALIGNED == 0
+				&& (c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS
+#endif
 #if MLO_N_OUT_MAPS_ALIGNED == 0
 				&& k_idx + k < MLO_N_OUTPUTS
 #endif
@@ -431,7 +434,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 		} // for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 	} // if (p4 < MLO_REDUC_LOOP_STEP)
 
-
+// naive reduction
 #elif 1
 //	if (inside_range_input)
 	{
@@ -486,7 +489,11 @@ __kernel void MIOpenCvBwdWrWSmap(
 			} // for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 		} // if (p4 < MLO_REDUC_LOOP_STEP)
 	} // if (inside_range_input)
+
+// verification
 #else
+
+
 	for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 	{
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -630,7 +637,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 
 #if MLO_N_IN_MAPS_ALIGNED == 0
 // reading garbage, will be thrown away on the way output
-				bot_off - (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
+				bot_off = (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
 #endif
 				for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
 				{
@@ -659,7 +666,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 				int bot_off = gbl_in_off + c*MLO_IN_CHANNEL_STRIDE;
 #if MLO_N_IN_MAPS_ALIGNED == 0
 				// reading garbage, will be thrown away on the way output
-				bot_off - (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
+				bot_off = (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
 #endif
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
@@ -708,17 +715,15 @@ __kernel void MLOpenCvBwdWrWLmap(
 
 
 
-
+// FINAL REDUCTION
 	// write out 
 	// inputs are outputs
 	int wei_df_off = k_idx * MLO_WEI_BATCH_STRIDE + c_idx * MLO_WEI_CHANNEL_STRIDE;
 
-
-	// final summation optimized.
-
 	// transpose data using MLO_REDUC_LOOP_STEP wk-items from each small map 
 	__private _FLOAT final_sum[(MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP)];
 
+// final log reduction with the initail input not pow2
 #if 1 
 
 	// first round
@@ -822,7 +827,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 		} // for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 	} // if (p4 < MLO_REDUC_LOOP_STEP)
 
-
+// naive
 #elif 1
 	//	if (inside_range_input)
 	{
