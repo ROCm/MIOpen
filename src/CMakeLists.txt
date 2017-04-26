@@ -2,6 +2,8 @@ cmake_minimum_required( VERSION 2.8.12 )
 
 include (GenerateExportHeader)
 
+configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
+
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
