@@ -1675,7 +1675,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	{
 		read_unit = 2;
 	}
-//	read_unit = 4;
+
 
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
 	int N_PIXS_OFF = map_sz - (map_sz / read_unit)*read_unit;
@@ -1733,7 +1733,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	// reduction loop step
 
 	int accum_sz = _n_in_data_tiles * _n_out_pix_tiles;
-	int REDUC_LOOP_STEP = (accum_sz < MAP_WK_SZ && accum_sz < 8) ? accum_sz :  _n_out_pix_tiles;
+	int REDUC_LOOP_STEP = (accum_sz < MAP_WK_SZ && accum_sz < 8) ? accum_sz : _n_out_pix_tiles;
 // adjust reduction step
 	while ((REDUC_LOOP_STEP > MAP_WK_SZ || (accum_sz / REDUC_LOOP_STEP)*REDUC_LOOP_STEP != accum_sz) && REDUC_LOOP_STEP > 1  )
 	{
@@ -1758,7 +1758,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	}
 
-	int lcl_red_size = GRP_SZ * REDUC_LOOP_STEP;
+	int lcl_red_size = GRP_SZ * std::max(REDUC_LOOP_STEP, (accum_sz / REDUC_LOOP_STEP));
 
 	int lcl_size_limit = (!large_map) ? std::max(lcl_comm_size, lcl_red_size) : lcl_red_size;
 

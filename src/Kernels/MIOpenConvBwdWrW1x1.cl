@@ -755,7 +755,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 			for (int j = 0; j < MLO_FIRST_ROUND; j++)
 			{
 #if MLO_FIRST_CAN_DIVIDE ==0
-				if (split*MLO_FIRST_ROUND + j < MLO_MAP_WK_SZ)
+				if (split*MLO_FIRST_ROUND + j < MLO_GRP_SZ)
 #endif
 				{
 					final_sum[r] += lcl_mem[(split*MLO_FIRST_ROUND + j)*MLO_REDUC_LOOP_STEP + split_pix];
