@@ -70,14 +70,6 @@ inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_ac
 
 
 
-static inline void  Kahan_summation(__private _FLOAT *sum, __private _FLOAT * c, _FLOAT v)
-{
-	_FLOAT y = v - *c;    //So far, so good: c is zero.
-	_FLOAT t = *sum + y;         //Alas, sum is big, y small, so low-order digits of y are lost.
-	*c = (t - *sum) - y;   //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-	*sum = t;             //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-}
-
 
 
 /*********************************************************************************************************
@@ -574,8 +566,8 @@ __kernel void MLOpenCvBwdWrWLmap(
 	int c_idx = get_group_id(1) * (MLO_N_LCL_IN_MAPS); // input map index based
 
 
-	int gbl_in_off = c_idx * MLO_IN_CHANNEL_STRIDE;
-	int gbl_out_off = k_idx * MLO_OUT_CHANNEL_STRIDE;
+	int gbl_in_off0 = c_idx * MLO_IN_CHANNEL_STRIDE;
+	int gbl_out_off0 = k_idx * MLO_OUT_CHANNEL_STRIDE;
 
 
 #define MLO_TOP_DAT_SZ (MLO_N_LCL_OUT_MAPS * MLO_READ_UNIT)
@@ -615,8 +607,8 @@ __kernel void MLOpenCvBwdWrWLmap(
 		int p4 = ((uint)pix4 & (MLO_MAP_WK_SZ - 1)); // pixel block
 
 #endif
-		gbl_in_off = b * MLO_IN_BATCH_STRIDE + p4*MLO_READ_UNIT;
-		gbl_out_off = b * MLO_OUT_BATCH_STRIDE + p4*MLO_READ_UNIT;
+		int gbl_in_off = gbl_in_off0 + b * MLO_IN_BATCH_STRIDE + p4*MLO_READ_UNIT;
+		int gbl_out_off = gbl_out_off0 + b * MLO_OUT_BATCH_STRIDE + p4*MLO_READ_UNIT;
 		bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 
 
@@ -681,6 +673,18 @@ __kernel void MLOpenCvBwdWrWLmap(
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					pvt_accum[k * MLO_N_LCL_IN_MAPS + c] += bot_dat[c*MLO_READ_UNIT + i] * top_dat[k*MLO_READ_UNIT + i];
+
+#if 0
+					if (get_group_id(0) == 1 && lcl_id == 0 && k == 0 )
+					{
+						printf("K:c: %f %f %f %f\n",
+							pvt_accum[k * MLO_N_LCL_IN_MAPS + c],
+							bot_dat[c*MLO_READ_UNIT + i] * top_dat[k*MLO_READ_UNIT + i],
+							bot_dat[c*MLO_READ_UNIT + i],
+							top_dat[k*MLO_READ_UNIT + i]
+							);
+					}
+#endif
 				}
 			}
 		}
@@ -700,7 +704,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 	// transpose data using MLO_REDUC_LOOP_STEP wk-items from each small map 
 	__private _FLOAT final_sum[(MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP)];
 
-#if 0 
+#if 1 
 
 	// first round
 	// transpose and split into sub-group for logar summation
@@ -804,7 +808,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 	} // if (p4 < MLO_REDUC_LOOP_STEP)
 
 
-#elif 0
+#elif 1
 	//	if (inside_range_input)
 	{
 		for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
@@ -844,7 +848,10 @@ __kernel void MLOpenCvBwdWrWLmap(
 #endif
 
 
-				if (c_idx + c < MLO_N_INPUTS
+				if (true
+#if MLO_N_IN_MAPS_ALIGNED == 0
+					&& c_idx + c < MLO_N_INPUTS
+#endif
 #if MLO_N_OUT_MAPS_ALIGNED == 0
 					&& k_idx + k < MLO_N_OUTPUTS
 #endif
@@ -891,7 +898,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 			{
 				if (true
 #if MLO_N_IN_MAPS_ALIGNED == 0
-					c_idx + c < MLO_N_INPUTS
+				 && c_idx + c < MLO_N_INPUTS
 #endif
 #if MLO_N_OUT_MAPS_ALIGNED == 0
 					&& k_idx + k < MLO_N_OUTPUTS

@@ -1676,7 +1676,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
 	int N_PIXS_OFF = map_sz - (map_sz / read_unit)*read_unit;
-	bool large_map = (MAP_WK_SZ > _hw_wave_sz * 4);
+	bool large_map = (MAP_WK_SZ > _hw_wave_sz * 3);
 
 
 	// param
@@ -1757,7 +1757,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	int lcl_red_size = GRP_SZ * REDUC_LOOP_STEP;
 
-	int lcl_size_limit = std::max(lcl_comm_size, lcl_red_size);
+	int lcl_size_limit = (!large_map) ? std::max(lcl_comm_size, lcl_red_size) : lcl_red_size;
 
 
 
