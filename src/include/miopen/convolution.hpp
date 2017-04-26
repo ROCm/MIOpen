@@ -1,7 +1,7 @@
 #ifndef GUARD_MIOPEN_CONVOLUTION_HPP_
 #define GUARD_MIOPEN_CONVOLUTION_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/common.hpp>

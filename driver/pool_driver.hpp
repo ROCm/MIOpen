@@ -2,7 +2,7 @@
 #define GUARD_MIOPEN_POOL_DRIVER_HPP
 
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"

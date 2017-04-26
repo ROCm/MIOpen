@@ -3,7 +3,7 @@
 
 #include <cstdlib>
 #include <fstream>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <sstream>
 #include "driver.hpp"
 #include "mloConvHost.hpp"

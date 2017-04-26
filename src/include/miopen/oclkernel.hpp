@@ -5,7 +5,7 @@
 #include <array>
 #include <utility>
 #include <vector>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <cassert>
 #include <functional>
 #include <array>

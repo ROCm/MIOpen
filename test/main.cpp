@@ -1,4 +1,4 @@
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "test.hpp"
 #include <vector>
 #include <array>
