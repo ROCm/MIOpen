@@ -1686,7 +1686,8 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
 	int N_PIXS_OFF = map_sz - (map_sz / read_unit)*read_unit;
 	bool large_map = (MAP_WK_SZ > _hw_wave_sz * 2);
-	bool midsize_map = (MAP_WK_SZ <= _hw_wave_sz * 2);
+// not in use
+	bool midsize_map = false; // (MAP_WK_SZ <= _hw_wave_sz * 2);
 
 	// n of wavefronts in a group
 	// param
@@ -1860,7 +1861,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		_g_wk.push_back(gbl_wk2);
 
 		_kernel_file = "MIOpenConvBwdWrW1x1.cl";
-		_kernel_name = (large_map) ? "MLOpenCvBwdWrWLmap" : (midsize_map) ?  "MIOpenCvBwdWrWMmap" : "MIOpenCvBwdWrWSmap";
+		_kernel_name = (large_map) ? "MLOpenCvBwdWrWLmap" : "MIOpenCvBwdWrWSmap";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
 		_mlo_kernels_info.push_back(kern_info);
