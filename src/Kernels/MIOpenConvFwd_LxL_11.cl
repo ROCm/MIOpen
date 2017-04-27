@@ -754,12 +754,15 @@ __kernel void MIOpenCvFwd11x11_2(
 #if (MLO_PROCESSING_WIDTH*MLO_LAST_OUT_EXTENT1) & (MLO_PROCESSING_WIDTH*MLO_LAST_OUT_EXTENT1 - 1)
 	uint bb = iDiv(lcl_id, (MLO_PROCESSING_WIDTH*MLO_LAST_OUT_EXTENT1));
 	uint t0 = iMod(lcl_id, bb, (MLO_PROCESSING_WIDTH*MLO_LAST_OUT_EXTENT1));
-#else
+#elif (MLO_PROCESSING_WIDTH*MLO_LAST_OUT_EXTENT1) != 0
 	uint bb = lcl_id / (MLO_PROCESSING_WIDTH*MLO_LAST_OUT_EXTENT1);
 	uint t0 = lcl_id & ((MLO_PROCESSING_WIDTH*MLO_LAST_OUT_EXTENT1) - 1);
 #if (MLO_PROCESSING_WIDTH*MLO_LAST_OUT_EXTENT1) >= 64
 	bb = uniform(bb);
 #endif
+#else
+	uint bb = lcl_id;
+	uint t0 = 0;
 #endif
 #if MLO_PROCESSING_WIDTH & (MLO_PROCESSING_WIDTH - 1)
 	uint ex_row = iDiv(t0, MLO_PROCESSING_WIDTH);
