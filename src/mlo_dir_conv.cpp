@@ -2369,7 +2369,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 		{
 			ret = mloConstruct53();
 		}
-		else if ( _in_width * _in_height <= (localMemSize / (2*sizeof(float))))
+		else 
 		{
 			ret = mloConstruct1x1();
 		}
