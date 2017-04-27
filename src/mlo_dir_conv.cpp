@@ -2350,7 +2350,6 @@ int mlo_construct_BwdWrW2D::mloConstruct()
 {
 	int ret = 0;
 	_workspce_sz = 0;
-	size_t localMemSize = 64 * 1024;
 
     if (((_kernel_size0>=_kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >=64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
 	{
