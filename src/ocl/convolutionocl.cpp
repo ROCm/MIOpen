@@ -742,7 +742,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     (void)workSpace; // Suppress warning
     (void)workSpaceSize; // Suppress warning
 
-    if(wei_w >= wei_h /*&& !(in_h * in_w > (8 * 1024) && wei_w == wei_h && wei_w == 1)*/)
+    if(wei_w >= wei_h)
     {
         mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
         construct_params.doSearch(false);
@@ -934,7 +934,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         case miopenConvolutionBwdWeightsAlgoDirect:
         {
 
-			if (wei_w >= wei_h /*&& !(in_h * in_w > (8 * 1024) && wei_w == wei_h && wei_w == 1)*/)
+			if (wei_w >= wei_h)
 			{
                 mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
                 construct_params.setOutputDescFromMLDesc(dyDesc);

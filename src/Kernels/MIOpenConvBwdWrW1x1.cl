@@ -31,8 +31,8 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
-
-
+#define UNUSED __attribute__((__unused__))
+#define DBG_OUT_OF_RNGE 0
 
 __attribute__((always_inline))
 int iDiv(int v, int d)
@@ -151,7 +151,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 #endif
 
 	gbl_in_off += p4 * MLO_READ_UNIT;
-//	gbl_out_off += p4 * MLO_READ_UNIT;
+
 // input is kept in registers at the start
 	gbl_in_off += m_id * MLO_IN_CHANNEL_STRIDE;
 
@@ -187,6 +187,13 @@ __kernel void MIOpenCvBwdWrWSmap(
 					for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
 					{
 						bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+						if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:in-off-range\n");
+						}
+#endif
+
 					}
 					for (int i = MLO_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
 					{
@@ -213,6 +220,12 @@ __kernel void MIOpenCvBwdWrWSmap(
 					for (int i = 0; i < MLO_READ_UNIT; ++i)
 					{
 						bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+						if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:in-off-range\n");
+						}
+#endif
 					}
 
 				}
@@ -250,6 +263,13 @@ __kernel void MIOpenCvBwdWrWSmap(
 					for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
 					{
 						lcl_mem[p*MLO_READ_UNIT + i] = top_df[top_off1 + i];
+#if DBG_OUT_OF_RNGE
+						if (top_off1 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-off-range\n");
+						}
+#endif
+
 					}
 					for (int i = MLO_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
 					{
@@ -265,6 +285,12 @@ __kernel void MIOpenCvBwdWrWSmap(
 					for (int i = 0; i < MLO_READ_UNIT; ++i)
 					{
 						lcl_mem[p*MLO_READ_UNIT + i] = top_df[top_off1 + i];
+#if DBG_OUT_OF_RNGE
+						if (top_off1 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:out-off-range\n");
+						}
+#endif
 
 					}
 				}
@@ -642,6 +668,13 @@ __kernel void MLOpenCvBwdWrWLmap(
 				for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
 				{
 					bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					{
+						printf("k:err:in-off-range\n");
+					}
+#endif
+
 				}
 
 			}
@@ -654,6 +687,13 @@ __kernel void MLOpenCvBwdWrWLmap(
 				for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
 				{
 					top_dat[k*MLO_READ_UNIT + i] = top_df[top_off + i];
+#if DBG_OUT_OF_RNGE
+					if (top_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+					{
+						printf("k:err:out-off-range\n");
+					}
+#endif
+
 				}
 			}
 
@@ -671,6 +711,12 @@ __kernel void MLOpenCvBwdWrWLmap(
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
+#if DBG_OUT_OF_RNGE
+					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					{
+						printf("k:err:in-off-range\n");
+					}
+#endif
 				}
 
 			}
@@ -683,6 +729,12 @@ __kernel void MLOpenCvBwdWrWLmap(
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					top_dat[k*MLO_READ_UNIT + i] = top_df[top_off + i];
+#if DBG_OUT_OF_RNGE
+					if (top_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+					{
+						printf("k:err:out-off-range\n");
+					}
+#endif
 				}
 			}
 		}
