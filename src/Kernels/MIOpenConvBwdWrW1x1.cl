@@ -149,7 +149,6 @@ __kernel void MIOpenCvBwdWrWSmap(
 // input is kept in registers at the start
 	gbl_in_off += m_id * MLO_IN_CHANNEL_STRIDE;
 
-	bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 // inside input range
 
 	bool inside_map_range_input = ((c_idx + m_id) < MLO_N_INPUTS && m_id < MLO_N_MAPS_PER_GROUP);
@@ -162,9 +161,10 @@ __kernel void MIOpenCvBwdWrWSmap(
 		int bot_off = gbl_in_off;
 
 #if MLO_N_PIXS_OFF > 0
+		bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 
-			if (last_pixel)
-			{
+		if (last_pixel)
+		{
 				for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
 				{
 
@@ -195,33 +195,33 @@ __kernel void MIOpenCvBwdWrWSmap(
 				}
 
 			}
-			else
+		else
 #endif
+		{
+			// check 
+			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
 			{
-				// check 
-				for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
+				// reading in order per group and jump over maps been read
+				// read arbitrary data but inside the range
+
+				bool inside_range_input2 = inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS);
+
+				bot_off = (inside_range_input2) ? bot_off : 0;
+
+				for (int i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					// reading in order per group and jump over maps been read
-					// read arbitrary data but inside the range
-
-					bool inside_range_input2 = inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS);
-
-					bot_off = (inside_range_input2) ? bot_off : 0;
-
-					for (int i = 0; i < MLO_READ_UNIT; ++i)
-					{
-						bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
+					bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
 #if DBG_OUT_OF_RNGE
-						if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-						{
-							printf("k:err:in-off-range\n");
-						}
-#endif
+					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					{
+						printf("k:err:in-off-range\n");
 					}
-
+#endif
 				}
 
-			} // if (last_pixel)
+			}
+
+		} // if (last_pixel)
 
 
 		int top_off = gbl_out_off;
@@ -632,10 +632,10 @@ __kernel void MLOpenCvBwdWrWLmap(
 #endif
 		int gbl_in_off = gbl_in_off0 + b * MLO_IN_BATCH_STRIDE + p4*MLO_READ_UNIT;
 		int gbl_out_off = gbl_out_off0 + b * MLO_OUT_BATCH_STRIDE + p4*MLO_READ_UNIT;
-		bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 
 
 #if MLO_N_PIXS_OFF > 0
+		bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 
 		if (last_pixel)
 		{
