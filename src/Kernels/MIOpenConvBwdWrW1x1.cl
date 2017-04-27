@@ -163,8 +163,11 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 // inside input range
 
-	bool inside_map_range_input = ((c_idx + m_id) < MLO_N_INPUTS && m_id < MLO_N_MAPS_PER_GROUP);
-	bool inside_range_input = (p4 < MLO_MAP_WK_SZ &&  inside_map_range_input);
+#if MLO_N_IN_MAPS_ALIGNED == 0 
+	bool inside_map_range = (p4 < MLO_MAP_WK_SZ  && m_id < MLO_N_MAPS_PER_GROUP);
+
+	bool inside_range_input = inside_map_range & ((c_idx + m_id) < MLO_N_INPUTS && m_id < MLO_N_MAPS_PER_GROUP);
+#endif
 
 	for (int b = 0; b < MLO_BATCH_SZ; ++b, gbl_in_off += MLO_IN_BATCH_STRIDE, gbl_out_off += MLO_OUT_BATCH_STRIDE)
 	{
@@ -182,10 +185,9 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 					// reading in order per group and jump over maps been read
 					// read arbitrary data but inside the range
-
-					bool inside_range_input2 = inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS);
-
-					bot_off = (inside_range_input2) ? bot_off : 0;
+#if MLO_N_IN_MAPS_ALIGNED == 0
+					bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
+#endif
 
 					for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
 					{
@@ -216,9 +218,9 @@ __kernel void MIOpenCvBwdWrWSmap(
 					// reading in order per group and jump over maps been read
 					// read arbitrary data but inside the range
 
-					bool inside_range_input2 = inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS);
-
-					bot_off = (inside_range_input2) ? bot_off : 0;
+#if MLO_N_IN_MAPS_ALIGNED == 0
+					bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
+#endif
 
 					for (int i = 0; i < MLO_READ_UNIT; ++i)
 					{
@@ -643,7 +645,7 @@ __kernel void MIOpenCvBwdWrWMmap(
 
 	// inside input range
 #if MLO_N_IN_MAPS_ALIGNED == 0 || MLO_N_OUT_MAPS_ALIGNED == 0
-	bool inside_map_range = (p4 < MLO_MAP_WK_SZ  && m_id < MLO_N_MAPS_PER_GROUP)
+	bool inside_map_range = (p4 < MLO_MAP_WK_SZ  && m_id < MLO_N_MAPS_PER_GROUP);
 #endif
 #if MLO_N_IN_MAPS_ALIGNED == 0
 	bool inside_range_input = inside_map_range & ((c_idx + m_id) < MLO_N_INPUTS && m_id < MLO_N_MAPS_PER_GROUP);
@@ -1051,17 +1053,9 @@ __kernel void MLOpenCvBwdWrWLmap(
 	int gbl_out_off0 = k_idx * MLO_OUT_CHANNEL_STRIDE;
 
 
-//#define MLO_TOP_DAT_SZ (MLO_N_LCL_OUT_MAPS * MLO_READ_UNIT)
-
 	__private _FLOAT top_dat[MLO_TOP_DAT_SZ];
 
-
-//#define MLO_BOT_DAT_SZ (MLO_N_LCL_IN_MAPS * MLO_READ_UNIT)
-
 	__private _FLOAT bot_dat[MLO_BOT_DAT_SZ];
-
-
-//#define MLO_ACCUM_SZ (MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS)
 
 	__private _FLOAT pvt_accum[MLO_ACCUM_SZ];
 
