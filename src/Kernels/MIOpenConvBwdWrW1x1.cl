@@ -48,7 +48,7 @@ int iMod(int v, int u, int d)
 	return(r);
 }
 
-inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len, bool debug)
+inline void ReduceKernel(__local _FLOAT * lcl_blob, __private _FLOAT *weights_accum, int lcl_id, int scan_lcl, int sum_stride, int unit_len)
 {
 
 	for (int j = (sum_stride >> 1); j > 0; j >>= 1)
@@ -94,13 +94,12 @@ __kernel void MIOpenCvBwdWrWSmap(
 	const __global _FLOAT * __restrict top_df,
 	const __global _FLOAT * __restrict bot,
 	__global _FLOAT * __restrict weights_df,
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 	// reduction memory.
 
 	__local _FLOAT lcl_mem[MLO_LCL_MEM_SZ];
-	__local _FLOAT * red_mem = lcl_mem;
 
 	int lcl_id = get_local_id(0);
 
@@ -115,15 +114,10 @@ __kernel void MIOpenCvBwdWrWSmap(
 	int gbl_out_off = k_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
 
 
-#define MLO_TOP_DAT_SZ (MLO_N_LCL_OUT_MAPS* MLO_READ_UNIT)
-
-	__private _FLOAT top_dat[MLO_TOP_DAT_SZ];
-
 
 #define MLO_BOT_DAT_SZ (MLO_N_LCL_IN_MAPS * MLO_READ_UNIT)
 
 	__private _FLOAT bot_dat[MLO_BOT_DAT_SZ];
-
 
 #define MLO_ACCUM_SZ (MLO_N_LCL_OUT_MAPS* MLO_N_LCL_IN_MAPS)
 
@@ -160,9 +154,6 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 	bool inside_map_range_input = ((c_idx + m_id) < MLO_N_INPUTS && m_id < MLO_N_MAPS_PER_GROUP);
 	bool inside_range_input = (p4 < MLO_MAP_WK_SZ &&  inside_map_range_input);
-
-	// inside output range
-	bool inside_range_output = (p4 < MLO_MAP_WK_SZ);
 
 	for (int b = 0; b < MLO_BATCH_SZ; ++b, gbl_in_off += MLO_IN_BATCH_STRIDE, gbl_out_off += MLO_OUT_BATCH_STRIDE)
 	{
@@ -584,13 +575,12 @@ __kernel void MLOpenCvBwdWrWLmap(
 	const __global _FLOAT * __restrict top_df,
 	const __global _FLOAT * __restrict bot,
 	__global _FLOAT * __restrict weights_df,
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 	// reduction memory.
 
 	__local _FLOAT lcl_mem[MLO_LCL_MEM_SZ];
-	__local _FLOAT * red_mem = lcl_mem;
 
 	int lcl_id = get_local_id(0);
 
