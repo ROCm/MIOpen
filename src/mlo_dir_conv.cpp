@@ -1671,15 +1671,23 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		: (((map_sz / 5) * 5) == map_sz) ? 5
 		: (((map_sz / 6) * 6) == map_sz) ? 6 : 4;
 	
-	if (_in_width*_in_height == 28 * 28 && _n_inputs * _n_outputs > 192 * 64)
+	if (_in_width*_in_height == 28 * 28 )
 	{
-		read_unit = 2;
+		if (_n_inputs * _n_outputs > 192 * 64)
+		{
+			read_unit = 2;
+		}
 	}
-
+	else if (_in_width*_in_height > 512)
+	{
+		read_unit = 4;
+	}
 
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
 	int N_PIXS_OFF = map_sz - (map_sz / read_unit)*read_unit;
 	bool large_map = (MAP_WK_SZ > _hw_wave_sz * 2);
+// not in use
+	bool midsize_map = false; // (MAP_WK_SZ <= _hw_wave_sz * 2);
 
 	// n of wavefronts in a group
 	// param
@@ -1714,7 +1722,8 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	// number input maps
 	// para
 
-	// number of imput maps per group
+	// number of input maps per group
+	// large map cover a group in full
 	int N_MAPS_PER_GROUP = (!large_map) ? std::min(_n_outputs, std::max(1, GRP_SZ / MAP_WK_SZ)) : 1;
 
 	_n_in_data_tiles = std::min(_n_outputs / N_MAPS_PER_GROUP, ((read_unit > 4) ? 6 : (read_unit > 2) ? 8 : 10));
@@ -1760,7 +1769,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	int lcl_red_size = GRP_SZ * std::max(REDUC_LOOP_STEP, (accum_sz / REDUC_LOOP_STEP));
 
-	int lcl_size_limit = (!large_map) ? std::max(lcl_comm_size, lcl_red_size) : lcl_red_size;
+	int lcl_size_limit = (!(large_map|| midsize_map)) ? std::max(lcl_comm_size, lcl_red_size) : lcl_red_size;
 
 
 
@@ -1852,7 +1861,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		_g_wk.push_back(gbl_wk2);
 
 		_kernel_file = "MIOpenConvBwdWrW1x1.cl";
-		_kernel_name = (!large_map) ? "MIOpenCvBwdWrWSmap" : "MLOpenCvBwdWrWLmap";
+		_kernel_name = (large_map) ? "MLOpenCvBwdWrWLmap" : "MIOpenCvBwdWrWSmap";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
 		_mlo_kernels_info.push_back(kern_info);
