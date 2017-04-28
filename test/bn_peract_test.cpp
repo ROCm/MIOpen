@@ -778,7 +778,7 @@ struct batch_norm_per_activation_driver : test_driver
     batch_norm_per_activation_driver(){
         this->batch_factor=8;
         //add(input, "input", get_input_tensor());
-        add(input, "input", get_bn_input_tensor());
+        add(input, "input", get_bn_peract_input_tensor());
     }
 
     void run(){   

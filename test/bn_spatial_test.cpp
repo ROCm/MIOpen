@@ -928,7 +928,7 @@ struct batch_norm_spatial_driver : test_driver
     
     batch_norm_spatial_driver(){
         this->batch_factor=8;
-        add(input, "input", get_bn_input_tensor());
+        add(input, "input", get_bn_spatial_input_tensor());
         //add(input, "input", get_input_tensor());
         //add(input, "input", generate_data(get_bn_inputs(this->batch_factor)));
         
