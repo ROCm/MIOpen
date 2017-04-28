@@ -170,22 +170,21 @@ miopenStatus_t miopenOpTensor(miopenHandle_t handle,
 				DataCast(C));
 	});
 
-
 }
 
 extern "C"
 miopenStatus_t miopenSetTensor(miopenHandle_t handle,
 		const miopenTensorDescriptor_t	yDesc,
 		void							*y,
-		const void						*valuePtr) {
+		const void						*alpha) {
 
-	MIOPEN_LOG_FUNCTION(yDesc, y, valuePtr);
+	MIOPEN_LOG_FUNCTION(yDesc, y, alpha);
 	return miopen::try_([&] {
-		miopen::deref(yDesc).SetTensor(miopen::deref(handle),
+		SetTensor(miopen::deref(handle),
+                miopen::deref(yDesc),
 				DataCast(y),
-				valuePtr);
+				alpha);
 	});
-	
 
 }
 
@@ -197,7 +196,8 @@ miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
 
 	MIOPEN_LOG_FUNCTION(yDesc, y, alpha);
 	return miopen::try_([&] {
-		miopen::deref(yDesc).ScaleTensor(miopen::deref(handle),
+		ScaleTensor(miopen::deref(handle),
+                miopen::deref(yDesc),
 				DataCast(y),
 				alpha);
 	});

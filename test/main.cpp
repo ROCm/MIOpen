@@ -179,11 +179,6 @@ struct conv_forward : output_tensor_fixture
         STATUS(miopenEnableProfiling(handle, Profile));
         int alpha = 1, beta = 1;
 
-        // int value = 10;
-        // STATUS(miopenSetTensor(handle, inputTensor, NULL, &value));
-
-        // STATUS(miopenScaleTensor(handle, inputTensor, NULL, &alpha));
-
         // Setup OpenCL buffers
 
 		int n, h, c, w;
@@ -246,6 +241,10 @@ struct conv_forward : output_tensor_fixture
         EXPECT(hipMemcpy(fwd_workspace_dev, fwd_workspace.data(), sz_fwd_workspace, hipMemcpyHostToDevice) == hipSuccess);
 
 #endif
+        int value = 10;
+        STATUS(miopenSetTensor(handle, inputTensor, in_dev, &value));
+
+        STATUS(miopenScaleTensor(handle, inputTensor, in_dev, &alpha));
 
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;

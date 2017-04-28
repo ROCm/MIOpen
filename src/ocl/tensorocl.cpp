@@ -6,46 +6,76 @@
 
 namespace miopen {
 
-void TensorDescriptor::SetTensor(Handle& /* handle */,
-		Data_t							dstTensor,
-		const void						*valuePtr) {
+void SetTensor(Handle&          handle,
+		const TensorDescriptor& yDesc,
+		Data_t					y,
+		const void				*alpha) {
 
-	printf("To be implemented (SetTensor) \n");
-	if(valuePtr == nullptr || dstTensor == nullptr) {
+	if(y == nullptr || alpha == nullptr) {
 		MIOPEN_THROW(miopenStatusBadParm);
 	}
 
-	// Launch kernels using the handle
+    size_t global_threads = yDesc.GetElementSize();
+    size_t local_threads = 256;
+    const std::vector<size_t> vld {local_threads, 1, 1};
+	const std::vector<size_t> vgd {global_threads, 1, 1};
 
-	// [MD]: Can we just use host enqueue API to set the values in
-	// the buffer?
-
-	std::string program_name; // CL kernel filename
-	std::string kernel_name; // kernel name
-	std::string parms; // kernel parameters
-
-//	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
-
+    std::string program_name = "MIOpenTensorScaleKernel.cl";
+    switch(yDesc.GetType())
+    {
+        case miopenFloat:
+        case miopenHalf:
+        {
+            float miopen_alpha = *(static_cast<const float *>(alpha));
+            std::string parms = " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + 
+                                " -DMIOPEN_ALPHA_TYPE=float";
+            
+            handle.GetKernel("SetTensor",
+                    "",
+                    program_name,
+                    "SetTensor",
+                    vld,
+                    vgd,
+                    parms) (y, miopen_alpha, global_threads);
+        }
+        break;
+    }
 }
 
-void TensorDescriptor::ScaleTensor(Handle& /* handle */,
-		Data_t							dstTensor,
-		const void						* /*alpha*/) {
+void ScaleTensor(Handle&        handle,
+		const TensorDescriptor& yDesc,
+		Data_t					y,
+		const void				*alpha) {
 
-	printf("To be implemented (ScaleTensor) \n");
-	if(dstTensor == nullptr) {
+	if(y == nullptr || alpha == nullptr) {
 		MIOPEN_THROW(miopenStatusBadParm);
 	}
 
+    size_t global_threads = yDesc.GetElementSize();
+    size_t local_threads = 256;
+    const std::vector<size_t> vld {local_threads, 1, 1};
+	const std::vector<size_t> vgd {global_threads, 1, 1};
 
-	// [MD]: Can we just use the TransformTensor Kernel with beta = 0 ?
-
-	std::string program_name; // CL kernel filename
-	std::string kernel_name; // kernel name
-	std::string parms; // kernel parameters
-
-	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
-
+    std::string program_name = "MIOpenTensorScaleKernel.cl";
+    switch(yDesc.GetType())
+    {
+        case miopenFloat:
+        case miopenHalf:
+        {
+            float miopen_alpha = *(static_cast<const float *>(alpha));
+            std::string parms = " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + 
+                                " -DMIOPEN_ALPHA_TYPE=float";
+            
+            handle.GetKernel("ScaleTensor",
+                    "",
+                    program_name,
+                    "ScaleTensor",
+                    vld,
+                    vgd,
+                    parms) (y, miopen_alpha, global_threads);
+        }
+        break;
+    }
 }
 
 // Free Tensor Functions
