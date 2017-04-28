@@ -221,7 +221,7 @@ void OpTensor(Handle&           handle,
     auto first_not_one = std::find_if(b_lens.rbegin(), b_lens.rend(), [](int i){ return i != 1; });
     auto d = std::distance(b_lens.begin(), first_not_one.base());
 
-    int num_wg = *first_not_one;
+    int num_wg = *first_not_one == 0 ? 1 : *first_not_one;
     int work_per_wg = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
 
     int c_n, c_c, c_h, c_w;
