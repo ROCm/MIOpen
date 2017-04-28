@@ -105,6 +105,12 @@ typedef enum {
 } miopenLRNMode_t;
 
 typedef enum {
+        miopenBNPerActivation = 0,
+        miopenBNSpatial       = 1,
+}miopenBatchNormMode_t;
+
+
+typedef enum {
 	miopenActivationPATHTRU		= 0,
 	miopenActivationLOGISTIC	= 1,	//	1 / (1 + e^-x)	//Sigmoid
 	miopenActivationTANH		= 2,	//	a * tanh( b * x)
@@ -531,6 +537,80 @@ MIOPEN_EXPORT miopenStatus_t miopenLRNBackward(
 		const void							*workSpace);
 
 MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lrnDesc);
+
+
+
+//BATCH NORMALIZATION APIs
+
+
+MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_t & derivedBnDesc,
+                                        const miopenTensorDescriptor_t & xDesc,
+                                        miopenBatchNormMode_t bn_mode);
+
+
+
+MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationForwardTraining(
+					miopenHandle_t			handle,
+					miopenBatchNormMode_t		bn_mode,
+					void				*alpha,
+					void				*beta,
+					const miopenTensorDescriptor_t	xDesc,
+					const void			*x,
+					const miopenTensorDescriptor_t	yDesc,
+					void				*y,
+					const miopenTensorDescriptor_t	bnScaleBiasMeanVarDesc,
+					void				*bnScale,
+					void				*bnBias,
+					double				exponentialAverageFactor,
+					void				*resultRunningMean,
+					void				*resultRunningVariance,
+					double				epsilon,
+					void				*resultSaveMean,
+					void				*resultSaveInvVariance);
+
+
+
+MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationForwardInference(
+					miopenHandle_t			handle,
+					miopenBatchNormMode_t		bn_mode,
+					void				*alpha,
+					void				*beta,
+					const miopenTensorDescriptor_t	xDesc,
+					const void			*x,
+					const miopenTensorDescriptor_t	yDesc,
+					void				*y,
+					const miopenTensorDescriptor_t	bnScaleBiasMeanVarDesc,
+					void				*bnScale,
+					void				*bnBias,
+					void				*estimatedMean,
+					void				*estimatedVariance,
+					double				epsilon);
+
+
+
+MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationBackward(
+					miopenHandle_t			handle,
+					miopenBatchNormMode_t           bn_mode,
+					const void                      *alphaDataDiff,
+					const void                      *betaDataDiff,
+					const void                      *alphaParamDiff,
+					const void                      *betaParamDiff,
+					const miopenTensorDescriptor_t	xDesc,
+					const void			*x,
+					const miopenTensorDescriptor_t	dyDesc,
+					const void			*dy,
+					const miopenTensorDescriptor_t	dxDesc,
+					void				*dx,
+					const miopenTensorDescriptor_t	bnScaleBiasDiffDesc,
+					const void			*bnScale,
+					void                            *resultBnScaleDiff,
+					void                            *resultBnBiasDiff,
+					double                          epsilon,
+					const void                      *savedMean,
+					const void                      *savedInvVariance);
+
+
+
 
 // Activation APIs
 
