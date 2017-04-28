@@ -167,22 +167,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptor(
 		
 MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc);
 
-/* This function copies the scaled data from one tensor to another
- * tensor with a different layout. Those descriptors need to have the
- * same dimensions but not necessarily the same strides. The input
- * and output tensors must not overlap in any way (i.e., tensors
- * cannot be transformed in place). This function can be used
- * to convert a tensor with an unsupported format to a supported one.
- *
- */
-MIOPEN_EXPORT miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
-		const void						*alpha,
-		const miopenTensorDescriptor_t	xDesc,
-		const void						*x,
-		const void						*beta,
-		const miopenTensorDescriptor_t	 yDesc,
-		void							*y);
-
 /* This function implements the equation C = op ( alpha1[0] * A, alpha2[0] * B
  * ) + beta[0] * C, given tensors A, B, and C and scaling factors alpha1,
  * alpha2, and beta. The op to use is indicated by the descriptor opTensorDesc.
@@ -207,7 +191,7 @@ MIOPEN_EXPORT miopenStatus_t miopenOpTensor(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenSetTensor(miopenHandle_t                 handle,
 		const miopenTensorDescriptor_t yDesc,
 		void                          *y,
-		const void                    *valuePtr );
+		const void                    *alpha );
 
 MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t                 handle,
 		const miopenTensorDescriptor_t yDesc,
