@@ -113,29 +113,29 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 	__local _FLOAT lcl_mem[MLO_LCL_MEM_SZ];
 
-	int lcl_id = get_local_id(0);
+	uint lcl_id = get_local_id(0);
 
-	int k_idx = get_group_id(0) * (MLO_N_LCL_OUT_MAPS); // output map index base
+	uint k_idx = get_group_id(0) * (MLO_N_LCL_OUT_MAPS); // output map index base
 
-	int c_idx = get_group_id(1) * (MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PER_GROUP); // input map index based
+	uint c_idx = get_group_id(1) * (MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PER_GROUP); // input map index based
 
-	int ib = get_group_id(2); // batch id
+	uint ib = get_group_id(2); // batch id
 
 
-	int gbl_in_off = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
-	int gbl_out_off = k_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
+	uint gbl_in_off = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
+	uint gbl_out_off = k_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
 
 
 	__private _FLOAT bot_dat[MLO_BOT_DAT_SZ];
 
 	__private _FLOAT pvt_accum[MLO_ACCUM_SZ];
 
-	for (int i = 0; i < MLO_ACCUM_SZ; ++i)
+	for (uint i = 0; i < MLO_ACCUM_SZ; ++i)
 	{
 		pvt_accum[i] = 0;
 	}
 
-	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
+	for (uint i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
 	{
 		lcl_mem[i] = 0;
 	}
@@ -143,11 +143,11 @@ __kernel void MIOpenCvBwdWrWSmap(
 // map id inside the group, super-pixel inside the map
 #if (MLO_MAP_WK_SZ &  (MLO_MAP_WK_SZ - 1))
 
-	int m_id = iDiv(lcl_id, MLO_MAP_WK_SZ);  // map
-	int p4 = iMod(lcl_id, m_id, MLO_MAP_WK_SZ); // pixel
+	uint m_id = iDiv(lcl_id, MLO_MAP_WK_SZ);  // map
+	uint p4 = iMod(lcl_id, m_id, MLO_MAP_WK_SZ); // pixel
 #else
-	int m_id = ((uint)lcl_id / MLO_MAP_WK_SZ);  // map
-	int p4 = ((uint)lcl_id & (MLO_MAP_WK_SZ - 1)); // pixel
+	uint m_id = ((uint)lcl_id / MLO_MAP_WK_SZ);  // map
+	uint p4 = ((uint)lcl_id & (MLO_MAP_WK_SZ - 1)); // pixel
 
 #endif
 
@@ -163,18 +163,18 @@ __kernel void MIOpenCvBwdWrWSmap(
 	bool inside_range_input = inside_map_range & ((c_idx + m_id) < MLO_N_INPUTS && m_id < MLO_N_MAPS_PER_GROUP);
 #endif
 
-	for (int b = 0; b < MLO_BATCH_SZ; ++b, gbl_in_off += MLO_IN_BATCH_STRIDE, gbl_out_off += MLO_OUT_BATCH_STRIDE)
+	for (uint b = 0; b < MLO_BATCH_SZ; ++b, gbl_in_off += MLO_IN_BATCH_STRIDE, gbl_out_off += MLO_OUT_BATCH_STRIDE)
 	{
 
 		// read all inputs into registers
-		int bot_off = gbl_in_off;
+		uint bot_off = gbl_in_off;
 
 #if MLO_N_PIXS_OFF > 0
 		bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 
 		if (last_pixel)
 		{
-				for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
+				for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
 				{
 
 					// reading in order per group and jump over maps been read
@@ -183,9 +183,11 @@ __kernel void MIOpenCvBwdWrWSmap(
 					bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
 #endif
 
-					for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
+					__global _FLOAT * bot1 = &bot[bot_off];
+
+					for (uint i = 0; i < MLO_N_PIXS_OFF; ++i)
 					{
-						bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
+						bot_dat[c*MLO_READ_UNIT + i] = bot1[i];
 #if DBG_OUT_OF_RNGE
 						if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
 						{
@@ -194,7 +196,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 #endif
 
 					}
-					for (int i = MLO_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
+					for (uint i = MLO_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
 					{
 						bot_dat[c*MLO_READ_UNIT + i] = 0;
 					}
@@ -207,7 +209,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 #endif
 		{
 			// check 
-			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
+			for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
 			{
 				// reading in order per group and jump over maps been read
 				// read arbitrary data but inside the range
@@ -215,11 +217,12 @@ __kernel void MIOpenCvBwdWrWSmap(
 #if MLO_N_IN_MAPS_ALIGNED == 0
 					bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
 #endif
+					__global _FLOAT * bot1 = &bot[bot_off];
 
 
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
+					bot_dat[c*MLO_READ_UNIT + i] = bot1[i];
 #if DBG_OUT_OF_RNGE
 					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
 					{
@@ -245,24 +248,29 @@ __kernel void MIOpenCvBwdWrWSmap(
 			for (int p = lcl_id; p < MLO_OUT_LCL_BLK * MLO_MAP_WK_SZ; p += MLO_GRP_SZ)
 			{
 #if (MLO_MAP_WK_SZ & (MLO_MAP_WK_SZ - 1))
-				int m = iDiv(p, MLO_MAP_WK_SZ);
-				int pm = iMod(p, m, MLO_MAP_WK_SZ);
+				uint m = iDiv(p, MLO_MAP_WK_SZ);
+				uint pm = iMod(p, m, MLO_MAP_WK_SZ);
 #else
-				int m = ((uint)p / MLO_MAP_WK_SZ);
-				int pm = ((uint)p & (MLO_MAP_WK_SZ - 1));
+				uint m = ((uint)p / MLO_MAP_WK_SZ);
+				uint pm = ((uint)p & (MLO_MAP_WK_SZ - 1));
 #endif
 
 
-				int top_off1 = top_off + m * MLO_OUT_CHANNEL_STRIDE + pm*MLO_READ_UNIT;
+				uint top_off1 = top_off + m * MLO_OUT_CHANNEL_STRIDE + pm*MLO_READ_UNIT;
 #if MLO_N_OUT_MAPS_ALIGNED == 0
 				top_off1 = (k_idx + m < MLO_N_OUTPUTS) ? top_off1 : 0;
 #endif
+
+					__global _FLOAT * top_df1 = &top_df[top_off1];
+
 #if MLO_N_PIXS_OFF > 0
 				if (pm == MLO_MAP_WK_SZ - 1)
 				{
-					for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
+
+
+					for (uint i = 0; i < MLO_N_PIXS_OFF; ++i)
 					{
-						lcl_mem[p*MLO_READ_UNIT + i] = top_df[top_off1 + i];
+						lcl_mem[p*MLO_READ_UNIT + i] = top_df1[i];
 #if DBG_OUT_OF_RNGE
 						if (top_off1 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
 						{
@@ -271,7 +279,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 #endif
 
 					}
-					for (int i = MLO_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
+					for (uint i = MLO_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
 					{
 						lcl_mem[p*MLO_READ_UNIT + i] = 0;
 					}
@@ -282,9 +290,9 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 #endif
 				{
-					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					for (uint i = 0; i < MLO_READ_UNIT; ++i)
 					{
-						lcl_mem[p*MLO_READ_UNIT + i] = top_df[top_off1 + i];
+						lcl_mem[p*MLO_READ_UNIT + i] = top_df1[i];
 #if DBG_OUT_OF_RNGE
 						if (top_off1 + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
 						{
@@ -300,12 +308,12 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			for (int k = kb*MLO_OUT_LCL_BLK; k < (kb + 1)*MLO_OUT_LCL_BLK; ++k)
+			for (uint k = kb*MLO_OUT_LCL_BLK; k < (kb + 1)*MLO_OUT_LCL_BLK; ++k)
 			{
 				// processing
-				for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
+				for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 				{
-					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					for (uint i = 0; i < MLO_READ_UNIT; ++i)
 					{
 						_FLOAT bot_val = bot_dat[c*MLO_READ_UNIT + i];
 						_FLOAT top_val = lcl_mem[((k - kb*MLO_OUT_LCL_BLK) * MLO_MAP_WK_SZ + p4)*MLO_READ_UNIT + i];
@@ -352,7 +360,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 #if 1
 // first round
 // transpose and split into sub-group for logar summation
-	for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+	for (uint r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 	{
 		final_sum[r] = 0;
 
@@ -364,7 +372,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 		{
 
-			for (int rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
+			for (uint rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
 			{
 				lcl_mem[lcl_id*MLO_REDUC_LOOP_STEP + rr] = pvt_accum[r*MLO_REDUC_LOOP_STEP + rr];
 			}
@@ -375,14 +383,14 @@ __kernel void MIOpenCvBwdWrWSmap(
 		{
 			// what split the pix belong to
 #if (MLO_REDUC_LOOP_STEP & (MLO_REDUC_LOOP_STEP -1))
-			int split = iDiv(p4, MLO_REDUC_LOOP_STEP);
-			int split_pix = iMod(p4, split, MLO_REDUC_LOOP_STEP);
+			uint split = iDiv(p4, MLO_REDUC_LOOP_STEP);
+			uint split_pix = iMod(p4, split, MLO_REDUC_LOOP_STEP);
 #else
-			int split = ((uint)p4 / MLO_REDUC_LOOP_STEP);
-			int split_pix = ((uint)p4 & (MLO_REDUC_LOOP_STEP - 1));
+			uint split = ((uint)p4 / MLO_REDUC_LOOP_STEP);
+			uint split_pix = ((uint)p4 & (MLO_REDUC_LOOP_STEP - 1));
 #endif
 
-			for (int j = 0; j < MLO_FIRST_ROUND; j++)
+			for (uint j = 0; j < MLO_FIRST_ROUND; j++)
 			{
 #if MLO_FIRST_CAN_DIVIDE ==0
 				if (split*MLO_FIRST_ROUND + j < MLO_MAP_WK_SZ)
@@ -402,9 +410,9 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (p4 >= (MLO_REDUC_LOOP_STEP << rd) && p4 < (MLO_REDUC_LOOP_STEP << (rd + 1)) && m_id < MLO_N_MAPS_PER_GROUP)
+		if (p4 >= ((uint)MLO_REDUC_LOOP_STEP << (uint)rd) && p4 < ((uint)MLO_REDUC_LOOP_STEP << (uint)(rd + 1)) && m_id < MLO_N_MAPS_PER_GROUP)
 		{
-			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
+			for (uint rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
 			{
 				int base_off = (rr*MLO_N_MAPS_PER_GROUP + m_id)*MLO_MAP_WK_SZ;
 				lcl_mem[base_off + p4] = final_sum[rr];
@@ -415,9 +423,9 @@ __kernel void MIOpenCvBwdWrWSmap(
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (p4 < (MLO_REDUC_LOOP_STEP << rd) && m_id < MLO_N_MAPS_PER_GROUP)
+		if (p4 < ((uint)MLO_REDUC_LOOP_STEP << (uint)rd) && m_id < MLO_N_MAPS_PER_GROUP)
 		{
-			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
+			for (uint rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
 			{
 				int base_off = (rr*MLO_N_MAPS_PER_GROUP + m_id)*MLO_MAP_WK_SZ;
 				final_sum[rr] += lcl_mem[base_off + (MLO_REDUC_LOOP_STEP << rd) + p4];
@@ -430,16 +438,16 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 	if (p4 < MLO_REDUC_LOOP_STEP)
 	{
-		for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+		for (uint r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 		{
-			int wei_idx = r* (MLO_REDUC_LOOP_STEP)+p4;
+			uint wei_idx = r* (MLO_REDUC_LOOP_STEP)+p4;
 
 #if (MLO_N_LCL_IN_MAPS & (MLO_N_LCL_IN_MAPS - 1))
-			int k = iDiv(wei_idx, MLO_N_LCL_IN_MAPS);
-			int c = iMod(wei_idx, k, MLO_N_LCL_IN_MAPS);
+			uint k = iDiv(wei_idx, MLO_N_LCL_IN_MAPS);
+			uint c = iMod(wei_idx, k, MLO_N_LCL_IN_MAPS);
 #else
-			int k = ((uint)wei_idx / MLO_N_LCL_IN_MAPS);
-			int c = ((uint)wei_idx & (MLO_N_LCL_IN_MAPS - 1));
+			uint k = ((uint)wei_idx / MLO_N_LCL_IN_MAPS);
+			uint c = ((uint)wei_idx & (MLO_N_LCL_IN_MAPS - 1));
 #endif
 
 
@@ -452,7 +460,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 #endif
 				)
 			{
-				int wei_off = wei_df_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_N_MAPS_PER_GROUP*MLO_WEI_CHANNEL_STRIDE;
+				uint wei_off = wei_df_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_N_MAPS_PER_GROUP*MLO_WEI_CHANNEL_STRIDE;
 				weights_df[wei_off] = final_sum[r];
 			}
 
@@ -597,15 +605,15 @@ __kernel void MLOpenCvBwdWrWLmap(
 
 	__local _FLOAT lcl_mem[MLO_LCL_MEM_SZ];
 
-	int lcl_id = get_local_id(0);
+	uint lcl_id = get_local_id(0);
 
-	int k_idx = get_group_id(0) * (MLO_N_LCL_OUT_MAPS); // output map index base
+	uint k_idx = get_group_id(0) * (MLO_N_LCL_OUT_MAPS); // output map index base
 
-	int c_idx = get_group_id(1) * (MLO_N_LCL_IN_MAPS); // input map index based
+	uint c_idx = get_group_id(1) * (MLO_N_LCL_IN_MAPS); // input map index based
 
 
-	int gbl_in_off0 = c_idx * MLO_IN_CHANNEL_STRIDE;
-	int gbl_out_off0 = k_idx * MLO_OUT_CHANNEL_STRIDE;
+	uint gbl_in_off0 = c_idx * MLO_IN_CHANNEL_STRIDE;
+	uint gbl_out_off0 = k_idx * MLO_OUT_CHANNEL_STRIDE;
 
 
 	__private _FLOAT top_dat[MLO_TOP_DAT_SZ];
@@ -614,57 +622,58 @@ __kernel void MLOpenCvBwdWrWLmap(
 
 	__private _FLOAT pvt_accum[MLO_ACCUM_SZ];
 
-	for (int i = 0; i < MLO_ACCUM_SZ; ++i)
+	for (uint i = 0; i < MLO_ACCUM_SZ; ++i)
 	{
 		pvt_accum[i] = 0;
 	}
 
-	for (int i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
+	for (uint i = lcl_id; i < MLO_LCL_MEM_SZ; i += MLO_GRP_SZ)
 	{
 		lcl_mem[i] = 0;
 	}
 
 
-	for (int pix4 = lcl_id; pix4 < MLO_MAP_WK_SZ * MLO_BATCH_SZ; pix4 += MLO_GRP_SZ)
+	for (uint pix4 = lcl_id; pix4 < MLO_MAP_WK_SZ * MLO_BATCH_SZ; pix4 += MLO_GRP_SZ)
 	{
 
 #if (MLO_MAP_WK_SZ) &  (MLO_MAP_WK_SZ - 1)
 
-		int b = iDiv(pix4, MLO_MAP_WK_SZ);  // batch
-		int p4 = iMod(pix4, b, MLO_MAP_WK_SZ); // pixel block
+		uint b = iDiv(pix4, MLO_MAP_WK_SZ);  // batch
+		uint p4 = iMod(pix4, b, MLO_MAP_WK_SZ); // pixel block
 #else
-		int b = ((uint)pix4 / MLO_MAP_WK_SZ);  // batch
-		int p4 = ((uint)pix4 & (MLO_MAP_WK_SZ - 1)); // pixel block
+		uint b = ((uint)pix4 / MLO_MAP_WK_SZ);  // batch
+		uint p4 = ((uint)pix4 & (MLO_MAP_WK_SZ - 1)); // pixel block
 
 #endif
-		int gbl_in_off = gbl_in_off0 + b * MLO_IN_BATCH_STRIDE + p4*MLO_READ_UNIT;
-		int gbl_out_off = gbl_out_off0 + b * MLO_OUT_BATCH_STRIDE + p4*MLO_READ_UNIT;
-
+		uint gbl_in_off = gbl_in_off0 + b * MLO_IN_BATCH_STRIDE + p4*MLO_READ_UNIT;
+		uint gbl_out_off = gbl_out_off0 + b * MLO_OUT_BATCH_STRIDE + p4*MLO_READ_UNIT;
 
 #if MLO_N_PIXS_OFF > 0
 		bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 
 		if (last_pixel)
 		{
-			for (int i = 0; i < MLO_TOP_DAT_SZ; ++i)
+			for (uint i = 0; i < MLO_TOP_DAT_SZ; ++i)
 			{
 				top_dat[i] = 0;
 			}
-			for (int i = 0; i < MLO_BOT_DAT_SZ; ++i)
+			for (uint i = 0; i < MLO_BOT_DAT_SZ; ++i)
 			{
 				bot_dat[i] = 0;
 			}
-			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
+			for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 			{
 				int bot_off = gbl_in_off + c*MLO_IN_CHANNEL_STRIDE;
-
 #if MLO_N_IN_MAPS_ALIGNED == 0
 // reading garbage, will be thrown away on the way output
 				bot_off = (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
 #endif
-				for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
+
+				__global _FLOAT * bot1 = &bot[bot_off];
+
+				for (uint i = 0; i < MLO_N_PIXS_OFF; ++i)
 				{
-					bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
+					bot_dat[c*MLO_READ_UNIT + i] = bot1[i];
 #if DBG_OUT_OF_RNGE
 					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
 					{
@@ -675,15 +684,18 @@ __kernel void MLOpenCvBwdWrWLmap(
 				}
 
 			}
-			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+			for (uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 			{
-				int top_off = gbl_out_off + k*MLO_OUT_CHANNEL_STRIDE;
+				uint top_off = gbl_out_off + k*MLO_OUT_CHANNEL_STRIDE;
+
 #if MLO_N_OUT_MAPS_ALIGNED == 0
 				top_off = (k_idx + k < MLO_N_OUTPUTS) ? top_off : 0;
 #endif
-				for (int i = 0; i < MLO_N_PIXS_OFF; ++i)
+				__global _FLOAT * top_df1 = &top_df[top_off];
+
+				for (uint i = 0; i < MLO_N_PIXS_OFF; ++i)
 				{
-					top_dat[k*MLO_READ_UNIT + i] = top_df[top_off + i];
+					top_dat[k*MLO_READ_UNIT + i] = top_df1[i];
 #if DBG_OUT_OF_RNGE
 					if (top_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
 					{
@@ -698,16 +710,18 @@ __kernel void MLOpenCvBwdWrWLmap(
 		else
 #endif
 		{
-			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
+			for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 			{
-				int bot_off = gbl_in_off + c*MLO_IN_CHANNEL_STRIDE;
+				uint bot_off = gbl_in_off + c*MLO_IN_CHANNEL_STRIDE;
 #if MLO_N_IN_MAPS_ALIGNED == 0
 				// reading garbage, will be thrown away on the way output
 				bot_off = (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
 #endif
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				__global _FLOAT * bot1 = &bot[bot_off];
+
+				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					bot_dat[c*MLO_READ_UNIT + i] = bot[bot_off + i];
+					bot_dat[c*MLO_READ_UNIT + i] = bot1[i];
 #if DBG_OUT_OF_RNGE
 					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
 					{
@@ -717,15 +731,17 @@ __kernel void MLOpenCvBwdWrWLmap(
 				}
 
 			}
-			for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+			for (uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 			{
-				int top_off = gbl_out_off + k*MLO_OUT_CHANNEL_STRIDE;
+				uint top_off = gbl_out_off + k*MLO_OUT_CHANNEL_STRIDE;
 #if MLO_N_OUT_MAPS_ALIGNED == 0
 				top_off = (k_idx + k < MLO_N_OUTPUTS) ? top_off : 0;
 #endif
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				__global _FLOAT * top_df1 = &top_df[top_off];
+
+				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
-					top_dat[k*MLO_READ_UNIT + i] = top_df[top_off + i];
+					top_dat[k*MLO_READ_UNIT + i] = top_df1[i];
 #if DBG_OUT_OF_RNGE
 					if (top_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
 					{
@@ -737,11 +753,11 @@ __kernel void MLOpenCvBwdWrWLmap(
 		}
 
 		// processing
-		for (int k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
+		for (uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 		{
-			for (int c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
+			for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 			{
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					pvt_accum[k * MLO_N_LCL_IN_MAPS + c] += bot_dat[c*MLO_READ_UNIT + i] * top_dat[k*MLO_READ_UNIT + i];
 
@@ -777,14 +793,14 @@ __kernel void MLOpenCvBwdWrWLmap(
 
 	// first round
 	// transpose and split into sub-group for logar summation
-	for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+	for (uint r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 	{
 		final_sum[r] = 0;
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 		// write out only valid pixels
 
-		for (int rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
+		for (uint rr = 0; rr < MLO_REDUC_LOOP_STEP; ++rr)
 		{
 			lcl_mem[lcl_id*MLO_REDUC_LOOP_STEP + rr] = pvt_accum[r*MLO_REDUC_LOOP_STEP + rr];
 		}
@@ -794,14 +810,14 @@ __kernel void MLOpenCvBwdWrWLmap(
 		{
 			// what split the pix belong to
 #if (MLO_REDUC_LOOP_STEP & (MLO_REDUC_LOOP_STEP -1))
-			int split = iDiv(lcl_id, MLO_REDUC_LOOP_STEP);
-			int split_pix = iMod(lcl_id, split, MLO_REDUC_LOOP_STEP);
+			uint split = iDiv(lcl_id, MLO_REDUC_LOOP_STEP);
+			uint split_pix = iMod(lcl_id, split, MLO_REDUC_LOOP_STEP);
 #else
-			int split = ((uint)lcl_id / MLO_REDUC_LOOP_STEP);
-			int split_pix = ((uint)lcl_id & (MLO_REDUC_LOOP_STEP - 1));
+			uint split = ((uint)lcl_id / MLO_REDUC_LOOP_STEP);
+			uint split_pix = ((uint)lcl_id & (MLO_REDUC_LOOP_STEP - 1));
 #endif
 
-			for (int j = 0; j < MLO_FIRST_ROUND; j++)
+			for (uint j = 0; j < MLO_FIRST_ROUND; j++)
 			{
 #if MLO_FIRST_CAN_DIVIDE ==0
 				if (split*MLO_FIRST_ROUND + j < MLO_GRP_SZ)
@@ -820,9 +836,9 @@ __kernel void MLOpenCvBwdWrWLmap(
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (lcl_id >= (MLO_REDUC_LOOP_STEP << rd) && lcl_id < (MLO_REDUC_LOOP_STEP << (rd + 1)))
+		if (lcl_id >= ((uint)MLO_REDUC_LOOP_STEP << (uint)rd) && lcl_id < (MLO_REDUC_LOOP_STEP << (rd + 1)))
 		{
-			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
+			for (uint rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
 			{
 				int base_off = rr*MLO_GRP_SZ;
 				lcl_mem[base_off + lcl_id] = final_sum[rr];
@@ -833,9 +849,9 @@ __kernel void MLOpenCvBwdWrWLmap(
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (lcl_id < (MLO_REDUC_LOOP_STEP << rd))
+		if (lcl_id < ((uint)MLO_REDUC_LOOP_STEP << (uint)rd))
 		{
-			for (int rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
+			for (uint rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
 			{
 				int base_off = rr*MLO_GRP_SZ;
 				final_sum[rr] += lcl_mem[base_off + (MLO_REDUC_LOOP_STEP << rd) + lcl_id];
@@ -846,16 +862,16 @@ __kernel void MLOpenCvBwdWrWLmap(
 
 	if (lcl_id < MLO_REDUC_LOOP_STEP)
 	{
-		for (int r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
+		for (uint r = 0; r < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++r)
 		{
 			int wei_idx = r* (MLO_REDUC_LOOP_STEP)+ lcl_id;
 
 #if (MLO_N_LCL_IN_MAPS & (MLO_N_LCL_IN_MAPS - 1))
-			int k = iDiv(wei_idx, MLO_N_LCL_IN_MAPS);
-			int c = iMod(wei_idx, k, MLO_N_LCL_IN_MAPS);
+			uint k = iDiv(wei_idx, MLO_N_LCL_IN_MAPS);
+			uint c = iMod(wei_idx, k, MLO_N_LCL_IN_MAPS);
 #else
-			int k = ((uint)wei_idx / MLO_N_LCL_IN_MAPS);
-			int c = ((uint)wei_idx & (MLO_N_LCL_IN_MAPS - 1));
+			uint k = ((uint)wei_idx / MLO_N_LCL_IN_MAPS);
+			uint c = ((uint)wei_idx & (MLO_N_LCL_IN_MAPS - 1));
 #endif
 
 
@@ -868,7 +884,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 #endif
 				)
 			{
-				int wei_off = wei_df_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE;
+				uint wei_off = wei_df_off + k*MLO_WEI_BATCH_STRIDE + c*MLO_WEI_CHANNEL_STRIDE;
 				weights_df[wei_off] = final_sum[r];
 			}
 
