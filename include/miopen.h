@@ -198,33 +198,6 @@ MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t                 ha
 		void                          *y,
 		const void                    *alpha );
 
-#if 0 
-/* [MD]: I do not think there is any need to create separate filter
- * descriptor, just using the tensor descriptor should be fine.  miopenStatus_t
- * miopenCreateFilterDescriptor(miopenFilterDescriptor_t *filterDesc);
- */
-
-miopenStatus_t miopenInitFilterDescriptor(miopenFilterDescriptor_t filterDesc,
-		miopenDataType_t datatype,
-		int k,
-		int c,
-		int h,
-		int w);
-
-miopenStatus_t miopenGetFilterDescriptor(miopenFilterDescriptor_t filterDesc,
-		miopenDataType_t datatype,
-		int *k,
-		int *c,
-		int *h,
-		int *w);
-
-// TODO: Add APIs for N-dimensional filter descriptors. Tensorflow uses them.
-//
-
-miopenStatus_t miopenDestroyFilterDescriptor(miopenFilterDescriptor_t filterDesc);
-
-#endif // FilterDescriptor APIs
-
 MIOPEN_EXPORT miopenStatus_t miopenCreateConvolutionDescriptor(
 		miopenConvolutionDescriptor_t *convDesc);
 
