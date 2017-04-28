@@ -248,7 +248,7 @@ void OpTensor(Handle&           handle,
     // Forward Convolution Bias specialization
     // for fwd-bias, bitmap looks like <0, 1, 0, 0>
     // Is the no. of work-groups and the work for each wg balanced?
-    auto fwd_conv_bias = bitmap & 4 ? 1 : 0;
+    auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
     auto incr_wg = 0;
     if(fwd_conv_bias == 1
             && num_wg < 640 && work_per_wg > 256) { //640 workgroups of size 256 needed to completely fill the GPU
@@ -287,7 +287,7 @@ void OpTensor(Handle&           handle,
                 "OpTensorFwdBias",
                 vld,
                 vgd,
-                parms) (ATensor, BTensor, b_c, CTensor, c_nstride, c_cstride, work_per_wg, op);
+                parms) (ATensor, BTensor, b_c, CTensor, c_n, c_nstride, c_cstride, work_per_wg, op);
 
     }
     else {
