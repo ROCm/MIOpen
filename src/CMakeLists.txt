@@ -39,6 +39,8 @@ set( MIOpen_Source
 	activ_api.cpp
 	handle_api.cpp
 	softmax_api.cpp
+	batch_norm_api.cpp
+	include/miopen/batch_norm.hpp
 	include/miopen/common.hpp
 	include/miopen/convolution.hpp
 	include/miopen/convolution_fft.hpp
@@ -61,6 +63,12 @@ set( MIOpen_Source
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 	set(MIOPEN_KERNELS
+                Kernels/MIOpenBatchNormFwdTrainSpatial.cl
+                Kernels/MIOpenBatchNormFwdTrainPerAct.cl
+                Kernels/MIOpenBatchNormFwdInferSpatial.cl
+                Kernels/MIOpenBatchNormFwdInferPerAct.cl
+                Kernels/MIOpenBatchNormBwdSpatial.cl
+                Kernels/MIOpenBatchNormBwdPerAct.cl
 		Kernels/MIOpenConvDirUni.cl
 		Kernels/MIOpenConvDirGenFwd.cl
 		Kernels/MIOpenLRNBwd.cl
@@ -82,7 +90,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 		Kernels/conv3x3.s
 		Kernels/conv5x10u2v2f1.s
 		Kernels/MIOpenTensorKernels.cl
-        Kernels/MIOpenTensorScaleKernel.cl
+		Kernels/MIOpenTensorScaleKernel.cl
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
@@ -96,6 +104,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 		lrn.cpp
 		mlo_dir_conv.cpp
 		ocl/activ_ocl.cpp
+		ocl/batchnormocl.cpp
 		ocl/convolutionocl.cpp
 		ocl/convolutionocl_fft.cpp
 		ocl/lrn_ocl.cpp
@@ -124,8 +133,8 @@ endif()
 if( MIOPEN_BACKEND STREQUAL "OpenCL" )
 	list(APPEND MIOpen_Source 
 		ocl/handleocl.cpp
-        ocl_kernel.cpp
-        ocl/oclerrors.cpp
+        	ocl_kernel.cpp
+        	ocl/oclerrors.cpp
 		ocl/clhelper.cpp
 	)
 endif()
