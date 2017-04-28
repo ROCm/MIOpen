@@ -82,6 +82,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 		Kernels/conv3x3.s
 		Kernels/conv5x10u2v2f1.s
 		Kernels/MIOpenTensorKernels.cl
+        Kernels/MIOpenTensorScaleKernel.cl
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
 		Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
