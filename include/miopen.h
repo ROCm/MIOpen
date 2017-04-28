@@ -161,22 +161,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptor(
 		
 MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc);
 
-/* This function copies the scaled data from one tensor to another
- * tensor with a different layout. Those descriptors need to have the
- * same dimensions but not necessarily the same strides. The input
- * and output tensors must not overlap in any way (i.e., tensors
- * cannot be transformed in place). This function can be used
- * to convert a tensor with an unsupported format to a supported one.
- *
- */
-MIOPEN_EXPORT miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
-		const void						*alpha,
-		const miopenTensorDescriptor_t	xDesc,
-		const void						*x,
-		const void						*beta,
-		const miopenTensorDescriptor_t	 yDesc,
-		void							*y);
-
 /* This function implements the equation C = op ( alpha1[0] * A, alpha2[0] * B
  * ) + beta[0] * C, given tensors A, B, and C and scaling factors alpha1,
  * alpha2, and beta. The op to use is indicated by the descriptor opTensorDesc.
@@ -207,33 +191,6 @@ MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t                 ha
 		const miopenTensorDescriptor_t yDesc,
 		void                          *y,
 		const void                    *alpha );
-
-#if 0 
-/* [MD]: I do not think there is any need to create separate filter
- * descriptor, just using the tensor descriptor should be fine.  miopenStatus_t
- * miopenCreateFilterDescriptor(miopenFilterDescriptor_t *filterDesc);
- */
-
-miopenStatus_t miopenInitFilterDescriptor(miopenFilterDescriptor_t filterDesc,
-		miopenDataType_t datatype,
-		int k,
-		int c,
-		int h,
-		int w);
-
-miopenStatus_t miopenGetFilterDescriptor(miopenFilterDescriptor_t filterDesc,
-		miopenDataType_t datatype,
-		int *k,
-		int *c,
-		int *h,
-		int *w);
-
-// TODO: Add APIs for N-dimensional filter descriptors. Tensorflow uses them.
-//
-
-miopenStatus_t miopenDestroyFilterDescriptor(miopenFilterDescriptor_t filterDesc);
-
-#endif // FilterDescriptor APIs
 
 MIOPEN_EXPORT miopenStatus_t miopenCreateConvolutionDescriptor(
 		miopenConvolutionDescriptor_t *convDesc);

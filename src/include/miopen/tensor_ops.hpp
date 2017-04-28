@@ -10,14 +10,6 @@
 
 namespace miopen {
 
-void TransformTensor(Handle&    handle,
-        const void              *alpha,
-        const TensorDescriptor& srcTensorDesc,
-        ConstData_t             srcTensor,
-        const void              *beta,
-        const TensorDescriptor& destTensorDesc,
-        Data_t                  destTensor);
-
 void ScaleTensor(Handle& handle,
         const TensorDescriptor&     yDesc,
 		Data_t						y,

@@ -178,13 +178,6 @@ struct conv_forward : output_tensor_fixture
     {
         STATUS(miopenEnableProfiling(handle, Profile));
         int alpha = 1, beta = 1;
-        STATUS(miopenTransformTensor(handle,
-                &alpha,
-                inputTensor,
-                NULL,
-                &beta,
-                convFilter,
-                NULL));
 
         // Setup OpenCL buffers
 
