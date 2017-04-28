@@ -62,34 +62,6 @@ static void CreateBitmapAndGrid(unsigned int &bitmap, std::vector<int> &a_lens, 
     }
 }
 
-void TransformTensor(Handle& /* handle */,
-			const void * /*alpha*/,
-			const TensorDescriptor& srcTensorDesc,
-			ConstData_t  /*srcTensor*/,
-			const void * /*beta*/,
-			const TensorDescriptor& destTensorDesc,
-			Data_t  /*destTensor*/) {
-
-	printf("To be implemented (TransformTensor) \n");
-
-	if(destTensorDesc == srcTensorDesc) {
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
-
-	// Check that output tensors do not overlap .. output tensors cannot be transformed in place .. no aliasing
-	// Implement conversion of unsupported tensor to a supported one
-	// Launch kernels using the handle
-	// If beta[0] = 0 then just a memcopy with scaled alpha[0]?
-
-	std::string program_name; // CL kernel filename
-	std::string kernel_name; // kernel name
-	std::string parms; // kernel parameters
-
-//	OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
-
-	// If beta = 0, y = alpha*x
-}
-
 static bool IsBitmapLeadingOnes(unsigned int &bitmap, int n_size, int first_not_one)
 {
     bool leading_ones = false;
