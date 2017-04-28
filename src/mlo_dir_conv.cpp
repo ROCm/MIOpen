@@ -1671,14 +1671,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		: (((map_sz / 5) * 5) == map_sz) ? 5
 		: (((map_sz / 6) * 6) == map_sz) ? 6 : 4;
 	
-	if (_in_width*_in_height == 28 * 28 )
-	{
-		if (_n_inputs * _n_outputs > 192 * 64)
-		{
-			read_unit = 2;
-		}
-	}
-	else if (_in_width*_in_height > 512)
+	if (_in_width*_in_height > 512)
 	{
 		read_unit = 4;
 	}
