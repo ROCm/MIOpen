@@ -183,7 +183,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 					bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
 #endif
 
-					__global _FLOAT * bot1 = &bot[bot_off];
+					const __global _FLOAT * bot1 = &bot[bot_off];
 
 					for (uint i = 0; i < MLO_N_PIXS_OFF; ++i)
 					{
@@ -217,7 +217,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 #if MLO_N_IN_MAPS_ALIGNED == 0
 					bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
 #endif
-					__global _FLOAT * bot1 = &bot[bot_off];
+				const __global _FLOAT * bot1 = &bot[bot_off];
 
 
 				for (uint i = 0; i < MLO_READ_UNIT; ++i)
@@ -261,7 +261,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 				top_off1 = (k_idx + m < MLO_N_OUTPUTS) ? top_off1 : 0;
 #endif
 
-					__global _FLOAT * top_df1 = &top_df[top_off1];
+				const __global _FLOAT * top_df1 = &top_df[top_off1];
 
 #if MLO_N_PIXS_OFF > 0
 				if (pm == MLO_MAP_WK_SZ - 1)
@@ -669,7 +669,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 				bot_off = (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
 #endif
 
-				__global _FLOAT * bot1 = &bot[bot_off];
+				const __global _FLOAT * bot1 = &bot[bot_off];
 
 				for (uint i = 0; i < MLO_N_PIXS_OFF; ++i)
 				{
@@ -691,7 +691,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 #if MLO_N_OUT_MAPS_ALIGNED == 0
 				top_off = (k_idx + k < MLO_N_OUTPUTS) ? top_off : 0;
 #endif
-				__global _FLOAT * top_df1 = &top_df[top_off];
+				const __global _FLOAT * top_df1 = &top_df[top_off];
 
 				for (uint i = 0; i < MLO_N_PIXS_OFF; ++i)
 				{
@@ -717,7 +717,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 				// reading garbage, will be thrown away on the way output
 				bot_off = (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
 #endif
-				__global _FLOAT * bot1 = &bot[bot_off];
+				const __global _FLOAT * bot1 = &bot[bot_off];
 
 				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
@@ -737,7 +737,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 #if MLO_N_OUT_MAPS_ALIGNED == 0
 				top_off = (k_idx + k < MLO_N_OUTPUTS) ? top_off : 0;
 #endif
-				__global _FLOAT * top_df1 = &top_df[top_off];
+				const __global _FLOAT * top_df1 = &top_df[top_off];
 
 				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
