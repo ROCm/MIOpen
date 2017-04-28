@@ -52,8 +52,7 @@ void TensorDescriptor::ScaleTensor(Handle& /* handle */,
 //
 static void CreateBitmapAndGrid(unsigned int &bitmap, std::vector<int> &a_lens, std::vector<int> &c_lens, int &num_wg, int &work, int d)
 {
-    bitmap |= (1 << (a_lens.size() - d)); // update bitmap for first_not_one
-    for(int i = (d-2); i>= 0; i--) {
+    for(int i = d; i>= 0; i--) {
         if(a_lens[i] != 1) {
             bitmap |= (1 << (a_lens.size()-(i+1))); // works only 4d tensors in NCHW
             num_wg *= a_lens[i];
@@ -61,81 +60,6 @@ static void CreateBitmapAndGrid(unsigned int &bitmap, std::vector<int> &a_lens, 
         else
             work *= c_lens[i];
     }
-}
-
-void AddTensor(Handle&              handle,
-			const void              * /*alpha*/,
-			const TensorDescriptor& aTensorDesc,
-			ConstData_t             ATensor,
-			const void              * /*beta*/,
-			const TensorDescriptor& cTensorDesc,
-			Data_t                  CTensor) {
-
-    if(ATensor == nullptr || CTensor == nullptr) {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-
-    auto a_lens = aTensorDesc.GetLengths();
-    auto c_lens = cTensorDesc.GetLengths();
-
-    if(a_lens.size() != c_lens.size()) {
-        MIOPEN_THROW("Number of Tensor dims do not match: " + std::to_string(a_lens.size()) + ", " + std::to_string(c_lens.size()));
-    }
-
-    for(auto i = 0; i < a_lens.size(); i++) {
-        if(a_lens[i] != 1 && a_lens[i] != c_lens[i]) {
-            MIOPEN_THROW("ATensor dim != 1 && ATensor dim != CTensor dim: " + std::to_string(i));
-        }
-    }
-
-    auto first_not_one = std::find_if(a_lens.rbegin(), a_lens.rend(), [](int i){ return i != 1; });
-    auto d = std::distance(a_lens.begin(), first_not_one.base());
-
-    int num_wg = *first_not_one;
-    int work_per_wg = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
-
-    int c_n, c_c, c_h, c_w;
-    std::tie(c_n, c_c, c_h, c_w) = tie4(cTensorDesc.GetLengths());
-
-    int a_c, a_h, a_w;
-    std::tie(std::ignore, a_c, a_h, a_w) = tie4(aTensorDesc.GetLengths());
-
-    int c_nstride, c_cstride;
-    std::tie(c_nstride, c_cstride, std::ignore, std::ignore) = tie4(cTensorDesc.GetStrides());
-    
-    int a_nstride, a_cstride;
-    std::tie(a_nstride, a_cstride, std::ignore, std::ignore) = tie4(aTensorDesc.GetStrides());
-
-    unsigned int bitmap = 0;
-    CreateBitmapAndGrid(bitmap, a_lens, c_lens, num_wg, work_per_wg, d);
-
-    // Forward Convolution Bias specialization
-    auto fwd_conv_bias = bitmap & 4 ? 1 : 0;
-    auto incr_wg = 0;
-    if(fwd_conv_bias == 1
-            && num_wg < 640 && work_per_wg > 256) { //640 workgroups of size 256 needed to completely fill the GPU
-        work_per_wg /= c_n;
-        num_wg *= c_n;
-        incr_wg = 1;
-    }
-
-    std::string parms = " -DFWD_CONV_BIAS=" + std::to_string(fwd_conv_bias) +
-                        " -DINCR_WG=" + std::to_string(incr_wg);
-
-    std::string program_name = "MIOpenTensorKernels.cl";
-    std::string kernel_name = "AddTensor";
-
-	const std::vector<size_t> vld(1, 256);
-	const std::vector<size_t> vgd(1, num_wg*256);
-
-    handle.GetKernel(kernel_name,
-            "",
-            program_name,
-            kernel_name,
-            vld,
-            vgd,
-            parms) (ATensor, a_c, a_h, a_w, a_nstride, a_cstride, CTensor, c_n, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg);
-
 }
 
 void TransformTensor(Handle& /* handle */,
@@ -166,47 +90,133 @@ void TransformTensor(Handle& /* handle */,
 	// If beta = 0, y = alpha*x
 }
 
-void OpTensor(Handle& /* handle */,
-		miopenTensorOp_t				 /*tensorOp*/,
-		const void						* /*alpha1*/,
-		const TensorDescriptor&	inputTensorDesc1,
-		ConstData_t					 /*inputTensor1*/,
-		const void						* /*alpha2*/,
-		const TensorDescriptor&	inputTensorDesc2,
-		ConstData_t					 /*inputTensor2*/,
-		const void						* /*beta*/,
-		const TensorDescriptor& destTensorDesc,
-		Data_t							 /*destTensor*/) {
+static bool IsBitmapLeadingOnes(unsigned int &bitmap, int n_size, int first_not_one)
+{
+    bool leading_ones = false;
 
-	printf("To be implemented (Op Tensor) \n");
+    for(int i = first_not_one; i >= 0; i--) {
+        leading_ones &= bitmap & (1 << (n_size-1-i));
+    }
+    return leading_ones;
+}
 
-	// inputTensor1 and dstTensor must have same dims
-	if(destTensorDesc.GetLengths() != inputTensorDesc1.GetLengths()) {
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
+void OpTensor(Handle&           handle,
+		miopenTensorOp_t		tensorOp,
+		const void				* /*alpha1*/,
+		const TensorDescriptor&	aTensorDesc,
+		ConstData_t				ATensor,
+		const void				* /*alpha2*/,
+		const TensorDescriptor&	bTensorDesc,
+		ConstData_t				BTensor,
+		const void				* /*beta*/,
+		const TensorDescriptor& cTensorDesc,
+		Data_t					CTensor) {
 
-	// input Tensor2 and dstTensor must have same dims or all the dims of
-	// inputTensor2 must be 1
-	if(
-		destTensorDesc.GetLengths() != inputTensorDesc2.GetLengths() && 
-		! std::all_of(inputTensorDesc2.GetLengths().begin(), inputTensorDesc2.GetLengths().end(), [](int x) { return x == 1; })
-	) 
-	{
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
+    if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr) {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(aTensorDesc != cTensorDesc) {
+        MIOPEN_THROW("A and C Tensors do not match");
+    }
+   
+    if(bTensorDesc.GetType() != cTensorDesc.GetType()) {
+        MIOPEN_THROW("Datatypes for B and C tensors do not match !");
+    }
+
+    auto b_lens = bTensorDesc.GetLengths();
+    auto c_lens = cTensorDesc.GetLengths();
+
+    if(b_lens.size() != c_lens.size()) {
+        MIOPEN_THROW("Number of dims in B and C Tensors do not match: " + std::to_string(b_lens.size()) + ", " + std::to_string(c_lens.size()));
+    }
+
+    for(auto i = 0; i < c_lens.size(); i++) {
+        if(b_lens[i] != 1 && b_lens[i] != c_lens[i]) {
+            MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " + std::to_string(i));
+        }
+    }
+    auto first_not_one = std::find_if(b_lens.rbegin(), b_lens.rend(), [](int i){ return i != 1; });
+    auto d = std::distance(b_lens.begin(), first_not_one.base());
+
+    int num_wg = *first_not_one == 0 ? 1 : *first_not_one;
+    int work_per_wg = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
+
+    int c_n, c_c, c_h, c_w;
+    std::tie(c_n, c_c, c_h, c_w) = tie4(cTensorDesc.GetLengths());
+
+    int b_c, b_h, b_w;
+    std::tie(std::ignore, b_c, b_h, b_w) = tie4(bTensorDesc.GetLengths());
+
+    int c_nstride, c_cstride;
+    std::tie(c_nstride, c_cstride, std::ignore, std::ignore) = tie4(cTensorDesc.GetStrides());
+    
+    int b_nstride, b_cstride;
+    std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tie4(bTensorDesc.GetStrides());
+
+    unsigned int bitmap = 0;
+    // update bitmap for first_not_one
+    bitmap |= (1 << (b_lens.size() - d)); 
+
+    // (d-2) is because distance starts from 1 and 0 
+    // also, we need to go past the "first_not_one" as that is already
+    // accounted for in the bitmap
+    CreateBitmapAndGrid(bitmap, b_lens, c_lens, num_wg, work_per_wg, (d-2));
+
+    // Forward Convolution Bias specialization
+    // for fwd-bias, bitmap looks like <0, 1, 0, 0>
+    // Is the no. of work-groups and the work for each wg balanced?
+    auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+    auto incr_wg = 0;
+    if(fwd_conv_bias == 1
+            && num_wg < 640 && work_per_wg > 256) { //640 workgroups of size 256 needed to completely fill the GPU
+        work_per_wg /= c_n;
+        num_wg *= c_n;
+        incr_wg = 1;
+    }
+
+    size_t local_threads = 256;
+
+    // Does the bitmap contain leading ones, i.e. 1,1,1,0 or 1,1,0,0
+    // or 1,1,1,1 or 1,0,0,0
+    bool leading_ones = IsBitmapLeadingOnes(bitmap, 4, (d-2));
+    if(leading_ones && work_per_wg < 64) {
+        local_threads = 64;    
+    }
+
+    std::string parms = " -DFWD_CONV_BIAS=" + std::to_string(fwd_conv_bias) +
+                        " -DINCR_WG=" + std::to_string(incr_wg) +
+                        " -DLEADING_ONES=" + std::to_string(leading_ones) +
+                        " -DMIOPEN_TYPE=" + GetDataType(bTensorDesc.GetType()) +
+                        " -DFIRST_NOT_ONE=" + std::to_string(d-1);
+
+    std::string program_name = "MIOpenTensorKernels.cl";
 	
-	if(destTensorDesc.GetType() != inputTensorDesc1.GetType() && destTensorDesc.GetType() != inputTensorDesc2.GetType()) {
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
+    const std::vector<size_t> vld {local_threads, 1, 1};
+    size_t global_threads = num_wg*local_threads;
+	const std::vector<size_t> vgd {global_threads, 1, 1};
 
-	// Launch kernels using the handle
+    int op = tensorOp;
 
-	std::string program_name; // CL kernel filename
-	std::string kernel_name; // kernel name
-	std::string parms; // kernel parameters
+    if(fwd_conv_bias) {
+        handle.GetKernel("OpTensorFwdBias",
+                "",
+                program_name,
+                "OpTensorFwdBias",
+                vld,
+                vgd,
+                parms) (ATensor, BTensor, b_c, CTensor, c_n, c_nstride, c_cstride, work_per_wg, op);
 
-	//OCLKernel kernel = KernelCache::get(queue, program_name, kernel_name, parms);
-
+    }
+    else {
+        handle.GetKernel("OpTensorGeneric",
+                "",
+                program_name,
+                "OpTensorGeneric",
+                vld,
+                vgd,
+                parms) (ATensor, BTensor, b_c, b_h, b_w, b_nstride, b_cstride, CTensor, c_c, c_h, c_w, c_nstride, c_cstride, bitmap, work_per_wg, op);
+    }
 }
 
 void CopyTensor(Handle &handle, 

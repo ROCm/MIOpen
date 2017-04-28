@@ -5,17 +5,10 @@
 #include <miopen/object.hpp>
 #include <miopen.h>
 #include <miopen/common.hpp>
+#include <miopen/datatype.hpp>
 #include <vector>
 
 namespace miopen {
-
-void AddTensor(Handle&          handle,
-        const void              *alpha,
-        const TensorDescriptor& aTensorDesc,
-        ConstData_t             ATensor,
-        const void              *beta,
-        const TensorDescriptor& cTensorDesc,
-        Data_t                  CTensor);
 
 void TransformTensor(Handle&    handle,
         const void              *alpha,
@@ -28,14 +21,14 @@ void TransformTensor(Handle&    handle,
 void OpTensor(Handle& handle,
         miopenTensorOp_t        tensorOp,
         const void              *alpha1,
-        const TensorDescriptor& inputTensorDesc1,
-        ConstData_t             inputTensor1,
+        const TensorDescriptor& aTensorDesc,
+        ConstData_t             ATensor,
         const void              *alpha2,
-        const TensorDescriptor& inputTensorDesc2,
-        ConstData_t             inputTensor2,
+        const TensorDescriptor& bTensorDesc,
+        ConstData_t             BTensor,
         const void              *beta,
-        const TensorDescriptor& destTensorDesc,
-        Data_t                  destTensor);
+        const TensorDescriptor& cTensorDesc,
+        Data_t                  CTensor);
 
 void CopyTensor(Handle          &handle,
         const TensorDescriptor  &srcDesc,

@@ -80,7 +80,6 @@ MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
 typedef enum {
 	miopenHalf = 0,
 	miopenFloat = 1,
-	miopenDouble = 2,
 } miopenDataType_t;
 
 typedef enum {
@@ -178,23 +177,12 @@ MIOPEN_EXPORT miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
 		const miopenTensorDescriptor_t	 yDesc,
 		void							*y);
 
-MIOPEN_EXPORT miopenStatus_t miopenAddTensor(miopenHandle_t handle,
-		const void						*alpha,
-		const miopenTensorDescriptor_t	aDesc,
-		const void						*A,
-		const void						*beta,
-		const miopenTensorDescriptor_t	 cDesc,
-		void							*C);
-
 /* This function implements the equation C = op ( alpha1[0] * A, alpha2[0] * B
  * ) + beta[0] * C, given tensors A, B, and C and scaling factors alpha1,
  * alpha2, and beta. The op to use is indicated by the descriptor opTensorDesc.
  * Currently-supported ops are listed by the miopenOpTensorDescriptor_t enum.
- *
- * [MD]: Not sure if OpTensorDescriptor_t is required?
  */
 MIOPEN_EXPORT miopenStatus_t miopenOpTensor(miopenHandle_t handle,
-		//const miopenOpTensorDescriptor_t opTensorDesc,
 		miopenTensorOp_t				tensorOp,
 		const void						*alpha1,
 		const miopenTensorDescriptor_t	aDesc,
