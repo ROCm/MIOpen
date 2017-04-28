@@ -165,28 +165,6 @@ miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
 }
 
 extern "C"
-miopenStatus_t miopenAddTensor(miopenHandle_t handle,
-		const void						*alpha,
-		const miopenTensorDescriptor_t	aDesc,
-		const void						*A,
-		const void						*beta,
-		const miopenTensorDescriptor_t	cDesc,
-		void							*C) {
-
-	MIOPEN_LOG_FUNCTION(alpha, aDesc, A, beta, cDesc, C);
-	return miopen::try_([&] {
-		AddTensor(miopen::deref(handle), 
-				alpha,
-				miopen::deref(aDesc),
-				DataCast(A),
-				beta,
-				miopen::deref(cDesc),
-				DataCast(C));
-	});
-
-}
-
-extern "C"
 miopenStatus_t miopenOpTensor(miopenHandle_t handle,
 		miopenTensorOp_t				tensorOp,
 		const void						*alpha1,

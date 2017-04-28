@@ -182,15 +182,19 @@ miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
 
 	MIOPEN_LOG_FUNCTION(alpha, bDesc, b, beta, yDesc, y);
     return miopen::try_([&] {
-		return AddTensor(miopen::deref(handle), 
+
+		return OpTensor(miopen::deref(handle), 
+            miopenOpTensorAdd,
 				alpha,
-				miopen::deref(bDesc),
-				DataCast(b),
+				miopen::deref(yDesc),
+				DataCast(y),
+                alpha,
+                miopen::deref(bDesc),
+                DataCast(b),
 				beta,
 				miopen::deref(yDesc),
 				DataCast(y));
-	});
-
+    });
 }
 
 extern "C"
