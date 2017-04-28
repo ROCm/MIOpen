@@ -150,12 +150,11 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
     };
 }
 
-std::set<std::vector<int>> get_bn_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+std::set<std::vector<int>> get_bn_peract_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     return 
     {
-    //    { pick_batch_size(32, n),  2,    1357,1111}, //Debug config
-    //    { pick_batch_size(32, n),  4,    1024,2048}, //Making this much smaller
+        { pick_batch_size(32, n),  4,    1024,2048}, //Making this much smaller
         { pick_batch_size(100, n), 3,    32,  32  },
         { pick_batch_size(100, n), 32,   8,   8   },
         { pick_batch_size(128, n), 256,  12,  12  },
@@ -190,11 +189,44 @@ std::set<std::vector<int>> get_bn_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FA
         { pick_batch_size(32, n),  64,   28,  28  },
         { pick_batch_size(32, n),  64,   56,  56  },
         { pick_batch_size(32, n),  96,   28,  28  },
-    //    { pick_batch_size(32, n),  192,  256, 512 },
+        { pick_batch_size(32, n),  192,  256, 512 },
         { pick_batch_size(32, n),  256,  28,  28  },
         { pick_batch_size(32, n),  3,    224, 224 },
         { pick_batch_size(32, n),  480,  128, 256 },
         { pick_batch_size(32, n),  528,  64,  128 }
+    };
+}
+
+std::set<std::vector<int>> get_bn_spatial_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+{
+    return 
+    {
+        { pick_batch_size(100, n), 3,    32,  32  },
+        { pick_batch_size(100, n), 32,   8,   8   },
+        { pick_batch_size(128, n), 256,  12,  12  },
+        { pick_batch_size(256, n), 1024, 14,  14  },// n is from the paper @ 256
+        { pick_batch_size(256, n), 128,  28,  28  },
+        { pick_batch_size(256, n), 2048, 7,   7   },
+        { pick_batch_size(256, n), 256,  56,  56  },
+        { pick_batch_size(256, n), 256,  14,  14  },
+        { pick_batch_size(256, n), 512,  28,  28  },
+        { pick_batch_size(256, n), 512,  7,   7   },
+        { pick_batch_size(256, n), 64,   56,  56  },//Batch-norm Inception_v3 after this
+        { pick_batch_size(32, n),  1024, 1,   1   },// n is from the paper @ 32
+        { pick_batch_size(32, n),  128,  14,  14  },
+        { pick_batch_size(32, n),  128,  28,  28  },
+        { pick_batch_size(32, n),  128,  4,   4   },
+        { pick_batch_size(32, n),  128,  7,   7   },
+        { pick_batch_size(32, n),  160,  14,  14  },
+        { pick_batch_size(32, n),  160,  7,   7   },
+        { pick_batch_size(32, n),  192,  14,  14  },
+        { pick_batch_size(32, n),  192,  56,  56  },
+        { pick_batch_size(32, n),  192,  7,   7   },
+        { pick_batch_size(32, n),  224,  14,  14  },
+        { pick_batch_size(32, n),  256,  7,   7   },
+        { pick_batch_size(32, n),  256,  14,  14  },
+        { pick_batch_size(32, n),  32,   28,  28  },
+        { pick_batch_size(32, n),  352,  7,   7   },
     };
 }
 #endif
