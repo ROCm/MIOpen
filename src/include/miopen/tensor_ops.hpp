@@ -18,6 +18,16 @@ void TransformTensor(Handle&    handle,
         const TensorDescriptor& destTensorDesc,
         Data_t                  destTensor);
 
+void ScaleTensor(Handle& handle,
+        const TensorDescriptor&     yDesc,
+		Data_t						y,
+		const void					*alpha);
+
+void SetTensor(Handle& handle,
+        const TensorDescriptor&     yDesc,
+		Data_t						y,
+		const void					*alpha);
+
 void OpTensor(Handle& handle,
         miopenTensorOp_t        tensorOp,
         const void              *alpha1,
