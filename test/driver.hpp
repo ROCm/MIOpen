@@ -4,6 +4,7 @@
 #include "network_data.hpp"
 #include "verify.hpp"
 
+#include <miopen/functional.hpp>
 #include <functional>
 
 template<class Test_Driver_Private_TypeName_>
@@ -136,6 +137,8 @@ struct test_driver
         }
     };
 
+
+
     generate_tensor_t generate_tensor(std::set<std::vector<int>> dims, std::vector<int> single)
     {
         return {[=]() -> std::set<std::vector<int>> {
@@ -151,6 +154,12 @@ struct test_driver
             if (full_set) return f(); 
             else return {single};
         }};
+    }
+
+
+    generate_tensor_t get_bn_input_tensor()
+    {
+        return lazy_generate_tensor([=] { return get_bn_inputs(batch_factor); }, {16, 32, 8, 8});
     }
 
     generate_tensor_t get_input_tensor()
@@ -227,60 +236,96 @@ struct test_driver
         return set_value(true);
     }
 
+    template<class CpuRange, class GpuRange, class Fail>
+    std::pair<CpuRange, GpuRange> verify_check(CpuRange out_cpu, GpuRange out_gpu, Fail fail)
+    {
+        CHECK(miopen::range_distance(out_cpu) == miopen::range_distance(out_gpu));
+            
+        using value_type = miopen::range_value<decltype(out_gpu)>;
+        double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
+        auto error = miopen::rms_range(out_cpu, out_gpu);
+        if (not(error <= threshold))
+        {
+            std::cout << "FAILED: " << error << std::endl;
+            fail(-1);
+            
+            auto mxdiff = miopen::max_diff(out_cpu, out_gpu);
+            std::cout << "Max diff: " << mxdiff << std::endl;
+//            auto max_idx = miopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
+//            std::cout << "Max diff at " << max_idx << ": " << out_cpu[max_idx] << " != " << out_gpu[max_idx] << std::endl;
+
+            if (miopen::range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
+            if (miopen::range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
+            
+            auto idx = miopen::mismatch_idx(out_cpu, out_gpu, miopen::float_equal);
+            std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
+
+            auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
+            if (cpu_nan_idx >= 0) 
+                std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": " << out_cpu[cpu_nan_idx] << std::endl;
+
+            auto gpu_nan_idx = find_idx(out_gpu, miopen::not_finite);
+            if (gpu_nan_idx >= 0) 
+                std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": " << out_gpu[gpu_nan_idx] << std::endl;
+        } 
+        else if (miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu)) 
+        {
+            std::cout << "Warning: data is all zero" << std::endl;
+            fail(-1);
+        }
+        return std::make_pair(std::move(out_cpu), std::move(out_gpu));
+    }
+
+    struct verify_check_t
+    {
+        template<class Self, class CpuRange, class GpuRange, class Fail, class I>
+        auto operator()(Self self, CpuRange out_cpu, GpuRange out_gpu, Fail fail, I i) const MIOPEN_RETURNS
+        (self->verify_check(std::get<I{}>(out_cpu), std::get<I{}>(out_gpu), std::bind(fail, i)))
+    };
+
+    struct verify_check_make_tuples
+    {
+        template<class... Ts>
+        auto operator()(Ts... xs) const MIOPEN_RETURNS
+        (
+            std::make_pair(
+                std::make_tuple(std::move(xs.first)...),
+                std::make_tuple(std::move(xs.second)...)
+            )
+        )
+    };
+
+    template<class... CpuRanges, class... GpuRanges, class Fail>
+    std::pair<std::tuple<CpuRanges...>, std::tuple<GpuRanges...>> verify_check(std::tuple<CpuRanges...> out_cpu, std::tuple<GpuRanges...> out_gpu, Fail fail)
+    {
+        static_assert(sizeof...(CpuRanges) == sizeof...(GpuRanges), "Cpu and gpu mismatch");
+        return miopen::sequence(miopen::by(
+            verify_check_make_tuples{}, 
+            std::bind(verify_check_t{}, this, std::move(out_cpu), std::move(out_gpu), fail, std::placeholders::_1)
+        ))(std::integral_constant<std::size_t, sizeof...(CpuRanges)>{}); 
+    }
+
     template<class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        if (verbose) v.fail(0.0, xs...);
+        if (verbose) v.fail(std::integral_constant<int, -1>{}, xs...);
         try 
         {
-            auto out_cpu = v.cpu(xs...);
-            auto out_gpu = v.gpu(xs...);
-            CHECK(miopen::range_distance(out_cpu) == miopen::range_distance(out_gpu));
-            
-            using value_type = miopen::range_value<decltype(out_gpu)>;
-            double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
-            auto error = miopen::rms_range(out_cpu, out_gpu);
-            if (not(error <= threshold))
+            return verify_check(v.cpu(xs...), v.gpu(xs...), [&](int mode)
             {
-                std::cout << "FAILED: " << error << std::endl;
-                v.fail(error, xs...);
-                
-                auto mxdiff = miopen::max_diff(out_cpu, out_gpu);
-                std::cout << "Max diff: " << mxdiff << std::endl;
-                auto max_idx = miopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
-                std::cout << "Max diff at " << max_idx << ": " << out_cpu[max_idx] << " != " << out_gpu[max_idx] << std::endl;
-
-                if (miopen::range_zero(out_cpu)) std::cout << "Cpu data is all zeros" << std::endl;
-                if (miopen::range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
-                
-                auto idx = miopen::mismatch_idx(out_cpu, out_gpu, miopen::float_equal);
-                std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
-
-                auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
-                if (cpu_nan_idx >= 0) 
-                    std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": " << out_cpu[cpu_nan_idx] << std::endl;
-
-                auto gpu_nan_idx = find_idx(out_gpu, miopen::not_finite);
-                if (gpu_nan_idx >= 0) 
-                    std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": " << out_gpu[gpu_nan_idx] << std::endl;
-            } 
-            else if (miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu)) 
-            {
-                std::cout << "Warning: data is all zero" << std::endl;
-                v.fail(error, xs...);
-            }
-            return std::make_pair(std::move(out_cpu), std::move(out_gpu));
+                v.fail(mode, xs...);
+            });
         } 
         catch(const std::exception& ex) 
         {
             std::cout << "FAILED: " << ex.what() << std::endl;
-            v.fail(0.0, xs...);
+            v.fail(-1, xs...);
             throw;
         } 
         catch(...) 
         {
             std::cout << "FAILED with unknown exception" << std::endl;
-            v.fail(0.0, xs...);
+            v.fail(-1, xs...);
             throw;
         }
     }
