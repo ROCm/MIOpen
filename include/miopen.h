@@ -185,7 +185,7 @@ MIOPEN_EXPORT miopenStatus_t miopenOpTensor(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenSetTensor(miopenHandle_t                 handle,
 		const miopenTensorDescriptor_t yDesc,
 		void                          *y,
-		const void                    *valuePtr );
+		const void                    *alpha );
 
 MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t                 handle,
 		const miopenTensorDescriptor_t yDesc,
