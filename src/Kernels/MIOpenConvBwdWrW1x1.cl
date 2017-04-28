@@ -244,7 +244,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 		{
 
 			barrier(CLK_LOCAL_MEM_FENCE);
-#pragma unroll 4
+
 			for (int p = lcl_id; p < MLO_OUT_LCL_BLK * MLO_MAP_WK_SZ; p += MLO_GRP_SZ)
 			{
 #if (MLO_MAP_WK_SZ & (MLO_MAP_WK_SZ - 1))
@@ -308,7 +308,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-#pragma unroll 4
+
 			for (uint k = kb*MLO_OUT_LCL_BLK; k < (kb + 1)*MLO_OUT_LCL_BLK; ++k)
 			{
 				// processing
@@ -753,11 +753,11 @@ __kernel void MLOpenCvBwdWrWLmap(
 			}
 		}
 
-//#pragma unroll 2
+
 		// processing
 		for (uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
 		{
-//#pragma unroll 4
+
 			for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 			{
 				for (uint i = 0; i < MLO_READ_UNIT; ++i)
