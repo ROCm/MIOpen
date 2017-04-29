@@ -77,6 +77,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 		Kernels/MIOpenConvBwdWrW_LxG_P53.cl
 		Kernels/MIOpenConvBwdWrW_LxG_5x5.cl
 		Kernels/MIOpenConvBwdWrW1x1.cl
+		Kernels/MIOpenConvBwdWrW1x1Mmap.cl
 		Kernels/MIOpenConvFwd_LxL_11.cl
 		Kernels/MIOpenConvFFT.cl
 		Kernels/conv3x3.s
