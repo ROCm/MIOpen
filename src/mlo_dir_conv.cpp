@@ -1635,11 +1635,12 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 {
 
 	int ret = 0;
-
+#if 0 // MD: Calls old 1x1 kernel (MIOpenConvBwdWrW1x1Mmap.cl) that has been optimized by Stas
 	if (_in_width == 14 &&_in_height == 14 && _n_inputs == 192 && _n_outputs == 512)
 	{
 		return(mloConstruct1x1Mmap());
 	}
+#endif
 	size_t localMemSize = 64 * 1024;
 
 	_hw_wave_sz = 64;
