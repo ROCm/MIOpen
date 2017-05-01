@@ -163,6 +163,10 @@ __kernel void MIOpenCvBwdWrWSmap(
 	bool inside_range_input = inside_map_range & ((c_idx + m_id) < MLO_N_INPUTS && m_id < MLO_N_MAPS_PER_GROUP);
 #endif
 
+#ifdef __AMDGCN__
+#pragma unroll 2
+#endif
+
 	for (uint b = 0; b < MLO_BATCH_SZ; ++b, gbl_in_off += MLO_IN_BATCH_STRIDE, gbl_out_off += MLO_OUT_BATCH_STRIDE)
 	{
 
@@ -632,7 +636,6 @@ __kernel void MLOpenCvBwdWrWLmap(
 	{
 		lcl_mem[i] = 0;
 	}
-
 
 	for (uint pix4 = lcl_id; pix4 < MLO_MAP_WK_SZ * MLO_BATCH_SZ; pix4 += MLO_GRP_SZ)
 	{
