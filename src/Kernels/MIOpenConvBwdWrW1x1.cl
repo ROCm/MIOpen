@@ -35,16 +35,16 @@
 #define DBG_OUT_OF_RNGE 0
 
 __attribute__((always_inline))
-int iDiv(int v, int d)
+uint iDiv(uint v, uint d)
 {
-	int r = (int)((float)v *(1.f/ (float)d) + 0.00001f);
+	uint r = (uint)((float)v *(1.f/ (float)d) + 0.00001f);
 	return(r);
 }
 
 __attribute__((always_inline))
-int iMod(int v, int u, int d)
+uint iMod(uint v, uint u, uint d)
 {
-	int r = v - mul24((int)u, (int)d);
+	uint r = v - mul24(u, d);
 	return(r);
 }
 
@@ -215,7 +215,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 				// read arbitrary data but inside the range
 
 #if MLO_N_IN_MAPS_ALIGNED == 0
-					bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
+				bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
 #endif
 				const __global _FLOAT * bot1 = &bot[bot_off];
 
@@ -240,12 +240,12 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 		// read all outputs
 		// assum division by MLO_N_LCL_OUT
-		for (int kb = 0; kb < MLO_N_LCL_OUT; kb++, top_off += MLO_OUT_LCL_BLK * MLO_OUT_CHANNEL_STRIDE)
+		for (uint kb = 0; kb < MLO_N_LCL_OUT; kb++, top_off += MLO_OUT_LCL_BLK * MLO_OUT_CHANNEL_STRIDE)
 		{
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			for (int p = lcl_id; p < MLO_OUT_LCL_BLK * MLO_MAP_WK_SZ; p += MLO_GRP_SZ)
+			for (uint p = lcl_id; p < MLO_OUT_LCL_BLK * MLO_MAP_WK_SZ; p += MLO_GRP_SZ)
 			{
 #if (MLO_MAP_WK_SZ & (MLO_MAP_WK_SZ - 1))
 				uint m = iDiv(p, MLO_MAP_WK_SZ);
@@ -351,7 +351,7 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 	// write out 
 	// inputs are outputs
-	int wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + (c_idx + m_id) * MLO_WEI_CHANNEL_STRIDE;
+	uint wei_df_off = ((ib * MLO_N_OUTPUTS + k_idx) * (int)MLO_WEI_BATCH_STRIDE) + (c_idx + m_id) * MLO_WEI_CHANNEL_STRIDE;
 
 #define MLO_N_FIRST_SPLITS  (1 << (MLO_LG2_REDUC_ROUNDS - 1))
 // transpose data using MLO_REDUC_LOOP_STEP wk-items from each small map 
@@ -664,7 +664,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 			}
 			for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
 			{
-				int bot_off = gbl_in_off + c*MLO_IN_CHANNEL_STRIDE;
+				uint bot_off = gbl_in_off + c*MLO_IN_CHANNEL_STRIDE;
 #if MLO_N_IN_MAPS_ALIGNED == 0
 // reading garbage, will be thrown away on the way output
 				bot_off = (c_idx + c < MLO_N_INPUTS) ? bot_off : 0;
@@ -786,7 +786,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 // FINAL REDUCTION
 	// write out 
 	// inputs are outputs
-	int wei_df_off = k_idx * MLO_WEI_BATCH_STRIDE + c_idx * MLO_WEI_CHANNEL_STRIDE;
+	uint wei_df_off = k_idx * MLO_WEI_BATCH_STRIDE + c_idx * MLO_WEI_CHANNEL_STRIDE;
 
 	// transpose data using MLO_REDUC_LOOP_STEP wk-items from each small map 
 	__private _FLOAT final_sum[(MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP)];
@@ -839,7 +839,7 @@ __kernel void MLOpenCvBwdWrWLmap(
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (lcl_id >= ((uint)MLO_REDUC_LOOP_STEP << (uint)rd) && lcl_id < (MLO_REDUC_LOOP_STEP << (rd + 1)))
+		if (lcl_id >= ((uint)MLO_REDUC_LOOP_STEP << (uint)rd) && lcl_id < ((uint)MLO_REDUC_LOOP_STEP << (uint)(rd + 1)))
 		{
 			for (uint rr = 0; rr < (MLO_ACCUM_SZ / MLO_REDUC_LOOP_STEP); ++rr)
 			{
