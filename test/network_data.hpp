@@ -76,7 +76,11 @@ std::set<std::vector<int>> get_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTO
         { pick_batch_size(64, n),  3,    224, 224 },
         { pick_batch_size(64, n),  512,  14,  14  },
         { pick_batch_size(64, n),  512,  28,  28  },
-        { pick_batch_size(64, n),  64,   112, 112 }
+        { pick_batch_size(64, n),  64,   112, 112 },
+        { pick_batch_size(32, n),  64,   28,  28  },
+        { pick_batch_size(32, n),  64,   14,  14  },
+        { pick_batch_size(32, n),  192,  14,  14  },
+        { pick_batch_size(32, n),  224,  7,   7   }
     };
 }
 
@@ -146,7 +150,21 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
         { pick_batch_size(96, n),  3,    11, 11 },
         { pick_batch_size(96, n),  32,   5,  5  },
         { pick_batch_size(192, n), 64,   5,  5  },
-        { pick_batch_size(96, n),  480,  1,  1  }
+        { pick_batch_size(96, n),  480,  1,  1  },
+        { pick_batch_size(64, n),  64,   3,  3  },
+        { pick_batch_size(96, n),  64,   3,  3  },
+        { pick_batch_size(96, n),  96,   3,  3  },
+        { pick_batch_size(128, n), 96,   3,  3  },
+        { pick_batch_size(128, n), 128,  3,  3  },
+        { pick_batch_size(160, n), 128,  3,  3  },
+        { pick_batch_size(160, n), 160,  3,  3  },
+        { pick_batch_size(192, n), 160,  3,  3  },
+        { pick_batch_size(192, n), 192,  3,  3  },
+        { pick_batch_size(256, n), 192,  3,  3  },
+        { pick_batch_size(320, n), 192,  3,  3  },
+        { pick_batch_size(224, n), 160,  3,  3  },
+        { pick_batch_size(224, n), 224,  3,  3  },
+        { pick_batch_size(224, n), 192,  3,  3  }
     };
 }
 
