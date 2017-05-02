@@ -80,7 +80,14 @@ std::set<std::vector<int>> get_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTO
         { pick_batch_size(32, n),  64,   28,  28  },
         { pick_batch_size(32, n),  64,   14,  14  },
         { pick_batch_size(32, n),  192,  14,  14  },
-        { pick_batch_size(32, n),  224,  7,   7   }
+        { pick_batch_size(32, n),  224,  7,   7   },
+        { pick_batch_size(32, n),  320,  28,  28  },
+        { pick_batch_size(32, n),  576,  14,  14  },
+        { pick_batch_size(32, n),  576,  4,   4   },
+        { pick_batch_size(32, n),  608,  14,  14  },
+        { pick_batch_size(32, n),  608,  4,   4   },
+        { pick_batch_size(32, n),  1056, 7,   7   },
+        { pick_batch_size(32, n),  1024, 7,   7   }
     };
 }
 
@@ -164,7 +171,28 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
         { pick_batch_size(320, n), 192,  3,  3  },
         { pick_batch_size(224, n), 160,  3,  3  },
         { pick_batch_size(224, n), 224,  3,  3  },
-        { pick_batch_size(224, n), 192,  3,  3  }
+        { pick_batch_size(224, n), 192,  3,  3  },
+        { pick_batch_size(32, n),  192,  1,  1  },
+        { pick_batch_size(128, n), 320,  1,  1  },
+        { pick_batch_size(64, n),  320,  1,  1  },
+        { pick_batch_size(224, n), 576,  1,  1  },
+        { pick_batch_size(64, n),  576,  1,  1  },
+        { pick_batch_size(96, n),  576,  1,  1  },
+        { pick_batch_size(128, n), 576,  1,  1  },
+        { pick_batch_size(192, n), 576,  1,  1  },
+        { pick_batch_size(160, n), 576,  1,  1  },
+        { pick_batch_size(96, n),  608,  1,  1  },
+        { pick_batch_size(128, n), 608,  1,  1  },
+        { pick_batch_size(160, n), 608,  1,  1  },
+        { pick_batch_size(128, n), 608,  1,  1  },
+        { pick_batch_size(192, n), 608,  1,  1  },
+        { pick_batch_size(352, n), 1056, 1,  1  },
+        { pick_batch_size(192, n), 1056, 1,  1  },
+        { pick_batch_size(160, n), 1056, 1,  1  },
+        { pick_batch_size(128, n), 1056, 1,  1  },
+        { pick_batch_size(352, n), 1024, 1,  1  },
+        { pick_batch_size(192, n), 1024, 1,  1  },
+        { pick_batch_size(128, n), 1024, 1,  1  }
     };
 }
 
