@@ -152,6 +152,7 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
         { pick_batch_size(64, n),  192,  1,  1  },
         { pick_batch_size(64, n),  24,   5,  5  },
         { pick_batch_size(64, n),  256,  1,  1  },
+        { pick_batch_size(1024, n),256,  1,  1  },
         { pick_batch_size(64, n),  3,    3,  3  },
         { pick_batch_size(64, n),  3,    7,  7  },
         { pick_batch_size(32, n),  3,    7,  7  },
@@ -159,7 +160,9 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
         { pick_batch_size(64, n),  32,   5,  5  },
         { pick_batch_size(64, n),  480,  1,  1  },
         { pick_batch_size(64, n),  512,  1,  1  },
+        { pick_batch_size(2048, n),512,  1,  1  },
         { pick_batch_size(64, n),  64,   1,  1  },
+        { pick_batch_size(256, n), 64,   1,  1  },
         { pick_batch_size(96, n),  192,  1,  1  },
         { pick_batch_size(96, n),  3,    11, 11 },
         { pick_batch_size(96, n),  32,   5,  5  },
@@ -170,6 +173,8 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
         { pick_batch_size(96, n),  96,   3,  3  },
         { pick_batch_size(128, n), 96,   3,  3  },
         { pick_batch_size(128, n), 128,  3,  3  },
+        { pick_batch_size(256, n), 256,  3,  3  },
+        { pick_batch_size(512, n), 512,  3,  3  },
         { pick_batch_size(96, n),  128,  3,  3  },
         { pick_batch_size(160, n), 128,  3,  3  },
         { pick_batch_size(160, n), 160,  3,  3  },
@@ -180,6 +185,7 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
         { pick_batch_size(224, n), 160,  3,  3  },
         { pick_batch_size(224, n), 224,  3,  3  },
         { pick_batch_size(224, n), 192,  3,  3  },
+        { pick_batch_size(512, n), 128,  1,  1  },
         { pick_batch_size(32, n),  192,  1,  1  },
         { pick_batch_size(128, n), 320,  1,  1  },
         { pick_batch_size(64, n),  320,  1,  1  },
@@ -199,8 +205,10 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
         { pick_batch_size(160, n), 1056, 1,  1  },
         { pick_batch_size(128, n), 1056, 1,  1  },
         { pick_batch_size(352, n), 1024, 1,  1  },
+        { pick_batch_size(256, n), 1024, 1,  1  },
         { pick_batch_size(192, n), 1024, 1,  1  },
-        { pick_batch_size(128, n), 1024, 1,  1  }
+        { pick_batch_size(128, n), 1024, 1,  1  },
+        { pick_batch_size(512, n), 2048, 1,  1  }
     };
 }
 
