@@ -5,7 +5,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#else
+#endif
+#ifdef __linux__
 #include <stdlib.h>
 #include <linux/limits.h>
 #endif // !WIN32
