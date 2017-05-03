@@ -143,50 +143,6 @@ miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc
 }
 
 extern "C"
-miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
-		const void						*alpha,
-		const miopenTensorDescriptor_t	xDesc,
-		const void						*x,
-		const void						*beta,
-		const miopenTensorDescriptor_t	yDesc,
-		void							*y) {
-
-	MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
-	return miopen::try_([&] {
-		TransformTensor(miopen::deref(handle), 
-				alpha,
-				miopen::deref(xDesc),
-				DataCast(x),
-				beta,
-				miopen::deref(yDesc),
-				DataCast(y));
-	});
-
-}
-
-extern "C"
-miopenStatus_t miopenAddTensor(miopenHandle_t handle,
-		const void						*alpha,
-		const miopenTensorDescriptor_t	aDesc,
-		const void						*A,
-		const void						*beta,
-		const miopenTensorDescriptor_t	cDesc,
-		void							*C) {
-
-	MIOPEN_LOG_FUNCTION(alpha, aDesc, A, beta, cDesc, C);
-	return miopen::try_([&] {
-		AddTensor(miopen::deref(handle), 
-				alpha,
-				miopen::deref(aDesc),
-				DataCast(A),
-				beta,
-				miopen::deref(cDesc),
-				DataCast(C));
-	});
-
-}
-
-extern "C"
 miopenStatus_t miopenOpTensor(miopenHandle_t handle,
 		miopenTensorOp_t				tensorOp,
 		const void						*alpha1,
@@ -214,22 +170,21 @@ miopenStatus_t miopenOpTensor(miopenHandle_t handle,
 				DataCast(C));
 	});
 
-
 }
 
 extern "C"
 miopenStatus_t miopenSetTensor(miopenHandle_t handle,
 		const miopenTensorDescriptor_t	yDesc,
 		void							*y,
-		const void						*valuePtr) {
+		const void						*alpha) {
 
-	MIOPEN_LOG_FUNCTION(yDesc, y, valuePtr);
+	MIOPEN_LOG_FUNCTION(yDesc, y, alpha);
 	return miopen::try_([&] {
-		miopen::deref(yDesc).SetTensor(miopen::deref(handle),
+		SetTensor(miopen::deref(handle),
+                miopen::deref(yDesc),
 				DataCast(y),
-				valuePtr);
+				alpha);
 	});
-	
 
 }
 
@@ -241,7 +196,8 @@ miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
 
 	MIOPEN_LOG_FUNCTION(yDesc, y, alpha);
 	return miopen::try_([&] {
-		miopen::deref(yDesc).ScaleTensor(miopen::deref(handle),
+		ScaleTensor(miopen::deref(handle),
+                miopen::deref(yDesc),
 				DataCast(y),
 				alpha);
 	});

@@ -178,18 +178,6 @@ struct conv_forward : output_tensor_fixture
     {
         STATUS(miopenEnableProfiling(handle, Profile));
         int alpha = 1, beta = 1;
-        STATUS(miopenTransformTensor(handle,
-                &alpha,
-                inputTensor,
-                NULL,
-                &beta,
-                convFilter,
-                NULL));
-
-        // int value = 10;
-        // STATUS(miopenSetTensor(handle, inputTensor, NULL, &value));
-
-        // STATUS(miopenScaleTensor(handle, inputTensor, NULL, &alpha));
 
         // Setup OpenCL buffers
 
@@ -204,7 +192,7 @@ struct conv_forward : output_tensor_fixture
 		size_t sz_out = n*c*h*w;
 
 		size_t sz_fwd_workspace;
-		STATUS(miopenConvolutionForwardGetWorkSpaceSize(handle, convFilter, inputTensor, outputTensor, convDesc, &sz_fwd_workspace));
+		STATUS(miopenConvolutionForwardGetWorkSpaceSize(handle, convFilter, inputTensor, convDesc, outputTensor, &sz_fwd_workspace));
 
         std::vector<float> in(sz_in);
         std::vector<float> wei(sz_wei);
@@ -253,6 +241,10 @@ struct conv_forward : output_tensor_fixture
         EXPECT(hipMemcpy(fwd_workspace_dev, fwd_workspace.data(), sz_fwd_workspace, hipMemcpyHostToDevice) == hipSuccess);
 
 #endif
+        int value = 10;
+        STATUS(miopenSetTensor(handle, inputTensor, in_dev, &value));
+
+        STATUS(miopenScaleTensor(handle, inputTensor, in_dev, &alpha));
 
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;

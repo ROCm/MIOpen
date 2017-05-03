@@ -203,9 +203,9 @@ static inline void loadData(uint lcl_id, uint lcl_p_stride,
 
 static inline void Conv(uint o_map_base,
 				uint in_stg_off,
-				 _FLOAT * pvt_in_stage, __local _FLOAT * __restrict lcl_indata,
-				 _FLOAT * pvt_wei_stage, __local _FLOAT * __restrict lcl_wei,
-				 _FLOAT * pvt_accum
+				 _FLOAT * __restrict pvt_in_stage, __local _FLOAT * __restrict lcl_indata,
+				 _FLOAT * __restrict pvt_wei_stage, __local _FLOAT * __restrict lcl_wei,
+				 _FLOAT * __restrict pvt_accum
 				 )
 {
 // convolution
@@ -228,7 +228,11 @@ static inline void Conv(uint o_map_base,
 
 		// over filter rows
 #ifdef __AMDGCN__
+#if (MLO_FILTER_SZ > 9) || (MLO_IN_CHANNEL_STRIDE <= 196) || (MLO_IN_CHANNEL_STRIDE > 784 && MLO_DIR_FORWARD != 1)
 			#pragma unroll
+#else
+			#pragma unroll 2
+#endif
 #endif
 			for(uint k = 0; k < MLO_FILTER_SIZE1; ++k, in_stg_off2+=MLO_IN_LCL_WIDTH
 			)
@@ -477,6 +481,11 @@ __kernel void MIOpenConvUniC(
 
 		}
 #else
+#ifdef __AMDGCN__
+#if (MLO_FILTER_SZ <= 9) && (MLO_IN_CHANNEL_STRIDE <= 784)
+		#pragma unroll
+#endif
+#endif
 		for(uint i = wave_id; i < MLO_N_IN_TILES_TOTAL;  i += MLO_N_PROC_WAVES)
 		{
 		//(MLO_N_STACKS * MLO_N_OUT_TILES_PERSTACK)

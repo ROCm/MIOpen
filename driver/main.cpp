@@ -7,6 +7,7 @@
 #include "activ_driver.hpp"
 #include "softmax_driver.hpp"
 #include "gemm_driver.hpp"
+#include "bn_driver.hpp"
 
 int main(int argc, char *argv[]) {
 
@@ -30,6 +31,9 @@ int main(int argc, char *argv[]) {
 	}
 	else if (base_arg == "gemm") {
 		drv = new GemmDriver<float>();
+	}
+	else if (base_arg == "bnorm") {
+		drv = new BatchNormDriver<float>();
 	}
 	else {
 		printf("Incorrect BaseArg\n");
