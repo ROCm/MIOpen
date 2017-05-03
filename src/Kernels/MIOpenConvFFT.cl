@@ -2088,7 +2088,7 @@ __kernel void MIOpenConvFFT_cgemm(
     localReadB += SPLITU*(MT1J/VECTOR_WIDTH+PAD);
     MAC_2x2
   }
-  float type_mac_tmp;
+
 
   /******************************************/
   /* SplitU Reduction                       */
