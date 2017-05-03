@@ -2076,7 +2076,7 @@ __kernel void MIOpenConvFFT_cgemm(
   if (globalC0I < size0I) {  if (globalC1J + 3*CPS < size1J) {  TYPE_MAC_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I, (unsigned long) globalC1J + 3*CPS, (unsigned long) globalCK) ], rC[3])} }
 
 }
-;
+
 /* Kernel Parameters
   ProblemType: Cijk_Alik_Bljk_CB
   LoopDoWhile: False
