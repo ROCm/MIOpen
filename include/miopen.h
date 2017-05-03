@@ -543,8 +543,8 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
 //BATCH NORMALIZATION APIs
 
 
-MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_t & derivedBnDesc,
-                                        const miopenTensorDescriptor_t & xDesc,
+MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_t derivedBnDesc,
+                                        const miopenTensorDescriptor_t xDesc,
                                         miopenBatchNormMode_t bn_mode);
 
 

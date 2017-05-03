@@ -8,21 +8,11 @@
 
 
 extern "C"
-miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_t& derivedBnDesc, const miopenTensorDescriptor_t& xDesc, miopenBatchNormMode_t bn_mode){
+miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_t derivedBnDesc, const miopenTensorDescriptor_t xDesc, miopenBatchNormMode_t bn_mode){
 
-    MIOPEN_LOG_FUNCTION(xDesc, bn_mode);
+    MIOPEN_LOG_FUNCTION(derivedBnDesc, xDesc, bn_mode);
     return miopen::try_([&] {    
-        std::vector<int> lengths = miopen::deref(xDesc).GetLengths();
-        std::vector<int> newlens(lengths.size());
-        newlens[2] = lengths[2];
-        if(bn_mode==miopenBNSpatial){
-            newlens[0] = newlens[1] = newlens[3] = 1;//TODO: support 5D
-        }else{
-            newlens[0] = 1;
-            newlens[1] = lengths[1];
-            newlens[3] = lengths[3];;//TODO: support 5D          
-        }
-        miopen::deref(derivedBnDesc) = miopen::TensorDescriptor(miopen::deref(xDesc).GetType(),newlens.data(), miopen::deref(xDesc).GetSize());
+        DeriveBNTensorDescriptor(miopen::deref(derivedBnDesc),miopen::deref(xDesc),bn_mode);
     });
 }
     

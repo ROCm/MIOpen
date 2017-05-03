@@ -39,6 +39,7 @@ set( MIOpen_Source
 	activ_api.cpp
 	handle_api.cpp
 	softmax_api.cpp
+        batch_norm.cpp
 	batch_norm_api.cpp
 	include/miopen/batch_norm.hpp
 	include/miopen/common.hpp
