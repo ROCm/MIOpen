@@ -33,13 +33,9 @@ template<class T>
 struct verify_forward_train_bn_spatial
 {
     
-
-
     const tensor<T> input;
     const tensor<T> scale; 
     const tensor<T> shift;
-    miopenTensorDescriptor_t ctensorIn;      
-    miopenTensorDescriptor_t derivedTensorIn;      
     
     std::tuple<tensor<T>,tensor<T>,tensor<T>,tensor<T>,tensor<T>> cpu() {
 #if (MIO_BN_TIME_EVERYTHING==1)
@@ -54,8 +50,6 @@ struct verify_forward_train_bn_spatial
         int rs_n_batch, rs_channels, rs_height, rs_width;
         auto  derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
-        
-        
         
         std::tie(rs_n_batch, rs_channels, rs_height, rs_width) = miopen::tie4(derivedBnDesc.GetLengths());
         
