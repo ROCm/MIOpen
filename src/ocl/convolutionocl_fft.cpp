@@ -5,6 +5,72 @@
 
 namespace miopen {
 
+static void cgemm_grid(size_t *global_work_size, size_t *local_work_size, int cgemm_choice, const int N, const int out_c, const int out_n)
+{
+	const unsigned int threadTile1[2] = { 4, 4 };
+	const unsigned int groupSize1[2] = { 16, 16 };
+
+	const unsigned int threadTile2[2] = { 4, 4 };
+	const unsigned int groupSize2[2] = { 4, 4 };
+
+	const unsigned int threadTile0[2] = { 2, 2 };
+	const unsigned int groupSize0[2] = { 4, 4 };
+
+	unsigned int threadTile[2];
+	unsigned int groupSize[2];
+
+	// grid for cgemm
+	if(cgemm_choice == 1)
+	{
+		threadTile[0] = threadTile1[0];
+		threadTile[1] = threadTile1[1];
+
+		groupSize[0] = groupSize1[0];
+		groupSize[1] = groupSize1[1];
+
+		local_work_size[0] = 16;
+		local_work_size[1] = 16;
+
+	}
+	else if(cgemm_choice == 2)
+	{
+		threadTile[0] = threadTile2[0];
+		threadTile[1] = threadTile2[1];
+
+		groupSize[0] = groupSize2[0];
+		groupSize[1] = groupSize2[1];
+
+		local_work_size[0] = 64;
+		local_work_size[1] = 1;
+	}
+	else
+	{
+		threadTile[0] = threadTile0[0];
+		threadTile[1] = threadTile0[1];
+
+		groupSize[0] = groupSize0[0];
+		groupSize[1] = groupSize0[1];
+
+		local_work_size[0] = 64;
+		local_work_size[1] = 1;
+	}	
+
+	global_work_size[2] = 1;
+	global_work_size[2] *= N;
+
+	unsigned int sizeOfC0 = out_c;
+	unsigned int sizeOfC1 = out_n;
+	auto macroTile0 = static_cast<unsigned int>(groupSize[0] * threadTile[0]);
+	auto macroTile1 = static_cast<unsigned int>(groupSize[1] * threadTile[1]);
+	unsigned int totalWorkGroups0 = sizeOfC0 / macroTile0;
+	unsigned int totalWorkGroups1 = sizeOfC1 / macroTile1;
+	// b/c single kernel, add extra work-group here if edge needed
+	if (totalWorkGroups0*macroTile0 < sizeOfC0) { totalWorkGroups0++; }
+	if (totalWorkGroups1*macroTile1 < sizeOfC1) { totalWorkGroups1++; }
+	global_work_size[0] = totalWorkGroups0*local_work_size[0];
+	global_work_size[1] = totalWorkGroups1*local_work_size[1];
+}
+
 static std::string make_config_prefix(int in_h, int in_w,int in_n, int in_c, int out_c)
 {
 	std::string config_prefix = "FFT_x";
@@ -74,7 +140,6 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	int in_tranpose_choice = 0;
 	int wt_tranpose_choice = 0;
 	int ot_tranpose_choice = 0;
-	int cgemm_choice = 0;
 
 	if((in_n*in_c >= 64) && ((in_n*in_c)%32 == 0)) in_tranpose_choice = 1;
 	if((out_c*in_c >= 64) && ((out_c*in_c)%32 == 0)) wt_tranpose_choice = 1;
@@ -94,61 +159,20 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	 local_work_size[5][0] = 256;
 	global_work_size[5][0] = (N / ot_tranpose_bwidth) * (out_n*out_c / ot_tranpose_bwidth) * local_work_size[5][0];
 
+	// cgemm kernel options
+	int cgemm_choice = 0;
 
-	if( (in_tranpose_choice == 1) && (wt_tranpose_choice == 1) && (ot_tranpose_choice == 1) )
+	if( (in_h == 28) && (in_w == 28) )
+		cgemm_choice = 2;
+	else if( (in_h == 27) && (in_w == 27) )
 		cgemm_choice = 1;
 	
 	if( (in_n < 16) || (in_c < 16) || (out_c < 16) )
 		cgemm_choice = 0;
 
-	// grid for cgemm
-	if(cgemm_choice == 1)
-	{
-		/* grid sizes */
-		const unsigned int threadTile[2] = { 4, 4 };
 
-		local_work_size[4][0] = 16;
-		local_work_size[4][1] = 16;
+	cgemm_grid(global_work_size[4], local_work_size[4], cgemm_choice, N, out_c, out_n);
 
-		global_work_size[4][2] = 1;
-		global_work_size[4][2] *= N;
-
-		unsigned int sizeOfC0 = out_c;
-		unsigned int sizeOfC1 = out_n;
-		auto macroTile0 = static_cast<unsigned int>(local_work_size[4][0] * threadTile[0]);
-		auto macroTile1 = static_cast<unsigned int>(local_work_size[4][1] * threadTile[1]);
-		unsigned int totalWorkGroups0 = sizeOfC0 / macroTile0;
-		unsigned int totalWorkGroups1 = sizeOfC1 / macroTile1;
-		// b/c single kernel, add extra work-group here if edge needed
-		if (totalWorkGroups0*macroTile0 < sizeOfC0) { totalWorkGroups0++; }
-		if (totalWorkGroups1*macroTile1 < sizeOfC1) { totalWorkGroups1++; }
-		global_work_size[4][0] = totalWorkGroups0*local_work_size[4][0];
-		global_work_size[4][1] = totalWorkGroups1*local_work_size[4][1];
-	}
-	else
-	{
-		const unsigned int threadTile[2] = { 2, 2 };
-		const unsigned int groupSize[2] = { 4, 4 };
-
-		local_work_size[4][0] = 64;
-		local_work_size[4][1] = 1;
-
-		global_work_size[4][2] = 1;
-		global_work_size[4][2] *= N;
-
-		unsigned int sizeOfC0 = out_c;
-		unsigned int sizeOfC1 = out_n;
-		unsigned int macroTile0 = static_cast<unsigned int>(groupSize[0] * threadTile[0]);
-		unsigned int macroTile1 = static_cast<unsigned int>(groupSize[1] * threadTile[1]);
-		unsigned int totalWorkGroups0 = sizeOfC0 / macroTile0;
-		unsigned int totalWorkGroups1 = sizeOfC1 / macroTile1;
-		// b/c single kernel, add extra work-group here if edge needed
-		if (totalWorkGroups0*macroTile0 < sizeOfC0) { totalWorkGroups0++; }
-		if (totalWorkGroups1*macroTile1 < sizeOfC1) { totalWorkGroups1++; }
-		global_work_size[4][0] = totalWorkGroups0*local_work_size[4][0];
-		global_work_size[4][1] = totalWorkGroups1*local_work_size[4][1];
-	}
-	
 
 	std::string parms;
 

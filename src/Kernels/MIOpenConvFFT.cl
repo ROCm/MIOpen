@@ -1660,6 +1660,467 @@ __kernel void MIOpenConvFFT_cgemm(
 
 
 
+#elif defined(CFF_CGEMM_CHOICE_2)
+
+
+
+
+/* Cijk_Alik_Bljk_CB_MT016x016x16_K1_NT64_SU04_TTNE16_src */
+
+/****************************************/
+/* Preprocessor Definitions             */
+/****************************************/
+
+/* tile parameters */
+#define NUM_THREADS  64
+#define SG0I 4
+#define SG1J 4
+#define TT0I 4
+#define TT1J 4
+#define MT0I (SG0I*TT0I)
+#define MT1J (SG1J*TT1J)
+
+/* DepthU parameters*/
+#define CPS (NUM_THREADS / MT0I * VECTOR_WIDTH)
+#define SPLITU 4
+#define UNROLL 4
+#define DEPTHU (SPLITU*UNROLL)
+
+/* other */
+#define PAD 0
+#define WORK_GROUP_MAPPING 1
+#define VECTOR_WIDTH 1
+
+/* num loads parallel and perpendicular to coalesced */
+#define NLCA 1
+#define NLCB 1
+#define NLPA 4
+#define NLPB 4
+
+/* load sizes parallel and perpendicular to coalesced */
+#define LSCA (DEPTHU/NLCA)
+#define LSPA (MT0I/NLPA)
+#define LSCB (DEPTHU/NLCB)
+#define LSPB (MT1J/NLPB)
+#define LVCA (LSCA/VECTOR_WIDTH)
+#define LVCB (LSCB/VECTOR_WIDTH)
+#define LVPA (LSPA/VECTOR_WIDTH)
+#define LVPB (LSPB/VECTOR_WIDTH)
+#define LDS_OFFSET_B 256
+#define LDS_NUM_ELEMENTS 1024
+
+/* global memory indices */
+#define GLOBAL_C(IDX0I, IDX1J, IDXK) (( (IDX0I)*strideC0I + (IDX1J)*strideC1J + (IDXK)*strideCK ))
+#define GLOBAL_OFFSET_A(IDXL, IDX0I, IDXK) (( (IDXL)*strideAL + (IDX0I)*strideA0I + (IDXK)*strideAK ))
+#define GLOBAL_OFFSET_B(IDXL, IDX1J, IDXK) (( (IDXL)*strideBL + (IDX1J)*strideB1J + (IDXK)*strideBK ))
+
+/* data types */
+#define DATA_TYPE float2
+#define VECTOR_TYPE float2
+#define MAD(A,B,DST) mad(A,B,DST)
+
+/* MAC's */
+#define TYPE_MAC(MULA,MULB,DST) \
+  DST.s0 = MAD(  MULA.s0, MULB.s0, DST.s0 ); \
+  DST.s0 = MAD( -MULA.s1, MULB.s1, DST.s0 ); \
+  DST.s1 = MAD(  MULA.s0, MULB.s1, DST.s1 ); \
+  DST.s1 = MAD(  MULA.s1, MULB.s0, DST.s1 );
+#define TYPE_MAC_WRITE( DST, REG ) \
+  /* (1) */ \
+  /* (2) */ \
+  /* (3) */ \
+  DST = REG;
+
+/* 4x4 micro-tile */
+#define SUMMATION_UNROLL \
+  rA[0] = ldsReadIterA[0*SG0I]; \
+  rA[1] = ldsReadIterA[1*SG0I]; \
+  rA[2] = ldsReadIterA[2*SG0I]; \
+  rA[3] = ldsReadIterA[3*SG0I]; \
+  rB[0] = ldsReadIterB[0*SG1J]; \
+  rB[1] = ldsReadIterB[1*SG1J]; \
+  rB[2] = ldsReadIterB[2*SG1J]; \
+  rB[3] = ldsReadIterB[3*SG1J]; \
+  ldsReadIterA += SPLITU*(MT0I/VECTOR_WIDTH+PAD);\
+  ldsReadIterB += SPLITU*(MT1J/VECTOR_WIDTH+PAD);\
+  TYPE_MAC(rA[0],rB[0],rC[(0+0*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[1],rB[0],rC[(1+0*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[2],rB[0],rC[(2+0*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[3],rB[0],rC[(3+0*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[0],rB[1],rC[(0+1*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[1],rB[1],rC[(1+1*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[2],rB[1],rC[(2+1*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[3],rB[1],rC[(3+1*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[0],rB[2],rC[(0+2*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[1],rB[2],rC[(1+2*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[2],rB[2],rC[(2+2*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[3],rB[2],rC[(3+2*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[0],rB[3],rC[(0+3*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[1],rB[3],rC[(1+3*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[2],rB[3],rC[(2+3*TT0I/VECTOR_WIDTH)]); \
+  TYPE_MAC(rA[3],rB[3],rC[(3+3*TT0I/VECTOR_WIDTH)]); \
+  mem_fence(CLK_LOCAL_MEM_FENCE);
+
+/* hard-coded initial strides */
+#define strideC0I 1
+#define strideAL 1
+#define strideBL 1
+
+/****************************************/
+/* Begin Kernel                         */
+/****************************************/
+__attribute__((reqd_work_group_size(NUM_THREADS,1,1)))
+__kernel void MIOpenConvFFT_cgemm(
+  __global float2 *gb,
+  unsigned int const offsetC,
+  unsigned int const offsetA,
+  unsigned int const offsetB,
+  unsigned int const strideC1J,
+  unsigned int const strideCK,
+  unsigned int const strideA0I,
+  unsigned int const strideAK,
+  unsigned int const strideB1J,
+  unsigned int const strideBK,
+  unsigned int const size0I,
+  unsigned int const size1J,
+  unsigned int const sizeK,
+  unsigned int const sizeL ) {
+
+  /* apply offsets */
+  __global float2       * C = gb + offsetC;
+  __global float2 const * A = gb + offsetA;
+  __global float2 const * B = gb + offsetB;
+
+  /***************************************/
+  /* Allocate Resources                  */
+  /***************************************/
+
+  /* registers for MAC's */
+  VECTOR_TYPE rC[TT0I*TT1J/VECTOR_WIDTH] = {0};
+  VECTOR_TYPE rA[TT0I/VECTOR_WIDTH];
+  VECTOR_TYPE rB[TT1J/VECTOR_WIDTH];
+
+  /* registers for global->local */
+  VECTOR_TYPE a_0_0, a_0_1, a_0_2, a_0_3;
+  VECTOR_TYPE b_0_0, b_0_1, b_0_2, b_0_3;
+
+  /* allocate LDS */
+  __local DATA_TYPE lds[LDS_NUM_ELEMENTS];
+
+  /***************************************/
+  /* Global Read Addresses               */
+  /***************************************/
+
+  /* global read: work-group mapping */
+  unsigned int wg0I = get_group_id(0);
+  unsigned int wg1J = get_group_id(1);
+
+  /* global read: thread assignments */
+  unsigned int serial = get_local_id(0);
+  unsigned int sgId = serial / (SG0I*SG1J);
+  unsigned int globalReadOffsetA0I = (serial%LSPA) + (wg0I*MT0I);
+  unsigned int globalReadOffsetB1J = (serial%LSPB) + (wg1J*MT1J);
+  unsigned int globalReadOffsetAL = (serial/LSPA)*VECTOR_WIDTH;
+  unsigned int globalReadOffsetBL = (serial/LSPB)*VECTOR_WIDTH;
+
+  /* global read: other free indices */
+  unsigned int wgK = ( get_group_id(2) ) % sizeK;
+
+  /* global read: dimension offsets a */
+  unsigned int globalReadOffsetA0I_0 = globalReadOffsetA0I + 0*LSPA;
+  unsigned int globalReadOffsetA0I_1 = globalReadOffsetA0I + 1*LSPA;
+  unsigned int globalReadOffsetA0I_2 = globalReadOffsetA0I + 2*LSPA;
+  unsigned int globalReadOffsetA0I_3 = globalReadOffsetA0I + 3*LSPA;
+  unsigned int globalReadOffsetAL_0 = globalReadOffsetAL + 0*LSCA;
+
+  /* global read: dimension offsets b */
+  unsigned int globalReadOffsetB1J_0 = globalReadOffsetB1J + 0*LSPB;
+  unsigned int globalReadOffsetB1J_1 = globalReadOffsetB1J + 1*LSPB;
+  unsigned int globalReadOffsetB1J_2 = globalReadOffsetB1J + 2*LSPB;
+  unsigned int globalReadOffsetB1J_3 = globalReadOffsetB1J + 3*LSPB;
+  unsigned int globalReadOffsetBL_0 = globalReadOffsetBL + 0*LSCB;
+
+  /* don't read out-of-bounds global a */
+  globalReadOffsetA0I_0 = (globalReadOffsetA0I_0 > (size0I-1)) ? (size0I-1) : globalReadOffsetA0I_0;
+  globalReadOffsetA0I_1 = (globalReadOffsetA0I_1 > (size0I-1)) ? (size0I-1) : globalReadOffsetA0I_1;
+  globalReadOffsetA0I_2 = (globalReadOffsetA0I_2 > (size0I-1)) ? (size0I-1) : globalReadOffsetA0I_2;
+  globalReadOffsetA0I_3 = (globalReadOffsetA0I_3 > (size0I-1)) ? (size0I-1) : globalReadOffsetA0I_3;
+
+  /* don't read out-of-bounds global b */
+  globalReadOffsetB1J_0 = (globalReadOffsetB1J_0 > (size1J-1)) ? (size1J-1) : globalReadOffsetB1J_0;
+  globalReadOffsetB1J_1 = (globalReadOffsetB1J_1 > (size1J-1)) ? (size1J-1) : globalReadOffsetB1J_1;
+  globalReadOffsetB1J_2 = (globalReadOffsetB1J_2 > (size1J-1)) ? (size1J-1) : globalReadOffsetB1J_2;
+  globalReadOffsetB1J_3 = (globalReadOffsetB1J_3 > (size1J-1)) ? (size1J-1) : globalReadOffsetB1J_3;
+
+  /* global read: final offsets a */
+  unsigned long globalReadOffsetA_0_0 = GLOBAL_OFFSET_A( globalReadOffsetAL_0, globalReadOffsetA0I_0, wgK );
+  unsigned long globalReadOffsetA_0_1 = GLOBAL_OFFSET_A( globalReadOffsetAL_0, globalReadOffsetA0I_1, wgK );
+  unsigned long globalReadOffsetA_0_2 = GLOBAL_OFFSET_A( globalReadOffsetAL_0, globalReadOffsetA0I_2, wgK );
+  unsigned long globalReadOffsetA_0_3 = GLOBAL_OFFSET_A( globalReadOffsetAL_0, globalReadOffsetA0I_3, wgK );
+
+  /* global read: final offsets b */
+  unsigned long globalReadOffsetB_0_0 = GLOBAL_OFFSET_B( globalReadOffsetBL_0, globalReadOffsetB1J_0, wgK );
+  unsigned long globalReadOffsetB_0_1 = GLOBAL_OFFSET_B( globalReadOffsetBL_0, globalReadOffsetB1J_1, wgK );
+  unsigned long globalReadOffsetB_0_2 = GLOBAL_OFFSET_B( globalReadOffsetBL_0, globalReadOffsetB1J_2, wgK );
+  unsigned long globalReadOffsetB_0_3 = GLOBAL_OFFSET_B( globalReadOffsetBL_0, globalReadOffsetB1J_3, wgK );
+
+  /* global read: addresses a */
+  __global VECTOR_TYPE const *globalReadA_0_0 = (__global VECTOR_TYPE const *)(A + globalReadOffsetA_0_0);
+  __global VECTOR_TYPE const *globalReadA_0_1 = (__global VECTOR_TYPE const *)(A + globalReadOffsetA_0_1);
+  __global VECTOR_TYPE const *globalReadA_0_2 = (__global VECTOR_TYPE const *)(A + globalReadOffsetA_0_2);
+  __global VECTOR_TYPE const *globalReadA_0_3 = (__global VECTOR_TYPE const *)(A + globalReadOffsetA_0_3);
+
+  /* global read: addresses b */
+  __global VECTOR_TYPE const *globalReadB_0_0 = (__global VECTOR_TYPE const *)(B + globalReadOffsetB_0_0);
+  __global VECTOR_TYPE const *globalReadB_0_1 = (__global VECTOR_TYPE const *)(B + globalReadOffsetB_0_1);
+  __global VECTOR_TYPE const *globalReadB_0_2 = (__global VECTOR_TYPE const *)(B + globalReadOffsetB_0_2);
+  __global VECTOR_TYPE const *globalReadB_0_3 = (__global VECTOR_TYPE const *)(B + globalReadOffsetB_0_3);
+
+  /***************************************/
+  /* LDS Write Addresses                 */
+  /***************************************/
+  unsigned int lwA0I = (serial%LSPA);
+  unsigned int lwB1J = (serial%LSPB);
+  unsigned int lwAL = (serial/LSPA)*VECTOR_WIDTH;
+  unsigned int lwBL = (serial/LSPB)*VECTOR_WIDTH;
+
+  /* lds write initial offsets */
+  unsigned int ldsWriteOffsetInitialA = lwA0I + lwAL*(MT0I+PAD);
+  unsigned int ldsWriteOffsetInitialB = lwB1J + lwBL*(MT1J+PAD) + LDS_OFFSET_B;
+
+  /* lds write offsets */
+  unsigned int ldsWriteOffsetA_0_0 = ldsWriteOffsetInitialA + (0*LSCA)*(MT0I+PAD) + (0*LSPA);
+  unsigned int ldsWriteOffsetA_0_1 = ldsWriteOffsetInitialA + (0*LSCA)*(MT0I+PAD) + (1*LSPA);
+  unsigned int ldsWriteOffsetA_0_2 = ldsWriteOffsetInitialA + (0*LSCA)*(MT0I+PAD) + (2*LSPA);
+  unsigned int ldsWriteOffsetA_0_3 = ldsWriteOffsetInitialA + (0*LSCA)*(MT0I+PAD) + (3*LSPA);
+  unsigned int ldsWriteOffsetB_0_0 = ldsWriteOffsetInitialB + (0*LSCB)*(MT1J+PAD) + (0*LSPB);
+  unsigned int ldsWriteOffsetB_0_1 = ldsWriteOffsetInitialB + (0*LSCB)*(MT1J+PAD) + (1*LSPB);
+  unsigned int ldsWriteOffsetB_0_2 = ldsWriteOffsetInitialB + (0*LSCB)*(MT1J+PAD) + (2*LSPB);
+  unsigned int ldsWriteOffsetB_0_3 = ldsWriteOffsetInitialB + (0*LSCB)*(MT1J+PAD) + (3*LSPB);
+
+  /* lds write addresses */
+  __local VECTOR_TYPE *ldsWriteA_0_0 = (__local VECTOR_TYPE *)(lds + ldsWriteOffsetA_0_0);
+  __local VECTOR_TYPE *ldsWriteA_0_1 = (__local VECTOR_TYPE *)(lds + ldsWriteOffsetA_0_1);
+  __local VECTOR_TYPE *ldsWriteA_0_2 = (__local VECTOR_TYPE *)(lds + ldsWriteOffsetA_0_2);
+  __local VECTOR_TYPE *ldsWriteA_0_3 = (__local VECTOR_TYPE *)(lds + ldsWriteOffsetA_0_3);
+  __local VECTOR_TYPE *ldsWriteB_0_0 = (__local VECTOR_TYPE *)(lds + ldsWriteOffsetB_0_0);
+  __local VECTOR_TYPE *ldsWriteB_0_1 = (__local VECTOR_TYPE *)(lds + ldsWriteOffsetB_0_1);
+  __local VECTOR_TYPE *ldsWriteB_0_2 = (__local VECTOR_TYPE *)(lds + ldsWriteOffsetB_0_2);
+  __local VECTOR_TYPE *ldsWriteB_0_3 = (__local VECTOR_TYPE *)(lds + ldsWriteOffsetB_0_3);
+
+  /***************************************/
+  /* LDS Read Addresses                  */
+  /***************************************/
+  unsigned int lr0I = (serial % SG0I);
+  unsigned int lr1J = (serial / SG0I) % SG1J;
+  __local VECTOR_TYPE *ldsReadA = (__local VECTOR_TYPE *)(lds + lr0I*VECTOR_WIDTH + sgId*(MT0I+PAD));
+  __local VECTOR_TYPE *ldsReadB = (__local VECTOR_TYPE *)(lds + lr1J*VECTOR_WIDTH + sgId*(MT1J+PAD) + LDS_OFFSET_B);
+  __local VECTOR_TYPE *ldsReadIterA = ldsReadA;
+  __local VECTOR_TYPE *ldsReadIterB = ldsReadB;
+
+
+  /****************************************/
+  /* summation loops(s)                   */
+  /****************************************/
+  unsigned int sumIterL = sizeL / DEPTHU;
+  while (sumIterL-- > 0) {
+
+    /* read global */
+    a_0_0 = *globalReadA_0_0;
+    a_0_1 = *globalReadA_0_1;
+    a_0_2 = *globalReadA_0_2;
+    a_0_3 = *globalReadA_0_3;
+    b_0_0 = *globalReadB_0_0;
+    b_0_1 = *globalReadB_0_1;
+    b_0_2 = *globalReadB_0_2;
+    b_0_3 = *globalReadB_0_3;
+
+    /* lds write */
+    barrier(CLK_LOCAL_MEM_FENCE);
+    *ldsWriteA_0_0 = a_0_0;
+    *ldsWriteA_0_1 = a_0_1;
+    *ldsWriteA_0_2 = a_0_2;
+    *ldsWriteA_0_3 = a_0_3;
+    *ldsWriteB_0_0 = b_0_0;
+    *ldsWriteB_0_1 = b_0_1;
+    *ldsWriteB_0_2 = b_0_2;
+    *ldsWriteB_0_3 = b_0_3;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    /* re-init lds read addresses */
+    ldsReadIterA = ldsReadA;
+    ldsReadIterB = ldsReadB;
+
+    /* do macs */
+    SUMMATION_UNROLL
+    SUMMATION_UNROLL
+    SUMMATION_UNROLL
+    SUMMATION_UNROLL
+
+    /* increment global read addresses */
+    globalReadA_0_0 = (__global VECTOR_TYPE *)( ((__global DATA_TYPE *)globalReadA_0_0) + ((unsigned long) strideAL)*DEPTHU);
+    globalReadA_0_1 = (__global VECTOR_TYPE *)( ((__global DATA_TYPE *)globalReadA_0_1) + ((unsigned long) strideAL)*DEPTHU);
+    globalReadA_0_2 = (__global VECTOR_TYPE *)( ((__global DATA_TYPE *)globalReadA_0_2) + ((unsigned long) strideAL)*DEPTHU);
+    globalReadA_0_3 = (__global VECTOR_TYPE *)( ((__global DATA_TYPE *)globalReadA_0_3) + ((unsigned long) strideAL)*DEPTHU);
+    globalReadB_0_0 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_0) + ((unsigned long) strideBL)*DEPTHU);
+    globalReadB_0_1 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_1) + ((unsigned long) strideBL)*DEPTHU);
+    globalReadB_0_2 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_2) + ((unsigned long) strideBL)*DEPTHU);
+    globalReadB_0_3 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_3) + ((unsigned long) strideBL)*DEPTHU);
+  }
+
+  /***************************************/
+  /* Tail Loop                           */
+  /***************************************/
+
+  /* global read */
+  a_0_0 = ( globalReadOffsetAL_0 >= (sizeL % DEPTHU) ) ? (float2)(0.f, 0.f) : *globalReadA_0_0;
+  a_0_1 = ( globalReadOffsetAL_0 >= (sizeL % DEPTHU) ) ? (float2)(0.f, 0.f) : *globalReadA_0_1;
+  a_0_2 = ( globalReadOffsetAL_0 >= (sizeL % DEPTHU) ) ? (float2)(0.f, 0.f) : *globalReadA_0_2;
+  a_0_3 = ( globalReadOffsetAL_0 >= (sizeL % DEPTHU) ) ? (float2)(0.f, 0.f) : *globalReadA_0_3;
+  b_0_0 = ( globalReadOffsetBL_0 >= (sizeL % DEPTHU) ) ? (float2)(0.f, 0.f) : *globalReadB_0_0;
+  b_0_1 = ( globalReadOffsetBL_0 >= (sizeL % DEPTHU) ) ? (float2)(0.f, 0.f) : *globalReadB_0_1;
+  b_0_2 = ( globalReadOffsetBL_0 >= (sizeL % DEPTHU) ) ? (float2)(0.f, 0.f) : *globalReadB_0_2;
+  b_0_3 = ( globalReadOffsetBL_0 >= (sizeL % DEPTHU) ) ? (float2)(0.f, 0.f) : *globalReadB_0_3;
+
+  /* lds write */
+  barrier(CLK_LOCAL_MEM_FENCE);
+  *ldsWriteA_0_0 = a_0_0;
+  *ldsWriteA_0_1 = a_0_1;
+  *ldsWriteA_0_2 = a_0_2;
+  *ldsWriteA_0_3 = a_0_3;
+  *ldsWriteB_0_0 = b_0_0;
+  *ldsWriteB_0_1 = b_0_1;
+  *ldsWriteB_0_2 = b_0_2;
+  *ldsWriteB_0_3 = b_0_3;
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  /* re-init lds read addresses */
+  ldsReadIterA = ldsReadA;
+  ldsReadIterB = ldsReadB;
+
+  sumIterL = (((sizeL % DEPTHU) + SPLITU - 1) / SPLITU);
+  while (sumIterL-- > 0) {
+
+    /* do macs */
+    SUMMATION_UNROLL
+
+    /* increment global read addresses */
+    globalReadA_0_0 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadA_0_0) + ((long) strideAL)*DEPTHU);
+    globalReadA_0_1 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadA_0_1) + ((long) strideAL)*DEPTHU);
+    globalReadA_0_2 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadA_0_2) + ((long) strideAL)*DEPTHU);
+    globalReadA_0_3 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadA_0_3) + ((long) strideAL)*DEPTHU);
+    globalReadB_0_0 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_0) + ((long) strideBL)*DEPTHU);
+    globalReadB_0_1 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_1) + ((long) strideBL)*DEPTHU);
+    globalReadB_0_2 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_2) + ((long) strideBL)*DEPTHU);
+    globalReadB_0_3 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_3) + ((long) strideBL)*DEPTHU);
+  }
+
+  /***************************************/
+  /* SplitU Reduction                    */
+  /***************************************/
+  barrier(CLK_LOCAL_MEM_FENCE);
+  __local VECTOR_TYPE *ldsSplitU = (__local VECTOR_TYPE *)(lds);
+  ldsSplitU[lr0I + 0*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*0) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[0+0*(TT0I/VECTOR_WIDTH)+0*TT0I];
+  ldsSplitU[lr0I + 1*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*0) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[1+0*(TT0I/VECTOR_WIDTH)+0*TT0I];
+  ldsSplitU[lr0I + 2*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*0) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[2+0*(TT0I/VECTOR_WIDTH)+0*TT0I];
+  ldsSplitU[lr0I + 3*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*0) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[3+0*(TT0I/VECTOR_WIDTH)+0*TT0I];
+  ldsSplitU[lr0I + 0*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*1) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[0+0*(TT0I/VECTOR_WIDTH)+1*TT0I];
+  ldsSplitU[lr0I + 1*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*1) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[1+0*(TT0I/VECTOR_WIDTH)+1*TT0I];
+  ldsSplitU[lr0I + 2*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*1) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[2+0*(TT0I/VECTOR_WIDTH)+1*TT0I];
+  ldsSplitU[lr0I + 3*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*1) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[3+0*(TT0I/VECTOR_WIDTH)+1*TT0I];
+  ldsSplitU[lr0I + 0*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*2) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[0+0*(TT0I/VECTOR_WIDTH)+2*TT0I];
+  ldsSplitU[lr0I + 1*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*2) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[1+0*(TT0I/VECTOR_WIDTH)+2*TT0I];
+  ldsSplitU[lr0I + 2*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*2) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[2+0*(TT0I/VECTOR_WIDTH)+2*TT0I];
+  ldsSplitU[lr0I + 3*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*2) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[3+0*(TT0I/VECTOR_WIDTH)+2*TT0I];
+  ldsSplitU[lr0I + 0*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*3) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[0+0*(TT0I/VECTOR_WIDTH)+3*TT0I];
+  ldsSplitU[lr0I + 1*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*3) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[1+0*(TT0I/VECTOR_WIDTH)+3*TT0I];
+  ldsSplitU[lr0I + 2*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*3) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[2+0*(TT0I/VECTOR_WIDTH)+3*TT0I];
+  ldsSplitU[lr0I + 3*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*3) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[3+0*(TT0I/VECTOR_WIDTH)+3*TT0I];
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  /* SplitU: new C elements to store */
+  rC[  0] = ldsSplitU[serial+0*NUM_THREADS];
+  rC[  1] = ldsSplitU[serial+1*NUM_THREADS];
+  rC[  2] = ldsSplitU[serial+2*NUM_THREADS];
+  rC[  3] = ldsSplitU[serial+3*NUM_THREADS];
+
+  /* SplitU: reduction */
+  rC[  0] += ldsSplitU[serial+0*NUM_THREADS + 1*(MT0I*MT1J/VECTOR_WIDTH)];
+  rC[  1] += ldsSplitU[serial+1*NUM_THREADS + 1*(MT0I*MT1J/VECTOR_WIDTH)];
+  rC[  2] += ldsSplitU[serial+2*NUM_THREADS + 1*(MT0I*MT1J/VECTOR_WIDTH)];
+  rC[  3] += ldsSplitU[serial+3*NUM_THREADS + 1*(MT0I*MT1J/VECTOR_WIDTH)];
+
+  rC[  0] += ldsSplitU[serial+0*NUM_THREADS + 2*(MT0I*MT1J/VECTOR_WIDTH)];
+  rC[  1] += ldsSplitU[serial+1*NUM_THREADS + 2*(MT0I*MT1J/VECTOR_WIDTH)];
+  rC[  2] += ldsSplitU[serial+2*NUM_THREADS + 2*(MT0I*MT1J/VECTOR_WIDTH)];
+  rC[  3] += ldsSplitU[serial+3*NUM_THREADS + 2*(MT0I*MT1J/VECTOR_WIDTH)];
+
+  rC[  0] += ldsSplitU[serial+0*NUM_THREADS + 3*(MT0I*MT1J/VECTOR_WIDTH)];
+  rC[  1] += ldsSplitU[serial+1*NUM_THREADS + 3*(MT0I*MT1J/VECTOR_WIDTH)];
+  rC[  2] += ldsSplitU[serial+2*NUM_THREADS + 3*(MT0I*MT1J/VECTOR_WIDTH)];
+  rC[  3] += ldsSplitU[serial+3*NUM_THREADS + 3*(MT0I*MT1J/VECTOR_WIDTH)];
+
+  /* which global Cij index */
+  unsigned int localC0I = (serial % (MT0I/VECTOR_WIDTH))*VECTOR_WIDTH;
+  unsigned int localC1J = serial / (MT0I/VECTOR_WIDTH);
+  unsigned int globalC0I = wg0I*MT0I + localC0I;
+  unsigned int globalC1J = wg1J*MT1J + localC1J;
+  unsigned int globalCK = wgK;
+
+  /***************************************/
+  /* Global Write                        */
+  /***************************************/
+  if (globalC0I < size0I) {  if (globalC1J + 0*CPS < size1J) {  TYPE_MAC_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I, (unsigned long) globalC1J + 0*CPS, (unsigned long) globalCK) ], rC[0])} }
+  if (globalC0I < size0I) {  if (globalC1J + 1*CPS < size1J) {  TYPE_MAC_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I, (unsigned long) globalC1J + 1*CPS, (unsigned long) globalCK) ], rC[1])} }
+  if (globalC0I < size0I) {  if (globalC1J + 2*CPS < size1J) {  TYPE_MAC_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I, (unsigned long) globalC1J + 2*CPS, (unsigned long) globalCK) ], rC[2])} }
+  if (globalC0I < size0I) {  if (globalC1J + 3*CPS < size1J) {  TYPE_MAC_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I, (unsigned long) globalC1J + 3*CPS, (unsigned long) globalCK) ], rC[3])} }
+
+}
+;
+/* Kernel Parameters
+  ProblemType: Cijk_Alik_Bljk_CB
+  LoopDoWhile: False
+  BenchmarkFork: 0
+  GroupShape: 0
+  LocalWriteCoalesceGroupA: True
+  LocalWriteCoalesceGroupB: True
+  Valid: True
+  GlobalReadCoalesceVectorB: True
+  DepthU: 16
+  GlobalReadCoalesceVectorA: True
+  LdsNumElements: 1024
+  NumLoadsA: 4
+  NumLoadsB: 4
+  EdgeType: Shift
+  NumThreads: 64
+  ThreadTile1: 4
+  ThreadTile0: 4
+  VectorWidth: 1
+  NumVectorsPerThread: 4
+  ThreadTileShape: 0
+  LoopTail: True
+  LdsPad: 0
+  ProblemType: Cijk_Alik_Bljk_CB
+  AssignedProblemIndependentDerivedParameters: True
+  Prefetch: False
+  WorkGroupMapping: 1
+  LoopUnroll: 4
+  SubGroup0: 4
+  SubGroup1: 4
+  Kernel: True
+  SplitU: 4
+  AssignedDerivedParameters: True
+  ThreadTileNumElements: 16
+  MacroTile1: 16
+  NumLoadsCoalescedA: 1
+  NumLoadsCoalescedB: 1
+  NumLoadsPerpendicularA: 4
+  MacroTile0: 16
+  LdsOffsetB: 256
+  NumLoadsPerpendicularB: 4
+*/
+
+
 
 #else
 
