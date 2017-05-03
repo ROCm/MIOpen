@@ -5,9 +5,13 @@
 
 namespace miopen {
 
-static std::string make_config_prefix(int in_n, int in_c, int out_c)
+static std::string make_config_prefix(int in_h, int in_w,int in_n, int in_c, int out_c)
 {
 	std::string config_prefix = "FFT_x";
+	config_prefix += "_in_h_";
+	config_prefix += std::to_string(in_h);
+	config_prefix += "_in_w_";
+	config_prefix += std::to_string(in_w);
 	config_prefix += "_in_n_";
 	config_prefix += std::to_string(in_n);
 	config_prefix += "_in_c_";
@@ -33,8 +37,8 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	if(miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_CONV_FFT"))
 		return -1;
 
-	int in_n, in_c;
-	std::tie(in_n, in_c, std::ignore, std::ignore) = miopen::tie4(xDesc.GetLengths());
+	int in_n, in_c, in_h, in_w;
+	std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(xDesc.GetLengths());
 
 	(void)wDesc;
 
@@ -172,7 +176,7 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
     const std::string algorithm = "miopenConvolutionFwdAlgoFFT";
     const std::string program_name = "MIOpenConvFFT.cl";
 
-	const std::string config_prefix = make_config_prefix(in_n, in_c, out_c);
+	const std::string config_prefix = make_config_prefix(in_h, in_w, in_n, in_c, out_c);
 
 	for(int ik=0; ik<NumKernels; ik++)
 	{
@@ -232,8 +236,8 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 	(void)wDesc; // suppress warning
 
 	int halfw = static_cast<int>(workSpaceSize) / (2*2*sizeof(float));
-	int in_n, in_c;
-	std::tie(in_n, in_c, std::ignore, std::ignore) = miopen::tie4(xDesc.GetLengths());
+	int in_n, in_c, in_h, in_w;
+	std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(xDesc.GetLengths());
 
 	int out_n, out_c;
 	std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tie4(yDesc.GetLengths());
@@ -243,7 +247,7 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 	const int NumKernels = 	FFTConvParams::NumKernels;
 
 	float time_fft = 0;
-	const std::string config_prefix = make_config_prefix(in_n, in_c, out_c);
+	const std::string config_prefix = make_config_prefix(in_h, in_w, in_n, in_c, out_c);
 	for(int ik=0; ik<NumKernels; ik++)
 	{
 		std::string network_config = config_prefix + std::to_string(ik);

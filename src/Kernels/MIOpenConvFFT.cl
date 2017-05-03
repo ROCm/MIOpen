@@ -169,29 +169,35 @@ FwdPassIN(uint me, uint inOffset, uint outOffset, __global const float *bufIn, _
 	(*R7) = (float2)(0, 0);
 	
 
-	if((me%32) < 27)
+	if((me%32) < CFF_IMG_W)
 	{	
-	(*R0).x = bufIn[inOffset + ( (me/32)*12*27 + (me%32) +  0 + 0*54 )];
-	(*R1).x = bufIn[inOffset + ( (me/32)*12*27 + (me%32) +  0 + 1*54 )];
-	(*R2).x = bufIn[inOffset + ( (me/32)*12*27 + (me%32) +  0 + 2*54 )];
-	(*R3).x = bufIn[inOffset + ( (me/32)*12*27 + (me%32) +  0 + 3*54 )];
-	(*R4).x = bufIn[inOffset + ( (me/32)*12*27 + (me%32) +  0 + 4*54 )];
-	(*R5).x = bufIn[inOffset + ( (me/32)*12*27 + (me%32) +  0 + 5*54 )];
+	(*R0).x = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 0*2*CFF_IMG_W )];
+	(*R1).x = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 1*2*CFF_IMG_W )];
+	(*R2).x = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 2*2*CFF_IMG_W )];
+	(*R3).x = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 3*2*CFF_IMG_W )];
+	(*R4).x = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 4*2*CFF_IMG_W )];
+	(*R5).x = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 5*2*CFF_IMG_W )];
 	
-	(*R0).y = bufIn[inOffset + ( (me/32)*12*27 + (me%32) + 27 + 0*54 )];
-	(*R1).y = bufIn[inOffset + ( (me/32)*12*27 + (me%32) + 27 + 1*54 )];
-	(*R2).y = bufIn[inOffset + ( (me/32)*12*27 + (me%32) + 27 + 2*54 )];
-	(*R3).y = bufIn[inOffset + ( (me/32)*12*27 + (me%32) + 27 + 3*54 )];
-	(*R4).y = bufIn[inOffset + ( (me/32)*12*27 + (me%32) + 27 + 4*54 )];
-	(*R5).y = bufIn[inOffset + ( (me/32)*12*27 + (me%32) + 27 + 5*54 )];
+	(*R0).y = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 0*2*CFF_IMG_W )];
+	(*R1).y = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 1*2*CFF_IMG_W )];
+	(*R2).y = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 2*2*CFF_IMG_W )];
+	(*R3).y = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 3*2*CFF_IMG_W )];
+	(*R4).y = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 4*2*CFF_IMG_W )];
+	(*R5).y = bufIn[inOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 5*2*CFF_IMG_W )];
 	}
 	
-	if(me < 27)	
+	if(me < CFF_IMG_W)	
 	{
-	(*R6).x = bufIn[inOffset + ( me + 24*27 )];
-	(*R6).y = bufIn[inOffset + ( me + 25*27 )];
+	(*R6).x = bufIn[inOffset + ( me + 24*CFF_IMG_W )];
+	(*R6).y = bufIn[inOffset + ( me + 25*CFF_IMG_W )];
 	
-	(*R7).x = bufIn[inOffset + ( me + 26*27 )];
+	(*R7).x = bufIn[inOffset + ( me + 26*CFF_IMG_W )];
+	
+#ifdef CFF_IMG_SZ_28_28
+	(*R7).y = bufIn[inOffset + ( me + 27*CFF_IMG_W )];
+#else
+	(*R7).y = 0;
+#endif
 	}
 
 	
@@ -589,7 +595,7 @@ void MIOpenConvFFT_fwd_in(__global const float * restrict gbIn, __global float2 
 
 	float2 R0, R1, R2, R3, R4, R5, R6, R7;
 
-	lwbIn = gbIn + batch*729;
+	lwbIn = gbIn + batch*CFF_IMG_W*CFF_IMG_H;
 	lwbOut = gbOut + batch*544;
 
 	FwdPassIN(me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7);
@@ -1262,29 +1268,32 @@ InvPassOUT(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __glob
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
 	
-	if((me%32) < 27)
+	if((me%32) < CFF_IMG_W)
 	{	
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) +  0 + 0*54 )] = (*R0).x;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) +  0 + 1*54 )] = (*R1).x;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) +  0 + 2*54 )] = (*R2).x;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) +  0 + 3*54 )] = (*R3).x;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) +  0 + 4*54 )] = (*R4).x;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) +  0 + 5*54 )] = (*R5).x;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 0*2*CFF_IMG_W )] = (*R0).x;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 1*2*CFF_IMG_W )] = (*R1).x;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 2*2*CFF_IMG_W )] = (*R2).x;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 3*2*CFF_IMG_W )] = (*R3).x;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 4*2*CFF_IMG_W )] = (*R4).x;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) +  0 + 5*2*CFF_IMG_W )] = (*R5).x;
 	                                                          
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) + 27 + 0*54 )] = (*R0).y;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) + 27 + 1*54 )] = (*R1).y;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) + 27 + 2*54 )] = (*R2).y;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) + 27 + 3*54 )] = (*R3).y;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) + 27 + 4*54 )] = (*R4).y;
-	bufOut[outOffset + ( (me/32)*12*27 + (me%32) + 27 + 5*54 )] = (*R5).y;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 0*2*CFF_IMG_W )] = (*R0).y;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 1*2*CFF_IMG_W )] = (*R1).y;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 2*2*CFF_IMG_W )] = (*R2).y;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 3*2*CFF_IMG_W )] = (*R3).y;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 4*2*CFF_IMG_W )] = (*R4).y;
+	bufOut[outOffset + ( (me/32)*12*CFF_IMG_W + (me%32) + CFF_IMG_W + 5*2*CFF_IMG_W )] = (*R5).y;
 	}
 	
-	if(me < 27)	
+	if(me < CFF_IMG_W)	
 	{
-	bufOut[outOffset + ( me + 24*27 )] = (*R6).x;
-	bufOut[outOffset + ( me + 25*27 )] = (*R6).y;
+	bufOut[outOffset + ( me + 24*CFF_IMG_W )] = (*R6).x;
+	bufOut[outOffset + ( me + 25*CFF_IMG_W )] = (*R6).y;
 	
-	bufOut[outOffset + ( me + 26*27 )] = (*R7).x;
+	bufOut[outOffset + ( me + 26*CFF_IMG_W )] = (*R7).x;
+#ifdef CFF_IMG_SZ_28_28	
+	bufOut[outOffset + ( me + 27*CFF_IMG_W )] = (*R7).y;
+#endif
 	}	
 
 }
@@ -1306,7 +1315,7 @@ void MIOpenConvFFT_inv_out(__global const float2 * restrict gbIn, __global float
 
 
 	lwbIn = CFF_HALFW + gbIn + batch*544;
-	lwbOut = gbOut + batch*729;
+	lwbOut = gbOut + batch*CFF_IMG_W*CFF_IMG_H;
 
 	InvPassA(me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7);
 	barrier(CLK_LOCAL_MEM_FENCE);	
@@ -1560,7 +1569,6 @@ __kernel void MIOpenConvFFT_cgemm(
   unsigned int globalCK = gK;
 
   /* write global C */
-//  float type_fma_tmp; // unused variable
   if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 0*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 0*WG_1J, (unsigned long) globalCK) ], rC[0][0]) } }
   if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 1*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 1*WG_1J, (unsigned long) globalCK) ], rC[0][1]) } }
   if (globalC0I + 0*WG_0I < size0I) {  if (globalC1J + 2*WG_1J < size1J) {  TYPE_MAD_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I + 0*WG_0I, (unsigned long) globalC1J + 2*WG_1J, (unsigned long) globalCK) ], rC[0][2]) } }
