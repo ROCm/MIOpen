@@ -543,7 +543,7 @@ MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationForwardTraining(
        const miopenTensorDescriptor_t       bnScaleBiasMeanVarDesc,
        void                                 *bnScale,
        void                                 *bnBias,
-       double                               exponentialAverageFactor,
+       double                               expAvgFactor,
        void                                 *resultRunningMean,
        void                                 *resultRunningVariance,
        double                               epsilon,
