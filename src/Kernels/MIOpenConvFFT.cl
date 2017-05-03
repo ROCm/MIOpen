@@ -662,6 +662,7 @@ void MIOpenConvFFT_fwd_we(__global const float * restrict gbIn, __global float2 
 }
 
 
+#if defined(CFF_TRANSP_IN_MOD16)
 
 
 __kernel __attribute__((reqd_work_group_size (256,1,1)))
@@ -670,7 +671,7 @@ void MIOpenConvFFT_transpose_in(__global float2 * restrict gb)
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
 
-	__local float2 lds[4096];
+	__local float2 lds[256];
 
 	uint iOffset;
 	uint oOffset;
@@ -679,52 +680,78 @@ void MIOpenConvFFT_transpose_in(__global float2 * restrict gb)
 
 	float2 R0;
 
-	uint bm = batch%9;
-	uint bd = batch/9;
+	uint bm = batch%34;
+	uint bd = batch/34;
 	
-	iOffset = bm*64 + bd*544*64; 
-	oOffset = CFF_HALFW + bm*(CFF_CHANNELS*CFF_BATCH + 64)*64 + bd*64; 
+	iOffset = bm*16 + bd*544*16; 
+	oOffset = CFF_HALFW + bm*(CFF_CHANNELS*CFF_BATCH + 64)*16 + bd*16; 
 	
 	lwbIn = gb + iOffset;
 	lwbOut = gb + oOffset;
 	
-	if(bm == 8)
+	
+
+	R0 = lwbIn[(me%16) + (me/16)*544];
+	lds[(me%16)*16 + (me/16)] = R0;
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+
+	R0 = lds[me];
+	lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;
+
+
+}
+
+
+#else
+
+__kernel __attribute__((reqd_work_group_size (256,1,1)))
+void MIOpenConvFFT_transpose_in(__global float2 * restrict gb)
+{
+	uint me = get_local_id(0);
+	uint batch = get_group_id(0);
+
+	__local float2 lds[1024];
+
+	uint iOffset;
+	uint oOffset;
+	__global const float2 *lwbIn;
+	__global float2 *lwbOut;
+
+	float2 R0;
+
+	uint bm = batch%17;
+	uint bd = batch/17;
+	
+	iOffset = bm*32 + bd*544*32; 
+	oOffset = CFF_HALFW + bm*(CFF_CHANNELS*CFF_BATCH + 64)*32 + bd*32; 
+	
+	lwbIn = gb + iOffset;
+	lwbOut = gb + oOffset;
+	
+	
+	for(uint t=0; t<4; t++)
 	{
-		for(uint t=0; t<8; t++)
-		{
-			R0 = lwbIn[(me%32) + (me/32)*544 + t*8*544];
-			lds[(me%32)*64 + (me/32) + t*8] = R0;
-		}	
-	}
-	else
-	{
-		for(uint t=0; t<16; t++)
-		{
-			R0 = lwbIn[(me%64) + (me/64)*544 + t*4*544];
-			lds[(me%64)*64 + (me/64) + t*4] = R0;
-		}
+		R0 = lwbIn[(me%32) + (me/32)*544 + t*8*544];
+		lds[(me%32)*32 + (me/32) + t*8] = R0;
 	}
 	
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	
-	if(bm == 8)
+	for(uint t=0; t<4; t++)
 	{
-		for(uint t=0; t<8; t++)
-		{
-			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*(CFF_CHANNELS*CFF_BATCH + 64) + t*4*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;
-		}	
+		R0 = lds[me + t*256];
+		lwbOut[(me%32) + (me/32)*(CFF_CHANNELS*CFF_BATCH + 64) + t*8*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;
 	}
-	else
-	{
-		for(uint t=0; t<16; t++)
-		{
-			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*(CFF_CHANNELS*CFF_BATCH + 64) + t*4*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;
-		}
-	}
+
 }
+
+#endif
+
+
+
+#if defined(CFF_TRANSP_WT_MOD16)
 
 
 __kernel __attribute__((reqd_work_group_size (256,1,1)))
@@ -733,7 +760,7 @@ void MIOpenConvFFT_transpose_we(__global float2 * restrict gb)
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
 
-	__local float2 lds[4096];
+	__local float2 lds[256];
 
 	uint iOffset;
 	uint oOffset;
@@ -742,54 +769,80 @@ void MIOpenConvFFT_transpose_we(__global float2 * restrict gb)
 
 	float2 R0;
 
-	uint bm = batch%9;
-	uint bd = batch/9;
+	uint bm = batch%34;
+	uint bd = batch/34;
 	
-	iOffset = 544*CFF_CHANNELS*CFF_BATCH + bm*64 + bd*544*64; 
-	oOffset = CFF_HALFW + 544*(CFF_CHANNELS*CFF_BATCH + 64) + bm*(CFF_CHANNELS*CFF_NFILTER + 64)*64 + bd*64;
+	iOffset = 544*CFF_CHANNELS*CFF_BATCH + bm*16 + bd*544*16; 
+	oOffset = CFF_HALFW + 544*(CFF_CHANNELS*CFF_BATCH + 64) + bm*(CFF_CHANNELS*CFF_NFILTER + 64)*16 + bd*16;
 	
 	lwbIn = gb + iOffset;
 	lwbOut = gb + oOffset;
 	
-	if(bm == 8)
-	{
-		for(uint t=0; t<8; t++)
-		{
-			R0 = lwbIn[(me%32) + (me/32)*544 + t*8*544];
-			lds[(me%32)*64 + (me/32) + t*8] = R0;
-		}	
-	}
-	else
-	{	
-		for(uint t=0; t<16; t++)
-		{
-			R0 = lwbIn[(me%64) + (me/64)*544 + t*4*544];
-			lds[(me%64)*64 + (me/64) + t*4] = R0;
-		}
-	}
+
+	R0 = lwbIn[(me%16) + (me/16)*544];
+	lds[(me%16)*16 + (me/16)] = R0;
+
 	
 	barrier(CLK_LOCAL_MEM_FENCE);
-	
-	if(bm == 8)
-	{
-		for(uint t=0; t<8; t++)
-		{
-			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*(CFF_CHANNELS*CFF_NFILTER + 64) + t*4*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
-		}	
-	}
-	else
-	{	
-		for(uint t=0; t<16; t++)
-		{
-			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*(CFF_CHANNELS*CFF_NFILTER + 64) + t*4*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
-		}
-	}
+
+
+	R0 = lds[me];
+	lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
+
+
 
 }
 
 
+#else
+
+__kernel __attribute__((reqd_work_group_size (256,1,1)))
+void MIOpenConvFFT_transpose_we(__global float2 * restrict gb)
+{
+	uint me = get_local_id(0);
+	uint batch = get_group_id(0);
+
+	__local float2 lds[1024];
+
+	uint iOffset;
+	uint oOffset;
+	__global const float2 *lwbIn;
+	__global float2 *lwbOut;
+
+	float2 R0;
+
+	uint bm = batch%17;
+	uint bd = batch/17;
+	
+	iOffset = 544*CFF_CHANNELS*CFF_BATCH + bm*32 + bd*544*32; 
+	oOffset = CFF_HALFW + 544*(CFF_CHANNELS*CFF_BATCH + 64) + bm*(CFF_CHANNELS*CFF_NFILTER + 64)*32 + bd*32;
+	
+	lwbIn = gb + iOffset;
+	lwbOut = gb + oOffset;
+	
+	
+	for(uint t=0; t<4; t++)
+	{
+		R0 = lwbIn[(me%32) + (me/32)*544 + t*8*544];
+		lds[(me%32)*32 + (me/32) + t*8] = R0;
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	for(uint t=0; t<4; t++)
+	{
+		R0 = lds[me + t*256];
+		lwbOut[(me%32) + (me/32)*(CFF_CHANNELS*CFF_NFILTER + 64) + t*8*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
+	}
+
+
+}
+
+#endif
+
+
+
+#if defined(CFF_TRANSP_OT_MOD16)
 
 __kernel __attribute__((reqd_work_group_size (256,1,1)))
 void MIOpenConvFFT_transpose_out(__global float2 * restrict gb)
@@ -797,7 +850,7 @@ void MIOpenConvFFT_transpose_out(__global float2 * restrict gb)
 	uint me = get_local_id(0);
 	uint batch = get_group_id(0);
 
-	__local float2 lds[4096];
+	__local float2 lds[256];
 
 	uint iOffset;
 	uint oOffset;
@@ -806,55 +859,71 @@ void MIOpenConvFFT_transpose_out(__global float2 * restrict gb)
 
 	float2 R0;
 
-	uint bm = batch%9;
-	uint bd = batch/9;
+	uint bm = batch%34;
+	uint bd = batch/34;
 	
-	iOffset = bm*(CFF_NFILTER*CFF_BATCH + 64)*64 + bd*64;	
-	oOffset = CFF_HALFW + bm*64 + bd*544*64; 
-
+	iOffset = bm*(CFF_NFILTER*CFF_BATCH + 64)*16 + bd*16;	
+	oOffset = CFF_HALFW + bm*16 + bd*544*16; 
 	
 	lwbIn = gb + iOffset;
 	lwbOut = gb + oOffset;
 	
-	if(bm == 8)
-	{
-		for(uint t=0; t<8; t++)
-		{
-			R0 = lwbIn[(me%64) + (me/64)*(CFF_NFILTER*CFF_BATCH + 64) + t*4*(CFF_NFILTER*CFF_BATCH + 64)];
-			lds[(me%64)*64 + (me/64) + t*4] = R0;
-		}	
-	}
-	else
-	{	
-		for(uint t=0; t<16; t++)
-		{
-			R0 = lwbIn[(me%64) + (me/64)*(CFF_NFILTER*CFF_BATCH + 64) + t*4*(CFF_NFILTER*CFF_BATCH + 64)];
-			lds[(me%64)*64 + (me/64) + t*4] = R0;
-		}
-	}
+
+	R0 = lwbIn[(me%16) + (me/16)*(CFF_NFILTER*CFF_BATCH + 64)];
+	lds[(me%16)*16 + (me/16)] = R0;
 	
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(bm == 8)
-	{
-		for(uint t=0; t<8; t++)
-		{
-			R0 = lds[(me%32) + (me/32)*64 + t*512];
-			lwbOut[(me%32) + (me/32)*544 + t*8*544] = R0;
-		}	
-	}
-	else
-	{
-		for(uint t=0; t<16; t++)
-		{
-			R0 = lds[me + t*256];
-			lwbOut[(me%64) + (me/64)*544 + t*4*544] = R0;
-		}
-	}
+	R0 = lds[me];
+	lwbOut[(me%16) + (me/16)*544] = R0;
 
 }
 
 
+#else
+
+__kernel __attribute__((reqd_work_group_size (256,1,1)))
+void MIOpenConvFFT_transpose_out(__global float2 * restrict gb)
+{
+	uint me = get_local_id(0);
+	uint batch = get_group_id(0);
+
+	__local float2 lds[1024];
+
+	uint iOffset;
+	uint oOffset;
+	__global const float2 *lwbIn;
+	__global float2 *lwbOut;
+
+	float2 R0;
+
+	uint bm = batch%17;
+	uint bd = batch/17;
+	
+	iOffset = bm*(CFF_NFILTER*CFF_BATCH + 64)*32 + bd*32;	
+	oOffset = CFF_HALFW + bm*32 + bd*544*32; 
+	
+	lwbIn = gb + iOffset;
+	lwbOut = gb + oOffset;
+	
+
+	for(uint t=0; t<4; t++)
+	{
+		R0 = lwbIn[(me%32) + (me/32)*(CFF_NFILTER*CFF_BATCH + 64) + t*8*(CFF_NFILTER*CFF_BATCH + 64)];
+		lds[(me%32)*32 + (me/32) + t*8] = R0;
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	for(uint t=0; t<4; t++)
+	{
+		R0 = lds[me + t*256];
+		lwbOut[(me%32) + (me/32)*544 + t*8*544] = R0;
+	}
+
+}
+
+#endif
 
 
 __attribute__((always_inline)) void
@@ -1270,6 +1339,7 @@ void MIOpenConvFFT_inv_out(__global const float2 * restrict gbIn, __global float
 
 
 
+#if defined(CFF_CGEMM_CHOICE_1)
 
 /* Cijk_Alik_Bljk_CB_DU16_E01_E11_LU16_MT064_MT164_NLA04_NLB04_NLCA01_NLCB01_NLPA04_NLPB04_TT004_TT104_TTE04_WG016_WG116_WGE16 */
 
@@ -1579,4 +1649,485 @@ __kernel void MIOpenConvFFT_cgemm(
   NumLoadsPerpendicularA: 4
   NumLoadsPerpendicularB: 4
 */
+
+
+
+
+#else
+
+
+ /* Cijk_Alik_Bljk_CB_MT008x008x16_K1_NT64_SU04_TTNE04 */
+
+
+  /******************************************/
+  /* Function Prefix                        */
+  /******************************************/
+
+/* tile parameters */
+#define NUM_THREADS  64
+#define SG0I 4
+#define SG1J 4
+#define TT0I 2
+#define TT1J 2
+#define MT0I (SG0I*TT0I)
+#define MT1J (SG1J*TT1J)
+
+/* DepthU parameters*/
+#define CPS (NUM_THREADS / MT0I * VECTOR_WIDTH)
+#define SPLITU 4
+#define UNROLL 4
+#define DEPTHU (SPLITU*UNROLL)
+
+/* other */
+#define PAD 0
+#define WORK_GROUP_MAPPING 1
+#define VECTOR_WIDTH 1
+
+/* num loads parallel and perpendicular to coalesced */
+#define NLCA 1
+#define NLCB 1
+#define NLPA 2
+#define NLPB 2
+
+/* load sizes parallel and perpendicular to coalesced */
+#define LSCA (DEPTHU/NLCA)
+#define LSPA (MT0I/NLPA)
+#define LSCB (DEPTHU/NLCB)
+#define LSPB (MT1J/NLPB)
+#define LVCA (LSCA/VECTOR_WIDTH)
+#define LVCB (LSCB/VECTOR_WIDTH)
+#define LVPA (LSPA/VECTOR_WIDTH)
+#define LVPB (LSPB/VECTOR_WIDTH)
+#define LDS_OFFSET_B 128
+#define LDS_NUM_ELEMENTS 256
+
+/* global memory indices */
+#define GLOBAL_C(IDX0I, IDX1J, IDXK) (( (IDX0I)*strideC0I + (IDX1J)*strideC1J + (IDXK)*strideCK ))
+#define GLOBAL_OFFSET_A(IDXL, IDX0I, IDXK) (( (IDXL)*strideAL + (IDX0I)*strideA0I + (IDXK)*strideAK ))
+#define GLOBAL_OFFSET_B(IDXL, IDX1J, IDXK) (( (IDXL)*strideBL + (IDX1J)*strideB1J + (IDXK)*strideBK ))
+
+/* data types */
+#define DATA_TYPE float2
+#define VECTOR_TYPE float2
+#define MAD(A,B,DST) mad(A,B,DST)
+
+/* MAC's */
+#define TYPE_MAC(MULA,MULB,DST) \
+  DST.s0 = MAD(  MULA.s0, MULB.s0, DST.s0 ); \
+  DST.s0 = MAD( -MULA.s1, MULB.s1, DST.s0 ); \
+  DST.s1 = MAD(  MULA.s0, MULB.s1, DST.s1 ); \
+  DST.s1 = MAD(  MULA.s1, MULB.s0, DST.s1 );
+#define TYPE_MAC_WRITE( DST, REG ) \
+  /* (1) */ \
+  /* (2) */ \
+  /* (3) */ \
+  DST = REG;
+
+/* 2x2 micro-tile */
+#define MAC_2x2\
+  TYPE_MAC(rA[0],rB[0],rC[0+0*TT0I/VECTOR_WIDTH]); \
+  TYPE_MAC(rA[1],rB[0],rC[1+0*TT0I/VECTOR_WIDTH]); \
+  TYPE_MAC(rA[0],rB[1],rC[0+1*TT0I/VECTOR_WIDTH]); \
+  TYPE_MAC(rA[1],rB[1],rC[1+1*TT0I/VECTOR_WIDTH]); \
+
+
+/* hard-coded initial strides */
+#define strideC0I 1
+#define strideAL 1
+#define strideBL 1
+
+
+  /******************************************/
+  /* Begin Kernel                           */
+  /******************************************/
+__attribute__((reqd_work_group_size(NUM_THREADS,1,1)))
+__kernel void MIOpenConvFFT_cgemm(
+  __global float2 *gb,
+  unsigned int const offsetC,
+  unsigned int const offsetA,
+  unsigned int const offsetB,
+  unsigned int const strideC1J,
+  unsigned int const strideCK,
+  unsigned int const strideA0I,
+  unsigned int const strideAK,
+  unsigned int const strideB1J,
+  unsigned int const strideBK,
+  unsigned int const size0I,
+  unsigned int const size1J,
+  unsigned int const sizeK,
+  unsigned int const sizeL ) {
+
+  
+  /* apply offsets */
+  __global float2       * C = gb + offsetC;
+  __global float2 const * A = gb + offsetA;
+  __global float2 const * B = gb + offsetB;
+  
+  /******************************************/
+  /* Allocate Resources                     */
+  /******************************************/
+
+  /* registers for MAC's */
+  VECTOR_TYPE rC[TT0I*TT1J/VECTOR_WIDTH];
+  rC[0] = 0;
+  rC[1] = 0;
+  rC[2] = 0;
+  rC[3] = 0;
+  VECTOR_TYPE rA[TT0I/VECTOR_WIDTH];
+  VECTOR_TYPE rB[TT1J/VECTOR_WIDTH];
+
+  /* registers for global->local */
+  VECTOR_TYPE a_0_0, a_0_1;
+  VECTOR_TYPE b_0_0, b_0_1;
+
+  /* allocate local memory */
+  __local DATA_TYPE localMemory[LDS_NUM_ELEMENTS];
+  DATA_TYPE ZERO;
+  ZERO.s0 = 0;
+  ZERO.s1 = 0;
+
+  /******************************************/
+  /* Global Read Addresses                  */
+  /******************************************/
+
+  /* global read addresses: work-group */
+  unsigned int wg0I = get_group_id(0);
+  unsigned int wg1J = get_group_id(1);
+
+  /* global read addresses: subgroup */
+  unsigned int serial = get_local_id(0);
+  unsigned int sgId = serial / (SG0I*SG1J);
+
+  /* global read addresses: tile offset assignment a */
+  unsigned int globalReadOffsetA0I = (serial%LSPA) + (wg0I*MT0I);
+
+  /* global read addresses: tile offset assignment b */
+  unsigned int globalReadOffsetB1J = (serial%LSPB) + (wg1J*MT1J);
+
+  /* global read addresses: unroll assignment a */
+  unsigned int globalReadOffsetAL = (serial/LSPA)*VECTOR_WIDTH;
+
+  /* global read addresses: unroll assignment b */
+  unsigned int globalReadOffsetBL = (serial/LSPB)*VECTOR_WIDTH;
+
+  /* global read addresses: other free assignments */
+  unsigned int wgK = ( get_group_id(2) ) % sizeK;
+
+  /* global read addresses: tile offsets a */
+  unsigned int globalReadOffsetA0I_0 = globalReadOffsetA0I + 0*LSPA;
+  unsigned int globalReadOffsetA0I_1 = globalReadOffsetA0I + 1*LSPA;
+
+  /* global read addresses: tile offsets a */
+  unsigned int globalReadOffsetB1J_0 = globalReadOffsetB1J + 0*LSPB;
+  unsigned int globalReadOffsetB1J_1 = globalReadOffsetB1J + 1*LSPB;
+
+  /* global read addresses: unroll offsets a */
+  unsigned int globalReadOffsetAL_0 = globalReadOffsetAL + 0*LSCA;
+
+  /* global read addresses: unroll offsets b */
+  unsigned int globalReadOffsetBL_0 = globalReadOffsetBL + 0*LSCB;
+
+  /* global read addresses: shift a */
+  globalReadOffsetA0I_0 = (globalReadOffsetA0I_0 > (size0I-1)) ? (size0I-1) : globalReadOffsetA0I_0;
+  globalReadOffsetA0I_1 = (globalReadOffsetA0I_1 > (size0I-1)) ? (size0I-1) : globalReadOffsetA0I_1;
+
+  /* global read addresses: shift b */
+  globalReadOffsetB1J_0 = (globalReadOffsetB1J_0 > (size1J-1)) ? (size1J-1) : globalReadOffsetB1J_0;
+  globalReadOffsetB1J_1 = (globalReadOffsetB1J_1 > (size1J-1)) ? (size1J-1) : globalReadOffsetB1J_1;
+
+  /* global read addresses: final offsets a */
+  unsigned long globalReadOffsetA_0_0 = GLOBAL_OFFSET_A( globalReadOffsetAL_0, globalReadOffsetA0I_0, wgK );
+  unsigned long globalReadOffsetA_0_1 = GLOBAL_OFFSET_A( globalReadOffsetAL_0, globalReadOffsetA0I_1, wgK );
+
+  /* global read addresses: final offsets b */
+  unsigned long globalReadOffsetB_0_0 = GLOBAL_OFFSET_B( globalReadOffsetBL_0, globalReadOffsetB1J_0, wgK );
+  unsigned long globalReadOffsetB_0_1 = GLOBAL_OFFSET_B( globalReadOffsetBL_0, globalReadOffsetB1J_1, wgK );
+
+
+
+  /* global read addresses: addresses a */
+  __global VECTOR_TYPE const *globalReadA_0_0 = (__global VECTOR_TYPE const *)(A + globalReadOffsetA_0_0);
+  __global VECTOR_TYPE const *globalReadA_0_1 = (__global VECTOR_TYPE const *)(A + globalReadOffsetA_0_1);
+
+  /* global read addresses: addresses b */
+  __global VECTOR_TYPE const *globalReadB_0_0 = (__global VECTOR_TYPE const *)(B + globalReadOffsetB_0_0);
+  __global VECTOR_TYPE const *globalReadB_0_1 = (__global VECTOR_TYPE const *)(B + globalReadOffsetB_0_1);
+
+  /* global read addresses: increments a */
+  long globalReadIncAL = (long)strideAL*DEPTHU;
+
+  /* global read addresses: increments b */
+  long globalReadIncBL = (long)strideBL*DEPTHU;
+
+  /******************************************/
+  /* Local Write Addresses                  */
+  /******************************************/
+
+  /* local write addresses: tile assignment a */
+  unsigned int lwA0I = (serial%LSPA);
+
+  /* local write addresses: tile assignment b */
+  unsigned int lwB1J = (serial%LSPB);
+
+  /* local write addresses: unroll assignment a */
+  unsigned int lwAL = (serial/LSPA)*VECTOR_WIDTH;
+
+  /* local write addresses: unroll assignment b */
+  unsigned int lwBL = (serial/LSPB)*VECTOR_WIDTH;
+
+  /* local write addresses: first offset a */
+  unsigned int localWriteFirstOffsetA = lwA0I + lwAL*(MT0I+PAD);
+
+  /* local write addresses: first offset b */
+  unsigned int localWriteFirstOffsetB = lwB1J + lwBL*(MT1J+PAD) + LDS_OFFSET_B;
+
+  /* local write addresses: final offsets a */
+  unsigned int localWriteOffsetA_0_0 = localWriteFirstOffsetA + (0*LSCA)*(MT0I+PAD) + (0*LSPA);
+  unsigned int localWriteOffsetA_0_1 = localWriteFirstOffsetA + (0*LSCA)*(MT0I+PAD) + (1*LSPA);
+
+  /* local write addresses: final offsets b */
+  unsigned int localWriteOffsetB_0_0 = localWriteFirstOffsetB + (0*LSCB)*(MT1J+PAD) + (0*LSPB);
+  unsigned int localWriteOffsetB_0_1 = localWriteFirstOffsetB + (0*LSCB)*(MT1J+PAD) + (1*LSPB);
+
+  /* local write addresses: declare addresses a */
+  __local VECTOR_TYPE *localWriteA_0_0;
+  __local VECTOR_TYPE *localWriteA_0_1;
+
+  /* local write addresses: declare addresses b */
+  __local VECTOR_TYPE *localWriteB_0_0;
+  __local VECTOR_TYPE *localWriteB_0_1;
+
+  /* local write addresses: init pointers a */
+  localWriteA_0_0 = (__local VECTOR_TYPE *)(localMemory + localWriteOffsetA_0_0);
+  localWriteA_0_1 = (__local VECTOR_TYPE *)(localMemory + localWriteOffsetA_0_1);
+
+  /* local write addresses: init pointers b */
+  localWriteB_0_0 = (__local VECTOR_TYPE *)(localMemory + localWriteOffsetB_0_0);
+  localWriteB_0_1 = (__local VECTOR_TYPE *)(localMemory + localWriteOffsetB_0_1);
+
+  /******************************************/
+  /* Local Read Addresses                   */
+  /******************************************/
+
+  /* local read addresses: tile assignments a */
+  unsigned int lr0I = (serial % SG0I);
+
+  /* local read addresses: tile assignments b */
+  unsigned int lr1J = (serial / SG0I) % SG1J;
+
+  /* local read addresses: final offsets a */
+  unsigned int localReadOffsetA = lr0I*VECTOR_WIDTH + sgId*(MT0I+PAD);
+
+  /* local read addresses: final offsets b */
+  unsigned int localReadOffsetB = lr1J*VECTOR_WIDTH + sgId*(MT1J+PAD) + LDS_OFFSET_B;
+
+  /* local read addresses: declare addresses a */
+  __local VECTOR_TYPE *localReadA;
+
+  /* local read addresses: declare addresses b */
+  __local VECTOR_TYPE *localReadB;
+
+  /* local read addresses: init pointers a */
+  localReadA = (__local VECTOR_TYPE *)(localMemory + localReadOffsetA);
+
+  /* local read addresses: init pointers b */
+  localReadB = (__local VECTOR_TYPE *)(localMemory + localReadOffsetB);
+
+  /* declare loop iterators */
+  unsigned int sumIterL;
+
+  /* unrolled summation loop */
+  sumIterL = sizeL / DEPTHU;
+  while (sumIterL-- > 0) {
+
+    /* global read a */
+    a_0_0 = *globalReadA_0_0;
+    a_0_1 = *globalReadA_0_1;
+
+    /* global read b */
+    b_0_0 = *globalReadB_0_0;
+    b_0_1 = *globalReadB_0_1;
+
+    /* global read inc a */
+    globalReadA_0_0 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadA_0_0) + globalReadIncAL);
+    globalReadA_0_1 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadA_0_1) + globalReadIncAL);
+
+    /* global read inc b */
+    globalReadB_0_0 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_0) + globalReadIncBL);
+    globalReadB_0_1 = (__global VECTOR_TYPE const *)( ((__global DATA_TYPE const *)globalReadB_0_1) + globalReadIncBL);
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    /* local write a */
+    *localWriteA_0_0 = a_0_0;
+    *localWriteA_0_1 = a_0_1;
+
+    /* local write b */
+    *localWriteB_0_0 = b_0_0;
+    *localWriteB_0_1 = b_0_1;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+
+
+    /* iter 0 */
+
+    /* local read a */
+    rA[0] = localReadA[0*SG0I]; 
+    rA[1] = localReadA[1*SG0I]; 
+
+    /* local read b */
+    rB[0] = localReadB[0*SG1J]; 
+    rB[1] = localReadB[1*SG1J]; 
+
+    /* local read increment a */
+    localReadA += SPLITU*(MT0I/VECTOR_WIDTH+PAD);
+
+    /* local read increment b */
+    localReadB += SPLITU*(MT1J/VECTOR_WIDTH+PAD);
+    MAC_2x2
+
+    /* iter 1 */
+
+    /* local read a */
+    rA[0] = localReadA[0*SG0I]; 
+    rA[1] = localReadA[1*SG0I]; 
+
+    /* local read b */
+    rB[0] = localReadB[0*SG1J]; 
+    rB[1] = localReadB[1*SG1J]; 
+
+    /* local read increment a */
+    localReadA += SPLITU*(MT0I/VECTOR_WIDTH+PAD);
+
+    /* local read increment b */
+    localReadB += SPLITU*(MT1J/VECTOR_WIDTH+PAD);
+    MAC_2x2
+
+
+
+    /* iter 2 */
+
+    /* local read a */
+    rA[0] = localReadA[0*SG0I]; 
+    rA[1] = localReadA[1*SG0I]; 
+
+    /* local read b */
+    rB[0] = localReadB[0*SG1J]; 
+    rB[1] = localReadB[1*SG1J]; 
+
+    /* local read inc a */
+    localReadA += SPLITU*(MT0I/VECTOR_WIDTH+PAD);
+
+    /* local read inc b */
+    localReadB += SPLITU*(MT1J/VECTOR_WIDTH+PAD);
+    MAC_2x2
+
+    /* iter 3 */
+
+    /* local read a */
+    rA[0] = localReadA[0*SG0I]; 
+    rA[1] = localReadA[1*SG0I]; 
+
+    /* local read b */
+    rB[0] = localReadB[0*SG1J]; 
+    rB[1] = localReadB[1*SG1J]; 
+
+    /* local read init pointers a */
+    localReadA = (__local VECTOR_TYPE *)(localMemory + localReadOffsetA);
+
+    /* local read init pointers b */
+    localReadB = (__local VECTOR_TYPE *)(localMemory + localReadOffsetB);
+    MAC_2x2
+  }
+
+  /******************************************/
+  /* Tail Loop                              */
+  /******************************************/
+
+  /* global read a */
+  a_0_0 = ( globalReadOffsetAL_0 >= (sizeL % DEPTHU) ) ? ZERO : *globalReadA_0_0;
+  a_0_1 = ( globalReadOffsetAL_0 >= (sizeL % DEPTHU) ) ? ZERO : *globalReadA_0_1;
+
+  /* global read b */
+  b_0_0 = ( globalReadOffsetBL_0 >= (sizeL % DEPTHU) ) ? ZERO : *globalReadB_0_0;
+  b_0_1 = ( globalReadOffsetBL_0 >= (sizeL % DEPTHU) ) ? ZERO : *globalReadB_0_1;
+
+  /* local write init pointers a */
+  localWriteA_0_0 = (__local VECTOR_TYPE *)(localMemory + localWriteOffsetA_0_0);
+  localWriteA_0_1 = (__local VECTOR_TYPE *)(localMemory + localWriteOffsetA_0_1);
+
+  /* local write init pointers b */
+  localWriteB_0_0 = (__local VECTOR_TYPE *)(localMemory + localWriteOffsetB_0_0);
+  localWriteB_0_1 = (__local VECTOR_TYPE *)(localMemory + localWriteOffsetB_0_1);
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  /* local write a */
+  *localWriteA_0_0 = a_0_0;
+  *localWriteA_0_1 = a_0_1;
+
+  /* local write b */
+  *localWriteB_0_0 = b_0_0;
+  *localWriteB_0_1 = b_0_1;
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  /* tail loop: macs */
+  sumIterL = (((sizeL % DEPTHU) + SPLITU - 1) / SPLITU);
+  while (sumIterL-- > 0) {
+
+    /* local read a */
+    rA[0] = localReadA[0*SG0I]; 
+    rA[1] = localReadA[1*SG0I]; 
+
+    /* local read b */
+    rB[0] = localReadB[0*SG1J]; 
+    rB[1] = localReadB[1*SG1J]; 
+
+    /* local read inc a */
+    localReadA += SPLITU*(MT0I/VECTOR_WIDTH+PAD);
+
+    /* local read inc b */
+    localReadB += SPLITU*(MT1J/VECTOR_WIDTH+PAD);
+    MAC_2x2
+  }
+  float type_mac_tmp;
+
+  /******************************************/
+  /* SplitU Reduction                       */
+  /******************************************/
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  /* SplitU: local write */
+  __local VECTOR_TYPE *localSplitU = (__local VECTOR_TYPE *)(localMemory);
+  localSplitU[lr0I + 0*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*0) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[0+0*(TT0I/VECTOR_WIDTH)+0*TT0I];
+  localSplitU[lr0I + 1*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*0) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[1+0*(TT0I/VECTOR_WIDTH)+0*TT0I];
+  localSplitU[lr0I + 0*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*1) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[0+0*(TT0I/VECTOR_WIDTH)+1*TT0I];
+  localSplitU[lr0I + 1*SG0I + (MT0I/VECTOR_WIDTH)*(lr1J*VECTOR_WIDTH + 0 + SG1J*VECTOR_WIDTH*1) + (MT0I*MT1J/VECTOR_WIDTH)*sgId] = rC[1+0*(TT0I/VECTOR_WIDTH)+1*TT0I];
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  /* SplitU: local read */
+  rC[  0] = localSplitU[serial+0*NUM_THREADS];
+
+
+  /* SplitU: reduction */
+  rC[  0] += localSplitU[serial+0*NUM_THREADS + 1*(MT0I*MT1J/VECTOR_WIDTH)];
+
+  rC[  0] += localSplitU[serial+0*NUM_THREADS + 2*(MT0I*MT1J/VECTOR_WIDTH)];
+
+  rC[  0] += localSplitU[serial+0*NUM_THREADS + 3*(MT0I*MT1J/VECTOR_WIDTH)];
+
+
+  /* SplitU: global write indices */
+  unsigned int localC0I = (serial % (MT0I/VECTOR_WIDTH))*VECTOR_WIDTH;
+  unsigned int localC1J = serial / (MT0I/VECTOR_WIDTH);
+  unsigned int globalC0I = wg0I*MT0I + localC0I;
+  unsigned int globalC1J = wg1J*MT1J + localC1J;
+  unsigned int globalCK = wgK;
+
+  /* SplitU: global write */
+  if (globalC0I < size0I) {  if (globalC1J + 0*CPS < size1J) {  TYPE_MAC_WRITE( C[ GLOBAL_C( (unsigned long) globalC0I, (unsigned long) globalC1J + 0*CPS, (unsigned long) globalCK) ], rC[0])} }
+
+}
+
+
+#endif
+
 
