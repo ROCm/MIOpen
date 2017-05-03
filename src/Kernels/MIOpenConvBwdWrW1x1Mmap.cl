@@ -540,3 +540,4 @@ __kernel void MIOpenCvBwdWrW_rdc(
 	}
 
 }
+
