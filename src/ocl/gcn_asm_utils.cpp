@@ -7,16 +7,16 @@
 #include <cstdio>
 #include  <cctype>
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 #include <ext/stdio_filebuf.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#endif // !WIN32
+#endif // !defined(_WIN32) && !defined(__APPLE__)
 
 static std::string CleanupPath(const char * p);
 static int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out);
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 class Pipe
 {
 public:
@@ -71,7 +71,7 @@ private:
         closed = true;
     }
 };
-#endif // !WIN32
+#endif // !defined(_WIN32) && !defined(__APPLE__)
 
 std::string GetGcnAssemblerPath()
 {
@@ -88,7 +88,7 @@ std::string GetGcnAssemblerPath()
 
 bool ValidateGcnAssembler()
 {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
     const auto path = GetGcnAssemblerPath();
     if (path.empty()) { return false; }
     if (!std::ifstream(path).good()) { return false; }
@@ -110,14 +110,14 @@ bool ValidateGcnAssembler()
             return clang_result_line.find("amdgcn") != std::string::npos;
         }
     }
-#endif // !WIN32
+#endif // !defined(_WIN32) && !defined(__APPLE__)
     return false;
 }
 
 static
 int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out)
 {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
     Pipe clang_stdin;
     Pipe clang_stdout;
 
@@ -190,7 +190,7 @@ int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, st
     (void)in;
     (void)out;
     return -1;
-#endif // !WIN32
+#endif // !defined(_WIN32) && !defined(__APPLE__)
 }
 
 int ExecuteGcnAssembler(std::vector<std::string>& args, std::istream* clang_stdin_content, std::ostream* clang_stdout_content)

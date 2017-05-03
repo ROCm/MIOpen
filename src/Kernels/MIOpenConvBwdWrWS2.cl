@@ -632,7 +632,7 @@ __kernel void MIOpenCvBwdWrW(
 			uint wei_i = iMod(l, oo, MLO_WEI_CHANNEL_STRIDE);
 #else
 			uint oo = l / MLO_WEI_CHANNEL_STRIDE;
-			uint wei_i = l & MLO_WEI_CHANNEL_STRIDE - 1);
+			uint wei_i = l & MLO_WEI_CHANNEL_STRIDE - 1;
 #endif
 #if (MLO_FILTER_SIZE0) & ((MLO_FILTER_SIZE0) - 1)
 			uint wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
