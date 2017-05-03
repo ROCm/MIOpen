@@ -54,22 +54,22 @@ __kernel void BatchNormFwdInferPerActivationEst(
 	
 	//move across the sections of an image in the mini_batch stack 
 	for(int img_offset = 0; img_offset < in_cstride; img_offset+=yglb_sz){
-		inImgIndex = img_offset+ygid;
-		if(inImgIndex < in_cstride){
-			adjIndex = Cidx + inImgIndex;//gamma and beta tensor index
-			mean = estimatedMean[adjIndex];
-			variance = estimatedVariance[adjIndex];
-			invVariance = rsqrt(fabs(variance + epsilon));
-			pvt_scale = scale[adjIndex];
-			pvt_bias = bias[adjIndex];
-			for(int n = 0; n < N; n++){
-				//per (x-dims) channel load a block of data into LDS
-				index = in_nstride*n+adjIndex;
-				elemStd = in[index] - mean;// (x_i - mean)
-				inhat = elemStd*invVariance;
-				out[index] = mad(pvt_scale, inhat, pvt_bias);//	y_i = gamma*x_hat + beta
-			}//end for
-		}//end if
+            inImgIndex = img_offset+ygid;
+            if(inImgIndex < in_cstride){
+                adjIndex = Cidx + inImgIndex;//gamma and beta tensor index
+                mean = estimatedMean[adjIndex];
+                variance = estimatedVariance[adjIndex];
+                invVariance = rsqrt(fabs(variance + epsilon));
+                pvt_scale = scale[adjIndex];
+                pvt_bias = bias[adjIndex];
+                for(int n = 0; n < N; n++){
+                        //per (x-dims) channel load a block of data into LDS
+                    index = in_nstride*n+adjIndex;
+                    elemStd = in[index] - mean;// (x_i - mean)
+                    inhat = elemStd*invVariance;
+                    out[index] = mad(pvt_scale, inhat, pvt_bias);//	y_i = gamma*x_hat + beta
+                }//end for
+            }//end if
 	}//end for(img_offset) //image mini_batch is processed
 }
 
@@ -106,49 +106,49 @@ __kernel void BatchNormFwdInferPerActivation(
 
 	//move across the sections of the image mini_batch stack 
 	for(int img_offset = 0; img_offset < in_cstride; img_offset+=yglb_sz){
-		mean_accum = 0.;
-		inImgIndex = ygid + img_offset;
+            mean_accum = 0.;
+            inImgIndex = ygid + img_offset;
 
-		// #1 calculate the mean
-		// iterating through the stack of images in the mini_batch
-		if(inImgIndex < in_cstride){
+            // #1 calculate the mean
+            // iterating through the stack of images in the mini_batch
+            if(inImgIndex < in_cstride){
 
-			adjIndex = Cidx + inImgIndex;//gamma and beta tensor index
-			for(int n = 0; n < N; n++) { 
-				index = in_nstride*n + adjIndex;
-				mean_accum += in[index];
-			}//end for(n)
-			mean_accum /= (_FLOAT) N;	
+                adjIndex = Cidx + inImgIndex;//gamma and beta tensor index
+                for(int n = 0; n < N; n++) { 
+                    index = in_nstride*n + adjIndex;
+                    mean_accum += in[index];
+                }//end for(n)
+                mean_accum /= (_FLOAT) N;	
 
-			elemStd = 0.;
-			variance_accum = 0.;
-			// #2 calculate the variances
-			// sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-			for(int n = 0; n < N; n++){
-				//per (x-dims) channel load a block of data into LDS
-				index = in_nstride*n + adjIndex;
-				elemStd = in[index] - mean_accum;// (x_i - mean) //this is reused but needs recalc
-				variance_accum = mad(elemStd, elemStd, variance_accum); // sum{ (x_i - mean)^2 }
-			}//end for(n)
-			variance_accum /= (_FLOAT) N; // (1/N)*sum{ (x_i - mean)^2 }
+                elemStd = 0.;
+                variance_accum = 0.;
+                // #2 calculate the variances
+                // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
+                for(int n = 0; n < N; n++){
+                    //per (x-dims) channel load a block of data into LDS
+                    index = in_nstride*n + adjIndex;
+                    elemStd = in[index] - mean_accum;// (x_i - mean) //this is reused but needs recalc
+                    variance_accum = mad(elemStd, elemStd, variance_accum); // sum{ (x_i - mean)^2 }
+                }//end for(n)
+                variance_accum /= (_FLOAT) N; // (1/N)*sum{ (x_i - mean)^2 }
 
-			// #3 add epsilon for numeric stability, sqr_root, and invert
-			invVariance= rsqrt(fabs(variance_accum - epsilon));
+                // #3 add epsilon for numeric stability, sqr_root, and invert
+                invVariance= rsqrt(fabs(variance_accum - epsilon));
 
-			// #4 apply the normalization
-			// x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
-			pvt_scale = scale[adjIndex];
-			pvt_bias = bias[adjIndex];
-			for(int n = 0; n < N; n++){
-				//per (x-dims) channel load a block of data into LDS
-				index = in_nstride*n + adjIndex;
-				elemStd = in[index] - mean_accum;// (x_i - mean)
-				inhat = elemStd*invVariance;
-				// #5 Gamma and Beta adjust
-				//	y_i = gamma*x_hat + beta
-				out[index] = mad(pvt_scale, inhat, pvt_bias);
-			}//end for(n)
-		}//end if(inImgIndex)
+                // #4 apply the normalization
+                // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
+                pvt_scale = scale[adjIndex];
+                pvt_bias = bias[adjIndex];
+                for(int n = 0; n < N; n++){
+                    //per (x-dims) channel load a block of data into LDS
+                    index = in_nstride*n + adjIndex;
+                    elemStd = in[index] - mean_accum;// (x_i - mean)
+                    inhat = elemStd*invVariance;
+                    // #5 Gamma and Beta adjust
+                    //	y_i = gamma*x_hat + beta
+                    out[index] = mad(pvt_scale, inhat, pvt_bias);
+                }//end for(n)
+            }//end if(inImgIndex)
 	}//end for(img_offset) //image mini_batch is processed
 }
 

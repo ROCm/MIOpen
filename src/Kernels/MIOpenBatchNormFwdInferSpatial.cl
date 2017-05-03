@@ -237,10 +237,15 @@ __kernel void BatchNormFwdInferSpatialNorm(
     // x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
     pvt_scale   = scale[xgid];
     pvt_bias    = bias[xgid];
+    
     unsigned int meanstashindex = cidx+ygrp_sz*ygrp_id+1;
-    mean        = out[meanstashindex];//load stashed mean
     unsigned int varstashindex = cidx+ygrp_sz*ygrp_id+3;
-    invVariance = out[varstashindex];
+    
+    if(meanstashindex >= MIO_BN_CHW*MIO_BN_N) printf("meanstashindex in norm is %d > || = %d\n", meanstashindex, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+    else mean        = out[meanstashindex];//load stashed mean
+    
+    if(varstashindex >= MIO_BN_CHW*MIO_BN_N) printf("varstashindex in norm is %d > || = %d\n", varstashindex, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+    else invVariance = out[varstashindex];
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
    
     if(ygid<MIO_BN_HW){
@@ -248,9 +253,8 @@ __kernel void BatchNormFwdInferSpatialNorm(
         for(int n = 0; n < MIO_BN_N; n++){//apply normalization
             index = n*MIO_BN_CHW + cidx + ygid;
             inhat = (in[index]-mean)*invVariance;
-            // #5 Gamma and Beta adjust
-            //y_i = gamma*x_hat + beta
-            out[index] =  mad(pvt_scale, inhat, pvt_bias);
+            if(index >= MIO_BN_CHW*MIO_BN_N) printf("index in norm is %d > || = %d\n", index, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+            else out[index] =  mad(pvt_scale, inhat, pvt_bias);// #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
         }//end for(n)
     }//end if(inImgIndex)
 }//end spatial norm
@@ -283,7 +287,8 @@ __kernel void BatchNormFwdInferSpatialFinalVariance(
         unsigned int offset     = gn*ygrp_sz+ylid;
         unsigned int varindex   = cidx + ygrp_sz*offset + 2;
         if(offset < yngrps){//modified to span larger number of groups
-            lcl_data[ylid] += varbuff[varindex];//load per group variance
+            if(varindex >= MIO_BN_CHW*MIO_BN_N) printf("varindex in final variance is %d > || = %d\n", varindex, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+            else lcl_data[ylid] += varbuff[varindex];//load per group variance
         }
         barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     }
@@ -299,7 +304,8 @@ __kernel void BatchNormFwdInferSpatialFinalVariance(
 
     if(ylid ==0){
         unsigned int varstashindex=cidx+ygrp_sz*ygrp_id+3;
-        varbuff[varstashindex] = invVariance;//stash mean
+        if(varstashindex >= MIO_BN_CHW*MIO_BN_N) printf("varstashindex in final variance is %d > || = %d\n", varstashindex, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+        else varbuff[varstashindex] = invVariance;//stash mean
     }
 }
 
@@ -327,7 +333,8 @@ __kernel void BatchNormFwdInferSpatialVariance(
     lcl_data[ylid] = 0.;//zero out local memory for variance   
 
     unsigned int meanstashindex = cidx + ygrp_sz*ygrp_id + 1;
-    mean = meanvarbuff[meanstashindex];//load stashed mean
+    if(meanstashindex >= MIO_BN_CHW*MIO_BN_N) printf("meanstashindex in variance is %d > || = %d\n", meanstashindex, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+    else mean = meanvarbuff[meanstashindex];//load stashed mean
 
     for(unsigned int n = 0; n < MIO_BN_N; n++){
         ncIdx = n*MIO_BN_CHW + cidx;
@@ -346,7 +353,8 @@ __kernel void BatchNormFwdInferSpatialVariance(
     }
     if(ylid==0){
         unsigned int varindex = cidx + ygrp_sz*ygrp_id + 2;
-        meanvarbuff[varindex] = lcl_data[0];//pre-stage for group reduction
+        if(varindex >= MIO_BN_CHW*MIO_BN_N) printf("varindex in variance is %d > || = %d\n", varindex, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+        else meanvarbuff[varindex] = lcl_data[0];//pre-stage for group reduction
     }
 }//end spatial variance
 
@@ -371,7 +379,8 @@ __kernel void BatchNormFwdInferSpatialFinalMean(
         unsigned int offset     = gn*ygrp_sz+ylid;
         unsigned int meanindex   = cidx + ygrp_sz*offset;
         if(offset < yngrps){//modify to span larger number of groups
-            lcl_data[ylid] += meanvarbuff[meanindex];
+            if(meanindex >= MIO_BN_CHW*MIO_BN_N) printf("meanindex in final mean is %d > || = %d\n", meanindex, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+            else lcl_data[ylid] += meanvarbuff[meanindex];
         }
         barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     }    
@@ -384,7 +393,8 @@ __kernel void BatchNormFwdInferSpatialFinalMean(
 
     if(ylid==0){
         unsigned int meanstashindex=xgid*MIO_BN_HW+ygrp_sz*ygrp_id+1;
-        meanvarbuff[meanstashindex] = mean;//stash mean
+        if(meanstashindex >= MIO_BN_CHW*MIO_BN_N) printf("meanstashindex in final mean is %d > || = %d\n", meanstashindex, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+        else meanvarbuff[meanstashindex] = mean;//stash mean
     }
 }
    
@@ -412,7 +422,8 @@ __kernel void BatchNormFwdInferSpatialMean(const __global _FLOAT    * __restrict
         ncIdx = n*MIO_BN_CHW + cidx;
         index = ncIdx + ygid;
         if(ygid<MIO_BN_HW){
-            lcl_data[ylid] += in[index];
+            if(index >= MIO_BN_CHW*MIO_BN_N) printf("index in mean is %d > || = %d\n", index, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+            else lcl_data[ylid] += in[index];
         }
     }    
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
@@ -426,7 +437,8 @@ __kernel void BatchNormFwdInferSpatialMean(const __global _FLOAT    * __restrict
     }
     if(ylid==0){
 	 unsigned int meanindex = cidx+ygrp_sz*ygrp_id;//making assumption of n=0 here
-	 meanbuff[meanindex] = lcl_data[0];//pre-stage for group reduction
+         if(meanindex >= MIO_BN_CHW*MIO_BN_N) printf("meanindex in mean is %d > || = %d\n", meanindex, MIO_BN_CHW*MIO_BN_N);//TODO: DLOWELL debug
+	 else meanbuff[meanindex] = lcl_data[0];//pre-stage for group reduction
     }
 }//end spatial mean kernel
 
