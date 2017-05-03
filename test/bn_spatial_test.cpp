@@ -13,7 +13,6 @@
 #include "verify.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
-#include <miopen.h>
 #include <cmath>
 #include <ctime>
 #include <iomanip>
@@ -26,16 +25,21 @@
 
 
 
+
 //****************************************************
 //FORWARD TRAIN
 //****************************************************
 template<class T>
 struct verify_forward_train_bn_spatial
 {
+    
+
+
     const tensor<T> input;
     const tensor<T> scale; 
     const tensor<T> shift;
-      
+    miopenTensorDescriptor_t ctensorIn;      
+    miopenTensorDescriptor_t derivedTensorIn;      
     
     std::tuple<tensor<T>,tensor<T>,tensor<T>,tensor<T>,tensor<T>> cpu() {
 #if (MIO_BN_TIME_EVERYTHING==1)
@@ -49,7 +53,10 @@ struct verify_forward_train_bn_spatial
         
         int rs_n_batch, rs_channels, rs_height, rs_width;
         auto  derivedBnDesc = miopen::TensorDescriptor{};
-        DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
+        
+        
+        
         std::tie(rs_n_batch, rs_channels, rs_height, rs_width) = miopen::tie4(derivedBnDesc.GetLengths());
         
         auto runMean    = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
@@ -183,7 +190,7 @@ struct verify_forward_train_bn_spatial
         
         int rs_n_batch, rs_channels, rs_height, rs_width;
         auto  derivedBnDesc = miopen::TensorDescriptor{};
-        DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
         std::tie(rs_n_batch, rs_channels, rs_height, rs_width) = miopen::tie4(derivedBnDesc.GetLengths());
         
         auto runMean    = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
@@ -528,7 +535,7 @@ struct verify_backward_bn_spatial_recalc
         
         int ss_n_batch, ss_channels, ss_height, ss_width;
         auto  derivedBnDesc = miopen::TensorDescriptor{};
-        DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_height, ss_width) = miopen::tie4(derivedBnDesc.GetLengths());
         
         auto dx_out  = tensor<T>{n_batch,channels,height,width};
@@ -692,7 +699,7 @@ struct verify_backward_bn_spatial_recalc
         
         int ss_n_batch, ss_channels, ss_height, ss_width;
         auto  derivedBnDesc = miopen::TensorDescriptor{};
-        DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_height, ss_width) = miopen::tie4(derivedBnDesc.GetLengths());
         
         auto dscale  = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
@@ -774,7 +781,7 @@ struct verify_backward_bn_spatial_use_saved
         
         int ss_n_batch, ss_channels, ss_height, ss_width;
         auto  derivedBnDesc = miopen::TensorDescriptor{};
-        DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_height, ss_width) = miopen::tie4(derivedBnDesc.GetLengths());
         
         auto dscale  = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
@@ -882,7 +889,7 @@ struct verify_backward_bn_spatial_use_saved
         
         int ss_n_batch, ss_channels, ss_height, ss_width;
         auto  derivedBnDesc = miopen::TensorDescriptor{};
-        DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_height, ss_width) = miopen::tie4(derivedBnDesc.GetLengths());
         
         auto dscale  = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
@@ -975,7 +982,7 @@ struct batch_norm_spatial_driver : test_driver
         
         int ssn, ssc, ssh, ssw;
         auto  derivedBnDesc = miopen::TensorDescriptor{};
-        DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
         std::tie(ssn, ssc, ssh, ssw) = miopen::tie4(derivedBnDesc.GetLengths());
 
         scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
@@ -1042,8 +1049,10 @@ struct batch_norm_spatial_driver : test_driver
 };
 
 
+
 int main(int argc, const char *argv[]){
     auto t_start = std::chrono::high_resolution_clock::now();
+    
     test_drive<batch_norm_spatial_driver<float>>(argc, argv);
     
     auto t_end = std::chrono::high_resolution_clock::now();
@@ -1051,4 +1060,6 @@ int main(int argc, const char *argv[]){
     std::cout << "Wall clock: full SPATIAL test pass time: "
               << std::chrono::duration<double>(t_end-t_start).count()
               << " seconds."<<std::endl;
+    
+    
 }
