@@ -19,4 +19,4 @@ namespace miopen {
         derivedBnDesc = TensorDescriptor(xDesc.GetType(),newlens.data(), xDesc.GetSize());
 
     }
-}
+}  // namespace miopen
