@@ -29,9 +29,13 @@ namespace miopen {
 	supported = ((in_c*in_n)%16 != 0) ? false : supported;
 	supported = ((wei_c*wei_k)%16 != 0) ? false : supported;
 	supported = ((out_c*out_n)%16 != 0) ? false : supported;
-	supported = (std::tie(in_h, in_w) != std::make_tuple(27, 27)) ? false : supported;
+
+	supported = (
+					(std::tie(in_h, in_w) != std::make_tuple(28, 28)) &&
+					(std::tie(in_h, in_w) != std::make_tuple(27, 27))
+				) ? false : supported;
+
 	supported = (std::tie(wei_h, wei_w) != std::make_tuple(5, 5)) ? false : supported;
-	supported = (std::tie(out_h, out_w) != std::make_tuple(27, 27)) ? false : supported;
 	supported = (std::tie(pad_h, pad_w, u, v) != std::make_tuple(2, 2, 1, 1)) ? false : supported;
 	supported = (yDesc.GetType() != miopenFloat) ? false : supported;
 

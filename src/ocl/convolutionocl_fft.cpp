@@ -163,6 +163,15 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	default: parms += " -DCFF_CGEMM_CHOICE_0=1"; break;
 	}
 
+	if( (in_h == 28) && (in_w == 28) )
+		parms += " -DCFF_IMG_SZ_28_28";
+	else if( (in_h == 27) && (in_w == 27) )
+		parms += " -DCFF_IMG_SZ_27_27";
+
+	parms += " -DCFF_IMG_H=";
+	parms += std::to_string(in_h);
+	parms += " -DCFF_IMG_W=";
+	parms += std::to_string(in_w);
 	parms += " -DCFF_BATCH=";
 	parms += std::to_string(in_n);
 	parms += " -DCFF_NFILTER=";
