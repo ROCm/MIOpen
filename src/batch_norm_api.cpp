@@ -12,7 +12,7 @@ miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_t derivedBn
 
     MIOPEN_LOG_FUNCTION(derivedBnDesc, xDesc, bn_mode);
     return miopen::try_([&] {    
-        DeriveBNTensorDescriptor(miopen::deref(derivedBnDesc),miopen::deref(xDesc),bn_mode);
+        miopen::DeriveBNTensorDescriptor(miopen::deref(derivedBnDesc),miopen::deref(xDesc),bn_mode);
     });
 }
     
