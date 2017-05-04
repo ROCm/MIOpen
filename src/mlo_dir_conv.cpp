@@ -533,7 +533,7 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 	// and able to correctly run with given parameters.
 	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
 	assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
-	return _pad0			== 1
+    bool winograd_constraints =  _pad0			== 1
 		&& _pad1			== 1
 		&& _kernel_size0	== 3
 		&& _kernel_size1	== 3
@@ -550,8 +550,16 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 		&& (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
 		&& (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
 		&& _n_inputs % 2	== 0
-		&& _n_inputs		>= 16
+	//	&& _n_inputs		>= 16 
 		&& _in_layout		== "NCHW";
+
+    if(name == "gfx803")
+        return winograd_constraints && _n_inputs >= 16;
+    if(name == "gfx900")
+        return winograd_constraints && _n_inputs >= 18; 
+    else 
+        return false;
+    
 		// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
 		// Actually, K<->C flpping is controlled by separate flag, so we can support either layout in both directions.
 }
