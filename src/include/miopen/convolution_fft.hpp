@@ -5,7 +5,7 @@ namespace miopen {
 
 struct FFTConvParams
 {
-	static const int TileSize(int in_h, int in_w)
+	static int TileSize(int in_h, int in_w)
 	{
 		int NX, NY, NXc, N;
 
