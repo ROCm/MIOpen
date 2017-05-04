@@ -17,6 +17,11 @@
 
 namespace miopen {
 
+    
+void DeriveBNTensorDescriptor(
+                TensorDescriptor& derivedBnDesc, 
+                const TensorDescriptor& xDesc, 
+                miopenBatchNormMode_t bn_mode);
 
 void BatchNormForwardInference(
 		Handle&			handle,
