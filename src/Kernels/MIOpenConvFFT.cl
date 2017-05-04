@@ -1,3 +1,1111 @@
+
+#ifdef CFF_IMG_SZ_14_14
+
+static __constant float2 twiddles[17] = {
+(float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
+(float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
+(float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
+(float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
+(float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
+(float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
+(float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
+(float2)(9.3969262078590842790504211734514683e-01f, -3.4202014332566871290808308003761340e-01f),
+(float2)(7.6604444311897801345168090847437270e-01f, -6.4278760968653925189641995530109853e-01f),
+(float2)(7.6604444311897801345168090847437270e-01f, -6.4278760968653925189641995530109853e-01f),
+(float2)(1.7364817766693041445336120887077413e-01f, -9.8480775301220802031565426659653895e-01f),
+(float2)(5.0000000000000011102230246251565404e-01f, -8.6602540378443859658830206171842292e-01f),
+(float2)(-4.9999999999999977795539507496869192e-01f, -8.6602540378443870761060452423407696e-01f),
+(float2)(1.7364817766693041445336120887077413e-01f, -9.8480775301220802031565426659653895e-01f),
+(float2)(-9.3969262078590831688273965482949279e-01f, -3.4202014332566887944153677381109446e-01f),
+(float2)(-1.7364817766693030343105874635512009e-01f, -9.8480775301220802031565426659653895e-01f),
+(float2)(-9.3969262078590842790504211734514683e-01f, 3.4202014332566865739693184877978638e-01f),
+};
+
+
+#define fptype float
+
+#define fvect2 float2
+
+#define C3QA 0.50000000000000000000000000000000f
+#define C3QB 0.86602540378443864676372317075294f
+
+__attribute__((always_inline)) void 
+FwdRad3B1(float2 *R0, float2 *R1, float2 *R2)
+{
+
+	float TR0, TI0, TR1, TI1, TR2, TI2;
+
+	TR0 = (*R0).x + (*R1).x + (*R2).x;
+	TR1 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) + C3QB*((*R1).y - (*R2).y);
+	TR2 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) - C3QB*((*R1).y - (*R2).y);
+	
+	TI0 = (*R0).y + (*R1).y + (*R2).y;
+	TI1 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) - C3QB*((*R1).x - (*R2).x);
+	TI2 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) + C3QB*((*R1).x - (*R2).x);
+	
+	((*R0).x) = TR0; ((*R0).y) = TI0;
+	((*R1).x) = TR1; ((*R1).y) = TI1;
+	((*R2).x) = TR2; ((*R2).y) = TI2;
+	
+}
+
+__attribute__((always_inline)) void 
+InvRad3B1(float2 *R0, float2 *R1, float2 *R2)
+{
+
+	float TR0, TI0, TR1, TI1, TR2, TI2;
+
+	TR0 = (*R0).x + (*R1).x + (*R2).x;
+	TR1 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) - C3QB*((*R1).y - (*R2).y);
+	TR2 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) + C3QB*((*R1).y - (*R2).y);
+	
+	TI0 = (*R0).y + (*R1).y + (*R2).y;
+	TI1 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) + C3QB*((*R1).x - (*R2).x);
+	TI2 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) - C3QB*((*R1).x - (*R2).x);
+	
+	((*R0).x) = TR0; ((*R0).y) = TI0;
+	((*R1).x) = TR1; ((*R1).y) = TI1;
+	((*R2).x) = TR2; ((*R2).y) = TI2;
+	
+}
+
+__attribute__((always_inline)) void 
+FwdRad6B1(float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	float TR0, TI0, TR1, TI1, TR2, TI2, TR3, TI3, TR4, TI4, TR5, TI5;
+
+	TR0 = (*R0).x + (*R2).x + (*R4).x;
+	TR2 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) + C3QB*((*R2).y - (*R4).y);
+	TR4 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) - C3QB*((*R2).y - (*R4).y);
+	
+	TI0 = (*R0).y + (*R2).y + (*R4).y;
+	TI2 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) - C3QB*((*R2).x - (*R4).x);
+	TI4 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) + C3QB*((*R2).x - (*R4).x);
+	
+	TR1 = (*R1).x + (*R3).x + (*R5).x;
+	TR3 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) + C3QB*((*R3).y - (*R5).y);
+	TR5 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) - C3QB*((*R3).y - (*R5).y);
+	
+	TI1 = (*R1).y + (*R3).y + (*R5).y;
+	TI3 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) - C3QB*((*R3).x - (*R5).x);
+	TI5 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) + C3QB*((*R3).x - (*R5).x);
+	
+	(*R0).x = TR0 + TR1;
+	(*R1).x = TR2 + ( C3QA*TR3 + C3QB*TI3);
+	(*R2).x = TR4 + (-C3QA*TR5 + C3QB*TI5);
+	
+	(*R0).y = TI0 + TI1;
+	(*R1).y = TI2 + (-C3QB*TR3 + C3QA*TI3);
+	(*R2).y = TI4 + (-C3QB*TR5 - C3QA*TI5);
+	
+	(*R3).x = TR0 - TR1;
+	(*R4).x = TR2 - ( C3QA*TR3 + C3QB*TI3);
+	(*R5).x = TR4 - (-C3QA*TR5 + C3QB*TI5);
+	
+	(*R3).y = TI0 - TI1;
+	(*R4).y = TI2 - (-C3QB*TR3 + C3QA*TI3);
+	(*R5).y = TI4 - (-C3QB*TR5 - C3QA*TI5);
+	
+	
+}
+
+__attribute__((always_inline)) void 
+InvRad6B1(float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	float TR0, TI0, TR1, TI1, TR2, TI2, TR3, TI3, TR4, TI4, TR5, TI5;
+
+	TR0 = (*R0).x + (*R2).x + (*R4).x;
+	TR2 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) - C3QB*((*R2).y - (*R4).y);
+	TR4 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) + C3QB*((*R2).y - (*R4).y);
+	
+	TI0 = (*R0).y + (*R2).y + (*R4).y;
+	TI2 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) + C3QB*((*R2).x - (*R4).x);
+	TI4 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) - C3QB*((*R2).x - (*R4).x);
+	
+	TR1 = (*R1).x + (*R3).x + (*R5).x;
+	TR3 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) - C3QB*((*R3).y - (*R5).y);
+	TR5 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) + C3QB*((*R3).y - (*R5).y);
+	
+	TI1 = (*R1).y + (*R3).y + (*R5).y;
+	TI3 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) + C3QB*((*R3).x - (*R5).x);
+	TI5 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) - C3QB*((*R3).x - (*R5).x);
+	
+	(*R0).x = TR0 + TR1;
+	(*R1).x = TR2 + ( C3QA*TR3 - C3QB*TI3);
+	(*R2).x = TR4 + (-C3QA*TR5 - C3QB*TI5);
+	
+	(*R0).y = TI0 + TI1;
+	(*R1).y = TI2 + ( C3QB*TR3 + C3QA*TI3);
+	(*R2).y = TI4 + ( C3QB*TR5 - C3QA*TI5);
+	
+	(*R3).x = TR0 - TR1;
+	(*R4).x = TR2 - ( C3QA*TR3 - C3QB*TI3);
+	(*R5).x = TR4 - (-C3QA*TR5 - C3QB*TI5);
+	
+	(*R3).y = TI0 - TI1;
+	(*R4).y = TI2 - ( C3QB*TR3 + C3QA*TI3);
+	(*R5).y = TI4 - ( C3QB*TR5 - C3QA*TI5);
+	
+	
+}
+
+__attribute__((always_inline)) void
+FwdPass0(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	(*R0) = bufIn[inOffset + ( me +  0 )];
+	(*R1) = bufIn[inOffset + ( me +  3 )];
+	(*R2) = bufIn[inOffset + ( me +  6 )];
+	(*R3) = bufIn[inOffset + ( me +  9 )];
+	(*R4) = bufIn[inOffset + ( me + 12 )];
+	(*R5) = bufIn[inOffset + ( me + 15 )];
+
+	FwdRad6B1(R0, R1, R2, R3, R4, R5);
+
+	barrier(CLK_LOCAL_MEM_FENCE);	
+
+	bufOut[outOffset + ( me*6 + 0 )] = (*R0);
+	bufOut[outOffset + ( me*6 + 1 )] = (*R1);
+	bufOut[outOffset + ( me*6 + 2 )] = (*R2);
+	bufOut[outOffset + ( me*6 + 3 )] = (*R3);
+	bufOut[outOffset + ( me*6 + 4 )] = (*R4);
+	bufOut[outOffset + ( me*6 + 5 )] = (*R5);
+
+}
+
+
+__attribute__((always_inline)) void
+FwdPass1(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	(*R0) = bufOut[outOffset + ( me*2 + 0 +  0 )];
+	(*R3) = bufOut[outOffset + ( me*2 + 1 +  0 )];
+	(*R1) = bufOut[outOffset + ( me*2 + 0 +  6 )];
+	(*R4) = bufOut[outOffset + ( me*2 + 1 +  6 )];
+	(*R2) = bufOut[outOffset + ( me*2 + 0 + 12 )];
+	(*R5) = bufOut[outOffset + ( me*2 + 1 + 12 )];
+
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 0)%6) + 0];
+		float TR, TI;
+		TR = (W.x * (*R1).x) - (W.y * (*R1).y);
+		TI = (W.y * (*R1).x) + (W.x * (*R1).y);
+		(*R1).x = TR;
+		(*R1).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 0)%6) + 1];
+		float TR, TI;
+		TR = (W.x * (*R2).x) - (W.y * (*R2).y);
+		TI = (W.y * (*R2).x) + (W.x * (*R2).y);
+		(*R2).x = TR;
+		(*R2).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 1)%6) + 0];
+		float TR, TI;
+		TR = (W.x * (*R4).x) - (W.y * (*R4).y);
+		TI = (W.y * (*R4).x) + (W.x * (*R4).y);
+		(*R4).x = TR;
+		(*R4).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 1)%6) + 1];
+		float TR, TI;
+		TR = (W.x * (*R5).x) - (W.y * (*R5).y);
+		TI = (W.y * (*R5).x) + (W.x * (*R5).y);
+		(*R5).x = TR;
+		(*R5).y = TI;
+	}
+
+	FwdRad3B1(R0, R1, R2);
+	FwdRad3B1(R3, R4, R5);
+
+
+	bufOut[outOffset + ( 2*me + 0 +  0 )] = (*R0);
+	bufOut[outOffset + ( 2*me + 1 +  0 )] = (*R3);
+	bufOut[outOffset + ( 2*me + 0 +  6 )] = (*R1);
+	bufOut[outOffset + ( 2*me + 1 +  6 )] = (*R4);
+	bufOut[outOffset + ( 2*me + 0 + 12 )] = (*R2);
+	bufOut[outOffset + ( 2*me + 1 + 12 )] = (*R5);
+
+}
+
+
+__attribute__((always_inline)) void
+FwdPass1b(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	(*R0) = bufIn[inOffset + ( 3*me + 1 )];
+	(*R1) = bufIn[inOffset + ( 3*me + 2 )];
+	(*R2) = bufIn[inOffset + ( 3*me + 3 )];
+	(*R3) = bufIn[inOffset + ( 18 - (3*me + 1 ) )];
+	(*R4) = bufIn[inOffset + ( 18 - (3*me + 2 ) )];
+	(*R5) = bufIn[inOffset + ( 18 - (3*me + 3 ) )];
+	
+	float2 dc;
+	if(me < 1)
+	{
+		dc = bufIn[inOffset];
+	}
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	bufOut[outOffset +  0 + ( 3*me + 1 )] = (float2)( ((*R0).x + (*R3).x)*0.5, +((*R0).y - (*R3).y)*0.5 );
+	bufOut[outOffset +  0 + ( 3*me + 2 )] = (float2)( ((*R1).x + (*R4).x)*0.5, +((*R1).y - (*R4).y)*0.5 );
+	bufOut[outOffset +  0 + ( 3*me + 3 )] = (float2)( ((*R2).x + (*R5).x)*0.5, +((*R2).y - (*R5).y)*0.5 );
+
+	bufOut[outOffset + 10 + ( 3*me + 1 )] = (float2)( ((*R0).y + (*R3).y)*0.5, +(-(*R0).x + (*R3).x)*0.5 );
+	bufOut[outOffset + 10 + ( 3*me + 2 )] = (float2)( ((*R1).y + (*R4).y)*0.5, +(-(*R1).x + (*R4).x)*0.5 );
+	bufOut[outOffset + 10 + ( 3*me + 3 )] = (float2)( ((*R2).y + (*R5).y)*0.5, +(-(*R2).x + (*R5).x)*0.5 );	
+	
+	if(me < 1)
+	{
+		bufOut[outOffset +  0] = (float2)(dc.x, 0);
+		bufOut[outOffset + 10] = (float2)(dc.y, 0);
+	}	
+	
+}
+
+
+__attribute__((always_inline)) void
+FwdPass2(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	(*R0) = bufIn[inOffset + ( me +  0 )*10];
+	(*R1) = bufIn[inOffset + ( me +  3 )*10];
+	(*R2) = bufIn[inOffset + ( me +  6 )*10];
+	(*R3) = bufIn[inOffset + ( me +  9 )*10];
+	(*R4) = bufIn[inOffset + ( me + 12 )*10];
+	(*R5) = bufIn[inOffset + ( me + 15 )*10];
+
+
+	FwdRad6B1(R0, R1, R2, R3, R4, R5);
+
+	barrier(CLK_LOCAL_MEM_FENCE);	
+
+
+	bufOut[outOffset + ( me*6 + 0 )*10] = (*R0);
+	bufOut[outOffset + ( me*6 + 1 )*10] = (*R1);
+	bufOut[outOffset + ( me*6 + 2 )*10] = (*R2);
+	bufOut[outOffset + ( me*6 + 3 )*10] = (*R3);
+	bufOut[outOffset + ( me*6 + 4 )*10] = (*R4);
+	bufOut[outOffset + ( me*6 + 5 )*10] = (*R5);
+
+
+}
+
+
+__attribute__((always_inline)) void
+FwdPass3(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	(*R0) = bufOut[outOffset + ( me*2 + 0 +  0 )*10];
+	(*R3) = bufOut[outOffset + ( me*2 + 1 +  0 )*10];
+	(*R1) = bufOut[outOffset + ( me*2 + 0 +  6 )*10];
+	(*R4) = bufOut[outOffset + ( me*2 + 1 +  6 )*10];
+	(*R2) = bufOut[outOffset + ( me*2 + 0 + 12 )*10];
+	(*R5) = bufOut[outOffset + ( me*2 + 1 + 12 )*10];
+
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 0)%6) + 0];
+		float TR, TI;
+		TR = (W.x * (*R1).x) - (W.y * (*R1).y);
+		TI = (W.y * (*R1).x) + (W.x * (*R1).y);
+		(*R1).x = TR;
+		(*R1).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 0)%6) + 1];
+		float TR, TI;
+		TR = (W.x * (*R2).x) - (W.y * (*R2).y);
+		TI = (W.y * (*R2).x) + (W.x * (*R2).y);
+		(*R2).x = TR;
+		(*R2).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 1)%6) + 0];
+		float TR, TI;
+		TR = (W.x * (*R4).x) - (W.y * (*R4).y);
+		TI = (W.y * (*R4).x) + (W.x * (*R4).y);
+		(*R4).x = TR;
+		(*R4).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 1)%6) + 1];
+		float TR, TI;
+		TR = (W.x * (*R5).x) - (W.y * (*R5).y);
+		TI = (W.y * (*R5).x) + (W.x * (*R5).y);
+		(*R5).x = TR;
+		(*R5).y = TI;
+	}
+
+	FwdRad3B1(R0, R1, R2);
+	FwdRad3B1(R3, R4, R5);
+
+
+	bufOut[outOffset + ( 2*me + 0 +  0 )*10] = (*R0);
+	bufOut[outOffset + ( 2*me + 1 +  0 )*10] = (*R3);
+	bufOut[outOffset + ( 2*me + 0 +  6 )*10] = (*R1);
+	bufOut[outOffset + ( 2*me + 1 +  6 )*10] = (*R4);
+	bufOut[outOffset + ( 2*me + 0 + 12 )*10] = (*R2);
+	bufOut[outOffset + ( 2*me + 1 + 12 )*10] = (*R5);
+
+
+}
+
+
+__attribute__((always_inline)) void
+FwdPass4(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __global float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+	if(me < 120)
+	{
+		(*R0) = bufIn[inOffset + ( me + 0*120 )];
+		(*R1) = bufIn[inOffset + ( me + 1*120 )];
+		(*R2) = bufIn[inOffset + ( me + 2*120 )];
+		(*R3) = bufIn[inOffset + ( me + 3*120 )];
+		(*R4) = bufIn[inOffset + ( me + 4*120 )];
+		(*R5) = bufIn[inOffset + ( me + 5*120 )];
+		
+		bufOut[outOffset + ( me + 0*120 )] = (*R0);
+		bufOut[outOffset + ( me + 1*120 )] = (*R1);
+		bufOut[outOffset + ( me + 2*120 )] = (*R2);
+		bufOut[outOffset + ( me + 3*120 )] = (*R3);
+		bufOut[outOffset + ( me + 4*120 )] = (*R4);
+		bufOut[outOffset + ( me + 5*120 )] = (*R5);
+	}
+
+}
+
+
+__attribute__((always_inline)) void
+FwdPassIN(uint me, uint inOffset, uint outOffset, __global const float *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+	(*R0) = (float2)(0, 0);
+	(*R1) = (float2)(0, 0);
+	(*R2) = (float2)(0, 0);
+	(*R3) = (float2)(0, 0);
+	(*R4) = (float2)(0, 0);
+	(*R5) = (float2)(0, 0);	
+
+	if(me < 120)
+	{
+		bufOut[outOffset + me + 0*120] = (*R0);
+		bufOut[outOffset + me + 1*120] = (*R1);
+		bufOut[outOffset + me + 2*120] = (*R2);
+		bufOut[outOffset + me + 3*120] = (*R3);
+		bufOut[outOffset + me + 4*120] = (*R4);
+		bufOut[outOffset + me + 5*120] = (*R5);		
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if((me%16) < CFF_IMG_W)
+	{	
+	(*R0).x = bufIn[inOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) +  0 + 0*2*CFF_IMG_W )];
+	(*R1).x = bufIn[inOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) +  0 + 1*2*CFF_IMG_W )];
+	(*R2).x = bufIn[inOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) +  0 + 2*2*CFF_IMG_W )];
+	
+	(*R0).y = bufIn[inOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) + CFF_IMG_W + 0*2*CFF_IMG_W )];
+	(*R1).y = bufIn[inOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) + CFF_IMG_W + 1*2*CFF_IMG_W )];
+	(*R2).y = bufIn[inOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) + CFF_IMG_W + 2*2*CFF_IMG_W )];
+	
+	
+	bufOut[outOffset + (me/32)*180 + (1 +  0 + ((me%32)/16)*3 + 0)*18 + (2 + (me%16))] = (*R0);
+	bufOut[outOffset + (me/32)*180 + (1 +  0 + ((me%32)/16)*3 + 1)*18 + (2 + (me%16))] = (*R1);
+	bufOut[outOffset + (me/32)*180 + (1 +  0 + ((me%32)/16)*3 + 2)*18 + (2 + (me%16))] = (*R2);
+	}
+	
+	if((me%32) < CFF_IMG_W)
+	{
+	(*R3).x = bufIn[inOffset + ( (me%32) + 12*CFF_IMG_W )];
+	(*R3).y = bufIn[inOffset + ( (me%32) + 13*CFF_IMG_W )];
+	
+	bufOut[outOffset + (me/32)*180 + (1 +  6 )*18 + (2 + (me%32))] = (*R3);
+	}
+	
+}
+
+
+
+
+__attribute__((always_inline)) void
+FwdPassWE(uint me, uint inOffset, uint outOffset, __global const float *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+	uint met = me%32;
+
+	(*R0) = (float2)(0, 0);
+	(*R1) = (float2)(0, 0);
+	(*R2) = (float2)(0, 0);
+	(*R3) = (float2)(0, 0);
+	(*R4) = (float2)(0, 0);
+	(*R5) = (float2)(0, 0);	
+	
+	__local float *ldsf = (__local float *)(bufOut + outOffset);
+	
+	ldsf[(me/32)*180*2 + met] = (*R0).x;
+	
+	if(met < 25)
+	{
+		(*R0).x = bufIn[inOffset + (me/32)*25 + met];		
+		ldsf[(me/32)*180*2 + met + 5] = (*R0).x;
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	if(met < 30)
+	{	
+		(*R0).x = ldsf[(me/32)*180*2 + 5 + (24 - (met/10)*10 - (met%2)*5 - ((met%10)/2))];
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	if(me < 120)
+	{
+		bufOut[outOffset + me + 0*120] = (*R5);
+		bufOut[outOffset + me + 1*120] = (*R5);
+		bufOut[outOffset + me + 2*120] = (*R5);
+		bufOut[outOffset + me + 3*120] = (*R5);
+		bufOut[outOffset + me + 4*120] = (*R5);
+		bufOut[outOffset + me + 5*120] = (*R5);		
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	if(met < 30)
+	{	
+		ldsf[(me/32)*180*2 + (met/10)*18*2 + met%10] = (*R0).x;
+	}	
+	
+	(*R0) = (float2)(0, 0);
+}
+
+
+__attribute__((always_inline)) void
+FwdPass(uint me, __local float2 *lds, __global float2 *lwbOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+	uint met = me%32;
+	
+	if(met < 27)
+	{
+		FwdPass0(me%3, (me/32)*180 + (met/3)*18, (me/32)*180 + (met/3)*18, lds, lds, R0, R1, R2, R3, R4, R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(met < 27)
+	{	
+		FwdPass1(me%3, (me/32)*180 + (met/3)*18, (me/32)*180 + (met/3)*18, lds, lds, R0, R1, R2, R3, R4, R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(met < 27)
+	{	
+		FwdPass1b(me%3, (me/32)*180 + (met/3)*18, (me/32)*180 + (met/3)*20, lds, lds, R0, R1, R2, R3, R4, R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(met < 30)
+	{		
+		FwdPass2(me%3, (me/32)*180 + (met/3), (me/32)*180 + (met/3), lds, lds, R0, R1, R2, R3, R4, R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(met < 30)
+	{		
+		FwdPass3(me%3, (me/32)*180 + (met/3), (me/32)*180 + (met/3), lds, lds, R0, R1, R2, R3, R4, R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	
+	FwdPass4(me, 0, 0, lds, lwbOut, R0, R1, R2, R3, R4, R5);	
+}
+
+
+__kernel __attribute__((reqd_work_group_size (128,1,1)))
+void MIOpenConvFFT_fwd_in(__global const float * restrict gbIn, __global float2 * restrict gbOut )
+{
+	uint me = get_local_id(0);
+	uint batch = get_group_id(0);
+
+	
+	__local float2 lds[720];
+
+	__global const float *lwbIn;
+	__global float2 *lwbOut;
+
+	float2 R0, R1, R2, R3, R4, R5;
+
+	lwbIn = gbIn + batch*CFF_IMG_W*CFF_IMG_H*4;
+	lwbOut = gbOut + batch*720;
+
+	FwdPassIN(me, (me/32)*CFF_IMG_W*CFF_IMG_H, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5);
+	
+	barrier(CLK_LOCAL_MEM_FENCE);	
+	
+	FwdPass(me, lds, lwbOut, &R0, &R1, &R2, &R3, &R4, &R5);
+}
+
+
+__kernel __attribute__((reqd_work_group_size (128,1,1)))
+void MIOpenConvFFT_fwd_we(__global const float * restrict gbIn, __global float2 * restrict gbOut )
+{
+	uint me = get_local_id(0);
+	uint batch = get_group_id(0);
+
+	__local float2 lds[720];
+
+	__global const float *lwbIn;
+	__global float2 *lwbOut;
+
+	float2 R0, R1, R2, R3, R4, R5;
+
+	lwbIn = gbIn + batch*25*4;
+	lwbOut = gbOut + 180*CFF_CHANNELS*CFF_BATCH + batch*720;
+
+	FwdPassWE(me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5);
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	FwdPass(me, lds, lwbOut, &R0, &R1, &R2, &R3, &R4, &R5);
+}
+
+
+
+
+__kernel __attribute__((reqd_work_group_size (256,1,1)))
+void MIOpenConvFFT_transpose_in(__global float2 * restrict gb)
+{
+	uint me = get_local_id(0);
+	uint batch = get_group_id(0);
+
+	__local float2 lds[256];
+
+	uint iOffset;
+	uint oOffset;
+	__global const float2 *lwbIn;
+	__global float2 *lwbOut;
+
+	float2 R0;
+
+	uint bm = batch%12;
+	uint bd = batch/12;
+	
+	iOffset = bm*16 + bd*180*16; 
+	oOffset = CFF_HALFW + bm*(CFF_CHANNELS*CFF_BATCH + 64)*16 + bd*16; 
+	
+	lwbIn = gb + iOffset;
+	lwbOut = gb + oOffset;
+	
+	if(bm == 11)
+	{
+		if(me < 64)
+		{
+			R0 = lwbIn[(me%4) + (me/4)*180];
+			lds[(me%4)*16 + (me/4)] = R0;
+		}
+	}
+	else
+	{
+		R0 = lwbIn[(me%16) + (me/16)*180];
+		lds[(me%16)*16 + (me/16)] = R0;
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(bm == 11)
+	{
+		if(me < 64)
+		{
+			R0 = lds[me];
+			lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;		
+		}
+	}
+	else
+	{
+		R0 = lds[me];
+		lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;
+	}
+
+}
+
+
+
+__kernel __attribute__((reqd_work_group_size (256,1,1)))
+void MIOpenConvFFT_transpose_we(__global float2 * restrict gb)
+{
+	uint me = get_local_id(0);
+	uint batch = get_group_id(0);
+
+	__local float2 lds[256];
+
+	uint iOffset;
+	uint oOffset;
+	__global const float2 *lwbIn;
+	__global float2 *lwbOut;
+
+	float2 R0;
+
+	uint bm = batch%12;
+	uint bd = batch/12;
+	
+	iOffset = 180*CFF_CHANNELS*CFF_BATCH + bm*16 + bd*180*16; 
+	oOffset = CFF_HALFW + 180*(CFF_CHANNELS*CFF_BATCH + 64) + bm*(CFF_CHANNELS*CFF_NFILTER + 64)*16 + bd*16;
+	
+	lwbIn = gb + iOffset;
+	lwbOut = gb + oOffset;
+	
+	if(bm == 11)
+	{
+		if(me < 64)
+		{
+			R0 = lwbIn[(me%4) + (me/4)*180];
+			lds[(me%4)*16 + (me/4)] = R0;
+		}
+	}
+	else
+	{
+		R0 = lwbIn[(me%16) + (me/16)*180];
+		lds[(me%16)*16 + (me/16)] = R0;
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(bm == 11)
+	{
+		if(me < 64)
+		{
+			R0 = lds[me];
+			lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;		
+		}
+	}
+	else
+	{
+		R0 = lds[me];
+		lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
+	}
+
+}
+
+
+
+__kernel __attribute__((reqd_work_group_size (256,1,1)))
+void MIOpenConvFFT_transpose_out(__global float2 * restrict gb)
+{
+	uint me = get_local_id(0);
+	uint batch = get_group_id(0);
+
+	__local float2 lds[256];
+
+	uint iOffset;
+	uint oOffset;
+	__global const float2 *lwbIn;
+	__global float2 *lwbOut;
+
+	float2 R0;
+
+	uint bm = batch%12;
+	uint bd = batch/12;
+	
+	iOffset = bm*(CFF_NFILTER*CFF_BATCH + 64)*16 + bd*16;	
+	oOffset = CFF_HALFW + bm*16 + bd*180*16;
+	
+	lwbIn = gb + iOffset;
+	lwbOut = gb + oOffset;
+	
+	if(bm == 11)
+	{
+		if(me < 64)
+		{
+			R0 = lwbIn[(me%16) + (me/16)*(CFF_BATCH*CFF_NFILTER + 64)];		
+			lds[(me%16)*4 + (me/16)] = R0;
+		}
+	}
+	else
+	{
+		R0 = lwbIn[(me%16) + (me/16)*(CFF_BATCH*CFF_NFILTER + 64)];		
+		lds[(me%16)*16 + (me/16)] = R0;
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(bm == 11)
+	{
+		if(me < 64)
+		{
+			R0 = lds[me];
+			lwbOut[(me%4) + (me/4)*180] = R0;
+		}
+	}
+	else
+	{
+		R0 = lds[me];
+		lwbOut[(me%16) + (me/16)*180] = R0;
+	}
+
+}
+
+
+
+__attribute__((always_inline)) void
+InvPassA(uint me, uint inOffset, uint outOffset, __global const float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	if(me < 120)
+	{
+		(*R0) = bufIn[inOffset + ( me + 0*120 )];
+		(*R1) = bufIn[inOffset + ( me + 1*120 )];
+		(*R2) = bufIn[inOffset + ( me + 2*120 )];
+		(*R3) = bufIn[inOffset + ( me + 3*120 )];
+		(*R4) = bufIn[inOffset + ( me + 4*120 )];
+		(*R5) = bufIn[inOffset + ( me + 5*120 )];
+		
+		bufOut[outOffset + ( me + 0*120 )] = (*R0);
+		bufOut[outOffset + ( me + 1*120 )] = (*R1);
+		bufOut[outOffset + ( me + 2*120 )] = (*R2);
+		bufOut[outOffset + ( me + 3*120 )] = (*R3);
+		bufOut[outOffset + ( me + 4*120 )] = (*R4);
+		bufOut[outOffset + ( me + 5*120 )] = (*R5);
+	}
+	
+}
+
+__attribute__((always_inline)) void
+InvPass0(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+
+	(*R0) = bufIn[inOffset + ( me +  0 )*10];
+	(*R1) = bufIn[inOffset + ( me +  3 )*10];
+	(*R2) = bufIn[inOffset + ( me +  6 )*10];
+	(*R3) = bufIn[inOffset + ( me +  9 )*10];
+	(*R4) = bufIn[inOffset + ( me + 12 )*10];
+	(*R5) = bufIn[inOffset + ( me + 15 )*10];
+
+	InvRad6B1(R0, R1, R2, R3, R4, R5);
+
+	barrier(CLK_LOCAL_MEM_FENCE);	
+
+	bufOut[outOffset + ( me*6 + 0 )*10] = (*R0);
+	bufOut[outOffset + ( me*6 + 1 )*10] = (*R1);
+	bufOut[outOffset + ( me*6 + 2 )*10] = (*R2);
+	bufOut[outOffset + ( me*6 + 3 )*10] = (*R3);
+	bufOut[outOffset + ( me*6 + 4 )*10] = (*R4);
+	bufOut[outOffset + ( me*6 + 5 )*10] = (*R5);
+	
+}
+
+__attribute__((always_inline)) void
+InvPass1(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	(*R0) = bufIn[inOffset + ( me*2 + 0 +  0 )*10];
+	(*R3) = bufIn[inOffset + ( me*2 + 1 +  0 )*10];
+	(*R1) = bufIn[inOffset + ( me*2 + 0 +  6 )*10];
+	(*R4) = bufIn[inOffset + ( me*2 + 1 +  6 )*10];
+	(*R2) = bufIn[inOffset + ( me*2 + 0 + 12 )*10];
+	(*R5) = bufIn[inOffset + ( me*2 + 1 + 12 )*10];
+
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 0)%6) + 0];
+		float TR, TI;
+		TR =  (W.x * (*R1).x) + (W.y * (*R1).y);
+		TI = -(W.y * (*R1).x) + (W.x * (*R1).y);
+		(*R1).x = TR;
+		(*R1).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 0)%6) + 1];
+		float TR, TI;
+		TR =  (W.x * (*R2).x) + (W.y * (*R2).y);
+		TI = -(W.y * (*R2).x) + (W.x * (*R2).y);
+		(*R2).x = TR;
+		(*R2).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 1)%6) + 0];
+		float TR, TI;
+		TR =  (W.x * (*R4).x) + (W.y * (*R4).y);
+		TI = -(W.y * (*R4).x) + (W.x * (*R4).y);
+		(*R4).x = TR;
+		(*R4).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 1)%6) + 1];
+		float TR, TI;
+		TR =  (W.x * (*R5).x) + (W.y * (*R5).y);
+		TI = -(W.y * (*R5).x) + (W.x * (*R5).y);
+		(*R5).x = TR;
+		(*R5).y = TI;
+	}
+
+	InvRad3B1(R0, R1, R2);
+	InvRad3B1(R3, R4, R5);
+
+
+	bufOut[outOffset + ( 2*me + 0 +  0 )*10] = (*R0) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 1 +  0 )*10] = (*R3) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 0 +  6 )*10] = (*R1) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 1 +  6 )*10] = (*R4) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 0 + 12 )*10] = (*R2) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 1 + 12 )*10] = (*R5) * 5.5555555555555555e-02f;
+	
+
+
+}
+
+
+__attribute__((always_inline)) void
+InvPass1b(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	(*R0) =  bufIn[inOffset +  0 + ( 3*me + 1 )];
+	(*R1) =  bufIn[inOffset +  0 + ( 3*me + 2 )];
+	(*R2) =  bufIn[inOffset +  0 + ( 3*me + 3 )];	         
+	(*R3) =  bufIn[inOffset + 10 + ( 3*me + 1 )];
+	(*R4) =  bufIn[inOffset + 10 + ( 3*me + 2 )];
+	(*R5) =  bufIn[inOffset + 10 + ( 3*me + 3 )];
+
+	float2 dc = 0;
+	if(me < 1)
+	{
+		dc.x = bufIn[inOffset +  0].x;
+		dc.y = bufIn[inOffset + 10].x;
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+
+	bufOut[outOffset + ( 18 - ( 3*me + 1 ) )] = (float2)((*R0).x + (*R3).y, -(*R0).y + (*R3).x );;
+	bufOut[outOffset + ( 18 - ( 3*me + 2 ) )] = (float2)((*R1).x + (*R4).y, -(*R1).y + (*R4).x );;
+	bufOut[outOffset + ( 18 - ( 3*me + 3 ) )] = (float2)((*R2).x + (*R5).y, -(*R2).y + (*R5).x );;
+	bufOut[outOffset +        ( 3*me + 1 )  ] = (float2)((*R0).x - (*R3).y,  (*R0).y + (*R3).x );;
+	bufOut[outOffset +        ( 3*me + 2 )  ] = (float2)((*R1).x - (*R4).y,  (*R1).y + (*R4).x );;
+	bufOut[outOffset +        ( 3*me + 3 )  ] = (float2)((*R2).x - (*R5).y,  (*R2).y + (*R5).x );;
+	
+	if(me < 1)
+	{	
+		bufOut[outOffset + 0] = dc;
+	}
+
+}
+
+
+__attribute__((always_inline)) void
+InvPass2(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+
+	(*R0) = bufIn[inOffset + ( me +  0 )];
+	(*R1) = bufIn[inOffset + ( me +  3 )];
+	(*R2) = bufIn[inOffset + ( me +  6 )];
+	(*R3) = bufIn[inOffset + ( me +  9 )];
+	(*R4) = bufIn[inOffset + ( me + 12 )];
+	(*R5) = bufIn[inOffset + ( me + 15 )];
+
+	InvRad6B1(R0, R1, R2, R3, R4, R5);
+
+	barrier(CLK_LOCAL_MEM_FENCE);	
+
+	bufOut[outOffset + ( me*6 + 0 )] = (*R0);
+	bufOut[outOffset + ( me*6 + 1 )] = (*R1);
+	bufOut[outOffset + ( me*6 + 2 )] = (*R2);
+	bufOut[outOffset + ( me*6 + 3 )] = (*R3);
+	bufOut[outOffset + ( me*6 + 4 )] = (*R4);
+	bufOut[outOffset + ( me*6 + 5 )] = (*R5);
+	
+}
+
+__attribute__((always_inline)) void
+InvPass3(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	(*R0) = bufIn[inOffset + ( me*2 + 0 +  0 )];
+	(*R3) = bufIn[inOffset + ( me*2 + 1 +  0 )];
+	(*R1) = bufIn[inOffset + ( me*2 + 0 +  6 )];
+	(*R4) = bufIn[inOffset + ( me*2 + 1 +  6 )];
+	(*R2) = bufIn[inOffset + ( me*2 + 0 + 12 )];
+	(*R5) = bufIn[inOffset + ( me*2 + 1 + 12 )];
+
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 0)%6) + 0];
+		float TR, TI;
+		TR =  (W.x * (*R1).x) + (W.y * (*R1).y);
+		TI = -(W.y * (*R1).x) + (W.x * (*R1).y);
+		(*R1).x = TR;
+		(*R1).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 0)%6) + 1];
+		float TR, TI;
+		TR =  (W.x * (*R2).x) + (W.y * (*R2).y);
+		TI = -(W.y * (*R2).x) + (W.x * (*R2).y);
+		(*R2).x = TR;
+		(*R2).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 1)%6) + 0];
+		float TR, TI;
+		TR =  (W.x * (*R4).x) + (W.y * (*R4).y);
+		TI = -(W.y * (*R4).x) + (W.x * (*R4).y);
+		(*R4).x = TR;
+		(*R4).y = TI;
+	}
+
+	{
+		float2 W = twiddles[5 + 2*((2*me + 1)%6) + 1];
+		float TR, TI;
+		TR =  (W.x * (*R5).x) + (W.y * (*R5).y);
+		TI = -(W.y * (*R5).x) + (W.x * (*R5).y);
+		(*R5).x = TR;
+		(*R5).y = TI;
+	}
+
+	InvRad3B1(R0, R1, R2);
+	InvRad3B1(R3, R4, R5);
+
+
+	bufOut[outOffset + ( 2*me + 0 +  0 )] = (*R0) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 1 +  0 )] = (*R3) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 0 +  6 )] = (*R1) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 1 +  6 )] = (*R4) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 0 + 12 )] = (*R2) * 5.5555555555555555e-02f;
+	bufOut[outOffset + ( 2*me + 1 + 12 )] = (*R5) * 5.5555555555555555e-02f;
+	
+
+
+}
+
+
+
+__attribute__((always_inline)) void
+InvPassOUT(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __global float *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+{
+
+	if((me%16) < CFF_IMG_W)
+	{	
+	(*R0) = bufIn[inOffset + (me/32)*180 + (2 +  0 + ((me%32)/16)*3 + 0)*18 + (4 + (me%16))];
+	(*R1) = bufIn[inOffset + (me/32)*180 + (2 +  0 + ((me%32)/16)*3 + 1)*18 + (4 + (me%16))];
+	(*R2) = bufIn[inOffset + (me/32)*180 + (2 +  0 + ((me%32)/16)*3 + 2)*18 + (4 + (me%16))];
+	}
+	
+	if((me%32) < CFF_IMG_W)
+	{
+	(*R3) = bufIn[inOffset + (me/32)*180 + (2 +  6 )*18 + (4 + (me%32))];
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);	
+
+	if((me%16) < CFF_IMG_W)
+	{	
+	bufOut[outOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) +  0 + 0*2*CFF_IMG_W )] = (*R0).x;
+	bufOut[outOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) +  0 + 1*2*CFF_IMG_W )] = (*R1).x;
+	bufOut[outOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) +  0 + 2*2*CFF_IMG_W )] = (*R2).x;
+	
+	bufOut[outOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) + CFF_IMG_W + 0*2*CFF_IMG_W )] = (*R0).y;
+	bufOut[outOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) + CFF_IMG_W + 1*2*CFF_IMG_W )] = (*R1).y;
+	bufOut[outOffset + ( ((me%32)/16)*6*CFF_IMG_W + (me%16) + CFF_IMG_W + 2*2*CFF_IMG_W )] = (*R2).y;
+	}
+	
+	if((me%32) < CFF_IMG_W)
+	{
+	bufOut[outOffset + ( (me%32) + 12*CFF_IMG_W )] = (*R3).x;
+	bufOut[outOffset + ( (me%32) + 13*CFF_IMG_W )] = (*R3).y;
+	}
+	
+}
+
+
+
+__kernel __attribute__((reqd_work_group_size (128,1,1)))
+void MIOpenConvFFT_inv_out(__global const float2 * restrict gbIn, __global float * restrict gbOut)
+{
+	uint me = get_local_id(0);
+	uint batch = get_group_id(0);
+	uint met = me%32;
+	
+	__local float2 lds[720];
+
+	__global const float2 *lwbIn;
+	__global float *lwbOut;
+
+	float2 R0, R1, R2, R3, R4, R5;
+
+
+	lwbIn = gbIn + CFF_HALFW + batch*720;
+	lwbOut = gbOut + batch*CFF_IMG_W*CFF_IMG_H*4;
+
+	InvPassA(me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5);
+	
+	barrier(CLK_LOCAL_MEM_FENCE);	
+	
+	if(met < 30)
+	{
+		InvPass0(me%3, (me/32)*180 + (met/3), (me/32)*180 + (met/3), lds, lds, &R0, &R1, &R2, &R3, &R4, &R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(met < 30)
+	{
+		InvPass1(me%3, (me/32)*180 + (met/3), (me/32)*180 + (met/3), lds, lds, &R0, &R1, &R2, &R3, &R4, &R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	if(met < 27)
+	{	
+		InvPass1b(me%3, (me/32)*180 + (met/3)*20, (me/32)*180 + (met/3)*18, lds, lds, &R0, &R1, &R2, &R3, &R4, &R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);	
+	
+	if(met < 27)
+	{
+		InvPass2(me%3, (me/32)*180 + (met/3)*18, (me/32)*180 + (met/3)*18, lds, lds, &R0, &R1, &R2, &R3, &R4, &R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(met < 27)
+	{	
+		InvPass3(me%3, (me/32)*180 + (met/3)*18, (me/32)*180 + (met/3)*18, lds, lds, &R0, &R1, &R2, &R3, &R4, &R5);
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	InvPassOUT(me, 0, (me/32)*CFF_IMG_W*CFF_IMG_H, lds, lwbOut, &R0, &R1, &R2, &R3, &R4, &R5);
+}
+
+
+
+// =================================================================================================
+
+
+#else
+
+
 static __constant float2 twiddles[31] = {
 (float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
 (float2)(1.0000000000000000000000000000000000e+00f, -0.0000000000000000000000000000000000e+00f),
@@ -1345,6 +2453,8 @@ void MIOpenConvFFT_inv_out(__global const float2 * restrict gbIn, __global float
 
 
 // =================================================================================================
+
+#endif
 
 
 
