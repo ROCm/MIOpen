@@ -6,9 +6,6 @@ namespace miopen {
 
     void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc, const TensorDescriptor& xDesc, miopenBatchNormMode_t bn_mode){
         
-        //if(derivedBnDesc == nullptr){
-	//	MIOPEN_THROW(miopenStatusBadParm);
-	//}
         std::vector<int> lengths = xDesc.GetLengths();
         std::vector<int> newlens(lengths.size());
         newlens[1] = lengths[1];
