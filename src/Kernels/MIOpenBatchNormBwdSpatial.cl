@@ -48,7 +48,7 @@ static inline void ReduceKernel(__local _FLOAT * lcl_mem, int sum_stride, int un
     int lcl_offset = unit_id * unit_len;
     
     #pragma unroll
-    for(int i = 0; i < unit_len && (lcl_offset+i)<MIO_BN_LDS_SIZE; i += sum_stride){
+    for(int i = 0; i < unit_len ; i += sum_stride){
         sum += lcl_mem[lcl_offset + i];
     }
     lcl_mem[lcl_offset] = sum;
