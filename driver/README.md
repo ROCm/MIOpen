@@ -19,5 +19,7 @@ Sample runs:
 `./bin/MIOpenDriver pool`
 * LRN with default parameters and timing on -
 `./bin/MIOpenDriver lrn -t 1`
+* Batch normalization with spatial norm forward training, saving mean and variance tensors
+`./bin/MIOpenDriver bnorm -F 1 -n 32 -c 512 -H 16 -W 16 -m 1 -s 1`
 * Printout layer specific input arguments -
 `./bin/MIOpenDriver *base_arg* -?` or `./bin/MIOpenDriver *base_arg* -h (--help)`

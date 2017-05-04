@@ -261,7 +261,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t workSpaceSize_bwd = 0;
 	miopenConvolutionBackwardWeightsGetWorkSpaceSize(GetHandle(), outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_bwd);
 	size_t workSpaceSize_fwd = 0;
-	miopenConvolutionForwardGetWorkSpaceSize(GetHandle(), weightTensor, inputTensor, outputTensor, convDesc, &workSpaceSize_fwd);
+	miopenConvolutionForwardGetWorkSpaceSize(GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);
 
   #if MIOPEN_BACKEND_OPENCL
   	cl_context ctx;
