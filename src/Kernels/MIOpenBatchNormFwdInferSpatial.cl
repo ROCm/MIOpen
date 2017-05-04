@@ -93,7 +93,7 @@ static inline void ReduceKernel(__local _FLOAT * lcl_mem, int sum_stride, int un
     int lcl_offset = unit_id * unit_len;
     
     #pragma unroll
-    for(int i = 0; i < unit_len; i += sum_stride){
+    for(int i = 0; i < unit_len  && (lcl_offset+i)<MIO_BN_LDS_SIZE; i += sum_stride){
         sum += lcl_mem[lcl_offset + i];
     }
     lcl_mem[lcl_offset] = sum;
@@ -201,17 +201,6 @@ __kernel void BatchNormFwdInferSpatialSingleNorm(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 __kernel void BatchNormFwdInferSpatialNorm(
 			const __global _FLOAT 	* __restrict in, 
 			__global _FLOAT		* __restrict out, 
@@ -237,9 +226,11 @@ __kernel void BatchNormFwdInferSpatialNorm(
     // x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
     pvt_scale   = scale[xgid];
     pvt_bias    = bias[xgid];
+    
     unsigned int meanstashindex = cidx+ygrp_sz*ygrp_id+1;
-    mean        = out[meanstashindex];//load stashed mean
     unsigned int varstashindex = cidx+ygrp_sz*ygrp_id+3;
+    
+    mean        = out[meanstashindex];//load stashed mean
     invVariance = out[varstashindex];
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
    
@@ -248,9 +239,7 @@ __kernel void BatchNormFwdInferSpatialNorm(
         for(int n = 0; n < MIO_BN_N; n++){//apply normalization
             index = n*MIO_BN_CHW + cidx + ygid;
             inhat = (in[index]-mean)*invVariance;
-            // #5 Gamma and Beta adjust
-            //y_i = gamma*x_hat + beta
-            out[index] =  mad(pvt_scale, inhat, pvt_bias);
+            out[index] =  mad(pvt_scale, inhat, pvt_bias);// #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
         }//end for(n)
     }//end if(inImgIndex)
 }//end spatial norm
@@ -426,7 +415,7 @@ __kernel void BatchNormFwdInferSpatialMean(const __global _FLOAT    * __restrict
     }
     if(ylid==0){
 	 unsigned int meanindex = cidx+ygrp_sz*ygrp_id;//making assumption of n=0 here
-	 meanbuff[meanindex] = lcl_data[0];//pre-stage for group reduction
+         meanbuff[meanindex] = lcl_data[0];//pre-stage for group reduction
     }
 }//end spatial mean kernel
 
