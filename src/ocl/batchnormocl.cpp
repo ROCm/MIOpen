@@ -476,6 +476,7 @@ void BatchNormForwardInference(
             program_name += "Spatial.cl";
             kernel_name += "Spatial";
             parms += "-DMIO_BN_N="+std::to_string(n);
+            parms += " -DMIO_BN_C="+std::to_string(c);
             parms += " -DMIO_BN_HW="+std::to_string(in_cstride);
             parms += " -DMIO_BN_NHW="+std::to_string(n*h*w);
             parms += " -DMIO_BN_CHW="+std::to_string(in_nstride);
@@ -662,6 +663,7 @@ void BatchNormBackward(
             program_name += "Spatial.cl";
             kernel_name += "Spatial";
             parms += "-DMIO_BN_N="+std::to_string(n);
+            parms += " -DMIO_BN_C="+std::to_string(c);
             parms += " -DMIO_BN_HW="+std::to_string(in_cstride);
             parms += " -DMIO_BN_NHW="+std::to_string(n*h*w);
             parms += " -DMIO_BN_CHW="+std::to_string(in_nstride);
