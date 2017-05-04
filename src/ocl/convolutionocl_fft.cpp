@@ -111,7 +111,7 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	int out_n, out_c;
 	std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tie4(yDesc.GetLengths());
 
-	const int N = FFTConvParams::N;
+	const int N = FFTConvParams::TileSize(in_h, in_w);
 	const int NumKernels = 	FFTConvParams::NumKernels;
 
 	size_t global_work_size[NumKernels][3];
@@ -126,38 +126,66 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 
 
 	// grid for FFT kernels
-	 local_work_size[0][0] = 64;
-	global_work_size[0][0] = in_c * out_n * local_work_size[0][0];
+	if( (in_h == 14) && (in_w == 14) )
+	{
+		 local_work_size[0][0] = 128;
+		global_work_size[0][0] = ((in_c * out_n)/4) * local_work_size[0][0];
 
-	 local_work_size[1][0] = 64;
-	global_work_size[1][0] = in_c * out_c * local_work_size[1][0];
+		 local_work_size[1][0] = 128;
+		global_work_size[1][0] = ((in_c * out_c)/4) * local_work_size[1][0];
 
-	 local_work_size[6][0] = 64;
-	global_work_size[6][0] = out_n * out_c * local_work_size[6][0];
+		 local_work_size[6][0] = 128;
+		global_work_size[6][0] = ((out_n * out_c)/4) * local_work_size[6][0];
+	}
+	else
+	{
+		 local_work_size[0][0] = 64;
+		global_work_size[0][0] = in_c * out_n * local_work_size[0][0];
+
+		 local_work_size[1][0] = 64;
+		global_work_size[1][0] = in_c * out_c * local_work_size[1][0];
+
+		 local_work_size[6][0] = 64;
+		global_work_size[6][0] = out_n * out_c * local_work_size[6][0];
+	}
 
 
-	// decide kernel options based on params
+	// decide tranpose kernel options based on params
 	int in_tranpose_choice = 0;
 	int wt_tranpose_choice = 0;
 	int ot_tranpose_choice = 0;
 
-	if((in_n*in_c >= 64) && ((in_n*in_c)%32 == 0)) in_tranpose_choice = 1;
-	if((out_c*in_c >= 64) && ((out_c*in_c)%32 == 0)) wt_tranpose_choice = 1;
-	if((out_n*out_c >= 64) && ((out_n*out_c)%32 == 0)) ot_tranpose_choice = 1;
-
-	int in_tranpose_bwidth = in_tranpose_choice ? 32 : 16;
-	int wt_tranpose_bwidth = wt_tranpose_choice ? 32 : 16;
-	int ot_tranpose_bwidth = ot_tranpose_choice ? 32 : 16;
-
 	// grid for transpose kernels
-	 local_work_size[2][0] = 256;
-	global_work_size[2][0] = (N / in_tranpose_bwidth) * (in_c*out_n / in_tranpose_bwidth) * local_work_size[2][0];
+	if( (in_h == 14) && (in_w == 14) )
+	{
+		 local_work_size[2][0] = 256;
+		global_work_size[2][0] = (1 + N / 16) * (in_c*out_n / 16) * local_work_size[2][0];
 
-	 local_work_size[3][0] = 256;
-	global_work_size[3][0] = (N / wt_tranpose_bwidth) * (in_c*out_c / wt_tranpose_bwidth) * local_work_size[3][0];
+		 local_work_size[3][0] = 256;
+		global_work_size[3][0] = (1 + N / 16) * (in_c*out_c / 16) * local_work_size[3][0];
 
-	 local_work_size[5][0] = 256;
-	global_work_size[5][0] = (N / ot_tranpose_bwidth) * (out_n*out_c / ot_tranpose_bwidth) * local_work_size[5][0];
+		 local_work_size[5][0] = 256;
+		global_work_size[5][0] = (1 + N / 16) * (out_n*out_c / 16) * local_work_size[5][0];
+	}
+	else
+	{
+		if((in_n*in_c >= 64) && ((in_n*in_c)%32 == 0)) in_tranpose_choice = 1;
+		if((out_c*in_c >= 64) && ((out_c*in_c)%32 == 0)) wt_tranpose_choice = 1;
+		if((out_n*out_c >= 64) && ((out_n*out_c)%32 == 0)) ot_tranpose_choice = 1;
+
+		int in_tranpose_bwidth = in_tranpose_choice ? 32 : 16;
+		int wt_tranpose_bwidth = wt_tranpose_choice ? 32 : 16;
+		int ot_tranpose_bwidth = ot_tranpose_choice ? 32 : 16;
+
+		 local_work_size[2][0] = 256;
+		global_work_size[2][0] = (N / in_tranpose_bwidth) * (in_c*out_n / in_tranpose_bwidth) * local_work_size[2][0];
+
+		 local_work_size[3][0] = 256;
+		global_work_size[3][0] = (N / wt_tranpose_bwidth) * (in_c*out_c / wt_tranpose_bwidth) * local_work_size[3][0];
+
+		 local_work_size[5][0] = 256;
+		global_work_size[5][0] = (N / ot_tranpose_bwidth) * (out_n*out_c / ot_tranpose_bwidth) * local_work_size[5][0];
+	}
 
 	// cgemm kernel options
 	int cgemm_choice = 0;
@@ -166,11 +194,12 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 		cgemm_choice = 2;
 	else if( (in_h == 27) && (in_w == 27) )
 		cgemm_choice = 1;
-	
+	else if( (in_h == 14) && (in_w == 14) )
+		cgemm_choice = 2;
+		
 	if( (in_n < 16) || (in_c < 16) || (out_c < 16) )
 		cgemm_choice = 0;
-
-
+	
 	cgemm_grid(global_work_size[4], local_work_size[4], cgemm_choice, N, out_c, out_n);
 
 
@@ -191,6 +220,8 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 		parms += " -DCFF_IMG_SZ_28_28";
 	else if( (in_h == 27) && (in_w == 27) )
 		parms += " -DCFF_IMG_SZ_27_27";
+	else if( (in_h == 14) && (in_w == 14) )
+		parms += " -DCFF_IMG_SZ_14_14";
 
 	parms += " -DCFF_IMG_H=";
 	parms += std::to_string(in_h);
@@ -275,7 +306,7 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 	int out_n, out_c;
 	std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tie4(yDesc.GetLengths());
 
-	const int N = FFTConvParams::N;
+	const int N = FFTConvParams::TileSize(in_h, in_w);
 	const int Padding = FFTConvParams::TransposePadding;
 	const int NumKernels = 	FFTConvParams::NumKernels;
 
