@@ -132,8 +132,9 @@ void readData(uint n, int gbl_data_off, uint gbl_data_stride, uint map_stride, i
 __attribute__((always_inline))
 void readDataFlex(uint n, uint gbl_data_off, uint gbl_data_stride, uint map_stride, uint map_base, uint map_limit, const __global _FLOAT * __restrict g_data, __local _FLOAT * __restrict l_data)
 {
-
-
+#ifdef __AMDGCN__
+#pragma unroll 2
+#endif
 	for( uint l = get_local_id(0); l < n*map_stride* MLO_MAP_WK_SZ; l += MLO_GRP_SZ)
 	{
 
@@ -539,3 +540,4 @@ __kernel void MIOpenCvBwdWrW_rdc(
 	}
 
 }
+

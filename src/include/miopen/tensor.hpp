@@ -58,14 +58,6 @@ struct TensorDescriptor : miopenTensorDescriptor {
 
 	std::string ToString() const;
 
-	void SetTensor(Handle& handle,
-			Data_t							dstTensor,
-			const void						*valuePtr);
-
-	void ScaleTensor(Handle& handle,
-			Data_t							dstTensor,
-			const void						*alpha);
-
 	friend std::ostream& operator<< (std::ostream& stream, const TensorDescriptor& t);
 private:
 	std::vector<int> lens;
