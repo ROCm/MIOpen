@@ -1,3 +1,4 @@
+#include <miopen/config.h>
 #include <miopen/gcn_asm_utils.h>
 #include <miopen/errors.hpp>
 #include <cstdlib>
@@ -5,7 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdio>
-#include  <cctype>
+#include <cctype>
 
 #ifndef _WIN32
 #include <ext/stdio_filebuf.h>
