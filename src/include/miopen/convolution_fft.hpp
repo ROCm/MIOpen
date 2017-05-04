@@ -7,24 +7,20 @@ struct FFTConvParams
 {
 	static int TileSize(int in_h, int in_w)
 	{
-		int NX, NY, NXc, N;
+		int NX, NY; // fft tile width, height
 
 		if( (in_h == 14) && (in_w == 14) )
 		{
-			NY = 18; // fft tile height
-			NX = 18; // fft tile width
-			NXc = (1 + NX/2);
-			N = NY*NXc;
+			NY = 18;
+			NX = 18;
 		}
 		else
 		{
-			NY = 32; // fft tile height
-			NX = 32; // fft tile width
-			NXc = (1 + NX/2);
-			N = NY*NXc;
+			NY = 32;
+			NX = 32;
 		}
 
-		return N;
+		return NY*(1 + NX/2);
 	}
 
 	static const int TransposePadding = 64;

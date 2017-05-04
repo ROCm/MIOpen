@@ -7,26 +7,17 @@ namespace miopen {
 
 static void cgemm_grid(size_t *global_work_size, size_t *local_work_size, int cgemm_choice, const int N, const int out_c, const int out_n)
 {
-	const unsigned int threadTile1[2] = { 4, 4 };
-	const unsigned int groupSize1[2] = { 16, 16 };
-
-	const unsigned int threadTile2[2] = { 4, 4 };
-	const unsigned int groupSize2[2] = { 4, 4 };
-
-	const unsigned int threadTile0[2] = { 2, 2 };
-	const unsigned int groupSize0[2] = { 4, 4 };
-
 	unsigned int threadTile[2];
 	unsigned int groupSize[2];
 
 	// grid for cgemm
 	if(cgemm_choice == 1)
 	{
-		threadTile[0] = threadTile1[0];
-		threadTile[1] = threadTile1[1];
+		threadTile[0] = 4;
+		threadTile[1] = 4;
 
-		groupSize[0] = groupSize1[0];
-		groupSize[1] = groupSize1[1];
+		groupSize[0] = 16;
+		groupSize[1] = 16;
 
 		local_work_size[0] = 16;
 		local_work_size[1] = 16;
@@ -34,22 +25,22 @@ static void cgemm_grid(size_t *global_work_size, size_t *local_work_size, int cg
 	}
 	else if(cgemm_choice == 2)
 	{
-		threadTile[0] = threadTile2[0];
-		threadTile[1] = threadTile2[1];
+		threadTile[0] = 4;
+		threadTile[1] = 4;
 
-		groupSize[0] = groupSize2[0];
-		groupSize[1] = groupSize2[1];
+		groupSize[0] = 4;
+		groupSize[1] = 4;
 
 		local_work_size[0] = 64;
 		local_work_size[1] = 1;
 	}
 	else
 	{
-		threadTile[0] = threadTile0[0];
-		threadTile[1] = threadTile0[1];
+		threadTile[0] = 2;
+		threadTile[1] = 2;
 
-		groupSize[0] = groupSize0[0];
-		groupSize[1] = groupSize0[1];
+		groupSize[0] = 4;
+		groupSize[1] = 4;
 
 		local_work_size[0] = 64;
 		local_work_size[1] = 1;
