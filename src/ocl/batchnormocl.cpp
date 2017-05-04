@@ -117,10 +117,106 @@ void BatchNormForwardTraining(
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
                 
-            if(in_cstride <= 256){
+            
+            /*if(in_cstride <= 64){//My test area
+
+                vld.clear();
+                xlocalsize = 1;
+                ylocalsize = 256;
+                zlocalsize = 1;
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+                
+                vgd.clear();
+                xgridsize = std::ceil(float(c)/2.0);
+                ygridsize = segment*ylocalsize;
+                zgridsize = 1;
+
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);  
+                
+                kernel_subname = kernel_name + "SingleVecNorm";
+                parms += " -DMIO_BN_SINGLE="+std::to_string(1);
+                parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
+                parms += " -DMIO_BN_GRP0="+std::to_string(1);
+                parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
+                parms += " -DMIO_BN_GRP2="+std::to_string(1);
+                
+                auto inhw = double(1.0/(n*h*w));
+                
+                
+                
+                if(resultsave && resultrunning){
+                    //Run norm kernel
+                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                    network_config, program_name, kernel_subname, vld, vgd,
+                    parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, resultRunningMean, resultRunningVariance, 
+                            epsilon, resultSaveMean, resultSaveInvVariance);
+                }else if(resultsave){
+                    unsigned int coffset = 0;
+                    unsigned int coffset2 = 0;
+                    size_t xgridsize2;
+                    size_t ygridsize2;
+                    size_t zgridsize2;
+
+                    std::vector<size_t> vld2;
+                    std::vector<size_t> vgd2;
+                    coffset2 = std::ceil(float(c)/2.0);
+                    printf("coffset 2: %d\n",coffset2);
+
+                    xgridsize2 = c - xgridsize;
+                    printf("Gridsize 2: %d\n",xgridsize2);
+                    ygridsize2 = segment*ylocalsize;
+                    zgridsize2 = 1;
+
+                    vgd2.push_back(xgridsize2);
+                    vgd2.push_back(ygridsize2);
+                    vgd2.push_back(zgridsize2); 
+                    
+                    //Run norm kernel
+                    #if (MIO_BN_TIME_EVERYTHING==1)
+                        auto t_start = std::chrono::high_resolution_clock::now();
+                    #endif
+                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                    network_config, program_name, kernel_subname, vld, vgd,
+                                    parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, coffset,
+                                            epsilon, resultSaveMean, resultSaveInvVariance);
+
+
+                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                    network_config, program_name, kernel_subname, vld2, vgd2,
+                                    parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, coffset2,
+                                            epsilon, resultSaveMean, resultSaveInvVariance);
+                    
+                    
+                    
+                    handle.Finish();
+                    #if (MIO_BN_TIME_EVERYTHING==1)
+                        auto t_end = std::chrono::high_resolution_clock::now();
+        
+                        std::cout << "Wall clock: CPU backward_bn_spatial_recalc pass time: "
+                                    << std::chrono::duration<double>(t_end-t_start).count()
+                                    << " seconds." << std::endl;
+                    #endif    
+                    
+                }else if(resultrunning){
+                    //Run norm kernel
+                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                    network_config, program_name, kernel_subname, vld, vgd,
+                                    parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, 
+                                            resultRunningMean, resultRunningVariance, epsilon);
+                }else{
+                    //Run norm kernel
+                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                    network_config, program_name, kernel_subname, vld, vgd,
+                                    parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, epsilon);
+                }
+            }else*/ if(in_cstride <= 256){
                 
                 kernel_subname = kernel_name + "SingleNorm";
-
+                parms += " -DMIO_BN_SINGLE="+std::to_string(1);
                 parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP0="+std::to_string(1);
                 parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
@@ -775,6 +871,7 @@ void BatchNormBackward(
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,	parms)
                             ( x, dx);
+                    handle.Finish();
 
                     kernel_subname = kernel_name + "DBias";
                     handle.GetKernel("miopenBatchNormalizationBwd",

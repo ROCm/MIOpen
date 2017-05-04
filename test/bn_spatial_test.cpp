@@ -961,6 +961,7 @@ struct batch_norm_spatial_driver : test_driver
     
     batch_norm_spatial_driver(){
         this->batch_factor=8;
+        this->verbose=true;
         add(input, "input", get_bn_spatial_input_tensor());
         //add(input, "input", get_input_tensor());        
     }
@@ -983,15 +984,18 @@ struct batch_norm_spatial_driver : test_driver
         shift  = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
         
         //train
+        std::cout << "Running forward train spatial with R and S set." << std::endl;
         auto outpair = verify(verify_forward_train_bn_spatial<T>{ input, scale, shift });
         //returns:  std::make_tuple(out,runMean,runVar,saveMean,saveInvVar);
 
         //inference recalc
+        std::cout << "Running forward inference spatial recalc." << std::endl;
         verify(verify_forward_infer_bn_spatial_recalc<T>{ input, scale, shift });
         
         //inference use estimated running values
         auto estMean = std::get<1>(outpair.second);
         auto estVar  = std::get<2>(outpair.second);
+        std::cout << "Running forward inference spatial with R set." << std::endl;
         verify(verify_forward_infer_bn_spatial_use_est<T>{ input, scale, shift, estMean, estVar });
         
         //backprop recalc
@@ -1031,12 +1035,14 @@ struct batch_norm_spatial_driver : test_driver
             std::cout << "cpu[" << mn << ", " << mc << ", " << mh << ", " << mw << "]: " << cpuout(mn,mc,mh,mw) << std::endl;
         }
 #else
+        std::cout << "Running back propagation spatial recalc." << std::endl;
         verify(verify_backward_bn_spatial_recalc<T>{ input, dy_input, scale });
 #endif
         
         //backprop use saved values
         auto savedMean = std::get<3>(outpair.second);
         auto savedInvVar = std::get<4>(outpair.second);
+        std::cout << "Running back propagation spatial with S set." << std::endl;
         verify(verify_backward_bn_spatial_use_saved<T>{ input, dy_input, scale, savedMean, savedInvVar });
  
     }
