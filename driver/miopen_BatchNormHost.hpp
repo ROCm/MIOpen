@@ -745,7 +745,7 @@ int miopenBNBwdSpatialRunHost(
         double *savedInvVariance){
 
 //C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride. 
-    unsigned int index, xhat_index;
+    unsigned int index;
     unsigned int adjIndex;
     unsigned int in_nstride = channels*height*width;
     unsigned int in_cstride = height*width;
@@ -756,7 +756,7 @@ int miopenBNBwdSpatialRunHost(
     double dyelem = 0.;
     double NHW = double(n_batchs*in_cstride);
 
-    std::vector<double> xhat(n_batchs*in_cstride);
+    
 
     if(savedmeanvar){
         for (int cidx = 0; cidx < channels; cidx++){//via channel
@@ -770,13 +770,11 @@ int miopenBNBwdSpatialRunHost(
 
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
                         index = in_nstride*bidx + adjIndex;
-                        xhat_index = in_cstride*bidx + (width*row + column);
                         //per (x-dims) channel load a block of data into LDS
                         elemStd = x_ptr[index] - mean;// (x_i - mean)
-                        xhat[xhat_index] = elemStd*invVar;
                         dyelem = dy_ptr[index];
                         dbias_ptr[cidx]  += dyelem;
-                        dscale_ptr[cidx] += xhat[xhat_index]*dyelem;
+                        dscale_ptr[cidx] += elemStd*invVar*dyelem;
                     }//end for(n_batchs)
                 }// for (column)
             }// for (row)
@@ -789,10 +787,9 @@ int miopenBNBwdSpatialRunHost(
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
 
                         index = in_nstride*bidx + adjIndex;
-                        xhat_index = in_cstride*bidx + (width*row + column);
-
+                        elemStd = x_ptr[index] - mean;// (x_i - mean)
                         double tmp1 = NHW*dy_ptr[index] - dbias_ptr[cidx];
-                        double tmp2 = -xhat[xhat_index]*dscale_ptr[cidx];
+                        double tmp2 = -elemStd*invVar*dscale_ptr[cidx];
                         double tmp3 = (scale_ptr[cidx]*invVar)/NHW;
                         dx_ptr[index] = tmp3*(tmp2+tmp1);
                     }//end for(n_batchs)
@@ -805,8 +802,11 @@ int miopenBNBwdSpatialRunHost(
         #if(MIO_HEIRARCH_SEL==1)
             double variance_accum_arr[MIO_BN_DIST];
             double mean_accum_arr[MIO_BN_DIST];
-          //  T dbias_accum_arr[MIO_BN_DIST];
-           // T dscale_accum_arr[MIO_BN_DIST];
+            double dbias_accum_arr[MIO_BN_DIST];
+            double dscale_accum_arr[MIO_BN_DIST];
+        #else
+            std::vector<double> xhat(n_batchs*in_cstride);
+            unsigned int xhat_index;
         #endif
 
 
@@ -814,10 +814,10 @@ int miopenBNBwdSpatialRunHost(
         for (int cidx = 0; cidx < channels; cidx++){//via channel
             #if(MIO_HEIRARCH_SEL==1)
                 for(int i = 0; i<MIO_BN_DIST; i++){
-                    variance_accum_arr[i] = 0.;
-                    mean_accum_arr[i] = 0.;
-                //    dbias_accum_arr[i] = 0.;
-                //    dscale_accum_arr[i] = 0.;
+                    variance_accum_arr[i]   = 0.;
+                    mean_accum_arr[i]       = 0.;
+                    dbias_accum_arr[i]      = 0.;
+                    dscale_accum_arr[i]     = 0.;
                 }
             #endif
             Csubindex = in_cstride*cidx;
@@ -843,13 +843,14 @@ int miopenBNBwdSpatialRunHost(
                 for(int i = 0; i<MIO_BN_DIST; i++){
                     imgIndex = im + i;
                     adjIndex = in_cstride*cidx + imgIndex;
-
-                    for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
-                        index = in_nstride*bidx + adjIndex;
-                        // #1 calculate the mean
-                        // iterating through the stack of images in the mini_batch
-                        mean_accum_arr[i] += x_ptr[index];
-                    }	
+                    if(imgIndex<in_cstride){
+                        for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
+                            index = in_nstride*bidx + adjIndex;
+                            // #1 calculate the mean
+                            // iterating through the stack of images in the mini_batch
+                            mean_accum_arr[i] += x_ptr[index];
+                        }	
+                    }
                 }// end for 
             }// end for 
             for(int i = 0; i<MIO_BN_DIST; i++){
@@ -857,7 +858,7 @@ int miopenBNBwdSpatialRunHost(
             }
             #endif
             mean /= NHW;
-
+//printf("MEAN: %d\n",mean);
             elemStd = 0.;
             variance = 0.;
             #if(MIO_HEIRARCH_SEL==0)             
@@ -885,8 +886,10 @@ int miopenBNBwdSpatialRunHost(
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
                         //per (x-dims) channel load a block of data into LDS
                         index = in_nstride*bidx + adjIndex;
-                        elemStd = x_ptr[index] - mean;// (x_i - mean)
-                        variance_accum_arr[i] += elemStd*elemStd; // sum{ (x_i - mean)^2 }
+                        if(imgIndex<in_cstride){
+                            elemStd = x_ptr[index] - mean;// (x_i - mean)
+                            variance_accum_arr[i] += elemStd*elemStd; // sum{ (x_i - mean)^2 }
+                        }
                     }//end for
                 }// end for 
             }
@@ -897,8 +900,11 @@ int miopenBNBwdSpatialRunHost(
             variance /= NHW; // (1/(N*H*W))*sum{ (x_i - mean)^2 }
             // #3 add epsilon for numeric stability, sqr_root, and invert
             invVar = 1./sqrt(variance + epsilon);
+//printf("invVar: %d\n",invVar);
 
             dscale_ptr[cidx] = 0.;
+            dbias_ptr[cidx] = 0.;
+            #if(MIO_HEIRARCH_SEL==0)    
             for (int row = 0; row < height; row++){ //via rows
                 for(int column = 0; column < width; column++){// via columns
                     adjIndex = Csubindex + width*row + column;
@@ -915,8 +921,31 @@ int miopenBNBwdSpatialRunHost(
                     }//end for(n_batchs)
                 }// for (column)
             }// for (row)
-            dscale_ptr[cidx] /= NHW;
+            #else
+            for (int im = 0; im < in_cstride; im+=MIO_BN_DIST){ 
+                for(int i = 0; i<MIO_BN_DIST; i++){
+                    imgIndex = im + i;
+                    adjIndex = in_cstride*cidx + imgIndex;
+                    for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
+                        index = in_nstride*bidx + adjIndex;
+                        //per (x-dims) channel load a block of data into LDS
+                        if(imgIndex<in_cstride){
+                            elemStd = x_ptr[index] - mean;// (x_i - mean)
+                            dyelem 		 = dy_ptr[index];
+                            dbias_accum_arr[i]  += dyelem;
+                            dscale_accum_arr[i] += elemStd*invVar*dyelem;
+                        }
+                    }//end for(n_batchs)
+                }// for (column)
+            }// for (row)
+            for(int i = 0; i<MIO_BN_DIST; i++){
+                dbias_ptr[cidx] += dbias_accum_arr[i];
+                dscale_ptr[cidx] += dscale_accum_arr[i];
+            }
+            #endif
 
+            dscale_ptr[cidx] /= NHW;
+            #if(MIO_HEIRARCH_SEL==0)  
             for (int row = 0; row < height; row++){ //via rows
                 for(int column = 0; column < width; column++){// via columns
                     adjIndex = Csubindex + width*row + column;
@@ -924,7 +953,6 @@ int miopenBNBwdSpatialRunHost(
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
                         index = in_nstride*bidx + adjIndex;
                         xhat_index = in_cstride*bidx + (width*row + column);
-
                         double tmp1 = NHW*dy_ptr[index] - dbias_ptr[cidx];
                         double tmp2 = -xhat[xhat_index]*dscale_ptr[cidx];
                         double tmp3 = (scale_ptr[cidx]*invVar)/NHW;
@@ -932,6 +960,25 @@ int miopenBNBwdSpatialRunHost(
                     }//end for(n_batchs)
                 } // for (column)
             } // for (row)
+            #else
+            for (int im = 0; im < in_cstride; im+=MIO_BN_DIST){ 
+                for(int i = 0; i<MIO_BN_DIST; i++){
+                    imgIndex = im + i;
+                    adjIndex = in_cstride*cidx + imgIndex;
+                    for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
+                        index = in_nstride*bidx + adjIndex;
+                        if(index<in_nstride*n_batchs){
+                            elemStd = x_ptr[index] - mean;// (x_i - mean)
+                            double tmp1 = NHW*dy_ptr[index] - dbias_ptr[cidx];
+                            double tmp2 = -elemStd*invVar*dscale_ptr[cidx];
+                            double tmp3 = (scale_ptr[cidx]*invVar)/NHW;
+                            dx_ptr[index] = tmp3*(tmp2+tmp1);
+                        }
+                    }//end for(n_batchs)
+                } // for (column)
+            } // for (row)
+            #endif
+            
         } // for (channel)
     } //end else
 
