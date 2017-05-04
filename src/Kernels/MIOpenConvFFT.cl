@@ -180,12 +180,12 @@ __attribute__((always_inline)) void
 FwdPass1(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
 {
 
-	(*R0) = bufOut[outOffset + ( me*2 + 0 +  0 )];
-	(*R3) = bufOut[outOffset + ( me*2 + 1 +  0 )];
-	(*R1) = bufOut[outOffset + ( me*2 + 0 +  6 )];
-	(*R4) = bufOut[outOffset + ( me*2 + 1 +  6 )];
-	(*R2) = bufOut[outOffset + ( me*2 + 0 + 12 )];
-	(*R5) = bufOut[outOffset + ( me*2 + 1 + 12 )];
+	(*R0) = bufIn[inOffset + ( me*2 + 0 +  0 )];
+	(*R3) = bufIn[inOffset + ( me*2 + 1 +  0 )];
+	(*R1) = bufIn[inOffset + ( me*2 + 0 +  6 )];
+	(*R4) = bufIn[inOffset + ( me*2 + 1 +  6 )];
+	(*R2) = bufIn[inOffset + ( me*2 + 0 + 12 )];
+	(*R5) = bufIn[inOffset + ( me*2 + 1 + 12 )];
 
 
 	{
@@ -306,12 +306,12 @@ __attribute__((always_inline)) void
 FwdPass3(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
 {
 
-	(*R0) = bufOut[outOffset + ( me*2 + 0 +  0 )*10];
-	(*R3) = bufOut[outOffset + ( me*2 + 1 +  0 )*10];
-	(*R1) = bufOut[outOffset + ( me*2 + 0 +  6 )*10];
-	(*R4) = bufOut[outOffset + ( me*2 + 1 +  6 )*10];
-	(*R2) = bufOut[outOffset + ( me*2 + 0 + 12 )*10];
-	(*R5) = bufOut[outOffset + ( me*2 + 1 + 12 )*10];
+	(*R0) = bufIn[inOffset + ( me*2 + 0 +  0 )*10];
+	(*R3) = bufIn[inOffset + ( me*2 + 1 +  0 )*10];
+	(*R1) = bufIn[inOffset + ( me*2 + 0 +  6 )*10];
+	(*R4) = bufIn[inOffset + ( me*2 + 1 +  6 )*10];
+	(*R2) = bufIn[inOffset + ( me*2 + 0 + 12 )*10];
+	(*R5) = bufIn[inOffset + ( me*2 + 1 + 12 )*10];
 
 
 	{
@@ -1000,7 +1000,7 @@ InvPass3(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local 
 
 
 __attribute__((always_inline)) void
-InvPassOUT(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __global float *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+InvPassOUT(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __global float *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3)
 {
 
 	if((me%16) < CFF_IMG_W)
@@ -1095,7 +1095,7 @@ void MIOpenConvFFT_inv_out(__global const float2 * restrict gbIn, __global float
 	
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	InvPassOUT(me, 0, (me/32)*CFF_IMG_W*CFF_IMG_H, lds, lwbOut, &R0, &R1, &R2, &R3, &R4, &R5);
+	InvPassOUT(me, 0, (me/32)*CFF_IMG_W*CFF_IMG_H, lds, lwbOut, &R0, &R1, &R2, &R3);
 }
 
 
