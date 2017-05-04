@@ -5,10 +5,27 @@ namespace miopen {
 
 struct FFTConvParams
 {
-	static const int NY = 32; // fft tile height
-	static const int NX = 32; // fft tile width
-	static const int NXc = (1 + NX/2);
-	static const int N = NY*NXc;
+	static const int TileSize(int in_h, int in_w)
+	{
+		int NX, NY, NXc, N;
+
+		if( (in_h == 14) && (in_w == 14) )
+		{
+			NY = 18; // fft tile height
+			NX = 18; // fft tile width
+			NXc = (1 + NX/2);
+			N = NY*NXc;
+		}
+		else
+		{
+			NY = 32; // fft tile height
+			NX = 32; // fft tile width
+			NXc = (1 + NX/2);
+			N = NY*NXc;
+		}
+
+		return N;
+	}
 
 	static const int TransposePadding = 64;
 	static const int NumKernels = 7;
