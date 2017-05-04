@@ -34,6 +34,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     python \
     python-dev \
     python-pip \
+    rocm-opencl-dev \
     software-properties-common \
     wget \
     wine \
@@ -74,10 +75,6 @@ RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install HIP
 RUN cget -p $PREFIX install hip,http://$GITLAB1/pfultz/hip/repository/archive.tar.gz?ref=cmake-develop
-
-# Install opencl
-RUN curl http://$GITLAB1/pfultz/mlopen/uploads/194a8f592aaeabb486e3594e3a4083e6/rocm-opencl-1.4.deb > /rocm-opencl.deb
-RUN dpkg -i /rocm-opencl.deb && rm /rocm-opencl.deb
 
 # Install clang-ocl
 RUN cget -p $PREFIX install clang-ocl,http://$GITLAB1/pfultz/clang-ocl/repository/archive.tar.bz2?ref=master
