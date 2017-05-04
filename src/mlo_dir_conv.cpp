@@ -521,11 +521,12 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 {
 	// Check if device is able to run this kernel.
 	const auto name = _stream->GetDeviceName();
-	const bool device_is_gfx8_no_xnack = (name == "gfx800"
+	const bool device_is_gfx8_9_no_xnack = (name == "gfx800"
 									   || name == "gfx802"
 									   || name == "gfx803"
-									   || name == "gfx804");
-	if (!device_is_gfx8_no_xnack) {
+									   || name == "gfx804"
+                                       || name == "gfx900");
+	if (!device_is_gfx8_9_no_xnack) {
 		return false;
 	}
 	// Check if kernel is suitable for the problem description
@@ -563,6 +564,7 @@ bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv)
 {
     const auto n_groups = _stream->GetMaxComputeUnits();
+	const auto name = _stream->GetDeviceName();
 
     _g_wk.clear();
     _g_wk.push_back(512 * n_groups);
@@ -575,12 +577,14 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version r
     _l_wk.push_back(1);
 
     _kernel_name = "sp3AsmConv3x3F";
-    if (rmv == V1) {
+    if (rmv == V1 && name == "gfx803") {
         _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so";
-    } else if (rmv == V2) {
+    } else if (rmv == V2 && name == "gfx803") {
         _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
-    } else if (rmv == V3) {
+    } else if (rmv == V3 && name == "gfx803") {
         _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so";
+    } else if (rmv == V3 && name == "gfx900") {
+        _kernel_file = "conv_3x3_wheel_alpha_v5_1_1b_gfx900.so";
     } else {
         _kernel_file = "";
         return 1;
@@ -722,11 +726,12 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
 bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2f1() const
 {
     const std::string name = _stream->GetDeviceName();
-    const bool device_is_gfx8_no_xnack = (name == "gfx800"
+    const bool device_is_gfx8_9_no_xnack = (name == "gfx800"
                                        || name == "gfx802"
                                        || name == "gfx803"
-                                       || name == "gfx804");
-    if (!device_is_gfx8_no_xnack) {
+                                       || name == "gfx804"
+                                       || name == "gfx900");
+    if (!device_is_gfx8_9_no_xnack) {
         return false;
     }
     if (!isForwardDirection()){
