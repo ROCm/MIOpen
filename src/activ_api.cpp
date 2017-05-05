@@ -56,12 +56,10 @@ miopenStatus_t miopenActivationForward(
 		const void							*x,
 		const void							*beta,
 		const miopenTensorDescriptor_t		yDesc,
-		void								*y,
-		bool                                do_backward,
-		void								*workSpace) {
+		void								*y) {
 
 
-	MIOPEN_LOG_FUNCTION(activDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace);
+	MIOPEN_LOG_FUNCTION(activDesc, alpha, xDesc, x, beta, yDesc, y);
 	return miopen::try_([&] {
 			miopen::deref(activDesc).Forward(miopen::deref(handle),
 			alpha,
@@ -69,9 +67,7 @@ miopenStatus_t miopenActivationForward(
 			DataCast(x),
 			beta,
 			miopen::deref(yDesc),
-			DataCast(y),
-			do_backward,
-			DataCast(workSpace));
+			DataCast(y));
 	});
 }
 
@@ -88,9 +84,8 @@ miopenStatus_t miopenActivationBackward(
 		const void							*x,
 		const void							*beta,
 		const miopenTensorDescriptor_t		dxDesc,
-		void								*dx,
-		const void							*workSpace) {
-	MIOPEN_LOG_FUNCTION(activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace)
+		void								*dx) {
+	MIOPEN_LOG_FUNCTION(activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx)
 
 	return miopen::try_([&] {
 			miopen::deref(activDesc).Backward(miopen::deref(handle),
@@ -103,8 +98,7 @@ miopenStatus_t miopenActivationBackward(
 			DataCast(x),
 			beta,
 			miopen::deref(dxDesc),
-			DataCast(dx),
-			DataCast(workSpace));
+			DataCast(dx));
 	});
 }
 
