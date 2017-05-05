@@ -1,5 +1,5 @@
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "test.hpp"
 #include <array>
 #include <iterator>
