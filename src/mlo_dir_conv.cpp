@@ -219,6 +219,32 @@ bool mloSearchConfigDB(
 	return(found);
 }
 
+bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
+{
+    bool ret = false;
+    ret = ( _in_height          == 227
+            && _in_width        == 227
+            && _n_inputs        == 3
+            && _kernel_size0    == 3
+            && _kernel_size1    == 3
+            && _pad0            == 1
+            && _pad1            == 1
+            && _kernel_stride0  == 1
+            && _kernel_stride1  == 1
+            && isForwardDirection() ) ||
+          ( _in_height          == 231
+            && _in_width        == 231
+            && _n_inputs        == 3
+            && _kernel_size0    == 3
+            && _kernel_size1    == 3
+            && _pad0            == 1
+            && _pad1            == 1
+            && _kernel_stride0  == 1
+            && _kernel_stride1  == 1
+            && isForwardDirection() ) ;
+
+    return ret;
+}
 
 /************************************************************************************************************************
  **
@@ -1625,6 +1651,30 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 
 }
 
+bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
+{
+    bool ret = false;
+    ret = ( _in_height          == 227
+            && _in_width        == 227
+            && _n_inputs        == 1
+            && _kernel_size0    == 3
+            && _kernel_size1    == 3
+            && _pad0            == 1
+            && _pad1            == 1
+            && _kernel_stride0  == 1
+            && _kernel_stride1  == 1 ) ||
+          ( _in_height          == 231
+            && _in_width        == 231
+            && _n_inputs        == 1 
+            && _kernel_size0    == 3
+            && _kernel_size1    == 3
+            && _pad0            == 1
+            && _pad1            == 1
+            && _kernel_stride0  == 1
+            && _kernel_stride1  == 1 ) ;
+
+    return ret;
+}
 
 /*
 * backward with regard to weights

@@ -708,6 +708,7 @@ public:
 	size_t setOutputDescFromMLDesc(const miopen::TensorDescriptor &output_tensor);
 	size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor &weight_tensor);
 
+    bool mloIsCompilerWorkarounds() const;
 protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
@@ -728,6 +729,7 @@ protected:
 
 	bool mloIsCorrectAsmDirect5x10u2v2f1() const;
 	bool mloIsFastAsmDirect5x10u2v2f1() const;
+
 	int  mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rmv);
 
 	int mloConstructDirect2DFwdC();
@@ -906,6 +908,7 @@ public:
 	}
 
 	int mloConstruct() override;
+    bool mloIsCompilerWorkarounds() const;
 protected:
 	int mloConstruct2();
 	int mloConstruct53();
