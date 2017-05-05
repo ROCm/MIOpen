@@ -56,7 +56,7 @@ static inline void ReduceKernel(__local _FLOAT * lcl_mem, int sum_stride, int un
     int lcl_offset = unit_id * unit_len;
     
     #pragma unroll
-    for(int i = 0; i < unit_len; i += sum_stride){
+    for(int i = 0; i < unit_len && (lcl_offset+i)<MIO_BN_LDS_SIZE; i += sum_stride){
         sum += lcl_mem[lcl_offset + i];
     }
     lcl_mem[lcl_offset] = sum;
@@ -210,14 +210,12 @@ __kernel void BatchNormFwdTrainSpatialNorm(
     unsigned int index;
     unsigned int cidx = xgid*MIO_BN_HW;
     
-    // #4 apply the normalization
-    // x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
+    // #4 apply the normalization :: x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
     pvt_scale   = scale[xgid];
     pvt_bias    = bias[xgid];
     
     unsigned int meanstashindex = cidx+ygrp_sz*ygrp_id+1;
     unsigned int varstashindex  = cidx+ygrp_sz*ygrp_id+3;
-    
     mean        = out[meanstashindex];//load stashed mean
     invVariance = out[varstashindex];
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
@@ -227,10 +225,8 @@ __kernel void BatchNormFwdTrainSpatialNorm(
         for(unsigned int n = 0; n < MIO_BN_N; n++){//apply normalization
             index = n*MIO_BN_CHW + cidx + ygid;
             inhat = (in[index]-mean)*invVariance;
-            // #5 Gamma and Beta adjust
-            //y_i = gamma*x_hat + beta
+            // #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
             out[index] = mad(pvt_scale, inhat, pvt_bias);
-            
         }//end for(n)
     }//end if(inImgIndex)
 }//end spatial norm
@@ -365,7 +361,7 @@ __kernel void BatchNormFwdTrainSpatialVariance(
       
     if(ylid==0){
 	unsigned int varindex = cidx + ygrp_sz*ygrp_id + 2;
-	meanvarbuff[varindex] = lcl_data[0];//pre-stage for group reduction
+        meanvarbuff[varindex] = lcl_data[0];//pre-stage for group reduction
     }
 }//end spatial variance
 
