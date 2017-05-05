@@ -90,6 +90,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 		Kernels/MIOpenConvFwd_LxL_11.cl
 		Kernels/MIOpenConvFFT.cl
 		Kernels/conv3x3.s
+		Kernels/conv3x3wrw.s
 		Kernels/conv5x10u2v2f1.s
 		Kernels/MIOpenTensorKernels.cl
 		Kernels/MIOpenTensorScaleKernel.cl
