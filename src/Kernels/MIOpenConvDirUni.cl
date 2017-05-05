@@ -527,11 +527,11 @@ __kernel void MIOpenConvUni(
 				int lcl_base = 0;
 				int lcl_y = 0;
 				int lcl_x = 0;
-				int gbl_base = 0;
+				int gbl_base = in_off2;
 
 				readData(elem_id, (MLO_IN_LCL_HEIGHT * MLO_IN_LCL_WIDTH), lcl_p_stride,
 						&lcl_indata[in_lcl_off2], lcl_base, MLO_IN_LCL_HEIGHT, MLO_IN_LCL_WIDTH, MLO_IN_LCL_WIDTH, lcl_y, lcl_x,
-						&in[in_off2], gbl_base, MLO_IN_HEIGHT, MLO_IN_WIDTH, MLO_IN_STRIDE, y_in_grp, x_in_grp,
+						&in[0], gbl_base, MLO_IN_HEIGHT, MLO_IN_WIDTH, MLO_IN_STRIDE, y_in_grp, x_in_grp,
 						vis,
 						true
 					 );
@@ -571,11 +571,11 @@ __kernel void MIOpenConvUni(
 			int lcl_y = (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE0);
 			int lcl_x = (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE1);
 #endif
-			int gbl_base = 0;
+			int gbl_base = in_off2;
 
 			readData(elem_id, (MLO_IN_HEIGHT * MLO_IN_WIDTH), lcl_p_stride,
 						&lcl_indata[in_lcl_off2], lcl_base, MLO_IN_HEIGHT, MLO_IN_WIDTH, MLO_IN_LCL_WIDTH, lcl_y, lcl_x,
-						&in[in_off2], gbl_base, MLO_IN_HEIGHT, MLO_IN_WIDTH, MLO_IN_STRIDE, y_grp, x_grp,
+						&in[0], gbl_base, MLO_IN_HEIGHT, MLO_IN_WIDTH, MLO_IN_STRIDE, y_grp, x_grp,
 						vis,
 						true
 					 );
