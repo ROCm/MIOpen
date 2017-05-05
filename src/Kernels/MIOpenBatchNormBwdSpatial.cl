@@ -48,7 +48,7 @@ static inline void ReduceKernel(__local _FLOAT * lcl_mem, int sum_stride, int un
     int lcl_offset = unit_id * unit_len;
     
     #pragma unroll
-    for(int i = 0; i < unit_len; i += sum_stride){
+    for(int i = 0; i < unit_len && (lcl_offset+i)<MIO_BN_LDS_SIZE; i += sum_stride){
         sum += lcl_mem[lcl_offset + i];
     }
     lcl_mem[lcl_offset] = sum;
@@ -385,15 +385,15 @@ __kernel void BatchNormBwdSpatialFinalMean(
     unsigned int xgid = get_global_id(0);
     unsigned int ygrp_sz = get_local_size(1);
     unsigned int yngrps  = get_num_groups(1);
-
-
     unsigned int cidx = xgid*MIO_BN_HW;
+
     _FLOAT NHW  = (_FLOAT) MIO_BN_NHW;
     lcl_data[ylid] = 0.0;//zero out local memory
     barrier(CLK_LOCAL_MEM_FENCE);
     for(int gn = 0; gn<yngrps; gn++){
         unsigned int offset     = gn*ygrp_sz+ylid;
         unsigned int meanindex   = cidx + ygrp_sz*offset; 
+        
         if(offset < yngrps){//modify to span larger number of groups
             lcl_data[ylid] += meanvarbuff[meanindex];
         }
@@ -408,7 +408,7 @@ __kernel void BatchNormBwdSpatialFinalMean(
     //DONE WITH MEAN
 
     if(ylid==0){	
-        unsigned int meanstashindex=xgid*MIO_BN_HW+ygrp_sz*ygrp_id+1;
+        unsigned int meanstashindex=cidx+ygrp_sz*ygrp_id+1;
         meanvarbuff[meanstashindex] = mean;//stash mean
     }
 }
@@ -575,11 +575,14 @@ __kernel void BatchNormBwdSpatialDScale(
 	int cidx = MIO_BN_HW*xgid;
 	unsigned int index, ncIdx;
 	
-	_FLOAT mean, invVar;
-	_FLOAT elemStd, xhat;
+	_FLOAT mean = 0.;
+        _FLOAT invVar = 0.;
+	_FLOAT elemStd = 0.;
+        _FLOAT xhat = 0.;
 
 	unsigned int meanstashindex = cidx + ygrp_sz*ygrp_id + 1;
 	unsigned int varstashindex  = cidx + ygrp_sz*ygrp_id + 3;
+        
         mean   = buff[meanstashindex];//load stashed mean
         invVar = buff[varstashindex];
 	
@@ -589,6 +592,7 @@ __kernel void BatchNormBwdSpatialDScale(
         for(unsigned int n = 0; n < MIO_BN_N; n++){//apply normalization
             ncIdx = n*MIO_BN_CHW + cidx;
             index = ncIdx + ygid;
+            
             if(ygid<MIO_BN_HW){
                 //per (x-dims) channel load a block of data into LDS
                 elemStd 	 = x_in[index] - mean;// (x_i - mean)
@@ -632,6 +636,7 @@ __kernel void BatchNormBwdSpatialFinalDScale(
     for(int gn = 0; gn<yngrps; gn++){
         unsigned int offset     = gn*ygrp_sz+ylid;
         unsigned int gammaindex   = cidx + ygrp_sz*offset+4;
+        
         if(offset < yngrps){//modify to span larger number of groups
             lcl_data[ylid] += buff[gammaindex];
         }
@@ -667,6 +672,7 @@ __kernel void BatchNormBwdSpatialFinalDBias(
     for(int gn = 0; gn<yngrps; gn++){
         unsigned int offset     = gn*ygrp_sz+ylid;
         unsigned int betaindex   = cidx + ygrp_sz*offset+6;
+        
         if(offset < yngrps){//modify to span larger number of groups
             lcl_data[ylid] += buff[betaindex];
         }
@@ -676,7 +682,6 @@ __kernel void BatchNormBwdSpatialFinalDBias(
     for(int i = 0; i<MIO_BN_LDS_SIZE;i++){
        dbias += lcl_data[i];
     }
-    
     //DONE WITH DSCALE REDUCTION
     if(ygid==0) delta_bias[xgid] = dbias;
 }
@@ -707,11 +712,13 @@ __kernel void BatchNormBwdSpatialDX(
 
     unsigned int meanstashindex = cidx+ygrp_sz*ygrp_id+1;
     mean        = dx_out[meanstashindex];//load stashed mean
+    
     unsigned int varstashindex = cidx+ygrp_sz*ygrp_id+3;
     invVar = dx_out[varstashindex];	
-    scale = bnScale[xgid];
+    
+    scale  = bnScale[xgid];
     dscale = delta_scale[xgid];
-    dbias = delta_bias[xgid];
+    dbias  = delta_bias[xgid];
 
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 //________________________________________________
@@ -723,14 +730,14 @@ __kernel void BatchNormBwdSpatialDX(
         ncIdx = n*MIO_BN_CHW + cidx;
         index = ncIdx + ygid;
         if(ygid<MIO_BN_HW){
-            elemStd = x_in[index] - mean;// (x_i - mean)
-            xhat 	= elemStd*invVar; //recalculating this again...
-            tmp1 	= mad(NHW,dy_in[index],-dbias);
-            tmp2 	= -xhat*dscale;
-            tmp3 	= (scale*invVar)/NHW;
-            dx_out[index] = tmp3*(tmp2+tmp1);//DEBUG
+                elemStd = x_in[index] - mean;// (x_i - mean)
+                xhat 	= elemStd*invVar; //recalculating this again...
+                tmp1 	= mad(NHW,dy_in[index],-dbias);
+                tmp2 	= -xhat*dscale;
+                tmp3 	= (scale*invVar)/NHW;
+                dx_out[index] = tmp3*(tmp2+tmp1);//DEBUG
 	}
-     }
+    }
 }
 
 //============================================================
@@ -760,7 +767,7 @@ __kernel void BatchNormBwdSpatialSavedDBias(
     unsigned int xgid       = get_global_id(0);
     unsigned int ygid       = get_global_id(1);
     unsigned int ygrp_sz    = get_local_size(1);
-    unsigned int ncIdx,index;
+    unsigned int index;
     unsigned int cidx = xgid*MIO_BN_HW;
     
     //move across the sections of the image mini_batch stack 
@@ -769,8 +776,7 @@ __kernel void BatchNormBwdSpatialSavedDBias(
     
     #pragma unroll
     for(unsigned int n = 0; n < MIO_BN_N; n++){
-        ncIdx = n*MIO_BN_CHW + cidx;
-        index = ncIdx + ygid;
+        index = n*MIO_BN_CHW + cidx + ygid;
         if(ygid<MIO_BN_HW){
             lcl_data[ylid] += dy_in[index];
         }
@@ -826,7 +832,6 @@ __kernel void BatchNormBwdSpatialSavedDScale(
             elemStd 	 = x_in[index] - mean;// (x_i - mean)
             xhat 	 = elemStd*invVar;
             lcl_data[ylid]= mad(xhat, dy_in[index], lcl_data[ylid]);
-            //lcl_data[ylid] += 1.;//DEBUG
         }//end if
     }//end for n
 	
@@ -885,6 +890,10 @@ __kernel void BatchNormBwdSpatialSavedFinalDScale(
     if(ygid==0) delta_scale[xgid] = dscale;
 }
 
+
+
+
+
 __kernel void BatchNormBwdSpatialSavedFinalDBias(
 					__global _FLOAT			*buff,
 					__global _FLOAT			*delta_bias){
@@ -913,12 +922,8 @@ __kernel void BatchNormBwdSpatialSavedFinalDBias(
     for(int i = 0; i<MIO_BN_LDS_SIZE;i++){
        dbias += lcl_data[i];
     }
-    //DONE WITH DSCALE REDUCTION
-
-	//unsigned int biasstashindex =xgid*MIO_BN_HW+ygrp_sz*ygrp_id+7;
-	//buff[biasstashindex] = dbias;//stash dbias
-	
-	if(ygid==0) delta_bias[xgid] = dbias;
+    //DONE WITH DSCALE REDUCTION	
+    if(ygid==0) delta_bias[xgid] = dbias;
 }
 
 
@@ -946,11 +951,11 @@ __kernel void BatchNormBwdSpatialSavedDX(
 
     _FLOAT NHW  = (_FLOAT) MIO_BN_NHW;
 
-    mean 	= savedMean[xgid];//load stashed mean
-    invVar 	= savedInvVariance[xgid];//load stashed inverse variance
-    scale = bnScale[xgid];
+    mean   = savedMean[xgid];//load stashed mean
+    invVar = savedInvVariance[xgid];//load stashed inverse variance
+    scale  = bnScale[xgid];
     dscale = delta_scale[xgid];
-    dbias = delta_bias[xgid];
+    dbias  = delta_bias[xgid];
  
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 // Group level reduction
