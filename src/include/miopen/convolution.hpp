@@ -161,6 +161,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		const TensorDescriptor&		dwDesc) const;
 
 	size_t BackwardWeightsGetWorkSpaceSizeDirect(
+		Handle&						handle,
 		const TensorDescriptor&		dyDesc,
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		dwDesc) const;
