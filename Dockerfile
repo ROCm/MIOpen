@@ -74,7 +74,7 @@ RUN ln -s $PREFIX $PREFIX/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install HIP
-RUN cget -p $PREFIX install hip,http://$GITLAB1/pfultz/hip/repository/archive.tar.gz?ref=cmake-develop
+RUN cget -p $PREFIX install hip,pfultz2/HIP@modern
 
 # Install clang-ocl
 RUN cget -p $PREFIX install clang-ocl,http://$GITLAB1/pfultz/clang-ocl/repository/archive.tar.bz2?ref=master
