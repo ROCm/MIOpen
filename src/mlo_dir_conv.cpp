@@ -628,7 +628,7 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream, const std::st
 
 /// @param dir 1: fwd, 0: bwd wrt data
 static
-std::string constructAsmDirect3x3UCaseKey(int w, int h, int c, int n, int k, int dir)
+std::string MakeKeyWHCNKD(int w, int h, int c, int n, int k, int dir)
 {
 	std::ostringstream ss;
 	ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << dir;
@@ -651,29 +651,30 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
             /// Optimal values found on Gfx8 with 56 CUs (R9 Fury).
             /// \todo Test on devices with 64 CUs (e.g. R9 Nano) and expand
             /// implementation if optimal values are different.
+            static_assert('0' == '\x30' && '9'-'0' == 9 , "Characters must be in ASCII encoding");
             static
             const std::unordered_map<std::string, std::string> perf_vals_map({
                 //                              W    H    c    n    k   dir  fpw olpw lwc
-                { constructAsmDirect3x3UCaseKey(54,  54,  64,  8,   64,  0), "820" },
-                { constructAsmDirect3x3UCaseKey(54,  54,  64,  8,   64,  1), "820" },
-                { constructAsmDirect3x3UCaseKey(56,  56,  128, 8,   256, 0), "840" },
-                { constructAsmDirect3x3UCaseKey(56,  56,  128, 8,   256, 1), "840" },
-                { constructAsmDirect3x3UCaseKey(56,  56,  128, 16,  256, 0), "840" },
-                { constructAsmDirect3x3UCaseKey(56,  56,  128, 16,  256, 1), "840" },
-                { constructAsmDirect3x3UCaseKey(60,  6,   64,  16,  128, 0), "420" },
-                { constructAsmDirect3x3UCaseKey(60,  6,   64,  16,  128, 1), "260" },
-                { constructAsmDirect3x3UCaseKey(112, 112, 64,  8,   128, 0), "820" },
-                { constructAsmDirect3x3UCaseKey(112, 112, 64,  8,   128, 1), "820" },
-                { constructAsmDirect3x3UCaseKey(112, 112, 64,  16,  128, 0), "820" },
-                { constructAsmDirect3x3UCaseKey(112, 112, 64,  16,  128, 1), "820" },
-                { constructAsmDirect3x3UCaseKey(120, 12,  32,  16,  64,  0), "413" },
-                { constructAsmDirect3x3UCaseKey(120, 12,  32,  16,  64,  1), "420" },
-                { constructAsmDirect3x3UCaseKey(240, 24,  16,  16,  32,  0), "420" },
-                { constructAsmDirect3x3UCaseKey(240, 24,  16,  16,  32,  1), "810" },
+                { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "820" },
+                { MakeKeyWHCNKD(54,  54,  64,  8,   64,  1), "820" },
+                { MakeKeyWHCNKD(56,  56,  128, 8,   256, 0), "840" },
+                { MakeKeyWHCNKD(56,  56,  128, 8,   256, 1), "840" },
+                { MakeKeyWHCNKD(56,  56,  128, 16,  256, 0), "840" },
+                { MakeKeyWHCNKD(56,  56,  128, 16,  256, 1), "840" },
+                { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0), "420" },
+                { MakeKeyWHCNKD(60,  6,   64,  16,  128, 1), "260" },
+                { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0), "820" },
+                { MakeKeyWHCNKD(112, 112, 64,  8,   128, 1), "820" },
+                { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0), "820" },
+                { MakeKeyWHCNKD(112, 112, 64,  16,  128, 1), "820" },
+                { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0), "413" },
+                { MakeKeyWHCNKD(120, 12,  32,  16,  64,  1), "420" },
+                { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0), "420" },
+                { MakeKeyWHCNKD(240, 24,  16,  16,  32,  1), "810" },
             });
             const auto key = isForwardDirection()
-                ? constructAsmDirect3x3UCaseKey(_in_width, _in_height, _n_inputs, _batch_sz, _n_outputs, 1)
-                : constructAsmDirect3x3UCaseKey(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
+                ? MakeKeyWHCNKD(_in_width, _in_height, _n_inputs, _batch_sz, _n_outputs, 1)
+                : MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
             const auto found = perf_vals_map.find(key);
             if (found != perf_vals_map.end()) {
                 perf_vals = found->second;
@@ -2570,34 +2571,251 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 }
 
 
+mlo_construct_BwdWrW2D::PerfParamsAsmDirect3x3WrW
+mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
+{
+    /// Optimal values found on Gfx8 with 56 CUs (R9 Fury).
+    /// \todo Test on devices with 64 CUs (e.g. R9 Nano) and expand
+    /// implementation if optimal values are different.
+    static_assert('0' == '\x30' && '9'-'0' == 9 , "Characters must be in ASCII encoding");
+    static
+    const std::unordered_map<std::string, std::string> perf_vals_map({
+        //              W    H    c    n    k    dir
+        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0), "008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0), "008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0), "008421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0), "018421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0), "018421" },
+        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "018431" },
+        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "008431" },
+        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "018431" },
+        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "008431" },
+        { MakeKeyWHCNKD(16,  16,  256, 8,   512, 0), "00" "\x40" "421" }, // '\x40' - '0' == 16
+        { MakeKeyWHCNKD(28,  28,  256, 8,   512, 0), "418221" },
+        { MakeKeyWHCNKD(28,  28,  256, 16,  512, 0), "018231" },
+        { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "01" "\x40" "224" },
+        { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0), "40" "\x40" "261" },
+        { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0), "30" "\x40" "422" },
+        { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0), "00" "\x40" "424" },
+        { MakeKeyWHCNKD(112, 112, 256, 8,   512, 0), "01" "\x40" "421" },
+        { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0), "31" "\x40" "214" },
+        { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0), "00" "\x40" "418" },
+    });
+    PerfParamsAsmDirect3x3WrW pp;
+    const auto key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
+    const auto found = perf_vals_map.find(key);
+    if (found != perf_vals_map.end()) {
+        auto& v = found->second;
+        pp.limit_wave_cnt    = v[0] - '0';
+        pp.reverse_inout     = v[1] - '0';
+        pp.chunk_size        = v[2] - '0';
+        pp.k_per_wave        = v[3] - '0';
+        pp.pipe_lines_depth  = v[4] - '0';
+        pp.n_per_group       = v[5] - '0';
+    } else {
+        const auto c_k = _n_outputs * _n_inputs; // C*K
+        pp.chunk_size = (_in_width < 48) ? 8 : 16;
+        {
+            auto& v = pp.reverse_inout;
+            if ((_n_outputs % 4 != 0) || (_in_width < 8))  {
+                v = 1;
+            } else {
+                v = 0;
+            }
+        }
+        {
+            auto& v = pp.k_per_wave;
+            if (c_k < 256) {
+                v = 1;
+            } else if (c_k < 16384){
+                v = 2;
+            } else { // C*K >= 16k
+                v = (pp.chunk_size == 8) ? 2 : 4;
+            }
+        }
+        {
+            auto& v = pp.n_per_group;
+            if (c_k <= 512) {
+                v = 8;
+            } else if (c_k <= 4096) {
+                v = 4;
+            } else if (c_k <= 8192) {
+                v = 2;
+            } else {
+                v = 1;
+            }
+        }
+        pp.pipe_lines_depth = ((_in_height < 8) && (_in_width < 64)) ? _in_height : 2;
+    }
+    pp.c_per_wave = 64 / pp.chunk_size;
+    return pp;
+}
+
+
+bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
+{
+    const std::string name = _stream->GetDeviceName();
+    if (name.find("gfx8") == std::string::npos) { // Any gfx8 device is ok.
+        return false;
+    }
+    assert(_weights_layout.length() == 0); // _weights_layout is not supported yet
+    bool ok = _pad0            == 1  // -q     pad_w
+           && _pad1            == 1  // -p     pad_h
+           && _kernel_stride0  == 1  // -u     stride_w
+           && _kernel_stride1  == 1  // -v     stride_h
+           && _kernel_size0    == 3  // -x   S wei_w
+           && _kernel_size1    == 3  // -y   R wei_h
+           && _in_layout == "NCHW";
+           // && _weights_layout == "KCHW"
+    if (!ok) {
+        return false; // Early exit to speed up the check.
+    }
+    // Check limits:
+    const auto h_w     = static_cast<long>(_in_height) * _in_width;
+    const auto r_s     = static_cast<long>(_kernel_size1) * _kernel_size0;
+    const auto c_h_w   = static_cast<long>(_n_outputs) * h_w; // C*H*W
+    const auto k_h_w   = static_cast<long>(_n_inputs ) * h_w; // K*H*W
+    const auto c_r_s   = static_cast<long>(_n_outputs) * r_s; // C*R*S
+    const auto k_r_s   = static_cast<long>(_n_inputs ) * r_s; // K*R*S
+    const auto n_c_h_w = static_cast<long>(_batch_sz ) * c_h_w; // N*C*H*W
+    const auto n_k_h_w = static_cast<long>(_batch_sz ) * k_h_w; // N*K*H*W
+    const auto c_k_r_s = static_cast<long>(_n_outputs) * k_r_s; // C*K*R*S
+    ok = _in_width    >  0
+        && _in_width    <= 256
+        && _in_height   < std::pow(2, 16)   // -H   H img_h
+        && _batch_sz	< std::pow(2, 16)   // -n   N batch_size
+        && _n_outputs   < std::pow(2, 16)   // -c   C input_channels
+        && _n_inputs    < std::pow(2, 16)   // -k   K output_channels
+        && ((_n_outputs % 4 == 0) || (_n_inputs % 4 == 0))
+        && c_h_w < std::pow(2, 22)
+        && k_h_w < std::pow(2, 22)
+        && c_r_s < std::pow(2, 22)
+        && k_r_s < std::pow(2, 22)
+        && n_c_h_w < std::pow(2, 29)
+        && n_k_h_w < std::pow(2, 29)
+        && c_k_r_s < std::pow(2, 29);
+    if (!ok) {
+        return false;
+    }
+    // Check other constraints:
+    const PerfParamsAsmDirect3x3WrW pp = mloComputePerfParamsAsmDirect3x3WrW();
+    if (pp.reverse_inout == 0) {
+        ok = (_n_outputs % pp.c_per_wave) == 0
+          && (_n_inputs  % pp.k_per_wave) == 0;
+    } else {
+        ok = (_n_outputs % pp.k_per_wave) == 0
+          && (_n_inputs  % pp.c_per_wave) == 0;
+    }
+    return ok;
+}
+
+
+bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
+{
+    return true;
+}
+
+
+int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
+{
+    std::ostringstream options;
+    GenerateClangDefsym(options, "batch_size", _batch_sz); // N
+    GenerateClangDefsym(options, "img_h", _in_height); // H
+    GenerateClangDefsym(options, "img_w", _in_width) ; // W
+    // Note that _n_outputs and _n_inputs are swapped for backward convolutions.
+    GenerateClangDefsym(options, "input_channels", _n_outputs); // C
+    GenerateClangDefsym(options, "output_channels", _n_inputs); // K
+    GenerateClangDefsym(options, "wei_h", _kernel_size1); // R
+    GenerateClangDefsym(options, "wei_w", _kernel_size0); // S
+    GenerateClangDefsym(options, "pad_h", _pad1);
+    GenerateClangDefsym(options, "pad_w", _pad0);
+    GenerateClangDefsym(options, "stride_h", _kernel_stride1);
+    GenerateClangDefsym(options, "stride_w", _kernel_stride0);
+    GenerateClangDefsym(options, "weights_layout", 0);
+    GenerateClangDefsym(options, "reverse_weights", 0);
+    // Perf tune:
+    const PerfParamsAsmDirect3x3WrW pp = mloComputePerfParamsAsmDirect3x3WrW();
+    GenerateClangDefsym(options, "limit_wave_cnt", pp.limit_wave_cnt);
+    GenerateClangDefsym(options, "chunk_size", pp.chunk_size);
+    GenerateClangDefsym(options, "c_per_wave", pp.c_per_wave);
+    GenerateClangDefsym(options, "k_per_wave", pp.k_per_wave);
+    GenerateClangDefsym(options, "n_per_group", pp.n_per_group);
+    GenerateClangDefsym(options, "pipe_lines_depth", pp.pipe_lines_depth);
+    GenerateClangDefsym(options, "reverse_inout", pp.reverse_inout);
+    // Debugging:
+    GenerateClangDefsym(options, "enable_debug_output", 0);
+    _comp_options = options.str();
+
+    _l_wk.clear(); // workgroupsize
+    _l_wk.push_back(64 * pp.n_per_group);
+    _l_wk.push_back(1);
+    _l_wk.push_back(1);
+
+    _g_wk.clear(); // gridsize
+    _g_wk.push_back(64 * pp.n_per_group);
+    if (pp.reverse_inout == 0) {
+        _g_wk.push_back(_n_outputs / pp.c_per_wave);
+        _g_wk.push_back(_n_inputs  / pp.k_per_wave);
+    } else {
+        _g_wk.push_back(_n_outputs / pp.k_per_wave);
+        _g_wk.push_back(_n_inputs  / pp.c_per_wave);
+    }
+
+    _kernel_file = "conv3x3wrw.s";
+    _kernel_name = "gcnAsmConv3x3WrW";
+
+	_mlo_kernels_info.clear();
+    auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
+    _mlo_kernels_info.push_back(kern_info);
+    _workspce_sz = 0;
+
+    return 0;
+}
+
+
 int mlo_construct_BwdWrW2D::mloConstruct()
 {
-	int ret = 0;
-	_workspce_sz = 0;
-
-    if (((_kernel_size0>=_kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >=64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
-	{
-		ret = mloConstruct2();
-	}
-	else if (_kernel_size0 >= _kernel_size1)
-	{
-#if 0
-		if ((_kernel_size0 == 3 && _kernel_size1 == 3) && (_out_width < 8 && _out_height < 8))
-		{
-			ret = mloConstruct3x3();
-		}  
-		else
+    _workspce_sz = 0;
+#if MIOPEN_BACKEND_OPENCL
+    rocm_meta_version rmv = V3;
+    if (mloIsAmdOpenclRocm(rmv) && rmv == V3)
+    {
+        const auto use_assembly = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_GCN_ASM_KERNELS")
+                                  && ValidateGcnAssembler();
+        const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+        if (use_assembly) {
+            if (mloIsCorrectAsmDirect3x3WrW()
+                && (no_perf_filtering || mloIsFastAsmDirect3x3WrW())) {
+                return (mloConstructAsmDirect3x3WrW());
+            }
+        }
+    }
 #endif
-		if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
-		{
-			ret = mloConstruct53();
-		}
-		else
-		{
-			ret = mloConstruct1x1();
-		}
-	}
-	return(ret);
+
+    int ret = 0;
+    if (((_kernel_size0>=_kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >=64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
+    {
+        ret = mloConstruct2();
+    }
+    else if (_kernel_size0 >= _kernel_size1)
+    {
+#if 0
+    if ((_kernel_size0 == 3 && _kernel_size1 == 3) && (_out_width < 8 && _out_height < 8))
+    {
+        ret = mloConstruct3x3();
+    }
+    else
+#endif
+        if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+        {
+            ret = mloConstruct53();
+        }
+        else
+        {
+            ret = mloConstruct1x1();
+        }
+    }
+    return(ret);
 }
 
 

@@ -912,6 +912,23 @@ protected:
 	int mloConstruct1x1();
 	int mloConstruct1x1Mmap();
 //	int mloConstruct3x3();
+
+    struct PerfParamsAsmDirect3x3WrW {
+        int limit_wave_cnt;
+        int chunk_size;         // 16 or 8. Lower values increase register pressure
+        int c_per_wave;         // should be (64 / chunk_size)
+        int k_per_wave;         // 1, 2, 4, 8 and chunk_size * k_per_wave <= 64. Higher values increase register preasure
+        int n_per_group;        // 1..8 and n_per_group <= batch_size
+        int pipe_lines_depth;   // 1..8 and pipe_lines_depth <= img_h. Higher values increase register pressure
+        int reverse_inout;      // 0 or 1
+        PerfParamsAsmDirect3x3WrW() : limit_wave_cnt(0), chunk_size(16), c_per_wave(4),
+            k_per_wave(4), n_per_group(1), pipe_lines_depth(2), reverse_inout(0)
+        {}
+    };
+    PerfParamsAsmDirect3x3WrW mloComputePerfParamsAsmDirect3x3WrW() const;
+    bool mloIsCorrectAsmDirect3x3WrW() const;
+    bool mloIsFastAsmDirect3x3WrW() const;
+    int  mloConstructAsmDirect3x3WrW();
 };
 
 /*
