@@ -90,4 +90,6 @@ RUN dpkg -i /win-opencl.deb && rm /win-opencl.deb
 RUN cget -p /usr/local/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@master
 
 # Setup wine
+RUN mkdir -p /jenkins
+RUN chmod 777 /jenkins
 RUN WINEDEBUG=-all DISPLAY=:55.0 wineboot; wineserver -w

@@ -229,12 +229,14 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
 }
 
 size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
+    Handle&                     handle,
     const TensorDescriptor&     dyDesc,
-	const TensorDescriptor&		xDesc,
-	const TensorDescriptor&		dwDesc) const
+    const TensorDescriptor&     xDesc,
+    const TensorDescriptor&     dwDesc) const
 {
     mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
     construct_params.doSearch(false);
+    construct_params.setStream(&handle);
     construct_params.setOutputDescFromMLDesc(dyDesc);
     construct_params.setInputDescFromMLDesc(xDesc);
     construct_params.setWeightDescFromMLDesc(dwDesc);
@@ -251,7 +253,7 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 	const TensorDescriptor&		 dwDesc) const
 {
     return std::max(
-            BackwardWeightsGetWorkSpaceSizeDirect(dyDesc, xDesc, dwDesc),
+            BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc),
             BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)
         );
 }
