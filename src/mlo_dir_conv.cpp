@@ -519,49 +519,42 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version &rmv) const
 #endif //MIOPEN_BACKEND_OPENCL
 bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 {
-	// Check if device is able to run this kernel.
-	const auto name = _stream->GetDeviceName();
-	const bool device_is_gfx8_9_no_xnack = (name == "gfx800"
-									   || name == "gfx802"
-									   || name == "gfx803"
-									   || name == "gfx804"
-                                       || name == "gfx900");
-	if (!device_is_gfx8_9_no_xnack) {
-		return false;
-	}
-	// Check if kernel is suitable for the problem description
-	// and able to correctly run with given parameters.
-	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
-	assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
-    bool winograd_constraints =  _pad0			== 1
-		&& _pad1			== 1
-		&& _kernel_size0	== 3
-		&& _kernel_size1	== 3
-		&& _kernel_stride0	== 1
-		&& _kernel_stride1	== 1
-		&& _batch_sz	< std::pow(2, 16)
-		&& _n_inputs	< std::pow(2, 16)
-		&& _n_outputs	< std::pow(2, 16)
-		&& _in_height	< std::pow(2, 16)
-		&& _in_width	< std::pow(2, 16)
-		&& grid_workgroup_count_x				 <  std::pow(2, 16)
-		&& (_n_inputs  * _in_height * _in_width) <= std::pow(2, 28)
-		&& (_n_outputs * _in_height * _in_width) <= std::pow(2, 28)
-		&& (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
-		&& (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
-		&& _n_inputs % 2	== 0
-	//	&& _n_inputs		>= 16 
-		&& _in_layout		== "NCHW";
-
-    if(name == "gfx803")
-        return winograd_constraints && _n_inputs >= 16;
-    if(name == "gfx900")
-        return winograd_constraints && _n_inputs >= 18; 
-    else 
+    // Check if device is able to run this kernel.
+    const auto name = _stream->GetDeviceName();
+    const auto device_is_gfx9_no_xnack = (name == "gfx900");
+    const bool device_is_gfx8_no_xnack = (name == "gfx800"
+                                       || name == "gfx802"
+                                       || name == "gfx803"
+                                       || name == "gfx804");
+    if (!device_is_gfx8_no_xnack || !device_is_gfx9_no_xnack) {
         return false;
-    
-		// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
-		// Actually, K<->C flpping is controlled by separate flag, so we can support either layout in both directions.
+    }
+    // Check if kernel is suitable for the problem description
+    // and able to correctly run with given parameters.
+    const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
+    assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+    return     _pad0			                            == 1
+            && _pad1			                            == 1
+            && _kernel_size0	                            == 3
+            && _kernel_size1	                            == 3
+            && _kernel_stride0	                            == 1
+            && _kernel_stride1	                            == 1
+            && _batch_sz	                                < std::pow(2, 16)
+            && _n_inputs	                                < std::pow(2, 16)
+            && _n_outputs	                                < std::pow(2, 16)
+            && _in_height	                                < std::pow(2, 16)
+            && _in_width	                                < std::pow(2, 16)
+            && grid_workgroup_count_x				        <  std::pow(2, 16)
+            && (_n_inputs  * _in_height * _in_width)        <= std::pow(2, 28)
+            && (_n_outputs * _in_height * _in_width)        <= std::pow(2, 28)
+            && (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+            && (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+            && _n_inputs % 2	                            == 0
+            && _n_inputs		                            >= (device_is_gfx8_no_xnack ? 16 : 18) 
+            && _in_layout		                            == "NCHW";
+
+    // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+    // Actually, K<->C flpping is controlled by separate flag, so we can support either layout in both directions.
 }
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
@@ -572,7 +565,7 @@ bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv)
 {
     const auto n_groups = _stream->GetMaxComputeUnits();
-	const auto name = _stream->GetDeviceName();
+    const auto name = _stream->GetDeviceName();
 
     _g_wk.clear();
     _g_wk.push_back(512 * n_groups);
@@ -585,18 +578,14 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version r
     _l_wk.push_back(1);
 
     _kernel_name = "sp3AsmConv3x3F";
-    if (rmv == V1 && name == "gfx803") {
-        _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so";
-    } else if (rmv == V2 && name == "gfx803") {
-        _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
-    } else if (rmv == V3 && name == "gfx803") {
-        _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so";
-    } else if (rmv == V3 && name == "gfx900") {
-        _kernel_file = "conv_3x3_wheel_alpha_v5_1_1b_gfx900.so";
+    if (name.find("gfx8") != std::string::npos) {
+        if(rmv == V1) _kernel_file  = "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so";
+        else if(rmv == V2) _kernel_file  = "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
+        else if(rmv == V3) _kernel_file  = "conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so";
     } else {
-        _kernel_file = "";
-        return 1;
+        _kernel_file = "conv_3x3_wheel_alpha_v5_1_1b_gfx900.so";
     }
+
     return 0;
 }
 
