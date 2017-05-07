@@ -56,13 +56,13 @@ RUN cget -p /usr/local install kitware/cmake@release
 ADD cmake/mingw-toolchain.cmake /usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake
 
 # Build hcc
-RUN git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/hcc.git /hcc && \
-    git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/hcc-clang-upgrade.git /hcc/clang && \
+RUN git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/hcc.git /hcc && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/hcc-clang-upgrade.git /hcc/clang && \
     git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/clang-tools-extra.git /hcc/clang/tools/extra && \
-    git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/llvm.git /hcc/compiler && \
-    git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/compiler-rt.git /hcc/compiler-rt && \
-    git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/lld.git /hcc/lld && \
-    git clone --depth 1 -b remove-promote-change-addr-space https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git /hcc/rocdl && \
+    git clone --depth 1 -b amd-hcc-roc-1.5.x https://github.com/RadeonOpenCompute/llvm.git /hcc/compiler && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/compiler-rt.git /hcc/compiler-rt && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/lld.git /hcc/lld && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git /hcc/rocdl && \
     cget -p $PREFIX install hcc,/hcc && \
     rm -rf /hcc
 
