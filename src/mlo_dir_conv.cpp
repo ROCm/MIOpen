@@ -526,7 +526,7 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
                                        || name == "gfx802"
                                        || name == "gfx803"
                                        || name == "gfx804");
-    if (!device_is_gfx8_no_xnack || !device_is_gfx9_no_xnack) {
+    if (!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack) {
         return false;
     }
     // Check if kernel is suitable for the problem description
