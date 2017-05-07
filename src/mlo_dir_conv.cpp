@@ -2669,7 +2669,7 @@ bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
 {
     const std::string name = _stream->GetDeviceName();
     if (name.find("gfx8") == std::string::npos) { // Any gfx8 device is ok.
-        return false;
+//        return false;
     }
     assert(_weights_layout.length() == 0); // _weights_layout is not supported yet
     bool ok = _pad0            == 1  // -q     pad_w
@@ -2725,6 +2725,10 @@ bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
 
 bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
 {
+    const std::string name = _stream->GetDeviceName();
+    if(name == "gfx900" && (_in_width == 27 || _in_width == 54))
+        return false;
+
     return true;
 }
 
