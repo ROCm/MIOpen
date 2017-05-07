@@ -533,25 +533,25 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
     // and able to correctly run with given parameters.
     const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
     assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
-    return     _pad0			                            == 1
-            && _pad1			                            == 1
-            && _kernel_size0	                            == 3
-            && _kernel_size1	                            == 3
-            && _kernel_stride0	                            == 1
-            && _kernel_stride1	                            == 1
-            && _batch_sz	                                < std::pow(2, 16)
-            && _n_inputs	                                < std::pow(2, 16)
-            && _n_outputs	                                < std::pow(2, 16)
-            && _in_height	                                < std::pow(2, 16)
-            && _in_width	                                < std::pow(2, 16)
-            && grid_workgroup_count_x				        <  std::pow(2, 16)
-            && (_n_inputs  * _in_height * _in_width)        <= std::pow(2, 28)
-            && (_n_outputs * _in_height * _in_width)        <= std::pow(2, 28)
-            && (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
-            && (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
-            && _n_inputs % 2	                            == 0
-            && _n_inputs		                            >= (device_is_gfx8_no_xnack ? 16 : 18) 
-            && _in_layout		                            == "NCHW";
+    return _pad0			                            == 1
+        && _pad1			                            == 1
+        && _kernel_size0	                            == 3
+        && _kernel_size1	                            == 3
+        && _kernel_stride0	                            == 1
+        && _kernel_stride1	                            == 1
+        && _batch_sz	                                <  std::pow(2, 16)
+        && _n_inputs	                                <  std::pow(2, 16)
+        && _n_outputs	                                <  std::pow(2, 16)
+        && _in_height	                                <  std::pow(2, 16)
+        && _in_width	                                <  std::pow(2, 16)
+        && grid_workgroup_count_x				        <  std::pow(2, 16)
+        && (_n_inputs  * _in_height * _in_width)        <= std::pow(2, 28)
+        && (_n_outputs * _in_height * _in_width)        <= std::pow(2, 28)
+        && (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+        && (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+        && _n_inputs % 2	                            == 0
+        && _n_inputs		                            >= (device_is_gfx8_no_xnack ? 16 : 18) 
+        && _in_layout		                            == "NCHW";
 
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
     // Actually, K<->C flpping is controlled by separate flag, so we can support either layout in both directions.
