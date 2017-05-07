@@ -748,7 +748,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     (void)workSpaceSize; // Suppress warning
 #endif
 
-    if(wei_w >= wei_h)
+    if(wei_w >= wei_h && !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_CONV_DIRECT"))
     {
         mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
         construct_params.doSearch(false);
