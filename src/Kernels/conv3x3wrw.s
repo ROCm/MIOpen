@@ -241,7 +241,7 @@ gcnAsmConv3x3WrW:
 
 
    // fill format and size fields of buffer descriptors
-   static_assert (.option.machine_version_major == 8)
+   static_assert ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
    s_mov_b32 s[desc_in+2], input_buffer_size
    s_mov_b32 s[desc_in+3], 0x00804fac
    s_mov_b32 s[desc_wei+2], filters_size
