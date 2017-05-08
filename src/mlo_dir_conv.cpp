@@ -2693,7 +2693,9 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
         }
         {
             auto& v = pp.n_per_group;
-            if (c_k <= 512) {
+            if (_batch_sz == 1) {
+            	v = 1;
+            } else if (c_k <= 512) {
                 v = 8;
             } else if (c_k <= 4096) {
                 v = 4;
