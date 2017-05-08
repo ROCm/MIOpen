@@ -553,6 +553,9 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
         && _n_inputs                                    >= (device_is_gfx8_no_xnack ? 16 : 18) 
         && _in_layout                                   == "NCHW";
 
+    // FIXME: _n_inputs > 18 is a requirement of the v5.1 shader and NOT a dependency on gfx9
+    // The current way of implemenation is a hack as gfx8 uses v3.0 shader and gfx9 uses v5.1 shader
+
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
     // Actually, K<->C flpping is controlled by separate flag, so we can support either layout in both directions.
 }
@@ -2657,7 +2660,7 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
 bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
 {
     const std::string name = _stream->GetDeviceName();
-    if (name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos) { // Any gfx8 device is ok.
+    if (name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos) {
         return false;
     }
     assert(_weights_layout.length() == 0); // _weights_layout is not supported yet
@@ -2714,6 +2717,10 @@ bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
 
 bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
 {
+    // MD: These are actually not performance issues rather
+    // a workaround to mitigate memory fauults on gfx9
+    // They work fine on gfx8
+    // /todo fix memory faults on gfx9
     const std::string name = _stream->GetDeviceName();
     return !((name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54)));
 }
