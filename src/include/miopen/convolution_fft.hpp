@@ -9,7 +9,12 @@ struct FFTConvParams
 	{
 		int NX, NY; // fft tile width, height
 
-		if( (in_h == 14) && (in_w == 14) )
+		if( (in_h == 7) && (in_w == 7) )
+		{
+			NY = 12;
+			NX = 12;
+		}
+		else if( (in_h == 14) && (in_w == 14) )
 		{
 			NY = 18;
 			NX = 18;

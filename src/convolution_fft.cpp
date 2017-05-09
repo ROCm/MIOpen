@@ -33,7 +33,8 @@ namespace miopen {
 	supported = (
 					(std::tie(in_h, in_w) != std::make_tuple(28, 28)) &&
 					(std::tie(in_h, in_w) != std::make_tuple(27, 27)) &&
-					(std::tie(in_h, in_w) != std::make_tuple(14, 14))
+					(std::tie(in_h, in_w) != std::make_tuple(14, 14)) &&
+					(std::tie(in_h, in_w) != std::make_tuple(7, 7))
 				) ? false : supported;
 
 	supported = (std::tie(wei_h, wei_w) != std::make_tuple(5, 5)) ? false : supported;
