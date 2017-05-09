@@ -117,7 +117,18 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 
 
 	// grid for FFT kernels
-	if( (in_h == 14) && (in_w == 14) )
+	if( (in_h == 7) && (in_w == 7) )
+	{
+		 local_work_size[0][0] = 192;
+		global_work_size[0][0] = ((in_c * out_n)/16) * local_work_size[0][0];
+
+		 local_work_size[1][0] = 192;
+		global_work_size[1][0] = ((in_c * out_c)/16) * local_work_size[1][0];
+
+		 local_work_size[6][0] = 192;
+		global_work_size[6][0] = ((out_n * out_c)/16) * local_work_size[6][0];
+	}
+	else if( (in_h == 14) && (in_w == 14) )
 	{
 		 local_work_size[0][0] = 128;
 		global_work_size[0][0] = ((in_c * out_n)/4) * local_work_size[0][0];
@@ -147,7 +158,28 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	int ot_tranpose_choice = 0;
 
 	// grid for transpose kernels
-	if( (in_h == 14) && (in_w == 14) )
+	if( (in_h == 7) && (in_w == 7) )
+	{
+		 local_work_size[2][0] = 256;
+		global_work_size[2][0] = (1 + N / 16) * (in_c*out_n / 16) * local_work_size[2][0];
+
+		if((in_c*out_c)%32 == 0)
+		{
+			wt_tranpose_choice = 1;
+
+			 local_work_size[3][0] = 256;
+			global_work_size[3][0] = (1 + N / 32) * (in_c*out_c / 32) * local_work_size[3][0];
+		}
+		else
+		{
+			 local_work_size[3][0] = 256;
+			global_work_size[3][0] = (1 + N / 16) * (in_c*out_c / 16) * local_work_size[3][0];
+		}
+
+		 local_work_size[5][0] = 256;
+		global_work_size[5][0] = (1 + N / 16) * (out_n*out_c / 16) * local_work_size[5][0];
+	}
+	else if( (in_h == 14) && (in_w == 14) )
 	{
 		 local_work_size[2][0] = 256;
 		global_work_size[2][0] = (1 + N / 16) * (in_c*out_n / 16) * local_work_size[2][0];
@@ -187,7 +219,9 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 		cgemm_choice = 1;
 	else if( (in_h == 14) && (in_w == 14) )
 		cgemm_choice = 2;
-		
+	else if( (in_h == 7) && (in_w == 7) )
+		cgemm_choice = 2;
+
 	if( (in_n < 16) || (in_c < 16) || (out_c < 16) )
 		cgemm_choice = 0;
 	
@@ -213,6 +247,8 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 		parms += " -DCFF_IMG_SZ_27_27";
 	else if( (in_h == 14) && (in_w == 14) )
 		parms += " -DCFF_IMG_SZ_14_14";
+	else if( (in_h == 7) && (in_w == 7) )
+		parms += " -DCFF_IMG_SZ_7_7";
 
 	parms += " -DCFF_IMG_H=";
 	parms += std::to_string(in_h);
