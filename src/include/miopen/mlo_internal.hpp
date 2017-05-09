@@ -708,6 +708,7 @@ public:
 	size_t setOutputDescFromMLDesc(const miopen::TensorDescriptor &output_tensor);
 	size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor &weight_tensor);
 
+    bool mloIsCompilerWorkarounds() const;
 protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
@@ -728,6 +729,7 @@ protected:
 
 	bool mloIsCorrectAsmDirect5x10u2v2f1() const;
 	bool mloIsFastAsmDirect5x10u2v2f1() const;
+
 	int  mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rmv);
 
 	int mloConstructDirect2DFwdC();
@@ -906,12 +908,30 @@ public:
 	}
 
 	int mloConstruct() override;
+    bool mloIsCompilerWorkarounds() const;
 protected:
 	int mloConstruct2();
 	int mloConstruct53();
 	int mloConstruct1x1();
 	int mloConstruct1x1Mmap();
 //	int mloConstruct3x3();
+
+    struct PerfParamsAsmDirect3x3WrW {
+        int limit_wave_cnt;
+        int chunk_size;         // 16 or 8. Lower values increase register pressure
+        int c_per_wave;         // should be (64 / chunk_size)
+        int k_per_wave;         // 1, 2, 4, 8 and chunk_size * k_per_wave <= 64. Higher values increase register preasure
+        int n_per_group;        // 1..8 and n_per_group <= batch_size
+        int pipe_lines_depth;   // 1..8 and pipe_lines_depth <= img_h. Higher values increase register pressure
+        int reverse_inout;      // 0 or 1
+        PerfParamsAsmDirect3x3WrW() : limit_wave_cnt(0), chunk_size(16), c_per_wave(4),
+            k_per_wave(4), n_per_group(1), pipe_lines_depth(2), reverse_inout(0)
+        {}
+    };
+    PerfParamsAsmDirect3x3WrW mloComputePerfParamsAsmDirect3x3WrW() const;
+    bool mloIsCorrectAsmDirect3x3WrW() const;
+    bool mloIsFastAsmDirect3x3WrW() const;
+    int  mloConstructAsmDirect3x3WrW();
 };
 
 /*
