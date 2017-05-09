@@ -155,19 +155,11 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 set ( MIOpen_Headers_Public
-<<<<<<< HEAD
 	${PROJECT_SOURCE_DIR}/include/miopen/miopen.h
 	${PROJECT_BINARY_DIR}/include/miopen/config.h
 	${PROJECT_BINARY_DIR}/include/miopen/export.h
 	${PROJECT_BINARY_DIR}/include/miopen/version.h
-	)
-=======
-    ${PROJECT_SOURCE_DIR}/include/miopen.h
-    ${PROJECT_BINARY_DIR}/include/miopen-version.h
-    ${PROJECT_BINARY_DIR}/include/miopen_export.h
-    )
->>>>>>> develop
-
+)
 
 # build library
 add_library( MIOpen
