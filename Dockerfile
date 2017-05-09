@@ -34,6 +34,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     python \
     python-dev \
     python-pip \
+    rocm-opencl-dev \
     software-properties-common \
     wget \
     wine \
@@ -55,13 +56,13 @@ RUN cget -p /usr/local install kitware/cmake@release
 ADD cmake/mingw-toolchain.cmake /usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake
 
 # Build hcc
-RUN git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/hcc.git /hcc && \
-    git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/hcc-clang-upgrade.git /hcc/clang && \
+RUN git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/hcc.git /hcc && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/hcc-clang-upgrade.git /hcc/clang && \
     git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/clang-tools-extra.git /hcc/clang/tools/extra && \
-    git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/llvm.git /hcc/compiler && \
-    git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/compiler-rt.git /hcc/compiler-rt && \
-    git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/lld.git /hcc/lld && \
-    git clone --depth 1 -b remove-promote-change-addr-space https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git /hcc/rocdl && \
+    git clone --depth 1 -b amd-hcc-roc-1.5.x https://github.com/RadeonOpenCompute/llvm.git /hcc/compiler && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/compiler-rt.git /hcc/compiler-rt && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/lld.git /hcc/lld && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git /hcc/rocdl && \
     cget -p $PREFIX install hcc,/hcc && \
     rm -rf /hcc
 
@@ -73,11 +74,7 @@ RUN ln -s $PREFIX $PREFIX/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install HIP
-RUN cget -p $PREFIX install hip,http://$GITLAB1/pfultz/hip/repository/archive.tar.gz?ref=cmake-develop
-
-# Install opencl
-RUN curl http://$GITLAB1/pfultz/mlopen/uploads/194a8f592aaeabb486e3594e3a4083e6/rocm-opencl-1.4.deb > /rocm-opencl.deb
-RUN dpkg -i /rocm-opencl.deb && rm /rocm-opencl.deb
+RUN cget -p $PREFIX install hip,pfultz2/HIP@modern
 
 # Install clang-ocl
 RUN cget -p $PREFIX install clang-ocl,http://$GITLAB1/pfultz/clang-ocl/repository/archive.tar.bz2?ref=master
@@ -93,4 +90,6 @@ RUN dpkg -i /win-opencl.deb && rm /win-opencl.deb
 RUN cget -p /usr/local/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@master
 
 # Setup wine
+RUN mkdir -p /jenkins
+RUN chmod 777 /jenkins
 RUN WINEDEBUG=-all DISPLAY=:55.0 wineboot; wineserver -w

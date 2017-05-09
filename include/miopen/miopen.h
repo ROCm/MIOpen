@@ -39,20 +39,20 @@ typedef hipStream_t miopenAcceleratorQueue_t;
 MIOPEN_DECLARE_OBJECT(miopenHandle);
 
 typedef enum {
-    miopenStatusSuccess = 0,
-    miopenStatusNotInitialized = 1,
-    miopenStatusInvalidValue = 2,
-    miopenStatusBadParm = 3,
-    miopenStatusAllocFailed = 4,
-    miopenStatusInternalError = 5,
-    miopenStatusNotImplemented = 6,
-    miopenStatusUnknownError = 7,
+    miopenStatusSuccess         = 0,
+    miopenStatusNotInitialized  = 1,
+    miopenStatusInvalidValue    = 2,
+    miopenStatusBadParm         = 3,
+    miopenStatusAllocFailed     = 4,
+    miopenStatusInternalError   = 5,
+    miopenStatusNotImplemented  = 6,
+    miopenStatusUnknownError    = 7,
 } miopenStatus_t;
 
 MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t *handle);
 
 MIOPEN_EXPORT miopenStatus_t miopenCreateWithStream(miopenHandle_t *handle,
-        miopenAcceleratorQueue_t                 stream);
+        miopenAcceleratorQueue_t        stream);
 
 MIOPEN_EXPORT miopenStatus_t miopenDestroy(miopenHandle_t handle);
 
@@ -413,22 +413,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGet2dPoolingDescriptor(
         int                                 *u,
         int                                 *v);
 
-MIOPEN_EXPORT miopenStatus_t miopenSetNdPoolingDescriptor(
-        miopenPoolingDescriptor_t           poolDesc,
-        miopenPoolingMode_t                 mode,
-        int                                 nbDims,
-        int                                 *windowDimA,
-        int                                 *padA,
-        int                                 *stridesA);
-
-MIOPEN_EXPORT miopenStatus_t miopenGetNdPoolingDescriptor(
-        const miopenPoolingDescriptor_t     poolDesc,
-        miopenPoolingMode_t                 *mode,
-        int                                 *nbDims,
-        int                                 *windowDimA,
-        int                                 *padA,
-        int                                 *stridesA);
-
 MIOPEN_EXPORT miopenStatus_t miopenGetPoolingForwardOutputDim(
         const miopenPoolingDescriptor_t     poolDesc,
         const miopenTensorDescriptor_t      tensorDesc,
@@ -531,8 +515,6 @@ MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(
         const miopenTensorDescriptor_t      xDesc,
         miopenBatchNormMode_t               bn_mode);
 
-
-
 MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationForwardTraining(
         miopenHandle_t                      handle,
         miopenBatchNormMode_t               bn_mode,
@@ -615,9 +597,7 @@ MIOPEN_EXPORT miopenStatus_t miopenActivationForward(
     const void                              *x,
     const void                              *beta,
     const miopenTensorDescriptor_t          yDesc,
-    void                                    *y,
-    bool                                    do_backward,
-    void                                    *workSpace);
+    void                                    *y);
 
 MIOPEN_EXPORT miopenStatus_t miopenActivationBackward(
     miopenHandle_t                          handle,
@@ -631,8 +611,7 @@ MIOPEN_EXPORT miopenStatus_t miopenActivationBackward(
     const void                              *x,
     const void                              *beta,
     const miopenTensorDescriptor_t          dxDesc,
-    void                                    *dx,
-    const void                              *workSpace);
+    void                                    *dx);
 
 MIOPEN_EXPORT miopenStatus_t miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 
