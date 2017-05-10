@@ -160,22 +160,6 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	// grid for transpose kernels
 	if( (in_h == 7) && (in_w == 7) )
 	{
-		 local_work_size[2][0] = 256;
-		global_work_size[2][0] = (1 + N / 16) * (in_c*out_n / 16) * local_work_size[2][0];
-
-		if((in_c*out_c)%32 == 0)
-		{
-			wt_tranpose_choice = 1;
-
-			 local_work_size[3][0] = 256;
-			global_work_size[3][0] = (1 + N / 32) * (in_c*out_c / 32) * local_work_size[3][0];
-		}
-		else
-		{
-			 local_work_size[3][0] = 256;
-			global_work_size[3][0] = (1 + N / 16) * (in_c*out_c / 16) * local_work_size[3][0];
-		}
-
 		 local_work_size[5][0] = 256;
 		global_work_size[5][0] = (1 + N / 16) * (out_n*out_c / 16) * local_work_size[5][0];
 	}
@@ -273,6 +257,13 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	{
 		std::string kernel_name; 
 
+		// skip front transposes for 7x7
+		if( (in_h == 7) && (in_w == 7) )
+		{
+			if( (ik == 2) || (ik == 3) )
+				continue;
+		}
+
 		switch(ik)
 		{
 		case 0: kernel_name += "MIOpenConvFFT_fwd_in";			break;
@@ -341,6 +332,13 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 	const std::string config_prefix = make_config_prefix(in_h, in_w, in_n, in_c, out_c);
 	for(int ik=0; ik<NumKernels; ik++)
 	{
+		// skip front transposes for 7x7
+		if( (in_h == 7) && (in_w == 7) )
+		{
+			if( (ik == 2) || (ik == 3) )
+				continue;
+		}
+
 		std::string network_config = config_prefix + std::to_string(ik);
 
 		auto k = handle.GetKernel("miopenConvolutionFwdAlgoFFT", network_config);

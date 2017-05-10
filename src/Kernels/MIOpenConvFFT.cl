@@ -594,25 +594,53 @@ FwdPass3(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __local 
 
 
 __attribute__((always_inline)) void
-FwdPass4(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __global float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+FwdPass4_IN(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __global float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5, float2 *R6)
 {
-	(*R0) = bufIn[inOffset + ( me + 0*192 )];
-	(*R1) = bufIn[inOffset + ( me + 1*192 )];
-	(*R2) = bufIn[inOffset + ( me + 2*192 )];
-	(*R3) = bufIn[inOffset + ( me + 3*192 )];
-	(*R4) = bufIn[inOffset + ( me + 4*192 )];
-	(*R5) = bufIn[inOffset + ( me + 5*192 )];
+	(*R0) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 0*12 )];
+	(*R1) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 1*12 )];
+	(*R2) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 2*12 )];
+	(*R3) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 3*12 )];
+	(*R4) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 4*12 )];
+	(*R5) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 5*12 )];
+	(*R6) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 6*12 )];
 	
-	bufOut[outOffset + ( me + 0*192 )] = (*R0);
-	bufOut[outOffset + ( me + 1*192 )] = (*R1);
-	bufOut[outOffset + ( me + 2*192 )] = (*R2);
-	bufOut[outOffset + ( me + 3*192 )] = (*R3);
-	bufOut[outOffset + ( me + 4*192 )] = (*R4);
-	bufOut[outOffset + ( me + 5*192 )] = (*R5);
+	barrier(CLK_LOCAL_MEM_FENCE);
+
 	
-	(*R0) = bufIn[inOffset + ( me + 6*192 )];
-	bufOut[outOffset + ( me + 6*192 )] = (*R0);		
+	bufOut[outOffset + ( (me%16) + ((me/16) + 0*12)*(CFF_CHANNELS*CFF_BATCH + 64) )] = (*R0);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 1*12)*(CFF_CHANNELS*CFF_BATCH + 64) )] = (*R1);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 2*12)*(CFF_CHANNELS*CFF_BATCH + 64) )] = (*R2);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 3*12)*(CFF_CHANNELS*CFF_BATCH + 64) )] = (*R3);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 4*12)*(CFF_CHANNELS*CFF_BATCH + 64) )] = (*R4);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 5*12)*(CFF_CHANNELS*CFF_BATCH + 64) )] = (*R5);	
+	bufOut[outOffset + ( (me%16) + ((me/16) + 6*12)*(CFF_CHANNELS*CFF_BATCH + 64) )] = (*R6);
 }
+
+
+
+__attribute__((always_inline)) void
+FwdPass4_WE(uint me, uint inOffset, uint outOffset, __local float2 *bufIn, __global float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5, float2 *R6)
+{
+	(*R0) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 0*12 )];
+	(*R1) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 1*12 )];
+	(*R2) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 2*12 )];
+	(*R3) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 3*12 )];
+	(*R4) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 4*12 )];
+	(*R5) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 5*12 )];
+	(*R6) = bufIn[inOffset + ( (me%16)*84 + (me/16) + 6*12 )];
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	
+	bufOut[outOffset + ( (me%16) + ((me/16) + 0*12)*(CFF_CHANNELS*CFF_NFILTER + 64) )] = (*R0);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 1*12)*(CFF_CHANNELS*CFF_NFILTER + 64) )] = (*R1);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 2*12)*(CFF_CHANNELS*CFF_NFILTER + 64) )] = (*R2);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 3*12)*(CFF_CHANNELS*CFF_NFILTER + 64) )] = (*R3);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 4*12)*(CFF_CHANNELS*CFF_NFILTER + 64) )] = (*R4);
+	bufOut[outOffset + ( (me%16) + ((me/16) + 5*12)*(CFF_CHANNELS*CFF_NFILTER + 64) )] = (*R5);	
+	bufOut[outOffset + ( (me%16) + ((me/16) + 6*12)*(CFF_CHANNELS*CFF_NFILTER + 64) )] = (*R6);
+}
+
 
 
 __kernel __attribute__((reqd_work_group_size (192,1,1)))
@@ -628,9 +656,10 @@ void MIOpenConvFFT_fwd_in(__global const float * restrict gbIn, __global float2 
 	__global float2 *lwbOut;
 
 	float2 R0, R1, R2, R3, R4, R5;
-
+	float2 R6;
+	
 	lwbIn = gbIn + batch*CFF_IMG_W*CFF_IMG_H*16;
-	lwbOut = gbOut + batch*1344;
+	lwbOut = gbOut + CFF_HALFW + batch*16;
 
 	uint met = me%12;
 	
@@ -659,8 +688,10 @@ void MIOpenConvFFT_fwd_in(__global const float * restrict gbIn, __global float2 
 	barrier(CLK_LOCAL_MEM_FENCE);	
 	}
 	
-	FwdPass4(me, 0, 0, lds, lwbOut, &R0, &R1, &R2, &R3, &R4, &R5);
+	FwdPass4_IN(me, 0, 0, lds, lwbOut, &R0, &R1, &R2, &R3, &R4, &R5, &R6);
 }
+
+
 
 
 __kernel __attribute__((reqd_work_group_size (192,1,1)))
@@ -676,9 +707,11 @@ void MIOpenConvFFT_fwd_we(__global const float * restrict gbIn, __global float2 
 	__global float2 *lwbOut;
 
 	float2 R0, R1, R2, R3, R4, R5;
-
+	float2 R6;
+	
 	lwbIn = gbIn + batch*25*16;
-	lwbOut = gbOut + 84*CFF_CHANNELS*CFF_BATCH + batch*1344;
+	lwbOut = gbOut + CFF_HALFW + 84*(CFF_CHANNELS*CFF_BATCH + 64) + batch*16;
+
 
 	uint met = me%12;
 	
@@ -707,208 +740,8 @@ void MIOpenConvFFT_fwd_we(__global const float * restrict gbIn, __global float2 
 	barrier(CLK_LOCAL_MEM_FENCE);	
 	}
 	
-	FwdPass4(me, 0, 0, lds, lwbOut, &R0, &R1, &R2, &R3, &R4, &R5);
+	FwdPass4_WE(me, 0, 0, lds, lwbOut, &R0, &R1, &R2, &R3, &R4, &R5, &R6);
 }
-
-
-
-__kernel __attribute__((reqd_work_group_size (256,1,1)))
-void MIOpenConvFFT_transpose_in(__global float2 * restrict gb)
-{
-	uint me = get_local_id(0);
-	uint batch = get_group_id(0);
-
-	__local float2 lds[256];
-
-	uint iOffset;
-	uint oOffset;
-	__global const float2 *lwbIn;
-	__global float2 *lwbOut;
-
-	float2 R0;
-
-	uint bm = batch%6;
-	uint bd = batch/6;
-	
-	iOffset = bm*16 + bd*84*16; 
-	oOffset = CFF_HALFW + bm*(CFF_CHANNELS*CFF_BATCH + 64)*16 + bd*16; 
-	
-	lwbIn = gb + iOffset;
-	lwbOut = gb + oOffset;
-	
-	if(bm == 5)
-	{
-		if(me < 64)
-		{
-			R0 = lwbIn[(me%4) + (me/4)*84];
-			lds[(me%4)*16 + (me/4)] = R0;
-		}
-	}
-	else
-	{
-		R0 = lwbIn[(me%16) + (me/16)*84];
-		lds[(me%16)*16 + (me/16)] = R0;
-	}
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	
-	if(bm == 5)
-	{
-		if(me < 64)
-		{
-			R0 = lds[me];
-			lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;		
-		}
-	}
-	else
-	{
-		R0 = lds[me];
-		lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_BATCH + 64)] = R0;
-	}
-
-}
-
-
-#if defined(CFF_TRANSP_WT_MOD16)
-
-
-__kernel __attribute__((reqd_work_group_size (256,1,1)))
-void MIOpenConvFFT_transpose_we(__global float2 * restrict gb)
-{
-	uint me = get_local_id(0);
-	uint batch = get_group_id(0);
-
-	__local float2 lds[256];
-
-	uint iOffset;
-	uint oOffset;
-	__global const float2 *lwbIn;
-	__global float2 *lwbOut;
-
-	float2 R0;
-
-	uint bm = batch%6;
-	uint bd = batch/6;
-	
-	iOffset = 84*CFF_CHANNELS*CFF_BATCH + bm*16 + bd*84*16; 
-	oOffset = CFF_HALFW + 84*(CFF_CHANNELS*CFF_BATCH + 64) + bm*(CFF_CHANNELS*CFF_NFILTER + 64)*16 + bd*16;
-	
-	lwbIn = gb + iOffset;
-	lwbOut = gb + oOffset;
-	
-	if(bm == 5)
-	{
-		if(me < 64)
-		{
-			R0 = lwbIn[(me%4) + (me/4)*84];
-			lds[(me%4)*16 + (me/4)] = R0;
-		}
-	}
-	else
-	{
-		R0 = lwbIn[(me%16) + (me/16)*84];
-		lds[(me%16)*16 + (me/16)] = R0;
-	}
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	
-	if(bm == 5)
-	{
-		if(me < 64)
-		{
-			R0 = lds[me];
-			lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;		
-		}
-	}
-	else
-	{
-		R0 = lds[me];
-		lwbOut[(me%16) + (me/16)*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
-	}
-
-}
-
-
-#else
-
-
-__kernel __attribute__((reqd_work_group_size (256,1,1)))
-void MIOpenConvFFT_transpose_we(__global float2 * restrict gb)
-{
-	uint me = get_local_id(0);
-	uint batch = get_group_id(0);
-
-	__local float2 lds[1024];
-
-	uint iOffset;
-	uint oOffset;
-	__global const float2 *lwbIn;
-	__global float2 *lwbOut;
-
-	float2 R0;
-
-	uint bm = batch%((CFF_CHANNELS*CFF_NFILTER)/32);
-	uint bd = batch/((CFF_CHANNELS*CFF_NFILTER)/32);
-	
-	iOffset = 84*CFF_CHANNELS*CFF_BATCH + bm*84*32 + bd*32; 
-	oOffset = CFF_HALFW + 84*(CFF_CHANNELS*CFF_BATCH + 64) + bm*32 + bd*(CFF_CHANNELS*CFF_NFILTER + 64)*32;
-	
-	lwbIn = gb + iOffset;
-	lwbOut = gb + oOffset;
-	
-
-	if(bd == 2)
-	{
-		if(me%32 < 20)
-		{
-			for(uint t=0; t<4; t++)
-			{
-				R0 = lwbIn[(me%32) + (me/32)*84 + t*8*84];
-				lds[(me%32)*32 + (me/32) + t*8] = R0;
-			}
-		}
-	}
-	else
-	{
-		for(uint t=0; t<4; t++)
-		{
-			R0 = lwbIn[(me%32) + (me/32)*84 + t*8*84];
-			lds[(me%32)*32 + (me/32) + t*8] = R0;
-		}
-	}
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	
-	if(bd == 2)
-	{
-	
-		R0 = lds[me + 0*256];
-		lwbOut[(me%32) + (me/32)*(CFF_CHANNELS*CFF_NFILTER + 64) + 0*8*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
-
-		R0 = lds[me + 1*256];
-		lwbOut[(me%32) + (me/32)*(CFF_CHANNELS*CFF_NFILTER + 64) + 1*8*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
-		
-		if(me < 128)
-		{
-			R0 = lds[me + 2*256];
-			lwbOut[(me%32) + (me/32)*(CFF_CHANNELS*CFF_NFILTER + 64) + 2*8*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;		
-		}
-	}
-	else
-	{	
-		for(uint t=0; t<4; t++)
-		{
-			R0 = lds[me + t*256];
-			lwbOut[(me%32) + (me/32)*(CFF_CHANNELS*CFF_NFILTER + 64) + t*8*(CFF_CHANNELS*CFF_NFILTER + 64)] = R0;
-		}
-	}
-		
-	
-}
-
-
-#endif
-
 
 
 
