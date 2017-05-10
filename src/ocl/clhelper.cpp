@@ -3,7 +3,7 @@
 #include <string>
 #include <fstream>
 #include <cstdio>
-#include <miopen/gcn_asm_utils.h>
+#include <miopen/gcn_asm_utils.hpp>
 #include <miopen/clhelper.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/errors.hpp>

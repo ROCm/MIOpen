@@ -1,5 +1,5 @@
 #include <miopen/config.h>
-#include <miopen/gcn_asm_utils.h>
+#include <miopen/gcn_asm_utils.hpp>
 #include <miopen/errors.hpp>
 #include <cstdlib>
 #include <cassert>
@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <paths.h>
 #include <sys/types.h> 
+#include <sys/stat.h> 
 #endif // !defined(_WIN32) && !defined(__APPLE__)
 
 #ifndef _WIN32 //Linux or APPLE
@@ -150,13 +151,12 @@ bool ValidateGcnAssembler()
     if (clang_rc != 0) { return false; }
 
     std::getline(clang_stdout, clang_result_line);
-    if (clang_result_line.find("clang") != std::string::npos)
-
-    while (!clang_stdout.eof()) {
-        std::getline(clang_stdout, clang_result_line);
-
-        if (clang_result_line.find("Target: ") != std::string::npos) {
-            return clang_result_line.find("amdgcn") != std::string::npos;
+    if (clang_result_line.find("clang") != std::string::npos) {
+        while (!clang_stdout.eof()) {
+            std::getline(clang_stdout, clang_result_line);
+            if (clang_result_line.find("Target: ") != std::string::npos) {
+                return clang_result_line.find("amdgcn") != std::string::npos;
+            }
         }
     }
 #endif // !defined(_WIN32) && !defined(__APPLE__)

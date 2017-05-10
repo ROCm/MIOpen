@@ -57,13 +57,6 @@ find_package(tinygemm)
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
 	set(MIOPEN_BACKEND_OPENCL 1)
 	find_package( OpenCL REQUIRED )
-	find_program(MIOPEN_AMDGCN_ASSEMBLER
-		NAMES clang
-		PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
-		PATH_SUFFIXES /opencl/bin/x86_64
-		NO_DEFAULT_PATH
-	)
-	message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 endif()
 
 # HIP
@@ -84,6 +77,15 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 	link_libraries(stdc++)
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
+
+# Online assembler
+find_program(MIOPEN_AMDGCN_ASSEMBLER
+	NAMES clang
+	PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
+	PATH_SUFFIXES /opencl/bin/x86_64
+	NO_DEFAULT_PATH
+)
+message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 # tinygemm
 if(tinygemm_FOUND)
