@@ -79,10 +79,10 @@ typedef enum {
 } miopenDataType_t;
 
 typedef enum {
-    miopenOpTensorAdd = 0,
-    miopenOpTensorMul = 1,
-    miopenTensorMin   = 2,
-    miopenTensorMax   = 3,
+    miopenTensorOpAdd = 0,
+    miopenTensorOpMul = 1,
+    miopenTensorOpMin = 2,
+    miopenTensorOpMax = 3,
 } miopenTensorOp_t;
 
 typedef enum {
