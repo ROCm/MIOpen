@@ -2,7 +2,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
-#include <miopen/gcn_asm_utils.h>
+#include <miopen/gcn_asm_utils.hpp>
 
 #include <sstream>
 

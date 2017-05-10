@@ -18,7 +18,7 @@
 #define MIOPEN
 
 #include <cmath>
-#include <miopen/gcn_asm_utils.h>
+#include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 #include <miopen/env.hpp>
@@ -256,9 +256,7 @@ int mlo_construct_winograd::mloConstruct()
 {
 #ifndef HIP_OC_FINALIZER
 	rocm_meta_version rmv = V3;
-#if MIOPEN_BACKEND_OPENCL
 	if (mloIsAmdOpenclRocm(rmv))
-#endif
 	{
 		const auto use_binaries = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
@@ -287,13 +285,13 @@ int mlo_construct_direct2D::mloConstruct()
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
-#if MIOPEN_BACKEND_OPENCL
 	rocm_meta_version rmv = V3;
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
 	if (mloIsAmdOpenclRocm(rmv))
 	{
 		const auto use_assembly = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_GCN_ASM_KERNELS")
 								  && ValidateGcnAssembler();
+
 		// See comment in mlo_construct_winograd::mloConstruct().
 		const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
 		if (use_assembly) {
@@ -307,7 +305,6 @@ int mlo_construct_direct2D::mloConstruct()
 			}
 		}
 	}
-#endif
 
 	if (_gen && isForwardDirection())
 	{
@@ -508,9 +505,10 @@ static bool IsTokenInOpenclDriverVersion(const std::string& driver_version, cons
 		|| (driver_version.find(' ' + s +',') != std::string::npos)
 		|| (driver_version.find(' ' + s +' ') != std::string::npos);
 }
-
+#endif
 bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version &rmv) const
 {
+#if MIOPEN_BACKEND_OPENCL
 	const auto dev = miopen::GetDevice(_stream->GetStream());
 
 	// Only suitable Opencl platform is from AMD.
@@ -541,8 +539,11 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version &rmv) const
 		}
 	}
 	return true;
-}
+#else
+	(void)rmv; // We don't care about metada version
+	return true;
 #endif //MIOPEN_BACKEND_OPENCL
+}
 bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 {
     // Check if device is able to run this kernel.
@@ -2841,7 +2842,6 @@ int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
 int mlo_construct_BwdWrW2D::mloConstruct()
 {
     _workspce_sz = 0;
-#if MIOPEN_BACKEND_OPENCL
     rocm_meta_version rmv = V3;
     if (mloIsAmdOpenclRocm(rmv) && rmv == V3)
     {
@@ -2855,7 +2855,6 @@ int mlo_construct_BwdWrW2D::mloConstruct()
             }
         }
     }
-#endif
 
     int ret = 0;
     if (((_kernel_size0>=_kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >=64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
