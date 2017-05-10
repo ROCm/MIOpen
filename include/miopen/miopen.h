@@ -8,7 +8,8 @@
 
 #include <stddef.h>
 
-#include "miopen_export.h"
+#include <miopen/export.h>
+#include <miopen/config.h>
 
 #if MIOPEN_BACKEND_OPENCL
 #if defined(__APPLE__) || defined(__MACOSX)

@@ -3,7 +3,7 @@
 
 #include <miopen/handle.hpp>
 #include <miopen/object.hpp>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/common.hpp>
 #include <vector>
 #include <iostream>

@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <miopen/config.h>
+
 namespace miopen {
 std::string GetKernelSrc(std::string name);
 } // namespace miopen
