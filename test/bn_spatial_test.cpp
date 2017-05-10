@@ -1061,5 +1061,6 @@ int main(int argc, const char *argv[]){
               << std::chrono::duration<double>(t_end-t_start).count()
               << " seconds."<<std::endl;
     
+exit(0);
     
 }

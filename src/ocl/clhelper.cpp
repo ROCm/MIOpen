@@ -208,7 +208,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 #ifdef __linux__
 		params += " -Wf,-Weverything -Wf,-Wno-shorten-64-to-32 -Wf,-Wno-unused-macros -Wf,-Wno-unused-function "  
             "-Wf,-Wno-sign-compare -Wf,-Wno-reserved-id-macro -Wf,-Wno-sign-conversion -Wf,-Wno-missing-prototypes -Wf,-Wno-cast-qual "
-            "-Wf,-Wno-cast-align -Wf,-Wno-conversion -Wf,-Wno-double-promotion";
+            "-Wf,-Wno-cast-align -Wf,-Wno-conversion -Wf,-Wno-double-promotion -Wf,-Wno-conditional-uninitialized -Wf,-Wno-sometimes-uninitialized";
 #endif
 #endif
 		params += " -cl-std=CL1.2";
