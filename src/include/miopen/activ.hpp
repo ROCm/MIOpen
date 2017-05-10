@@ -1,7 +1,7 @@
 #ifndef MIOPEN_ACTIV_HPP_
 #define MIOPEN_ACTIV_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
