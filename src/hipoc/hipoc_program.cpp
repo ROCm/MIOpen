@@ -2,6 +2,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/gcn_asm_utils.h>
 
 #include <sstream>
 
@@ -77,7 +78,12 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
     std::string src = is_kernel_str ? program_name : GetKernelSrc(program_name);
     if (!is_kernel_str && miopen::EndsWith(program_name, ".so"))
     {
-        WriteFile(src, hsaco_file);        
+        WriteFile(src, hsaco_file);
+    }
+    else if (!is_kernel_str && miopen::EndsWith(program_name, ".s"))
+    {
+        ExperimentalAmdgcnAssemble("gfx803", src, params);
+        WriteFile(src, hsaco_file);
     }
     else
     {

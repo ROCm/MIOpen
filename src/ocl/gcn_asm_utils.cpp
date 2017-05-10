@@ -12,7 +12,55 @@
 #include <ext/stdio_filebuf.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <paths.h>
+#include <sys/types.h> 
 #endif // !defined(_WIN32) && !defined(__APPLE__)
+
+#ifndef _WIN32 //Linux or APPLE
+class TempFile
+{
+public:
+    TempFile(const std::string& path_template)
+        : _path(GetTempDirectoryPath() + "/" + path_template + "-XXXXXX")
+    {
+        _fd = mkstemp(&_path[0]);
+        if (_fd == -1) { MIOPEN_THROW("Error: TempFile: mkstemp()"); }
+    }
+
+    ~TempFile()
+    {
+        const int remove_rc = std::remove(_path.c_str());
+        const int close_rc = close(_fd);
+        if (remove_rc != 0 || close_rc != 0) {
+#ifndef NDEBUG // Be quiet in release versions.
+            std::fprintf(stderr, "Error: TempFile: On removal of '%s', remove_rc = %d, close_rc = %d.\n", _path.c_str(), remove_rc, close_rc);
+#endif
+        }
+    }
+
+    inline operator const std::string&() { return _path; }
+
+private:
+    std::string _path;
+    int _fd;
+
+    static
+    const std::string GetTempDirectoryPath() 
+    {
+        const auto path = getenv("TMPDIR");
+        if (path != nullptr) {
+            return path;
+        }
+#if defined(P_tmpdir)
+        return P_tmpdir; // a string literal, if defined.
+#elif defined(_PATH_TMP)
+        return _PATH_TMP; // a string literal, if defined.
+#else
+        return "/tmp";
+#endif
+    }
+};
+#endif
 
 static std::string CleanupPath(const char * p);
 static int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out);
@@ -115,7 +163,6 @@ bool ValidateGcnAssembler()
     return false;
 }
 
-static
 int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out)
 {
 #if !defined(_WIN32) && !defined(__APPLE__)
@@ -218,4 +265,60 @@ std::string CleanupPath(const char * p)
         }
     }
     return path;
+}
+
+/*
+ * Temporary function which emulates online assembly feature of OpenCL-on-ROCm being developed.
+ * Not intended to be used in production code, so error handling is very straghtforward,
+ * just catch whatever possible and throw an exception.
+ */
+void ExperimentalAmdgcnAssemble(std::string device_name, std::string& source, const std::string& params)
+{
+#ifndef _WIN32 //Linux or APPLE
+    TempFile outfile("amdgcn-asm-out-XXXXXX");
+
+    std::vector<std::string> args ({
+        "-x",
+        "assembler",
+        "-target",
+        "amdgcn--amdhsa",
+    });
+
+    args.push_back("-mcpu=" + std::string(device_name));
+
+    {
+        std::istringstream iss(params);
+        std::string param;
+        while (iss >> param) {
+            args.push_back(param);
+        };
+    }
+    args.push_back("-");
+    args.push_back("-o");
+    args.push_back(outfile);
+    
+    std::istringstream clang_stdin(source);
+    const auto clang_rc = ExecuteGcnAssembler(args, &clang_stdin, nullptr);
+    if (clang_rc != 0) MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")"); 
+
+    std::ifstream file(outfile, std::ios::binary | std::ios::ate);
+    bool outfile_read_failed = false;
+    do {
+        const auto size = file.tellg();
+        if (size == -1) { outfile_read_failed = true; break; }
+        source.resize(size, '\0');
+        file.seekg(std::ios::beg);
+        if (file.fail()) { outfile_read_failed = true; break; }
+        if (file.rdbuf()->sgetn(&source[0], size) != size) { outfile_read_failed = true; break; }
+    } while (false);
+    file.close();
+    if (outfile_read_failed) {
+        MIOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
+    }
+#else
+    (void)device; // -warning
+    (void)source; // -warning
+    (void)params; // -warning
+    MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
+#endif //WIN32
 }
