@@ -1,7 +1,7 @@
 #ifndef GUARD_MIOPEN_CONTEXT_HPP_
 #define GUARD_MIOPEN_CONTEXT_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/common.hpp>
 #include <miopen/kernel.hpp>

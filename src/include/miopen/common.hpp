@@ -1,7 +1,7 @@
 #ifndef GUARD_MIOPEN_COMMON_HPP_
 #define GUARD_MIOPEN_COMMON_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/manage_ptr.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
