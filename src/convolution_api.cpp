@@ -184,7 +184,7 @@ miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
     return miopen::try_([&] {
 
 		return OpTensor(miopen::deref(handle), 
-            miopenOpTensorAdd,
+            miopenTensorOpAdd,
 				alpha,
 				miopen::deref(yDesc),
 				DataCast(y),
