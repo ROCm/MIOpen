@@ -2670,9 +2670,17 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
         pp.k_per_wave        = v[3] - '0';
         pp.pipe_lines_depth  = v[4] - '0';
         pp.n_per_group       = v[5] - '0';
+        pp.c_per_wave = 64 / pp.chunk_size;
     } else {
         const auto c_k = _n_outputs * _n_inputs; // C*K
-        pp.chunk_size = (_in_width < 48) ? 8 : 16;
+        {
+            auto& v = pp.chunk_size;
+            v = (_in_width < 48) ? 8 : 16;
+            if ( (_n_outputs % (64 / v) != 0) && (_n_inputs % (64 / v) != 0) ) {
+                v = 16;
+            }
+        }
+        pp.c_per_wave = 64 / pp.chunk_size;
         {
             auto& v = pp.reverse_inout;
             if ((_n_outputs % 4 != 0) || (_in_width < 8))  {
@@ -2690,12 +2698,13 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
             } else { // C*K >= 16k
                 v = (pp.chunk_size == 8) ? 2 : 4;
             }
+            while ((pp.reverse_inout ? _n_outputs : _n_inputs) % v != 0) {
+                v /= 2;
+            }
         }
         {
             auto& v = pp.n_per_group;
-            if (_batch_sz == 1) {
-            	v = 1;
-            } else if (c_k <= 512) {
+            if (c_k <= 512) {
                 v = 8;
             } else if (c_k <= 4096) {
                 v = 4;
@@ -2704,10 +2713,14 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
             } else {
                 v = 1;
             }
+            if (v > _batch_sz) {
+                v = _batch_sz;
+            }
         }
-        pp.pipe_lines_depth = ((_in_height < 8) && (_in_width < 64)) ? _in_height : 2;
+        pp.pipe_lines_depth = ((_in_height < 8) && (_in_width < 64))
+            ? _in_height
+            : std::min(2, _in_height); // H can be 1
     }
-    pp.c_per_wave = 64 / pp.chunk_size;
     return pp;
 }
 
@@ -2777,7 +2790,7 @@ bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
     // They work fine on gfx8
     // /todo fix memory faults on gfx9
     const std::string name = _stream->GetDeviceName();
-    return !((name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54)));
+    return !(name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54));
 }
 
 
