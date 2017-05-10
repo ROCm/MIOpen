@@ -3,7 +3,7 @@
 
 #include <chrono>
 #include <cmath>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/common.hpp>

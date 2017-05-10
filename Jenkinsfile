@@ -67,7 +67,7 @@ def rocmtest(variant, body) {
         stage("checkout ${variant}") {
             // env.HCC_SERIALIZE_KERNEL=3
             // env.HCC_SERIALIZE_COPY=3
-            env.HSA_ENABLE_SDMA=0
+            env.HSA_ENABLE_SDMA=0 
             // env.HSA_ENABLE_INTERRUPT=0
             env.WINEPREFIX="/jenkins/.wine"
             checkout scm

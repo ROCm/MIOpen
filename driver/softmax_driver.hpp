@@ -2,7 +2,7 @@
 #define GUARD_MIOPEN_SOFTMAX_DRIVER_HPP
 
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "driver.hpp"
 #include "InputFlags.hpp"
 #include "tensor_driver.hpp"
