@@ -2633,7 +2633,7 @@ mlo_construct_BwdWrW2D::PerfParamsAsmDirect3x3WrW
 mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
 {
     /// Optimal values found on Gfx8 with 56 CUs (R9 Fury).
-    /// \todo Test on devices with 64 CUs (e.g. R9 Nano) and expand
+    /// \todo Test on devices with 64 CUs (e.g. R9 Nano or Vega10) and expand
     /// implementation if optimal values are different.
     static_assert('0' == '\x30' && '9'-'0' == 9 , "Characters must be in ASCII encoding");
     static
