@@ -305,6 +305,10 @@ int mlo_construct_direct2D::mloConstruct()
 				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2f1())) {
 				return (mloConstructAsmDirect5x10u2v2f1(rmv));
 			}
+			if (mloIsCorrectAsmDirect5x10u2v2b1()
+				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2b1())) {
+				return (mloConstructAsmDirect5x10u2v2b1(rmv));
+			}
 		}
 	}
 #endif
@@ -796,6 +800,46 @@ bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2f1() const
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
 }
 
+bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2b1() const
+{
+    const std::string name = _stream->GetDeviceName();
+    const bool device_is_gfx8_9_no_xnack = (name == "gfx800"
+                                       || name == "gfx802"
+                                       || name == "gfx803"
+                                       || name == "gfx804"
+                                       || name == "gfx900");
+    if (!device_is_gfx8_9_no_xnack) {
+        return false;
+    }
+    if (isForwardDirection()){
+        return false;
+    }
+    assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+
+    // Min image + padding shall be not smaller than filter matrix.
+    const int min_out_width  = 138;
+    const int min_out_height = 16;
+    // These two found experimentally.
+    const int max_out_width  = 8192 - 1;
+    const int max_out_height = 131077 - 1;
+
+    return                                      // Opt. Param   Restrictions in source
+           _pad0            == 0                // -q   pad_w   fixed
+        && _pad1            == 0                // -p   pad_h   fixed
+        && _kernel_stride0  == 2                // -u   inp_u   fixed
+        && _kernel_stride1  == 2                // -v   inp_v   fixed
+        && _kernel_size0    == 10               // -x   wei_w   fixed
+        && _kernel_size1    == 5                // -y   wei_h   fixed
+        && _n_outputs % 16  == 0                // -c   wei_c   no upper limit
+        && _n_inputs        >= 16               // -k   wei_k   no upper limit
+        && _out_width       >= min_out_width   // -W   inp_w
+        && _out_width       <= max_out_width
+        && _out_height      >= min_out_height  // -H   inp_h
+        && _out_height      <= max_out_height
+        && _out_layout      == "NCHW";         //              hardcoded
+        // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+}
+
 bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2f1() const
 {
     // Finding problem configs where this kernel shows bad performance
@@ -806,6 +850,15 @@ bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2f1() const
     return true;
 }
 
+bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2b1() const
+{
+    // Finding problem configs where this kernel shows bad performance
+    // (i.e. worse than its OpenCL counterpart) seems to be a multi-dimensional
+    // task which is hardly possible to implement. Basically, this kernel
+    // tends to become slower than OpenCL one when H/W is big (several hundreds)
+    // and H is small.
+    return true;
+}
 
 static inline int AlignUp(int val, unsigned step)
 {
@@ -843,6 +896,32 @@ int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rm
 
     _kernel_file = "conv5x10u2v2f1.s";
     _kernel_name = "conv5x10u2v2f1";
+    return 0;
+}
+
+int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2b1(rocm_meta_version rmv)
+{
+    std::ostringstream options;
+    GenerateClangDefsym(options, "inp_h", _out_height);
+    GenerateClangDefsym(options, "inp_w", _out_width);
+    GenerateClangDefsym(options, "wei_c", _n_outputs);
+    GenerateClangDefsym(options, "wei_k", _n_inputs);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", (rmv == V1) ? 1 : 3 );
+    _comp_options = options.str();
+
+    _l_wk.clear();
+    _l_wk.push_back(64);
+    _l_wk.push_back(8);
+    _l_wk.push_back(1);
+
+    // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_c/2,8), batch_n]
+    _g_wk.clear();
+    _g_wk.push_back(AlignUp(_in_width, 64));
+    _g_wk.push_back(AlignUp(_in_height, 4) / 4 * AlignUp(_n_outputs / 2, 8));
+    _g_wk.push_back(_batch_sz);
+
+    _kernel_file = "conv5x10u2v2b1.s";
+    _kernel_name = "conv5x10u2v2b1";
     return 0;
 }
 

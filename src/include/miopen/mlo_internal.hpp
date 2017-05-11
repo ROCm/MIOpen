@@ -729,8 +729,11 @@ protected:
 
 	bool mloIsCorrectAsmDirect5x10u2v2f1() const;
 	bool mloIsFastAsmDirect5x10u2v2f1() const;
-
 	int  mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rmv);
+
+	bool mloIsCorrectAsmDirect5x10u2v2b1() const;
+	bool mloIsFastAsmDirect5x10u2v2b1() const;
+	int  mloConstructAsmDirect5x10u2v2b1(rocm_meta_version rmv);
 
 	int mloConstructDirect2DFwdC();
 	int mloConstructDirect2D1x1();
