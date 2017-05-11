@@ -272,7 +272,7 @@ std::string CleanupPath(const char * p)
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-void ExperimentalAmdgcnAssemble(std::string device_name, std::string& source, const std::string& params)
+void ExperimentalAmdgcnAssemble(std::string& source, const std::string& params)
 {
 #ifndef _WIN32 //Linux or APPLE
     TempFile outfile("amdgcn-asm-out-XXXXXX");
@@ -283,8 +283,6 @@ void ExperimentalAmdgcnAssemble(std::string device_name, std::string& source, co
         "-target",
         "amdgcn--amdhsa",
     });
-
-    args.push_back("-mcpu=" + std::string(device_name));
 
     {
         std::istringstream iss(params);
