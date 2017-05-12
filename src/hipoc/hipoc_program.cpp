@@ -82,7 +82,7 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
     }
     else if (!is_kernel_str && miopen::EndsWith(program_name, ".s"))
     {
-        ExperimentalAmdgcnAssemble(src, params);
+        AmdgcnAssemble(src, params);
         WriteFile(src, hsaco_file);
     }
     else

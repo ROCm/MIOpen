@@ -7,6 +7,6 @@
 std::string GetGcnAssemblerPath();
 bool ValidateGcnAssembler();
 int ExecuteGcnAssembler(std::vector<std::string>& args, std::istream* clang_stdin_content, std::ostream* clang_stdout_content);
-void ExperimentalAmdgcnAssemble(std::string& source, const std::string& params);
+void AmdgcnAssemble(std::string& source, const std::string& params);
 
 #endif //GCN_ASM_UTILS_H

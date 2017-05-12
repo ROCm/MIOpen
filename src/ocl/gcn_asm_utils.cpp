@@ -278,7 +278,7 @@ std::string CleanupPath(const char * p)
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-void ExperimentalAmdgcnAssemble(std::string& source, const std::string& params)
+void AmdgcnAssemble(std::string& source, const std::string& params)
 {
 #ifndef _WIN32 //Linux or APPLE
     TempFile outfile("amdgcn-asm-out-XXXXXX");
