@@ -320,7 +320,6 @@ void ExperimentalAmdgcnAssemble(std::string& source, const std::string& params)
         MIOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
     }
 #else
-    (void)device; // -warning
     (void)source; // -warning
     (void)params; // -warning
     MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
