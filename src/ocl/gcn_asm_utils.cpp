@@ -136,7 +136,7 @@ std::string GetGcnAssemblerPath()
 #endif
 }
 
-bool ValidateGcnAssembler()
+bool ValidateGcnAssemblerImpl()
 {
 #if !defined(_WIN32) && !defined(__APPLE__)
     const auto path = GetGcnAssemblerPath();
@@ -161,6 +161,12 @@ bool ValidateGcnAssembler()
     }
 #endif // !defined(_WIN32) && !defined(__APPLE__)
     return false;
+}
+
+bool ValidateGcnAssembler()
+{
+    static bool result = ValidateGcnAssemblerImpl();
+    return result;
 }
 
 int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out)
