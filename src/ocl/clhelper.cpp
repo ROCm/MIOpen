@@ -34,7 +34,7 @@ static void ClAssemble(cl_device_id device, std::string& source, const std::stri
 	if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(name), name, nullptr)) {
 		MIOPEN_THROW("Error: X-AMDGCN-ASM: clGetDeviceInfo()");
 	}
-	ExperimentalAmdgcnAssemble(source, "-mcpu=" + name + " " + params);
+	ExperimentalAmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params);
 }
 
 static cl_program CreateProgramWithBinary(cl_context ctx, cl_device_id device, const char* char_source, size_t size)
