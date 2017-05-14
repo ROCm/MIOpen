@@ -387,11 +387,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-                construct_params.mloConstruct();
+				int n_passes = construct_params.mloConstructDirect2D_11x11(true);
 
-                const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
-
-                if (bwd_wrw_info.size() == 1)
+                if (n_passes == 1)
                 {
                     kernel(x, w, y, padding_val);
                 }
@@ -690,7 +688,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         miopenConvAlgoPerf_t        *perfResults,
         Data_t                      workSpace,
         size_t                      workSpaceSize,
-        bool                        /*exhaustiveSearch*/) const {
+        bool                        /*exhaustiveSearch*/) {
 
     if(x == nullptr || dw == nullptr || dy == nullptr) MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr) MIOPEN_THROW(miopenStatusBadParm, "returnedAlgoCount cannot be nullptr");
@@ -793,6 +791,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
                     kernel(N, C, H, W, K, n_groups, unused, unused, x, tmp_dw.get(), dy, return_addr);
+					assembler_run = true;
                 }
                 else
                 {
@@ -964,54 +963,54 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 construct_params.setInputDescFromMLDesc(xDesc);
                 construct_params.setWeightDescFromMLDesc(dwDesc);
                 construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
-                construct_params.mloConstruct();
 
-                std::string network_config;
-                construct_params.mloBuildConf_Key(network_config);
-                const std::vector<mlo_kernel_info> & bwd_wrw_info = construct_params.getKernelsInfo();
+				std::string network_config;
+				construct_params.mloBuildConf_Key(network_config);
+				int n_steps = construct_params.mloMultiStep();
 
-                handle.ResetKernelTime();
+				handle.ResetKernelTime();
 
-                // main kernel
-                if (bwd_wrw_info.size() == 1)
-                {
-                    auto kernel = handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
-                    if (std::get<0>(bwd_wrw_info[0]) == "gcnAsmConv3x3WrW")
-                    {
-                        int unused = 0;
-                        int *return_addr = nullptr;
-                        int N, C, H, W, K, n_groups;
-                        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                        kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
-                    }
-                    else
-                    {
-                        float padding_val = 0;
-                        kernel(dy, x, dw, padding_val);
-                    }
-                }
-                else
-                {
-                    if( workSpace == nullptr
-                     || workSpaceSize < BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc) )
-                    {
-                        MIOPEN_THROW("Workspace is required");
-                    }
+				// main kernel
+				if (assembler_run)
+				{
+					auto kernel = handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
 
-                    float padding_val = 0;
-                    handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                            network_config) (dy, x, workSpace, padding_val);
+					int unused = 0;
+					int *return_addr = nullptr;
+					int N, C, H, W, K, n_groups;
+					construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+					kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
+				}
+				else if (n_steps == 1)
+				{
+					auto kernel = handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
 
-                    float time0 = handle.GetKernelTime();
-                    // second kernel has
-                    network_config += "x1";
-                    // reduction  kernel
-                    handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Red",
-                            network_config) (workSpace, dw);
+					float padding_val = 0;
+					kernel(dy, x, dw, padding_val);
+				}
 
-                    handle.AccumKernelTime(time0);
-                }
-            }
+				else
+				{
+					if (workSpace == nullptr
+						|| workSpaceSize < BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc))
+					{
+						MIOPEN_THROW("Workspace is required");
+					}
+
+					float padding_val = 0;
+					handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
+						network_config) (dy, x, workSpace, padding_val);
+
+					float time0 = handle.GetKernelTime();
+					// second kernel has
+					network_config += "x1";
+					// reduction  kernel
+					handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Red",
+						network_config) (workSpace, dw);
+
+					handle.AccumKernelTime(time0);
+				}
+			}
         }
         break;
     };

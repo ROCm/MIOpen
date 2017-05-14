@@ -1346,7 +1346,7 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 }
 
 
-int mlo_construct_direct2D::mloConstructDirect2D_11x11()
+int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 {
 	int ret = 0;
 	size_t localMemSize = 64 * 1024;
@@ -1435,6 +1435,11 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11()
 		second_pass = true;
 	}
 
+	if (n_passes)
+	{
+		ret = (second_pass) ? 2 : 1;
+		return(ret);
+	}
 	// it's backward - inputs are outputs and vs versa
 	_comp_options =
 		std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction)
@@ -3040,6 +3045,37 @@ int mlo_construct_BwdWrW2D::mloConstruct()
     return(ret);
 }
 
+int mlo_construct_BwdWrW2D::mloMultiStep(void)
+{
+
+	int ret = 1;
+
+	if (((_kernel_size0 >= _kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >= 64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
+	{
+		ret = 2;
+	}
+	else if (_kernel_size0 >= _kernel_size1)
+	{
+		if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+		{
+			_n_stacks = 1;
+			_n_stacks = std::min(_batch_sz, _n_stacks);
+			// defines how to proceed : 1 grouop per batch or with a loop over all batches
+			// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
+			// param
+			int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : (_batch_sz <= 16 || _in_width <= 32) ? (_batch_sz / _n_stacks) : 4;
+			int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+
+			ret = (n_batch_blks > 1) ? 2 : 1;
+		}
+		else
+		{
+			ret = 1;
+		}
+	}
+
+	return(ret);
+}
 
 
 /*

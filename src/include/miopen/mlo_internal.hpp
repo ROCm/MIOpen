@@ -709,6 +709,8 @@ public:
 	size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor &weight_tensor);
 
     bool mloIsCompilerWorkarounds() const;
+	int mloConstructDirect2D_11x11(bool n_passes = false);
+
 protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
@@ -737,7 +739,6 @@ protected:
 	int mloConstructDirect2D1x1();
 	int mloConstructDirect2D3x3();
 	int mloConstructDirect2DFwdGen();
-	int mloConstructDirect2D_11x11();
 
 	int mloConstructBwd()
 	{
@@ -910,6 +911,8 @@ public:
 
 	int mloConstruct() override;
     bool mloIsCompilerWorkarounds() const;
+	int mloMultiStep(void);
+
 protected:
 	int mloConstruct2();
 	int mloConstruct53();
