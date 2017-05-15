@@ -16,7 +16,7 @@ struct GemmGeometry {
     std::string algorithm_name;
     float alpha{};
     float beta{};
-    TinyGemmGeometry tgg{};
+    TinyGemmGeometry tgg {};
     bool beta_kern_req{};
     std::array<int, 2> beta_kern_args{};
 
@@ -28,7 +28,7 @@ struct GemmGeometry {
         beta_kern_args = {{0, 0}};
     }
 
-    void EnableBetaKernel(bool enable, std::map<std::string, size_t> &beta_args);
+    void EnableBetaKernel(bool enable);
 
     void FindSolution(float time,
             Handle          &handle,
