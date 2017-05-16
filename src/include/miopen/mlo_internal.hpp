@@ -715,9 +715,7 @@ protected:
 	int mloConstructDirect2DFwd();
 
 	enum rocm_meta_version { V1, V2, V3 };
-#if MIOPEN_BACKEND_OPENCL
 	bool mloIsAmdOpenclRocm(rocm_meta_version &rmv) const;
-#endif
 
 	bool mloIsCorrectBinaryWinograd3x3Fwd() const;
 	bool mloIsFastBinaryWinograd3x3Fwd() const;
