@@ -34,8 +34,8 @@ void GemmGeometry::FindSolution(float time,
     (void)tgg;
     (void)alpha;
     (void)beta;
-    /* jn : this will not compile, not sure what to do for hip */
-    TinyGemmSolution soln = tinygemm::get_default(enforce_determinism, 'f', tgg); 
+    /* jn : fall back to a safe, generic solution. Independent of device */
+    TinyGemmSolution soln = tinygemm::get_default(tgg);
 #endif
     
     /* jn : the main kernel is at the back of the solution vector */
