@@ -225,7 +225,7 @@ miopenStatus_t miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
 				requestAlgoCount,
 				returnedAlgoCount,
 				perfResults,
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize,
 				exhaustiveSearch);
 	});
@@ -259,7 +259,7 @@ miopenStatus_t miopenConvolutionBackwardData(miopenHandle_t handle,
 				beta,
 				miopen::deref(dxDesc),
 				DataCast(dx),
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize);
 	});
 
