@@ -97,6 +97,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(
 		const TensorDescriptor& dyDesc,
 		const TensorDescriptor& dxDesc) const
 {
+	(void)handle; // suppress warning
 	size_t workspace_size_gemm = 0;
 	size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, dxDesc, dyDesc);
 
