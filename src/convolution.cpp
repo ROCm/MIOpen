@@ -91,6 +91,17 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 }
 
 
+size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(
+        Handle&                 handle,
+		const TensorDescriptor& wDesc,
+		const TensorDescriptor& dyDesc,
+		const TensorDescriptor& dxDesc) const
+{
+	size_t workspace_size_gemm = 0;
+	size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, dxDesc, dyDesc);
+
+	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+}
 
 // weights_n = output_c
 // weights_c = input_c

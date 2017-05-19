@@ -122,6 +122,12 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		Data_t							workSpace,
 		size_t							workSpaceSize) const;
 
+	size_t BackwardDataGetWorkSpaceSize(
+        Handle&                     handle,
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		dyDesc,
+		const TensorDescriptor&		dxDesc) const;
+
 	void FindConvBwdDataAlgorithm(Handle& handle,
 		const TensorDescriptor&			dyDesc,
 		ConstData_t						dy,
