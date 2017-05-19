@@ -46,10 +46,21 @@ namespace miopen {
 
 	if(supported)
 	{
-		int temp_size1 = (in_c*in_n + Padding) + (wei_k*wei_c + Padding);
-		int temp_size2 = (out_n*out_c + Padding);
-		int temp_size = temp_size1 > temp_size2 ? temp_size1 : temp_size2;
+		int temp_size_fwd = 0;
+		{
+			int temp_size1 = (in_c*in_n + Padding) + (wei_k*wei_c + Padding);
+			int temp_size2 = (out_n*out_c + Padding);
+			temp_size_fwd = temp_size1 > temp_size2 ? temp_size1 : temp_size2;
+		}
 
+		int temp_size_bwd = 0;
+		{
+			int temp_size1 = (out_n*out_c + Padding) + (wei_k*wei_c + Padding);
+			int temp_size2 = (in_c*in_n + Padding);
+			temp_size_bwd = temp_size1 > temp_size2 ? temp_size1 : temp_size2;
+		}
+
+		int temp_size = temp_size_fwd > temp_size_bwd ? temp_size_fwd : temp_size_bwd;
 		return 2*2*N*temp_size*sizeof(float);
 	}
 	else

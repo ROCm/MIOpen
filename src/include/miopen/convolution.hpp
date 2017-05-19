@@ -132,7 +132,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		miopenConvAlgoPerf_t			*perfResults,
-		void							*workSpace,
+		Data_t							workSpace,
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
@@ -146,7 +146,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		const void						*beta,
 		const TensorDescriptor&			dxDesc,
 		Data_t							dx,
-		void							*workSpace,
+		Data_t							workSpace,
 		size_t							workSpaceSize) const;
 
 	size_t ConvolutionBackwardWeightsGetWorkSpaceSize(

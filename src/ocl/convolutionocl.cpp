@@ -528,8 +528,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         const int                   requestAlgoCount,
         int                         *returnedAlgoCount,
         miopenConvAlgoPerf_t        *perfResults,
-        void                        * /*workSpace*/,
-        size_t                      /* workSpaceSize*/,
+        Data_t                      workSpace,
+        size_t                      workSpaceSize,
         bool                        exhaustiveSearch) const {
 
     if(dx == nullptr || w == nullptr || dy == nullptr) MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
@@ -580,6 +580,20 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, 0});
     }
 
+	// FFT algo
+	float time_fft = 0;
+	std::vector< KernelInvoke > kernels_fft;
+	size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, dxDesc, dyDesc);
+	if(FindFwdFFTKernel(handle, dyDesc, wDesc, dxDesc, workspace_fft, kernels_fft) == 0)
+	{
+		(void)kernels_fft; // not used now, but needed as fft coverage widens
+		if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+		{
+			time_fft = ExecuteFwdFFTKernel(handle, dyDesc, dy, wDesc, w, dxDesc, tmp_dx.get(), workSpace, workSpaceSize, true);
+			perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
+		}
+	}
+
     if(perf_db.empty())
         MIOPEN_THROW(miopenStatusUnknownError, "Backward Data Algo cannot be executed");
 
@@ -608,8 +622,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         const void                      * /*beta*/,
         const TensorDescriptor&         dxDesc,
         Data_t                          dx, 
-        void                            * /*workSpace*/,
-        size_t                           /*workSpaceSize*/) const {
+        Data_t                          workSpace,
+        size_t                          workSpaceSize) const {
 
     if(dx == nullptr || w == nullptr || dy == nullptr) {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -672,6 +686,23 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             kernel(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
             break;
         }
+
+        case miopenConvolutionBwdDataAlgoFFT:
+		{
+			size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, dxDesc, dyDesc);
+			if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+			{
+				bool timed = handle.IsProfilingEnabled();
+				float timev = ExecuteFwdFFTKernel(handle, dyDesc, dy, wDesc, w, dxDesc, dx, workSpace, workSpaceSize, timed);
+
+				if(timed)
+				{
+					handle.ResetKernelTime();
+					handle.AccumKernelTime(timev);
+				}
+			}
+		}
+        break;
     }
 }
 
