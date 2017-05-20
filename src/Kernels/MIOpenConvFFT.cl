@@ -2214,7 +2214,17 @@ FwdPassWE(uint me, uint inOffset, uint outOffset, __global const float *bufIn, _
 	(*R6) = (float2)(0, 0);
 	(*R7) = (float2)(0, 0);
 	
-	
+
+#ifdef CFF_BACKWARD
+	if(me < 5)
+	{
+	(*R0).x = ldsf[0*5 + me];
+	(*R0).y = ldsf[1*5 + me];
+	(*R1).x = ldsf[2*5 + me];
+	(*R1).y = ldsf[3*5 + me];
+	(*R2).x = ldsf[4*5 + me];
+	}
+#else
 	if(me < 5)
 	{
 	(*R0).x = ldsf[4*5 + 4 - me];
@@ -2223,6 +2233,7 @@ FwdPassWE(uint me, uint inOffset, uint outOffset, __global const float *bufIn, _
 	(*R1).y = ldsf[1*5 + 4 - me];
 	(*R2).x = ldsf[0*5 + 4 - me];
 	}
+#endif
 
 	
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -2608,7 +2619,12 @@ void MIOpenConvFFT_fwd_we(__global const float * restrict gbIn, __global float2 
 
 	float2 R0, R1, R2, R3, R4, R5, R6, R7;
 
+#ifdef CFF_BACKWARD
+	lwbIn = gbIn + (batch%CFF_CHANNELS)*25*CFF_NFILTER + (batch/CFF_CHANNELS)*25;
+#else
 	lwbIn = gbIn + batch*25;
+#endif
+
 	lwbOut = gbOut + 544*CFF_CHANNELS*CFF_BATCH + batch*544;
 
 	FwdPassWE(me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7);
