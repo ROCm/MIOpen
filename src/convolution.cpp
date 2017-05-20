@@ -99,7 +99,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(
 {
 	(void)handle; // suppress warning
 	size_t workspace_size_gemm = 0;
-	size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, dxDesc, dyDesc);
+	size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT (wDesc, dyDesc, dxDesc);
 
 	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
 }

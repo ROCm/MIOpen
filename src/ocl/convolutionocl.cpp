@@ -583,13 +583,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 	// FFT algo
 	float time_fft = 0;
 	std::vector< KernelInvoke > kernels_fft;
-	size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, dxDesc, dyDesc);
-	if(FindFwdFFTKernel(handle, dyDesc, wDesc, dxDesc, workspace_fft, kernels_fft) == 0)
+	size_t workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
+	if(FindBwdFFTKernel(handle, dyDesc, wDesc, dxDesc, workspace_fft, kernels_fft) == 0)
 	{
 		(void)kernels_fft; // not used now, but needed as fft coverage widens
 		if(workSpace != nullptr && workSpaceSize >= workspace_fft)
 		{
-			time_fft = ExecuteFwdFFTKernel(handle, dyDesc, dy, wDesc, w, dxDesc, tmp_dx.get(), workSpace, workSpaceSize, true);
+			time_fft = ExecuteBwdFFTKernel(handle, dyDesc, dy, wDesc, w, dxDesc, tmp_dx.get(), workSpace, workSpaceSize, true);
 			perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
 		}
 	}
@@ -689,11 +689,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         case miopenConvolutionBwdDataAlgoFFT:
 		{
-			size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, dxDesc, dyDesc);
+			size_t workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
 			if(workSpace != nullptr && workSpaceSize >= workspace_fft)
 			{
 				bool timed = handle.IsProfilingEnabled();
-				float timev = ExecuteFwdFFTKernel(handle, dyDesc, dy, wDesc, w, dxDesc, dx, workSpace, workSpaceSize, timed);
+				float timev = ExecuteBwdFFTKernel(handle, dyDesc, dy, wDesc, w, dxDesc, dx, workSpace, workSpaceSize, timed);
 
 				if(timed)
 				{
