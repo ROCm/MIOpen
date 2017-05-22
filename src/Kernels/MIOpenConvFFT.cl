@@ -335,11 +335,17 @@ FwdPassIN(uint me, uint inOffset, uint outOffset, __global const float *bufIn, _
 
 
 __attribute__((always_inline)) void
-FwdPassWE(uint me, uint inOffset, uint outOffset, __global const float *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
+FwdPassWE(uint batch, uint me, uint inOffset, uint outOffset, __global const float *bufIn, __local float2 *bufOut, float2 *R0, float2 *R1, float2 *R2, float2 *R3, float2 *R4, float2 *R5)
 {
 	uint met = me%24;
 	__local float *ldsf = (__local float *)(bufOut + outOffset);
 	
+#ifdef CFF_BACKWARD
+	inOffset = ((batch*16)%CFF_CHANNELS)*25*CFF_NFILTER + ((batch*16)/CFF_CHANNELS)*25;
+#else
+	inOffset = batch*25*16;
+#endif
+
 	(*R0) = (float2)(0, 0);
 	(*R1) = (float2)(0, 0);
 	(*R2) = (float2)(0, 0);
@@ -347,12 +353,19 @@ FwdPassWE(uint me, uint inOffset, uint outOffset, __global const float *bufIn, _
 	(*R4) = (float2)(0, 0);
 	(*R5) = (float2)(0, 0);		
 
-	
+#ifdef CFF_BACKWARD
+	(*R0).x = bufIn[inOffset + ( ((me/24) +  0)*25*CFF_NFILTER + met )];
+	(*R1).x = bufIn[inOffset + ( ((me/24) +  8)*25*CFF_NFILTER + met )];
+
+	ldsf[ met + ((me/24) +  0)*25 ] = (*R0).x;
+	ldsf[ met + ((me/24) +  8)*25 ] = (*R1).x;
+#else
 	(*R0).x = bufIn[inOffset + ( ((me/24) +  0)*25 + met + 1 )];
 	(*R1).x = bufIn[inOffset + ( ((me/24) +  8)*25 + met + 1 )];
-	
+
 	ldsf[ (23 - met) + ((me/24) +  0)*25 ] = (*R0).x;
 	ldsf[ (23 - met) + ((me/24) +  8)*25 ] = (*R1).x;
+#endif
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -377,9 +390,15 @@ FwdPassWE(uint me, uint inOffset, uint outOffset, __global const float *bufIn, _
 	
 	if(me < 16)
 	{
+#ifdef CFF_BACKWARD
+	(*R4).x = bufIn[inOffset + ( me*25*CFF_NFILTER + 24)];
+#else
 	(*R4).x = bufIn[inOffset + ( me*25 )];
+#endif
+
 	ldsf[me*168 + 56] = (*R4).x;	
 	}
+
 }
 
 
@@ -709,13 +728,13 @@ void MIOpenConvFFT_fwd_we(__global const float * restrict gbIn, __global float2 
 	float2 R0, R1, R2, R3, R4, R5;
 	float2 R6;
 	
-	lwbIn = gbIn + batch*25*16;
+	lwbIn = gbIn;
 	lwbOut = gbOut + CFF_HALFW + 84*(CFF_CHANNELS*CFF_BATCH + 64) + batch*16;
 
 
 	uint met = me%12;
 	
-	FwdPassWE(me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5);
+	FwdPassWE(batch, me, 0, 0, lwbIn, lds, &R0, &R1, &R2, &R3, &R4, &R5);
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
 	FwdPass0(me%2, (me/12)*84 + (met/2)*12, (me/12)*84 + (met/2)*12, lds, lds, &R0, &R1, &R2, &R3, &R4, &R5);
