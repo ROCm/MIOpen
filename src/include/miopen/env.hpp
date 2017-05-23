@@ -8,6 +8,9 @@ namespace miopen {
 
 /// \todo Rework: Case-insensitive string compare, ODR, (?) move to .cpp
 
+// Declare a cached environment variable
+#define MIOPEN_DECLARE_ENV_VAR(x) struct x { static const char* value() { return #x; }};
+
 /*
  * Returns false if a feature-controlling environment variable is defined
  * and set to something which disables a feature.
@@ -32,6 +35,20 @@ inline bool IsEnvvarValueEnabled(const char* name)
         || std::strcmp(value_env_p, "1") == 0
         || std::strcmp(value_env_p, "yes") == 0
         || std::strcmp(value_env_p, "true") == 0 );
+}
+
+template<class T>
+inline bool IsEnabled(T)
+{
+    static const bool result = miopen::IsEnvvarValueEnabled(T::value());
+    return result;
+}
+
+template<class T>
+inline bool IsDisabled(T)
+{
+    static const bool result = miopen::IsEnvvarValueDisabled(T::value());
+    return result;
 }
 } // namespace miopen
 
