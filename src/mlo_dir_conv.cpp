@@ -3045,7 +3045,7 @@ int mlo_construct_BwdWrW2D::mloConstruct()
     return(ret);
 }
 
-int mlo_construct_BwdWrW2D::mloMultiStep(void)
+int mlo_construct_BwdWrW2D::mloMultiStep()
 {
 
 	int ret = 1;
