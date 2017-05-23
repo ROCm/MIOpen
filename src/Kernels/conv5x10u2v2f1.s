@@ -92,7 +92,7 @@
 .set sreg_wval    ,  0   // [100]
 .set sreg_wei_addr,100   // [2]
 .set sreg_vcc_resv,102   // [2]
-.set SGPR_COUNT   ,104   // COUNT
+.set SGPR_COUNT   ,108   // COUNT
 // ******* VGPR allocation
 // For used during initialization
 .set vreg_local_0 ,  0   // [1]
@@ -209,6 +209,7 @@ conv5x10u2v2f1:
         workitem_vgpr_count = VGPR_COUNT
         wavefront_sgpr_count = SGPR_COUNT
         workgroup_group_segment_byte_size = LDS_SIZE
+        kernarg_segment_byte_size = 56
         granulated_workitem_vgpr_count = (VGPR_COUNT-1)/4
         granulated_wavefront_sgpr_count = (SGPR_COUNT-1)/8
     .end_amd_kernel_code_t
