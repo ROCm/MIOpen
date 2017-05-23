@@ -90,6 +90,7 @@ struct test_driver
     bool verbose = false;
     double tolerance = 80;
     int batch_factor = 0;
+    bool no_validate = false;
 
     template<class Visitor>
     void parse(Visitor v)
@@ -98,6 +99,7 @@ struct test_driver
         v(verbose, {"--verbose", "-v"}, "Run verbose mode");
         v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
         v(batch_factor, {"--batch-factor", "-n"}, "Set batch factor");
+        v(no_validate, {"--disable-validation"}, "Disable cpu validation, so only gpu version is ran");
     }
 
     struct per_arg
@@ -316,7 +318,12 @@ struct test_driver
         if (verbose) v.fail(std::integral_constant<int, -1>{}, xs...);
         try 
         {
-            return verify_check(v.cpu(xs...), v.gpu(xs...), [&](int mode)
+            if (no_validate)
+            {
+                auto gpu = v.gpu(xs...);
+                return std::make_pair(gpu, gpu);
+            }
+            else return verify_check(v.cpu(xs...), v.gpu(xs...), [&](int mode)
             {
                 v.fail(mode, xs...);
             });
