@@ -911,7 +911,7 @@ public:
 
 	int mloConstruct() override;
     bool mloIsCompilerWorkarounds() const;
-	int mloMultiStep(void);
+	int mloMultiStep();
 
 protected:
 	int mloConstruct2();
