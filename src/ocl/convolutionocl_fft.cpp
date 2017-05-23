@@ -5,6 +5,8 @@
 
 namespace miopen {
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
+
 static void cgemm_grid(size_t *global_work_size, size_t *local_work_size, int cgemm_choice, const int N, const int out_c, const int out_n)
 {
 	unsigned int threadTile[2];
@@ -91,7 +93,7 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 		return -1;
 
 	// disable running any FFT based convolutions by checking this env variable
-	if(miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_CONV_FFT"))
+	if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
 		return -1;
 
 	int in_n, in_c, in_h, in_w;
