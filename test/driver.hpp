@@ -465,6 +465,7 @@ void test_drive(int argc, const char *argv[])
     {
         if (keywords.count(p.first) == 0)
         {
+            assert(p.first.length() > 2);
             auto name = p.first.substr(2);
             try {
                 auto&& arg = d.arguments.at(name);
