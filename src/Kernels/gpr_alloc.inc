@@ -12,28 +12,31 @@
 	.set .AUTO_LDS_BYTE_SIZE, 0
 	.set .AUTO_VGPR_GRANULATED_COUNT, 0
 	.set .AUTO_SGPR_GRANULATED_COUNT, 0
-    .set __sgpr_reserve_vcc, 0
-    .set __sgpr_reserve_xnack, 0
-    .set __sgpr_reserve_flatscr, 0
+	.set __sgpr_reserve_vcc, 0
+	.set __sgpr_reserve_xnack, 0
+	.set __sgpr_reserve_flatscr, 0
 	.set __auto_gpr_count_guard, 0
 	.set __max_waves_limit, 10
 	.set __min_waves_limit, 1
 .endm
 
 .macro .CHECK_SGPR_ALLOCATION gprs_to_allocate=0
-    .if (.SGPR_NEXT_FREE + \gprs_to_allocate) >= .AVAILABLE_SGPRS
-	    .error "Error: out of free sgprs"
+	.if (.SGPR_NEXT_FREE + \gprs_to_allocate) >= .AVAILABLE_SGPRS
+		.set .SGPR_NEXT_FREE, 0 // suppress further errors
+		.error "Error: out of free sgprs"
 	.endif
 .endm
 
 .macro .CHECK_VGPR_ALLOCATION gprs_to_allocate=0
-    .if (.VGPR_NEXT_FREE + \gprs_to_allocate) >= .AVAILABLE_VGPRS
-	    .error "Error: out of free vgprs"
+	.if (.VGPR_NEXT_FREE + \gprs_to_allocate) >= .AVAILABLE_VGPRS
+		.set .VGPR_NEXT_FREE, 0 // suppress further errors
+		.error "Error: out of free vgprs"
 	.endif
 .endm
 
 .macro .CHECK_LDS_ALLOCATION bytes_to_allocate=0
 	.if (.LDS_NEXT_FREE + \bytes_to_allocate) >= .AVAILABLE_LDS
+		.set .LDS_NEXT_FREE, 0 // suppress further errors
 		.error "Error: out of free lds"
 	.endif
 .endm
