@@ -200,8 +200,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 	int v;
 	int upscalex;
 	int upscaley;
-protected:
-	bool assembler_run;
 };
 
 void ConvolutionBackwardBias(Handle& handle,
