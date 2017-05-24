@@ -113,6 +113,7 @@ struct verify_forward_activation
 };
 
 #define LOOKUP_ACTIVATION(name, ...) {#name, callback<activation ## name ## _policy>{} },
+#define LIST_ACTIVATION(name, ...) {#name},
 template<class T>
 struct activation_driver : test_driver
 {
@@ -121,7 +122,9 @@ struct activation_driver : test_driver
     double beta = 1;
     double power = 1;
     std::string mode = "PATHTRU";
-    std::unordered_map<std::string, std::function<void(activation_driver*)>> lookup;
+    std::unordered_map<std::string, std::function<void(activation_driver*)>> lookup = {
+        VISIT_ACTIVATIONS(LOOKUP_ACTIVATION)
+    };
 
     template<class A>
     struct callback
@@ -135,8 +138,13 @@ struct activation_driver : test_driver
         add(alpha, "alpha");
         add(beta, "beta");
         add(power, "power");
-        add(mode, "mode");
-        lookup = { VISIT_ACTIVATIONS(LOOKUP_ACTIVATION) };
+        add(mode, "mode", generate_data(modes()));
+        // lookup = { VISIT_ACTIVATIONS(LOOKUP_ACTIVATION) };
+    }
+
+    std::vector<std::string> modes()
+    {
+        return { VISIT_ACTIVATIONS(LIST_ACTIVATION) };
     }
 
     void run()

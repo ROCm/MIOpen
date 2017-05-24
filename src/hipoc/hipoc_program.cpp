@@ -3,6 +3,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/kernel_warnings.hpp>
 
 #include <sstream>
 
@@ -91,7 +92,8 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
         WriteFile(src, dir.path(filename));
 
 #if MIOPEN_BUILD_DEV
-        params += " -Werror -Weverything -Wno-shorten-64-to-32 -Wno-unused-macros -Wno-unused-function -Wno-sign-compare -Wno-reserved-id-macro -Wno-sign-conversion -Wno-missing-prototypes -Wno-cast-qual -Wno-cast-align -Wno-conversion -Wno-double-promotion";
+        params += " -Werror" + KernelWarningsString();
+        // params += " -Werror -Weverything -Wno-shorten-64-to-32 -Wno-unused-macros -Wno-unused-function -Wno-sign-compare -Wno-reserved-id-macro -Wno-sign-conversion -Wno-missing-prototypes -Wno-cast-qual -Wno-cast-align -Wno-conversion -Wno-double-promotion";
 #else
         params += " -Wno-everything";
 #endif
