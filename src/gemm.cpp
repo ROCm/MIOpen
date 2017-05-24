@@ -97,7 +97,7 @@ GemmGeometry CreateGemmGeometryConvFwd(
             alpha, beta, tgg};
     }
     else {
-        tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
+        tgg = TinyGemmGeometry(true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
 
         gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
             std::array<int, 3>{{lda, ldb, ldc}},
