@@ -38,6 +38,13 @@ inline bool IsEnvvarValueEnabled(const char* name)
 }
 
 template<class T>
+inline const char * GetStringEnv(T)
+{
+    static const char * result = std::getenv(T::value());
+    return result;
+}
+
+template<class T>
 inline bool IsEnabled(T)
 {
     static const bool result = miopen::IsEnvvarValueEnabled(T::value());
