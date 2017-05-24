@@ -791,7 +791,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
                     kernel(N, C, H, W, K, n_groups, unused, unused, x, tmp_dw.get(), dy, return_addr);
-                    assembler_run = true;
                 }
                 else
                 {
@@ -954,7 +953,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
         case miopenConvolutionBwdWeightsAlgoDirect:
         {
-
             if (wei_w >= wei_h)
             {
                 mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
@@ -970,43 +968,32 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
                 handle.ResetKernelTime();
 
-                // main kernel
-                if (assembler_run)
-                {
-                    auto kernel = handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
+                auto kernel = handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
 
+                if(kernel.GetName() == "gcnAsmConv3x3WrW") { 
                     int unused = 0;
                     int *return_addr = nullptr;
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
                     kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
                 }
-                else if (n_steps == 1)
-                {
-                    auto kernel = handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
-
+                else if (n_steps == 1) {
                     float padding_val = 0;
                     kernel(dy, x, dw, padding_val);
                 }
-
-                else
-                {
-                    if (workSpace == nullptr
-                        || workSpaceSize < BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc))
-                    {
+                else {
+                    if (workSpace == nullptr || workSpaceSize < BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc)) {
                         MIOPEN_THROW("Workspace is required");
                     }
 
                     float padding_val = 0;
-                    handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                        network_config) (dy, x, workSpace, padding_val);
+                    kernel(dy, x, workSpace, padding_val);
 
                     float time0 = handle.GetKernelTime();
                     // second kernel has
                     network_config += "x1";
                     // reduction  kernel
-                    handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Red",
-                        network_config) (workSpace, dw);
+                    handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Red", network_config) (workSpace, dw);
 
                     handle.AccumKernelTime(time0);
                 }

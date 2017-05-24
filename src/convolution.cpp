@@ -9,7 +9,6 @@ ConvolutionDescriptor::ConvolutionDescriptor(int p_pad_h, int p_pad_w, int p_u, 
 	if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0) {
 		MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
 	}
-	assembler_run = false;
 }
 
 ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode, int p_pad_h, int p_pad_w, int p_u, int p_v, int p_upscalex, int p_upscaley)
@@ -18,7 +17,6 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode, int
 	if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0) {
 		MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
 	}
-	assembler_run = false;
 }
 
 std::tuple<int, int, int, int> ConvolutionDescriptor::GetForwardOutputDim(
