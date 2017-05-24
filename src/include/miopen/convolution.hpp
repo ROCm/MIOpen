@@ -178,7 +178,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		miopenConvAlgoPerf_t			*perfResults,
 		Data_t							workSpace,
 		size_t							workSpaceSize,
-		bool							exhaustiveSearch);
+		bool							exhaustiveSearch) const;
 
 	void ConvolutionBackwardWeights(Handle& handle,
 		const void						*alpha,

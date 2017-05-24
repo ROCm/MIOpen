@@ -688,7 +688,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         miopenConvAlgoPerf_t        *perfResults,
         Data_t                      workSpace,
         size_t                      workSpaceSize,
-        bool                        /*exhaustiveSearch*/) {
+        bool                        /*exhaustiveSearch*/) const {
 
     if(x == nullptr || dw == nullptr || dy == nullptr) MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr) MIOPEN_THROW(miopenStatusBadParm, "returnedAlgoCount cannot be nullptr");
