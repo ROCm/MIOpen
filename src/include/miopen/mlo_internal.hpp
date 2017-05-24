@@ -914,9 +914,9 @@ public:
 	int mloMultiStep();
 
 protected:
-	int mloConstruct2();
-	int mloConstruct53();
-	int mloConstruct1x1();
+	int mloConstruct2(bool n_stages = false);
+	int mloConstruct53(bool n_stages = false);
+	int mloConstruct1x1(bool n_stages = false);
 	int mloConstruct1x1Mmap();
 //	int mloConstruct3x3();
 
