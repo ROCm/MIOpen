@@ -1775,10 +1775,14 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 */
 // TODO: search params
 
-int mlo_construct_BwdWrW2D::mloConstruct1x1()
+int mlo_construct_BwdWrW2D::mloConstruct1x1(bool n_stages)
 {
 
 	int ret = 0;
+	if (n_stages)
+	{
+		return(1);
+	}
 #if 0 // MD: Calls old 1x1 kernel (MIOpenConvBwdWrW1x1Mmap.cl) that has been optimized by Stas
 	if (_in_width == 14 &&_in_height == 14 && _n_inputs == 192 && _n_outputs == 512)
 	{
@@ -2241,7 +2245,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1Mmap()
 }
 
 
-int mlo_construct_BwdWrW2D::mloConstruct53()
+int mlo_construct_BwdWrW2D::mloConstruct53(bool n_stages)
 {
 
 	int ret = 0;
@@ -2266,6 +2270,11 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	// param
 	int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : (_batch_sz <= 16 || _in_width <= 32) ? (_batch_sz / _n_stacks) : 4;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+	if (n_stages)
+	{
+		ret = (n_batch_blks > 1) ? 2 : 1;
+		return(ret);
+	}
 
 	_out_pix_tile0 = _kernel_size0;
 	_out_pix_tile1 = _kernel_size1;
@@ -2449,7 +2458,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	return(ret);
 }
 
-int mlo_construct_BwdWrW2D::mloConstruct2()
+int mlo_construct_BwdWrW2D::mloConstruct2(bool n_stages)
 {
 	int ret = 0;
 	static const char * s_stride_table[32][2] =
@@ -2537,6 +2546,12 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+	if (n_stages)
+	{
+		ret = (n_batch_blks > 1) ? 2 : 1;
+		return(ret);
+	}
+
 	// number of filter taps in the processing wk_item
 	int WEI_WKITEM = (_kernel_size0 <= 7 || (((_kernel_size0 / 2) * 2) != _kernel_size0)) ? _kernel_size0 : _kernel_size0 / 2;
 
@@ -3052,27 +3067,20 @@ int mlo_construct_BwdWrW2D::mloMultiStep()
 
 	if (((_kernel_size0 >= _kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >= 64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
 	{
-		ret = 2;
+		ret = mloConstruct2(true);
 	}
 	else if (_kernel_size0 >= _kernel_size1)
 	{
-		if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
-		{
-			_n_stacks = 1;
-			_n_stacks = std::min(_batch_sz, _n_stacks);
-			// defines how to proceed : 1 grouop per batch or with a loop over all batches
-			// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
-			// param
-			int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : (_batch_sz <= 16 || _in_width <= 32) ? (_batch_sz / _n_stacks) : 4;
-			int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
-
-			ret = (n_batch_blks > 1) ? 2 : 1;
-		}
-		else
-		{
-			ret = 1;
-		}
+			if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+			{
+				ret = mloConstruct53(true);
+			}
+			else
+			{
+				ret = mloConstruct1x1(true);
+			}
 	}
+
 
 	return(ret);
 }
