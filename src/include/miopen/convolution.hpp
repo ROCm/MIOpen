@@ -101,6 +101,24 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		size_t							workSpaceSize,
 		bool							timed = false) const;
 
+    int FindBwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			dyDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			dxDesc,
+		size_t							workSpaceSize,
+        std::vector<KernelInvoke>&      kernels) const;
+
+    float ExecuteBwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			dyDesc,
+		ConstData_t						dy,
+		const TensorDescriptor&			wDesc,
+		ConstData_t						w,
+		const TensorDescriptor&			dxDesc,
+		Data_t							dx,
+		Data_t							workSpace,
+		size_t							workSpaceSize,
+		bool							timed = false) const;
+
     int FindDirectKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
@@ -122,6 +140,17 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		Data_t							workSpace,
 		size_t							workSpaceSize) const;
 
+	size_t BackwardGetWorkSpaceSizeFFT(
+		const TensorDescriptor& wDesc,
+		const TensorDescriptor& dyDesc,
+		const TensorDescriptor& dxDesc) const;
+
+	size_t BackwardDataGetWorkSpaceSize(
+        Handle&                     handle,
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		dyDesc,
+		const TensorDescriptor&		dxDesc) const;
+
 	void FindConvBwdDataAlgorithm(Handle& handle,
 		const TensorDescriptor&			dyDesc,
 		ConstData_t						dy,
@@ -132,7 +161,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		int						requestAlgoCount,
 		int								*returnedAlgoCount,
 		miopenConvAlgoPerf_t			*perfResults,
-		void							*workSpace,
+		Data_t							workSpace,
 		size_t							workSpaceSize,
 		bool							exhaustiveSearch) const;
 
@@ -146,7 +175,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		const void						*beta,
 		const TensorDescriptor&			dxDesc,
 		Data_t							dx,
-		void							*workSpace,
+		Data_t							workSpace,
 		size_t							workSpaceSize) const;
 
 	size_t ConvolutionBackwardWeightsGetWorkSpaceSize(
