@@ -27,6 +27,12 @@ set(PROJECT_VERSION_TWEAK ${MIOpen_VERSION_TWEAK})
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.4")
+        message(FATAL_ERROR "MIOpen requires at least gcc 5.4")
+    endif()
+endif()
+
 ############################################################
 # require C++11
 add_compile_options(-std=gnu++11)
