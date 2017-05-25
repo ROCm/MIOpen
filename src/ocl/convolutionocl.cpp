@@ -8,6 +8,8 @@
 
 namespace miopen {
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
+
 struct AutoEnableProfiling
 {
     AutoEnableProfiling(Handle& x)
@@ -85,8 +87,8 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
     // Disable running any Direct convolutions (Fwd) by checking this env variable
     // Cannot disable bwd convolutions until col2im+gemm is functional
-    if(direction == 1 && miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_CONV_DIRECT"))
-        return -1;
+	if(direction == 1 && miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+		return -1;
 
     mlo_construct_direct2D construct_params(direction); 
     construct_params.doSearch(exhaustiveSearch);
@@ -777,7 +779,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     (void)workSpaceSize; // Suppress warning
 #endif
 
-    if(wei_w >= wei_h && !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_CONV_DIRECT"))
+    if(wei_w >= wei_h && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
     {
         mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
         construct_params.doSearch(false);
