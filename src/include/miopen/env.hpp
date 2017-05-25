@@ -3,6 +3,8 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <vector>
+#include <string>
 
 namespace miopen {
 
@@ -37,11 +39,19 @@ inline bool IsEnvvarValueEnabled(const char* name)
         || std::strcmp(value_env_p, "true") == 0 );
 }
 
+inline std::vector<std::string> GetEnv(const char * name)
+{
+    auto p = std::getenv(name);
+    if (p == nullptr) return {};
+    else return {{p}};
+}
+
 template<class T>
 inline const char * GetStringEnv(T)
 {
-    static const char * result = std::getenv(T::value());
-    return result;
+    static const std::vector<std::string> result = GetEnv(T::value());
+    if (result.empty()) return nullptr;
+    else return result.front().c_str();
 }
 
 template<class T>
