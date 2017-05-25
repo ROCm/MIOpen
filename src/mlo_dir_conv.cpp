@@ -27,6 +27,13 @@
 #include <unordered_map>
 #include <cstring>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
+
 static int mloLg2(int v)
 {
 	auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
@@ -258,12 +265,12 @@ int mlo_construct_winograd::mloConstruct()
 	rocm_meta_version rmv = V3;
 	if (mloIsAmdOpenclRocm(rmv))
 	{
-		const auto use_binaries = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+		const auto use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
 		// assembly-written kernels may have worse performance than kernels written in high-level
 		// language, e.g. OpenCL. MiOpen avoids asm kernels in such corner cases, but
 		// this setting allows to override that.
-		const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 		if (use_binaries) {
 			if (mloIsCorrectBinaryWinograd3x3Fwd()
 				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
@@ -289,11 +296,11 @@ int mlo_construct_direct2D::mloConstruct()
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
 	if (mloIsAmdOpenclRocm(rmv))
 	{
-		const auto use_assembly = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_GCN_ASM_KERNELS")
+		const auto use_assembly = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{})
 								  && ValidateGcnAssembler();
 
 		// See comment in mlo_construct_winograd::mloConstruct().
-		const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
@@ -677,7 +684,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
 {
     std::string perf_vals;
     {
-        const auto p_asciz = std::getenv("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS");
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS{});
         if (p_asciz && std::strlen(p_asciz) == 3) {
             perf_vals = std::string(p_asciz);
         }
@@ -2770,7 +2777,7 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
 
     std::string s;
     PerfParamsAsmDirect3x3WrW pp;
-    const auto p_asciz = std::getenv("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS");
+    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
     if (p_asciz) {
         s = std::string(p_asciz);
     }
@@ -3023,9 +3030,9 @@ int mlo_construct_BwdWrW2D::mloConstruct()
     rocm_meta_version rmv = V3;
     if (mloIsAmdOpenclRocm(rmv) && rmv == V3)
     {
-        const auto use_assembly = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_GCN_ASM_KERNELS")
+        const auto use_assembly = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{})
                                   && ValidateGcnAssembler();
-        const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+        const auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
         if (use_assembly) {
             if (mloIsCorrectAsmDirect3x3WrW()
                 && (no_perf_filtering || mloIsFastAsmDirect3x3WrW())) {
