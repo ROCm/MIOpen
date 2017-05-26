@@ -258,8 +258,12 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	size_t wei_sz = GetTensorSize(weightTensor); 
 	size_t out_sz = GetTensorSize(outputTensor); 
 
-	size_t workSpaceSize_bwd = 0;
-	miopenConvolutionBackwardWeightsGetWorkSpaceSize(GetHandle(), outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_bwd);
+	size_t workSpaceSize_bwd_wt = 0;
+	size_t workSpaceSize_bwd_dt = 0;
+	miopenConvolutionBackwardWeightsGetWorkSpaceSize(GetHandle(), outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_bwd_wt);
+	miopenConvolutionBackwardDataGetWorkSpaceSize(GetHandle(), outputTensor, weightTensor, convDesc, inputTensor, &workSpaceSize_bwd_dt);
+	size_t workSpaceSize_bwd = workSpaceSize_bwd_dt > workSpaceSize_bwd_wt ? workSpaceSize_bwd_dt : workSpaceSize_bwd_wt;
+
 	size_t workSpaceSize_fwd = 0;
 	miopenConvolutionForwardGetWorkSpaceSize(GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);
 
@@ -549,8 +553,8 @@ int ConvDriver<T>::FindBackwardData(int &ret_algo_count, int request_algo_count,
 			request_algo_count,
 			&ret_algo_count,
 			perf_results.data(),
-			NULL,
-			0,
+			workspace_bwd_dev->GetMem(),
+			workspace_bwd_dev->GetSize(),
 			(inflags.GetValueInt("search") == 1) ? true : false
 		);
 }
@@ -605,8 +609,8 @@ int ConvDriver<T>::RunBackwardGPU() {
 			&beta,
 			inputTensor,
 			din_dev->GetMem(),
-			NULL,
-			0);
+			workspace_bwd_dev->GetMem(),
+			workspace_bwd_dev->GetSize());
 	}
 
 	if(inflags.GetValueInt("time") == 1) {

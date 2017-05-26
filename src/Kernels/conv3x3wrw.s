@@ -140,7 +140,7 @@ mbufs_per_line = (full_chunks + 3) / 4 + (partial_chunks + 3) / 4 // memory buff
 gprs_per_line = full_chunks + partial_chunks
 
 
-static_assert ((chunk_size == 16) || (chunk_size == 64) || (active_lanes < chunk_size))
+static_assert ((chunk_size == 16) || (chunk_size == 64) || (active_lanes < chunk_size)) // 64 for future expansion
 static_assert (chunk_size == 8 || chunk_size == 16)
 active_lanes_mask = (1 << active_lanes) - 1
 partial_lanes_mask = 1 << (active_lanes - 1)

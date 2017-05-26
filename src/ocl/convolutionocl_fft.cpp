@@ -5,6 +5,8 @@
 
 namespace miopen {
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
+
 static void cgemm_grid(size_t *global_work_size, size_t *local_work_size, int cgemm_choice, const int N, const int out_c, const int out_n)
 {
 	unsigned int threadTile[2];
@@ -80,18 +82,19 @@ static std::string make_config_prefix(int in_h, int in_w,int in_n, int in_c, int
 	return config_prefix;
 }
 
-int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
+static int FindFFTKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		const TensorDescriptor&			wDesc,
 		const TensorDescriptor&			yDesc,
 		size_t							workSpaceSize,
-        std::vector<KernelInvoke>&      kernels) const {
+        std::vector<KernelInvoke>&      kernels,
+		bool fwd) {
 
 	if(workSpaceSize == 0)
 		return -1;
 
 	// disable running any FFT based convolutions by checking this env variable
-	if(miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_CONV_FFT"))
+	if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
 		return -1;
 
 	int in_n, in_c, in_h, in_w;
@@ -247,6 +250,10 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	parms += " -DCFF_HALFW=";
 	parms += std::to_string(workSpaceSize/(2*2*sizeof(float)));
 
+	if(!fwd)
+	{
+		parms += " -DCFF_BACKWARD";
+	}
 
     const std::string algorithm = "miopenConvolutionFwdAlgoFFT";
     const std::string program_name = "MIOpenConvFFT.cl";
@@ -302,8 +309,27 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
 	return 0;
 }
 
+int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			yDesc,
+		size_t							workSpaceSize,
+        std::vector<KernelInvoke>&      kernels) const {
 
-float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
+	return FindFFTKernel(handle, xDesc, wDesc, yDesc, workSpaceSize, kernels, true);
+}
+
+int ConvolutionDescriptor::FindBwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			dyDesc,
+		const TensorDescriptor&			wDesc,
+		const TensorDescriptor&			dxDesc,
+		size_t							workSpaceSize,
+        std::vector<KernelInvoke>&      kernels) const {
+
+	return FindFFTKernel(handle, dyDesc, wDesc, dxDesc, workSpaceSize, kernels, false);
+}
+
+static float ExecuteFFTKernel(Handle& handle,
 		const TensorDescriptor&			xDesc,
 		ConstData_t						x,
 		const TensorDescriptor&			wDesc,
@@ -312,10 +338,12 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 		Data_t							y,
 		Data_t							workSpace,
 		size_t							workSpaceSize,
-		bool							timed) const {
+		bool							timed,
+		bool							fwd) {
 
 
 	(void)wDesc; // suppress warning
+	(void)fwd; // suppress warning
 
 	int halfw = static_cast<int>(workSpaceSize) / (2*2*sizeof(float));
 	int in_n, in_c, in_h, in_w;
@@ -382,5 +410,33 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
 	return time_fft;
 }
 
+
+float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			xDesc,
+		ConstData_t						x,
+		const TensorDescriptor&			wDesc,
+		ConstData_t						w,
+		const TensorDescriptor&			yDesc,
+		Data_t							y,
+		Data_t							workSpace,
+		size_t							workSpaceSize,
+		bool							timed) const {
+
+	return ExecuteFFTKernel(handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed, true);
+}
+
+float ConvolutionDescriptor::ExecuteBwdFFTKernel(Handle& handle,
+		const TensorDescriptor&			dyDesc,
+		ConstData_t						dy,
+		const TensorDescriptor&			wDesc,
+		ConstData_t						w,
+		const TensorDescriptor&			dxDesc,
+		Data_t							dx,
+		Data_t							workSpace,
+		size_t							workSpaceSize,
+		bool							timed) const {
+
+	return ExecuteFFTKernel(handle, dyDesc, dy, wDesc, w, dxDesc, dx, workSpace, workSpaceSize, timed, false);
+}
 
 }  // namespace miopen

@@ -3,10 +3,15 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <vector>
+#include <string>
 
 namespace miopen {
 
 /// \todo Rework: Case-insensitive string compare, ODR, (?) move to .cpp
+
+// Declare a cached environment variable
+#define MIOPEN_DECLARE_ENV_VAR(x) struct x { static const char* value() { return #x; }};
 
 /*
  * Returns false if a feature-controlling environment variable is defined
@@ -32,6 +37,35 @@ inline bool IsEnvvarValueEnabled(const char* name)
         || std::strcmp(value_env_p, "1") == 0
         || std::strcmp(value_env_p, "yes") == 0
         || std::strcmp(value_env_p, "true") == 0 );
+}
+
+inline std::vector<std::string> GetEnv(const char * name)
+{
+    auto p = std::getenv(name);
+    if (p == nullptr) return {};
+    else return {{p}};
+}
+
+template<class T>
+inline const char * GetStringEnv(T)
+{
+    static const std::vector<std::string> result = GetEnv(T::value());
+    if (result.empty()) return nullptr;
+    else return result.front().c_str();
+}
+
+template<class T>
+inline bool IsEnabled(T)
+{
+    static const bool result = miopen::IsEnvvarValueEnabled(T::value());
+    return result;
+}
+
+template<class T>
+inline bool IsDisabled(T)
+{
+    static const bool result = miopen::IsEnvvarValueDisabled(T::value());
+    return result;
 }
 } // namespace miopen
 
