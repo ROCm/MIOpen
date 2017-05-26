@@ -3,11 +3,11 @@
 
 #include <string>
 
-#if MIOPEN_BACKEND_OPENCL || MIOPEN_BACKEND_HIPOC
+#include <miopen/config.h>
+
 namespace miopen {
 std::string GetKernelSrc(std::string name);
 } // namespace miopen
-#endif
 
 #if MIOPEN_BACKEND_OPENCL
 #include <miopen/oclkernel.hpp>
@@ -20,7 +20,7 @@ using Program = SharedProgramPtr;
 
 } // namespace miopen
 
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 #include <miopen/hipoc_kernel.hpp>
 
 namespace miopen {

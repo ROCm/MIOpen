@@ -2,7 +2,13 @@
 
 namespace miopen {
 
-std::unordered_map< GemmKey, GemmGeometry, SimpleHash> gemm_geo_map;
+std::unordered_map< GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map()
+{
+    static std::unordered_map< GemmKey, GemmGeometry, SimpleHash> data;
+    return data;
+}
+
+
 
 void GemmGeometry::EnableBetaKernel(bool enable,
         std::map<std::string, size_t> &beta_args)
@@ -54,7 +60,7 @@ void GemmGeometry::FindSolution(float time,
             kernel_name,
             vld,
             vgd,
-            "");
+            " -w ");
 
     // beta kernel
     if(beta != 1.0 && !soln.betac_kernel.empty())
@@ -69,7 +75,7 @@ void GemmGeometry::FindSolution(float time,
         EnableBetaKernel(true, beta_kernel_worksize_params);
 
         vld[0] = local_work_size;
-        vgd[1] = global_work_size;
+        vgd[0] = global_work_size;
 
         handle.GetKernel(algorithm_name+"_beta",
                 "placeholder", // TODO: hack for now because the kernel is not cached if config is ""
@@ -80,7 +86,7 @@ void GemmGeometry::FindSolution(float time,
                 "");
     }
 
-    gemm_geo_map[std::make_pair(algorithm_name, network_config)] = *this;
+    gemm_geo_map()[std::make_pair(algorithm_name, network_config)] = *this;
 }
 
 void GemmGeometry::RunGemm(Handle &handle,

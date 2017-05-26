@@ -244,7 +244,7 @@ int mloLRNBackwardRunHost(
 	if (norm_region == MLO_LRN_ACROSS_CHANNELS)
 	{
 
-		_T ratio_dta_bwd = (_T) 2. * alpha * beta / local_area;
+		_T ratio_dta_bwd = static_cast<_T>( 2.) * alpha * beta / local_area;
 
 		for (int b = 0; b < n_batchs; b++)
 		{
@@ -390,7 +390,7 @@ int mloLRNBackwardRunHost(
 							}
 						}
 
-						_T ratio_dta_bwd = (_T) 2. * alpha * beta / adj_area_size;
+						_T ratio_dta_bwd = static_cast<_T>( 2.) * alpha * beta / adj_area_size;
 
 						bot_df_v_ptr[b*bot_df_v_batch_stride + o * bot_df_v_channel_stride + j * bot_df_v_stride + i] =
 							top_df_ptr[b*top_df_batch_stride + o * top_df_channel_stride + j * top_df_stride + i]

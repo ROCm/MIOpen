@@ -3,6 +3,9 @@ FROM ubuntu:16.04
 ARG PREFIX=/opt/rocm
 ARG GITLAB1=10.236.13.205
 
+# Support multiarch
+RUN dpkg --add-architecture i386
+
 # Add rocm repository
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl && \
     curl -sL http://packages.amd.com/rocm/apt/debian/rocm.gpg.key | apt-key add - && \
@@ -16,20 +19,26 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     clang-tidy-3.8 \
     cmake \
     curl \
+    g++-mingw-w64 \
+    g++-mingw-w64-x86-64 \
     g++-multilib \
     git \
-    hsakmt-roct-dev \
     hsa-rocr-dev \
-    libc++-dev \
-    libc++abi-dev \
+    hsakmt-roct-dev \
     libelf-dev \
     libncurses5-dev \
     libpthread-stubs0-dev \
+    mingw-w64 \
+    mingw-w64-tools \
+    nsis \
     python \
     python-dev \
     python-pip \
+    rocm-opencl-dev \
     software-properties-common \
-    wget && \
+    wget \
+    wine \
+    xvfb && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -43,14 +52,17 @@ RUN pip install cget
 # Install latest cmake
 RUN cget -p /usr/local install kitware/cmake@release
 
+# Add the toolchain
+ADD cmake/mingw-toolchain.cmake /usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake
+
 # Build hcc
-RUN git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/hcc.git /hcc && \
-    git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/hcc-clang-upgrade.git /hcc/clang && \
+RUN git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/hcc.git /hcc && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/hcc-clang-upgrade.git /hcc/clang && \
     git clone --depth 1 -b clang_tot_upgrade https://github.com/RadeonOpenCompute/clang-tools-extra.git /hcc/clang/tools/extra && \
-    git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/llvm.git /hcc/compiler && \
-    git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/compiler-rt.git /hcc/compiler-rt && \
-    git clone --depth 1 -b amd-hcc https://github.com/RadeonOpenCompute/lld.git /hcc/lld && \
-    git clone --depth 1 -b remove-promote-change-addr-space https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git /hcc/rocdl && \
+    git clone --depth 1 -b amd-hcc-roc-1.5.x https://github.com/RadeonOpenCompute/llvm.git /hcc/compiler && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/compiler-rt.git /hcc/compiler-rt && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/lld.git /hcc/lld && \
+    git clone --depth 1 -b hcc-roc-1.5.x https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git /hcc/rocdl && \
     cget -p $PREFIX install hcc,/hcc && \
     rm -rf /hcc
 
@@ -62,14 +74,22 @@ RUN ln -s $PREFIX $PREFIX/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install HIP
-RUN cget -p $PREFIX install hip,http://$GITLAB1/pfultz/hip/repository/archive.tar.gz?ref=cmake-develop
-
-# Install opencl
-RUN curl http://$GITLAB1/pfultz/mlopen/uploads/194a8f592aaeabb486e3594e3a4083e6/rocm-opencl-1.4.deb > /rocm-opencl.deb
-RUN dpkg -i /rocm-opencl.deb && rm /rocm-opencl.deb
+RUN cget -p $PREFIX install hip,pfultz2/HIP@modern
 
 # Install clang-ocl
 RUN cget -p $PREFIX install clang-ocl,http://$GITLAB1/pfultz/clang-ocl/repository/archive.tar.bz2?ref=master
 
 # Install tinygemm
 RUN cget -p /usr/local install tinygemm,http://$GITLAB1/pfultz/tinygemm/repository/archive.tar.gz?ref=master
+
+# Install windows opencl
+RUN curl http://$GITLAB1/pfultz/mlopen/uploads/bbab72ad68e65faeee9257b2bb9ca4a1/win-opencl.deb > /win-opencl.deb
+RUN dpkg -i /win-opencl.deb && rm /win-opencl.deb
+
+# Install mingw threads
+RUN cget -p /usr/local/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@master
+
+# Setup wine
+RUN mkdir -p /jenkins
+RUN chmod 777 /jenkins
+RUN WINEDEBUG=-all DISPLAY=:55.0 wineboot; wineserver -w

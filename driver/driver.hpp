@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <vector>
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "InputFlags.hpp"
 #include <algorithm>
 #include <float.h>
@@ -19,7 +19,7 @@
 #include <CL/cl.h>
 #endif
 
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 #include <hip/hip_runtime_api.h>
 
 #define printf(...) fprintf(stdout, __VA_ARGS__)
@@ -46,13 +46,13 @@ struct GPUMem {
 	size_t sz;
 	size_t data_sz;
 
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 
 	GPUMem() {};
-	GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz) {	hipMalloc((void**)&buf, data_sz*sz); }
+	GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz) {	hipMalloc(static_cast<void**>(&buf), data_sz*sz); }
 
-	int ToGPU(hipStream_t q, void *p) { _q = q; return (int)hipMemcpy(buf, p, data_sz*sz, hipMemcpyHostToDevice); }
-	int FromGPU(hipStream_t q, void *p) { _q = q; return (int)hipMemcpy(p, buf, data_sz*sz, hipMemcpyDeviceToHost); }
+	int ToGPU(hipStream_t q, void *p) { _q = q; return static_cast<int>(hipMemcpy(buf, p, data_sz*sz, hipMemcpyHostToDevice)); }
+	int FromGPU(hipStream_t q, void *p) { _q = q; return static_cast<int>(hipMemcpy(p, buf, data_sz*sz, hipMemcpyDeviceToHost)); }
 
 	void* GetMem() { return buf; }
 	size_t GetSize() { return sz*data_sz; }
@@ -66,9 +66,9 @@ struct GPUMem {
 #endif
 };
 
-void Usage() {
+[[gnu::noreturn]] void Usage() {
 	printf("Usage: ./driver *base_arg* *other_args*\n");
-	printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, gemm\n");
+	printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, bnorm, gemm\n");
 	exit(0);
 }
 
@@ -80,7 +80,7 @@ std::string ParseBaseArg(int argc, char *argv[]) {
 
 	std::string arg = argv[1];
 
-	if(arg != "conv" && arg != "pool" && arg != "lrn" && arg != "activ" && arg != "softmax" && arg != "gemm") {
+	if(arg != "conv" && arg != "pool" && arg != "lrn" && arg != "activ" && arg != "softmax" && arg != "bnorm" && arg != "gemm") {
 		printf("Invalid Base Input Argument\n");
 		Usage();
 	}
@@ -98,10 +98,10 @@ class Driver
 	Driver() {
 #if MIOPEN_BACKEND_OPENCL
 		miopenCreate(&handle);
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
         hipStream_t s;
         hipStreamCreate(&s);
-        miopenCreateWithStream(&handle,&s);
+        miopenCreateWithStream(&handle,s);
 #endif
 
 		miopenGetStream(handle, &q);
@@ -110,7 +110,7 @@ class Driver
 	miopenHandle_t GetHandle() { return handle; }
 #if MIOPEN_BACKEND_OPENCL
 	cl_command_queue& GetStream() { return q; }
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 	hipStream_t& GetStream() { return q; }
 #endif
 	virtual ~Driver() {
@@ -133,7 +133,7 @@ class Driver
 	miopenHandle_t handle;
 #if MIOPEN_BACKEND_OPENCL
 	cl_command_queue q;
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 	hipStream_t q;
 #endif
 };

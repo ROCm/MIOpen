@@ -23,9 +23,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define NOMINMAX // stupid windows.h confused with min() macros in std namespace
 #endif
 
+#include <miopen/config.h>
 
-
-#define _USE_MATH_DEFINES
 #if MIOPEN_BACKEND_OPENCL
 #ifdef __APPLE__
  #include <OpenCL/opencl.h>
@@ -65,10 +64,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <tuple>
 
 
-#ifdef WIN32
+#ifdef _WIN32
  #include <io.h>
  #include <windows.h>
- #include <BaseTsd.h>
+ // #include <BaseTsd.h>
  #include <direct.h>
  #define snprintf _snprintf
  #define vsnprintf _vsnprintf
@@ -709,16 +708,16 @@ public:
 	size_t setOutputDescFromMLDesc(const miopen::TensorDescriptor &output_tensor);
 	size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor &weight_tensor);
 
+    bool mloIsCompilerWorkarounds() const;
+	int mloConstructDirect2D_11x11(bool n_passes = false);
+
 protected:
 	bool mloGetConfig();
 	int mloSearchDirect2D();
 	int mloConstructDirect2DFwd();
 
 	enum rocm_meta_version { V1, V2, V3 };
-#if MIOPEN_BACKEND_OPENCL
 	bool mloIsAmdOpenclRocm(rocm_meta_version &rmv) const;
-	bool mloExperimentalValidateAssemblerPath(const char* path) const;
-#endif
 
 	bool mloIsCorrectBinaryWinograd3x3Fwd() const;
 	bool mloIsFastBinaryWinograd3x3Fwd() const;
@@ -732,11 +731,14 @@ protected:
 	bool mloIsFastAsmDirect5x10u2v2f1() const;
 	int  mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rmv);
 
+	bool mloIsCorrectAsmDirect5x10u2v2b1() const;
+	bool mloIsFastAsmDirect5x10u2v2b1() const;
+	int  mloConstructAsmDirect5x10u2v2b1(rocm_meta_version rmv);
+
 	int mloConstructDirect2DFwdC();
 	int mloConstructDirect2D1x1();
 	int mloConstructDirect2D3x3();
 	int mloConstructDirect2DFwdGen();
-	int mloConstructDirect2D_11x11();
 
 	int mloConstructBwd()
 	{
@@ -908,11 +910,32 @@ public:
 	}
 
 	int mloConstruct() override;
+    bool mloIsCompilerWorkarounds() const;
+	int mloMultiStep();
+
 protected:
-	int mloConstruct2();
-	int mloConstruct53();
-	int mloConstruct1x1();
-	int mloConstruct3x3();
+	int mloConstruct2(bool n_stages = false);
+	int mloConstruct53(bool n_stages = false);
+	int mloConstruct1x1(bool n_stages = false);
+	int mloConstruct1x1Mmap();
+//	int mloConstruct3x3();
+
+    struct PerfParamsAsmDirect3x3WrW {
+        int limit_wave_cnt;
+        int chunk_size;         // 16 or 8. Lower values increase register pressure
+        int c_per_wave;         // should be (64 / chunk_size)
+        int k_per_wave;         // 1, 2, 4, 8 and chunk_size * k_per_wave <= 64. Higher values increase register preasure
+        int n_per_group;        // 1..8 and n_per_group <= batch_size
+        int pipe_lines_depth;   // 1..8 and pipe_lines_depth <= img_h. Higher values increase register pressure
+        int reverse_inout;      // 0 or 1
+        PerfParamsAsmDirect3x3WrW() : limit_wave_cnt(0), chunk_size(16), c_per_wave(4),
+            k_per_wave(4), n_per_group(1), pipe_lines_depth(2), reverse_inout(0)
+        {}
+    };
+    PerfParamsAsmDirect3x3WrW mloComputePerfParamsAsmDirect3x3WrW() const;
+    bool mloIsCorrectAsmDirect3x3WrW() const;
+    bool mloIsFastAsmDirect3x3WrW() const;
+    int  mloConstructAsmDirect3x3WrW();
 };
 
 /*

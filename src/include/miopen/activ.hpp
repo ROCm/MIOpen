@@ -1,7 +1,7 @@
-#ifndef _MIOPEN_ACTIV_HPP_
-#define _MIOPEN_ACTIV_HPP_
+#ifndef MIOPEN_ACTIV_HPP_
+#define MIOPEN_ACTIV_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
@@ -26,9 +26,7 @@ struct ActivationDescriptor : miopenActivationDescriptor{
 		ConstData_t				x,
 		const void					*beta,
 		const TensorDescriptor		&yDesc,
-		Data_t						y,
-		bool                        do_backward,
-		Data_t						workSpace);
+		Data_t						y);
 
 	miopenStatus_t Backward(
 		Handle						&handle,
@@ -41,8 +39,7 @@ struct ActivationDescriptor : miopenActivationDescriptor{
 		ConstData_t				x,
 		const void					*beta,
 		const TensorDescriptor		&dxDesc,
-		Data_t						dx,
-		ConstData_t				workSpace);
+		Data_t						dx);
 
 	friend std::ostream& operator<< (std::ostream& stream, const ActivationDescriptor& x);
 

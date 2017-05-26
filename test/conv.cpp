@@ -1,4 +1,4 @@
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "test.hpp"
 #include <array>
 #include <iterator>
@@ -95,10 +95,10 @@ struct verify_forward_conv : conv_base<T>
         auto wei_dev = handle.Write(weights.data);
         auto out_dev = handle.Write(out.data);
 
-		size_t workspace_size = filter.ForwardGetWorkSpaceSize(weights.desc, input.desc, out.desc);
+        size_t workspace_size = filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, out.desc);
 
-		std::vector<char> workspace(workspace_size);
-		auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+        std::vector<char> workspace(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
@@ -200,6 +200,11 @@ struct verify_backward_conv : conv_base<T>
         auto wei_dev = handle.Write(weights.data);
         auto in_dev = handle.Write(input.data);
 
+        size_t workspace_size = filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, out.desc, input.desc);
+
+        std::vector<char> workspace(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
@@ -215,8 +220,8 @@ struct verify_backward_conv : conv_base<T>
             1,
             &ret_algo_count,
             &perf,
-            nullptr,
-            10,
+            workspace_dev.get(),
+            workspace_size,
             0); // MD: Not performing exhaustiveSearch by default for now
 
         filter.ConvolutionBackwardData(handle,
@@ -229,8 +234,8 @@ struct verify_backward_conv : conv_base<T>
             &beta,
             input.desc,
             in_dev.get(),
-            nullptr,
-            0);
+            workspace_dev.get(),
+            workspace_size);
 
         input.data = handle.Read<T>(in_dev, input.data.size());
         return input;
@@ -302,10 +307,10 @@ struct verify_backward_weights_conv : conv_base<T>
         auto wei_dev = handle.Write(weights.data);
         auto in_dev = handle.Write(input.data);
 
-        std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(out.desc, input.desc, weights.desc);
+        std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(handle, out.desc, input.desc, weights.desc);
 
         std::vector<char> workspace(workspace_size);
-        auto workspace_dev = handle.Write(workspace);
+		auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
@@ -357,6 +362,7 @@ struct conv_driver : test_driver
     tensor<T> weights;
     miopen::ConvolutionDescriptor filter;
     bool enable_backward_weights = false;
+    bool do_backward_data = true;
 
     conv_driver()
     {
@@ -364,6 +370,7 @@ struct conv_driver : test_driver
         add(weights, "weights", get_weights_tensor());
         add(filter, "filter", generate_data(get_filters()));
         add(enable_backward_weights, "enable-backward-weights", flag());
+        add(do_backward_data, "disable-backward-data", set_value(false));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
@@ -389,7 +396,7 @@ struct conv_driver : test_driver
         {
             auto out_p = verify(verify_forward_conv<T>{input, weights, filter});
             for(auto& x:out_p.first) x = (long(x+1)*2) % 17; // Clamp big numbers
-            verify(verify_backward_conv<T>{input, weights, out_p.first, filter});
+            if (do_backward_data) verify(verify_backward_conv<T>{input, weights, out_p.first, filter});
             if(enable_backward_weights or MIOPEN_USE_TINYGEMM)
             {
                 verify(verify_backward_weights_conv<T>{input, weights, out_p.first, filter});

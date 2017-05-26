@@ -2,7 +2,7 @@
 #define GUARD_MIOPEN_ACTIV_DRIVER_HPP
 
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "driver.hpp"
 #include "mloNeuronHost.hpp"
 #include "InputFlags.hpp"
@@ -142,7 +142,7 @@ int ActivationDriver<T>::SetActivationDescriptorFromCmdLineArgs() {
 	double Alpha = inflags.GetValueDouble("alpha");
 	double Beta = inflags.GetValueDouble("beta");
 	double Power = inflags.GetValueDouble("power");
-	mode = (miopenActivationMode_t)inflags.GetValueInt("mode");
+	mode = static_cast<miopenActivationMode_t>(inflags.GetValueInt("mode"));
 
 	miopenSetActivationDescriptor(activDesc,
 			mode,
@@ -161,7 +161,7 @@ int ActivationDriver<T>::AllocateBuffersAndCopy() {
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 uint32_t ctx = 0;
 #endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
@@ -180,15 +180,15 @@ uint32_t ctx = 0;
 	dinhost = std::vector<float>(in_sz, 0);
 
 	for (int i = 0; i < in_sz; i++) {
-		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+		in[i] = static_cast<T>(static_cast<double>(rand()) * (1.0 / RAND_MAX));
 	}
 
 	for (int i = 0; i < out_sz; i++) {
-		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+		dout[i] = static_cast<T>(static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001);
 	}
 #if MIOPEN_BACKEND_OPENCL
 	cl_int status;
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 	int status;
 #endif
 	status = in_dev->ToGPU(q, in.data());
@@ -215,9 +215,7 @@ int ActivationDriver<T>::RunForwardGPU() {
 			in_dev->GetMem(),
 			&beta,
 			outputTensor,
-			out_dev->GetMem(),
-			false, //inflags.GetValueInt("back"),
-			NULL);
+			out_dev->GetMem());
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
@@ -250,8 +248,7 @@ int ActivationDriver<T>::RunBackwardGPU() {
 		in_dev->GetMem(),
 		&beta,
 		dInputTensor,
-		din_dev->GetMem(),
-		NULL);
+		din_dev->GetMem());
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
@@ -281,9 +278,9 @@ int ActivationDriver<T>::VerifyForward() {
 	int match = 1;
 	match = mloNeuronForwardRunHostAndVerify<T>(
 		v_mode,
-		(T)v_Power,
-		(T)v_Alpha,
-		(T)v_Beta,
+		static_cast<T>(v_Power),
+		static_cast<T>(v_Alpha),
+		static_cast<T>(v_Beta),
 		in.size(),
 		in.data(),
 		out.data(),
@@ -318,9 +315,9 @@ int ActivationDriver<T>::VerifyBackward() {
 	int match = 1;
 	match = mloNeuronBackwardRunHostAndVerify<T>(
 		v_mode,
-		(T)v_Power,
-		(T)v_Alpha,
-		(T)v_Beta,
+		static_cast<T>(v_Power),
+		static_cast<T>(v_Alpha),
+		static_cast<T>(v_Beta),
 		dinhost.size(),
 		in.data(),
 		out.data(),

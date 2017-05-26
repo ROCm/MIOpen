@@ -1,7 +1,7 @@
-#ifndef _MIOPEN_LRN_HPP_
-#define _MIOPEN_LRN_HPP_
+#ifndef MIOPEN_LRN_HPP_
+#define MIOPEN_LRN_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>

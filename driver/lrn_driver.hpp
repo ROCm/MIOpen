@@ -2,7 +2,7 @@
 #define GUARD_MIOPEN_LRN_DRIVER_HPP
 
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "driver.hpp"
 #include "mloNormHost.hpp"
 #include "InputFlags.hpp"
@@ -189,7 +189,7 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 	cl_context ctx;
 
 	clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 	uint32_t ctx = 0;
 #endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
@@ -215,15 +215,15 @@ int LRNDriver<T>::AllocateBuffersAndCopy() {
 	dinhost = std::vector<float>(in_sz, 0);
 
 	for (int i = 0; i < in_sz; i++) {
-		in[i] = (T)((double)rand() * (1.0 / RAND_MAX));
+		in[i] = static_cast<T>((static_cast<double>(rand()) * (1.0 / RAND_MAX)));
 	}
 
 	for (int i = 0; i < out_sz; i++) {
-		dout[i] = (T)((double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
+		dout[i] = static_cast<T>((static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001));
 	}
 #if MIOPEN_BACKEND_OPENCL
 	cl_int status;
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 	int status;
 #endif
 	status = in_dev->ToGPU(q, in.data());
@@ -316,7 +316,7 @@ int LRNDriver<T>::RunForwardCPU() {
 			&v_lrnBeta,
 			&v_lrnK);
 
-	float alphaoverarea = (float)((v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
+	float alphaoverarea = static_cast<float>((v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
 
 	int pre_pad = (v_lrnN - 1) / 2;
 	int pad = v_lrnN - pre_pad - 1;
@@ -346,9 +346,9 @@ int LRNDriver<T>::RunForwardCPU() {
 			pad,
 			v_lrnN,
 			alphaoverarea,
-			(T)v_lrnAlpha,
-			(T)v_lrnBeta,
-			(T)v_lrnK,
+			static_cast<T>(v_lrnAlpha),
+			static_cast<T>(v_lrnBeta),
+			static_cast<T>(v_lrnK),
 			batch_sz,
 			n_outputs,
 			n_inputs,
@@ -477,7 +477,7 @@ int LRNDriver<T>::RunBackwardCPU() {
 			&v_lrnBeta,
 			&v_lrnK);
 
-	float alphaoverarea = (float)((v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
+	float alphaoverarea = static_cast<float>((v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN*v_lrnN));
 
 	int pre_pad = (v_lrnN - 1) / 2;
 	int pad = v_lrnN - pre_pad - 1;
@@ -510,13 +510,13 @@ int LRNDriver<T>::RunBackwardCPU() {
 	int scale_batch_stride = top_df_batch_stride;
 
 	mloLRNBackwardRunHost<float>(
-			(int)v_mode,
+			static_cast<int>(v_mode),
 			pad,
 			v_lrnN,
 			alphaoverarea,
-			(float)v_lrnAlpha,
-			(float)v_lrnBeta,
-			(float)v_lrnK,
+			static_cast<float>(v_lrnAlpha),
+			static_cast<float>(v_lrnBeta),
+			static_cast<float>(v_lrnK),
 			batch_sz,
 			n_outputs,
 			n_inputs,

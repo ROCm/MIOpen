@@ -2,7 +2,7 @@
 #define GUARD_MIOPEN_GEMM_DRIVER_HPP
 
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "driver.hpp"
 #include "InputFlags.hpp"
 #include <vector>
@@ -110,7 +110,7 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
     cl_context ctx;
 
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
     a_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, a_sz, sizeof(T)));
@@ -123,15 +123,15 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
     chost = std::vector<T>(c_sz, 0.);
 
     for (int i = 0; i < a_sz; i++) {
-        a[i] =  (T)((double)rand() * (1.0 / RAND_MAX));
+        a[i] =  static_cast<T>(static_cast<double>(rand()) * (1.0 / RAND_MAX));
     }
 
     for (int i = 0; i <b_sz; i++) {
-        b[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+        b[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
     }
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
-#elif MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
     int status;
 #endif
     status = a_dev->ToGPU(q, a.data());

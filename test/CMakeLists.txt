@@ -5,6 +5,8 @@ option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
 option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
 
+set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
+
 find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
@@ -16,18 +18,13 @@ function(add_test_executable TEST_NAME)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
         set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
     endif()
+    separate_arguments(MIOPEN_TEST_FLAGS_ARGS UNIX_COMMAND ${MIOPEN_TEST_FLAGS})
     if(MIOPEN_TEST_ALL)
-        set(TEST_COMMAND $<TARGET_FILE:${TEST_NAME}> --all)
+        set(TEST_COMMAND $<TARGET_FILE:${TEST_NAME}> --all ${MIOPEN_TEST_FLAGS_ARGS})
     else()
-        set(TEST_COMMAND $<TARGET_FILE:${TEST_NAME}>)
+        set(TEST_COMMAND $<TARGET_FILE:${TEST_NAME}> ${MIOPEN_TEST_FLAGS_ARGS})
     endif()
-    if(WIN32)
-        add_test(NAME ${TEST_NAME} WORKING_DIRECTORY ${LIBRARY_OUTPUT_PATH} COMMAND ${TEST_COMMAND})
-    else()
-        add_test(NAME ${TEST_NAME} COMMAND ${TEST_COMMAND})
-        # TODO: Quick hack to fix relative paths to kernels
-        # add_test(NAME ${TEST_NAME} WORKING_DIRECTORY ${CMAKE_BINARY_DIR} COMMAND ${TEST_COMMAND})
-    endif()
+    add_test(NAME ${TEST_NAME} COMMAND ${WINE_CMD} ${TEST_COMMAND})
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
@@ -44,6 +41,18 @@ function(add_custom_test NAME)
     add_custom_target(${NAME} ${ARGN})
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
 endfunction()
+
+if(MIOPEN_TEST_ALL)
+    add_custom_test(test_extra
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 227 227  --weights 1 3 11 11 --filter 0 0 4 4 --disable-backward-data
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 224 224  --weights 1 3 11 11 --filter 2 2 4 4
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 128 64 27 27  --weights 192 64 5 5 --filter 2 2 1 1
+    )
+endif()
 
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench

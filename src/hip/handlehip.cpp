@@ -1,9 +1,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/device_name.hpp>
-#if MIOPEN_BACKEND_HIPOC
 #include <miopen/kernel_cache.hpp>
-#endif
 #include <algorithm>
 
 #ifndef _WIN32
@@ -38,7 +36,7 @@ void set_device(int id)
     if (status != hipSuccess) MIOPEN_THROW("Error setting device");
 }
 
-void set_default_device()
+int set_default_device()
 {
     int n;
     auto status = hipGetDeviceCount(&n);
@@ -47,6 +45,7 @@ void set_default_device()
     auto pid = ::getpid();
     assert(pid > 0);
     set_device(pid % n);
+    return (pid % n);
 }
 
 struct HandleImpl
@@ -55,6 +54,7 @@ struct HandleImpl
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
 
     HandleImpl()
+    : device(get_device_id())
     {}
 
     StreamPtr create_stream()
@@ -80,12 +80,16 @@ struct HandleImpl
         return std::bind(&HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
     }
 
+    void set_device() const
+    {
+        miopen::set_device(device);
+    }
+
     bool enable_profiling = false;
-    StreamPtr stream;
+    StreamPtr stream = nullptr;
     float profiling_result = 0.0;
-#if MIOPEN_BACKEND_HIPOC
     KernelCache cache;
-#endif
+    int device;
 };
 
 Handle::Handle (miopenAcceleratorQueue_t stream) 
@@ -98,12 +102,20 @@ Handle::Handle (miopenAcceleratorQueue_t stream)
 Handle::Handle ()
 : impl(new HandleImpl())
 {
-    set_default_device();
-    // this->impl->stream = impl->create_stream();
+#if MIOPEN_BUILD_DEV
+    this->impl->device = set_default_device();
+    this->impl->stream = impl->create_stream();
+#else
     this->impl->stream = HandleImpl::reference_stream(nullptr);
+#endif
 }
 
 Handle::~Handle() {}
+
+void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
+{
+    this->impl->stream = HandleImpl::reference_stream(streamID);
+}
 
 miopenAcceleratorQueue_t Handle::GetStream() const
 {
@@ -120,9 +132,18 @@ float Handle::GetKernelTime() const
     return this->impl->profiling_result;
 }
 
-ManageDataPtr Handle::Create(int sz)
+std::size_t GetAvailableMemory()
+{
+    size_t free, total;
+    auto status = hipMemGetInfo(&free, &total);
+    if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
+    return free;
+}
+
+ManageDataPtr Handle::Create(std::size_t sz)
 {
     this->Finish();
+    if (sz > GetAvailableMemory()) MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
     void * result;
     auto status = hipMalloc(&result, sz);
     if (status != hipSuccess)
@@ -132,27 +153,27 @@ ManageDataPtr Handle::Create(int sz)
     }
     return ManageDataPtr{result};
 }
-ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
+ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, std::size_t sz)
 {
     this->Finish();
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);
     if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
-void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
+void Handle::ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz)
 {
     this->Finish();
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
     if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
 }
 
-void Handle::Copy(ConstData_t src, Data_t dest, int size)
+void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
 {
+    this->impl->set_device();
     auto status = hipMemcpy(dest, src, size, hipMemcpyDeviceToDevice);
     if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
 }
 
-#if MIOPEN_BACKEND_HIPOC
 KernelInvoke Handle::GetKernel(
         const std::string& algorithm,
         const std::string& network_config,
@@ -162,6 +183,7 @@ KernelInvoke Handle::GetKernel(
         const std::vector<size_t>& vgd,
         const std::string& params)
 {
+    this->impl->set_device();
     auto k = this->impl->cache.GetKernel(*this,
             algorithm,
             network_config,
@@ -178,6 +200,7 @@ KernelInvoke Handle::GetKernel(
     const std::string& algorithm,
     const std::string& network_config)
 {
+    this->impl->set_device();
     auto k = this->impl->cache.GetKernel(
             algorithm,
             network_config);
@@ -187,20 +210,24 @@ KernelInvoke Handle::GetKernel(
 
 Program Handle::LoadProgram(const std::string &program_name, std::string params, bool is_kernel_str)
 {
+    this->impl->set_device();
+    params += " -mcpu=" + this->GetDeviceName();
     return HIPOCProgram{program_name, params, is_kernel_str};
 }
 
 void Handle::Finish() const
 {
+    this->impl->set_device();
 #if MIOPEN_BUILD_DEV
     auto start = std::chrono::system_clock::now();
     auto ev = make_hip_event();
     hipEventRecord(ev.get(), this->GetStream());
     while(hipEventQuery(ev.get()) == hipErrorNotReady)
     {
+        std::this_thread::yield();
         if ((std::chrono::system_clock::now()-start) > std::chrono::seconds(60)) 
         {
-            std::cerr << "Timeout" << std::endl;
+            std::cerr << "Timeout: Handle::Finish" << std::endl;
             std::abort();
         }
     }
@@ -219,7 +246,7 @@ bool Handle::IsProfilingEnabled() const
 	return this->impl->enable_profiling;
 }
 
-void Handle::ResetKernelTime(void)
+void Handle::ResetKernelTime()
 {
     this->impl->profiling_result = 0.0;
 }
@@ -231,7 +258,7 @@ void Handle::AccumKernelTime(float x)
 std::size_t Handle::GetLocalMemorySize()
 {
     int result;
-    auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMaxSharedMemoryPerBlock, get_device_id());
+    auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMaxSharedMemoryPerBlock, this->impl->device);
     if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status);
 
     return result;
@@ -240,7 +267,7 @@ std::size_t Handle::GetLocalMemorySize()
 std::size_t Handle::GetMaxComputeUnits()
 {
     int result;
-    auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, get_device_id());
+    auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, this->impl->device);
     if (status != hipSuccess) MIOPEN_THROW_HIP_STATUS(status);
 
     return result;
@@ -249,9 +276,8 @@ std::size_t Handle::GetMaxComputeUnits()
 std::string Handle::GetDeviceName()
 {
     hipDeviceProp_t props;
-    hipGetDeviceProperties(&props, get_device_id());
+    hipGetDeviceProperties(&props, this->impl->device);
     std::string n("gfx"+std::to_string(props.gcnArch));
 	return GetDeviceNameFromMap(n);
 }
-#endif
-}
+} // namespace miopen

@@ -30,6 +30,7 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define UNUSED __attribute__((__unused__))
 
 #define DBG_OUT_OF_RNGE 0
 
@@ -70,16 +71,16 @@
 #endif
 
 __attribute__((always_inline))
-int iDiv(int v, int d)
+uint iDiv(uint v, uint d)
 {
-	int r = (int)((float)v / d + 0.00001f);
+	uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
 	return(r);
 }
 
 __attribute__((always_inline))
-int iMod(int v, int u, int d)
+uint iMod(uint v, uint u, uint d)
 {
-	int r = v - mul24((int)u, (int)d);
+	uint r = v - mul24(u, d);
 	return(r);
 }
 
@@ -115,7 +116,7 @@ __kernel void MIOpenConv1x1(
        const __global _FLOAT * __restrict bias,
 #endif
  	  __global _FLOAT * __restrict out_ptr,
-	   _FLOAT dummy_val // nothing
+	   UNUSED _FLOAT dummy_val // nothing
 	   )
 {
 // KERNEL
@@ -130,123 +131,120 @@ __kernel void MIOpenConv1x1(
 
 #endif
 
-	int lcl_id0 = get_local_id(0);
+	uint lcl_id0 = get_local_id(0);
 	int in_map_id = 0; // map
-	int pix_id = get_global_id(0);  // inside map
+	uint pix_id = get_global_id(0);  // inside map
 	in_map_id = pix_id / MLO_MAP_SZ4; // mad id inside group
-	int out_grp_block = get_group_id(1); // block of outputs for the entire group
-	int out_block = out_grp_block;
-	int batch_block = get_group_id(2); // block of batchs
+	uint out_grp_block = get_group_id(1); // block of outputs for the entire group
+	uint out_block = out_grp_block;
+	uint batch_block = get_group_id(2); // block of batchs
 // multipe maps per group
 
 	pix_id = (pix_id - in_map_id * MLO_MAP_SZ4);  // pixel inside map
 
-	int in_map_off_id = (in_map_id >= MLO_N_MAPS_PERGROUP) ? MLO_N_MAPS_PERGROUP - 1 : in_map_id;
+	uint in_map_off_id = (in_map_id >= MLO_N_MAPS_PERGROUP) ? MLO_N_MAPS_PERGROUP - 1 : in_map_id;
 
-	int in_off = batch_block * MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE
+	uint in_off = batch_block * MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE
 		+ in_map_off_id * MLO_IN_CHANNEL_STRIDE
 				+ pix_id * MLO_READ_UNIT;
 
-	int wei_off = out_grp_block * MLO_N_LCL_OUT_MAPS *
+	uint wei_off = out_grp_block * MLO_N_LCL_OUT_MAPS *
 #if MLO_DIR_FORWARD==1
 		MLO_WEI_BSTRIDE
 #else
 		MLO_WEI_CHANNEL_STRIDE
 #endif
 		;
-	for (int j = 0; j < MLO_N_LCL_BATCHS; ++j)
+	for (uint j = 0; j < MLO_N_LCL_BATCHS; ++j)
 	{
-		for (int i = 0; i < MLO_N_LCL_OUT_MAPS; ++i)
+		for (uint i = 0; i < MLO_N_LCL_OUT_MAPS; ++i)
 		{
-			for (int k = 0; k < MLO_READ_UNIT; ++k)
+			for (uint k = 0; k < MLO_READ_UNIT; ++k)
 			{
 				out_tiles[j][i][k] = 0;
 			}
 		}
 	}
 // over all input maps; with step == MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP; MLO_IN_LOOP
-	for (int c = 0, wc = 0; c < MLO_IN_LOOP; ++c,
-		in_off += MLO_IN_CHANNEL_STRIDE*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP
-		)
-	{
-
+	for (uint wc = 0; wc < MLO_IN_LOOP; wc += MLO_WEIGHTS_PER_LOOP) {
 		// read array of weights
-		if (wc - c == 0)
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		for (uint w = lcl_id0; w < MLO_WEIGHTS_LCL_SZ ; w += MLO_GRP_SZ0)
 		{
-
-			barrier(CLK_LOCAL_MEM_FENCE);
-
-			for (int w = lcl_id0; w < MLO_WEIGHTS_LCL_SZ ; w += MLO_GRP_SZ0)
-			{
 
 #if (MLO_WEIGHTS_ROW) & (MLO_WEIGHTS_ROW - 1)
 
-				int oi = iDiv(w, MLO_WEIGHTS_ROW);
-				int lwi = iMod(w, oi, MLO_WEIGHTS_ROW);
+			uint oi = iDiv(w, MLO_WEIGHTS_ROW);
+			uint lwi = iMod(w, oi, MLO_WEIGHTS_ROW);
 #else
-				int oi = (int)((uint)w / MLO_WEIGHTS_ROW);
-				int lwi = (int)( (uint)w & (MLO_WEIGHTS_ROW - 1));
-
+			uint oi = (w / MLO_WEIGHTS_ROW);
+			uint lwi = (w & (MLO_WEIGHTS_ROW - 1));
 #endif
 
-				int wi = (wc * (MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP) + lwi)*
+			uint wi = (wc * (MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP) + lwi)*
 #if MLO_DIR_FORWARD==1
-					MLO_WEI_CHANNEL_STRIDE;
+				MLO_WEI_CHANNEL_STRIDE;
 #else
-					MLO_WEI_BSTRIDE;
+				MLO_WEI_BSTRIDE;
 #endif
 
-					// out of range check
-				int wei_off_r = wei_off + wi + oi *
+			// out of range check
+			uint wei_off_r = wei_off + wi + oi *
 #if MLO_DIR_FORWARD==1
-					MLO_WEI_BSTRIDE;
+				MLO_WEI_BSTRIDE;
 #else
-					MLO_WEI_CHANNEL_STRIDE;
+				MLO_WEI_CHANNEL_STRIDE;
 #endif
 
-				wei_off_r = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_off_r : 0;
-				_FLOAT wei_val = wei_ptr[wei_off_r];
-				wei_val = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_val : 0;
-				lcl_wei_stage[mad24(oi, MLO_WEIGHTS_ROW, lwi)] = wei_val;
-
-			}
-			wc += MLO_WEIGHTS_PER_LOOP;
-
-			barrier(CLK_LOCAL_MEM_FENCE);
+			wei_off_r = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_off_r : 0;
+			_FLOAT wei_val = wei_ptr[wei_off_r];
+			wei_val = (wei_off_r < MLO_N_OUTPUTS *MLO_N_INPUTS) ? wei_val : 0;
+			lcl_wei_stage[w] = wei_val;
 
 		}
 
+		barrier(CLK_LOCAL_MEM_FENCE);
 
-		int wei_indx = c - wc + MLO_WEIGHTS_PER_LOOP;
-		// read data
-		// over all local batchs
-		int in_off1 = in_off;
-		for (int ib = 0; ib < MLO_N_LCL_BATCHS
-			; ++ib, in_off1 += MLO_IN_BATCH_STRIDE)
-		{
-			int in_off2 = in_off1;
-			// lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP
-			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, in_off2 += MLO_IN_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP)
-			{
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
-				{
-					in_stage[ib][ilc][i] = 0;
-				}
-
-				if (c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS
-#if MLO_BATCH_ALIGNED == 0
-					&& (batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+#if MLO_WEIGHTS_PER_LOOP > 7
+#pragma unroll (MLO_WEIGHTS_PER_LOOP / 8)
 #endif
-				)
+		for (uint ci = 0; ci < MLO_WEIGHTS_PER_LOOP; ++ci,
+			in_off += MLO_IN_CHANNEL_STRIDE*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP
+			)
+		{
+			uint c = wc + ci;
+			uint wei_indx = ci;
+
+			// read data
+			// over all local batchs
+			uint in_off1 = in_off;
+			for (uint ib = 0; ib < MLO_N_LCL_BATCHS
+				; ++ib, in_off1 += MLO_IN_BATCH_STRIDE)
+			{
+				uint in_off2 = in_off1;
+				// lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP
+				for (uint ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, in_off2 += MLO_IN_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP)
 				{
+					bool v =
+#if MLO_BATCH_ALIGNED == 0
+						(batch_block*MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ) &&
+#endif
+						c*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id + ilc* MLO_N_MAPS_PERGROUP < MLO_N_INPUTS;
+					__global const _FLOAT *in_p = &in_ptr[in_off2];
 #if MLO_C1x1_PIXLEFT > 0
 					// if the last one
 					if (pix_id == MLO_MAP_SZ4 - 1)
 					{
 
-						for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
+						for (uint i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 						{
-							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
+#ifdef __AMDGCN__
+							in_stage[ib][ilc][i] = v ? in_p[i] : 0.0f;
+#else
+							_FLOAT val = in_p[i];
+							in_stage[ib][ilc][i] = v ? val : 0.0f;
+#endif
 #if DBG_OUT_OF_RNGE
 							if (in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
 							{
@@ -259,9 +257,14 @@ __kernel void MIOpenConv1x1(
 
 #endif
 					{
-						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						for (uint i = 0; i < MLO_READ_UNIT; ++i)
 						{
-							in_stage[ib][ilc][i] = in_ptr[in_off2 + i];
+#ifdef __AMDGCN__
+							in_stage[ib][ilc][i] = v ? in_p[i] : 0.0f;
+#else
+							_FLOAT val = in_p[i];
+							in_stage[ib][ilc][i] = v ? val : 0.0f;
+#endif
 #if DBG_OUT_OF_RNGE
 							if (in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
 							{
@@ -272,30 +275,30 @@ __kernel void MIOpenConv1x1(
 					}
 				}
 			}
-		}
 
 
-		// convolve
-		for (int olc = 0, lcl_wei_off = wei_indx*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP*MLO_WEI_CHANNEL_STRIDE; olc < MLO_N_LCL_OUT_MAPS; ++olc, lcl_wei_off += MLO_WEIGHTS_ROW)
-		{
-			// lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP, weights are mapped accordingly
-			int lcl_wei_off1 = lcl_wei_off;
-			for (int ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, lcl_wei_off1 += MLO_N_MAPS_PERGROUP*MLO_WEI_CHANNEL_STRIDE)
+			// convolve
+			for (uint olc = 0, lcl_wei_off = wei_indx*MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP*MLO_WEI_CHANNEL_STRIDE; olc < MLO_N_LCL_OUT_MAPS; ++olc, lcl_wei_off += MLO_WEIGHTS_ROW)
 			{
-				// read weights
-				int lcl_wei_off2 = lcl_wei_off1 + mul24(in_map_id, (int)MLO_WEI_CHANNEL_STRIDE);
-				wei_stage = lcl_wei_stage[lcl_wei_off2];
-				for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
+				// lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP, weights are mapped accordingly
+				uint lcl_wei_off1 = lcl_wei_off;
+				for (uint ilc = 0; ilc < MLO_N_LCL_IN_MAPS; ++ilc, lcl_wei_off1 += MLO_N_MAPS_PERGROUP*MLO_WEI_CHANNEL_STRIDE)
 				{
-					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					// read weights
+					uint lcl_wei_off2 = lcl_wei_off1 + mul24(in_map_id, (int)MLO_WEI_CHANNEL_STRIDE);
+					wei_stage = lcl_wei_stage[lcl_wei_off2];
+					for (uint ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 					{
-						out_tiles[ib][olc][i] += in_stage[ib][ilc][i] * wei_stage;
+						for (uint i = 0; i < MLO_READ_UNIT; ++i)
+						{
+							out_tiles[ib][olc][i] += in_stage[ib][ilc][i] * wei_stage;
+						}
 					}
 				}
 			}
+
+
 		}
-
-
 	}
 
 // out of range check
@@ -305,7 +308,7 @@ __kernel void MIOpenConv1x1(
 	}
 
 	out_block = out_grp_block * MLO_N_LCL_OUT_MAPS;
-	int out_off = batch_block * MLO_N_LCL_BATCHS * MLO_OUT_BATCH_STRIDE
+	uint out_off = batch_block * MLO_N_LCL_BATCHS * MLO_OUT_BATCH_STRIDE
 		+ out_block *  MLO_OUT_CHANNEL_STRIDE
 		+ pix_id * MLO_READ_UNIT;
 
@@ -316,19 +319,19 @@ __kernel void MIOpenConv1x1(
 	// MLO_N_LCL_OUT_MAPS is multiple of MLO_EXCHANGE_STEP
 	// write data into local memory
 
-	for (int ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
+	for (uint ib = 0; ib < MLO_N_LCL_BATCHS; ++ib)
 	{
-		for (int t = 0, p = 0; t < MLO_N_LCL_OUT_MAPS; t += MLO_EXCHANGE_STEP)
+		for (uint t = 0; t < MLO_N_LCL_OUT_MAPS; t += MLO_EXCHANGE_STEP)
 		{
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 			if (lcl_id0 < MLO_MAP_SZ4 * MLO_N_MAPS_PERGROUP)
 			{
-				for (int om = 0; om < MLO_EXCHANGE_STEP; ++om)
+				for (uint om = 0; om < MLO_EXCHANGE_STEP; ++om)
 				{
-					int lcl_off = (om * MLO_MAP_SZ4*MLO_N_MAPS_PERGROUP + in_map_id*MLO_MAP_SZ4 + pix_id) * MLO_READ_UNIT;
-					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					uint lcl_off = (om * MLO_MAP_SZ4*MLO_N_MAPS_PERGROUP + in_map_id*MLO_MAP_SZ4 + pix_id) * MLO_READ_UNIT;
+					for (uint i = 0; i < MLO_READ_UNIT; ++i)
 					{
 						lcl_out_stage[lcl_off + i] = out_tiles[ib][t + om][i];
 					}
@@ -343,17 +346,17 @@ __kernel void MIOpenConv1x1(
 			if (in_map_id < MLO_EXCHANGE_STEP)
 			{
 				_FLOAT sum[MLO_READ_UNIT];
-				for (int i = 0; i < MLO_READ_UNIT; ++i)
+				for (uint i = 0; i < MLO_READ_UNIT; ++i)
 				{
 					sum[i] = 0;
 				}
 
-				for (int s = 0; s < MLO_N_MAPS_PERGROUP; ++s)
+				for (uint s = 0; s < MLO_N_MAPS_PERGROUP; ++s)
 				{
-					int imp = in_map_id + s;
+					uint imp = in_map_id + s;
 					imp = (imp >= MLO_N_MAPS_PERGROUP) ? imp - MLO_N_MAPS_PERGROUP : imp;
-					int lcl_off = (in_map_id* MLO_MAP_SZ4*MLO_N_MAPS_PERGROUP + imp*MLO_MAP_SZ4 + pix_id) * MLO_READ_UNIT;
-					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					uint lcl_off = (in_map_id* MLO_MAP_SZ4*MLO_N_MAPS_PERGROUP + imp*MLO_MAP_SZ4 + pix_id) * MLO_READ_UNIT;
+					for (uint i = 0; i < MLO_READ_UNIT; ++i)
 					{
 						sum[i] += lcl_out_stage[lcl_off + i];
 					}
@@ -363,7 +366,7 @@ __kernel void MIOpenConv1x1(
 
 
 				// write it out
-				int olc = t + in_map_id;
+				uint olc = t + in_map_id;
 
 				if (true 
 #if MLO_BATCH_ALIGNED == 0
@@ -375,10 +378,11 @@ __kernel void MIOpenConv1x1(
 					)
 				{
 				
-					int out_off2 = out_off + ib * MLO_OUT_BATCH_STRIDE + olc * MLO_OUT_CHANNEL_STRIDE;
+					uint out_off2 = out_off + ib * MLO_OUT_BATCH_STRIDE + olc * MLO_OUT_CHANNEL_STRIDE;
+					__global _FLOAT *out_p = &out_ptr[out_off2];
 
-					_FLOAT  bias_val = 0;
 #if MLO_CONV_BIAS
+					_FLOAT  bias_val = 0;
 					bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0
@@ -386,9 +390,9 @@ __kernel void MIOpenConv1x1(
 					// if the last one
 					if (pix_id == MLO_MAP_SZ4 - 1)
 					{
-						for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
+						for (uint i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 						{
-							out_ptr[out_off2 + i] = sum[i]
+							out_p[i] = sum[i]
 #if MLO_CONV_BIAS
 								+ bias_val
 #endif
@@ -408,9 +412,9 @@ __kernel void MIOpenConv1x1(
 #endif
 					{
 
-						for (int i = 0; i < MLO_READ_UNIT; ++i)
+						for (uint i = 0; i < MLO_READ_UNIT; ++i)
 						{
-							out_ptr[out_off2 + i] = sum[i]
+							out_p[i] = sum[i]
 #if MLO_CONV_BIAS
 								+ bias_val
 #endif
@@ -442,15 +446,16 @@ __kernel void MIOpenConv1x1(
 
 
 
-	int out_off1 = out_off;
-	for (int ib = 0; ib < MLO_N_LCL_BATCHS
+	uint out_off1 = out_off;
+	for (uint ib = 0; ib < MLO_N_LCL_BATCHS
 		; ++ib, out_off1 += MLO_OUT_BATCH_STRIDE)
 	{
 
-		int out_off2 = out_off1;
-		for (int olc = 0; olc < MLO_N_LCL_OUT_MAPS
+		uint out_off2 = out_off1;
+		for (uint olc = 0; olc < MLO_N_LCL_OUT_MAPS
 			; ++olc, out_off2 += MLO_OUT_CHANNEL_STRIDE)
 		{
+			__global _FLOAT *out_p = &out_ptr[out_off2];
 
 		    if ( true
 #if MLO_BATCH_ALIGNED == 0
@@ -461,8 +466,8 @@ __kernel void MIOpenConv1x1(
 #endif
 			)
 			{
-				_FLOAT  bias_val = 0;
 #if MLO_CONV_BIAS
+				_FLOAT  bias_val = 0;
 				bias_val = bias[out_block* MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0
@@ -470,9 +475,9 @@ __kernel void MIOpenConv1x1(
 			// if the last one
 				if (pix_id == MLO_MAP_SZ4 - 1)
 				{
-					for (int i = 0; i < MLO_C1x1_PIXLEFT; ++i)
+					for (uint i = 0; i < MLO_C1x1_PIXLEFT; ++i)
 					{
-						out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+						out_p[i] = out_tiles[ib][olc][i]
 #if MLO_CONV_BIAS
 							+ bias_val
 #endif
@@ -490,10 +495,10 @@ __kernel void MIOpenConv1x1(
 				else
 #endif
 				{
-					for (int i = 0; i < MLO_READ_UNIT; ++i)
+					for (uint i = 0; i < MLO_READ_UNIT; ++i)
 					{
 
-						out_ptr[out_off2 + i] = out_tiles[ib][olc][i]
+						out_p[i] = out_tiles[ib][olc][i]
 #if MLO_CONV_BIAS
 						+ bias_val
 #endif

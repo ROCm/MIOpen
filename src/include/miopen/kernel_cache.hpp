@@ -20,7 +20,7 @@
 
 #include <string>
 #include <unordered_map>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
 

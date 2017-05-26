@@ -1,4 +1,4 @@
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "test.hpp"
 #include <vector>
 #include <array>
@@ -178,18 +178,6 @@ struct conv_forward : output_tensor_fixture
     {
         STATUS(miopenEnableProfiling(handle, Profile));
         int alpha = 1, beta = 1;
-        STATUS(miopenTransformTensor(handle,
-                &alpha,
-                inputTensor,
-                NULL,
-                &beta,
-                convFilter,
-                NULL));
-
-        // int value = 10;
-        // STATUS(miopenSetTensor(handle, inputTensor, NULL, &value));
-
-        // STATUS(miopenScaleTensor(handle, inputTensor, NULL, &alpha));
 
         // Setup OpenCL buffers
 
@@ -204,7 +192,7 @@ struct conv_forward : output_tensor_fixture
 		size_t sz_out = n*c*h*w;
 
 		size_t sz_fwd_workspace;
-		STATUS(miopenConvolutionForwardGetWorkSpaceSize(convFilter, inputTensor, outputTensor, convDesc, &sz_fwd_workspace));
+		STATUS(miopenConvolutionForwardGetWorkSpaceSize(handle, convFilter, inputTensor, convDesc, outputTensor, &sz_fwd_workspace));
 
         std::vector<float> in(sz_in);
         std::vector<float> wei(sz_wei);
@@ -215,7 +203,7 @@ struct conv_forward : output_tensor_fixture
             in[i] = rand() * (1.0 / RAND_MAX);
         }
         for (int i = 0; i < sz_wei; i++) {
-            wei[i] = (double)(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+            wei[i] = static_cast<double>(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
         }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -235,7 +223,7 @@ struct conv_forward : output_tensor_fixture
 		status |= clEnqueueWriteBuffer(q, fwd_workspace_dev, CL_TRUE, 0, sz_fwd_workspace, fwd_workspace.data(), 0, NULL, NULL);
 		EXPECT(status == CL_SUCCESS);
 
-#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 
         void * in_dev;
         void * wei_dev;
@@ -253,6 +241,10 @@ struct conv_forward : output_tensor_fixture
         EXPECT(hipMemcpy(fwd_workspace_dev, fwd_workspace.data(), sz_fwd_workspace, hipMemcpyHostToDevice) == hipSuccess);
 
 #endif
+        int value = 10;
+        STATUS(miopenSetTensor(handle, inputTensor, in_dev, &value));
+
+        STATUS(miopenScaleTensor(handle, inputTensor, in_dev, &alpha));
 
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
@@ -304,7 +296,7 @@ struct conv_forward : output_tensor_fixture
 		clReleaseMemObject(out_dev);
 		clReleaseMemObject(fwd_workspace_dev);
 
-#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
         hipFree(in_dev);
         hipFree(wei_dev);
         hipFree(out_dev);
