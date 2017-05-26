@@ -735,69 +735,69 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             break;
         }
 
-		case miopenConvolutionBwdDataAlgoGEMM:
-		{
-			int in_n, in_c, in_h, in_w;
-			std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+        case miopenConvolutionBwdDataAlgoGEMM:
+        {
+            int in_n, in_c, in_h, in_w;
+            std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
 
-			int wei_n, wei_h, wei_w;
-			std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+            int wei_n, wei_h, wei_w;
+            std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
-			int out_h, out_w;
-			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+            int out_h, out_w;
+            std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
-			if ((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
-				(workSpace == nullptr || workSpaceSize < BackwardDataGetWorkSpaceSize(handle, wDesc, dyDesc, dxDesc))) {
-				MIOPEN_THROW("Workspace is required");
-			}
+            if ((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
+                (workSpace == nullptr || workSpaceSize < BackwardDataGetWorkSpaceSize(handle, wDesc, dyDesc, dxDesc))) {
+                MIOPEN_THROW("Workspace is required");
+            }
 
-			std::string network_config;
+            std::string network_config;
 #if MIOPEN_USE_TINYGEMM
-			CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, false, network_config);
-			GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
+            CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, false, network_config);
+            GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
 
-			handle.ResetKernelTime();
+            handle.ResetKernelTime();
 
-			float time_0 = 0;
-			float t1 = 0;
-			for (int i = 0; i < in_n; i++) {
-				int out_offset = i * wei_n * out_h * out_w;
+            float time_0 = 0;
+            float t1 = 0;
+            for (int i = 0; i < in_n; i++) {
+                int out_offset = i * wei_n * out_h * out_w;
 
-				if (wei_h != 1 || wei_w != 1 || v != 1 || u != 1) {
-					size_t in_offset = i * in_c * in_h * in_w;
+                if (wei_h != 1 || wei_w != 1 || v != 1 || u != 1) {
+                    size_t in_offset = i * in_c * in_h * in_w;
 
-					if (handle.IsProfilingEnabled())
-						t1 = handle.GetKernelTime();
+                    if (handle.IsProfilingEnabled())
+                        t1 = handle.GetKernelTime();
 
-					gg.RunGemm(handle, w, dy, workSpace, 0, out_offset, 0);
+                    gg.RunGemm(handle, w, dy, workSpace, 0, out_offset, 0);
 
-					Col2ImGPU(handle, workSpace, out_h, out_w, wei_h, wei_w, pad_h, pad_w, u, v, in_c, in_h, in_w, dx, in_offset);
+                    Col2ImGPU(handle, workSpace, out_h, out_w, wei_h, wei_w, pad_h, pad_w, u, v, in_c, in_h, in_w, dx, in_offset);
 
-					// Update times for both the kernels
-					if (handle.IsProfilingEnabled()) {
-						if (i == in_n - 1)
-							handle.AccumKernelTime(t1 + time_0);
-						else
-							handle.AccumKernelTime(t1);
-						time_0 += handle.GetKernelTime();
-					}
-				}
-				else if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
-					int in_offset = i * in_c * in_h * in_w;
-					gg.RunGemm(handle, w, dy, dx, 0, out_offset, in_offset);
-					if (handle.IsProfilingEnabled()) {
-						if (i == in_n - 1)
-							handle.AccumKernelTime(time_0);
-						time_0 += handle.GetKernelTime();
-					}
-				}
-			}
+                    // Update times for both the kernels
+                    if (handle.IsProfilingEnabled()) {
+                        if (i == in_n - 1)
+                            handle.AccumKernelTime(t1 + time_0);
+                        else
+                            handle.AccumKernelTime(t1);
+                        time_0 += handle.GetKernelTime();
+                    }
+                }
+                else if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
+                    int in_offset = i * in_c * in_h * in_w;
+                    gg.RunGemm(handle, w, dy, dx, 0, out_offset, in_offset);
+                    if (handle.IsProfilingEnabled()) {
+                        if (i == in_n - 1)
+                            handle.AccumKernelTime(time_0);
+                        time_0 += handle.GetKernelTime();
+                    }
+                }
+            }
 #else
-			MIOPEN_THROW("GEMM is not supported");
+            MIOPEN_THROW("GEMM is not supported");
 #endif
-		}
+        }
 #if MIOPEN_USE_TINYGEMM
-		break;
+        break;
 #endif
 
         case miopenConvolutionBwdDataAlgoFFT:
