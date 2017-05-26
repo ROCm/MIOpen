@@ -37,8 +37,6 @@ void OCLKernelInvoke::run() const
 		((local_work_dim[0] == 0) ? nullptr : local_work_dim.data()),
 		0, nullptr, callback ? &ev : nullptr);
 
-	clFlush(queue);
-
 	if (status != CL_SUCCESS) {
 		MIOPEN_THROW_CL_STATUS(status, "Running kernel failed: ");
 	}
