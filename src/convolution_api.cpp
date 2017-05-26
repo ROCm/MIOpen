@@ -83,16 +83,17 @@ miopenStatus_t miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t 
 }
 
 extern "C"
-miopenStatus_t miopenConvolutionForwardGetWorkSpaceSize(
+miopenStatus_t miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
 		const miopenTensorDescriptor_t		wDesc,
 		const miopenTensorDescriptor_t		xDesc,
-		const miopenTensorDescriptor_t		yDesc,
 		const miopenConvolutionDescriptor_t convDesc,
+		const miopenTensorDescriptor_t		yDesc,
 		size_t								*workSpaceSize) {
 
 	MIOPEN_LOG_FUNCTION(wDesc, yDesc, convDesc, workSpaceSize);
 	miopen::try_([&] {
 		miopen::deref(workSpaceSize) = miopen::deref(convDesc).ForwardGetWorkSpaceSize(
+            miopen::deref(handle),
 			miopen::deref(wDesc),
 			miopen::deref(xDesc),
 			miopen::deref(yDesc));
@@ -181,15 +182,19 @@ miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
 
 	MIOPEN_LOG_FUNCTION(alpha, bDesc, b, beta, yDesc, y);
     return miopen::try_([&] {
-		return AddTensor(miopen::deref(handle), 
+
+		return OpTensor(miopen::deref(handle), 
+            miopenTensorOpAdd,
 				alpha,
-				miopen::deref(bDesc),
-				DataCast(b),
+				miopen::deref(yDesc),
+				DataCast(y),
+                alpha,
+                miopen::deref(bDesc),
+                DataCast(b),
 				beta,
 				miopen::deref(yDesc),
 				DataCast(y));
-	});
-
+    });
 }
 
 extern "C"
@@ -220,7 +225,7 @@ miopenStatus_t miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
 				requestAlgoCount,
 				returnedAlgoCount,
 				perfResults,
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize,
 				exhaustiveSearch);
 	});
@@ -254,14 +259,35 @@ miopenStatus_t miopenConvolutionBackwardData(miopenHandle_t handle,
 				beta,
 				miopen::deref(dxDesc),
 				DataCast(dx),
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize);
 	});
 
 }
 
 extern "C"
+miopenStatus_t miopenConvolutionBackwardDataGetWorkSpaceSize(
+        miopenHandle_t                      handle,
+		const miopenTensorDescriptor_t		dyDesc,
+		const miopenTensorDescriptor_t		wDesc,
+		const miopenConvolutionDescriptor_t	convDesc,
+		const miopenTensorDescriptor_t		dxDesc,
+		size_t								*workSpaceSize) {
+
+	MIOPEN_LOG_FUNCTION(dyDesc, wDesc, convDesc, dxDesc, workSpaceSize);
+	return miopen::try_([&] {
+            (void) handle; // suppress warning
+			miopen::deref(workSpaceSize) = miopen::deref(convDesc).BackwardDataGetWorkSpaceSize(
+						miopen::deref(handle),
+						miopen::deref(wDesc),
+						miopen::deref(dyDesc),
+						miopen::deref(dxDesc));
+    });
+}
+
+extern "C"
 miopenStatus_t miopenConvolutionBackwardWeightsGetWorkSpaceSize(
+        miopenHandle_t                      handle,
 		const miopenTensorDescriptor_t		dyDesc,
 		const miopenTensorDescriptor_t		xDesc,
 		const miopenConvolutionDescriptor_t	convDesc,
@@ -271,6 +297,7 @@ miopenStatus_t miopenConvolutionBackwardWeightsGetWorkSpaceSize(
 	MIOPEN_LOG_FUNCTION(dyDesc, xDesc, convDesc, dwDesc, workSpaceSize);
 	return miopen::try_([&] {
 		miopen::deref(workSpaceSize) = miopen::deref(convDesc).ConvolutionBackwardWeightsGetWorkSpaceSize(
+            miopen::deref(handle),
 			miopen::deref(dyDesc),
 			miopen::deref(xDesc),
 			miopen::deref(dwDesc));

@@ -286,6 +286,16 @@ Handle::Handle ()
 Handle::Handle(Handle&&) noexcept=default;
 Handle::~Handle()=default;
 
+void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
+{
+    if(streamID == nullptr) {
+        MIOPEN_THROW("Error setting stream to nullptr");
+    }
+
+    clRetainCommandQueue(streamID);
+    impl->queue = HandleImpl::AqPtr{streamID};
+}
+
 miopenAcceleratorQueue_t Handle::GetStream() const
 {
     return impl->queue.get();
@@ -390,27 +400,27 @@ std::size_t Handle::GetMaxComputeUnits()
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
 }
 
-ManageDataPtr Handle::Create(int sz)
+ManageDataPtr Handle::Create(std::size_t sz)
 {
     cl_int status = CL_SUCCESS;
     auto result = ManageDataPtr{clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
     if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "OpenCL error creating buffer: " + std::to_string(sz)); }
     return result;
 }
-ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, int sz)
+ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, std::size_t sz)
 {
     cl_int status = clEnqueueWriteBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "OpenCL error writing to buffer: " + std::to_string(sz)); }
     return ddata;
 }
 
-void Handle::ReadTo(void* data, const ManageDataPtr& ddata, int sz)
+void Handle::ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz)
 {
     auto status = clEnqueueReadBuffer(this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz)); }
 }
 
-void Handle::Copy(ConstData_t src, Data_t dest, int size)
+void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
 {
     auto status = clEnqueueCopyBuffer(this->GetStream(), src, dest, 0, 0, size, 0, nullptr, nullptr);
     if (status != CL_SUCCESS) { MIOPEN_THROW_CL_STATUS(status, "OpenCL error copying buffer: " + std::to_string(size)); }

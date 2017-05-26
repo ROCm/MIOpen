@@ -7,133 +7,134 @@ if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
 endif()
 
 # Default installation path
-set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
+if(WIN32)
+	set(CMAKE_INSTALL_PREFIX "/opt/rocm/x86_64-w64-mingw32" CACHE PATH "")
+else()
+	set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
+endif()
 
-project ( SuperBuild.MIOpen C CXX )
+project ( MIOpen C CXX )
+set(MIOpen_VERSION_MAJOR 0)
+set(MIOpen_VERSION_MINOR 10)
+set(MIOpen_VERSION_PATCH 0)
+set(MIOpen_VERSION_TWEAK 0)
+set(MIOpen_VERSION "${MIOpen_VERSION_MAJOR}.${MIOpen_VERSION_MINOR}.${MIOpen_VERSION_PATCH}.${MIOpen_VERSION_TWEAK}")
+set(PROJECT_VERSION ${MIOpen_VERSION})
+set(PROJECT_VERSION_MAJOR ${MIOpen_VERSION_MAJOR})
+set(PROJECT_VERSION_MINOR ${MIOpen_VERSION_MINOR})
+set(PROJECT_VERSION_PATCH ${MIOpen_VERSION_PATCH})
+set(PROJECT_VERSION_TWEAK ${MIOpen_VERSION_TWEAK})
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.3")
+        message(FATAL_ERROR "MIOpen requires at least gcc 5.3")
+    endif()
+endif()
+
 ############################################################
 # require C++11
-add_compile_options(-std=c++11)
-
-option( USE_Cobalt "Use Cobalt for GEMM operations" OFF )
-
-# Determine whether to build 64-bit (default) or 32-bit
-if( MSVC_IDE )
-	set( BUILD_64 ${CMAKE_CL_64} )
-else()
-	option( BUILD_64 "Build a 64-bit product" ON )
-endif()
+add_compile_options(-std=gnu++11)
 
 ############################################################
 # OPTION - MIOpen Backend
 # - OpenCL
 # - HCC
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
-	set(MIOPEN_DEFAULT_BACKEND "HIPOC")
+	set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
 	set(MIOPEN_DEFAULT_BACKEND "OpenCL")
+endif()
+
+if(WIN32 AND CMAKE_CROSSCOMPILING)
+	set(WINE_CMD "wine")
+else()
+	set(WINE_CMD)
 endif()
 
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
 	"Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
-	OpenCL HCC HIP HIPOC )
+	OpenCL HIP HIPOC )
 find_package(tinygemm)
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
-	add_definitions( -DMIOPEN_BACKEND_OPENCL=1 )
-	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIPOC=0 )
+	set(MIOPEN_BACKEND_OPENCL 1)
 	find_package( OpenCL REQUIRED )
-	find_program(AMDGCN_ASSEMBLER
-		NAMES clang
-		PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
-		PATH_SUFFIXES /opencl/bin/x86_64
-		NO_DEFAULT_PATH
-	)
-	if(AMDGCN_ASSEMBLER)
-		add_definitions(-DMIOPEN_AMDGCN_ASSEMBLER="${AMDGCN_ASSEMBLER}")
-	endif()
-	message(STATUS "AMDGCN assembler: ${AMDGCN_ASSEMBLER}")
 endif()
-# HCC
-if( MIOPEN_BACKEND STREQUAL "HCC")
-	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
-	add_definitions( -DMIOPEN_BACKEND_HCC=1 )
-	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIPOC=0 )
-	message( SEND_ERROR "${MIOPEN_BACKEND} backend not yet supported." )
-endif()
+
 # HIP
-if( MIOPEN_BACKEND STREQUAL "HIP")
-	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
-	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIP=1 )
-	add_definitions( -DMIOPEN_BACKEND_HIPOC=0 )
-	message( SEND_ERROR "${MIOPEN_BACKEND} backend not yet supported." )
-endif()
-# HIPOC
-if( MIOPEN_BACKEND STREQUAL "HIPOC")
-	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
-	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIPOC=1 )
+if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
+	set(MIOPEN_BACKEND_HIP 1)
 	find_program(HIP_OC_COMPILER clang-ocl
 		PATH_SUFFIXES bin
 		PATHS /opt/rocm
 	)
 	if(HIP_OC_COMPILER)
 		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
-		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
+		set(HIP_OC_COMPILER "${HIP_OC_COMPILER}")
 	else()
-		find_program(HIP_OC_COMPILER aoc2
-			PATH_SUFFIXES
-				bin
-				bin/x86_64
-				x86_64
-		)
-		find_program(HIP_OC_FINALIZER amdhsafin
-			PATH_SUFFIXES
-				bin
-				bin/x86_64
-				x86_64
-		)
-		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
-		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
-		message(STATUS "hip finalizer: ${HIP_OC_FINALIZER}")
-		add_definitions(-DHIP_OC_FINALIZER="${HIP_OC_FINALIZER}")
+		message(FATAL_ERROR "clang-ocl not found")
 	endif()
 	
-	find_package(hip PATHS /opt/rocm)
+	find_package(hip REQUIRED PATHS /opt/rocm)
 	link_libraries(stdc++)
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
+# Online assembler
+find_program(MIOPEN_AMDGCN_ASSEMBLER
+	NAMES clang
+	PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
+	PATH_SUFFIXES /opencl/bin/x86_64
+	NO_DEFAULT_PATH
+)
+message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
+
 # tinygemm
 if(tinygemm_FOUND)
-	add_definitions(-DMIOPEN_USE_TINYGEMM=1)
+	message(STATUS "Build with tinygemm")
+	set(MIOPEN_USE_TINYGEMM 1)
 else()
-	add_definitions(-DMIOPEN_USE_TINYGEMM=0)
+	message(STATUS "Build without tinygemm")
+	set(MIOPEN_USE_TINYGEMM 0)
 endif()
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( BUILD_DEV "Build for development only" OFF)
 
+include(GNUInstallDirs)
+set( MIOPEN_INSTALL_DIR miopen)
+set( BIN_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_BINDIR} )
+set( LIB_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR} )
+set( INCLUDE_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR} )
+set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
+set( CONFIG_PACKAGE_INSTALL_DIR ${LIB_INSTALL_DIR}/cmake/miopen )
+
 if(BUILD_DEV)
-	add_definitions(-DMIOPEN_BUILD_DEV=1)
+	set(MIOPEN_BUILD_DEV 1)
 	set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
 else()
-	add_definitions(-DMIOPEN_BUILD_DEV=0)
-	set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/share/miopen/db" CACHE PATH "Default path to search for db")
+	set(MIOPEN_BUILD_DEV 0)
+	set(MIOPEN_DB_PATH "${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
 endif()
 
-include(EnableCompilerWarnings)
+include(CreatePackage)
+create_package(
+	NAME MIOpen-${MIOPEN_BACKEND}
+	DESCRIPTION "AMD's DNN Library"
+	MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
+	LDCONFIG ${LIB_INSTALL_DIR}
+	DEPENDS rocm-opencl rocm-utils hip_hcc tinygemm
+)
 
+include(EnableCompilerWarnings)
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+	set(CLANG_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
+endif()
 include(ClangTidy)
 enable_clang_tidy(
 	CHECKS 
@@ -175,6 +176,7 @@ enable_clang_tidy(
 		-readability-implicit-bool-cast
 		-readability-misleading-indentation
 		-readability-named-parameter
+		${CLANG_TIDY_CHECKS}
 	ERRORS
 		*
 		-readability-inconsistent-declaration-parameter-name
@@ -185,6 +187,10 @@ enable_clang_tidy(
 	ANALYZE_TEMPORARY_DTORS ON
 
 )
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 add_subdirectory(AddKernels)
 add_subdirectory(src)

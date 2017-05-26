@@ -3,7 +3,7 @@
 
 #include <miopen/handle.hpp>
 #include <miopen/object.hpp>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/common.hpp>
 #include <vector>
 #include <iostream>
@@ -57,14 +57,6 @@ struct TensorDescriptor : miopenTensorDescriptor {
 	bool operator!=(const TensorDescriptor& rhs) const;
 
 	std::string ToString() const;
-
-	void SetTensor(Handle& handle,
-			Data_t							dstTensor,
-			const void						*valuePtr);
-
-	void ScaleTensor(Handle& handle,
-			Data_t							dstTensor,
-			const void						*alpha);
 
 	friend std::ostream& operator<< (std::ostream& stream, const TensorDescriptor& t);
 private:

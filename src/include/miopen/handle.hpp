@@ -1,7 +1,7 @@
 #ifndef GUARD_MIOPEN_CONTEXT_HPP_
 #define GUARD_MIOPEN_CONTEXT_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/common.hpp>
 #include <miopen/kernel.hpp>
@@ -22,6 +22,7 @@ struct Handle : miopenHandle {
 	~Handle();
 
 	miopenAcceleratorQueue_t GetStream() const;
+	void SetStream(miopenAcceleratorQueue_t streamID) const;
 
     void EnableProfiling(bool enable=true);
 	
@@ -30,7 +31,7 @@ struct Handle : miopenHandle {
 
     float GetKernelTime() const;
 	bool IsProfilingEnabled() const;
-#if MIOPEN_BACKEND_OPENCL || MIOPEN_BACKEND_HIPOC
+
     KernelInvoke GetKernel(
             const std::string& algorithm,
             const std::string& network_config,
@@ -48,21 +49,20 @@ struct Handle : miopenHandle {
 
     void Finish() const;
     void Flush() const;
-#endif
 
     std::size_t GetLocalMemorySize();
     std::size_t GetMaxComputeUnits();
 
     std::string GetDeviceName();
 
-    void Copy(ConstData_t src, Data_t dest, int size);
+    void Copy(ConstData_t src, Data_t dest, std::size_t size);
 
-	ManageDataPtr Create(int sz);
-	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, int sz);
-    void ReadTo(void* data, const ManageDataPtr& ddata, int sz);
+	ManageDataPtr Create(std::size_t sz);
+	ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, std::size_t sz);
+    void ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz);
 
 	template<class T>
-	ManageDataPtr Create(int sz)
+	ManageDataPtr Create(std::size_t sz)
 	{
 		return this->Create(sz*sizeof(T));
 	}
@@ -76,7 +76,7 @@ struct Handle : miopenHandle {
     }
 
     template<class T>
-    std::vector<T> Read(const ManageDataPtr& ddata, int sz)
+    std::vector<T> Read(const ManageDataPtr& ddata, std::size_t sz)
     {
     	std::vector<T> result(sz);
     	this->ReadTo(result.data(), ddata, sz*sizeof(T));

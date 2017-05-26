@@ -5,9 +5,11 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#include "include_inliner.hpp"
 
 void Bin2Hex(std::istream& source, std::ostream& target, const std::string& variable, bool nullTerminate, size_t bufferSize, size_t lineSize)
 {
+	source.seekg(0, std::ios::end);
 	std::unique_ptr<unsigned char[]> buffer(new unsigned char[bufferSize]);
 	std::streamoff sourceSize = source.tellg();
 	std::streamoff blockStart = 0;
@@ -35,7 +37,7 @@ void Bin2Hex(std::istream& source, std::ostream& target, const std::string& vari
 			size_t end = std::min<size_t>(i + lineSize, blockSize);
 
 			for (; j < end; j++)
-				target << "0x" << std::setw(2) << (unsigned)buffer[j] << ",";
+				target << "0x" << std::setw(2) << static_cast<unsigned>(buffer[j]) << ",";
 
 			target << std::endl;
 			i = end;
@@ -66,25 +68,26 @@ void PrintHelp()
 	std::cout << "           -g[uard] <string>: guard name. Default: no guard" << std::endl;
 }
 
-void WrongUsage(const std::string& error)
+[[gnu::noreturn]] void WrongUsage(const std::string& error)
 {
 	std::cout << "Wrong usage: " << error << std::endl;
 	std::cout << std::endl;
 	PrintHelp();
-	exit(1);
+	std::exit(1);
 }
 
-void UnknownArgument(const std::string& arg)
+[[gnu::noreturn]] void UnknownArgument(const std::string& arg)
 {
 	std::ostringstream ss;
 	ss << "unknown argument - " << arg;
 	WrongUsage(ss.str());
 }
 
-void Process(std::string sourcePath, std::ostream* target, size_t bufferSize, size_t lineSize)
+void Process(std::string sourcePath, std::ostream& target, size_t bufferSize, size_t lineSize)
 {
 	std::string fileName(sourcePath);
-	std::string extension;
+	std::string extension, root;
+	std::stringstream inlinerTemp;
 	auto extPos = fileName.rfind('.');
 	auto slashPos = fileName.rfind('/');
 
@@ -96,20 +99,39 @@ void Process(std::string sourcePath, std::ostream* target, size_t bufferSize, si
 
 	if (slashPos != std::string::npos)
 	{
+		root = fileName.substr(0, slashPos + 1);
 		fileName = fileName.substr(slashPos + 1);
 	}
 
 	std::string variable(fileName);
-	std::ifstream sourceFile(sourcePath, std::ios::in | std::ios::binary | std::ios::ate);
+	std::ifstream sourceFile(sourcePath, std::ios::in | std::ios::binary);
+	std::istream* source = &sourceFile;
 
 	if (!sourceFile.good())
 	{
 		std::cerr << "File not found: " << sourcePath << std::endl;
-		exit(1);
+		std::exit(1);
+	}
+
+	if (extension == "s")
+	{
+		IncludeInliner inliner;
+
+		try
+		{
+			inliner.Process(sourceFile, inlinerTemp, root, sourcePath);
+		}
+		catch (const InlineException& ex)
+		{
+			std::cerr << ex.what() << std::endl;
+			std::exit(1);
+		}
+
+		source = &inlinerTemp;
 	}
 
 	std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
-	Bin2Hex(sourceFile, *target, variable, true, bufferSize, lineSize);
+	Bin2Hex(*source, target, variable, true, bufferSize, lineSize);
 }
 
 int main(int argsn, char** args)
@@ -145,7 +167,7 @@ int main(int argsn, char** args)
 
 			while (++i < argsn)
 			{
-				Process(args[i], target, bufferSize, lineSize);
+				Process(args[i], *target, bufferSize, lineSize);
 			}
 
 			if (guard.length() > 0)

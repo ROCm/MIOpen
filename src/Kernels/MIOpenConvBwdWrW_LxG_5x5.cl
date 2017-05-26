@@ -31,6 +31,8 @@
 #define FLT_MAX         3.402823466e+38F        /* max value */
 #endif
 
+#define UNUSED __attribute__((__unused__))
+
 #define DBG_OUT_OF_RNGE 0
 
 #define MLO_N_OUT_HORIZ_READS ((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1) / MLO_IN_TILE0)
@@ -159,7 +161,7 @@ void readInput(int lcl_id, int gbl_in_scan_off, const __global _FLOAT * __restri
 
 */
 __attribute__((always_inline))
-void Processing(int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLOAT * __restrict pvt_accum, __local _FLOAT * __restrict lcl_bot, __private _FLOAT * __restrict top_dat)
+void Processing(UNUSED int sc, int sc_lcl_off, int top_lim, int bot_lim, __private _FLOAT * __restrict pvt_accum, __local _FLOAT * __restrict lcl_bot, __private _FLOAT * __restrict top_dat)
 {
 	for (int l = top_lim; l >= bot_lim; --l)
 	{
@@ -238,7 +240,7 @@ __kernel void MIOpenCvBwdWrW(
 #if MLO_CONV_BIAS
 	__global _FLOAT * __restrict bias_df,
 #endif
-	_FLOAT padding_val
+	UNUSED _FLOAT padding_val
 )
 {
 
@@ -544,10 +546,16 @@ __kernel void MIOpenCvBwdWrW_rdc(
 	int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS) - 1) / (MLO_N_BATCH_LOOPS*MLO_N_LCL_BATCHS);
 	for (int i = 0; i < batch_loop; ++i)
 	{
-		*(MLO_UT_READ_TYPE*)pvt_accum_wei
-			+= *(__global MLO_UT_READ_TYPE*)&weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE)  + wei_idx];
+		for (int j = 0; j < MLO_UT_READ_UNIT; ++j)
+		{
+			pvt_accum_wei[j]
+				+= weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE + i* MLO_N_OUTPUTS*MLO_WEI_BATCH_STRIDE) + wei_idx + j];
+		}
 	}
 
-	*(__global MLO_UT_READ_TYPE*)&weights_df[wei_idx0] = *(MLO_UT_READ_TYPE*)pvt_accum_wei;
+	for (int j = 0; j < MLO_UT_READ_UNIT; ++j)
+	{
+		weights_df[wei_idx0 + j] = pvt_accum_wei[j];
+	}
 
 }

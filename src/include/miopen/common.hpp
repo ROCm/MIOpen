@@ -1,7 +1,7 @@
 #ifndef GUARD_MIOPEN_COMMON_HPP_
 #define GUARD_MIOPEN_COMMON_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/manage_ptr.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
@@ -26,12 +26,12 @@ inline ConstData_t DataCast(const void *p) {
 #endif
 }
 
-#elif MIOPEN_BACKEND_HIP || MIOPEN_BACKEND_HIPOC
+#elif MIOPEN_BACKEND_HIP
 
-typedef void * Data_t;
-typedef const void * ConstData_t;
+using Data_t = void *;
+using ConstData_t = const void *;
 // TODO: Set the deleter
-typedef MIOPEN_MANAGE_PTR(void, hipFree) ManageDataPtr;
+using ManageDataPtr = MIOPEN_MANAGE_PTR(void, hipFree);
 
 inline Data_t DataCast(void *p) {
 	return p;

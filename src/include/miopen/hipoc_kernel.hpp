@@ -96,13 +96,8 @@ struct KernelArgs
     {
         for(int i=0;i<6;i++) hidden[i] = 0;
     }
-#ifdef HIP_OC_FINALIZER
-    uint64_t hidden[6];
-#endif
     KernelArgsPack<Ts...> pack;
-#ifndef HIP_OC_FINALIZER
     uint64_t hidden[6];
-#endif
 };
 
 struct HIPOCKernelInvoke
@@ -150,11 +145,7 @@ struct HIPOCKernel
         std::copy(local_dims.begin(), local_dims.end(), ldims.begin());
         std::copy(global_dims.begin(), global_dims.end(), gdims.begin());
 
-#ifdef HIP_OC_FINALIZER
-        kernel_module = "&__OpenCL_" + name + "_kernel";
-#else
         kernel_module = name;
-#endif
         auto status = hipModuleGetFunction(&fun, program.module.get(), kernel_module.c_str());
         if (hipSuccess != status)
             MIOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);
@@ -163,6 +154,6 @@ struct HIPOCKernel
     HIPOCKernelInvoke Invoke(hipStream_t stream, std::function<void(hipEvent_t, hipEvent_t)> callback=nullptr);
 };
 
-}
+} // namespace miopen
 
 #endif

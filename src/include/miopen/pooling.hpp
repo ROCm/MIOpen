@@ -1,7 +1,7 @@
-#ifndef _MIOPEN_POOLING_HPP_
-#define _MIOPEN_POOLING_HPP_
+#ifndef MIOPEN_POOLING_HPP_
+#define MIOPEN_POOLING_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>

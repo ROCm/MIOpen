@@ -97,7 +97,7 @@ GemmGeometry CreateGemmGeometryConvFwd(
             alpha, beta, tgg};
     }
     else {
-        tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
+        tgg = TinyGemmGeometry(true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
 
         gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
             std::array<int, 3>{{lda, ldb, ldc}},
@@ -140,8 +140,8 @@ GemmGeometry CreateMIOpenGemmGeometry(
 
 GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_config)
 {
-    auto gemm_iterator = gemm_geo_map.find(std::make_pair(algorithm_name, network_config));
-    if (gemm_iterator != gemm_geo_map.end())
+    auto gemm_iterator = gemm_geo_map().find(std::make_pair(algorithm_name, network_config));
+    if (gemm_iterator != gemm_geo_map().end())
     {
         return gemm_iterator->second;
     }

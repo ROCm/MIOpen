@@ -42,8 +42,8 @@ void RunBackwardWeightsCPUVerify(
 								if ((in_i >= 0) && (in_i < in_h) && (in_j >= 0) && (in_j < in_w))
 								{
 									t_wei[w*wei_nstride + k*wei_cstride + x*wei_hstride + y] +=
-										(double)in[o*in_nstride + k*in_cstride + in_i*in_hstride + in_j] *
-										(double) dout[o*out_nstride + w*out_cstride + i*out_hstride + j];
+										static_cast<double>(in[o*in_nstride + k*in_cstride + in_i*in_hstride + in_j]) *
+										static_cast<double>( dout[o*out_nstride + w*out_cstride + i*out_hstride + j]);
 								}
 							}
 						}
@@ -54,7 +54,7 @@ void RunBackwardWeightsCPUVerify(
 	}
 	for (size_t i = 0; i < wei_n *wei_c * wei_h * wei_w; ++i)
 	{
-		dwei_host[i] = (T)t_wei[i];
+		dwei_host[i] = static_cast<T>(t_wei[i]);
 	}
 		
 #ifdef BACKWARD_WRW_VERIFY_DIRECT_2

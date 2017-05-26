@@ -114,6 +114,10 @@ Kernel KernelCache::GetKernel(Handle &h,
     else
     {
         bool is_kernel_str = algorithm.find("GEMM") != std::string::npos;
+#ifndef NDEBUG
+        if(is_kernel_str == false)
+            std::cout << "Kernel filename: " << program_name << "\n";
+#endif
         program = h.LoadProgram(program_name, params, is_kernel_str);
         program_map[std::make_pair(program_name, params)] = program;
     }

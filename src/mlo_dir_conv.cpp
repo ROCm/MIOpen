@@ -18,7 +18,7 @@
 #define MIOPEN
 
 #include <cmath>
-#include <miopen/gcn_asm_utils.h>
+#include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 #include <miopen/env.hpp>
@@ -26,6 +26,13 @@
 
 #include <unordered_map>
 #include <cstring>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 
 static int mloLg2(int v)
 {
@@ -219,6 +226,32 @@ bool mloSearchConfigDB(
 	return(found);
 }
 
+bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
+{
+    bool ret = false;
+    ret = ( _in_height          == 227
+            && _in_width        == 227
+            && _n_inputs        == 3
+            && _kernel_size0    == 3
+            && _kernel_size1    == 3
+            && _pad0            == 1
+            && _pad1            == 1
+            && _kernel_stride0  == 1
+            && _kernel_stride1  == 1
+            && isForwardDirection() ) ||
+          ( _in_height          == 231
+            && _in_width        == 231
+            && _n_inputs        == 3
+            && _kernel_size0    == 3
+            && _kernel_size1    == 3
+            && _pad0            == 1
+            && _pad1            == 1
+            && _kernel_stride0  == 1
+            && _kernel_stride1  == 1
+            && isForwardDirection() ) ;
+
+    return ret;
+}
 
 /************************************************************************************************************************
  **
@@ -229,19 +262,15 @@ bool mloSearchConfigDB(
 int mlo_construct_winograd::mloConstruct()
 {
 #ifndef HIP_OC_FINALIZER
-	rocm_meta_version rmv = V1;
-	/// \todo As soon as metadata v1.0 support not needed, drop it. 
-	/// get rid of V1 and v1.0 files.
-#if MIOPEN_BACKEND_OPENCL
+	rocm_meta_version rmv = V3;
 	if (mloIsAmdOpenclRocm(rmv))
-#endif
 	{
-		const auto use_binaries = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+		const auto use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
 		// assembly-written kernels may have worse performance than kernels written in high-level
 		// language, e.g. OpenCL. MiOpen avoids asm kernels in such corner cases, but
 		// this setting allows to override that.
-		const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 		if (use_binaries) {
 			if (mloIsCorrectBinaryWinograd3x3Fwd()
 				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
@@ -263,15 +292,15 @@ int mlo_construct_direct2D::mloConstruct()
 	int ret = 0;
 	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
-#if MIOPEN_BACKEND_OPENCL
-	rocm_meta_version rmv = V2;
+	rocm_meta_version rmv = V3;
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
 	if (mloIsAmdOpenclRocm(rmv))
 	{
-		const auto use_assembly = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_GCN_ASM_KERNELS")
+		const auto use_assembly = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{})
 								  && ValidateGcnAssembler();
+
 		// See comment in mlo_construct_winograd::mloConstruct().
-		const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
@@ -281,9 +310,12 @@ int mlo_construct_direct2D::mloConstruct()
 				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2f1())) {
 				return (mloConstructAsmDirect5x10u2v2f1(rmv));
 			}
+			if (mloIsCorrectAsmDirect5x10u2v2b1()
+				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2b1())) {
+				return (mloConstructAsmDirect5x10u2v2b1(rmv));
+			}
 		}
 	}
-#endif
 
 	if (_gen && isForwardDirection())
 	{
@@ -345,7 +377,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 		|| (_out_height > 16 && _out_height < 32) || (_out_width > 16 && _out_width < 32));
 
 	// no 1x1 backward yet
-	// TODO: This currently doesn't work with the hip runtime
 	if (_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
 	{
 		return(mloConstructDirect2D1x1());
@@ -472,11 +503,6 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 }
 
 #if MIOPEN_BACKEND_OPENCL
-bool mlo_construct_direct2D::mloExperimentalValidateAssemblerPath(const char* path) const
-{
-	return path != nullptr;
-}
-
 static bool IsTokenInOpenclDriverVersion(const std::string& driver_version, const std::string& s)
 {
 	// Assume "(, )" are token separators in Driver Version string.
@@ -490,9 +516,10 @@ static bool IsTokenInOpenclDriverVersion(const std::string& driver_version, cons
 		|| (driver_version.find(' ' + s +',') != std::string::npos)
 		|| (driver_version.find(' ' + s +' ') != std::string::npos);
 }
-
+#endif
 bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version &rmv) const
 {
+#if MIOPEN_BACKEND_OPENCL
 	const auto dev = miopen::GetDevice(_stream->GetStream());
 
 	// Only suitable Opencl platform is from AMD.
@@ -509,55 +536,66 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version &rmv) const
 	const auto driver_version = miopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
 	if (! IsTokenInOpenclDriverVersion(driver_version, "LC")) { return false; }
 
-	// At once, extract version of OpenCL metadata.
-	// \todo Discard this code as soon as metadata is stabilized and v1.0 support is not required.
-	rmv = V2; // assumed if something fails
+	// At once, extract version of OpenCL metadata. Keep rmv unchanged if extraction fails.
 	const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
 	size_t num_begin = platform_version.find('(');
 	if (num_begin != std::string::npos) {
 		int num = std::stoi(platform_version.substr(num_begin+1));
-		if (num <  2338) { rmv = V1; } // v1 switched to v2 somewhere within [2337,2338]
-		if (num >= 2389) { rmv = V3; } // v2 switched to v3 somewhere within [2388,2389]
+		if (num < 2338) {
+		    rmv = V1; // Switched to V2 somewhere within [2337,2338]
+		} else if (num < 2389) {
+		    rmv = V2; // Switched to V3 somewhere within [2388,2389]
+		} else {
+		    rmv = V3;
+		}
 	}
 	return true;
-}
+#else
+	(void)rmv; // We don't care about metada version
+	return true;
 #endif //MIOPEN_BACKEND_OPENCL
+}
 bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
 {
-	// Check if device is able to run this kernel.
-	const auto name = _stream->GetDeviceName();
-	const bool device_is_gfx8_no_xnack = (name == "gfx800"
-									   || name == "gfx802"
-									   || name == "gfx803"
-									   || name == "gfx804");
-	if (!device_is_gfx8_no_xnack) {
-		return false;
-	}
-	// Check if kernel is suitable for the problem description
-	// and able to correctly run with given parameters.
-	const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
-	assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
-	return _pad0			== 1
-		&& _pad1			== 1
-		&& _kernel_size0	== 3
-		&& _kernel_size1	== 3
-		&& _kernel_stride0	== 1
-		&& _kernel_stride1	== 1
-		&& _batch_sz	< std::pow(2, 16)
-		&& _n_inputs	< std::pow(2, 16)
-		&& _n_outputs	< std::pow(2, 16)
-		&& _in_height	< std::pow(2, 16)
-		&& _in_width	< std::pow(2, 16)
-		&& grid_workgroup_count_x				 <  std::pow(2, 16)
-		&& (_n_inputs  * _in_height * _in_width) <= std::pow(2, 28)
-		&& (_n_outputs * _in_height * _in_width) <= std::pow(2, 28)
-		&& (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
-		&& (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
-		&& _n_inputs % 2	== 0
-		&& _n_inputs		>= 16
-		&& _in_layout		== "NCHW";
-		// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
-		// Actually, K<->C flpping is controlled by separate flag, so we can support either layout in both directions.
+    // Check if device is able to run this kernel.
+    const auto name = _stream->GetDeviceName();
+    const auto device_is_gfx9_no_xnack = (name == "gfx900");
+    const bool device_is_gfx8_no_xnack = (name == "gfx800"
+                                       || name == "gfx802"
+                                       || name == "gfx803"
+                                       || name == "gfx804");
+    if (!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack) {
+        return false;
+    }
+    // Check if kernel is suitable for the problem description
+    // and able to correctly run with given parameters.
+    const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
+    assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+    return _pad0                                        == 1
+        && _pad1                                        == 1
+        && _kernel_size0                                == 3
+        && _kernel_size1                                == 3
+        && _kernel_stride0                              == 1
+        && _kernel_stride1                              == 1
+        && _batch_sz                                    <  std::pow(2, 16)
+        && _n_inputs                                    <  std::pow(2, 16)
+        && _n_outputs                                   <  std::pow(2, 16)
+        && _in_height                                   <  std::pow(2, 16)
+        && _in_width                                    <  std::pow(2, 16)
+        && grid_workgroup_count_x                       <  std::pow(2, 16)
+        && (_n_inputs  * _in_height * _in_width)        <= std::pow(2, 28)
+        && (_n_outputs * _in_height * _in_width)        <= std::pow(2, 28)
+        && (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+        && (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+        && _n_inputs % 2                                == 0
+        && _n_inputs                                    >= (device_is_gfx8_no_xnack ? 16 : 18) 
+        && _in_layout                                   == "NCHW";
+
+    // FIXME: _n_inputs > 18 is a requirement of the v5.1 shader and NOT a dependency on gfx9
+    // The current way of implemenation is a hack as gfx8 uses v3.0 shader and gfx9 uses v5.1 shader
+
+    // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+    // Actually, K<->C flpping is controlled by separate flag, so we can support either layout in both directions.
 }
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
@@ -568,6 +606,7 @@ bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
 int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv)
 {
     const auto n_groups = _stream->GetMaxComputeUnits();
+    const auto name = _stream->GetDeviceName();
 
     _g_wk.clear();
     _g_wk.push_back(512 * n_groups);
@@ -580,16 +619,17 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version r
     _l_wk.push_back(1);
 
     _kernel_name = "sp3AsmConv3x3F";
-    if (rmv == V1) {
-        _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so";
-    } else if (rmv == V2) {
-        _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
-    } else if (rmv == V3) {
-        _kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so";
+    if (name.find("gfx8") != std::string::npos) {
+        if(rmv == V1) _kernel_file  = "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so";
+        else if(rmv == V2) _kernel_file  = "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
+        else if(rmv == V3) _kernel_file  = "conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so";
     } else {
-        _kernel_file = "";
-        return 1;
+        if(rmv == V1 || rmv == V2)
+            MIOPEN_THROW("Metadata versions v1 or v2 is not supported on gfx9 devices");
+
+        _kernel_file = "conv_3x3_wheel_alpha_v5_1_1b_gfx900.so";
     }
+
     return 0;
 }
 
@@ -633,7 +673,7 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream, const std::st
 
 /// @param dir 1: fwd, 0: bwd wrt data
 static
-std::string constructAsmDirect3x3UCaseKey(int w, int h, int c, int n, int k, int dir)
+std::string MakeKeyWHCNKD(int w, int h, int c, int n, int k, int dir)
 {
 	std::ostringstream ss;
 	ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << dir;
@@ -644,7 +684,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
 {
     std::string perf_vals;
     {
-        const auto p_asciz = std::getenv("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS");
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS{});
         if (p_asciz && std::strlen(p_asciz) == 3) {
             perf_vals = std::string(p_asciz);
         }
@@ -656,29 +696,30 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
             /// Optimal values found on Gfx8 with 56 CUs (R9 Fury).
             /// \todo Test on devices with 64 CUs (e.g. R9 Nano) and expand
             /// implementation if optimal values are different.
+            static_assert('9'-'0' == 9 , "Characters must be in ASCII encoding");
             static
             const std::unordered_map<std::string, std::string> perf_vals_map({
-                //                              W    H    c    n    k   dir  fpw olpw lwc
-                { constructAsmDirect3x3UCaseKey(54,  54,  64,  8,   64,  0), "820" },
-                { constructAsmDirect3x3UCaseKey(54,  54,  64,  8,   64,  1), "820" },
-                { constructAsmDirect3x3UCaseKey(56,  56,  128, 8,   256, 0), "840" },
-                { constructAsmDirect3x3UCaseKey(56,  56,  128, 8,   256, 1), "840" },
-                { constructAsmDirect3x3UCaseKey(56,  56,  128, 16,  256, 0), "840" },
-                { constructAsmDirect3x3UCaseKey(56,  56,  128, 16,  256, 1), "840" },
-                { constructAsmDirect3x3UCaseKey(60,  6,   64,  16,  128, 0), "420" },
-                { constructAsmDirect3x3UCaseKey(60,  6,   64,  16,  128, 1), "260" },
-                { constructAsmDirect3x3UCaseKey(112, 112, 64,  8,   128, 0), "820" },
-                { constructAsmDirect3x3UCaseKey(112, 112, 64,  8,   128, 1), "820" },
-                { constructAsmDirect3x3UCaseKey(112, 112, 64,  16,  128, 0), "820" },
-                { constructAsmDirect3x3UCaseKey(112, 112, 64,  16,  128, 1), "820" },
-                { constructAsmDirect3x3UCaseKey(120, 12,  32,  16,  64,  0), "413" },
-                { constructAsmDirect3x3UCaseKey(120, 12,  32,  16,  64,  1), "420" },
-                { constructAsmDirect3x3UCaseKey(240, 24,  16,  16,  32,  0), "420" },
-                { constructAsmDirect3x3UCaseKey(240, 24,  16,  16,  32,  1), "810" },
+                //              W    H    c    n    k   dir  fpw olpw lwc
+                { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "820" },
+                { MakeKeyWHCNKD(54,  54,  64,  8,   64,  1), "820" },
+                { MakeKeyWHCNKD(56,  56,  128, 8,   256, 0), "840" },
+                { MakeKeyWHCNKD(56,  56,  128, 8,   256, 1), "840" },
+                { MakeKeyWHCNKD(56,  56,  128, 16,  256, 0), "840" },
+                { MakeKeyWHCNKD(56,  56,  128, 16,  256, 1), "840" },
+                { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0), "420" },
+                { MakeKeyWHCNKD(60,  6,   64,  16,  128, 1), "260" },
+                { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0), "820" },
+                { MakeKeyWHCNKD(112, 112, 64,  8,   128, 1), "820" },
+                { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0), "820" },
+                { MakeKeyWHCNKD(112, 112, 64,  16,  128, 1), "820" },
+                { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0), "413" },
+                { MakeKeyWHCNKD(120, 12,  32,  16,  64,  1), "420" },
+                { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0), "420" },
+                { MakeKeyWHCNKD(240, 24,  16,  16,  32,  1), "810" },
             });
             const auto key = isForwardDirection()
-                ? constructAsmDirect3x3UCaseKey(_in_width, _in_height, _n_inputs, _batch_sz, _n_outputs, 1)
-                : constructAsmDirect3x3UCaseKey(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
+                ? MakeKeyWHCNKD(_in_width, _in_height, _n_inputs, _batch_sz, _n_outputs, 1)
+                : MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
             const auto found = perf_vals_map.find(key);
             if (found != perf_vals_map.end()) {
                 perf_vals = found->second;
@@ -727,11 +768,12 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
 bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2f1() const
 {
     const std::string name = _stream->GetDeviceName();
-    const bool device_is_gfx8_no_xnack = (name == "gfx800"
+    const bool device_is_gfx8_9_no_xnack = (name == "gfx800"
                                        || name == "gfx802"
                                        || name == "gfx803"
-                                       || name == "gfx804");
-    if (!device_is_gfx8_no_xnack) {
+                                       || name == "gfx804"
+                                       || name == "gfx900");
+    if (!device_is_gfx8_9_no_xnack) {
         return false;
     }
     if (!isForwardDirection()){
@@ -766,6 +808,46 @@ bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2f1() const
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
 }
 
+bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2b1() const
+{
+    const std::string name = _stream->GetDeviceName();
+    const bool device_is_gfx8_9_no_xnack = (name == "gfx800"
+                                       || name == "gfx802"
+                                       || name == "gfx803"
+                                       || name == "gfx804"
+                                       || name == "gfx900");
+    if (!device_is_gfx8_9_no_xnack) {
+        return false;
+    }
+    if (isForwardDirection()){
+        return false;
+    }
+    assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+
+    // Min image + padding shall be not smaller than filter matrix.
+    const int min_out_width  = 138;
+    const int min_out_height = 16;
+    // These two found experimentally.
+    const int max_out_width  = 8192 - 1;
+    const int max_out_height = 131077 - 1;
+
+    return                                      // Opt. Param   Restrictions in source
+           _pad0            == 0                // -q   pad_w   fixed
+        && _pad1            == 0                // -p   pad_h   fixed
+        && _kernel_stride0  == 2                // -u   inp_u   fixed
+        && _kernel_stride1  == 2                // -v   inp_v   fixed
+        && _kernel_size0    == 10               // -x   wei_w   fixed
+        && _kernel_size1    == 5                // -y   wei_h   fixed
+        && _n_outputs % 16  == 0                // -c   wei_c   no upper limit
+        && _n_inputs        >= 16               // -k   wei_k   no upper limit
+        && _out_width       >= min_out_width   // -W   inp_w
+        && _out_width       <= max_out_width
+        && _out_height      >= min_out_height  // -H   inp_h
+        && _out_height      <= max_out_height
+        && _out_layout      == "NCHW";         //              hardcoded
+        // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+}
+
 bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2f1() const
 {
     // Finding problem configs where this kernel shows bad performance
@@ -776,6 +858,15 @@ bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2f1() const
     return true;
 }
 
+bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2b1() const
+{
+    // Finding problem configs where this kernel shows bad performance
+    // (i.e. worse than its OpenCL counterpart) seems to be a multi-dimensional
+    // task which is hardly possible to implement. Basically, this kernel
+    // tends to become slower than OpenCL one when H/W is big (several hundreds)
+    // and H is small.
+    return true;
+}
 
 static inline int AlignUp(int val, unsigned step)
 {
@@ -813,6 +904,32 @@ int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rm
 
     _kernel_file = "conv5x10u2v2f1.s";
     _kernel_name = "conv5x10u2v2f1";
+    return 0;
+}
+
+int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2b1(rocm_meta_version rmv)
+{
+    std::ostringstream options;
+    GenerateClangDefsym(options, "inp_h", _out_height);
+    GenerateClangDefsym(options, "inp_w", _out_width);
+    GenerateClangDefsym(options, "wei_c", _n_outputs);
+    GenerateClangDefsym(options, "wei_k", _n_inputs);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", (rmv == V1) ? 1 : 3 );
+    _comp_options = options.str();
+
+    _l_wk.clear();
+    _l_wk.push_back(64);
+    _l_wk.push_back(8);
+    _l_wk.push_back(1);
+
+    // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_c/2,8), batch_n]
+    _g_wk.clear();
+    _g_wk.push_back(AlignUp(_in_width, 64));
+    _g_wk.push_back(AlignUp(_in_height, 4) / 4 * AlignUp(_n_outputs / 2, 8));
+    _g_wk.push_back(_batch_sz);
+
+    _kernel_file = "conv5x10u2v2b1.s";
+    _kernel_name = "conv5x10u2v2b1";
     return 0;
 }
 
@@ -1236,7 +1353,7 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 }
 
 
-int mlo_construct_direct2D::mloConstructDirect2D_11x11()
+int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 {
 	int ret = 0;
 	size_t localMemSize = 64 * 1024;
@@ -1325,6 +1442,11 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11()
 		second_pass = true;
 	}
 
+	if (n_passes)
+	{
+		ret = (second_pass) ? 2 : 1;
+		return(ret);
+	}
 	// it's backward - inputs are outputs and vs versa
 	_comp_options =
 		std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction)
@@ -1629,6 +1751,30 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 
 }
 
+bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
+{
+    bool ret = false;
+    ret = ( _in_height          == 227
+            && _in_width        == 227
+            && _n_inputs        == 1
+            && _kernel_size0    == 3
+            && _kernel_size1    == 3
+            && _pad0            == 1
+            && _pad1            == 1
+            && _kernel_stride0  == 1
+            && _kernel_stride1  == 1 ) ||
+          ( _in_height          == 231
+            && _in_width        == 231
+            && _n_inputs        == 1 
+            && _kernel_size0    == 3
+            && _kernel_size1    == 3
+            && _pad0            == 1
+            && _pad1            == 1
+            && _kernel_stride0  == 1
+            && _kernel_stride1  == 1 ) ;
+
+    return ret;
+}
 
 /*
 * backward with regard to weights
@@ -1636,7 +1782,254 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 */
 // TODO: search params
 
-int mlo_construct_BwdWrW2D::mloConstruct1x1()
+int mlo_construct_BwdWrW2D::mloConstruct1x1(bool n_stages)
+{
+
+	int ret = 0;
+	if (n_stages)
+	{
+		return(1);
+	}
+#if 0 // MD: Calls old 1x1 kernel (MIOpenConvBwdWrW1x1Mmap.cl) that has been optimized by Stas
+	if (_in_width == 14 &&_in_height == 14 && _n_inputs == 192 && _n_outputs == 512)
+	{
+		return(mloConstruct1x1Mmap());
+	}
+#endif
+	size_t localMemSize = 64 * 1024;
+
+	_hw_wave_sz = 64;
+	_dev_local_mem_sz = localMemSize; // in bytes
+									  // major parameters
+
+									  // inpout are outputs
+	int wei_cstride = _kernel_size0*_kernel_size1;
+	int wei_bstride = _n_outputs*wei_cstride;
+
+
+	// number  of batch iterations
+	_n_stacks = 1;
+	_n_stacks = std::min(_batch_sz, _n_stacks);
+	// defines how to proceed : 1 grouop per batch or with a loop over all batches
+	// loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
+	// param
+	int N_BATCH_LOOPS = 1; // (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : _batch_sz / _n_stacks;
+	int n_batch_blks = 1; // (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+
+	_out_pix_tile0 = 1;
+	_out_pix_tile1 = 1;
+	_in_tile1 = 1;
+	_in_tile0 = 1;
+
+
+
+	int map_sz = _in_width*_in_height;
+	// define a special size for a specific width as a devisor to avoid dealing with out of range
+	// param
+	int read_unit = (_in_width < 8) ? _in_width
+		: (((map_sz / 7) * 7) == map_sz) ? 7
+		: (((map_sz / 8) * 8) == map_sz) ? 8
+		: (((map_sz / 5) * 5) == map_sz) ? 5
+		: (((map_sz / 6) * 6) == map_sz) ? 6 : 4;
+	
+	if (_in_width*_in_height > 512)
+	{
+		read_unit = 4;
+	}
+
+	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
+	int N_PIXS_OFF = map_sz - (map_sz / read_unit)*read_unit;
+	bool large_map = (MAP_WK_SZ > _hw_wave_sz * 2);
+// not in use
+	bool midsize_map = false; // (MAP_WK_SZ <= _hw_wave_sz * 2);
+
+	// n of wavefronts in a group
+	// param
+	int n_waves = 4;
+	int GRP_SZ = _hw_wave_sz * n_waves;
+
+
+	// this one is valid only till _FLOAT8
+	// but it's not an error, the kernel does not use these types at all 
+	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
+
+	int N_out_lcl = 1;
+	int out_lcl_blk = 8 / N_out_lcl;
+	while (!large_map && out_lcl_blk > 0 && MAP_WK_SZ*read_unit*out_lcl_blk > n_waves * 1024)
+	{
+		N_out_lcl <<= 1;
+		out_lcl_blk >>= 1;
+	}
+	// number of output maps
+	_n_out_pix_tiles = std::min(_n_inputs, N_out_lcl * out_lcl_blk);
+	out_lcl_blk = (_n_out_pix_tiles < N_out_lcl * out_lcl_blk) ? _n_out_pix_tiles : out_lcl_blk;
+	N_out_lcl = (_n_out_pix_tiles < N_out_lcl * out_lcl_blk) ? _n_out_pix_tiles / out_lcl_blk : N_out_lcl;
+
+
+	// total maps per group
+	int total_out_maps = _n_out_pix_tiles;
+
+	int n_out_blocks = ((_n_inputs + total_out_maps - 1) / total_out_maps);
+
+	int N_OUT_MAPS_ALIGNED = (n_out_blocks * total_out_maps == _n_inputs) ? 1 : 0;
+
+	// number input maps
+	// para
+
+	// number of input maps per group
+	// large map cover a group in full
+	int N_MAPS_PER_GROUP = (!large_map) ? std::min(_n_outputs, std::max(1, GRP_SZ / MAP_WK_SZ)) : 1;
+
+	_n_in_data_tiles = std::min(_n_outputs / N_MAPS_PER_GROUP, ((read_unit > 4) ? 6 : (read_unit > 2) ? 8 : 10));
+
+	_n_in_data_tiles = (_n_outputs >= _n_in_data_tiles *N_MAPS_PER_GROUP) ? _n_in_data_tiles : 1;
+
+	int total_in_maps = _n_in_data_tiles *N_MAPS_PER_GROUP;
+
+
+	int n_in_blocks = ((_n_outputs + total_in_maps - 1) / total_in_maps);
+
+	int N_IN_MAPS_ALIGNED = (n_in_blocks * total_in_maps == _n_outputs) ? 1 : 0;
+
+
+	int lcl_comm_size = out_lcl_blk * MAP_WK_SZ * read_unit;
+	// reduction loop step
+
+	int accum_sz = _n_in_data_tiles * _n_out_pix_tiles;
+	int REDUC_LOOP_STEP = (accum_sz < MAP_WK_SZ && accum_sz < 8) ? accum_sz : _n_out_pix_tiles;
+// adjust reduction step
+	while ((REDUC_LOOP_STEP > MAP_WK_SZ || (accum_sz / REDUC_LOOP_STEP)*REDUC_LOOP_STEP != accum_sz) && REDUC_LOOP_STEP > 1  )
+	{
+		REDUC_LOOP_STEP--;
+	}
+
+// calculate log of summation loop
+	int lg2_red_splits = 0;
+	int range = (!large_map) ? MAP_WK_SZ : GRP_SZ;
+
+	for (; ((REDUC_LOOP_STEP << lg2_red_splits) <= range); ++lg2_red_splits);
+
+// more than 1 summation areas
+	int first_round = 0;
+	int can_divide = 1;
+	if (lg2_red_splits > 0)
+	{
+// check if MAP_WK_SZ can be devided into that number at te firts round of summation
+		int firsts_round_split = (1 << (lg2_red_splits - 1));
+		first_round = (range + firsts_round_split - 1) / firsts_round_split;
+		can_divide = ((first_round * firsts_round_split) == range) ? 1 : 0;
+
+	}
+
+	int lcl_red_size = GRP_SZ * std::max(REDUC_LOOP_STEP, (accum_sz / REDUC_LOOP_STEP));
+
+	int lcl_size_limit = (!(large_map|| midsize_map)) ? std::max(lcl_comm_size, lcl_red_size) : lcl_red_size;
+
+
+
+	_grp_tile0 = GRP_SZ;
+	_grp_tile1 = 1;
+	int grp_tile2 = 1;
+
+
+	// it's backward - inputs are outputs and vs versa
+	_comp_options =
+		std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction)
+		+ std::string(" -DMLO_GRP_SZ=") + std::to_string(GRP_SZ)
+		+ std::string(" -DMLO_GRP_SZ0=") + std::to_string(_grp_tile0)
+		+ std::string(" -DMLO_GRP_SZ1=") + std::to_string(_grp_tile1)
+		+ std::string(" -DMLO_GRP_SZ2=") + std::to_string(grp_tile2)
+		+ std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0)
+		+ std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1)
+		+ std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0)
+		+ std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1)
+		+ std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0)
+		+ std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1)
+		+ std::string(" -DSTRIDE_W=") + std::to_string(_kernel_stride0)
+		+ std::string(" -DSTRIDE_H=") + std::to_string(_kernel_stride1)
+		+ std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_inputs)
+		+ std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_outputs)
+		+ std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz)
+		+ std::string(" -DMLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS)
+		+ std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_in_batch_stride)
+		+ std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride)
+		+ std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_in_stride)
+		+ std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_out_batch_stride)
+		+ std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride)
+		+ std::string(" -DMLO_IN_STRIDE=") + std::to_string(_out_stride)
+		+ std::string(" -DMLO_WEI_BATCH_STRIDE=") + std::to_string(wei_bstride)
+		+ std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride)
+		+ std::string(" -DMLO_IN_WIDTH=") + std::to_string(_out_width)
+		+ std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_out_height)
+		+ std::string(" -DMLO_OUT_WIDTH=") + std::to_string(_in_width)
+		+ std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(_in_height)
+		+ std::string(" -DMLO_IN_TILE1=") + std::to_string(_in_tile1)
+		+ std::string(" -DMLO_IN_TILE0=") + std::to_string(_in_tile0)
+		+ std::string(" -DMLO_N_LCL_BATCHS=") + std::to_string(_n_stacks) // # of diff stacks (part of batch).
+		+ std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(_n_out_pix_tiles)  // # output pixel tiles per wk-item (ALU)
+		+ std::string(" -DMLO_N_LCL_IN_MAPS=") + std::to_string(_n_in_data_tiles) // total # of blocks of different inputs in LDS
+		+ std::string(" -DMLO_OUT_TILE0=") + std::to_string(_out_pix_tile0)  // size of ouptput tile per wk-item (ALU)
+		+ std::string(" -DMLO_OUT_TILE1=") + std::to_string(_out_pix_tile1)  //
+		+ std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves)
+		+ std::string(" -DMLO_MAP_WK_SZ=") + std::to_string(MAP_WK_SZ)
+		+ std::string(" -DMLO_N_PIXS_OFF=") + std::to_string(N_PIXS_OFF)
+		+ std::string(" -DMLO_LCL_MEM_SZ=") + std::to_string(lcl_size_limit)
+		+ std::string(" -DMLO_N_OUT_MAPS_ALIGNED=") + std::to_string(N_OUT_MAPS_ALIGNED)
+		+ std::string(" -DMLO_N_IN_MAPS_ALIGNED=") + std::to_string(N_IN_MAPS_ALIGNED)
+		+ std::string(" -DMLO_REDUC_LOOP_STEP=") + std::to_string(REDUC_LOOP_STEP)
+		+ std::string(" -DMLO_N_MAPS_PER_GROUP=") + std::to_string(N_MAPS_PER_GROUP)
+		+ std::string(" -DMLO_N_LCL_OUT=") + std::to_string(N_out_lcl)
+		+ std::string(" -DMLO_OUT_LCL_BLK=") + std::to_string(out_lcl_blk)
+		+ std::string(" -DMLO_FIRST_ROUND=") + std::to_string(first_round)
+		+ std::string(" -DMLO_FIRST_CAN_DIVIDE=") + std::to_string(can_divide)
+		+ std::string(" -DMLO_LG2_REDUC_ROUNDS=") + std::to_string(lg2_red_splits)
+
+
+		+std::string(" -DMLO_READ_TYPE=") + READ_TYPE
+		+ std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit)
+		+ std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
+		+ std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
+
+		//		+ std::string(" -limit-vector-registers=64 ")
+		+ getGeneralCompOptions()
+		;
+
+
+	_mlo_kernels_info.clear();
+	// wrt to W
+	{
+		_l_wk.clear();
+		_l_wk.push_back(_grp_tile0);
+		_l_wk.push_back(_grp_tile1);
+		_l_wk.push_back(grp_tile2);
+		// input is output
+
+		size_t gbl_wk0 = GRP_SZ * n_out_blocks;
+		size_t gbl_wk1 = n_in_blocks;
+		size_t gbl_wk2 = (!large_map) ? n_batch_blks : 1;
+
+
+		_g_wk.clear();
+		_g_wk.push_back(gbl_wk0);
+		_g_wk.push_back(gbl_wk1);
+		_g_wk.push_back(gbl_wk2);
+
+		_kernel_file = "MIOpenConvBwdWrW1x1.cl";
+		_kernel_name = (large_map) ? "MLOpenCvBwdWrWLmap" : "MIOpenCvBwdWrWSmap";
+
+		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
+		_mlo_kernels_info.push_back(kern_info);
+
+		_workspce_sz = 0;
+
+	}
+
+
+	return(ret);
+}
+
+
+int mlo_construct_BwdWrW2D::mloConstruct1x1Mmap()
 {
 
 	int ret = 0;
@@ -1667,7 +2060,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	// n of wvaefront in a group
 	// param
-	int n_waves = (_in_width <=  8) ? 1: 4;
+	int n_waves = (_in_width <= 8) ? 1 : 4;
 	int GRP_SZ = _hw_wave_sz * n_waves;
 	// number of input maps per group
 
@@ -1678,24 +2071,24 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 	int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
 
-// to avoid exeeding the group size but trying to keep multiple of the same unit
+	// to avoid exeeding the group size but trying to keep multiple of the same unit
 	while (MAP_WK_SZ > GRP_SZ)
 	{
 		read_unit *= 2;
 		MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
 	}
 
-// this one is valid only till _FLOAT8
-// but it's not an error, the kernel does not use these types at all 
+	// this one is valid only till _FLOAT8
+	// but it's not an error, the kernel does not use these types at all 
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
-    int POW2_MAP_WK_SZ = (1 << mloLg2(MAP_WK_SZ));
+	int POW2_MAP_WK_SZ = (1 << mloLg2(MAP_WK_SZ));
 	// number of output maps fetched into LDS and to be shred with the input mapped kept in registers
 	// param
-	int n_out_stacks = (_in_width == 28)? 10 : ((_in_width == 7) || (_in_width == 14)) ? 8 : (GRP_SZ / MAP_WK_SZ);
+	int n_out_stacks = (_in_width == 28) ? 10 : ((_in_width == 7) || (_in_width == 14)) ? 8 : (GRP_SZ / MAP_WK_SZ);
 	int lcl_size_limit = (_in_width <= 8) ? n_out_stacks*MAP_WK_SZ*read_unit : _dev_local_mem_sz / (2 * sizeof(float));
 
-// not to exeed local memory size
+	// not to exeed local memory size
 	while ((_in_width > 8) && n_out_stacks*MAP_WK_SZ*read_unit > lcl_size_limit)
 	{
 		n_out_stacks--;
@@ -1715,13 +2108,13 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	// number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
 	// param
 	_n_in_data_tiles = std::min(((_in_width == 28) ? 2 : 4), (_n_outputs + n_in_stacks - 1) / n_in_stacks);
-// to be able to do an easy final transform and summation
+	// to be able to do an easy final transform and summation
 	while ((_in_width > 8) && n_in_stacks*_n_in_data_tiles* n_out_stacks > GRP_SZ)
 	{
 		n_in_stacks--;
 	}
 
-	 // total maps per group
+	// total maps per group
 	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
 	int total_in_maps = _n_in_data_tiles * n_in_stacks;
 
@@ -1810,7 +2203,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 
 		size_t gbl_wk0 = GRP_SZ * ((_n_inputs + total_out_maps - 1) / total_out_maps);
 		size_t gbl_wk1 = ((_n_outputs + total_in_maps - 1) / total_in_maps);
-		size_t gbl_wk2 =  n_batch_blks;
+		size_t gbl_wk2 = n_batch_blks;
 
 
 		_g_wk.clear();
@@ -1818,7 +2211,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = "MIOpenConvBwdWrW_GxL_1x1.cl";
+		_kernel_file = "MIOpenConvBwdWrW1x1Mmap.cl";
 		_kernel_name = "MIOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -1833,7 +2226,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 	{
 
 
-		std::string kernel_file = "MIOpenConvBwdWrW_GxL_1x1.cl";
+		std::string kernel_file = "MIOpenConvBwdWrW1x1Mmap.cl";
 		std::string kernel_name = "MIOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
@@ -1859,7 +2252,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1()
 }
 
 
-int mlo_construct_BwdWrW2D::mloConstruct53()
+int mlo_construct_BwdWrW2D::mloConstruct53(bool n_stages)
 {
 
 	int ret = 0;
@@ -1884,6 +2277,11 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	// param
 	int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : (_batch_sz <= 16 || _in_width <= 32) ? (_batch_sz / _n_stacks) : 4;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+	if (n_stages)
+	{
+		ret = (n_batch_blks > 1) ? 2 : 1;
+		return(ret);
+	}
 
 	_out_pix_tile0 = _kernel_size0;
 	_out_pix_tile1 = _kernel_size1;
@@ -2067,10 +2465,85 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	return(ret);
 }
 
-
-int mlo_construct_BwdWrW2D::mloConstruct2()
+int mlo_construct_BwdWrW2D::mloConstruct2(bool n_stages)
 {
 	int ret = 0;
+	static const char * s_stride_table[32][2] =
+	{
+		// 
+		{ "32x38x166x5x10x0x0x2x2x32x79x341x4", "1.2.2.4.12.2" },
+		{ "32x38x166x5x10x0x0x2x2x32x79x341x8", "1.2.2.4.19.2" },
+		{ "32x38x166x5x10x0x0x2x2x32x79x341x16", "1.2.2.4.19.2" },
+		{ "32x38x166x5x10x0x0x2x2x32x79x341x32", "1.2.2.4.19.2" },
+		{ "32x79x341x5x20x0x0x2x2x1x161x700x4", "1.1.4.2.12.2" },
+		{ "32x79x341x5x20x0x0x2x2x1x161x700x8", "1.1.4.2.12.2" },
+		{ "32x79x341x5x20x0x0x2x2x1x161x700x16", "1.1.4.2.12.2" },
+		{ "32x79x341x5x20x0x0x2x2x1x161x700x32", "1.2.4.2.12.2" },
+		{ "96x55x55x11x11x0x0x4x4x3x227x227x50", "1.2.2.4.11.5" },
+		{ "96x55x55x11x11x0x0x4x4x3x227x227x128", "1.2.2.4.11.5" },
+		{ "96x55x55x11x11x0x0x4x4x3x227x227x256", "1.2.2.4.11.5" },
+		{ "64x55x55x11x11x2x2x4x4x3x224x224x128", "1.2.2.4.11.5" },
+		{ "64x112x112x7x7x3x3x2x2x3x224x224x16", "1.2.4.4.8.7" },
+		{ "64x54x54x3x3x1x1x2x2x3x108x108x8",  "1.4.4.4.9.9" },
+		{ nullptr, nullptr },
+	};
+
+	std::string key;
+
+	key = std::to_string(_n_inputs) + "x"
+		+ std::to_string(_in_height) + "x"
+		+ std::to_string(_in_width) + "x"
+		+ std::to_string(_kernel_size1) + "x"
+		+ std::to_string(_kernel_size0) + "x"
+		+ std::to_string(_pad1) + "x"
+		+ std::to_string(_pad0) + "x"
+		+ std::to_string(_kernel_stride1) + "x"
+		+ std::to_string(_kernel_stride0) + "x"
+		+ std::to_string(_n_outputs) + "x"
+		+ std::to_string(_out_height) + "x"
+		+ std::to_string(_out_width) + "x"
+		+ std::to_string(_batch_sz);
+	//	std::map<std::string, std::string> lcl_db;
+	bool found = false;
+	int i = 0;
+	for (; s_stride_table[i][0] != nullptr; ++i)
+	{
+		if (std::string(s_stride_table[i][0]) == key)
+		{
+			found = true;
+			break;
+		}
+	}
+
+
+	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
+						   // n of map in a block (see below)
+	_out_pix_tile1 = (_kernel_size0 > 11) ? 1 : 2; //700 = 1, 350 = 4
+	int n_waves = (_kernel_size0 > 11) ? 2 : 4;
+	// n of shared blocks of output maps in lcl memory
+	_n_out_pix_tiles = 2;
+	int read_unit = 6;
+
+	int N_ALIGNED_OUT_SCAN_BLK = (_kernel_size0 > 11) ? 2 : 4; //700 = 1, 350 = 4
+
+
+	if (found)
+	{
+		std::vector<std::string> val_vec;
+
+		tokenize(std::string(s_stride_table[i][1]),
+			val_vec,
+			std::string("."));
+
+		N_BATCH_LOOPS = std::stoi(val_vec[0]);
+		_out_pix_tile1 = std::stoi(val_vec[1]);
+		n_waves = std::stoi(val_vec[2]);
+		_n_out_pix_tiles = std::stoi(val_vec[3]);
+		read_unit = std::stoi(val_vec[4]);
+		N_ALIGNED_OUT_SCAN_BLK = std::stoi(val_vec[5]);
+	}
+
+
 	size_t localMemSize = 64 * 1024;
 
 	_hw_wave_sz = 64;
@@ -2079,24 +2552,29 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 									  // number  of batch iterations
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
-	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+	if (n_stages)
+	{
+		ret = (n_batch_blks > 1) ? 2 : 1;
+		return(ret);
+	}
+
 	// number of filter taps in the processing wk_item
-	int WEI_WKITEM = (_kernel_size0 <= 7 || (((_kernel_size0 / 2)*2) != _kernel_size0) )? _kernel_size0 : _kernel_size0 / 2;
+	int WEI_WKITEM = (_kernel_size0 <= 7 || (((_kernel_size0 / 2) * 2) != _kernel_size0)) ? _kernel_size0 : _kernel_size0 / 2;
 
 	_in_tile0 = 1;
 	_in_tile1 = 1;
 	_out_pix_tile0 = 1;
-	_out_pix_tile1 = (_kernel_size0 > 11 ) ? 1 : 2; //700 = 1, 350 = 2
+	//	_out_pix_tile1 = 2; // (_kernel_size0 > 11) ? 1 : 4; //700 = 1, 350 = 4
 
-						// major parameters
-	int n_waves = (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
+	// major parameters
+	//	int n_waves = (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
 
 	_n_in_data_tiles = 1;
 	// n of out blocks in lcl memory
-	_n_out_pix_tiles = (_kernel_size0 > 11) ? 2 : 4; // 700 = 2, 350 = 4
+	//	_n_out_pix_tiles = 2; // (_kernel_size0 > 11 || _batch_sz < 16) ? 2 : 4; // 700 = 2, 350 = 4
 
-						  // select output mapping
+	// select output mapping
 	int total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
 	_out_pix_tile1 = (total_out_maps > _n_inputs) ? 1 : _out_pix_tile1;
 	total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
@@ -2113,17 +2591,17 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	int wei_cstride = _kernel_size0*_kernel_size1;
 	int wei_bstride = _n_outputs*wei_cstride;
 
-	int read_unit = 4;
+	//	int read_unit = 6;
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
 
 	// input is output
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
-	int N_ALIGNED_OUT_SCAN_BLK = 2;
+																		 //	int N_ALIGNED_OUT_SCAN_BLK = 4; // (_kernel_size0 > 11) ? 2 : 3; //700 = 1, 350 = 4
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
 
-	int OUT_N_PIXS_OFF = _in_width - (_in_width  / read_unit) * read_unit;
+	int OUT_N_PIXS_OFF = _in_width - (_in_width / read_unit) * read_unit;
 
 
 	_grp_tile0 = GRP_SZ;
@@ -2145,16 +2623,14 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		+ std::string(" -DMLO_GRP_SZ0=") + std::to_string((_grp_tile0))
 		+ std::string(" -DMLO_GRP_SZ1=") + std::to_string((_grp_tile1))
 		+ std::string(" -DMLO_GRP_SZ2=") + std::to_string((grp_tile2))
-		+ std::string(" -DMLO_FILTER_SIZE0=") + std::to_string((_kernel_size0))
-		+ std::string(" -DMLO_FILTER_SIZE1=") + std::to_string((_kernel_size1))
-		+ std::string(" -DMLO_FILTER_PAD0=") + std::to_string((_pad0))
-		+ std::string(" -DMLO_FILTER_PAD1=") + std::to_string((_pad1))
-		+ std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string((_kernel_stride0))
-		+ std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string((_kernel_stride1))
-		+ std::string(" -DSTRIDE_W=") + std::to_string((_kernel_stride0))
-		+ std::string(" -DSTRIDE_H=") + std::to_string((_kernel_stride1))
-		+ std::string(" -DMLO_N_OUTPUTS=") + std::to_string((_n_inputs))
-		+ std::string(" -DMLO_N_INPUTS=") + std::to_string((_n_outputs))
+		+ std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0)
+		+ std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1)
+		+ std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0)
+		+ std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1)
+		+ std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0)
+		+ std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1)
+		+ std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_inputs)
+		+ std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_outputs)
 		+ std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz)
 		+ std::string(" -DMLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS)
 		+ std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string((_in_batch_stride))
@@ -2219,7 +2695,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 		_g_wk.push_back(gbl_wk1);
 		_g_wk.push_back(gbl_wk2);
 
-		_kernel_file = "MIOpenConvBwdWrW_LxL_P.cl";
+		_kernel_file = "MIOpenConvBwdWrWS2.cl";
 		_kernel_name = "MIOpenCvBwdWrW";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
@@ -2234,7 +2710,7 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	{
 
 
-		std::string kernel_file = "MIOpenConvBwdWrW_LxL_P.cl";
+		std::string kernel_file = "MIOpenConvBwdWrWS2.cl";
 		std::string kernel_name = "MIOpenCvBwdWrW_rdc";
 
 		std::vector<size_t> l_wk;
@@ -2260,37 +2736,361 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 }
 
 
+mlo_construct_BwdWrW2D::PerfParamsAsmDirect3x3WrW
+mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
+{
+    /// LUT entry/env.var format: 8 decimal ASCII digits, left to right:
+    /// limit_wave_cnt   [00..10]
+    /// reverse_inout    [0..1]
+    /// chunk_size       {08,16}
+    /// k_per_wave       {1,2,4,8}
+    /// pipe_lines_depth [1..8]
+    /// n_per_group      [1..8]
+    /// \note chunk_size is not in included in the format, but computed.
+
+    /// Optimal values in LUT were found on Gfx8 with 56 CUs (R9 Fury).
+    /// \todo Test on devices with 64 CUs (e.g. R9 Nano, Vega10) and expand
+    /// implementation if optimal values are different.
+    static
+    const std::unordered_map<std::string, std::string> perf_vals_map({
+        //              W    H    c    n    k    dir  lwc[2] rio csz[2] kpw pld npg
+        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0), "00008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0), "00008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0), "00008421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0), "00108421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0), "00108421" },
+        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "00108431" },
+        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "00008431" },
+        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "00108431" },
+        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "00008431" },
+        { MakeKeyWHCNKD(16,  16,  256, 8,   512, 0), "00016421" },
+        { MakeKeyWHCNKD(28,  28,  256, 8,   512, 0), "04108221" },
+        { MakeKeyWHCNKD(28,  28,  256, 16,  512, 0), "00108231" },
+        { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "00116224" },
+        { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0), "04016261" },
+        { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0), "03016422" },
+        { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0), "00016424" },
+        { MakeKeyWHCNKD(112, 112, 256, 8,   512, 0), "00116421" },
+        { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0), "03116214" },
+        { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0), "00016418" },
+    });
+
+    std::string s;
+    PerfParamsAsmDirect3x3WrW pp;
+    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
+    if (p_asciz) {
+        s = std::string(p_asciz);
+    }
+    if (!s.empty()) { // Parse and check non-empty string from env.
+        if (s.size() != 8) {
+            MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: bad format.");
+        }
+        static_assert('9'-'0' == 9 , "Characters must be in ASCII encoding");
+        pp.limit_wave_cnt    = 10 * (s[0] - '0') + s[1] - '0'; // two digits
+        pp.reverse_inout     = s[2] - '0';
+        pp.chunk_size        = 10 * (s[3] - '0') + s[4] - '0'; // two digits
+        pp.k_per_wave        = s[5] - '0';
+        pp.pipe_lines_depth  = s[6] - '0';
+        pp.n_per_group       = s[7] - '0';
+        // Check if values are wrong.
+        if (! ( (0 <= pp.limit_wave_cnt && pp.limit_wave_cnt <= 10)
+             && (0 <= pp.reverse_inout && pp.reverse_inout <=1)
+             && (8 == pp.chunk_size || 16 == pp.chunk_size)
+             && (1 == pp.k_per_wave || 2 == pp.k_per_wave || 4 == pp.k_per_wave || 8 == pp.k_per_wave)
+             && (1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= 8)
+             && (1 <= pp.n_per_group && pp.n_per_group <= 8) ) ) {
+            MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: out of range.");
+        }
+        if ( ((_n_outputs % (64 / pp.chunk_size) != 0) && (_n_inputs % (64 / pp.chunk_size) != 0))
+          || ((pp.reverse_inout ? _n_outputs : _n_inputs) % pp.k_per_wave != 0)
+          || !(pp.n_per_group <= _batch_sz)
+          || !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(_in_height,8)) ) {
+            MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: incorrect for the problem config.");
+        }
+    } else {
+        // Try to get values from LUT, otherwise use algorithm.
+        const auto key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
+        const auto found = perf_vals_map.find(key);
+        if (found != perf_vals_map.end()) {
+            s = found->second;
+            /// \todo Copy-paste from above. Generalize.
+            if (s.size() != 8) {
+                MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: bad format.");
+            }
+            static_assert('9'-'0' == 9 , "Characters must be in ASCII encoding");
+            pp.limit_wave_cnt    = 10 * (s[0] - '0') + s[1] - '0'; // two digits
+            pp.reverse_inout     = s[2] - '0';
+            pp.chunk_size        = 10 * (s[3] - '0') + s[4] - '0'; // two digits
+            pp.k_per_wave        = s[5] - '0';
+            pp.pipe_lines_depth  = s[6] - '0';
+            pp.n_per_group       = s[7] - '0';
+            // Check if values are wrong.
+            if (! ( (0 <= pp.limit_wave_cnt && pp.limit_wave_cnt <= 10)
+                 && (0 <= pp.reverse_inout && pp.reverse_inout <=1)
+                 && (8 == pp.chunk_size || 16 == pp.chunk_size)
+                 && (1 == pp.k_per_wave || 2 == pp.k_per_wave || 4 == pp.k_per_wave || 8 == pp.k_per_wave)
+                 && (1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= 8)
+                 && (1 <= pp.n_per_group && pp.n_per_group <= 8) ) ) {
+                MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: out of range.");
+            }
+            if ( ((_n_outputs % (64 / pp.chunk_size) != 0) && (_n_inputs % (64 / pp.chunk_size) != 0))
+              || ((pp.reverse_inout ? _n_outputs : _n_inputs) % pp.k_per_wave != 0)
+              || !(pp.n_per_group <= _batch_sz)
+              || !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(_in_height,8)) ) {
+                MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: incorrect for the problem config.");
+            }
+        } else {
+            {
+                auto& v = pp.chunk_size;
+                v = (_in_width < 48) ? 8 : 16;
+                if ( (_n_outputs % (64 / v) != 0) && (_n_inputs % (64 / v) != 0) ) {
+                    v = 16; // Fixup for correctness
+                }
+            }
+            {
+                auto& v = pp.reverse_inout;
+                if ((_n_outputs % 4 != 0) || (_in_width < 8))  {
+                    v = 1;
+                } else {
+                    v = 0;
+                }
+            }
+            const auto c_k = _n_outputs * _n_inputs; // C*K
+            {
+                auto& v = pp.k_per_wave;
+                if (c_k < 256) {
+                    v = 1;
+                } else if (c_k < 16384){
+                    v = 2;
+                } else { // C*K >= 16k
+                    v = (pp.chunk_size == 8) ? 2 : 4;
+                }
+                while ((pp.reverse_inout ? _n_outputs : _n_inputs) % v != 0) {
+                    v /= 2; // Fixup for correctness
+                }
+            }
+            {
+                auto& v = pp.n_per_group;
+                if (c_k <= 512) {
+                    v = 8;
+                } else if (c_k <= 4096) {
+                    v = 4;
+                } else if (c_k <= 8192) {
+                    v = 2;
+                } else {
+                    v = 1;
+                }
+                if (v > _batch_sz) {
+                    v = _batch_sz; // Fixup for correctness
+                }
+            }
+            {
+                auto& v = pp.pipe_lines_depth;
+                v = (_in_height <= 1) ? 1 : 2;
+                if ((_in_height < 8) && (_in_width < 64)) {
+                    v = _in_height; // Special case.
+                }
+            }
+        }
+    }
+    pp.c_per_wave = 64 / pp.chunk_size;
+    return pp;
+}
+
+
+bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
+{
+    const std::string name = _stream->GetDeviceName();
+    if (name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos) {
+        return false;
+    }
+    assert(_weights_layout.length() == 0); // _weights_layout is not supported yet
+    bool ok = _pad0            == 1  // -q     pad_w
+           && _pad1            == 1  // -p     pad_h
+           && _kernel_stride0  == 1  // -u     stride_w
+           && _kernel_stride1  == 1  // -v     stride_h
+           && _kernel_size0    == 3  // -x   S wei_w
+           && _kernel_size1    == 3  // -y   R wei_h
+           && _in_layout == "NCHW";
+           // && _weights_layout == "KCHW"
+    if (!ok) {
+        return false; // Early exit to speed up the check.
+    }
+    // Check limits:
+    const auto h_w     = static_cast<long>(_in_height) * _in_width;
+    const auto r_s     = static_cast<long>(_kernel_size1) * _kernel_size0;
+    const auto c_h_w   = static_cast<long>(_n_outputs) * h_w; // C*H*W
+    const auto k_h_w   = static_cast<long>(_n_inputs ) * h_w; // K*H*W
+    const auto c_r_s   = static_cast<long>(_n_outputs) * r_s; // C*R*S
+    const auto k_r_s   = static_cast<long>(_n_inputs ) * r_s; // K*R*S
+    const auto n_c_h_w = static_cast<long>(_batch_sz ) * c_h_w; // N*C*H*W
+    const auto n_k_h_w = static_cast<long>(_batch_sz ) * k_h_w; // N*K*H*W
+    const auto c_k_r_s = static_cast<long>(_n_outputs) * k_r_s; // C*K*R*S
+    ok = _in_width    >  0
+        && _in_width    <= 256
+        && _in_height   < std::pow(2, 16)   // -H   H img_h
+        && _batch_sz	< std::pow(2, 16)   // -n   N batch_size
+        && _n_outputs   < std::pow(2, 16)   // -c   C input_channels
+        && _n_inputs    < std::pow(2, 16)   // -k   K output_channels
+        && ((_n_outputs % 4 == 0) || (_n_inputs % 4 == 0))
+        && c_h_w < std::pow(2, 22)
+        && k_h_w < std::pow(2, 22)
+        && c_r_s < std::pow(2, 22)
+        && k_r_s < std::pow(2, 22)
+        && n_c_h_w < std::pow(2, 29)
+        && n_k_h_w < std::pow(2, 29)
+        && c_k_r_s < std::pow(2, 29);
+    if (!ok) {
+        return false;
+    }
+    // Check other constraints:
+    const PerfParamsAsmDirect3x3WrW pp = mloComputePerfParamsAsmDirect3x3WrW();
+    if (pp.reverse_inout == 0) {
+        ok = (_n_outputs % pp.c_per_wave) == 0
+          && (_n_inputs  % pp.k_per_wave) == 0;
+    } else {
+        ok = (_n_outputs % pp.k_per_wave) == 0
+          && (_n_inputs  % pp.c_per_wave) == 0;
+    }
+    return ok;
+}
+
+
+bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
+{
+    // MD: These are actually not performance issues rather
+    // a workaround to mitigate memory fauults on gfx9
+    // They work fine on gfx8
+    // /todo fix memory faults on gfx9
+    const std::string name = _stream->GetDeviceName();
+    return !(name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54));
+}
+
+
+int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
+{
+    std::ostringstream options;
+    GenerateClangDefsym(options, "batch_size", _batch_sz); // N
+    GenerateClangDefsym(options, "img_h", _in_height); // H
+    GenerateClangDefsym(options, "img_w", _in_width) ; // W
+    // Note that _n_outputs and _n_inputs are swapped for backward convolutions.
+    GenerateClangDefsym(options, "input_channels", _n_outputs); // C
+    GenerateClangDefsym(options, "output_channels", _n_inputs); // K
+    GenerateClangDefsym(options, "wei_h", _kernel_size1); // R
+    GenerateClangDefsym(options, "wei_w", _kernel_size0); // S
+    GenerateClangDefsym(options, "pad_h", _pad1);
+    GenerateClangDefsym(options, "pad_w", _pad0);
+    GenerateClangDefsym(options, "stride_h", _kernel_stride1);
+    GenerateClangDefsym(options, "stride_w", _kernel_stride0);
+    GenerateClangDefsym(options, "weights_layout", 0);
+    GenerateClangDefsym(options, "reverse_weights", 0);
+    // Perf tune:
+    const PerfParamsAsmDirect3x3WrW pp = mloComputePerfParamsAsmDirect3x3WrW();
+    GenerateClangDefsym(options, "limit_wave_cnt", pp.limit_wave_cnt);
+    GenerateClangDefsym(options, "chunk_size", pp.chunk_size);
+    GenerateClangDefsym(options, "c_per_wave", pp.c_per_wave);
+    GenerateClangDefsym(options, "k_per_wave", pp.k_per_wave);
+    GenerateClangDefsym(options, "n_per_group", pp.n_per_group);
+    GenerateClangDefsym(options, "pipe_lines_depth", pp.pipe_lines_depth);
+    GenerateClangDefsym(options, "reverse_inout", pp.reverse_inout);
+    // Debugging:
+    GenerateClangDefsym(options, "enable_debug_output", 0);
+    _comp_options = options.str();
+
+    _l_wk.clear(); // workgroupsize
+    _l_wk.push_back(64 * pp.n_per_group);
+    _l_wk.push_back(1);
+    _l_wk.push_back(1);
+
+    _g_wk.clear(); // gridsize
+    _g_wk.push_back(64 * pp.n_per_group);
+    if (pp.reverse_inout == 0) {
+        _g_wk.push_back(_n_outputs / pp.c_per_wave);
+        _g_wk.push_back(_n_inputs  / pp.k_per_wave);
+    } else {
+        _g_wk.push_back(_n_outputs / pp.k_per_wave);
+        _g_wk.push_back(_n_inputs  / pp.c_per_wave);
+    }
+
+    _kernel_file = "conv3x3wrw.s";
+    _kernel_name = "gcnAsmConv3x3WrW";
+
+	_mlo_kernels_info.clear();
+    auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
+    _mlo_kernels_info.push_back(kern_info);
+    _workspce_sz = 0;
+
+    return 0;
+}
+
+
 int mlo_construct_BwdWrW2D::mloConstruct()
 {
-	int ret = 0;
-	_workspce_sz = 0;
-	size_t localMemSize = 64 * 1024;
+    _workspce_sz = 0;
+    rocm_meta_version rmv = V3;
+    if (mloIsAmdOpenclRocm(rmv) && rmv == V3)
+    {
+        const auto use_assembly = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{})
+                                  && ValidateGcnAssembler();
+        const auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
+        if (use_assembly) {
+            if (mloIsCorrectAsmDirect3x3WrW()
+                && (no_perf_filtering || mloIsFastAsmDirect3x3WrW())) {
+                return (mloConstructAsmDirect3x3WrW());
+            }
+        }
+    }
 
+    int ret = 0;
     if (((_kernel_size0>=_kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >=64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
+    {
+        ret = mloConstruct2();
+    }
+    else if (_kernel_size0 >= _kernel_size1)
+    {
+#if 0
+    if ((_kernel_size0 == 3 && _kernel_size1 == 3) && (_out_width < 8 && _out_height < 8))
+    {
+        ret = mloConstruct3x3();
+    }
+    else
+#endif
+        if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+        {
+            ret = mloConstruct53();
+        }
+        else
+        {
+            ret = mloConstruct1x1();
+        }
+    }
+    return(ret);
+}
+
+int mlo_construct_BwdWrW2D::mloMultiStep()
+{
+
+	int ret = 1;
+
+	if (((_kernel_size0 >= _kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >= 64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
 	{
-		ret = mloConstruct2();
+		ret = mloConstruct2(true);
 	}
 	else if (_kernel_size0 >= _kernel_size1)
 	{
-#if 0
-		if ((_kernel_size0 == 3 && _kernel_size1 == 3) && (_out_width < 8 && _out_height < 8))
-		{
-			ret = mloConstruct3x3();
-		}  
-		else
-#endif
-		if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
-		{
-			ret = mloConstruct53();
-		}
-		else if ( _in_width * _in_height <= (localMemSize / (2*sizeof(float))))
-		{
-			ret = mloConstruct1x1();
-		}
+			if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+			{
+				ret = mloConstruct53(true);
+			}
+			else
+			{
+				ret = mloConstruct1x1(true);
+			}
 	}
+
+
 	return(ret);
 }
-
 
 
 /*
