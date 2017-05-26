@@ -20,7 +20,8 @@ inline int BwdDataAlgoResolver(const std::string& s) {
     static std::unordered_map<std::string, int> data {
         {"miopenConvolutionBwdDataAlgoDirect", 0},
         {"miopenConvolutionBwdDataAlgoWinograd", 1},
-        {"miopenConvolutionBwdDataAlgoFFT", 2},
+		{ "miopenConvolutionBwdDataAlgoGEMM", 2 },
+		{"miopenConvolutionBwdDataAlgoFFT", 3},
     };
     return data.at(s);
 }
