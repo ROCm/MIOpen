@@ -140,6 +140,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		Data_t							workSpace,
 		size_t							workSpaceSize) const;
 
+	size_t BackwardDataGetWorkSpaceSizeGEMM(
+		Handle&                     handle,
+		const TensorDescriptor&     wDesc,
+		const TensorDescriptor&		dyDesc) const;
+
 	size_t BackwardGetWorkSpaceSizeFFT(
 		const TensorDescriptor& wDesc,
 		const TensorDescriptor& dyDesc,

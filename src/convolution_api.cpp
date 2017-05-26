@@ -276,7 +276,6 @@ miopenStatus_t miopenConvolutionBackwardDataGetWorkSpaceSize(
 
 	MIOPEN_LOG_FUNCTION(dyDesc, wDesc, convDesc, dxDesc, workSpaceSize);
 	return miopen::try_([&] {
-            (void) handle; // suppress warning
 			miopen::deref(workSpaceSize) = miopen::deref(convDesc).BackwardDataGetWorkSpaceSize(
 						miopen::deref(handle),
 						miopen::deref(wDesc),

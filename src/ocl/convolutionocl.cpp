@@ -580,6 +580,54 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, 0});
     }
 
+	// GEMM based
+	int in_n, in_c, in_h, in_w;
+	std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+
+	int wei_n, wei_h, wei_w;
+	std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+
+	int out_h, out_w;
+	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+
+	std::string network_config;
+	std::string program_name;
+	std::string kernel_name;
+	std::string parms;
+
+#if MIOPEN_USE_TINYGEMM
+	size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
+	float time_gemm = 0;
+	GemmGeometry gg = CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, false, network_config);
+
+	// 1x1 does not require col2im or workspace
+	if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
+		gg.FindSolution(.003, handle, w, dy, tmp_dx.get(), false);
+		gg.RunGemm(handle, w, dy, tmp_dx.get(), 0, 0, 0);
+
+		time_gemm = in_n * handle.GetKernelTime();
+		perf_db.push_back(PerfField{ "miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0 });
+	}
+	// if not 1x1
+	else if (workSpace != nullptr && workSpaceSize >= workspace_req) {
+		float time_col2im = 0;
+		size_t in_offset = 0;
+
+		gg.FindSolution(.003, handle, w, dy, workSpace, false);
+		gg.RunGemm(handle, w, dy, workSpace, 0, 0, 0);
+
+		time_gemm = in_n * handle.GetKernelTime();
+		time_col2im = Col2ImGPU(handle, workSpace, out_h, out_w, wei_h, wei_w, pad_h, pad_w, u, v, in_c, in_h, in_w, tmp_dx.get(), in_offset);
+
+		time_gemm += in_n * time_col2im;
+
+		perf_db.push_back(PerfField{ "miopenConvolutionBwdDataAlgoGEMM", time_gemm, workspace_req });
+	}
+#else
+	(void)workSpace; // Suppress warning
+	(void)workSpaceSize; // Suppress warning
+#endif
+
 	// FFT algo
 	float time_fft = 0;
 	std::vector< KernelInvoke > kernels_fft;
@@ -686,6 +734,71 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             kernel(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
             break;
         }
+
+        case miopenConvolutionBwdDataAlgoGEMM:
+        {
+            int in_n, in_c, in_h, in_w;
+            std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+
+            int wei_n, wei_h, wei_w;
+            std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+
+            int out_h, out_w;
+            std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+
+            if ((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
+                (workSpace == nullptr || workSpaceSize < BackwardDataGetWorkSpaceSize(handle, wDesc, dyDesc, dxDesc))) {
+                MIOPEN_THROW("Workspace is required");
+            }
+
+            std::string network_config;
+#if MIOPEN_USE_TINYGEMM
+            CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, false, network_config);
+            GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
+
+            handle.ResetKernelTime();
+
+            float time_0 = 0;
+            float t1 = 0;
+            for (int i = 0; i < in_n; i++) {
+                int out_offset = i * wei_n * out_h * out_w;
+
+                if (wei_h != 1 || wei_w != 1 || v != 1 || u != 1) {
+                    size_t in_offset = i * in_c * in_h * in_w;
+
+                    if (handle.IsProfilingEnabled())
+                        t1 = handle.GetKernelTime();
+
+                    gg.RunGemm(handle, w, dy, workSpace, 0, out_offset, 0);
+
+                    Col2ImGPU(handle, workSpace, out_h, out_w, wei_h, wei_w, pad_h, pad_w, u, v, in_c, in_h, in_w, dx, in_offset);
+
+                    // Update times for both the kernels
+                    if (handle.IsProfilingEnabled()) {
+                        if (i == in_n - 1)
+                            handle.AccumKernelTime(t1 + time_0);
+                        else
+                            handle.AccumKernelTime(t1);
+                        time_0 += handle.GetKernelTime();
+                    }
+                }
+                else if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
+                    int in_offset = i * in_c * in_h * in_w;
+                    gg.RunGemm(handle, w, dy, dx, 0, out_offset, in_offset);
+                    if (handle.IsProfilingEnabled()) {
+                        if (i == in_n - 1)
+                            handle.AccumKernelTime(time_0);
+                        time_0 += handle.GetKernelTime();
+                    }
+                }
+            }
+#else
+            MIOPEN_THROW("GEMM is not supported");
+#endif
+        }
+#if MIOPEN_USE_TINYGEMM
+        break;
+#endif
 
         case miopenConvolutionBwdDataAlgoFFT:
 		{
