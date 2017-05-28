@@ -84,6 +84,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         Kernels/MIOpenSoftmax.cl
         Kernels/MIOpenConvD3x3.cl
         Kernels/MIOpenUtilKernels.cl
+        Kernels/MIOpenUtilKernels2.cl
         Kernels/MIOpenConvBwdWrWS2.cl
         Kernels/MIOpenConvBwdWrW_LxG_P53.cl
         Kernels/MIOpenConvBwdWrW_LxG_5x5.cl
@@ -94,6 +95,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         Kernels/conv3x3.s
         Kernels/conv3x3wrw.s
         Kernels/conv5x10u2v2f1.s
+        Kernels/conv5x10u2v2b1.s
         Kernels/MIOpenTensorKernels.cl
         Kernels/MIOpenTensorScaleKernel.cl
         Kernels/conv_3x3_wheel_alpha_v5_1_1b_gfx900.so

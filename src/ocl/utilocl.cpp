@@ -56,4 +56,34 @@ float Im2ColGPU(
     return handle.GetKernelTime();
 }
 
+
+float Col2ImGPU(
+	Handle	&handle,
+	ConstData_t col,
+	const int col_h, const int col_w,
+	const int wei_h, const int wei_w,
+	const int pad_h, const int	pad_w,
+	const int stride_h, const int stride_w,
+	const int c, const int h, const int w,
+	Data_t im, size_t im_offset)
+{
+	std::string program_name = "MIOpenUtilKernels2.cl";
+	std::string kernel_name = "Col2Im";
+
+	std::string params;
+	const std::vector<size_t> vld{ 256, 1, 1 };
+	size_t global_threads = c * h * w;
+	const std::vector<size_t> vgd{ global_threads, 1, 1 };
+
+	handle.GetKernel("miopenCol2Im",
+		"",
+		program_name,
+		kernel_name,
+		vld,
+		vgd,
+		params)(col, col_h, col_w, wei_h, wei_w, pad_h, pad_w, stride_h, stride_w, h, w, im, im_offset);
+
+	return handle.GetKernelTime();
+}
+
 } // namespace miopen

@@ -79,10 +79,10 @@ typedef enum {
 } miopenDataType_t;
 
 typedef enum {
-    miopenOpTensorAdd = 0,
-    miopenOpTensorMul = 1,
-    miopenTensorMin   = 2,
-    miopenTensorMax   = 3,
+    miopenTensorOpAdd = 0,
+    miopenTensorOpMul = 1,
+    miopenTensorOpMin = 2,
+    miopenTensorOpMax = 3,
 } miopenTensorOp_t;
 
 typedef enum {
@@ -243,6 +243,8 @@ typedef enum {
 typedef enum {
     miopenConvolutionBwdDataAlgoDirect   = 0,
     miopenConvolutionBwdDataAlgoWinograd = 1,
+    miopenConvolutionBwdDataAlgoGEMM     = 2,
+    miopenConvolutionBwdDataAlgoFFT      = 3,
 } miopenConvBwdDataAlgorithm_t;
 
 // Same perf struct for forward, backward filter and backward data algorthms
