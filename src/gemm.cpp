@@ -37,7 +37,7 @@ GemmGeometry CreateGemmGeometryConvBwdData(
 	(void)isDataColMajor;
 #if 0
 	if (!isDataColMajor) {
-		tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
+		tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f'); /* jn : new tinygemm API */
 		gg = GemmGeometry{ std::array<int, 3>{ {N, M, K}},
 			std::array<int, 3>{ {ldb, lda, ldc}},
 			"miopenConvolutionBwdDataAlgoGEMM",
@@ -46,7 +46,7 @@ GemmGeometry CreateGemmGeometryConvBwdData(
 	else
 #endif 
 	{
-		tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
+		tgg = TinyGemmGeometry(true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); /* jn : new tinygemm API */
 
 		gg = GemmGeometry{ std::array<int, 3>{ {M, N, K}},
 			std::array<int, 3>{ {lda, ldb, ldc}},
