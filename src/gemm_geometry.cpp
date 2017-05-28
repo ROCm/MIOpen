@@ -24,7 +24,7 @@ void GemmGeometry::FindSolution(float time,
 {
 
 #if MIOPEN_BACKEND_OPENCL
-    /* jn : using a simple version of find, until miopen supports workspace for gemm  */
+    /* jn : using a simple version of find, without using any workspace for gemm  */
     TinyGemmSolution soln = tinygemm::find(time, handle.GetStream(), a, b, c, enforce_determinism, tgg);
 #else
     (void)time;
@@ -55,16 +55,19 @@ void GemmGeometry::FindSolution(float time,
             vld,
             vgd,
             ""); /* jn : removed -w, tinygemm kernels should not generate warnings */
-
     
-    /* the beta kernel is part of the solution */
-    if(soln.v_tgks.size() == 2)
+    if(soln.v_tgks.size() == 2){
+        beta_kern_returned = true;
+    }
+    
+    /* jn : the beta kernel is part of the solution */
+    if(soln.v_tgks.size() == 2 && beta != 1)
     {      
         std::string beta_program_name = soln.v_tgks[0].kernstr;
         std::string beta_kernel_name = soln.v_tgks[0].fname;
         local_work_size = soln.v_tgks[0].local_work_size;
-        global_work_size = soln.v_tgks[0].local_work_size;
-
+        global_work_size = soln.v_tgks[0].global_work_size;
+        
         EnableBetaKernel(true);
 
         vld[0] = local_work_size;
@@ -97,7 +100,16 @@ void GemmGeometry::RunGemm(Handle &handle,
         handle.GetKernel(algorithm_name, network_config) (a, a_offset, b, b_offset, c, c_offset, alpha);
     }
     else {
-      handle.GetKernel(algorithm_name, network_config) (a, a_offset, b, b_offset, c, c_offset, alpha, beta);
+        
+        /* jn : the case where a beta kernel 
+         * was returned, but beta = 1 so it is not 
+         * needed. Notice: no beta in function sig  */
+        if (beta_kern_returned == true){
+            handle.GetKernel(algorithm_name, network_config) (a, a_offset, b, b_offset, c, c_offset, alpha);
+        }
+        else{
+            handle.GetKernel(algorithm_name, network_config) (a, a_offset, b, b_offset, c, c_offset, alpha, beta);
+        }
     }
 }
 
