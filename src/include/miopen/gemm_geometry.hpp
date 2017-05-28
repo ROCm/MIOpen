@@ -18,6 +18,16 @@ struct GemmGeometry {
     float beta{};
     TinyGemmGeometry tgg {};
     bool beta_kern_req{};
+    
+    /* jn : if tinygemm returned a beta kernel. 
+     * not the same as beta_kern_req(uired), as 
+     * if beta == 1, beta kernel is returned but
+     * not required.
+     * we still need to know if it was returned,
+     * as the function signature of the main kernel
+     * is then different.
+     * */
+    bool beta_kern_returned{}; 
     std::array<int, 2> beta_kern_args{};
 
     GemmGeometry(){}
@@ -25,6 +35,7 @@ struct GemmGeometry {
         dims(pdims), strides(pstrides), algorithm_name(algo_name), alpha(palpha), beta(pbeta), tgg(ptgg) 
     {
         beta_kern_req = false;
+        beta_kern_returned = false;
         beta_kern_args = {{0, 0}};
     }
 
