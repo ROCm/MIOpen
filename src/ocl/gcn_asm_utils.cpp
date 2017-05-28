@@ -1,5 +1,6 @@
 #include <miopen/config.h>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <cstdlib>
 #include <cassert>
@@ -16,6 +17,10 @@
 #include <sys/types.h> 
 #include <sys/stat.h> 
 #endif // !defined(_WIN32) && !defined(__APPLE__)
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
+
+struct tmp_dir_env { static const char * value() { return "TMPDIR"; }};
 
 #ifndef _WIN32 //Linux or APPLE
 class TempFile
@@ -48,7 +53,7 @@ private:
     static
     const std::string GetTempDirectoryPath() 
     {
-        const auto path = getenv("TMPDIR");
+        const auto path = miopen::GetStringEnv(tmp_dir_env{});
         if (path != nullptr) {
             return path;
         }
@@ -123,9 +128,9 @@ private:
 };
 #endif // !defined(_WIN32) && !defined(__APPLE__)
 
-std::string GetGcnAssemblerPath()
+std::string GetGcnAssemblerPathImpl()
 {
-    const auto asm_path_env_p = std::getenv("MIOPEN_EXPERIMENTAL_GCN_ASM_PATH");
+    const auto asm_path_env_p = miopen::GetStringEnv(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH{});
     if (asm_path_env_p) {
         return CleanupPath(asm_path_env_p);
     }
@@ -134,6 +139,12 @@ std::string GetGcnAssemblerPath()
 #else
     return "";
 #endif
+}
+
+std::string GetGcnAssemblerPath()
+{
+    static const auto result = GetGcnAssemblerPathImpl();
+    return result;
 }
 
 bool ValidateGcnAssemblerImpl()

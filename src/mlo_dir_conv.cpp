@@ -27,6 +27,13 @@
 #include <unordered_map>
 #include <cstring>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
+
 static int mloLg2(int v)
 {
 	auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
@@ -258,12 +265,12 @@ int mlo_construct_winograd::mloConstruct()
 	rocm_meta_version rmv = V3;
 	if (mloIsAmdOpenclRocm(rmv))
 	{
-		const auto use_binaries = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES");
+		const auto use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 		// Our testing shows that for some corner cases (i.e. specific problem descriptions),
 		// assembly-written kernels may have worse performance than kernels written in high-level
 		// language, e.g. OpenCL. MiOpen avoids asm kernels in such corner cases, but
 		// this setting allows to override that.
-		const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 		if (use_binaries) {
 			if (mloIsCorrectBinaryWinograd3x3Fwd()
 				&& (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd())) {
@@ -289,11 +296,11 @@ int mlo_construct_direct2D::mloConstruct()
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
 	if (mloIsAmdOpenclRocm(rmv))
 	{
-		const auto use_assembly = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_GCN_ASM_KERNELS")
+		const auto use_assembly = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{})
 								  && ValidateGcnAssembler();
 
 		// See comment in mlo_construct_winograd::mloConstruct().
-		const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+		const auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
@@ -302,6 +309,10 @@ int mlo_construct_direct2D::mloConstruct()
 			if (mloIsCorrectAsmDirect5x10u2v2f1()
 				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2f1())) {
 				return (mloConstructAsmDirect5x10u2v2f1(rmv));
+			}
+			if (mloIsCorrectAsmDirect5x10u2v2b1()
+				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2b1())) {
+				return (mloConstructAsmDirect5x10u2v2b1(rmv));
 			}
 		}
 	}
@@ -673,7 +684,7 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
 {
     std::string perf_vals;
     {
-        const auto p_asciz = std::getenv("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS");
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS{});
         if (p_asciz && std::strlen(p_asciz) == 3) {
             perf_vals = std::string(p_asciz);
         }
@@ -685,10 +696,10 @@ int mlo_construct_direct2D::mloConstructAsmDirect3x3U(rocm_meta_version rmv)
             /// Optimal values found on Gfx8 with 56 CUs (R9 Fury).
             /// \todo Test on devices with 64 CUs (e.g. R9 Nano) and expand
             /// implementation if optimal values are different.
-            static_assert('0' == '\x30' && '9'-'0' == 9 , "Characters must be in ASCII encoding");
+            static_assert('9'-'0' == 9 , "Characters must be in ASCII encoding");
             static
             const std::unordered_map<std::string, std::string> perf_vals_map({
-                //                              W    H    c    n    k   dir  fpw olpw lwc
+                //              W    H    c    n    k   dir  fpw olpw lwc
                 { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "820" },
                 { MakeKeyWHCNKD(54,  54,  64,  8,   64,  1), "820" },
                 { MakeKeyWHCNKD(56,  56,  128, 8,   256, 0), "840" },
@@ -797,6 +808,46 @@ bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2f1() const
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
 }
 
+bool mlo_construct_direct2D::mloIsCorrectAsmDirect5x10u2v2b1() const
+{
+    const std::string name = _stream->GetDeviceName();
+    const bool device_is_gfx8_9_no_xnack = (name == "gfx800"
+                                       || name == "gfx802"
+                                       || name == "gfx803"
+                                       || name == "gfx804"
+                                       || name == "gfx900");
+    if (!device_is_gfx8_9_no_xnack) {
+        return false;
+    }
+    if (isForwardDirection()){
+        return false;
+    }
+    assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+
+    // Min image + padding shall be not smaller than filter matrix.
+    const int min_out_width  = 138;
+    const int min_out_height = 16;
+    // These two found experimentally.
+    const int max_out_width  = 8192 - 1;
+    const int max_out_height = 131077 - 1;
+
+    return                                      // Opt. Param   Restrictions in source
+           _pad0            == 0                // -q   pad_w   fixed
+        && _pad1            == 0                // -p   pad_h   fixed
+        && _kernel_stride0  == 2                // -u   inp_u   fixed
+        && _kernel_stride1  == 2                // -v   inp_v   fixed
+        && _kernel_size0    == 10               // -x   wei_w   fixed
+        && _kernel_size1    == 5                // -y   wei_h   fixed
+        && _n_outputs % 16  == 0                // -c   wei_c   no upper limit
+        && _n_inputs        >= 16               // -k   wei_k   no upper limit
+        && _out_width       >= min_out_width   // -W   inp_w
+        && _out_width       <= max_out_width
+        && _out_height      >= min_out_height  // -H   inp_h
+        && _out_height      <= max_out_height
+        && _out_layout      == "NCHW";         //              hardcoded
+        // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See fixme above.
+}
+
 bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2f1() const
 {
     // Finding problem configs where this kernel shows bad performance
@@ -807,6 +858,15 @@ bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2f1() const
     return true;
 }
 
+bool mlo_construct_direct2D::mloIsFastAsmDirect5x10u2v2b1() const
+{
+    // Finding problem configs where this kernel shows bad performance
+    // (i.e. worse than its OpenCL counterpart) seems to be a multi-dimensional
+    // task which is hardly possible to implement. Basically, this kernel
+    // tends to become slower than OpenCL one when H/W is big (several hundreds)
+    // and H is small.
+    return true;
+}
 
 static inline int AlignUp(int val, unsigned step)
 {
@@ -844,6 +904,32 @@ int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2f1(rocm_meta_version rm
 
     _kernel_file = "conv5x10u2v2f1.s";
     _kernel_name = "conv5x10u2v2f1";
+    return 0;
+}
+
+int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2b1(rocm_meta_version rmv)
+{
+    std::ostringstream options;
+    GenerateClangDefsym(options, "inp_h", _out_height);
+    GenerateClangDefsym(options, "inp_w", _out_width);
+    GenerateClangDefsym(options, "wei_c", _n_outputs);
+    GenerateClangDefsym(options, "wei_k", _n_inputs);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", (rmv == V1) ? 1 : 3 );
+    _comp_options = options.str();
+
+    _l_wk.clear();
+    _l_wk.push_back(64);
+    _l_wk.push_back(8);
+    _l_wk.push_back(1);
+
+    // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_c/2,8), batch_n]
+    _g_wk.clear();
+    _g_wk.push_back(AlignUp(_in_width, 64));
+    _g_wk.push_back(AlignUp(_in_height, 4) / 4 * AlignUp(_n_outputs / 2, 8));
+    _g_wk.push_back(_batch_sz);
+
+    _kernel_file = "conv5x10u2v2b1.s";
+    _kernel_name = "conv5x10u2v2b1";
     return 0;
 }
 
@@ -1267,7 +1353,7 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 }
 
 
-int mlo_construct_direct2D::mloConstructDirect2D_11x11()
+int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 {
 	int ret = 0;
 	size_t localMemSize = 64 * 1024;
@@ -1356,6 +1442,11 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11()
 		second_pass = true;
 	}
 
+	if (n_passes)
+	{
+		ret = (second_pass) ? 2 : 1;
+		return(ret);
+	}
 	// it's backward - inputs are outputs and vs versa
 	_comp_options =
 		std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction)
@@ -1691,10 +1782,14 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 */
 // TODO: search params
 
-int mlo_construct_BwdWrW2D::mloConstruct1x1()
+int mlo_construct_BwdWrW2D::mloConstruct1x1(bool n_stages)
 {
 
 	int ret = 0;
+	if (n_stages)
+	{
+		return(1);
+	}
 #if 0 // MD: Calls old 1x1 kernel (MIOpenConvBwdWrW1x1Mmap.cl) that has been optimized by Stas
 	if (_in_width == 14 &&_in_height == 14 && _n_inputs == 192 && _n_outputs == 512)
 	{
@@ -2157,7 +2252,7 @@ int mlo_construct_BwdWrW2D::mloConstruct1x1Mmap()
 }
 
 
-int mlo_construct_BwdWrW2D::mloConstruct53()
+int mlo_construct_BwdWrW2D::mloConstruct53(bool n_stages)
 {
 
 	int ret = 0;
@@ -2182,6 +2277,11 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	// param
 	int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : (_batch_sz <= 16 || _in_width <= 32) ? (_batch_sz / _n_stacks) : 4;
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+	if (n_stages)
+	{
+		ret = (n_batch_blks > 1) ? 2 : 1;
+		return(ret);
+	}
 
 	_out_pix_tile0 = _kernel_size0;
 	_out_pix_tile1 = _kernel_size1;
@@ -2365,7 +2465,7 @@ int mlo_construct_BwdWrW2D::mloConstruct53()
 	return(ret);
 }
 
-int mlo_construct_BwdWrW2D::mloConstruct2()
+int mlo_construct_BwdWrW2D::mloConstruct2(bool n_stages)
 {
 	int ret = 0;
 	static const char * s_stride_table[32][2] =
@@ -2453,6 +2553,12 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 	_n_stacks = 1;
 	_n_stacks = std::min(_batch_sz, _n_stacks);
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
+	if (n_stages)
+	{
+		ret = (n_batch_blks > 1) ? 2 : 1;
+		return(ret);
+	}
+
 	// number of filter taps in the processing wk_item
 	int WEI_WKITEM = (_kernel_size0 <= 7 || (((_kernel_size0 / 2) * 2) != _kernel_size0)) ? _kernel_size0 : _kernel_size0 / 2;
 
@@ -2633,80 +2739,159 @@ int mlo_construct_BwdWrW2D::mloConstruct2()
 mlo_construct_BwdWrW2D::PerfParamsAsmDirect3x3WrW
 mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
 {
-    /// Optimal values found on Gfx8 with 56 CUs (R9 Fury).
-    /// \todo Test on devices with 64 CUs (e.g. R9 Nano) and expand
+    /// LUT entry/env.var format: 8 decimal ASCII digits, left to right:
+    /// limit_wave_cnt   [00..10]
+    /// reverse_inout    [0..1]
+    /// chunk_size       {08,16}
+    /// k_per_wave       {1,2,4,8}
+    /// pipe_lines_depth [1..8]
+    /// n_per_group      [1..8]
+    /// \note chunk_size is not in included in the format, but computed.
+
+    /// Optimal values in LUT were found on Gfx8 with 56 CUs (R9 Fury).
+    /// \todo Test on devices with 64 CUs (e.g. R9 Nano, Vega10) and expand
     /// implementation if optimal values are different.
-    static_assert('0' == '\x30' && '9'-'0' == 9 , "Characters must be in ASCII encoding");
     static
     const std::unordered_map<std::string, std::string> perf_vals_map({
-        //              W    H    c    n    k    dir
-        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0), "008421" },
-        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0), "008421" },
-        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0), "008421" },
-        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0), "018421" },
-        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0), "018421" },
-        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "018431" },
-        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "008431" },
-        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "018431" },
-        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "008431" },
-        { MakeKeyWHCNKD(16,  16,  256, 8,   512, 0), "00" "\x40" "421" }, // '\x40' - '0' == 16
-        { MakeKeyWHCNKD(28,  28,  256, 8,   512, 0), "418221" },
-        { MakeKeyWHCNKD(28,  28,  256, 16,  512, 0), "018231" },
-        { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "01" "\x40" "224" },
-        { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0), "40" "\x40" "261" },
-        { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0), "30" "\x40" "422" },
-        { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0), "00" "\x40" "424" },
-        { MakeKeyWHCNKD(112, 112, 256, 8,   512, 0), "01" "\x40" "421" },
-        { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0), "31" "\x40" "214" },
-        { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0), "00" "\x40" "418" },
+        //              W    H    c    n    k    dir  lwc[2] rio csz[2] kpw pld npg
+        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0), "00008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0), "00008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0), "00008421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0), "00108421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0), "00108421" },
+        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "00108431" },
+        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "00008431" },
+        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "00108431" },
+        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "00008431" },
+        { MakeKeyWHCNKD(16,  16,  256, 8,   512, 0), "00016421" },
+        { MakeKeyWHCNKD(28,  28,  256, 8,   512, 0), "04108221" },
+        { MakeKeyWHCNKD(28,  28,  256, 16,  512, 0), "00108231" },
+        { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "00116224" },
+        { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0), "04016261" },
+        { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0), "03016422" },
+        { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0), "00016424" },
+        { MakeKeyWHCNKD(112, 112, 256, 8,   512, 0), "00116421" },
+        { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0), "03116214" },
+        { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0), "00016418" },
     });
+
+    std::string s;
     PerfParamsAsmDirect3x3WrW pp;
-    const auto key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
-    const auto found = perf_vals_map.find(key);
-    if (found != perf_vals_map.end()) {
-        auto& v = found->second;
-        pp.limit_wave_cnt    = v[0] - '0';
-        pp.reverse_inout     = v[1] - '0';
-        pp.chunk_size        = v[2] - '0';
-        pp.k_per_wave        = v[3] - '0';
-        pp.pipe_lines_depth  = v[4] - '0';
-        pp.n_per_group       = v[5] - '0';
+    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
+    if (p_asciz) {
+        s = std::string(p_asciz);
+    }
+    if (!s.empty()) { // Parse and check non-empty string from env.
+        if (s.size() != 8) {
+            MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: bad format.");
+        }
+        static_assert('9'-'0' == 9 , "Characters must be in ASCII encoding");
+        pp.limit_wave_cnt    = 10 * (s[0] - '0') + s[1] - '0'; // two digits
+        pp.reverse_inout     = s[2] - '0';
+        pp.chunk_size        = 10 * (s[3] - '0') + s[4] - '0'; // two digits
+        pp.k_per_wave        = s[5] - '0';
+        pp.pipe_lines_depth  = s[6] - '0';
+        pp.n_per_group       = s[7] - '0';
+        // Check if values are wrong.
+        if (! ( (0 <= pp.limit_wave_cnt && pp.limit_wave_cnt <= 10)
+             && (0 <= pp.reverse_inout && pp.reverse_inout <=1)
+             && (8 == pp.chunk_size || 16 == pp.chunk_size)
+             && (1 == pp.k_per_wave || 2 == pp.k_per_wave || 4 == pp.k_per_wave || 8 == pp.k_per_wave)
+             && (1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= 8)
+             && (1 <= pp.n_per_group && pp.n_per_group <= 8) ) ) {
+            MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: out of range.");
+        }
+        if ( ((_n_outputs % (64 / pp.chunk_size) != 0) && (_n_inputs % (64 / pp.chunk_size) != 0))
+          || ((pp.reverse_inout ? _n_outputs : _n_inputs) % pp.k_per_wave != 0)
+          || !(pp.n_per_group <= _batch_sz)
+          || !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(_in_height,8)) ) {
+            MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: incorrect for the problem config.");
+        }
     } else {
-        const auto c_k = _n_outputs * _n_inputs; // C*K
-        pp.chunk_size = (_in_width < 48) ? 8 : 16;
-        {
-            auto& v = pp.reverse_inout;
-            if ((_n_outputs % 4 != 0) || (_in_width < 8))  {
-                v = 1;
-            } else {
-                v = 0;
+        // Try to get values from LUT, otherwise use algorithm.
+        const auto key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
+        const auto found = perf_vals_map.find(key);
+        if (found != perf_vals_map.end()) {
+            s = found->second;
+            /// \todo Copy-paste from above. Generalize.
+            if (s.size() != 8) {
+                MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: bad format.");
+            }
+            static_assert('9'-'0' == 9 , "Characters must be in ASCII encoding");
+            pp.limit_wave_cnt    = 10 * (s[0] - '0') + s[1] - '0'; // two digits
+            pp.reverse_inout     = s[2] - '0';
+            pp.chunk_size        = 10 * (s[3] - '0') + s[4] - '0'; // two digits
+            pp.k_per_wave        = s[5] - '0';
+            pp.pipe_lines_depth  = s[6] - '0';
+            pp.n_per_group       = s[7] - '0';
+            // Check if values are wrong.
+            if (! ( (0 <= pp.limit_wave_cnt && pp.limit_wave_cnt <= 10)
+                 && (0 <= pp.reverse_inout && pp.reverse_inout <=1)
+                 && (8 == pp.chunk_size || 16 == pp.chunk_size)
+                 && (1 == pp.k_per_wave || 2 == pp.k_per_wave || 4 == pp.k_per_wave || 8 == pp.k_per_wave)
+                 && (1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= 8)
+                 && (1 <= pp.n_per_group && pp.n_per_group <= 8) ) ) {
+                MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: out of range.");
+            }
+            if ( ((_n_outputs % (64 / pp.chunk_size) != 0) && (_n_inputs % (64 / pp.chunk_size) != 0))
+              || ((pp.reverse_inout ? _n_outputs : _n_inputs) % pp.k_per_wave != 0)
+              || !(pp.n_per_group <= _batch_sz)
+              || !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(_in_height,8)) ) {
+                MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: incorrect for the problem config.");
+            }
+        } else {
+            {
+                auto& v = pp.chunk_size;
+                v = (_in_width < 48) ? 8 : 16;
+                if ( (_n_outputs % (64 / v) != 0) && (_n_inputs % (64 / v) != 0) ) {
+                    v = 16; // Fixup for correctness
+                }
+            }
+            {
+                auto& v = pp.reverse_inout;
+                if ((_n_outputs % 4 != 0) || (_in_width < 8))  {
+                    v = 1;
+                } else {
+                    v = 0;
+                }
+            }
+            const auto c_k = _n_outputs * _n_inputs; // C*K
+            {
+                auto& v = pp.k_per_wave;
+                if (c_k < 256) {
+                    v = 1;
+                } else if (c_k < 16384){
+                    v = 2;
+                } else { // C*K >= 16k
+                    v = (pp.chunk_size == 8) ? 2 : 4;
+                }
+                while ((pp.reverse_inout ? _n_outputs : _n_inputs) % v != 0) {
+                    v /= 2; // Fixup for correctness
+                }
+            }
+            {
+                auto& v = pp.n_per_group;
+                if (c_k <= 512) {
+                    v = 8;
+                } else if (c_k <= 4096) {
+                    v = 4;
+                } else if (c_k <= 8192) {
+                    v = 2;
+                } else {
+                    v = 1;
+                }
+                if (v > _batch_sz) {
+                    v = _batch_sz; // Fixup for correctness
+                }
+            }
+            {
+                auto& v = pp.pipe_lines_depth;
+                v = (_in_height <= 1) ? 1 : 2;
+                if ((_in_height < 8) && (_in_width < 64)) {
+                    v = _in_height; // Special case.
+                }
             }
         }
-        {
-            auto& v = pp.k_per_wave;
-            if (c_k < 256) {
-                v = 1;
-            } else if (c_k < 16384){
-                v = 2;
-            } else { // C*K >= 16k
-                v = (pp.chunk_size == 8) ? 2 : 4;
-            }
-        }
-        {
-            auto& v = pp.n_per_group;
-            if (_batch_sz == 1) {
-            	v = 1;
-            } else if (c_k <= 512) {
-                v = 8;
-            } else if (c_k <= 4096) {
-                v = 4;
-            } else if (c_k <= 8192) {
-                v = 2;
-            } else {
-                v = 1;
-            }
-        }
-        pp.pipe_lines_depth = ((_in_height < 8) && (_in_width < 64)) ? _in_height : 2;
     }
     pp.c_per_wave = 64 / pp.chunk_size;
     return pp;
@@ -2778,7 +2963,7 @@ bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
     // They work fine on gfx8
     // /todo fix memory faults on gfx9
     const std::string name = _stream->GetDeviceName();
-    return !((name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54)));
+    return !(name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54));
 }
 
 
@@ -2845,9 +3030,9 @@ int mlo_construct_BwdWrW2D::mloConstruct()
     rocm_meta_version rmv = V3;
     if (mloIsAmdOpenclRocm(rmv) && rmv == V3)
     {
-        const auto use_assembly = !miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_GCN_ASM_KERNELS")
+        const auto use_assembly = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{})
                                   && ValidateGcnAssembler();
-        const auto no_perf_filtering = miopen::IsEnvvarValueDisabled("MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING");
+        const auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
         if (use_assembly) {
             if (mloIsCorrectAsmDirect3x3WrW()
                 && (no_perf_filtering || mloIsFastAsmDirect3x3WrW())) {
@@ -2882,6 +3067,30 @@ int mlo_construct_BwdWrW2D::mloConstruct()
     return(ret);
 }
 
+int mlo_construct_BwdWrW2D::mloMultiStep()
+{
+
+	int ret = 1;
+
+	if (((_kernel_size0 >= _kernel_size1) && ((_kernel_stride0 > 1 || _kernel_stride1 > 1) || (_kernel_size0 > 5) || (_kernel_size0 == 5 && _in_width >= 64))) || ((_pad0 == 0 || _pad1 == 0) && (_kernel_size0 != 1 || _kernel_size1 != 1)))
+	{
+		ret = mloConstruct2(true);
+	}
+	else if (_kernel_size0 >= _kernel_size1)
+	{
+			if ((_kernel_size0 >= 2) || (_kernel_size1 >= 2))
+			{
+				ret = mloConstruct53(true);
+			}
+			else
+			{
+				ret = mloConstruct1x1(true);
+			}
+	}
+
+
+	return(ret);
+}
 
 
 /*
