@@ -27,8 +27,8 @@ struct PerfField
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 	
-	ConvolutionDescriptor(int p_pad_h = 0, int p_pad_w = 0, int p_u = 1, int p_v = 1, int p_upscalex = 1, int p_upscaley = 1);
-	ConvolutionDescriptor(miopenConvolutionMode_t p_mode, int p_pad_h = 0, int p_pad_w = 0, int p_u = 1, int p_v = 1, int p_upscalex = 1, int p_upscaley = 1);
+	ConvolutionDescriptor(int p_pad_h = 0, int p_pad_w = 0, int p_u = 1, int p_v = 1, int p_dilation_h = 1, int p_dilation_w = 1);
+	ConvolutionDescriptor(miopenConvolutionMode_t p_mode, int p_pad_h = 0, int p_pad_w = 0, int p_u = 1, int p_v = 1, int p_dilation_h = 1, int p_dilation_w = 1);
 
 	std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& inputTensorDesc,
 										const TensorDescriptor& filterDesc) const;
@@ -232,8 +232,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 	int pad_w;
 	int u;
 	int v;
-	int upscalex;
-	int upscaley;
+	int dilation_h;
+	int dilation_w;
 };
 
 void ConvolutionBackwardBias(Handle& handle,

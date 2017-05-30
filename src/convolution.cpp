@@ -3,18 +3,18 @@
 
 namespace miopen {
 
-ConvolutionDescriptor::ConvolutionDescriptor(int p_pad_h, int p_pad_w, int p_u, int p_v, int p_upscalex, int p_upscaley) 
-: mode(miopenConvolution), pad_h(p_pad_h), pad_w(p_pad_w), u(p_u), v(p_v), upscalex(p_upscalex), upscaley(p_upscaley) 
+ConvolutionDescriptor::ConvolutionDescriptor(int p_pad_h, int p_pad_w, int p_u, int p_v, int p_dilation_h, int p_dilation_w) 
+: mode(miopenConvolution), pad_h(p_pad_h), pad_w(p_pad_w), u(p_u), v(p_v), dilation_h(p_dilation_h), dilation_w(p_dilation_w) 
 {
-	if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0) {
+	if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0 || dilation_h < 0 || dilation_w < 0) {
 		MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
 	}
 }
 
-ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode, int p_pad_h, int p_pad_w, int p_u, int p_v, int p_upscalex, int p_upscaley)
-: mode(p_mode), pad_h(p_pad_h), pad_w(p_pad_w), u(p_u), v(p_v), upscalex(p_upscalex), upscaley(p_upscaley)
+ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode, int p_pad_h, int p_pad_w, int p_u, int p_v, int p_dilation_h, int p_dilation_w)
+: mode(p_mode), pad_h(p_pad_h), pad_w(p_pad_w), u(p_u), v(p_v), dilation_h(p_dilation_h), dilation_w(p_dilation_w)
 {
-	if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0) {
+	if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0 || dilation_h < 0 || dilation_w < 0) {
 		MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
 	}
 }
@@ -273,7 +273,7 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
     construct_params.setOutputDescFromMLDesc(dyDesc);
     construct_params.setInputDescFromMLDesc(xDesc);
     construct_params.setWeightDescFromMLDesc(dwDesc);
-    construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.mloConstruct();
 
     return construct_params.getWorkSpaceSzBytes();
@@ -296,8 +296,8 @@ std::ostream& operator<< (std::ostream& stream, const ConvolutionDescriptor& c)
 	stream << c.pad_w << ", ";
 	stream << c.u << ", ";
 	stream << c.v << ", ";
-	stream << c.upscalex << ", ";
-	stream << c.upscaley << ", ";
+	stream << c.dilation_h << ", ";
+	stream << c.dilation_w << ", ";
 	return stream;
 }
 
