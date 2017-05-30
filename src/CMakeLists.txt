@@ -36,6 +36,7 @@ set( MIOpen_Source
     convolution_fft.cpp
     errors.cpp
     pooling_api.cpp
+    kernel_warnings.cpp
     logger.cpp
     lrn_api.cpp
     activ_api.cpp

@@ -13,6 +13,7 @@ namespace miopen {
 struct ActivationDescriptor : miopenActivationDescriptor{
 	ActivationDescriptor();
 	ActivationDescriptor(miopenActivationMode_t m, const double *pparms);
+	ActivationDescriptor(miopenActivationMode_t m, double alpha, double beta, double power);
 
 	miopenActivationMode_t GetMode() const;
 	double GetAlpha() const;
