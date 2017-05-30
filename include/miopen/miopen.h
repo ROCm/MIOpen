@@ -86,8 +86,8 @@ typedef enum {
 } miopenTensorOp_t;
 
 typedef enum {
-    miopenConvolution      = 0,
-    miopenCrossCorrelation = 1,
+    miopenConvolution   = 0,
+    miopenDeconvolution = 1,
 } miopenConvolutionMode_t;
 
 typedef enum {
@@ -101,8 +101,8 @@ typedef enum {
 } miopenLRNMode_t;
 
 typedef enum {
-        miopenBNPerActivation = 0,
-        miopenBNSpatial       = 1,
+   miopenBNPerActivation = 0,
+   miopenBNSpatial       = 1,
 }miopenBatchNormMode_t;
 
 
@@ -200,8 +200,8 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
         int                             pad_w,
         int                             u,
         int                             v,
-        int                             upscalex,
-        int                             upscaley);
+        int                             dilation_h,
+        int                             dilation_w);
 
 MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
         miopenConvolutionMode_t         *mode,
@@ -209,8 +209,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
         int                             *pad_w,
         int                             *u,
         int                             *v,
-        int                             *upscalex,
-        int                             *upscaley);
+        int                             *dilation_h,
+        int                             *dilation_w);
 
 /* This function returns the dimensions of the resulting 4D tensor of a 2D
  * convolution, given the convolution descriptor, the input tensor descriptor

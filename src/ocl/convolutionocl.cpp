@@ -44,7 +44,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
     construct_params.setInputDescFromMLDesc(xDesc);
     construct_params.setWeightDescFromMLDesc(wDesc);
 
-    construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
     if(construct_params.mloConstruct() != -1) { //TODO: be more graceful with the check for whether a config is supported by winograd
         std::string program_name = construct_params.getKernelFile(); 
@@ -102,7 +102,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     construct_params.setInputDescFromMLDesc(xDesc);
     construct_params.setWeightDescFromMLDesc(wDesc);
 
-    construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
     if(construct_params.mloIsCompilerWorkarounds())
         return -1;
@@ -370,7 +370,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             construct_params.setOutputDescFromMLDesc(yDesc);
             construct_params.setInputDescFromMLDesc(xDesc);
             construct_params.setWeightDescFromMLDesc(wDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
             construct_params.setStream(&handle);
 
             std::string network_config;
@@ -900,7 +900,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         construct_params.setOutputDescFromMLDesc(dyDesc);
         construct_params.setInputDescFromMLDesc(xDesc);
         construct_params.setWeightDescFromMLDesc(dwDesc);
-        construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
         if(! construct_params.mloIsCompilerWorkarounds()) 
         {
@@ -1106,7 +1106,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 construct_params.setOutputDescFromMLDesc(dyDesc);
                 construct_params.setInputDescFromMLDesc(xDesc);
                 construct_params.setWeightDescFromMLDesc(dwDesc);
-                construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
+                construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
                 std::string network_config;
                 construct_params.mloBuildConf_Key(network_config);
