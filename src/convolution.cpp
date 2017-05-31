@@ -106,7 +106,11 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 		const TensorDescriptor& yDesc) const
 {
 	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
-	size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
+	size_t workspace_size_fft;
+	if (mode == miopenDeconvolution)
+	    workspace_size_fft = 0;
+	else
+	    workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
 
 	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
 }
