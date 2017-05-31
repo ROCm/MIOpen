@@ -231,7 +231,7 @@ std::vector<int> ConvDriver<T>::GetWeightTensorLengthsFromCmdLine() {
 template<typename T>
 int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs() {
 
-	miopenConvolutionMode_t mode = miopenConvolution;
+	miopenConvolutionMode_t mode = miopenDeconvolution;
 	int pad_h = inflags.GetValueInt("pad_h");
 	int pad_w = inflags.GetValueInt("pad_w");
 	int u = inflags.GetValueInt("conv_stride_0");
