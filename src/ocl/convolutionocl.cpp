@@ -337,12 +337,12 @@ else if (mode == miopenDeconvolution) {
 #if MIOPEN_USE_TINYGEMM
 	size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
 	float time_gemm = 0;
-	GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+	GemmGeometry gg = CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, false, network_config);
 
 	// 1x1 does not require im2col or workspace
 	if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
-		gg.FindSolution(.003, handle, x, w, tmp_y.get(), false);
-		gg.RunGemm(handle, x, w, tmp_y.get(), 0, 0, 0);
+		gg.FindSolution(.003, handle, w, x, tmp_y.get(), false);
+		gg.RunGemm(handle, w, x, tmp_y.get(), 0, 0, 0);
 
 		time_gemm = in_n * handle.GetKernelTime();
 		perf_db.push_back(PerfField{ "miopenConvolutionFwdAlgoGEMM", time_gemm, 0 });
@@ -353,8 +353,8 @@ else if (mode == miopenDeconvolution) {
 		float time_col2im = 0;
 		size_t out_offset = 0;
 
-		gg.FindSolution(.003, handle, x, w, workSpace, false);
-		gg.RunGemm(handle, x, w, workSpace, 0, 0, 0);
+		gg.FindSolution(.003, handle, w, x, workSpace, false);
+		gg.RunGemm(handle, w, x, workSpace, 0, 0, 0);
 
 		time_gemm = in_n * handle.GetKernelTime();
 		time_col2im = Col2ImGPU(handle, workSpace, in_h, in_w, wei_h, wei_w, pad_h, pad_w, u, v, wei_c, out_h, out_w, tmp_y.get(), out_offset);
@@ -588,7 +588,7 @@ else if (mode == miopenDeconvolution) {
 	std::string network_config;
 
 #if MIOPEN_USE_TINYGEMM
-	CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+	CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, false, network_config);
 	GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
 	float time_0 = 0;
@@ -601,7 +601,7 @@ else if (mode == miopenDeconvolution) {
 			if (handle.IsProfilingEnabled())
 				t1 = handle.GetKernelTime();
 
-			gg.RunGemm(handle, x, w, workSpace, in_offset, 0, 0);
+			gg.RunGemm(handle, w, x, workSpace, 0, in_offset, 0);
 
 			Col2ImGPU(handle, workSpace, in_h, in_w, wei_h, wei_w, pad_h, pad_w, u, v, wei_c, out_h, out_w, y, out_offset);
 
@@ -616,7 +616,7 @@ else if (mode == miopenDeconvolution) {
 		}
 		else if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
 			int in_offset = i * in_c * in_h * in_w;
-			gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
+			gg.RunGemm(handle, w, x, y, 0, in_offset, out_offset);
 			if (handle.IsProfilingEnabled()) {
 				if (i == in_n - 1)
 					handle.AccumKernelTime(time_0);
