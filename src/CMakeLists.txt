@@ -249,6 +249,7 @@ install( FILES
 # Install db files
 install(FILES 
     Kernels/gfx803_64.cd.pdb.txt
+    Kernels/gfx900_64.cd.pdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 install(TARGETS MIOpen 
