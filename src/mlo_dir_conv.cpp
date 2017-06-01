@@ -627,7 +627,7 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version r
         if(rmv == V1 || rmv == V2)
             MIOPEN_THROW("Metadata versions v1 or v2 is not supported on gfx9 devices");
 
-        _kernel_file = "conv_3x3_wheel_alpha_v5_1_1b_gfx900.so";
+        _kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900.so";
     }
 
     return 0;
