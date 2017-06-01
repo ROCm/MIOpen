@@ -225,6 +225,7 @@ std::vector<int> ConvDriver<T>::GetWeightTensorLengthsFromCmdLine() {
 	int wei_h = inflags.GetValueInt("fil_h");
 	int wei_w = inflags.GetValueInt("fil_w");
 
+	miopenConvolutionMode_t mode = miopenDeconvolution;
 	if(mode == miopenDeconvolution)
 		return std::vector<int>({ wei_c, wei_n, wei_h, wei_w });
 
