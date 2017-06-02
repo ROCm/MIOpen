@@ -87,7 +87,7 @@ void ActivationFunction_Sigmoid(int n, _T * res, const _T* data)
 	for (int i = 0; i < n; i++)
 	{
 		// 1/(1 + exp(-x))  
-		res[i] = (1.f + exp(-data[i]));
+		res[i] = 1/(1.f + exp(-data[i]));
 	}
 }
 
