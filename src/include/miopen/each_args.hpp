@@ -59,6 +59,10 @@ void each_args(F f, Ts&&... xs)
     (void)std::initializer_list<int>{(f(std::forward<Ts>(xs)), 0)...};
 }
 
+// Workaround for gcc warnings
+template<class F>
+void each_args(F) {}
+
 template<class F, std::size_t ... Ns, class T>
 void unpack(F f, T&& x)
 {

@@ -26,6 +26,7 @@
 #define _FLOAT4					float4
 #define _FLOAT8					float8
 
+#define UNUSED __attribute__((__unused__))
 
 #define MLO_NRN_GROUP_SZ2 1
 
@@ -79,7 +80,7 @@ void ActivationFunction_Sigmoid(int n, _FLOAT * res, const _FLOAT* data)
 	for(int i = 0; i < n; i++)
 	{
 // 1/(1 + exp(-x))  
-		res[i] = (1.f + exp(-data[i]));
+		res[i] = 1.f / (1.f + exp(-data[i]));
 	}
 }
 
@@ -168,8 +169,12 @@ void ActivationFunction(int n, _FLOAT * res, const _FLOAT* data,
 							_FLOAT alpha,
 							_FLOAT beta)
 {
+	(void)power;
+	(void)alpha;
+	(void)beta;
 #if		MLO_NRN_OP_ID==MLO_NEURON_PASTHRU
-	ActivationFunction_PassThru(n, res, data);
+	(void)n;
+	ActivationFunction_PassThru(res, data);
 
 #elif	MLO_NRN_OP_ID==MLO_NEURON_LOGISTIC
 // 1/(1 + exp(-x))  
@@ -215,10 +220,10 @@ void ActivationFunction(int n, _FLOAT * res, const _FLOAT* data,
 /*									DIFF                                      */
 /******************************************************************************/
 
-__constant _FLOAT kBNLL_THRESHOLD = 50.;
+static __constant _FLOAT kBNLL_THRESHOLD = 50.;
 
 __attribute__((always_inline))
-void ActivationFunction_ReLU_Diff(int n, _FLOAT * bot_diff, const _FLOAT* top_diff, const _FLOAT *bot_data, _FLOAT negative_slope)
+void ActivationFunction_ReLU_Diff(int n, _FLOAT * bot_diff, const _FLOAT* top_diff, const _FLOAT *bot_data, UNUSED _FLOAT negative_slope)
 {
 
 	for (int i = 0; i < n; ++i)
@@ -256,7 +261,7 @@ void ActivationFunction_Abs_Diff(int n, _FLOAT * bot_diff, const _FLOAT* top_dif
 {
 	for (int i = 0; i < n; i++)
 	{
-		bot_diff[i] = top_diff[i] * ((bot_data >= 0 ) ? 1 : -1);
+		bot_diff[i] = top_diff[i] * ((bot_data != 0 ) ? 1 : -1);
 	}
 }
 
@@ -264,9 +269,9 @@ void ActivationFunction_Abs_Diff(int n, _FLOAT * bot_diff, const _FLOAT* top_dif
 // Compute dy/dx = scale * power * (shift + scale * x)^(power - 1)
 //               = diff_scale * y / (shift + scale * x)
 __attribute__((always_inline))
-void ActivationFunction_Power_Diff(int n, _FLOAT * bot_diff, const _FLOAT* top_diff, const _FLOAT *top_data, const _FLOAT *bot_data,
+void ActivationFunction_Power_Diff(int n, _FLOAT * bot_diff, UNUSED const _FLOAT* top_diff, const _FLOAT *top_data, const _FLOAT *bot_data,
 _FLOAT diff_scale,
-_FLOAT power,
+UNUSED _FLOAT power,
 _FLOAT scale,
 _FLOAT shift)
 {
@@ -365,6 +370,11 @@ __kernel void MIOpenNeuronBwd(__global _FLOAT * bot_diff,
 							_FLOAT scale,
 							_FLOAT shift	   )
 {
+
+	(void)diff_scale;
+	(void)power;
+	(void)scale;
+	(void)shift;
 
 	int x = get_global_id(0); // channel x
 

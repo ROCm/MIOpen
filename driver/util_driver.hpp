@@ -33,4 +33,33 @@ void Im2ColCPU(	std::vector<T> &in, const size_t in_offset,
 	}
 }
 
+
+template<typename T>
+void Col2ImCPU(std::vector<T> data_col, const int channels,
+	const int height, const int width, const int ksize, const int pad,
+	const int stride, std::vector<T> data_im) {
+	memset(data_im, 0, sizeof(T) * height * width * channels);
+	int height_col = (height + 2 * pad - ksize) / stride + 1;
+	int width_col = (width + 2 * pad - ksize) / stride + 1;
+	height_col = (height_col < 0) ? 1 : height_col;
+	width_col = (width_col < 0) ? 1 : width_col;
+	int channels_col = channels * ksize * ksize;
+	for (int c = 0; c < channels_col; ++c) {
+		int w_offset = c % ksize;
+		int h_offset = (c / ksize) % ksize;
+		int c_im = c / ksize / ksize;
+		for (int h = 0; h < height_col; ++h) {
+			for (int w = 0; w < width_col; ++w) {
+				int h_pad = h * stride - pad + h_offset;
+				int w_pad = w * stride - pad + w_offset;
+				if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
+				{
+					data_im[(c_im * height + h_pad) * width + w_pad] +=
+						data_col[(c * height_col + h) * width_col + w];
+				}
+			}
+		}
+	}
+}
+
 #endif // GUARD_MIOPEN_UTIL_DRIVER_HPP

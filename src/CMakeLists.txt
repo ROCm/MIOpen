@@ -36,6 +36,7 @@ set( MIOpen_Source
     convolution_fft.cpp
     errors.cpp
     pooling_api.cpp
+    kernel_warnings.cpp
     logger.cpp
     lrn_api.cpp
     activ_api.cpp
@@ -84,6 +85,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         Kernels/MIOpenSoftmax.cl
         Kernels/MIOpenConvD3x3.cl
         Kernels/MIOpenUtilKernels.cl
+        Kernels/MIOpenUtilKernels2.cl
         Kernels/MIOpenConvBwdWrWS2.cl
         Kernels/MIOpenConvBwdWrW_LxG_P53.cl
         Kernels/MIOpenConvBwdWrW_LxG_5x5.cl
@@ -97,6 +99,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         Kernels/conv5x10u2v2b1.s
         Kernels/MIOpenTensorKernels.cl
         Kernels/MIOpenTensorScaleKernel.cl
+        Kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900.so
         Kernels/conv_3x3_wheel_alpha_v5_1_1b_gfx900.so
         Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
         Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
@@ -246,6 +249,7 @@ install( FILES
 # Install db files
 install(FILES 
     Kernels/gfx803_64.cd.pdb.txt
+    Kernels/gfx900_64.cd.pdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 install(TARGETS MIOpen 
