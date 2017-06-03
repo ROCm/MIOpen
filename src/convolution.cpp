@@ -57,7 +57,7 @@ const
 		output_h = std::max(1, (input_h - filter_h + 2 * pad_h) / u + 1);
 		output_w = std::max(1, (input_w - filter_w + 2 * pad_w) / v + 1);
 	}
-	else if (mode == miopenDeconvolution) {
+	else if (mode == miopenTranspose) {
 		output_c = filter_c;
 		output_h = std::max(1, u * (input_h - 1) + filter_h - 2 * pad_h );
 		output_w = std::max(1, v * (input_w - 1) + filter_w - 2 * pad_w );
@@ -107,7 +107,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 {
 	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
 	size_t workspace_size_fft;
-	if (mode == miopenDeconvolution)
+	if (mode == miopenTranspose)
 	    workspace_size_fft = 0;
 	else
 	    workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
