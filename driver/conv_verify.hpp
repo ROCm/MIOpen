@@ -20,7 +20,7 @@ void RunBackwardWeightsCPUVerify(
 	(void)wei_wstride; // -warn
 	(void)out_wstride; // -warn
 #endif
-
+#if 0
 	std::vector<double> t_wei(wei_n *wei_c * wei_h * wei_w, 0);
 	for (int o = 0; o < out_n; o++) // mini-batch size
 	{
@@ -56,7 +56,7 @@ void RunBackwardWeightsCPUVerify(
 	{
 		dwei_host[i] = static_cast<T>(t_wei[i]);
 	}
-		
+#endif		
 #ifdef BACKWARD_WRW_VERIFY_DIRECT_2
 
 	{
@@ -131,8 +131,8 @@ void RunBackwardWeightsCPUVerify(
 #endif
 
 
-#ifdef BACKWARD_WRW_VERIFY_GEMM
-
+//#ifdef BACKWARD_WRW_VERIFY_GEMM
+#if 1
 	{
 		assert(u == v);
 		assert(pad_h == pad_w);

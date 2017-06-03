@@ -318,7 +318,7 @@ if(mode == miopenConvolution){
     }
 
 }
-else if (mode == miopenDeconvolution) {
+else if (mode == miopenTranspose) {
 	// GEMM based
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
@@ -569,7 +569,7 @@ if (mode == miopenConvolution) {
         break;
     }
 }
-else if (mode == miopenDeconvolution) {
+else if (mode == miopenTranspose) {
 	// GEMM based
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
@@ -589,7 +589,7 @@ else if (mode == miopenDeconvolution) {
 
 #if MIOPEN_USE_TINYGEMM
 	CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, false, network_config);
-	GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
+	GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
 
 	float time_0 = 0;
 	float t1 = 0;

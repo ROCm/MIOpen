@@ -5,6 +5,7 @@
 #include <fstream>
 #include <miopen/miopen.h>
 #include <sstream>
+#include <cstring>
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "conv_verify.hpp"
@@ -225,8 +226,8 @@ std::vector<int> ConvDriver<T>::GetWeightTensorLengthsFromCmdLine() {
 	int wei_h = inflags.GetValueInt("fil_h");
 	int wei_w = inflags.GetValueInt("fil_w");
 
-	miopenConvolutionMode_t mode = miopenDeconvolution;
-	if(mode == miopenDeconvolution)
+	miopenConvolutionMode_t mode = miopenTranspose;
+	if(mode == miopenTranspose)
 		return std::vector<int>({ wei_c, wei_n, wei_h, wei_w });
 
 	return std::vector<int> ({wei_n, wei_c, wei_h, wei_w});
@@ -235,7 +236,7 @@ std::vector<int> ConvDriver<T>::GetWeightTensorLengthsFromCmdLine() {
 template<typename T>
 int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs() {
 
-	miopenConvolutionMode_t mode = miopenDeconvolution;
+	miopenConvolutionMode_t mode = miopenTranspose;
 	int pad_h = inflags.GetValueInt("pad_h");
 	int pad_w = inflags.GetValueInt("pad_w");
 	int u = inflags.GetValueInt("conv_stride_0");
@@ -489,9 +490,9 @@ int ConvDriver<T>::RunForwardCPU() {
 
 	int wei_n, wei_c, wei_h, wei_w;
 	int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-	miopenGet4dTensorDescriptor(weightTensor, &dt,
-			&wei_n, &wei_c, &wei_h, &wei_w,
-			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+//	miopenGet4dTensorDescriptor(weightTensor, &dt,
+//			&wei_n, &wei_c, &wei_h, &wei_w,
+//			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	int out_n, out_c, out_h, out_w;
 	int out_nstride, out_cstride, out_hstride, out_wstride;
@@ -502,6 +503,11 @@ int ConvDriver<T>::RunForwardCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	miopenConvolutionMode_t mode;
 	miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+
+if (mode == miopenConvolution){
+    miopenGet4dTensorDescriptor(weightTensor, &dt,
+	    &wei_n, &wei_c, &wei_h, &wei_w,
+	    &wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	for(int o = 0; o < out_n; o++) { // mini-batch size
 		for(int w = 0; w < out_c; w++) { // out_channels (num filters)
@@ -530,6 +536,121 @@ int ConvDriver<T>::RunForwardCPU() {
 			}
 		}
 	}
+}
+else if(mode == miopenTranspose){	
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_c, &wei_n, &wei_h, &wei_w,
+		&wei_cstride, &wei_nstride, &wei_hstride, &wei_wstride);
+#if 1
+		assert(u == v);
+		assert(pad_h == pad_w);
+
+		std::fill(outhost.begin(), outhost.end(), (T)0);
+
+		int batch_sz = in_n;
+		int outputs = out_c;
+		int inputs = in_c;
+
+		int bot_batch_stride = in_c*in_h*in_w;
+		int bot_channel_stride = in_h*in_w;
+		int bot_stride = in_w;
+		int bot_height = in_h;
+		int bot_width = in_w;
+
+		int top_width = out_w;
+		int top_height = out_h;
+		int top_channel_stride = top_width * top_height;
+		int top_batch_stride = top_channel_stride * out_c;
+
+		int weights_width = wei_w * wei_h * wei_n;
+		int weights_height = wei_c;
+		int weights_stride = weights_width;
+//		int kernel_size = wei_w;
+
+		int pad = pad_w;
+		int stride = v;
+
+		// allocate raw data for in, out, wei for using gemm/col2im aDNN functions
+		T * weights_ptr = new T[weights_width * weights_height];
+		T * top_ptr = new T[out_n*out_c*out_h*out_w];
+		T * bot_ptr = new T[in_n*in_c*in_h*in_w];
+
+		// copy input (in) into packed
+		for (int n = 0; n < in_n; n++)
+		{
+			for (int c = 0; c < in_c; c++)
+			{
+				for (int h = 0; h < in_h; h++)
+				{
+					for (int w = 0; w < in_w; w++)
+					{
+						bot_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w] = in[n*in_nstride + c*in_cstride + h*in_hstride + w];
+					}
+				}
+			}
+		}
+
+		// copy weights (weights) into packed
+		for (int c = 0; c < wei_c; c++)
+		{
+			for (int n = 0; n < wei_n; n++)
+			{
+				for (int h = 0; h < wei_h; h++)
+				{
+					for (int w = 0; w < wei_w; w++)
+					{
+						weights_ptr[c*wei_n*wei_h*wei_w + n*wei_h*wei_w + h*wei_w + w] = wei[c*wei_cstride + n*wei_nstride + h*wei_hstride + w];
+					}
+				}
+			}
+		}
+
+		int col2im_batch_stride = weights_width * bot_channel_stride;
+		T * col2im_ptr = new T[col2im_batch_stride * batch_sz];
+
+#define ADNN_MM_TRANSPOSE 1
+		memset(col2im_ptr, 0, col2im_batch_stride * batch_sz * sizeof(T));
+		memset(top_ptr, 0, out_n * out_c * out_h * out_w * sizeof(T));
+		for (int b = 0; b < batch_sz; ++b)
+		{
+			// sum up over mini-batch
+			ADNN_mm_cpu<T>((const T*)&weights_ptr[0], weights_width, weights_height, weights_stride, ADNN_MM_TRANSPOSE,
+				(const T *)&bot_ptr[bot_batch_stride * b], in_h*in_w, inputs, bot_channel_stride, 0,
+				&col2im_ptr[col2im_batch_stride * b], bot_channel_stride, weights_width, bot_channel_stride, 0,
+				1, 1);
+
+			ADNN_col2im_cpu(&col2im_ptr[col2im_batch_stride * b], outputs,
+				top_height, top_width, wei_h, wei_w, pad,
+				stride, &top_ptr[top_batch_stride * b]);
+		}
+
+		// read back packed delta weight
+		for (int n = 0; n < out_n; n++)
+		{
+			for (int c = 0; c < out_c; c++)
+			{
+				for (int h = 0; h < out_h; h++)
+				{
+					for (int w = 0; w < out_w; w++)
+					{
+						outhost[n*out_nstride + c*out_cstride + h*out_hstride + w] = top_ptr[n*out_c*out_h*out_w + c*out_h*out_w + h*out_w + w];
+					}
+				}
+			}
+		}
+
+		delete[] col2im_ptr;
+		delete[] weights_ptr;
+		delete[] top_ptr;
+		delete[] bot_ptr;
+
+#else
+	(void)in_n; // -warning
+	(void)wei_c; // -warning
+	(void)wei_n; // -warning
+#endif
+
+}
 
 	if(inflags.GetValueInt("dump_output")) {
 		dumpBufferToFile("dump_fwd_out_cpu.bin", outhost.data(), outhost.size());

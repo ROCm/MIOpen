@@ -87,7 +87,7 @@ typedef enum {
 
 typedef enum {
     miopenConvolution   = 0,
-    miopenDeconvolution = 1,
+    miopenTranspose = 1,
 } miopenConvolutionMode_t;
 
 typedef enum {
