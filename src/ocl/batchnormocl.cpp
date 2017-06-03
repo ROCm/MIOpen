@@ -169,7 +169,7 @@ void BatchNormForwardTraining(
                 
                 unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
                 parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
-                unsigned long long lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/16384)*numwgs);
+                auto lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/16384)*numwgs);
                 
                 if(lds_size <= 1){    
                     parms += " -DMIO_BN_VARIANT=1";
@@ -245,7 +245,7 @@ void BatchNormForwardTraining(
                 
                 unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
                 parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
-                unsigned long long lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/8192)*numwgs);
+                auto lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/8192)*numwgs);
                 if(lds_size > 1){
                     parms += " -DMIO_BN_VARIANT=3";
                 }else{
@@ -379,13 +379,8 @@ void BatchNormForwardTraining(
                             parms)(x, y, bnScale, bnBias);
                     
                     #if(MIO_BN_OCL_SEQ_TIMING == 1)
-                        ktime = handle.GetKernelTime();  
+                        handle.GetKernelTime();  
                         handle.AccumKernelTime(ctime);
-                        ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
-                        printf("ktime: %f\n",ktime);
-                        printf("ctime: %f\n",ctime);
-                    #endif
                     #endif
                     
                 }else if(resultsave){
@@ -456,13 +451,8 @@ void BatchNormForwardTraining(
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (x, y, bnScale, bnBias);
                     #if(MIO_BN_OCL_SEQ_TIMING == 1)
-                        ktime = handle.GetKernelTime();   
+                        handle.GetKernelTime();  
                         handle.AccumKernelTime(ctime);
-                        ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
-                        printf("ktime: %f\n",ktime);
-                        printf("ctime: %f\n",ctime);
-                    #endif
                     #endif
 
                 }else if(resultrunning){
@@ -532,13 +522,8 @@ void BatchNormForwardTraining(
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)( x, y, bnScale, bnBias);
                     #if(MIO_BN_OCL_SEQ_TIMING == 1)      
-                        ktime = handle.GetKernelTime();    
+                        handle.GetKernelTime();   
                         handle.AccumKernelTime(ctime);
-                        ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
-                        printf("ktime: %f\n",ktime);
-                        printf("ctime: %f\n",ctime);
-                    #endif
                     #endif                    
                     
                     
@@ -613,13 +598,8 @@ void BatchNormForwardTraining(
                             network_config,	program_name, kernel_subname, vld, vgd,
                             parms)( x, y, bnScale, bnBias);
                     #if(MIO_BN_OCL_SEQ_TIMING == 1)      
-                        ktime = handle.GetKernelTime();    
+                        handle.GetKernelTime();    
                         handle.AccumKernelTime(ctime);
-                        ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
-                        printf("ktime: %f\n",ktime);
-                        printf("ctime: %f\n",ctime);
-                    #endif
                     #endif                    
                 }        
               }
@@ -1015,7 +995,7 @@ void BatchNormBackward(
                 parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP2="+std::to_string(1);
                 
-                unsigned long long lds_size = static_cast<unsigned long long>(((in_cstride*n+2*ylocalsize+3)/8192)*numwgs);
+                auto lds_size = static_cast<unsigned long long>(((in_cstride*n+2*ylocalsize+3)/8192)*numwgs);
                // printf("lds size: %llu\n", 4*lds_size);fflush(nullptr);
                 
                 if(lds_size <= 1 && in_cstride <= 256){
@@ -1101,38 +1081,33 @@ void BatchNormBackward(
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (dx, resultBnScaleDiff );
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
+		    #if(MIO_BN_OCL_SEQ_TIMING == 1)
                     ktime = handle.GetKernelTime();    
                     ctime+=ktime;
                     #if(MIOPEN_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
                     #endif
-#else
+		    #else
                     handle.Finish();
-#endif                    
+		    #endif                    
                     kernel_subname = kernel_name + "DX";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                                     parms)( x, dy, dx, bnScale, 
                                             resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance);	
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    
-                    ktime = handle.GetKernelTime();  
+		    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+              
+                    handle.GetKernelTime(); 
                     handle.AccumKernelTime(ctime);
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
-                        printf("ktime: %f\n",ktime);
-                        printf("ctime: %f\n",ctime);
-                    #endif
-#endif                    
+		    #endif                    
         }
             }else{
 
                 parms += " -DMIO_BN_GRP0="+std::to_string(1);
                 parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP2="+std::to_string(1);
-                unsigned long long lds_size = static_cast<unsigned long long>(((in_cstride*n+2*ylocalsize+3)/8192)*numwgs);
+                auto lds_size = static_cast<unsigned long long>(((in_cstride*n+2*ylocalsize+3)/8192)*numwgs);
                 //printf("lds size: %llu\n", 4* lds_size);fflush(nullptr);
                 
                 if(lds_size <= 1 && in_cstride <= 256){
@@ -1286,14 +1261,8 @@ void BatchNormBackward(
                             parms)( x, dy, dx, bnScale, resultBnScaleDiff, resultBnBiasDiff);
 #if(MIO_BN_OCL_SEQ_TIMING == 1)
                     
-                    ktime = handle.GetKernelTime();  
+                    handle.GetKernelTime(); 
                     handle.AccumKernelTime(ctime);
-                    ctime+=ktime;
-                    
-                    #if(MIOPEN_BN_CPP_PROF == 1)
-                        printf("ktime: %f\n",ktime);
-                        printf("ctime: %f\n",ctime);
-                    #endif
 #endif                
                 }
             }
