@@ -1,4 +1,4 @@
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/tensor_extra.hpp>
 #include <array>
 #include <iostream>

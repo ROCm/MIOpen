@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_extra.hpp>
-#include <miopen.h>
+#include <miopen/miopen.h>
 
 std::vector<int> GetTensorLengths(miopenTensorDescriptor_t &tensor){
 	int n;	

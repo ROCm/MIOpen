@@ -1,7 +1,7 @@
 #ifndef MIOPEN_UTIL_HPP_
 #define MIOPEN_UTIL_HPP_
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
@@ -19,6 +19,16 @@ float Im2ColGPU(
 	int pad_h, int	pad_w,
 	int stride_h, int stride_w,
 	Data_t					col);
+
+float Col2ImGPU(
+	Handle	&handle,
+	ConstData_t col,
+	int col_h, int col_w,
+	int wei_h, int wei_w,
+	int pad_h, int	pad_w,
+	int stride_h, int stride_w,
+	int c, int h, int w,
+	Data_t im, size_t im_offset);
 
 } // namespace miopen
 #endif // _MIOPEN_UTIL_HPP_

@@ -11,9 +11,7 @@ miopenStatus_t ActivationDescriptor::Forward(
 		ConstData_t				x,
 		const void					* /* beta */,
 		const TensorDescriptor		&yDesc,
-		Data_t						y,
-		bool                        do_backward,
-		Data_t						/* workSpace */) {
+		Data_t						y) {
 
 	miopenStatus_t status = miopenStatusSuccess;
 
@@ -72,7 +70,6 @@ miopenStatus_t ActivationDescriptor::Forward(
 	double activ_beta = GetBeta();
 	double activ_power = GetPower();
 
-	construct_params.doBackward(do_backward);
 	construct_params.setNeuronDescr(static_cast<int>(mode), activ_power, activ_beta, activ_alpha);
 
 	status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
@@ -115,8 +112,7 @@ miopenStatus_t ActivationDescriptor :: Backward(
 		ConstData_t		  		x,
 		const void			  		* /* beta */,
 		const TensorDescriptor		&dxDesc,
-		Data_t						dx,
-		ConstData_t				/* workSpace */) {
+		Data_t						dx) { 
 
 	miopenStatus_t status = miopenStatusSuccess;
 

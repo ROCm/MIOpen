@@ -5,7 +5,7 @@
 #include <string>
 #include <iostream>
 #include <tuple>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/returns.hpp>
 

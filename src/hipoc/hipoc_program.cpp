@@ -2,6 +2,8 @@
 #include <miopen/kernel.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/kernel_warnings.hpp>
 
 #include <sstream>
 
@@ -77,7 +79,12 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
     std::string src = is_kernel_str ? program_name : GetKernelSrc(program_name);
     if (!is_kernel_str && miopen::EndsWith(program_name, ".so"))
     {
-        WriteFile(src, hsaco_file);        
+        WriteFile(src, hsaco_file);
+    }
+    else if (!is_kernel_str && miopen::EndsWith(program_name, ".s"))
+    {
+        AmdgcnAssemble(src, params);
+        WriteFile(src, hsaco_file);
     }
     else
     {
@@ -85,7 +92,8 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
         WriteFile(src, dir.path(filename));
 
 #if MIOPEN_BUILD_DEV
-        params += " -Werror -Weverything -Wno-shorten-64-to-32 -Wno-unused-macros -Wno-unused-function -Wno-sign-compare -Wno-reserved-id-macro -Wno-sign-conversion -Wno-missing-prototypes -Wno-cast-qual -Wno-cast-align -Wno-conversion -Wno-double-promotion -Wno-conditional-uninitialized -Wno-sometimes-uninitialized";
+        params += " -Werror" + KernelWarningsString();
+        // params += " -Werror -Weverything -Wno-shorten-64-to-32 -Wno-unused-macros -Wno-unused-function -Wno-sign-compare -Wno-reserved-id-macro -Wno-sign-conversion -Wno-missing-prototypes -Wno-cast-qual -Wno-cast-align -Wno-conversion -Wno-double-promotion";
 #else
         params += " -Wno-everything";
 #endif
