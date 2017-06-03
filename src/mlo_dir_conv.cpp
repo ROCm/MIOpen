@@ -304,15 +304,19 @@ int mlo_construct_direct2D::mloConstruct()
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
-				return (mloConstructAsmDirect3x3U(rmv));
+				return mloConstructAsmDirect3x3U(rmv);
 			}
 			if (mloIsCorrectAsmDirect5x10u2v2f1()
 				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2f1())) {
-				return (mloConstructAsmDirect5x10u2v2f1(rmv));
+				return mloConstructAsmDirect5x10u2v2f1(rmv);
+			}
+			if (mloIsCorrectAsmDirect7x7c3h224w224k64u2v2p3q3f1(rmv)
+				&& (no_perf_filtering || mloIsFastAsmDirect7x7c3h224w224k64u2v2p3q3f1())) {
+				return mloConstructAsmDirect7x7c3h224w224k64u2v2p3q3f1();
 			}
 			if (mloIsCorrectAsmDirect5x10u2v2b1()
 				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2b1())) {
-				return (mloConstructAsmDirect5x10u2v2b1(rmv));
+				return mloConstructAsmDirect5x10u2v2b1(rmv);
 			}
 		}
 	}
@@ -627,7 +631,7 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version r
         if(rmv == V1 || rmv == V2)
             MIOPEN_THROW("Metadata versions v1 or v2 is not supported on gfx9 devices");
 
-        _kernel_file = "conv_3x3_wheel_alpha_v5_1_1b_gfx900.so";
+        _kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900.so";
     }
 
     return 0;
@@ -930,6 +934,67 @@ int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2b1(rocm_meta_version rm
 
     _kernel_file = "conv5x10u2v2b1.s";
     _kernel_name = "conv5x10u2v2b1";
+    return 0;
+}
+
+bool mlo_construct_direct2D::mloIsCorrectAsmDirect7x7c3h224w224k64u2v2p3q3f1(rocm_meta_version rmv) const
+{
+    const std::string name = _stream->GetDeviceName();
+    if (! ( name == "gfx800"
+         || name == "gfx802"
+         || name == "gfx803"
+         || name == "gfx804"
+         || name == "gfx900")) {
+        return false;
+    }
+    if (!isForwardDirection()){
+        return false;
+    }
+    if (rmv != V3) {
+        return false;
+    }
+    assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+
+                                                // Opt. Param   Restrictions in source
+    return _pad0            == 3                // -q
+        && _pad1            == 3                // -p
+        && _kernel_stride0  == 2                // -u
+        && _kernel_stride1  == 2                // -v
+        && _kernel_size0    == 7                // -x
+        && _kernel_size1    == 7                // -y
+        && _n_inputs        == 3                // -c
+        && _n_outputs       == 64               // -k
+        && _in_width        == 224              // -W
+        && _in_height       == 224              // -H
+        && _in_layout       == "NCHW";          //              hardcoded
+     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
+}
+
+bool mlo_construct_direct2D::mloIsFastAsmDirect7x7c3h224w224k64u2v2p3q3f1() const
+{
+    return true;
+}
+
+int mlo_construct_direct2D::mloConstructAsmDirect7x7c3h224w224k64u2v2p3q3f1()
+{
+    const int out_w = (_in_width  + _pad0*2 + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
+    const int out_h = (_in_height + _pad1*2 + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
+
+    _comp_options = "";
+
+    _l_wk.clear();
+    _l_wk.push_back(64);
+    _l_wk.push_back(8);
+    _l_wk.push_back(1);
+
+    // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
+    _g_wk.clear();
+    _g_wk.push_back(AlignUp(out_w, 64));
+    _g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(_n_outputs / 2, 8));
+    _g_wk.push_back(_batch_sz);
+
+    _kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
+    _kernel_name = "gcnAsmConv7x7c3h224w224k64u2v2p3q3f1";
     return 0;
 }
 
