@@ -53,7 +53,7 @@ def rocmtest(variant, body) {
     def cmake_build = { compiler, flags ->
         def cmd = """
             echo \$HSA_ENABLE_SDMA
-            #mkdir -p $WINEPREFIX
+            mkdir -p $WINEPREFIX
             rm -rf build
             mkdir build
             cd build
