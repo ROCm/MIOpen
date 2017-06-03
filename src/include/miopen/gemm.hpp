@@ -15,6 +15,13 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
         bool                        isDataColMajor,
         std::string                 &network_config);
 
+GemmGeometry CreateGemmGeometryConvBwdData(
+	const TensorDescriptor&     dyDesc,
+	const TensorDescriptor&     wDesc,
+	const TensorDescriptor&     dxDesc,
+	bool                        isDataColMajor,
+	std::string                 &network_config);
+
 GemmGeometry CreateGemmGeometryConvFwd(
         const TensorDescriptor&     xDesc,
         const TensorDescriptor&     wDesc,

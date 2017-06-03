@@ -2,7 +2,7 @@
 #define GUARD_MIOPEN_BN_DRIVER_HPP
 
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "driver.hpp"
 #include "miopen_BatchNormHost.hpp"
 #include "InputFlags.hpp"

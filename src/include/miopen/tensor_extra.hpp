@@ -1,4 +1,4 @@
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include <initializer_list>
 
 MIOPEN_EXPORT int miopenGetTensorIndex(miopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices);

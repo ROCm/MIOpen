@@ -27,6 +27,12 @@ set(PROJECT_VERSION_TWEAK ${MIOpen_VERSION_TWEAK})
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.3")
+        message(FATAL_ERROR "MIOpen requires at least gcc 5.3")
+    endif()
+endif()
+
 ############################################################
 # require C++11
 add_compile_options(-std=gnu++11)
@@ -55,34 +61,20 @@ set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 find_package(tinygemm)
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
-	add_definitions( -DMIOPEN_BACKEND_OPENCL=1 )
-	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIP=0 )
+	set(MIOPEN_BACKEND_OPENCL 1)
 	find_package( OpenCL REQUIRED )
-	find_program(AMDGCN_ASSEMBLER
-		NAMES clang
-		PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
-		PATH_SUFFIXES /opencl/bin/x86_64
-		NO_DEFAULT_PATH
-	)
-	if(AMDGCN_ASSEMBLER)
-		add_definitions(-DMIOPEN_AMDGCN_ASSEMBLER="${AMDGCN_ASSEMBLER}")
-	endif()
-	message(STATUS "AMDGCN assembler: ${AMDGCN_ASSEMBLER}")
 endif()
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
-	add_definitions( -DMIOPEN_BACKEND_OPENCL=0 )
-	add_definitions( -DMIOPEN_BACKEND_HCC=0 )
-	add_definitions( -DMIOPEN_BACKEND_HIP=1 )
+	set(MIOPEN_BACKEND_HIP 1)
 	find_program(HIP_OC_COMPILER clang-ocl
 		PATH_SUFFIXES bin
 		PATHS /opt/rocm
 	)
 	if(HIP_OC_COMPILER)
 		message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
-		add_definitions(-DHIP_OC_COMPILER="${HIP_OC_COMPILER}")
+		set(HIP_OC_COMPILER "${HIP_OC_COMPILER}")
 	else()
 		message(FATAL_ERROR "clang-ocl not found")
 	endif()
@@ -92,13 +84,22 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
+# Online assembler
+find_program(MIOPEN_AMDGCN_ASSEMBLER
+	NAMES clang
+	PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
+	PATH_SUFFIXES /opencl/bin/x86_64
+	NO_DEFAULT_PATH
+)
+message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
+
 # tinygemm
 if(tinygemm_FOUND)
 	message(STATUS "Build with tinygemm")
-	add_definitions(-DMIOPEN_USE_TINYGEMM=1)
+	set(MIOPEN_USE_TINYGEMM 1)
 else()
 	message(STATUS "Build without tinygemm")
-	add_definitions(-DMIOPEN_USE_TINYGEMM=0)
+	set(MIOPEN_USE_TINYGEMM 0)
 endif()
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
@@ -114,10 +115,10 @@ set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen 
 set( CONFIG_PACKAGE_INSTALL_DIR ${LIB_INSTALL_DIR}/cmake/miopen )
 
 if(BUILD_DEV)
-	add_definitions(-DMIOPEN_BUILD_DEV=1)
+	set(MIOPEN_BUILD_DEV 1)
 	set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
 else()
-	add_definitions(-DMIOPEN_BUILD_DEV=0)
+	set(MIOPEN_BUILD_DEV 0)
 	set(MIOPEN_DB_PATH "${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
 endif()
 

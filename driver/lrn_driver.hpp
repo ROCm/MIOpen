@@ -2,7 +2,7 @@
 #define GUARD_MIOPEN_LRN_DRIVER_HPP
 
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "driver.hpp"
 #include "mloNormHost.hpp"
 #include "InputFlags.hpp"

@@ -1,5 +1,5 @@
 
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "test.hpp"
 #include <array>
 #include <iterator>
@@ -23,7 +23,7 @@
 #define MIO_BN_TEST_EPSILON 0.000001
 #define MIO_BN_SP_TEST_DEBUG 0
 
-
+#endif
 
 
 //****************************************************
@@ -36,8 +36,8 @@ struct verify_forward_train_bn_spatial
     const tensor<T> input;
     const tensor<T> scale; 
     const tensor<T> shift;
-    
     std::tuple<tensor<T>,tensor<T>,tensor<T>,tensor<T>,tensor<T>> cpu() {
+
 #if (MIO_BN_TIME_EVERYTHING==1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif        
@@ -165,11 +165,12 @@ struct verify_forward_train_bn_spatial
               << " seconds." << std::endl;
 #endif
         return std::make_tuple(out,runMean,runVar,saveMean,saveInvVar);
+
     }
 
     
     std::tuple<tensor<T>,tensor<T>,tensor<T>,tensor<T>,tensor<T>> gpu(){
-          
+  
 #if (MIO_BN_TIME_EVERYTHING==1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
@@ -409,7 +410,6 @@ struct verify_forward_infer_bn_spatial_use_est
     const tensor<T> shift;
     const tensor<T> estMean; 
     const tensor<T> estVar;
-    
     tensor<T> cpu() {
         
 #if (MIO_BN_TIME_EVERYTHING==1)
@@ -497,6 +497,7 @@ struct verify_forward_infer_bn_spatial_use_est
         std::cout << "Forward Inference Spatial Batch Normalization Use Estimated: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
     }
+
 };
 
 
@@ -515,7 +516,6 @@ struct verify_backward_bn_spatial_recalc
     const tensor<T> x_input;
     const tensor<T> dy_input;
     const tensor<T> scale; 
-    
 
     std::tuple<tensor<T>,tensor<T>,tensor<T>> cpu() {
 
@@ -760,7 +760,6 @@ struct verify_backward_bn_spatial_use_saved
     const tensor<T> scale; 
     const tensor<T> savedMean;
     const tensor<T> savedInvVar; 
-
     std::tuple<tensor<T>,tensor<T>,tensor<T>> cpu() {
         
 #if (MIO_BN_TIME_EVERYTHING==1)
@@ -958,7 +957,6 @@ struct batch_norm_spatial_driver : test_driver
     tensor<T> input;
     tensor<T> scale;
     tensor<T> shift;
-    
     batch_norm_spatial_driver(){
         this->batch_factor=8;
         this->verbose=true;
@@ -1049,7 +1047,6 @@ struct batch_norm_spatial_driver : test_driver
 };
 
 
-
 int main(int argc, const char *argv[]){
     auto t_start = std::chrono::high_resolution_clock::now();
     
@@ -1063,3 +1060,6 @@ int main(int argc, const char *argv[]){
     exit(0);
     
 }
+
+
+

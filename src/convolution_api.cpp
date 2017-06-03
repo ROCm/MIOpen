@@ -184,7 +184,7 @@ miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
     return miopen::try_([&] {
 
 		return OpTensor(miopen::deref(handle), 
-            miopenOpTensorAdd,
+            miopenTensorOpAdd,
 				alpha,
 				miopen::deref(yDesc),
 				DataCast(y),
@@ -225,7 +225,7 @@ miopenStatus_t miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
 				requestAlgoCount,
 				returnedAlgoCount,
 				perfResults,
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize,
 				exhaustiveSearch);
 	});
@@ -259,7 +259,7 @@ miopenStatus_t miopenConvolutionBackwardData(miopenHandle_t handle,
 				beta,
 				miopen::deref(dxDesc),
 				DataCast(dx),
-				workSpace,
+				DataCast(workSpace),
 				workSpaceSize);
 	});
 
@@ -276,8 +276,11 @@ miopenStatus_t miopenConvolutionBackwardDataGetWorkSpaceSize(
 
 	MIOPEN_LOG_FUNCTION(dyDesc, wDesc, convDesc, dxDesc, workSpaceSize);
 	return miopen::try_([&] {
-            (void) handle; // suppress warning
-		    miopen::deref(workSpaceSize) = 0;
+			miopen::deref(workSpaceSize) = miopen::deref(convDesc).BackwardDataGetWorkSpaceSize(
+						miopen::deref(handle),
+						miopen::deref(wDesc),
+						miopen::deref(dyDesc),
+						miopen::deref(dxDesc));
     });
 }
 

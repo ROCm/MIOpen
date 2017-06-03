@@ -1,4 +1,4 @@
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "test.hpp"
 #include <array>
 #include <iterator>
@@ -126,7 +126,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
         int alpha1 = 1, alpha2 = 1, beta = 0;
         
         miopen::OpTensor(handle,
-                miopenOpTensorAdd,
+                miopenTensorOpAdd,
                 &alpha1,
                 a.desc,
                 a_dev.get(),

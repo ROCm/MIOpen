@@ -2,7 +2,7 @@
 #define GUARD_MIOPEN_ACTIV_DRIVER_HPP
 
 #include <cstdlib>
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "driver.hpp"
 #include "mloNeuronHost.hpp"
 #include "InputFlags.hpp"
@@ -215,9 +215,7 @@ int ActivationDriver<T>::RunForwardGPU() {
 			in_dev->GetMem(),
 			&beta,
 			outputTensor,
-			out_dev->GetMem(),
-			false, //inflags.GetValueInt("back"),
-			NULL);
+			out_dev->GetMem());
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;
@@ -250,8 +248,7 @@ int ActivationDriver<T>::RunBackwardGPU() {
 		in_dev->GetMem(),
 		&beta,
 		dInputTensor,
-		din_dev->GetMem(),
-		NULL);
+		din_dev->GetMem());
 
 	if(inflags.GetValueInt("time") == 1) {
 		float time = 0.0;

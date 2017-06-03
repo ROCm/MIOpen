@@ -9,6 +9,10 @@ ActivationDescriptor::ActivationDescriptor() {}
 ActivationDescriptor::ActivationDescriptor(miopenActivationMode_t m, const double *pparms) 
 : parms(pparms, pparms+3), mode(m) {}
 
+ActivationDescriptor::ActivationDescriptor(miopenActivationMode_t m, double alpha, double beta, double power) 
+: parms({alpha, beta, power}), mode(m) 
+{}
+
 miopenActivationMode_t ActivationDescriptor::GetMode() const
 {
 	return this->mode;

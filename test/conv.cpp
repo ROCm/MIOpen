@@ -1,4 +1,4 @@
-#include <miopen.h>
+#include <miopen/miopen.h>
 #include "test.hpp"
 #include <array>
 #include <iterator>
@@ -95,10 +95,10 @@ struct verify_forward_conv : conv_base<T>
         auto wei_dev = handle.Write(weights.data);
         auto out_dev = handle.Write(out.data);
 
-		size_t workspace_size = filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, out.desc);
+        size_t workspace_size = filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, out.desc);
 
-		std::vector<char> workspace(workspace_size);
-		auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+        std::vector<char> workspace(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
@@ -200,6 +200,11 @@ struct verify_backward_conv : conv_base<T>
         auto wei_dev = handle.Write(weights.data);
         auto in_dev = handle.Write(input.data);
 
+        size_t workspace_size = filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, out.desc, input.desc);
+
+        std::vector<char> workspace(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
@@ -215,8 +220,8 @@ struct verify_backward_conv : conv_base<T>
             1,
             &ret_algo_count,
             &perf,
-            nullptr,
-            10,
+            workspace_dev.get(),
+            workspace_size,
             0); // MD: Not performing exhaustiveSearch by default for now
 
         filter.ConvolutionBackwardData(handle,
@@ -229,8 +234,8 @@ struct verify_backward_conv : conv_base<T>
             &beta,
             input.desc,
             in_dev.get(),
-            nullptr,
-            0);
+            workspace_dev.get(),
+            workspace_size);
 
         input.data = handle.Read<T>(in_dev, input.data.size());
         return input;

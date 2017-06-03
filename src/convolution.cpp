@@ -91,6 +91,18 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 }
 
 
+size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(
+        Handle&                 handle,
+		const TensorDescriptor& wDesc,
+		const TensorDescriptor& dyDesc,
+		const TensorDescriptor& dxDesc) const
+{
+	(void)handle; // suppress warning
+	size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
+	size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT (wDesc, dyDesc, dxDesc);
+
+	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+}
 
 // weights_n = output_c
 // weights_c = input_c
@@ -208,6 +220,27 @@ TensorDescriptor ConvolutionDescriptor::GetBackwardWeightsTensor(
 		std::get<3>(dims)});
 }
 
+size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(
+	Handle&                     handle,
+	const TensorDescriptor&     wDesc,
+	const TensorDescriptor&		dyDesc) const
+{
+	int out_h, out_w;
+	std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tie4(dyDesc.GetLengths());
+	int wei_c, wei_h, wei_w;
+	std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(wDesc.GetLengths());
+	size_t gemm_size = wei_c*wei_h*wei_w * out_h*out_w * sizeof(dyDesc.GetType());
+
+	// gfx803 devices have limited memory
+	// TODO: be graceful, need to ensure we can execute a config on the GPU
+	// what if both the algos require > (1 << 30) memory
+	if (handle.GetDeviceName() == "gfx803" && gemm_size > (1 << 30))
+		gemm_size = 0;
+
+	return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : gemm_size;
+
+}
+
 size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
     Handle&                     handle,
     const TensorDescriptor&     dyDesc,
@@ -229,12 +262,14 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
 }
 
 size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
+    Handle&                     handle,
     const TensorDescriptor&     dyDesc,
-	const TensorDescriptor&		xDesc,
-	const TensorDescriptor&		dwDesc) const
+    const TensorDescriptor&     xDesc,
+    const TensorDescriptor&     dwDesc) const
 {
     mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
     construct_params.doSearch(false);
+    construct_params.setStream(&handle);
     construct_params.setOutputDescFromMLDesc(dyDesc);
     construct_params.setInputDescFromMLDesc(xDesc);
     construct_params.setWeightDescFromMLDesc(dwDesc);
@@ -251,7 +286,7 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 	const TensorDescriptor&		 dwDesc) const
 {
     return std::max(
-            BackwardWeightsGetWorkSpaceSizeDirect(dyDesc, xDesc, dwDesc),
+            BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc),
             BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)
         );
 }
