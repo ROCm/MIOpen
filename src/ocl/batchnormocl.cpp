@@ -95,37 +95,33 @@ void BatchNormForwardTraining(
         handle.ResetKernelTime();
 #endif
         
+        unsigned int segment;
+        auto inhw = float(1.0/(n*h*w));
         
 	if(bn_mode == miopenBNSpatial){
             
             program_name += "Spatial.cl";
             kernel_name += "Spatial";
 
-            xlocalsize = 1;
-            ylocalsize = 256;//(in_cstride<=64) ? 64 : 256;//TODO: debug
-            zlocalsize = 1;
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-
-            unsigned int segment = std::ceil(double(in_cstride)/double(ylocalsize));
-            xgridsize = c;
-            ygridsize = segment*ylocalsize;
-            zgridsize = 1;
-
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-            
-            auto inhw = float(1.0/(n*h*w));
-            unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
-            parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
-            unsigned int lds_size = (in_cstride*(n+2)+1)*numwgs;
-            if(lds_size <= 16384 && in_cstride > 16){
-                printf("lds size: %d\n", lds_size);fflush(nullptr);
+            if(in_cstride < n && n <= 64){
                 
-                kernel_subname = kernel_name + "SingleLDSNorm";
-                parms += " -DMIO_BN_VARIANT=1";
+                xlocalsize = 1;
+                ylocalsize = 64;
+                zlocalsize = 1;
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+                xgridsize = c;
+                ygridsize = ylocalsize;
+                zgridsize = 1;
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+                
+                unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
+                parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
+                parms += " -DMIO_BN_VARIANT=0";
                 parms += " -DMIO_BN_LDS_NSIZE="+std::to_string(n);
                 parms += " -DMIO_BN_LDS_HWSIZE="+std::to_string(in_cstride);
                 parms += " -DMIO_BN_GRP0="+std::to_string(1);
@@ -133,145 +129,178 @@ void BatchNormForwardTraining(
                 parms += " -DMIO_BN_GRP2="+std::to_string(1);
                 
                 if(resultsave && resultrunning){
-                    //Run norm kernel
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                    network_config, program_name, kernel_subname, vld, vgd,
+                    network_config, program_name, kernel_name, vld, vgd,
                     parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, resultRunningMean, resultRunningVariance, 
                             epsilon, resultSaveMean, resultSaveInvVariance);
                 }else if(resultsave){
-                    //Run norm kernel
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
+                                    network_config, program_name, kernel_name, vld, vgd,
                                     parms)(x, y, bnScale, bnBias, inhw,  
                                             epsilon, resultSaveMean, resultSaveInvVariance);
                 }else if(resultrunning){
-                    //Run norm kernel
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
+                                    network_config, program_name, kernel_name, vld, vgd,
                                     parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, 
                                             resultRunningMean, resultRunningVariance, epsilon);
                 }else{
-                    //Run norm kernel
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
+                                    network_config, program_name, kernel_name, vld, vgd,
                                     parms)(x, y, bnScale, bnBias, inhw, epsilon);
                 }
+                return;   
+            }
+                
+            if(in_cstride < 64){
+                
+                xlocalsize = 1;
+                ylocalsize = 64;
+                zlocalsize = 1;
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+                xgridsize = c;
+                ygridsize = ylocalsize;
+                zgridsize = 1;
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+                
+                unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
+                parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
+                unsigned long long lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/16384)*numwgs);
+                
+                if(lds_size <= 1){    
+                    parms += " -DMIO_BN_VARIANT=1";
+                    parms += " -DMIO_BN_LDS_NSIZE="+std::to_string(n);
+                    parms += " -DMIO_BN_LDS_HWSIZE="+std::to_string(in_cstride);
+                    parms += " -DMIO_BN_GRP0="+std::to_string(1);
+                    parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
+                    parms += " -DMIO_BN_GRP2="+std::to_string(1);
+
+                    if(resultsave && resultrunning){
+                        handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                        network_config, program_name, kernel_name, vld, vgd,
+                        parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, resultRunningMean, resultRunningVariance, 
+                                epsilon, resultSaveMean, resultSaveInvVariance);
+                    }else if(resultsave){
+                        handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                        network_config, program_name, kernel_name, vld, vgd,
+                                        parms)(x, y, bnScale, bnBias, inhw,  
+                                                epsilon, resultSaveMean, resultSaveInvVariance);
+                    }else if(resultrunning){
+                        handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                        network_config, program_name, kernel_name, vld, vgd,
+                                        parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, 
+                                                resultRunningMean, resultRunningVariance, epsilon);
+                    }else{
+                        handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                        network_config, program_name, kernel_name, vld, vgd,
+                                        parms)(x, y, bnScale, bnBias, inhw, epsilon);
+                    }
              
-          /* }else if(in_cstride <= 256){
-                
-                vld[1] = std::ceil(256);
-               // vgd[0] = std::ceil(c/4.0); 
-                vgd[0] = std::ceil(c/2.0);
-                
-                vgd[1] = 256;
-                
-                kernel_subname = kernel_name + "SingleVecNorm";
-                parms += " -DMIO_BN_SINGLE="+std::to_string(1);
-                parms += " -DMIO_BN_LDS_NSIZE="+std::to_string(n);
-                //parms += " -DMIO_BN_LDS_HWSIZE="+std::to_string(4*in_cstride);
-                parms += " -DMIO_BN_LDS_HWSIZE="+std::to_string(2*in_cstride);
-                parms += " -DMIO_BN_GRP0="+std::to_string(1);
-                parms += " -DMIO_BN_GRP1="+std::to_string(256);
-                parms += " -DMIO_BN_GRP2="+std::to_string(1);
-                
-                auto inhw = float(1.0/(n*h*w));
-                
-                if(resultsave && resultrunning){
-                    //Run norm kernel
-                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                    network_config, program_name, kernel_subname, vld, vgd,
-                    parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, resultRunningMean, resultRunningVariance, 
-                            epsilon, resultSaveMean, resultSaveInvVariance);
-                }else if(resultsave){
-                    //Run norm kernel
-                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
-                                    parms)(x, y, bnScale, bnBias, inhw, 
-                                            epsilon, resultSaveMean, resultSaveInvVariance);
-                }else if(resultrunning){
-                    //Run norm kernel
-                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
-                                    parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, 
-                                            resultRunningMean, resultRunningVariance, epsilon);
-                }else{
-                    //Run norm kernel
-                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
-                                    parms)(x, y, bnScale, bnBias, inhw, epsilon);
-                }
-             */ 
-            }else if(in_cstride < 32){
-                
-                kernel_subname = kernel_name + "SingleNorm";
-                parms += " -DMIO_BN_VARIANT=0";
-                parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
-                parms += " -DMIO_BN_GRP0="+std::to_string(1);
-                parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
-                parms += " -DMIO_BN_GRP2="+std::to_string(1);
-                
-                
-                if(resultsave && resultrunning){
-                    //Run norm kernel
-                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                    network_config, program_name, kernel_subname, vld, vgd,
-                    parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, resultRunningMean, resultRunningVariance, 
-                            epsilon, resultSaveMean, resultSaveInvVariance);
-                }else if(resultsave){
-                    //Run norm kernel
-                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
-                                    parms)(x, y, bnScale, bnBias, inhw,  
-                                            epsilon, resultSaveMean, resultSaveInvVariance);
-                }else if(resultrunning){
-                    //Run norm kernel
-                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
-                                    parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, 
-                                            resultRunningMean, resultRunningVariance, epsilon);
-                }else{
-                    //Run norm kernel
-                    handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
-                                    parms)(x, y, bnScale, bnBias, inhw, epsilon);
+                }else{                    
+                    parms += " -DMIO_BN_VARIANT=2";
+                    parms += " -DMIO_BN_GRP0="+std::to_string(1);
+                    parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
+                    parms += " -DMIO_BN_GRP2="+std::to_string(1);
+
+                    if(resultsave && resultrunning){
+                        handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                        network_config, program_name, kernel_name, vld, vgd,
+                        parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, resultRunningMean, resultRunningVariance, 
+                                epsilon, resultSaveMean, resultSaveInvVariance);
+                    }else if(resultsave){
+                        handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                        network_config, program_name, kernel_name, vld, vgd,
+                                        parms)(x, y, bnScale, bnBias, inhw,  
+                                                epsilon, resultSaveMean, resultSaveInvVariance);
+                    }else if(resultrunning){
+                        handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                        network_config, program_name, kernel_name, vld, vgd,
+                                        parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, 
+                                                resultRunningMean, resultRunningVariance, epsilon);
+                    }else{
+                        handle.GetKernel("miopenBatchNormalizationForwardTraining",
+                                        network_config, program_name, kernel_name, vld, vgd,
+                                        parms)(x, y, bnScale, bnBias, inhw, epsilon);
+                    }
                 }
             }else if(in_cstride <= 256){
+                
+                xlocalsize = 1;
+                ylocalsize = 256;
+                zlocalsize = 1;
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
 
-                kernel_subname = kernel_name + "SingleNorm";
-                parms += " -DMIO_BN_VARIANT=2";
+                xgridsize = c;
+                ygridsize = ylocalsize;
+                zgridsize = 1;
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+                
+                unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
+                parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
+                unsigned long long lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/8192)*numwgs);
+                if(lds_size > 1){
+                    parms += " -DMIO_BN_VARIANT=3";
+                }else{
+                    parms += " -DMIO_BN_VARIANT=4";
+                    parms += " -DMIO_BN_LDS_NSIZE="+std::to_string(n);
+                    parms += " -DMIO_BN_LDS_HWSIZE="+std::to_string(h*w);    
+                }
                 parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP0="+std::to_string(1);
                 parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
-                parms += " -DMIO_BN_GRP2="+std::to_string(1);
-
-
+                parms += " -DMIO_BN_GRP2="+std::to_string(1);    
+                
                 if(resultsave && resultrunning){
-                    //Run norm kernel
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                    network_config, program_name, kernel_subname, vld, vgd,
+                    network_config, program_name, kernel_name, vld, vgd,
                     parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, resultRunningMean, resultRunningVariance, 
                             epsilon, resultSaveMean, resultSaveInvVariance);
                 }else if(resultsave){
-                    //Run norm kernel
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
+                                    network_config, program_name, kernel_name, vld, vgd,
                                     parms)(x, y, bnScale, bnBias, inhw,  
                                             epsilon, resultSaveMean, resultSaveInvVariance);
                 }else if(resultrunning){
-                    //Run norm kernel
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
+                                    network_config, program_name, kernel_name, vld, vgd,
                                     parms)(x, y, bnScale, bnBias, inhw, expAvgFactor, 
                                             resultRunningMean, resultRunningVariance, epsilon);
                 }else{
-                    //Run norm kernel
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
-                                    network_config, program_name, kernel_subname, vld, vgd,
+                                    network_config, program_name, kernel_name, vld, vgd,
                                     parms)(x, y, bnScale, bnBias, inhw, epsilon);
                 }
+                return;
+                
             }else{
+                
+                xlocalsize = 1;
+                ylocalsize = 256;
+                zlocalsize = 1;
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
 
-                parms += " -DMIO_BN_VARIANT=3";
+                segment = std::ceil(double(in_cstride)/double(ylocalsize));
+                xgridsize = c;
+                ygridsize = segment*ylocalsize;
+                zgridsize = 1;
+
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+                
+                unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
+                parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
+                parms += " -DMIO_BN_VARIANT=5";
 		parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP0="+std::to_string(1);
                 parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
@@ -286,54 +315,62 @@ void BatchNormForwardTraining(
                                     network_config, program_name, kernel_subname, vld, vgd, parms)
                                     (x, y);
                  
-#if(MIO_BN_OCL_SEQ_TIMING == 1)      
-                    ktime = handle.GetKernelTime();    
-                    ctime=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#else
-                    handle.Finish();
-#endif
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        ctime=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
                     
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
-                            parms)(y, expAvgFactor, resultRunningMean, resultSaveMean);
+                            parms)(y, inhw, expAvgFactor, resultRunningMean, resultSaveMean);
                             
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#else
-                    handle.Finish();
-#endif      
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif      
 
                     //Run variance reduction kernel
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)(x, y);
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#else
-                    handle.Finish();
-#endif
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,     program_name, kernel_subname, vld, vgd, parms)
-                            (y, expAvgFactor, resultRunningVariance, epsilon, resultSaveInvVariance);
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#else
-                    handle.Finish();
-#endif
+                            (y, inhw, expAvgFactor, resultRunningVariance, epsilon, resultSaveInvVariance);
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
                     
                     //Run norm kernel
                     kernel_subname = kernel_name + "Norm";
@@ -341,12 +378,15 @@ void BatchNormForwardTraining(
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)(x, y, bnScale, bnBias);
                     
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#endif
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                        ktime = handle.GetKernelTime();  
+                        handle.AccumKernelTime(ctime);
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #endif
                     
                 }else if(resultsave){
 
@@ -355,65 +395,75 @@ void BatchNormForwardTraining(
                                     network_config, program_name, kernel_subname, vld, vgd, parms)
                                     (x, y);
                     
-#if(MIO_BN_OCL_SEQ_TIMING == 1)      
-                    ktime = handle.GetKernelTime();    
-                    ctime=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#else
-                    handle.Finish();
-                    
-#endif
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        ctime=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();                    
+                    #endif
 
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,	program_name, kernel_subname, vld, vgd,
-                            parms)(y, resultSaveMean);
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#else
-                    handle.Finish();
-#endif               
+                            parms)(y, inhw, resultSaveMean);
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif               
 
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (x, y);
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#else
-                    handle.Finish();
-#endif
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
 
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
-                            (y, epsilon, resultSaveInvVariance);
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#else
-                    handle.Finish();
-#endif
+                            (y, inhw, epsilon, resultSaveInvVariance);
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
 
                     kernel_subname = kernel_name + "Norm";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (x, y, bnScale, bnBias);
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#endif
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                        ktime = handle.GetKernelTime();   
+                        handle.AccumKernelTime(ctime);
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #endif
 
                 }else if(resultrunning){
 
@@ -421,31 +471,78 @@ void BatchNormForwardTraining(
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                                     network_config, program_name, kernel_subname, vld, vgd, parms)
                                     ( x, y );
-                    handle.Finish();
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        ctime=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
 
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
-                            parms)( y, expAvgFactor, resultRunningMean);
-                    handle.Finish();
-
+                            parms)(y, inhw, expAvgFactor, resultRunningMean);
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
 
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)( x, y);
-                    handle.Finish();
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    ktime = handle.GetKernelTime();    
+                    ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
 
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
-                            (y, expAvgFactor, resultRunningVariance, epsilon);
-                    handle.Finish();
+                            (y, inhw, expAvgFactor, resultRunningVariance, epsilon);
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
 
                     kernel_subname = kernel_name + "Norm";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)( x, y, bnScale, bnBias);
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        handle.AccumKernelTime(ctime);
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #endif                    
+                    
+                    
+                    
                 }else{
 
                     
@@ -454,31 +551,76 @@ void BatchNormForwardTraining(
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                                     (x, y);
-                    handle.Finish();
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        ctime=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
                     
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
-                                    (y, expAvgFactor);
-                    handle.Finish();
+                                    (y, inhw);
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
                     
                     
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,	program_name, kernel_subname, vld, vgd, parms)
                                     (x, y);
-                    handle.Finish();
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
                     
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,     program_name, kernel_subname, vld, vgd, parms)
-                            (y, expAvgFactor, epsilon);
-                    handle.Finish();
+                            (y, inhw, epsilon);
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #else
+                        handle.Finish();
+                    #endif
                     
                     kernel_subname = kernel_name + "Norm";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,	program_name, kernel_subname, vld, vgd,
                             parms)( x, y, bnScale, bnBias);
+                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                        ktime = handle.GetKernelTime();    
+                        handle.AccumKernelTime(ctime);
+                        ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+                    #endif                    
                 }        
               }
 	}else{
@@ -492,7 +634,7 @@ void BatchNormForwardTraining(
             
             parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
             
-            unsigned int segment = std::ceil(double(in_cstride)/double(ylocalsize));
+            segment = std::ceil(double(in_cstride)/double(ylocalsize));
 
             xgridsize = c;
             ygridsize = segment*ylocalsize;  
@@ -602,72 +744,127 @@ void BatchNormForwardInference(
             parms += " -DMIO_BN_NHW="+std::to_string(n*h*w);
             parms += " -DMIO_BN_CHW="+std::to_string(in_nstride);
 
-            xlocalsize = 1;
-            ylocalsize = (64 >= in_cstride) ? 64 : 256;
-            zlocalsize = 1;
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-
-
-            parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP0="+std::to_string(1);
-            parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2="+std::to_string(1);
-
-            unsigned int segment = std::ceil(double(in_cstride)/double(ylocalsize));
-
-            xgridsize = c;
-            ygridsize = segment*ylocalsize;  
-            zgridsize = 1;  
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
+            unsigned int segment;
+            unsigned int numwgs;
+            auto inhw = double(1.0/(n*h*w));
+           
             if(useEstimated){
+                
+                xlocalsize = 1;
+                ylocalsize = (in_cstride > 1024) ? ((64 >= in_cstride) ? 64 : 256) : 1024;
+                zlocalsize = 1;
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+
+                parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
+                parms += " -DMIO_BN_GRP0="+std::to_string(1);
+                parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
+                parms += " -DMIO_BN_GRP2="+std::to_string(1);
+
+                segment = std::ceil(double(in_cstride)/double(ylocalsize));
+
+                xgridsize = c;
+                ygridsize = segment*ylocalsize;  
+                zgridsize = 1;  
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+                
+                numwgs = std::ceil(float(ygridsize)/ylocalsize);
+                parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
+
                 kernel_name += "Est";
+                parms += " -DMIO_BN_VARIANT=0";                
                 handle.GetKernel("miopenBatchNormalizationForwardInference",
                                 network_config, program_name, kernel_name, vld, vgd,
-                                parms)(x, n, in_nstride, in_cstride, y, 
-                                                        estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
+                                parms)(x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
             }else{ 
 
                if(in_cstride <= 256){
-                    auto inhw = double(1.0/(n*h*w));
+                   
+                    xlocalsize = 1;
+                    ylocalsize = (64 >= in_cstride) ? 64 : 256;
+                    zlocalsize = 1;
+                    vld.push_back(xlocalsize);
+                    vld.push_back(ylocalsize);
+                    vld.push_back(zlocalsize);
+                    
+                    parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
+                    parms += " -DMIO_BN_GRP0="+std::to_string(1);
+                    parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
+                    parms += " -DMIO_BN_GRP2="+std::to_string(1);
+
+                    xgridsize = c;
+                    ygridsize = ylocalsize;  
+                    zgridsize = 1;  
+                    vgd.push_back(xgridsize);
+                    vgd.push_back(ygridsize);
+                    vgd.push_back(zgridsize);
+                    
                     kernel_subname = kernel_name + "SingleNorm";
-                    //Run norm kernel
+                    parms += " -DMIO_BN_VARIANT=1";
                     handle.GetKernel("miopenBatchNormalizationForwardInference",
                                     network_config, program_name, kernel_subname, vld, vgd,
                                     parms)(x, y, bnScale, bnBias, epsilon, inhw);
+                    
+                    
                 }else{
-                   kernel_subname = kernel_name + "Mean";
-                   handle.GetKernel("miopenBatchNormalizationForwardInference",
-                        network_config, program_name, kernel_subname, vld, vgd, parms)
-                                (x, y );
-                   handle.Finish();
+                   
+                    xlocalsize = 1;
+                    ylocalsize = 256;
+                    zlocalsize = 1;
+                    vld.push_back(xlocalsize);
+                    vld.push_back(ylocalsize);
+                    vld.push_back(zlocalsize);
 
-                   kernel_subname = kernel_name + "FinalMean";
-                   handle.GetKernel("miopenBatchNormalizationForwardInference",
-                        network_config, program_name, kernel_subname, vld, vgd, parms)
-                                ( y );
-                   handle.Finish();
+                    parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
+                    parms += " -DMIO_BN_GRP0="+std::to_string(1);
+                    parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
+                    parms += " -DMIO_BN_GRP2="+std::to_string(1);
 
-                   kernel_subname = kernel_name + "Variance";
-                   handle.GetKernel("miopenBatchNormalizationForwardInference",
-                        network_config,	program_name, kernel_subname, vld, vgd, parms)
-                                ( x, y);
+                    segment = std::ceil(double(in_cstride)/double(ylocalsize));
 
-                                    kernel_subname = kernel_name + "FinalVariance";
-                   handle.GetKernel("miopenBatchNormalizationForwardInference",
-                        network_config,     program_name, kernel_subname, vld, vgd, parms)
-                        ( y, epsilon);
-                   handle.Finish();
+                    xgridsize = c;
+                    ygridsize = segment*ylocalsize;  
+                    zgridsize = 1;  
+                    vgd.push_back(xgridsize);
+                    vgd.push_back(ygridsize);
+                    vgd.push_back(zgridsize);
 
+                    numwgs = std::ceil(float(ygridsize)/ylocalsize);
+                    parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs); 
+                    
+                    parms += " -DMIO_BN_VARIANT=2";
 
-                   kernel_subname = kernel_name + "Norm";
-                   handle.GetKernel("miopenBatchNormalizationForwardInference",
-                        network_config,	program_name, kernel_subname, vld, vgd,
-                        parms)( x, y, bnScale, bnBias);
+                    kernel_subname = kernel_name + "Mean";
+                    handle.GetKernel("miopenBatchNormalizationForwardInference",
+                         network_config, program_name, kernel_subname, vld, vgd, parms)
+                                 (x, y );
+                    handle.Finish();
+
+                    kernel_subname = kernel_name + "FinalMean";
+                    handle.GetKernel("miopenBatchNormalizationForwardInference",
+                         network_config, program_name, kernel_subname, vld, vgd, parms)
+                                 ( y );
+                    handle.Finish();
+
+                    kernel_subname = kernel_name + "Variance";
+                    handle.GetKernel("miopenBatchNormalizationForwardInference",
+                         network_config,	program_name, kernel_subname, vld, vgd, parms)
+                                 ( x, y);
+
+                    kernel_subname = kernel_name + "FinalVariance";
+                    handle.GetKernel("miopenBatchNormalizationForwardInference",
+                         network_config,     program_name, kernel_subname, vld, vgd, parms)
+                         ( y, epsilon);
+                    handle.Finish();
+
+                    kernel_subname = kernel_name + "Norm";
+                    handle.GetKernel("miopenBatchNormalizationForwardInference",
+                         network_config,	program_name, kernel_subname, vld, vgd,
+                         parms)( x, y, bnScale, bnBias);
                 }
             }
 	//end spatial
@@ -791,7 +988,7 @@ void BatchNormBackward(
 
 
             xlocalsize = 1;
-            ylocalsize = 256;//(64 >= in_cstride) ? 64 : 256;
+            ylocalsize = (64 >= in_cstride) ? 64 : 256;
             zlocalsize = 1;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
@@ -818,10 +1015,10 @@ void BatchNormBackward(
                 parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP2="+std::to_string(1);
                 
-                unsigned int lds_size = ((in_cstride*n+2*ylocalsize)+3)*numwgs;
-                printf("lds size: %d\n", 4*lds_size);fflush(nullptr);
+                unsigned long long lds_size = static_cast<unsigned long long>(((in_cstride*n+2*ylocalsize+3)/8192)*numwgs);
+               // printf("lds size: %llu\n", 4*lds_size);fflush(nullptr);
                 
-                if(lds_size <= 8192 && in_cstride >= 32){
+                if(lds_size <= 1 && in_cstride <= 256){
                     
                     
                     parms += " -DMIO_BN_VARIANT=2";
@@ -845,8 +1042,8 @@ void BatchNormBackward(
                                     resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance, inhw);  
                 } else if(in_cstride <= 256){
                     parms += " -DMIO_BN_VARIANT=4";
-                    parms += " -DMIO_BN_LDS_NSIZE="+std::to_string(n);
-                    parms += " -DMIO_BN_LDS_HWSIZE="+std::to_string(in_cstride);
+                   // parms += " -DMIO_BN_LDS_NSIZE="+std::to_string(n);
+                    //parms += " -DMIO_BN_LDS_HWSIZE="+std::to_string(in_cstride);
                     
                     kernel_subname = kernel_name + "SingleDX";
                     handle.GetKernel("miopenBatchNormalizationBwd",
@@ -860,38 +1057,45 @@ void BatchNormBackward(
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd,
                                     parms)( dy, dx );
+                    
 #if(MIO_BN_OCL_SEQ_TIMING == 1)
                     ktime = handle.GetKernelTime();    
                     ctime=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
 #endif
-
                     
                     kernel_subname = kernel_name + "DScale";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                                     parms)( x, dy, savedMean, savedInvVariance, dx);
+                    
 #if(MIO_BN_OCL_SEQ_TIMING == 1)
                     ktime = handle.GetKernelTime();    
                     ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#endif   
-                    
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#else
                     handle.Finish();
+#endif
         
                     kernel_subname = kernel_name + "FinalDBias";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (dx, resultBnBiasDiff );
+                    
 #if(MIO_BN_OCL_SEQ_TIMING == 1)
                     ktime = handle.GetKernelTime();    
                     ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#endif   
-                       
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#endif                       
   
                     kernel_subname = kernel_name + "FinalDScale";
                     handle.GetKernel("miopenBatchNormalizationBwd",
@@ -900,36 +1104,38 @@ void BatchNormBackward(
 #if(MIO_BN_OCL_SEQ_TIMING == 1)
                     ktime = handle.GetKernelTime();    
                     ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#endif 
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#else
                     handle.Finish();
-                    
+#endif                    
                     kernel_subname = kernel_name + "DX";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                                     parms)( x, dy, dx, bnScale, 
                                             resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance);	
 #if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
+                    
+                    ktime = handle.GetKernelTime();  
+                    handle.AccumKernelTime(ctime);
                     ctime+=ktime;
-                    printf("ktime: %f\n",ktime);
-                    printf("ctime: %f\n",ctime);
-#endif 
-                    
-                    handle.Finish();
-                    
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#endif                    
         }
             }else{
 
                 parms += " -DMIO_BN_GRP0="+std::to_string(1);
                 parms += " -DMIO_BN_GRP1="+std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP2="+std::to_string(1);
+                unsigned long long lds_size = static_cast<unsigned long long>(((in_cstride*n+2*ylocalsize+3)/8192)*numwgs);
+                //printf("lds size: %llu\n", 4* lds_size);fflush(nullptr);
                 
-                unsigned int lds_size = (in_cstride*n+ylocalsize+1)*numwgs;
-                //printf("lds size: %d\n", 4*lds_size);fflush(nullptr);
-                
-                if(lds_size <= 8192){// && in_cstride > 16){// && c*h*w > 512){
+                if(lds_size <= 1 && in_cstride <= 256){
                 
                     parms += " -DMIO_BN_VARIANT=1";
                     parms += " -DMIO_BN_LDS_NSIZE="+std::to_string(n);
@@ -951,56 +1157,144 @@ void BatchNormBackward(
                                     resultBnScaleDiff, resultBnBiasDiff, epsilon, inhw);
                 }else{
                     parms += " -DMIO_BN_VARIANT=5";
+                    
                     kernel_subname = kernel_name + "Mean";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,	parms)
                             ( x, dx);
+#if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    ktime = handle.GetKernelTime();    
+                    ctime=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#endif
 
                     kernel_subname = kernel_name + "DBias";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                                     parms)(dy, dx );
+
+#if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    ktime = handle.GetKernelTime();    
+                    ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#else
                     handle.Finish();
+#endif
 
                     kernel_subname = kernel_name + "FinalDBias";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (dx, resultBnBiasDiff);
-                    handle.Finish();
 
+#if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    ktime = handle.GetKernelTime();    
+                    ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#else
+                    handle.Finish();
+#endif
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,	parms)(dx);
-                    handle.Finish();
 
+#if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    ktime = handle.GetKernelTime();    
+                    ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#else
+                    handle.Finish();
+#endif
+                    
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)( x, dx);
+
+#if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    ktime = handle.GetKernelTime();    
+                    ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#else
                     handle.Finish();
+#endif                    
 
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)( dx,  epsilon);
-                    handle.Finish();
 
+#if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    ktime = handle.GetKernelTime();    
+                    ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#else
+                    handle.Finish();
+#endif
+                    
                     kernel_subname = kernel_name + "DScale";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                             parms)( x, dy,  dx);
-                    handle.Finish();
 
+#if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    ktime = handle.GetKernelTime();    
+                    ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#else
+                    handle.Finish();
+#endif
+                    
                     kernel_subname = kernel_name + "FinalDScale";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (dx, resultBnScaleDiff);
-                    handle.Finish();
 
+ #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    ktime = handle.GetKernelTime();    
+                    ctime+=ktime;
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#else
+                    handle.Finish();
+#endif
                     kernel_subname = kernel_name + "DX";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                             parms)( x, dy, dx, bnScale, resultBnScaleDiff, resultBnBiasDiff);
+#if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    
+                    ktime = handle.GetKernelTime();  
+                    handle.AccumKernelTime(ctime);
+                    ctime+=ktime;
+                    
+                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                    #endif
+#endif                
                 }
             }
 	}else{
