@@ -41,13 +41,13 @@
 __kernel void BatchNormBwdPerActivationSaved(
 					const __global _FLOAT 	*x_in, 
 					const __global _FLOAT 	*dy_in, 
-					unsigned int 			N,
-					unsigned int 			in_nstride, 
-					unsigned int 			in_cstride,
-					__global _FLOAT 		*dx_out,
+					unsigned int 		N,
+					unsigned int 		in_nstride, 
+					unsigned int 		in_cstride,
+					__global _FLOAT 	*dx_out,
 					const __global _FLOAT 	*scale, 
-					__global _FLOAT			*delta_scale,
-					__global _FLOAT			*delta_bias, 
+					__global _FLOAT		*delta_scale,
+					__global _FLOAT		*delta_bias, 
 					const __global _FLOAT	*savedMean, 
 					const __global _FLOAT	*savedInvVariance ){
 /*
@@ -82,6 +82,8 @@ dh = (1. / N) * gamma * (var + eps)**(-1. / 2.) * (N * dy - np.sum(dy, axis=0)
 	_FLOAT pvt_scale, pvt_dscale;
 	_FLOAT pvt_dbias;
 	_FLOAT tmp1, tmp2, tmp3;
+        _FLOAT dxhat = 0.;
+        _FLOAT dxhathat = 0.;
 
 	//move across the sections of an image in the mini_batch stack 
 	for(int img_offset = 0; img_offset < in_cstride; img_offset+=yglb_sz){
@@ -89,31 +91,36 @@ dh = (1. / N) * gamma * (var + eps)**(-1. / 2.) * (N * dy - np.sum(dy, axis=0)
 		inImgIndex 	= img_offset+ygid;
 		if(inImgIndex < in_cstride){
 
-			adjIndex 	= Cidx+inImgIndex;//gamma and beta tensor index
-			mean 		= savedMean[adjIndex];
-			invVar		= savedInvVariance[adjIndex];
-			pvt_scale 	= scale[adjIndex];
-			pvt_dscale 	= 0.;
-			pvt_dbias 	= 0.;
+			adjIndex   = Cidx+inImgIndex;//gamma and beta tensor index
+			mean 	   = savedMean[adjIndex];
+			invVar	   = savedInvVariance[adjIndex];
+			pvt_scale  = scale[adjIndex];
+			pvt_dscale = 0.;
+			pvt_dbias  = 0.;
+                        dxhat      = 0.;
+                        dxhathat   = 0.;
 
 			for(int n = 0; n < N; n++){
-				//per (x-dims) channel load a block of data into LDS
-				index 		= in_nstride*n+adjIndex;
-				elemStd 	= x_in[index] - mean;// (x_i - mean)
-				xhat 		= elemStd*invVar;
-				dyelem 		= dy_in[index];
-				pvt_dbias  += dyelem;
-				pvt_dscale 	= mad(xhat, dyelem, pvt_dscale);
+                            //per (x-dims) channel load a block of data into LDS
+                            index 	=  in_nstride*n+adjIndex;
+                            elemStd 	=  x_in[index] - mean;// (x_i - mean)
+                            xhat 	=  elemStd*invVar;
+                            dyelem 	=  dy_in[index];
+                            pvt_dbias   += dyelem;
+                            pvt_dscale 	=  mad(xhat, dyelem, pvt_dscale);
+                            tmp1        =  pvt_scale*dyelem;
+                            dxhat       += tmp1;
+                            dxhathat    =  mad(tmp1, xhat, dxhathat);
 			}//end for(n)
                         pvt_dscale /= (_FLOAT) N;
                         
 			for(int n = 0; n < N; n++){
 				index 	= in_nstride*n+adjIndex;
-				tmp1 	= mad((_FLOAT) N, dy_in[index], -pvt_dbias);
-				elemStd = x_in[index] - mean;// (x_i - mean)
-				xhat 	= elemStd*invVar; //recalculating this again...
-				tmp2 	= mad(-xhat, pvt_dscale, tmp1);
-				tmp3 	= (pvt_scale*invVar)/((_FLOAT) N);
+                                elemStd =  x_in[index] - mean;// (x_i - mean)
+				xhat 	=  elemStd*invVar;
+				tmp1 	= mad(xhat, dxhathat, dxhat);
+				tmp2 	= mad((_FLOAT) N, dxhat, -tmp1);
+				tmp3 	= invVar/((_FLOAT) N);
 				dx_out[index] = tmp3*tmp2;
 			}
 			//Write out data
@@ -150,6 +157,8 @@ __kernel void BatchNormBwdPerActivation(
 	_FLOAT pvt_dbias;
 	_FLOAT tmp1, tmp2, tmp3;
 	_FLOAT elemStd, variance;
+        _FLOAT dxhat = 0.;
+        _FLOAT dxhathat = 0.;
 
 	//move across the sections of the image mini_batch stack 
 	for(int img_offset = 0; img_offset < in_cstride; img_offset+=yglb_sz){
@@ -185,25 +194,30 @@ __kernel void BatchNormBwdPerActivation(
                 pvt_scale 	= scale[adjIndex];
                 pvt_dscale 	= 0.;
                 pvt_dbias 	= 0.;
+                dxhat          = 0.;
+                dxhathat       = 0.;
 
                 for(int n = 0; n < N; n++){
                     //per (x-dims) channel load a block of data into LDS
-                    index 	= in_nstride*n+adjIndex;
-                    elemStd 	= x_in[index] - mean;// (x_i - mean)
-                    xhat 	= elemStd*invVar;
-                    dyelem 	= dy_in[index];
-                    pvt_dbias  += dyelem;
-                    pvt_dscale 	= mad(xhat, dyelem, pvt_dscale);
+                    index 		=  in_nstride*n+adjIndex;
+                    elemStd 	=  x_in[index] - mean;// (x_i - mean)
+                    xhat 		=  elemStd*invVar;
+                    dyelem 		=  dy_in[index];
+                    pvt_dbias       += dyelem;
+                    pvt_dscale 	=  mad(xhat, dyelem, pvt_dscale);
+                    tmp1            =  pvt_scale*dyelem;
+                    dxhat          += tmp1;
+                    dxhathat       =  mad(tmp1, xhat, dxhathat);
                 }//end for(n)
                 pvt_dscale /= (_FLOAT) N;
-                
+
                 for(int n = 0; n < N; n++){
                     index 	= in_nstride*n+adjIndex;
-                    tmp1 	= mad((_FLOAT) N, dy_in[index], -pvt_dbias);
-                    elemStd = x_in[index] - mean;// (x_i - mean)
-                    xhat 	= elemStd*invVar; //recalculating this again...
-                    tmp2 	= mad(-xhat, pvt_dscale, tmp1);
-                    tmp3 	= (pvt_scale*invVar)/((_FLOAT) N);
+                    elemStd =  x_in[index] - mean;// (x_i - mean)
+                    xhat 	=  elemStd*invVar;
+                    tmp1 	= mad(xhat, dxhathat, dxhat);
+                    tmp2 	= mad((_FLOAT) N, dxhat, -tmp1);
+                    tmp3 	= invVar/((_FLOAT) N);
                     dx_out[index] = tmp3*tmp2;
                 }
                 //Write out data
