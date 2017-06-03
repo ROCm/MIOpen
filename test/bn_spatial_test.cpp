@@ -23,7 +23,6 @@
 #define MIO_BN_TEST_EPSILON 0.000001
 #define MIO_BN_SP_TEST_DEBUG 0
 
-#endif
 
 
 //****************************************************
