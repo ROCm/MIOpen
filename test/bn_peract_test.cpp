@@ -22,7 +22,7 @@
 //Run CPU emulations in hierarchical reduction mode.
 //#define MIO_HEIRARCH_SEL 0
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
-#define MIO_BN_TEST_EPSILON 0.000001
+#define MIO_BN_TEST_EPSILON 1e-6
 
 
 //****************************************************
@@ -88,7 +88,7 @@ struct verify_forward_train_bn_per_activation
                     variance_accum/=n; // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    elemInvVar = 1.0/double(sqrt(fabs(variance_accum + epsilon)));
+                    elemInvVar = 1.0/double(sqrt(variance_accum + epsilon));
 
                     // #4 apply the normalization :: x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
                     for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
@@ -270,7 +270,7 @@ struct verify_forward_infer_bn_per_activation_recalc
                     variance_accum /= n; // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    elemInvVar = 1.0/double(sqrt(fabs(variance_accum + epsilon)));
+                    elemInvVar = 1.0/double(sqrt(variance_accum + epsilon));
 
                     // #4 apply the normalization
                     // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
@@ -374,7 +374,7 @@ struct verify_forward_infer_bn_per_activation_use_est
                 for(int column = 0; column < width; column++){// via columns
                     mean = estMean(0,cidx,row,column);
                     variance = estVar(0,cidx,row,column);
-                    elemInvVar = 1.0/double(sqrt(fabs(variance + epsilon)));
+                    elemInvVar = 1.0/double(sqrt(variance + epsilon));
                     for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         elemStd = input(bidx,cidx,row,column) - mean;// (x_i - mean)
                         inhat = elemStd*elemInvVar;

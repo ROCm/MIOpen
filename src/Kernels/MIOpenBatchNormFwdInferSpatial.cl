@@ -47,6 +47,16 @@
 
 #define UNUSED __attribute__((__unused__))
 
+// Disable specific warnings
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsometimes-uninitialized"
+#endif
+
+
+
 
 static inline void ReduceKernel(__local _FLOAT * lcl_mem, unsigned int sum_stride, unsigned  int unit_id, unsigned int unit_len){
     _FLOAT sum = 0;
@@ -602,3 +612,11 @@ __kernel void BatchNormFwdInferSpatialMean(const __global _FLOAT    * __restrict
 //====================================================
 
 #endif
+
+
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
+#endif
+

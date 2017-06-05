@@ -21,8 +21,6 @@ std::vector<std::string> KernelWarnings()
         "-Wno-conversion",
         "-Wno-double-promotion",
         "-Wno-float-equal",
-	"-Wno-conditional-uninitialized",
-	"-Wno-sometimes-uninitialized",
     };
 }
 

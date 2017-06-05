@@ -59,6 +59,17 @@
 #define MIO_BN_VARIANT 0
 #endif
 
+
+// Disable specific warnings
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsometimes-uninitialized"
+#endif
+
+
+
 #define UNUSED __attribute__((__unused__))
 
 
@@ -2393,6 +2404,13 @@ __kernel void BatchNormBwdSpatialSavedDX(
 
 
 
+#endif
+
+
+// Restore warnings
+#ifdef __clang__
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
 #endif
 
 
