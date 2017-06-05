@@ -38,6 +38,17 @@
 #endif
 
 
+// Disable specific warnings
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsometimes-uninitialized"
+#endif
+
+
+
+
 __kernel void BatchNormBwdPerActivationSaved(
 					const __global _FLOAT 	*x_in, 
 					const __global _FLOAT 	*dy_in, 
@@ -230,4 +241,12 @@ __kernel void BatchNormBwdPerActivation(
 
 
 //================== END PER ACTIVATION ====================
+
+
+
+// Restore warnings
+#ifdef __clang__
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
+#endif
 

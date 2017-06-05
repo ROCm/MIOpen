@@ -349,7 +349,7 @@ int miopenBNFwdInferPerActivationRunHost(
                     adjIndex = in_cstride*cidx + width*row + column;
                     mean = estimatedMean[adjIndex];
                     variance = estimatedVariance[adjIndex];
-                    double elemInvVar = 1.0/sqrt(variance + epsilon);
+                    double elemInvVar = 1.0/double(sqrt(variance + epsilon));
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
                         index = in_nstride*bidx + adjIndex;
                         //per (x-dims) channel load a block of data into LDS
@@ -394,7 +394,7 @@ int miopenBNFwdInferPerActivationRunHost(
                     variance_accum /= double(n_batchs); // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    double elemInvVar = 1.0/sqrt(variance_accum + epsilon);
+                    double elemInvVar = 1.0/double(sqrt(variance_accum + epsilon));
 
                     // #4 apply the normalization
                     // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)

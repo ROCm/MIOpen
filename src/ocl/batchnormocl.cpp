@@ -88,12 +88,12 @@ void BatchNormForwardTraining(
         parms += " -DMIO_BN_NHW="+std::to_string(n*h*w);
         parms += " -DMIO_BN_CHW="+std::to_string(in_nstride);
         
-
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
         float ktime = 0.;
         float ctime = 0.;
-        handle.ResetKernelTime();
-#endif
+        if(handle.IsProfilingEnabled()){
+            handle.ResetKernelTime();
+        }
+
         
         unsigned int segment;
         auto inhw = float(1.0/(n*h*w));
@@ -315,62 +315,65 @@ void BatchNormForwardTraining(
                                     network_config, program_name, kernel_subname, vld, vgd, parms)
                                     (x, y);
                  
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
                     
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)(y, inhw, expAvgFactor, resultRunningMean, resultSaveMean);
                             
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif      
-
+                    }
+                    
+                    
                     //Run variance reduction kernel
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)(x, y);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
+                    
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,     program_name, kernel_subname, vld, vgd, parms)
                             (y, inhw, expAvgFactor, resultRunningVariance, epsilon, resultSaveInvVariance);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
                     
                     //Run norm kernel
                     kernel_subname = kernel_name + "Norm";
@@ -378,10 +381,10 @@ void BatchNormForwardTraining(
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)(x, y, bnScale, bnBias);
                     
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    if(handle.IsProfilingEnabled()){
                         handle.GetKernelTime();  
                         handle.AccumKernelTime(ctime);
-                    #endif
+                    }
                     
                 }else if(resultsave){
 
@@ -390,70 +393,71 @@ void BatchNormForwardTraining(
                                     network_config, program_name, kernel_subname, vld, vgd, parms)
                                     (x, y);
                     
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
-                        handle.Finish();                    
-                    #endif
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
 
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,	program_name, kernel_subname, vld, vgd,
                             parms)(y, inhw, resultSaveMean);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif               
+                    }              
 
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (x, y);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
-
+                    }
+                    
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (y, inhw, epsilon, resultSaveInvVariance);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
-
+                    }
+                    
                     kernel_subname = kernel_name + "Norm";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (x, y, bnScale, bnBias);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)
+                    if(handle.IsProfilingEnabled()){
                         handle.GetKernelTime();  
                         handle.AccumKernelTime(ctime);
-                    #endif
+                    }
 
                 }else if(resultrunning){
 
@@ -461,70 +465,71 @@ void BatchNormForwardTraining(
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                                     network_config, program_name, kernel_subname, vld, vgd, parms)
                                     ( x, y );
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
+                    
 
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)(y, inhw, expAvgFactor, resultRunningMean);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
 
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)( x, y);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
 
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (y, inhw, expAvgFactor, resultRunningVariance, epsilon);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
 
                     kernel_subname = kernel_name + "Norm";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)( x, y, bnScale, bnBias);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
-                        handle.GetKernelTime();   
+                    if(handle.IsProfilingEnabled()){
+                        handle.GetKernelTime();  
                         handle.AccumKernelTime(ctime);
-                    #endif                    
+                    }                  
                     
                     
                     
@@ -536,71 +541,72 @@ void BatchNormForwardTraining(
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                                     (x, y);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
+                    
                     
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                                     (y, inhw);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
                     
                     
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,	program_name, kernel_subname, vld, vgd, parms)
                                     (x, y);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
                     
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,     program_name, kernel_subname, vld, vgd, parms)
                             (y, inhw, epsilon);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
+                    if(handle.IsProfilingEnabled()){
                         ktime = handle.GetKernelTime();    
                         ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-                    #else
+                        #endif
+                    }else{
                         handle.Finish();
-                    #endif
+                    }
                     
                     kernel_subname = kernel_name + "Norm";
                     handle.GetKernel("miopenBatchNormalizationForwardTraining",
                             network_config,	program_name, kernel_subname, vld, vgd,
                             parms)( x, y, bnScale, bnBias);
-                    #if(MIO_BN_OCL_SEQ_TIMING == 1)      
-                        handle.GetKernelTime();    
+                    if(handle.IsProfilingEnabled()){
+                        handle.GetKernelTime();  
                         handle.AccumKernelTime(ctime);
-                    #endif                    
+                    }                   
                 }        
               }
 	}else{
@@ -707,7 +713,12 @@ void BatchNormForwardInference(
 	std::vector<size_t> vld;
 	std::vector<size_t> vgd;
 
-
+        float ktime = 0.;
+        float ctime = 0.;
+        if(handle.IsProfilingEnabled()){
+            handle.ResetKernelTime();
+        }
+        
 	// compile parameters
 	std::string parms{};
 	bool useEstimated = false;
@@ -822,29 +833,70 @@ void BatchNormForwardInference(
                     handle.GetKernel("miopenBatchNormalizationForwardInference",
                          network_config, program_name, kernel_subname, vld, vgd, parms)
                                  (x, y );
-                    handle.Finish();
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
 
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationForwardInference",
                          network_config, program_name, kernel_subname, vld, vgd, parms)
                                  ( y );
-                    handle.Finish();
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
 
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationForwardInference",
                          network_config,	program_name, kernel_subname, vld, vgd, parms)
                                  ( x, y);
-
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
+                    
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationForwardInference",
                          network_config,     program_name, kernel_subname, vld, vgd, parms)
                          ( y, epsilon);
-                    handle.Finish();
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
+                        printf("ktime: %f\n",ktime);
+                        printf("ctime: %f\n",ctime);
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
 
                     kernel_subname = kernel_name + "Norm";
                     handle.GetKernel("miopenBatchNormalizationForwardInference",
                          network_config,	program_name, kernel_subname, vld, vgd,
                          parms)( x, y, bnScale, bnBias);
+                    if(handle.IsProfilingEnabled()){
+                        handle.GetKernelTime();  
+                        handle.AccumKernelTime(ctime);
+                    }
                 }
             }
 	//end spatial
@@ -951,11 +1003,12 @@ void BatchNormBackward(
             useSaved = true;
 	}
         
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
         float ktime = 0.;
         float ctime = 0.;
-        handle.ResetKernelTime();
-#endif
+        if(handle.IsProfilingEnabled()){
+            handle.ResetKernelTime();
+        }
+        
 
 	if(bn_mode == miopenBNSpatial){// SPATIAL kernels
             program_name += "Spatial.cl";
@@ -1037,70 +1090,71 @@ void BatchNormBackward(
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd,
                                     parms)( dy, dx );
-                    
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#endif
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
                     
                     kernel_subname = kernel_name + "DScale";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                                     parms)( x, dy, savedMean, savedInvVariance, dx);
-                    
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#else
-                    handle.Finish();
-#endif
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
         
                     kernel_subname = kernel_name + "FinalDBias";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (dx, resultBnBiasDiff );
-                    
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#endif                       
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }        
   
                     kernel_subname = kernel_name + "FinalDScale";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (dx, resultBnScaleDiff );
-		    #if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-		    #else
-                    handle.Finish();
-		    #endif                    
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
+                    
                     kernel_subname = kernel_name + "DX";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                                     parms)( x, dy, dx, bnScale, 
                                             resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance);	
-		    #if(MIO_BN_OCL_SEQ_TIMING == 1)
-              
-                    handle.GetKernelTime(); 
-                    handle.AccumKernelTime(ctime);
-		    #endif                    
+                    if(handle.IsProfilingEnabled()){
+                        handle.GetKernelTime();  
+                        handle.AccumKernelTime(ctime);
+                    }              
         }
             }else{
 
@@ -1137,133 +1191,129 @@ void BatchNormBackward(
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,	parms)
                             ( x, dx);
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#endif
+                        #endif
+                    }
 
                     kernel_subname = kernel_name + "DBias";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                                     parms)(dy, dx );
 
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#else
-                    handle.Finish();
-#endif
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
 
                     kernel_subname = kernel_name + "FinalDBias";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (dx, resultBnBiasDiff);
-
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#else
-                    handle.Finish();
-#endif
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
+                    
                     kernel_subname = kernel_name + "FinalMean";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,	parms)(dx);
-
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#else
-                    handle.Finish();
-#endif
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
                     
                     kernel_subname = kernel_name + "Variance";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)( x, dx);
-
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#else
-                    handle.Finish();
-#endif                    
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }                 
 
                     kernel_subname = kernel_name + "FinalVariance";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd,
                             parms)( dx,  epsilon);
-
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#else
-                    handle.Finish();
-#endif
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
                     
                     kernel_subname = kernel_name + "DScale";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                             parms)( x, dy,  dx);
-
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#else
-                    handle.Finish();
-#endif
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
                     
                     kernel_subname = kernel_name + "FinalDScale";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config, program_name, kernel_subname, vld, vgd, parms)
                             (dx, resultBnScaleDiff);
-
- #if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    ktime = handle.GetKernelTime();    
-                    ctime+=ktime;
-                    #if(MIOPEN_BN_CPP_PROF == 1)
+                    if(handle.IsProfilingEnabled()){
+                        ktime = handle.GetKernelTime();    
+                        ctime+=ktime;
+                        #if(MIO_BN_CPP_PROF == 1)
                         printf("ktime: %f\n",ktime);
                         printf("ctime: %f\n",ctime);
-                    #endif
-#else
-                    handle.Finish();
-#endif
+                        #endif
+                    }else{
+                        handle.Finish();
+                    }
+                    
                     kernel_subname = kernel_name + "DX";
                     handle.GetKernel("miopenBatchNormalizationBwd",
                             network_config,	program_name, kernel_subname, vld, vgd,
                             parms)( x, dy, dx, bnScale, resultBnScaleDiff, resultBnBiasDiff);
-#if(MIO_BN_OCL_SEQ_TIMING == 1)
-                    
-                    handle.GetKernelTime(); 
-                    handle.AccumKernelTime(ctime);
-#endif                
+                    if(handle.IsProfilingEnabled()){
+                        handle.GetKernelTime();  
+                        handle.AccumKernelTime(ctime);
+                    }
+               
                 }
             }
 	}else{

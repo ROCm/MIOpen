@@ -23,8 +23,8 @@
 //what exactly should this be?
 #define EPSILON 1e-6
 
-#define ERRTOL 1e-5
-#define RMSTOL 1e-5
+#define ERRTOL 1e-4
+#define RMSTOL 1e-4
 
 #ifdef MIOPEN_BACKEND_HIP
     #ifndef CL_SUCCESS
@@ -498,7 +498,7 @@ int BatchNormDriver<T>::AllocateBuffersAndCopy() {
 
         for(int i = 0; i < in_sz; i++){
                 dyin[i] = double(rand() * (1.0 / RAND_MAX));
-                in[i] 	= 1.0;//double(rand() * (1.0 / RAND_MAX));
+                in[i] 	= double(rand() * (1.0 / RAND_MAX));
         }
         status |= dyin_dev->ToGPU(q, dyin.data());
         status |= in_dev->ToGPU(q, in.data());
@@ -909,12 +909,12 @@ int BatchNormDriver<T>::VerifyForward() {
         for(int i = 0; i<out.size() && i<out_host.size();i++){
             diff = double(fabs(out[i]) - fabs(out_host[i]));
             maxval = maxval < diff ? diff : maxval;
-           // if(diff > tolerance){
+            if(diff > tolerance){
                 std::cout << "out[" << i << "]: " << out[i];
                 std::cout << ", out_host[" << i << "]: " << out_host[i];
                 std::cout << ", diff[" << i << "]: " << double(out[i] - out_host[i]) << std::endl;
                 count++;
-          //  }
+            }
         }
         #endif
         std::cout  << "Number of elements: " << out.size() << std::endl;
