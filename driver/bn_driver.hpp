@@ -23,8 +23,8 @@
 //what exactly should this be?
 #define EPSILON 1e-6
 
-#define ERRTOL 1e-4
-#define RMSTOL 1e-4
+#define ERRTOL 1e-6
+#define RMSTOL 1e-6
 
 #ifdef MIOPEN_BACKEND_HIP
     #ifndef CL_SUCCESS
