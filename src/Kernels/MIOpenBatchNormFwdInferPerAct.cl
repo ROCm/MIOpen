@@ -27,6 +27,17 @@
 
 
 
+// Disable specific warnings
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsometimes-uninitialized"
+#endif
+
+
+
+
 
 __kernel void BatchNormFwdInferPerActivationEst(
 					const __global _FLOAT 	*in, /* x input */
@@ -63,7 +74,7 @@ __kernel void BatchNormFwdInferPerActivationEst(
                 pvt_scale = scale[adjIndex];
                 pvt_bias = bias[adjIndex];
                 for(int n = 0; n < N; n++){
-                        //per (x-dims) channel load a block of data into LDS
+                    //per (x-dims) channel load a block of data into LDS
                     index = in_nstride*n+adjIndex;
                     elemStd = in[index] - mean;// (x_i - mean)
                     inhat = elemStd*invVariance;
@@ -133,7 +144,7 @@ __kernel void BatchNormFwdInferPerActivation(
                 variance_accum /= (_FLOAT) N; // (1/N)*sum{ (x_i - mean)^2 }
 
                 // #3 add epsilon for numeric stability, sqr_root, and invert
-                invVariance= rsqrt(fabs(variance_accum - epsilon));
+                invVariance= rsqrt(fabs(variance_accum + epsilon));
 
                 // #4 apply the normalization
                 // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
@@ -152,4 +163,11 @@ __kernel void BatchNormFwdInferPerActivation(
 	}//end for(img_offset) //image mini_batch is processed
 }
 
+
+
+// Restore warnings
+#ifdef __clang__
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
+#endif
 
