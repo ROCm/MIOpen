@@ -553,9 +553,9 @@ else if(mode == miopenTranspose){
 
 		int bot_batch_stride = in_c*in_h*in_w;
 		int bot_channel_stride = in_h*in_w;
-		int bot_stride = in_w;
-		int bot_height = in_h;
-		int bot_width = in_w;
+//		int bot_stride = in_w;
+//		int bot_height = in_h;
+//		int bot_width = in_w;
 
 		int top_width = out_w;
 		int top_height = out_h;
@@ -611,17 +611,17 @@ else if(mode == miopenTranspose){
 #define ADNN_MM_TRANSPOSE 1
 		memset(col2im_ptr, 0, col2im_batch_stride * batch_sz * sizeof(T));
 		memset(top_ptr, 0, out_n * out_c * out_h * out_w * sizeof(T));
-		for (int b = 0; b < batch_sz; ++b)
+		for (int bi = 0; bi < batch_sz; ++bi)
 		{
 			// sum up over mini-batch
 			ADNN_mm_cpu<T>((const T*)&weights_ptr[0], weights_width, weights_height, weights_stride, ADNN_MM_TRANSPOSE,
-				(const T *)&bot_ptr[bot_batch_stride * b], in_h*in_w, inputs, bot_channel_stride, 0,
-				&col2im_ptr[col2im_batch_stride * b], bot_channel_stride, weights_width, bot_channel_stride, 0,
+				(const T *)&bot_ptr[bot_batch_stride * bi], in_h*in_w, inputs, bot_channel_stride, 0,
+				&col2im_ptr[col2im_batch_stride * bi], bot_channel_stride, weights_width, bot_channel_stride, 0,
 				1, 1);
 
-			ADNN_col2im_cpu(&col2im_ptr[col2im_batch_stride * b], outputs,
+			ADNN_col2im_cpu(&col2im_ptr[col2im_batch_stride * bi], outputs,
 				top_height, top_width, wei_h, wei_w, pad,
-				stride, &top_ptr[top_batch_stride * b]);
+				stride, &top_ptr[top_batch_stride * bi]);
 		}
 
 		// read back packed delta weight

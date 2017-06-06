@@ -45,9 +45,16 @@ const
 	
 	std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tie4(filterDesc.GetLengths());
 
+if (mode == miopenConvolution) {
 	if(input_c != filter_c) {
 		MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
 	}
+}
+else if (mode == miopenTranspose) {
+	if (input_c != filter_k) {
+		MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
+	}
+}
 
 	int output_c;
 	int output_h;

@@ -323,8 +323,8 @@ else if (mode == miopenTranspose) {
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
-	int wei_c, wei_h, wei_w;
-	std::tie(wei_c, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+	int wei_n, wei_h, wei_w;
+	std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
 	int out_h, out_w;
 	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
@@ -357,7 +357,7 @@ else if (mode == miopenTranspose) {
 		gg.RunGemm(handle, w, x, workSpace, 0, 0, 0);
 
 		time_gemm = in_n * handle.GetKernelTime();
-		time_col2im = Col2ImGPU(handle, workSpace, in_h, in_w, wei_h, wei_w, pad_h, pad_w, u, v, wei_c, out_h, out_w, tmp_y.get(), out_offset);
+		time_col2im = Col2ImGPU(handle, workSpace, in_h, in_w, wei_h, wei_w, pad_h, pad_w, u, v, wei_n, out_h, out_w, tmp_y.get(), out_offset);
 
 		time_gemm += in_n * time_col2im;
 
@@ -407,14 +407,17 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     if(xDesc.GetType() != yDesc.GetType() || xDesc.GetType() != wDesc.GetType()) {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
+//    if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
+//        MIOPEN_THROW(miopenStatusBadParm);
+//    }
     if(xDesc.GetSize() < 3) {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
 if (mode == miopenConvolution) {
+	if (xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
+		MIOPEN_THROW(miopenStatusBadParm);
+	}
     switch (algo)
     {
         case miopenConvolutionFwdAlgoDirect:
@@ -570,12 +573,16 @@ if (mode == miopenConvolution) {
     }
 }
 else if (mode == miopenTranspose) {
+	if (xDesc.GetLengths()[1] != wDesc.GetLengths()[0]) {
+		MIOPEN_THROW(miopenStatusBadParm);
+	}
+
 	// GEMM based
 	int in_n, in_c, in_h, in_w;
 	std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
-	int wei_c, wei_h, wei_w;
-	std::tie(wei_c, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+	int wei_n, wei_h, wei_w;
+	std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
 	int out_h, out_w;
 	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
@@ -594,7 +601,7 @@ else if (mode == miopenTranspose) {
 	float time_0 = 0;
 	float t1 = 0;
 	for (int i = 0; i < in_n; i++) {
-		int out_offset = i * wei_c * out_h * out_w;
+		int out_offset = i * wei_n * out_h * out_w;
 		if (wei_h != 1 || wei_w != 1 || v != 1 || u != 1) {
 			size_t in_offset = i * in_c * in_h * in_w;
 
@@ -603,7 +610,7 @@ else if (mode == miopenTranspose) {
 
 			gg.RunGemm(handle, w, x, workSpace, 0, in_offset, 0);
 
-			Col2ImGPU(handle, workSpace, in_h, in_w, wei_h, wei_w, pad_h, pad_w, u, v, wei_c, out_h, out_w, y, out_offset);
+			Col2ImGPU(handle, workSpace, in_h, in_w, wei_h, wei_w, pad_h, pad_w, u, v, wei_n, out_h, out_w, y, out_offset);
 
 			// Update times for both the kernels
 			if (handle.IsProfilingEnabled()) {
