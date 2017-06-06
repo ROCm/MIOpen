@@ -23,8 +23,8 @@
 //what exactly should this be?
 #define EPSILON 1e-6
 
-#define ERRTOL 1e-5
-#define RMSTOL 1e-5
+#define ERRTOL 1e-6
+#define RMSTOL 1e-6
 
 #ifdef MIOPEN_BACKEND_HIP
     #ifndef CL_SUCCESS
@@ -441,7 +441,7 @@ int BatchNormDriver<T>::AllocateBuffersAndCopy() {
 
         //Data initialization
         for (int i = 0; i < in_sz; i++) {
-                in[i] = double(rand() * (1.0 / RAND_MAX));
+                in[i] = std::fabs(double(rand() * (1.0 / RAND_MAX)));
         }
         status |= in_dev->ToGPU(q, in.data());
 
@@ -993,8 +993,8 @@ int BatchNormDriver<T>::VerifyBackward() {
     dbias_dev->FromGPU(GetStream(), dbias.data());
 
     maxval = 0.;
-    auto errordxout = miopen::rms_range(dxout_host, dxout);
-    if (errordxout > maxrms  || std::isnan(errordxout)){
+     auto errordxout = miopen::rms_range(dxout_host, dxout);
+   if (errordxout > maxrms  || std::isnan(errordxout)){
         std::cout<<"Backwards prop batch norm verification failed on dx: " << errordxout <<"\n";
         anError = true;
         #if (MIO_BN_DEBUG==1)
@@ -1035,7 +1035,6 @@ int BatchNormDriver<T>::VerifyBackward() {
     }else{
         std::cout<<"Backwards prop batch norm verification passed on dscale.\n";
     }
-
 
     auto errordbias = miopen::rms_range(dbias_host, dbias);
     if (errordbias > maxrms  || std::isnan(errordbias)){
