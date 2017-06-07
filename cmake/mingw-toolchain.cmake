@@ -9,7 +9,7 @@ set(CMAKE_RC_COMPILER ${TOOLCHAIN_PREFIX}-windres)
 # target environment on the build host system
 #   set 1st to dir with the cross compiler's C/C++ headers/libs
 #   set 2nd to dir containing personal cross development headers/libs
-set(CMAKE_FIND_ROOT_PATH /usr/${TOOLCHAIN_PREFIX})
+set(CMAKE_FIND_ROOT_PATH /usr/${TOOLCHAIN_PREFIX} /usr/local/${TOOLCHAIN_PREFIX})
 
 # modify default behavior of FIND_XXX() commands to
 # search for headers/libs in the target environment and
