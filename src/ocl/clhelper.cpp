@@ -8,6 +8,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/kernel_warnings.hpp>
 
 
 namespace miopen {
@@ -104,9 +105,7 @@ ClProgramPtr LoadProgram(cl_context ctx, cl_device_id device, const std::string 
 #if MIOPEN_BUILD_DEV
 		params += " -Werror";
 #ifdef __linux__
-		params += " -Wf,-Weverything -Wf,-Wno-shorten-64-to-32 -Wf,-Wno-unused-macros -Wf,-Wno-unused-function "  
-            "-Wf,-Wno-sign-compare -Wf,-Wno-reserved-id-macro -Wf,-Wno-sign-conversion -Wf,-Wno-missing-prototypes -Wf,-Wno-cast-qual "
-            "-Wf,-Wno-cast-align -Wf,-Wno-conversion -Wf,-Wno-double-promotion";
+		params += KernelWarningsString();
 #endif
 #endif
 		params += " -cl-std=CL1.2";
