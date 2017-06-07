@@ -276,7 +276,7 @@ int miopenBNFwdTrainSpatialRunHost(
 
         // #3 add epsilon for numeric stability, sqr_root, and invert
         double invertVar = 1.0/sqrt(variance_accum + epsilon);
-
+        
         if(savemeanvar) saveInvVariance[cidx] = invertVar;/*output only*/
 
         // #4 apply the normalization
@@ -349,7 +349,7 @@ int miopenBNFwdInferPerActivationRunHost(
                     adjIndex = in_cstride*cidx + width*row + column;
                     mean = estimatedMean[adjIndex];
                     variance = estimatedVariance[adjIndex];
-                    double elemInvVar = 1.0/sqrt(variance + epsilon);
+                    double elemInvVar = 1.0/double(sqrt(variance + epsilon));
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
                         index = in_nstride*bidx + adjIndex;
                         //per (x-dims) channel load a block of data into LDS
@@ -394,7 +394,7 @@ int miopenBNFwdInferPerActivationRunHost(
                     variance_accum /= double(n_batchs); // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    double elemInvVar = 1.0/sqrt(variance_accum + epsilon);
+                    double elemInvVar = 1.0/double(sqrt(variance_accum + epsilon));
 
                     // #4 apply the normalization
                     // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
@@ -615,10 +615,13 @@ int miopenBNBwdPerActivationRunHost(
     unsigned int adjIndex;
     unsigned int in_nstride = channels*height*width;
     unsigned int in_cstride = height*width;
-    double elemStd = 0.;
-    double mean = 0.;
-    double elemInvVar = 0.;
-    double dyelem = 0.;
+    double elemStd      = 0.;
+    double mean         = 0.;
+    double elemInvVar   = 0.;
+    double dyelem       = 0.;
+    double dxhat        = 0.;
+    double dxhathat     = 0.;
+    double tmp1, tmp2, tmp3;
 
     std::vector<double> xhat(n_batchs*in_cstride);
 
@@ -633,6 +636,8 @@ int miopenBNBwdPerActivationRunHost(
                     mean = savedMean[adjIndex]; // HxW elements
                     elemInvVar = savedInvVariance[adjIndex]; //HxW elements
 
+                    dxhat = 0.;
+                    dxhathat = 0.;
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
                         index = in_nstride*bidx + adjIndex;
                         xhat_index = in_cstride*bidx + (width*row + column);
@@ -642,16 +647,19 @@ int miopenBNBwdPerActivationRunHost(
                         dyelem = dy_ptr[index];
                         dbias_ptr[adjIndex]  += dyelem;
                         dscale_ptr[adjIndex] += xhat[xhat_index]*dyelem;
+                        tmp1 = scale_ptr[adjIndex] * dyelem;
+                        dxhat += tmp1;
+                        dxhathat += tmp1*xhat[xhat_index];
                     }//end for(n_batchs)
                     dscale_ptr[adjIndex] /= double(n_batchs);
 
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
                         index = in_nstride*bidx + adjIndex;
-                        xhat_index = in_cstride*bidx + (width*row + column);
-                        double tmp1 = n_batchs*dy_ptr[index] - dbias_ptr[adjIndex];
-                        double tmp2 = -xhat[xhat_index]*dscale_ptr[adjIndex];
-                        double tmp3 = (scale_ptr[adjIndex]*elemInvVar)/(double(n_batchs));
-                        dx_ptr[index] = tmp3*(tmp1+tmp2);
+                        xhat_index = in_cstride*bidx + (width*row + column); 
+                        tmp1 = xhat[xhat_index]*dxhathat + dxhat;
+                        tmp2 = n_batchs*dxhat - tmp1;
+                        tmp3 = elemInvVar/(double(n_batchs));
+                        dx_ptr[index] = tmp3*tmp2;
                     }//end for(n_batchs)
                 } // for (column)
             }// for (row)
@@ -690,6 +698,8 @@ int miopenBNBwdPerActivationRunHost(
                     elemInvVar = 1.0/sqrt(variance + epsilon);
 
 
+                    dxhat = 0.;
+                    dxhathat = 0.;
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
                         index = in_nstride*bidx + adjIndex;
                         xhat_index = in_cstride*bidx + (width*row + column);
@@ -699,16 +709,19 @@ int miopenBNBwdPerActivationRunHost(
                         dyelem = dy_ptr[index];
                         dbias_ptr[adjIndex]  += dyelem;
                         dscale_ptr[adjIndex] += xhat[xhat_index]*dyelem;
+                        tmp1 = scale_ptr[adjIndex] * dyelem;
+                        dxhat += tmp1;
+                        dxhathat += tmp1*xhat[xhat_index];
                     }//end for(n_batchs)
                     dscale_ptr[adjIndex] /= double(n_batchs);
 
                     for (int bidx = 0; bidx < n_batchs; bidx++){ //via mini_batch
                         index = in_nstride*bidx + adjIndex;
-                        xhat_index = in_cstride*bidx + (width*row + column);
-                        double tmp1 = n_batchs*dy_ptr[index] - dbias_ptr[adjIndex];
-                        double tmp2 = -xhat[xhat_index]*dscale_ptr[adjIndex];
-                        double tmp3 = (scale_ptr[adjIndex]*elemInvVar)/double(n_batchs);
-                        dx_ptr[index] = tmp3*(tmp1+tmp2);
+                        xhat_index = in_cstride*bidx + (width*row + column); 
+                        tmp1 = xhat[xhat_index]*dxhathat + dxhat;
+                        tmp2 = n_batchs*dxhat - tmp1;
+                        tmp3 = elemInvVar/(double(n_batchs));
+                        dx_ptr[index] = tmp3*tmp2;
                     }//end for(n_batchs)
                 } // for (column)
             } // for (row)
@@ -991,3 +1004,4 @@ int miopenBNBwdSpatialRunHost(
 
 
 #endif
+
