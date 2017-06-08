@@ -26,6 +26,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
+#include <miopen/algorithm_implementations.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
@@ -523,7 +524,15 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-                int n_passes = construct_params.mloConstructDirect2D_11x11(true);
+                ConvOclDirectFwd11x11 traits;
+                ImplementationSearchParameters search_params;
+                ExaustiveSearchResult esr;
+
+                construct_params.mloFillSearchParams(search_params);
+                search_params.n_passes = true;
+
+                auto construct_result = traits.PrepareForUsage(search_params, esr);
+                auto n_passes         = construct_result.passes;
 
                 if(n_passes == 1)
                 {
