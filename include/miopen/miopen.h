@@ -241,10 +241,10 @@ typedef enum {
 } miopenConvBwdWeightsAlgorithm_t;
 
 typedef enum {
-    miopenConvolutionBwdDataAlgoDirect   = 0,
-    miopenConvolutionBwdDataAlgoWinograd = 1,
-    miopenConvolutionBwdDataAlgoGEMM     = 2,
-    miopenConvolutionBwdDataAlgoFFT      = 3,
+    miopenConvolutionBwdDataAlgoGEMM     = 0,
+    miopenConvolutionBwdDataAlgoDirect   = 1,
+    miopenConvolutionBwdDataAlgoFFT      = 2,
+    miopenConvolutionBwdDataAlgoWinograd = 3,
 } miopenConvBwdDataAlgorithm_t;
 
 // Same perf struct for forward, backward filter and backward data algorthms
