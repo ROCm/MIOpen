@@ -14,16 +14,16 @@ else()
 endif()
 
 project ( MIOpen C CXX )
-set(MIOpen_VERSION_MAJOR 0)
-set(MIOpen_VERSION_MINOR 10)
-set(MIOpen_VERSION_PATCH 0)
-set(MIOpen_VERSION_TWEAK 0)
-set(MIOpen_VERSION "${MIOpen_VERSION_MAJOR}.${MIOpen_VERSION_MINOR}.${MIOpen_VERSION_PATCH}.${MIOpen_VERSION_TWEAK}")
-set(PROJECT_VERSION ${MIOpen_VERSION})
-set(PROJECT_VERSION_MAJOR ${MIOpen_VERSION_MAJOR})
-set(PROJECT_VERSION_MINOR ${MIOpen_VERSION_MINOR})
-set(PROJECT_VERSION_PATCH ${MIOpen_VERSION_PATCH})
-set(PROJECT_VERSION_TWEAK ${MIOpen_VERSION_TWEAK})
+
+find_package(ROCM REQUIRED PATHS /opt/rocm)
+
+include(ROCMInstallTargets)
+include(ROCMPackageConfigHelpers)
+include(ROCMSetupVersion)
+include(ROCMInstallSymlinks)
+include(ROCMCreatePackage)
+
+rocm_setup_version(VERSION 0.10.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -106,13 +106,8 @@ option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( BUILD_DEV "Build for development only" OFF)
 
-include(GNUInstallDirs)
-set( MIOPEN_INSTALL_DIR miopen)
-set( BIN_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_BINDIR} )
-set( LIB_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR} )
-set( INCLUDE_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR} )
+set( MIOPEN_INSTALL_DIR miopen-${PROJECT_VERSION})
 set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
-set( CONFIG_PACKAGE_INSTALL_DIR ${LIB_INSTALL_DIR}/cmake/miopen )
 
 if(BUILD_DEV)
 	set(MIOPEN_BUILD_DEV 1)
@@ -122,13 +117,12 @@ else()
 	set(MIOPEN_DB_PATH "${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
 endif()
 
-include(CreatePackage)
-create_package(
+rocm_create_package(
 	NAME MIOpen-${MIOPEN_BACKEND}
 	DESCRIPTION "AMD's DNN Library"
 	MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
-	LDCONFIG ${LIB_INSTALL_DIR}
-	DEPENDS rocm-opencl rocm-utils hip_hcc tinygemm
+	LDCONFIG
+	# DEPENDS rocm-opencl rocm-utils hip_hcc tinygemm
 )
 
 include(EnableCompilerWarnings)
