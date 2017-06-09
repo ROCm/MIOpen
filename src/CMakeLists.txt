@@ -97,8 +97,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         Kernels/conv3x3wrw.s
         Kernels/conv5x10u2v2f1.s
         Kernels/conv5x10u2v2b1.s
+        Kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         Kernels/MIOpenTensorKernels.cl
         Kernels/MIOpenTensorScaleKernel.cl
+        Kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900.so
         Kernels/conv_3x3_wheel_alpha_v5_1_1b_gfx900.so
         Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
         Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
@@ -248,6 +250,7 @@ install( FILES
 # Install db files
 install(FILES 
     Kernels/gfx803_64.cd.pdb.txt
+    Kernels/gfx900_64.cd.pdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 install(TARGETS MIOpen 
