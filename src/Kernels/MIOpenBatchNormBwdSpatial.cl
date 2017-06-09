@@ -1176,14 +1176,15 @@ __kernel void BatchNormBwdSpatialSavedSingleLDSDX(
 
         __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
         _FLOAT tmp = 0;
+        
         lcl_data[ylid] = db;
         barrier(CLK_LOCAL_MEM_FENCE);
-
         if(ylid < 128) lcl_data[ylid] += lcl_data[ylid+128];
         barrier(CLK_LOCAL_MEM_FENCE);
         if(ylid < 64) lcl_data[ylid] += lcl_data[ylid+64];
         barrier(CLK_LOCAL_MEM_FENCE);
         db = lcl_data[ylid];
+        barrier(CLK_LOCAL_MEM_FENCE);
         db += as_float( __builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
         db += as_float( __builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
         db += as_float( __builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
@@ -1200,6 +1201,7 @@ __kernel void BatchNormBwdSpatialSavedSingleLDSDX(
         if(ylid < 64) lcl_data[ylid] += lcl_data[ylid+64];
         barrier(CLK_LOCAL_MEM_FENCE);
         ds = lcl_data[ylid];
+        //barrier(CLK_LOCAL_MEM_FENCE);
         ds += as_float( __builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
         ds += as_float( __builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
         ds += as_float( __builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));

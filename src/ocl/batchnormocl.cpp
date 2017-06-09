@@ -121,7 +121,7 @@ void BatchNormForwardTraining(
                 
                 unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
                 parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
-                #ifdef MIOPEN_BN_CPP_DEBUG
+                #if (MIOPEN_BN_CPP_DEBUG == 1)
                     std::cout << " -DMIO_BN_VARIANT=0" <<std::endl;
                 #endif  
                 parms += " -DMIO_BN_VARIANT=0";
@@ -176,7 +176,7 @@ void BatchNormForwardTraining(
                 auto lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/16384)*numwgs);
                 
                 if(lds_size <= 1){ 
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=1" <<std::endl;
                     #endif
                     parms += " -DMIO_BN_VARIANT=1";
@@ -209,7 +209,7 @@ void BatchNormForwardTraining(
                     }
              
                 }else{                    
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=2" <<std::endl;
                     #endif
                     parms += " -DMIO_BN_VARIANT=2";
@@ -260,12 +260,12 @@ void BatchNormForwardTraining(
                 auto lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/8192)*numwgs);
                 if(lds_size > 1){
                     parms += " -DMIO_BN_VARIANT=3";
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=3" <<std::endl;
                     #endif
                 }else{
                     parms += " -DMIO_BN_VARIANT=4";
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=4" <<std::endl;
                     #endif
                     parms += " -DMIO_BN_LDS_NSIZE="+std::to_string(n);
@@ -319,7 +319,7 @@ void BatchNormForwardTraining(
                 unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
                 parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
                 parms += " -DMIO_BN_VARIANT=5";
-                #ifdef MIOPEN_BN_CPP_DEBUG
+                #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=5" <<std::endl;
                 #endif
 		parms += " -DMIO_BN_LDS_SIZE="+std::to_string(ylocalsize);
@@ -789,7 +789,7 @@ void BatchNormForwardInference(
 
                 kernel_name += "Est";
                 parms += " -DMIO_BN_VARIANT=0";   
-                #ifdef MIOPEN_BN_CPP_DEBUG
+                #if (MIOPEN_BN_CPP_DEBUG == 1)
                     std::cout << " -DMIO_BN_VARIANT=0" <<std::endl;
                 #endif  
                 handle.GetKernel("miopenBatchNormalizationForwardInference",
@@ -820,7 +820,7 @@ void BatchNormForwardInference(
                     
                     kernel_subname = kernel_name + "SingleNorm";
                     parms += " -DMIO_BN_VARIANT=1";
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=1" <<std::endl;
                     #endif  
                     handle.GetKernel("miopenBatchNormalizationForwardInference",
@@ -855,7 +855,7 @@ void BatchNormForwardInference(
                     parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs); 
                     
                     parms += " -DMIO_BN_VARIANT=2";
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=2" <<std::endl;
                     #endif  
                     kernel_subname = kernel_name + "Mean";
@@ -1082,7 +1082,7 @@ void BatchNormBackward(
                 
                 if(lds_size <= 1 && in_cstride <= 256){
                     
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=2" <<std::endl;
                     #endif  
                     parms += " -DMIO_BN_VARIANT=2";
@@ -1095,7 +1095,7 @@ void BatchNormBackward(
                     parms)( x, dy, dx, bnScale, resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance, inhw);
                     
                 } else if(in_cstride < 32){
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=0" <<std::endl;
                     #endif  
                     parms += " -DMIO_BN_VARIANT=0";
@@ -1109,7 +1109,7 @@ void BatchNormBackward(
                                     resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance, inhw);  
                 } else if(in_cstride <= 256){
                     parms += " -DMIO_BN_VARIANT=4";
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=4" <<std::endl;
                     #endif  
                     kernel_subname = kernel_name + "SingleDX";
@@ -1118,7 +1118,7 @@ void BatchNormBackward(
                     parms)( x, dy, dx, bnScale, 
                                     resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance, inhw);
                 }else{
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=6" <<std::endl;
                     #endif  
                     parms += " -DMIO_BN_VARIANT=6";
@@ -1201,7 +1201,7 @@ void BatchNormBackward(
                 //printf("lds size: %llu\n", 4* lds_size);fflush(nullptr);
                 
                 if(lds_size <= 1 && in_cstride <= 256){
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=1" <<std::endl;
                     #endif  
                     parms += " -DMIO_BN_VARIANT=1";
@@ -1214,7 +1214,7 @@ void BatchNormBackward(
                     parms)( x, dy, dx, bnScale, 
                                     resultBnScaleDiff, resultBnBiasDiff, epsilon, inhw);
                 } else if(in_cstride <= 256){
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=3" <<std::endl;
                     #endif  
                     parms += " -DMIO_BN_VARIANT=3";
@@ -1226,7 +1226,7 @@ void BatchNormBackward(
                     parms)( x, dy, dx, bnScale, 
                                     resultBnScaleDiff, resultBnBiasDiff, epsilon, inhw);
                 }else{
-                    #ifdef MIOPEN_BN_CPP_DEBUG
+                    #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=5" <<std::endl;
                     #endif  
                     parms += " -DMIO_BN_VARIANT=5";

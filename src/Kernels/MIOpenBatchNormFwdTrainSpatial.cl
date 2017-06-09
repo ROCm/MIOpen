@@ -541,7 +541,6 @@ __kernel void BatchNormFwdTrainSpatial(
             // #4 apply the normalization, x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
             inhat = (in[index]-mean)*invVariance;
             // #5 Gamma and Beta adjust, y_i = gamma*x_hat + beta
-            //out[index] = mad(pvt_scale, inhat, pvt_bias);
             out[index] = mad(pvscale, inhat, pvbias);
         }//end for
     }//end if
