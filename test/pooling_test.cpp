@@ -7,6 +7,7 @@
 #include <iostream>
 #include <miopen/tensor.hpp>
 #include <miopen/pooling.hpp>
+#include <miopen/logger.hpp>
 #include <limits>
 
 // #include "network_data.hpp"
@@ -126,6 +127,12 @@ struct verify_forward_pooling
         if (filter.GetMode() == miopenPoolingAverage) std::cout << "Average";
         else std::cout << "Max";
         std::cout << std::endl;
+        std::cout << "Lengths: ";
+        miopen::LogRange(std::cout, filter.GetLengths(), ", ") << std::endl;
+        std::cout << "Pads: ";
+        miopen::LogRange(std::cout, filter.GetPads(), ", ") << std::endl;
+        std::cout << "Strides: ";
+        miopen::LogRange(std::cout, filter.GetStrides(), ", ") << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
         std::cout << "Output tensor: " << filter.GetForwardOutputTensor(input.desc).ToString() << std::endl;
     }
@@ -235,6 +242,12 @@ struct verify_backward_pooling
         if (filter.GetMode() == miopenPoolingAverage) std::cout << "Average";
         else std::cout << "Max";
         std::cout << std::endl;
+        std::cout << "Lengths: ";
+        miopen::LogRange(std::cout, filter.GetLengths(), ", ") << std::endl;
+        std::cout << "Pads: ";
+        miopen::LogRange(std::cout, filter.GetPads(), ", ") << std::endl;
+        std::cout << "Strides: ";
+        miopen::LogRange(std::cout, filter.GetStrides(), ", ") << std::endl;
         std::cout << "Output tensor: " << out.desc.ToString() << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
     }
