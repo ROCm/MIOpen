@@ -47,7 +47,6 @@
 
 #define UNUSED __attribute__((__unused__))
 
-
 /*
 #ifdef __AMDGCN__
 #undef __AMDGCN__
@@ -569,6 +568,8 @@ __kernel void BatchNormFwdInferSpatialVariance(
 #ifdef __AMDGCN__
         
     #if (MIO_BN_GRP1 > 64)
+
+        _FLOAT tmp = 0.;
         __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 	lcl_data[ylid] = variance;
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -591,7 +592,8 @@ __kernel void BatchNormFwdInferSpatialVariance(
         }
         
     #elif(MIO_BN_GRP1 > 16)
-        
+
+        _FLOAT tmp = 0.;
         variance += as_float( __builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
         variance += as_float( __builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
         variance += as_float( __builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
