@@ -2832,6 +2832,8 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
         { MakeKeyWHCNKD(28,  28,  256, 8,   512, 0), "04108221" },
         { MakeKeyWHCNKD(28,  28,  256, 16,  512, 0), "00108231" },
         { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "00116224" },
+        { MakeKeyWHCNKD(56,  56,  64,  16,  192, 0), "00008424" },
+        { MakeKeyWHCNKD(56,  56,  64,  32,  192, 0), "00016444" },
         { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0), "04016261" },
         { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0), "03016422" },
         { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0), "00016424" },
