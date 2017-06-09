@@ -312,13 +312,11 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 
     if(!dataRead)
     {
-		#pragma omp parallel for
         for(int i = 0; i < in_sz; i++) {
 			in[i] = static_cast<T>((static_cast<double>(scale*rand()) * (1.0 / RAND_MAX)));
         }
     }
 
-	#pragma omp parallel for
 	for (int i = 0; i < out_sz; i++) {
 		dout[i] = static_cast<T>((scale*static_cast<double>(rand()) * (1.0 / RAND_MAX)));
 	}
