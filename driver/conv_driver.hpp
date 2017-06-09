@@ -328,7 +328,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	    b = std::vector<T>(b_sz);
         db = std::vector<T>(b_sz);
         db_host = std::vector<T>(b_sz, 0);
-		#pragma omp parallel for
         for(int i = 0; i < b_sz; i++) {
             b[i] = i%8;
             db[i] = i%8;
@@ -345,7 +344,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 
     if(!weiRead)
     {
-		#pragma omp parallel for
         for (int i = 0; i < wei_sz; i++) {
 			wei[i] = static_cast<T>((scale*static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)) );
         }
