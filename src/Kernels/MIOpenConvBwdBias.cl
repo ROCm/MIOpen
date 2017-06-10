@@ -43,12 +43,12 @@ __kernel void MIOpenConvBwdB(
 #if MLO_N_PIX_OFF
         if (read_id == MLO_WK_SIZE - 1)
         {
-        for (int j = 0; j < MLO_N_PIX_OFF; j++)
-            sum += top_df[glb_top_df_offset + j];
+        for (int k = 0; k < MLO_N_PIX_OFF; k++)
+            sum += top_df[glb_top_df_offset + k];
         }
 #else
-        for (int j = 0; j < MLO_CONVBWDB_UNITSIZE; j++)
-            sum += top_df[glb_top_df_offset + j];
+        for (int k = 0; k < MLO_CONVBWDB_UNITSIZE; k++)
+            sum += top_df[glb_top_df_offset + k];
 #endif
     }
     lcl_sum[lid] = sum;
