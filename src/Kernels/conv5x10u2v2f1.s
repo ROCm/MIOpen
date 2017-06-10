@@ -1187,6 +1187,9 @@ skip_write:
         - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
         - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
         - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
+        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
+        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
+        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
       }
 }
 .end_amdgpu_code_object_metadata
