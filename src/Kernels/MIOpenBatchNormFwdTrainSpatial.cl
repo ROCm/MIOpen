@@ -1439,6 +1439,7 @@ __kernel void BatchNormFwdTrainSpatialMean(const __global _FLOAT    * __restrict
         meanbuff[meanindex] = lcl_data[0];
     } 
 #endif
+    
 }//end spatial mean kernel
 
 
