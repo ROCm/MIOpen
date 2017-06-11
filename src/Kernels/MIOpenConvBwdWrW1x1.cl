@@ -159,8 +159,8 @@ __kernel void MIOpenCvBwdWrWSmap(
 // inside input range
 
 #if MLO_N_IN_MAPS_ALIGNED == 0 
-	bool inside_map_range = (p4 < MLO_MAP_WK_SZ  && m_id < MLO_N_MAPS_PER_GROUP);
-	bool inside_range_input = inside_map_range & ((c_idx + m_id) < MLO_N_INPUTS && m_id < MLO_N_MAPS_PER_GROUP);
+	bool inside_map_range = (p4 < MLO_MAP_WK_SZ);
+	bool inside_range_input = inside_map_range & ((c_idx + m_id) < MLO_N_INPUTS);
 #endif
 
 #ifdef __AMDGCN__
@@ -169,15 +169,17 @@ __kernel void MIOpenCvBwdWrWSmap(
 
 	for (uint b = 0; b < MLO_BATCH_SZ; ++b, gbl_in_off += MLO_IN_BATCH_STRIDE, gbl_out_off += MLO_OUT_BATCH_STRIDE)
 	{
+		if (m_id < MLO_N_MAPS_PER_GROUP)
+		{
 
-		// read all inputs into registers
-		uint bot_off = gbl_in_off;
+			// read all inputs into registers
+			uint bot_off = gbl_in_off;
 
 #if MLO_N_PIXS_OFF > 0
-		bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
+			bool last_pixel = (p4 == MLO_MAP_WK_SZ - 1);
 
-		if (last_pixel)
-		{
+			if (last_pixel)
+			{
 				for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
 				{
 
@@ -209,36 +211,36 @@ __kernel void MIOpenCvBwdWrWSmap(
 				}
 
 			}
-		else
+			else
 #endif
-		{
-			// check 
-			for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
 			{
-				// reading in order per group and jump over maps been read
-				// read arbitrary data but inside the range
+				// check 
+				for (uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c, bot_off += MLO_N_MAPS_PER_GROUP*MLO_IN_CHANNEL_STRIDE)
+				{
+					// reading in order per group and jump over maps been read
+					// read arbitrary data but inside the range
 
 #if MLO_N_IN_MAPS_ALIGNED == 0
-				bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
+					bot_off = (inside_range_input && ((c_idx + m_id + c*MLO_N_MAPS_PER_GROUP) < MLO_N_INPUTS)) ? bot_off : 0;
 #endif
-				const __global _FLOAT * bot1 = &bot[bot_off];
+					const __global _FLOAT * bot1 = &bot[bot_off];
 
 
-				for (uint i = 0; i < MLO_READ_UNIT; ++i)
-				{
-					bot_dat[c*MLO_READ_UNIT + i] = bot1[i];
-#if DBG_OUT_OF_RNGE
-					if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+					for (uint i = 0; i < MLO_READ_UNIT; ++i)
 					{
-						printf("k:err:in-off-range\n");
-					}
+						bot_dat[c*MLO_READ_UNIT + i] = bot1[i];
+#if DBG_OUT_OF_RNGE
+						if (bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+						{
+							printf("k:err:in-off-range\n");
+						}
 #endif
+					}
+
 				}
 
-			}
-
-		} // if (last_pixel)
-
+			} // if (last_pixel)
+		}
 
 		int top_off = gbl_out_off;
 
