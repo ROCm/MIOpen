@@ -104,8 +104,10 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
     construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
-    if(construct_params.mloIsCompilerWorkarounds())
+    if(construct_params.mloIsCompilerWorkarounds()
+            || (IsWinogradSupported(handle, wDesc, xDesc) && construct_params.mloIsFastBinaryWinograd3x3Fwd())) {
         return -1;
+    }
     
     construct_params.mloConstruct();
 
