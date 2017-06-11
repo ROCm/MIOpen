@@ -161,7 +161,7 @@ struct test_driver
 
     generate_tensor_t get_bn_spatial_input_tensor()
     {
-        return lazy_generate_tensor([=] { return get_bn_spatial_inputs(batch_factor); }, {16, 32, 8, 8});
+        return lazy_generate_tensor([=] { return get_bn_spatial_inputs(batch_factor); }, {4, 64, 28, 28});
     }
 
      generate_tensor_t get_bn_peract_input_tensor()
