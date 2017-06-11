@@ -445,10 +445,10 @@ loop_channel:
     v_readlane_b32 s[sreg_dsrd1vcc+0], v[vreg_save], 0+lane_vreg_save_rd1vcc0
     v_readlane_b32 s[sreg_dsrd1vcc+1], v[vreg_save], 0+lane_vreg_save_rd1vcc1
 .endif
-    v_readlane_b32 s[sreg_dswr1vcc+0], v[vreg_save], 0+lane_vreg_save_wr1vcc0
-    v_readlane_b32 s[sreg_dswr1vcc+1], v[vreg_save], 0+lane_vreg_save_wr1vcc1
     v_readlane_b32 s[sreg_wval+0], v[vreg_save], 0+lane_vreg_save_inp_addr0
     v_readlane_b32 s[sreg_wval+1], v[vreg_save], 0+lane_vreg_save_inp_addr1
+    v_readlane_b32 s[sreg_dswr1vcc+0], v[vreg_save], 0+lane_vreg_save_wr1vcc0
+    v_readlane_b32 s[sreg_dswr1vcc+1], v[vreg_save], 0+lane_vreg_save_wr1vcc1
     s_mov_b32      s[sreg_wval+2], 0+inp_stride_n
     s_mov_b32      s[sreg_wval+3], 0x00020000
 .if padding_enabled
@@ -458,6 +458,8 @@ loop_channel:
     v_mov_b32 v[vreg_ival+2], s[sreg_pad_val]
     v_mov_b32 v[vreg_ival+3], s[sreg_pad_val]
     s_mov_b64 exec, s[sreg_dsrd0vcc:sreg_dsrd0vcc+1]
+.else
+    s_nop 0
 .endif
     buffer_load_dwordx2 v[vreg_ival+0:vreg_ival+1], v[vreg_iinc0], s[sreg_wval+0:sreg_wval+3], 0 offen offset:0
 .if padding_enabled
