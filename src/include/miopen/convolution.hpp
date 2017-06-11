@@ -55,6 +55,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 		const TensorDescriptor&		xDesc,
 		const TensorDescriptor&		yDesc) const;
 
+	bool IsWinogradSupported(
+        Handle&                     handle,
+		const TensorDescriptor&		wDesc,
+		const TensorDescriptor&		xDesc) const;
+
 	size_t ForwardGetWorkSpaceSize(
         Handle&                     handle,
 		const TensorDescriptor&		wDesc,

@@ -1,5 +1,9 @@
 #include <miopen/convolution.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace miopen {
 
@@ -77,6 +81,54 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(
 	return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : workspace_size;
 }
 
+bool ConvolutionDescriptor::IsWinogradSupported(
+        Handle&                 handle,
+		const TensorDescriptor& wDesc,
+		const TensorDescriptor& xDesc) const
+{
+	const auto perf_filtering = miopen::IsEnabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
+    if(perf_filtering || miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{})) {
+        return false;
+    }
+
+    const auto device_name = handle.GetDeviceName();
+    const auto max_compute_units = handle.GetMaxComputeUnits();
+
+    int _batch_sz, _n_inputs, _in_height, _in_width;
+    int _n_outputs, _kernel_size0, _kernel_size1;
+
+    const auto device_is_gfx9_no_xnack = (device_name == "gfx900");
+    const bool device_is_gfx8_no_xnack = (device_name == "gfx800"
+            || device_name == "gfx802"
+            || device_name == "gfx803"
+            || device_name == "gfx804");
+    if (!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack) {
+        return false;
+    }
+
+    std::tie(_batch_sz, _n_inputs, _in_height, _in_width) = tie4(xDesc.GetLengths());
+    std::tie(_n_outputs, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
+
+    return pad_h                                        == 1
+        && pad_w                                        == 1
+        && _kernel_size0                                == 3
+        && _kernel_size1                                == 3
+        && u                                            == 1
+        && v                                            == 1
+        && _batch_sz                                    <  std::pow(2, 16)
+        && _n_inputs                                    <  std::pow(2, 16)
+        && _n_outputs                                   <  std::pow(2, 16)
+        && _in_height                                   <  std::pow(2, 16)
+        && _in_width                                    <  std::pow(2, 16)
+        && max_compute_units                            <  std::pow(2, 16)
+        && (_n_inputs  * _in_height * _in_width)        <= std::pow(2, 28)
+        && (_n_outputs * _in_height * _in_width)        <= std::pow(2, 28)
+        && (_n_inputs  * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+        && (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28)
+        && _n_inputs % 2                                == 0
+        && _n_inputs                                    >= (device_is_gfx8_no_xnack ? 16 : 18); 
+
+}
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
         Handle&                 handle,
@@ -84,10 +136,21 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 		const TensorDescriptor& xDesc,
 		const TensorDescriptor& yDesc) const
 {
-	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
-	size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
+    // Check if Winograd is available
+    // If Winograd is present, there is no advantage in letting
+    // the user run another algorithm as those both slower and 
+    // use more workspace.
+    if(IsWinogradSupported(handle, wDesc, xDesc) == true) 
+    {
+        return 0;
+    }
+    else 
+    {
+    	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
+	    size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
 
-	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+    	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+    }
 }
 
 
@@ -97,11 +160,21 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(
 		const TensorDescriptor& dyDesc,
 		const TensorDescriptor& dxDesc) const
 {
-	(void)handle; // suppress warning
-	size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
-	size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT (wDesc, dyDesc, dxDesc);
+    // Check if Winograd is available
+    // If Winograd is present, there is no advantage in letting
+    // the user run another algorithm as those both slower and 
+    // use more workspace.
+    if(IsWinogradSupported(handle, wDesc, dxDesc) == true) 
+    {
+        return 0;
+    }
+    else 
+    {
+        size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
+        size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT (wDesc, dyDesc, dxDesc);
 
-	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+        return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+    }
 }
 
 // weights_n = output_c
