@@ -882,9 +882,9 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 
 	int wei_n, wei_c, wei_h, wei_w;
 	int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-	miopenGet4dTensorDescriptor(weightTensor, &dt,
-			&wei_n, &wei_c, &wei_h, &wei_w,
-			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+//	miopenGet4dTensorDescriptor(weightTensor, &dt,
+//			&wei_n, &wei_c, &wei_h, &wei_w,
+//			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	int out_n, out_c, out_h, out_w;
 	int out_nstride, out_cstride, out_hstride, out_wstride;
@@ -895,6 +895,11 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	miopenConvolutionMode_t mode;
 	miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+	
+if (mode == miopenConvolution) {
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_n, &wei_c, &wei_h, &wei_w,
+		&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	for(int o = 0; o < out_n; o++) { // mini-batch size
 		for(int k = 0; k < in_c; k++) { // in_channels (RGB)
@@ -921,6 +926,154 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 			}
 		}
 	}
+
+}
+else if (mode == miopenTranspose) {
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_c, &wei_n, &wei_h, &wei_w,
+		&wei_cstride, &wei_nstride, &wei_hstride, &wei_wstride);
+
+#if 0
+	for (int o = 0; o < in_n; o++) { // mini-batch size
+		for (int w = 0; w < in_c; w++) { // in_channels (num filters)
+			for (int i = 0; i < in_h; i++) { // input_height (from getforwardoutputdim())
+				int out_off_h = i * v;
+				for (int j = 0; j < in_w; j++) { //input_width (from getforwardoutputdim())
+					float acc = 0;
+					int out_off_w = j * u;
+					for (int k = 0; k < out_c; k++) { // out_channels (RGB)
+						for (int x = 0; x < wei_h; x++) {
+							int out_x = out_off_h - pad_h + x;
+							if (out_x >= 0 && out_x < out_h) {
+								for (int y = 0; y < wei_w; y++) {
+									int out_y = out_off_w - pad_w + y;
+									if (out_y >= 0 && out_y < out_w) {
+										acc += dout[o*out_nstride + k*out_cstride + out_x*out_w + out_y] *
+											wei[w*wei_cstride + k*wei_nstride + x*wei_hstride + y];
+									}
+								}
+							}
+						}
+					}
+					acc = inflags.GetValueInt("bias") != 0 ? acc + b[w] : acc;
+					din_host[o*in_nstride + w*in_cstride + i*in_hstride + j] = acc;
+				}
+			}
+		}
+	}
+#endif
+
+#if 1
+	assert(u == v);
+	assert(pad_h == pad_w);
+
+	std::fill(din_host.begin(), din_host.end(), (T)0);
+
+	int batch_sz = in_n;
+	int outputs = out_c;
+	int inputs = in_c;
+
+	int bot_batch_stride = in_c*in_h*in_w;
+	int bot_channel_stride = in_h*in_w;
+	//		int bot_stride = in_w;
+	//		int bot_height = in_h;
+	//		int bot_width = in_w;
+
+	int top_width = out_w;
+	int top_height = out_h;
+	int top_channel_stride = top_width * top_height;
+	int top_batch_stride = top_channel_stride * out_c;
+
+	int weights_width = wei_w * wei_h * wei_n;
+	int weights_height = wei_c;
+	int weights_stride = weights_width;
+	//		int kernel_size = wei_w;
+
+	int pad = pad_w;
+	int stride = v;
+
+	// allocate raw data for in, out, wei for using gemm/col2im aDNN functions
+	T * weights_ptr = new T[weights_width * weights_height];
+	T * top_df_ptr = new T[out_n*out_c*out_h*out_w];
+	T * bot_df_ptr = new T[in_n*in_c*in_h*in_w];
+
+	// copy weights (weights) into packed
+	for (int c = 0; c < wei_c; c++)
+	{
+		for (int n = 0; n < wei_n; n++)
+		{
+			for (int h = 0; h < wei_h; h++)
+			{
+				for (int w = 0; w < wei_w; w++)
+				{
+					weights_ptr[c*wei_n*wei_h*wei_w + n*wei_h*wei_w + h*wei_w + w] = wei[c*wei_cstride + n*wei_nstride + h*wei_hstride + w];
+				}
+			}
+		}
+	}
+
+	// copy delta out (dout) into packed
+	for (int n = 0; n < out_n; n++)
+	{
+		for (int c = 0; c < out_c; c++)
+		{
+			for (int h = 0; h < out_h; h++)
+			{
+				for (int w = 0; w < out_w; w++)
+				{
+					top_df_ptr[n*out_c*out_h*out_w + c*out_h*out_w + h*out_w + w] = dout[n*out_nstride + c*out_cstride + h*out_hstride + w];
+				}
+			}
+		}
+	}
+
+	int im2col_batch_stride = weights_width * bot_channel_stride;
+	T * im2col_ptr = new T[im2col_batch_stride * batch_sz];
+
+#define ADNN_MM_TRANSPOSE 1
+	memset(im2col_ptr, 0, im2col_batch_stride * batch_sz * sizeof(T));
+	memset(bot_df_ptr, 0, in_n * in_c * in_h * in_w * sizeof(T));
+	for (int bi = 0; bi < batch_sz; ++bi)
+	{
+		ADNN_im2col_cpu(&top_df_ptr[top_batch_stride * bi], outputs,
+			top_height, top_width, wei_h, wei_w, pad,
+			stride, &im2col_ptr[im2col_batch_stride * bi]);
+
+		// sum up over mini-batch
+		ADNN_mm_cpu<T>((const T*)&weights_ptr[0], weights_width, weights_height, weights_stride, 0,
+			(const T *)&im2col_ptr[im2col_batch_stride * bi], bot_channel_stride, weights_width, bot_channel_stride, 0,
+			&bot_df_ptr[bot_batch_stride * bi], in_h*in_w, inputs, bot_channel_stride, 0,
+			1, 1);
+
+	}
+
+	// read back packed delta weight
+	for (int n = 0; n < in_n; n++)
+	{
+		for (int c = 0; c < in_c; c++)
+		{
+			for (int h = 0; h < in_h; h++)
+			{
+				for (int w = 0; w < in_w; w++)
+				{
+					din_host[n*in_nstride + c*in_cstride + h*in_hstride + w] = bot_df_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w];
+				}
+			}
+		}
+	}
+
+	delete[] im2col_ptr;
+	delete[] weights_ptr;
+	delete[] top_df_ptr;
+	delete[] bot_df_ptr;
+
+	//#else
+	//	(void)in_n; // -warning
+	//	(void)wei_c; // -warning
+	//	(void)wei_n; // -warning
+#endif
+
+}
 
 	if (inflags.GetValueInt("dump_output")) {
 		dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());

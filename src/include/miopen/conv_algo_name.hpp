@@ -22,6 +22,7 @@ inline int BwdDataAlgoResolver(const std::string& s) {
         {"miopenConvolutionBwdDataAlgoWinograd", 1},
         {"miopenConvolutionBwdDataAlgoGEMM", 2},
         {"miopenConvolutionBwdDataAlgoFFT", 3},
+		{"miopenTransposeBwdDataAlgoGEMM", 4 },
     };
     return data.at(s);
 }

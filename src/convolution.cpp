@@ -113,11 +113,9 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 		const TensorDescriptor& yDesc) const
 {
 	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
-	size_t workspace_size_fft;
+	size_t workspace_size_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
 	if (mode == miopenTranspose)
-	    workspace_size_fft = 0;
-	else
-	    workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
+	    return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
 
 	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
 }
@@ -132,6 +130,8 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(
 	(void)handle; // suppress warning
 	size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
 	size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT (wDesc, dyDesc, dxDesc);
+	if (mode == miopenTranspose)
+		return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
 
 	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
 }
