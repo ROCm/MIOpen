@@ -19,7 +19,7 @@ float Im2ColGPU(
 
 	std::string params;
 	int num_ch_per_wg;
-	if((out_h <= 8 && out_w <= 8) && (stride_h == 1 && stride_w==1))
+	if((out_h <= 8 && out_w <= 8) && (stride_h == 1 && stride_w==1) && (c%4 == 0))
 		num_ch_per_wg = 4;
 	else 
 		num_ch_per_wg = 1;

@@ -245,6 +245,7 @@ typedef enum {
     miopenConvolutionBwdDataAlgoWinograd = 1,
     miopenConvolutionBwdDataAlgoGEMM     = 2,
     miopenConvolutionBwdDataAlgoFFT      = 3,
+	miopenTransposeBwdDataAlgoGEMM = 4,
 } miopenConvBwdDataAlgorithm_t;
 
 // Same perf struct for forward, backward filter and backward data algorthms

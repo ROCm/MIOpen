@@ -166,18 +166,18 @@ void ADNN_mm_cpu(const Dtype * a_ptr, size_t a_cols, size_t a_rows, size_t a_str
 
 template <typename Dtype>
 void ADNN_im2col_cpu(const Dtype* data_im, const int channels,
-	const int height, const int width, const int ksize, const int pad,
+	const int height, const int width, const int ksize_h, const int ksize_w, const int pad,
 	const int stride, Dtype* data_col, int stride_col = 0) {
-	int height_col = (height + 2 * pad - ksize) / stride + 1;
-	int width_col = (width + 2 * pad - ksize) / stride + 1;
+	int height_col = (height + 2 * pad - ksize_h) / stride + 1;
+	int width_col = (width + 2 * pad - ksize_w) / stride + 1;
 	height_col = (height_col < 0) ? 1 : height_col;
 	width_col = (width_col < 0) ? 1 : width_col;
 	stride_col = (stride_col == 0) ? height_col * width_col : stride_col;
-	int channels_col = channels * ksize * ksize;
+	int channels_col = channels * ksize_h * ksize_w;
 	for (int c = 0; c < channels_col; ++c) {
-		int w_offset = c % ksize;
-		int h_offset = (c / ksize) % ksize;
-		int c_im = c / ksize / ksize;
+		int w_offset = c % ksize_w;
+		int h_offset = (c / ksize_w) % ksize_h;
+		int c_im = c / ksize_h / ksize_w;
 		for (int h = 0; h < height_col; ++h) {
 			for (int w = 0; w < width_col; ++w) {
 				int h_pad = h * stride - pad + h_offset;
