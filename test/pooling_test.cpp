@@ -6,6 +6,7 @@
 #include <utility>
 #include <iostream>
 #include <miopen/tensor.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/pooling.hpp>
 #include <miopen/logger.hpp>
 #include <limits>
@@ -258,10 +259,25 @@ template<class T>
 struct pooling_driver : test_driver
 {
     tensor<T> input;
+    std::vector<int> lens;
+    std::vector<int> pads;
+    std::vector<int> strides;
+    std::string mode;
+    std::unordered_map<std::string, miopenPoolingMode_t> mode_lookup = {
+        {"MAX", miopenPoolingMax},
+        {"MIOPENPOOLINGMAX", miopenPoolingMax},
+        {"AVERAGE", miopenPoolingAverage},
+        {"MIOPENPOOLINGAVERAGE", miopenPoolingAverage},
+    };
+    // miopenPoolingMode_t;
 
     pooling_driver()
     {
         add(input, "input", get_input_tensor());
+        add(lens, "lens", generate_data({{2, 2}, {3, 3}}));
+        add(strides, "strides", generate_data({{2, 2}, {1, 1}}));
+        add(pads, "pads", generate_data({{0, 0}, {1, 1}}));
+        add(mode, "mode", generate_data({"miopenPoolingMax", "miopenPoolingAverage"}));
     }
     void run()
     {
@@ -269,28 +285,41 @@ struct pooling_driver : test_driver
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
         if ((in_h * in_w) > std::numeric_limits<uint16_t>::max()) return;
 
-        for(auto m:{miopenPoolingMax, miopenPoolingAverage})
+        miopen::PoolingDescriptor filter{mode_lookup.at(miopen::ToUpper(mode)), lens, strides, pads};
+
+        std::vector<uint16_t> indices{};
+        auto out = verify(verify_forward_pooling{}, input, filter, indices);
+        auto dout = out.first;
+        dout.generate([&](int n, int c, int h, int w)
         {
-            for(auto filter:{
-                miopen::PoolingDescriptor{m, {2, 2}, {2, 2}, {0, 0}},
-                miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {0, 0}}, 
-                miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {1, 1}},
-                miopen::PoolingDescriptor{m, {3, 3}, {2, 2}, {0, 0}},
-                miopen::PoolingDescriptor{m, {3, 3}, {1, 1}, {1, 1}}
-            })
-            {
-                std::vector<uint16_t> indices{};
-                auto out = verify(verify_forward_pooling{}, input, filter, indices);
-                auto dout = out.first;
-                dout.generate([&](int n, int c, int h, int w)
-                {
-                    T x = out.first(n, c, h, w);
-                    double y = (877*n+547*c+701*h+1049*w+static_cast<int>(769*x))%2503;
-                    return ((x*y)/1301.0);
-                });
-                verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
-            }
-        }
+            T x = out.first(n, c, h, w);
+            double y = (877*n+547*c+701*h+1049*w+static_cast<int>(769*x))%2503;
+            return ((x*y)/1301.0);
+        });
+        verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
+
+        // for(auto m:{miopenPoolingMax, miopenPoolingAverage})
+        // {
+        //     for(auto filter:{
+        //         miopen::PoolingDescriptor{m, {2, 2}, {2, 2}, {0, 0}},
+        //         miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {0, 0}}, 
+        //         miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {1, 1}},
+        //         miopen::PoolingDescriptor{m, {3, 3}, {2, 2}, {0, 0}},
+        //         miopen::PoolingDescriptor{m, {3, 3}, {1, 1}, {1, 1}}
+        //     })
+        //     {
+        //         std::vector<uint16_t> indices{};
+        //         auto out = verify(verify_forward_pooling{}, input, filter, indices);
+        //         auto dout = out.first;
+        //         dout.generate([&](int n, int c, int h, int w)
+        //         {
+        //             T x = out.first(n, c, h, w);
+        //             double y = (877*n+547*c+701*h+1049*w+static_cast<int>(769*x))%2503;
+        //             return ((x*y)/1301.0);
+        //         });
+        //         verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
+        //     }
+        // }
     }
 };
 
