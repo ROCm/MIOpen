@@ -269,7 +269,6 @@ struct pooling_driver : test_driver
         {"AVERAGE", miopenPoolingAverage},
         {"MIOPENPOOLINGAVERAGE", miopenPoolingAverage},
     };
-    // miopenPoolingMode_t;
 
     pooling_driver()
     {
@@ -279,6 +278,7 @@ struct pooling_driver : test_driver
         add(pads, "pads", generate_data({{0, 0}, {1, 1}}));
         add(mode, "mode", generate_data({"miopenPoolingMax", "miopenPoolingAverage"}));
     }
+    
     void run()
     {
         int in_h, in_w;
@@ -297,29 +297,6 @@ struct pooling_driver : test_driver
             return ((x*y)/1301.0);
         });
         verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
-
-        // for(auto m:{miopenPoolingMax, miopenPoolingAverage})
-        // {
-        //     for(auto filter:{
-        //         miopen::PoolingDescriptor{m, {2, 2}, {2, 2}, {0, 0}},
-        //         miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {0, 0}}, 
-        //         miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {1, 1}},
-        //         miopen::PoolingDescriptor{m, {3, 3}, {2, 2}, {0, 0}},
-        //         miopen::PoolingDescriptor{m, {3, 3}, {1, 1}, {1, 1}}
-        //     })
-        //     {
-        //         std::vector<uint16_t> indices{};
-        //         auto out = verify(verify_forward_pooling{}, input, filter, indices);
-        //         auto dout = out.first;
-        //         dout.generate([&](int n, int c, int h, int w)
-        //         {
-        //             T x = out.first(n, c, h, w);
-        //             double y = (877*n+547*c+701*h+1049*w+static_cast<int>(769*x))%2503;
-        //             return ((x*y)/1301.0);
-        //         });
-        //         verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
-        //     }
-        // }
     }
 };
 
