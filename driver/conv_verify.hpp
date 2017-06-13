@@ -10,6 +10,7 @@ void RunBackwardWeightsCPUVerify(
 		int wei_n, int wei_c, int wei_h, int wei_w, int wei_nstride, int wei_cstride, int wei_hstride, int wei_wstride,
 		int out_n, int out_c, int out_h, int out_w, int out_nstride, int out_cstride, int out_hstride, int out_wstride,
 		int u, int v, int pad_h, int pad_w
+//	, miopenConvolutionMode_t mode
 		)
 {
 	assert(in_wstride == 1);
@@ -20,7 +21,7 @@ void RunBackwardWeightsCPUVerify(
 	(void)wei_wstride; // -warn
 	(void)out_wstride; // -warn
 #endif
-#if 0
+#if 1
 	std::vector<double> t_wei(wei_n *wei_c * wei_h * wei_w, 0);
 	for (int o = 0; o < out_n; o++) // mini-batch size
 	{
@@ -132,7 +133,7 @@ void RunBackwardWeightsCPUVerify(
 
 
 //#ifdef BACKWARD_WRW_VERIFY_GEMM
-#if 1
+#if 0
 	{
 		assert(u == v);
 		assert(pad_h == pad_w);
@@ -157,7 +158,7 @@ void RunBackwardWeightsCPUVerify(
 		int weights_width = wei_w * wei_h * wei_c;
 		int weights_height = wei_n;
 		int weights_df_v_stride = weights_width;
-		int kernel_size = wei_w;
+//		int kernel_size = wei_w;
 
 		int pad = pad_w;
 		int stride = v;
@@ -176,7 +177,10 @@ void RunBackwardWeightsCPUVerify(
 				{
 					for (int w = 0; w < in_w; w++)
 					{
-						bot_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w] = in[n*in_nstride + c*in_cstride + h*in_hstride + w];
+//						if (mode == miopenTranspose)
+//						    bot_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w] = dout[n*in_nstride + c*in_cstride + h*in_hstride + w];
+//						else
+						    bot_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w] = in[n*in_nstride + c*in_cstride + h*in_hstride + w];
 					}
 				}
 			}
@@ -191,7 +195,10 @@ void RunBackwardWeightsCPUVerify(
 				{
 					for (int w = 0; w < out_w; w++)
 					{
-						top_df_ptr[n*out_c*out_h*out_w + c*out_h*out_w + h*out_w + w] = dout[n*out_nstride + c*out_cstride + h*out_hstride + w];
+//						if (mode == miopenTranspose)
+//						    top_df_ptr[n*out_c*out_h*out_w + c*out_h*out_w + h*out_w + w] = in[n*out_nstride + c*out_cstride + h*out_hstride + w];
+//						else
+						    top_df_ptr[n*out_c*out_h*out_w + c*out_h*out_w + h*out_w + w] = dout[n*out_nstride + c*out_cstride + h*out_hstride + w];
 					}
 				}
 			}
@@ -201,11 +208,12 @@ void RunBackwardWeightsCPUVerify(
 		T * im2col_ptr = new T[im2col_batch_stride * batch_sz];
 
 #define ADNN_MM_TRANSPOSE 1
+		memset(im2col_ptr, 0, im2col_batch_stride * batch_sz * sizeof(T));
 		memset(weights_df_v_ptr, 0, weights_width * weights_height * sizeof(T));
 		for (int b = 0; b < batch_sz; ++b)
 		{
 			ADNN_im2col_cpu<T>((const T*)&bot_ptr[bot_batch_stride * b], inputs,
-				bot_height, bot_width, kernel_size, pad,
+				bot_height, bot_width, wei_h, wei_w, pad,
 				stride, &im2col_ptr[im2col_batch_stride * b]);
 			// sum up over mini-batch
 			ADNN_mm_cpu<T>((const T*)&top_df_ptr[top_df_batch_stride * b], top_width * top_height, outputs, top_df_channel_stride, 0,
