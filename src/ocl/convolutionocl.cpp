@@ -1012,6 +1012,9 @@ if (mode == miopenConvolution) {
 			}
 		}
         break;
+
+		default:
+			break;
     }
 
 }
@@ -1020,66 +1023,60 @@ else if (mode == miopenTranspose) {
 		MIOPEN_THROW(miopenStatusBadParm);
 	}
 
-	switch (algo)
-	{
-		case miopenTransposeBwdDataAlgoGEMM:
-		{
-			int in_n, in_c, in_h, in_w;
-			std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+	int in_n, in_c, in_h, in_w;
+	std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
 
-			int wei_n, wei_h, wei_w;
-			std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
+	int wei_n, wei_h, wei_w;
+	std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
-			int out_h, out_w;
-			std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+	int out_h, out_w;
+	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
-			if ((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
-				(workSpace == nullptr || workSpaceSize < BackwardDataGetWorkSpaceSize(handle, wDesc, dyDesc, dxDesc))) {
-				MIOPEN_THROW("Workspace is required");
-			}
+	if ((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
+		(workSpace == nullptr || workSpaceSize < BackwardDataGetWorkSpaceSize(handle, wDesc, dyDesc, dxDesc))) {
+		MIOPEN_THROW("Workspace is required");
+	}
 
-			std::string network_config;
+	std::string network_config;
 #if MIOPEN_USE_TINYGEMM
-			CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, false, network_config);
-			GemmGeometry gg = GetGemmGeometry("miopenTransposeBwdDataAlgoGEMM", network_config);
+	CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, false, network_config);
+	GemmGeometry gg = GetGemmGeometry("miopenTransposeBwdDataAlgoGEMM", network_config);
 
-			float time_0 = 0;
-			float t1 = 0;
-			for (int i = 0; i < in_n; i++) {
-				int in_offset = i * in_c * in_h * in_w;
-				if (wei_h != 1 || wei_w != 1 || v != 1 || u != 1) {
-					size_t out_offset = i * wei_n * out_h * out_w;
-					Im2ColGPU(handle, dyDesc.GetElementSize(), dy, out_offset, wei_n, out_h, out_w, wei_h, wei_w, in_h, in_w, pad_h, pad_w, v, u, workSpace);
-					if (handle.IsProfilingEnabled())
-						t1 = handle.GetKernelTime();
+	float time_0 = 0;
+	float t1 = 0;
+	for (int i = 0; i < in_n; i++) {
+		int in_offset = i * in_c * in_h * in_w;
+		if (wei_h != 1 || wei_w != 1 || v != 1 || u != 1) {
+			size_t out_offset = i * wei_n * out_h * out_w;
+			Im2ColGPU(handle, dyDesc.GetElementSize(), dy, out_offset, wei_n, out_h, out_w, wei_h, wei_w, in_h, in_w, pad_h, pad_w, v, u, workSpace);
+			if (handle.IsProfilingEnabled())
+				t1 = handle.GetKernelTime();
 
-					gg.RunGemm(handle, w, workSpace, dx, 0, 0, in_offset);
+			gg.RunGemm(handle, w, workSpace, dx, 0, 0, in_offset);
 
-					// Update times for both the kernels
-					if (handle.IsProfilingEnabled()) {
-						if (i == in_n - 1)
-							handle.AccumKernelTime(t1 + time_0);
-						else
-							handle.AccumKernelTime(t1);
-						time_0 += handle.GetKernelTime();
-					}
-				}
-				else if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
-					int out_offset = i * wei_n * out_h * out_w;
-					gg.RunGemm(handle, w, dy, dx, 0, out_offset, in_offset);
-					if (handle.IsProfilingEnabled()) {
-						if (i == in_n - 1)
-							handle.AccumKernelTime(time_0);
-						time_0 += handle.GetKernelTime();
-					}
-
-				}
+			// Update times for both the kernels
+			if (handle.IsProfilingEnabled()) {
+				if (i == in_n - 1)
+					handle.AccumKernelTime(t1 + time_0);
+				else
+					handle.AccumKernelTime(t1);
+				time_0 += handle.GetKernelTime();
 			}
-#else
-			MIOPEN_THROW("GEMM is not supported");
-#endif
+		}
+		else if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
+			int out_offset = i * wei_n * out_h * out_w;
+			gg.RunGemm(handle, w, dy, dx, 0, out_offset, in_offset);
+			if (handle.IsProfilingEnabled()) {
+				if (i == in_n - 1)
+					handle.AccumKernelTime(time_0);
+				time_0 += handle.GetKernelTime();
+			}
+
 		}
 	}
+#else
+	MIOPEN_THROW("GEMM is not supported");
+#endif
 
 #if 0	      
 			   // TODO(paul): Replicating code for now.
