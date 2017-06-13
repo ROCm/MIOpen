@@ -34,6 +34,7 @@ GemmGeometry CreateGemmGeometryTranBwdData(
     // bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
     TinyGemmGeometry tgg{};
     GemmGeometry gg;
+	(void)isDataColMajor;
 #if 0   
     if (!isDataColMajor) {
         tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
