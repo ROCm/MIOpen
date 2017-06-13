@@ -59,11 +59,11 @@
 #define MIO_BN_VARIANT 0
 #endif
 
-/*
+
 #ifdef __AMDGCN__
 #undef __AMDGCN__
 #endif
-*/
+
 
 // Disable specific warnings
 #ifdef __clang__
