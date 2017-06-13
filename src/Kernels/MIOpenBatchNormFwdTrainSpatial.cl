@@ -442,7 +442,8 @@ __kernel void BatchNormFwdTrainSpatial(
     _FLOAT invVariance, inhat, elemStd;
     _FLOAT pvscale, pvbias;
     
-    __local _FLOAT2 lcl_scalebias;
+    __local _FLOAT lcl_bias;
+    __local _FLOAT lcl_scale;
   
     unsigned int index;
     unsigned int ylid = get_local_id(1);
