@@ -63,13 +63,13 @@ __kernel void MIOpenLRNWithinChannel_PS(
 	   )
 {
 
+    (void) alpha;
 // IT's taken from POOLING AVE with stride = 1'
 		__local _FLOAT bot_data[MLO_LRN_LCL_DATA_WIDTH * MLO_LRN_LCL_DATA_HEIGHT];
 		int x = get_group_id(0) * MLO_LRN_GROUP_SZ0 * MLO_LRN_N_HORIZ_OUT_PIX;
 		int y = get_group_id(1) * MLO_LRN_GROUP_SZ1 * MLO_LRN_N_VERT_OUT_PIX;
 		int lcl_id0 = get_local_id(0);
 		int lcl_id1 = get_local_id(1);
-		int lcl_id = (lcl_id1 << MLO_LRN_GROUP_LG2SZ0) + lcl_id0;
 		int ob = get_global_id(2); // output * batch_sz
 		int o = iDiv(ob,MLO_LRN_BATCH_SZ);
 		int b = iMod(ob, o, MLO_LRN_BATCH_SZ);
@@ -92,11 +92,6 @@ __kernel void MIOpenLRNWithinChannel_PS(
 			{
 
 				int bot_x_act = bot_x + (b_i * MLO_READ_UNIT) - MLO_LRN_LEFT_PAD0;
-
-
-
-				_FLOAT bot_val4[MLO_READ_UNIT];
-				
 
 				bool invisibleX;
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
@@ -124,7 +119,9 @@ __kernel void MIOpenLRNWithinChannel_PS(
 #if MLO_LRN_N_HORIZ_OUT_PIX > 1
 		_FLOAT partial_sum_x[MLO_LRN_N_HORIZ_OUT_PIX - 1];  // horizontal partial sum
 #endif
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 		_FLOAT partial_sum_xy[MLO_LRN_N_VERT_OUT_PIX - 1][MLO_LRN_N_HORIZ_OUT_PIX]; // horizontal-vertical partial sums.
+#endif
 		_FLOAT accum[MLO_LRN_N_VERT_OUT_PIX][MLO_LRN_N_HORIZ_OUT_PIX]; // accumulator
 
 		int top_y = mad24(lcl_id1, (int)MLO_LRN_N_VERT_OUT_PIX, y);
@@ -141,6 +138,7 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				accum[j][i] = 0;
 			}
 		}
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 		for (int j = 0; j < MLO_LRN_N_VERT_OUT_PIX - 1; ++j)
 		{
 			for (int i = 0; i < MLO_LRN_N_HORIZ_OUT_PIX; ++i)
@@ -148,7 +146,7 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				partial_sum_xy[j][i] = 0;
 			}
 		}
-
+#endif
 
 // running window  summation
 		_FLOAT mov_accum;
@@ -156,6 +154,8 @@ __kernel void MIOpenLRNWithinChannel_PS(
 		int ii = 0;
 
 // first to get vertica partial sums 
+
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 		for (; jj < (int)(MLO_LRN_N_VERT_OUT_PIX-1); ++jj)
 		{
 			for (ii = 0; ii < (int)(MLO_LRN_N_HORIZ_OUT_PIX - 1); ++ii)
@@ -206,6 +206,7 @@ __kernel void MIOpenLRNWithinChannel_PS(
 			}
 
 		}
+#endif
 
 // calculate row 0 accumulators
 		for (; jj < (int)MLO_LRN_KERNEL_SZ1; ++jj)
@@ -299,10 +300,14 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				// finish horizontal summation
 				// add/substarct vertical patial sum
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0 + 1] += accum[jj - MLO_LRN_KERNEL_SZ1][ii - MLO_LRN_KERNEL_SZ0 + 1];
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0 + 1] -= partial_sum_xy[jj - MLO_LRN_KERNEL_SZ1][ii - MLO_LRN_KERNEL_SZ0 + 1];
+#endif
 
 			}
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 			accum[jj - MLO_LRN_KERNEL_SZ1 + 1][0] -= partial_sum_xy[jj - MLO_LRN_KERNEL_SZ1][0];
+#endif
 			accum[jj - MLO_LRN_KERNEL_SZ1 + 1][0] += accum[jj - MLO_LRN_KERNEL_SZ1][0];
 
 		}
@@ -331,7 +336,9 @@ __kernel void MIOpenLRNWithinChannel_PS(
 
 
 		int top_off = b * MLO_LRN_TOP_BATCH_STRIDE + o * MLO_LRN_TOP_CHANNEL_STRIDE + top_y * MLO_LRN_TOP_STRIDE + top_x;
+#if MLO_LRN_DO_SCALE
 		int scale_off = b * MLO_LRN_SCALE_BATCH_STRIDE + o * MLO_LRN_SCALE_CHANNEL_STRIDE + top_y * MLO_LRN_SCALE_STRIDE + top_x;
+#endif
 
 // final output
 
@@ -384,7 +391,8 @@ __kernel void MIOpenLRNAcrossChannels4(
 	   _FLOAT K
 	   )
 {
-	
+
+    (void) alpha;
 		int pix_id = get_global_id(0); // 
 		int b = get_global_id(2); // batch 
 		MLO_READ_TYPE accum = 0;
