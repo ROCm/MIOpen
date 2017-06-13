@@ -57,13 +57,13 @@ __kernel void MIOpenLRNWithinChannelBwd(
 	   _FLOAT beta
 	   )
 {
+    (void) ratio;
 		__local _FLOAT top_df_data[MLO_LRN_LCL_DATA_WIDTH * MLO_LRN_LCL_DATA_HEIGHT];
 		__local _FLOAT ratio_data[MLO_LRN_LCL_DATA_WIDTH * MLO_LRN_LCL_DATA_HEIGHT];
 		int x = get_group_id(0) * MLO_LRN_GROUP_SZ0 * MLO_LRN_N_HORIZ_OUT_PIX;
 		int y = get_group_id(1) * MLO_LRN_GROUP_SZ1 * MLO_LRN_N_VERT_OUT_PIX;
 		int lcl_id0 = get_local_id(0);
 		int lcl_id1 = get_local_id(1);
-		int lcl_id = (lcl_id1 << MLO_LRN_GROUP_LG2SZ0) + lcl_id0;
 		int ob = get_global_id(2); // output * batch_sz
 		int o = ob / MLO_LRN_BATCH_SZ;
 		int b = ob - o * MLO_LRN_BATCH_SZ;
@@ -126,8 +126,8 @@ __kernel void MIOpenLRNWithinChannelBwd(
 			int lcl_off_v = (lcl_id1 * MLO_LRN_N_VERT_OUT_PIX + MLO_LRN_PAD + j) *  MLO_LRN_LCL_DATA_WIDTH;
 			for(int i = 0; i < MLO_LRN_N_HORIZ_OUT_PIX; i++)
 			{
-				_FLOAT scale = ratio_data[lcl_off_v + lcl_id0 * MLO_LRN_N_HORIZ_OUT_PIX + MLO_LRN_PAD + i];
-				prv_exp_scale[j][i]= native_exp(-beta * native_log(scale));
+				_FLOAT scale_ratio = ratio_data[lcl_off_v + lcl_id0 * MLO_LRN_N_HORIZ_OUT_PIX + MLO_LRN_PAD + i];
+				prv_exp_scale[j][i]= native_exp(-beta * native_log(scale_ratio));
 //				prv_exp_scale[j][i]= pow(scale, -beta);
 
 
@@ -241,7 +241,7 @@ __kernel void MIOpenLRNWithinChannelBwd(
 
 }
 
-#if (MLO_LRN_N_INPUTS + 2* MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ || MLO_LRN_N_OUTPUTSS + 2* MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ)
+#if (MLO_LRN_N_INPUTS + 2* MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ || MLO_LRN_N_OUTPUTS + 2* MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ)
 #define MLO_LOW_CHNL_COUNT 1
 #else
 #define MLO_LOW_CHNL_COUNT 0
@@ -261,7 +261,8 @@ __kernel void MIOpenLRNAcrossChannelsBwd1(
 	   _FLOAT beta
 	   )
 {
-	
+
+    (void) alpha;
 		int x = get_global_id(0); // channel x
 		int y = get_global_id(1); // channel y
 		int b = get_global_id(2); // batch 
