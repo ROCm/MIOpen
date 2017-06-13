@@ -820,9 +820,9 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 
 	int wei_n, wei_c, wei_h, wei_w;
 	int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-	miopenGet4dTensorDescriptor(weightTensor, &dt,
-			&wei_n, &wei_c, &wei_h, &wei_w,
-			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+//	miopenGet4dTensorDescriptor(weightTensor, &dt,
+//			&wei_n, &wei_c, &wei_h, &wei_w,
+//			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	int out_n, out_c, out_h, out_w;
 	int out_nstride, out_cstride, out_hstride, out_wstride;
@@ -833,6 +833,11 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	miopenConvolutionMode_t mode;
 	miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+	
+if (mode == miopenConvolution) {
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_n, &wei_c, &wei_h, &wei_w,
+		&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 #ifdef MIOPEN_USE_TINYGEMM
 #ifndef NDEBUG
@@ -860,7 +865,43 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 		in_n, in_c, in_h, in_w, in_nstride, in_cstride, in_hstride, in_wstride,
 		wei_n, wei_c, wei_h, wei_w, wei_nstride, wei_cstride, wei_hstride, wei_wstride,
 		out_n, out_c, out_h, out_w, out_nstride, out_cstride, out_hstride, out_wstride,
+		u, v, pad_h, pad_w );
+
+}
+else if (mode == miopenTranspose) {
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_c, &wei_n, &wei_h, &wei_w,
+		&wei_cstride, &wei_nstride, &wei_hstride, &wei_wstride);
+
+#ifdef MIOPEN_USE_TINYGEMM
+#ifndef NDEBUG
+	if (in_n == 1 && wei_h != 1 && wei_w != 1) {
+		// workspace_bwd will be nonzero only if gemm was chosen as the algo
+		bool zeros = std::all_of(workspace_bwd.begin(), workspace_bwd.end(), [](int i) { return i == 0; });
+
+		if (!zeros) {
+			Im2ColCPU(dout, 0, out_c, out_h, out_w,
+				wei_h, wei_w,
+				in_h, in_w, pad_h, pad_w, v, u, workspace_bwd_host);
+
+
+			for (int i = 0; i < workspace_bwd.size(); i++) {
+				if (std::abs(workspace_bwd[i] - workspace_bwd_host[i]) > 0.0) {
+					printf("Im2col error: %d %f %f\n ", i, workspace_bwd[i], workspace_bwd_host[i]);
+				}
+			}
+		}
+	}
+#endif
+#endif
+
+	RunBackwardWeightsCPUVerify(dwei_host, dout, in,
+		out_n, out_c, out_h, out_w, out_nstride, out_cstride, out_hstride, out_wstride,
+		wei_c, wei_n, wei_h, wei_w, wei_cstride, wei_nstride, wei_hstride, wei_wstride,
+		in_n, in_c, in_h, in_w, in_nstride, in_cstride, in_hstride, in_wstride,
 		u, v, pad_h, pad_w);
+
+}
 
 	if (inflags.GetValueInt("dump_output")) {
 		dumpBufferToFile("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());

@@ -317,6 +317,9 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 	const TensorDescriptor&		 xDesc,
 	const TensorDescriptor&		 dwDesc) const
 {
+	if (mode == miopenTranspose)
+		return BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
+
     return std::max(
             BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc),
             BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)
