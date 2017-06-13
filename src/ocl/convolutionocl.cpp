@@ -70,7 +70,6 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         int N, C, H, W, K, n_groups;
         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
         k_p = std::make_tuple(N, C, H, W, K, n_groups);
-
         return 0;
     }
     else
@@ -105,7 +104,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     construct_params.setConvDescr(pad_h, pad_w, u, v, upscalex, upscaley);
 
     if(construct_params.mloIsCompilerWorkarounds()
-            || (IsWinogradSupported(handle, wDesc, xDesc) && construct_params.mloIsFastBinaryWinograd3x3Fwd())) {
+            || (IsWinogradSupported(handle, wDesc, (direction ? xDesc : yDesc)) && construct_params.mloIsFastBinaryWinograd3x3Fwd())) {
         return -1;
     }
     
