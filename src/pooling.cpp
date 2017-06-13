@@ -22,7 +22,7 @@ PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
 		const int *pstrides,
 		int			size) : lens(plens, plens+size), strides(pstrides, pstrides+size), pads(ppads, ppads+size), mode(m) {}
 
-PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m, std::initializer_list<int> plens, std::initializer_list<int> pstrides, std::initializer_list<int> ppads)
+PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m, std::vector<int> plens, std::vector<int> pstrides, std::vector<int> ppads)
 : lens(plens), strides(pstrides), pads(ppads), mode(m)
 {
 

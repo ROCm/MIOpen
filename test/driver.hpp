@@ -200,6 +200,18 @@ struct test_driver
     }
 
     template<class T>
+    generate_data_t<T> generate_data(std::initializer_list<T> dims)
+    {
+        return generate_data(std::vector<T>(dims));
+    }
+
+    template<class T>
+    generate_data_t<std::vector<T>> generate_data(std::initializer_list<std::initializer_list<T>> dims)
+    {
+        return generate_data(std::vector<std::vector<T>>(dims.begin(), dims.end()));
+    }
+
+    template<class T>
     generate_data_t<T> generate_data(std::vector<T> dims)
     {
         return {[=]() -> std::vector<T> {
