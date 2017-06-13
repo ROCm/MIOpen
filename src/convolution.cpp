@@ -140,7 +140,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
     // If Winograd is present, there is no advantage in letting
     // the user run another algorithm as those both slower and 
     // use more workspace.
-    if(IsWinogradSupported(handle, wDesc, xDesc) == true) 
+    if(IsWinogradSupported(handle, wDesc, xDesc)) 
     {
         return 0;
     }
@@ -164,7 +164,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(
     // If Winograd is present, there is no advantage in letting
     // the user run another algorithm as those both slower and 
     // use more workspace.
-    if(IsWinogradSupported(handle, wDesc, dxDesc) == true) 
+    if(IsWinogradSupported(handle, wDesc, dxDesc)) 
     {
         return 0;
     }
