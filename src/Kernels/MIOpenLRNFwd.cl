@@ -121,8 +121,9 @@ __kernel void MIOpenLRNWithinChannel_PS(
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
-
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 		_FLOAT partial_sum_x[MLO_LRN_N_HORIZ_OUT_PIX - 1];  // horizontal partial sum
+#endif
 		_FLOAT partial_sum_xy[MLO_LRN_N_VERT_OUT_PIX - 1][MLO_LRN_N_HORIZ_OUT_PIX]; // horizontal-vertical partial sums.
 		_FLOAT accum[MLO_LRN_N_VERT_OUT_PIX][MLO_LRN_N_HORIZ_OUT_PIX]; // accumulator
 
@@ -162,8 +163,10 @@ __kernel void MIOpenLRNWithinChannel_PS(
 
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 // save horizontal partial sums
 				partial_sum_x[ii] = accum_tmp;
+#endif
 // accumulate in vert-horizontal(0)
 				partial_sum_xy[jj][0] += accum_tmp;
 
@@ -186,7 +189,11 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
 // calculate all vertical-horizontal partial sums
-				partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0 + 1] = partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0] + (accum_tmp - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]);
+				partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0 + 1] = partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0] + (accum_tmp
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
+                    - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]
+#endif
+                    );
 
 			}
 
@@ -210,7 +217,9 @@ __kernel void MIOpenLRNWithinChannel_PS(
 
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 				partial_sum_x[ii] = accum_tmp;
+#endif
 				mov_accum += accum_tmp;
 			}
 
@@ -231,7 +240,11 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
 // running horizontal window				
-				mov_accum += (accum_tmp - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]);
+				mov_accum += (accum_tmp
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
+                    - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]
+#endif
+                    );
 				accum[0][ii - MLO_LRN_KERNEL_SZ0 + 1] += mov_accum;
 
 			}
@@ -249,7 +262,9 @@ __kernel void MIOpenLRNWithinChannel_PS(
 
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 				partial_sum_x[ii] = accum_tmp;
+#endif
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][0] += accum_tmp;
 			}
 			for (; ii < (int)MLO_LRN_KERNEL_SZ0; ++ii)
@@ -269,8 +284,10 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				_FLOAT accum_tmp = bot_val;
 				// 
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0 + 1] = accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0] + accum_tmp;
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0 + 1] 
 					-= partial_sum_x[ii - MLO_LRN_KERNEL_SZ0];
+#endif
 
 			}
 
@@ -382,7 +399,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 		int scale_off = 0;
 
 		for( c_i = 0; c_i < MLO_LRN_PAD
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			&& (c_i < MLO_LRN_N_INPUTS)
 #endif
 			; c_i++)
@@ -414,7 +431,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 		}
 
 		for( ; c_i < MLO_LRN_KERNEL_SZ
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			&& (c_i < MLO_LRN_N_INPUTS)
 #endif
 			; c_i++, c_o++)
@@ -456,7 +473,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 			MLO_READ_TYPE prv_out = bot_in2[c_o];
 			prv_out = native_sqrt(prv_out);
 			MLO_READ_TYPE out_val = prv_out * exp_scale;
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			if (c_o < MLO_LRN_N_OUTPUTS)
 #endif
 			{
@@ -492,7 +509,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 		}
 
 		for( ; c_i < MLO_LRN_N_CHANNELS
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			&& (c_i < MLO_LRN_N_INPUTS)
 #endif
 			; c_i++, c_o++)
@@ -548,7 +565,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 			prv_out = native_sqrt(prv_out);
 			MLO_READ_TYPE out_val = prv_out * exp_scale;
 
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			if (c_o < MLO_LRN_N_OUTPUTS)
 #endif
 			{
@@ -612,7 +629,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 			prv_out = native_sqrt(prv_out);
 
 			MLO_READ_TYPE out_val = prv_out * exp_scale;
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			if (c_o < MLO_LRN_N_OUTPUTS)
 #endif
 			{
