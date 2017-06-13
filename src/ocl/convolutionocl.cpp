@@ -1013,7 +1013,7 @@ if (mode == miopenConvolution) {
 		}
         break;
 
-		default:
+	    case miopenTransposeBwdDataAlgoGEMM:
 			break;
     }
 
@@ -1312,11 +1312,10 @@ else if (mode == miopenTranspose) {
 	std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
 
 	std::string network_config;
-	size_t workspace_req = 0;
 
 #if MIOPEN_USE_TINYGEMM
 	GemmGeometry gg = CreateGemmGeometryConvBwdWeights(xDesc, dyDesc, dwDesc, false, network_config);
-	workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
+	size_t workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
 	float time_gemm = 0;
 
 	// 1x1 does not require im2col or workspace
