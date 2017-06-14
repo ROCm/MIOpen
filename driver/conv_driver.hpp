@@ -541,7 +541,36 @@ else if(mode == miopenTranspose){
 	miopenGet4dTensorDescriptor(weightTensor, &dt,
 		&wei_c, &wei_n, &wei_h, &wei_w,
 		&wei_cstride, &wei_nstride, &wei_hstride, &wei_wstride);
+
 #if 1
+	for (int o = 0; o < in_n; o++) { // mini-batch size
+		for (int k = 0; k < out_c; k++) { // out_channels (RGB)
+			for (int w = 0; w < in_c; w++) { // in_channels (num filters)
+				for (int i = 0; i < in_h; i++) { // input_height
+					int out_off_h = i * v;
+					for (int j = 0; j < in_w; j++) { //input_width
+						int out_off_w = j * u;
+						for (int x = 0; x < wei_h; x++) {
+							int out_x = out_off_h - pad_h + x;
+							if (out_x >= 0 && out_x < out_h) {
+								for (int y = 0; y < wei_w; y++) {
+									int out_y = out_off_w - pad_w + y;
+									if (out_y >= 0 && out_y < out_w) {
+										outhost[o*out_nstride + k*out_cstride + out_x*out_hstride + out_y] +=
+											in[o*in_nstride + w*in_cstride + i*in_hstride + j] *
+											wei[w*wei_cstride + k*wei_nstride + x*wei_hstride + y];
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+#endif
+
+#if 0
 		assert(u == v);
 		assert(pad_h == pad_w);
 
@@ -645,7 +674,7 @@ else if(mode == miopenTranspose){
 		delete[] bot_ptr;
 
 #else
-	(void)in_n; // -warning
+	(void)out_n; // -warning
 	(void)wei_c; // -warning
 	(void)wei_n; // -warning
 #endif
@@ -974,7 +1003,7 @@ else if (mode == miopenTranspose) {
 		&wei_c, &wei_n, &wei_h, &wei_w,
 		&wei_cstride, &wei_nstride, &wei_hstride, &wei_wstride);
 
-#if 0
+#if 1
 	for (int o = 0; o < in_n; o++) { // mini-batch size
 		for (int w = 0; w < in_c; w++) { // in_channels (num filters)
 			for (int i = 0; i < in_h; i++) { // input_height (from getforwardoutputdim())
@@ -1004,7 +1033,7 @@ else if (mode == miopenTranspose) {
 	}
 #endif
 
-#if 1
+#if 0
 	assert(u == v);
 	assert(pad_h == pad_w);
 
