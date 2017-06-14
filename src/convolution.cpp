@@ -83,6 +83,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(
 
 bool ConvolutionDescriptor::IsWinogradSupported(
         Handle&                 handle,
+        bool                    direction,
 		const TensorDescriptor& wDesc,
 		const TensorDescriptor& xDesc) const
 {
@@ -96,6 +97,7 @@ bool ConvolutionDescriptor::IsWinogradSupported(
 
     int _batch_sz, _n_inputs, _in_height, _in_width;
     int _n_outputs, _kernel_size0, _kernel_size1;
+    int _n_outputs_w, _n_inputs_w;
 
     const auto device_is_gfx9_no_xnack = (device_name == "gfx900");
     const bool device_is_gfx8_no_xnack = (device_name == "gfx800"
@@ -107,8 +109,9 @@ bool ConvolutionDescriptor::IsWinogradSupported(
     }
 
     std::tie(_batch_sz, _n_inputs, _in_height, _in_width) = tie4(xDesc.GetLengths());
-    std::tie(_n_outputs, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
+    std::tie(_n_outputs_w, _n_inputs_w, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
 
+    _n_outputs = direction ? _n_outputs_w : _n_inputs_w; 
     return pad_h                                        == 1
         && pad_w                                        == 1
         && _kernel_size0                                == 3
@@ -140,7 +143,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
     // If Winograd is present, there is no advantage in letting
     // the user run another algorithm as those both slower and 
     // use more workspace.
-    if(IsWinogradSupported(handle, wDesc, xDesc)) 
+    if(IsWinogradSupported(handle, 1, wDesc, xDesc)) 
     {
         return 0;
     }
@@ -164,7 +167,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(
     // If Winograd is present, there is no advantage in letting
     // the user run another algorithm as those both slower and 
     // use more workspace.
-    if(IsWinogradSupported(handle, wDesc, dyDesc)) 
+    if(IsWinogradSupported(handle, 0, wDesc, dyDesc)) 
     {
         return 0;
     }

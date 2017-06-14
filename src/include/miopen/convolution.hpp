@@ -57,6 +57,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor {
 
 	bool IsWinogradSupported(
         Handle&                     handle,
+        bool                        direction,
 		const TensorDescriptor&		wDesc,
 		const TensorDescriptor&		xDesc) const;
 
