@@ -871,7 +871,7 @@ int miopenBNBwdSpatialRunHost(
             }
             #endif
             mean /= NHW;
-//printf("MEAN: %d\n",mean);
+//printf("MEAN: %f\n",mean);
             elemStd = 0.;
             variance = 0.;
             #if(MIO_HEIRARCH_SEL==0)             
@@ -911,9 +911,10 @@ int miopenBNBwdSpatialRunHost(
             }
             #endif
             variance /= NHW; // (1/(N*H*W))*sum{ (x_i - mean)^2 }
+            //printf("VARIANCE: %f\n",variance);
             // #3 add epsilon for numeric stability, sqr_root, and invert
             invVar = 1./sqrt(variance + epsilon);
-//printf("invVar: %d\n",invVar);
+//printf("invVar: %f\n",invVar);
 
             dscale_ptr[cidx] = 0.;
             dbias_ptr[cidx] = 0.;
@@ -958,6 +959,8 @@ int miopenBNBwdSpatialRunHost(
             #endif
 
             dscale_ptr[cidx] /= NHW;
+            //printf("dscale: %f\n",dscale_ptr[cidx]);
+            //printf("dbias: %f\n",dbias_ptr[cidx]);
             #if(MIO_HEIRARCH_SEL==0)  
             for (int row = 0; row < height; row++){ //via rows
                 for(int column = 0; column < width; column++){// via columns

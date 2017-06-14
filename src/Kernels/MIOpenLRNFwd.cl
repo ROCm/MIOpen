@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 AMD Inc.
+ * Copyright (c) 2017 AMD Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -63,13 +63,13 @@ __kernel void MIOpenLRNWithinChannel_PS(
 	   )
 {
 
+    (void) alpha;
 // IT's taken from POOLING AVE with stride = 1'
 		__local _FLOAT bot_data[MLO_LRN_LCL_DATA_WIDTH * MLO_LRN_LCL_DATA_HEIGHT];
 		int x = get_group_id(0) * MLO_LRN_GROUP_SZ0 * MLO_LRN_N_HORIZ_OUT_PIX;
 		int y = get_group_id(1) * MLO_LRN_GROUP_SZ1 * MLO_LRN_N_VERT_OUT_PIX;
 		int lcl_id0 = get_local_id(0);
 		int lcl_id1 = get_local_id(1);
-		int lcl_id = (lcl_id1 << MLO_LRN_GROUP_LG2SZ0) + lcl_id0;
 		int ob = get_global_id(2); // output * batch_sz
 		int o = iDiv(ob,MLO_LRN_BATCH_SZ);
 		int b = iMod(ob, o, MLO_LRN_BATCH_SZ);
@@ -92,11 +92,6 @@ __kernel void MIOpenLRNWithinChannel_PS(
 			{
 
 				int bot_x_act = bot_x + (b_i * MLO_READ_UNIT) - MLO_LRN_LEFT_PAD0;
-
-
-
-				_FLOAT bot_val4[MLO_READ_UNIT];
-				
 
 				bool invisibleX;
 				for (int i = 0; i < MLO_READ_UNIT; ++i)
@@ -121,9 +116,12 @@ __kernel void MIOpenLRNWithinChannel_PS(
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
-
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 		_FLOAT partial_sum_x[MLO_LRN_N_HORIZ_OUT_PIX - 1];  // horizontal partial sum
+#endif
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 		_FLOAT partial_sum_xy[MLO_LRN_N_VERT_OUT_PIX - 1][MLO_LRN_N_HORIZ_OUT_PIX]; // horizontal-vertical partial sums.
+#endif
 		_FLOAT accum[MLO_LRN_N_VERT_OUT_PIX][MLO_LRN_N_HORIZ_OUT_PIX]; // accumulator
 
 		int top_y = mad24(lcl_id1, (int)MLO_LRN_N_VERT_OUT_PIX, y);
@@ -140,6 +138,7 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				accum[j][i] = 0;
 			}
 		}
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 		for (int j = 0; j < MLO_LRN_N_VERT_OUT_PIX - 1; ++j)
 		{
 			for (int i = 0; i < MLO_LRN_N_HORIZ_OUT_PIX; ++i)
@@ -147,7 +146,7 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				partial_sum_xy[j][i] = 0;
 			}
 		}
-
+#endif
 
 // running window  summation
 		_FLOAT mov_accum;
@@ -155,6 +154,8 @@ __kernel void MIOpenLRNWithinChannel_PS(
 		int ii = 0;
 
 // first to get vertica partial sums 
+
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 		for (; jj < (int)(MLO_LRN_N_VERT_OUT_PIX-1); ++jj)
 		{
 			for (ii = 0; ii < (int)(MLO_LRN_N_HORIZ_OUT_PIX - 1); ++ii)
@@ -162,8 +163,10 @@ __kernel void MIOpenLRNWithinChannel_PS(
 
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 // save horizontal partial sums
 				partial_sum_x[ii] = accum_tmp;
+#endif
 // accumulate in vert-horizontal(0)
 				partial_sum_xy[jj][0] += accum_tmp;
 
@@ -186,7 +189,11 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
 // calculate all vertical-horizontal partial sums
-				partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0 + 1] = partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0] + (accum_tmp - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]);
+				partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0 + 1] = partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0] + (accum_tmp
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
+                    - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]
+#endif
+                    );
 
 			}
 
@@ -199,6 +206,7 @@ __kernel void MIOpenLRNWithinChannel_PS(
 			}
 
 		}
+#endif
 
 // calculate row 0 accumulators
 		for (; jj < (int)MLO_LRN_KERNEL_SZ1; ++jj)
@@ -210,7 +218,9 @@ __kernel void MIOpenLRNWithinChannel_PS(
 
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 				partial_sum_x[ii] = accum_tmp;
+#endif
 				mov_accum += accum_tmp;
 			}
 
@@ -231,7 +241,11 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
 // running horizontal window				
-				mov_accum += (accum_tmp - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]);
+				mov_accum += (accum_tmp
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
+                    - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]
+#endif
+                    );
 				accum[0][ii - MLO_LRN_KERNEL_SZ0 + 1] += mov_accum;
 
 			}
@@ -249,7 +263,9 @@ __kernel void MIOpenLRNWithinChannel_PS(
 
 				_FLOAT bot_val = bot_data[lcl_off + jj*MLO_LRN_LCL_DATA_WIDTH + ii];
 				_FLOAT accum_tmp = bot_val;
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 				partial_sum_x[ii] = accum_tmp;
+#endif
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][0] += accum_tmp;
 			}
 			for (; ii < (int)MLO_LRN_KERNEL_SZ0; ++ii)
@@ -269,8 +285,10 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				_FLOAT accum_tmp = bot_val;
 				// 
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0 + 1] = accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0] + accum_tmp;
+#if MLO_LRN_N_HORIZ_OUT_PIX > 1
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0 + 1] 
 					-= partial_sum_x[ii - MLO_LRN_KERNEL_SZ0];
+#endif
 
 			}
 
@@ -282,10 +300,14 @@ __kernel void MIOpenLRNWithinChannel_PS(
 				// finish horizontal summation
 				// add/substarct vertical patial sum
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0 + 1] += accum[jj - MLO_LRN_KERNEL_SZ1][ii - MLO_LRN_KERNEL_SZ0 + 1];
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 				accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0 + 1] -= partial_sum_xy[jj - MLO_LRN_KERNEL_SZ1][ii - MLO_LRN_KERNEL_SZ0 + 1];
+#endif
 
 			}
+#if MLO_LRN_N_VERT_OUT_PIX > 1
 			accum[jj - MLO_LRN_KERNEL_SZ1 + 1][0] -= partial_sum_xy[jj - MLO_LRN_KERNEL_SZ1][0];
+#endif
 			accum[jj - MLO_LRN_KERNEL_SZ1 + 1][0] += accum[jj - MLO_LRN_KERNEL_SZ1][0];
 
 		}
@@ -314,7 +336,9 @@ __kernel void MIOpenLRNWithinChannel_PS(
 
 
 		int top_off = b * MLO_LRN_TOP_BATCH_STRIDE + o * MLO_LRN_TOP_CHANNEL_STRIDE + top_y * MLO_LRN_TOP_STRIDE + top_x;
+#if MLO_LRN_DO_SCALE
 		int scale_off = b * MLO_LRN_SCALE_BATCH_STRIDE + o * MLO_LRN_SCALE_CHANNEL_STRIDE + top_y * MLO_LRN_SCALE_STRIDE + top_x;
+#endif
 
 // final output
 
@@ -367,7 +391,8 @@ __kernel void MIOpenLRNAcrossChannels4(
 	   _FLOAT K
 	   )
 {
-	
+
+    (void) alpha;
 		int pix_id = get_global_id(0); // 
 		int b = get_global_id(2); // batch 
 		MLO_READ_TYPE accum = 0;
@@ -382,7 +407,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 		int scale_off = 0;
 
 		for( c_i = 0; c_i < MLO_LRN_PAD
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			&& (c_i < MLO_LRN_N_INPUTS)
 #endif
 			; c_i++)
@@ -414,7 +439,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 		}
 
 		for( ; c_i < MLO_LRN_KERNEL_SZ
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			&& (c_i < MLO_LRN_N_INPUTS)
 #endif
 			; c_i++, c_o++)
@@ -456,7 +481,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 			MLO_READ_TYPE prv_out = bot_in2[c_o];
 			prv_out = native_sqrt(prv_out);
 			MLO_READ_TYPE out_val = prv_out * exp_scale;
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			if (c_o < MLO_LRN_N_OUTPUTS)
 #endif
 			{
@@ -492,7 +517,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 		}
 
 		for( ; c_i < MLO_LRN_N_CHANNELS
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			&& (c_i < MLO_LRN_N_INPUTS)
 #endif
 			; c_i++, c_o++)
@@ -548,7 +573,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 			prv_out = native_sqrt(prv_out);
 			MLO_READ_TYPE out_val = prv_out * exp_scale;
 
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			if (c_o < MLO_LRN_N_OUTPUTS)
 #endif
 			{
@@ -612,7 +637,7 @@ __kernel void MIOpenLRNAcrossChannels4(
 			prv_out = native_sqrt(prv_out);
 
 			MLO_READ_TYPE out_val = prv_out * exp_scale;
-#if MLO_LOW_CHNL_COUNT
+#if MLO_LOW_CHNL_COUNT == 1
 			if (c_o < MLO_LRN_N_OUTPUTS)
 #endif
 			{

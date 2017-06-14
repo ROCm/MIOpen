@@ -10,6 +10,11 @@
 #include "bn_driver.hpp"
 
 int main(int argc, char *argv[]) {
+    // show command
+    std::cout << "MIOpenDriver:";
+    for(int i = 1; i < argc; i++)
+        std::cout << " " << argv[i];
+    std::cout << std::endl;
 
 	std::string base_arg = ParseBaseArg(argc, argv);
 
