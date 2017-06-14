@@ -2889,7 +2889,7 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
     } else {
         // Try to get values from LUT. If not found, use heuristic algorithm.
         // At first, try to find numCUs-specific values.
-        const int numCUs = static_cast<int>(_stream->GetMaxComputeUnits());
+        const auto numCUs = static_cast<int>(_stream->GetMaxComputeUnits());
         auto key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0, numCUs);
         auto found = perf_vals_map.find(key);
         if (found == perf_vals_map.end()) { // numCUs-specific values not found, try to find "universal" ones.
