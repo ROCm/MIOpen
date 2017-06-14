@@ -119,7 +119,7 @@ if(BUILD_DEV)
 	set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
 else()
 	set(MIOPEN_BUILD_DEV 0)
-	set(MIOPEN_DB_PATH "${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
+	set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
 endif()
 
 include(CreatePackage)

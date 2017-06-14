@@ -2583,13 +2583,13 @@ int mlo_construct_BwdWrW2D::mloConstruct2(bool n_stages)
 
 	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
 						   // n of map in a block (see below)
-	_out_pix_tile1 = (_kernel_size0 > 11) ? 1 : 2; //700 = 1, 350 = 4
+	_out_pix_tile1 = (_out_width > 512) ? 1 : 2; 
 	int n_waves = (_kernel_size0 > 11) ? 2 : 4;
 	// n of shared blocks of output maps in lcl memory
 	_n_out_pix_tiles = 2;
 	int read_unit = 6;
 
-	int N_ALIGNED_OUT_SCAN_BLK = (_kernel_size0 > 11) ? 2 : 4; //700 = 1, 350 = 4
+	int N_ALIGNED_OUT_SCAN_BLK = (_out_width > 512) ? 1 : 2; 
 
 
 	if (found)
@@ -2630,14 +2630,8 @@ int mlo_construct_BwdWrW2D::mloConstruct2(bool n_stages)
 	_in_tile0 = 1;
 	_in_tile1 = 1;
 	_out_pix_tile0 = 1;
-	//	_out_pix_tile1 = 2; // (_kernel_size0 > 11) ? 1 : 4; //700 = 1, 350 = 4
-
-	// major parameters
-	//	int n_waves = (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
 
 	_n_in_data_tiles = 1;
-	// n of out blocks in lcl memory
-	//	_n_out_pix_tiles = 2; // (_kernel_size0 > 11 || _batch_sz < 16) ? 2 : 4; // 700 = 2, 350 = 4
 
 	// select output mapping
 	int total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
@@ -2662,9 +2656,14 @@ int mlo_construct_BwdWrW2D::mloConstruct2(bool n_stages)
 
 	// input is output
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
-																		 //	int N_ALIGNED_OUT_SCAN_BLK = 4; // (_kernel_size0 > 11) ? 2 : 3; //700 = 1, 350 = 4
+																		 
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
+	int lcl_mem_sz = N_ALIGNED_OUT_SCAN_BLK * ALIGNED_OUT_SCAN_LN *  read_unit + _out_width * ((N_ALIGNED_OUT_SCAN_BLK - 1)*_kernel_stride1 + _kernel_size1);
+	if (lcl_mem_sz > 8 * 1024)
+	{
+		return(1);
+	}
 
 	int OUT_N_PIXS_OFF = _in_width - (_in_width / read_unit) * read_unit;
 
