@@ -45,7 +45,7 @@ double CalcErr( _T c_val, _T g_val)
 	return err;
 }
 
-//#if 0 // disable functions
+#if 0 // disable functions
 ////////////////////////////////////////////////////////////
 //
 ///////////////////////////////////////////////////////////
@@ -964,7 +964,7 @@ int mloDirectSPHost(
 	return(ret);
 }
 
-//#endif // disable functions
+#endif // disable functions
 
 template<typename _T>
 bool mloVerify(
