@@ -205,6 +205,7 @@ int ConvDriver<T>::AddCmdLineArgs() {
     inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
     inflags.AddInputFlag("weights", 'e', "", "Input weights filename (Default=)", "string");
     inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
+	inflags.AddInputFlag("mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
 
 	return 0;
 }
@@ -226,7 +227,18 @@ std::vector<int> ConvDriver<T>::GetWeightTensorLengthsFromCmdLine() {
 	int wei_h = inflags.GetValueInt("fil_h");
 	int wei_w = inflags.GetValueInt("fil_w");
 
-	miopenConvolutionMode_t mode = miopenTranspose;
+	miopenConvolutionMode_t mode;
+	if ((inflags.GetValueStr("mode")) == "conv") {
+		mode = miopenConvolution;
+	}
+	else if ((inflags.GetValueStr("mode")) == "trans") {
+		mode = miopenTranspose;
+	}
+	else {
+		printf("Incorrect Convolution Mode\n");
+		exit(0);
+	}
+
 	if(mode == miopenTranspose)
 		return std::vector<int>({ wei_c, wei_n, wei_h, wei_w });
 
@@ -236,11 +248,22 @@ std::vector<int> ConvDriver<T>::GetWeightTensorLengthsFromCmdLine() {
 template<typename T>
 int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs() {
 
-	miopenConvolutionMode_t mode = miopenTranspose;
+	miopenConvolutionMode_t mode;
 	int pad_h = inflags.GetValueInt("pad_h");
 	int pad_w = inflags.GetValueInt("pad_w");
 	int u = inflags.GetValueInt("conv_stride_0");
 	int v = inflags.GetValueInt("conv_stride_1");
+	if ((inflags.GetValueStr("mode")) == "conv") {
+		mode = miopenConvolution;
+	}
+	else if ((inflags.GetValueStr("mode")) == "trans") {
+		mode = miopenTranspose;
+	}
+	else {
+		printf("Incorrect Convolution Mode\n");
+		exit(0);
+	}
+
 	return miopenInitConvolutionDescriptor(convDesc, mode,	pad_h, pad_w, u, v,	1, 1);
 }
 
