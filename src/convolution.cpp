@@ -167,27 +167,25 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(
 		const TensorDescriptor& xDesc,
 		const TensorDescriptor& yDesc) const
 {
-	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
-	size_t workspace_size_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
-	if (mode == miopenTranspose)
-	    return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
-  else {
-    // Check if Winograd is available
-    // If Winograd is present, there is no advantage in letting
-    // the user run another algorithm as those both slower and 
-    // use more workspace.
-    if(IsWinogradSupported(handle, true, wDesc, xDesc)) 
-    {
-        return 0;
-    }
-    else 
-    {
-    	size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
-	    size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
+    if (mode == miopenTranspose)
+        return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
+    else {
+        // Check if Winograd is available
+        // If Winograd is present, there is no advantage in letting
+        // the user run another algorithm as those both slower and 
+        // use more workspace.
+        if(IsWinogradSupported(handle, true, wDesc, xDesc)) 
+        {
+            return 0;
+        }
+        else 
+        {
+            size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
+            size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT (wDesc, xDesc, yDesc);
 
-    	return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+            return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+        }
     }
-  }
 }
 
 
@@ -197,27 +195,25 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(
 		const TensorDescriptor& dyDesc,
 		const TensorDescriptor& dxDesc) const
 {
-	size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
-	size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT (wDesc, dyDesc, dxDesc);
-	if (mode == miopenTranspose)
-		return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
-  else {
-    // Check if Winograd is available
-    // If Winograd is present, there is no advantage in letting
-    // the user run another algorithm as those both slower and 
-    // use more workspace.
-    if(IsWinogradSupported(handle, false, wDesc, dyDesc)) 
-    {
-        return 0;
-    }
-    else 
-    {
-        size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
-        size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT (wDesc, dyDesc, dxDesc);
+    if (mode == miopenTranspose)
+        return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
+    else {
+        // Check if Winograd is available
+        // If Winograd is present, there is no advantage in letting
+        // the user run another algorithm as those both slower and 
+        // use more workspace.
+        if(IsWinogradSupported(handle, false, wDesc, dyDesc)) 
+        {
+            return 0;
+        }
+        else 
+        {
+            size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
+            size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT (wDesc, dyDesc, dxDesc);
 
-        return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+            return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft : workspace_size_gemm);
+        }
     }
-  }
 }
 
 // weights_n = output_c
