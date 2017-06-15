@@ -243,7 +243,7 @@ if (mode == miopenTranspose) {
 	std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
 #if MIOPEN_USE_TINYGEMM
-	size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc)
+	size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
 	float time_gemm = 0;
 	GemmGeometry gg = CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, false, network_config);
 
