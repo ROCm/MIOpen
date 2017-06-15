@@ -193,6 +193,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 add_subdirectory(AddKernels)
+add_subdirectory(doc)
 add_subdirectory(src)
 add_subdirectory(driver)
 add_subdirectory(test)
