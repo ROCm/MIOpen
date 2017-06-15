@@ -304,15 +304,19 @@ int mlo_construct_direct2D::mloConstruct()
 		if (use_assembly) {
 			if (mloIsCorrectAsmDirect3x3U()
 				&& (no_perf_filtering || mloIsFastAsmDirect3x3U())) {
-				return (mloConstructAsmDirect3x3U(rmv));
+				return mloConstructAsmDirect3x3U(rmv);
 			}
 			if (mloIsCorrectAsmDirect5x10u2v2f1()
 				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2f1())) {
-				return (mloConstructAsmDirect5x10u2v2f1(rmv));
+				return mloConstructAsmDirect5x10u2v2f1(rmv);
+			}
+			if (mloIsCorrectAsmDirect7x7c3h224w224k64u2v2p3q3f1(rmv)
+				&& (no_perf_filtering || mloIsFastAsmDirect7x7c3h224w224k64u2v2p3q3f1())) {
+				return mloConstructAsmDirect7x7c3h224w224k64u2v2p3q3f1();
 			}
 			if (mloIsCorrectAsmDirect5x10u2v2b1()
 				&& (no_perf_filtering || mloIsFastAsmDirect5x10u2v2b1())) {
-				return (mloConstructAsmDirect5x10u2v2b1(rmv));
+				return mloConstructAsmDirect5x10u2v2b1(rmv);
 			}
 		}
 	}
@@ -627,7 +631,7 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version r
         if(rmv == V1 || rmv == V2)
             MIOPEN_THROW("Metadata versions v1 or v2 is not supported on gfx9 devices");
 
-        _kernel_file = "conv_3x3_wheel_alpha_v5_1_1b_gfx900.so";
+        _kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900.so";
     }
 
     return 0;
@@ -673,10 +677,10 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream, const std::st
 
 /// @param dir 1: fwd, 0: bwd wrt data
 static
-std::string MakeKeyWHCNKD(int w, int h, int c, int n, int k, int dir)
+std::string MakeKeyWHCNKD(int w, int h, int c, int n, int k, int dir, int CUs = -1)
 {
 	std::ostringstream ss;
-	ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << dir;
+	ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << dir << ";" << CUs;
 	return ss.str();
 }
 
@@ -930,6 +934,67 @@ int mlo_construct_direct2D::mloConstructAsmDirect5x10u2v2b1(rocm_meta_version rm
 
     _kernel_file = "conv5x10u2v2b1.s";
     _kernel_name = "conv5x10u2v2b1";
+    return 0;
+}
+
+bool mlo_construct_direct2D::mloIsCorrectAsmDirect7x7c3h224w224k64u2v2p3q3f1(rocm_meta_version rmv) const
+{
+    const std::string name = _stream->GetDeviceName();
+    if (! ( name == "gfx800"
+         || name == "gfx802"
+         || name == "gfx803"
+         || name == "gfx804"
+         || name == "gfx900")) {
+        return false;
+    }
+    if (!isForwardDirection()){
+        return false;
+    }
+    if (rmv != V3) {
+        return false;
+    }
+    assert(_weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+
+                                                // Opt. Param   Restrictions in source
+    return _pad0            == 3                // -q
+        && _pad1            == 3                // -p
+        && _kernel_stride0  == 2                // -u
+        && _kernel_stride1  == 2                // -v
+        && _kernel_size0    == 7                // -x
+        && _kernel_size1    == 7                // -y
+        && _n_inputs        == 3                // -c
+        && _n_outputs       == 64               // -k
+        && _in_width        == 224              // -W
+        && _in_height       == 224              // -H
+        && _in_layout       == "NCHW";          //              hardcoded
+     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
+}
+
+bool mlo_construct_direct2D::mloIsFastAsmDirect7x7c3h224w224k64u2v2p3q3f1() const
+{
+    return true;
+}
+
+int mlo_construct_direct2D::mloConstructAsmDirect7x7c3h224w224k64u2v2p3q3f1()
+{
+    const int out_w = (_in_width  + _pad0*2 + _kernel_stride0 - _kernel_size0) / _kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
+    const int out_h = (_in_height + _pad1*2 + _kernel_stride1 - _kernel_size1) / _kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
+
+    _comp_options = "";
+
+    _l_wk.clear();
+    _l_wk.push_back(64);
+    _l_wk.push_back(8);
+    _l_wk.push_back(1);
+
+    // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
+    _g_wk.clear();
+    _g_wk.push_back(AlignUp(out_w, 64));
+    _g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(_n_outputs / 2, 8));
+    _g_wk.push_back(_batch_sz);
+
+    _kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
+    _kernel_name = "gcnAsmConv7x7c3h224w224k64u2v2p3q3f1";
     return 0;
 }
 
@@ -2518,13 +2583,13 @@ int mlo_construct_BwdWrW2D::mloConstruct2(bool n_stages)
 
 	int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
 						   // n of map in a block (see below)
-	_out_pix_tile1 = (_kernel_size0 > 11) ? 1 : 2; //700 = 1, 350 = 4
+	_out_pix_tile1 = (_out_width > 512) ? 1 : 2; 
 	int n_waves = (_kernel_size0 > 11) ? 2 : 4;
 	// n of shared blocks of output maps in lcl memory
 	_n_out_pix_tiles = 2;
 	int read_unit = 6;
 
-	int N_ALIGNED_OUT_SCAN_BLK = (_kernel_size0 > 11) ? 2 : 4; //700 = 1, 350 = 4
+	int N_ALIGNED_OUT_SCAN_BLK = (_out_width > 512) ? 1 : 2; 
 
 
 	if (found)
@@ -2565,14 +2630,8 @@ int mlo_construct_BwdWrW2D::mloConstruct2(bool n_stages)
 	_in_tile0 = 1;
 	_in_tile1 = 1;
 	_out_pix_tile0 = 1;
-	//	_out_pix_tile1 = 2; // (_kernel_size0 > 11) ? 1 : 4; //700 = 1, 350 = 4
-
-	// major parameters
-	//	int n_waves = (_out_width > 512) ? 4 : 2; // 700 = 4, 350 == 2
 
 	_n_in_data_tiles = 1;
-	// n of out blocks in lcl memory
-	//	_n_out_pix_tiles = 2; // (_kernel_size0 > 11 || _batch_sz < 16) ? 2 : 4; // 700 = 2, 350 = 4
 
 	// select output mapping
 	int total_out_maps = _n_out_pix_tiles * _out_pix_tile1;
@@ -2597,9 +2656,14 @@ int mlo_construct_BwdWrW2D::mloConstruct2(bool n_stages)
 
 	// input is output
 	int ALIGNED_OUT_SCAN_LN = ((_in_width + read_unit - 1) / read_unit); // image aligned scan
-																		 //	int N_ALIGNED_OUT_SCAN_BLK = 4; // (_kernel_size0 > 11) ? 2 : 3; //700 = 1, 350 = 4
+																		 
 	int N_OUT_BLK = (_in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
+	int lcl_mem_sz = N_ALIGNED_OUT_SCAN_BLK * ALIGNED_OUT_SCAN_LN *  read_unit + _out_width * ((N_ALIGNED_OUT_SCAN_BLK - 1)*_kernel_stride1 + _kernel_size1);
+	if (lcl_mem_sz > 8 * 1024)
+	{
+		return(1);
+	}
 
 	int OUT_N_PIXS_OFF = _in_width - (_in_width / read_unit) * read_unit;
 
@@ -2753,26 +2817,41 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
     /// implementation if optimal values are different.
     static
     const std::unordered_map<std::string, std::string> perf_vals_map({
-        //              W    H    c    n    k    dir  lwc[2] rio csz[2] kpw pld npg
-        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0), "00008421" },
-        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0), "00008421" },
-        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0), "00008421" },
-        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0), "00108421" },
-        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0), "00108421" },
-        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "00108431" },
-        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "00008431" },
-        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "00108431" },
-        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "00008431" },
-        { MakeKeyWHCNKD(16,  16,  256, 8,   512, 0), "00016421" },
-        { MakeKeyWHCNKD(28,  28,  256, 8,   512, 0), "04108221" },
-        { MakeKeyWHCNKD(28,  28,  256, 16,  512, 0), "00108231" },
-        { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "00116224" },
-        { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0), "04016261" },
-        { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0), "03016422" },
-        { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0), "00016424" },
-        { MakeKeyWHCNKD(112, 112, 256, 8,   512, 0), "00116421" },
-        { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0), "03116214" },
-        { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0), "00016418" },
+        //              W    H    c    n    k    dir CUs    lwc[2] rio csz[2] kpw pld npg
+        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0),        "00008421" },
+        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0,  64),   "00016421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0),        "00008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0,  64),   "00016421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0),        "00008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0,  64),   "00016421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0),        "00108421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0,  64),   "00008821" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0),        "00108421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0,  64),   "00008821" },
+        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0),        "00108441" },
+        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(14,  14,  512, 32,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(14,  14,  512, 64,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(16,  16,  256, 8,   512, 0),        "00016421" },
+        { MakeKeyWHCNKD(28,  28,  256, 8,   512, 0),        "04108221" },
+        { MakeKeyWHCNKD(28,  28,  256, 16,  512, 0),        "00108231" },
+        { MakeKeyWHCNKD(28,  28,  256, 32,  512, 0),        "00016441" },
+        { MakeKeyWHCNKD(28,  28,  256, 64,  512, 0),        "00016441" },
+        { MakeKeyWHCNKD(28,  28,  512, 32,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(28,  28,  512, 64,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0),        "00116224" },
+        { MakeKeyWHCNKD(56,  56,  64,  16,  192, 0),        "00008424" },
+        { MakeKeyWHCNKD(56,  56,  64,  32,  192, 0),        "00016444" },
+        { MakeKeyWHCNKD(56,  56,  256, 32,  256, 0),        "00108241" },
+        { MakeKeyWHCNKD(56,  56,  256, 64,  256, 0),        "00108241" },
+        { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0),        "04016261" },
+        { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0),        "03016422" },
+        { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0),        "00016424" },
+        { MakeKeyWHCNKD(112, 112, 64,  32,  128, 0),        "00016424" },
+        { MakeKeyWHCNKD(112, 112, 64,  64,  128, 0),        "00016424" },
+        { MakeKeyWHCNKD(112, 112, 256, 8,   512, 0),        "00116421" },
+        { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0),        "03116214" },
+        { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0),        "00016418" },
     });
 
     std::string s;
@@ -2808,9 +2887,15 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
             MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: incorrect for the problem config.");
         }
     } else {
-        // Try to get values from LUT, otherwise use algorithm.
-        const auto key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
-        const auto found = perf_vals_map.find(key);
+        // Try to get values from LUT. If not found, use heuristic algorithm.
+        // At first, try to find numCUs-specific values.
+        const auto numCUs = static_cast<int>(_stream->GetMaxComputeUnits());
+        auto key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0, numCUs);
+        auto found = perf_vals_map.find(key);
+        if (found == perf_vals_map.end()) { // numCUs-specific values not found, try to find "universal" ones.
+            key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
+            found = perf_vals_map.find(key);
+        }
         if (found != perf_vals_map.end()) {
             s = found->second;
             /// \todo Copy-paste from above. Generalize.
