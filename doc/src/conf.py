@@ -30,7 +30,11 @@
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = []
+extensions = ['breathe']
+
+# doxygen_xml_output = ""
+# breathe_projects = { "miopen": doxygen_xml_output }
+# breathe_default_project = "miopen"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -46,8 +50,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'miopen'
-copyright = u'2017, amd'
-author = u'amd'
+copyright = u'2017, Advanced Micro Devices, Inc'
+author = u'Advanced Micro Devices, Inc'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -82,7 +86,7 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'nature'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -152,5 +156,6 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-
+primary_domain = 'cpp'
+cpp_id_attributes = ['MIOPEN_EXPORT']
 

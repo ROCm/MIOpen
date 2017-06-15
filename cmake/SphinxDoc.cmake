@@ -1,4 +1,6 @@
 include(CMakeParseArguments)
+include(MainDoc)
+include(DoxygenDoc)
 
 find_program(SPHINX_EXECUTABLE NAMES sphinx-build
     HINTS
@@ -18,34 +20,44 @@ set(SPHINX_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/sphinx/_doctrees")
 set(SPHINX_DEFAULT_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/sphinx/html")
 function(add_sphinx_doc SRC_DIR)
     set(options)
-    set(oneValueArgs HTML_DIR)
-    set(multiValueArgs VARS TEMPLATE_VARS)
+    set(oneValueArgs BUILDER OUTPUT_DIR)
+    set(multiValueArgs DEPENDS VARS TEMPLATE_VARS)
 
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
+    string(TOUPPER ${PARSE_BUILDER} BUILDER)
+
     set(ADDITIONAL_ARGS)
     foreach(VAR ${PARSE_VARS})
-        list(APPEND ADDITIONAL_ARGS "-D ${VAR}")
+        list(APPEND ADDITIONAL_ARGS -D ${VAR})
     endforeach()
     foreach(VAR ${PARSE_TEMPLATE_VARS})
-        list(APPEND ADDITIONAL_ARGS "-A ${VAR}")
+        list(APPEND ADDITIONAL_ARGS -A ${VAR})
     endforeach()
 
-    if(PARSE_HTML_DIR)
-        get_filename_component(HTML_DIR ${PARSE_HTML_DIR} ABSOLUTE)
-        set(SPHINX_HTML_DIR ${HTML_DIR} CACHE PATH "Path to html output")
+    if(PARSE_OUTPUT_DIR)
+        get_filename_component(OUTPUT_DIR ${PARSE_OUTPUT_DIR} ABSOLUTE)
+        set(SPHINX_${BUILDER}_DIR ${OUTPUT_DIR} CACHE PATH "Path to ${PARSE_BUILDER} output")
     else()
-        set(SPHINX_HTML_DIR ${SPHINX_DEFAULT_HTML_DIR} CACHE PATH "Path to html output")
+        set(SPHINX_${BUILDER}_DIR "${CMAKE_CURRENT_BINARY_DIR}/sphinx/${PARSE_BUILDER}" CACHE PATH "Path to ${PARSE_BUILDER} output")
     endif()
 
-    add_custom_target(doc
+    set(DEPENDS_ARG)
+    if(PARSE_DEPENDS)
+        set(DEPENDS_ARG "DEPENDS ${PARSE_DEPENDS}")
+    endif()
+
+    add_custom_target(sphinx-${BUILDER}
         ${SPHINX_EXECUTABLE}
-        -b html
+        -b ${PARSE_BUILDER}
         -d "${SPHINX_CACHE_DIR}"
         ${ADDITIONAL_ARGS}
         "${SRC_DIR}"
-        "${SPHINX_HTML_DIR}"
+        "${SPHINX_${BUILDER}_DIR}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Building HTML documentation with Sphinx")
+        COMMENT "Building ${PARSE_BUILDER} documentation with Sphinx"
+        ${DEPENDS_ARG}
+    )
+    mark_as_doc(sphinx-${BUILDER})
 endfunction()
 
