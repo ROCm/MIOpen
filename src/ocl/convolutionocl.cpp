@@ -1087,51 +1087,51 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     std::string network_config;
     size_t workspace_req = 0;
 
-if (mode == miopenTranspose) {
-	std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+    if (mode == miopenTranspose) {
+        std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(dwDesc.GetLengths());
 
 #if MIOPEN_USE_TINYGEMM
-	GemmGeometry gg = CreateGemmGeometryConvBwdWeights(xDesc, dyDesc, dwDesc, false, network_config);
-	size_t workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
-	float time_gemm = 0;
+        GemmGeometry gg = CreateGemmGeometryConvBwdWeights(xDesc, dyDesc, dwDesc, false, network_config);
+        workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
+        float time_gemm = 0;
 
-	// 1x1 does not require im2col or workspace
-	if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
-		gg.FindSolution(.003, handle, dy, x, tmp_dw.get(), false);
-		gg.RunGemm(handle, dy, x, tmp_dw.get(), 0, 0, 0);
+        // 1x1 does not require im2col or workspace
+        if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
+            gg.FindSolution(.003, handle, dy, x, tmp_dw.get(), false);
+            gg.RunGemm(handle, dy, x, tmp_dw.get(), 0, 0, 0);
 
-		time_gemm = in_n * handle.GetKernelTime();
-		perf_db.push_back(PerfField{ "miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0 });
-	}
-	// if not 1x1
-	else if (workSpace != nullptr && workSpaceSize >= workspace_req) {
-		float time_im2col = 0;
-		size_t out_offset = 0;
-		time_im2col = Im2ColGPU(handle, dyDesc.GetElementSize(), dy, out_offset, wei_n, out_h, out_w, wei_h, wei_w, in_h, in_w, pad_h, pad_w, v, u, workSpace);
+            time_gemm = in_n * handle.GetKernelTime();
+            perf_db.push_back(PerfField{ "miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0 });
+        }
+        // if not 1x1
+        else if (workSpace != nullptr && workSpaceSize >= workspace_req) {
+            float time_im2col = 0;
+            size_t out_offset = 0;
+            time_im2col = Im2ColGPU(handle, dyDesc.GetElementSize(), dy, out_offset, wei_n, out_h, out_w, wei_h, wei_w, in_h, in_w, pad_h, pad_w, v, u, workSpace);
 
-		gg.FindSolution(.003, handle, workSpace, x, tmp_dw.get(), false);
-		gg.RunGemm(handle, workSpace, x, tmp_dw.get(), 0, 0, 0);
-		time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-		perf_db.push_back(PerfField{ "miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, workspace_req });
-	}
+            gg.FindSolution(.003, handle, workSpace, x, tmp_dw.get(), false);
+            gg.RunGemm(handle, workSpace, x, tmp_dw.get(), 0, 0, 0);
+            time_gemm = in_n * (time_im2col + handle.GetKernelTime());
+            perf_db.push_back(PerfField{ "miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, workspace_req });
+        }
 #else
-	(void)workSpace; // Suppress warning
-	(void)workSpaceSize; // Suppress warning
+        (void)workSpace; // Suppress warning
+        (void)workSpaceSize; // Suppress warning
 #endif
 
-}
-else if (mode == miopenConvolution) {
-	std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+    }
+    else if (mode == miopenConvolution) {
+        std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
 
 #if MIOPEN_USE_TINYGEMM
-    GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
-    workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc);
-    float time_gemm = 0;
+        GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
+        workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc);
+        float time_gemm = 0;
 
-    // 1x1 does not require im2col or workspace
-    if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
-        gg.FindSolution(.003, handle, x, dy, tmp_dw.get(), false);
-        gg.RunGemm(handle, x, dy, tmp_dw.get(), 0, 0, 0);
+        // 1x1 does not require im2col or workspace
+        if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1) {
+            gg.FindSolution(.003, handle, x, dy, tmp_dw.get(), false);
+            gg.RunGemm(handle, x, dy, tmp_dw.get(), 0, 0, 0);
 
         time_gemm = in_n * handle.GetKernelTime();
         perf_db.push_back( PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0} );
