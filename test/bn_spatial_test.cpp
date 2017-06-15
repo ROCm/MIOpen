@@ -12,7 +12,6 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include "driver.hpp"
-#if(0)
 #include "get_handle.hpp"
 #include <cmath>
 #include <ctime>
@@ -24,7 +23,6 @@
 #define MIO_BN_TEST_EPSILON 0.000001
 #define MIO_BN_SP_TEST_DEBUG 0
 
-#endif
 
 
 //****************************************************
@@ -37,7 +35,6 @@ struct verify_forward_train_bn_spatial
     const tensor<T> input;
     const tensor<T> scale; 
     const tensor<T> shift;
-#if(0)    
     std::tuple<tensor<T>,tensor<T>,tensor<T>,tensor<T>,tensor<T>> cpu() {
 
 #if (MIO_BN_TIME_EVERYTHING==1)
@@ -179,17 +176,20 @@ struct verify_forward_train_bn_spatial
         
         auto&& handle = get_handle();
         
+        
         int n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tie4(input.desc.GetLengths());
-        
+      
         auto out = input;
         std::fill(out.begin(), out.end(), 0);   
-        
+       
         int rs_n_batch, rs_channels, rs_height, rs_width;
         auto  derivedBnDesc = miopen::TensorDescriptor{};
+      
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
-        std::tie(rs_n_batch, rs_channels, rs_height, rs_width) = miopen::tie4(derivedBnDesc.GetLengths());
-        
+      
+       std::tie(rs_n_batch, rs_channels, rs_height, rs_width) = miopen::tie4(derivedBnDesc.GetLengths());
+       
         auto runMean    = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
         auto runVar     = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
         auto saveMean   = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
@@ -212,8 +212,8 @@ struct verify_forward_train_bn_spatial
 
         int alpha = 1, beta = 1;
         miopen::BatchNormForwardTraining(handle, miopenBNSpatial, &alpha, &beta, input.desc, in_dev.get(), out.desc, out_dev.get(), 
-                                        scale.desc, scale_dev.get(), shift_dev.get(), expAvgFactor, runMean_dev.get(), runVar_dev.get(), 
-                                        epsilon, saveMean_dev.get(), saveInvVar_dev.get());//TODO: add multi-out
+                                       scale.desc, scale_dev.get(), shift_dev.get(), expAvgFactor, runMean_dev.get(), runVar_dev.get(), 
+                                        epsilon, saveMean_dev.get(), saveInvVar_dev.get());
 
         saveMean.data   = handle.Read<T>(saveMean_dev, saveMean.data.size());
         saveInvVar.data = handle.Read<T>(saveInvVar_dev, saveInvVar.data.size());
@@ -234,6 +234,7 @@ struct verify_forward_train_bn_spatial
 
 
     void fail(int badtensor)  {
+        
         std::cout << "Forward Train Spatial Batch Normalization: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
 
@@ -255,7 +256,6 @@ struct verify_forward_train_bn_spatial
                 break;
         }       
     }
-#endif // if 0
 };
 
 
@@ -277,7 +277,6 @@ struct verify_forward_infer_bn_spatial_recalc
     const tensor<T> scale; 
     const tensor<T> shift;
     
-#if(0)
     tensor<T> cpu()
     {
         
@@ -401,7 +400,6 @@ struct verify_forward_infer_bn_spatial_recalc
         std::cout << "Forward Inference Spatial Batch Normalization Recalc: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
     }
-#endif //if(0)
 };
 
 
@@ -415,7 +413,6 @@ struct verify_forward_infer_bn_spatial_use_est
     const tensor<T> shift;
     const tensor<T> estMean; 
     const tensor<T> estVar;
-#if(0)    
     tensor<T> cpu() {
         
 #if (MIO_BN_TIME_EVERYTHING==1)
@@ -503,7 +500,6 @@ struct verify_forward_infer_bn_spatial_use_est
         std::cout << "Forward Inference Spatial Batch Normalization Use Estimated: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
     }
-#endif
 
 };
 
@@ -523,7 +519,6 @@ struct verify_backward_bn_spatial_recalc
     const tensor<T> x_input;
     const tensor<T> dy_input;
     const tensor<T> scale; 
-#if(0)    
 
     std::tuple<tensor<T>,tensor<T>,tensor<T>> cpu() {
 
@@ -755,7 +750,6 @@ struct verify_backward_bn_spatial_recalc
                 break;
         } 
     }
-#endif //if 0
 };
 
 
@@ -769,7 +763,6 @@ struct verify_backward_bn_spatial_use_saved
     const tensor<T> scale; 
     const tensor<T> savedMean;
     const tensor<T> savedInvVar; 
-#if(0)
     std::tuple<tensor<T>,tensor<T>,tensor<T>> cpu() {
         
 #if (MIO_BN_TIME_EVERYTHING==1)
@@ -950,7 +943,6 @@ struct verify_backward_bn_spatial_use_saved
                 break;
         } 
     }
-#endif
 };
 
 
@@ -968,14 +960,14 @@ struct batch_norm_spatial_driver : test_driver
     tensor<T> input;
     tensor<T> scale;
     tensor<T> shift;
- #if(0)
     batch_norm_spatial_driver(){
         this->batch_factor=8;
-        add(input, "input", get_bn_spatial_input_tensor());
-        //add(input, "input", get_input_tensor());        
+       //this->verbose=true;
+        add(input, "input", get_bn_spatial_input_tensor());    
     }
 
     void run(){
+        return;
         int n, c, h, w;
         
         std::tie(n,c,h,w)=miopen::tie4(input.desc.GetLengths());
@@ -993,21 +985,30 @@ struct batch_norm_spatial_driver : test_driver
         shift  = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
         
         //train
+        #if (MIO_BN_SP_TEST_DEBUG == 1)
+            std::cout << "Running forward train spatial with R and S set." << std::endl;
+        #endif
         auto outpair = verify(verify_forward_train_bn_spatial<T>{ input, scale, shift });
         //returns:  std::make_tuple(out,runMean,runVar,saveMean,saveInvVar);
 
         //inference recalc
+        #if (MIO_BN_SP_TEST_DEBUG == 1)
+            std::cout << "Running forward inference spatial recalc." << std::endl;
+        #endif
         verify(verify_forward_infer_bn_spatial_recalc<T>{ input, scale, shift });
         
         //inference use estimated running values
         auto estMean = std::get<1>(outpair.second);
         auto estVar  = std::get<2>(outpair.second);
+        #if (MIO_BN_SP_TEST_DEBUG == 1)
+            std::cout << "Running forward inference spatial with R set." << std::endl;
+        #endif
         verify(verify_forward_infer_bn_spatial_use_est<T>{ input, scale, shift, estMean, estVar });
         
         //backprop recalc
         auto dy_input = std::get<0>(outpair.second);
         
-#if MIO_BN_SP_TEST_DEBUG == 1
+#if (MIO_BN_SP_TEST_DEBUG == 2)
         auto debugvals = verify(verify_backward_bn_spatial_recalc<T>{ input, dy_input, scale });
         auto gpuout = std::get<0>(debugvals.second);
         auto cpuout = std::get<0>(debugvals.first);
@@ -1041,33 +1042,39 @@ struct batch_norm_spatial_driver : test_driver
             std::cout << "cpu[" << mn << ", " << mc << ", " << mh << ", " << mw << "]: " << cpuout(mn,mc,mh,mw) << std::endl;
         }
 #else
+        #if (MIO_BN_SP_TEST_DEBUG == 1)
+            std::cout << "Running back propagation spatial recalc." << std::endl;
+        #endif  
         verify(verify_backward_bn_spatial_recalc<T>{ input, dy_input, scale });
 #endif
         
         //backprop use saved values
         auto savedMean = std::get<3>(outpair.second);
         auto savedInvVar = std::get<4>(outpair.second);
+        #if (MIO_BN_SP_TEST_DEBUG == 1)
+            std::cout << "Running back propagation spatial with S set." << std::endl;
+        #endif
         verify(verify_backward_bn_spatial_use_saved<T>{ input, dy_input, scale, savedMean, savedInvVar });
  
     }
-#endif
 };
 
 
-int main(){
-#if(0)
 int main(int argc, const char *argv[]){
-    auto t_start = std::chrono::high_resolution_clock::now();
-    
+    #if (MIO_BN_TIME_EVERYTHING==1)
+        auto t_start = std::chrono::high_resolution_clock::now();
+    #endif
     test_drive<batch_norm_spatial_driver<float>>(argc, argv);
     
+    #if (MIO_BN_TIME_EVERYTHING==1)
     auto t_end = std::chrono::high_resolution_clock::now();
-        
-    std::cout << "Wall clock: full SPATIAL test pass time: "
-              << std::chrono::duration<double>(t_end-t_start).count()
-              << " seconds."<<std::endl;
-#endif // if 0    
-    exit(0);    
+    
+        std::cout << "Wall clock: full SPATIAL test pass time: "
+                  << std::chrono::duration<double>(t_end-t_start).count()
+                  << " seconds."<<std::endl;
+    #endif
+    exit(0);
+    
 }
 
 

@@ -709,6 +709,7 @@ public:
 	size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor &weight_tensor);
 
     bool mloIsCompilerWorkarounds() const;
+	bool mloIsFastBinaryWinograd3x3Fwd() const;
 	int mloConstructDirect2D_11x11(bool n_passes = false);
 
 protected:
@@ -720,7 +721,6 @@ protected:
 	bool mloIsAmdOpenclRocm(rocm_meta_version &rmv) const;
 
 	bool mloIsCorrectBinaryWinograd3x3Fwd() const;
-	bool mloIsFastBinaryWinograd3x3Fwd() const;
 	int  mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv);
 
 	bool mloIsCorrectAsmDirect3x3U() const;
@@ -734,6 +734,10 @@ protected:
 	bool mloIsCorrectAsmDirect5x10u2v2b1() const;
 	bool mloIsFastAsmDirect5x10u2v2b1() const;
 	int  mloConstructAsmDirect5x10u2v2b1(rocm_meta_version rmv);
+
+	bool mloIsCorrectAsmDirect7x7c3h224w224k64u2v2p3q3f1(rocm_meta_version rmv) const;
+	bool mloIsFastAsmDirect7x7c3h224w224k64u2v2p3q3f1() const;
+	int  mloConstructAsmDirect7x7c3h224w224k64u2v2p3q3f1();
 
 	int mloConstructDirect2DFwdC();
 	int mloConstructDirect2D1x1();

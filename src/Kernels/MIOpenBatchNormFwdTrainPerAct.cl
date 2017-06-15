@@ -45,6 +45,17 @@
 #define MIO_BN_GRP2 1
 #endif
 
+// Disable specific warnings
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsometimes-uninitialized"
+#endif
+
+
+
+
 
 //==================== PER ACTIVATION =======================
 
@@ -173,5 +184,12 @@ Note from cuDNN: expAvgFactor
     }//end for(img_offset) //image mini_batch is processed
 }
 
+
+
+// Restore warnings
+#ifdef __clang__
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
+#endif
 
 

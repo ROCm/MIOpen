@@ -356,7 +356,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy() {
 	    b = std::vector<T>(b_sz);
         db = std::vector<T>(b_sz);
         db_host = std::vector<T>(b_sz, 0);
-
         for(int i = 0; i < b_sz; i++) {
             b[i] = i%8;
             db[i] = i%8;

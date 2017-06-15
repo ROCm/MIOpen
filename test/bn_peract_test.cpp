@@ -22,7 +22,7 @@
 //Run CPU emulations in hierarchical reduction mode.
 //#define MIO_HEIRARCH_SEL 0
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
-#define MIO_BN_TEST_EPSILON 0.000001
+#define MIO_BN_TEST_EPSILON 1e-6
 
 
 //****************************************************
@@ -88,7 +88,7 @@ struct verify_forward_train_bn_per_activation
                     variance_accum/=n; // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    elemInvVar = 1.0/double(sqrt(fabs(variance_accum + epsilon)));
+                    elemInvVar = 1.0/double(sqrt(variance_accum + epsilon));
 
                     // #4 apply the normalization :: x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
                     for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
@@ -112,22 +112,22 @@ struct verify_forward_train_bn_per_activation
             } // for (row)
         });
         
-#if (MIO_BN_TIME_EVERYTHING==1)
-        auto t_end = std::chrono::high_resolution_clock::now();
-        
-        std::cout << "Wall clock: CPU forward_train_bn_per_activation pass time: "
-              << std::chrono::duration<double>(t_end-t_start).count()
-              << " seconds." << std::endl;
-#endif
+        #if (MIO_BN_TIME_EVERYTHING==1)
+                auto t_end = std::chrono::high_resolution_clock::now();
+
+                std::cout << "Wall clock: CPU forward_train_bn_per_activation pass time: "
+                      << std::chrono::duration<double>(t_end-t_start).count()
+                      << " seconds." << std::endl;
+        #endif
         
         return std::make_tuple(out,runMean,runVar,saveMean,saveInvVar);
     }
 
     std::tuple<tensor<T>,tensor<T>,tensor<T>,tensor<T>,tensor<T>> gpu() {
      
-#if (MIO_BN_TIME_EVERYTHING==1)
-        auto t_start = std::chrono::high_resolution_clock::now();
-#endif
+    #if (MIO_BN_TIME_EVERYTHING==1)
+            auto t_start = std::chrono::high_resolution_clock::now();
+    #endif
         
         auto&& handle = get_handle();
         
@@ -270,7 +270,7 @@ struct verify_forward_infer_bn_per_activation_recalc
                     variance_accum /= n; // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    elemInvVar = 1.0/double(sqrt(fabs(variance_accum + epsilon)));
+                    elemInvVar = 1.0/double(sqrt(variance_accum + epsilon));
 
                     // #4 apply the normalization
                     // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
@@ -374,7 +374,7 @@ struct verify_forward_infer_bn_per_activation_use_est
                 for(int column = 0; column < width; column++){// via columns
                     mean = estMean(0,cidx,row,column);
                     variance = estVar(0,cidx,row,column);
-                    elemInvVar = 1.0/double(sqrt(fabs(variance + epsilon)));
+                    elemInvVar = 1.0/double(sqrt(variance + epsilon));
                     for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         elemStd = input(bidx,cidx,row,column) - mean;// (x_i - mean)
                         inhat = elemStd*elemInvVar;
@@ -482,12 +482,16 @@ struct verify_backward_bn_per_activation_use_saved
             double mean = 0.;
             double elemInvVar = 0.;
             double dyelem = 0.;
-
+	    double dxhat        = 0.;
+	    double dxhathat     = 0.;
+	    double tmp1 = 0.;
             std::vector<double> xhat(n_batch*in_cstride);
             
             // process the batch per channel
             for (int row = 0; row < height; row++){ //via rows
                 for(int column = 0; column < width; column++){// via columns
+		    dxhat = 0.;
+	            dxhathat = 0.;
 
                     mean = savedMean(0,cidx,row,column); // HxW elements
                     elemInvVar = savedInvVar(0,cidx,row,column); //HxW elements
@@ -500,16 +504,19 @@ struct verify_backward_bn_per_activation_use_saved
                         dyelem = dy_input(bidx,cidx,row,column);
                         dshift(0,cidx,row,column) += dyelem;
                         dscale(0,cidx,row,column) += xhat[xhat_index]*dyelem;
+			tmp1 = scale(0,cidx,row,column) * dyelem;
+                        dxhat += tmp1;
+                        dxhathat += tmp1*xhat[xhat_index];
+
                     }//end for(n_batchs)
                     dscale(0,cidx,row,column) /= n;
 
                     for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         xhat_index = in_cstride*bidx + (width*row + column);
-
-                        double tmp1 = n_batch*dy_input(bidx,cidx,row,column) - dshift(0,cidx,row,column);
-                        double tmp2 = -xhat[xhat_index]*dscale(0,cidx,row,column);
-                        double tmp3 = (scale(0,cidx,row,column)*elemInvVar)/n;
-                        dx_out(bidx,cidx,row,column) = tmp3*(tmp1+tmp2);
+                        tmp1 = xhat[xhat_index]*dxhathat+dxhat;
+                        double tmp2 = n_batch*dxhat - tmp1;
+                        double tmp3 = elemInvVar/(double(n));
+                        dx_out(bidx,cidx,row,column) = tmp3*tmp2;
                     }//end for(n_batchs)
                 } // for (column)
             }// for (row)
@@ -629,9 +636,11 @@ struct verify_backward_bn_per_activation_recalc
             double elemInvVar = 0.;
             double dyelem = 0.;
             double variance = 0.;
-            
+            double dxhat        = 0.;
+            double dxhathat     = 0.;
+            double tmp1 = 0.;
             std::vector<double> xhat(n_batch*in_cstride);
-            
+ 
             // process the batch per channel
             for (int row = 0; row < height; row++){ //via rows
                 for(int column = 0; column < width; column++){// via columns
@@ -654,27 +663,32 @@ struct verify_backward_bn_per_activation_recalc
                     variance /= n; // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    elemInvVar = 1.0/double(sqrt(fabs(variance + epsilon)));
+                    elemInvVar = 1.0/double(sqrt(variance + epsilon));
 
+	 	    dxhat = 0.;
+	            dxhathat = 0.;
 
-                    for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
+		    for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         xhat_index = in_cstride*bidx + (width*row + column);
                         //per (x-dims) channel load a block of data into LDS
-                        elemStd =  x_input(bidx,cidx,row,column) - mean;// (x_i - mean)
+                        elemStd = x_input(bidx,cidx,row,column) - mean;// (x_i - mean)
                         xhat[xhat_index] = elemStd*elemInvVar;
                         dyelem = dy_input(bidx,cidx,row,column);
-                        dshift(0,cidx,row,column)  += dyelem;
+                        dshift(0,cidx,row,column) += dyelem;
                         dscale(0,cidx,row,column) += xhat[xhat_index]*dyelem;
+                        tmp1 = scale(0,cidx,row,column) * dyelem;
+                        dxhat += tmp1;
+                        dxhathat += tmp1*xhat[xhat_index];
+
                     }//end for(n_batchs)
                     dscale(0,cidx,row,column) /= n;
 
                     for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         xhat_index = in_cstride*bidx + (width*row + column);
-                        double tmp1 = n*dy_input(bidx,cidx,row,column) - dshift(0,cidx,row,column);
-                        double tmp2 = -xhat[xhat_index]*dscale(0,cidx,row,column);
-                        double tmp3 = (scale(0,cidx,row,column)*elemInvVar)/n;
-
-                        dx_out(bidx,cidx,row,column) = tmp3*(tmp1+tmp2);
+                        tmp1 = xhat[xhat_index]*dxhathat+dxhat;
+                        double tmp2 = n_batch*dxhat - tmp1;
+                        double tmp3 = elemInvVar/double(n);
+                        dx_out(bidx,cidx,row,column) = tmp3*tmp2;
                     }//end for(n_batchs)
                 } // for (column)
             } // for (row)
@@ -776,8 +790,7 @@ struct batch_norm_per_activation_driver : test_driver
     tensor<T> shift;
 
     batch_norm_per_activation_driver(){
-        this->batch_factor=8;
-        //add(input, "input", get_input_tensor());
+        this->batch_factor=4;
         add(input, "input", get_bn_peract_input_tensor());
     }
 
@@ -818,10 +831,15 @@ struct batch_norm_per_activation_driver : test_driver
 
 
 int main(int argc, const char *argv[]){
-    auto t_start = std::chrono::high_resolution_clock::now();
+    #if (MIO_BN_TIME_EVERYTHING==1)
+        auto t_start = std::chrono::high_resolution_clock::now();
+    #endif
     test_drive<batch_norm_per_activation_driver<float>>(argc, argv);
-    auto t_end = std::chrono::high_resolution_clock::now();
-    std::cout << "Wall clock: full PER_ACTIVATION test pass time: "
-              << std::chrono::duration<double>(t_end-t_start).count()
-              << " seconds." << std::endl;
+    
+    #if (MIO_BN_TIME_EVERYTHING==1)
+        auto t_end = std::chrono::high_resolution_clock::now();
+        std::cout << "Wall clock: full PER_ACTIVATION test pass time: "
+                  << std::chrono::duration<double>(t_end-t_start).count()
+                  << " seconds." << std::endl;
+    #endif
 }
