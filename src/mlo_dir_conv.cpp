@@ -321,7 +321,7 @@ int mlo_construct_direct2D::mloConstruct()
 		}
 	}
 
-	if (_gen && isForwardDirection())
+	if (_gen && (isForwardDirection() || (_kernel_size0 == 11 && _kernel_size1 == 11 && _kernel_stride0 == 4 && _kernel_stride1 == 4)))
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
@@ -1417,7 +1417,6 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
 	return(ret);
 }
 
-
 int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 {
 	int ret = 0;
@@ -1427,8 +1426,9 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 	_dev_local_mem_sz = localMemSize; // in bytes
 									  // major parameters
 
+	int LG2_WAVE_SZ = mloLg2(_hw_wave_sz);
 	int wei_cstride = _kernel_size0*_kernel_size1;
-	int wei_bstride = _n_inputs*wei_cstride;
+	int wei_bstride = ((_direction) ? _n_inputs : _n_outputs)*wei_cstride;
 
 
 	// number  of batch iterations
@@ -1441,9 +1441,24 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 	int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
 
 	int N_FILTER_SPLITS0 = ((_kernel_size0 + _kernel_stride0 - 1) / _kernel_stride0);
+	int N_FILTER_SPLITS1 = ((_kernel_size1 + _kernel_stride1 - 1) / _kernel_stride1);
 
-	_out_pix_tile0 = N_FILTER_SPLITS0;
-	_out_pix_tile1 = 1;
+	int data_multiplier0 =
+		// win runs Catalyst right now
+#ifdef _WIN32
+		1
+#else
+		2
+#endif
+		;
+
+	int data_multiplier1 = 1;
+
+	_out_pix_tile0 = (_direction) ? N_FILTER_SPLITS0 : data_multiplier0 * _kernel_stride0;
+	_out_pix_tile1 = (_direction) ? 1 : data_multiplier1 * _kernel_stride1;
+
+	int in_pix_tile0 = (_direction) ? 1 : (_out_pix_tile0 / _kernel_stride0 - 1) + N_FILTER_SPLITS0;
+	int in_pix_tile1 = (_direction) ? 1 : (_out_pix_tile1 / _kernel_stride1 - 1) + N_FILTER_SPLITS1;
 	_in_tile1 = 1;
 	_in_tile0 = 1;
 
@@ -1451,6 +1466,9 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 	// param
 	int n_waves = 4;
 	int GRP_SZ = _hw_wave_sz * n_waves;
+	int lg2_n_waves = mloLg2(n_waves);
+	int N_WAVES_MASK = (1 << lg2_n_waves) - 1;
+
 	// number of input maps per group
 	// processing arrangement
 	// generate full output width
@@ -1464,14 +1482,14 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 	// param
 	int read_unit = 10; // (((_in_width / 8) * 8) == _in_width) ? 8 : (((_in_width / 4) * 4) == _in_width) ? 4 : (((_in_width / 2) * 2) == _in_width) ? 2 : 1;
 
-	// this one is valid only till _FLOAT8
-	// but it's not an error, the kernel does not use these types at all 
+						// this one is valid only till _FLOAT8
+						// but it's not an error, the kernel does not use these types at all 
 	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
 	// param
 	int n_out_stacks = 1;
 
-	// n_in_stacks input map wil be written in the local memory.
+	// n_in_stacks input map will be written in the local memory.
 	int n_in_stacks = 1;
 
 	n_in_stacks = std::min(_n_inputs, n_in_stacks);
@@ -1479,37 +1497,60 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 
 	// param
 	// 6 get us the min
-	_n_out_pix_tiles = std::min(6, (_n_outputs + n_out_stacks - 1) / n_out_stacks);
+	_n_out_pix_tiles = (_direction) ? std::min(6, (_n_outputs + n_out_stacks - 1) / n_out_stacks) : std::min(_n_outputs, ((data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4));
 
 	// number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
 	// param
 	_n_in_data_tiles = 1;
 
 	// total maps per group
-	int total_out_maps = _n_out_pix_tiles * n_out_stacks;
+	int total_out_maps = _n_out_pix_tiles * ((_direction) ? n_out_stacks : 1);
 
 	// n of mini tiles of the same output map in vertical dir per wk_item
 	_grp_tile0 = GRP_SZ;
 	_grp_tile1 = 1;
 	int grp_tile2 = 1;
 
-// second pass if needed
+	// second pass if needed
 	int n_extents = ((_out_height + OUT_EXTENT1 - 1) / OUT_EXTENT1);
 	int n_output_map_blocks = ((_n_outputs + total_out_maps - 1) / total_out_maps);
-	int last_out_extent1 =  _out_height - (std::max(1, _out_height / OUT_EXTENT1) * OUT_EXTENT1);
-	last_out_extent1 = (last_out_extent1 < 0) ? 0  : last_out_extent1;
+	int last_out_extent1 = _out_height - (std::max(1, _out_height / OUT_EXTENT1) * OUT_EXTENT1);
+	last_out_extent1 = (last_out_extent1 < 0) ? 0 : last_out_extent1;
 	int n_batches_pass2 = 1;
 	bool second_pass = false;
-	if (0 < last_out_extent1 && last_out_extent1 <= OUT_EXTENT1 / 2)
+	if (_direction && 0 < last_out_extent1 && last_out_extent1 <= OUT_EXTENT1 / 2)
 	{
 		n_extents = std::max(1, _out_height / OUT_EXTENT1);
 		n_batches_pass2 = std::max(1, GRP_SZ / (PROCESING_WIDTH*last_out_extent1));
 		second_pass = true;
 	}
 
+	// calc bwd grid
+	int n_out_pix_tiles1 = (_out_height + _out_pix_tile1 - 1 + 2 * _pad1) / _out_pix_tile1;
+	int n_out_pix_tiles0 = (_out_width + _out_pix_tile0 - 1 + 2 * _pad0) / _out_pix_tile0;
+	int n_out_pix_tiles = n_out_pix_tiles1 * n_out_pix_tiles0;
+
+	// calculate lcl mem size for backward data
+	int n_out_tiles_rows_pgrp = std::min(n_out_pix_tiles1, (GRP_SZ + n_out_pix_tiles0 - 1) / n_out_pix_tiles0);
+	int n_out_tiles_cols_pgrp = std::min(GRP_SZ, n_out_pix_tiles0);
+	int in_data1 = ((n_out_tiles_rows_pgrp*_out_pix_tile1) / _kernel_stride1 - 1) + N_FILTER_SPLITS1 + 1;
+	int in_data0 = ((n_out_tiles_cols_pgrp*_out_pix_tile0) / _kernel_stride0 - 1) + N_FILTER_SPLITS0;
+
+
+	int lcl_wei_sz = wei_cstride * _n_out_pix_tiles;
+#ifndef _WIN32
+	int lcl_in_data_sz = in_data1*in_data0*_n_in_data_tiles;
+	int lcl_bwd_sz = std::max(lcl_in_data_sz, lcl_wei_sz);
+#else
+	// win runs Catalyst right now
+
+	int lcl_bwd_sz = lcl_wei_sz;
+#endif
+
+
 	if (n_passes)
 	{
-		ret = (second_pass) ? 2 : 1;
+		ret = (second_pass  && _direction) ? 2 : 1;
 		return(ret);
 	}
 	// it's backward - inputs are outputs and vs versa
@@ -1548,25 +1589,34 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 		+ std::string(" -DMLO_N_LCL_BATCHS=") + std::to_string(_n_stacks) // # of diff stacks (part of batch).
 		+ std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(_n_out_pix_tiles)  // # output pixel tiles per wk-item (ALU)
 		+ std::string(" -DMLO_N_LCL_IN_MAPS=") + std::to_string(_n_in_data_tiles) // total # of blocks of different inputs in LDS
+		+ std::string(" -DMLO_IN_PIX_TILE1=") + std::to_string(in_pix_tile1)  // size of ouptput tile per wk-item (ALU)
+		+ std::string(" -DMLO_IN_PIX_TILE0=") + std::to_string(in_pix_tile0)  //
 		+ std::string(" -DMLO_OUT_PIX_TILE1=") + std::to_string(_out_pix_tile1)  // size of ouptput tile per wk-item (ALU)
 		+ std::string(" -DMLO_OUT_PIX_TILE0=") + std::to_string(_out_pix_tile0)  //
 		+ std::string(" -DMLO_OUT_STACKS=") + std::to_string(n_out_stacks)
 		+ std::string(" -DMLO_IN_STACKS=") + std::to_string(n_in_stacks)
 		+ std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves)
 		+ std::string(" -DMLO_N_FILTER_SPLITS0=") + std::to_string(N_FILTER_SPLITS0)
+		+ std::string(" -DMLO_N_FILTER_SPLITS1=") + std::to_string(N_FILTER_SPLITS1)
 		+ std::string(" -DMLO_PROCESSING_WIDTH=") + std::to_string(PROCESING_WIDTH)
 		+ std::string(" -DMLO_OUT_EXTENT1=") + std::to_string(OUT_EXTENT1)
 		+ std::string(" -DMLO_LAST_OUT_EXTENT1=") + std::to_string(last_out_extent1)
 		+ std::string(" -DMLO_N_LCL_BATCHS_PASS2=") + std::to_string(n_batches_pass2)
+		+ std::string(" -DMLO_TILE_REPLICATE0=") + std::to_string(data_multiplier0)
+		+ std::string(" -DMLO_TILE_REPLICATE1=") + std::to_string(data_multiplier1)
+		+ std::string(" -DMLO_LCL_BWD_MEM_SZ=") + std::to_string(lcl_bwd_sz)
+		+ std::string(" -DMLO_N_IN_BWD_HORIZ_READS=") + std::to_string(in_data0)
+		+ std::string(" -DMLO_N_IN_BWD_VERT_READS=") + std::to_string(in_data1)
 
 		+ std::string(" -DMLO_READ_TYPE=") + READ_TYPE
 		+ std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit)
 		+ std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
-		+ std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
+		+ std::string(" -DMLO_LG2_WAVE_SZ=") + std::to_string(LG2_WAVE_SZ)
+		+ std::string(" -DMLO_N_WAVES_MASK=") + std::to_string(static_cast<long long>(N_WAVES_MASK))
 
 		+ std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias)
 
-		//		+ std::string(" -limit-vector-registers=64 ")_batch_sz
+		+ std::string(" -cl-denorms-are-zero  ")
 		+ getGeneralCompOptions()
 		;
 
@@ -1580,7 +1630,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 		_l_wk.push_back(grp_tile2);
 		// input is output
 
-		size_t gbl_wk0 = GRP_SZ * n_extents;
+		size_t gbl_wk0 = (_direction) ? GRP_SZ * n_extents : ((n_out_pix_tiles + GRP_SZ - 1) / GRP_SZ) * GRP_SZ;
 		size_t gbl_wk1 = n_output_map_blocks;
 		size_t gbl_wk2 = n_batch_blks;
 
@@ -1591,7 +1641,7 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 		_g_wk.push_back(gbl_wk2);
 
 		_kernel_file = "MIOpenConvFwd_LxL_11.cl";
-		_kernel_name = "MIOpenCvFwd11x11";
+		_kernel_name = (_direction) ? "MIOpenCvFwd11x11" : "MIOpenCvBwd11x11";
 
 		auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
 		_mlo_kernels_info.push_back(kern_info);
@@ -1652,7 +1702,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdGen()
 
 	int n_in_stacks = 0;
 #if 1
-	if (_kernel_size1 == 11 && _kernel_size0 == 11)
+	if (_kernel_size1 == 11 && _kernel_size0 == 11 && _kernel_stride1 == 4 && _kernel_stride0 == 4)
 	{
 		return(mloConstructDirect2D_11x11());
 	}
