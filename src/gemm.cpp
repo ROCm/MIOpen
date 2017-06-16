@@ -1,6 +1,62 @@
 #include <miopen/gemm.hpp>
 
 namespace miopen {
+	
+GemmGeometry CreateGemmGeometryTranBwdData(
+        const TensorDescriptor&     dyDesc,
+        const TensorDescriptor&     wDesc,
+        const TensorDescriptor&     dxDesc,
+        bool                        isDataColMajor,
+        std::string                 &network_config)
+{
+    int in_n, in_c, in_h, in_w;
+    std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+
+    int wei_c, wei_n, wei_h, wei_w;
+    std::tie(wei_c, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+
+    // GEMM
+    int K = wei_n * wei_h * wei_w;
+    int M = wei_c;
+    int N = in_h * in_w;
+    float alpha = 1.0;
+    float beta = 0.0;
+    bool tA = false;
+    bool tB = false;
+    bool tC = false;
+    int lda = K;
+    int ldb = N;
+    int ldc = N;
+
+    // bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
+    MIOpenGEMM::Geometry tgg{};
+    GemmGeometry gg;
+	(void)isDataColMajor;
+#if 0   
+    if (!isDataColMajor) {
+        tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
+
+        gg = GemmGeometry{std::array<int, 3>{{N, M, K}}, 
+            std::array<int, 3>{{ldb, lda, ldc}},
+            "miopenTransposeBwdDataAlgoGEMM",
+            alpha, beta, tgg};
+    }
+    else 
+#endif
+	{
+        tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+
+        gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
+            std::array<int, 3>{{lda, ldb, ldc}},
+            "miopenTransposeBwdDataAlgoGEMM", 
+            alpha, beta, tgg};
+    }
+    network_config = tgg.get_networkconfig_string();
+    return gg;
+}
 
 GemmGeometry CreateGemmGeometryConvBwdData(
 	const TensorDescriptor&     dyDesc,
@@ -32,12 +88,12 @@ GemmGeometry CreateGemmGeometryConvBwdData(
 	int ldc = N;
 
 	// bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
-	TinyGemmGeometry tgg{};
+	MIOpenGEMM::Geometry tgg{};
 	GemmGeometry gg;
 	(void)isDataColMajor;
 #if 0
 	if (!isDataColMajor) {
-		tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f'); /* jn : new tinygemm API */
+		tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f'); /* jn : new tinygemm API */
 		gg = GemmGeometry{ std::array<int, 3>{ {N, M, K}},
 			std::array<int, 3>{ {ldb, lda, ldc}},
 			"miopenConvolutionBwdDataAlgoGEMM",
@@ -46,7 +102,7 @@ GemmGeometry CreateGemmGeometryConvBwdData(
 	else
 #endif 
 	{
-		tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); /* jn : new tinygemm API */
+		tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); /* jn : new tinygemm API */
 
 		gg = GemmGeometry{ std::array<int, 3>{ {M, N, K}},
 			std::array<int, 3>{ {lda, ldb, ldc}},
@@ -87,12 +143,12 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
     float beta = 1.0;
 
     // (old) bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
-    // TinyGemmGeometry(bool isColMajor, bool tA, bool tB, bool tC, unsigned lda, unsigned ldb, unsigned ldc, unsigned m, unsigned n, unsigned k, unsigned workspace_size, char floattype);
-    TinyGemmGeometry tgg{};
+    // MIOpenGEMM::Geometry(bool isColMajor, bool tA, bool tB, bool tC, unsigned lda, unsigned ldb, unsigned ldc, unsigned m, unsigned n, unsigned k, unsigned workspace_size, char floattype);
+    MIOpenGEMM::Geometry tgg{};
     GemmGeometry gg;
     
     if (!isDataColMajor) {
-        tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');  //jn : added 0 for no workspace, 'f' for single prec.
+        tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');  //jn : added 0 for no workspace, 'f' for single prec.
 
         gg = GemmGeometry{std::array<int, 3>{{N, M, K}},
             std::array<int, 3>{{ldb, lda, ldc}},
@@ -100,7 +156,7 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(
             alpha, beta, tgg};
     }
     else {
-        tgg = TinyGemmGeometry(true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
+        tgg = MIOpenGEMM::Geometry(true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
 
         gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
             std::array<int, 3>{{lda, ldb, ldc}},
@@ -141,11 +197,11 @@ GemmGeometry CreateGemmGeometryConvFwd(
     int ldc = N;
 
     // bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
-    TinyGemmGeometry tgg{};
+    MIOpenGEMM::Geometry tgg{};
     GemmGeometry gg;
 
     if (!isDataColMajor) {
-        tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
+        tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
 
         gg = GemmGeometry{std::array<int, 3>{{N, M, K}}, 
             std::array<int, 3>{{ldb, lda, ldc}},
@@ -153,7 +209,7 @@ GemmGeometry CreateGemmGeometryConvFwd(
             alpha, beta, tgg};
     }
     else {
-        tgg = TinyGemmGeometry(true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
+        tgg = MIOpenGEMM::Geometry(true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
 
         gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
             std::array<int, 3>{{lda, ldb, ldc}},
@@ -171,13 +227,13 @@ GemmGeometry CreateMIOpenGemmGeometry(
         bool isDataColMajor,
         float alpha, float beta)
 {
-    TinyGemmGeometry tgg{};
+    MIOpenGEMM::Geometry tgg{};
     
     // Assuming we are using tinygemm as only col major
     // Therefore, if the user provides data in col. major
     // then no transformations are requrired and vice versa
     if(isDataColMajor) {        
-        tgg = TinyGemmGeometry(true, tA, tB, false, lda, ldb, ldc, M, N, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
+        tgg = MIOpenGEMM::Geometry(true, tA, tB, false, lda, ldb, ldc, M, N, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
 
         return GemmGeometry{std::array<int, 3>{{M, N, K}},
             std::array<int, 3>{{lda, ldb, ldc}},
@@ -185,7 +241,7 @@ GemmGeometry CreateMIOpenGemmGeometry(
             alpha, beta, tgg};
     }
     else {
-        tgg = TinyGemmGeometry(true, tB, tA, false, ldb, lda, ldc, N, M, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
+        tgg = MIOpenGEMM::Geometry(true, tB, tA, false, ldb, lda, ldc, N, M, K, 0, 'f'); //jn : added 0 for no workspace, 'f' for single prec.
 
         return GemmGeometry{std::array<int, 3>{{N, M, K}},
             std::array<int, 3>{{ldb, lda, ldc}}, 

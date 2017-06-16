@@ -59,11 +59,11 @@
 #define MIO_BN_VARIANT 0
 #endif
 
-/*
+
 #ifdef __AMDGCN__
 #undef __AMDGCN__
 #endif
-*/
+
 
 // Disable specific warnings
 #ifdef __clang__
@@ -153,7 +153,6 @@ __kernel void BatchNormBwdSpatialSavedSingleDX(
     }
     
 #ifdef __AMDGCN__
-    
     __local _FLOAT ldb;
     __local _FLOAT lds;
     
@@ -349,7 +348,6 @@ __kernel void BatchNormBwdSpatialSingleDX(
     _FLOAT elemStd = 0.;
 
     __local _FLOAT lbns;
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
     
 
     unsigned int ylid = get_local_id(1);
@@ -375,9 +373,8 @@ __kernel void BatchNormBwdSpatialSingleDX(
     
     
 #ifdef __AMDGCN__
-    
      __local _FLOAT lds, ldb;
-     __local _FLOAT lmean, lvariance,
+     __local _FLOAT lmean, lvariance;
     #if (MIO_BN_GRP1 > 64)
         __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 
