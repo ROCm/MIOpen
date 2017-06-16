@@ -65,11 +65,11 @@
 #define MIO_BN_VARIANT 4
 #endif
 
-/*
+
 #ifdef __AMDGCN__
 #undef __AMDGCN__
 #endif
-*/
+
 
 #define UNUSED __attribute__((__unused__))
 
@@ -442,7 +442,8 @@ __kernel void BatchNormFwdTrainSpatial(
     _FLOAT invVariance, inhat, elemStd;
     _FLOAT pvscale, pvbias;
     
-    __local _FLOAT2 lcl_scalebias;
+    __local _FLOAT lcl_bias;
+    __local _FLOAT lcl_scale;
   
     unsigned int index;
     unsigned int ylid = get_local_id(1);
@@ -1439,6 +1440,7 @@ __kernel void BatchNormFwdTrainSpatialMean(const __global _FLOAT    * __restrict
         meanbuff[meanindex] = lcl_data[0];
     } 
 #endif
+    
 }//end spatial mean kernel
 
 
