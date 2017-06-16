@@ -69,7 +69,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t *handle);
  *
  * Create a handle with a previously created accelerator command queue
  * \param handle     A pointer to a  MIOpen handle type
- * \param streamID   An accelerator queue type
+ * \param stream   An accelerator queue type
  * \return           miopenStatus_t 
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateWithStream(miopenHandle_t *handle,
@@ -238,10 +238,10 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
  * \param c          Number of channels
  * \param h          Data height dimension size
  * \param w          Data width dimension size
- * \param nstride    Mini-batch dimension stride
- * \param cstride    Channel dimension stride
- * \param hstride    Height dimension stride
- * \param wstride    Width dimension stride
+ * \param nStride    Mini-batch dimension stride
+ * \param cStride    Channel dimension stride
+ * \param hStride    Height dimension stride
+ * \param wStride    Width dimension stride
  * \return           miopenStatus_t
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(
@@ -336,7 +336,8 @@ MIOPEN_EXPORT miopenStatus_t miopenOpTensor(miopenHandle_t handle,
 /*! \brief Fills a tensor with a single value.
  * 
  * \param handle     MIOpen handle
- * \param cDesc      Tensor descriptor for tensor y
+ * \param yDesc      Tensor descriptor for tensor y
+ * \param y          Tensor y
  * \param alpha      Pointer to fill value
  * \return           miopenStatus_t 
  */
@@ -348,7 +349,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensor(miopenHandle_t handle,
 /*! \brief Scales all elements in a tensor by a single value.
  * 
  * \param handle     MIOpen handle
- * \param cDesc      Tensor descriptor for tensor y
+ * \param yDesc      Tensor descriptor for tensor y
+ * \param y          Tensor y
  * \param alpha      Pointer to scaling value
  * \return           miopenStatus_t 
  */
@@ -373,8 +375,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvolutionDescriptor(
  * \param pad_w      Width input data padding
  * \param u          Stride for the height of input data
  * \param v          Stride for the width of input data
- * \param upscalex   Dilation height (only a value of 1 is currently supported)
- * \param upscaley   Dilation widdth (only a value of 1 is currently supported)
+ * \param dilation_h Dilation height (only a value of 1 is currently supported)
+ * \param dilation_w Dilation width (only a value of 1 is currently supported)
  * \return           miopenStatus_t 
  */
 MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
@@ -394,8 +396,8 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
  * \param pad_w      Width input data padding
  * \param u          Stride for the height of input data
  * \param v          Stride for the width of input data
- * \param upscalex   Dilation height (only a value of 1 is currently supported)
- * \param upscaley   Dilation widdth (only a value of 1 is currently supported)
+ * \param dilation_h Dilation height (only a value of 1 is currently supported)
+ * \param dilation_w Dilation widdth (only a value of 1 is currently supported)
  * \return           miopenStatus_t 
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
@@ -414,14 +416,15 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
  * and the filter descriptor This function can help to setup the output tensor
  * and allocate the proper amount of memory prior to launch the actual
  * convolution.
- * 
- * \param convDesc   Convolution layer descriptor
- * \param mode       Convolutional mode
- * \param n          Mini-batch size
- * \param c          Number of channels
- * \param h          Data height dimension size
- * \param w          Data width dimension size
- * \return           miopenStatus_t  
+ *
+ * \param convDesc   Convolution layer descriptor 
+ * \param inputTensorDesc   Input data tensor descriptor
+ * \param filterDesc        Weight descriptor
+ * \param n                 Mini-batch size
+ * \param c                 Number of channels
+ * \param h                 Data height dimension size
+ * \param w                 Data width dimension size
+ * \return                  miopenStatus_t  
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
         const miopenTensorDescriptor_t  inputTensorDesc,
@@ -433,7 +436,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionForwardOutputDim(miopenConvolut
         
 /*! \brief Destroys the tensor descriptor object
  * 
- * \param tensorDesc Convolution tensor descriptor type
+ * \param convDesc Convolution tensor descriptor type
  * \return           miopenStatus_t
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc);
@@ -520,7 +523,7 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardGetWorkSpaceSize(
  * \param y                  Data tensor y
  * \param requestAlgoCount   Number of algorithms to return kernel times
  * \param returnedAlgoCount  Pointer to number of algorithms returned
- * \param perResults         Pointer to union of best algorithm for forward and backwards
+ * \param perfResults         Pointer to union of best algorithm for forward and backwards
  * \param workSpace          Pointer to workspace required for the search
  * \param workSpaceSize      Size in bytes of the memory needed for find
  * \param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations.
@@ -578,10 +581,10 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
  * 
  * \param handle         MIOpen handle
  * \param alpha          Scaling factor, always equal to 1
- * \param bDesc         Tensor descriptor for bias tensor b
- * \param dy             Bias tensor b
+ * \param bDesc          Tensor descriptor for bias tensor b
+ * \param b              Bias tensor b
  * \param beta           Shift factor, always equal to 0
- * \param dyDesc         Tensor descriptor for data tensor y
+ * \param yDesc          Tensor descriptor for data tensor y
  * \param y              Data tensor y
  * \return               miopenStatus_t 
  */
@@ -595,13 +598,13 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
 
 /*! \brief Search and run the backwards data convolutional algorithms and return a list of kernel times.
  * 
- * This function attempts all MIOpen algorithms for miopenConvolutionBackwardsData(), and outputs performance metrics to a user- allocated array of miopenConvAlgoPerf_t. 
+ * This function attempts all MIOpen algorithms for miopenConvolutionBackwardsData(), and outputs performance metrics to a user-allocated array of miopenConvAlgoPerf_t. 
  * These metrics are written in sorted fashion where the first element has the lowest compute time.
  * This function is mandatory before using backwards convolutions. Users can chose the top-most algorithm if they only care about the fastest algorithm.
  * 
  * \param handle             MIOpen handle
  * \param dyDesc             Tensor descriptor for data input tensor dy
- * \param y                  Data delta tensor dy
+ * \param dy                 Data delta tensor dy
  * \param wDesc              Tensor descriptor for weight tensor w
  * \param w                  Weights tensor w
  * \param convDesc           Convolution layer descriptor
@@ -609,7 +612,7 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
  * \param dx                 Data delta tensor dx
  * \param requestAlgoCount   Number of algorithms to return kernel times
  * \param returnedAlgoCount  Pointer to number of algorithms returned
- * \param perResults         Pointer to union of best algorithm for forward and backwards
+ * \param perfResults         Pointer to union of best algorithm for forward and backwards
  * \param workSpace          Pointer to workspace required for the search
  * \param workSpaceSize      Size in bytes of the memory needed for find
  * \param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations.
@@ -712,15 +715,15 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardWeightsGetWorkSpaceSize(
  * 
  * \param handle             MIOpen handle
  * \param dyDesc             Tensor descriptor for data input tensor dy
- * \param y                  Data delta tensor dy
+ * \param dy                 Data delta tensor dy
  * \param xDesc              Tensor descriptor for output data tensor x
  * \param x                  Data delta tensor dx
  * \param convDesc           Convolution layer descriptor
- * \param wDesc              Tensor descriptor for weight tensor w
- * \param w                  Weights tensor w
+ * \param dwDesc             Tensor descriptor for weight tensor dw
+ * \param dw                 Weights delta tensor dw
  * \param requestAlgoCount   Number of algorithms to return kernel times
  * \param returnedAlgoCount  Pointer to number of algorithms returned
- * \param perResults         Pointer to union of best algorithm for forward and backwards
+ * \param perfResults         Pointer to union of best algorithm for forward and backwards
  * \param workSpace          Pointer to workspace required for the search
  * \param workSpaceSize      Size in bytes of the memory needed for find
  * \param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations.
@@ -816,7 +819,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescript
  * \param windowHeight   Input window height dimension
  * \param windowWidth    Input window width dimension
  * \param pad_h          Number of elements to pad height        
- * \param pad_h          Number of elements to pad width
+ * \param pad_w          Number of elements to pad width
  * \param u              Vertical stride 
  * \param v              Horizontal stride 
  * \return               miopenStatus_t 
@@ -840,7 +843,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(
  * \param windowHeight   Input window height dimension
  * \param windowWidth    Input window width dimension
  * \param pad_h          Number of elements to pad height        
- * \param pad_h          Number of elements to pad width
+ * \param pad_w          Number of elements to pad width
  * \param u              Vertical stride 
  * \param v              Horizontal stride 
  * \return               miopenStatus_t 
@@ -860,13 +863,11 @@ MIOPEN_EXPORT miopenStatus_t miopenGet2dPoolingDescriptor(
  * Retrieve the tensor dimensions for the forward 2-D pooling 
  * 
  * \param poolDesc       Pointer to a pooling layer descriptor
- * \param mode           Pooling mode enum
- * \param windowHeight   Input window height dimension
- * \param windowWidth    Input window width dimension
- * \param pad_h          Number of elements to pad height        
- * \param pad_h          Number of elements to pad width
- * \param u              Vertical stride 
- * \param v              Horizontal stride 
+ * \param tensorDesc     Input tensor descriptor
+ * \param n	         Mini-batch dim        
+ * \param c	         Number of channels
+ * \param h              Heights of input map 
+ * \param w              Width of input map
  * \return               miopenStatus_t 
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetPoolingForwardOutputDim(
@@ -1039,7 +1040,6 @@ MIOPEN_EXPORT miopenStatus_t miopenLRNGetWorkSpaceSize(
  * \param y              Data tensor y
  * \param do_backward    Boolean to toggle save data in workspace for backwards pass
  * \param workSpace      Pointer user allocated memory
- * \param workSpaceSize  Size in bytes of the memory needed 
  * \return               miopenStatus_t 
  */
 MIOPEN_EXPORT miopenStatus_t miopenLRNForward(
@@ -1104,7 +1104,6 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
  * 
  * This function takes the input tensor descriptor and outputs a derived tensor for the normalization scale (gamma) and shift (beta) tensors. 
  * For an input tensor NCHW the and spatial mode, the output derived tensor is 1C11, while for per-activation the derived tensor is 1CHW.
- * /*! \brief Destroys the LRN descriptor object
  * 
  * \param derivedBnDesc   Output derived tensor descriptor
  * \param xDesc           Input tensor descriptor
@@ -1115,6 +1114,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(
         miopenTensorDescriptor_t            derivedBnDesc,
         const miopenTensorDescriptor_t      xDesc,
         miopenBatchNormMode_t               bn_mode);
+
 
 /*! \brief Execute forward training layer for batch normalization
  * 
@@ -1139,8 +1139,8 @@ MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(
  * \param resultRunningMean         Running average saved for inference
  * \param resultRunningVariance     Running variance saved for inference
  * \param epsilon                   Value to stablize inverse variance calculation
- * \param resultSavedMean           Saved mini-batch mean for backwards pass
- * \param resultSavedInvVariance    Saved mini-bathc inverse variance for backwards pass
+ * \param resultSaveMean            Saved mini-batch mean for backwards pass
+ * \param resultSaveInvVariance     Saved mini-bathc inverse variance for backwards pass
  * \return                          miopenStatus_t 
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationForwardTraining(
@@ -1211,21 +1211,23 @@ MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationForwardInference(
  * 
  * \param handle                    MIOpen handle
  * \param bn_mode                   Batch normalization mode (spatial/ per-activation)
- * \param alpha                     Scaling factor, always equal to 1
- * \param beta                      Shift factor, always equal to 0
+ * \param alphaDataDiff             Scaling factor, always equal to 1
+ * \param betaDataDiff              Shift factor, always equal to 0
+ * \param alphaParamDiff            Scaling factor, always equal to 1
+ * \param betaParamDiff             Shift factor, always equal to 0
  * \param xDesc                     Tensor descriptor for data input tensor x
  * \param x                         Data tensor x
- * \param yDesc                     Tensor descriptor for output data tensor y
- * \param y                         Data tensor y
- * \param bnScaleBiasMeanVarDesc    Tensor descriptor for BN scaling, shifting, saved variance and mean
+ * \param dyDesc                    Tensor descriptor for output data tensor y
+ * \param dy                        Data tensor y
+ * \param dxDesc                    Tensor descriptor for output data tensor dx
+ * \param dx                        Data delta tensor dx
+ * \param bnScaleBiasDiffDesc       Tensor descriptor for BN scaling, shifting, saved variance and mean
  * \param bnScale                   Batch norm scaling (gamma) tensor
- * \param bnBias                    Batch norm bias (beta) tensor
- * \param expAvgFactor              Exponential averaging factor
- * \param resultRunningMean         Running average saved for inference
- * \param resultRunningVariance     Running variance saved for inference
+ * \param resultBnScaleDiff         Tensor for dscale
+ * \param resultBnBiasDiff          Tensor for dbias
  * \param epsilon                   Value to stablize inverse variance calculation
- * \param resultSavedMean           Saved mini-batch mean for backwards pass
- * \param resultSavedInvVariance    Saved mini-bathc inverse variance for backwards pass
+ * \param savedMean                 Saved mini-batch mean for backwards pass
+ * \param savedInvVariance          Saved mini-bathc inverse variance for backwards pass
  * \return                          miopenStatus_t 
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationBackward(
@@ -1270,7 +1272,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateActivationDescriptor(miopenActivationDe
  * \param activDesc    Pointer to a activation layer descriptor
  * \param mode         Activation mode enum
  * \param activAlpha   Alpha value for some activation modes
- * \param activeBeta   Beta value for some activation modes
+ * \param activBeta   Beta value for some activation modes
  * \param activPower   Power exponent value for some activation modes
  * \return             miopenStatus_t 
  */
@@ -1288,7 +1290,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetActivationDescriptor(
  * \param activDesc    Pointer to a activation layer descriptor
  * \param mode         Activation mode enum
  * \param activAlpha   Alpha value for some activation modes
- * \param activeBeta   Beta value for some activation modes
+ * \param activBeta    Beta value for some activation modes
  * \param activPower   Power exponent value for some activation modes
  * \return             miopenStatus_t 
  */
@@ -1302,7 +1304,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetActivationDescriptor(
 /*! \brief Execute an activation forward layer
  * 
  * \param handle         MIOpen handle
- * \param poolDesc       Descriptor for LRN layer
+ * \param activDesc       Descriptor for LRN layer
  * \param alpha          Scaling factor, always equal to 1
  * \param xDesc          Tensor descriptor for data input tensor x
  * \param x              Data tensor x
