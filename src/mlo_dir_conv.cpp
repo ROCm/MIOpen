@@ -1524,24 +1524,29 @@ int mlo_construct_direct2D::mloConstructDirect2D_11x11(bool n_passes)
 		n_batches_pass2 = std::max(1, GRP_SZ / (PROCESING_WIDTH*last_out_extent1));
 		second_pass = true;
 	}
+
+	// calc bwd grid
 	int n_out_pix_tiles1 = (_out_height + _out_pix_tile1 - 1 + 2 * _pad1) / _out_pix_tile1;
 	int n_out_pix_tiles0 = (_out_width + _out_pix_tile0 - 1 + 2 * _pad0) / _out_pix_tile0;
 	int n_out_pix_tiles = n_out_pix_tiles1 * n_out_pix_tiles0;
+
 	// calculate lcl mem size for backward data
 	int n_out_tiles_rows_pgrp = std::min(n_out_pix_tiles1, (GRP_SZ + n_out_pix_tiles0 - 1) / n_out_pix_tiles0);
 	int n_out_tiles_cols_pgrp = std::min(GRP_SZ, n_out_pix_tiles0);
 	int in_data1 = ((n_out_tiles_rows_pgrp*_out_pix_tile1) / _kernel_stride1 - 1) + N_FILTER_SPLITS1 + 1;
 	int in_data0 = ((n_out_tiles_cols_pgrp*_out_pix_tile0) / _kernel_stride0 - 1) + N_FILTER_SPLITS0;
-	int lcl_in_data_sz = in_data1*in_data0*_n_in_data_tiles;
+
+
 	int lcl_wei_sz = wei_cstride * _n_out_pix_tiles;
-	int lcl_bwd_sz =
-		// win runs Catalyst right now
-#ifdef _WIN32
-		lcl_wei_sz
+#ifndef _WIN32
+	int lcl_in_data_sz = in_data1*in_data0*_n_in_data_tiles;
+	int lcl_bwd_sz = std::max(lcl_in_data_sz, lcl_wei_sz);
 #else
-		std::max(lcl_in_data_sz, lcl_wei_sz)
+	// win runs Catalyst right now
+
+	int lcl_bwd_sz = lcl_wei_sz;
 #endif
-		;
+
 
 	if (n_passes)
 	{
