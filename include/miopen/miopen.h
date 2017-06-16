@@ -181,7 +181,7 @@ typedef enum {
     miopenLRNCrossChannel  = 1, /*!< Cross Channel */
 } miopenLRNMode_t;
 
-/*! \enum miopenBatchNormMode_t;
+/*! \enum miopenBatchNormMode_t
  * Batch Normalization layer mode
 */
 typedef enum {
