@@ -21,6 +21,9 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode, int
 	if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0 || dilation_h < 0 || dilation_w < 0) {
 		MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
 	}
+    if(mode != miopenConvolution || mode != miopenTranspose) {
+		MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
+    }
 }
 
 std::tuple<int, int, int, int> ConvolutionDescriptor::GetForwardOutputDim(
