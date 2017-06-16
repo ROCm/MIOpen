@@ -160,8 +160,8 @@ typedef enum {
  * Convolution mode selection for convolution layer preference
 */ 
 typedef enum {
-    miopenConvolution      = 0, /*!< Convolutions */
-    miopenCrossCorrelation = 1, /*!< Cross Correllation; not implemented */
+    miopenConvolution = 0, /*!< Convolutions */
+    miopenTranspose   = 1, /*!< Transpose convolutions */
 } miopenConvolutionMode_t;
 
 /*! \enum miopenPoolingMode_t
@@ -185,8 +185,8 @@ typedef enum {
  * Batch Normalization layer mode
 */
 typedef enum {
-        miopenBNPerActivation = 0,/*!< Element-wise normalization for fully connected layer */
-        miopenBNSpatial       = 1,/*!< Mini-batch spatial normalization for convolutional layers */
+   miopenBNPerActivation = 0,/*!< Element-wise normalization for fully connected layer */
+   miopenBNSpatial       = 1,/*!< Mini-batch spatial normalization for convolutional layers */
 }miopenBatchNormMode_t;
 
 /*! \enum miopenActivationMode_t
@@ -383,8 +383,8 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
         int                             pad_w,
         int                             u,
         int                             v,
-        int                             upscalex,
-        int                             upscaley);
+        int                             dilation_h,
+        int                             dilation_w);
 
 /*! \brief Retrieves a convolution layer descriptor's details
  * 
@@ -404,8 +404,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
         int                             *pad_w,
         int                             *u,
         int                             *v,
-        int                             *upscalex,
-        int                             *upscaley);
+        int                             *dilation_h,
+        int                             *dilation_w);
 
 /*! \brief Get the shape of  a resulting 4-D tensor from a 2-D convolution
  * 
@@ -464,6 +464,7 @@ typedef enum {
     miopenConvolutionBwdDataAlgoDirect   = 1, /*!< Direct convolutions */
     miopenConvolutionBwdDataAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+    miopenTransposeBwdDataAlgoGEMM       = 4, /*!< Transpose GEMM variant */
 } miopenConvBwdDataAlgorithm_t;
 
 /*! \struct miopenConvAlgoPerf_t
