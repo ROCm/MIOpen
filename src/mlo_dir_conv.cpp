@@ -677,10 +677,10 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream, const std::st
 
 /// @param dir 1: fwd, 0: bwd wrt data
 static
-std::string MakeKeyWHCNKD(int w, int h, int c, int n, int k, int dir)
+std::string MakeKeyWHCNKD(int w, int h, int c, int n, int k, int dir, int CUs = -1)
 {
 	std::ostringstream ss;
-	ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << dir;
+	ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << dir << ";" << CUs;
 	return ss.str();
 }
 
@@ -2817,26 +2817,41 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
     /// implementation if optimal values are different.
     static
     const std::unordered_map<std::string, std::string> perf_vals_map({
-        //              W    H    c    n    k    dir  lwc[2] rio csz[2] kpw pld npg
-        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0), "00008421" },
-        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0), "00008421" },
-        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0), "00008421" },
-        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0), "00108421" },
-        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0), "00108421" },
-        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "00108431" },
-        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "00008431" },
-        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0), "00108431" },
-        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0), "00008431" },
-        { MakeKeyWHCNKD(16,  16,  256, 8,   512, 0), "00016421" },
-        { MakeKeyWHCNKD(28,  28,  256, 8,   512, 0), "04108221" },
-        { MakeKeyWHCNKD(28,  28,  256, 16,  512, 0), "00108231" },
-        { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0), "00116224" },
-        { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0), "04016261" },
-        { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0), "03016422" },
-        { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0), "00016424" },
-        { MakeKeyWHCNKD(112, 112, 256, 8,   512, 0), "00116421" },
-        { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0), "03116214" },
-        { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0), "00016418" },
+        //              W    H    c    n    k    dir CUs    lwc[2] rio csz[2] kpw pld npg
+        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0),        "00008421" },
+        { MakeKeyWHCNKD(13,  13,  192, 128, 384, 0,  64),   "00016421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0),        "00008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 256, 0,  64),   "00016421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0),        "00008421" },
+        { MakeKeyWHCNKD(13,  13,  256, 128, 384, 0,  64),   "00016421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0),        "00108421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 256, 0,  64),   "00008821" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0),        "00108421" },
+        { MakeKeyWHCNKD(13,  13,  384, 128, 384, 0,  64),   "00008821" },
+        { MakeKeyWHCNKD(14,  14,  512, 8,   512, 0),        "00108441" },
+        { MakeKeyWHCNKD(14,  14,  512, 16,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(14,  14,  512, 32,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(14,  14,  512, 64,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(16,  16,  256, 8,   512, 0),        "00016421" },
+        { MakeKeyWHCNKD(28,  28,  256, 8,   512, 0),        "04108221" },
+        { MakeKeyWHCNKD(28,  28,  256, 16,  512, 0),        "00108231" },
+        { MakeKeyWHCNKD(28,  28,  256, 32,  512, 0),        "00016441" },
+        { MakeKeyWHCNKD(28,  28,  256, 64,  512, 0),        "00016441" },
+        { MakeKeyWHCNKD(28,  28,  512, 32,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(28,  28,  512, 64,  512, 0),        "00008441" },
+        { MakeKeyWHCNKD(54,  54,  64,  8,   64,  0),        "00116224" },
+        { MakeKeyWHCNKD(56,  56,  64,  16,  192, 0),        "00008424" },
+        { MakeKeyWHCNKD(56,  56,  64,  32,  192, 0),        "00016444" },
+        { MakeKeyWHCNKD(56,  56,  256, 32,  256, 0),        "00108241" },
+        { MakeKeyWHCNKD(56,  56,  256, 64,  256, 0),        "00108241" },
+        { MakeKeyWHCNKD(60,  6,   64,  16,  128, 0),        "04016261" },
+        { MakeKeyWHCNKD(112, 112, 64,  8,   128, 0),        "03016422" },
+        { MakeKeyWHCNKD(112, 112, 64,  16,  128, 0),        "00016424" },
+        { MakeKeyWHCNKD(112, 112, 64,  32,  128, 0),        "00016424" },
+        { MakeKeyWHCNKD(112, 112, 64,  64,  128, 0),        "00016424" },
+        { MakeKeyWHCNKD(112, 112, 256, 8,   512, 0),        "00116421" },
+        { MakeKeyWHCNKD(120, 12,  32,  16,  64,  0),        "03116214" },
+        { MakeKeyWHCNKD(240, 24,  16,  16,  32,  0),        "00016418" },
     });
 
     std::string s;
@@ -2872,9 +2887,15 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
             MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: incorrect for the problem config.");
         }
     } else {
-        // Try to get values from LUT, otherwise use algorithm.
-        const auto key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
-        const auto found = perf_vals_map.find(key);
+        // Try to get values from LUT. If not found, use heuristic algorithm.
+        // At first, try to find numCUs-specific values.
+        const auto numCUs = static_cast<int>(_stream->GetMaxComputeUnits());
+        auto key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0, numCUs);
+        auto found = perf_vals_map.find(key);
+        if (found == perf_vals_map.end()) { // numCUs-specific values not found, try to find "universal" ones.
+            key = MakeKeyWHCNKD(_in_width, _in_height, _n_outputs, _batch_sz, _n_inputs, 0);
+            found = perf_vals_map.find(key);
+        }
         if (found != perf_vals_map.end()) {
             s = found->second;
             /// \todo Copy-paste from above. Generalize.

@@ -58,7 +58,7 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
 	"Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 	OpenCL HIP HIPOC )
-find_package(tinygemm)
+find_package(miopengemm)
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
 	set(MIOPEN_BACKEND_OPENCL 1)
@@ -93,13 +93,13 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
-# tinygemm
-if(tinygemm_FOUND)
-	message(STATUS "Build with tinygemm")
-	set(MIOPEN_USE_TINYGEMM 1)
+# miopengemm
+if(miopengemm_FOUND)
+	message(STATUS "Build with miopengemm")
+	set(MIOPEN_USE_MIOPENGEMM 1)
 else()
-	message(STATUS "Build without tinygemm")
-	set(MIOPEN_USE_TINYGEMM 0)
+	message(STATUS "Build without miopengemm")
+	set(MIOPEN_USE_MIOPENGEMM 0)
 endif()
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
@@ -119,7 +119,7 @@ if(BUILD_DEV)
 	set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
 else()
 	set(MIOPEN_BUILD_DEV 0)
-	set(MIOPEN_DB_PATH "${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
+	set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
 endif()
 
 include(CreatePackage)
@@ -128,7 +128,7 @@ create_package(
 	DESCRIPTION "AMD's DNN Library"
 	MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
 	LDCONFIG ${LIB_INSTALL_DIR}
-	DEPENDS rocm-opencl rocm-utils hip_hcc tinygemm
+	DEPENDS rocm-opencl rocm-utils hip_hcc miopengemm
 )
 
 include(EnableCompilerWarnings)

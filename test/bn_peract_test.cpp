@@ -112,22 +112,22 @@ struct verify_forward_train_bn_per_activation
             } // for (row)
         });
         
-#if (MIO_BN_TIME_EVERYTHING==1)
-        auto t_end = std::chrono::high_resolution_clock::now();
-        
-        std::cout << "Wall clock: CPU forward_train_bn_per_activation pass time: "
-              << std::chrono::duration<double>(t_end-t_start).count()
-              << " seconds." << std::endl;
-#endif
+        #if (MIO_BN_TIME_EVERYTHING==1)
+                auto t_end = std::chrono::high_resolution_clock::now();
+
+                std::cout << "Wall clock: CPU forward_train_bn_per_activation pass time: "
+                      << std::chrono::duration<double>(t_end-t_start).count()
+                      << " seconds." << std::endl;
+        #endif
         
         return std::make_tuple(out,runMean,runVar,saveMean,saveInvVar);
     }
 
     std::tuple<tensor<T>,tensor<T>,tensor<T>,tensor<T>,tensor<T>> gpu() {
      
-#if (MIO_BN_TIME_EVERYTHING==1)
-        auto t_start = std::chrono::high_resolution_clock::now();
-#endif
+    #if (MIO_BN_TIME_EVERYTHING==1)
+            auto t_start = std::chrono::high_resolution_clock::now();
+    #endif
         
         auto&& handle = get_handle();
         
@@ -663,7 +663,7 @@ struct verify_backward_bn_per_activation_recalc
                     variance /= n; // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    elemInvVar = 1.0/double(sqrt(fabs(variance + epsilon)));
+                    elemInvVar = 1.0/double(sqrt(variance + epsilon));
 
 	 	    dxhat = 0.;
 	            dxhathat = 0.;
@@ -790,8 +790,7 @@ struct batch_norm_per_activation_driver : test_driver
     tensor<T> shift;
 
     batch_norm_per_activation_driver(){
-        this->batch_factor=8;
-        //add(input, "input", get_input_tensor());
+        this->batch_factor=4;
         add(input, "input", get_bn_peract_input_tensor());
     }
 
@@ -832,10 +831,15 @@ struct batch_norm_per_activation_driver : test_driver
 
 
 int main(int argc, const char *argv[]){
-    auto t_start = std::chrono::high_resolution_clock::now();
+    #if (MIO_BN_TIME_EVERYTHING==1)
+        auto t_start = std::chrono::high_resolution_clock::now();
+    #endif
     test_drive<batch_norm_per_activation_driver<float>>(argc, argv);
-    auto t_end = std::chrono::high_resolution_clock::now();
-    std::cout << "Wall clock: full PER_ACTIVATION test pass time: "
-              << std::chrono::duration<double>(t_end-t_start).count()
-              << " seconds." << std::endl;
+    
+    #if (MIO_BN_TIME_EVERYTHING==1)
+        auto t_end = std::chrono::high_resolution_clock::now();
+        std::cout << "Wall clock: full PER_ACTIVATION test pass time: "
+                  << std::chrono::duration<double>(t_end-t_start).count()
+                  << " seconds." << std::endl;
+    #endif
 }

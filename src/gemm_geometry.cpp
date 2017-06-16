@@ -25,7 +25,7 @@ void GemmGeometry::FindSolution(float time,
 
 #if MIOPEN_BACKEND_OPENCL
     /* jn : using a simple version of find, without using any workspace for gemm  */
-    TinyGemmSolution soln = tinygemm::find(time, handle.GetStream(), a, b, c, enforce_determinism, tgg);
+    MIOpenGEMM::Solution soln = MIOpenGEMM::find(time, handle.GetStream(), a, b, c, enforce_determinism, tgg);
 #else
     (void)time;
     (void)a;
@@ -35,7 +35,7 @@ void GemmGeometry::FindSolution(float time,
     (void)alpha;
     (void)beta;
     /* jn : fall back to a safe, generic solution. Independent of device */
-    TinyGemmSolution soln = tinygemm::get_default(tgg);
+    MIOpenGEMM::Solution soln = MIOpenGEMM::get_default(tgg);
 #endif
     
     /* jn : the main kernel is at the back of the solution vector */
