@@ -290,7 +290,7 @@ int mlo_construct_winograd::mloConstruct()
 int mlo_construct_direct2D::mloConstruct()
 {
 	int ret = 0;
-	_gen = (_kernel_size0 >= 11 || _kernel_size1 >= 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
+	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
 
 	rocm_meta_version rmv = V3;
 	/// \todo See todo in mlo_construct_winograd::mloConstruct().
@@ -321,7 +321,7 @@ int mlo_construct_direct2D::mloConstruct()
 		}
 	}
 
-	if ((_gen && isForwardDirection()) || (_kernel_size0 == 11 && _kernel_size1 == 11))
+	if (_gen && (isForwardDirection() || (_kernel_size0 == 11 && _kernel_size1 == 11 && _kernel_stride0 == 4 && _kernel_stride1 == 4)))
 	{
 		ret = mloConstructDirect2DFwdGen();
 	}
