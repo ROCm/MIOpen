@@ -32,12 +32,12 @@ GemmGeometry CreateGemmGeometryTranBwdData(
     int ldc = N;
 
     // bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset, c_offset
-    TinyGemmGeometry tgg{};
+    MIOpenGEMM::Geometry tgg{};
     GemmGeometry gg;
 	(void)isDataColMajor;
 #if 0   
     if (!isDataColMajor) {
-        tgg = TinyGemmGeometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 0, 0);
+        tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
 
         gg = GemmGeometry{std::array<int, 3>{{N, M, K}}, 
             std::array<int, 3>{{ldb, lda, ldc}},
@@ -47,7 +47,7 @@ GemmGeometry CreateGemmGeometryTranBwdData(
     else 
 #endif
 	{
-        tgg = TinyGemmGeometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 0, 0);
+        tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
 
         gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
             std::array<int, 3>{{lda, ldb, ldc}},
