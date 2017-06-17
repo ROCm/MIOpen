@@ -17,7 +17,7 @@ struct GemmGeometry {
     MIOpenGEMM::Geometry tgg {};
     bool beta_kern_req{};
     
-    /* jn : if tinygemm returned a beta kernel. 
+    /* jn : if miopengemm returned a beta kernel. 
      * not the same as beta_kern_req(uired), as 
      * if beta == 1, beta kernel is returned but
      * not required.
