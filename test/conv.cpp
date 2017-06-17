@@ -397,7 +397,7 @@ struct conv_driver : test_driver
             auto out_p = verify(verify_forward_conv<T>{input, weights, filter});
             for(auto& x:out_p.first) x = (long(x+1)*2) % 17; // Clamp big numbers
             if (do_backward_data) verify(verify_backward_conv<T>{input, weights, out_p.first, filter});
-            if(enable_backward_weights or MIOPEN_USE_TINYGEMM)
+            if(enable_backward_weights or MIOPEN_USE_MIOPENGEMM)
             {
                 verify(verify_backward_weights_conv<T>{input, weights, out_p.first, filter});
             }

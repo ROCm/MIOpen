@@ -24,8 +24,14 @@ void GemmGeometry::FindSolution(float time,
 {
 
 #if MIOPEN_BACKEND_OPENCL
-    /* jn : using a simple version of find, without using any workspace for gemm  */
-    MIOpenGEMM::Solution soln = MIOpenGEMM::find(time, handle.GetStream(), a, b, c, enforce_determinism, tgg);
+    // jn : print search results to terminal 
+    bool miopengemm_verbose = false;
+    
+    // jn : print warning messages when the returned kernel(s) might be sub-optimal
+    bool miopengemm_warnings = true;
+
+    /* jn : using a simple version of find, without using any workspace for gemm  */    
+    MIOpenGEMM::Solution soln = MIOpenGEMM::find(time, handle.GetStream(), a, b, c, enforce_determinism, tgg, miopengemm_verbose, miopengemm_warnings);
 #else
     (void)time;
     (void)a;
@@ -54,13 +60,13 @@ void GemmGeometry::FindSolution(float time,
             kernel_name,
             vld,
             vgd,
-            ""); /* jn : removed -w, tinygemm kernels should not generate warnings */
+            "");
     
     if(soln.v_tgks.size() == 2){
         beta_kern_returned = true;
     }
     
-    /* jn : the beta kernel is part of the solution */
+    /* jn : case where the beta kernel is part of the solution */
     if(soln.v_tgks.size() == 2 && beta != 1)
     {      
         std::string beta_program_name = soln.v_tgks[0].kernstr;
