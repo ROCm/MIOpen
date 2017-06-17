@@ -12,7 +12,7 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
   * HIP - 
     * HIP and HCC libraries and header files
     * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
-* MIOpen relies on the [tinygemm](https://github.com/RadeonOpenCompute/tinygemm) library to enable several functionalities that require GEMM. tinygemm is recommended but *not* required.
+* MIOpen relies on the [miopengemm](https://github.com/RadeonOpenCompute/tinygemm) library to enable several functionalities that require GEMM. miopengemm is recommended but *not* required.
 
 Please find the install instructions on the above dependencies on their respective repositories.
 
