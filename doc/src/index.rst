@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to miopen's documentation!
-==================================
+Welcome to MIOpen version 1.0 documentation!
+============================================
 
 .. toctree::
     :maxdepth: 4

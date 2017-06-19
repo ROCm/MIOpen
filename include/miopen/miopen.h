@@ -230,7 +230,7 @@ typedef enum {
  */ 
 typedef enum {
     miopenActivationPATHTRU     = 0, /*!< No activation, pass through the data */
-    miopenActivationLOGISTIC    = 1, /*!< Sigmoid function: \f$1 / (1 + e^-x)\f$ */
+    miopenActivationLOGISTIC    = 1, /*!< Sigmoid function: \f$1 / (1 + e^{-x})\f$ */
     miopenActivationTANH        = 2, /*!< Tanh activation \f$ \alpha * tanh( \beta * x) \f$ */
     miopenActivationRELU        = 3, /*!< Rectified Linear Unit \f$ max(0, x) \f$ */
     miopenActivationSOFTRELU    = 4, /*!< \f$log(1 + e^x)\f$ */
