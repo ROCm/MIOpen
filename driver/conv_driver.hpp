@@ -5,6 +5,7 @@
 #include <fstream>
 #include <miopen/miopen.h>
 #include <sstream>
+#include <cstring>
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "conv_verify.hpp"
@@ -204,6 +205,7 @@ int ConvDriver<T>::AddCmdLineArgs() {
     inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
     inflags.AddInputFlag("weights", 'e', "", "Input weights filename (Default=)", "string");
     inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
+	inflags.AddInputFlag("mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
 
 	return 0;
 }
@@ -225,17 +227,43 @@ std::vector<int> ConvDriver<T>::GetWeightTensorLengthsFromCmdLine() {
 	int wei_h = inflags.GetValueInt("fil_h");
 	int wei_w = inflags.GetValueInt("fil_w");
 
+	miopenConvolutionMode_t mode;
+	if ((inflags.GetValueStr("mode")) == "conv") {
+		mode = miopenConvolution;
+	}
+	else if ((inflags.GetValueStr("mode")) == "trans") {
+		mode = miopenTranspose;
+	}
+	else {
+		printf("Incorrect Convolution Mode\n");
+		exit(0);
+	}
+
+	if(mode == miopenTranspose)
+		return std::vector<int>({ wei_c, wei_n, wei_h, wei_w });
+
 	return std::vector<int> ({wei_n, wei_c, wei_h, wei_w});
 }
 
 template<typename T>
 int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs() {
 
-	miopenConvolutionMode_t mode = miopenConvolution;
+	miopenConvolutionMode_t mode;
 	int pad_h = inflags.GetValueInt("pad_h");
 	int pad_w = inflags.GetValueInt("pad_w");
 	int u = inflags.GetValueInt("conv_stride_0");
 	int v = inflags.GetValueInt("conv_stride_1");
+	if ((inflags.GetValueStr("mode")) == "conv") {
+		mode = miopenConvolution;
+	}
+	else if ((inflags.GetValueStr("mode")) == "trans") {
+		mode = miopenTranspose;
+	}
+	else {
+		printf("Incorrect Convolution Mode\n");
+		exit(0);
+	}
+
 	return miopenInitConvolutionDescriptor(convDesc, mode,	pad_h, pad_w, u, v,	1, 1);
 }
 
@@ -484,9 +512,9 @@ int ConvDriver<T>::RunForwardCPU() {
 
 	int wei_n, wei_c, wei_h, wei_w;
 	int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-	miopenGet4dTensorDescriptor(weightTensor, &dt,
-			&wei_n, &wei_c, &wei_h, &wei_w,
-			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+//	miopenGet4dTensorDescriptor(weightTensor, &dt,
+//			&wei_n, &wei_c, &wei_h, &wei_w,
+//			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	int out_n, out_c, out_h, out_w;
 	int out_nstride, out_cstride, out_hstride, out_wstride;
@@ -497,6 +525,11 @@ int ConvDriver<T>::RunForwardCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	miopenConvolutionMode_t mode;
 	miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+
+if (mode == miopenConvolution){
+    miopenGet4dTensorDescriptor(weightTensor, &dt,
+	    &wei_n, &wei_c, &wei_h, &wei_w,
+	    &wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	for(int o = 0; o < out_n; o++) { // mini-batch size
 		for(int w = 0; w < out_c; w++) { // out_channels (num filters)
@@ -525,6 +558,39 @@ int ConvDriver<T>::RunForwardCPU() {
 			}
 		}
 	}
+}
+else if(mode == miopenTranspose){	
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_c, &wei_n, &wei_h, &wei_w,
+		&wei_cstride, &wei_nstride, &wei_hstride, &wei_wstride);
+
+	for (int o = 0; o < in_n; o++) { // mini-batch size
+		for (int k = 0; k < out_c; k++) { // out_channels (RGB)
+			for (int w = 0; w < in_c; w++) { // in_channels (num filters)
+				for (int i = 0; i < in_h; i++) { // input_height
+					int out_off_h = i * v;
+					for (int j = 0; j < in_w; j++) { //input_width
+						int out_off_w = j * u;
+						for (int x = 0; x < wei_h; x++) {
+							int out_x = out_off_h - pad_h + x;
+							if (out_x >= 0 && out_x < out_h) {
+								for (int y = 0; y < wei_w; y++) {
+									int out_y = out_off_w - pad_w + y;
+									if (out_y >= 0 && out_y < out_w) {
+										outhost[o*out_nstride + k*out_cstride + out_x*out_hstride + out_y] +=
+											in[o*in_nstride + w*in_cstride + i*in_hstride + j] *
+											wei[w*wei_cstride + k*wei_nstride + x*wei_hstride + y];
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+}
 
 	if(inflags.GetValueInt("dump_output")) {
 		dumpBufferToFile("dump_fwd_out_cpu.bin", outhost.data(), outhost.size());
@@ -694,9 +760,9 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 
 	int wei_n, wei_c, wei_h, wei_w;
 	int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-	miopenGet4dTensorDescriptor(weightTensor, &dt,
-			&wei_n, &wei_c, &wei_h, &wei_w,
-			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+//	miopenGet4dTensorDescriptor(weightTensor, &dt,
+//			&wei_n, &wei_c, &wei_h, &wei_w,
+//			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	int out_n, out_c, out_h, out_w;
 	int out_nstride, out_cstride, out_hstride, out_wstride;
@@ -707,6 +773,11 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	miopenConvolutionMode_t mode;
 	miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+	
+if (mode == miopenConvolution) {
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_n, &wei_c, &wei_h, &wei_w,
+		&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 #ifdef MIOPEN_USE_TINYGEMM
 #ifndef NDEBUG
@@ -734,7 +805,43 @@ int ConvDriver<T>::RunBackwardWeightsCPU() {
 		in_n, in_c, in_h, in_w, in_nstride, in_cstride, in_hstride, in_wstride,
 		wei_n, wei_c, wei_h, wei_w, wei_nstride, wei_cstride, wei_hstride, wei_wstride,
 		out_n, out_c, out_h, out_w, out_nstride, out_cstride, out_hstride, out_wstride,
+		u, v, pad_h, pad_w );
+
+}
+else if (mode == miopenTranspose) {
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_c, &wei_n, &wei_h, &wei_w,
+		&wei_cstride, &wei_nstride, &wei_hstride, &wei_wstride);
+
+#ifdef MIOPEN_USE_TINYGEMM
+#ifndef NDEBUG
+	if (in_n == 1 && wei_h != 1 && wei_w != 1) {
+		// workspace_bwd will be nonzero only if gemm was chosen as the algo
+		bool zeros = std::all_of(workspace_bwd.begin(), workspace_bwd.end(), [](int i) { return i == 0; });
+
+		if (!zeros) {
+			Im2ColCPU(dout, 0, out_c, out_h, out_w,
+				wei_h, wei_w,
+				in_h, in_w, pad_h, pad_w, v, u, workspace_bwd_host);
+
+
+			for (int i = 0; i < workspace_bwd.size(); i++) {
+				if (std::abs(workspace_bwd[i] - workspace_bwd_host[i]) > 0.0) {
+					printf("Im2col error: %d %f %f\n ", i, workspace_bwd[i], workspace_bwd_host[i]);
+				}
+			}
+		}
+	}
+#endif
+#endif
+
+	RunBackwardWeightsCPUVerify(dwei_host, dout, in,
+		out_n, out_c, out_h, out_w, out_nstride, out_cstride, out_hstride, out_wstride,
+		wei_c, wei_n, wei_h, wei_w, wei_cstride, wei_nstride, wei_hstride, wei_wstride,
+		in_n, in_c, in_h, in_w, in_nstride, in_cstride, in_hstride, in_wstride,
 		u, v, pad_h, pad_w);
+
+}
 
 	if (inflags.GetValueInt("dump_output")) {
 		dumpBufferToFile("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
@@ -756,9 +863,9 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 
 	int wei_n, wei_c, wei_h, wei_w;
 	int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-	miopenGet4dTensorDescriptor(weightTensor, &dt,
-			&wei_n, &wei_c, &wei_h, &wei_w,
-			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+//	miopenGet4dTensorDescriptor(weightTensor, &dt,
+//			&wei_n, &wei_c, &wei_h, &wei_w,
+//			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	int out_n, out_c, out_h, out_w;
 	int out_nstride, out_cstride, out_hstride, out_wstride;
@@ -769,6 +876,11 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 	int u, v, pad_h, pad_w, upx, upy;
 	miopenConvolutionMode_t mode;
 	miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+	
+if (mode == miopenConvolution) {
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_n, &wei_c, &wei_h, &wei_w,
+		&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
 	for(int o = 0; o < out_n; o++) { // mini-batch size
 		for(int k = 0; k < in_c; k++) { // in_channels (RGB)
@@ -795,6 +907,42 @@ int ConvDriver<T>::RunBackwardDataCPU() {
 			}
 		}
 	}
+
+}
+else if (mode == miopenTranspose) {
+	miopenGet4dTensorDescriptor(weightTensor, &dt,
+		&wei_c, &wei_n, &wei_h, &wei_w,
+		&wei_cstride, &wei_nstride, &wei_hstride, &wei_wstride);
+
+	for (int o = 0; o < in_n; o++) { // mini-batch size
+		for (int w = 0; w < in_c; w++) { // in_channels (num filters)
+			for (int i = 0; i < in_h; i++) { // input_height (from getforwardoutputdim())
+				int out_off_h = i * v;
+				for (int j = 0; j < in_w; j++) { //input_width (from getforwardoutputdim())
+					float acc = 0;
+					int out_off_w = j * u;
+					for (int k = 0; k < out_c; k++) { // out_channels (RGB)
+						for (int x = 0; x < wei_h; x++) {
+							int out_x = out_off_h - pad_h + x;
+							if (out_x >= 0 && out_x < out_h) {
+								for (int y = 0; y < wei_w; y++) {
+									int out_y = out_off_w - pad_w + y;
+									if (out_y >= 0 && out_y < out_w) {
+										acc += dout[o*out_nstride + k*out_cstride + out_x*out_w + out_y] *
+											wei[w*wei_cstride + k*wei_nstride + x*wei_hstride + y];
+									}
+								}
+							}
+						}
+					}
+					acc = inflags.GetValueInt("bias") != 0 ? acc + b[w] : acc;
+					din_host[o*in_nstride + w*in_cstride + i*in_hstride + j] = acc;
+				}
+			}
+		}
+	}
+
+}
 
 	if (inflags.GetValueInt("dump_output")) {
 		dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());

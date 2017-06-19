@@ -126,7 +126,7 @@ miopenStatus_t miopenPoolingGetWorkSpaceSize(
 	return miopen::try_([&] {
 		std::vector<int> len = miopen::deref(yDesc).GetLengths();
 		size_t sz = std::accumulate(len.begin(), len.end(), 1, std::multiplies<int>());
-		miopen::deref(workSpaceSize) = sz * sizeof(uint16_t); 
+		miopen::deref(workSpaceSize) = sz * sizeof(uint8_t); 
 	});
 }
 

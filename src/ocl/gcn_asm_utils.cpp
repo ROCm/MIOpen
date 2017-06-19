@@ -9,20 +9,20 @@
 #include <cstdio>
 #include <cctype>
 
-#if !defined(_WIN32) && !defined(__APPLE__)
+#ifdef __linux__
 #include <ext/stdio_filebuf.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <paths.h>
 #include <sys/types.h> 
 #include <sys/stat.h> 
-#endif // !defined(_WIN32) && !defined(__APPLE__)
+#endif // __linux__
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
 
 struct tmp_dir_env { static const char * value() { return "TMPDIR"; }};
 
-#ifndef _WIN32 //Linux or APPLE
+#ifdef __linux__
 class TempFile
 {
 public:
@@ -71,7 +71,7 @@ private:
 static std::string CleanupPath(const char * p);
 static int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out);
 
-#if !defined(_WIN32) && !defined(__APPLE__)
+#ifdef __linux__
 class Pipe
 {
 public:
@@ -126,7 +126,7 @@ private:
         closed = true;
     }
 };
-#endif // !defined(_WIN32) && !defined(__APPLE__)
+#endif // __linux__
 
 std::string GetGcnAssemblerPathImpl()
 {
@@ -149,7 +149,7 @@ std::string GetGcnAssemblerPath()
 
 bool ValidateGcnAssemblerImpl()
 {
-#if !defined(_WIN32) && !defined(__APPLE__)
+#ifdef __linux__
     const auto path = GetGcnAssemblerPath();
     if (path.empty()) { return false; }
     if (!std::ifstream(path).good()) { return false; }
@@ -170,7 +170,7 @@ bool ValidateGcnAssemblerImpl()
             }
         }
     }
-#endif // !defined(_WIN32) && !defined(__APPLE__)
+#endif // __linux__
     return false;
 }
 
@@ -182,7 +182,7 @@ bool ValidateGcnAssembler()
 
 int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, std::istream* in, std::ostream* out)
 {
-#if !defined(_WIN32) && !defined(__APPLE__)
+#ifdef __linux__
     Pipe clang_stdin;
     Pipe clang_stdout;
 
@@ -255,7 +255,7 @@ int ExecuteGcnAssembler(const std::string& p, std::vector<std::string>& args, st
     (void)in;
     (void)out;
     return -1;
-#endif // !defined(_WIN32) && !defined(__APPLE__)
+#endif // __linux__
 }
 
 int ExecuteGcnAssembler(std::vector<std::string>& args, std::istream* clang_stdin_content, std::ostream* clang_stdout_content)
@@ -291,7 +291,7 @@ std::string CleanupPath(const char * p)
  */
 void AmdgcnAssemble(std::string& source, const std::string& params)
 {
-#ifndef _WIN32 //Linux or APPLE
+#ifdef __linux__
     TempFile outfile("amdgcn-asm-out-XXXXXX");
 
     std::vector<std::string> args ({
@@ -334,5 +334,5 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
     (void)source; // -warning
     (void)params; // -warning
     MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
-#endif //WIN32
+#endif // __linux__
 }
