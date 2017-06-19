@@ -22,6 +22,20 @@
 #include <hip/hip_runtime_api.h>
 #endif
 
+/*
+ * @defgroup convolutions
+ * @defgroup pooling
+ * @defgroup handle
+ * @defgroup LRN
+ * @defgroup batchnorm
+ * @defgroup activation
+ * @defgroup tensor
+ * @defgroup softmax
+ * @defgroup gemm
+ * 
+*/ 
+
+
 /*! Constructs type name from a struct */
 #define MIOPEN_DECLARE_OBJECT(name) \
 struct name {}; \
@@ -37,8 +51,13 @@ typedef cl_command_queue miopenAcceleratorQueue_t;
 typedef hipStream_t miopenAcceleratorQueue_t;
 #endif
 
+/** @addtogroup handle
+ * 
+ *  @{
+ */ 
 
-/*! @brief Creates the miopenHandle_t type */
+/*! @ingroup handle 
+ * @brief Creates the miopenHandle_t type */
 MIOPEN_DECLARE_OBJECT(miopenHandle);
 
 
@@ -121,23 +140,35 @@ MIOPEN_EXPORT miopenStatus_t miopenGetKernelTime(miopenHandle_t handle, float* t
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenEnableProfiling(miopenHandle_t handle, bool enable);
 
-/*! @brief Creates the miopenTensorDescriptor_t type */
+/*! @ingroup tensor 
+ * @brief Creates the miopenTensorDescriptor_t type */
 MIOPEN_DECLARE_OBJECT(miopenTensorDescriptor);
 
-/*! @brief Creates the miopenConvolutionDescriptor_t type */
+/** @} */
+
+
+
+/*! @ingroup convolutions
+* @brief Creates the miopenConvolutionDescriptor_t type  
+ */
 MIOPEN_DECLARE_OBJECT(miopenConvolutionDescriptor);
 
-/*! @brief Creates the miopenPoolingDescriptor_t type */
+/*! @ingroup pooling
+ * @brief Creates the miopenPoolingDescriptor_t type 
+ */
 MIOPEN_DECLARE_OBJECT(miopenPoolingDescriptor);
 
-/*! @brief Creates the miopenLRNDescriptor_t type */
+/*! @ingroup LRN
+ *  @brief Creates the miopenLRNDescriptor_t type 
+ */
 MIOPEN_DECLARE_OBJECT(miopenLRNDescriptor);
 
-/*! @brief Creates the miopenActivationDescriptor_t type */
+/*! @ingroup activation 
+ * @brief Creates the miopenActivationDescriptor_t type */
 MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
 
-
-/*! @enum miopenDataType_t
+/*! @ingroup tensor 
+ * @enum miopenDataType_t
  * MIOpen floating point datatypes. Currently only 32-bit floats are fully supported in MIOpen.
 */ 
 typedef enum {
@@ -145,8 +176,8 @@ typedef enum {
     miopenFloat = 1, /*!< 32-bit floating point (fully supported) */
 } miopenDataType_t;
 
-
-/*! @enum miopenTensorOp_t
+/*! @ingroup tensor 
+ * @enum miopenTensorOp_t
  * Element-wise tensor operation modes
 */ 
 typedef enum {
@@ -156,7 +187,8 @@ typedef enum {
     miopenTensorOpMax = 3, /*!< Maximum of tensor element pairs */
 } miopenTensorOp_t;
 
-/*! @enum miopenConvolutionMode_t
+/*! @ingroup convolutions
+ *  @enum miopenConvolutionMode_t
  * Convolution mode selection for convolution layer preference
 */ 
 typedef enum {
@@ -164,7 +196,8 @@ typedef enum {
     miopenTranspose   = 1, /*!< Transpose convolutions */
 } miopenConvolutionMode_t;
 
-/*! @enum miopenPoolingMode_t
+/*! @ingroup pooling 
+ * @enum miopenPoolingMode_t
  * Pooling layer mode
 */
 typedef enum {
@@ -173,7 +206,8 @@ typedef enum {
 } miopenPoolingMode_t;
 
 
-/*! @enum miopenLRNMode_t
+/*! @ingroup LRN 
+ * @enum miopenLRNMode_t
  * Local Response Normalization layer mode
 */ 
 typedef enum {
@@ -181,7 +215,8 @@ typedef enum {
     miopenLRNCrossChannel  = 1, /*!< Cross Channel */
 } miopenLRNMode_t;
 
-/*! @enum miopenBatchNormMode_t
+/*! @ingroup batchnorm 
+ * @enum miopenBatchNormMode_t
  * Batch Normalization layer mode
 */
 typedef enum {
@@ -189,7 +224,8 @@ typedef enum {
    miopenBNSpatial       = 1,/*!< Mini-batch spatial normalization for convolutional layers */
 }miopenBatchNormMode_t;
 
-/*! @enum miopenActivationMode_t
+/*! @ingroup activation 
+ * @enum miopenActivationMode_t
  * Activation layer modes
  */ 
 typedef enum {
@@ -201,6 +237,12 @@ typedef enum {
     miopenActivationABS         = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER       = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{power}\f$ */
 } miopenActivationMode_t;
+
+
+/** @addtogroup tensor
+ * 
+ *  @{
+ */ 
 
 /*! @brief Create a Tensor Descriptor
  *
@@ -359,6 +401,18 @@ MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
         void                            *y,
         const void                      *alpha );
 
+/** @} */
+
+
+
+
+
+/** @addtogroup convolutions
+ * 
+ *  @{
+ */ 
+
+
 /*! @brief Creates a convolution layer descriptor
  * 
  * @param convDesc   Convolution layer descriptor
@@ -441,6 +495,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionForwardOutputDim(miopenConvolut
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc);
 
+
 /*! @enum miopenConvFwdAlgorithm_t
  * Convolutional algorithm mode for forward propagation.
  */
@@ -470,7 +525,9 @@ typedef enum {
     miopenTransposeBwdDataAlgoGEMM       = 4, /*!< Transpose GEMM variant */
 } miopenConvBwdDataAlgorithm_t;
 
+
 /*! @struct miopenConvAlgoPerf_t
+
  * @brief Perf struct for forward, backward filter, or backward data algorithms
  * 
  * Contains the union to hold the selected convolution algorithm for forward, or backwards layers.
@@ -797,10 +854,15 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle
         const miopenTensorDescriptor_t      dbDesc,
         void                                *db);
 
+/** @} */ 
 
 
 
 // Pooling APIs
+/** @addtogroup pooling
+ * 
+ *  @{
+ */ 
 
 /*! @brief Creates a pooling layer descriptor
  * 
@@ -960,10 +1022,15 @@ MIOPEN_EXPORT miopenStatus_t miopenPoolingBackward(
 MIOPEN_EXPORT miopenStatus_t miopenDestroyPoolingDescriptor(miopenPoolingDescriptor_t poolDesc);
 
 
+/** @} */
 
 
 
 // LRN APIs
+/** @addtogroup LRN
+ * 
+ *  @{
+ */ 
 /*! @brief Creates a local response normalization (LRN) layer descriptor
  * 
  * @param lrnDesc    Pointer to a local response normalization layer descriptor type
@@ -1099,6 +1166,11 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
 
 
 // Batch-Normalization APIs
+/** @addtogroup batchnorm
+ * 
+ *  @{
+ */ 
+
 
 /*! @brief Derive tensor for gamma and beta from input tensor descriptor
  * 
@@ -1140,7 +1212,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(
  * @param resultRunningVariance     Running variance saved for inference
  * @param epsilon                   Value to stablize inverse variance calculation
  * @param resultSaveMean            Saved mini-batch mean for backwards pass
- * @param resultSaveInvVariance     Saved mini-bathc inverse variance for backwards pass
+ * @param resultSaveInvVariance     Saved mini-batch inverse variance for backwards pass
  * @return                          miopenStatus_t 
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationForwardTraining(
@@ -1251,12 +1323,15 @@ MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationBackward(
         const void                          *savedMean,
         const void                          *savedInvVariance);
 
+/** @} */
 
 
 
 // Activation APIs
-
-
+/** @addtogroup activation
+ * 
+ *  @{
+ */ 
 /*! @brief Creates the Activation descriptor object
  * 
  * @param activDesc Pointer to an activation tensor descriptor type
@@ -1361,12 +1436,14 @@ MIOPEN_EXPORT miopenStatus_t miopenActivationBackward(
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 
-
+/** @} */
 
 
 // Softmax APIs
-
-
+/** @addtogroup softmax
+ * 
+ *  @{
+ */ 
 /*! @brief Execute a softmax forward layer
  * 
  * MIOpen does not support Softmax modes. MIOpen implements the SOFTMAX_MODE_CHANNEL flavor.
@@ -1416,10 +1493,16 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(
     const miopenTensorDescriptor_t          dxDesc,
     void                                    *dx);
 
+/** @} */
+
+/** @addtogroup gemm
+ * 
+ *  @{
+ */ 
 // GEMM API
 /*! @brief Interface for GEMM
  * 
- * Executes \f$C = \alpha*op(A)*op(B) + \beta*C \f$with transposed options (op()) on A and B, but not Hermitian-Transpose. 
+ * Executes \f$C = \alpha*op(A)*op(B) + \beta*C \f$ with transposed options \f$op()\f$ on A and B, but not Hermitian-Transpose. 
  * Data can be represented in column major format.
  * 
  * 
@@ -1456,6 +1539,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGemm(
         const void                      *beta, 
         void                            *C, 
         int                             ldc);
+
+/** @} */
 
 #ifdef __cplusplus
 }
