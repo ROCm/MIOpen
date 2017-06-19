@@ -6,7 +6,7 @@ namespace miopen {
 
 std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& tensorDesc) const
 {
-	return tensorDesc.GetElementSize() * sizeof(int16_t);
+	return tensorDesc.GetElementSize() * sizeof(uint16_t);
 }
 
 miopenStatus_t PoolingDescriptor::Forward(
@@ -213,7 +213,7 @@ miopenStatus_t PoolingDescriptor::Backward(
 	std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
 	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
-	if (((lens[0] * lens[1]) > std::numeric_limits<uint16_t>::max())) {
+	if (((lens[0] * lens[1]) >= std::numeric_limits<uint16_t>::max())) {
 		MIOPEN_THROW("Pooling window too large to do backwards");
 	}
 
