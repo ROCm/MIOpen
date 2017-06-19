@@ -25,8 +25,8 @@
 #define _FLOAT2					float2
 #define _FLOAT4					float4
 #define _FLOAT8					float8
-#define _INT_MASK_GLOBAL		ushort
-#define _INT_MASK_LOCAL			uint
+#define _INT_MASK_GLOBAL		uchar
+#define _INT_MASK_LOCAL			uchar
 
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
@@ -142,22 +142,22 @@ __kernel void mloPooling(
 		
 		for( int k = 0; k < MLO_POOLING_N_VERT_OUT_PIX; k++)
 		{
-			int y_dst = y+ lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX + k;
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
+			int y_dst = y+ lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX + k;
 			int hstart = y_dst * MLO_POOLING_STRIDE1 - MLO_POOLING_PAD1;
 			int hend = min(hstart + MLO_POOLING_KERNEL_SZ1, MLO_POOLING_BOT_HEIGHT + MLO_POOLING_PAD1);
 #endif
 			for(int l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
 			{
 
-				int	x_dst = x+ lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX + l;
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
+				int	x_dst = x+ lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX + l;
 				int wstart = x_dst * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0;
 				int wend = min(wstart + MLO_POOLING_KERNEL_SZ0, MLO_POOLING_BOT_WIDTH + MLO_POOLING_PAD0);
 				int pool_size = (hend - hstart) * (wend - wstart);
 #endif
 #if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-				mask_private[k][l] = 0xFFFFFFFF;
+				mask_private[k][l] = 0xFF;
 #endif
 
 				for( int j = 0; j < MLO_POOLING_KERNEL_SZ1; j++)
@@ -181,11 +181,7 @@ __kernel void mloPooling(
 						if (bot_val > res[k][l])
 						{
 							res[k][l] = bot_val;
-							int src_x = x_dst * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0 + i;
-							int src_y = y_dst * MLO_POOLING_STRIDE1 - MLO_POOLING_PAD1 + j;
-							//mask_private[k][l].x = src_x;
-							//mask_private[k][l].y = src_y;
-							mask_private[k][l] = src_x + src_y * MLO_POOLING_BOT_WIDTH;
+							mask_private[k][l] = i + MLO_POOLING_KERNEL_SZ0 * j;
 						}
 #else
 						res[k][l] = MLO_POOLING_OP(res[k][l],bot_val);
@@ -210,7 +206,7 @@ __kernel void mloPooling(
 				{	
 					top[top_off + k * MLO_POOLING_TOP_STRIDE +l] = res[k][l];
 #if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-					mask[top_off + k * MLO_POOLING_TOP_STRIDE + l] = (ushort)mask_private[k][l];
+					mask[top_off + k * MLO_POOLING_TOP_STRIDE + l] = mask_private[k][l];
 #endif
 				}
 			}
