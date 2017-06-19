@@ -69,7 +69,7 @@ class PoolDriver : public Driver
 	std::unique_ptr<GPUMem> in_dev;
 	std::unique_ptr<GPUMem> out_dev;
 	std::unique_ptr<GPUMem> mask_dev;
-	std::vector<uint16_t> mask;
+	std::vector<uint8_t> mask;
 
 	std::vector<T> in;
 	std::vector<T> out;
@@ -203,8 +203,8 @@ int PoolDriver<T>::AllocateBuffersAndCopy() {
 #endif
 	in_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	out_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
-	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize/sizeof(uint16_t), sizeof(uint16_t)));
-	mask = std::vector<uint16_t>(workSpaceSize/sizeof(uint16_t), 0);
+	mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize/sizeof(uint8_t), sizeof(uint8_t)));
+	mask = std::vector<uint8_t>(workSpaceSize/sizeof(uint8_t), 0);
 
 	din_dev = std::unique_ptr<GPUMem>( new GPUMem(ctx, in_sz, sizeof(float)));
 	dout_dev = std::unique_ptr<GPUMem> (new GPUMem(ctx, out_sz, sizeof(float)));
