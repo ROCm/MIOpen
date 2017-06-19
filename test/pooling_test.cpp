@@ -252,9 +252,9 @@ struct pooling_driver : test_driver
     }
     void run()
     {
-        int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
-        if ((in_h * in_w) > std::numeric_limits<uint16_t>::max()) return;
+		int window_h, window_w;
+		std::tie(window_h, window_w) = miopen::tie2(filter.GetLengths());
+        if ((window_h * window_w) >= std::numeric_limits<uint16_t>::max()) return;
 
         for(auto m:{miopenPoolingMax, miopenPoolingAverage})
         {
