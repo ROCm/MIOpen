@@ -142,16 +142,16 @@ __kernel void mloPooling(
 		
 		for( int k = 0; k < MLO_POOLING_N_VERT_OUT_PIX; k++)
 		{
-			int y_dst = y+ lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX + k;
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
+			int y_dst = y+ lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX + k;
 			int hstart = y_dst * MLO_POOLING_STRIDE1 - MLO_POOLING_PAD1;
 			int hend = min(hstart + MLO_POOLING_KERNEL_SZ1, MLO_POOLING_BOT_HEIGHT + MLO_POOLING_PAD1);
 #endif
 			for(int l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
 			{
 
-				int	x_dst = x+ lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX + l;
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
+				int	x_dst = x+ lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX + l;
 				int wstart = x_dst * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0;
 				int wend = min(wstart + MLO_POOLING_KERNEL_SZ0, MLO_POOLING_BOT_WIDTH + MLO_POOLING_PAD0);
 				int pool_size = (hend - hstart) * (wend - wstart);
