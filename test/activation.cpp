@@ -7,6 +7,7 @@
 #include <iostream>
 #include <miopen/tensor.hpp>
 #include <miopen/activ.hpp>
+#include <miopen/stringutils.hpp>
 #include <limits>
 
 #include "tensor_holder.hpp"
@@ -14,18 +15,6 @@
 #include "driver.hpp"
 #include "get_handle.hpp"
 
-
-// typedef enum {
-//     miopenActivationPATHTRU     = 0,
-//     miopenActivationLOGISTIC    = 1, // 1 / (1 + e^-x)
-//     miopenActivationTANH        = 2, // a * tanh( b * x)
-//     miopenActivationRELU        = 3, // max(0, x)
-//     miopenActivationSOFTRELU    = 4, // log(1 + e^x)
-//     miopenActivationABS         = 5, // abs(x)
-//     miopenActivationPOWER       = 6, // (a + b * x ) ^power
-// } miopenActivationMode_t;
-
-// Backwards use dy and y
 
 std::string to_name(miopenActivationMode_t m)
 {
@@ -62,7 +51,7 @@ struct verify_forward_activation
     }
 
     template<class A>
-    tensor<T> gpu(A a)
+    tensor<T> gpu(A)
     {
         auto&& handle = get_handle();
         auto out = input;
@@ -78,9 +67,72 @@ struct verify_forward_activation
     }
 
     template<class A>
-    void fail(float, A a)
+    void fail(float, A)
     {
-        std::cout << "Activation: " << to_name(desc.GetMode()) << std::endl;
+        std::cout << "Forward Activation: " << to_name(desc.GetMode()) << std::endl;
+        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
+    }
+};
+
+template<class T>
+struct verify_backwards_activation
+{
+    tensor<T> input;
+    tensor<T> dout;
+    tensor<T> out;
+    miopen::ActivationDescriptor desc;
+
+    template<class A>
+    tensor<T> cpu(A a)
+    {
+        auto dinput = input;
+
+        input.par_for_each([&](int o, int w, int i, int j) 
+        {
+            dinput(o, w, i, j) = a(dout(o, w, i, j), input(o, w, i, j), out(o, w, i, j));
+        });
+
+        return dinput;
+    }
+
+    template<class A>
+    tensor<T> gpu(A)
+    {
+        auto&& handle = get_handle();
+        auto dinput = input;
+
+        auto in_dev = handle.Write(input.data);
+        auto dout_dev = handle.Write(dout.data);
+        auto out_dev = handle.Write(out.data);
+        auto din_dev = handle.Write(dinput.data);
+
+        int alpha = 1, beta = 1;
+
+        desc.Forward(handle, &alpha, input.desc, in_dev.get(), &beta, out.desc, out_dev.get());
+        desc.Backward(handle, 
+            &alpha, 
+            // y
+            out.desc, 
+            out_dev.get(), 
+            // dy
+            dout.desc,
+            dout_dev.get(),
+            // x
+            input.desc,
+            in_dev.get(), 
+            &beta, 
+            // dx
+            dinput.desc,
+            din_dev.get());
+
+        dinput.data = handle.Read<T>(din_dev, dinput.data.size());
+        return dinput;
+    }
+
+    template<class A>
+    void fail(float, A)
+    {
+        std::cout << "Backwards Activation: " << to_name(desc.GetMode()) << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
     }
 };
@@ -108,41 +160,47 @@ struct activation_driver : test_driver
     };
 
     template<class Forward, class Backward>
-    void mode_(miopenActivationMode_t m, Forward f, Backward b)
+    void add_mode(miopenActivationMode_t m, Forward f, Backward b)
     {
-        // TODO: Remove miopenActivation prefix and convert to uppercase
-        lookup.emplace(to_name(m), [=]{ this->run(m, f, b); });
+        lookup.emplace(transform_mode(to_name(m)), [=]{ this->run(m, f, b); });
     }
 
     activation_driver()
     {
-        mode_(miopenActivationPATHTRU, 
+        add_mode(miopenActivationPATHTRU, 
             [=](T x) { return x; },
-            [=](T dy, T y) { return y; }
+            [=](T, T x, T) { return x; }
         );
-        mode_(miopenActivationLOGISTIC, 
+        add_mode(miopenActivationLOGISTIC, 
             [=](T x) { return 1 / (1 + std::exp(-x)); },
-            [=](T dy, T y) { return y; }
+            [=](T dy, T, T y) { return dy * y * (1 - y); }
         );
-        mode_(miopenActivationTANH, 
+        add_mode(miopenActivationTANH, 
             [=](T x) { return alpha * std::tanh(beta * x); },
-            [=](T dy, T y) { return y; }
+            [=](T dy, T, T y) { return dy * (1 - y*y); }
         );
-        mode_(miopenActivationRELU, 
-            [=](T x) { return std::max(true ? 0 : x, x); },
-            [=](T dy, T y) { return y; }
+        add_mode(miopenActivationRELU, 
+            [=](T x) { return (x > 0) ? x : x * beta; },
+            [=](T dy, T, T) { return std::max<T>(0, dy); }
         );
-        mode_(miopenActivationSOFTRELU, 
+        add_mode(miopenActivationSOFTRELU, 
             [=](T x) { return std::log(1 + std::exp(x)); },
-            [=](T dy, T y) { return y; }
+            [=](T dy, T x, T) {
+                static const float threshold = 50.;
+                T expval = std::exp(std::min(x, static_cast<T>(threshold)));
+                return dy * expval / (expval + 1.0); 
+            }
         );
-        mode_(miopenActivationABS, 
+        add_mode(miopenActivationABS, 
             [=](T x) { return std::abs(x); },
-            [=](T dy, T y) { return y; }
+            [=](T dy, T x, T) { return dy * ((x >= 0) ? 1 : -1); }
         );
-        mode_(miopenActivationPOWER, 
+        add_mode(miopenActivationPOWER, 
             [=](T x) { return std::pow(alpha + beta * x, power); },
-            [=](T dy, T y) { return y; }
+            [=](T, T x, T y) {
+                auto divisor = alpha + beta * x;
+                return (miopen::float_equal(divisor, 0)) ? 0 : alpha * beta * y / divisor;
+            }
         );
         add(input, "input", get_input_tensor());
         add(alpha, "alpha");
@@ -163,16 +221,29 @@ struct activation_driver : test_driver
         return {m, alpha, beta, power};
     }
 
+    static std::string transform_mode(std::string s)
+    {
+        return miopen::RemovePrefix(miopen::ToUpper(s), "MIOPENACTIVATION");
+    }
+
     void run()
     {
-        // TODO: Convert to uppercase
-        lookup[mode]();
+        lookup[transform_mode(mode)]();
     }
 
     template<class Forward, class Backward>
     void run(miopenActivationMode_t m, Forward f, Backward b)
     {
-        auto out = verify(verify_forward_activation<T>{input, make_descriptor(m)}, f);
+        auto desc = make_descriptor(m);
+        auto out = verify(verify_forward_activation<T>{input, desc}, f);
+        auto dout = out.first;
+        dout.generate([&](int n, int c, int h, int w)
+        {
+            T x = out.first(n, c, h, w);
+            double y = (877*n+547*c+701*h+1049*w+static_cast<int>(769*x))%2503;
+            return ((x*y)/1301.0);
+        });
+        verify(verify_backwards_activation<T>{input, dout, out.first, desc}, b);
     }
 };
 
