@@ -181,8 +181,6 @@ __kernel void mloPooling(
 						if (bot_val > res[k][l])
 						{
 							res[k][l] = bot_val;
-							int src_x = x_dst * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0 + i;
-							int src_y = y_dst * MLO_POOLING_STRIDE1 - MLO_POOLING_PAD1 + j;
 							mask_private[k][l] = i + MLO_POOLING_KERNEL_SZ0 * j;
 						}
 #else
