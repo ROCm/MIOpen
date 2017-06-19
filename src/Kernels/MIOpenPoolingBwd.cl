@@ -25,8 +25,8 @@
 #define _FLOAT2					float2
 #define _FLOAT4					float4
 #define _FLOAT8					float8
-#define _INT_MASK_GLOBAL		ushort
-#define _INT_MASK_LOCAL			ushort
+#define _INT_MASK_GLOBAL		uchar
+#define _INT_MASK_LOCAL			uchar
 
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
@@ -232,7 +232,7 @@ __kernel void mloPoolingMaxBwd(
 			_FLOAT top_df_val = top_df[idx];
 			_INT_MASK_LOCAL mask_val = mask[idx];
 			//top_df_val *= visible;
-			mask_val = visible ? mask_val : 0xFFFF;
+			mask_val = visible ? mask_val : 0xFF;
 
 			int lcl_idx = lcl_off_v + ti;
 

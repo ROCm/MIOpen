@@ -25,8 +25,8 @@
 #define _FLOAT2					float2
 #define _FLOAT4					float4
 #define _FLOAT8					float8
-#define _INT_MASK_GLOBAL		ushort
-#define _INT_MASK_LOCAL			ushort
+#define _INT_MASK_GLOBAL		uchar
+#define _INT_MASK_LOCAL			uchar
 
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
@@ -157,7 +157,7 @@ __kernel void mloPooling(
 				int pool_size = (hend - hstart) * (wend - wstart);
 #endif
 #if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-				mask_private[k][l] = 0xFFFFFFFF;
+				mask_private[k][l] = 0xFF;
 #endif
 
 				for( int j = 0; j < MLO_POOLING_KERNEL_SZ1; j++)
