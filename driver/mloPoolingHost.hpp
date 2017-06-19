@@ -178,7 +178,7 @@ bool mloPoolingForwardRunHostAndVerify(
 						mask_ptr[b*top_batch_stride + o * top_channel_stride + j * top_stride + i] = res_index;
 						if (do_backward)
 						{
-							int mg = mask_gpu[b*top_batch_stride + o * top_channel_stride + j * top_stride + i];
+							uint16_t mg = mask_gpu[b*top_batch_stride + o * top_channel_stride + j * top_stride + i];
 							if (mg != res_index_gpu) {
 								std::cout << "Mask mistmatch, gpu " << mg << " cpu " << res_index_gpu << "(" << res_index << ")" << std::endl;
 								match = false;
