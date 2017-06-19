@@ -1,30 +1,7 @@
 
-Convolutions
-============
+Convolutional Layer
+===================
 
-The convolution layer.
+The convolution layer API documentation
 
-
-miopenCreateConvolutionDescriptor
----------------------------------
-
-.. doxygenfunction::  miopenCreateConvolutionDescriptor
-
-miopenInitConvolutionDescriptor
--------------------------------
-
-.. doxygenfunction::  miopenInitConvolutionDescriptor
-
-miopenGetConvolutionDescriptor
-------------------------------
-
-.. doxygenfunction::  miopenGetConvolutionDescriptor
-
-miopenGetConvolutionForwardOutputDim
-------------------------------------
-.. doxygenfunction::  miopenGetConvolutionForwardOutputDim
-
-miopenDestroyConvolutionDescriptor
-----------------------------------
-
-.. doxygenfunction::  miopenDestroyConvolutionDescriptor
+.. doxygengroup:: convolutions
