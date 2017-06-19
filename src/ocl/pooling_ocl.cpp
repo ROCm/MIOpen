@@ -61,8 +61,8 @@ miopenStatus_t PoolingDescriptor::Forward(
 	std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
 	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
-	if (((hIn * wIn) > std::numeric_limits<uint16_t>::max()) && do_backward) {
-		MIOPEN_THROW("Height and width to large to do backwards");
+	if (((lens[0] * lens[1]) >= std::numeric_limits<uint16_t>::max()) && do_backward) {
+		MIOPEN_THROW("Pooling window too large to do backwards");
 	}
 
 	construct_params.setBotDescr(
@@ -213,8 +213,8 @@ miopenStatus_t PoolingDescriptor::Backward(
 	std::tie(nIn, cIn, hIn, wIn) = tie4(xDesc.GetLengths());
 	std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
 
-	if (((hIn * wIn) > std::numeric_limits<uint16_t>::max())) {
-		MIOPEN_THROW("Height and width to large to do backwards");
+	if (((lens[0] * lens[1]) > std::numeric_limits<uint16_t>::max())) {
+		MIOPEN_THROW("Pooling window too large to do backwards");
 	}
 
 	construct_params.setBotDescr(
