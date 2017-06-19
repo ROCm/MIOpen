@@ -129,6 +129,7 @@ bool mloPoolingForwardRunHostAndVerify(
 					wend = std::min(wend, bot_width);
 					size_t res_index = 0;
 					size_t res_index_gpu = 0;
+					bool found = false;
 					for (int h = hstart; h < hend; ++h) {
 						for (int w = wstart; w < wend; ++w) {
 							if (pooling_method == MLO_POOLING_OP_MAX)
@@ -139,6 +140,7 @@ bool mloPoolingForwardRunHostAndVerify(
 									res = bot_ptr[bot_index];
 									res_index = bot_index;
 									res_index_gpu = h * bot_width + w;
+									found = true;
 								}
 							}
 							else if (pooling_method == MLO_POOLING_OP_AVE)
@@ -164,6 +166,12 @@ bool mloPoolingForwardRunHostAndVerify(
 								continue;
 							}
 						}
+					}
+					// special index value is used to mark top points which has no associated bottom points
+					if (!found)
+					{
+						res_index = std::numeric_limits<size_t>::max();
+						res_index_gpu = std::numeric_limits<uint16_t>::max();
 					}
 					if (pooling_method == MLO_POOLING_OP_MAX)
 					{
@@ -246,6 +254,9 @@ int mloPoolingBackwardRunHost(
 					{
 						size_t top_idx = top_df_off + j * top_df_stride + i;
 						size_t bot_idx = mask_ptr[top_idx];
+						// skip top points that don't have associated bottom points
+						if (bot_idx == std::numeric_limits<size_t>::max())
+							continue;
 						bot_df_v_ptr[bot_idx] += top_df_ptr[top_idx];
 					}
 				}
