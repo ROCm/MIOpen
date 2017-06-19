@@ -25,8 +25,8 @@
 #define _FLOAT2					float2
 #define _FLOAT4					float4
 #define _FLOAT8					float8
-#define _INT_MASK_GLOBAL		uchar2
-#define _INT_MASK_LOCAL			uchar2
+#define _INT_MASK_GLOBAL		ushort
+#define _INT_MASK_LOCAL			ushort
 
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
@@ -183,8 +183,7 @@ __kernel void mloPooling(
 							res[k][l] = bot_val;
 							int src_x = x_dst * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0 + i;
 							int src_y = y_dst * MLO_POOLING_STRIDE1 - MLO_POOLING_PAD1 + j;
-							mask_private[k][l].x = i;
-							mask_private[k][l].y = j;
+							mask_private[k][l] = i + MLO_POOLING_KERNEL_SZ0 * j;
 						}
 #else
 						res[k][l] = MLO_POOLING_OP(res[k][l],bot_val);
