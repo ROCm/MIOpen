@@ -160,10 +160,14 @@ struct verify_backward_pooling
                 ford(out_h, out_w)([&](int i, int j)
                 {
                     auto idx = indices.at(dout.desc.GetIndex(o, w, i, j));
-                    auto idx_h = idx / in_w;
-                    auto idx_w = idx % in_w;
-                    CHECK(miopen::float_equal(input(o, w, idx_h, idx_w), out(o, w, i, j)));
-                    dinput(o, w, idx_h, idx_w) += dout(o, w, i, j);
+                    auto idx_h = idx / window_w;
+                    auto idx_w = idx % window_w;
+					auto in_y = i * v - pad_h + idx_h;
+					auto in_x = j * u - pad_w + idx_w;
+					if (in_y >= 0 && in_x >= 0 && in_y < in_h && in_x < in_w) {
+						CHECK(miopen::float_equal(input(o, w, in_y, in_x), out(o, w, i, j)));
+						dinput(o, w, in_y, in_x) += dout(o, w, i, j);
+					}
                 });
             }
             else
@@ -252,10 +256,6 @@ struct pooling_driver : test_driver
     }
     void run()
     {
-		int window_h, window_w;
-		std::tie(window_h, window_w) = miopen::tie2(filter.GetLengths());
-        if ((window_h * window_w) >= std::numeric_limits<uint8_t>::max()) return;
-
         for(auto m:{miopenPoolingMax, miopenPoolingAverage})
         {
             for(auto filter:{
