@@ -139,7 +139,7 @@ bool mloPoolingForwardRunHostAndVerify(
 								{
 									res = bot_ptr[bot_index];
 									res_index = bot_index;
-									res_index_gpu = h * bot_width + w;
+									res_index_gpu = ((h - j * stride1 + pad1) << 8) + (w - i * stride0 + pad0);
 									found = true;
 								}
 							}
