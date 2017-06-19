@@ -14,6 +14,7 @@
 #include "driver.hpp"
 #include "get_handle.hpp"
 
+
 // typedef enum {
 //     miopenActivationPATHTRU     = 0,
 //     miopenActivationLOGISTIC    = 1, // 1 / (1 + e^-x)
@@ -24,55 +25,28 @@
 //     miopenActivationPOWER       = 6, // (a + b * x ) ^power
 // } miopenActivationMode_t;
 
-#define VISIT_ACTIVATIONS(m) \
-m(PATHTRU, x) \
-m(LOGISTIC, 1 / (1 + std::exp(-x))) \
-m(TANH, alpha * std::tanh(beta * x)) \
-m(RELU, std::max(true ? 0 : x, x)) \
-m(SOFTRELU, std::log(1 + std::exp(x))) \
-m(ABS, std::abs(x)) \
-m(POWER, std::pow(alpha + beta * x, power))
+// Backwards use dy and y
 
-template<class A>
-struct activation
+std::string to_name(miopenActivationMode_t m)
 {
-    double alpha, beta, power;
-    activation(double a, double b, double p)
-    : alpha(a), beta(b), power(p)
-    {}
-    miopen::ActivationDescriptor descriptor() const
-    {
-        return {A::mode(), alpha, beta, power};
+#define STRING_CASE(x) case x: return #x; break;
+    switch(m) {
+        STRING_CASE(miopenActivationPATHTRU)
+        STRING_CASE(miopenActivationLOGISTIC)
+        STRING_CASE(miopenActivationTANH)
+        STRING_CASE(miopenActivationRELU)
+        STRING_CASE(miopenActivationSOFTRELU)
+        STRING_CASE(miopenActivationABS)
+        STRING_CASE(miopenActivationPOWER)
     }
-
-    template<class T>
-    T operator()(T x) const
-    {
-        return A::apply(alpha, beta, power, x);
-    }
-
-    const char * name() const
-    {
-        return A::str();
-    }
-};
-
-#define DECLARE_ACTIVATION_POLICY(name, ...) \
-struct activation ## name ## _policy \
-{ \
-   static miopenActivationMode_t mode() { return miopenActivation##name; } \
-   static const char * str() { return #name; } \
-   template<class X, class T> \
-   static T apply(X alpha, X beta, X power, T x) { (void)alpha;(void)beta;(void)power;return __VA_ARGS__; } \
-};
-VISIT_ACTIVATIONS(DECLARE_ACTIVATION_POLICY)
-
-
+    return "";
+}
 
 template<class T>
 struct verify_forward_activation
 {
     tensor<T> input;
+    miopen::ActivationDescriptor desc;
 
     template<class A>
     tensor<T> cpu(A a)
@@ -97,7 +71,6 @@ struct verify_forward_activation
 
         int alpha = 1, beta = 1;
 
-        auto desc = a.descriptor();
         desc.Forward(handle, &alpha, input.desc, in_dev.get(), &beta, out.desc, out_dev.get());
 
         out.data = handle.Read<T>(out_dev, out.data.size());
@@ -107,13 +80,17 @@ struct verify_forward_activation
     template<class A>
     void fail(float, A a)
     {
-        std::cout << "Activation: " << a.name() << std::endl;
+        std::cout << "Activation: " << to_name(desc.GetMode()) << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
     }
 };
 
-#define LOOKUP_ACTIVATION(name, ...) {#name, callback<activation ## name ## _policy>{} },
-#define LIST_ACTIVATION(name, ...) {#name},
+struct select_first
+{
+    template<class T>
+    auto operator()(const T& x) MIOPEN_RETURNS(x.first);
+};
+
 template<class T>
 struct activation_driver : test_driver
 {
@@ -122,9 +99,7 @@ struct activation_driver : test_driver
     double beta = 1;
     double power = 1;
     std::string mode = "PATHTRU";
-    std::unordered_map<std::string, std::function<void(activation_driver*)>> lookup = {
-        VISIT_ACTIVATIONS(LOOKUP_ACTIVATION)
-    };
+    std::unordered_map<std::string, std::function<void()>> lookup;
 
     template<class A>
     struct callback
@@ -132,30 +107,72 @@ struct activation_driver : test_driver
         void operator()(activation_driver* self) const { self->template run<A>(); }
     };
 
+    template<class Forward, class Backward>
+    void mode_(miopenActivationMode_t m, Forward f, Backward b)
+    {
+        // TODO: Remove miopenActivation prefix and convert to uppercase
+        lookup.emplace(to_name(m), [=]{ this->run(m, f, b); });
+    }
+
     activation_driver()
     {
+        mode_(miopenActivationPATHTRU, 
+            [=](T x) { return x; },
+            [=](T dy, T y) { return y; }
+        );
+        mode_(miopenActivationLOGISTIC, 
+            [=](T x) { return 1 / (1 + std::exp(-x)); },
+            [=](T dy, T y) { return y; }
+        );
+        mode_(miopenActivationTANH, 
+            [=](T x) { return alpha * std::tanh(beta * x); },
+            [=](T dy, T y) { return y; }
+        );
+        mode_(miopenActivationRELU, 
+            [=](T x) { return std::max(true ? 0 : x, x); },
+            [=](T dy, T y) { return y; }
+        );
+        mode_(miopenActivationSOFTRELU, 
+            [=](T x) { return std::log(1 + std::exp(x)); },
+            [=](T dy, T y) { return y; }
+        );
+        mode_(miopenActivationABS, 
+            [=](T x) { return std::abs(x); },
+            [=](T dy, T y) { return y; }
+        );
+        mode_(miopenActivationPOWER, 
+            [=](T x) { return std::pow(alpha + beta * x, power); },
+            [=](T dy, T y) { return y; }
+        );
         add(input, "input", get_input_tensor());
         add(alpha, "alpha");
         add(beta, "beta");
         add(power, "power");
         add(mode, "mode", generate_data(modes()));
-        // lookup = { VISIT_ACTIVATIONS(LOOKUP_ACTIVATION) };
     }
 
     std::vector<std::string> modes()
     {
-        return { VISIT_ACTIVATIONS(LIST_ACTIVATION) };
+        std::vector<std::string> result(lookup.size());
+        std::transform(lookup.begin(), lookup.end(), result.begin(), select_first{});
+        return result;
+    }
+
+    miopen::ActivationDescriptor make_descriptor(miopenActivationMode_t m) const
+    {
+        return {m, alpha, beta, power};
     }
 
     void run()
     {
-        lookup[mode](this);
+        // TODO: Convert to uppercase
+        lookup[mode]();
     }
 
-    template<class A>
-    void run()
+    template<class Forward, class Backward>
+    void run(miopenActivationMode_t m, Forward f, Backward b)
     {
-        auto out = verify(verify_forward_activation<T>{input}, activation<A>{alpha, beta, power});
+        auto out = verify(verify_forward_activation<T>{input, make_descriptor(m)}, f);
     }
 };
 
