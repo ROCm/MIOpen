@@ -173,7 +173,7 @@ void BatchNormForwardTraining(
                 
                 unsigned int numwgs = std::ceil(float(ygridsize)/ylocalsize);
                 parms += " -DMIO_BN_NGRPS="+std::to_string(numwgs);
-                auto lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/16384)*numwgs);
+                auto lds_size = static_cast<unsigned long long>(((in_cstride*(n+2)+1)/4096)*numwgs);
                 
                 if(lds_size <= 1){ 
                     #if (MIOPEN_BN_CPP_DEBUG == 1)
@@ -1094,7 +1094,7 @@ void BatchNormBackward(
                     network_config,	program_name, kernel_subname, vld, vgd,
                     parms)( x, dy, dx, bnScale, resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance, inhw);
                     
-                } else if(in_cstride < 32){
+                } else if(in_cstride < 32 && n <= ylocalsize){
                     #if (MIOPEN_BN_CPP_DEBUG == 1)
                         std::cout << " -DMIO_BN_VARIANT=0" <<std::endl;
                     #endif  
