@@ -144,7 +144,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetKernelTime(miopenHandle_t handle, float* t
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenEnableProfiling(miopenHandle_t handle, bool enable);
 /** @} */
-
+//CLOSEOUT HANDLE DOXYGEN GROUP
 
 
 /*! @ingroup tensor 
@@ -240,6 +240,7 @@ typedef enum {
     miopenActivationABS         = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER       = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{power}\f$ */
 } miopenActivationMode_t;
+
 
 
 /** @addtogroup tensor
@@ -405,7 +406,7 @@ MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
         const void                      *alpha );
 
 /** @} */
-
+//CLOSEOUT TENSOR DOXYGEN GROUP
 
 
 
@@ -858,7 +859,7 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle
         void                                *db);
 
 /** @} */ 
-
+//CLOSEOUT CONVOLUTIONS DOXYGEN GROUP
 
 
 // Pooling APIs
@@ -1026,7 +1027,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyPoolingDescriptor(miopenPoolingDescrip
 
 
 /** @} */
-
+//CLOSEOUT POOLING DOXYGEN GROUP
 
 
 // LRN APIs
@@ -1165,7 +1166,8 @@ MIOPEN_EXPORT miopenStatus_t miopenLRNBackward(
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lrnDesc);
 
-
+/** @} */
+//CLOSEOUT LRN DOXYGEN GROUP
 
 
 // Batch-Normalization APIs
@@ -1327,7 +1329,7 @@ MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationBackward(
         const void                          *savedInvVariance);
 
 /** @} */
-
+//CLOSEOUT BATCHNORM DOXYGEN GROUP
 
 
 // Activation APIs
@@ -1440,7 +1442,7 @@ MIOPEN_EXPORT miopenStatus_t miopenActivationBackward(
 MIOPEN_EXPORT miopenStatus_t miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 
 /** @} */
-
+//CLOSEOUT ACTIVATION DOXYGEN GROUP
 
 // Softmax APIs
 /** @addtogroup softmax
@@ -1497,12 +1499,15 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(
     void                                    *dx);
 
 /** @} */
+//CLOSEOUT SOFTMAX DOXYGEN GROUP
 
+
+// GEMM API
 /** @addtogroup gemm
  * 
  *  @{
  */ 
-// GEMM API
+
 /*! @brief Interface for GEMM
  * 
  * Executes \f$C = \alpha*op(A)*op(B) + \beta*C \f$ with transposed options \f$op()\f$ on A and B, but not Hermitian-Transpose. 
@@ -1542,8 +1547,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGemm(
         const void                      *beta, 
         void                            *C, 
         int                             ldc);
-
 /** @} */
+//CLOSEOUT GEMM DOXYGEN GROUP
 
 #ifdef __cplusplus
 }
