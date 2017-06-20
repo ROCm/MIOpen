@@ -200,6 +200,18 @@ struct test_driver
     }
 
     template<class T>
+    generate_data_t<T> generate_data(std::initializer_list<T> dims)
+    {
+        return generate_data(std::vector<T>(dims));
+    }
+
+    template<class T>
+    generate_data_t<std::vector<T>> generate_data(std::initializer_list<std::initializer_list<T>> dims)
+    {
+        return generate_data(std::vector<std::vector<T>>(dims.begin(), dims.end()));
+    }
+
+    template<class T>
     generate_data_t<T> generate_data(std::vector<T> dims)
     {
         return {[=]() -> std::vector<T> {
@@ -251,10 +263,10 @@ struct test_driver
         using value_type = miopen::range_value<decltype(out_gpu)>;
         double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
         auto error = miopen::rms_range(out_cpu, out_gpu);
-        if (not(error <= threshold))
+        if (not(error <= threshold) or verbose)
         {
-            std::cout << "FAILED: " << error << std::endl;
-            fail(-1);
+            std::cout << (verbose ? "error: " : "FAILED: ") << error << std::endl;
+            if (not verbose) fail(-1);
             
             auto mxdiff = miopen::max_diff(out_cpu, out_gpu);
             std::cout << "Max diff: " << mxdiff << std::endl;
@@ -265,7 +277,8 @@ struct test_driver
             if (miopen::range_zero(out_gpu)) std::cout << "Gpu data is all zeros" << std::endl;
             
             auto idx = miopen::mismatch_idx(out_cpu, out_gpu, miopen::float_equal);
-            std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
+            if (idx < miopen::range_distance(out_cpu))
+                std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx] << std::endl;
 
             auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
             if (cpu_nan_idx >= 0) 
