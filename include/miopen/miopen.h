@@ -1180,7 +1180,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
 /*! @brief Derive tensor for gamma and beta from input tensor descriptor
  * 
  * This function takes the input tensor descriptor and outputs a derived tensor for the normalization scale (gamma) and shift (beta) tensors. 
- * For an input tensor NCHW the and spatial mode, the output derived tensor is 1C11, while for per-activation the derived tensor is 1CHW.
+ * For an input tensor NCHW and spatial mode, the output derived tensor is 1C11, while for per-activation the derived tensor is 1CHW.
  * 
  * @param derivedBnDesc   Output derived tensor descriptor
  * @param xDesc           Input tensor descriptor
@@ -1199,7 +1199,12 @@ MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(
  * Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale with their descriptor. 
  * If either resultSaveMean, or resultSaveInvVariance are null pointers then the values for the mean and inverse variance will not be used. 
  * Likewise, if either resultRunningMean, or resultRunningVariance are null pointers then the values for the running mean and variance will not be saved.
- * Running averages and variances are scaled using an exponential averaging factor: \f$ \mu_{old} = \mu_{new}*factor + \mu_{old}*(1-factor) \f$ where \f$factor=1/(1+iteration)\f$
+ * Running averages and variances are scaled using an exponential averaging factor: \f[
+ * \mu_{old} = \mu_{new}*factor + \mu_{old}*(1-factor) 
+ * \f]
+ * where \f[
+ * factor=1/(1+iteration)
+ * \f]
  * 
  * @param handle                    MIOpen handle
  * @param bn_mode                   Batch normalization mode (spatial/ per-activation)
