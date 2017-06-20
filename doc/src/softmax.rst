@@ -3,6 +3,14 @@
 Softmax Layer
 =============
 
-Softmax layer tpyes and functions
+Softmax layer types and functions
 
-.. doxygengroup:: softmax
+miopenSoftmaxForward
+--------------------
+
+.. doxygenfunction::  miopenSoftmaxForward
+
+miopenSoftmaxBackward
+---------------------
+
+.. doxygenfunction::  miopenSoftmaxBackward

@@ -3,4 +3,28 @@
 Batch Normalization Layer
 =========================
 
-.. doxygengroup:: batchnorm
+
+miopenBatchNormMode_t
+---------------------
+
+.. doxygenenum::  miopenBatchNormMode_t
+
+miopenDeriveBNTensorDescriptor
+------------------------------
+
+.. doxygenfunction::  miopenDeriveBNTensorDescriptor
+
+miopenBatchNormalizationForwardTraining
+---------------------------------------
+
+.. doxygenfunction::  miopenBatchNormalizationForwardTraining
+
+miopenBatchNormalizationForwardInference
+----------------------------------------
+
+.. doxygenfunction::  miopenBatchNormalizationForwardInference
+
+miopenBatchNormalizationBackward
+--------------------------------
+
+.. doxygenfunction::  miopenBatchNormalizationBackward
