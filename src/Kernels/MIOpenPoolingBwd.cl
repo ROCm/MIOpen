@@ -25,10 +25,8 @@
 #define _FLOAT2					float2
 #define _FLOAT4					float4
 #define _FLOAT8					float8
-#define _INT_MASK_GLOBAL		ushort
-#define _INT_MASK_LOCAL			uint
-//#define MASK_Y_SHFT (sizeof(_INT_MASK_GLOBAL) / 2)
-//#define MASK_X_MASK ((1 << MASK_Y_SHFT) - 1)
+#define _INT_MASK_GLOBAL		uchar
+#define _INT_MASK_LOCAL			uchar
 
 #ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F        /* max value */
@@ -234,7 +232,7 @@ __kernel void mloPoolingMaxBwd(
 			_FLOAT top_df_val = top_df[idx];
 			_INT_MASK_LOCAL mask_val = mask[idx];
 			//top_df_val *= visible;
-			mask_val = visible ? mask_val : 0xFFFFFFFF;
+			mask_val = visible ? mask_val : 0xFF;
 
 			int lcl_idx = lcl_off_v + ti;
 
@@ -277,12 +275,20 @@ __kernel void mloPoolingMaxBwd(
 					int lcl_th = th - top_y;
 					int lcl_tw = tw - top_x;
 
+					int filter_x = b_x - tw * MLO_POOLING_STRIDE0 + MLO_POOLING_PAD0;
+					int filter_y = b_y - th * MLO_POOLING_STRIDE1 + MLO_POOLING_PAD1;
+					int filter_idx = filter_x + filter_y * MLO_POOLING_KERNEL_SZ0;
+
 					// note, that b_idx == b_y * MLO_POOLBWD_BOT_WIDTH + b_x
 					// computing b_idx instead of using (b_y * MLO_POOLBWD_BOT_WIDTH + b_x) saves VGPR
 					bool visible = (lcl_th < MLO_POOLBWD_LCL_DATA_HEIGHT) && (lcl_tw < MLO_POOLBWD_LCL_DATA_WIDTH);
 					int lcl_idx = visible ? (lcl_th * MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw) : 0;
 
-					bool match = (b_idx == lcl_mask[lcl_idx]) && visible;
+					bool match = visible
+						&& (filter_idx == lcl_mask[lcl_idx])
+						&& (filter_x >= 0)
+						&& (filter_y >= 0)
+						;
 
 					_FLOAT add_val = lcl_top_df[lcl_idx] * match;
 					res[k][l] += add_val;

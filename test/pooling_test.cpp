@@ -6,7 +6,9 @@
 #include <utility>
 #include <iostream>
 #include <miopen/tensor.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/pooling.hpp>
+#include <miopen/logger.hpp>
 #include <limits>
 
 // #include "network_data.hpp"
@@ -51,7 +53,7 @@ struct pooling_operators
 struct verify_forward_pooling
 {
     template<class T>
-    tensor<T> cpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint16_t>&)
+    tensor<T> cpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint8_t>&)
     {
         auto out = get_output_tensor(filter, input);
 
@@ -90,7 +92,7 @@ struct verify_forward_pooling
     }
 
     template<class T>
-    tensor<T> gpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint16_t>& indices)
+    tensor<T> gpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint8_t>& indices)
     {
         auto&& handle = get_handle();
         auto out = get_output_tensor(filter, input);
@@ -111,21 +113,27 @@ struct verify_forward_pooling
             out_dev.get(),
             true,
             workspace_dev.get(),
-            indices.size() * sizeof(uint16_t)
+            indices.size() * sizeof(uint8_t)
         );
 
-        indices = handle.Read<uint16_t>(workspace_dev, indices.size());
+        indices = handle.Read<uint8_t>(workspace_dev, indices.size());
         out.data = handle.Read<T>(out_dev, out.data.size());
         return out;
     }
 
     template<class T>
-    void fail(float, const tensor<T>& input, const miopen::PoolingDescriptor& filter, const std::vector<uint16_t>&)
+    void fail(float, const tensor<T>& input, const miopen::PoolingDescriptor& filter, const std::vector<uint8_t>&)
     {
         std::cout << "Forward pooling: ";
         if (filter.GetMode() == miopenPoolingAverage) std::cout << "Average";
         else std::cout << "Max";
         std::cout << std::endl;
+        std::cout << "Lengths: ";
+        miopen::LogRange(std::cout, filter.GetLengths(), ", ") << std::endl;
+        std::cout << "Pads: ";
+        miopen::LogRange(std::cout, filter.GetPads(), ", ") << std::endl;
+        std::cout << "Strides: ";
+        miopen::LogRange(std::cout, filter.GetStrides(), ", ") << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
         std::cout << "Output tensor: " << filter.GetForwardOutputTensor(input.desc).ToString() << std::endl;
     }
@@ -136,7 +144,7 @@ struct verify_forward_pooling
 struct verify_backward_pooling
 {
     template<class T>
-    tensor<T> cpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const miopen::PoolingDescriptor& filter, const std::vector<uint16_t>& indices)
+    tensor<T> cpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const miopen::PoolingDescriptor& filter, const std::vector<uint8_t>& indices)
     {
         auto dinput = input;
         CHECK(dout.desc == out.desc);
@@ -160,10 +168,14 @@ struct verify_backward_pooling
                 ford(out_h, out_w)([&](int i, int j)
                 {
                     auto idx = indices.at(dout.desc.GetIndex(o, w, i, j));
-                    auto idx_h = idx / in_w;
-                    auto idx_w = idx % in_w;
-                    CHECK(miopen::float_equal(input(o, w, idx_h, idx_w), out(o, w, i, j)));
-                    dinput(o, w, idx_h, idx_w) += dout(o, w, i, j);
+                    auto idx_h = idx / window_w;
+                    auto idx_w = idx % window_w;
+                    auto in_y = i * v - pad_h + idx_h;
+                    auto in_x = j * u - pad_w + idx_w;
+                    if (in_y >= 0 && in_x >= 0 && in_y < in_h && in_x < in_w) {
+                        CHECK(miopen::float_equal(input(o, w, in_y, in_x), out(o, w, i, j)));
+                        dinput(o, w, in_y, in_x) += dout(o, w, i, j);
+                    }
                 });
             }
             else
@@ -190,7 +202,7 @@ struct verify_backward_pooling
     }
 
     template<class T>
-    tensor<T> gpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const miopen::PoolingDescriptor& filter, const std::vector<uint16_t>& indices)
+    tensor<T> gpu(const tensor<T>& input, const tensor<T>& dout, const tensor<T>& out, const miopen::PoolingDescriptor& filter, const std::vector<uint8_t>& indices)
     {
         auto&& handle = get_handle();
         auto dinput = input;
@@ -229,12 +241,18 @@ struct verify_backward_pooling
     }
 
     template<class T>
-    void fail(float, const tensor<T>& input, const tensor<T>&, const tensor<T>& out, const miopen::PoolingDescriptor& filter, const std::vector<uint16_t>&)
+    void fail(float, const tensor<T>& input, const tensor<T>&, const tensor<T>& out, const miopen::PoolingDescriptor& filter, const std::vector<uint8_t>&)
     {
         std::cout << "Backward pooling: ";
         if (filter.GetMode() == miopenPoolingAverage) std::cout << "Average";
         else std::cout << "Max";
         std::cout << std::endl;
+        std::cout << "Lengths: ";
+        miopen::LogRange(std::cout, filter.GetLengths(), ", ") << std::endl;
+        std::cout << "Pads: ";
+        miopen::LogRange(std::cout, filter.GetPads(), ", ") << std::endl;
+        std::cout << "Strides: ";
+        miopen::LogRange(std::cout, filter.GetStrides(), ", ") << std::endl;
         std::cout << "Output tensor: " << out.desc.ToString() << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
     }
@@ -245,39 +263,43 @@ template<class T>
 struct pooling_driver : test_driver
 {
     tensor<T> input;
+    std::vector<int> lens;
+    std::vector<int> pads;
+    std::vector<int> strides;
+    std::string mode;
+    std::unordered_map<std::string, miopenPoolingMode_t> mode_lookup = {
+        {"MAX", miopenPoolingMax},
+        {"MIOPENPOOLINGMAX", miopenPoolingMax},
+        {"AVERAGE", miopenPoolingAverage},
+        {"MIOPENPOOLINGAVERAGE", miopenPoolingAverage},
+    };
 
     pooling_driver()
     {
         add(input, "input", get_input_tensor());
+        add(lens, "lens", generate_data({{2, 2}, {3, 3}}));
+        add(strides, "strides", generate_data({{2, 2}, {1, 1}}));
+        add(pads, "pads", generate_data({{0, 0}, {1, 1}}));
+        add(mode, "mode", generate_data({"miopenPoolingMax", "miopenPoolingAverage"}));
     }
+    
     void run()
     {
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
-        if ((in_h * in_w) > std::numeric_limits<uint16_t>::max()) return;
 
-        for(auto m:{miopenPoolingMax, miopenPoolingAverage})
+        miopen::PoolingDescriptor filter{mode_lookup.at(miopen::ToUpper(mode)), lens, strides, pads};
+
+        std::vector<uint8_t> indices{};
+        auto out = verify(verify_forward_pooling{}, input, filter, indices);
+        auto dout = out.first;
+        dout.generate([&](int n, int c, int h, int w)
         {
-            for(auto filter:{
-                miopen::PoolingDescriptor{m, {2, 2}, {2, 2}, {0, 0}},
-                miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {0, 0}}, 
-                miopen::PoolingDescriptor{m, {2, 2}, {1, 1}, {1, 1}},
-                miopen::PoolingDescriptor{m, {3, 3}, {2, 2}, {0, 0}},
-                miopen::PoolingDescriptor{m, {3, 3}, {1, 1}, {1, 1}}
-            })
-            {
-                std::vector<uint16_t> indices{};
-                auto out = verify(verify_forward_pooling{}, input, filter, indices);
-                auto dout = out.first;
-                dout.generate([&](int n, int c, int h, int w)
-                {
-                    T x = out.first(n, c, h, w);
-                    double y = (877*n+547*c+701*h+1049*w+static_cast<int>(769*x))%2503;
-                    return ((x*y)/1301.0);
-                });
-                verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
-            }
-        }
+            T x = out.first(n, c, h, w);
+            double y = (877*n+547*c+701*h+1049*w+static_cast<int>(769*x))%2503;
+            return ((x*y)/1301.0);
+        });
+        verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
     }
 };
 
