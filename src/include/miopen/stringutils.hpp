@@ -3,6 +3,7 @@
 
 #include <string>
 #include <numeric>
+#include <algorithm>
 
 namespace miopen {
 
@@ -51,7 +52,12 @@ inline bool StartsWith(const std::string& value, const std::string& prefix)
 {
     if (prefix.size() > value.size()) return false;
     else return std::equal(prefix.begin(), prefix.end(), value.begin());
+}
 
+inline std::string RemovePrefix(std::string s, std::string prefix)
+{
+    if (StartsWith(s, prefix)) return s.substr(prefix.length());
+    else return s;
 }
 
 } // namespace miopen
