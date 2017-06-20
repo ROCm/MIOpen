@@ -87,6 +87,12 @@ todo_include_todos = False
 # a list of builtin themes.
 #
 html_theme = 'agogo'
+#html_theme = 'sphinx_rtd_theme'
+#html_theme_options = {
+#    'collapse_navigation': True,
+#    'display_version': False,
+#    'sticky_navigation': True,
+#}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -123,17 +129,16 @@ latex_elements = {
 
     # Latex figure (float) alignment
     #
-    # 'figure_align': 'htbp',
+    'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'miopen.tex', u'miopen Documentation',
-     u'amd', 'manual'),
+    (master_doc, 'miopen.tex', u'MIOpen ',
+     u'Advanced Micro Devices, Inc', 'manual'),
 ]
-
 
 # -- Options for manual page output ---------------------------------------
 
