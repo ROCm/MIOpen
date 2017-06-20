@@ -12,7 +12,7 @@ namespace miopen {
 
 struct PoolingDescriptor : miopenPoolingDescriptor {
 	PoolingDescriptor();
-	PoolingDescriptor(miopenPoolingMode_t m, std::initializer_list<int> plens, std::initializer_list<int> pstrides, std::initializer_list<int> ppads);
+	PoolingDescriptor(miopenPoolingMode_t m, std::vector<int> plens, std::vector<int> pstrides, std::vector<int> ppads);
 	PoolingDescriptor(miopenPoolingMode_t m, const int *plens, const int *ppads, const int *pstrides, int size);
 
 	miopenPoolingMode_t GetMode() const;
