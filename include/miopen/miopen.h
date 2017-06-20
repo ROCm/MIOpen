@@ -51,14 +51,18 @@ typedef cl_command_queue miopenAcceleratorQueue_t;
 typedef hipStream_t miopenAcceleratorQueue_t;
 #endif
 
+
+/*! @ingroup handle 
+ * @brief Creates the miopenHandle_t type 
+ */
+MIOPEN_DECLARE_OBJECT(miopenHandle);
+
+
+
 /** @addtogroup handle
  * 
  *  @{
  */ 
-
-/*! @ingroup handle 
- * @brief Creates the miopenHandle_t type */
-MIOPEN_DECLARE_OBJECT(miopenHandle);
 
 
 /*! @enum miopenStatus_t 
@@ -139,14 +143,13 @@ MIOPEN_EXPORT miopenStatus_t miopenGetKernelTime(miopenHandle_t handle, float* t
  * @return           miopenStatus_t 
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenEnableProfiling(miopenHandle_t handle, bool enable);
+/** @} */
+
+
 
 /*! @ingroup tensor 
  * @brief Creates the miopenTensorDescriptor_t type */
 MIOPEN_DECLARE_OBJECT(miopenTensorDescriptor);
-
-/** @} */
-
-
 
 /*! @ingroup convolutions
 * @brief Creates the miopenConvolutionDescriptor_t type  

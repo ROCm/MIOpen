@@ -4,4 +4,4 @@ GEMM Operations
 
 GEMM functions
 
-.. doxygengroup:: gemm
+.. doxygenfunction::  miopenGemm
