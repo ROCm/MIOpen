@@ -3,6 +3,7 @@
 
 #include <string>
 #include <numeric>
+#include <algorithm>
 
 namespace miopen {
 
@@ -35,11 +36,28 @@ inline std::string JoinStrings(Strings strings, std::string delim)
     });
 }
 
+template<class F>
+inline std::string TransformString(std::string s, F f)
+{
+    std::transform(s.begin(), s.end(), s.begin(), f);
+    return s;
+}
+
+inline std::string ToUpper(std::string s)
+{
+    return TransformString(std::move(s), ::toupper);
+}
+
 inline bool StartsWith(const std::string& value, const std::string& prefix)
 {
     if (prefix.size() > value.size()) return false;
     else return std::equal(prefix.begin(), prefix.end(), value.begin());
+}
 
+inline std::string RemovePrefix(std::string s, std::string prefix)
+{
+    if (StartsWith(s, prefix)) return s.substr(prefix.length());
+    else return s;
 }
 
 } // namespace miopen
