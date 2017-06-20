@@ -14,10 +14,10 @@ add_doxygen_doc(
     RECURSIVE YES
     GENERATE_XML YES
     GENERATE_LATEX YES
-    OPTIMIZE_OUTPUT_FOR_C YES
     AUTOLINK_SUPPORT YES
     SHOW_INCLUDE_FILES YES
     SHOW_FILES YES
+    USE_PDFLATEX YES
 
 )
 add_sphinx_doc(src 
@@ -28,3 +28,13 @@ add_sphinx_doc(src
         breathe_default_project=proj
     DEPENDS doxygen
 )
+
+add_sphinx_doc(src 
+    BUILDER latex
+    OUTPUT_DIR pdf
+    VARS 
+        breathe_projects.proj=${DOXYGEN_OUTPUT}/xml
+        breathe_default_project=proj
+    DEPENDS doxygen
+)
+
