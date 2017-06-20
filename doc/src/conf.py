@@ -16,9 +16,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('.'))
 
 
 # -- General configuration ------------------------------------------------
@@ -30,7 +30,7 @@
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['breathe']
+extensions = ['breathe','sphinx.ext.mathjax','sphinx.ext.viewcode']
 
 # doxygen_xml_output = ""
 # breathe_projects = { "miopen": doxygen_xml_output }
@@ -49,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'miopen'
+project = u'MIOpen'
 copyright = u'2017, Advanced Micro Devices, Inc'
 author = u'Advanced Micro Devices, Inc'
 
@@ -86,7 +86,7 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pyramid'
+html_theme = 'agogo'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -111,11 +111,11 @@ htmlhelp_basename = 'miopendoc'
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
-    # 'papersize': 'letterpaper',
+    'papersize': 'letterpaper',
 
     # The font size ('10pt', '11pt' or '12pt').
     #
-    # 'pointsize': '10pt',
+    'pointsize': '10pt',
 
     # Additional stuff for the LaTeX preamble.
     #

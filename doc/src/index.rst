@@ -3,20 +3,28 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to miopen's documentation!
-==================================
+Welcome to MIOpen version 1.0
+=============================
+**Advanced Micro Devices, Inc's open source deep learning library.**
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 4
     :caption: Contents:
 
+    handle
+    tensor
+    activation
     convolution
-
+    pooling
+    softmax
+    LRN
+    batchnorm
+    gemm
+    
 
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
