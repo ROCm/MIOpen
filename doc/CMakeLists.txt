@@ -14,11 +14,7 @@ add_doxygen_doc(
     RECURSIVE YES
     GENERATE_XML YES
     GENERATE_LATEX YES
-    AUTOLINK_SUPPORT YES
-    SHOW_INCLUDE_FILES YES
-    SHOW_FILES YES
     USE_PDFLATEX YES
-
 )
 add_sphinx_doc(src 
     BUILDER html 
@@ -29,7 +25,7 @@ add_sphinx_doc(src
     DEPENDS doxygen
 )
 
-add_sphinx_doc(src 
+add_sphinx_latex(src 
     BUILDER latex
     OUTPUT_DIR pdf
     VARS 
