@@ -48,8 +48,8 @@ RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.
 RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
 
 # Install opencl
-RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-dev-1.2.0-1425821_amd64.deb
-RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-1.2.0-1425821_amd64.deb
+RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-dev-1.2.0-1426301_amd64.deb
+RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-1.2.0-1426301_amd64.deb
 RUN dpkg -i --force-all rocm-opencl-*.deb && rm rocm-opencl-*.deb
 
 # Install cget
