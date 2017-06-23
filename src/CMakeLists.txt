@@ -133,7 +133,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 endif()
 
-if(tinygemm_FOUND)
+if(miopengemm_FOUND)
     list(APPEND MIOpen_Source 
         gemm.cpp
         gemm_api.cpp
@@ -212,9 +212,9 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 ############################################################
-# MIOpen depends on tinygemm
-if(tinygemm_FOUND)
-    target_link_libraries( MIOpen PUBLIC tinygemm )
+# MIOpen depends on miopengemm
+if(miopengemm_FOUND)
+    target_link_libraries( MIOpen PUBLIC miopengemm )
 endif()
 
 if(WIN32 AND NOT MSVC)

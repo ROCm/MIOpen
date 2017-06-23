@@ -1,14 +1,12 @@
 #ifndef GUARD_MIOPEN_GEMM_GEOMETRY_HPP_
 #define GUARD_MIOPEN_GEMM_GEOMETRY_HPP_
 
-#include <tinygemm/tinygemm.hpp>
+
+#include <miopengemm/miogemm.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/kernel_cache.hpp>
 
 namespace miopen {
-
-using tinygemm::TinyGemmGeometry;
-using tinygemm::TinyGemmSolution;
 
 struct GemmGeometry {
     std::array<int, 3> dims{}; // m, n, k
@@ -16,19 +14,30 @@ struct GemmGeometry {
     std::string algorithm_name;
     float alpha{};
     float beta{};
-    TinyGemmGeometry tgg{};
+    MIOpenGEMM::Geometry tgg {};
     bool beta_kern_req{};
+    
+    /* jn : if miopengemm returned a beta kernel. 
+     * not the same as beta_kern_req(uired), as 
+     * if beta == 1, beta kernel is returned but
+     * not required.
+     * we still need to know if it was returned,
+     * as the function signature of the main kernel
+     * is then different.
+     * */
+    bool beta_kern_returned{}; 
     std::array<int, 2> beta_kern_args{};
 
     GemmGeometry(){}
-    GemmGeometry(std::array<int, 3> pdims, std::array<int, 3>pstrides, std::string algo_name, float palpha, float pbeta, TinyGemmGeometry ptgg) : 
+    GemmGeometry(std::array<int, 3> pdims, std::array<int, 3>pstrides, std::string algo_name, float palpha, float pbeta, MIOpenGEMM::Geometry ptgg) : 
         dims(pdims), strides(pstrides), algorithm_name(algo_name), alpha(palpha), beta(pbeta), tgg(ptgg) 
     {
         beta_kern_req = false;
+        beta_kern_returned = false;
         beta_kern_args = {{0, 0}};
     }
 
-    void EnableBetaKernel(bool enable, std::map<std::string, size_t> &beta_args);
+    void EnableBetaKernel(bool enable);
 
     void FindSolution(float time,
             Handle          &handle,
