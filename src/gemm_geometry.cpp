@@ -1,4 +1,5 @@
 #include <miopen/gemm_geometry.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
@@ -67,7 +68,7 @@ void GemmGeometry::FindSolution(float time,
     }
     
     /* jn : case where the beta kernel is part of the solution */
-    if(soln.v_tgks.size() == 2 && beta != 1)
+    if(soln.v_tgks.size() == 2 && !miopen::float_equal(beta, 1))
     {      
         std::string beta_program_name = soln.v_tgks[0].kernstr;
         std::string beta_kernel_name = soln.v_tgks[0].fname;
@@ -110,7 +111,7 @@ void GemmGeometry::RunGemm(Handle &handle,
         /* jn : the case where a beta kernel 
          * was returned, but beta = 1 so it is not 
          * needed. Notice: no beta in function sig  */
-        if (beta_kern_returned == true){
+        if (beta_kern_returned){
             handle.GetKernel(algorithm_name, network_config) (a, a_offset, b, b_offset, c, c_offset, alpha);
         }
         else{
