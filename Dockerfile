@@ -21,6 +21,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     clang-tidy-3.8 \
     cmake \
     curl \
+    doxygen \
     g++-mingw-w64 \
     g++-mingw-w64-x86-64 \
     g++-multilib \
@@ -94,6 +95,10 @@ RUN dpkg -i /win-opencl.deb && rm /win-opencl.deb
 
 # Install mingw threads
 RUN cget -p /usr/local/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@master
+
+# Install doc requirements
+ADD doc/requirements.txt /doc-requirements.txt
+RUN pip install -r /doc-requirements.txt
 
 # Setup wine
 RUN mkdir -p /jenkins
