@@ -2,7 +2,7 @@
 #include <miopen/util.hpp>
 #include <miopen/env.hpp>
 
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
 #endif
 
@@ -245,7 +245,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 if (mode == miopenTranspose) {
 	std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
 	size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
 	float time_gemm = 0;
 	GemmGeometry gg = CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, false, network_config);
@@ -282,7 +282,7 @@ if (mode == miopenTranspose) {
 else if(mode == miopenConvolution){
 	std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
     size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
     float time_gemm = 0;
     GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
@@ -502,7 +502,7 @@ if (mode == miopenConvolution) {
             }
 
             std::string network_config;
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
             CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
             GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
@@ -542,7 +542,7 @@ if (mode == miopenConvolution) {
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
         break;
 #endif
         case miopenConvolutionFwdAlgoFFT:
@@ -585,7 +585,7 @@ else if (mode == miopenTranspose) {
 
 	std::string network_config;
 
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
 	CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, false, network_config);
 	GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
 
@@ -678,7 +678,7 @@ if (mode == miopenTranspose) {
 	// GEMM based
 	std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
 	size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
 	float time_gemm = 0;
 	GemmGeometry gg = CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, false, network_config);
@@ -747,7 +747,7 @@ else if (mode == miopenConvolution) {
 	// GEMM based
 	std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
 	size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
 	float time_gemm = 0;
 	GemmGeometry gg = CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, false, network_config);
@@ -910,7 +910,7 @@ if (mode == miopenConvolution) {
             }
 
             std::string network_config;
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
             CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, false, network_config);
             GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
 
@@ -954,7 +954,7 @@ if (mode == miopenConvolution) {
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
         break;
 #endif
 
@@ -1000,7 +1000,7 @@ else if (mode == miopenTranspose) {
 	}
 
 	std::string network_config;
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
 	CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, false, network_config);
 	GemmGeometry gg = GetGemmGeometry("miopenTransposeBwdDataAlgoGEMM", network_config);
 
@@ -1090,7 +1090,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     if (mode == miopenTranspose) {
         std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(dwDesc.GetLengths());
 
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
         GemmGeometry gg = CreateGemmGeometryConvBwdWeights(xDesc, dyDesc, dwDesc, false, network_config);
         workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
         float time_gemm = 0;
@@ -1123,7 +1123,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     else if (mode == miopenConvolution) {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
 
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
         GemmGeometry gg = CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
         workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc);
         float time_gemm = 0;
@@ -1317,7 +1317,7 @@ if (mode == miopenConvolution) {
                     (workSpace == nullptr || workSpaceSize < BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc))) {
                 MIOPEN_THROW("Workspace is required");
             }
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
             CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
             GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdWeightsAlgoGEMM", network_config);
 
@@ -1358,7 +1358,7 @@ if (mode == miopenConvolution) {
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
         break;
 #endif
 
@@ -1423,7 +1423,7 @@ else if (mode == miopenTranspose) {
 		(workSpace == nullptr || workSpaceSize < BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc))) {
 		MIOPEN_THROW("Workspace is required");
 	}
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
 	CreateGemmGeometryConvBwdWeights(xDesc, dyDesc, dwDesc, false, network_config);
 	GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdWeightsAlgoGEMM", network_config);
 
