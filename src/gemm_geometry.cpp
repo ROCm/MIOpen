@@ -38,6 +38,7 @@ void GemmGeometry::FindSolution(float time,
     (void)a;
     (void)b;
     (void)c;
+    (void)enforce_determinism;
     (void)tgg;
     (void)alpha;
     (void)beta;
