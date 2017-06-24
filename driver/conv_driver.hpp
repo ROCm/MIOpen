@@ -779,7 +779,7 @@ if (mode == miopenConvolution) {
 		&wei_n, &wei_c, &wei_h, &wei_w,
 		&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
-#ifdef MIOPEN_USE_TINYGEMM
+#ifdef MIOPEN_USE_MIOPENGEMM
 #ifndef NDEBUG
     if(in_n == 1 && wei_h != 1 && wei_w != 1) {
         // workspace_bwd will be nonzero only if gemm was chosen as the algo
@@ -813,7 +813,7 @@ else if (mode == miopenTranspose) {
 		&wei_c, &wei_n, &wei_h, &wei_w,
 		&wei_cstride, &wei_nstride, &wei_hstride, &wei_wstride);
 
-#ifdef MIOPEN_USE_TINYGEMM
+#ifdef MIOPEN_USE_MIOPENGEMM
 #ifndef NDEBUG
 	if (in_n == 1 && wei_h != 1 && wei_w != 1) {
 		// workspace_bwd will be nonzero only if gemm was chosen as the algo
