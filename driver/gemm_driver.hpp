@@ -147,7 +147,7 @@ int GemmDriver<T>::AllocateBuffersAndCopy() {
 template<typename T>
 int GemmDriver<T>::RunForwardGPU() {
 
-#if MIOPEN_USE_TINYGEMM
+#if MIOPEN_USE_MIOPENGEMM
     miopenGemm(GetHandle(),
             false,              // isDataColMajor
             transA, transB,

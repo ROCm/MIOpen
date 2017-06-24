@@ -70,7 +70,7 @@ void WriteFile(const std::string& content, const std::string& name)
 
 hipModulePtr CreateModule(const std::string& program_name, std::string params, bool is_kernel_str)
 {
-    std::string filename = is_kernel_str ? "tinygemm.cl" : program_name;
+    std::string filename = is_kernel_str ? "tinygemm.cl" : program_name;  // jn : don't know what this is 
     tmp_dir dir{filename};
     std::string bin_file = dir.path(filename) + ".bin";
     std::string hsaco_file = dir.path(filename) + ".o";
