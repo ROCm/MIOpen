@@ -315,16 +315,13 @@ function(add_doxygen_doc)
         file(APPEND ${DOXYGEN_CONFIG_FILE} "\nHAVE_DOT = NO\n")
     endif()
 
-    set(DEPENDS_ARG)
-    if(PARSE_DEPENDS)
-        set(DEPENDS_ARG "DEPENDS ${PARSE_DEPENDS}")
-    endif()
-
     add_custom_target(doxygen
         ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_FILE}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Building documentation with doxygen"
-        ${DEPENDS_ARG}
     )
     mark_as_doc(doxygen)
+    if(PARSE_DEPENDS)
+        add_dependencies(doxygen ${PARSE_DEPENDS})
+    endif()
 endfunction()

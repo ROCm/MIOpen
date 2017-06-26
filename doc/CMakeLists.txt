@@ -57,24 +57,24 @@ if(LATEX_FOUND)
     add_custom_target(delete_export
         COMMAND sed -e s/_EXPORT// -i ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex
         COMMENT "Removing MIOPEN_EXPORT from latex document. ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex"
-        DEPENDS sphinx-LATEX
     )
+    add_dependencies(delete_export sphinx-LATEX)
     mark_as_doc(delete_export)
 
 
     add_custom_target(delete_slashmiopen
         COMMAND sed s/MIOPEN\\// -i ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex
         COMMENT "Removing MIOPEN_EXPORT from latex document. ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex"
-        DEPENDS delete_export
     )
+    add_dependencies(delete_slashmiopen delete_export)
     mark_as_doc(delete_slashmiopen)
 
     add_custom_target(build_pdf
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pdf
         COMMAND make
         COMMENT "Building pdf documentation"
-        DEPENDS delete_slashmiopen
     )
+    add_dependencies(build_pdf delete_slashmiopen)
     mark_as_doc(build_pdf)
 
 else()
