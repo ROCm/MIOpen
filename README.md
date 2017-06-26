@@ -103,6 +103,15 @@ cmake --build . --config Release --target test_tensor
 ./test/test_tensor
 ```
 
+## Building the documentation
+
+HTML and PDF documentation can be built using:
+
+`cmake --build . --config Release --target doc` **OR** `make doc`
+
+This will build a local searchable web site inside the ./doc/html folder and a PDF document inside the ./doc/pdf folder.
+
+
 ## Windows (Not supported)
 
 Only OpenCL backend is functional.

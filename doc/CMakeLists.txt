@@ -2,7 +2,7 @@
 include(SphinxDoc)
 include(DoxygenDoc)
 
-set(DOXYGEN_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/doxygen/output/)
+set(DOXYGEN_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/doxygen/output)
 add_doxygen_doc(
     OUTPUT_DIRECTORY ${DOXYGEN_OUTPUT}
     INPUT 
