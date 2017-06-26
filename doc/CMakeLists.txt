@@ -26,6 +26,23 @@ add_sphinx_doc(src
 )
 
 
+add_custom_target(delete_htmlexport
+    COMMAND sed -e s/_EXPORT// -i ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html
+    COMMENT "Removing MIOPEN_EXPORT from html document. ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html"
+    DEPENDS sphinx-HTML
+)
+mark_as_doc(delete_htmlexport)
+
+
+add_custom_target(delete_htmlslashmiopen
+    COMMAND sed s/MIOPEN\\// -i ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html
+    COMMENT "Removing MIOPEN_EXPORT from html document. ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html"
+    DEPENDS delete_htmlexport
+)
+mark_as_doc(delete_htmlslashmiopen)
+
+
+
 find_package(LATEX)
 if(LATEX_FOUND)
     add_sphinx_doc(src 
