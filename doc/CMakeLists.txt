@@ -25,22 +25,12 @@ add_sphinx_doc(src
     DEPENDS doxygen
 )
 
-
-add_custom_target(delete_htmlexport
-    COMMAND sed -e s/_EXPORT// -i ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html
+add_custom_target(delete_miopenexporthtml
+    COMMAND sed -e s/MIOPEN_EXPORT// -i ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html
     COMMENT "Removing MIOPEN_EXPORT from html document. ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html"
-    DEPENDS sphinx-HTML
 )
-mark_as_doc(delete_htmlexport)
-
-
-add_custom_target(delete_htmlslashmiopen
-    COMMAND sed s/MIOPEN\\// -i ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html
-    COMMENT "Removing MIOPEN_EXPORT from html document. ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html"
-    DEPENDS delete_htmlexport
-)
-mark_as_doc(delete_htmlslashmiopen)
-
+add_dependencies(delete_miopenexporthtml sphinx-HTML)
+mark_as_doc(delete_miopenexporthtml)
 
 
 find_package(LATEX)
