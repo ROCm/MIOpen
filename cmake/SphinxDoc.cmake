@@ -42,12 +42,6 @@ function(add_sphinx_doc SRC_DIR)
         set(SPHINX_${BUILDER}_DIR "${CMAKE_CURRENT_BINARY_DIR}/sphinx/${PARSE_BUILDER}" CACHE PATH "Path to ${PARSE_BUILDER} output")
     endif()
 
-    set(DEPENDS_ARG)
-    if(PARSE_DEPENDS)
-        set(DEPENDS_ARG "DEPENDS ${PARSE_DEPENDS}")
-    endif()
-
-
     add_custom_target(sphinx-${BUILDER}
         ${SPHINX_EXECUTABLE}
         -b ${PARSE_BUILDER}
@@ -57,12 +51,11 @@ function(add_sphinx_doc SRC_DIR)
         "${SPHINX_${BUILDER}_DIR}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Building ${PARSE_BUILDER} documentation with Sphinx"
-        ${DEPENDS_ARG}
     )
     mark_as_doc(sphinx-${BUILDER})
-    foreach(DEPEND ${PARSE_DEPENDS})
-        add_dependencies(sphinx-${BUILDER} ${DEPEND})
-    endforeach()
+    if(PARSE_DEPENDS)
+        add_dependencies(sphinx-${BUILDER} ${PARSE_DEPENDS})
+    endif()
 
 endfunction()
 
