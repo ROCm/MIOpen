@@ -321,5 +321,7 @@ function(add_doxygen_doc)
         COMMENT "Building documentation with doxygen"
     )
     mark_as_doc(doxygen)
-    add_dependencies(doxygen ${PARSE_DEPENDS})
+    if(PARSE_DEPENDS)
+        add_dependencies(doxygen ${PARSE_DEPENDS})
+    endif()
 endfunction()
