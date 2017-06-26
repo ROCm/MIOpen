@@ -53,7 +53,9 @@ function(add_sphinx_doc SRC_DIR)
         COMMENT "Building ${PARSE_BUILDER} documentation with Sphinx"
     )
     mark_as_doc(sphinx-${BUILDER})
-    add_dependencies(sphinx-${BUILDER} ${PARSE_DEPENDS})
+    if(PARSE_DEPENDS)
+        add_dependencies(sphinx-${BUILDER} ${PARSE_DEPENDS})
+    endif()
 
 endfunction()
 
