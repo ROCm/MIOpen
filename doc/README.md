@@ -1,5 +1,5 @@
 
-# [MIOpen, AMD's Deep Learning Library] (https://github.com/ROCmSoftwarePlatform/MIOpen)
+MIOpen, AMD's Deep Learning Library
 
 This folder contains sources for building the documentation. Online documentation can be found at [MIOpen deep learning library page](https://github.com/ROCmSoftwarePlatform/MIOpen)
 
@@ -19,4 +19,4 @@ Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be filled f
 
 `pip install -r ./requirements.txt`
 
-Depending on your setup `sudo` may be required for the pip install
+Depending on your setup `sudo` may be required for the pip install.
