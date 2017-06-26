@@ -119,7 +119,7 @@ Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be filled f
 
 `pip install -r ./requirements.txt`
 
-Depending on your setup `sudo` may be required for the pip install
+Depending on your setup `sudo` may be required for the pip install.
 
 
 ## Windows (Not supported)
