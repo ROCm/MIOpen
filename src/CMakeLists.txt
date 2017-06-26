@@ -159,13 +159,6 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
         )
 endif()
 
-set ( MIOpen_Headers_Public
-	${PROJECT_SOURCE_DIR}/include/miopen/miopen.h
-	${PROJECT_BINARY_DIR}/include/miopen/config.h
-	${PROJECT_BINARY_DIR}/include/miopen/export.h
-	${PROJECT_BINARY_DIR}/include/miopen/version.h
-)
-
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
@@ -187,11 +180,8 @@ endif()
 clang_tidy_check(MIOpen)
 
 target_include_directories(MIOpen PUBLIC 
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
 )
-target_include_directories(MIOpen SYSTEM INTERFACE $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INCLUDE_INSTALL_DIR}>)
 
 generate_export_header(MIOpen
 	EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
@@ -226,26 +216,19 @@ endif()
 
 ############################################################
 # Installation
-include(InstallSymlinks)
-include( CMakePackageConfigHelpers )
+rocm_install_targets(
+  TARGETS MIOpen
+  INCLUDE 
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}/include
+  PREFIX ${MIOPEN_INSTALL_DIR}
+ )
 
-configure_package_config_file(
-  miopen-config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config.cmake
-  INSTALL_DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR}
-  PATH_VARS LIB_INSTALL_DIR INCLUDE_INSTALL_DIR
-)
+rocm_export_targets(
+  TARGETS MIOpen
+  PREFIX ${MIOPEN_INSTALL_DIR}
+ )
 
-write_basic_package_version_file(
-  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config-version.cmake
-  VERSION ${miopen_VERSION}
-  COMPATIBILITY SameMajorVersion
-)
-
-install( FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/miopen-config-version.cmake
-  DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR})
 
 # Install db files
 install(FILES 
@@ -253,13 +236,4 @@ install(FILES
     Kernels/gfx900_64.cd.pdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
-install(TARGETS MIOpen 
-    EXPORT miopen-targets
-    RUNTIME DESTINATION ${BIN_INSTALL_DIR}
-    LIBRARY DESTINATION ${LIB_INSTALL_DIR}
-    ARCHIVE DESTINATION ${LIB_INSTALL_DIR})
-
-install(EXPORT miopen-targets DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR})
-
-install(FILES ${MIOpen_Headers_Public} DESTINATION ${INCLUDE_INSTALL_DIR}/miopen)
-install_symlink_subdir(${MIOPEN_INSTALL_DIR})
+rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
