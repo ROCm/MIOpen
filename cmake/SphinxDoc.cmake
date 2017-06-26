@@ -47,6 +47,7 @@ function(add_sphinx_doc SRC_DIR)
         set(DEPENDS_ARG "DEPENDS ${PARSE_DEPENDS}")
     endif()
 
+
     add_custom_target(sphinx-${BUILDER}
         ${SPHINX_EXECUTABLE}
         -b ${PARSE_BUILDER}
@@ -59,6 +60,9 @@ function(add_sphinx_doc SRC_DIR)
         ${DEPENDS_ARG}
     )
     mark_as_doc(sphinx-${BUILDER})
+    foreach(DEPEND ${PARSE_DEPENDS})
+        add_dependencies(sphinx-${BUILDER} ${DEPEND})
+    endforeach()
 
 endfunction()
 
