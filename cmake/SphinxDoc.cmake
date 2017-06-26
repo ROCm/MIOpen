@@ -52,6 +52,9 @@ function(add_sphinx_doc SRC_DIR)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Building ${PARSE_BUILDER} documentation with Sphinx"
     )
+    clean_doc_output(${SPHINX_${BUILDER}_DIR})
+    clean_doc_output(${SPHINX_CACHE_DIR})
+    clean_doc_output(${BINARY_BUILD_DIR})
     mark_as_doc(sphinx-${BUILDER})
     if(PARSE_DEPENDS)
         add_dependencies(sphinx-${BUILDER} ${PARSE_DEPENDS})

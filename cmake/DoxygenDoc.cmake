@@ -320,6 +320,9 @@ function(add_doxygen_doc)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Building documentation with doxygen"
     )
+    if(PARSE_OUTPUT_DIRECTORY)
+        clean_doc_output(${PARSE_OUTPUT_DIRECTORY})
+    endif()
     mark_as_doc(doxygen)
     if(PARSE_DEPENDS)
         add_dependencies(doxygen ${PARSE_DEPENDS})

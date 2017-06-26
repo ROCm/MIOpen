@@ -1,2 +1,4 @@
 sphinx
 git+https://github.com/arximboldi/breathe@fix-node-parent
+sphinx_rtd_theme
+recommonmark

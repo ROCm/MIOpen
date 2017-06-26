@@ -25,6 +25,13 @@ add_sphinx_doc(src
     DEPENDS doxygen
 )
 
+add_custom_target(delete_miopenexporthtml
+    COMMAND sed -e s/MIOPEN_EXPORT// -i ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html
+    COMMENT "Removing MIOPEN_EXPORT from html document. ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html"
+)
+add_dependencies(delete_miopenexporthtml sphinx-HTML)
+mark_as_doc(delete_miopenexporthtml)
+
 
 find_package(LATEX)
 if(LATEX_FOUND)
