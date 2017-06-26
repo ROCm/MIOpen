@@ -1,5 +1,5 @@
 
-MIOpen, AMD's Deep Learning Library
+# MIOpen, AMD's Deep Learning Library
 
 This folder contains sources for building the documentation. Online documentation can be found at [MIOpen deep learning library page](https://github.com/ROCmSoftwarePlatform/MIOpen)
 
