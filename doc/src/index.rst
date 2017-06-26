@@ -7,22 +7,12 @@ Welcome to MIOpen version 1.0
 =============================
 **Advanced Micro Devices, Inc's open source deep learning library.**
 
-
-* :ref:`genindex`
-
 .. toctree::
     :maxdepth: 4
     :caption: Contents:
 
-    handle
-    tensor
-    activation
-    convolution
-    pooling
-    softmax
-    LRN
-    batchnorm
-    gemm
+    install
+    apireference
     
 
 
