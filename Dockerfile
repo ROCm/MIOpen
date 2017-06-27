@@ -48,10 +48,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
 RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb
 RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
 
-# <<<<<<< HEAD
 # Install opencl
-RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-dev-1.2.0-1426301_amd64.deb
-RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-1.2.0-1426301_amd64.deb
+RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-dev-1.2.0-1426879_amd64.deb
+RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-1.2.0-1426879_amd64.deb
 RUN dpkg -i --force-all rocm-opencl-*.deb && rm rocm-opencl-*.deb
 
 # Add the toolchain
@@ -78,10 +77,10 @@ RUN ln -s $PREFIX $PREFIX/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install dependencies
-RUN cget -p $PREFIX install boost hip clang-ocl tinygemm RadeonOpenCompute/rocm-cmake@master
+RUN cget -p $PREFIX install boost hip clang-ocl tinygemm RadeonOpenCompute/rocm-cmake@cb666a28b261fe63ffbcfcf3fee946b1941df604
 
 # Install windows dependencies
-RUN cget -p $PREFIX/x86_64-w64-mingw32 install boost meganz/mingw-std-threads RadeonOpenCompute/rocm-cmake@master
+RUN cget -p $PREFIX/x86_64-w64-mingw32 install boost meganz/mingw-std-threads RadeonOpenCompute/rocm-cmake@cb666a28b261fe63ffbcfcf3fee946b1941df604
 
 # Install windows opencl
 RUN curl http://$GITLAB1/pfultz/mlopen/uploads/bbab72ad68e65faeee9257b2bb9ca4a1/win-opencl.deb > /win-opencl.deb
