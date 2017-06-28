@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,13 +21,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#include <miopen/tensor_extra.hpp>
+#include "test.hpp"
 #include <array>
 #include <iostream>
-#include "test.hpp"
+#include <miopen/miopen.h>
+#include <miopen/tensor_extra.hpp>
 
 struct tensor_fixture_4
 {
@@ -36,22 +36,11 @@ struct tensor_fixture_4
     tensor_fixture_4()
     {
         miopenCreateTensorDescriptor(&tensor);
-        miopenSet4dTensorDescriptor(
-                tensor,
-                miopenFloat,
-                100,
-                32,
-                8,
-                8);
-        
+        miopenSet4dTensorDescriptor(tensor, miopenFloat, 100, 32, 8, 8);
     }
 
-    ~tensor_fixture_4()
-    {
-        miopenDestroyTensorDescriptor(tensor);
-    }
+    ~tensor_fixture_4() { miopenDestroyTensorDescriptor(tensor); }
 };
-
 
 struct tensor_fixture_n
 {
@@ -61,19 +50,10 @@ struct tensor_fixture_n
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 4> lens = {{100, 32, 8, 8}};
-        miopenSetTensorDescriptor(
-                tensor,
-                miopenFloat,
-                4,
-                lens.data(),
-                nullptr);
-        
+        miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), nullptr);
     }
 
-    ~tensor_fixture_n()
-    {
-        miopenDestroyTensorDescriptor(tensor);
-    }
+    ~tensor_fixture_n() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 struct tensor_fixture_n_strides
@@ -83,24 +63,15 @@ struct tensor_fixture_n_strides
     tensor_fixture_n_strides()
     {
         miopenCreateTensorDescriptor(&tensor);
-        std::array<int, 4> lens = {{100, 32, 8, 8}};
+        std::array<int, 4> lens    = {{100, 32, 8, 8}};
         std::array<int, 4> strides = {{2048, 64, 8, 1}};
-        miopenSetTensorDescriptor(
-                tensor,
-                miopenFloat,
-                4,
-                lens.data(),
-                strides.data());
-        
+        miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), strides.data());
     }
 
-    ~tensor_fixture_n_strides()
-    {
-        miopenDestroyTensorDescriptor(tensor);
-    }
+    ~tensor_fixture_n_strides() { miopenDestroyTensorDescriptor(tensor); }
 };
 
-template<class Fixture>
+template <class Fixture>
 struct tensor_test_suit
 {
     struct get_tensor_4d : Fixture
@@ -113,16 +84,7 @@ struct tensor_test_suit
             miopenDataType_t dt;
 
             miopenGet4dTensorDescriptor(
-                    this->tensor,
-                    &dt,
-                    &n,
-                    &c,
-                    &h,
-                    &w,
-                    &nStride,
-                    &cStride,
-                    &hStride,
-                    &wStride);
+                this->tensor, &dt, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride);
 
             EXPECT(dt == miopenFloat);
             EXPECT(n == 100);
@@ -144,11 +106,7 @@ struct tensor_test_suit
             int nStride, cStride, hStride, wStride;
 
             miopenGet4dTensorDescriptorStrides(
-                    this->tensor,
-                    &nStride,
-                    &cStride,
-                    &hStride,
-                    &wStride);
+                this->tensor, &nStride, &cStride, &hStride, &wStride);
 
             EXPECT(nStride == 32 * cStride);
             EXPECT(cStride == 8 * hStride);
@@ -164,12 +122,7 @@ struct tensor_test_suit
 
             int n, c, h, w;
 
-            miopenGet4dTensorDescriptorLengths(
-                    this->tensor,
-                    &n,
-                    &c,
-                    &h,
-                    &w);
+            miopenGet4dTensorDescriptorLengths(this->tensor, &n, &c, &h, &w);
 
             EXPECT(n == 100);
             EXPECT(c == 32);
@@ -190,11 +143,7 @@ struct tensor_test_suit
             std::array<int, 4> strides;
             miopenDataType_t dt;
 
-            miopenGetTensorDescriptor(
-                    this->tensor,
-                    &dt,
-                    lens.data(),
-                    strides.data());
+            miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), strides.data());
 
             EXPECT(dt == miopenFloat);
 
@@ -220,11 +169,7 @@ struct tensor_test_suit
             std::array<int, 4> lens;
             miopenDataType_t dt;
 
-            miopenGetTensorDescriptor(
-                    this->tensor,
-                    &dt,
-                    lens.data(),
-                    nullptr);
+            miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
 
             EXPECT(dt == miopenFloat);
 
@@ -247,11 +192,7 @@ struct tensor_test_suit
             std::array<int, 4> strides;
             miopenDataType_t dt;
 
-            miopenGetTensorDescriptor(
-                    this->tensor,
-                    &dt,
-                    nullptr,
-                    strides.data());
+            miopenGetTensorDescriptor(this->tensor, &dt, nullptr, strides.data());
 
             EXPECT(dt == miopenFloat);
             EXPECT(lens[0] == 100);
@@ -289,9 +230,9 @@ struct tensor_test_suit
     }
 };
 
-int main() {
+int main()
+{
     tensor_test_suit<tensor_fixture_4>::run_tests();
     tensor_test_suit<tensor_fixture_n>::run_tests();
     tensor_test_suit<tensor_fixture_n_strides>::run_tests();
 }
-
