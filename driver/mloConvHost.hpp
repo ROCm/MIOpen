@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,24 +21,31 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
 /**********************************************************************
 Copyright (c)2016 Advanced Micro Devices, Inc. All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+Redistribution and use in source and binary forms, with or without modification, are permitted
+provided that the following conditions are met:
 
-Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or
+Redistributions of source code must retain the above copyright notice, this list of conditions and
+the following disclaimer.
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions
+and the following disclaimer in the documentation and/or
  other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
- DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+ DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************/
-
 
 #ifndef MLO_CONVHOST_H_
 #define MLO_CONVHOST_H_
@@ -46,28 +53,28 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <cmath>
 #include <iomanip>
 
-template<typename _T>
-double CalcErr( _T c_val, _T g_val)
+template <typename _T>
+double CalcErr(_T c_val, _T g_val)
 {
-	double err = 0;
-	if (sizeof(_T) == 4)
-	{
-		int * c_uval = reinterpret_cast<int *>(&c_val);
-		int * g_uval = reinterpret_cast<int *>(&g_val);
-		err = static_cast<double>(std::abs(*c_uval - *g_uval));
-	}
-	else if (sizeof(_T) == 8)
-	{
-		int64_t * c_uval = reinterpret_cast<int64_t *>(&c_val);
-		int64_t * g_uval = reinterpret_cast<int64_t *>(&g_val);
-		err = static_cast<double>(std::abs(*c_uval - *g_uval));
+    double err = 0;
+    if(sizeof(_T) == 4)
+    {
+        int* c_uval = reinterpret_cast<int*>(&c_val);
+        int* g_uval = reinterpret_cast<int*>(&g_val);
+        err         = static_cast<double>(std::abs(*c_uval - *g_uval));
+    }
+    else if(sizeof(_T) == 8)
+    {
+        int64_t* c_uval = reinterpret_cast<int64_t*>(&c_val);
+        int64_t* g_uval = reinterpret_cast<int64_t*>(&g_val);
+        err             = static_cast<double>(std::abs(*c_uval - *g_uval));
+    }
 
-	}
-
-	//		double delta = abs(c_val - g_val);
-	//	double nextafter_delta = nextafterf(min(abs(c_val), abs(g_val)), (_T)INFINITY) - min(abs(c_val), abs(g_val));
-	//		err = delta / nextafter_delta;
-	return err;
+    //		double delta = abs(c_val - g_val);
+    //	double nextafter_delta = nextafterf(min(abs(c_val), abs(g_val)), (_T)INFINITY) -
+    //min(abs(c_val), abs(g_val));
+    //		err = delta / nextafter_delta;
+    return err;
 }
 
 #if 0 // disable functions
@@ -991,111 +998,112 @@ int mloDirectSPHost(
 
 #endif // disable functions
 
-template<typename _T>
-bool mloVerify(
-	int n_batchs,
-	int n_channels, 
-	int height,
-	int width,
-	int c_batch_stride,
-	int c_channel_stride,
-	int c_stride,
-	int g_batch_stride,
-	int g_channel_stride,
-	int g_stride,
-	const _T *c_ptr,
-	const _T *g_ptr,
-	double eps,
-	double max_abs_diff,
-	double max_sqr,
-	bool get_error_pos
-//	int dir,
-//	std::string name
-	)
+template <typename _T>
+bool mloVerify(int n_batchs,
+               int n_channels,
+               int height,
+               int width,
+               int c_batch_stride,
+               int c_channel_stride,
+               int c_stride,
+               int g_batch_stride,
+               int g_channel_stride,
+               int g_stride,
+               const _T* c_ptr,
+               const _T* g_ptr,
+               double eps,
+               double max_abs_diff,
+               double max_sqr,
+               bool get_error_pos
+               //	int dir,
+               //	std::string name
+               )
 
 {
 
-	double sqr_accum = 0;
-	_T c_val_err = 0, g_val_err = 0;
-	double max_err = max_abs_diff;
-	int max_b = 0, max_c = 0, max_i = 0, max_j = 0;
+    double sqr_accum = 0;
+    _T c_val_err = 0, g_val_err = 0;
+    double max_err = max_abs_diff;
+    int max_b = 0, max_c = 0, max_i = 0, max_j = 0;
 
-	for (int b = 0; b < n_batchs; ++b)
-	{
-		for (int c = 0; c < n_channels; ++c)
-		{
-			for (int j = 0; j < height; ++j)
-			{
-				for (int i = 0; i < width; ++i)
-				{
-					_T c_val = c_ptr[b*c_batch_stride + c*c_channel_stride + j*c_stride + i];
-					_T g_val = g_ptr[b*g_batch_stride + c*g_channel_stride + j*g_stride + i];
+    for(int b = 0; b < n_batchs; ++b)
+    {
+        for(int c = 0; c < n_channels; ++c)
+        {
+            for(int j = 0; j < height; ++j)
+            {
+                for(int i = 0; i < width; ++i)
+                {
+                    _T c_val = c_ptr[b * c_batch_stride + c * c_channel_stride + j * c_stride + i];
+                    _T g_val = g_ptr[b * g_batch_stride + c * g_channel_stride + j * g_stride + i];
 
-					sqr_accum += (c_val - g_val) * (c_val - g_val);
-					double err = std::abs(c_val - g_val);
-					if (err > max_err)
-					{
-						max_err = err;
-						c_val_err = c_val;
-						g_val_err = g_val;
-						max_b = b;
-						max_c = c;
-						max_i = i;
-						max_j = j;
-					}
+                    sqr_accum += (c_val - g_val) * (c_val - g_val);
+                    double err = std::abs(c_val - g_val);
+                    if(err > max_err)
+                    {
+                        max_err   = err;
+                        c_val_err = c_val;
+                        g_val_err = g_val;
+                        max_b     = b;
+                        max_c     = c;
+                        max_i     = i;
+                        max_j     = j;
+                    }
+                }
+            }
+        }
+    }
 
-				}
-			}
-		}
-	}
+    sqr_accum =
+        std::sqrt(sqr_accum / (static_cast<double>(n_batchs * n_channels * height * width)));
 
-	sqr_accum = std::sqrt(sqr_accum / (static_cast<double>(n_batchs * n_channels*height *width)));
+    bool match = true;
 
-	bool match = true;
+    if(sqr_accum > max_sqr || std::isnan(sqr_accum) || !std::isfinite(sqr_accum))
+    {
+        std::cout << "Sqr error : " << std::fixed << std::setw(15) << std::setprecision(13)
+                  << sqr_accum << " Max err: " << std::fixed << std::setw(15)
+                  << std::setprecision(13) << max_err << " at " << max_b << ", " << max_c << ", "
+                  << max_j << ", " << max_i << " c_v = " << std::fixed << std::setw(14)
+                  << std::setprecision(12) << c_val_err << " vs g_v = " << std::fixed
+                  << std::setw(14) << std::setprecision(12) << g_val_err << std::endl;
 
-	if (sqr_accum > max_sqr || std::isnan(sqr_accum) || !std::isfinite(sqr_accum))
-	{
-		std::cout << "Sqr error : " << std::fixed << std::setw(15) << std::setprecision(13) << sqr_accum <<
-			" Max err: " << std::fixed << std::setw(15) << std::setprecision(13) << max_err << " at " << max_b << ", " << max_c << ", " << max_j << ", " << max_i
-			<< " c_v = " << std::fixed << std::setw(14) << std::setprecision(12) << c_val_err
-			<< " vs g_v = " << std::fixed << std::setw(14) << std::setprecision(12) << g_val_err
-			<< std::endl;
+        if(get_error_pos)
+        {
 
+            for(int b = 0; b < n_batchs && match; ++b)
+            {
+                for(int c = 0; c < n_channels && match; ++c)
+                {
+                    for(int j = 0; j < height && match; ++j)
+                    {
+                        for(int i = 0; i < width && match; ++i)
+                        {
+                            _T c_val =
+                                c_ptr[b * c_batch_stride + c * c_channel_stride + j * c_stride + i];
+                            _T g_val =
+                                g_ptr[b * g_batch_stride + c * g_channel_stride + j * g_stride + i];
 
-		if (get_error_pos)
-		{
+                            double err = CalcErr<_T>(c_val, g_val);
+                            if((err > eps && std::abs(c_val - g_val) > max_abs_diff) ||
+                               std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) ||
+                               !std::isfinite(g_val))
+                            {
+                                std::cout << "Difference : " << err << " too large at " << b << ","
+                                          << c << ", " << j << "," << i << " c_v = " << std::fixed
+                                          << std::setw(14) << std::setprecision(12) << c_val
+                                          << " vs g_v = " << std::fixed << std::setw(14)
+                                          << std::setprecision(12) << g_val << std::endl;
+                                match = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-			for (int b = 0; b < n_batchs && match; ++b)
-			{
-				for (int c = 0; c < n_channels && match; ++c)
-				{
-					for (int j = 0; j < height && match; ++j)
-					{
-						for (int i = 0; i < width && match; ++i)
-						{
-							_T c_val = c_ptr[b*c_batch_stride + c*c_channel_stride + j*c_stride + i];
-							_T g_val = g_ptr[b*g_batch_stride + c*g_channel_stride + j*g_stride + i];
-
-
-							double err = CalcErr<_T>(c_val, g_val);
-							if ((err > eps && std::abs(c_val - g_val) > max_abs_diff) || std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) || !std::isfinite(g_val))
-							{
-								std::cout << "Difference : " << err << " too large at " << b << "," << c << ", " << j << "," << i <<
-									" c_v = " << std::fixed << std::setw(14) << std::setprecision(12) << c_val <<
-									" vs g_v = " << std::fixed << std::setw(14) << std::setprecision(12) << g_val << std::endl;
-								match = false;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return(match);
+    return (match);
 }
-
-
-
 
 #endif

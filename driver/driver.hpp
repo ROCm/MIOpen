@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,20 +21,20 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
 #ifndef GUARD_MIOPEN_DRIVER_HPP
 #define GUARD_MIOPEN_DRIVER_HPP
 
-#include <cstdio>
-#include <vector>
-#include <cstdlib>
-#include <miopen/miopen.h>
 #include "InputFlags.hpp"
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <float.h>
 #include <memory>
+#include <miopen/miopen.h>
 #include <numeric>
+#include <vector>
 
 #if MIOPEN_BACKEND_OPENCL
 
@@ -53,113 +53,137 @@
 
 #define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
 
-struct GPUMem {
+struct GPUMem
+{
 
 #if MIOPEN_BACKEND_OPENCL
-	GPUMem() {};
-	GPUMem(cl_context &ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz) {	buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz*sz, NULL, NULL); }
+    GPUMem(){};
+    GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz)
+    {
+        buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, NULL, NULL);
+    }
 
-	int ToGPU(cl_command_queue &q, void *p) { return clEnqueueWriteBuffer(q, buf, CL_TRUE, 0, data_sz*sz, p, 0, NULL, NULL); }
-	int FromGPU(cl_command_queue &q, void *p) { return clEnqueueReadBuffer(q, buf, CL_TRUE, 0, data_sz*sz, p, 0, NULL, NULL); }
+    int ToGPU(cl_command_queue& q, void* p)
+    {
+        return clEnqueueWriteBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, NULL, NULL);
+    }
+    int FromGPU(cl_command_queue& q, void* p)
+    {
+        return clEnqueueReadBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, NULL, NULL);
+    }
 
-	cl_mem GetMem() { return buf; }
-	size_t GetSize() { return sz*data_sz; }
+    cl_mem GetMem() { return buf; }
+    size_t GetSize() { return sz * data_sz; }
 
-	~GPUMem() { clReleaseMemObject(buf); }
+    ~GPUMem() { clReleaseMemObject(buf); }
 
-	cl_mem buf;
-	size_t sz;
-	size_t data_sz;
+    cl_mem buf;
+    size_t sz;
+    size_t data_sz;
 
 #elif MIOPEN_BACKEND_HIP
 
-	GPUMem() {};
-	GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz) {	hipMalloc(static_cast<void**>(&buf), data_sz*sz); }
+    GPUMem(){};
+    GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz)
+    {
+        hipMalloc(static_cast<void**>(&buf), data_sz * sz);
+    }
 
-	int ToGPU(hipStream_t q, void *p) { _q = q; return static_cast<int>(hipMemcpy(buf, p, data_sz*sz, hipMemcpyHostToDevice)); }
-	int FromGPU(hipStream_t q, void *p) { _q = q; return static_cast<int>(hipMemcpy(p, buf, data_sz*sz, hipMemcpyDeviceToHost)); }
+    int ToGPU(hipStream_t q, void* p)
+    {
+        _q = q;
+        return static_cast<int>(hipMemcpy(buf, p, data_sz * sz, hipMemcpyHostToDevice));
+    }
+    int FromGPU(hipStream_t q, void* p)
+    {
+        _q = q;
+        return static_cast<int>(hipMemcpy(p, buf, data_sz * sz, hipMemcpyDeviceToHost));
+    }
 
-	void* GetMem() { return buf; }
-	size_t GetSize() { return sz*data_sz; }
+    void* GetMem() { return buf; }
+    size_t GetSize() { return sz * data_sz; }
 
-	~GPUMem() { hipFree(buf); }
-	hipStream_t _q; // Place holder for opencl context
-	uint32_t _ctx;
-	void* buf;
-	size_t sz;
-	size_t data_sz;
+    ~GPUMem() { hipFree(buf); }
+    hipStream_t _q; // Place holder for opencl context
+    uint32_t _ctx;
+    void* buf;
+    size_t sz;
+    size_t data_sz;
 #endif
 };
 
-[[gnu::noreturn]] void Usage() {
-	printf("Usage: ./driver *base_arg* *other_args*\n");
-	printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, bnorm, gemm\n");
-	exit(0);
+[[gnu::noreturn]] void Usage()
+{
+    printf("Usage: ./driver *base_arg* *other_args*\n");
+    printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, bnorm, gemm\n");
+    exit(0);
 }
 
-std::string ParseBaseArg(int argc, char *argv[]) {
-	if(argc < 2) {
-		printf("Invalid Number of Input Arguments\n");
-		Usage();
-	}
+std::string ParseBaseArg(int argc, char* argv[])
+{
+    if(argc < 2)
+    {
+        printf("Invalid Number of Input Arguments\n");
+        Usage();
+    }
 
-	std::string arg = argv[1];
+    std::string arg = argv[1];
 
-	if(arg != "conv" && arg != "pool" && arg != "lrn" && arg != "activ" && arg != "softmax" && arg != "bnorm" && arg != "gemm") {
-		printf("Invalid Base Input Argument\n");
-		Usage();
-	}
-	else if(arg == "-h" || arg == "--help" || arg == "-?")
-		Usage();
-	else
-		return arg;
+    if(arg != "conv" && arg != "pool" && arg != "lrn" && arg != "activ" && arg != "softmax" &&
+       arg != "bnorm" && arg != "gemm")
+    {
+        printf("Invalid Base Input Argument\n");
+        Usage();
+    }
+    else if(arg == "-h" || arg == "--help" || arg == "-?")
+        Usage();
+    else
+        return arg;
 
-	return 0;
+    return 0;
 }
 
 class Driver
 {
-	public:
-	Driver() {
+    public:
+    Driver()
+    {
 #if MIOPEN_BACKEND_OPENCL
-		miopenCreate(&handle);
+        miopenCreate(&handle);
 #elif MIOPEN_BACKEND_HIP
         hipStream_t s;
         hipStreamCreate(&s);
-        miopenCreateWithStream(&handle,s);
+        miopenCreateWithStream(&handle, s);
 #endif
 
-		miopenGetStream(handle, &q);
-	}
+        miopenGetStream(handle, &q);
+    }
 
-	miopenHandle_t GetHandle() { return handle; }
+    miopenHandle_t GetHandle() { return handle; }
 #if MIOPEN_BACKEND_OPENCL
-	cl_command_queue& GetStream() { return q; }
+    cl_command_queue& GetStream() { return q; }
 #elif MIOPEN_BACKEND_HIP
-	hipStream_t& GetStream() { return q; }
+    hipStream_t& GetStream() { return q; }
 #endif
-	virtual ~Driver() {
-		miopenDestroy(handle);
-	}
+    virtual ~Driver() { miopenDestroy(handle); }
 
-	// TODO: add timing APIs
-	virtual int AddCmdLineArgs() = 0;
-	virtual int ParseCmdLineArgs(int argc, char *argv[]) = 0;
-	virtual InputFlags & GetInputFlags() = 0;
-	virtual int GetandSetData() = 0;
-	virtual int AllocateBuffersAndCopy() = 0;
-	virtual int RunForwardGPU() = 0;
-	virtual int VerifyForward() = 0;
-	virtual int RunBackwardGPU() = 0;
-	virtual int VerifyBackward() = 0;
+    // TODO: add timing APIs
+    virtual int AddCmdLineArgs() = 0;
+    virtual int ParseCmdLineArgs(int argc, char* argv[]) = 0;
+    virtual InputFlags& GetInputFlags()  = 0;
+    virtual int GetandSetData()          = 0;
+    virtual int AllocateBuffersAndCopy() = 0;
+    virtual int RunForwardGPU()          = 0;
+    virtual int VerifyForward()          = 0;
+    virtual int RunBackwardGPU()         = 0;
+    virtual int VerifyBackward()         = 0;
 
-	protected:
-
-	miopenHandle_t handle;
+    protected:
+    miopenHandle_t handle;
 #if MIOPEN_BACKEND_OPENCL
-	cl_command_queue q;
+    cl_command_queue q;
 #elif MIOPEN_BACKEND_HIP
-	hipStream_t q;
+    hipStream_t q;
 #endif
 };
 
