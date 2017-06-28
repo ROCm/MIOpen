@@ -27,6 +27,7 @@
 #include "args.hpp"
 #include "network_data.hpp"
 #include "tensor_holder.hpp"
+#include "test.hpp"
 #include "verify.hpp"
 
 #include <functional>

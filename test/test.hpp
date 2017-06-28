@@ -27,6 +27,9 @@
 #include <cstdio>
 #include <cstdlib>
 
+#ifndef GUARD_TEST_TEST_HPP_
+#define GUARD_TEST_TEST_HPP_
+
 [[gnu::noreturn]] void failed_abort(const char* msg, const char* file, int line)
 {
     printf("FAILED: %s: %s:%i\n", msg, file, line);
@@ -52,3 +55,5 @@ void run_test()
     T t = {};
     t.run();
 }
+
+#endif
