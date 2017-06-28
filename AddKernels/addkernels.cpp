@@ -196,6 +196,7 @@ int main(int argsn, char** args)
             {
                 *target << "#ifndef " << guard << std::endl;
                 *target << "#define " << guard << std::endl;
+                *target << "#include <stddef.h>" << std::endl;
             }
 
             while(++i < argsn)
