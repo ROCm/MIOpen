@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cmath>
 #include <iomanip>
+#include <iostream>
 
 template <typename _T>
 double CalcErr(_T c_val, _T g_val)
