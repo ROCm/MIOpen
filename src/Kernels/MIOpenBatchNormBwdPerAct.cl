@@ -124,9 +124,9 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
         if(inImgIndex < in_cstride)
         {
 
-            adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
-            mean     = savedMean[adjIndex];
-            invVar   = savedInvVariance[adjIndex];
+            adjIndex   = Cidx + inImgIndex; // gamma and beta tensor index
+            mean       = savedMean[adjIndex];
+            invVar     = savedInvVariance[adjIndex];
             pvt_scale  = scale[adjIndex];
             pvt_dscale = 0.;
             pvt_dbias  = 0.;

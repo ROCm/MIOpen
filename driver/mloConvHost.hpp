@@ -72,7 +72,7 @@ double CalcErr(_T c_val, _T g_val)
 
     //		double delta = abs(c_val - g_val);
     //	double nextafter_delta = nextafterf(min(abs(c_val), abs(g_val)), (_T)INFINITY) -
-    //min(abs(c_val), abs(g_val));
+    // min(abs(c_val), abs(g_val));
     //		err = delta / nextafter_delta;
     return err;
 }

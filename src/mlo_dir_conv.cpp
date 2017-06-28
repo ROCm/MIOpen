@@ -1341,7 +1341,7 @@ int mlo_construct_direct2D::mloConstructDirect2D3x3()
     _n_out_pix_tiles = 4;
     int read_unit    = _out_pix_tile0;
     //	std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" +
-    //std::to_string(static_cast<long long>(read_unit));
+    // std::to_string(static_cast<long long>(read_unit));
     // MD: read_unit is never == 1
     std::string READ_TYPE = "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
 

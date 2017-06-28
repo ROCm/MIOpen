@@ -593,7 +593,7 @@ __kernel void BatchNormFwdInferSpatialVariance(const __global _FLOAT* __restrict
     if(ylid == 0)
     {
         unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
-        lm = meanvarbuff[meanstashindex]; // load stashed mean
+        lm                          = meanvarbuff[meanstashindex]; // load stashed mean
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -806,14 +806,14 @@ __kernel void BatchNormFwdInferSpatialMean(const __global _FLOAT* __restrict in,
 
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 
-    _FLOAT mean          = 0.;
-    unsigned int ylid    = get_local_id(1);
-    unsigned int ygrp_id = get_group_id(1);
-    unsigned int xgid    = get_global_id(0);
-    unsigned int ygid    = get_global_id(1);
-    unsigned int ygrp_sz = get_local_size(1);
-    unsigned int index   = 0;
-    unsigned int cidx    = xgid * MIO_BN_HW;
+    _FLOAT mean            = 0.;
+    unsigned int ylid      = get_local_id(1);
+    unsigned int ygrp_id   = get_group_id(1);
+    unsigned int xgid      = get_global_id(0);
+    unsigned int ygid      = get_global_id(1);
+    unsigned int ygrp_sz   = get_local_size(1);
+    unsigned int index     = 0;
+    unsigned int cidx      = xgid * MIO_BN_HW;
     unsigned int meanindex = cidx + ygrp_sz * ygrp_id; // making assumption of n=0 here
 
     // move across the sections of the image mini_batch stack

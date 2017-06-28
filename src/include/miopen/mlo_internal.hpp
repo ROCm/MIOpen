@@ -152,7 +152,7 @@ class mlo_construct_direct2D
         //#endif
         _in_tile0 = (_in_width < 12) ? 8 : 16;  //(_in_width < 12) ? 8 : (_in_width < 24 ||
                                                 //(_in_width > 32 && _in_width < 48)) ? 16 : 32; //
-                                                //size of input data per ALU plane
+                                                // size of input data per ALU plane
         _in_tile1 = (_in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height < 24 ||
                                                 // (_in_height > 32 && _in_height < 48)) ? 16 : 32;
                                                 // // size of input data per ALU plane

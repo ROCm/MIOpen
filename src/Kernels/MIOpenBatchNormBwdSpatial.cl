@@ -338,12 +338,12 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
 #pragma unroll
         for(int hw = 0; hw < MIO_BN_HW; hw++)
         {
-            index   = ygid * MIO_BN_CHW + cidx + hw;
-            elemStd = x_in[index] - mean; // (x_i - mean)
-            xhat    = elemStd * invVar;   // recalculating this again...
-            tmp1    = mad(NHW, dy_in[index], -db);
-            tmp2    = -xhat * ds;
-            tmp3    = (pscale * invVar) * INHW;
+            index         = ygid * MIO_BN_CHW + cidx + hw;
+            elemStd       = x_in[index] - mean; // (x_i - mean)
+            xhat          = elemStd * invVar;   // recalculating this again...
+            tmp1          = mad(NHW, dy_in[index], -db);
+            tmp2          = -xhat * ds;
+            tmp3          = (pscale * invVar) * INHW;
             dx_out[index] = tmp3 * (tmp2 + tmp1); // DEBUG
         }
     }
@@ -761,12 +761,12 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
 #pragma unroll
         for(unsigned int hw = 0; hw < MIO_BN_HW; hw++)
         {
-            index   = ygid * MIO_BN_CHW + cidx + hw;
-            elemStd = x_in[index] - mean; // (x_i - mean)
-            xhat    = elemStd * invVar;   // recalculating this again...
-            tmp1    = mad(NHW, dy_in[index], -db);
-            tmp2    = -xhat * ds;
-            tmp3    = (pscale * invVar) * INHW;
+            index         = ygid * MIO_BN_CHW + cidx + hw;
+            elemStd       = x_in[index] - mean; // (x_i - mean)
+            xhat          = elemStd * invVar;   // recalculating this again...
+            tmp1          = mad(NHW, dy_in[index], -db);
+            tmp2          = -xhat * ds;
+            tmp3          = (pscale * invVar) * INHW;
             dx_out[index] = tmp3 * (tmp2 + tmp1);
         }
     }
@@ -1184,12 +1184,12 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index   = n * MIO_BN_CHW + cidx + ygid;
-            elemStd = lcl_indata[n][ylid] - mean; // (x_i - mean)
-            xhat    = elemStd * invVar;           // recalculating this again...
-            tmp1    = mad(NHW, dy_in[index], -db);
-            tmp2    = -xhat * ds;
-            tmp3    = (pscale * invVar) * INHW;
+            index         = n * MIO_BN_CHW + cidx + ygid;
+            elemStd       = lcl_indata[n][ylid] - mean; // (x_i - mean)
+            xhat          = elemStd * invVar;           // recalculating this again...
+            tmp1          = mad(NHW, dy_in[index], -db);
+            tmp2          = -xhat * ds;
+            tmp3          = (pscale * invVar) * INHW;
             dx_out[index] = tmp3 * (tmp2 + tmp1);
         }
     }
@@ -1428,8 +1428,8 @@ BatchNormBwdSpatialSavedSingleLDSDX(const __global _FLOAT* __restrict x_in,
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index = n * MIO_BN_CHW + idx;
-            xhat = lcl_indata[n][ylid] * invVar; // recalculating this again...
+            index         = n * MIO_BN_CHW + idx;
+            xhat          = lcl_indata[n][ylid] * invVar; // recalculating this again...
             tmp1          = mad(NHW, dy_in[index], -db);
             tmp2          = -xhat * ds;
             tmp3          = (pscale * invVar) * INHW;
@@ -1854,12 +1854,12 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index   = n * MIO_BN_CHW + cidx + ygid;
-            elemStd = x_in[index] - mean; // (x_i - mean)
-            xhat    = elemStd * invVar;   // recalculating this again...
-            tmp1    = mad(NHW, dy_in[index], -db);
-            tmp2    = -xhat * ds;
-            tmp3    = (pscale * invVar) * INHW;
+            index         = n * MIO_BN_CHW + cidx + ygid;
+            elemStd       = x_in[index] - mean; // (x_i - mean)
+            xhat          = elemStd * invVar;   // recalculating this again...
+            tmp1          = mad(NHW, dy_in[index], -db);
+            tmp2          = -xhat * ds;
+            tmp3          = (pscale * invVar) * INHW;
             dx_out[index] = tmp3 * (tmp2 + tmp1);
         }
     }
@@ -2091,8 +2091,8 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index = n * MIO_BN_CHW + idx;
-            xhat = (x_in[index] - mean) * invVar; // recalculating this again...
+            index         = n * MIO_BN_CHW + idx;
+            xhat          = (x_in[index] - mean) * invVar; // recalculating this again...
             tmp1          = mad(NHW, dy_in[index], -db);
             tmp2          = -xhat * ds;
             tmp3          = (pscale * invVar) * INHW;
@@ -2121,9 +2121,9 @@ BatchNormBwdSpatialMean(const __global _FLOAT* __restrict in, __global _FLOAT* _
     unsigned int ygid    = get_global_id(1);
     unsigned int ygrp_sz = get_local_size(1);
     unsigned int index;
-    unsigned int cidx = xgid * MIO_BN_HW;
+    unsigned int cidx      = xgid * MIO_BN_HW;
     unsigned int meanindex = cidx + ygrp_sz * ygrp_id; // making assumption of n=0 here
-    _FLOAT mean = 0.;
+    _FLOAT mean            = 0.;
 
     if(ygid < MIO_BN_HW)
     {
@@ -2505,7 +2505,7 @@ BatchNormBwdSpatialVariance(const __global _FLOAT* __restrict in,
     unsigned int cidx = xgid * MIO_BN_HW;
 
     unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
-    mean = meanvarbuff[meanstashindex]; // load stashed mean
+    mean                        = meanvarbuff[meanstashindex]; // load stashed mean
 
     if(ygid < MIO_BN_HW)
     {
@@ -2757,7 +2757,7 @@ BatchNormBwdSpatialDScale(const __global _FLOAT* x_in,
     if(ylid == 63)
     {
         unsigned int gammaindex = cidx + ygrp_sz * ygrp_id + 4;
-        buff[gammaindex] = dscale; // pre-stage for group reduction
+        buff[gammaindex]        = dscale; // pre-stage for group reduction
     }
 
 #else
@@ -2945,12 +2945,12 @@ BatchNormBwdSpatialDX(const __global _FLOAT* x_in,
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
-            index   = n * MIO_BN_CHW + cidx + ygid;
-            elemStd = x_in[index] - mean; // (x_i - mean)
-            xhat    = elemStd * invVar;   // recalculating this again...
-            tmp1    = mad(NHW, dy_in[index], -dbias);
-            tmp2    = -xhat * dscale;
-            tmp3    = (scale * invVar) / NHW;
+            index         = n * MIO_BN_CHW + cidx + ygid;
+            elemStd       = x_in[index] - mean; // (x_i - mean)
+            xhat          = elemStd * invVar;   // recalculating this again...
+            tmp1          = mad(NHW, dy_in[index], -dbias);
+            tmp2          = -xhat * dscale;
+            tmp3          = (scale * invVar) / NHW;
             dx_out[index] = tmp3 * (tmp2 + tmp1); // DEBUG
         }
     }
@@ -3025,7 +3025,7 @@ BatchNormBwdSpatialSavedDScale(const __global _FLOAT* x_in,
     if(ylid == 63)
     {
         unsigned int gammaindex = cidx + ygrp_sz * ygrp_id;
-        dscalebuff[gammaindex] = dscale; // pre-stage for group reduction
+        dscalebuff[gammaindex]  = dscale; // pre-stage for group reduction
     }
 
 #else
@@ -3366,8 +3366,8 @@ BatchNormBwdSpatialSavedDX(const __global _FLOAT* x_in,
 
     if(get_local_id(1) == 0)
     {
-        lmean = savedMean[xgid];        // load stashed mean
-        livar = savedInvVariance[xgid]; // load stashed inverse variance
+        lmean   = savedMean[xgid];        // load stashed mean
+        livar   = savedInvVariance[xgid]; // load stashed inverse variance
         lscale  = bnScale[xgid];
         ldscale = delta_scale[xgid];
         ldbias  = delta_bias[xgid];
@@ -3387,12 +3387,12 @@ BatchNormBwdSpatialSavedDX(const __global _FLOAT* x_in,
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
-            index   = n * MIO_BN_CHW + cidx + ygid;
-            elemStd = x_in[index] - mean; // (x_i - mean)
-            xhat    = elemStd * invVar;   // recalculating this again...
-            tmp1    = mad(NHW, dy_in[index], -dbias);
-            tmp2    = -xhat * dscale;
-            tmp3    = (scale * invVar) / NHW;
+            index         = n * MIO_BN_CHW + cidx + ygid;
+            elemStd       = x_in[index] - mean; // (x_i - mean)
+            xhat          = elemStd * invVar;   // recalculating this again...
+            tmp1          = mad(NHW, dy_in[index], -dbias);
+            tmp2          = -xhat * dscale;
+            tmp3          = (scale * invVar) / NHW;
             dx_out[index] = tmp3 * (tmp2 + tmp1); // DEBUG
         }
     }

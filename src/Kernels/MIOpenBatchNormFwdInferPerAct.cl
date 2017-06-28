@@ -88,9 +88,9 @@ __kernel void BatchNormFwdInferPerActivationEst(
         inImgIndex = img_offset + ygid;
         if(inImgIndex < in_cstride)
         {
-            adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
-            mean     = estimatedMean[adjIndex];
-            variance = estimatedVariance[adjIndex];
+            adjIndex    = Cidx + inImgIndex; // gamma and beta tensor index
+            mean        = estimatedMean[adjIndex];
+            variance    = estimatedVariance[adjIndex];
             invVariance = rsqrt(fabs(variance + epsilon));
             pvt_scale   = scale[adjIndex];
             pvt_bias    = bias[adjIndex];

@@ -323,17 +323,18 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
     {
 
         //			int hstart = y + lcl_id1 * MLO_LRN_N_VERT_OUT_PIX  + k -
-        //MLO_LRN_PAD1;
+        // MLO_LRN_PAD1;
         //			int hend = min(hstart + MLO_LRN_KERNEL_SZ, MLO_LRN_BOT_HEIGHT +
-        //MLO_LRN_PAD1);
+        // MLO_LRN_PAD1);
 
         for(int l = 0; l < MLO_LRN_N_HORIZ_OUT_PIX; l++)
         {
 
             //				int wstart = x + lcl_id0 * MLO_LRN_N_HORIZ_OUT_PIX + l -
-            //MLO_LRN_PAD0;
-            //				int wend = min(wstart + MLO_LRN_KERNEL_SZ, MLO_LRN_BOT_WIDTH +
-            //MLO_LRN_PAD0);
+            // MLO_LRN_PAD0;
+            //				int wend = min(wstart + MLO_LRN_KERNEL_SZ, MLO_LRN_BOT_WIDTH
+            //+
+            // MLO_LRN_PAD0);
             //				int adj_area_size = (hend - hstart) * (wend - wstart);
             //				adj_alphaoverarea = alpha / adj_area_size;
 
@@ -451,7 +452,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         bot_in2[c_i] = prv_in * prv_in;
         accum        = accum + bot_in2[c_i];
         //				fma(bot_in[c_i + MLO_LRN_PAD], bot_in[c_i + MLO_LRN_PAD],
-        //accum);
+        // accum);
     }
 
     for(; c_i < MLO_LRN_KERNEL_SZ
