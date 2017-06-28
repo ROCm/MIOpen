@@ -9,6 +9,19 @@ parallel opencl: {
                 make tidy
             '''
         }
+        stage('Clang Format') {
+            sh '''
+                find . -iname \'*.h\' \
+                    -o -iname \'*.hpp\' \
+                    -o -iname \'*.cpp\' \
+                    -o -iname \'*.h.in\' \
+                    -o -iname \'*.hpp.in\' \
+                    -o -iname \'*.cpp.in\' \
+                    -o -iname \'*.cl\' \
+                | grep -v 'build/' \
+                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'
+            '''
+        }
         stage('Clang Debug') {
             cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
         }
