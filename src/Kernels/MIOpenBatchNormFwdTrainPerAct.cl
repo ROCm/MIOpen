@@ -128,7 +128,7 @@ __kernel void BatchNormFwdTrainPerActivation(
         if(inImgIndex < in_cstride)
         {
             mean_accum = 0.;
-            adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
+            adjIndex   = Cidx + inImgIndex; // gamma and beta tensor index
 
 #pragma unroll
             for(unsigned int n = 0; n < MIO_BN_N; n++)

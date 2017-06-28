@@ -114,7 +114,7 @@
 #define MLO_IN_LCL_WIDTH                                              \
     ((MLO_IN_TILE0 + MLO_FILTER_SIZE0 - 1 + MLO_FILTER_STRIDE0 - 1) / \
      MLO_FILTER_STRIDE0) // here we use kernel size. it's important when padding == 0  2*
-                         // MLO_FILTER_PAD0
+// MLO_FILTER_PAD0
 #define MLO_IN_LCL_HEIGHT \
     ((MLO_IN_TILE1 + MLO_FILTER_SIZE1 - 1 + MLO_FILTER_STRIDE1 - 1) / MLO_FILTER_STRIDE1)
 #endif

@@ -88,9 +88,8 @@
 #endif
 
 // number of loops to flush put full output map
-#define MLO_N_OUT_BLKS \
-    1 //((MLO_OUT_HEIGHT + (MLO_OUT_PIX_TILE1*MLO_N_OUT_FOLDS1) -1) /
-      //(MLO_OUT_PIX_TILE1*MLO_N_OUT_FOLDS1))
+#define MLO_N_OUT_BLKS 1 //((MLO_OUT_HEIGHT + (MLO_OUT_PIX_TILE1*MLO_N_OUT_FOLDS1) -1) /
+                         //(MLO_OUT_PIX_TILE1*MLO_N_OUT_FOLDS1))
 
 #define MLO_HW_WAVE_ID_SETTING 1
 
@@ -113,7 +112,7 @@ __attribute__((always_inline)) uint getWaveId()
     wave_id = __llvm_amdgcn_readfirstlane((uint)(get_local_id(0) >> MLO_LG2_WAVE_SZ));
 // Alternate implementation:
 //__asm__ ("v_readfirstlane_b32 %0, %1" : "=s" (wave_id) : "v" ((uint)(get_local_id(0) >>
-//MLO_LG2_WAVE_SZ)) );
+// MLO_LG2_WAVE_SZ)) );
 
 #elif MLO_HW_WAVE_ID_SETTING
     // FIXME Conduct enabling from the host code.
@@ -278,11 +277,13 @@ __attribute__((always_inline)) void fetchData(uint f_s,
                 {
                     in_rd_data[i] = bot_p[i];
                 }
-                //								for (; i < MLO_READ_UNIT;
+                //								for (; i <
+                //MLO_READ_UNIT;
                 //++i)
                 //								{
-                //									in_rd_data[i] =
-                //0;
+                //									in_rd_data[i]
+                //=
+                // 0;
                 //								}
             }
             else
@@ -579,7 +580,8 @@ MIOpenCvFwd11x11(const __global _FLOAT* __restrict bot,
 
         } // c
 
-        //			for (int bb = 0; bb < MLO_N_LCL_BATCHS && ex_row < MLO_OUT_EXTENT1 &&
+        //			for (int bb = 0; bb < MLO_N_LCL_BATCHS && ex_row < MLO_OUT_EXTENT1
+        //&&
         //(out_y + ex_row) < MLO_OUT_HEIGHT; ++bb)
         {
             for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
@@ -673,11 +675,13 @@ __attribute__((always_inline)) void fetchData2(uint ib,
                 {
                     in_rd_data[i] = bot_p[i];
                 }
-                //								for (; i < MLO_READ_UNIT;
+                //								for (; i <
+                //MLO_READ_UNIT;
                 //++i)
                 //								{
-                //									in_rd_data[i] =
-                //0;
+                //									in_rd_data[i]
+                //=
+                // 0;
                 //								}
             }
             else

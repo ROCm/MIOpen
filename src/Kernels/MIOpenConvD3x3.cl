@@ -69,7 +69,7 @@ static inline int getWaveId()
     wave_id = __llvm_amdgcn_readfirstlane((uint)(get_local_id(0) >> MLO_LG2_WAVE_SZ));
 // Alternate implementation:
 //__asm__ ("v_readfirstlane_b32 %0, %1" : "=s" (wave_id) : "v" ((int)(get_local_id(0) >>
-//MLO_LG2_WAVE_SZ)) );
+// MLO_LG2_WAVE_SZ)) );
 #else
     wave_id = (get_local_id(0) >> MLO_LG2_WAVE_SZ);
 #endif
@@ -95,9 +95,9 @@ static inline int getLocalIds(int* lcl_id1, int* lcl_id0)
 {
     int lcl_wave_id = getWaveLocalId();
     int wave_id     = getWaveId();
-    int lcl_id = (wave_id << MLO_LG2_WAVE_SZ) + lcl_wave_id; // get_local_id(0);
-    *lcl_id1   = (lcl_id >> MLO_LG2ALU_EXTENT_X);
-    *lcl_id0   = lcl_id - ((*lcl_id1) << MLO_LG2ALU_EXTENT_X);
+    int lcl_id      = (wave_id << MLO_LG2_WAVE_SZ) + lcl_wave_id; // get_local_id(0);
+    *lcl_id1        = (lcl_id >> MLO_LG2ALU_EXTENT_X);
+    *lcl_id0        = lcl_id - ((*lcl_id1) << MLO_LG2ALU_EXTENT_X);
     return (lcl_id);
 }
 

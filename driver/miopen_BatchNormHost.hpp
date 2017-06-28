@@ -677,7 +677,7 @@ int miopenBNFwdInferSpatialRunHost(
                         index = in_nstride * bidx + adjIndex;
                         // per (x-dims) channel load a block of data into LDS
                         // elemStd = in_ptr[index] - mean_accum;// (x_i - mean)
-                        elemStd = out_ptr[index]; // using saved values from output tensor
+                        elemStd      = out_ptr[index]; // using saved values from output tensor
                         double inhat = elemStd * invertVar;
                         // #5 Gamma and Beta adjust
                         // y_i = gamma*x_hat + beta

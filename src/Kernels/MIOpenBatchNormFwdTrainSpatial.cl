@@ -1246,9 +1246,9 @@ BatchNormFwdTrainSpatialFinalVariance(__global _FLOAT* __restrict varbuff,
         // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
         // right:: (1 - p)*(b/b-1)*var(n) = (1 - p)*adjust = -p*adjust + adjust
         // var(n+1) = (p* var(n-1)) +  (-p*adjust + adjust)
-        _FLOAT NHW          = (_FLOAT)MIO_BN_NHW;
-        const _FLOAT adjust = (MIO_BN_NHW == 1) ? variance : variance * (NHW / (NHW - 1));
-        const _FLOAT rtmp   = mad((_FLOAT)-expAvgFactor, adjust, adjust);
+        _FLOAT NHW                  = (_FLOAT)MIO_BN_NHW;
+        const _FLOAT adjust         = (MIO_BN_NHW == 1) ? variance : variance * (NHW / (NHW - 1));
+        const _FLOAT rtmp           = mad((_FLOAT)-expAvgFactor, adjust, adjust);
         resultRunningVariance[xgid] = mad((_FLOAT)expAvgFactor, resultRunningVariance[xgid], rtmp);
 #endif
     }

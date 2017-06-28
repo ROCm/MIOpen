@@ -93,13 +93,13 @@
 #define MIOPEN_PP_PRIMITIVE_TRANSFORM_ARGS(                                                       \
     m, delim, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, ...)          \
     MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m, x0)                                                      \
-    MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim, x1) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(               \
-        m, x1) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim, x2) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m,  \
-                                                                                              x2) \
-        MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim, x3) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(           \
-            m, x3) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim,                                       \
-                                                     x4) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m, x4) \
-            MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim, x5) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m, x5) \
+    MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim, x1)                                                  \
+    MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m, x1) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(                   \
+        delim,                                                                                    \
+        x2) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m, x2) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim, x3) \
+        MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m, x3) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim, x4)     \
+            MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m, x4) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(           \
+                delim, x5) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m, x5)                               \
                 MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim, x6) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(   \
                     m, x6) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(delim, x7)                           \
                     MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(m, x7) MIOPEN_PP_PRIMITIVE_TRANSFORM_ARG(   \

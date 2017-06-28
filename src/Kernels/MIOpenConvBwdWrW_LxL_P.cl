@@ -478,7 +478,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
                 } //	for (uint oo_p4 = lcl_id; oo_p4 <
                   //(MLO_N_LCL_OUT_MAPS*MLO_N_ALIGNED_OUT_SCAN_BLK*MLO_N_OUT_HORIZ_READS); oo_p4 +=
-                  //MLO_GRP_SZ)
+                  // MLO_GRP_SZ)
 
                 barrier(CLK_LOCAL_MEM_FENCE);
 
