@@ -39,6 +39,12 @@
 #include <numeric>
 #include <vector>
 
+#ifdef MIOPEN_BACKEND_HIP
+#ifndef CL_SUCCESS
+#define CL_SUCCESS 0
+#endif
+#endif
+
 template <typename T>
 class ActivationDriver : public Driver
 {
