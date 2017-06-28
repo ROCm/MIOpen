@@ -131,7 +131,7 @@ option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( BUILD_DEV "Build for development only" OFF)
 
-set( MIOPEN_INSTALL_DIR miopen-${PROJECT_VERSION})
+set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 
 if(BUILD_DEV)
