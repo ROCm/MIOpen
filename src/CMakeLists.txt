@@ -208,7 +208,7 @@ target_include_directories(MIOpen PUBLIC
 )
 
 generate_export_header(MIOpen
-	EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
+    EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
 ############################################################
 # MIOpen depends on OpenCL
@@ -218,11 +218,11 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     target_link_libraries( MIOpen PUBLIC ${OPENCL_LIBRARIES} )
     set(BACKEND_PACKAGE "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-	target_link_libraries( MIOpen PRIVATE hip::hip_hcc ${hcc_LIBRARIES} )
-	target_link_libraries( MIOpen INTERFACE hip::hip_hcc )
-	# This is helpful for the tests
-	target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:${hip_LIBRARIES}> )
-	set(BACKEND_PACKAGE "hip")
+    target_link_libraries( MIOpen PRIVATE hip::hip_hcc ${hcc_LIBRARIES} )
+    target_link_libraries( MIOpen INTERFACE hip::hip_hcc )
+    # This is helpful for the tests
+    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:${hip_LIBRARIES}> )
+    set(BACKEND_PACKAGE "hip")
 endif()
 
 ############################################################
