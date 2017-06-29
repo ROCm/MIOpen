@@ -121,3 +121,16 @@ Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be filled f
 
 Depending on your setup `sudo` may be required for the pip install.
 
+## Formatting the code
+
+All the code is formatted using clang-format. To format a file, use:
+
+```
+clang-format-3.8 -style=file -i <path-to-source-file>
+```
+
+Also, githooks can be installed to format the code per-commit:
+
+```
+./.githooks/install
+```
