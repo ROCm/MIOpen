@@ -81,7 +81,6 @@ set( MIOpen_Source
     include/miopen/oclkernel.hpp
     include/miopen/tensor.hpp
     include/miopen/tensor_ops.hpp
-    include/miopenTypes.h
     include/miopen/pooling.hpp
     include/miopen/lrn.hpp
     include/miopen/activ.hpp
