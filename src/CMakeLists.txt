@@ -210,24 +210,32 @@ target_include_directories(MIOpen PUBLIC
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
+set(PACKAGE_DEPENDS)
 ############################################################
 # MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     MESSAGE( STATUS "MIOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
     target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
     target_link_libraries( MIOpen PUBLIC ${OPENCL_LIBRARIES} )
+    list(APPEND PACKAGE_DEPENDS PACKAGE OpenCL)
     set(BACKEND_PACKAGE "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::hip_hcc ${hcc_LIBRARIES} )
     target_link_libraries( MIOpen INTERFACE hip::hip_hcc )
+    if(ENABLE_HIP_WORKAROUNDS)
+        # Workaround hip not setting its usage requirements correctly
+        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
+    endif()
     # This is helpful for the tests
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:${hip_LIBRARIES}> )
+    list(APPEND PACKAGE_DEPENDS PACKAGE hip)
     set(BACKEND_PACKAGE "hip")
 endif()
 
 ############################################################
 # MIOpen depends on miopengemm
 if(miopengemm_FOUND)
+    list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
     target_link_libraries( MIOpen PUBLIC miopengemm )
 endif()
 
@@ -251,6 +259,7 @@ rocm_install_targets(
 rocm_export_targets(
   TARGETS MIOpen
   PREFIX ${MIOPEN_INSTALL_DIR}
+  DEPENDS ${PACKAGE_DEPENDS}
  )
 
 
