@@ -52,7 +52,7 @@ function(add_kernels KERNEL_FILES)
         list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
     endforeach()
     string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
-    configure_file(Kernels/kernel.cpp.in ${PROJECT_BINARY_DIR}/kernel.cpp)
+    configure_file(kernels/kernel.cpp.in ${PROJECT_BINARY_DIR}/kernel.cpp)
 endfunction()
 
 set( MIOpen_Source
@@ -92,44 +92,44 @@ set( MIOpen_Source
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNELS
-        Kernels/MIOpenBatchNormFwdTrainSpatial.cl
-        Kernels/MIOpenBatchNormFwdTrainPerAct.cl
-        Kernels/MIOpenBatchNormFwdInferSpatial.cl
-        Kernels/MIOpenBatchNormFwdInferPerAct.cl
-        Kernels/MIOpenBatchNormBwdSpatial.cl
-        Kernels/MIOpenBatchNormBwdPerAct.cl
-        Kernels/MIOpenConvDirUni.cl
-        Kernels/MIOpenConvDirGenFwd.cl
-        Kernels/MIOpenLRNBwd.cl
-        Kernels/MIOpenLRNFwd.cl
-        Kernels/MIOpenNeuron.cl
-        Kernels/MIOpenPooling.cl
-        Kernels/MIOpenPoolingBwd.cl
-        Kernels/MIOpenConvDirUniC.cl        
-        Kernels/MIOpenConv1x1.cl
-        Kernels/MIOpenSoftmax.cl
-        Kernels/MIOpenConvD3x3.cl
-        Kernels/MIOpenUtilKernels.cl
-        Kernels/MIOpenUtilKernels2.cl
-        Kernels/MIOpenConvBwdWrWS2.cl
-        Kernels/MIOpenConvBwdWrW_LxG_P53.cl
-        Kernels/MIOpenConvBwdWrW_LxG_5x5.cl
-        Kernels/MIOpenConvBwdWrW1x1.cl
-        Kernels/MIOpenConvBwdWrW1x1Mmap.cl
-        Kernels/MIOpenConvFwd_LxL_11.cl
-        Kernels/MIOpenConvFFT.cl
-        Kernels/conv3x3.s
-        Kernels/conv3x3wrw.s
-        Kernels/conv5x10u2v2f1.s
-        Kernels/conv5x10u2v2b1.s
-        Kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
-        Kernels/MIOpenTensorKernels.cl
-        Kernels/MIOpenTensorScaleKernel.cl
-        Kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900.so
-        Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
-        Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
-        Kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
-        Kernels/MIOpenConvBwdBias.cl)
+        kernels/MIOpenBatchNormFwdTrainSpatial.cl
+        kernels/MIOpenBatchNormFwdTrainPerAct.cl
+        kernels/MIOpenBatchNormFwdInferSpatial.cl
+        kernels/MIOpenBatchNormFwdInferPerAct.cl
+        kernels/MIOpenBatchNormBwdSpatial.cl
+        kernels/MIOpenBatchNormBwdPerAct.cl
+        kernels/MIOpenConvDirUni.cl
+        kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenLRNBwd.cl
+        kernels/MIOpenLRNFwd.cl
+        kernels/MIOpenNeuron.cl
+        kernels/MIOpenPooling.cl
+        kernels/MIOpenPoolingBwd.cl
+        kernels/MIOpenConvDirUniC.cl        
+        kernels/MIOpenConv1x1.cl
+        kernels/MIOpenSoftmax.cl
+        kernels/MIOpenConvD3x3.cl
+        kernels/MIOpenUtilKernels.cl
+        kernels/MIOpenUtilKernels2.cl
+        kernels/MIOpenConvBwdWrWS2.cl
+        kernels/MIOpenConvBwdWrW_LxG_P53.cl
+        kernels/MIOpenConvBwdWrW_LxG_5x5.cl
+        kernels/MIOpenConvBwdWrW1x1.cl
+        kernels/MIOpenConvBwdWrW1x1Mmap.cl
+        kernels/MIOpenConvFwd_LxL_11.cl
+        kernels/MIOpenConvFFT.cl
+        kernels/conv3x3.s
+        kernels/conv3x3wrw.s
+        kernels/conv5x10u2v2f1.s
+        kernels/conv5x10u2v2b1.s
+        kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
+        kernels/MIOpenTensorKernels.cl
+        kernels/MIOpenTensorScaleKernel.cl
+        kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900.so
+        kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
+        kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
+        kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
+        kernels/MIOpenConvBwdBias.cl)
     
     add_kernels("${MIOPEN_KERNELS}")
     configure_file(db.cpp.in ${PROJECT_BINARY_DIR}/db.cpp)
@@ -256,8 +256,8 @@ rocm_export_targets(
 
 # Install db files
 install(FILES 
-    Kernels/gfx803_64.cd.pdb.txt
-    Kernels/gfx900_64.cd.pdb.txt
+    kernels/gfx803_64.cd.pdb.txt
+    kernels/gfx900_64.cd.pdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
