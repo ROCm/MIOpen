@@ -78,12 +78,17 @@ else()
     set(WINE_CMD)
 endif()
 
+option(ENABLE_HIP_WORKAROUNDS Off)
+if(ENABLE_HIP_WORKAROUNDS)
+    # Add these to CMAKE_PREFIX_PATH to workaround installation problems with hip and hcc
+    list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hcc /opt/rocm/hip)
+endif()
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
-find_package(miopengemm)
+find_package(miopengemm PATHS /opt/rocm)
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
