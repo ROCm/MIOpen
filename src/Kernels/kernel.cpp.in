@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,38 +21,35 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
+#include "miopen_kernels.h"
+#include <algorithm>
+#include <map>
 #include <miopen/kernel.hpp>
 #include <miopen/stringutils.hpp>
-#include <map>
-#include <algorithm>
-#include "miopen_kernels.h"
 
 namespace miopen {
 
 const std::map<std::string, std::string>& kernels()
 {
-    static const std::map<std::string, std::string> data{
-    	${INIT_KERNELS}
-    };
+    static const std::map<std::string, std::string> data{${INIT_KERNELS}};
     return data;
 }
-
 
 std::string GetKernelSrc(std::string name)
 {
     // Use the base name of the string
-    int start = 0;
+    int start  = 0;
     auto slash = name.find_last_of("/\\");
-    if (slash != std::string::npos)
+    if(slash != std::string::npos)
     {
         start = slash + 1;
     }
 
     int len = name.size();
     auto ex = name.rfind('.');
-    if (ex != std::string::npos)
+    if(ex != std::string::npos)
     {
         len = ex - start;
     }
@@ -62,7 +59,8 @@ std::string GetKernelSrc(std::string name)
     std::transform(key.begin(), key.end(), key.begin(), ::toupper);
 
     auto it = kernels().find(key);
-    if (it == kernels().end()) MIOPEN_THROW("Failed to load kernel source: " + key);
+    if(it == kernels().end())
+        MIOPEN_THROW("Failed to load kernel source: " + key);
 
     return it->second;
 }

@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
 
 #ifndef GUARD_MIOPEN_TEST_NETWORK_DATA_HPP
@@ -37,13 +37,17 @@
 
 int pick_batch_size(int x, int y)
 {
-    if (y == 0) return 1;
-    else if (y > x) return 1;
-    else return x / y;
+    if(y == 0)
+        return 1;
+    else if(y > x)
+        return 1;
+    else
+        return x / y;
 }
 
-std::set<std::vector<int>> get_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
+    // clang-format off
     return 
     {
         { pick_batch_size(100, n), 19,   1024,2048},
@@ -120,11 +124,12 @@ std::set<std::vector<int>> get_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTO
         { pick_batch_size(32, n),  1024, 7,   7   },
         { pick_batch_size(32, n),  2048, 11,  11  }
     };
+    // clang-format on
 }
 
-
-std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+std::set<std::vector<int>> get_weights(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
+    // clang-format off
     return 
     {
         { pick_batch_size(1024, n),1024, 3,  3  },
@@ -236,10 +241,12 @@ std::set<std::vector<int>> get_weights(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACT
         { pick_batch_size(128, n), 1024, 1,  1  },
         { pick_batch_size(512, n), 2048, 1,  1  }
     };
+    // clang-format on
 }
 
-std::set<std::vector<int>> get_bn_peract_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+std::set<std::vector<int>> get_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
+    // clang-format off
     return 
     {
         { pick_batch_size(32, n),  4,    1024,2048}, //Making this much smaller
@@ -283,10 +290,12 @@ std::set<std::vector<int>> get_bn_peract_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_
         { pick_batch_size(32, n),  480,  128, 256 },
         { pick_batch_size(32, n),  528,  64,  128 }
     };
+    // clang-format on
 }
 
-std::set<std::vector<int>> get_bn_spatial_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+std::set<std::vector<int>> get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
+    // clang-format off
     return 
     {
         { pick_batch_size(32, n),  4,    1024,2048}, //Making this much smaller
@@ -331,5 +340,6 @@ std::set<std::vector<int>> get_bn_spatial_inputs(int n=MIOPEN_TEST_DEFAULT_BATCH
         { pick_batch_size(32, n),  480,  128, 256 },
         { pick_batch_size(32, n),  528,  64,  128 }
     };
+    // clang-format on
 }
 #endif
