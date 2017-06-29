@@ -13,6 +13,6 @@ API Reference
     convolution
     pooling
     softmax
-    LRN
+    lrn
     batchnorm
     gemm
