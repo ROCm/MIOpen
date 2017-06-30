@@ -25,10 +25,10 @@
  *******************************************************************************/
 
 #include <chrono>
-#include <hip/hip_hcc.h>
 #include <miopen/errors.hpp>
 #include <miopen/hipoc_kernel.hpp>
 #include <thread>
+#include <hip/hip_hcc.h>
 
 namespace miopen {
 
