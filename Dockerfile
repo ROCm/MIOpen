@@ -53,42 +53,48 @@ RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/ro
 RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-1.2.0-1426879_amd64.deb
 RUN dpkg -i --force-all rocm-opencl-*.deb && rm rocm-opencl-*.deb
 
-# Add the toolchain
-ADD cmake/mingw-toolchain.cmake $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
-
 # Install cget
 RUN pip install cget
 
-# Add rocm recipes
-RUN cget -p $PREFIX install http://$GITLAB1/pfultz/roc-recipes/repository/archive.tar.gz?ref=master -DGITLAB1=$GITLAB1
-
-# Add rocm recipes for windows
+# Add the windows toolchain
+ADD cmake/mingw-toolchain.cmake $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
-RUN cget -p $PREFIX/x86_64-w64-mingw32 install http://$GITLAB1/pfultz/roc-recipes/repository/archive.tar.gz?ref=master -DGITLAB1=$GITLAB1
 
 # Build hcc
-RUN cget -p $PREFIX install hcc
+RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b hcc-roc-1.5.x /hcc && \
+    git clone --depth 1 https://github.com/RadeonOpenCompute/hcc-clang-upgrade.git -b hcc-roc-1.5.x /hcc/clang && \
+    git clone --depth 1 https://github.com/RadeonOpenCompute/clang-tools-extra.git -b hcc-roc-1.5.x /hcc/clang/tools/extra && \
+    git clone --depth 1 https://github.com/RadeonOpenCompute/llvm.git -b amd-hcc-roc-1.5.x /hcc/compiler && \
+    git clone --depth 1 https://github.com/RadeonOpenCompute/compiler-rt.git -b hcc-roc-1.5.x /hcc/compiler-rt && \
+    git clone --depth 1 https://github.com/RadeonOpenCompute/lld.git -b hcc-roc-1.5.x /hcc/lld && \
+    git clone --depth 1 https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git -b hcc-roc-1.5.x /hcc/rocdl && \
+    cget -p $PREFIX install /hcc && rm -rf /hcc
 
-# Not needed by miopen, but it helps downstream applications
-RUN ln -s $PREFIX $PREFIX/hip
-RUN ln -s $PREFIX $PREFIX/hcc
+# This is a workaround for broken installations
+RUN ln -s $PREFIX /opt/rocm/hip
+RUN ln -s $PREFIX /opt/rocm/hcc
 
 # Build using hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
+# Install hip
+RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@roc-1.5.0
+
 # Install dependencies
-RUN cget -p $PREFIX install boost hip clang-ocl tinygemm RadeonOpenCompute/rocm-cmake@cb666a28b261fe63ffbcfcf3fee946b1941df604
-
-# Install windows dependencies
-RUN cget -p $PREFIX/x86_64-w64-mingw32 install boost meganz/mingw-std-threads RadeonOpenCompute/rocm-cmake@cb666a28b261fe63ffbcfcf3fee946b1941df604
-
-# Install windows opencl
-RUN curl http://$GITLAB1/pfultz/mlopen/uploads/bbab72ad68e65faeee9257b2bb9ca4a1/win-opencl.deb > /win-opencl.deb
-RUN dpkg -i /win-opencl.deb && rm /win-opencl.deb
+ADD dev-requirements.txt /dev-requirements.txt
+RUN cget -p $PREFIX install -f /dev-requirements.txt
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
 RUN pip install -r /doc-requirements.txt
+
+# Install windows dependencies
+RUN cget -p $PREFIX/x86_64-w64-mingw32 install RadeonOpenCompute/rocm-cmake@cb666a28b261fe63ffbcfcf3fee946b1941df604
+RUN cget -p $PREFIX/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@dad05201ad4e096c5d1b2043081f412aeb8f5efb
+
+# Install windows opencl
+RUN curl http://$GITLAB1/pfultz/mlopen/uploads/bbab72ad68e65faeee9257b2bb9ca4a1/win-opencl.deb > /win-opencl.deb
+RUN dpkg -i /win-opencl.deb && rm /win-opencl.deb
 
 # Setup wine
 RUN mkdir -p /jenkins
