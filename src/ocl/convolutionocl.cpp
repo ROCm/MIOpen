@@ -303,6 +303,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                     pad_w,
                                     u,
                                     v,
+                                    dilation_h,
+                                    dilation_w,
                                     wei_n,
                                     out_h,
                                     out_w,
@@ -357,6 +359,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                     pad_w,
                                     v,
                                     u,
+                                    dilation_h,
+                                    dilation_w,
                                     workSpace);
 
             gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
@@ -600,6 +604,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                               pad_w,
                               v,
                               u,
+                              dilation_h,
+                              dilation_w,
                               workSpace);
                     if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
@@ -708,6 +714,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                           pad_w,
                           u,
                           v,
+                          dilation_h,
+                          dilation_w,
                           wei_n,
                           out_h,
                           out_w,
@@ -832,6 +840,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                     pad_w,
                                     v,
                                     u,
+                                    dilation_h,
+                                    dilation_w,
                                     workSpace);
 
             gg.FindSolution(.003, handle, w, workSpace, tmp_dx.get(), false);
@@ -923,6 +933,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                     pad_w,
                                     u,
                                     v,
+                                    dilation_h,
+                                    dilation_w,
                                     in_c,
                                     in_h,
                                     in_w,
@@ -1121,6 +1133,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                               pad_w,
                               u,
                               v,
+                              dilation_h,
+                              dilation_w,
                               in_c,
                               in_h,
                               in_w,
@@ -1229,6 +1243,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                           pad_w,
                           v,
                           u,
+                          dilation_h,
+                          dilation_w,
                           workSpace);
                 if(handle.IsProfilingEnabled())
                     t1 = handle.GetKernelTime();
@@ -1350,6 +1366,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                     pad_w,
                                     v,
                                     u,
+                                    dilation_h,
+                                    dilation_w,
                                     workSpace);
 
             gg.FindSolution(.003, handle, workSpace, x, tmp_dw.get(), false);
@@ -1402,6 +1420,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                     pad_w,
                                     v,
                                     u,
+                                    dilation_h,
+                                    dilation_w,
                                     workSpace);
 
             gg.FindSolution(.003, handle, workSpace, dy, tmp_dw.get(), false);
@@ -1634,6 +1654,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                               pad_w,
                               v,
                               u,
+                              dilation_h,
+                              dilation_w,
                               workSpace);
                     if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
@@ -1770,6 +1792,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                           pad_w,
                           v,
                           u,
+                          dilation_h,
+                          dilation_w,
                           workSpace);
 
                 if(handle.IsProfilingEnabled())
