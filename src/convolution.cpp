@@ -120,14 +120,14 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
     if(mode == miopenTranspose)
     {
         output_c = filter_c;
-        output_h = std::max(1, u * (input_h - 1) + filter_h - 2 * pad_h);
-        output_w = std::max(1, v * (input_w - 1) + filter_w - 2 * pad_w);
+        output_h = std::max(1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1) - 2 * pad_h);
+        output_w = std::max(1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1) - 2 * pad_w);
     }
     else
     {
         output_c = filter_k;
-        output_h = std::max(1, (input_h - filter_h + 2 * pad_h) / u + 1);
-        output_w = std::max(1, (input_w - filter_w + 2 * pad_w) / v + 1);
+        output_h = std::max(1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
+        output_w = std::max(1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
     }
 
     return std::make_tuple(input_n, output_c, output_h, output_w);
