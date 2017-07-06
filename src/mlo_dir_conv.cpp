@@ -1029,8 +1029,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdC()
         _pad1 = _kernel_size1 - 1 - _pad1;
     }
 
-    int in_tile0 = std::min(_out_width, _in_tile0);
-    int in_tile1 = std::min(_out_height, _in_tile1);
+    int in_tile0 = std::max(8, std::min(_out_width, _in_tile0));
+    int in_tile1 = std::max(8, std::min(_out_height, _in_tile1));
 
     int alu_tile0 = (in_tile0 + _out_pix_tile0 - 1) / _out_pix_tile0;
     int alu_tile1 = (in_tile1 + _out_pix_tile1 - 1) / _out_pix_tile1;
