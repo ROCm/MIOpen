@@ -305,10 +305,10 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
 {
 
     miopenConvolutionMode_t mode;
-    int pad_h = inflags.GetValueInt("pad_h");
-    int pad_w = inflags.GetValueInt("pad_w");
-    int u     = inflags.GetValueInt("conv_stride_0");
-    int v     = inflags.GetValueInt("conv_stride_1");
+    int pad_h      = inflags.GetValueInt("pad_h");
+    int pad_w      = inflags.GetValueInt("pad_w");
+    int u          = inflags.GetValueInt("conv_stride_0");
+    int v          = inflags.GetValueInt("conv_stride_1");
     int dilation_h = inflags.GetValueInt("dilation_h");
     int dilation_w = inflags.GetValueInt("dilation_w");
     if((inflags.GetValueStr("mode")) == "conv")
@@ -325,7 +325,8 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    return miopenInitConvolutionDescriptor(convDesc, mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    return miopenInitConvolutionDescriptor(
+        convDesc, mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
 }
 
 template <typename T>
@@ -621,7 +622,8 @@ int ConvDriver<T>::RunForwardCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+    miopenGetConvolutionDescriptor(
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(mode == miopenConvolution)
     {
@@ -937,7 +939,8 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+    miopenGetConvolutionDescriptor(
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(mode == miopenConvolution)
     {
@@ -1162,7 +1165,8 @@ int ConvDriver<T>::RunBackwardDataCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+    miopenGetConvolutionDescriptor(
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(mode == miopenConvolution)
     {
