@@ -1,6 +1,7 @@
 FROM ubuntu:16.04
 
 ARG PREFIX=/opt/rocm
+ARG REPO_RADEON=repo.radeon.com
 ARG GITLAB1=10.236.13.205
 ARG ARTIFACTORY=172.27.226.104
 
@@ -9,8 +10,8 @@ RUN dpkg --add-architecture i386
 
 # Add rocm repository
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl apt-utils wget
-RUN wget -qO - http://repo.radeon.com/rocm/apt/debian/rocm.gpg.key | apt-key add - && \
-    sh -c 'echo deb [arch=amd64] http://repo.radeon.com/rocm/apt/debian/ xenial main > /etc/apt/sources.list.d/rocm.list'
+RUN wget -O - http://$REPO_RADEON/rocm/apt/debian/rocm.gpg.key | apt-key add - && \
+    sh -c 'echo deb [arch=amd64] http://$REPO_RADEON/rocm/apt/debian/ xenial main > /etc/apt/sources.list.d/rocm.list'
 
 # Install dependencies required to build hcc
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
@@ -38,6 +39,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python \
     python-dev \
     python-pip \
+    rocm-opencl \
+    rocm-opencl-dev \
     software-properties-common \
     wget \
     wine \
@@ -48,11 +51,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
 # Install an init system
 RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb
 RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
-
-# Install opencl
-RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-dev-1.2.0-1426879_amd64.deb
-RUN wget http://$ARTIFACTORY/artifactory/list/deb-experimental-local/amd/rocm/rocm-opencl-1.2.0-1426879_amd64.deb
-RUN dpkg -i --force-all rocm-opencl-*.deb && rm rocm-opencl-*.deb
 
 # Install cget
 RUN pip install cget
