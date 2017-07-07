@@ -87,7 +87,7 @@ def rocmtest(variant, body) {
         }
         stage("image ${variant}")
         {
-            docker.build("${image}", "--build-arg PREFIX=/usr/local .")
+            docker.build("${image}", "--build-arg PREFIX=/usr/local --build-arg REPO_RADEON=10.255.8.5 .")
         }
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
