@@ -186,6 +186,9 @@ enable_clang_tidy(
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
+        -hicpp-explicit-conversions
+        -hicpp-special-member-functions
+        -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order
         -misc-macro-parentheses
