@@ -100,8 +100,9 @@ kernel void Im2Col(const int data_size_off,
     int witem_ch = lid / THREADS_PER_CH;
 
     int im_lid = lid;
-    while(im_lid < NUM_CH_PER_WG*h*w ){
-        local_im[im_lid] = IM_OFF_GUARD((gid*NUM_CH_PER_WG)*h*w + im_lid);
+    while(im_lid < NUM_CH_PER_WG * h * w)
+    {
+        local_im[im_lid] = IM_OFF_GUARD((gid * NUM_CH_PER_WG) * h * w + im_lid);
         im_lid += 256;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
