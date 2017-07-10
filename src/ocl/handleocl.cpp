@@ -336,9 +336,11 @@ Handle::Handle() : impl(new HandleImpl())
     impl->context = impl->create_context();
     /* First, get the size of device list data */
     cl_uint deviceListSize;
-    if(clGetContextInfo(
-           impl->context.get(), CL_CONTEXT_NUM_DEVICES, sizeof(cl_uint), &deviceListSize, nullptr) !=
-       CL_SUCCESS)
+    if(clGetContextInfo(impl->context.get(),
+                        CL_CONTEXT_NUM_DEVICES,
+                        sizeof(cl_uint),
+                        &deviceListSize,
+                        nullptr) != CL_SUCCESS)
     {
         MIOPEN_THROW("Error: Getting Handle Info (device list size, clGetContextInfo)");
     }
