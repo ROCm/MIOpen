@@ -58,17 +58,23 @@ float Im2ColGPU(Handle& handle,
     else
         num_ch_per_wg = 1;
 
-    int tile_sz_x    = 32;
-    int tile_sz_y    = 8;
-    int num_blks_x   = std::ceil(static_cast<float>(out_w) / tile_sz_x);
-    int num_blks     = num_blks_x * std::ceil(static_cast<float>(out_h) / tile_sz_y);
-    int local_mem_sz = std::max(
-        num_ch_per_wg * ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) * stride_w +
-                         (wei_w - 1) * dilation_w + 1) *
-            ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1),
-        num_ch_per_wg * ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
-            ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) * stride_h +
-             (wei_h - 1) * dilation_h + 1));
+    int tile_sz_x  = 32;
+    int tile_sz_y  = 8;
+    int num_blks_x = std::ceil(static_cast<float>(out_w) / tile_sz_x);
+    int num_blks   = num_blks_x * std::ceil(static_cast<float>(out_h) / tile_sz_y);
+    int local_mem_sz;
+    if(num_ch_per_wg == 1)
+        local_mem_sz = ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                       ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
+    else
+        local_mem_sz = std::max(
+            num_ch_per_wg *
+                ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) * stride_w +
+                 (wei_w - 1) * dilation_w + 1) *
+                ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1),
+            num_ch_per_wg * ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) * stride_h +
+                 (wei_h - 1) * dilation_h + 1));
     int data_size_off = data_size - im_offset;
 
     params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
