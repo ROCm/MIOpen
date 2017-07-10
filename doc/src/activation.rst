@@ -10,6 +10,13 @@ miopenActivationMode_t
 
 .. doxygenenum::  miopenActivationMode_t
 
+
+miopenCreateActivationDescriptor
+--------------------------------
+
+.. doxygenfunction::  miopenCreateActivationDescriptor
+
+
 miopenSetActivationDescriptor
 -----------------------------
 
