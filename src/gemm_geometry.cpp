@@ -45,7 +45,7 @@ void GemmGeometry::FindSolution(
     bool miopengemm_verbose = false;
 
     // jn : print warning messages when the returned kernel(s) might be sub-optimal
-    bool miopengemm_warnings = true;
+    bool miopengemm_warnings = false;
 
     /* jn : using a simple version of find, without using any workspace for gemm  */
     MIOpenGEMM::Solution soln = MIOpenGEMM::find(time,
