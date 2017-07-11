@@ -111,6 +111,8 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     
     find_package(hip REQUIRED PATHS /opt/rocm)
     link_libraries(stdc++)
+    # A hack to make this work without the device enumerator
+    link_libraries(-amdgpu-target=gfx803 -Wno-unused-command-line-argument)
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
@@ -200,6 +202,7 @@ enable_clang_tidy(
         -modernize-use-default-member-init
         -modernize-use-emplace
         -modernize-use-equals-default
+        -modernize-use-transparent-functors
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-else-after-return
