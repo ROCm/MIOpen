@@ -254,6 +254,8 @@ int ConvDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
+    inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)", "int");
+    inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
 
     return 0;
 }
@@ -303,10 +305,12 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
 {
 
     miopenConvolutionMode_t mode;
-    int pad_h = inflags.GetValueInt("pad_h");
-    int pad_w = inflags.GetValueInt("pad_w");
-    int u     = inflags.GetValueInt("conv_stride_0");
-    int v     = inflags.GetValueInt("conv_stride_1");
+    int pad_h      = inflags.GetValueInt("pad_h");
+    int pad_w      = inflags.GetValueInt("pad_w");
+    int u          = inflags.GetValueInt("conv_stride_0");
+    int v          = inflags.GetValueInt("conv_stride_1");
+    int dilation_h = inflags.GetValueInt("dilation_h");
+    int dilation_w = inflags.GetValueInt("dilation_w");
     if((inflags.GetValueStr("mode")) == "conv")
     {
         mode = miopenConvolution;
@@ -321,7 +325,8 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    return miopenInitConvolutionDescriptor(convDesc, mode, pad_h, pad_w, u, v, 1, 1);
+    return miopenInitConvolutionDescriptor(
+        convDesc, mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
 }
 
 template <typename T>
@@ -615,9 +620,10 @@ int ConvDriver<T>::RunForwardCPU()
                                 &out_hstride,
                                 &out_wstride);
 
-    int u, v, pad_h, pad_w, upx, upy;
+    int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+    miopenGetConvolutionDescriptor(
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(mode == miopenConvolution)
     {
@@ -647,12 +653,12 @@ int ConvDriver<T>::RunForwardCPU()
                         { // in_channels (RGB)
                             for(int x = 0; x < wei_h; x++)
                             {
-                                int in_x = in_off_h - pad_h + x;
+                                int in_x = in_off_h - pad_h + x * dilation_h;
                                 if(in_x >= 0 && in_x < in_h)
                                 {
                                     for(int y = 0; y < wei_w; y++)
                                     {
-                                        int in_y = in_off_w - pad_w + y;
+                                        int in_y = in_off_w - pad_w + y * dilation_w;
                                         if(in_y >= 0 && in_y < in_w)
                                         {
                                             acc += in[o * in_nstride + k * in_cstride +
@@ -698,12 +704,12 @@ int ConvDriver<T>::RunForwardCPU()
                             int out_off_w = j * u;
                             for(int x = 0; x < wei_h; x++)
                             {
-                                int out_x = out_off_h - pad_h + x;
+                                int out_x = out_off_h - pad_h + x * dilation_h;
                                 if(out_x >= 0 && out_x < out_h)
                                 {
                                     for(int y = 0; y < wei_w; y++)
                                     {
-                                        int out_y = out_off_w - pad_w + y;
+                                        int out_y = out_off_w - pad_w + y * dilation_w;
                                         if(out_y >= 0 && out_y < out_w)
                                         {
                                             outhost[o * out_nstride + k * out_cstride +
@@ -931,9 +937,10 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
                                 &out_hstride,
                                 &out_wstride);
 
-    int u, v, pad_h, pad_w, upx, upy;
+    int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+    miopenGetConvolutionDescriptor(
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(mode == miopenConvolution)
     {
@@ -1018,7 +1025,9 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
                                     u,
                                     v,
                                     pad_h,
-                                    pad_w);
+                                    pad_w,
+                                    dilation_h,
+                                    dilation_w);
     }
     else if(mode == miopenTranspose)
     {
@@ -1103,7 +1112,9 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
                                     u,
                                     v,
                                     pad_h,
-                                    pad_w);
+                                    pad_w,
+                                    dilation_h,
+                                    dilation_w);
     }
 
     if(inflags.GetValueInt("dump_output"))
@@ -1152,9 +1163,10 @@ int ConvDriver<T>::RunBackwardDataCPU()
                                 &out_hstride,
                                 &out_wstride);
 
-    int u, v, pad_h, pad_w, upx, upy;
+    int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &upx, &upy);
+    miopenGetConvolutionDescriptor(
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(mode == miopenConvolution)
     {
@@ -1183,12 +1195,12 @@ int ConvDriver<T>::RunBackwardDataCPU()
                             int in_off_w = j * u;
                             for(int x = 0; x < wei_h; x++)
                             {
-                                int in_x = in_off_h - pad_h + x;
+                                int in_x = in_off_h - pad_h + x * dilation_h;
                                 if(in_x >= 0 && in_x < in_h)
                                 {
                                     for(int y = 0; y < wei_w; y++)
                                     {
-                                        int in_y = in_off_w - pad_w + y;
+                                        int in_y = in_off_w - pad_w + y * dilation_w;
                                         if(in_y >= 0 && in_y < in_w)
                                         {
                                             din_host[o * in_nstride + k * in_cstride +
@@ -1235,12 +1247,12 @@ int ConvDriver<T>::RunBackwardDataCPU()
                         { // out_channels (RGB)
                             for(int x = 0; x < wei_h; x++)
                             {
-                                int out_x = out_off_h - pad_h + x;
+                                int out_x = out_off_h - pad_h + x * dilation_h;
                                 if(out_x >= 0 && out_x < out_h)
                                 {
                                     for(int y = 0; y < wei_w; y++)
                                     {
-                                        int out_y = out_off_w - pad_w + y;
+                                        int out_y = out_off_w - pad_w + y * dilation_w;
                                         if(out_y >= 0 && out_y < out_w)
                                         {
                                             acc += dout[o * out_nstride + k * out_cstride +
