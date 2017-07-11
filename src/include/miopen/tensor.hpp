@@ -91,7 +91,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     std::vector<int> lens;
     std::vector<int> strides;
 
-    miopenDataType_t type;
+    miopenDataType_t type=miopenFloat;
 };
 
 } // namespace miopen
