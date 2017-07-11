@@ -42,6 +42,16 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
                                      void* C,
                                      int ldc)
 {
+
+    // JN make column major
+    if(!isDataColMajor)
+    {
+        std::swap(M, N);
+        std::swap(lda, ldb);
+        std::swap(A, B);
+        isDataColMajor = true;
+    }
+
     return miopen::try_([&] {
         miopen::GemmGeometry gg =
             miopen::CreateMIOpenGemmGeometry(M,
