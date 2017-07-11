@@ -60,7 +60,7 @@ endif()
 
 ############################################################
 # require C++11
-add_compile_options(-std=gnu++11)
+add_compile_options(-std=gnu++14)
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -188,6 +188,7 @@ enable_clang_tidy(
         -google-runtime-references
         -hicpp-explicit-conversions
         -hicpp-special-member-functions
+        -hicpp-use-equals-default
         -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order

@@ -83,12 +83,12 @@ struct OCLSetKernelArg
 
 struct OCLKernelInvoke
 {
-    cl_command_queue queue;
-    SharedKernelPtr kernel;
-    size_t work_dim;
-    std::array<size_t, 3> global_work_offset;
-    std::array<size_t, 3> global_work_dim;
-    std::array<size_t, 3> local_work_dim;
+    cl_command_queue queue=nullptr;
+    SharedKernelPtr kernel=nullptr;
+    size_t work_dim=0;
+    std::array<size_t, 3> global_work_offset={};
+    std::array<size_t, 3> global_work_dim={};
+    std::array<size_t, 3> local_work_dim={};
     std::function<void(cl_event&)> callback;
 
     template <class... Ts>
