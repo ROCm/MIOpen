@@ -152,10 +152,10 @@ class Pipe
     }
 
     private:
-    int _sides[2]={};
+    int _sides[2] = {};
 
-    bool _read_side_closed=false;
-    bool _write_side_closed=false;
+    bool _read_side_closed  = false;
+    bool _write_side_closed = false;
 
     static void CloseSide(int fd, bool& closed)
     {

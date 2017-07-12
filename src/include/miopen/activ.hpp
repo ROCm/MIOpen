@@ -71,7 +71,7 @@ struct ActivationDescriptor : miopenActivationDescriptor
     private:
     std::vector<double> parms;
 
-    miopenActivationMode_t mode=miopenActivationPATHTRU;
+    miopenActivationMode_t mode = miopenActivationPATHTRU;
 };
 
 } // namespace miopen
