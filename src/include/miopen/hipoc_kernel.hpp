@@ -57,7 +57,7 @@ struct KernelArgsPair
         new(buffer) T(x);
         new(buffer + second_index) U(y);
     }
-    char buffer[second_index + sizeof(U)]={};
+    char buffer[second_index + sizeof(U)] = {};
 };
 #else
 template <class T, class U>
@@ -115,28 +115,29 @@ struct KernelArgs
             hidden[i] = 0;
     }
     KernelArgsPack<Ts...> pack;
-    uint64_t hidden[6]={};
+    uint64_t hidden[6] = {};
 };
 
 struct HIPOCKernelInvoke
 {
-    hipStream_t stream=nullptr;
-    hipFunction_t fun=nullptr;
-    std::array<size_t, 3> ldims={};
-    std::array<size_t, 3> gdims={};
+    hipStream_t stream = nullptr;
+    hipFunction_t fun  = nullptr;
+    std::array<size_t, 3> ldims = {};
+    std::array<size_t, 3> gdims = {};
     std::string name;
     std::function<void(hipEvent_t, hipEvent_t)> callback;
 
     // Workaround for aggregate types in c++11
     HIPOCKernelInvoke() {}
-    HIPOCKernelInvoke(hipStream_t pstream, hipFunction_t pfun, std::array<size_t, 3> pldims, std::array<size_t, 3> pgdims, std::string pname, std::function<void(hipEvent_t, hipEvent_t)> pcallback)
-    : stream(pstream),
-        fun(pfun),
-        ldims(pldims),
-        gdims(pgdims),
-        name(pname),
-        callback(pcallback)
-        {}
+    HIPOCKernelInvoke(hipStream_t pstream,
+                      hipFunction_t pfun,
+                      std::array<size_t, 3> pldims,
+                      std::array<size_t, 3> pgdims,
+                      std::string pname,
+                      std::function<void(hipEvent_t, hipEvent_t)> pcallback)
+        : stream(pstream), fun(pfun), ldims(pldims), gdims(pgdims), name(pname), callback(pcallback)
+    {
+    }
 
     template <class... Ts>
     void operator()(Ts... xs) const
@@ -154,10 +155,10 @@ struct HIPOCKernel
 {
     HIPOCProgram program;
     std::string name;
-    std::array<size_t, 3> ldims={};
-    std::array<size_t, 3> gdims={};
+    std::array<size_t, 3> ldims = {};
+    std::array<size_t, 3> gdims = {};
     std::string kernel_module;
-    hipFunction_t fun=nullptr;
+    hipFunction_t fun = nullptr;
 
     HIPOCKernel() {}
     HIPOCKernel(HIPOCProgram p,
