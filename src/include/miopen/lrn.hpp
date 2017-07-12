@@ -75,7 +75,7 @@ struct LRNDescriptor : miopenLRNDescriptor
     unsigned int lrnN = 0;
     std::vector<double> parms;
 
-    miopenLRNMode_t mode=miopenLRNWithinChannel;
+    miopenLRNMode_t mode = miopenLRNWithinChannel;
 };
 
 } // namespace miopen
