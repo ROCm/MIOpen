@@ -224,7 +224,7 @@ int LRNDriver<T>::AllocateBuffersAndCopy()
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
@@ -297,7 +297,7 @@ int LRNDriver<T>::RunForwardGPU()
                      outputTensor,
                      out_dev->GetMem(),
                      (inflags.GetValueInt("forw") == 0) ? true : false,
-                     (inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : NULL);
+                     (inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : nullptr);
 
     Timer t;
     START_TIME;
@@ -313,7 +313,7 @@ int LRNDriver<T>::RunForwardGPU()
                          outputTensor,
                          out_dev->GetMem(),
                          (inflags.GetValueInt("forw") == 0) ? true : false,
-                         (inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : NULL);
+                         (inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : nullptr);
     }
 
     if(inflags.GetValueInt("time") == 1)
