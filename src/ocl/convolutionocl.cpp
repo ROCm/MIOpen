@@ -373,60 +373,69 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
 
-    if(dilation_h==1&&dilation_w==1)
-    {
-        // Winograd algo
-        float time_wino = 0;
-        WinogradKernelParams k_p;
-        KernelInvoke kernel_wino;
-        if(FindWinogradKernel(handle, xDesc, wDesc, yDesc, k_p, kernel_wino, 1) == 0)
-        { // TODO: be more graceful
-            // Execute the winograd kernel
-            int flags        = 0;
-            int reserved     = 0;
-            int* return_addr = nullptr;
-            int N, C, H, W, K, n_groups;
-            std::tie(N, C, H, W, K, n_groups) = k_p;
-            kernel_wino(N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
-
-            time_wino = handle.GetKernelTime();
-            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoWinograd", time_wino, 0});
-        }
-
-        // Direct algo
-        float time_direct = 0;
-        std::vector<KernelInvoke> kernel_direct;
-        if(FindDirectKernel(handle, xDesc, wDesc, yDesc, kernel_direct, exhaustiveSearch, 1) == 0)
-        { // Forward
-
-            // Execute the direct kernel
-            float padding_val = 0;
-            for(auto& k : kernel_direct)
-            {
-                k(x, w, tmp_y.get(), padding_val);
-                time_direct += handle.GetKernelTime();
-            }
-
-            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoDirect", time_direct, 0});
-        }
-
-        // FFT algo
-        float time_fft = 0;
-        std::vector<KernelInvoke> kernels_fft;
-        size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
-        if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, workspace_fft, kernels_fft) == 0)
+        if(dilation_h == 1 && dilation_w == 1)
         {
-            (void)kernels_fft; // not used now, but needed as fft coverage widens
-            if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+            // Winograd algo
+            float time_wino = 0;
+            WinogradKernelParams k_p;
+            KernelInvoke kernel_wino;
+            if(FindWinogradKernel(handle, xDesc, wDesc, yDesc, k_p, kernel_wino, 1) == 0)
+            { // TODO: be more graceful
+                // Execute the winograd kernel
+                int flags        = 0;
+                int reserved     = 0;
+                int* return_addr = nullptr;
+                int N, C, H, W, K, n_groups;
+                std::tie(N, C, H, W, K, n_groups) = k_p;
+                kernel_wino(
+                    N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
+
+                time_wino = handle.GetKernelTime();
+                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoWinograd", time_wino, 0});
+            }
+
+            // Direct algo
+            float time_direct = 0;
+            std::vector<KernelInvoke> kernel_direct;
+            if(FindDirectKernel(handle, xDesc, wDesc, yDesc, kernel_direct, exhaustiveSearch, 1) ==
+               0)
+            { // Forward
+
+                // Execute the direct kernel
+                float padding_val = 0;
+                for(auto& k : kernel_direct)
+                {
+                    k(x, w, tmp_y.get(), padding_val);
+                    time_direct += handle.GetKernelTime();
+                }
+
+                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoDirect", time_direct, 0});
+            }
+
+            // FFT algo
+            float time_fft = 0;
+            std::vector<KernelInvoke> kernels_fft;
+            size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+            if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, workspace_fft, kernels_fft) == 0)
             {
-                time_fft = ExecuteFwdFFTKernel(
-                    handle, xDesc, x, wDesc, w, yDesc, tmp_y.get(), workSpace, workSpaceSize, true);
-                perf_db.push_back(
-                    PerfField{"miopenConvolutionFwdAlgoFFT", time_fft, workspace_fft});
+                (void)kernels_fft; // not used now, but needed as fft coverage widens
+                if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+                {
+                    time_fft = ExecuteFwdFFTKernel(handle,
+                                                   xDesc,
+                                                   x,
+                                                   wDesc,
+                                                   w,
+                                                   yDesc,
+                                                   tmp_y.get(),
+                                                   workSpace,
+                                                   workSpaceSize,
+                                                   true);
+                    perf_db.push_back(
+                        PerfField{"miopenConvolutionFwdAlgoFFT", time_fft, workspace_fft});
+                }
             }
         }
-    }
-
     }
 
     if(perf_db.empty())
@@ -861,46 +870,48 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
     else if(mode == miopenConvolution)
     {
-    if(dilation_h==1&&dilation_w==1)
-    {
-        // Winograd algo
-        WinogradKernelParams k_p;
-        KernelInvoke kernel_wino;
-        if(FindWinogradKernel(handle, dxDesc, wDesc, dyDesc, k_p, kernel_wino, 0) == 0)
-        { // TODO: be more graceful
-            float time_wino = 0;
-            // Execute the winograd kernel
-            static const int F_REVERSE_R = 1 << 0; // Reverse indexing of r, r -> R-1-r if set.
-            static const int F_REVERSE_S = 1 << 1; // Reverse indexing of s, s -> S-1-s if set.
-            static const int F_FLIP_K_C  = 1 << 2; // The <filter_addr> to be interpreted as float F
-                                                   // [C][K][3][3] instead of float F [K][C][3][3].
-            int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
-            int reserved     = 0;
-            int* return_addr = nullptr;
-            int N, C, H, W, K, n_groups;
-            std::tie(N, C, H, W, K, n_groups) = k_p;
-            kernel_wino(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
+        if(dilation_h == 1 && dilation_w == 1)
+        {
+            // Winograd algo
+            WinogradKernelParams k_p;
+            KernelInvoke kernel_wino;
+            if(FindWinogradKernel(handle, dxDesc, wDesc, dyDesc, k_p, kernel_wino, 0) == 0)
+            { // TODO: be more graceful
+                float time_wino = 0;
+                // Execute the winograd kernel
+                static const int F_REVERSE_R = 1 << 0; // Reverse indexing of r, r -> R-1-r if set.
+                static const int F_REVERSE_S = 1 << 1; // Reverse indexing of s, s -> S-1-s if set.
+                static const int F_FLIP_K_C =
+                    1 << 2; // The <filter_addr> to be interpreted as float F
+                            // [C][K][3][3] instead of float F [K][C][3][3].
+                int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+                int reserved     = 0;
+                int* return_addr = nullptr;
+                int N, C, H, W, K, n_groups;
+                std::tie(N, C, H, W, K, n_groups) = k_p;
+                kernel_wino(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
 
-            time_wino = handle.GetKernelTime();
-            perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoWinograd", time_wino, 0});
-        }
-
-        // Direct algo
-        std::vector<KernelInvoke> kernel_direct;
-        if(FindDirectKernel(handle, dxDesc, wDesc, dyDesc, kernel_direct, exhaustiveSearch, 0) == 0)
-        { // Backward
-            float time_direct = 0;
-            float padding_val = 0;
-
-            for(auto& k : kernel_direct)
-            {
-                k(dy, w, tmp_dx.get(), padding_val);
-                time_direct += handle.GetKernelTime();
+                time_wino = handle.GetKernelTime();
+                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoWinograd", time_wino, 0});
             }
 
-            perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, 0});
+            // Direct algo
+            std::vector<KernelInvoke> kernel_direct;
+            if(FindDirectKernel(
+                   handle, dxDesc, wDesc, dyDesc, kernel_direct, exhaustiveSearch, 0) == 0)
+            { // Backward
+                float time_direct = 0;
+                float padding_val = 0;
+
+                for(auto& k : kernel_direct)
+                {
+                    k(dy, w, tmp_dx.get(), padding_val);
+                    time_direct += handle.GetKernelTime();
+                }
+
+                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, 0});
+            }
         }
-    }
 
         // GEMM based
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
@@ -958,33 +969,32 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
 
-    if(dilation_h==1&&dilation_w==1)
-    {
-        // FFT algo
-        float time_fft = 0;
-        std::vector<KernelInvoke> kernels_fft;
-        size_t workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
-        if(FindBwdFFTKernel(handle, dyDesc, wDesc, dxDesc, workspace_fft, kernels_fft) == 0)
+        if(dilation_h == 1 && dilation_w == 1)
         {
-            (void)kernels_fft; // not used now, but needed as fft coverage widens
-            if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+            // FFT algo
+            float time_fft = 0;
+            std::vector<KernelInvoke> kernels_fft;
+            size_t workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
+            if(FindBwdFFTKernel(handle, dyDesc, wDesc, dxDesc, workspace_fft, kernels_fft) == 0)
             {
-                time_fft = ExecuteBwdFFTKernel(handle,
-                                               dyDesc,
-                                               dy,
-                                               wDesc,
-                                               w,
-                                               dxDesc,
-                                               tmp_dx.get(),
-                                               workSpace,
-                                               workSpaceSize,
-                                               true);
-                perf_db.push_back(
-                    PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
+                (void)kernels_fft; // not used now, but needed as fft coverage widens
+                if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+                {
+                    time_fft = ExecuteBwdFFTKernel(handle,
+                                                   dyDesc,
+                                                   dy,
+                                                   wDesc,
+                                                   w,
+                                                   dxDesc,
+                                                   tmp_dx.get(),
+                                                   workSpace,
+                                                   workSpaceSize,
+                                                   true);
+                    perf_db.push_back(
+                        PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
+                }
             }
         }
-    }
-
     }
 
     if(perf_db.empty())
@@ -1446,121 +1456,121 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
 
-    if(dilation_h==1&&dilation_w==1)
-    {
-        if(wei_w >= wei_h && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+        if(dilation_h == 1 && dilation_w == 1)
         {
-            mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-            construct_params.doSearch(false);
-            construct_params.setStream(&handle);
-            construct_params.setOutputDescFromMLDesc(dyDesc);
-            construct_params.setInputDescFromMLDesc(xDesc);
-            construct_params.setWeightDescFromMLDesc(dwDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-
-            if(!construct_params.mloIsCompilerWorkarounds())
+            if(wei_w >= wei_h && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
             {
-                if(!construct_params.mloConstruct())
+                mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+                construct_params.doSearch(false);
+                construct_params.setStream(&handle);
+                construct_params.setOutputDescFromMLDesc(dyDesc);
+                construct_params.setInputDescFromMLDesc(xDesc);
+                construct_params.setWeightDescFromMLDesc(dwDesc);
+                construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+
+                if(!construct_params.mloIsCompilerWorkarounds())
                 {
-                    construct_params.mloBuildConf_Key(network_config);
-
-                    const std::vector<mlo_kernel_info>& bwd_wrw_info =
-                        construct_params.getKernelsInfo();
-                    /*
-                     * get info for all kernels of the layer
-                     * std::string _kernel_name;
-                     * std::string _kernel_file;
-                     * std::string _comp_options;
-                     * std::vector<size_t> _g_wk;
-                     * std::vector<size_t> _l_wk;
-                     */
-
-                    float time_direct = 0;
-                    if(bwd_wrw_info.size() == 1)
+                    if(!construct_params.mloConstruct())
                     {
-                        const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
-                        auto kernel = handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                                       network_config,
-                                                       std::get<1>(bwd_wrw),  // _kernel_file
-                                                       std::get<0>(bwd_wrw),  // _kernel_name
-                                                       std::get<4>(bwd_wrw),  // _l_wk
-                                                       std::get<3>(bwd_wrw),  // _g_wk
-                                                       std::get<2>(bwd_wrw)); // _comp_options
+                        construct_params.mloBuildConf_Key(network_config);
 
-                        if(std::get<0>(bwd_wrw) == "gcnAsmConv3x3WrW")
+                        const std::vector<mlo_kernel_info>& bwd_wrw_info =
+                            construct_params.getKernelsInfo();
+                        /*
+                         * get info for all kernels of the layer
+                         * std::string _kernel_name;
+                         * std::string _kernel_file;
+                         * std::string _comp_options;
+                         * std::vector<size_t> _g_wk;
+                         * std::vector<size_t> _l_wk;
+                         */
+
+                        float time_direct = 0;
+                        if(bwd_wrw_info.size() == 1)
                         {
-                            int unused       = 0;
-                            int* return_addr = nullptr;
-                            int N, C, H, W, K, n_groups;
-                            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                            kernel(N,
-                                   C,
-                                   H,
-                                   W,
-                                   K,
-                                   n_groups,
-                                   unused,
-                                   unused,
-                                   x,
-                                   tmp_dw.get(),
-                                   dy,
-                                   return_addr);
+                            const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
+                            auto kernel =
+                                handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
+                                                 network_config,
+                                                 std::get<1>(bwd_wrw),  // _kernel_file
+                                                 std::get<0>(bwd_wrw),  // _kernel_name
+                                                 std::get<4>(bwd_wrw),  // _l_wk
+                                                 std::get<3>(bwd_wrw),  // _g_wk
+                                                 std::get<2>(bwd_wrw)); // _comp_options
+
+                            if(std::get<0>(bwd_wrw) == "gcnAsmConv3x3WrW")
+                            {
+                                int unused       = 0;
+                                int* return_addr = nullptr;
+                                int N, C, H, W, K, n_groups;
+                                construct_params.getCompiledInParameters(
+                                    &N, &C, &H, &W, &K, &n_groups);
+                                kernel(N,
+                                       C,
+                                       H,
+                                       W,
+                                       K,
+                                       n_groups,
+                                       unused,
+                                       unused,
+                                       x,
+                                       tmp_dw.get(),
+                                       dy,
+                                       return_addr);
+                            }
+                            else
+                            {
+                                float padding_val = 0;
+                                kernel(dy, x, tmp_dw.get(), padding_val);
+                            }
+                            time_direct = handle.GetKernelTime();
+                            perf_db.push_back(
+                                PerfField{"miopenConvolutionBwdWeightsAlgoDirect", time_direct, 0});
                         }
                         else
                         {
-                            float padding_val = 0;
-                            kernel(dy, x, tmp_dw.get(), padding_val);
-                        }
-                        time_direct = handle.GetKernelTime();
-                        perf_db.push_back(
-                            PerfField{"miopenConvolutionBwdWeightsAlgoDirect", time_direct, 0});
-                    }
-                    else
-                    {
-                        workspace_req =
-                            BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc);
+                            workspace_req = BackwardWeightsGetWorkSpaceSizeDirect(
+                                handle, dyDesc, xDesc, dwDesc);
 
-                        if(workSpace != nullptr && workSpaceSize >= workspace_req)
-                        {
-                            auto bwd_wrw_main = bwd_wrw_info[0];
-                            float padding_val = 0;
+                            if(workSpace != nullptr && workSpaceSize >= workspace_req)
+                            {
+                                auto bwd_wrw_main = bwd_wrw_info[0];
+                                float padding_val = 0;
 
-                            handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                             network_config,
-                                             std::get<1>(bwd_wrw_main),
-                                             std::get<0>(bwd_wrw_main),
-                                             std::get<4>(bwd_wrw_main),
-                                             std::get<3>(bwd_wrw_main),
-                                             std::get<2>(bwd_wrw_main))(
-                                dy, x, workSpace, padding_val);
+                                handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
+                                                 network_config,
+                                                 std::get<1>(bwd_wrw_main),
+                                                 std::get<0>(bwd_wrw_main),
+                                                 std::get<4>(bwd_wrw_main),
+                                                 std::get<3>(bwd_wrw_main),
+                                                 std::get<2>(bwd_wrw_main))(
+                                    dy, x, workSpace, padding_val);
 
-                            time_direct += handle.GetKernelTime();
+                                time_direct += handle.GetKernelTime();
 
-                            // second kernel hash
-                            network_config += "x1";
-                            // reduction  kernel
-                            auto bwd_wrw_red = bwd_wrw_info[1];
+                                // second kernel hash
+                                network_config += "x1";
+                                // reduction  kernel
+                                auto bwd_wrw_red = bwd_wrw_info[1];
 
-                            handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Red",
-                                             network_config,
-                                             std::get<1>(bwd_wrw_red),
-                                             std::get<0>(bwd_wrw_red),
-                                             std::get<4>(bwd_wrw_red),
-                                             std::get<3>(bwd_wrw_red),
-                                             std::get<2>(bwd_wrw_red))(workSpace, tmp_dw.get());
+                                handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Red",
+                                                 network_config,
+                                                 std::get<1>(bwd_wrw_red),
+                                                 std::get<0>(bwd_wrw_red),
+                                                 std::get<4>(bwd_wrw_red),
+                                                 std::get<3>(bwd_wrw_red),
+                                                 std::get<2>(bwd_wrw_red))(workSpace, tmp_dw.get());
 
-                            time_direct += handle.GetKernelTime();
-                            perf_db.push_back(PerfField{"miopenConvolutionBwdWeightsAlgoDirect",
-                                                        time_direct,
-                                                        workspace_req});
+                                time_direct += handle.GetKernelTime();
+                                perf_db.push_back(PerfField{"miopenConvolutionBwdWeightsAlgoDirect",
+                                                            time_direct,
+                                                            workspace_req});
+                            }
                         }
                     }
                 }
             }
         }
-
-    }
-
     }
 
     if(perf_db.empty())
