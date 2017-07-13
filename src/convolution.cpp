@@ -209,6 +209,9 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
     else
     {
+        if(dilation_w>1||dilation_h>1)
+            return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
+
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and
@@ -237,6 +240,9 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
     else
     {
+        if(dilation_w>1||dilation_h>1)
+            return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
+
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and
