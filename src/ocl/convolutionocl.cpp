@@ -373,6 +373,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
 
+    if(dilation_h==1&&dilation_w==1)
+    {
         // Winograd algo
         float time_wino = 0;
         WinogradKernelParams k_p;
@@ -423,6 +425,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     PerfField{"miopenConvolutionFwdAlgoFFT", time_fft, workspace_fft});
             }
         }
+    }
+
     }
 
     if(perf_db.empty())
@@ -857,6 +861,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
     else if(mode == miopenConvolution)
     {
+    if(dilation_h==1&&dilation_w==1)
+    {
         // Winograd algo
         WinogradKernelParams k_p;
         KernelInvoke kernel_wino;
@@ -894,6 +900,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, 0});
         }
+    }
 
         // GEMM based
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
@@ -951,6 +958,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
 
+    if(dilation_h==1&&dilation_w==1)
+    {
         // FFT algo
         float time_fft = 0;
         std::vector<KernelInvoke> kernels_fft;
@@ -974,6 +983,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
             }
         }
+    }
+
     }
 
     if(perf_db.empty())
@@ -1435,6 +1446,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
 
+    if(dilation_h==1&&dilation_w==1)
+    {
         if(wei_w >= wei_h && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         {
             mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
@@ -1545,6 +1558,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 }
             }
         }
+
+    }
+
     }
 
     if(perf_db.empty())
