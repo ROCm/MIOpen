@@ -149,7 +149,7 @@ int InputFlags::GetValueInt(const std::string& long_name) const
 uint64_t InputFlags::GetValueUint64(const std::string& long_name) const
 {
     char short_name = FindShortName(long_name);
-    uint64_t value  = strtoull(MapInputs.at(short_name).value.c_str(), NULL, 10);
+    uint64_t value  = strtoull(MapInputs.at(short_name).value.c_str(), nullptr, 10);
 
     return value;
 }

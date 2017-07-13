@@ -139,8 +139,6 @@ std::string ParseBaseArg(int argc, char* argv[])
         Usage();
     else
         return arg;
-
-    return 0;
 }
 
 class Driver

@@ -87,7 +87,7 @@ struct PoolingDescriptor : miopenPoolingDescriptor
     std::vector<int> strides;
     std::vector<int> pads;
 
-    miopenPoolingMode_t mode;
+    miopenPoolingMode_t mode = miopenPoolingMax;
 };
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenPoolingDescriptor, miopen::PoolingDescriptor);

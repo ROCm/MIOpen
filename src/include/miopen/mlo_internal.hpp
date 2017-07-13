@@ -121,7 +121,7 @@ typedef unsigned int uint;
 #include <unistd.h>
 using __int64 = long long;
 #ifndef fopen_s
-#define fopen_s(file, fileName, mode) ((*(file)) = fopen((fileName), (mode))) == NULL
+#define fopen_s(file, fileName, mode) ((*(file)) = fopen((fileName), (mode))) == nullptr
 #endif
 
 #endif

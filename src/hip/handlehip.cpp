@@ -282,7 +282,7 @@ std::size_t Handle::GetMaxComputeUnits()
 
 std::string Handle::GetDeviceName()
 {
-    hipDeviceProp_t props;
+    hipDeviceProp_t props{};
     hipGetDeviceProperties(&props, this->impl->device);
     std::string n("gfx" + std::to_string(props.gcnArch));
     return GetDeviceNameFromMap(n);

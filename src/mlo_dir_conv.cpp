@@ -3598,7 +3598,7 @@ int mlo_construct_direct2D::mloAddConfigReq(const std::string& conf_key) const
 {
     int ret = 0;
     std::vector<std::string> req_conf_db;
-    std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
+    std::string conf_file = (_kernel_path.empty()) ? miopen::GetDbPath() : _kernel_path;
 
     conf_file += std::string("/") + _stream->GetDeviceName() + "_" +
                  std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
@@ -3623,7 +3623,7 @@ int mlo_construct_direct2D::mloRemoveConfigReq(const std::string& conf_key) cons
 
     std::vector<std::string>::iterator it;
 
-    std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
+    std::string conf_file = (_kernel_path.empty()) ? miopen::GetDbPath() : _kernel_path;
     conf_file += std::string("/") + _stream->GetDeviceName() + "_" +
                  std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
 
@@ -3641,7 +3641,7 @@ int mlo_construct_direct2D::mloReadConfigDB(std::map<std::string, std::string>& 
 {
 
     int ret               = 0;
-    std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
+    std::string conf_file = (_kernel_path.empty()) ? miopen::GetDbPath() : _kernel_path;
 
     conf_file += std::string("/") + _stream->GetDeviceName() + "_" +
                  std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
@@ -3668,7 +3668,7 @@ int mlo_construct_direct2D::mloWriteConfigDB(
 
     int ret = 0;
     // serialize
-    std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
+    std::string conf_file = (_kernel_path.empty()) ? miopen::GetDbPath() : _kernel_path;
 
     conf_file += std::string("/") + _stream->GetDeviceName() + "_" +
                  std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
