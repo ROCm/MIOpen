@@ -1072,7 +1072,6 @@ struct batch_norm_spatial_driver : test_driver
 
     void run()
     {
-        return;
         int n, c, h, w;
 
         std::tie(n, c, h, w) = miopen::tie4(input.desc.GetLengths());

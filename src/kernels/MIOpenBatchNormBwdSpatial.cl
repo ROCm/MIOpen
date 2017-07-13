@@ -81,9 +81,15 @@
 #define MIO_BN_VARIANT 0
 #endif
 
-#ifdef __AMDGCN__
+#ifndef MIO_BN_NODPP
+#define MIO_BN_NODPP 0
+#elif (MIO_BN_NODPP==1)
 #undef __AMDGCN__
 #endif
+
+//#ifdef __AMDGCN__
+//#undef __AMDGCN__
+//#endif
 
 // Disable specific warnings
 #ifdef __clang__
