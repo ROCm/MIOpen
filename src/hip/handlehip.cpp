@@ -39,13 +39,38 @@
 
 namespace miopen {
 
-hipCtx_t get_ctx() // Get current context
+// Get current context
+// We leak resources for now as there is no hipCtxRetain API
+hipCtx_t get_ctx()
 {
     hipCtx_t ctx;
     auto status = hipCtxGetCurrent(&ctx);
     if(status != hipSuccess)
         MIOPEN_THROW("No device");
     return ctx;
+}
+
+int get_device_id() // Get random device
+{
+    int device;
+    auto status = hipGetDevice(&device);
+    if(status != hipSuccess)
+        MIOPEN_THROW("No device");
+    return device;
+}
+
+void set_device(int id)
+{
+    auto status = hipSetDevice(id);
+    if(status != hipSuccess)
+        MIOPEN_THROW("Error setting device");
+}
+
+void set_ctx(hipCtx_t ctx)
+{
+    auto status = hipCtxSetCurrent(ctx);
+    if(status != hipSuccess)
+        MIOPEN_THROW("Error setting context");
 }
 
 int set_default_device()
@@ -57,7 +82,7 @@ int set_default_device()
     // Pick device based on process id
     auto pid = ::getpid();
     assert(pid > 0);
-    hipSetDevice(pid % n);
+    set_device(pid % n);
     return (pid % n);
 }
 
@@ -92,12 +117,8 @@ struct HandleImpl
 
     void set_ctx()
     {
-        auto status = hipCtxSetCurrent(ctx);
-        if(status != hipSuccess)
-            MIOPEN_THROW("Error setting context");
-        status = hipCtxGetDevice(&device_id);
-        if(status != hipSuccess)
-            MIOPEN_THROW("Error getting device_id");
+        miopen::set_ctx(this->ctx);
+        miopen::set_device(this->device);
     }
 
     bool enable_profiling  = false;
@@ -105,7 +126,7 @@ struct HandleImpl
     float profiling_result = 0.0;
     KernelCache cache;
     hipCtx_t ctx;
-    int device_id;
+    int device;
 };
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
@@ -119,7 +140,8 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 Handle::Handle() : impl(new HandleImpl())
 {
 #if MIOPEN_BUILD_DEV
-    this->impl->ctx    = set_default_device();
+    this->impl->device = set_default_device();
+    this->impl->ctx    = get_ctx();
     this->impl->stream = impl->create_stream();
 #else
     this->impl->stream = HandleImpl::reference_stream(nullptr);
@@ -255,7 +277,7 @@ std::size_t Handle::GetLocalMemorySize()
 {
     int result;
     auto status = hipDeviceGetAttribute(
-        &result, hipDeviceAttributeMaxSharedMemoryPerBlock, this->impl->device_id);
+        &result, hipDeviceAttributeMaxSharedMemoryPerBlock, this->impl->device);
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status);
 
@@ -265,8 +287,8 @@ std::size_t Handle::GetLocalMemorySize()
 std::size_t Handle::GetMaxComputeUnits()
 {
     int result;
-    auto status = hipDeviceGetAttribute(
-        &result, hipDeviceAttributeMultiprocessorCount, this->impl->device_id);
+    auto status =
+        hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, this->impl->device);
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status);
 
@@ -276,7 +298,7 @@ std::size_t Handle::GetMaxComputeUnits()
 std::string Handle::GetDeviceName()
 {
     hipDeviceProp_t props{};
-    hipGetDeviceProperties(&props, this->impl->device_id);
+    hipGetDeviceProperties(&props, this->impl->device);
     std::string n("gfx" + std::to_string(props.gcnArch));
     return GetDeviceNameFromMap(n);
 }
