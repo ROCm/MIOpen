@@ -41,13 +41,12 @@ namespace miopen {
 
 hipCtx_t get_ctx() // Get current context
 {
-    hipCtx_t  ctx;
+    hipCtx_t ctx;
     auto status = hipCtxGetCurrent(&ctx);
     if(status != hipSuccess)
         MIOPEN_THROW("No device");
     return ctx;
 }
-
 
 int set_default_device()
 {
@@ -91,8 +90,8 @@ struct HandleImpl
             &HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
     }
 
-    void set_ctx() 
-    { 
+    void set_ctx()
+    {
         auto status = hipCtxSetCurrent(ctx);
         if(status != hipSuccess)
             MIOPEN_THROW("Error setting context");
@@ -106,7 +105,7 @@ struct HandleImpl
     float profiling_result = 0.0;
     KernelCache cache;
     hipCtx_t ctx;
-    int  device_id;
+    int device_id;
 };
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
@@ -120,7 +119,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 Handle::Handle() : impl(new HandleImpl())
 {
 #if MIOPEN_BUILD_DEV
-    this->impl->ctx = set_default_device();
+    this->impl->ctx    = set_default_device();
     this->impl->stream = impl->create_stream();
 #else
     this->impl->stream = HandleImpl::reference_stream(nullptr);
@@ -266,8 +265,8 @@ std::size_t Handle::GetLocalMemorySize()
 std::size_t Handle::GetMaxComputeUnits()
 {
     int result;
-    auto status =
-        hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, this->impl->device_id);
+    auto status = hipDeviceGetAttribute(
+        &result, hipDeviceAttributeMultiprocessorCount, this->impl->device_id);
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status);
 
