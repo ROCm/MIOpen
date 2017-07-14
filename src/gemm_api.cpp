@@ -46,6 +46,7 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
     // JN make column major
     if(!isDataColMajor)
     {
+        std::swap(transA, transB);
         std::swap(M, N);
         std::swap(lda, ldb);
         std::swap(A, B);
