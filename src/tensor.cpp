@@ -35,15 +35,15 @@ namespace miopen {
 
 TensorDescriptor::TensorDescriptor() {}
 
-TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<int> plens)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens)
     : lens(plens), type(t)
 {
     this->CalculateStrides();
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
-                                   std::initializer_list<int> plens,
-                                   std::initializer_list<int> pstrides)
+                                   std::initializer_list<std::size_t> plens,
+                                   std::initializer_list<std::size_t> pstrides)
     : lens(plens), strides(pstrides), type(t)
 {
 }
@@ -69,21 +69,21 @@ void TensorDescriptor::CalculateStrides()
     std::partial_sum(lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
 }
 
-const std::vector<int>& TensorDescriptor::GetLengths() const { return lens; }
-const std::vector<int>& TensorDescriptor::GetStrides() const { return strides; }
+const std::vector<std::size_t>& TensorDescriptor::GetLengths() const { return lens; }
+const std::vector<std::size_t>& TensorDescriptor::GetStrides() const { return strides; }
 int TensorDescriptor::GetSize() const
 {
     assert(lens.size() == strides.size());
     return lens.size();
 }
-int TensorDescriptor::GetElementSize() const
+std::size_t TensorDescriptor::GetElementSize() const
 {
     assert(lens.size() == strides.size());
-    return std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>());
+    return std::accumulate(lens.begin(), lens.end(), std::size_t{1}, std::multiplies<std::size_t>());
 }
 miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
 
-int TensorDescriptor::GetIndex(std::initializer_list<int> l) const
+std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
     assert(l.size() <= this->GetSize());
     return std::inner_product(l.begin(), l.end(), strides.begin(), 0);

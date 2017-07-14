@@ -44,7 +44,7 @@ struct tensor
     {
     }
 
-    tensor(int n, int c, int h, int w) : desc(miopenFloat, {n, c, h, w}), data(n * c * h * w) {}
+    tensor(std::size_t n, std::size_t c, std::size_t h, std::size_t w) : desc(miopenFloat, {n, c, h, w}), data(n * c * h * w) {}
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
@@ -118,7 +118,7 @@ struct tensor
 };
 
 template <class T, class G>
-tensor<T> make_tensor(std::initializer_list<int> dims, G g)
+tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
 {
     // TODO: Compute float
     return tensor<T>{miopen::TensorDescriptor{miopenFloat, dims}}.generate(g);

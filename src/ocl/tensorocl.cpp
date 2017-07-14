@@ -94,8 +94,8 @@ void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const 
 // Free Tensor Functions
 //
 static void CreateBitmapAndGrid(unsigned int& bitmap,
-                                std::vector<int>& a_lens,
-                                std::vector<int>& c_lens,
+                                std::vector<std::size_t>& a_lens,
+                                std::vector<std::size_t>& c_lens,
                                 int& num_wg,
                                 int& work,
                                 int d)

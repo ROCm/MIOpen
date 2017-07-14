@@ -64,18 +64,18 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                           int p_dilation_h = 1,
                           int p_dilation_w = 1);
 
-    std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& inputTensorDesc,
+    std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> GetForwardOutputDim(const TensorDescriptor& inputTensorDesc,
                                                        const TensorDescriptor& filterDesc) const;
     TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& inputTensorDesc,
                                             const TensorDescriptor& filterDesc) const;
 
-    std::tuple<int, int, int, int>
+    std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
     GetBackwardsWeightsDim(const TensorDescriptor& inputTensorDesc,
                            const TensorDescriptor& outputTensorDesc) const;
     TensorDescriptor GetBackwardWeightsTensor(const TensorDescriptor& inputTensorDesc,
                                               const TensorDescriptor& outputTensorDesc) const;
 
-    std::tuple<int, int, int, int> GetBackwardOutputDim(const TensorDescriptor& outputTensorDesc,
+    std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> GetBackwardOutputDim(const TensorDescriptor& outputTensorDesc,
                                                         const TensorDescriptor& filterDesc) const;
     TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
                                              const TensorDescriptor& filterDesc) const;
