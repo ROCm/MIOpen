@@ -83,7 +83,7 @@
 
 #ifndef MIO_BN_NODPP
 #define MIO_BN_NODPP 0
-#elif (MIO_BN_NODPP==1)
+#elif(MIO_BN_NODPP == 1)
 #undef __AMDGCN__
 #endif
 
