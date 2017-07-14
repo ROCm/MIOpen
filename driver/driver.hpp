@@ -96,6 +96,7 @@ struct GPUMem
     }
     int FromGPU(hipStream_t q, void* p)
     {
+        hipDeviceSynchronize();
         _q = q;
         return static_cast<int>(hipMemcpy(p, buf, data_sz * sz, hipMemcpyDeviceToHost));
     }
