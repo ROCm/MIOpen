@@ -55,27 +55,27 @@ auto tie2(T&& x) -> decltype(std::tie(x[0], x[1]))
 struct TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
-    TensorDescriptor(miopenDataType_t t, std::initializer_list<int> plens);
+    TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens);
     TensorDescriptor(miopenDataType_t t,
-                     std::initializer_list<int> plens,
-                     std::initializer_list<int> pstrides);
+                     std::initializer_list<std::size_t> plens,
+                     std::initializer_list<std::size_t> pstrides);
     TensorDescriptor(miopenDataType_t t, const int* plens, int size);
     TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
 
     void CalculateStrides();
 
-    const std::vector<int>& GetLengths() const;
-    const std::vector<int>& GetStrides() const;
+    const std::vector<std::size_t>& GetLengths() const;
+    const std::vector<std::size_t>& GetStrides() const;
     int GetSize() const;
 
     miopenDataType_t GetType() const;
 
-    int GetElementSize() const;
+    std::size_t GetElementSize() const;
 
-    int GetIndex(std::initializer_list<int> l) const;
+    std::size_t GetIndex(std::initializer_list<int> l) const;
 
     template <class... Ts>
-    int GetIndex(Ts... is) const
+    std::size_t GetIndex(Ts... is) const
     {
         return this->GetIndex({is...});
     }
@@ -88,8 +88,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
 
     private:
-    std::vector<int> lens;
-    std::vector<int> strides;
+    std::vector<std::size_t> lens;
+    std::vector<std::size_t> strides;
 
     miopenDataType_t type = miopenFloat;
 };

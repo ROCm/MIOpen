@@ -52,7 +52,7 @@ struct PoolingDescriptor : miopenPoolingDescriptor
     miopenPoolingMode_t GetMode();
     int GetSize() const;
 
-    std::tuple<int, int, int, int> GetForwardOutputDim(const TensorDescriptor& tensorDesc) const;
+    std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> GetForwardOutputDim(const TensorDescriptor& tensorDesc) const;
     TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& tensorDesc) const;
 
     std::size_t GetWorkSpaceSize(const TensorDescriptor& tensorDesc) const;

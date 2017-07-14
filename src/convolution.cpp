@@ -73,7 +73,7 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode,
     }
 }
 
-std::tuple<int, int, int, int>
+std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
 ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDesc,
                                            const TensorDescriptor& filterDesc) const
 {
@@ -85,17 +85,17 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
         MIOPEN_THROW(miopenStatusBadParm, "Types do not match for the filter");
     }
 
-    int input_n;
-    int input_c;
-    int input_h;
-    int input_w;
+    std::size_t input_n;
+    std::size_t input_c;
+    std::size_t input_h;
+    std::size_t input_w;
 
     std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(inputTensorDesc.GetLengths());
 
-    int filter_k;
-    int filter_c;
-    int filter_h;
-    int filter_w;
+    std::size_t filter_k;
+    std::size_t filter_c;
+    std::size_t filter_h;
+    std::size_t filter_w;
 
     std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tie4(filterDesc.GetLengths());
 
@@ -114,20 +114,20 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
         }
     }
 
-    int output_c;
-    int output_h;
-    int output_w;
+    std::size_t output_c;
+    std::size_t output_h;
+    std::size_t output_w;
     if(mode == miopenTranspose)
     {
         output_c = filter_c;
-        output_h = std::max(1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1) - 2 * pad_h);
-        output_w = std::max(1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1) - 2 * pad_w);
+        output_h = std::max<std::size_t>(1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1) - 2 * pad_h);
+        output_w = std::max<std::size_t>(1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1) - 2 * pad_w);
     }
     else
     {
         output_c = filter_k;
-        output_h = std::max(1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
-        output_w = std::max(1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
+        output_h = std::max<std::size_t>(1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
+        output_w = std::max<std::size_t>(1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
     }
 
     return std::make_tuple(input_n, output_c, output_h, output_w);
@@ -262,7 +262,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 // weights_c = input_c
 // weights_h = 2*pad_h + input_h - u*(output_h - 1)
 // weights_w = 2*pad_w + input_w - v*(output_w - 1)
-std::tuple<int, int, int, int>
+std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
 ConvolutionDescriptor::GetBackwardsWeightsDim(const TensorDescriptor& inputTensorDesc,
                                               const TensorDescriptor& outputTensorDesc) const
 {
@@ -274,17 +274,17 @@ ConvolutionDescriptor::GetBackwardsWeightsDim(const TensorDescriptor& inputTenso
         MIOPEN_THROW(miopenStatusBadParm, "Types do not match for the filter");
     }
 
-    int input_n;
-    int input_c;
-    int input_h;
-    int input_w;
+    std::size_t input_n;
+    std::size_t input_c;
+    std::size_t input_h;
+    std::size_t input_w;
 
     std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(inputTensorDesc.GetLengths());
 
-    int output_n;
-    int output_c;
-    int output_h;
-    int output_w;
+    std::size_t output_n;
+    std::size_t output_c;
+    std::size_t output_h;
+    std::size_t output_w;
 
     std::tie(output_n, output_c, output_h, output_w) = miopen::tie4(outputTensorDesc.GetLengths());
 
@@ -298,7 +298,7 @@ ConvolutionDescriptor::GetBackwardsWeightsDim(const TensorDescriptor& inputTenso
                            2 * pad_w + input_w - v * (output_w - 1));
 }
 
-std::tuple<int, int, int, int>
+std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
 ConvolutionDescriptor::GetBackwardOutputDim(const TensorDescriptor& outputTensorDesc,
                                             const TensorDescriptor& filterDesc) const
 {
@@ -310,17 +310,17 @@ ConvolutionDescriptor::GetBackwardOutputDim(const TensorDescriptor& outputTensor
         MIOPEN_THROW(miopenStatusBadParm, "Types do not match for the filter");
     }
 
-    int output_n;
-    int output_c;
-    int output_h;
-    int output_w;
+    std::size_t output_n;
+    std::size_t output_c;
+    std::size_t output_h;
+    std::size_t output_w;
 
     std::tie(output_n, output_c, output_h, output_w) = miopen::tie4(outputTensorDesc.GetLengths());
 
-    int filter_k;
-    int filter_c;
-    int filter_h;
-    int filter_w;
+    std::size_t filter_k;
+    std::size_t filter_c;
+    std::size_t filter_h;
+    std::size_t filter_w;
 
     std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tie4(filterDesc.GetLengths());
 
