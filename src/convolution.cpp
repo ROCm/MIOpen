@@ -155,7 +155,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
     // gfx803 devices have 4gb-6gb memory
     if(workspace_size > (1 << 30) && handle.GetDeviceName() == "gfx803")
     {
-        MIOPEN_THROW("Cannot execute due to limited GPU memory");
+        workspace_size = 0;
     }
 
     return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : workspace_size;
