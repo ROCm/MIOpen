@@ -79,7 +79,8 @@ int TensorDescriptor::GetSize() const
 std::size_t TensorDescriptor::GetElementSize() const
 {
     assert(lens.size() == strides.size());
-    return std::accumulate(lens.begin(), lens.end(), std::size_t{1}, std::multiplies<std::size_t>());
+    return std::accumulate(
+        lens.begin(), lens.end(), std::size_t{1}, std::multiplies<std::size_t>());
 }
 miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
 
