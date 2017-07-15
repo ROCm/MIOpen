@@ -911,6 +911,30 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, 0});
             }
+
+            // FFT algo
+            float time_fft = 0;
+            std::vector<KernelInvoke> kernels_fft;
+            size_t workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
+            if(FindBwdFFTKernel(handle, dyDesc, wDesc, dxDesc, workspace_fft, kernels_fft) == 0)
+            {
+                (void)kernels_fft; // not used now, but needed as fft coverage widens
+                if(workSpace != nullptr && workSpaceSize >= workspace_fft)
+                {
+                    time_fft = ExecuteBwdFFTKernel(handle,
+                                                   dyDesc,
+                                                   dy,
+                                                   wDesc,
+                                                   w,
+                                                   dxDesc,
+                                                   tmp_dx.get(),
+                                                   workSpace,
+                                                   workSpaceSize,
+                                                   true);
+                    perf_db.push_back(
+                        PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
+                }
+            }
         }
 
         // GEMM based
@@ -968,33 +992,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
 #endif
-
-        if(dilation_h == 1 && dilation_w == 1)
-        {
-            // FFT algo
-            float time_fft = 0;
-            std::vector<KernelInvoke> kernels_fft;
-            size_t workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
-            if(FindBwdFFTKernel(handle, dyDesc, wDesc, dxDesc, workspace_fft, kernels_fft) == 0)
-            {
-                (void)kernels_fft; // not used now, but needed as fft coverage widens
-                if(workSpace != nullptr && workSpaceSize >= workspace_fft)
-                {
-                    time_fft = ExecuteBwdFFTKernel(handle,
-                                                   dyDesc,
-                                                   dy,
-                                                   wDesc,
-                                                   w,
-                                                   dxDesc,
-                                                   tmp_dx.get(),
-                                                   workSpace,
-                                                   workSpaceSize,
-                                                   true);
-                    perf_db.push_back(
-                        PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
-                }
-            }
-        }
     }
 
     if(perf_db.empty())
