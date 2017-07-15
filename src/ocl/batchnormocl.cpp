@@ -1548,6 +1548,9 @@ void BatchNormBackward(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
                 std::cout << " -DMIO_BN_VARIANT=2" << std::endl;
 #endif
+                if(handle.GetDeviceName() == "gfx803")
+                    parms += " -DMIO_BN_NODPP=1";
+
                 parms += " -DMIO_BN_VARIANT=2";
                 parms += " -DMIO_BN_LDS_NSIZE=" + std::to_string(n);
                 parms += " -DMIO_BN_LDS_HWSIZE=" + std::to_string(in_cstride);
@@ -1601,6 +1604,8 @@ void BatchNormBackward(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
                 std::cout << " -DMIO_BN_VARIANT=4" << std::endl;
 #endif
+                if(handle.GetDeviceName() == "gfx803")
+                    parms += " -DMIO_BN_NODPP=1";
                 kernel_subname = kernel_name + "SingleDX";
                 handle.GetKernel("miopenBatchNormalizationBwd",
                                  network_config,
