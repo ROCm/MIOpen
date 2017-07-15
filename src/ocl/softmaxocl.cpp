@@ -66,7 +66,7 @@ miopenStatus_t SoftmaxForward(Handle& handle,
     // num_spatial_dims or pixels each workgroup can compute
     int num_batch = c < 256 ? nextPow2(256 / c) : 1;
 
-    const std::vector<size_t> vld(1, 256);
+    const std::vector<size_t> vld{256, 1, 1};
 
     // compile parameters
     std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch);
@@ -78,7 +78,7 @@ miopenStatus_t SoftmaxForward(Handle& handle,
         // Control the max. number of workgroups launched so that we do not
         // start getting workgroup scheduling overheads
         size_t workgroups = std::min(grid_size, 64 * 40 * 8);
-        const std::vector<size_t> vgd(1, workgroups * vld[0]);
+        const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
         handle.GetKernel("miopenSoftmaxForward", "", program_name, kernel_name, vld, vgd, parms)(
             y, c, grid_size, spatial_dim);
@@ -93,7 +93,7 @@ miopenStatus_t SoftmaxForward(Handle& handle,
 
         size_t workgroups =
             grid_size % num_batch == 0 ? grid_size / num_batch : grid_size / num_batch + 1;
-        const std::vector<size_t> vgd(1, workgroups * vld[0]);
+        const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
         parms += " -DBATCH_SIZE=" + std::to_string(batch_size) + " -DU_BATCH_SIZE=" +
                  std::to_string(u_batch_size);
@@ -127,7 +127,7 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     int spatial_dim = h * w;
     int num_batch   = c < 256 ? nextPow2(256 / c) : 1;
 
-    const std::vector<size_t> vld(1, 256);
+    const std::vector<size_t> vld{256, 1, 1};
 
     // compile parameters
     std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch);
@@ -139,7 +139,7 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
         // Control the max. number of workgroups launched so that we do not
         // start getting workgroup scheduling overheads
         size_t workgroups = std::min(grid_size, 64 * 40 * 8);
-        const std::vector<size_t> vgd(1, workgroups * vld[0]);
+        const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
         handle.GetKernel("miopenSoftmaxBackward", "", program_name, kernel_name, vld, vgd, parms)(
             y, dx, c, grid_size, spatial_dim);
@@ -152,7 +152,7 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
 
         size_t workgroups =
             grid_size % num_batch == 0 ? grid_size / num_batch : grid_size / num_batch + 1;
-        const std::vector<size_t> vgd(1, workgroups * vld[0]);
+        const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
         parms += " -DBATCH_SIZE=" + std::to_string(batch_size) + " -DU_BATCH_SIZE=" +
                  std::to_string(u_batch_size);
