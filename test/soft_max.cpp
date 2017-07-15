@@ -144,7 +144,6 @@ struct softmax_driver : test_driver
 
     void run()
     {
-        return;
         auto out  = verify(verify_forward_sofmax{}, input);
         auto dout = input;
         dout.generate([&](int n, int c, int h, int w) {
