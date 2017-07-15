@@ -87,7 +87,7 @@ miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
 std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
     assert(l.size() <= this->GetSize());
-    return std::inner_product(l.begin(), l.end(), strides.begin(), 0);
+    return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{0});
 }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
