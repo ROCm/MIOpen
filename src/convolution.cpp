@@ -206,6 +206,17 @@ bool ConvolutionDescriptor::IsWinogradSupported(Handle& handle,
            _n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18);
 }
 
+bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const
+{
+    int _kernel_size0, _kernel_size1;
+    std::tie(std::ignore, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
+    
+    if(_kernel_size0 == 1 && _kernel_size1 == 1 && u != 1 && v != 1)
+        return false;
+
+    return true;
+}
+
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                                       const TensorDescriptor& wDesc,
                                                       const TensorDescriptor& xDesc,
