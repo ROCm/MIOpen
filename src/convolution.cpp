@@ -210,11 +210,8 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
 {
     int _kernel_size0, _kernel_size1;
     std::tie(std::ignore, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
-    
-    if(_kernel_size0 == 1 && _kernel_size1 == 1 && u != 1 && v != 1)
-        return false;
 
-    return true;
+    return !(_kernel_size0 == 1 && _kernel_size1 == 1 && u != 1 && v != 1);
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
