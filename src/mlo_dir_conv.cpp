@@ -363,6 +363,12 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
     _n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
     _n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
 
+    // hacky fix of the incorrect kernel local memory address calculation for data
+    _out_pix_tile1 =
+        (_direction == 0 && _kernel_stride1 > 1 && _out_pix_tile1 == 1) ? 2 : _out_pix_tile1;
+    _out_pix_tile0 =
+        (_direction == 0 && _kernel_stride0 > 1 && _out_pix_tile0 == 1) ? 2 : _out_pix_tile0;
+
     int alu_tile0    = (_in_tile0 + _out_pix_tile0 - 1) / _out_pix_tile0;
     int alu_tile1    = (_in_tile1 + _out_pix_tile1 - 1) / _out_pix_tile1;
     int alu_tiles_sz = (alu_tile0 * alu_tile1);
