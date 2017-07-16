@@ -333,11 +333,10 @@ static inline void Conv(uint o_map_base,
                                      (uint)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ),
                                      mul24(i_c, (uint)MLO_FILTER_SZ));
         int in_stg_off2 = in_stg_off1;
-        for(uint j = 0; j < MLO_PVT_IN_HEIGHT - 1; ++j, in_stg_off2 +=
-										(((j - MLO_PADDING_SHIFT1 + MLO_PADDING_FIX1) %
-                                  MLO_FILTER_STRIDE1)
+        for(uint j = 0; j < MLO_PVT_IN_HEIGHT - 1; ++j,
+                 in_stg_off2 += (((j - MLO_PADDING_SHIFT1 + MLO_PADDING_FIX1) % MLO_FILTER_STRIDE1)
                                      ? 0
-									 : MLO_IN_LCL_WIDTH))
+                                     : MLO_IN_LCL_WIDTH))
         {
             for(uint i = 0; i < MLO_PVT_IN_WIDTH; ++i)
             {
@@ -357,8 +356,7 @@ static inline void Conv(uint o_map_base,
         for(uint k = 0; k < MLO_FILTER_SIZE1; ++k, in_stg_off2 += MLO_IN_LCL_WIDTH)
 #else
         for(uint k = 0; k < MLO_FILTER_SIZE1; ++k,
-                 in_stg_off2 += (((k - MLO_PADDING_SHIFT1 + MLO_PADDING_FIX1) %
-                                  MLO_FILTER_STRIDE1)
+                 in_stg_off2 += (((k - MLO_PADDING_SHIFT1 + MLO_PADDING_FIX1) % MLO_FILTER_STRIDE1)
                                      ? 0
                                      : MLO_IN_LCL_WIDTH))
 #endif
