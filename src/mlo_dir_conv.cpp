@@ -34,8 +34,8 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-#include <unordered_map>
 #include <cstring>
+#include <unordered_map>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
@@ -138,7 +138,7 @@ int mlo_construct_direct2D::mloConstruct()
 
     miopen::ImplementationUsageDescription result(static_cast<miopenStatus_t>(-1));
 
-    for(const auto implementation : GetImplementations())
+    for(const auto& implementation : GetImplementations())
     {
         if(implementation->IsCorrect(_search_params) &&
            (no_perf_filtering || implementation->IsFast(_search_params)))
@@ -165,46 +165,55 @@ int mlo_construct_direct2D::mloConstruct()
     return static_cast<int>(result.status);
 }
 
-const std::vector<miopen::AlgotithmImplementationDescription*>&
+const std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>>&
 mlo_construct_direct2D::GetImplementations() const
 {
-    static const std::vector<miopen::AlgotithmImplementationDescription*> implementations({
-        new miopen::ConvAsm3x3U(),
-        new miopen::ConvAsm5x10u2v2f1(),
-        new miopen::ConvAsm7x7c3h224w224k64u2v2p3q3f1(),
-        new miopen::ConvAsm5x10u2v2b1(),
-        new miopen::ConvOclDirectFwd11x11(),
-        new miopen::ConvOclDirectFwdGen(),
-        new miopen::ConvOclDirectFwd3x3(),
-        new miopen::ConvOclDirectFwd1x1(),
-        new miopen::ConvOclDirectFwdC(),
-        new miopen::ConvOclDirectFwd(),
-    });
+    static const std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>> implementations = []
+    {
+        std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>> data;
+        data.emplace_back(new miopen::ConvAsm3x3U);
+        data.emplace_back(new miopen::ConvAsm5x10u2v2f1);
+        data.emplace_back(new miopen::ConvAsm7x7c3h224w224k64u2v2p3q3f1);
+        data.emplace_back(new miopen::ConvAsm5x10u2v2b1);
+        data.emplace_back(new miopen::ConvOclDirectFwd11x11);
+        data.emplace_back(new miopen::ConvOclDirectFwdGen);
+        data.emplace_back(new miopen::ConvOclDirectFwd3x3);
+        data.emplace_back(new miopen::ConvOclDirectFwd1x1);
+        data.emplace_back(new miopen::ConvOclDirectFwdC);
+        data.emplace_back(new miopen::ConvOclDirectFwd);
+        return data;
+    }();
 
     return implementations;
 }
 
-const std::vector<miopen::AlgotithmImplementationDescription*>&
+const std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>>&
 mlo_construct_winograd::GetImplementations() const
 {
-    static const std::vector<miopen::AlgotithmImplementationDescription*> implementations({
+    static const std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>> implementations = []
+    {
+        std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>> data;
 #ifndef HIP_OC_FINALIZER
-        new miopen::ConvBinWinograd3x3F(),
+        data.emplace_back(new miopen::ConvBinWinograd3x3F);
 #endif
-    });
+        return data;
+    }();
 
     return implementations;
 }
 
-const std::vector<miopen::AlgotithmImplementationDescription*>&
+const std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>>&
 mlo_construct_BwdWrW2D::GetImplementations() const
 {
-    static const std::vector<miopen::AlgotithmImplementationDescription*> implementations({
-        new miopen::ConvAsmBwdWrW3x3(),
-        new miopen::ConvOclBwdWrW2(),
-        new miopen::ConvOclBwdWrW53(),
-        new miopen::ConvOclBwdWrW1x1(),
-    });
+    static const std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>> implementations = []
+    {
+        std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>> data;
+        data.emplace_back(new miopen::ConvAsmBwdWrW3x3);
+        data.emplace_back(new miopen::ConvOclBwdWrW2);
+        data.emplace_back(new miopen::ConvOclBwdWrW53);
+        data.emplace_back(new miopen::ConvOclBwdWrW1x1);
+        return data;
+    }();
 
     return implementations;
 }

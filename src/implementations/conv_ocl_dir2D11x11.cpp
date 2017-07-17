@@ -1,8 +1,6 @@
 #include "miopen/algorithm_implementations.hpp"
 #include "miopen/handle.hpp"
 
-int mloLg2(int v);
-
 namespace miopen {
 bool ConvOclDirectFwd11x11::IsCorrect(const ImplementationSearchParameters& params) const
 {
@@ -283,4 +281,4 @@ ImplementationUsageDescription ConvOclDirectFwd11x11::PrepareForUsage(
 
     return result;
 }
-}
+} // namespace miopen

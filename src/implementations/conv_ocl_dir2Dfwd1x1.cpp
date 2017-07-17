@@ -14,7 +14,7 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
                                      const ExaustiveSearchResult& exaustive_search_result) const
 {
     const auto& searched_params =
-        static_cast<const Direct2DfwdExaustiveSearchResult&>(exaustive_search_result);
+        dynamic_cast<const Direct2DfwdExaustiveSearchResult&>(exaustive_search_result);
 
     // to restore to the previous version just comment this line
     // currently runs previous version
@@ -177,4 +177,4 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
     result.construction_params.push_back(kernel_params);
     return result;
 }
-}
+} // namespace miopen

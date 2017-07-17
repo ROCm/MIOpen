@@ -97,4 +97,4 @@ ConvAsm5x10u2v2f1::PrepareForUsage(const ImplementationSearchParameters& params,
     result.construction_params.push_back(construction_params);
     return result;
 }
-}
+} // namespace miopen
