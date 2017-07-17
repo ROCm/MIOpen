@@ -480,7 +480,7 @@ int ConvOclDirectFwdLegacyExaustiveSearch::MeasuredLoop(
     auto sub_search_params      = params;
     sub_search_params.do_search = false;
 
-    for(const auto traits : _kernels_to_measure)
+    for(const auto& traits : GetImplementationsToMeasure())
     {
         if(traits->IsCorrect(params))
         {
@@ -586,7 +586,7 @@ std::shared_ptr<ExaustiveSearchResult>
 ConvOclDirectFwdLegacyExaustiveSearch::PrepareExaustiveSearchResult(
     const ImplementationSearchParameters& params) const
 {
-    Direct2DfwdExaustiveSearchResult result;
+    Direct2DfwdExaustiveSearchResult result = {};
 
     // search known configurations
     bool known_config = mloGetConfig(params, result);
@@ -1056,8 +1056,17 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
     // return(ret);
 }
 
-std::vector<AlgotithmImplementationDescription*>
-    ConvOclDirectFwdLegacyExaustiveSearch::_kernels_to_measure({
-        new ConvOclDirectFwd1x1(), new ConvOclDirectFwdC(), new ConvOclDirectFwd(),
-    });
+const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>>&
+    ConvOclDirectFwdLegacyExaustiveSearch::GetImplementationsToMeasure()
+{
+    static const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>> implementations = [] {
+        std::vector<std::unique_ptr<const AlgotithmImplementationDescription>> data;
+        data.emplace_back(new ConvOclDirectFwd1x1);
+        data.emplace_back(new ConvOclDirectFwdC);
+        data.emplace_back(new ConvOclDirectFwd);
+        return data;
+    }();
+
+    return implementations;
 }
+} // namespace miopen

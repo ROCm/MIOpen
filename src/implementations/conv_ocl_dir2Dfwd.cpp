@@ -8,7 +8,7 @@ ConvOclDirectFwd::PrepareForUsage(const ImplementationSearchParameters& params,
                                   const ExaustiveSearchResult& exaustive_search_result) const
 {
     const auto& searched_params =
-        static_cast<const Direct2DfwdExaustiveSearchResult&>(exaustive_search_result);
+        dynamic_cast<const Direct2DfwdExaustiveSearchResult&>(exaustive_search_result);
 
     // std::size_t localMemSize = params.stream.GetLocalMemorySize();
 
@@ -171,4 +171,4 @@ ConvOclDirectFwd::PrepareForUsage(const ImplementationSearchParameters& params,
     result.construction_params.push_back(kernel_params);
     return result;
 }
-}
+} // namespace miopen

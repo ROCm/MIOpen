@@ -166,4 +166,4 @@ ConvOclDirectFwd3x3::PrepareForUsage(const ImplementationSearchParameters& param
     result.construction_params.push_back(construction_parameters);
     return result;
 }
-}
+} // namespace miopen

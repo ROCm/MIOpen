@@ -85,4 +85,4 @@ ConvBinWinograd3x3F::PrepareForUsage(const ImplementationSearchParameters& param
     return result;
     ;
 }
-}
+} // namespace miopen

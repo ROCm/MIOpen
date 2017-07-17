@@ -269,4 +269,4 @@ ConvOclBwdWrW2::PrepareForUsage(const ImplementationSearchParameters& params,
 
     return result;
 }
-}
+} // namespace miopen

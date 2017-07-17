@@ -213,4 +213,4 @@ ConvOclDirectFwdGen::PrepareForUsage(const ImplementationSearchParameters& param
     result.construction_params.push_back(construction_params);
     return result;
 }
-}
+} // namespace miopen
