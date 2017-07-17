@@ -925,8 +925,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 // Execute the winograd kernel
                 static const int F_REVERSE_R = 1 << 0; // Reverse indexing of r, r -> R-1-r if set.
                 static const int F_REVERSE_S = 1 << 1; // Reverse indexing of s, s -> S-1-s if set.
-                static const int F_FLIP_K_C  = 1 << 2; // The <filter_addr> to be interpreted as float F
-                                                       // [C][K][3][3] instead of float F [K][C][3][3].
+                static const int F_FLIP_K_C =
+                    1 << 2; // The <filter_addr> to be interpreted as float F
+                            // [C][K][3][3] instead of float F [K][C][3][3].
                 int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
                 int reserved     = 0;
                 int* return_addr = nullptr;
