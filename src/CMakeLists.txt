@@ -88,22 +88,22 @@ set( MIOpen_Source
     include/miopen/softmax.hpp
     tensor.cpp
     tensor_api.cpp
-	implementations/conv_asm_3x3u.cpp
-	implementations/conv_asm_5x10u2v2f1.cpp
-	implementations/conv_asm_5x10u2v2b1.cpp
-	implementations/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
-	implementations/conv_asm_dir_BwdWrW3x3.cpp
-	implementations/conv_bin_wino3x3F.cpp
-	implementations/conv_ocl_dir2D_bwdWrW_2.cpp
-	implementations/conv_ocl_dir2D_bwdWrW_53.cpp
-	implementations/conv_ocl_dir2D_bwdWrW_1x1.cpp
-	implementations/conv_ocl_dir2Dfwdgen.cpp
-	implementations/conv_ocl_dir2D11x11.cpp
-	implementations/conv_ocl_dir2D3x3.cpp
-	implementations/conv_ocl_dir2Dfwd_exaustive_search.cpp
-	implementations/conv_ocl_dir2Dfwd.cpp
-	implementations/conv_ocl_dir2DfwdC.cpp
-	implementations/conv_ocl_dir2Dfwd1x1.cpp
+    implementations/conv_asm_3x3u.cpp
+    implementations/conv_asm_5x10u2v2f1.cpp
+    implementations/conv_asm_5x10u2v2b1.cpp
+    implementations/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
+    implementations/conv_asm_dir_BwdWrW3x3.cpp
+    implementations/conv_bin_wino3x3F.cpp
+    implementations/conv_ocl_dir2D_bwdWrW_2.cpp
+    implementations/conv_ocl_dir2D_bwdWrW_53.cpp
+    implementations/conv_ocl_dir2D_bwdWrW_1x1.cpp
+    implementations/conv_ocl_dir2Dfwdgen.cpp
+    implementations/conv_ocl_dir2D11x11.cpp
+    implementations/conv_ocl_dir2D3x3.cpp
+    implementations/conv_ocl_dir2Dfwd_exaustive_search.cpp
+    implementations/conv_ocl_dir2Dfwd.cpp
+    implementations/conv_ocl_dir2DfwdC.cpp
+    implementations/conv_ocl_dir2Dfwd1x1.cpp
     )
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
