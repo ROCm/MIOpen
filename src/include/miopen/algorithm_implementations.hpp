@@ -46,6 +46,8 @@ class ImplementationUsageDescription
 
 class ExaustiveSearchResult
 {
+    public:
+    virtual ~ExaustiveSearchResult() {}
 };
 
 class Direct2DfwdExaustiveSearchResult : public ExaustiveSearchResult
@@ -83,6 +85,7 @@ class AlgotithmImplementationDescription
     {
         return nullptr;
     }
+    virtual ~AlgotithmImplementationDescription() {}
     virtual bool IsCorrect(const ImplementationSearchParameters& /*params*/) const { return true; }
     virtual bool IsFast(const ImplementationSearchParameters& /*params*/) const { return true; }
     virtual ImplementationUsageDescription
@@ -93,9 +96,9 @@ class AlgotithmImplementationDescription
 class ConvAsm3x3U : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual bool IsFast(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    bool IsFast(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -103,17 +106,16 @@ class ConvAsm3x3U : public AlgotithmImplementationDescription
 class ConvAsm5x10u2v2f1 : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
-    PrepareForUsage(const ImplementationSearchParameters& params,
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
 
 class ConvAsm5x10u2v2b1 : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -121,8 +123,8 @@ class ConvAsm5x10u2v2b1 : public AlgotithmImplementationDescription
 class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -130,8 +132,8 @@ class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public AlgotithmImplementationDescript
 class ConvOclDirectFwd11x11 : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -148,8 +150,8 @@ class ConvOclDirectFwdGen : public AlgotithmImplementationDescription
 class ConvOclDirectFwd3x3 : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -157,7 +159,7 @@ class ConvOclDirectFwd3x3 : public AlgotithmImplementationDescription
 class ConvOclDirectFwdLegacyExaustiveSearch : public AlgotithmImplementationDescription
 {
     public:
-    virtual std::shared_ptr<ExaustiveSearchResult>
+    std::shared_ptr<ExaustiveSearchResult>
     PrepareExaustiveSearchResult(const ImplementationSearchParameters& params) const override;
 
     private:
@@ -172,7 +174,7 @@ class ConvOclDirectFwdLegacyExaustiveSearch : public AlgotithmImplementationDesc
                      double& processing_time,
                      const ImplementationSearchParameters& params) const;
 
-    static std::vector<AlgotithmImplementationDescription*> _kernels_to_measure;
+    static const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>>& GetImplementationsToMeasure();
 };
 
 class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExaustiveSearch
@@ -186,8 +188,8 @@ class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExaustiveSearch
 class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExaustiveSearch
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -195,8 +197,8 @@ class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExaustiveSearch
 class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExaustiveSearch
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -204,8 +206,8 @@ class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExaustiveSearch
 class ConvBinWinograd3x3F : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -213,9 +215,9 @@ class ConvBinWinograd3x3F : public AlgotithmImplementationDescription
 class ConvAsmBwdWrW3x3 : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual bool IsFast(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    bool IsFast(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -223,8 +225,8 @@ class ConvAsmBwdWrW3x3 : public AlgotithmImplementationDescription
 class ConvOclBwdWrW2 : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -232,8 +234,8 @@ class ConvOclBwdWrW2 : public AlgotithmImplementationDescription
 class ConvOclBwdWrW53 : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -241,11 +243,11 @@ class ConvOclBwdWrW53 : public AlgotithmImplementationDescription
 class ConvOclBwdWrW1x1 : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
-}
+} // namespace miopen
 
 #endif // !KERNEL_TRAITS_HPP

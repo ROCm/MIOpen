@@ -72,4 +72,4 @@ ImplementationUsageDescription ConvAsm7x7c3h224w224k64u2v2p3q3f1::PrepareForUsag
     result.construction_params.push_back(constr_params);
     return result;
 }
-}
+} // namespace miopen

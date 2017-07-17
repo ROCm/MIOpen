@@ -20,7 +20,7 @@ ConvOclDirectFwdC::PrepareForUsage(const ImplementationSearchParameters& params,
                                    const ExaustiveSearchResult& exaustive_search_result) const
 {
     const auto& searched_params =
-        static_cast<const Direct2DfwdExaustiveSearchResult&>(exaustive_search_result);
+        dynamic_cast<const Direct2DfwdExaustiveSearchResult&>(exaustive_search_result);
 
     // if (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
     //{
@@ -189,4 +189,4 @@ ConvOclDirectFwdC::PrepareForUsage(const ImplementationSearchParameters& params,
     result.construction_params.push_back(kernel_params);
     return result;
 }
-}
+} // namespace miopen

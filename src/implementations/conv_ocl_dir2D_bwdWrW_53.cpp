@@ -237,4 +237,4 @@ ConvOclBwdWrW53::PrepareForUsage(const ImplementationSearchParameters& params,
 
     return result;
 }
-}
+} // namespace miopen

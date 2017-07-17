@@ -415,4 +415,4 @@ ConvAsmBwdWrW3x3::PrepareForUsage(const ImplementationSearchParameters& params,
 
     return result;
 }
-}
+} // namespace miopen
