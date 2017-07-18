@@ -123,14 +123,12 @@ int mlo_construct_direct2D::mloConstruct()
     const auto no_perf_filtering =
         miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 
-#if MIOPEN_BACKEND_OPENCL
     _search_params.rmv = V3;
 
     /// \todo See todo in mlo_construct_winograd::mloConstruct().
     _search_params.assembler_available = mloIsAmdOpenclRocm(_search_params.rmv) &&
                                          !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) &&
                                          ValidateGcnAssembler();
-#endif
 
 #ifndef HIP_OC_FINALIZER
     _search_params.use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
