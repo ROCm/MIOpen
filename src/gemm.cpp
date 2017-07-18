@@ -271,51 +271,6 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
     return gg;
 }
 
-GemmGeometry CreateMIOpenGemmGeometry(int M,
-                                      int N,
-                                      int K,
-                                      int lda,
-                                      int ldb,
-                                      int ldc,
-                                      bool tA,
-                                      bool tB,
-                                      bool isDataColMajor,
-                                      float alpha,
-                                      float beta)
-{
-    MIOpenGEMM::Geometry tgg{};
-
-    // Assuming we are using miopengemm as only col major
-    // Therefore, if the user provides data in col. major
-    // then no transformations are requrired and vice versa
-    if(isDataColMajor)
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, tA, tB, false, lda, ldb, ldc, M, N, K, 0, 'f'); // jn : added 0 for no workspace,
-                                                                  // 'f' for single prec.
-
-        return GemmGeometry{std::array<int, 3>{{M, N, K}},
-                            std::array<int, 3>{{lda, ldb, ldc}},
-                            "miopenGEMM",
-                            alpha,
-                            beta,
-                            tgg};
-    }
-    else
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, tB, tA, false, ldb, lda, ldc, N, M, K, 0, 'f'); // jn : added 0 for no workspace,
-                                                                  // 'f' for single prec.
-
-        return GemmGeometry{std::array<int, 3>{{N, M, K}},
-                            std::array<int, 3>{{ldb, lda, ldc}},
-                            "miopenGEMM",
-                            alpha,
-                            beta,
-                            tgg};
-    }
-}
-
 GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_config)
 {
     auto gemm_iterator = gemm_geo_map().find(std::make_pair(algorithm_name, network_config));
