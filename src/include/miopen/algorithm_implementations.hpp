@@ -37,7 +37,18 @@ class ImplementationUsageDescription
     int n_stacks;
 
     ImplementationUsageDescription(miopenStatus_t status_ = miopenStatusSuccess, int passes_ = 1)
-        : status(status_), passes(passes_)
+        : status(status_),
+          passes(passes_),
+          workspce_sz(),
+          grp_tile1(),
+          grp_tile0(),
+          in_tile1(),
+          in_tile0(),
+          out_pix_tile1(),
+          out_pix_tile0(),
+          n_out_pix_tiles(),
+          n_in_data_tiles(),
+          n_stacks()
     {
     }
 
@@ -47,6 +58,9 @@ class ImplementationUsageDescription
 class ExaustiveSearchResult
 {
     public:
+    ExaustiveSearchResult() {}
+    ExaustiveSearchResult(ExaustiveSearchResult&) {}
+    ExaustiveSearchResult(ExaustiveSearchResult&&) {}
     virtual ~ExaustiveSearchResult() {}
 };
 
@@ -107,7 +121,8 @@ class ConvAsm5x10u2v2f1 : public AlgotithmImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    ImplementationUsageDescription PrepareForUsage(const ImplementationSearchParameters& params,
+    ImplementationUsageDescription
+    PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
 
@@ -141,8 +156,8 @@ class ConvOclDirectFwd11x11 : public AlgotithmImplementationDescription
 class ConvOclDirectFwdGen : public AlgotithmImplementationDescription
 {
     public:
-    virtual bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    virtual ImplementationUsageDescription
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
@@ -174,13 +189,14 @@ class ConvOclDirectFwdLegacyExaustiveSearch : public AlgotithmImplementationDesc
                      double& processing_time,
                      const ImplementationSearchParameters& params) const;
 
-    static const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>>& GetImplementationsToMeasure();
+    static const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>>&
+    GetImplementationsToMeasure();
 };
 
 class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExaustiveSearch
 {
     public:
-    virtual ImplementationUsageDescription
+    ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
