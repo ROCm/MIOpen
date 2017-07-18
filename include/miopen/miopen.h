@@ -1511,54 +1511,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT SOFTMAX DOXYGEN GROUP
 
-// GEMM API
-/** @addtogroup gemm
- *
- *  @{
- */
-
-/*! @brief Interface for GEMM
- *
- * Executes \f$C = \alpha*op(A)*op(B) + \beta*C \f$ with transposed options \f$op()\f$ on A and B,
- * but not Hermitian-Transpose.
- * Data can be represented in column major format.
- *
- *
- * @param handle         MIOpen handle
- * @param isDataColMajor Indicate column major mode
- * @param transA         Transpose matrix A
- * @param transB         Transpose matrix B
- * @param M              Number of rows in matrix op(A) and C
- * @param N              Number of columns in matrix op(B) and C
- * @param K              Number of columns in matrix op(A) and C
- * @param alpha          Scaling factor, always equal to 1
- * @param A              Pointer to matrix A
- * @param lda            leading dimension of A depending on isDataColMajor and transA
- * @param B              Pointer to matrix B
- * @param ldb            leading dimension of B depending on isDataColMajor and transB
- * @param beta           Shift factor, always equal to 0
- * @param C              Pointer to matrix C
- * @param ldc            leading dimension of C depending on isDataColMajor
- * @return               miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenGemm(miopenHandle_t handle,
-                                        bool isDataColMajor,
-                                        bool transA,
-                                        bool transB,
-                                        int M,
-                                        int N,
-                                        int K,
-                                        const void* alpha,
-                                        const void* A,
-                                        int lda,
-                                        const void* B,
-                                        int ldb,
-                                        const void* beta,
-                                        void* C,
-                                        int ldc);
-/** @} */
-// CLOSEOUT GEMM DOXYGEN GROUP
-
 #ifdef __cplusplus
 }
 #endif
