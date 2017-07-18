@@ -167,7 +167,6 @@ endif()
 if(miopengemm_FOUND)
     list(APPEND MIOpen_Source 
         gemm.cpp
-        gemm_api.cpp
         gemm_geometry.cpp
     )
 endif()
