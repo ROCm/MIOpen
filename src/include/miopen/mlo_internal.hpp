@@ -151,14 +151,12 @@ inline int AlignUp(int val, unsigned step)
     return ((val + step - 1) / step) * step;
 }
 
-#if MIOPEN_BACKEND_OPENCL
 enum rocm_meta_version
 {
     V1,
     V2,
     V3
 };
-#endif
 
 namespace miopen {
 
@@ -190,9 +188,7 @@ class ImplementationSearchParameters
     int batch_sz;
     int bias;
     int n_timer_iter = 0;
-#if MIOPEN_BACKEND_OPENCL
     rocm_meta_version rmv;
-#endif
     std::string general_compile_options;
 
     ImplementationSearchParameters()
