@@ -165,10 +165,13 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
     return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : workspace_size;
 }
 
-bool ConvolutionDescriptor::IsWinogradSupported(Handle& handle,
-                                                bool direction,
-                                                const TensorDescriptor& wDesc,
-                                                const TensorDescriptor& xDesc) const
+// FIXME: This seems to duplicate
+// mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3U()
+// functionality thus violating the One Definition Rule.
+bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
+                                                   bool direction,
+                                                   const TensorDescriptor& wDesc,
+                                                   const TensorDescriptor& xDesc) const
 {
     const auto perf_filtering = miopen::IsEnabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
     if(perf_filtering || miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{}))
@@ -230,7 +233,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and
         // use more workspace.
-        if(IsWinogradSupported(handle, true, wDesc, xDesc))
+        if(IsWinograd3x3Supported(handle, true, wDesc, xDesc))
         {
             return 0;
         }
@@ -261,7 +264,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and
         // use more workspace.
-        if(IsWinogradSupported(handle, false, wDesc, dyDesc))
+        if(IsWinograd3x3Supported(handle, false, wDesc, dyDesc))
         {
             return 0;
         }
