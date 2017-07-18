@@ -195,6 +195,37 @@ class ImplementationSearchParameters
 #endif
     std::string general_compile_options;
 
+    ImplementationSearchParameters()
+        : forward(),
+          bot_sz(),
+          top_sz(),
+          weights_sz(),
+          bias_sz(),
+          pad0(),
+          pad1(),
+          kernel_stride0(),
+          kernel_stride1(),
+          kernel_size0(),
+          kernel_size1(),
+          n_inputs(),
+          n_outputs(),
+          in_width(),
+          in_height(),
+          out_width(),
+          out_height(),
+          in_stride(),
+          out_stride(),
+          in_channel_stride(),
+          in_batch_stride(),
+          out_channel_stride(),
+          out_batch_stride(),
+          batch_sz(),
+          bias(),
+          rmv(),
+          _stream()
+    {
+    }
+
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }
 
@@ -222,9 +253,9 @@ class mlo_construct_direct2D
         //	_gen_comp_options = std::string(" -cl-std=CL2.0 ");
         //#endif
         _in_tile0 = (_search_params.in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width <
-                                                             //24 || (_in_width > 32 && _in_width <
-                                                             //48)) ? 16 : 32; // size of input data
-                                                             //per ALU plane
+                                                             // 24 || (_in_width > 32 && _in_width <
+        // 48)) ? 16 : 32; // size of input data
+        // per ALU plane
         _in_tile1 = (_search_params.in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height
                                                               // < 24 || (_in_height > 32 &&
                                                               // _in_height < 48)) ? 16 : 32; //
