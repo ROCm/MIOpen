@@ -131,7 +131,7 @@ std::string ParseBaseArg(int argc, char* argv[])
     std::string arg = argv[1];
 
     if(arg != "conv" && arg != "pool" && arg != "lrn" && arg != "activ" && arg != "softmax" &&
-       arg != "bnorm") 
+       arg != "bnorm")
     {
         printf("Invalid Base Input Argument\n");
         Usage();
