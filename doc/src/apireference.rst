@@ -15,4 +15,3 @@ API Reference
     softmax
     lrn
     batchnorm
-    gemm
