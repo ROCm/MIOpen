@@ -6,7 +6,7 @@ AMD's library for high performance deep learning primitives.
 MIOpen supports two programming models:
 
 1. OpenCL 
-2. [HIP](https://github.com/RadeonOpenCompute/HIP)
+2. [HIP](https://github.com/ROCm-Developer-Tools/HIP)
 
 
 ## Prerequisites
