@@ -74,16 +74,16 @@ int PoolingDescriptor::GetSize() const
     return lens.size();
 }
 
-std::tuple<int, int, int, int>
+std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
 PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& tensorDesc) const
 {
 
     assert(tensorDesc.GetLengths().size() == 4);
 
-    int input_n;
-    int input_c;
-    int input_h;
-    int input_w;
+    std::size_t input_n;
+    std::size_t input_c;
+    std::size_t input_h;
+    std::size_t input_w;
 
     std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(tensorDesc.GetLengths());
 
@@ -95,11 +95,11 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& tensorDesc) const
     return std::make_tuple(
         input_n,
         input_c,
-        std::max(1,
-                 static_cast<int>(
+        std::max(std::size_t{1},
+                 static_cast<std::size_t>(
                      std::ceil((input_h - window_h + 2 * pad_h) / static_cast<float>(u)) + 1)),
-        std::max(1,
-                 static_cast<int>(
+        std::max(std::size_t{1},
+                 static_cast<std::size_t>(
                      std::ceil((input_w - window_w + 2 * pad_w) / static_cast<float>(v)) + 1)));
 }
 
