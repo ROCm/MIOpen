@@ -39,12 +39,13 @@
 
 // calculating the size of the area for weights prefetch
 
+
 #if MLO_N_MAPS_PERGROUP > 1
-#define MLO_WEIGHTS_PER_LOOP_MAX 8
+#define MLO_WEIGHTS_PER_LOOP_MAX (8)
 #else
-#define MLO_WEIGHTS_PER_LOOP_MAX 16
+#define MLO_WEIGHTS_PER_LOOP_MAX (16)
 #endif
-#if((MLO_N_MAPS_PERGROUP * MLO_N_LCL_IN_MAPS) < MLO_N_INPUTS)
+#if(MLO_N_MAPS_PERGROUP * MLO_N_LCL_IN_MAPS < MLO_N_INPUTS)
 #define MLO_LCL_IN_ROW (MLO_N_MAPS_PERGROUP * MLO_N_LCL_IN_MAPS)
 #else
 #define MLO_LCL_IN_ROW (MLO_N_INPUTS)
@@ -52,12 +53,18 @@
 
 #define MLO_WEIGHTS_PER_LOOP_TMP ((MLO_N_INPUTS + MLO_LCL_IN_ROW - 1) / MLO_LCL_IN_ROW)
 
+
 #if(MLO_WEIGHTS_PER_LOOP_TMP < MLO_WEIGHTS_PER_LOOP_MAX)
 #define MLO_WEIGHTS_PER_LOOP (MLO_WEIGHTS_PER_LOOP_TMP)
 #else
 #define MLO_WEIGHTS_PER_LOOP (MLO_WEIGHTS_PER_LOOP_MAX)
 #endif
+
+
 #define MLO_LCL_WEIGHTS_ROW (MLO_WEIGHTS_PER_LOOP * MLO_LCL_IN_ROW)
+
+#define MLO_IN_LOOP ((MLO_N_INPUTS + MLO_LCL_WEIGHTS_ROW - 1)/MLO_LCL_WEIGHTS_ROW)
+
 #define MLO_WEIGHTS_ROW (MLO_LCL_WEIGHTS_ROW * MLO_WEI_CHANNEL_STRIDE)
 
 // size of the area for weights prefetch
@@ -112,6 +119,7 @@ After completion of the main MLO_IN_LOOP loop partial sums have been summed up i
 
 */
 
+__attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2)))
 __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
                             const __global _FLOAT* __restrict wei_ptr,
 #if MLO_CONV_BIAS
@@ -127,6 +135,7 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
     __private _FLOAT wei_stage;
     __private _FLOAT out_tiles[MLO_N_LCL_BATCHS][MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
     __local _FLOAT lcl_wei_stage[MLO_LCL_MEM_SZ];
+
 
 #if MLO_N_MAPS_PERGROUP > 1
     __local _FLOAT* lcl_out_stage = lcl_wei_stage;
@@ -167,7 +176,7 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         }
     }
     // over all input maps; with step == MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP; MLO_IN_LOOP
-    for(uint wc = 0; wc < MLO_IN_LOOP; wc += MLO_WEIGHTS_PER_LOOP)
+    for(uint wc = 0; wc < MLO_IN_LOOP; ++wc)
     {
         // read array of weights
         barrier(CLK_LOCAL_MEM_FENCE);
@@ -184,7 +193,7 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             uint lwi = (w & (MLO_WEIGHTS_ROW - 1));
 #endif
 
-            uint wi = (wc * (MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP) + lwi) *
+            uint wi = (wc * MLO_LCL_WEIGHTS_ROW + lwi) *
 #if MLO_DIR_FORWARD == 1
                       MLO_WEI_CHANNEL_STRIDE;
 #else
@@ -192,7 +201,7 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
 
             // out of range check
-            uint wei_off_r = wei_off + wi +
+            uint wei_off1 = wei_off + wi +
                              oi *
 #if MLO_DIR_FORWARD == 1
                                  MLO_WEI_BSTRIDE;
@@ -200,29 +209,30 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
                                  MLO_WEI_CHANNEL_STRIDE;
 #endif
 
-            wei_off_r        = (wei_off_r < MLO_N_OUTPUTS * MLO_N_INPUTS) ? wei_off_r : 0;
+            uint wei_off_r        = (wei_off1 < MLO_N_OUTPUTS * MLO_N_INPUTS) ? wei_off1 : 0;
             _FLOAT wei_val   = wei_ptr[wei_off_r];
-            wei_val          = (wei_off_r < MLO_N_OUTPUTS * MLO_N_INPUTS) ? wei_val : 0;
+            wei_val          = (wei_off1 < MLO_N_OUTPUTS * MLO_N_INPUTS) ? wei_val : 0;
             lcl_wei_stage[w] = wei_val;
         }
 
         barrier(CLK_LOCAL_MEM_FENCE);
-
+		uint c = 0;
 #if MLO_WEIGHTS_PER_LOOP > 7
 #pragma unroll(MLO_WEIGHTS_PER_LOOP / 8)
 #endif
         for(uint ci = 0; ci < MLO_WEIGHTS_PER_LOOP;
             ++ci, in_off += MLO_IN_CHANNEL_STRIDE * MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP)
         {
-            uint c        = wc + ci;
+            c        = wc + ci;
             uint wei_indx = ci;
 
             // read data
             // over all local batchs
             uint in_off1 = in_off;
+			uint in_off2 = 0;
             for(uint ib = 0; ib < MLO_N_LCL_BATCHS; ++ib, in_off1 += MLO_IN_BATCH_STRIDE)
             {
-                uint in_off2 = in_off1;
+                in_off2 = in_off1;
                 // lcl in maps (in data tiles) is has the stride = MLO_N_MAPS_PERGROUP
                 for(uint ilc = 0; ilc < MLO_N_LCL_IN_MAPS;
                     ++ilc, in_off2 += MLO_IN_CHANNEL_STRIDE * MLO_N_MAPS_PERGROUP)
@@ -234,6 +244,9 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
                         c * MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP + in_map_id +
                                 ilc * MLO_N_MAPS_PERGROUP <
                             MLO_N_INPUTS;
+#ifndef __AMDGCN__
+					in_off2 = (v) ? in_off2 : 0;
+#endif
                     __global const _FLOAT* in_p = &in_ptr[in_off2];
 #if MLO_C1x1_PIXLEFT > 0
                     // if the last one
@@ -301,6 +314,23 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
                         for(uint i = 0; i < MLO_READ_UNIT; ++i)
                         {
                             out_tiles[ib][olc][i] += in_stage[ib][ilc][i] * wei_stage;
+
+#if 0 //MLO_DIR_FORWARD == 0
+							if ( /*in_stage[ib][ilc][i] * wei_stage!= 0 && */out_grp_block * MLO_N_LCL_OUT_MAPS + olc == 8 && i == 0 && get_global_id(0) == 0 && get_global_id(1) == 0 && get_global_id(2) == 0)
+							{
+								printf("K:c: %d %d %d %d   %f %f %f %f\n",
+								wc, 
+								MLO_IN_LOOP,
+								MLO_WEIGHTS_PER_LOOP,
+								MLO_WEIGHTS_ROW,
+
+								out_tiles[ib][olc][i],
+								in_stage[ib][ilc][i] * wei_stage,
+								in_stage[ib][ilc][i],
+								 wei_stage
+								);
+							}
+#endif
                         }
                     }
                 }
