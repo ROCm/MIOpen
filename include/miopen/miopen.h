@@ -102,9 +102,10 @@ typedef enum {
 
 /*! @brief Method to create the MIOpen handle object.
  *
- * This function creates a MIOpen handle. This is called at the very start to initialize the MIOpen environment.
- * @param[out] handle     A pointer to a MIOpen handle type (output)
- * 
+ * This function creates a MIOpen handle. This is called at the very start to initialize the MIOpen
+ * environment.
+ * @param handle     A pointer to a MIOpen handle type (output)
+ *
  * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t* handle);
@@ -112,9 +113,9 @@ MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t* handle);
 /*! @brief Create a MIOpen handle with an accelerator stream.
  *
  * Create a handle with a previously created accelerator command queue.
- * @param[out] handle     A pointer to a  MIOpen handle type 
- * @param[in] stream      An accelerator queue type
- * 
+ * @param handle     A pointer to a  MIOpen handle type
+ * @param stream      An accelerator queue type
+ *
  * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateWithStream(miopenHandle_t* handle,
@@ -123,7 +124,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateWithStream(miopenHandle_t* handle,
 /*! @brief Destroys the MIOpen handle.
  *
  * This is called when breaking down the MIOpen environment.
- * @param[in] handle     MIOpen handle 
+ * @param handle     MIOpen handle
  * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenDestroy(miopenHandle_t handle);
@@ -131,7 +132,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroy(miopenHandle_t handle);
 /*! @brief Set accelerator command queue previously created
  *
  * Set a command queue for an accelerator device
- * @param handle     MIOpen handle 
+ * @param handle     MIOpen handle
  * @param streamID   An accelerator queue type
  * @return           miopenStatus_t
 */
@@ -141,7 +142,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetStream(miopenHandle_t handle,
 /*! @brief Get the previously created accelerator command queue
  *
  * Creates a command queue for an accelerator device
- * @param handle     MIOpen handle 
+ * @param handle     MIOpen handle
  * @param streamID   Pointer to a accelerator queue type
  * @return           miopenStatus_t
 */
