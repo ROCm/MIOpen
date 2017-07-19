@@ -124,9 +124,9 @@ struct HandleImpl
     bool enable_profiling  = false;
     StreamPtr stream       = nullptr;
     float profiling_result = 0.0;
+    int device = -1;
     KernelCache cache;
     hipCtx_t ctx;
-    int device;
 };
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
