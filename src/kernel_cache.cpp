@@ -41,6 +41,7 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/kernel_cache.hpp>
+#include <miopen/logger.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -90,9 +91,9 @@ static void dump_kernel_params(const std::string& program_name,
     int osize = value[4] * value[3] * value[7] * value[8];
     std::cout << "runcl " << params << " src/Kernels/" << program_name << " -k " << kernel_name
               << " -dumpilisa -r 10"
-              << " if#" << isize * 4 << ": if#" << msize * 4 << ": if#" << osize * 4 << ": iv#0 "
-              << vgd[0] << "," << vgd[1] << "," << vgd[2] << "/" << vld[0] << "," << vld[1] << ","
-              << vld[2] << std::endl;
+              << " if#" << isize * 4 << ": if#" << msize * 4 << ": if#" << osize * 4 << ": iv#0 ";
+    miopen::LogRange(std::cout, vgd, ",") << "/";
+    miopen::LogRange(std::cout, vld, ",") << std::endl;
 }
 #endif
 
