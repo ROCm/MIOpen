@@ -56,7 +56,6 @@
  * @defgroup activation
  * @defgroup tensor
  * @defgroup softmax
- * @defgroup gemm
  *
 */
 
@@ -103,17 +102,20 @@ typedef enum {
 
 /*! @brief Method to create the MIOpen handle object.
  *
- * Creates a MIOpen handle. This is called at the very start to initialize the MIOpen environment.
- * @param handle     A pointer to a MIOpen handle type
+ * This function creates a MIOpen handle. This is called at the very start to initialize the MIOpen
+ * environment.
+ * @param handle     A pointer to a MIOpen handle type (output)
+ *
  * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t* handle);
 
 /*! @brief Create a MIOpen handle with an accelerator stream.
  *
- * Create a handle with a previously created accelerator command queue
+ * Create a handle with a previously created accelerator command queue.
  * @param handle     A pointer to a  MIOpen handle type
- * @param stream   An accelerator queue type
+ * @param stream      An accelerator queue type
+ *
  * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateWithStream(miopenHandle_t* handle,
@@ -150,7 +152,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetStream(miopenHandle_t handle,
 /*! @brief Get time for last kernel launched
  *
  *  This function is used only when profiling mode has been enabled.
- * @param handle     MIOpen handle
+ * @param handle     MIOpen handle (input)
  * @param time       Pointer to a float type to contain kernel time in milliseconds
  * @return           miopenStatus_t
 */
@@ -473,7 +475,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
                                                             int* dilation_h,
                                                             int* dilation_w);
 
-/*! @brief Get the shape of  a resulting 4-D tensor from a 2-D convolution
+/*! @brief Get the shape of a resulting 4-D tensor from a 2-D convolution
  *
  * This function returns the dimensions of the resulting 4D tensor of a 2D
  * convolution, given the convolution descriptor, the input tensor descriptor
@@ -481,7 +483,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
  * and allocate the proper amount of memory prior to launch the actual
  * convolution.
  *
- * @param convDesc   Convolution layer descriptor
+ * @param convDesc          Convolution layer descriptor
  * @param inputTensorDesc   Input data tensor descriptor
  * @param filterDesc        Weight descriptor
  * @param n                 Mini-batch size
@@ -632,8 +634,8 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * @param beta           Shift factor, always equal to 0
  * @param yDesc          Tensor descriptor for output data tensor y
  * @param y              Data tensor y
- * @param workSpace      Pointer to workspace required for the search
- * @param workSpaceSize  Size in bytes of the memory needed for find
+ * @param workSpace      Pointer to workspace required
+ * @param workSpaceSize  Size in bytes of the memory determined by the find step
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
