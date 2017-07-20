@@ -445,7 +445,7 @@ int PoolDriver<T>::VerifyForward()
                                                           do_backward,
                                                           maskhost.data(),
                                                           mask.data(),
-                                                          (10e-6));
+                                                          1);
 
     printf(match ? "Forward Pooling Verifies on CPU and GPU\n"
                  : "Forward Pooling Verification Failed !!\n");
