@@ -39,6 +39,9 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
@@ -230,10 +233,17 @@ int mlo_construct_winograd::mloConstruct()
             miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
         if(use_binaries)
         {
-            if(mloIsCorrectBinaryWinograd3x3Fwd() &&
-               (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd()))
+            if(mloIsCorrectBinaryWinograd3x3U() &&
+               !miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}) &&
+               (no_perf_filtering || mloIsFastBinaryWinograd3x3U()))
             {
-                return (mloConstructBinaryWinograd3x3Fwd(rmv));
+                return (mloConstructBinaryWinograd3x3U(rmv));
+            }
+            if(mloIsCorrectBinaryWinogradRxSFwd(rmv) &&
+               !miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}) &&
+               (no_perf_filtering || mloIsFastBinaryWinogradRxSFwd()))
+            {
+                return (mloConstructBinaryWinogradRxSFwd());
             }
         }
     }
@@ -556,7 +566,8 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version& rmv) const
     return true;
 #endif // MIOPEN_BACKEND_OPENCL
 }
-bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
+
+bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3U() const
 {
     // Check if device is able to run this kernel.
     const auto name                    = _stream->GetDeviceName();
@@ -582,8 +593,8 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
            (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) && _n_inputs % 2 == 0 &&
            _n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18) && _in_layout == "NCHW";
 
-    // FIXME: _n_inputs > 18 is a requirement of the v5.1 shader and NOT a dependency on gfx9
-    // The current way of implemenation is a hack as gfx8 uses v3.0 shader and gfx9 uses v5.1 shader
+    // FIXME: _n_inputs > 18 is a requirement of the v7 shader and NOT a dependency on gfx9
+    // The current way of implemenation is a hack as gfx8 uses v3.0 shader and gfx9 uses v7.
 
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See
     // fixme above.
@@ -591,9 +602,9 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
     // both directions.
 }
 
-bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const { return true; }
+bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const { return true; }
 
-int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv)
+int mlo_construct_direct2D::mloConstructBinaryWinograd3x3U(rocm_meta_version rmv)
 {
     const auto n_groups = _stream->GetMaxComputeUnits();
     const auto name     = _stream->GetDeviceName();
@@ -625,6 +636,186 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version r
 
         _kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900.so";
     }
+
+    return 0;
+}
+
+/// \return v rounded up (towards +inf) to the nearest multiple of m.
+/// Defined for positive values only.
+static int Ceiling(const int v, const int m)
+{
+    assert(m > 0 && v >= 0);
+    if(v % m != 0)
+    {
+        return (v / m + 1) * m;
+    }
+    return v;
+}
+
+bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version rmv) const
+{
+    if(rmv == V1 || rmv == V2)
+    {
+        return false;
+    }
+    if(!isForwardDirection())
+    {
+        return false;
+    }
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED{}))
+    {
+        // FIXME remove env var and all this stuff when Winograd v8 gets fixed.
+        if(!(_kernel_stride0 == 1 && _kernel_stride1 == 1))
+        {
+            return false;
+        }
+        // if(!(_kernel_size0 <= 3 && _kernel_size1 <= 3))
+        // 3x3 seems to fail on Vega, so let's keep 1x1 only for now.
+        if(!(_kernel_size0 == 1 && _kernel_size1 == 1))
+        {
+            return false;
+        }
+    }
+    const auto name                    = _stream->GetDeviceName();
+    const auto device_is_gfx9_no_xnack = (name == "gfx900");
+    const bool device_is_gfx8_no_xnack =
+        (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804");
+    if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
+    {
+        return false;
+    }
+    // Check if kernel is suitable for the problem description
+    // and able to correctly run with given parameters.
+
+    // Calculate padded filter size first.
+    // If stride = 1: if S <= 3 it is padded to 3,
+    // otherwise S is padded to smallest 6*n for some integer n
+    // If stride = 2: S is always padded to smallest 6*n for some integer n
+    int padded_S = 0;
+    if(_kernel_stride0 == 1)
+    {
+        if(_kernel_size0 < 3)
+        {
+            padded_S = 3;
+        }
+        else
+        {
+            padded_S = Ceiling(_kernel_size0, 6);
+        }
+    }
+    else
+    {
+        padded_S = Ceiling(_kernel_size0, 6);
+    }
+    // If stride = 1: R is always padded to smallest 3*m for some integer m
+    // If stride = 2: if R % 6 ==1 then R is padded to smallest 3*m for some
+    // integer m,
+    // otherwise R is padded to smallest 6*m for some integer m
+    int padded_R = 0;
+    if(_kernel_stride1 == 1)
+    {
+        padded_R = Ceiling(_kernel_size1, 3);
+    }
+    else
+    {
+        if(_kernel_size1 % 6 == 1)
+        {
+            padded_R = Ceiling(_kernel_size1, 3);
+        }
+        else
+        {
+            padded_R = Ceiling(_kernel_size1, 6);
+        }
+    }
+    // Check C restrictions:
+    // If stride == 1 and S <= 3 then C needs to be even, otherwise not
+    if(_kernel_stride0 == 1 && _kernel_size0 <= 3 && _n_inputs % 2 != 0)
+    {
+        return false;
+    }
+    // If the padded filter size from above is 3*k x 3*l, then it should be that
+    // k*l*C  >=18
+    {
+        assert(padded_R % 3 == 0 && padded_S % 3 == 0);
+        const int k = padded_R / 3;
+        const int l = padded_S / 3;
+        if(k * l * _n_inputs < 18)
+        {
+            return false;
+        }
+    }
+    const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
+    assert(_weights_layout.length() == 0);    // FIXME _weights_layout is not supported yet.
+                                              // Opt. Param   Restrictions in source
+    return _pad0 < std::pow(2, 16)            // -q   pad_w   uint16
+           && _pad1 < std::pow(2, 16)         // -p   pad_h   uint16
+           && _kernel_size0 < std::pow(2, 16) // -x   wei_w   S uint16
+           && _kernel_size1 < std::pow(2, 16) // -y   wei_h   R uint16
+           && _kernel_stride0 <= 2            // -u   inp_u   1 or 2
+           && _kernel_stride1 <= 2            // -v   inp_v   1 or 2
+           && _batch_sz < std::pow(2, 16) && _n_inputs < std::pow(2, 16) // -c   wei_c
+           && _n_outputs < std::pow(2, 16)                               // -k   wei_k
+           && _in_height < std::pow(2, 16)                               // -H   inp_h
+           && _in_width < std::pow(2, 16)                                // -W   inp_w
+           && grid_workgroup_count_x < std::pow(2, 16) &&
+           (_n_inputs * _in_height * _in_width) <= std::pow(2, 28) &&
+           (_n_outputs * _in_height * _in_width) <= std::pow(2, 28) &&
+           (_n_inputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) &&
+           (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) && _in_layout == "NCHW";
+    // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout ==
+    // "CKHW" )
+}
+
+bool mlo_construct_direct2D::mloIsFastBinaryWinogradRxSFwd() const
+{
+    /// \todo Runs 3x3 stride 1 cases, of course, but the v7_0_x is about 1%
+    /// faster at the moment
+    return true;
+}
+
+int mlo_construct_direct2D::mloConstructBinaryWinogradRxSFwd()
+{
+    const auto n_groups = _stream->GetMaxComputeUnits();
+    const auto name     = _stream->GetDeviceName();
+
+    _g_wk.clear();
+    _g_wk.push_back(512 * n_groups);
+    _g_wk.push_back(1);
+    _g_wk.push_back(1);
+
+    _l_wk.clear();
+    _l_wk.push_back(512);
+    _l_wk.push_back(1);
+    _l_wk.push_back(1);
+
+    _kernel_name = "sp3AsmConvRxSF";
+    _kernel_file = "conv_";
+    if(_kernel_stride0 == 1 && _kernel_stride1 == 1)
+    {
+        _kernel_file += "u1v1";
+    }
+    else if(_kernel_stride0 == 1 && _kernel_stride1 == 2)
+    {
+        _kernel_file += "u1v2";
+    }
+    else if(_kernel_stride0 == 2 && _kernel_stride1 == 1)
+    {
+        _kernel_file += "u2v1";
+    }
+    else
+    {
+        _kernel_file += "u2v2";
+    }
+    _kernel_file += "_wheel_alpha_v8_3_6_";
+    if(name.find("gfx8") != std::string::npos)
+    {
+        _kernel_file += "gfx803";
+    }
+    else
+    {
+        _kernel_file += "gfx900";
+    }
+    _kernel_file += ".so";
 
     return 0;
 }
