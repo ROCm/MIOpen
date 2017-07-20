@@ -260,7 +260,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #if DBG_OUT_OF_RNGE
                             if(in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                             {
-                                printf("k:err:in-of-range %d %d %d\n");
+                                printf("k:err:in-of-range\n");
                             }
 #endif
                         }
