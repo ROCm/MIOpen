@@ -48,7 +48,7 @@ include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 
-rocm_setup_version(VERSION 1.0.0)
+rocm_setup_version(VERSION 1.0.1)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -112,7 +112,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     find_package(hip REQUIRED PATHS /opt/rocm)
     link_libraries(stdc++)
     # A hack to make this work without the device enumerator
-    link_libraries(-amdgpu-target=gfx803 -Wno-unused-command-line-argument)
+    link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
@@ -149,8 +149,8 @@ else()
     set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
 endif()
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "rocm-opencl-dev, rocm-utils, hip_hcc")
-set(CPACK_RPM_PACKAGE_REQUIRES "rocm-opencl-dev, rocm-utils, hip_hcc")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
+set(CPACK_RPM_PACKAGE_REQUIRES "rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
     DESCRIPTION "AMD's DNN Library"

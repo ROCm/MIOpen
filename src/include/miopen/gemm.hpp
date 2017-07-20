@@ -57,18 +57,6 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
                                        bool isDataColMajor,
                                        std::string& network_config);
 
-GemmGeometry CreateMIOpenGemmGeometry(int M,
-                                      int N,
-                                      int K,
-                                      int lda,
-                                      int ldb,
-                                      int ldc,
-                                      bool tA,
-                                      bool tB,
-                                      bool isDataColMajor,
-                                      float alpha,
-                                      float beta);
-
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_HPP_

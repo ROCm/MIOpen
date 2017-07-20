@@ -89,9 +89,9 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         kernel =
             handle.GetKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
-        int N, C, H, W, K, n_groups;
-        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-        k_p = std::make_tuple(N, C, H, W, K, n_groups);
+        int N, C, H, W, K, n_groups, R, S;
+        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
+        k_p = std::make_tuple(N, C, H, W, K, n_groups, R, S, kernel_name == "sp3AsmConvRxSF");
         return 0;
     }
     else
@@ -107,9 +107,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                                             int direction) const
 {
 
-    // Disable running any Direct convolutions (Fwd) by checking this env variable
-    // Cannot disable bwd convolutions until col2im+gemm is functional
-    if(direction == 1 && miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return -1;
 
     mlo_construct_direct2D construct_params(direction);
@@ -127,8 +125,8 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
     if(construct_params.mloIsCompilerWorkarounds() ||
-       (IsWinogradSupported(handle, direction, wDesc, (direction ? xDesc : yDesc)) &&
-        construct_params.mloIsFastBinaryWinograd3x3Fwd()))
+       (IsWinograd3x3Supported(handle, direction, wDesc, (direction ? xDesc : yDesc)) &&
+        construct_params.mloIsFastBinaryWinograd3x3U()))
     {
         return -1;
     }
@@ -385,11 +383,33 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 int flags        = 0;
                 int reserved     = 0;
                 int* return_addr = nullptr;
-                int N, C, H, W, K, n_groups;
-                std::tie(N, C, H, W, K, n_groups) = k_p;
-                kernel_wino(
-                    N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
-
+                bool isRxS;
+                int N, C, H, W, K, n_groups, R, S;
+                std::tie(N, C, H, W, K, n_groups, R, S, isRxS) = k_p;
+                if(isRxS)
+                {
+                    kernel_wino(N,
+                                C,
+                                H,
+                                W,
+                                K,
+                                n_groups,
+                                flags,
+                                reserved,
+                                x,
+                                w,
+                                tmp_y.get(),
+                                return_addr,
+                                R,
+                                S,
+                                pad_h,
+                                pad_w);
+                }
+                else
+                {
+                    kernel_wino(
+                        N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
+                }
                 time_wino = handle.GetKernelTime();
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoWinograd", time_wino, 0});
             }
@@ -565,9 +585,31 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int flags        = 0;
             int reserved     = 0;
             int* return_addr = nullptr;
-            int N, C, H, W, K, n_groups;
-            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-            kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+            int N, C, H, W, K, n_groups, R, S;
+            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
+            if(construct_params.getKernelName() == "sp3AsmConvRxSF")
+            {
+                kernel(N,
+                       C,
+                       H,
+                       W,
+                       K,
+                       n_groups,
+                       flags,
+                       reserved,
+                       x,
+                       w,
+                       y,
+                       return_addr,
+                       R,
+                       S,
+                       pad_h,
+                       pad_w);
+            }
+            else
+            {
+                kernel(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
+            }
         }
         break;
 
@@ -887,10 +929,32 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
                 int reserved     = 0;
                 int* return_addr = nullptr;
-                int N, C, H, W, K, n_groups;
-                std::tie(N, C, H, W, K, n_groups) = k_p;
-                kernel_wino(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
-
+                int N, C, H, W, K, n_groups, R, S;
+                bool isRxS;
+                std::tie(N, C, H, W, K, n_groups, R, S, isRxS) = k_p;
+                if(isRxS)
+                {
+                    kernel_wino(N,
+                                C,
+                                H,
+                                W,
+                                K,
+                                n_groups,
+                                flags,
+                                reserved,
+                                dy,
+                                w,
+                                dx,
+                                return_addr,
+                                R,
+                                S,
+                                pad_h,
+                                pad_w);
+                }
+                else
+                {
+                    kernel_wino(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
+                }
                 time_wino = handle.GetKernelTime();
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoWinograd", time_wino, 0});
             }
