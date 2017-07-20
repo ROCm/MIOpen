@@ -223,7 +223,7 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         for(uint ci = 0; ci < MLO_WEIGHTS_PER_LOOP;
             ++ci, in_off += MLO_IN_CHANNEL_STRIDE * MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP)
         {
-            c        = wc + ci;
+            c        = wc*MLO_WEIGHTS_PER_LOOP + ci;
             uint wei_indx = ci;
 
             // read data
@@ -264,7 +264,8 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #if DBG_OUT_OF_RNGE
                             if(in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                             {
-                                printf("k:err:in-of-range\n");
+                                printf("k:err:in-of-range %d %d %d\n");
+
                             }
 #endif
                         }
@@ -282,7 +283,8 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
                             in_stage[ib][ilc][i] = v ? val : 0.0f;
 #endif
 #if DBG_OUT_OF_RNGE
-                            if(in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+
+							if(in_off2 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                             {
                                 printf("k:err:in-of-range\n");
                             }
@@ -316,7 +318,7 @@ __kernel void MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
                             out_tiles[ib][olc][i] += in_stage[ib][ilc][i] * wei_stage;
 
 #if 0 //MLO_DIR_FORWARD == 0
-							if ( /*in_stage[ib][ilc][i] * wei_stage!= 0 && */out_grp_block * MLO_N_LCL_OUT_MAPS + olc == 8 && i == 0 && get_global_id(0) == 0 && get_global_id(1) == 0 && get_global_id(2) == 0)
+							if ( in_stage[ib][ilc][i] * wei_stage!= 0 && out_grp_block * MLO_N_LCL_OUT_MAPS + olc == 0 && i == 0 && get_global_id(0) == 0 && get_global_id(1) == 0 && get_global_id(2) == 0)
 							{
 								printf("K:c: %d %d %d %d   %f %f %f %f\n",
 								wc, 
