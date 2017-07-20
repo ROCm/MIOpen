@@ -43,6 +43,7 @@ namespace miopen {
 // We leak resources for now as there is no hipCtxRetain API
 hipCtx_t get_ctx()
 {
+    hipInit(0);
     hipCtx_t ctx;
     auto status = hipCtxGetCurrent(&ctx);
     if(status != hipSuccess)
@@ -131,6 +132,9 @@ struct HandleImpl
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 {
+    this->impl->device = get_device_id();
+    this->impl->ctx    = get_ctx();
+
     if(stream == nullptr)
         this->impl->stream = HandleImpl::reference_stream(nullptr);
     else
@@ -144,6 +148,8 @@ Handle::Handle() : impl(new HandleImpl())
     this->impl->ctx    = get_ctx();
     this->impl->stream = impl->create_stream();
 #else
+    this->impl->device = get_device_id();
+    this->impl->ctx    = get_ctx();
     this->impl->stream = HandleImpl::reference_stream(nullptr);
 #endif
 }
