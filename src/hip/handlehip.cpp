@@ -39,15 +39,13 @@
 
 namespace miopen {
 
-// Get current context
-// We leak resources for now as there is no hipCtxRetain API
-hipCtx_t get_ctx()
+hipDevice_t get_device(int id)
 {
-    hipCtx_t ctx;
-    auto status = hipCtxGetCurrent(&ctx);
+    hipDevice_t device;
+    auto status = hipDeviceGet(&device, id);
     if(status != hipSuccess)
         MIOPEN_THROW("No device");
-    return ctx;
+    return device;
 }
 
 int get_device_id() // Get random device
@@ -64,13 +62,6 @@ void set_device(int id)
     auto status = hipSetDevice(id);
     if(status != hipSuccess)
         MIOPEN_THROW("Error setting device");
-}
-
-void set_ctx(hipCtx_t ctx)
-{
-    auto status = hipCtxSetCurrent(ctx);
-    if(status != hipSuccess)
-        MIOPEN_THROW("Error setting context");
 }
 
 int set_default_device()
@@ -91,7 +82,7 @@ struct HandleImpl
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
 
-    HandleImpl() : ctx(get_ctx()) {}
+    HandleImpl() : device(get_device_id()) {}
 
     StreamPtr create_stream()
     {
@@ -115,18 +106,13 @@ struct HandleImpl
             &HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
     }
 
-    void set_ctx()
-    {
-        miopen::set_ctx(this->ctx);
-        miopen::set_device(this->device);
-    }
+    void set_device() const { miopen::set_device(device); }
 
     bool enable_profiling  = false;
     StreamPtr stream       = nullptr;
     float profiling_result = 0.0;
-    int device             = -1;
     KernelCache cache;
-    hipCtx_t ctx;
+    int device;
 };
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
@@ -141,7 +127,6 @@ Handle::Handle() : impl(new HandleImpl())
 {
 #if MIOPEN_BUILD_DEV
     this->impl->device = set_default_device();
-    this->impl->ctx    = get_ctx();
     this->impl->stream = impl->create_stream();
 #else
     this->impl->stream = HandleImpl::reference_stream(nullptr);
@@ -204,7 +189,7 @@ void Handle::ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz)
 
 void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
 {
-    this->impl->set_ctx();
+    this->impl->set_device();
     auto status = hipMemcpy(dest, src, size, hipMemcpyDeviceToDevice);
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
@@ -218,7 +203,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
                                const std::vector<size_t>& vgd,
                                const std::string& params)
 {
-    this->impl->set_ctx();
+    this->impl->set_device();
     auto k = this->impl->cache.GetKernel(
         *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params);
     if(this->impl->enable_profiling)
@@ -229,7 +214,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
 
 KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& network_config)
 {
-    this->impl->set_ctx();
+    this->impl->set_device();
     auto k = this->impl->cache.GetKernel(algorithm, network_config);
     if(this->impl->enable_profiling)
         return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
@@ -239,14 +224,14 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& 
 
 Program Handle::LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str)
 {
-    this->impl->set_ctx();
+    this->impl->set_device();
     params += " -mcpu=" + this->GetDeviceName();
     return HIPOCProgram{program_name, params, is_kernel_str};
 }
 
 void Handle::Finish() const
 {
-    this->impl->set_ctx();
+    this->impl->set_device();
 #if MIOPEN_BUILD_DEV
     auto start = std::chrono::system_clock::now();
     auto ev    = make_hip_event();
