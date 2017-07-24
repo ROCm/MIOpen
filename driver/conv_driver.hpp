@@ -93,8 +93,8 @@ class ConvDriver : public Driver
 
         miopenCreateConvolutionDescriptor(&convDesc);
 
-		workspace_bwd_dev = 0;
-		workspace_fwd_dev = 0;
+        workspace_bwd_dev = 0;
+        workspace_fwd_dev = 0;
     }
 
     int AddCmdLineArgs();
@@ -376,33 +376,32 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
     out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
-	if (workSpaceSize_bwd != 0)
-	{
-		workspace_bwd_dev =
-			std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
-		workspace_bwd = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-		workspace_bwd_host = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-	}
-	if (workSpaceSize_fwd != 0)
-	{
-		workspace_fwd_dev =
-			std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
-		workspace_fwd = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
-		workspace_fwd_host = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
-	}
+    if(workSpaceSize_bwd != 0)
+    {
+        workspace_bwd_dev =
+            std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
+        workspace_bwd      = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
+        workspace_bwd_host = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
+    }
+    if(workSpaceSize_fwd != 0)
+    {
+        workspace_fwd_dev =
+            std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
+        workspace_fwd      = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+        workspace_fwd_host = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+    }
 
-    in                 = std::vector<T>(in_sz);
-    din                = std::vector<T>(in_sz);
-    wei                = std::vector<T>(wei_sz);
-    dwei               = std::vector<T>(wei_sz, 0);
-    dout               = std::vector<T>(out_sz, 0);
-    out                = std::vector<T>(out_sz, 0);
+    in   = std::vector<T>(in_sz);
+    din  = std::vector<T>(in_sz);
+    wei  = std::vector<T>(wei_sz);
+    dwei = std::vector<T>(wei_sz, 0);
+    dout = std::vector<T>(out_sz, 0);
+    out  = std::vector<T>(out_sz, 0);
 
-    outhost            = std::vector<T>(out_sz, 0);
+    outhost = std::vector<T>(out_sz, 0);
 
-
-    dwei_host          = std::vector<T>(wei_sz, 0);
-    din_host           = std::vector<T>(in_sz, 0);
+    dwei_host = std::vector<T>(wei_sz, 0);
+    din_host  = std::vector<T>(in_sz, 0);
 
     std::string inFileName  = inflags.GetValueStr("in_data");
     std::string weiFileName = inflags.GetValueStr("weights");
@@ -499,21 +498,21 @@ int ConvDriver<T>::FindForward(int& ret_algo_count,
                                std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
-    return miopenFindConvolutionForwardAlgorithm(GetHandle(),
-                                                 inputTensor,
-                                                 in_dev->GetMem(),
-                                                 weightTensor,
-                                                 wei_dev->GetMem(),
-                                                 convDesc,
-                                                 outputTensor,
-                                                 out_dev->GetMem(),
-                                                 request_algo_count,
-                                                 &ret_algo_count,
-                                                 perf_results.data(),
-												(workspace_fwd_dev != 0) ? workspace_fwd_dev->GetMem() : nullptr,
-												(workspace_fwd_dev != 0) ? workspace_fwd_dev->GetSize() : 0,
-                                                 (inflags.GetValueInt("search") == 1) ? true
-                                                                                      : false);
+    return miopenFindConvolutionForwardAlgorithm(
+        GetHandle(),
+        inputTensor,
+        in_dev->GetMem(),
+        weightTensor,
+        wei_dev->GetMem(),
+        convDesc,
+        outputTensor,
+        out_dev->GetMem(),
+        request_algo_count,
+        &ret_algo_count,
+        perf_results.data(),
+        (workspace_fwd_dev != 0) ? workspace_fwd_dev->GetMem() : nullptr,
+        (workspace_fwd_dev != 0) ? workspace_fwd_dev->GetSize() : 0,
+        (inflags.GetValueInt("search") == 1) ? true : false);
 }
 
 template <typename T>
@@ -548,9 +547,8 @@ int ConvDriver<T>::RunForwardGPU()
                                  &beta,
                                  outputTensor,
                                  out_dev->GetMem(),
-								(workspace_fwd_dev != 0) ? workspace_fwd_dev->GetMem() : nullptr,
-								(workspace_fwd_dev != 0) ? workspace_fwd_dev->GetSize() : 0
-		);
+                                 (workspace_fwd_dev != 0) ? workspace_fwd_dev->GetMem() : nullptr,
+                                 (workspace_fwd_dev != 0) ? workspace_fwd_dev->GetSize() : 0);
     }
 
     if(inflags.GetValueInt("time") == 1)
