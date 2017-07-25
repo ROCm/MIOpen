@@ -1330,16 +1330,16 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdC()
     return (ret);
 }
 
-#if 0
+#if 1
 
 int mlo_construct_direct2D::mloConstructDirect2D1x1()
 {
 	int ret = 0;
 
 // parameters
-	int read_unit = 1;
+	int read_unit = 2;
 	_n_out_pix_tiles = 16;
-	_n_in_data_tiles = 8;
+	_n_in_data_tiles = 4;
 	_grp_tile0 = 64;
 
 	size_t localMemSize = _stream->GetLocalMemorySize();
