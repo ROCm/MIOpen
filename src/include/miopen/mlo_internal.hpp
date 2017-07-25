@@ -121,7 +121,7 @@ typedef unsigned int uint;
 #include <unistd.h>
 using __int64 = long long;
 #ifndef fopen_s
-#define fopen_s(file, fileName, mode) ((*(file)) = fopen((fileName), (mode))) == NULL
+#define fopen_s(file, fileName, mode) ((*(file)) = fopen((fileName), (mode))) == nullptr
 #endif
 
 #endif
@@ -268,7 +268,8 @@ class mlo_construct_direct2D
     * returns parameter values that are compiled in legacy kernels for kernels using them as
     * arguments.
     */
-    inline void getCompiledInParameters(int* N, int* C, int* H, int* W, int* K, int* n_groups)
+    inline void getCompiledInParameters(
+        int* N, int* C, int* H, int* W, int* K, int* n_groups, int* R = nullptr, int* S = nullptr)
     {
         assert(N && C && H && W && K && n_groups);
 
@@ -278,6 +279,14 @@ class mlo_construct_direct2D
         *W        = _in_width;
         *K        = _n_outputs;
         *n_groups = _stream->GetMaxComputeUnits();
+        if(R)
+        {
+            *R = _kernel_size1;
+        } // R is height (sic!)
+        if(S)
+        {
+            *S = _kernel_size0;
+        }
     }
 
     /*
@@ -671,7 +680,8 @@ class mlo_construct_direct2D
     size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor);
 
     bool mloIsCompilerWorkarounds() const;
-    bool mloIsFastBinaryWinograd3x3Fwd() const;
+    bool mloIsFastBinaryWinograd3x3U() const;
+    bool mloIsFastBinaryWinogradRxSFwd() const;
     int mloConstructDirect2D_11x11(bool n_passes = false);
 
     protected:
@@ -687,8 +697,11 @@ class mlo_construct_direct2D
     };
     bool mloIsAmdOpenclRocm(rocm_meta_version& rmv) const;
 
-    bool mloIsCorrectBinaryWinograd3x3Fwd() const;
-    int mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv);
+    bool mloIsCorrectBinaryWinograd3x3U() const;
+    int mloConstructBinaryWinograd3x3U(rocm_meta_version rmv);
+
+    bool mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version rmv) const;
+    int mloConstructBinaryWinogradRxSFwd();
 
     bool mloIsCorrectAsmDirect3x3U() const;
     bool mloIsFastAsmDirect3x3U() const;

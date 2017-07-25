@@ -89,9 +89,9 @@
 #define MIO_BN_VARIANT 4
 #endif
 
-#ifdef __AMDGCN__
-#undef __AMDGCN__
-#endif
+//#ifdef __AMDGCN__
+//#undef __AMDGCN__
+//#endif
 
 #define UNUSED __attribute__((__unused__))
 
