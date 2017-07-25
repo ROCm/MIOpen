@@ -154,8 +154,8 @@ extern "C" miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDescri
 
     MIOPEN_LOG_FUNCTION(yDesc, workSpaceSize);
     return miopen::try_([&] {
-        std::vector<int> len = miopen::deref(yDesc).GetLengths();
-        size_t sz            = std::accumulate(len.begin(), len.end(), 1, std::multiplies<int>());
+        auto len  = miopen::deref(yDesc).GetLengths();
+        size_t sz = std::accumulate(len.begin(), len.end(), 1, std::multiplies<int>());
         miopen::deref(workSpaceSize) = sz * sizeof(uint8_t);
     });
 }

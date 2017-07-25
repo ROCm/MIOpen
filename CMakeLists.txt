@@ -48,7 +48,7 @@ include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 
-rocm_setup_version(VERSION 1.0.0)
+rocm_setup_version(VERSION 1.0.1)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -60,7 +60,7 @@ endif()
 
 ############################################################
 # require C++11
-add_compile_options(-std=gnu++11)
+add_compile_options(-std=gnu++14)
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -111,6 +111,8 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     
     find_package(hip REQUIRED PATHS /opt/rocm)
     link_libraries(stdc++)
+    # A hack to make this work without the device enumerator
+    link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
@@ -141,14 +143,14 @@ set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen 
 
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
-    set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/Kernels")
+    set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
 else()
     set(MIOPEN_BUILD_DEV 0)
     set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
 endif()
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "rocm-opencl-dev, rocm-utils, hip_hcc")
-set(CPACK_RPM_PACKAGE_REQUIRES "rocm-opencl-dev, rocm-utils, hip_hcc")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
+set(CPACK_RPM_PACKAGE_REQUIRES "rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
     DESCRIPTION "AMD's DNN Library"
@@ -186,6 +188,10 @@ enable_clang_tidy(
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
+        -hicpp-explicit-conversions
+        -hicpp-special-member-functions
+        -hicpp-use-equals-default
+        -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order
         -misc-macro-parentheses
@@ -196,6 +202,7 @@ enable_clang_tidy(
         -modernize-use-default-member-init
         -modernize-use-emplace
         -modernize-use-equals-default
+        -modernize-use-transparent-functors
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-else-after-return

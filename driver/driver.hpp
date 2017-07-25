@@ -96,6 +96,7 @@ struct GPUMem
     }
     int FromGPU(hipStream_t q, void* p)
     {
+        hipDeviceSynchronize();
         _q = q;
         return static_cast<int>(hipMemcpy(p, buf, data_sz * sz, hipMemcpyDeviceToHost));
     }
@@ -115,7 +116,7 @@ struct GPUMem
 [[gnu::noreturn]] void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, bnorm, gemm\n");
+    printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, bnorm\n");
     exit(0);
 }
 
@@ -130,7 +131,7 @@ std::string ParseBaseArg(int argc, char* argv[])
     std::string arg = argv[1];
 
     if(arg != "conv" && arg != "pool" && arg != "lrn" && arg != "activ" && arg != "softmax" &&
-       arg != "bnorm" && arg != "gemm")
+       arg != "bnorm")
     {
         printf("Invalid Base Input Argument\n");
         Usage();
@@ -139,8 +140,6 @@ std::string ParseBaseArg(int argc, char* argv[])
         Usage();
     else
         return arg;
-
-    return 0;
 }
 
 class Driver

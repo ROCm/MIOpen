@@ -44,6 +44,8 @@ float Im2ColGPU(Handle& handle,
                 const int pad_w,
                 const int stride_h,
                 const int stride_w,
+                const int dilation_h,
+                const int dilation_w,
                 Data_t col)
 {
     std::string program_name = "MIOpenUtilKernels.cl";
@@ -56,11 +58,23 @@ float Im2ColGPU(Handle& handle,
     else
         num_ch_per_wg = 1;
 
-    int tile_sz_x     = 32;
-    int tile_sz_y     = 8;
-    int num_blks_x    = std::ceil(static_cast<float>(out_w) / tile_sz_x);
-    int num_blks      = num_blks_x * std::ceil(static_cast<float>(out_h) / tile_sz_y);
-    int local_mem_sz  = (tile_sz_x * stride_w + wei_w) * (tile_sz_y * stride_h + wei_h);
+    int tile_sz_x  = 32;
+    int tile_sz_y  = 8;
+    int num_blks_x = std::ceil(static_cast<float>(out_w) / tile_sz_x);
+    int num_blks   = num_blks_x * std::ceil(static_cast<float>(out_h) / tile_sz_y);
+    int local_mem_sz;
+    if(num_ch_per_wg == 1)
+        local_mem_sz = ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                       ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
+    else
+        local_mem_sz = std::max(
+            num_ch_per_wg *
+                ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) * stride_w +
+                 (wei_w - 1) * dilation_w + 1) *
+                ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1),
+            num_ch_per_wg * ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) * stride_h +
+                 (wei_h - 1) * dilation_h + 1));
     int data_size_off = data_size - im_offset;
 
     params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
@@ -89,6 +103,8 @@ float Im2ColGPU(Handle& handle,
                                                                                       pad_w,
                                                                                       stride_h,
                                                                                       stride_w,
+                                                                                      dilation_h,
+                                                                                      dilation_w,
                                                                                       col);
 
     return handle.GetKernelTime();
@@ -104,6 +120,8 @@ float Col2ImGPU(Handle& handle,
                 const int pad_w,
                 const int stride_h,
                 const int stride_w,
+                const int dilation_h,
+                const int dilation_w,
                 const int c,
                 const int h,
                 const int w,
@@ -118,8 +136,21 @@ float Col2ImGPU(Handle& handle,
     size_t global_threads = c * h * w;
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
-    handle.GetKernel("miopenCol2Im", "", program_name, kernel_name, vld, vgd, params)(
-        col, col_h, col_w, wei_h, wei_w, pad_h, pad_w, stride_h, stride_w, h, w, im, im_offset);
+    handle.GetKernel("miopenCol2Im", "", program_name, kernel_name, vld, vgd, params)(col,
+                                                                                      col_h,
+                                                                                      col_w,
+                                                                                      wei_h,
+                                                                                      wei_w,
+                                                                                      pad_h,
+                                                                                      pad_w,
+                                                                                      stride_h,
+                                                                                      stride_w,
+                                                                                      dilation_h,
+                                                                                      dilation_w,
+                                                                                      h,
+                                                                                      w,
+                                                                                      im,
+                                                                                      im_offset);
 
     return handle.GetKernelTime();
 }

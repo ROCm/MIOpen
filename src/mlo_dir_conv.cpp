@@ -23,30 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-/**********************************************************************
-  Copyright (c)2017 Advanced Micro Devices, Inc. All rights reserved.
-
-  Redistribution and use in source and binary forms, with or without modification, are permitted
- provided that the following conditions are met:
-
-  ?	Redistributions of source code must retain the above copyright notice, this list of
- conditions and the following disclaimer.
-  ?	Redistributions in binary form must reproduce the above copyright notice, this list of
- conditions and the following disclaimer in the documentation and/or
-  other materials provided with the distribution.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
- SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
- THE POSSIBILITY OF SUCH DAMAGE.
- ********************************************************************/
-// to share code with between CPU and GPU
 
 #define MIOPEN
 
@@ -63,6 +39,9 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
@@ -230,13 +209,6 @@ static bool mloSearchConfigDB(std::map<std::string, std::string>& conf_db,
 bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
 {
     bool ret = false;
-    ret      = (_in_height == 227 && _in_width == 227 && _n_inputs == 3 && _kernel_size0 == 3 &&
-           _kernel_size1 == 3 && _pad0 == 1 && _pad1 == 1 && _kernel_stride0 == 1 &&
-           _kernel_stride1 == 1 && isForwardDirection()) ||
-          (_in_height == 231 && _in_width == 231 && _n_inputs == 3 && _kernel_size0 == 3 &&
-           _kernel_size1 == 3 && _pad0 == 1 && _pad1 == 1 && _kernel_stride0 == 1 &&
-           _kernel_stride1 == 1 && isForwardDirection());
-
     return ret;
 }
 
@@ -261,10 +233,17 @@ int mlo_construct_winograd::mloConstruct()
             miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
         if(use_binaries)
         {
-            if(mloIsCorrectBinaryWinograd3x3Fwd() &&
-               (no_perf_filtering || mloIsFastBinaryWinograd3x3Fwd()))
+            if(mloIsCorrectBinaryWinograd3x3U() &&
+               !miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}) &&
+               (no_perf_filtering || mloIsFastBinaryWinograd3x3U()))
             {
-                return (mloConstructBinaryWinograd3x3Fwd(rmv));
+                return (mloConstructBinaryWinograd3x3U(rmv));
+            }
+            if(mloIsCorrectBinaryWinogradRxSFwd(rmv) &&
+               !miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}) &&
+               (no_perf_filtering || mloIsFastBinaryWinogradRxSFwd()))
+            {
+                return (mloConstructBinaryWinogradRxSFwd());
             }
         }
     }
@@ -393,6 +372,12 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
 
     _n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
     _n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
+
+    // hacky fix of the incorrect kernel local memory address calculation for data
+    _out_pix_tile1 =
+        (_direction == 0 && _kernel_stride1 > 1 && _out_pix_tile1 == 1) ? 2 : _out_pix_tile1;
+    _out_pix_tile0 =
+        (_direction == 0 && _kernel_stride0 > 1 && _out_pix_tile0 == 1) ? 2 : _out_pix_tile0;
 
     int alu_tile0    = (_in_tile0 + _out_pix_tile0 - 1) / _out_pix_tile0;
     int alu_tile1    = (_in_tile1 + _out_pix_tile1 - 1) / _out_pix_tile1;
@@ -581,7 +566,8 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version& rmv) const
     return true;
 #endif // MIOPEN_BACKEND_OPENCL
 }
-bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
+
+bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3U() const
 {
     // Check if device is able to run this kernel.
     const auto name                    = _stream->GetDeviceName();
@@ -607,8 +593,8 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
            (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) && _n_inputs % 2 == 0 &&
            _n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18) && _in_layout == "NCHW";
 
-    // FIXME: _n_inputs > 18 is a requirement of the v5.1 shader and NOT a dependency on gfx9
-    // The current way of implemenation is a hack as gfx8 uses v3.0 shader and gfx9 uses v5.1 shader
+    // FIXME: _n_inputs > 18 is a requirement of the v7 shader and NOT a dependency on gfx9
+    // The current way of implemenation is a hack as gfx8 uses v3.0 shader and gfx9 uses v7.
 
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" ) // See
     // fixme above.
@@ -616,9 +602,9 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinograd3x3Fwd() const
     // both directions.
 }
 
-bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const { return true; }
+bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const { return true; }
 
-int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version rmv)
+int mlo_construct_direct2D::mloConstructBinaryWinograd3x3U(rocm_meta_version rmv)
 {
     const auto n_groups = _stream->GetMaxComputeUnits();
     const auto name     = _stream->GetDeviceName();
@@ -650,6 +636,186 @@ int mlo_construct_direct2D::mloConstructBinaryWinograd3x3Fwd(rocm_meta_version r
 
         _kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900.so";
     }
+
+    return 0;
+}
+
+/// \return v rounded up (towards +inf) to the nearest multiple of m.
+/// Defined for positive values only.
+static int Ceiling(const int v, const int m)
+{
+    assert(m > 0 && v >= 0);
+    if(v % m != 0)
+    {
+        return (v / m + 1) * m;
+    }
+    return v;
+}
+
+bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version rmv) const
+{
+    if(rmv == V1 || rmv == V2)
+    {
+        return false;
+    }
+    if(!isForwardDirection())
+    {
+        return false;
+    }
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED{}))
+    {
+        // FIXME remove env var and all this stuff when Winograd v8 gets fixed.
+        if(!(_kernel_stride0 == 1 && _kernel_stride1 == 1))
+        {
+            return false;
+        }
+        // if(!(_kernel_size0 <= 3 && _kernel_size1 <= 3))
+        // 3x3 seems to fail on Vega, so let's keep 1x1 only for now.
+        if(!(_kernel_size0 == 1 && _kernel_size1 == 1))
+        {
+            return false;
+        }
+    }
+    const auto name                    = _stream->GetDeviceName();
+    const auto device_is_gfx9_no_xnack = (name == "gfx900");
+    const bool device_is_gfx8_no_xnack =
+        (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804");
+    if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
+    {
+        return false;
+    }
+    // Check if kernel is suitable for the problem description
+    // and able to correctly run with given parameters.
+
+    // Calculate padded filter size first.
+    // If stride = 1: if S <= 3 it is padded to 3,
+    // otherwise S is padded to smallest 6*n for some integer n
+    // If stride = 2: S is always padded to smallest 6*n for some integer n
+    int padded_S = 0;
+    if(_kernel_stride0 == 1)
+    {
+        if(_kernel_size0 < 3)
+        {
+            padded_S = 3;
+        }
+        else
+        {
+            padded_S = Ceiling(_kernel_size0, 6);
+        }
+    }
+    else
+    {
+        padded_S = Ceiling(_kernel_size0, 6);
+    }
+    // If stride = 1: R is always padded to smallest 3*m for some integer m
+    // If stride = 2: if R % 6 ==1 then R is padded to smallest 3*m for some
+    // integer m,
+    // otherwise R is padded to smallest 6*m for some integer m
+    int padded_R = 0;
+    if(_kernel_stride1 == 1)
+    {
+        padded_R = Ceiling(_kernel_size1, 3);
+    }
+    else
+    {
+        if(_kernel_size1 % 6 == 1)
+        {
+            padded_R = Ceiling(_kernel_size1, 3);
+        }
+        else
+        {
+            padded_R = Ceiling(_kernel_size1, 6);
+        }
+    }
+    // Check C restrictions:
+    // If stride == 1 and S <= 3 then C needs to be even, otherwise not
+    if(_kernel_stride0 == 1 && _kernel_size0 <= 3 && _n_inputs % 2 != 0)
+    {
+        return false;
+    }
+    // If the padded filter size from above is 3*k x 3*l, then it should be that
+    // k*l*C  >=18
+    {
+        assert(padded_R % 3 == 0 && padded_S % 3 == 0);
+        const int k = padded_R / 3;
+        const int l = padded_S / 3;
+        if(k * l * _n_inputs < 18)
+        {
+            return false;
+        }
+    }
+    const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
+    assert(_weights_layout.length() == 0);    // FIXME _weights_layout is not supported yet.
+                                              // Opt. Param   Restrictions in source
+    return _pad0 < std::pow(2, 16)            // -q   pad_w   uint16
+           && _pad1 < std::pow(2, 16)         // -p   pad_h   uint16
+           && _kernel_size0 < std::pow(2, 16) // -x   wei_w   S uint16
+           && _kernel_size1 < std::pow(2, 16) // -y   wei_h   R uint16
+           && _kernel_stride0 <= 2            // -u   inp_u   1 or 2
+           && _kernel_stride1 <= 2            // -v   inp_v   1 or 2
+           && _batch_sz < std::pow(2, 16) && _n_inputs < std::pow(2, 16) // -c   wei_c
+           && _n_outputs < std::pow(2, 16)                               // -k   wei_k
+           && _in_height < std::pow(2, 16)                               // -H   inp_h
+           && _in_width < std::pow(2, 16)                                // -W   inp_w
+           && grid_workgroup_count_x < std::pow(2, 16) &&
+           (_n_inputs * _in_height * _in_width) <= std::pow(2, 28) &&
+           (_n_outputs * _in_height * _in_width) <= std::pow(2, 28) &&
+           (_n_inputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) &&
+           (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) && _in_layout == "NCHW";
+    // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout ==
+    // "CKHW" )
+}
+
+bool mlo_construct_direct2D::mloIsFastBinaryWinogradRxSFwd() const
+{
+    /// \todo Runs 3x3 stride 1 cases, of course, but the v7_0_x is about 1%
+    /// faster at the moment
+    return true;
+}
+
+int mlo_construct_direct2D::mloConstructBinaryWinogradRxSFwd()
+{
+    const auto n_groups = _stream->GetMaxComputeUnits();
+    const auto name     = _stream->GetDeviceName();
+
+    _g_wk.clear();
+    _g_wk.push_back(512 * n_groups);
+    _g_wk.push_back(1);
+    _g_wk.push_back(1);
+
+    _l_wk.clear();
+    _l_wk.push_back(512);
+    _l_wk.push_back(1);
+    _l_wk.push_back(1);
+
+    _kernel_name = "sp3AsmConvRxSF";
+    _kernel_file = "conv_";
+    if(_kernel_stride0 == 1 && _kernel_stride1 == 1)
+    {
+        _kernel_file += "u1v1";
+    }
+    else if(_kernel_stride0 == 1 && _kernel_stride1 == 2)
+    {
+        _kernel_file += "u1v2";
+    }
+    else if(_kernel_stride0 == 2 && _kernel_stride1 == 1)
+    {
+        _kernel_file += "u2v1";
+    }
+    else
+    {
+        _kernel_file += "u2v2";
+    }
+    _kernel_file += "_wheel_alpha_v8_3_6_";
+    if(name.find("gfx8") != std::string::npos)
+    {
+        _kernel_file += "gfx803";
+    }
+    else
+    {
+        _kernel_file += "gfx900";
+    }
+    _kernel_file += ".so";
 
     return 0;
 }
@@ -1029,8 +1195,8 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdC()
         _pad1 = _kernel_size1 - 1 - _pad1;
     }
 
-    int in_tile0 = std::min(_out_width, _in_tile0);
-    int in_tile1 = std::min(_out_height, _in_tile1);
+    int in_tile0 = std::max(8, std::min(_out_width, _in_tile0));
+    int in_tile1 = std::max(8, std::min(_out_height, _in_tile1));
 
     int alu_tile0 = (in_tile0 + _out_pix_tile0 - 1) / _out_pix_tile0;
     int alu_tile1 = (in_tile1 + _out_pix_tile1 - 1) / _out_pix_tile1;
@@ -3214,7 +3380,8 @@ bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
     // They work fine on gfx8
     // /todo fix memory faults on gfx9
     const std::string name = _stream->GetDeviceName();
-    return !(name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54));
+    return !(name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54 ||
+                                  _in_width == 57 || _in_width == 17 || _in_width == 250));
 }
 
 int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
@@ -3629,7 +3796,7 @@ int mlo_construct_direct2D::mloAddConfigReq(const std::string& conf_key) const
 {
     int ret = 0;
     std::vector<std::string> req_conf_db;
-    std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
+    std::string conf_file = (_kernel_path.empty()) ? miopen::GetDbPath() : _kernel_path;
 
     conf_file += std::string("/") + _stream->GetDeviceName() + "_" +
                  std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
@@ -3654,7 +3821,7 @@ int mlo_construct_direct2D::mloRemoveConfigReq(const std::string& conf_key) cons
 
     std::vector<std::string>::iterator it;
 
-    std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
+    std::string conf_file = (_kernel_path.empty()) ? miopen::GetDbPath() : _kernel_path;
     conf_file += std::string("/") + _stream->GetDeviceName() + "_" +
                  std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.rdb.txt");
 
@@ -3672,7 +3839,7 @@ int mlo_construct_direct2D::mloReadConfigDB(std::map<std::string, std::string>& 
 {
 
     int ret               = 0;
-    std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
+    std::string conf_file = (_kernel_path.empty()) ? miopen::GetDbPath() : _kernel_path;
 
     conf_file += std::string("/") + _stream->GetDeviceName() + "_" +
                  std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
@@ -3699,7 +3866,7 @@ int mlo_construct_direct2D::mloWriteConfigDB(
 
     int ret = 0;
     // serialize
-    std::string conf_file = (_kernel_path == "") ? miopen::GetDbPath() : _kernel_path;
+    std::string conf_file = (_kernel_path.empty()) ? miopen::GetDbPath() : _kernel_path;
 
     conf_file += std::string("/") + _stream->GetDeviceName() + "_" +
                  std::to_string(_stream->GetMaxComputeUnits()) + "." + std::string("cd.pdb.txt");
