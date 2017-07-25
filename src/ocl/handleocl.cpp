@@ -472,10 +472,10 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& 
 Program Handle::LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str)
 {
     auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
-                               miopen::GetDevice(this->GetStream()),
-                               program_name,
-                               params,
-                               is_kernel_str);
+                                 miopen::GetDevice(this->GetStream()),
+                                 program_name,
+                                 params,
+                                 is_kernel_str);
 
     return std::move(p);
 }
