@@ -128,14 +128,6 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
 // move weights offset
 				 wei_off +=
-				 MLO_N_LCL_OUT_MAPS *
-#if MLO_DIR_FORWARD == 1
-                   MLO_WEI_BSTRIDE
-#else
-                   MLO_WEI_CHANNEL_STRIDE
-#endif				  
-				+
-
 				MLO_N_LCL_IN_MAPS *
 #if MLO_DIR_FORWARD == 1
 				MLO_WEI_CHANNEL_STRIDE   
