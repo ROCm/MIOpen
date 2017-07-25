@@ -90,8 +90,6 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
               )
 {
 
-    uint lcl_id0       = get_local_id(0);
-                  
     uint gbl_id0       = get_global_id(0);    
     uint batch_id      = gbl_id0 / MLO_MAP_SZ4; // batch
 	uint pos           = gbl_id0 % MLO_MAP_SZ4;
