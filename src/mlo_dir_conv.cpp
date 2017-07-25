@@ -1337,7 +1337,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	int ret = 0;
 
 // parameters
-	int read_unit = 2;
+	int i_sz = _in_width * _in_height;
+	int read_unit = (i_sz & 1) ? 1 : 2;
 	_n_out_pix_tiles = 16;
 	_n_in_data_tiles = 4;
 	_grp_tile0 = 64;
