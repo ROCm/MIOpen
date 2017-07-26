@@ -1338,7 +1338,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
 // parameters
 	int i_sz = _in_width * _in_height;
-	int read_unit = (i_sz & 1) ? 1 : 2;
+	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
+	int read_unit = _out_pix_tile0;
 	_n_out_pix_tiles = 16;
 	_n_in_data_tiles = 4;
 	_grp_tile0 = 64;
@@ -1350,7 +1351,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
 	_in_tile0 = 4;
 	_in_tile1 = 1;
-	_out_pix_tile0 = 4;
+
 	_out_pix_tile1 = 1;
 
 	int wei_cstride = _kernel_size0 * _kernel_size1;
@@ -3765,6 +3766,7 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string& conf_val)
     if(_kernel_size0 == 1 && _kernel_size1 == 1)
     {
 
+#if 1
         _in_tile0 = 4; // size of input data per ALU plane
         _in_tile1 = 1; // size of input data per ALU plane
 
@@ -3780,6 +3782,14 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string& conf_val)
         _n_in_data_tiles = 2;  // 4; // # of blocks of different inputs in LDS
 
         _n_stacks = (_batch_sz > 1) ? 2 : 1; // # of diff stacks (part of batch).
+#else
+		int i_sz = _in_height *_in_width;
+		_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
+	
+		_n_out_pix_tiles = 16;
+		_n_in_data_tiles = 4;
+		_grp_tile0 = 64;
+#endif
     }
 
     mloBuildConf_Val(conf_val,
