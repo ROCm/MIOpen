@@ -195,13 +195,13 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     db = lcl_data[ylid];
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
     lcl_data[ylid] = ds;
@@ -213,13 +213,13 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = lcl_data[ylid];
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
     if(ylid == 63)
@@ -232,22 +232,22 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
 #elif(MIO_BN_GRP1 > 16)
 
     _FLOAT tmp = 0.;
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
     if(ylid == 63)
@@ -259,15 +259,15 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
 
 #else
 
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 0xF, 0xF, 0));
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 0xF, 0xF, 0));
     ds *= INHW;
 
     if(ylid == 0)
@@ -426,13 +426,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     mean = lcl_data[ylid];
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 0xF, 0xF, 0));
     mean += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 0xF, 0xF, 0));
     mean += tmp;
     if(ylid == 63)
     {
@@ -443,13 +443,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_GRP1 > 16)
     _FLOAT tmp = 0.;
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 0xF, 0xF, 0));
     mean += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 0xF, 0xF, 0));
     mean += tmp;
     if(ylid == 63)
     {
@@ -458,10 +458,10 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = lmean;
 #else
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x101, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x102, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x104, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x108, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x101, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x102, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x104, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x108, 0xF, 0xF, 0));
     if(ylid == 0)
     {
         lmean = mean * INHW;
@@ -524,13 +524,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     variance = lcl_data[ylid];
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 0xF, 0xF, 0));
     variance += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 0xF, 0xF, 0));
     variance += tmp;
     if(ylid == 63)
     {
@@ -540,13 +540,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     variance = lvariance;
 
 #elif(MIO_BN_GRP1 > 16)
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 0xF, 0xF, 0));
     variance += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 0xF, 0xF, 0));
     variance += tmp;
     if(ylid == 63)
     {
@@ -555,10 +555,10 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     variance = lvariance;
 #else
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x101, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x102, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x104, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x108, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x101, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x102, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x104, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x108, 0xF, 0xF, 0));
     if(ylid == 0)
     {
         lvariance = variance * INHW;
@@ -626,13 +626,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     db = lcl_data[ylid];
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
     lcl_data[ylid] = ds;
@@ -644,13 +644,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = lcl_data[ylid];
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
     if(ylid == 63)
@@ -662,22 +662,22 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_GRP1 > 16)
 
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
     if(ylid == 63)
@@ -687,15 +687,15 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 #else
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 0xF, 0xF, 0));
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 0xF, 0xF, 0));
     ds *= INHW;
 
     if(ylid == 0)
@@ -854,13 +854,13 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     mean = lcl_data[ylid];
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 0xF, 0xF, 0));
     mean += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 0xF, 0xF, 0));
     mean += tmp;
     if(ylid == 63)
     {
@@ -871,13 +871,13 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_GRP1 > 16)
     _FLOAT tmp = 0.;
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 0xF, 0xF, 0));
     mean += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 0xF, 0xF, 0));
     mean += tmp;
     if(ylid == 63)
     {
@@ -886,10 +886,10 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = lmean;
 #else
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x101, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x102, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x104, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x108, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x101, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x102, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x104, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x108, 0xF, 0xF, 0));
     if(ylid == 0)
     {
         lmean = mean * INHW;
@@ -952,13 +952,13 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     variance = lcl_data[ylid];
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 0xF, 0xF, 0));
     variance += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 0xF, 0xF, 0));
     variance += tmp;
     if(ylid == 63)
     {
@@ -969,13 +969,13 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_GRP1 > 16)
 
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 0xF, 0xF, 0));
     variance += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 0xF, 0xF, 0));
     variance += tmp;
     if(ylid == 63)
     {
@@ -984,10 +984,10 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     variance = lvariance;
 #else
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x101, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x102, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x104, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x108, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x101, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x102, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x104, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x108, 0xF, 0xF, 0));
     if(ylid == 0)
     {
         lvariance = variance * INHW;
@@ -1053,13 +1053,13 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     db = lcl_data[ylid];
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
     lcl_data[ylid] = ds;
@@ -1071,13 +1071,13 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = lcl_data[ylid];
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
     if(ylid == 63)
@@ -1088,22 +1088,22 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 #elif(MIO_BN_GRP1 > 16)
 
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
     if(ylid == 63)
@@ -1113,15 +1113,15 @@ BatchNormBwdSpatialSingleLDSDX(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 #else
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 0xF, 0xF, 0));
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 0xF, 0xF, 0));
     ds *= INHW;
 
     if(ylid == 0)
@@ -1286,13 +1286,13 @@ BatchNormBwdSpatialSavedSingleLDSDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     db = lcl_data[ylid];
     barrier(CLK_LOCAL_MEM_FENCE);
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
     lcl_data[ylid] = ds;
@@ -1305,13 +1305,13 @@ BatchNormBwdSpatialSavedSingleLDSDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = lcl_data[ylid];
     // barrier(CLK_LOCAL_MEM_FENCE);
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
 
@@ -1324,22 +1324,22 @@ BatchNormBwdSpatialSavedSingleLDSDX(const __global _FLOAT* __restrict x_in,
 #elif(MIO_BN_GRP1 > 16)
 
     _FLOAT tmp = 0.;
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
 
@@ -1350,15 +1350,15 @@ BatchNormBwdSpatialSavedSingleLDSDX(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 #else
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 0xF, 0xF, 0));
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 0xF, 0xF, 0));
     ds *= INHW;
 
     if(ylid == 0)
@@ -1514,13 +1514,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     mean = lcl_data[ylid];
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 0xF, 0xF, 0));
     mean += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 0xF, 0xF, 0));
     mean += tmp;
     if(ylid == 63)
     {
@@ -1531,13 +1531,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_GRP1 > 16)
     _FLOAT tmp = 0.;
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 0xF, 0xF, 0));
     mean += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 0xF, 0xF, 0));
     mean += tmp;
     if(ylid == 63)
     {
@@ -1546,10 +1546,10 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = lmean;
 #else
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x101, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x102, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x104, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x108, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x101, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x102, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x104, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x108, 0xF, 0xF, 0));
     if(ylid == 0)
     {
         lmean = mean * INHW;
@@ -1612,13 +1612,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     variance = lcl_data[ylid];
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 0xF, 0xF, 0));
     variance += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 0xF, 0xF, 0));
     variance += tmp;
     if(ylid == 63)
     {
@@ -1628,13 +1628,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     variance = lvariance;
 
 #elif(MIO_BN_GRP1 > 16)
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 0xF, 0xF, 0));
     variance += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 0xF, 0xF, 0));
     variance += tmp;
     if(ylid == 63)
     {
@@ -1643,10 +1643,10 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     variance = lvariance;
 #else
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x101, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x102, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x104, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x108, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x101, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x102, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x104, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x108, 0xF, 0xF, 0));
     if(ylid == 0)
     {
         lvariance = variance * INHW;
@@ -1715,13 +1715,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     db = lcl_data[ylid];
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
     lcl_data[ylid] = ds;
@@ -1733,13 +1733,13 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = lcl_data[ylid];
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
 
@@ -1751,22 +1751,22 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 #elif(MIO_BN_GRP1 > 16)
 
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
 
@@ -1777,15 +1777,15 @@ BatchNormBwdSpatialSingleDX(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 #else
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 0xF, 0xF, 0));
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 0xF, 0xF, 0));
     ds *= INHW;
 
     if(ylid == 0)
@@ -1951,13 +1951,13 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     db = lcl_data[ylid];
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
     lcl_data[ylid] = ds;
@@ -1969,13 +1969,13 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = lcl_data[ylid];
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
 
@@ -1989,22 +1989,22 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
 #elif(MIO_BN_GRP1 > 16)
 
     _FLOAT tmp = 0.;
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x111, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x112, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x114, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x142, 0xF, 0xF, 0));
     ds += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x143, 0xF, 0xF, 0));
     ds += tmp;
     ds *= INHW;
 
@@ -2015,15 +2015,15 @@ BatchNormBwdSpatialSavedSingleDX(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 #else
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 0xF, 0xF, 0));
 
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 15, 15, 0));
-    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 15, 15, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x101, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x102, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x104, 0xF, 0xF, 0));
+    ds += as_float(__builtin_amdgcn_mov_dpp(as_int(ds), 0x108, 0xF, 0xF, 0));
     ds *= INHW;
 
     if(ylid == 0)
@@ -2152,13 +2152,13 @@ BatchNormBwdSpatialMean(const __global _FLOAT* __restrict in, __global _FLOAT* _
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = lcl_data[ylid];
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 0xF, 0xF, 0));
     mean += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 0xF, 0xF, 0));
     mean += tmp;
     if(ylid == 63)
     {
@@ -2224,35 +2224,35 @@ BatchNormBwdSpatialFinalMean(__global _FLOAT* __restrict meanvarbuff)
     barrier(CLK_LOCAL_MEM_FENCE);
 
     mean = lcl_data[ylid];
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 0xF, 0xF, 0));
     mean += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 0xF, 0xF, 0));
     mean += tmp;
     mean /= NHW;
     commitID = 63;
 
 #elif(MIO_BN_NGRPS > 16)
     _FLOAT tmp = 0.;
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x111, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x112, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x114, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x142, 0xF, 0xF, 0));
     mean += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x143, 0xF, 0xF, 0));
     mean += tmp;
     mean /= NHW;
     commitID = 63;
 
 #else
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x101, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x102, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x104, 15, 15, 0));
-    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x108, 15, 15, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x101, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x102, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x104, 0xF, 0xF, 0));
+    mean += as_float(__builtin_amdgcn_mov_dpp(as_int(mean), 0x108, 0xF, 0xF, 0));
     mean /= NHW;
     commitID = 0;
 
@@ -2340,13 +2340,13 @@ BatchNormBwdSpatialDBias(const __global _FLOAT* __restrict dy_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     dbias = lcl_data[ylid];
-    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x111, 15, 15, 0));
-    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x112, 15, 15, 0));
-    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x114, 15, 15, 0));
-    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x142, 15, 15, 0));
+    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x111, 0xF, 0xF, 0));
+    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x112, 0xF, 0xF, 0));
+    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x114, 0xF, 0xF, 0));
+    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x142, 0xF, 0xF, 0));
     dbias += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x143, 0xF, 0xF, 0));
     dbias += tmp;
 
     if(ylid == 63)
@@ -2419,13 +2419,13 @@ BatchNormBwdSpatialFinalDBias(__global _FLOAT* buff, __global _FLOAT* delta_bias
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     db = lcl_data[ylid];
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
     if(ygid == 63)
         delta_bias[xgid] = db;
@@ -2433,22 +2433,22 @@ BatchNormBwdSpatialFinalDBias(__global _FLOAT* buff, __global _FLOAT* delta_bias
 #elif(MIO_BN_NGRPS > 16)
 
     _FLOAT tmp = 0.;
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
     if(ygid == 63)
         delta_bias[xgid] = db;
 
 #else
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 0xF, 0xF, 0));
     if(ygid == 0)
         delta_bias[xgid] = db;
 #endif
@@ -2537,13 +2537,13 @@ BatchNormBwdSpatialVariance(const __global _FLOAT* __restrict in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     variance = lcl_data[ylid];
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 0xF, 0xF, 0));
     variance += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 0xF, 0xF, 0));
     variance += tmp;
 
     if(ylid == 63)
@@ -2621,34 +2621,34 @@ BatchNormBwdSpatialFinalVariance(__global _FLOAT* __restrict varbuff, double eps
     barrier(CLK_LOCAL_MEM_FENCE);
 
     variance = lcl_data[ylid];
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 0xF, 0xF, 0));
     variance += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 0xF, 0xF, 0));
     variance += tmp;
     commitID = 63;
 
 #elif(MIO_BN_NGRPS > 16)
 
     _FLOAT tmp = 0.;
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x111, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x112, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x114, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x142, 0xF, 0xF, 0));
     variance += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x143, 0xF, 0xF, 0));
     variance += tmp;
     commitID   = 63;
 
 #else
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x101, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x102, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x104, 15, 15, 0));
-    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x108, 15, 15, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x101, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x102, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x104, 0xF, 0xF, 0));
+    variance += as_float(__builtin_amdgcn_mov_dpp(as_int(variance), 0x108, 0xF, 0xF, 0));
     commitID = 0;
 
 #endif
@@ -2752,13 +2752,13 @@ BatchNormBwdSpatialDScale(const __global _FLOAT* x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     dscale = lcl_data[ylid];
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 15, 15, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 0xF, 0xF, 0));
     dscale += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 0xF, 0xF, 0));
     dscale += tmp;
     if(ylid == 63)
     {
@@ -2832,35 +2832,35 @@ BatchNormBwdSpatialFinalDScale(__global _FLOAT* buff, __global _FLOAT* delta_sca
     barrier(CLK_LOCAL_MEM_FENCE);
 
     dscale = lcl_data[ylid];
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 15, 15, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 0xF, 0xF, 0));
     dscale += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 0xF, 0xF, 0));
     dscale += tmp;
     if(ygid == 63)
         delta_scale[xgid] = dscale / NHW;
 
 #elif(MIO_BN_NGRPS > 16)
     _FLOAT tmp = 0.;
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 15, 15, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 0xF, 0xF, 0));
     dscale += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 0xF, 0xF, 0));
     dscale += tmp;
     if(ygid == 63)
         delta_scale[xgid] = dscale / NHW;
 
 #else
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x101, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x102, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x104, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x108, 15, 15, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x101, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x102, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x104, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x108, 0xF, 0xF, 0));
     if(ygid == 0)
         delta_scale[xgid] = dscale / NHW;
 
@@ -3019,13 +3019,13 @@ BatchNormBwdSpatialSavedDScale(const __global _FLOAT* x_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     dscale = lcl_data[ylid];
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 15, 15, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 0xF, 0xF, 0));
     dscale += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 0xF, 0xF, 0));
     dscale += tmp;
 
     if(ylid == 63)
@@ -3100,35 +3100,35 @@ BatchNormBwdSpatialSavedFinalDScale(__global _FLOAT* buff, __global _FLOAT* delt
     barrier(CLK_LOCAL_MEM_FENCE);
 
     dscale = lcl_data[ylid];
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 15, 15, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 0xF, 0xF, 0));
     dscale += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 0xF, 0xF, 0));
     dscale += tmp;
     if(ygid == 63)
         delta_scale[xgid] = dscale / NHW;
 
 #elif(MIO_BN_NGRPS > 16)
     _FLOAT tmp = 0.;
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 15, 15, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x111, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x112, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x114, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x142, 0xF, 0xF, 0));
     dscale += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x143, 0xF, 0xF, 0));
     dscale += tmp;
     if(ygid == 63)
         delta_scale[xgid] = dscale / NHW;
 
 #else
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x101, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x102, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x104, 15, 15, 0));
-    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x108, 15, 15, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x101, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x102, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x104, 0xF, 0xF, 0));
+    dscale += as_float(__builtin_amdgcn_mov_dpp(as_int(dscale), 0x108, 0xF, 0xF, 0));
     if(ygid == 0)
         delta_scale[xgid] = dscale / NHW;
 
@@ -3207,13 +3207,13 @@ BatchNormBwdSpatialSavedDBias(const __global _FLOAT* __restrict dy_in,
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     dbias = lcl_data[ylid];
-    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x111, 15, 15, 0));
-    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x112, 15, 15, 0));
-    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x114, 15, 15, 0));
-    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x142, 15, 15, 0));
+    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x111, 0xF, 0xF, 0));
+    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x112, 0xF, 0xF, 0));
+    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x114, 0xF, 0xF, 0));
+    dbias += as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x142, 0xF, 0xF, 0));
     dbias += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(dbias), 0x143, 0xF, 0xF, 0));
     dbias += tmp;
 
     if(ylid == 63)
@@ -3281,13 +3281,13 @@ BatchNormBwdSpatialSavedFinalDBias(__global _FLOAT* buff, __global _FLOAT* delta
         lcl_data[ylid] += lcl_data[ylid + 64];
     barrier(CLK_LOCAL_MEM_FENCE);
     db = lcl_data[ylid];
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
     if(ygid == 63)
         delta_bias[xgid] = db;
@@ -3295,22 +3295,22 @@ BatchNormBwdSpatialSavedFinalDBias(__global _FLOAT* buff, __global _FLOAT* delta
 #elif(MIO_BN_NGRPS > 16)
 
     _FLOAT tmp = 0.;
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 15, 15, 0));
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x111, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x112, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x114, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x118, 0xF, 0xF, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x142, 0xF, 0xF, 0));
     db += tmp;
-    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 15, 15, 0));
+    tmp = as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x143, 0xF, 0xF, 0));
     db += tmp;
     if(ygid == 63)
         delta_bias[xgid] = db;
 
 #else
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 15, 15, 0));
-    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 15, 15, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x101, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x102, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x104, 0xF, 0xF, 0));
+    db += as_float(__builtin_amdgcn_mov_dpp(as_int(db), 0x108, 0xF, 0xF, 0));
     if(ygid == 0)
         delta_bias[xgid] = db;
 #endif

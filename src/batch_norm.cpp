@@ -23,8 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/batch_norm.hpp>
+
 #include <miopen/errors.hpp>
+#include <miopen/batch_norm.hpp>
 
 namespace miopen {
 
@@ -48,6 +49,386 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
         ; // TODO: support 5D
     }
     derivedBnDesc = TensorDescriptor(xDesc.GetType(), newlens.data(), xDesc.GetSize());
+}
+
+
+
+void profileSequence(Handle& handle, unsigned char select){
+
+    float ktime = 0.;
+    static float ctime = 0.;
+
+    switch(select){
+
+        case 0:
+            if(handle.IsProfilingEnabled())
+            {
+                ktime = handle.GetKernelTime();
+                ctime = ktime;
+                
+#if(MIO_BN_CPP_PROF == 1)
+                printf("ktime: %f\n", ktime);
+                printf("ctime: %f\n", ctime);
+#endif
+            }
+            else
+            {
+                handle.Finish();
+            }
+            break;
+        case 1:
+            if(handle.IsProfilingEnabled())
+            {
+                ktime = handle.GetKernelTime();
+                ctime += ktime;
+                
+#if(MIO_BN_CPP_PROF == 1)
+                printf("ktime: %f\n", ktime);
+                printf("ctime: %f\n", ctime);
+#endif
+            }
+            else
+            {
+                handle.Finish();
+            }
+
+        case 2:
+            if(handle.IsProfilingEnabled())
+            {
+                handle.GetKernelTime();
+                handle.AccumKernelTime(ctime);
+            }//
+            break;
+    }
+}
+
+
+void bnFwdTrainSelectMulti(            
+                            Handle& handle,
+                            std::string &program_name,
+                            std::string &algo_name,
+                            std::string &kernel_name,
+                            std::string &network_config,
+                            std::string &parms,
+                            std::vector<size_t> &vld,
+                            std::vector<size_t> &vgd,
+                            ConstData_t x,
+                            Data_t y,
+                            ConstData_t bnScale,
+                            ConstData_t bnBias,
+                            bool resultsave,
+                            bool resultrunning,
+                            double expAvgFactor,
+                            Data_t resultRunningMean,
+                            Data_t resultRunningVariance,
+                            double epsilon,
+                            Data_t resultSaveMean,
+                            Data_t resultSaveInvVariance,
+                            float inhw){
+    
+    
+    
+    std::string kernel_subname{};
+    if(resultsave && resultrunning)
+    {
+        kernel_subname = kernel_name + "Mean";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y);
+        profileSequence(handle,0);
+
+        kernel_subname = kernel_name + "FinalMean";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(y, inhw, expAvgFactor, resultRunningMean, resultSaveMean);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "Variance";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y);
+
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "FinalVariance";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(
+            y, inhw, expAvgFactor, resultRunningVariance, epsilon, resultSaveInvVariance);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "Norm";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y, bnScale, bnBias);
+        profileSequence(handle,2);
+
+    }
+    else if(resultsave)
+    {
+
+        kernel_subname = kernel_name + "Mean";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y);
+        profileSequence(handle,0);
+
+        kernel_subname = kernel_name + "FinalMean";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(y, inhw, resultSaveMean);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "Variance";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "FinalVariance";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(y, inhw, epsilon, resultSaveInvVariance);
+
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "Norm";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y, bnScale, bnBias);
+        profileSequence(handle,2);
+    }
+    else if(resultrunning)
+    {
+
+        kernel_subname = kernel_name + "Mean";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y);
+        profileSequence(handle,0);
+
+        kernel_subname = kernel_name + "FinalMean";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(y, inhw, expAvgFactor, resultRunningMean);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "Variance";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "FinalVariance";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(y, inhw, expAvgFactor, resultRunningVariance, epsilon);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "Norm";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y, bnScale, bnBias);
+        profileSequence(handle,2);
+    }
+    else
+    {
+
+        kernel_subname = kernel_name + "Mean";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y);
+        profileSequence(handle,0);
+
+        kernel_subname = kernel_name + "FinalMean";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(y, inhw);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "Variance";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "FinalVariance";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(y, inhw, epsilon);
+        profileSequence(handle,1);
+
+        kernel_subname = kernel_name + "Norm";
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_subname,
+                         vld,
+                         vgd,
+                         parms)(x, y, bnScale, bnBias);
+        profileSequence(handle,2);
+    }
+    
+}
+
+void bnFwdTrainSelectSingle(            
+                            Handle& handle,
+                            std::string &program_name,
+                            std::string &algo_name,
+                            std::string &kernel_name,
+                            std::string &network_config,
+                            std::string &parms,
+                            std::vector<size_t> &vld,
+                            std::vector<size_t> &vgd,
+                            ConstData_t x,
+                            Data_t y,
+                            ConstData_t bnScale,
+                            ConstData_t bnBias,
+                            bool resultsave,
+                            bool resultrunning,
+                            double expAvgFactor,
+                            Data_t resultRunningMean,
+                            Data_t resultRunningVariance,
+                            double epsilon,
+                            Data_t resultSaveMean,
+                            Data_t resultSaveInvVariance,
+                            float inhw){
+
+    if(resultsave && resultrunning)
+    {
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_name,
+                         vld,
+                         vgd,
+                         parms)(x,
+                                y,
+                                bnScale,
+                                bnBias,
+                                inhw,
+                                expAvgFactor,
+                                resultRunningMean,
+                                resultRunningVariance,
+                                epsilon,
+                                resultSaveMean,
+                                resultSaveInvVariance);
+    }
+    else if(resultsave)
+    {
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_name,
+                         vld,
+                         vgd,
+                         parms)(
+            x, y, bnScale, bnBias, inhw, epsilon, resultSaveMean, resultSaveInvVariance);
+    }
+    else if(resultrunning)
+    {
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_name,
+                         vld,
+                         vgd,
+                         parms)(x,
+                                y,
+                                bnScale,
+                                bnBias,
+                                inhw,
+                                expAvgFactor,
+                                resultRunningMean,
+                                resultRunningVariance,
+                                epsilon);
+    }
+    else
+    {
+        handle.GetKernel(algo_name,
+                         network_config,
+                         program_name,
+                         kernel_name,
+                         vld,
+                         vgd,
+                         parms)(x, y, bnScale, bnBias, inhw, epsilon);
+    }
 }
 
 } // namespace miopen
