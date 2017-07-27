@@ -211,8 +211,16 @@ int ConvDriver<T>::GetandSetData()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
-        SetTensor4d(biasTensor, b_len);
+        if((inflags.GetValueStr("mode")) == "conv")
+        {
+            std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
+            SetTensor4d(biasTensor, b_len);
+        }
+        else if((inflags.GetValueStr("mode")) == "trans")
+        {
+            std::vector<int> b_len{1, inflags.GetValueInt("in_channels"), 1, 1};
+            SetTensor4d(biasTensor, b_len);
+        }
     }
     return (0);
 }
@@ -432,6 +440,10 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
         {
             b[i]  = i % 8;
             db[i] = i % 8;
+            if((inflags.GetValueStr("mode")) == "trans")
+            {
+                db[i] = 0;
+            }
         }
 
         b_dev->ToGPU(q, b.data());
@@ -448,8 +460,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < wei_sz; i++)
         {
-            wei[i] =
-                static_cast<T>((scale * static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)));
+            wei[i] = static_cast<T>((scale * static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)));
         }
     }
 
@@ -556,13 +567,26 @@ int ConvDriver<T>::RunForwardGPU()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        miopenConvolutionForwardBias(GetHandle(),
-                                     &alpha,
-                                     biasTensor,
-                                     b_dev->GetMem(),
-                                     &beta,
-                                     outputTensor,
-                                     out_dev->GetMem());
+        if((inflags.GetValueStr("mode")) == "conv")
+	{
+	    miopenConvolutionForwardBias(GetHandle(),
+		                            &alpha,
+		                            biasTensor,
+		                            b_dev->GetMem(),
+		                            &beta,
+		                            outputTensor,
+		                            out_dev->GetMem());
+	}
+        else if((inflags.GetValueStr("mode")) == "trans")
+        {
+            miopenConvolutionBackwardBias(GetHandle(),
+                                            &alpha,
+                                            inputTensor,
+                                            in_dev->GetMem(),
+                                            &beta,
+                                            biasTensor,
+                                            b_dev->GetMem());
+        }
 
         if(inflags.GetValueInt("time") == 1)
         {
@@ -876,13 +900,29 @@ int ConvDriver<T>::RunBackwardGPU()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        ret = miopenConvolutionBackwardBias(GetHandle(),
+
+        if((inflags.GetValueStr("mode")) == "conv")
+        {
+            ret = miopenConvolutionBackwardBias(GetHandle(),
                                             &alpha,
                                             outputTensor,
                                             dout_dev->GetMem(),
                                             &beta,
                                             biasTensor,
                                             db_dev->GetMem());
+
+
+        }
+ //       else if((inflags.GetValueStr("mode")) == "trans")
+ //       {
+ //           ret = miopenConvolutionForwardBias(GetHandle(),
+//		                            &alpha,
+//		                            biasTensor,
+//		                            db_dev->GetMem(),
+//		                            &beta,
+//		                            inputTensor,
+//		                            din_dev->GetMem());
+ //       }
 
         if(inflags.GetValueInt("time") == 1)
         {
@@ -1264,7 +1304,7 @@ int ConvDriver<T>::RunBackwardDataCPU()
                                 }
                             }
                         }
-                        acc = inflags.GetValueInt("bias") != 0 ? acc + b[w] : acc;
+//                      acc = inflags.GetValueInt("bias") != 0 ? acc + db[w] : acc;  // db is zero in transpose case
                         din_host[o * in_nstride + w * in_cstride + i * in_hstride + j] = acc;
                     }
                 }
@@ -1309,7 +1349,14 @@ int ConvDriver<T>::RunBackwardBiasCPU()
             {
                 for(int w = 0; w < out_w; w++)
                 {
-                    db_host[c] += dout[n * out_nstride + c * out_cstride + h * out_hstride + w];
+                    if((inflags.GetValueStr("mode")) == "conv")
+                    {
+                        db_host[c] += dout[n * out_nstride + c * out_cstride + h * out_hstride + w];
+                    }
+//                    else if((inflags.GetValueStr("mode")) == "trans")
+//                    {
+//                        db_host[c] += dout[n * out_nstride + c * out_cstride + h * out_hstride + w] * dYb[c];
+//                    }
                 }
             }
         }
