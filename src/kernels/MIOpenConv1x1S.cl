@@ -137,8 +137,39 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
 	)
 	{
-
 // read weights (with prefetch)
+
+#if MLO_N_PREFETCHED > 1
+		for(uint o = 0, wei_off1 = wei_off; o < MLO_N_LCL_OUT_MAPS; ++o, wei_off1 += 
+#if MLO_DIR_FORWARD == 1
+                   MLO_WEI_BSTRIDE
+#else
+                   MLO_WEI_CHANNEL_STRIDE
+#endif
+		)
+		{
+			uint lcl_id0 = get_local_id(0);
+			for(uint c = lcl_id0, wei_off2 = wei_off1 + lcl_id0 *
+#if MLO_DIR_FORWARD == 1
+				MLO_WEI_CHANNEL_STRIDE   
+#else
+				MLO_WEI_BSTRIDE
+#endif
+
+			; c < MLO_N_PREFETCHED * MLO_N_LCL_IN_MAPS;
+			c += MLO_GRP_SZ0, wei_off2 += MLO_GRP_SZ0 *
+#if MLO_DIR_FORWARD == 1
+				MLO_WEI_CHANNEL_STRIDE   
+#else
+				MLO_WEI_BSTRIDE
+#endif
+			)
+			{
+				weights[o][c] = wei_ptr[wei_off2];
+			}
+		}	
+
+#else
 		for(uint o = 0, wei_off1 = wei_off; o < MLO_N_LCL_OUT_MAPS; ++o, wei_off1 += 
 #if MLO_DIR_FORWARD == 1
                    MLO_WEI_BSTRIDE
@@ -158,6 +189,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 				weights[o][c] = wei_ptr[wei_off2];
 			}
 		}	
+#endif
 
 // convolve with all prefetched waights
 		for(int p = 0, gbl_in_off0 = gbl_in_off; p < MLO_N_PREFETCHED; ++p, gbl_in_off0 += MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE)
