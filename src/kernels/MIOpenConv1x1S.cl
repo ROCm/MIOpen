@@ -89,6 +89,10 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
               UNUSED _FLOAT dummy_val // nothing
               )
 {
+#if MLO_N_PREFETCHED > 1
+	__local
+#endif
+	_FLOAT weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS*MLO_N_PREFETCHED]; 
 
     uint gbl_id0       = get_global_id(0);    
     uint batch_id      = gbl_id0 / MLO_MAP_SZ4; // batch
@@ -109,7 +113,6 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         ;
 
 	_FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
-	_FLOAT weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS]; 
 	_FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
 
 	for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
@@ -122,11 +125,11 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
     for(uint ci = 0; ci < MLO_CLOOP0; ++ci,
 // move input offset
-				 gbl_in_off += MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE,
+				 gbl_in_off += MLO_N_PREFETCHED * MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE,
 
 // move weights offset
 				 wei_off +=
-				MLO_N_LCL_IN_MAPS *
+				MLO_N_PREFETCHED * MLO_N_LCL_IN_MAPS *
 #if MLO_DIR_FORWARD == 1
 				MLO_WEI_CHANNEL_STRIDE   
 #else
@@ -135,7 +138,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 	)
 	{
 
-// read weights
+// read weights (with prefetch)
 		for(uint o = 0, wei_off1 = wei_off; o < MLO_N_LCL_OUT_MAPS; ++o, wei_off1 += 
 #if MLO_DIR_FORWARD == 1
                    MLO_WEI_BSTRIDE
@@ -144,7 +147,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
 		)
 		{
-			for(uint c = 0, wei_off2 = wei_off1; c < MLO_N_LCL_IN_MAPS; ++c, wei_off2 +=
+			for(uint c = 0, wei_off2 = wei_off1; c < MLO_N_PREFETCHED * MLO_N_LCL_IN_MAPS; ++c, wei_off2 +=
 #if MLO_DIR_FORWARD == 1
 				MLO_WEI_CHANNEL_STRIDE   
 #else
@@ -155,27 +158,31 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 				weights[o][c] = wei_ptr[wei_off2];
 			}
 		}	
-// read data
-		for(uint j = 0, gbl_in_off1 = gbl_in_off; j < MLO_N_LCL_IN_MAPS; ++j, gbl_in_off1 += MLO_IN_CHANNEL_STRIDE)
-		{
-			for(uint i = 0; i < MLO_READ_UNIT; ++i)	
-			{
-				dat[j][i] = in_ptr[gbl_in_off1 + i];
-			}
-		}		
 
-// convolve
-		for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+// convolve with all prefetched waights
+		for(int p = 0, gbl_in_off0 = gbl_in_off; p < MLO_N_PREFETCHED; ++p, gbl_in_off0 += MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE)
 		{
-			for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
+// read data
+			for(uint j = 0, gbl_in_off1 = gbl_in_off0; j < MLO_N_LCL_IN_MAPS; ++j, gbl_in_off1 += MLO_IN_CHANNEL_STRIDE)
 			{
 				for(uint i = 0; i < MLO_READ_UNIT; ++i)	
 				{
-					accum[o][i] += dat[c][i] * weights[o][c];
+					dat[j][i] = in_ptr[gbl_in_off1 + i];
+				}
+			}		
+
+// convolve
+			for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+			{
+				for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
+				{
+					for(uint i = 0; i < MLO_READ_UNIT; ++i)	
+					{
+						accum[o][i] += dat[c][i] * weights[o][p*MLO_N_LCL_IN_MAPS + c];
+					}	
 				}
 			}
 		}
-
 	
 		
 	}
