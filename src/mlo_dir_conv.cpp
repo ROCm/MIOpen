@@ -1370,7 +1370,9 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
 	// number of inputs inside wk-items
 	_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
-	uint CLOOP0 = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
+	int N_PREFETCHED = 1;
+	int CLOOP0 = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
+	CLOOP0 = (CLOOP0 + N_PREFETCHED - 1) / N_PREFETCHED;
 	// number of outputs inside wk_item
 	_n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
 
@@ -1379,6 +1381,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	{
 		output_aligned = 1;
 	}
+
 
 	_comp_options =
 		std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction) +
@@ -1407,6 +1410,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 		std::string(" -DMLO_OUTPUTS_ALIGNED=") + std::to_string(output_aligned) +
 		std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit) +
 		std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
+		std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
+		std::string(" -DMLO_N_PREFETCHED=") + std::to_string(N_PREFETCHED) +
 		getGeneralCompOptions();
 
 	_l_wk.clear();
