@@ -46,41 +46,17 @@ GemmGeometry CreateGemmGeometryTranBwdData(const TensorDescriptor& dyDesc,
     int K       = wei_n * wei_h * wei_w;
     int M       = wei_c;
     int N       = in_h * in_w;
-    float alpha = 1.0;
-    float beta  = 0.0;
     bool tA     = false;
     bool tB     = false;
     bool tC     = false;
     int lda     = K;
     int ldb     = N;
     int ldc     = N;
+    float alpha = 1.0;
+    float beta  = 0.0;
 
-    // bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset,
-    // c_offset
-    MIOpenGEMM::Geometry tgg{};
-    GemmGeometry gg;
-    (void)isDataColMajor;
-#if 0   
-    if (!isDataColMajor) {
-        tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
-
-        gg = GemmGeometry{std::array<int, 3>{{N, M, K}}, 
-            std::array<int, 3>{{ldb, lda, ldc}},
-            "miopenTransposeBwdDataAlgoGEMM",
-            alpha, beta, tgg};
-    }
-    else
-#endif
-    {
-        tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
-
-        gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
-                          std::array<int, 3>{{lda, ldb, ldc}},
-                          "miopenTransposeBwdDataAlgoGEMM",
-                          alpha,
-                          beta,
-                          tgg};
-    }
+    MIOpenGEMM::Geometry tgg(isDataColMajor, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+    GemmGeometry gg("miopenTransposeBwdDataAlgoGEMM", alpha, beta, tgg);
     network_config = tgg.get_networkconfig_string();
     return gg;
 }
@@ -102,43 +78,19 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
 
     // GEMM
     int K       = wei_n;
-    int N       = out_h * out_w;
     int M       = in_c * wei_h * wei_w;
-    float alpha = 1.0;
-    float beta  = 0.0;
+    int N       = out_h * out_w;
     bool tA     = true;
     bool tB     = false;
     bool tC     = false;
     int lda     = M;
     int ldb     = N;
     int ldc     = N;
+    float alpha = 1.0;
+    float beta  = 0.0;
 
-    // bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset,
-    // c_offset
-    MIOpenGEMM::Geometry tgg{};
-    GemmGeometry gg;
-    (void)isDataColMajor;
-#if 0
-	if (!isDataColMajor) {
-		tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f'); /* jn : new miopengemm API */
-		gg = GemmGeometry{ std::array<int, 3>{ {N, M, K}},
-			std::array<int, 3>{ {ldb, lda, ldc}},
-			"miopenConvolutionBwdDataAlgoGEMM",
-			alpha, beta, tgg };
-	}
-	else
-#endif
-    {
-        tgg = MIOpenGEMM::Geometry(
-            false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); /* jn : new miopengemm API */
-
-        gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
-                          std::array<int, 3>{{lda, ldb, ldc}},
-                          "miopenConvolutionBwdDataAlgoGEMM",
-                          alpha,
-                          beta,
-                          tgg};
-    }
+    MIOpenGEMM::Geometry tgg(isDataColMajor, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+    GemmGeometry gg("miopenConvolutionBwdDataAlgoGEMM", alpha, beta, tgg);
     network_config = tgg.get_networkconfig_string();
     return gg;
 }
@@ -171,39 +123,8 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(const TensorDescriptor& dyDesc,
     float alpha = 1.0;
     float beta  = 1.0;
 
-    // (old) bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset,
-    // c_offset
-    // MIOpenGEMM::Geometry(bool isColMajor, bool tA, bool tB, bool tC, unsigned lda, unsigned ldb,
-    // unsigned ldc, unsigned m, unsigned n, unsigned k, unsigned workspace_size, char floattype);
-    MIOpenGEMM::Geometry tgg{};
-    GemmGeometry gg;
-
-    if(!isDataColMajor)
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f'); // jn : added 0 for no workspace, 'f'
-                                                               // for single prec.
-
-        gg = GemmGeometry{std::array<int, 3>{{N, M, K}},
-                          std::array<int, 3>{{ldb, lda, ldc}},
-                          "miopenConvolutionBwdWeightsAlgoGEMM",
-                          alpha,
-                          beta,
-                          tgg};
-    }
-    else
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); // jn : added 0 for no workspace, 'f'
-                                                               // for single prec.
-
-        gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
-                          std::array<int, 3>{{lda, ldb, ldc}},
-                          "miopenConvolutionBwdWeightsAlgoGEMM",
-                          alpha,
-                          beta,
-                          tgg};
-    }
+    MIOpenGEMM::Geometry tgg(isDataColMajor, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+    GemmGeometry gg("miopenConvolutionBwdWeightsAlgoGEMM", alpha, beta, tgg);
     network_config = tgg.get_networkconfig_string();
     return gg;
 }
@@ -227,46 +148,17 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
     int K       = in_c * wei_h * wei_w;
     int M       = wei_n;
     int N       = out_h * out_w;
-    float alpha = 1.0;
-    float beta  = 0.0;
     bool tA     = false;
     bool tB     = false;
     bool tC     = false;
     int lda     = K;
     int ldb     = N;
     int ldc     = N;
+    float alpha = 1.0;
+    float beta  = 0.0;
 
-    // bool isColMajor, bool tA, bool tB, bool tC, lda, ldb, ldc, m, n, k, a_offset, b_offset,
-    // c_offset
-    MIOpenGEMM::Geometry tgg{};
-    GemmGeometry gg;
-
-    if(!isDataColMajor)
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f'); // jn : added 0 for no workspace, 'f'
-                                                               // for single prec.
-
-        gg = GemmGeometry{std::array<int, 3>{{N, M, K}},
-                          std::array<int, 3>{{ldb, lda, ldc}},
-                          "miopenConvolutionFwdAlgoGEMM",
-                          alpha,
-                          beta,
-                          tgg};
-    }
-    else
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f'); // jn : added 0 for no workspace, 'f'
-                                                               // for single prec.
-
-        gg = GemmGeometry{std::array<int, 3>{{M, N, K}},
-                          std::array<int, 3>{{lda, ldb, ldc}},
-                          "miopenConvolutionFwdAlgoGEMM",
-                          alpha,
-                          beta,
-                          tgg};
-    }
+    MIOpenGEMM::Geometry tgg(isDataColMajor, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+    GemmGeometry gg("miopenConvolutionBwdWeightsAlgoGEMM", alpha, beta, tgg);
     network_config = tgg.get_networkconfig_string();
     return gg;
 }
