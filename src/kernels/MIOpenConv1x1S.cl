@@ -51,33 +51,6 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
     return (r);
 }
 
-/*
-Layout:
-assuming NCHW data layout.
-
-Data:
-data has been fetch by 4 floats sequentially.
-MLO_MAP_SZ4 = (map_width*map_height + 3)/4.
-in case of total size not a multiple of 4 the the last pixel has a special treatment.
-There are 2 cases:
-MLO_N_MAPS_PERGROUP == 1
-and
-MLO_N_MAPS_PERGROUP > 1, when MLO_MAP_SZ4 <= GPROUP_SIZE/2, in other words when more than 1 map can
-be held by a group.
-Case MLO_N_MAPS_PERGROUP == 1:
-Data, by 4 floats, may come from MLO_N_LCL_IN_MAPS sequential input maps from MLO_N_LCL_BATCHS
-neighboring batches.
-Weigts:
-on each MLO_WEIGHTS_PER_LOOP input loop set of weight are prefetched for another
-MLO_WEIGHTS_PER_LOOP loops.
-Each input map contributes to partial sums of MLO_N_LCL_OUT_MAPS output maps.
-Case MLO_N_MAPS_PERGROUP > 1:
-Similar to a previous case.
-The difference is that several input sequential input maps are kept by group.
-Each taking part in the calculation of partial sums of the same MLO_N_LCL_OUT_MAPS output maps.
-After completion of the main MLO_IN_LOOP loop partial sums have been summed up in parallel.
-
-*/
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
