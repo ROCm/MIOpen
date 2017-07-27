@@ -93,8 +93,8 @@ class ConvDriver : public Driver
 
         miopenCreateConvolutionDescriptor(&convDesc);
 
-        workspace_bwd_dev = 0;
-        workspace_fwd_dev = 0;
+        workspace_bwd_dev = nullptr;
+        workspace_fwd_dev = nullptr;
     }
 
     int AddCmdLineArgs();
@@ -510,8 +510,8 @@ int ConvDriver<T>::FindForward(int& ret_algo_count,
         request_algo_count,
         &ret_algo_count,
         perf_results.data(),
-        (workspace_fwd_dev != 0) ? workspace_fwd_dev->GetMem() : nullptr,
-        (workspace_fwd_dev != 0) ? workspace_fwd_dev->GetSize() : 0,
+        (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
+        (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0,
         (inflags.GetValueInt("search") == 1) ? true : false);
 }
 
@@ -547,8 +547,9 @@ int ConvDriver<T>::RunForwardGPU()
                                  &beta,
                                  outputTensor,
                                  out_dev->GetMem(),
-                                 (workspace_fwd_dev != 0) ? workspace_fwd_dev->GetMem() : nullptr,
-                                 (workspace_fwd_dev != 0) ? workspace_fwd_dev->GetSize() : 0);
+                                 (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem()
+                                                                : nullptr,
+                                 (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0);
     }
 
     if(inflags.GetValueInt("time") == 1)
