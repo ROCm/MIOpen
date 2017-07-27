@@ -239,12 +239,14 @@ int mlo_construct_winograd::mloConstruct()
             {
                 return (mloConstructBinaryWinograd3x3U(rmv));
             }
+#if MIOPEN_BACKEND_OPENCL
             if(mloIsCorrectBinaryWinogradRxSFwd(rmv) &&
                !miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}) &&
                (no_perf_filtering || mloIsFastBinaryWinogradRxSFwd()))
             {
                 return (mloConstructBinaryWinogradRxSFwd());
             }
+#endif
         }
     }
 #endif
@@ -3485,8 +3487,9 @@ bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
     // They work fine on gfx8
     // /todo fix memory faults on gfx9
     const std::string name = _stream->GetDeviceName();
-    return !(name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54 ||
-                                  _in_width == 57 || _in_width == 17 || _in_width == 250));
+    return !(name == "gfx900" &&
+             (_in_width == 13 || _in_width == 27 || _in_width == 54 || _in_width == 57 ||
+              _in_width == 17 || _in_width == 250 || _in_width == 175));
 }
 
 int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
