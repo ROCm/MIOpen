@@ -1344,6 +1344,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 	int read_unit = _out_pix_tile0;
 	_n_out_pix_tiles = 16;
 	_n_in_data_tiles = 4;
+	int N_PREFETCHED = 2;
 	_grp_tile0 = 64;
 
 	size_t localMemSize = _stream->GetLocalMemorySize();
@@ -1370,7 +1371,7 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
 	// number of inputs inside wk-items
 	_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
-	int N_PREFETCHED = 1;
+
 	int CLOOP0 = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
 	CLOOP0 = (CLOOP0 + N_PREFETCHED - 1) / N_PREFETCHED;
 	// number of outputs inside wk_item
