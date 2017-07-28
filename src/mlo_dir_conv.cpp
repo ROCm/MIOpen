@@ -1336,7 +1336,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 int mlo_construct_direct2D::mloConstructDirect2D1x1()
 {
 	int ret = 0;
-	if ((_n_outputs / 32) * 32 == _n_outputs && (_n_inputs / 8) * 8 == _n_inputs)
+	if ((_n_outputs / 16) * 16 == _n_outputs && (_n_inputs / 4) * 4 == _n_inputs)
 	{
 		// parameters
 		//	int i_sz = _in_width * _in_height;
@@ -3761,7 +3761,7 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string& conf_val)
     if(_kernel_size0 == 1 && _kernel_size1 == 1)
     {
 
-		if ((_n_outputs / 32) * 32 == _n_outputs && ((_n_inputs / 8) * 8 == _n_inputs))
+		if ((_n_outputs / 16) * 16 == _n_outputs && (_n_inputs / 4) * 4 == _n_inputs)
 		{
 			int i_sz = _in_height *_in_width;
 			_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
@@ -4248,7 +4248,7 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 
         if(_kernel_size0 == 1 && _kernel_size1 == 1)
         {
-			if ((_n_outputs / 32) * 32 == _n_outputs && ((_n_inputs / 8) * 8 == _n_inputs))
+			if ((_n_outputs / 16) * 16 == _n_outputs && (_n_inputs / 4) * 4 == _n_inputs)
 			{
 				int i_sz = _in_width * _in_height;
 				out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
@@ -4257,10 +4257,10 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 				out_pix_tile_sz[2] = 4;
 			
 				n_out_tiles_rg[0] = 2;
-				n_out_tiles_rg[1] = 5;
+				n_out_tiles_rg[1] = ((_n_outputs / 32) * 32 == _n_outputs)? 5 : 4;
 			
 				n_in_tiles_rg[0] = 2;
-				n_in_tiles_rg[1] = 3;
+				n_in_tiles_rg[1] = ((_n_inputs / 8) * 8 == _n_inputs) ? 3 : 2;
 
 				grp_tl_ln[0] = 64;
 				grp_tl_ln[1] = 128;
@@ -4303,7 +4303,7 @@ int mlo_construct_direct2D::mloSearchDirect2D()
         }
 
 
-		if (_kernel_size0 == 1 && _kernel_size1 == 1 && (_n_outputs / 32) * 32 == _n_outputs && (_n_inputs / 8) * 8 == _n_inputs)
+		if (_kernel_size0 == 1 && _kernel_size1 == 1 && (_n_outputs / 16) * 16 == _n_outputs && (_n_inputs / 4) * 4 == _n_inputs)
 		{
 
 			std::cout << "Searching the best solution in the 4 dim space. Please, be patient it may "
