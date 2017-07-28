@@ -373,6 +373,7 @@ void BatchNormForwardInference(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
+    std::string algo_name    = "miopenBatchNormalizationForwardInference";
     std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
     std::string kernel_name  = "BatchNormFwdInfer";
     std::string kernel_subname{};
@@ -420,11 +421,8 @@ void BatchNormForwardInference(Handle& handle,
         parms += " -DMIO_BN_NHW=" + std::to_string(n * h * w);
         parms += " -DMIO_BN_CHW=" + std::to_string(in_nstride);
 
-        unsigned int segment;
-        unsigned int numwgs;
         auto inhw = double(1.0 / (n * h * w));
-
-        
+        unsigned int variant = 0;
         
         if(useEstimated)
         {
@@ -441,24 +439,19 @@ void BatchNormForwardInference(Handle& handle,
             parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
             parms += " -DMIO_BN_GRP2=" + std::to_string(1);
 
-            segment = std::ceil(double(in_cstride) / double(ylocalsize));
-
             xgridsize = c;
-            ygridsize = segment * ylocalsize;
+            ygridsize = ylocalsize;
             zgridsize = 1;
             vgd.push_back(xgridsize);
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
-            numwgs = std::ceil(float(ygridsize) / ylocalsize);
-            parms += " -DMIO_BN_NGRPS=" + std::to_string(numwgs);
-
             kernel_name += "Est";
-            parms += " -DMIO_BN_VARIANT=0";
+            parms += " -DMIO_BN_VARIANT="+std::to_string(variant);
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << " -DMIO_BN_VARIANT=0" << std::endl;
+            std::cout << parms << std::endl;
 #endif
-            handle.GetKernel("miopenBatchNormalizationForwardInference",
+            handle.GetKernel(algo_name,
                              network_config,
                              program_name,
                              kernel_name,
@@ -469,21 +462,31 @@ void BatchNormForwardInference(Handle& handle,
         }
         else
         {
-
-            if(in_cstride <= 256)
-            {
-
+            if(in_cstride <= 1024){
+                
+                
                 xlocalsize = 1;
-                ylocalsize = (64 >= in_cstride) ? 64 : 256;
+                
+                if(in_cstride < n && n <= 64)
+                {
+                    variant    = 1;
+                    ylocalsize = 64;           
+                }
+                else if(in_cstride <= 64)
+                {
+                    variant = 2;
+                    ylocalsize = 64;
+                }
+                else
+                {
+                    variant = 3;
+                    ylocalsize = (in_cstride <= 256) ? 256 : 1024;
+                }
+
                 zlocalsize = 1;
                 vld.push_back(xlocalsize);
                 vld.push_back(ylocalsize);
                 vld.push_back(zlocalsize);
-
-                parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
-                parms += " -DMIO_BN_GRP0=" + std::to_string(1);
-                parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-                parms += " -DMIO_BN_GRP2=" + std::to_string(1);
 
                 xgridsize = c;
                 ygridsize = ylocalsize;
@@ -492,12 +495,17 @@ void BatchNormForwardInference(Handle& handle,
                 vgd.push_back(ygridsize);
                 vgd.push_back(zgridsize);
 
+                parms += " -DMIO_BN_VARIANT="+std::to_string(variant);
+                parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
+                parms += " -DMIO_BN_GRP0=" + std::to_string(1);
+                parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
+                parms += " -DMIO_BN_GRP2=" + std::to_string(1);
                 kernel_subname = kernel_name + "SingleNorm";
-                parms += " -DMIO_BN_VARIANT=1";
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << " -DMIO_BN_VARIANT=1" << std::endl;
-#endif
-                handle.GetKernel("miopenBatchNormalizationForwardInference",
+
+    #if(MIOPEN_BN_CPP_DEBUG == 1)
+                std::cout << parms << std::endl;
+    #endif
+                handle.GetKernel(algo_name,
                                  network_config,
                                  program_name,
                                  kernel_subname,
@@ -520,7 +528,7 @@ void BatchNormForwardInference(Handle& handle,
                 parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP2=" + std::to_string(1);
 
-                segment = std::ceil(double(in_cstride) / double(ylocalsize));
+                auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
 
                 xgridsize = c;
                 ygridsize = segment * ylocalsize;
@@ -529,114 +537,63 @@ void BatchNormForwardInference(Handle& handle,
                 vgd.push_back(ygridsize);
                 vgd.push_back(zgridsize);
 
-                numwgs = std::ceil(float(ygridsize) / ylocalsize);
+                variant = 4;
+                auto numwgs = std::ceil(float(ygridsize) / ylocalsize);
                 parms += " -DMIO_BN_NGRPS=" + std::to_string(numwgs);
-
-                parms += " -DMIO_BN_VARIANT=2";
+                parms += " -DMIO_BN_VARIANT="+std::to_string(variant);
+                
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << " -DMIO_BN_VARIANT=2" << std::endl;
+                std::cout << parms << std::endl;
 #endif
                 kernel_subname = kernel_name + "Mean";
-                handle.GetKernel("miopenBatchNormalizationForwardInference",
+                handle.GetKernel(algo_name,
                                  network_config,
                                  program_name,
                                  kernel_subname,
                                  vld,
                                  vgd,
                                  parms)(x, y);
-                if(handle.IsProfilingEnabled())
-                {
-                    ktime = handle.GetKernelTime();
-                    ctime = ktime;
-#if(MIO_BN_CPP_PROF == 1)
-                    printf("ktime: %f\n", ktime);
-                    printf("ctime: %f\n", ctime);
-#endif
-                }
-                else
-                {
-                    handle.Finish();
-                }
+                profileSequence(handle,0);
 
                 kernel_subname = kernel_name + "FinalMean";
-                handle.GetKernel("miopenBatchNormalizationForwardInference",
+                handle.GetKernel(algo_name,
                                  network_config,
                                  program_name,
                                  kernel_subname,
                                  vld,
                                  vgd,
                                  parms)(y);
-                if(handle.IsProfilingEnabled())
-                {
-                    ktime = handle.GetKernelTime();
-                    ctime += ktime;
-#if(MIO_BN_CPP_PROF == 1)
-                    printf("ktime: %f\n", ktime);
-                    printf("ctime: %f\n", ctime);
-#endif
-                }
-                else
-                {
-                    handle.Finish();
-                }
+                profileSequence(handle,1);
 
                 kernel_subname = kernel_name + "Variance";
-                handle.GetKernel("miopenBatchNormalizationForwardInference",
+                handle.GetKernel(algo_name,
                                  network_config,
                                  program_name,
                                  kernel_subname,
                                  vld,
                                  vgd,
                                  parms)(x, y);
-                if(handle.IsProfilingEnabled())
-                {
-                    ktime = handle.GetKernelTime();
-                    ctime += ktime;
-#if(MIO_BN_CPP_PROF == 1)
-                    printf("ktime: %f\n", ktime);
-                    printf("ctime: %f\n", ctime);
-#endif
-                }
-                else
-                {
-                    handle.Finish();
-                }
+                profileSequence(handle,1);
 
                 kernel_subname = kernel_name + "FinalVariance";
-                handle.GetKernel("miopenBatchNormalizationForwardInference",
+                handle.GetKernel(algo_name,
                                  network_config,
                                  program_name,
                                  kernel_subname,
                                  vld,
                                  vgd,
                                  parms)(y, epsilon);
-                if(handle.IsProfilingEnabled())
-                {
-                    ktime = handle.GetKernelTime();
-                    ctime += ktime;
-#if(MIO_BN_CPP_PROF == 1)
-                    printf("ktime: %f\n", ktime);
-                    printf("ctime: %f\n", ctime);
-#endif
-                }
-                else
-                {
-                    handle.Finish();
-                }
+                profileSequence(handle,1);
 
                 kernel_subname = kernel_name + "Norm";
-                handle.GetKernel("miopenBatchNormalizationForwardInference",
+                handle.GetKernel(algo_name,
                                  network_config,
                                  program_name,
                                  kernel_subname,
                                  vld,
                                  vgd,
                                  parms)(x, y, bnScale, bnBias);
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.GetKernelTime();
-                    handle.AccumKernelTime(ctime);
-                }
+                profileSequence(handle,2);
             }
         }
         // end spatial
@@ -652,7 +609,7 @@ void BatchNormForwardInference(Handle& handle,
 
         parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
 
-        unsigned int segment = std::ceil(double(in_cstride) / double(ylocalsize));
+        auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
 
         xgridsize = c;
         ygridsize = segment * ylocalsize;
@@ -663,6 +620,7 @@ void BatchNormForwardInference(Handle& handle,
 
         program_name += "PerAct.cl";
         kernel_name += "PerActivation";
+        
         if(useEstimated)
         {
             kernel_name += "Est";

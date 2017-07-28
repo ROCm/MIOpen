@@ -44,7 +44,6 @@
 #define MIO_BN_DEBUG 1
 #define MIO_BN_MAX_DEBUGLOOP 65536
 
-// what exactly should this be?
 #define EPSILON 1e-6
 
 #define ERRTOL 1e-6
