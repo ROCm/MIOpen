@@ -265,7 +265,18 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
 #else
     local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+#if (MIO_BN_HW > 16)    
     regLDSreduce(&mean, lcl_data, ylid, INHW);
+#else
+    lcl_data[ylid] = mean;
+    barrier(CLK_LOCAL_MEM_FENCE);
+#pragma unroll
+    for(int i = 0; i < MIO_BN_HW; i++)
+    {
+        mean += lcl_data[i];
+    }
+    mean *= INHW;
+#endif
 #endif
     
     if(ylid < MIO_BN_N)
@@ -285,8 +296,19 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     dppRegReduce16(&variance, INHW);
 #endif
 #else
+#if (MIO_BN_HW > 16)    
     regLDSreduce(&variance, lcl_data, ylid, INHW);
+#else    
+    lcl_data[ylid] = variance;
+    barrier(CLK_LOCAL_MEM_FENCE);
+#pragma unroll
+    for(int i = 0; i < MIO_BN_HW; i++)
+    {
+        variance += lcl_data[i];
+    }
+    variance *= INHW;
 #endif
+#endif 
 
     // #3 add epsilon for numeric stability, sq_root, and invert
     invVariance = rsqrt(variance + epsilon);
