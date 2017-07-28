@@ -419,7 +419,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < in_sz; i++)
         {
-            in[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+            in[i] = static_cast<T>((static_cast<double>(rand()) * (1.0 / RAND_MAX)));
         }
     }
 
@@ -913,16 +913,16 @@ int ConvDriver<T>::RunBackwardGPU()
 
 
         }
- //       else if((inflags.GetValueStr("mode")) == "trans")
- //       {
- //           ret = miopenConvolutionForwardBias(GetHandle(),
+//       else if((inflags.GetValueStr("mode")) == "trans")
+//       {
+//           ret = miopenConvolutionForwardBias(GetHandle(),
 //		                            &alpha,
 //		                            biasTensor,
 //		                            db_dev->GetMem(),
 //		                            &beta,
 //		                            inputTensor,
 //		                            din_dev->GetMem());
- //       }
+//       }
 
         if(inflags.GetValueInt("time") == 1)
         {
@@ -1155,6 +1155,7 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
                                     pad_w,
                                     dilation_h,
                                     dilation_w);
+
     }
 
     if(inflags.GetValueInt("dump_output"))
