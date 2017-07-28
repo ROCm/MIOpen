@@ -1344,13 +1344,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 		int read_unit = _out_pix_tile0;
 		//	_n_out_pix_tiles = 16;
 		//	_n_in_data_tiles = 4;
-		int N_PREFETCHED = 1;
 		//	_grp_tile0 = 64;
 
-		size_t localMemSize = _stream->GetLocalMemorySize();
-
-		_hw_wave_sz = 64;
-		_dev_local_mem_sz = localMemSize; // in bytes
 
 		int wei_cstride = _kernel_size0 * _kernel_size1;
 		// backward: inputs are forward outputs
@@ -1368,16 +1363,9 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 		_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
 
 		int CLOOP0 = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
-		CLOOP0 = (CLOOP0 + N_PREFETCHED - 1) / N_PREFETCHED;
+
 		// number of outputs inside wk_item
 		_n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
-
-		int output_aligned = 0;
-		if ((_n_outputs / _n_out_pix_tiles) * _n_out_pix_tiles == _n_outputs)
-		{
-			output_aligned = 1;
-		}
-
 
 		_comp_options =
 			std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction) +
@@ -1403,11 +1391,10 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 			std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(_n_out_pix_tiles) + // # output pixel tiles per wk-item (ALU)
 			std::string(" -DMLO_N_LCL_IN_MAPS=") + std::to_string(_n_in_data_tiles) + // total # of blocks of different inputs in LDS
 			std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias) +
-			std::string(" -DMLO_OUTPUTS_ALIGNED=") + std::to_string(output_aligned) +
+
 			std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit) +
 			std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
-			std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
-			std::string(" -DMLO_N_PREFETCHED=") + std::to_string(N_PREFETCHED) +
+
 			getGeneralCompOptions();
 
 		_l_wk.clear();
