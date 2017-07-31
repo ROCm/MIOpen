@@ -28,7 +28,6 @@
 
 namespace miopen {
 
-
 void BatchNormForwardTraining(Handle& handle,
                               miopenBatchNormMode_t bn_mode,
                               const void* /* alpha */,
@@ -77,14 +76,14 @@ void BatchNormForwardTraining(Handle& handle,
     unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
 
-    size_t xlocalsize;
-    size_t ylocalsize;
-    size_t zlocalsize;
+    size_t xlocalsize = 0;
+    size_t ylocalsize = 0;
+    size_t zlocalsize = 0;
 
-    size_t xgridsize;
-    size_t ygridsize;
-    size_t zgridsize;
-    
+    size_t xgridsize = 0;
+    size_t ygridsize = 0;
+    size_t zgridsize = 0;
+
     unsigned int variant = 3;
 
     std::vector<size_t> vld;
@@ -128,7 +127,8 @@ void BatchNormForwardTraining(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(in_cstride > 1024){
+        if(in_cstride > 1024)
+        {
             xlocalsize = 1;
             ylocalsize = 256;
             zlocalsize = 1;
@@ -136,10 +136,10 @@ void BatchNormForwardTraining(Handle& handle,
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
 
-            auto segment   = std::ceil(double(in_cstride) / double(ylocalsize));
-            xgridsize = c;
-            ygridsize = segment * ylocalsize;
-            zgridsize = 1;
+            auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
+            xgridsize    = c;
+            ygridsize    = segment * ylocalsize;
+            zgridsize    = 1;
 
             vgd.push_back(xgridsize);
             vgd.push_back(ygridsize);
@@ -147,58 +147,57 @@ void BatchNormForwardTraining(Handle& handle,
 
             unsigned int numwgs = std::ceil(float(ygridsize) / ylocalsize);
             parms += " -DMIO_BN_NGRPS=" + std::to_string(numwgs);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant); 
+            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
             parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
             parms += " -DMIO_BN_GRP0=" + std::to_string(1);
             parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
             parms += " -DMIO_BN_GRP2=" + std::to_string(1);
-        
+
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << parms << std::endl;
 #endif
-            
-            bnFwdTrainSelectMulti(            
-                                    handle,
-                                    program_name,
-                                    algo_name,
-                                    kernel_name,
-                                    network_config,
-                                    parms,
-                                    vld,
-                                    vgd,
-                                    x,
-                                    y,
-                                    bnScale,
-                                    bnBias,
-                                    resultsave,
-                                    resultrunning,
-                                    expAvgFactor,
-                                    resultRunningMean,
-                                    resultRunningVariance,
-                                    epsilon,
-                                    resultSaveMean,
-                                    resultSaveInvVariance,
-                                    inhw);
+
+            bnFwdTrainSelectMulti(handle,
+                                  program_name,
+                                  algo_name,
+                                  kernel_name,
+                                  network_config,
+                                  parms,
+                                  vld,
+                                  vgd,
+                                  x,
+                                  y,
+                                  bnScale,
+                                  bnBias,
+                                  resultsave,
+                                  resultrunning,
+                                  expAvgFactor,
+                                  resultRunningMean,
+                                  resultRunningVariance,
+                                  epsilon,
+                                  resultSaveMean,
+                                  resultSaveInvVariance,
+                                  inhw);
         }
         else
         {
             if(in_cstride < n && n <= 64)
             {
                 variant    = 0;
-                ylocalsize = 64;           
+                ylocalsize = 64;
             }
             else if(in_cstride <= 64)
             {
-                variant = 1;
+                variant    = 1;
                 ylocalsize = 64;
             }
-            else if(in_cstride <= 1024)
+            else
             {
-                variant = 2;
+                variant    = 2;
                 ylocalsize = (in_cstride <= 256) ? 256 : 1024;
             }
             parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant); 
+            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
             parms += " -DMIO_BN_GRP0=" + std::to_string(1);
             parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
             parms += " -DMIO_BN_GRP2=" + std::to_string(1);
@@ -215,32 +214,31 @@ void BatchNormForwardTraining(Handle& handle,
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
-    #if(MIOPEN_BN_CPP_DEBUG == 1)
+#if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << parms << std::endl;
-    #endif 
-            bnFwdTrainSelectSingle(            
-                            handle,
-                            program_name,
-                            algo_name,
-                            kernel_name,
-                            network_config,
-                            parms,
-                            vld,
-                            vgd,
-                            x,
-                            y,
-                            bnScale,
-                            bnBias,
-                            resultsave,
-                            resultrunning,
-                            expAvgFactor,
-                            resultRunningMean,
-                            resultRunningVariance,
-                            epsilon,
-                            resultSaveMean,
-                            resultSaveInvVariance,
-                            inhw);
-        } //end multi / single select
+#endif
+            bnFwdTrainSelectSingle(handle,
+                                   program_name,
+                                   algo_name,
+                                   kernel_name,
+                                   network_config,
+                                   parms,
+                                   vld,
+                                   vgd,
+                                   x,
+                                   y,
+                                   bnScale,
+                                   bnBias,
+                                   resultsave,
+                                   resultrunning,
+                                   expAvgFactor,
+                                   resultRunningMean,
+                                   resultRunningVariance,
+                                   epsilon,
+                                   resultSaveMean,
+                                   resultSaveInvVariance,
+                                   inhw);
+        } // end multi / single select
     }
     else
     {
@@ -267,72 +265,51 @@ void BatchNormForwardTraining(Handle& handle,
         kernel_name += "PerActivation";
         if(resultsave && resultrunning)
         {
-            handle.GetKernel(algo_name,
-                             network_config,
-                             program_name,
-                             kernel_name,
-                             vld,
-                             vgd,
-                             parms)(x,
-                                    in_nstride,
-                                    in_cstride,
-                                    y,
-                                    bnScale,
-                                    bnBias,
-                                    expAvgFactor,
-                                    resultRunningMean,
-                                    resultRunningVariance,
-                                    epsilon,
-                                    resultSaveMean,
-                                    resultSaveInvVariance);
+            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                x,
+                in_nstride,
+                in_cstride,
+                y,
+                bnScale,
+                bnBias,
+                expAvgFactor,
+                resultRunningMean,
+                resultRunningVariance,
+                epsilon,
+                resultSaveMean,
+                resultSaveInvVariance);
         }
         else if(resultsave)
         {
-            handle.GetKernel(algo_name,
-                             network_config,
-                             program_name,
-                             kernel_name,
-                             vld,
-                             vgd,
-                             parms)(x,
-                                    in_nstride,
-                                    in_cstride,
-                                    y,
-                                    bnScale,
-                                    bnBias,
-                                    expAvgFactor,
-                                    epsilon,
-                                    resultSaveMean,
-                                    resultSaveInvVariance);
+            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                x,
+                in_nstride,
+                in_cstride,
+                y,
+                bnScale,
+                bnBias,
+                expAvgFactor,
+                epsilon,
+                resultSaveMean,
+                resultSaveInvVariance);
         }
         else if(resultrunning)
         {
-            handle.GetKernel(algo_name,
-                             network_config,
-                             program_name,
-                             kernel_name,
-                             vld,
-                             vgd,
-                             parms)(x,
-                                    in_nstride,
-                                    in_cstride,
-                                    y,
-                                    bnScale,
-                                    bnBias,
-                                    expAvgFactor,
-                                    resultRunningMean,
-                                    resultRunningVariance,
-                                    epsilon);
+            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                x,
+                in_nstride,
+                in_cstride,
+                y,
+                bnScale,
+                bnBias,
+                expAvgFactor,
+                resultRunningMean,
+                resultRunningVariance,
+                epsilon);
         }
         else
         {
-            handle.GetKernel(algo_name,
-                             network_config,
-                             program_name,
-                             kernel_name,
-                             vld,
-                             vgd,
-                             parms)(
+            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x, in_nstride, in_cstride, y, bnScale, bnBias, expAvgFactor, epsilon);
         }
     } // end per-activation
@@ -385,23 +362,16 @@ void BatchNormForwardInference(Handle& handle,
     unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
 
-    size_t xlocalsize;
-    size_t ylocalsize;
-    size_t zlocalsize;
+    size_t xlocalsize = 0;
+    size_t ylocalsize = 0;
+    size_t zlocalsize = 0;
 
-    size_t xgridsize;
-    size_t ygridsize;
-    size_t zgridsize;
+    size_t xgridsize = 0;
+    size_t ygridsize = 0;
+    size_t zgridsize = 0;
 
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
-
-    float ktime = 0.;
-    float ctime = 0.;
-    if(handle.IsProfilingEnabled())
-    {
-        handle.ResetKernelTime();
-    }
 
     // compile parameters
     std::string parms{};
@@ -421,14 +391,14 @@ void BatchNormForwardInference(Handle& handle,
         parms += " -DMIO_BN_NHW=" + std::to_string(n * h * w);
         parms += " -DMIO_BN_CHW=" + std::to_string(in_nstride);
 
-        auto inhw = double(1.0 / (n * h * w));
+        auto inhw            = double(1.0 / (n * h * w));
         unsigned int variant = 0;
-        
+
         if(useEstimated)
         {
 
             xlocalsize = 1;
-            ylocalsize = (in_cstride > 1024) ? ((64 >= in_cstride) ? 64 : 256) : 1024;
+            ylocalsize = (in_cstride > 1024) ? 1024 : ((64 >= in_cstride) ? 64 : 256);
             zlocalsize = 1;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
@@ -438,48 +408,43 @@ void BatchNormForwardInference(Handle& handle,
             parms += " -DMIO_BN_GRP0=" + std::to_string(1);
             parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
             parms += " -DMIO_BN_GRP2=" + std::to_string(1);
+            auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
 
             xgridsize = c;
-            ygridsize = ylocalsize;
+            ygridsize = segment*ylocalsize;
             zgridsize = 1;
             vgd.push_back(xgridsize);
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
             kernel_name += "Est";
-            parms += " -DMIO_BN_VARIANT="+std::to_string(variant);
+            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << parms << std::endl;
 #endif
-            handle.GetKernel(algo_name,
-                             network_config,
-                             program_name,
-                             kernel_name,
-                             vld,
-                             vgd,
-                             parms)(
+            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
         }
         else
         {
-            if(in_cstride <= 1024){
-                
-                
+            if(in_cstride <= 1024)
+            {
+
                 xlocalsize = 1;
-                
+
                 if(in_cstride < n && n <= 64)
                 {
                     variant    = 1;
-                    ylocalsize = 64;           
+                    ylocalsize = 64;
                 }
                 else if(in_cstride <= 64)
                 {
-                    variant = 2;
+                    variant    = 2;
                     ylocalsize = 64;
                 }
                 else
                 {
-                    variant = 3;
+                    variant    = 3;
                     ylocalsize = (in_cstride <= 256) ? 256 : 1024;
                 }
 
@@ -495,23 +460,19 @@ void BatchNormForwardInference(Handle& handle,
                 vgd.push_back(ygridsize);
                 vgd.push_back(zgridsize);
 
-                parms += " -DMIO_BN_VARIANT="+std::to_string(variant);
+                parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
                 parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP0=" + std::to_string(1);
                 parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
                 parms += " -DMIO_BN_GRP2=" + std::to_string(1);
                 kernel_subname = kernel_name + "SingleNorm";
 
-    #if(MIOPEN_BN_CPP_DEBUG == 1)
+#if(MIOPEN_BN_CPP_DEBUG == 1)
                 std::cout << parms << std::endl;
-    #endif
-                handle.GetKernel(algo_name,
-                                 network_config,
-                                 program_name,
-                                 kernel_subname,
-                                 vld,
-                                 vgd,
-                                 parms)(x, y, bnScale, bnBias, epsilon, inhw);
+#endif
+                handle.GetKernel(
+                    algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+                    x, y, bnScale, bnBias, epsilon, inhw);
             }
             else
             {
@@ -537,63 +498,40 @@ void BatchNormForwardInference(Handle& handle,
                 vgd.push_back(ygridsize);
                 vgd.push_back(zgridsize);
 
-                variant = 4;
-                auto numwgs = std::ceil(float(ygridsize) / ylocalsize);
+                variant     = 4;
+                auto numwgs = int(std::ceil(float(ygridsize) / ylocalsize));
                 parms += " -DMIO_BN_NGRPS=" + std::to_string(numwgs);
-                parms += " -DMIO_BN_VARIANT="+std::to_string(variant);
-                
+                parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
+
 #if(MIOPEN_BN_CPP_DEBUG == 1)
                 std::cout << parms << std::endl;
 #endif
                 kernel_subname = kernel_name + "Mean";
-                handle.GetKernel(algo_name,
-                                 network_config,
-                                 program_name,
-                                 kernel_subname,
-                                 vld,
-                                 vgd,
-                                 parms)(x, y);
-                profileSequence(handle,0);
+                handle.GetKernel(
+                    algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(x, y);
+                profileSequence(handle, 0);
 
                 kernel_subname = kernel_name + "FinalMean";
-                handle.GetKernel(algo_name,
-                                 network_config,
-                                 program_name,
-                                 kernel_subname,
-                                 vld,
-                                 vgd,
-                                 parms)(y);
-                profileSequence(handle,1);
+                handle.GetKernel(
+                    algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(y);
+                profileSequence(handle, 1);
 
                 kernel_subname = kernel_name + "Variance";
-                handle.GetKernel(algo_name,
-                                 network_config,
-                                 program_name,
-                                 kernel_subname,
-                                 vld,
-                                 vgd,
-                                 parms)(x, y);
-                profileSequence(handle,1);
+                handle.GetKernel(
+                    algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(x, y);
+                profileSequence(handle, 1);
 
                 kernel_subname = kernel_name + "FinalVariance";
-                handle.GetKernel(algo_name,
-                                 network_config,
-                                 program_name,
-                                 kernel_subname,
-                                 vld,
-                                 vgd,
-                                 parms)(y, epsilon);
-                profileSequence(handle,1);
+                handle.GetKernel(
+                    algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+                    y, epsilon);
+                profileSequence(handle, 1);
 
                 kernel_subname = kernel_name + "Norm";
-                handle.GetKernel(algo_name,
-                                 network_config,
-                                 program_name,
-                                 kernel_subname,
-                                 vld,
-                                 vgd,
-                                 parms)(x, y, bnScale, bnBias);
-                profileSequence(handle,2);
+                handle.GetKernel(
+                    algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+                    x, y, bnScale, bnBias);
+                profileSequence(handle, 2);
             }
         }
         // end spatial
@@ -620,7 +558,7 @@ void BatchNormForwardInference(Handle& handle,
 
         program_name += "PerAct.cl";
         kernel_name += "PerActivation";
-        
+
         if(useEstimated)
         {
             kernel_name += "Est";
@@ -723,7 +661,7 @@ void BatchNormBackward(Handle& handle,
     {
         handle.ResetKernelTime();
     }
-    
+
     // compile parameters
     std::string parms = " ";
     bool useSaved     = false;
