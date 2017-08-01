@@ -231,9 +231,18 @@ class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExaustiveSearch
                     const ExaustiveSearchResult& exaustive_search_result) const override;
 };
 
-class ConvBinWinograd3x3F : public AlgotithmImplementationDescription
+class ConvBinWinograd3x3U : public AlgotithmImplementationDescription
 {
     public:
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
+    PrepareForUsage(const ImplementationSearchParameters& params,
+                    const ExaustiveSearchResult& exaustive_search_result) const override;
+};
+
+class ConvBinWinogradRxSFwd : public AlgotithmImplementationDescription
+{
+public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,

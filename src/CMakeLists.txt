@@ -93,7 +93,8 @@ set( MIOpen_Source
     implementations/conv_asm_5x10u2v2b1.cpp
     implementations/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
     implementations/conv_asm_dir_BwdWrW3x3.cpp
-    implementations/conv_bin_wino3x3F.cpp
+    implementations/conv_bin_wino3x3U.cpp
+	implementations/conv_bin_winoRxSFwd.cpp
     implementations/conv_ocl_dir2D_bwdWrW_2.cpp
     implementations/conv_ocl_dir2D_bwdWrW_53.cpp
     implementations/conv_ocl_dir2D_bwdWrW_1x1.cpp
