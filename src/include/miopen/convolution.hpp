@@ -36,7 +36,7 @@
 
 namespace miopen {
 
-using WinogradKernelParams = std::tuple<int, int, int, int, int, int>;
+using WinogradKernelParams = std::tuple<int, int, int, int, int, int, int, int, bool>;
 
 struct PerfField
 {
@@ -90,12 +90,14 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                       const TensorDescriptor& xDesc,
                                       const TensorDescriptor& yDesc) const;
 
-    bool IsWinogradSupported(Handle& handle,
-                             bool direction,
-                             const TensorDescriptor& wDesc,
-                             const TensorDescriptor& xDesc) const;
+    bool IsWinograd3x3Supported(Handle& handle,
+                                bool direction,
+                                const TensorDescriptor& wDesc,
+                                const TensorDescriptor& xDesc) const;
 
     bool IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const;
+
+    bool IsDirectSupported(const TensorDescriptor& wDesc) const;
 
     size_t ForwardGetWorkSpaceSize(Handle& handle,
                                    const TensorDescriptor& wDesc,
