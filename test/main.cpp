@@ -30,6 +30,7 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor_extra.hpp>
 #include <vector>
+#include <thread>
 
 struct handle_fixture
 {
@@ -251,35 +252,39 @@ struct conv_forward : output_tensor_fixture
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        STATUS(miopenFindConvolutionForwardAlgorithm(
-            handle,
-            inputTensor,
-            in_dev,
-            convFilter,
-            wei_dev,
-            convDesc,
-            outputTensor,
-            out_dev,
-            1,
-            &ret_algo_count,
-            &perf,
-            fwd_workspace_dev,
-            sz_fwd_workspace,
-            0)); // MD: Not performing exhaustiveSearch by default for now
+        std::thread([&] {
 
-        STATUS(miopenConvolutionForward(handle,
-                                        &alpha,
-                                        inputTensor,
-                                        in_dev,
-                                        convFilter,
-                                        wei_dev,
-                                        convDesc,
-                                        miopenConvolutionFwdAlgoDirect,
-                                        &beta,
-                                        outputTensor,
-                                        out_dev,
-                                        fwd_workspace_dev,
-                                        sz_fwd_workspace));
+            STATUS(miopenFindConvolutionForwardAlgorithm(
+                handle,
+                inputTensor,
+                in_dev,
+                convFilter,
+                wei_dev,
+                convDesc,
+                outputTensor,
+                out_dev,
+                1,
+                &ret_algo_count,
+                &perf,
+                fwd_workspace_dev,
+                sz_fwd_workspace,
+                0)); // MD: Not performing exhaustiveSearch by default for now
+
+            STATUS(miopenConvolutionForward(handle,
+                                            &alpha,
+                                            inputTensor,
+                                            in_dev,
+                                            convFilter,
+                                            wei_dev,
+                                            convDesc,
+                                            miopenConvolutionFwdAlgoDirect,
+                                            &beta,
+                                            outputTensor,
+                                            out_dev,
+                                            fwd_workspace_dev,
+                                            sz_fwd_workspace));
+
+        }).join();
 
         float time;
         STATUS(miopenGetKernelTime(handle, &time));

@@ -186,5 +186,9 @@ ConvBinWinogradRxSFwd::PrepareForUsage(const ImplementationSearchParameters& par
         kernel.kernel_file += "gfx900";
     }
     kernel.kernel_file += ".so";
+
+    ImplementationUsageDescription result;
+    result.construction_params.push_back(kernel);
+    return result;
 }
 } // namespace miopen
