@@ -348,8 +348,8 @@ bool ConvAsmBwdWrW3x3::IsFast(const ImplementationSearchParameters& params) cons
     // /todo fix memory faults on gfx9
     const std::string name = params.GetStream().GetDeviceName();
     return !(name == "gfx900" &&
-             (params.in_width == 13 || params.in_width == 27 || params.in_width == 54 ||
-              params.in_width == 57 || params.in_width == 17 || params.in_width == 250));
+        (params.in_width == 13 || params.in_width == 27 || params.in_width == 54 || params.in_width == 57 ||
+            params.in_width == 17 || params.in_width == 250 || params.in_width == 175));
 }
 
 ImplementationUsageDescription

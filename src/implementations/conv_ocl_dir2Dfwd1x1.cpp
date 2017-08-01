@@ -80,7 +80,7 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
     // n of input map per group
     N_MAPS_PERGROUP = std::min(N_MAPS_PERGROUP, n_input_scaled);
     // number of input loops
-    int n_in_loop = (n_input_scaled + N_MAPS_PERGROUP - 1) / N_MAPS_PERGROUP;
+    //   int n_in_loop = (n_input_scaled + N_MAPS_PERGROUP - 1) / N_MAPS_PERGROUP;
 
     // number of batches inside wk_item
     result.n_stacks = std::min(params.batch_sz, searched_params.n_stacks);
@@ -125,10 +125,12 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
         std::to_string(static_cast<long long>(wei_cstride))
         // algorithm parameters
         + std::string(" -DMLO_GRP_SZ0=") + std::to_string(static_cast<long long>(GRP_SZ)) +
+        std::string(" -DMLO_GRP_SZ1=") + std::to_string(1) + std::string(" -DMLO_GRP_SZ2=") +
+        std::to_string(1) +
         std::string(" -DMLO_MAP_SZ4=") + std::to_string(static_cast<long long>(MAP_SZ4)) +
         std::string(" -DMLO_C1x1_PIXLEFT=") + std::to_string(static_cast<long long>(C1x1_PIXLEFT)) +
         std::string(" -DMLO_DIVBY4=") + std::to_string(static_cast<long long>(DIVBY4)) +
-        std::string(" -DMLO_IN_LOOP=") + std::to_string(static_cast<long long>(n_in_loop)) +
+        // std::string(" -DMLO_IN_LOOP=") + std::to_string(static_cast<long long>(n_in_loop)) +
         std::string(" -DMLO_N_LCL_BATCHS=") +
         std::to_string(static_cast<long long>(result.n_stacks)) // # of diff stacks (part of batch).
         + std::string(" -DMLO_N_LCL_OUT_MAPS=") +

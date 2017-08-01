@@ -129,7 +129,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
     if(construct_params.mloIsCompilerWorkarounds() ||
        (IsWinogradSupported(handle, direction, wDesc, (direction ? xDesc : yDesc)) &&
-        construct_params.mloIsFastBinaryWinograd3x3Fwd()))
+        construct_params.mloIsFastBinaryWinograd3x3U()))
     {
         return -1;
     }
