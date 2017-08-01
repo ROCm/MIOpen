@@ -192,7 +192,10 @@ mlo_construct_winograd::GetImplementations() const
     {
         std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>> data;
 #ifndef HIP_OC_FINALIZER
-        data.emplace_back(new miopen::ConvBinWinograd3x3F);
+        data.emplace_back(new miopen::ConvBinWinograd3x3U);
+#ifdef MIOPEN_BACKEND_OPENCL
+        data.emplace_back(new miopen::ConvBinWinogradRxSFwd);
+#endif
 #endif
         return data;
     }();
@@ -329,9 +332,9 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
     return ret;
 }
 
-bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3Fwd() const
+bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
-    static const miopen::ConvBinWinograd3x3F winograd_3x3F;
+    static const miopen::ConvBinWinograd3x3U winograd_3x3F;
     return winograd_3x3F.IsFast(_search_params);
 }
 

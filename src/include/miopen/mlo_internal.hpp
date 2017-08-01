@@ -367,7 +367,8 @@ class mlo_construct_direct2D
     * returns parameter values that are compiled in legacy kernels for kernels using them as
     * arguments.
     */
-    inline void getCompiledInParameters(int* N, int* C, int* H, int* W, int* K, int* n_groups)
+    inline void getCompiledInParameters(
+        int* N, int* C, int* H, int* W, int* K, int* n_groups, int* R = nullptr, int* S = nullptr)
     {
         assert(N && C && H && W && K && n_groups);
 
@@ -377,6 +378,14 @@ class mlo_construct_direct2D
         *W        = _search_params.in_width;
         *K        = _search_params.n_outputs;
         *n_groups = _search_params.GetStream().GetMaxComputeUnits();
+        if (R)
+        {
+            *R = _search_params.kernel_size1;
+        } // R is height (sic!)
+        if (S)
+        {
+            *S = _search_params.kernel_size0;
+        }
     }
 
     /*
@@ -776,7 +785,7 @@ class mlo_construct_direct2D
     size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor);
 
     bool mloIsCompilerWorkarounds() const;
-    bool mloIsFastBinaryWinograd3x3Fwd() const;
+    bool mloIsFastBinaryWinograd3x3U() const;
 
     inline void mloFillSearchParams(miopen::ImplementationSearchParameters& params) const
     {
