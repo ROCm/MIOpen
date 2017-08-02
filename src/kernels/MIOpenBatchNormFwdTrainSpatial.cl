@@ -93,9 +93,9 @@
 #define MIO_BN_SEGMENT 1
 #endif
 
-#ifdef __AMDGCN__
-#undef __AMDGCN__
-#endif
+//#ifdef __AMDGCN__
+//#undef __AMDGCN__
+//#endif
 
 #define UNUSED __attribute__((__unused__))
 
@@ -154,6 +154,8 @@ static inline void dppRegReduce64(_FLOAT* value, _FLOAT scale)
     *value = as_float(__builtin_amdgcn_readlane(as_int(*value), 63));
     *value *= scale;
 }
+
+
 
 static inline void dppRegReduce16(_FLOAT* value, _FLOAT scale)
 {
@@ -416,8 +418,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     unsigned int index;
     unsigned int ylid = get_local_id(1);
     unsigned int xgid = get_global_id(0);
-    unsigned int cidx = xgid * MIO_BN_HW;
-    unsigned int idx  = cidx + ylid;
+    unsigned int idx  = xgid*MIO_BN_HW + ylid;
 
     if(ylid == 0)
     {
@@ -485,7 +486,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif // HW
     
     
-#else  // GCN
+#else  // if not GCN
 
 #if(MIO_BN_HW > 16)
     regLDSreduce(&variance, lcl_data, ylid, INHW);
