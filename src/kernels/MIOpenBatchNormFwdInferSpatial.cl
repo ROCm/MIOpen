@@ -71,9 +71,9 @@
 
 #define UNUSED __attribute__((__unused__))
 
-#ifdef __AMDGCN__
-#undef __AMDGCN__
-#endif
+//#ifdef __AMDGCN__
+//#undef __AMDGCN__
+//#endif
 
 // Disable specific warnings
 #ifdef __clang__
@@ -313,7 +313,7 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
 #else
     mean *= INHW;
 #endif // N
-#else  // GCN
+#else  // if not GCN
 
 #if(MIO_BN_N > 16)
     regLDSreduce(&mean, lcl_data, ylid, INHW);
@@ -353,7 +353,7 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     variance *= INHW;
 #endif // N
 
-#else // GCN
+#else // if not GCN
 
 #if(MIO_BN_N > 16)
     regLDSreduce(&variance, lcl_data, ylid, INHW);
@@ -457,7 +457,7 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
 #else
     mean *= INHW;
 #endif // HW
-#else  // GCN
+#else  // if not GCN
 
 #if(MIO_BN_HW > 16)
     regLDSreduce(&mean, lcl_data, ylid, INHW);
@@ -496,7 +496,7 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
 #else
     variance *= INHW;
 #endif // HW
-#else  // GCN
+#else  // if not GCN
 
 #if(MIO_BN_HW > 16)
     regLDSreduce(&variance, lcl_data, ylid, INHW);
@@ -505,9 +505,9 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     barrier(CLK_LOCAL_MEM_FENCE);
     variance = 0.;
 #pragma unroll
-    for(unsigned int n = 0; n < MIO_BN_N; n++)
+    for(unsigned int hw = 0; hw < MIO_BN_HW; hw++)
     {
-        variance += lcl_data[n];
+        variance += lcl_data[hw];
     }
     variance *= INHW;
 #else
@@ -522,7 +522,6 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     // x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
     if(ylid < MIO_BN_HW)
     {
-
         pvt_scale = lscale;
         pvt_bias  = lbias;
 
