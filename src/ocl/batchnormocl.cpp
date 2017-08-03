@@ -181,7 +181,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else
         {
-            if(in_cstride < n && n <= 64)
+            if(in_cstride < n && n <= 64 && in_cstride > 1)
             {
                 variant    = 0;
                 ylocalsize = 64;
@@ -432,7 +432,7 @@ void BatchNormForwardInference(Handle& handle,
 
                 xlocalsize = 1;
 
-                if(in_cstride < n && n <= 64)
+                if(in_cstride < n && n <= 64 && in_cstride > 1)
                 {
                     variant    = 1;
                     ylocalsize = 64;
