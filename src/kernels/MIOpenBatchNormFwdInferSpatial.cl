@@ -429,7 +429,6 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     unsigned int index;
     unsigned int ylid = get_local_id(1);
     unsigned int xgid = get_global_id(0);
-    unsigned int ygid = get_global_id(1);
     unsigned int cidx = xgid * MIO_BN_HW;
 
     if(ylid == 0)
@@ -472,7 +471,7 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     }
     mean *= INHW;
 #else
-    mean *= INHW:
+    mean *= INHW;
 #endif // HW
 #endif // GCN
 
@@ -511,7 +510,7 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     }
     variance *= INHW;
 #else
-    variance *= INHW:
+    variance *= INHW;
 #endif // HW
 #endif // GCN
 
