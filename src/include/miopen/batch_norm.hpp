@@ -45,15 +45,14 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
                               const TensorDescriptor& xDesc,
                               miopenBatchNormMode_t bn_mode);
 
-void bnFwdTrainSelectSingle(            
-                            Handle& handle,
-                            std::string &program_name,
-                            std::string &algo_name,
-                            std::string &kernel_name,
-                            std::string &network_config,
-                            std::string &parms,
-                            std::vector<size_t> &vld,
-                            std::vector<size_t> &vgd,
+void bnFwdTrainSelectSingle(Handle& handle,
+                            std::string& program_name,
+                            std::string& algo_name,
+                            std::string& kernel_name,
+                            std::string& network_config,
+                            std::string& parms,
+                            std::vector<size_t>& vld,
+                            std::vector<size_t>& vgd,
                             ConstData_t x,
                             Data_t y,
                             ConstData_t bnScale,
@@ -68,31 +67,29 @@ void bnFwdTrainSelectSingle(
                             Data_t resultSaveInvVariance,
                             float inhw);
 
+void bnFwdTrainSelectMulti(Handle& handle,
+                           std::string& program_name,
+                           std::string& algo_name,
+                           std::string& kernel_name,
+                           std::string& network_config,
+                           std::string& parms,
+                           std::vector<size_t>& vld,
+                           std::vector<size_t>& vgd,
+                           ConstData_t x,
+                           Data_t y,
+                           ConstData_t bnScale,
+                           ConstData_t bnBias,
+                           bool resultsave,
+                           bool resultrunning,
+                           double expAvgFactor,
+                           Data_t resultRunningMean,
+                           Data_t resultRunningVariance,
+                           double epsilon,
+                           Data_t resultSaveMean,
+                           Data_t resultSaveInvVariance,
+                           float inhw);
 
-void bnFwdTrainSelectMulti(            
-                            Handle& handle,
-                            std::string &program_name,
-                            std::string &algo_name,
-                            std::string &kernel_name,
-                            std::string &network_config,
-                            std::string &parms,
-                            std::vector<size_t> &vld,
-                            std::vector<size_t> &vgd,
-                            ConstData_t x,
-                            Data_t y,
-                            ConstData_t bnScale,
-                            ConstData_t bnBias,
-                            bool resultsave,
-                            bool resultrunning,
-                            double expAvgFactor,
-                            Data_t resultRunningMean,
-                            Data_t resultRunningVariance,
-                            double epsilon,
-                            Data_t resultSaveMean,
-                            Data_t resultSaveInvVariance,
-                            float inhw);
-
-void profileSequence(Handle &handle, unsigned char select);
+void profileSequence(Handle& handle, unsigned char select);
 
 void BatchNormForwardInference(Handle& handle,
                                miopenBatchNormMode_t bn_mode,
@@ -146,8 +143,6 @@ void BatchNormBackward(Handle& handle,
                        double epsilon,
                        ConstData_t savedMean,
                        ConstData_t savedInvVariance);
-
-
 
 } // namespace miopen
 
