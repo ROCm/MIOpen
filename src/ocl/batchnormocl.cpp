@@ -411,7 +411,7 @@ void BatchNormForwardInference(Handle& handle,
             auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
 
             xgridsize = c;
-            ygridsize = segment*ylocalsize;
+            ygridsize = segment * ylocalsize;
             zgridsize = 1;
             vgd.push_back(xgridsize);
             vgd.push_back(ygridsize);
