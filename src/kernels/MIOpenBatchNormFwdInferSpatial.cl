@@ -116,11 +116,10 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
     *value = data[0] * scale;
 }
 
-
 static inline void
 regLDSreduceNoSet(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT scale)
 {
-    
+
     if(localID < 128)
         ReduceKernel(data, 1, localID, 4);
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -274,11 +273,11 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     _FLOAT minibatch[MIO_BN_HW];
 
 #ifndef __AMDGCN__
-#if (MIO_BN_N > 1)
+#if(MIO_BN_N > 1)
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 #endif
 #endif
-    
+
     local _FLOAT lscale;
     local _FLOAT lbias;
 
@@ -349,7 +348,7 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     dppRegReduce64(&variance, INHW);
 #elif(MIO_BN_N > 1)
     dppRegReduce16(&variance, INHW);
-#else 
+#else
     variance *= INHW;
 #endif // N
 
@@ -421,11 +420,11 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     local _FLOAT lbias;
 
 #ifndef __AMDGCN__
-#if (MIO_BN_HW > 1)
+#if(MIO_BN_HW > 1)
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 #endif
 #endif
-    
+
     unsigned int index;
     unsigned int ylid = get_local_id(1);
     unsigned int xgid = get_global_id(0);
@@ -621,17 +620,15 @@ BatchNormFwdInferSpatialSingleNorm(const __global _FLOAT* __restrict in,
     mean *= INHW;
 #endif // GRP1
 #endif // endif GCN
-// Done with mean
-    
-    
-    
+    // Done with mean
+
     if(ylid < MIO_BN_HW)
     {
 #pragma unroll
         for(int n = 0; n < MIO_BN_N; n++)
         {
-            index   = n * MIO_BN_CHW + cidx + ylid;
-            elemStd = (in[index] - mean);
+            index    = n * MIO_BN_CHW + cidx + ylid;
+            elemStd  = (in[index] - mean);
             variance = mad(elemStd, elemStd, variance);
         }
     }

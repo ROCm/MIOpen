@@ -155,8 +155,6 @@ static inline void dppRegReduce64(_FLOAT* value, _FLOAT scale)
     *value *= scale;
 }
 
-
-
 static inline void dppRegReduce16(_FLOAT* value, _FLOAT scale)
 {
 
@@ -239,7 +237,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 #endif
 #endif
-    
+
     unsigned int index;
     unsigned int ylid = get_local_id(1);
     unsigned int xgid = get_global_id(0);
@@ -267,15 +265,14 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 #if(MIO_BN_N > 16)
     dppRegReduce64(&mean, INHW);
-#elif(MIO_BN_N > 1)  // N
+#elif(MIO_BN_N > 1) // N
     dppRegReduce16(&mean, INHW);
 #else
     mean *= INHW;
 #endif // N
 
-#else  // GCN
-    
-    
+#else // GCN
+
 #if(MIO_BN_N > 16)
     regLDSreduce(&mean, lcl_data, ylid, INHW);
 #elif(MIO_BN_N > 1)
@@ -291,7 +288,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #else
     mean *= INHW;
 #endif // N
-    
+
 #endif // GCN
 
     if(ylid < MIO_BN_N)
@@ -305,7 +302,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
 
 #ifdef __AMDGCN__
-        
+
 #if(MIO_BN_N > 16)
     dppRegReduce64(&variance, INHW);
 #elif(MIO_BN_N > 1)
@@ -313,9 +310,9 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #else
     variance *= INHW;
 #endif // N
-    
-#else  // GCN
-    
+
+#else // GCN
+
 #if(MIO_BN_N > 16)
     regLDSreduce(&variance, lcl_data, ylid, INHW);
 #elif(MIO_BN_N > 1)
@@ -414,11 +411,11 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 #endif
 #endif
-    
+
     unsigned int index;
     unsigned int ylid = get_local_id(1);
     unsigned int xgid = get_global_id(0);
-    unsigned int idx  = xgid*MIO_BN_HW + ylid;
+    unsigned int idx  = xgid * MIO_BN_HW + ylid;
 
     if(ylid == 0)
     {
@@ -435,12 +432,14 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             index                = n * MIO_BN_CHW + idx;
             mean += minibatch[n] = in[index];
         }
-    }else{
+    }
+    else
+    {
         mean = 0.;
     }
 
 #ifdef __AMDGCN__
-    
+
 #if(MIO_BN_HW > 16)
     dppRegReduce64(&mean, INHW);
 #elif(MIO_BN_HW > 1)
@@ -448,9 +447,9 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #else
     mean *= INHW;
 #endif // HW
-    
-#else  // GCN
-    
+
+#else // GCN
+
 #if(MIO_BN_HW > 16)
     regLDSreduce(&mean, lcl_data, ylid, INHW);
 #elif(MIO_BN_HW > 1)
@@ -478,7 +477,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
 
 #ifdef __AMDGCN__
-      
+
 #if(MIO_BN_HW > 16)
     dppRegReduce64(&variance, INHW);
 #elif(MIO_BN_HW > 1)
@@ -486,9 +485,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #else
     variance *= INHW;
 #endif // HW
-    
-    
-#else  // if not GCN
+
+#else // if not GCN
 
 #if(MIO_BN_HW > 16)
     regLDSreduce(&variance, lcl_data, ylid, INHW);
@@ -505,7 +503,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #else
     variance *= INHW;
 #endif // HW
-#endif //GCN
+#endif // GCN
 
     // #3 add epsilon for numeric stability, sq_root, and invert
     invVariance = rsqrt(variance + epsilon);
@@ -786,8 +784,6 @@ BatchNormFwdTrainSpatialFinalVariance(__global _FLOAT* __restrict varbuff,
     unsigned int varstashindex = cidx + ygrp_sz * ygrp_id + 3;
     unsigned int commitID      = 0;
 
-
-        
     for(int gn = 0; gn < yngrps; gn++)
     {
         unsigned int offset   = gn * ygrp_sz + ylid;
@@ -799,7 +795,7 @@ BatchNormFwdTrainSpatialFinalVariance(__global _FLOAT* __restrict varbuff,
     }
 
 #if(MIO_BN_NGRPS > 64)
-     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
     lcl_data[ylid] = variance;
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -823,7 +819,7 @@ BatchNormFwdTrainSpatialFinalVariance(__global _FLOAT* __restrict varbuff,
     commitID = 63;
     dppRegReduce64(&variance, INHW);
 #else
-     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
     commitID = 0;
     regLDSreduce(&variance, lcl_data, ylid, INHW);
 #endif
