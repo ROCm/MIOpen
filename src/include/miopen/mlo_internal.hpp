@@ -236,7 +236,7 @@ class AlgotithmImplementationDescription;
 class mlo_construct_direct2D
 {
     public:
-    virtual const std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>>&
+    virtual const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
     GetImplementations() const;
     void mloUseSearchResult(const miopen::ImplementationUsageDescription& result); // TODO: remove
 
@@ -884,7 +884,7 @@ class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
 
     bool mloIsCompilerWorkarounds() const;
     int mloMultiStep();
-    const std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>>&
+    const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
     GetImplementations() const override;
 };
 
@@ -897,7 +897,7 @@ class mlo_construct_winograd : public mlo_construct_direct2D
     public:
     mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
 
-    const std::vector<std::unique_ptr<const miopen::AlgotithmImplementationDescription>>&
+    const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
     GetImplementations() const override;
 };
 
