@@ -145,49 +145,45 @@ int mlo_construct_direct2D::mloConstruct()
                 implementation.PrepareExaustiveSearchResult(_search_params);
             result = implementation.PrepareForUsage(_search_params, *exaustive_search_result);
 
-            if(result.Succeeded())
-            {
-                if(_search_params.n_passes)
-                {
-                    return result.passes;
-                }
-                else
-                {
-                    mloUseSearchResult(result);
-                    return 0;
-                }
-            }
+            if (!result.Succeeded()) continue;
+            if (_search_params.n_passes) return result.passes;
+
+            mloUseSearchResult(result);
+            return 0;
         }
     }
 
     return static_cast<int>(result.status);
 }
 
-template<class TImplementation>
-void RegisterImplementation(std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>& to)
+template <class TInstance>
+class StaticContainer
 {
-    static const TImplementation impl;
-    to.push_back(impl);
-}
+    public:
+    inline static TInstance& Instance()
+    {
+        static TInstance data;
+        return data;
+    }
+};
 
 const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
 mlo_construct_direct2D::GetImplementations() const
 {
-    static const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>> implementations = []
-    {
-        std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>> data;
-        RegisterImplementation<miopen::ConvAsm3x3U>(data);
-        RegisterImplementation<miopen::ConvAsm5x10u2v2f1>(data);
-        RegisterImplementation<miopen::ConvAsm7x7c3h224w224k64u2v2p3q3f1>(data);
-        RegisterImplementation<miopen::ConvAsm5x10u2v2b1>(data);
-        RegisterImplementation<miopen::ConvOclDirectFwd11x11>(data);
-        RegisterImplementation<miopen::ConvOclDirectFwdGen>(data);
-        RegisterImplementation<miopen::ConvOclDirectFwd3x3>(data);
-        RegisterImplementation<miopen::ConvOclDirectFwd1x1>(data);
-        RegisterImplementation<miopen::ConvOclDirectFwdC>(data);
-        RegisterImplementation<miopen::ConvOclDirectFwd>(data);
-        return data;
-    }();
+    static const
+        std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
+        implementations({
+            StaticContainer<const miopen::ConvAsm3x3U>::Instance(),
+            StaticContainer<const miopen::ConvAsm5x10u2v2f1>::Instance(),
+            StaticContainer<const miopen::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
+            StaticContainer<const miopen::ConvAsm5x10u2v2b1>::Instance(),
+            StaticContainer<const miopen::ConvOclDirectFwd11x11>::Instance(),
+            StaticContainer<const miopen::ConvOclDirectFwdGen>::Instance(),
+            StaticContainer<const miopen::ConvOclDirectFwd3x3>::Instance(),
+            StaticContainer<const miopen::ConvOclDirectFwd1x1>::Instance(),
+            StaticContainer<const miopen::ConvOclDirectFwdC>::Instance(),
+            StaticContainer<const miopen::ConvOclDirectFwd>::Instance(),
+        });
 
     return implementations;
 }
@@ -195,17 +191,16 @@ mlo_construct_direct2D::GetImplementations() const
 const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
 mlo_construct_winograd::GetImplementations() const
 {
-    static const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>> implementations = []
-    {
-        std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>> data;
+    static const
+        std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
+        implementations({
 #ifndef HIP_OC_FINALIZER
-        RegisterImplementation<miopen::ConvBinWinograd3x3U>(data);
+            StaticContainer<const miopen::ConvBinWinograd3x3U>::Instance(),
 #ifdef MIOPEN_BACKEND_OPENCL
-        RegisterImplementation<miopen::ConvBinWinogradRxSFwd>(data);
+            StaticContainer<const miopen::ConvBinWinogradRxSFwd>::Instance(),
 #endif
 #endif
-        return data;
-    }();
+        });
 
     return implementations;
 }
@@ -213,15 +208,14 @@ mlo_construct_winograd::GetImplementations() const
 const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
 mlo_construct_BwdWrW2D::GetImplementations() const
 {
-    static const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>> implementations = []
-    {
-        std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>> data;
-        RegisterImplementation<miopen::ConvAsmBwdWrW3x3>(data);
-        RegisterImplementation<miopen::ConvOclBwdWrW2>(data);
-        RegisterImplementation<miopen::ConvOclBwdWrW53>(data);
-        RegisterImplementation<miopen::ConvOclBwdWrW1x1>(data);
-        return data;
-    }();
+    static const
+        std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
+        implementations({
+            StaticContainer<const miopen::ConvAsmBwdWrW3x3>::Instance(),
+            StaticContainer<const miopen::ConvOclBwdWrW2>::Instance(),
+            StaticContainer<const miopen::ConvOclBwdWrW53>::Instance(),
+            StaticContainer<const miopen::ConvOclBwdWrW1x1>::Instance(),
+        });
 
     return implementations;
 }
@@ -341,8 +335,7 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
-    static const miopen::ConvBinWinograd3x3U winograd_3x3F;
-    return winograd_3x3F.IsFast(_search_params);
+    return StaticContainer<const miopen::ConvBinWinograd3x3U>::Instance().IsFast(_search_params);
 }
 
 int mlo_construct_BwdWrW2D::mloMultiStep()
