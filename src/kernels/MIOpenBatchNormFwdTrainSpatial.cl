@@ -435,6 +435,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             index                = n * MIO_BN_CHW + idx;
             mean += minibatch[n] = in[index];
         }
+    }else{
+        mean = 0.;
     }
 
 #ifdef __AMDGCN__
