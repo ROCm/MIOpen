@@ -64,9 +64,11 @@ set( MIOpen_Source
     kernel_warnings.cpp
     logger.cpp
     lrn_api.cpp
+    md5.cpp
     activ_api.cpp
     handle_api.cpp
     softmax_api.cpp
+    binary_cache.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     include/miopen/batch_norm.hpp
