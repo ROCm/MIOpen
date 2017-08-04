@@ -254,6 +254,8 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
+target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
+
 ############################################################
 # Installation
 rocm_install_targets(
