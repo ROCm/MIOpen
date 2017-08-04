@@ -13,7 +13,8 @@ std::string md5(std::string s)
 
     std::ostringstream sout;
     sout << std::hex << std::setfill('0');
-    for(auto c: result) sout << std::setw(2) << int{c};
+    for(auto c : result)
+        sout << std::setw(2) << int{c};
 
     return sout.str();
 }
