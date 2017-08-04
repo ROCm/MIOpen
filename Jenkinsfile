@@ -76,7 +76,7 @@ def rocmtest(variant, body) {
         echo cmd
         sh cmd
     }
-    node('rocmtest') {
+    node('rocmtest && fiji') {
         stage("checkout ${variant}") {
             // env.HCC_SERIALIZE_KERNEL=3
             // env.HCC_SERIALIZE_COPY=3
