@@ -5,7 +5,7 @@
 
 namespace miopen {
 
-std::string md5(const std::string& s);
+std::string md5(std::string s);
 
 } // namespace miopen
 
