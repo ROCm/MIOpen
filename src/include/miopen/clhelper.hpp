@@ -37,11 +37,17 @@ using ClProgramPtr = MIOPEN_MANAGE_PTR(cl_program, clReleaseProgram);
 using ClKernelPtr  = MIOPEN_MANAGE_PTR(cl_kernel, clReleaseKernel);
 using ClAqPtr      = MIOPEN_MANAGE_PTR(miopenAcceleratorQueue_t, clReleaseCommandQueue);
 
+
+ClProgramPtr LoadBinaryProgram(cl_context ctx,
+                         cl_device_id device,
+                         const std::string& source);
+
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
                          const std::string& program_name,
                          std::string params,
                          bool is_kernel_str);
+void SaveProgramBinary(const ClProgramPtr& program, const std::string& name);
 ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name);
 inline ClKernelPtr CreateKernel(const ClProgramPtr& program, const std::string& kernel_name)
 {

@@ -88,7 +88,6 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
-find_package(miopengemm PATHS /opt/rocm)
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
@@ -126,6 +125,7 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 # miopengemm
+find_package(miopengemm PATHS /opt/rocm)
 if(miopengemm_FOUND)
     message(STATUS "Build with miopengemm")
     set(MIOPEN_USE_MIOPENGEMM 1)
@@ -133,6 +133,8 @@ else()
     message(STATUS "Build without miopengemm")
     set(MIOPEN_USE_MIOPENGEMM 0)
 endif()
+
+find_package(OpenSSL REQUIRED)
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
