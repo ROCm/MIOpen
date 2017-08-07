@@ -30,16 +30,17 @@
 namespace miopen {
 
 // so that MIOpen works whether or not recent MIOpenGEMM changes pulled.
-namespace tempfix{
-    void set_offsets_to_uint(std::string & clstr){
-        for (char x : {'a', 'b', 'c'}){
-            std::string target = "const size_t " + std::string(1,x) + "_offset";
-            std::string replacement = "const unsigned " + std::string(1,x) + "_offset";
-            clstr = std::regex_replace(clstr, std::regex(target), replacement);
-        }
+namespace tempfix {
+void set_offsets_to_uint(std::string& clstr)
+{
+    for(char x : {'a', 'b', 'c'})
+    {
+        std::string target      = "const size_t " + std::string(1, x) + "_offset";
+        std::string replacement = "const unsigned " + std::string(1, x) + "_offset";
+        clstr                   = std::regex_replace(clstr, std::regex(target), replacement);
     }
 }
-
+}
 
 std::unordered_map<GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map()
 {
@@ -85,7 +86,7 @@ void GemmGeometry::FindSolution(
     // jn : the main kernel is at the back of the solution vector
     std::string kernel_clstring = soln.v_tgks.back().kernstr;
     tempfix::set_offsets_to_uint(kernel_clstring);
-        
+
     std::string kernel_name    = soln.v_tgks.back().fname;
     std::string network_config = tgg.get_networkconfig_string();
     size_t local_work_size     = soln.v_tgks.back().local_work_size;
@@ -106,10 +107,10 @@ void GemmGeometry::FindSolution(
     {
         std::string beta_program_name = soln.v_tgks[0].kernstr;
         tempfix::set_offsets_to_uint(beta_program_name);
-        
-        std::string beta_kernel_name  = soln.v_tgks[0].fname;
-        local_work_size               = soln.v_tgks[0].local_work_size;
-        global_work_size              = soln.v_tgks[0].global_work_size;
+
+        std::string beta_kernel_name = soln.v_tgks[0].fname;
+        local_work_size              = soln.v_tgks[0].local_work_size;
+        global_work_size             = soln.v_tgks[0].global_work_size;
 
         EnableBetaKernel(true);
 
