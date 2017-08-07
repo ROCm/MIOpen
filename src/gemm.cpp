@@ -44,7 +44,7 @@ GemmGeometry CreateGemmGeometryTranBwdData(const TensorDescriptor& dyDesc,
 
     // GEMM
     int K       = wei_n * wei_h * wei_w;
-    size_t M    = wei_c;
+    int M       = wei_c;
     int N       = in_h * in_w;
     float alpha = 1.0;
     float beta  = 0.0;
@@ -92,7 +92,7 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
     // GEMM
     int K       = wei_n;
     int N       = out_h * out_w;
-    size_t M    = in_c * wei_h * wei_w;
+    int M       = in_c * wei_h * wei_w;
     float alpha = 1.0;
     float beta  = 0.0;
     bool tA     = true;
@@ -138,7 +138,7 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(const TensorDescriptor& dyDesc,
 
     // GEMM
     int N       = in_c * wei_h * wei_w;
-    size_t M    = wei_n;
+    int M       = wei_n;
     int K       = out_h * out_w;
     bool tA     = false;
     bool tB     = true;
