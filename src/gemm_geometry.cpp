@@ -25,8 +25,21 @@
  *******************************************************************************/
 #include <miopen/float_equal.hpp>
 #include <miopen/gemm_geometry.hpp>
+#include <regex>
 
 namespace miopen {
+
+// so that MIOpen works whether or not recent MIOpenGEMM changes pulled.
+namespace tempfix{
+    void set_offsets_to_uint(std::string & clstr){
+        for (char x : {'a', 'b', 'c'}){
+            std::string target = "const size_t " + std::string(1,x) + "_offset";
+            std::string replacement = "const unsigned " + std::string(1,x) + "_offset";
+            clstr = std::regex_replace(clstr, std::regex(target), replacement);
+        }
+    }
+}
+
 
 std::unordered_map<GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map()
 {
@@ -47,7 +60,7 @@ void GemmGeometry::FindSolution(
     // jn : print warning messages when the returned kernel(s) might be sub-optimal
     bool miopengemm_warnings = false;
 
-    /* jn : using a simple version of find, without using any workspace for gemm  */
+    // jn : find with no workspace
     MIOpenGEMM::Solution soln = MIOpenGEMM::find(time,
                                                  handle.GetStream(),
                                                  a,
@@ -66,12 +79,13 @@ void GemmGeometry::FindSolution(
     (void)tgg;
     (void)alpha;
     (void)beta;
-    /* jn : fall back to a safe, generic solution. Independent of device */
     MIOpenGEMM::Solution soln = MIOpenGEMM::get_default(tgg);
 #endif
 
-    /* jn : the main kernel is at the back of the solution vector */
-    std::string program_name   = soln.v_tgks.back().kernstr;
+    // jn : the main kernel is at the back of the solution vector
+    std::string kernel_clstring = soln.v_tgks.back().kernstr;
+    tempfix::set_offsets_to_uint(kernel_clstring);
+        
     std::string kernel_name    = soln.v_tgks.back().fname;
     std::string network_config = tgg.get_networkconfig_string();
     size_t local_work_size     = soln.v_tgks.back().local_work_size;
@@ -80,17 +94,19 @@ void GemmGeometry::FindSolution(
     std::vector<size_t> vld{local_work_size, 1, 1};
     std::vector<size_t> vgd{global_work_size, 1, 1};
 
-    handle.GetKernel(algorithm_name, network_config, program_name, kernel_name, vld, vgd, "");
+    handle.GetKernel(algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "");
 
     if(soln.v_tgks.size() == 2)
     {
         beta_kern_returned = true;
     }
 
-    /* jn : case where the beta kernel is part of the solution */
+    // jn : case where the beta kernel is part of the solution
     if(soln.v_tgks.size() == 2 && !miopen::float_equal(beta, 1))
     {
         std::string beta_program_name = soln.v_tgks[0].kernstr;
+        tempfix::set_offsets_to_uint(beta_program_name);
+        
         std::string beta_kernel_name  = soln.v_tgks[0].fname;
         local_work_size               = soln.v_tgks[0].local_work_size;
         global_work_size              = soln.v_tgks[0].global_work_size;
@@ -102,7 +118,7 @@ void GemmGeometry::FindSolution(
 
         handle.GetKernel(
             algorithm_name + "_beta",
-            network_config, /* jn : different network_configs require different beta kernels */
+            network_config, // jn : different network_configs require different beta kernels
             beta_program_name,
             beta_kernel_name,
             vld,
