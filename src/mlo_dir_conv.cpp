@@ -4428,7 +4428,7 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 			_grp_tile1 = 1;
 			_in_tile1 = 1;
 			_in_tile0 = 1;
-			report_inteval = 2;
+			report_inteval = 1;
 
 			if (_direction && (_n_inputs / 8) * 8 == _n_inputs)
 			{
