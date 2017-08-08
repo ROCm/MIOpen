@@ -39,8 +39,8 @@ void set_offsets_to_uint(std::string& clstr)
         std::string replacement = "const unsigned " + std::string(1, x) + "_offset";
         clstr                   = std::regex_replace(clstr, std::regex(target), replacement);
     }
+} 
 } // namespace tempfix
-}
 
 std::unordered_map<GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map()
 {
