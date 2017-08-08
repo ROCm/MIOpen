@@ -4429,7 +4429,7 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 			_grp_tile1 = 1;
 			_in_tile1 = 1;
 			_in_tile0 = 1;
-			report_inteval = 1;
+			report_inteval = 4;
 
 			if (_direction && (_n_inputs / 8) * 8 == _n_inputs)
 			{
@@ -4447,10 +4447,10 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 				//					uint CHEAT_SHADER_COMPILER = _out_pix_tile0;
 				out_pix_tile_sz[0] = 0;
 				out_pix_tile_sz[1] = 1;
-				n_out_tls = 2;
-				n_grp_tiles0 = 1;
+				n_out_tls = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
+				n_grp_tiles0 = 0;
 
-				runs_left = out_pix_tl_cnt * n_out_tls * n_in_tls;
+				runs_left = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
 
 				_out_pix_tile1 = 1;
 			}
@@ -4477,7 +4477,7 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 				n_grp_tiles1 = 1;
 
 				n_grp_tiles = n_grp_tiles1 * n_grp_tiles0;
-				n_out_tls = 5;
+				n_out_tls = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
 				int n_in_tls = 2;
 				runs_left = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
 
