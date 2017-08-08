@@ -87,11 +87,12 @@ class RNNDriver : public Driver
     RNNDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
+		miopenCreateTensorDescriptor(&hiddenTensor);
         miopenCreateTensorDescriptor(&weightTensor);
         miopenCreateTensorDescriptor(&outputTensor);
         miopenCreateTensorDescriptor(&biasTensor);
 
-        miopenCreateConvolutionDescriptor(&convDesc);
+        miopenCreateRNNDescriptor(&rnnDesc);
     }
 
     int AddCmdLineArgs();
@@ -100,9 +101,10 @@ class RNNDriver : public Driver
 
     int GetandSetData();
     std::vector<int> GetInputTensorLengthsFromCmdLine();
+	std::vector<int> GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> GetWeightTensorLengthsFromCmdLine();
 
-    int SetConvDescriptorFromCmdLineArgs();
+    int SetRNNDescriptorFromCmdLineArgs();
 
     std::vector<int> GetOutputTensorLengths();
 
@@ -133,15 +135,17 @@ class RNNDriver : public Driver
         miopenDestroyTensorDescriptor(biasTensor);
         miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(weightTensor);
+		miopenDestroyTensorDescriptor(hiddenTensor);
         miopenDestroyTensorDescriptor(inputTensor);
 
-        miopenDestroyConvolutionDescriptor(convDesc);
+        miopenDestroyRNNDescriptor(rnnDesc);
     }
 
     private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
+	miopenTensorDescriptor_t hiddenTensor;
     miopenTensorDescriptor_t weightTensor;
     miopenTensorDescriptor_t outputTensor;
     miopenTensorDescriptor_t biasTensor;
@@ -174,7 +178,7 @@ class RNNDriver : public Driver
     std::vector<T> db;
     std::vector<T> db_host;
 
-    miopenConvolutionDescriptor_t convDesc;
+    miopenRNNDescriptor_t rnnDesc;
 
     std::string GetVerificationCacheFileName() const;
     bool TryReadVerificationCache(const std::string& file_name,
@@ -199,12 +203,14 @@ template <typename T>
 int RNNDriver<T>::GetandSetData()
 {
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
+	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
     SetTensor4d(inputTensor, in_len);
+	SetTensor4d(hiddenTensor, hid_len);
     SetTensor4d(weightTensor, wei_len);
 
-    SetConvDescriptorFromCmdLineArgs();
+    SetRNNDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengths();
     SetTensor4d(outputTensor, out_len);
@@ -220,7 +226,7 @@ int RNNDriver<T>::GetandSetData()
 template <typename T>
 int RNNDriver<T>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Convolution (Default=0)", "int");
+    inflags.AddInputFlag("forw", 'F', "0", "Run only Forward RNN (Default=0)", "int");
 	inflags.AddInputFlag("num_layer", 'l', "1", "Number of hidden stacks (Default=1)", "int");
 	inflags.AddInputFlag("seq_len", 'k', "10", "Number of iterations to unroll over (Default=10)", "int");
 	inflags.AddInputFlag("bidirection", 'r', "0", "uni- or bi-direction, default uni- (Default=0)", "int");
@@ -263,20 +269,37 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
 }
 
 template <typename T>
-std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
+std::vector<int> RNNDriver<T>::GetHiddenTensorLengthsFromCmdLine()
 {
-    int weiin_h = inflags.GetValueInt("in_h");
-    int weihid_h = inflags.GetValueInt("hid_h");
-    int weiout_h = inflags.GetValueInt("out_h");
+	int hid_l = inflags.GetValueInt("num_layer");
+	if ((inflags.GetValueInt("bidirection")) == 1)
+		hid_l *= 2;
 
-    return std::vector<int>({weiin_h, weihid_h, weiout_h});
+	int hid_n = inflags.GetValueInt("batchsize");
+	int hid_h = inflags.GetValueInt("hid_h");
+
+	return std::vector<int>({hid_l, hid_n, hid_h});
 }
 
 template <typename T>
-int RNNDriver<T>::SetConvDescriptorFromCmdLineArgs()
+std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
+{
+    int wei_ih = inflags.GetValueInt("in_h");
+    int wei_hh = inflags.GetValueInt("hid_h");
+    int wei_oh = inflags.GetValueInt("out_h");
+	int wei_l = inflags.GetValueInt("num_layer");
+	int wei_bi = 1;
+	if ((inflags.GetValueInt("bidirection")) == 1)
+		wei_bi = 2;
+
+    return std::vector<int>({wei_bi, wei_l, wei_ih, wei_hh, wei_oh});
+}
+
+template <typename T>
+int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 {
 
-    miopenConvolutionMode_t mode;
+    miopenRNNMode_t mode;
 	int layer = inflags.GetValueInt("num_layer");
 	int drc = inflags.GetValueInt("bidirection");
 
@@ -302,16 +325,16 @@ int RNNDriver<T>::SetConvDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    return miopenInitConvolutionDescriptor(
-        convDesc, mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    return miopenInitRNNDescriptor(
+        rnnDesc, mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
 }
 
 template <typename T>
-std::vector<int> RNNDriver<T>::GetOutputTensorLengths()
+std::vector<int> RNNDriver<T>::GetOutputTensorLengths()  // need removed
 {
     int n, c, h, w;
 
-    miopenGetConvolutionForwardOutputDim(convDesc, inputTensor, weightTensor, &n, &c, &h, &w);
+    miopenGetRNNForwardOutputDim(rnnDesc, inputTensor, weightTensor, &n, &c, &h, &w);
 
     return std::vector<int>({n, c, h, w});
 }
@@ -321,21 +344,22 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 {
 
     size_t in_sz  = GetTensorSize(inputTensor);
+	size_t hid_sz = GetTensorSize(hiddenTensor);
     size_t wei_sz = GetTensorSize(weightTensor);
     size_t out_sz = GetTensorSize(outputTensor);
 
     size_t workSpaceSize_bwd_wt = 0;
     size_t workSpaceSize_bwd_dt = 0;
-    miopenConvolutionBackwardWeightsGetWorkSpaceSize(
-        GetHandle(), outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_bwd_wt);
-    miopenConvolutionBackwardDataGetWorkSpaceSize(
-        GetHandle(), outputTensor, weightTensor, convDesc, inputTensor, &workSpaceSize_bwd_dt);
+    miopenRNNBackwardWeightsGetWorkSpaceSize(
+        GetHandle(), outputTensor, inputTensor, rnnDesc, weightTensor, &workSpaceSize_bwd_wt);
+    miopenRNNBackwardDataGetWorkSpaceSize(
+        GetHandle(), outputTensor, weightTensor, rnnDesc, inputTensor, &workSpaceSize_bwd_dt);
     size_t workSpaceSize_bwd =
         workSpaceSize_bwd_dt > workSpaceSize_bwd_wt ? workSpaceSize_bwd_dt : workSpaceSize_bwd_wt;
 
     size_t workSpaceSize_fwd = 0;
-    miopenConvolutionForwardGetWorkSpaceSize(
-        GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);
+    miopenRNNForwardGetWorkSpaceSize(
+        GetHandle(), weightTensor, inputTensor, rnnDesc, outputTensor, &workSpaceSize_fwd);
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
@@ -464,12 +488,12 @@ int RNNDriver<T>::FindForward(int& ret_algo_count,
                                std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
-    return miopenFindConvolutionForwardAlgorithm(GetHandle(),
+    return miopenFindRNNForwardAlgorithm(GetHandle(),
                                                  inputTensor,
                                                  in_dev->GetMem(),
                                                  weightTensor,
                                                  wei_dev->GetMem(),
-                                                 convDesc,
+                                                 rnnDesc,
                                                  outputTensor,
                                                  out_dev->GetMem(),
                                                  request_algo_count,
@@ -502,13 +526,13 @@ int RNNDriver<T>::RunForwardGPU()
         std::fill(out.begin(), out.end(), 0);
         out_dev->ToGPU(GetStream(), out.data());
 
-        miopenConvolutionForward(GetHandle(),
+        miopenRNNForward(GetHandle(),
                                  &alpha,
                                  inputTensor,
                                  in_dev->GetMem(),
                                  weightTensor,
                                  wei_dev->GetMem(),
-                                 convDesc,
+                                 rnnDesc,
                                  perf_results[0].fwd_algo, // use the fastest algo
                                  &beta,
                                  outputTensor,
@@ -524,16 +548,16 @@ int RNNDriver<T>::RunForwardGPU()
 
         STOP_TIME;
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward Conv. Elapsed: %f ms\n",
+            printf("Wall-clock Time Forward RNN Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
 
-        printf("MIOpen Forward Conv. Algorithm: %d\n", perf_results[0].fwd_algo);
-        printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
+        printf("MIOpen Forward RNN Algorithm: %d\n", perf_results[0].fwd_algo);
+        printf("GPU Kernel Time Forward RNN Elapsed: %f ms\n", time);
     }
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        miopenConvolutionForwardBias(GetHandle(),
+        miopenRNNForwardBias(GetHandle(),
                                      &alpha,
                                      biasTensor,
                                      b_dev->GetMem(),
@@ -546,7 +570,7 @@ int RNNDriver<T>::RunForwardGPU()
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
 
-            printf("GPU Kernel Time Forward Conv. Bias Elapsed: %f ms\n", time);
+            printf("GPU Kernel Time Forward RNN Bias Elapsed: %f ms\n", time);
         }
     }
 
@@ -598,113 +622,30 @@ int RNNDriver<T>::RunForwardCPU()
                                 &out_wstride);
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
-    miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+    miopenRNNMode_t mode;
+    miopenGetRNNDescriptor(
+        rnnDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
-    if(mode == miopenConvolution)
-    {
-        miopenGet4dTensorDescriptor(weightTensor,
-                                    &dt,
-                                    &wei_n,
-                                    &wei_c,
-                                    &wei_h,
-                                    &wei_w,
-                                    &wei_nstride,
-                                    &wei_cstride,
-                                    &wei_hstride,
-                                    &wei_wstride);
+    /*
 
-        for(int o = 0; o < out_n; o++)
-        { // mini-batch size
-            for(int w = 0; w < out_c; w++)
-            { // out_channels (num filters)
-                for(int i = 0; i < out_h; i++)
-                { // output_height (from getforwardoutputdim())
-                    int in_off_h = i * v;
-                    for(int j = 0; j < out_w; j++)
-                    { // output_width (from getforwardoutputdim())
-                        float acc    = 0;
-                        int in_off_w = j * u;
-                        for(int k = 0; k < in_c; k++)
-                        { // in_channels (RGB)
-                            for(int x = 0; x < wei_h; x++)
-                            {
-                                int in_x = in_off_h - pad_h + x * dilation_h;
-                                if(in_x >= 0 && in_x < in_h)
-                                {
-                                    for(int y = 0; y < wei_w; y++)
-                                    {
-                                        int in_y = in_off_w - pad_w + y * dilation_w;
-                                        if(in_y >= 0 && in_y < in_w)
-                                        {
-                                            acc += in[o * in_nstride + k * in_cstride +
-                                                      in_x * in_w + in_y] *
-                                                   wei[w * wei_nstride + k * wei_cstride +
-                                                       x * wei_hstride + y];
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        acc = inflags.GetValueInt("bias") != 0 ? acc + b[w] : acc;
-                        outhost[o * out_nstride + w * out_cstride + i * out_hstride + j] = acc;
-                    }
-                }
-            }
-        }
-    }
-    else if(mode == miopenTranspose)
-    {
-        miopenGet4dTensorDescriptor(weightTensor,
-                                    &dt,
-                                    &wei_c,
-                                    &wei_n,
-                                    &wei_h,
-                                    &wei_w,
-                                    &wei_cstride,
-                                    &wei_nstride,
-                                    &wei_hstride,
-                                    &wei_wstride);
+	RunRNNForwardCPUVerify(std::vector<T>& in,
+	std::vector<T>& wei, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
+	std::vector<T>& hy_host, // current/final hidden state
+	std::vector<T>& hx, // initial hidden state
+	std::vector<T>& out_host,
+	std::vector<int>& in_n, // input batch size
+	int in_h, // input data length
+	int seqLength, // Number of iterations to unroll over
+	bool bidirection, // whether using bidirectional net
+	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
+	int hy_n, // equal to input batch size in_n[0]
+	int hy_h, // hidden state number
+	std::vector<int>& out_n, // equals in_n
+	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+    std::vector<T>& rsvspace
+    )
 
-        for(int o = 0; o < in_n; o++)
-        { // mini-batch size
-            for(int k = 0; k < out_c; k++)
-            { // out_channels (RGB)
-                for(int w = 0; w < in_c; w++)
-                { // in_channels (num filters)
-                    for(int i = 0; i < in_h; i++)
-                    { // input_height
-                        int out_off_h = i * v;
-                        for(int j = 0; j < in_w; j++)
-                        { // input_width
-                            int out_off_w = j * u;
-                            for(int x = 0; x < wei_h; x++)
-                            {
-                                int out_x = out_off_h - pad_h + x * dilation_h;
-                                if(out_x >= 0 && out_x < out_h)
-                                {
-                                    for(int y = 0; y < wei_w; y++)
-                                    {
-                                        int out_y = out_off_w - pad_w + y * dilation_w;
-                                        if(out_y >= 0 && out_y < out_w)
-                                        {
-                                            outhost[o * out_nstride + k * out_cstride +
-                                                    out_x * out_hstride + out_y] +=
-                                                in[o * in_nstride + w * in_cstride +
-                                                   i * in_hstride + j] *
-                                                wei[w * wei_cstride + k * wei_nstride +
-                                                    x * wei_hstride + y];
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+	*/
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -721,12 +662,12 @@ int RNNDriver<T>::FindBackwardData(int& ret_algo_count,
                                     std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
-    return miopenFindConvolutionBackwardDataAlgorithm(GetHandle(),
+    return miopenFindRNNBackwardDataAlgorithm(GetHandle(),
                                                       outputTensor,
                                                       dout_dev->GetMem(),
                                                       weightTensor,
                                                       wei_dev->GetMem(),
-                                                      convDesc,
+                                                      rnnDesc,
                                                       inputTensor,
                                                       din_dev->GetMem(),
                                                       request_algo_count,
@@ -744,12 +685,12 @@ int RNNDriver<T>::FindBackwardWeights(int& ret_algo_count,
                                        std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
-    miopenFindConvolutionBackwardWeightsAlgorithm(GetHandle(),
+    miopenFindRNNBackwardWeightsAlgorithm(GetHandle(),
                                                   outputTensor,
                                                   dout_dev->GetMem(),
                                                   inputTensor,
                                                   in_dev->GetMem(),
-                                                  convDesc,
+                                                  rnnDesc,
                                                   weightTensor,
                                                   wei_dev->GetMem(),
                                                   request_algo_count,
@@ -781,13 +722,13 @@ int RNNDriver<T>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        ret = miopenConvolutionBackwardData(GetHandle(),
+        ret = miopenRNNBackwardData(GetHandle(),
                                             &alpha,
                                             outputTensor,
                                             dout_dev->GetMem(),
                                             weightTensor,
                                             wei_dev->GetMem(),
-                                            convDesc,
+                                            rnnDesc,
                                             perf_results_data[0].bwd_data_algo,
                                             &beta,
                                             inputTensor,
@@ -803,11 +744,11 @@ int RNNDriver<T>::RunBackwardGPU()
 
         STOP_TIME;
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward Data Conv. Elapsed: %f ms\n",
+            printf("Wall-clock Time Backward Data RNN Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
 
-        printf("MIOpen Backward Data Conv. Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
-        printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms\n", time);
+        printf("MIOpen Backward Data RNN Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
+        printf("GPU Kernel Time Backward Data RNN Elapsed: %f ms\n", time);
     }
 
     din_dev->FromGPU(GetStream(), din.data());
@@ -816,13 +757,13 @@ int RNNDriver<T>::RunBackwardGPU()
 
     FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
 
-    ret = miopenConvolutionBackwardWeights(GetHandle(),
+    ret = miopenRNNBackwardWeights(GetHandle(),
                                            &alpha,
                                            outputTensor,
                                            dout_dev->GetMem(),
                                            inputTensor,
                                            in_dev->GetMem(),
-                                           convDesc,
+                                           rnnDesc,
                                            perf_results_weights[0].bwd_weights_algo,
                                            &beta,
                                            weightTensor,
@@ -834,14 +775,14 @@ int RNNDriver<T>::RunBackwardGPU()
     {
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
-        printf("MIOpen Backward Weights Conv. Algorithm: %d\n",
+        printf("MIOpen Backward Weights RNN Algorithm: %d\n",
                perf_results_weights[0].bwd_weights_algo);
-        printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms\n", time);
+        printf("GPU Kernel Time Backward Weights RNN Elapsed: %f ms\n", time);
     }
     dwei_dev->FromGPU(GetStream(), dwei.data());
 
     if(perf_results_weights[0].bwd_weights_algo == 0)
-    { // miopenConvolutionBwdWeightsAlgoGEMM
+    { // miopenRNNBwdWeightsAlgoGEMM
         workspace_bwd_dev->FromGPU(GetStream(), workspace_bwd.data());
     }
 
@@ -853,7 +794,7 @@ int RNNDriver<T>::RunBackwardGPU()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        ret = miopenConvolutionBackwardBias(GetHandle(),
+        ret = miopenRNNBackwardBias(GetHandle(),
                                             &alpha,
                                             outputTensor,
                                             dout_dev->GetMem(),
@@ -865,7 +806,7 @@ int RNNDriver<T>::RunBackwardGPU()
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
-            printf("GPU Kernel Time Backward Bias Conv. Elapsed: %f ms\n", time);
+            printf("GPU Kernel Time Backward Bias RNN Elapsed: %f ms\n", time);
         }
 
         db_dev->FromGPU(GetStream(), db.data());
@@ -915,184 +856,30 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                 &out_wstride);
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
-    miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+    miopenRNNMode_t mode;
+    miopenGetRNNDescriptor(
+        rnnDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
-    if(mode == miopenConvolution)
-    {
-        miopenGet4dTensorDescriptor(weightTensor,
-                                    &dt,
-                                    &wei_n,
-                                    &wei_c,
-                                    &wei_h,
-                                    &wei_w,
-                                    &wei_nstride,
-                                    &wei_cstride,
-                                    &wei_hstride,
-                                    &wei_wstride);
-
-#ifdef MIOPEN_USE_MIOPENGEMM
-#ifndef NDEBUG
-        if(in_n == 1 && wei_h != 1 && wei_w != 1)
-        {
-            // workspace_bwd will be nonzero only if gemm was chosen as the algo
-            bool zeros = std::all_of(
-                workspace_bwd.begin(), workspace_bwd.end(), [](int i) { return i == 0; });
-
-            if(!zeros)
-            {
-                Im2ColCPU(in,
-                          0,
-                          in_c,
-                          in_h,
-                          in_w,
-                          wei_h,
-                          wei_w,
-                          out_h,
-                          out_w,
-                          pad_h,
-                          pad_w,
-                          v,
-                          u,
-                          workspace_bwd_host);
-
-                for(int i = 0; i < workspace_bwd.size(); i++)
-                {
-                    if(std::abs(workspace_bwd[i] - workspace_bwd_host[i]) > 0.0)
-                    {
-                        printf("Im2col error: %d %f %f\n ",
-                               i,
-                               workspace_bwd[i],
-                               workspace_bwd_host[i]);
-                    }
-                }
-            }
-        }
-#endif
-#endif
-
-        RunBackwardWeightsCPUVerify(dwei_host,
-                                    in,
-                                    dout,
-                                    in_n,
-                                    in_c,
-                                    in_h,
-                                    in_w,
-                                    in_nstride,
-                                    in_cstride,
-                                    in_hstride,
-                                    in_wstride,
-                                    wei_n,
-                                    wei_c,
-                                    wei_h,
-                                    wei_w,
-                                    wei_nstride,
-                                    wei_cstride,
-                                    wei_hstride,
-                                    wei_wstride,
-                                    out_n,
-                                    out_c,
-                                    out_h,
-                                    out_w,
-                                    out_nstride,
-                                    out_cstride,
-                                    out_hstride,
-                                    out_wstride,
-                                    u,
-                                    v,
-                                    pad_h,
-                                    pad_w,
-                                    dilation_h,
-                                    dilation_w);
-    }
-    else if(mode == miopenTranspose)
-    {
-        miopenGet4dTensorDescriptor(weightTensor,
-                                    &dt,
-                                    &wei_c,
-                                    &wei_n,
-                                    &wei_h,
-                                    &wei_w,
-                                    &wei_cstride,
-                                    &wei_nstride,
-                                    &wei_hstride,
-                                    &wei_wstride);
-
-#ifdef MIOPEN_USE_MIOPENGEMM
-#ifndef NDEBUG
-        if(in_n == 1 && wei_h != 1 && wei_w != 1)
-        {
-            // workspace_bwd will be nonzero only if gemm was chosen as the algo
-            bool zeros = std::all_of(
-                workspace_bwd.begin(), workspace_bwd.end(), [](int i) { return i == 0; });
-
-            if(!zeros)
-            {
-                Im2ColCPU(dout,
-                          0,
-                          out_c,
-                          out_h,
-                          out_w,
-                          wei_h,
-                          wei_w,
-                          in_h,
-                          in_w,
-                          pad_h,
-                          pad_w,
-                          v,
-                          u,
-                          workspace_bwd_host);
-
-                for(int i = 0; i < workspace_bwd.size(); i++)
-                {
-                    if(std::abs(workspace_bwd[i] - workspace_bwd_host[i]) > 0.0)
-                    {
-                        printf("Im2col error: %d %f %f\n ",
-                               i,
-                               workspace_bwd[i],
-                               workspace_bwd_host[i]);
-                    }
-                }
-            }
-        }
-#endif
-#endif
-
-        RunBackwardWeightsCPUVerify(dwei_host,
-                                    dout,
-                                    in,
-                                    out_n,
-                                    out_c,
-                                    out_h,
-                                    out_w,
-                                    out_nstride,
-                                    out_cstride,
-                                    out_hstride,
-                                    out_wstride,
-                                    wei_c,
-                                    wei_n,
-                                    wei_h,
-                                    wei_w,
-                                    wei_cstride,
-                                    wei_nstride,
-                                    wei_hstride,
-                                    wei_wstride,
-                                    in_n,
-                                    in_c,
-                                    in_h,
-                                    in_w,
-                                    in_nstride,
-                                    in_cstride,
-                                    in_hstride,
-                                    in_wstride,
-                                    u,
-                                    v,
-                                    pad_h,
-                                    pad_w,
-                                    dilation_h,
-                                    dilation_w);
-    }
+    /*
+	
+	RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
+	std::vector<T>& dwei_host, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
+	std::vector<T>& hx, // initial hidden state
+	std::vector<T>& dout,
+	std::vector<int>& in_n, // input batch size
+	int in_h, // input data length
+	int seqLength, // Number of iterations to unroll over
+	bool bidirection, // whether using bidirectional net
+	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
+	int hy_n, // equal to input batch size in_n[0]
+	int hy_h, // hidden state number
+	std::vector<int>& out_n, // equals in_n
+	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+	std::vector<T>& rsvspace;
+	std::vector<T>& wkspace
+	)
+	
+	*/
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1141,113 +928,33 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                 &out_wstride);
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
-    miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+    miopenRNNMode_t mode;
+    miopenGetRNNDescriptor(
+        rnnDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
-    if(mode == miopenConvolution)
-    {
-        miopenGet4dTensorDescriptor(weightTensor,
-                                    &dt,
-                                    &wei_n,
-                                    &wei_c,
-                                    &wei_h,
-                                    &wei_w,
-                                    &wei_nstride,
-                                    &wei_cstride,
-                                    &wei_hstride,
-                                    &wei_wstride);
+    /*
 
-        for(int o = 0; o < out_n; o++)
-        { // mini-batch size
-            for(int k = 0; k < in_c; k++)
-            { // in_channels (RGB)
-                for(int w = 0; w < out_c; w++)
-                { // out_channels (num filters)
-                    for(int i = 0; i < out_h; i++)
-                    { // output_height (from getforwardoutputdim())
-                        int in_off_h = i * v;
-                        for(int j = 0; j < out_w; j++)
-                        { // output_width (from getforwardoutputdim())
-                            int in_off_w = j * u;
-                            for(int x = 0; x < wei_h; x++)
-                            {
-                                int in_x = in_off_h - pad_h + x * dilation_h;
-                                if(in_x >= 0 && in_x < in_h)
-                                {
-                                    for(int y = 0; y < wei_w; y++)
-                                    {
-                                        int in_y = in_off_w - pad_w + y * dilation_w;
-                                        if(in_y >= 0 && in_y < in_w)
-                                        {
-                                            din_host[o * in_nstride + k * in_cstride +
-                                                     in_x * in_hstride + in_y] +=
-                                                dout[o * out_nstride + w * out_cstride +
-                                                     i * out_hstride + j] *
-                                                wei[w * wei_nstride + k * wei_cstride +
-                                                    x * wei_hstride + y];
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    else if(mode == miopenTranspose)
-    {
-        miopenGet4dTensorDescriptor(weightTensor,
-                                    &dt,
-                                    &wei_c,
-                                    &wei_n,
-                                    &wei_h,
-                                    &wei_w,
-                                    &wei_cstride,
-                                    &wei_nstride,
-                                    &wei_hstride,
-                                    &wei_wstride);
+	RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
+	std::vector<T>& wei, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
+	std::vector<T>& dhy, // current/final hidden state
+	std::vector<T>& dhx_host,
+	std::vector<T>& hx, // initial hidden state
+	std::vector<T>& out,
+	std::vector<T>& dout,
+	std::vector<int>& in_n, // input batch size
+	int in_h, // input data length
+	int seqLength, // Number of iterations to unroll over
+	bool bidirection, // whether using bidirectional net
+	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
+	int hy_n, // equal to input batch size in_n[0]
+	int hy_h, // hidden state number
+	std::vector<int>& out_n, // equals in_n
+	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+	std::vector<T>& rsvspace;
+	std::vector<T>& wkspace
+    )
 
-        for(int o = 0; o < in_n; o++)
-        { // mini-batch size
-            for(int w = 0; w < in_c; w++)
-            { // in_channels (num filters)
-                for(int i = 0; i < in_h; i++)
-                { // input_height (from getforwardoutputdim())
-                    int out_off_h = i * v;
-                    for(int j = 0; j < in_w; j++)
-                    { // input_width (from getforwardoutputdim())
-                        float acc     = 0;
-                        int out_off_w = j * u;
-                        for(int k = 0; k < out_c; k++)
-                        { // out_channels (RGB)
-                            for(int x = 0; x < wei_h; x++)
-                            {
-                                int out_x = out_off_h - pad_h + x * dilation_h;
-                                if(out_x >= 0 && out_x < out_h)
-                                {
-                                    for(int y = 0; y < wei_w; y++)
-                                    {
-                                        int out_y = out_off_w - pad_w + y * dilation_w;
-                                        if(out_y >= 0 && out_y < out_w)
-                                        {
-                                            acc += dout[o * out_nstride + k * out_cstride +
-                                                        out_x * out_w + out_y] *
-                                                   wei[w * wei_cstride + k * wei_nstride +
-                                                       x * wei_hstride + y];
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        acc = inflags.GetValueInt("bias") != 0 ? acc + b[w] : acc;
-                        din_host[o * in_nstride + w * in_cstride + i * in_hstride + j] = acc;
-                    }
-                }
-            }
-        }
-    }
+	*/
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1306,9 +1013,9 @@ std::string RNNDriver<T>::GetVerificationCacheFileName() const
 {
     std::ostringstream ss;
 
-    miopenConvolutionMode_t mode;
+    miopenRNNMode_t mode;
     int pad_h, pad_w, u, v, sx, sy;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &sx, &sy);
+    miopenGetRNNDescriptor(rnnDesc, &mode, &pad_h, &pad_w, &u, &v, &sx, &sy);
 
     const auto inputDesc = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(inputTensor));
     const auto weiDesc   = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(weightTensor));
@@ -1378,11 +1085,11 @@ int RNNDriver<T>::VerifyForward()
     const double tolerance = 1e-6;
     if(!(error < tolerance))
     {
-        std::cout << std::string("Forward Convolution Failed: ") << error << "\n";
+        std::cout << std::string("Forward RNN Failed: ") << error << "\n";
     }
     else
     {
-        printf("Forward Convolution Verifies on CPU and GPU\n");
+        printf("Forward RNN Verifies on CPU and GPU\n");
     }
 
     return 0;
@@ -1402,12 +1109,12 @@ int RNNDriver<T>::VerifyBackward()
 
     if(!(error_data < tolerance))
     {
-        std::cout << std::string("Backward Convolution Data Failed: ") << error_data
+        std::cout << std::string("Backward RNN Data Failed: ") << error_data
                   << std::string("\n");
     }
     else
     {
-        printf("Backward Convolution Data Verifies on CPU and GPU\n");
+        printf("Backward RNN Data Verifies on CPU and GPU\n");
     }
 
     if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
@@ -1418,12 +1125,12 @@ int RNNDriver<T>::VerifyBackward()
     auto error_weights = miopen::rms_range(dwei_host, dwei);
     if(!(error_weights < tolerance))
     {
-        std::cout << std::string("Backward Convolution Weights Failed: ") << error_weights
+        std::cout << std::string("Backward RNN Weights Failed: ") << error_weights
                   << std::string("\n");
     }
     else
     {
-        printf("Backward Convolution Weights Verifies on CPU and GPU\n");
+        printf("Backward RNN Weights Verifies on CPU and GPU\n");
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -1436,16 +1143,16 @@ int RNNDriver<T>::VerifyBackward()
         auto error_bias = miopen::rms_range(db_host, db);
         if(!(error_bias < tolerance))
         {
-            std::cout << std::string("Backward Convolution Bias Failed: ") << error_bias
+            std::cout << std::string("Backward RNN Bias Failed: ") << error_bias
                       << std::string("\n");
         }
         else
         {
-            printf("Backward Convolution Bias Verifies on CPU and GPU\n");
+            printf("Backward RNN Bias Verifies on CPU and GPU\n");
         }
     }
 
     return 0;
 }
 
-#endif // GUARD_MIOPEN_CONV_DRIVER_HPP
+#endif // GUARD_MIOPEN_RNN_DRIVER_HPP
