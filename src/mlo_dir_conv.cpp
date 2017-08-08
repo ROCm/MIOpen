@@ -4277,6 +4277,13 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 
         auto top_ocl_buf = profile_h.Write(top_sys_buf);
 
+		std::vector<float> random_top_sys_buf(top_sz);
+		for (int i = 0; i < top_sz; i++)
+		{
+			random_top_sys_buf[i] = static_cast<float>(rand() * (1.0 / RAND_MAX));
+		}
+
+
         size_t weights_sz = _weights_sz / sizeof(float);
         std::vector<float> wei_sys_buf(weights_sz);
         for(int i = 0; i < weights_sz; i++)
@@ -4513,6 +4520,9 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 							{
 								_n_in_data_tiles = (1 << i_t);
 							}
+// randomize output
+							profile_h.WriteTo(reinterpret_cast<const void*>(random_top_sys_buf.data()), top_ocl_buf, random_top_sys_buf.size() * sizeof(float));
+
 							ret = mloMeasuredLoop(&profile_h,
 								bot_ocl_buf.get(),
 								top_ocl_buf.get(),
