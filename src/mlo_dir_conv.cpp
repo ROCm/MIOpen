@@ -4310,7 +4310,8 @@ int mlo_construct_direct2D::mloSearchDirect2D()
         int n_out_tiles_rg[2]  = {1, 8};
         int n_in_tiles_rg[2]   = {1, 4};
         int n_in_stacks_sz[3]  = {1, 2, 4};
-        /*
+		int in_tiles[4] = { 64, 128, 256, 2048 };
+		/*
         std::vector<int> v_tile_sz;
         std::vector<int> v_out_pix_tile_sz;
         std::vector<int> v_n_out_tiles_rg;
@@ -4417,9 +4418,9 @@ int mlo_construct_direct2D::mloSearchDirect2D()
                 report_inteval = 20;
         }
 
-        if(_kernel_size0 == 1 && _kernel_size1 == 1 && (_n_outputs / 16) * 16 == _n_outputs &&
-           (_n_inputs / 4) * 4 == _n_inputs)
-        {
+		if (_kernel_size0 == 1 && _kernel_size1 == 1 && (_n_outputs / 16) * 16 == _n_outputs &&
+			(_n_inputs / 4) * 4 == _n_inputs)
+		{
 
 			std::cout
 				<< "Searching the best solution in the 4 dim space. Please, be patient it may "
@@ -4483,77 +4484,88 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 				_out_pix_tile1 = 0;
 			}
 
-//			int version = _out_pix_tile1;
-			for(int g0 = 0; g0 <= n_grp_tiles0; ++g0)
-            {
-                _grp_tile0 = grp_tl_ln[g0];
+			int version = _out_pix_tile1;
 
-                // out pix 0
+			for (int g0 = 0; g0 <= n_grp_tiles0; ++g0)
+			{
+				_grp_tile0 = grp_tl_ln[g0];
 
-                for(int l = 0; l < out_pix_tl_cnt; ++l)
-                {
-                    _out_pix_tile0 = out_pix_tile_sz[l];
+				// out pix 0
+				for (int o_t = n_out_tiles_rg[0]; o_t <= n_out_tiles_rg[1]; ++o_t)
+				{
+					_n_out_pix_tiles = (1 << o_t);
+					for (int l = 0; l < out_pix_tl_cnt; ++l)
+					{
+						_out_pix_tile0 = out_pix_tile_sz[l];
+						if (version == 0 && ((_n_out_pix_tiles == 32 && _out_pix_tile0 >= 4) ||
+							(_n_out_pix_tiles == 64 && _out_pix_tile0 >= 2)))
+						{
+							continue;
+						}
 
-                    for(int o_t = n_out_tiles_rg[0]; o_t <= n_out_tiles_rg[1]; ++o_t)
-                    {
-                        _n_out_pix_tiles = (1 << o_t);
-                        for(int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
-                        {
-                            _n_in_data_tiles = (1 << i_t);
+						for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
+						{
+							if (version == 1)
+							{
+								_n_in_data_tiles = in_tiles[i_t];
+							}
+							else
+							{
+								_n_in_data_tiles = (1 << i_t);
+							}
+							ret = mloMeasuredLoop(&profile_h,
+								bot_ocl_buf.get(),
+								top_ocl_buf.get(),
+								wei_ocl_buf.get(),
+								bias_ocl_buf.get(),
+								processing_time);
 
-                            ret = mloMeasuredLoop(&profile_h,
-                                                  bot_ocl_buf.get(),
-                                                  top_ocl_buf.get(),
-                                                  wei_ocl_buf.get(),
-                                                  bias_ocl_buf.get(),
-                                                  processing_time);
+							if (ret != 0)
+							{
+								std::cout << "Failed run." << std::endl;
+								runs_left--;
+								runs_left = (runs_left < 0) ? 0 : runs_left;
+								continue;
+							}
 
-                            if(ret != 0)
-                            {
-                                std::cout << "Failed run." << std::endl;
-                                runs_left--;
-                                runs_left = (runs_left < 0) ? 0 : runs_left;
-                                continue;
-                            }
-
-                            if(run_counter != 0 && run_counter % report_inteval == 0)
-                            {
-                                std::cout << "Runs left : " << runs_left << ", "
-                                          << "min time so far : " << min_proc_time << ", "
-                                          << "curr time : " << processing_time
+							if (run_counter != 0 && run_counter % report_inteval == 0)
+							{
+								std::cout << "Runs left : " << runs_left << ", "
+									<< "min time so far : " << min_proc_time << ", "
+									<< "curr time : " << processing_time
 #if 1
-                                          << ", " << _grp_tile1 << ", " << _grp_tile0 << ", "
-                                          << _in_tile1 << ", " << _in_tile0 << ", "
-                                          << _out_pix_tile1 << ", " << _out_pix_tile0 << ", "
-                                          << _n_out_pix_tiles << ", " << _n_in_data_tiles << ", "
-                                          << _n_stacks
+									<< ", " << _grp_tile1 << ", " << _grp_tile0 << ", "
+									<< _in_tile1 << ", " << _in_tile0 << ", "
+									<< _out_pix_tile1 << ", " << _out_pix_tile0 << ", "
+									<< _n_out_pix_tiles << ", " << _n_in_data_tiles << ", "
+									<< _n_stacks
 #endif
-                                          << std::endl;
-                            }
+									<< std::endl;
+							}
 
-                            run_counter++;
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                            if(min_proc_time > processing_time)
-                            {
-                                min_proc_time       = processing_time;
-                                min_grp_tile0       = _grp_tile0;
-                                min_grp_tile1       = _grp_tile1;
-                                min_in_tile0        = _in_tile0;
-                                min_in_tile1        = _in_tile1;
-                                min_out_pix_tile0   = _out_pix_tile0;
-                                min_out_pix_tile1   = _out_pix_tile1;
-                                min_n_out_pix_tiles = _n_out_pix_tiles;
-                                min_n_in_data_tiles = _n_in_data_tiles;
-                                min_n_stacks        = _n_stacks;
-                            }
+							run_counter++;
+							runs_left--;
+							runs_left = (runs_left < 0) ? 0 : runs_left;
+							if (min_proc_time > processing_time)
+							{
+								min_proc_time = processing_time;
+								min_grp_tile0 = _grp_tile0;
+								min_grp_tile1 = _grp_tile1;
+								min_in_tile0 = _in_tile0;
+								min_in_tile1 = _in_tile1;
+								min_out_pix_tile0 = _out_pix_tile0;
+								min_out_pix_tile1 = _out_pix_tile1;
+								min_n_out_pix_tiles = _n_out_pix_tiles;
+								min_n_in_data_tiles = _n_in_data_tiles;
+								min_n_stacks = _n_stacks;
+							}
 
-                        } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
-                          // ++i_t)
-                    }     // if (_out_pix_tile0 > _in_tile0)
-                }         // for (int l = 0; l < l_l; ++l)
-            }             // for (int g0 = 0; g0 < 2; ++g0)
-        }
+						} // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
+						  // ++i_t)
+					}     // if (_out_pix_tile0 > _in_tile0)
+				}         // for (int l = 0; l < l_l; ++l)
+			}             // for (int g0 = 0; g0 < 2; ++g0)
+		}
         else
         {
 
