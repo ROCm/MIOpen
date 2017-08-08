@@ -30,6 +30,7 @@
 #include "lrn_driver.hpp"
 #include "pool_driver.hpp"
 #include "softmax_driver.hpp"
+#include "rnn_driver.hpp"
 #include <cstdio>
 #include <iostream>
 
@@ -68,6 +69,10 @@ int main(int argc, char* argv[])
     {
         drv = new BatchNormDriver<float>();
     }
+	else if (base_arg == "rnn")
+	{
+		drv = new RNNDriver<float>();
+	}
     else
     {
         printf("Incorrect BaseArg\n");
