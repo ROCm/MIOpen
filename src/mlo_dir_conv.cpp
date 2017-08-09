@@ -239,12 +239,14 @@ int mlo_construct_winograd::mloConstruct()
             {
                 return (mloConstructBinaryWinograd3x3U(rmv));
             }
+#if MIOPEN_BACKEND_OPENCL
             if(mloIsCorrectBinaryWinogradRxSFwd(rmv) &&
                !miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}) &&
                (no_perf_filtering || mloIsFastBinaryWinogradRxSFwd()))
             {
                 return (mloConstructBinaryWinogradRxSFwd());
             }
+#endif
         }
     }
 #endif
@@ -1333,156 +1335,375 @@ int mlo_construct_direct2D::mloConstructDirect2DFwdC()
 int mlo_construct_direct2D::mloConstructDirect2D1x1()
 {
     int ret = 0;
-
-    // to restore to the previous version just comment this line
-    // currently runs previous version
-    //	return(mloConstructDirect2DFwd2());
-
-    size_t localMemSize = _stream->GetLocalMemorySize();
-
-    _hw_wave_sz       = 64;
-    _dev_local_mem_sz = localMemSize; // in bytes
-
-    _in_tile0      = 4;
-    _in_tile1      = 1;
-    _out_pix_tile0 = 4;
-    _out_pix_tile1 = 1;
-
-    int wei_cstride = _kernel_size0 * _kernel_size1;
-    // backward: inputs are forward outputs
-    int wei_bstride = (isForwardDirection() ? _n_inputs : _n_outputs) * wei_cstride;
-    int read_unit   = 4;
-    std::string READ_TYPE =
-        (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
-
-    // currently always 1
-    int N4S = 1;
-
-    int MAP_SZ4 = (_in_width * _in_height + N4S * read_unit - 1) / (N4S * read_unit);
-
-    int DIVBY4 = (MAP_SZ4 * read_unit == _in_width * _in_height) ? 1 : 0;
-
-    int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0 : _in_width * _in_height - (MAP_SZ4 - 1) * read_unit;
-
-    bool small_map      = false;
-    int GRP_SZ          = _grp_tile0;
-    int N_MAPS_PERGROUP = 1;
-    // exchange step is a number of partial sums that can be exchanged in the kernel in one pass
-    // it's used for small maps at the end of the kerenl to reduce partial sums
-    // the number is kept in and passed through _n_in_data_tiles (with abused semantics).
-    int exchange_step = 6;
-    if(MAP_SZ4 <= GRP_SZ / 2)
+    if((_n_outputs / 16) * 16 == _n_outputs && (_n_inputs / 4) * 4 == _n_inputs)
     {
-        N_MAPS_PERGROUP  = GRP_SZ / MAP_SZ4;
-        exchange_step    = _n_in_data_tiles;
-        _n_in_data_tiles = 1;
-        small_map        = true;
+        int version = _out_pix_tile1;
+
+        if(version == 1)
+        {
+
+            uint N_LCL_IN_MAPS = _n_in_data_tiles;
+
+            int N_LCL_OUT_MAPS = _n_out_pix_tiles;
+            // 0 or 1
+            uint CHEAT_SHADER_COMPILER = _out_pix_tile0;
+
+            int BATCHSIZE = _batch_sz;
+            int W         = _in_width;
+            int H         = _in_height;
+            int C         = _n_inputs;
+            int K         = _n_outputs;
+
+            N_LCL_OUT_MAPS   = std::min(N_LCL_OUT_MAPS, K);
+            _n_out_pix_tiles = N_LCL_OUT_MAPS;
+
+            if(N_LCL_IN_MAPS < C && N_LCL_IN_MAPS > 0 && (N_LCL_IN_MAPS % 8) == 0)
+            {
+                // Pass will do nothing
+            }
+            else
+            {
+                N_LCL_IN_MAPS = C;
+            }
+
+            _n_in_data_tiles = N_LCL_IN_MAPS;
+
+            /*
+            #define H  28
+            #define W 28
+            #define C 192
+            #define K 64
+
+            #define MLO_IN_HEIGHT              H
+            #define MLO_IN_WIDTH               W
+            #define MLO_N_INPUTS               C
+
+            //128 or MLO_N_INPUTS
+            #define MLO_N_LCL_IN_MAPS          128
+
+            #define MLO_N_OUTPUTS              K
+
+            #define H_out                      H
+            #define W_out					   W
+            */
+            //#define  MLO_N_IN_GROUPS             (( MLO_N_INPUTS + MLO_N_LCL_IN_MAPS - 1) /
+            // MLO_N_LCL_IN_MAPS)
+            //#define MLO_CLOOP0                   (MLO_N_LCL_IN_MAPS/MLO_N_LCL_IN_MAPS_ONCE )
+            //#define  MLO_CLOOP2                  ((MLO_N_INPUTS -
+            // MLO_N_LCL_IN_MAPS*(MLO_N_IN_GROUPS-1)) / MLO_N_LCL_IN_MAPS_ONCE )
+            //#define MLO_N_LCL_OUT_MAPS           16
+
+            uint N_IN_GROUPS        = (C + N_LCL_IN_MAPS - 1) / N_LCL_IN_MAPS;
+            uint N_LCL_IN_MAPS_ONCE = 8;
+            uint CLOOP0             = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
+            uint CLOOP2             = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
+
+            _comp_options =
+                std::string(" -DBATCHSIZE=") + std::to_string(BATCHSIZE) + std::string(" -DH=") +
+                std::to_string(H) + std::string(" -DW=") + std::to_string(W) +
+                std::string(" -DC=") + std::to_string(C) + std::string(" -DK=") +
+                std::to_string(K) + std::string(" -DMLO_N_LCL_IN_MAPS=") +
+                std::to_string(N_LCL_IN_MAPS) + std::string(" -DMLO_N_INPUTS=") +
+                std::to_string(C) + std::string(" -DMLO_N_OUTPUTS=") + std::to_string(K) +
+                std::string(" -DH_out=") + std::to_string(H) + std::string(" -DW_out=") +
+                std::to_string(W) + std::string(" -DMLO_N_IN_GROUPS=") +
+                std::to_string(N_IN_GROUPS) + std::string(" -DMLO_CLOOP0=") +
+                std::to_string(CLOOP0) + std::string(" -DMLO_CLOOP2=") + std::to_string(CLOOP2) +
+                std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(N_LCL_OUT_MAPS) +
+                std::string(" -DMLO_CHEAT_SHADER_COMPILER=") +
+                std::to_string(CHEAT_SHADER_COMPILER) +
+                std::string(
+                    " -DMLopen_RUNNING=1") + // to disable macro defines for CodeXL Shader Analyzer
+                getGeneralCompOptions();
+
+            // std::cout << "compile options:\n"<< _comp_options << std::endl;
+
+            int FIXED_WORKGROUP_SIZE = 64;
+
+            _l_wk.clear();
+            _l_wk.push_back(FIXED_WORKGROUP_SIZE);
+            _l_wk.push_back(1);
+            _l_wk.push_back(1);
+
+            size_t imagesizeAlign =
+                ((_in_width * _in_height * _batch_sz + FIXED_WORKGROUP_SIZE - 1) /
+                 FIXED_WORKGROUP_SIZE) *
+                FIXED_WORKGROUP_SIZE;
+            size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
+
+            size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+
+            size_t gbl_wk1 = 1;
+            ;
+            size_t gbl_wk2 = 1;
+
+            _g_wk.clear();
+            _g_wk.push_back(gbl_wk0);
+            _g_wk.push_back(gbl_wk1);
+            _g_wk.push_back(gbl_wk2);
+
+            _kernel_file = "MIOpenConv1x1J1.cl";
+
+            _kernel_name = "MIOpenConv1x1";
+        }
+        else
+        {
+
+            // parameters
+            //	int i_sz = _in_width * _in_height;
+            //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
+            int read_unit = _out_pix_tile0;
+            //	_n_out_pix_tiles = 16;
+            //	_n_in_data_tiles = 4;
+            //	_grp_tile0 = 64;
+
+            int wei_cstride = _kernel_size0 * _kernel_size1;
+            // backward: inputs are forward outputs
+            int wei_bstride = (isForwardDirection() ? _n_inputs : _n_outputs) * wei_cstride;
+
+            std::string READ_TYPE =
+                (read_unit == 1) ? "_FLOAT"
+                                 : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
+
+            int OUT_WIDTH4 = _out_width;
+            int MAP_SZ4    = (OUT_WIDTH4 * _out_height + read_unit - 1) / (read_unit);
+            // stride > 1 and/or apdding
+            if(_pad0 > 0 || _kernel_stride0 > 1)
+            {
+                int step   = (_direction) ? read_unit : read_unit * _kernel_stride0;
+                OUT_WIDTH4 = (_out_width + step - 1) / (step);
+                MAP_SZ4    = (OUT_WIDTH4 * _out_height);
+            }
+
+            int GRP_SZ = _grp_tile0;
+
+            // number of inputs inside wk-items
+            _n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
+
+            int CLOOP0 = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
+
+            // number of outputs inside wk_item
+            _n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
+
+            _comp_options =
+                std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction) +
+                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0) +
+                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1) +
+                std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0) +
+                std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1) +
+                std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0) +
+                std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1) +
+                std::string(" -DMLO_IN_WIDTH=") + std::to_string(_in_width) +
+                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_in_height) +
+                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_outputs) +
+                std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_inputs) +
+                std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz) +
+                std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_out_batch_stride) +
+                std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride) +
+                std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_out_stride) +
+                std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_in_batch_stride) +
+                std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride) +
+                std::string(" -DMLO_IN_STRIDE=") + std::to_string(_in_stride) +
+                std::string(" -DMLO_WEI_BSTRIDE=") + std::to_string(wei_bstride) +
+                std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride) +
+                // algorithm parameters
+                std::string(" -DMLO_GRP_SZ0=") + std::to_string(GRP_SZ) +
+                std::string(" -DMLO_GRP_SZ1=") + std::to_string(1) +
+                std::string(" -DMLO_GRP_SZ2=") + std::to_string(1) +
+
+                std::string(" -DMLO_MAP_SZ4=") + std::to_string(MAP_SZ4) +
+                std::string(" -DMLO_OUT_WIDTH4=") + std::to_string(OUT_WIDTH4) +
+
+                std::string(" -DMLO_N_LCL_BATCHS=") +
+                std::to_string(_n_stacks) + // # of diff stacks (part of batch).
+                std::string(" -DMLO_N_LCL_OUT_MAPS=") +
+                std::to_string(_n_out_pix_tiles) + // # output pixel tiles per wk-item (ALU)
+                std::string(" -DMLO_N_LCL_IN_MAPS=") +
+                std::to_string(_n_in_data_tiles) + // total # of blocks of different inputs in LDS
+                std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias) +
+
+                std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit) +
+                std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
+
+                getGeneralCompOptions();
+
+            _l_wk.clear();
+            _l_wk.push_back(_grp_tile0);
+            _l_wk.push_back(1);
+            _l_wk.push_back(1);
+
+            size_t gbl_wk0 = _batch_sz * MAP_SZ4;
+
+            size_t gbl_wk1 = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
+            size_t gbl_wk2 = 1;
+
+            _g_wk.clear();
+            _g_wk.push_back(gbl_wk0);
+            _g_wk.push_back(gbl_wk1);
+            _g_wk.push_back(gbl_wk2);
+
+            _kernel_file = "MIOpenConv1x1S.cl";
+            _kernel_name =
+                (_pad0 == 0 && _kernel_stride0 == 1) ? "MIOpenConv1x1" : "MIOpenConv1x1pquv";
+        }
     }
-
-    // number of inputs inside wk-items
-    _n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
-    // scale input by n of map per wk_item
-    int n_input_scaled = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
-
-    // number of outputs inside wk_item
-    _n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
-
-    if(small_map)
+    else
     {
-        exchange_step    = std::min(std::min(exchange_step, _n_out_pix_tiles), N_MAPS_PERGROUP);
-        _n_out_pix_tiles = (_n_out_pix_tiles / exchange_step) * exchange_step;
-    }
-    // n of input map per group
-    N_MAPS_PERGROUP = std::min(N_MAPS_PERGROUP, n_input_scaled);
-    // number of input loops
-    int n_in_loop = (n_input_scaled + N_MAPS_PERGROUP - 1) / N_MAPS_PERGROUP;
 
-    // number of batches inside wk_item
-    _n_stacks = std::min(_batch_sz, _n_stacks);
+        size_t localMemSize = _stream->GetLocalMemorySize();
 
-    int n_out_tiles_pergroup = _n_out_pix_tiles * _n_stacks;
+        _hw_wave_sz       = 64;
+        _dev_local_mem_sz = localMemSize; // in bytes
 
-    int batch_aligned  = 0;
-    int output_aligned = 0;
-    if((_batch_sz / _n_stacks) * _n_stacks == _batch_sz)
-    {
-        batch_aligned = 1;
-    }
-    if((_n_outputs / _n_out_pix_tiles) * _n_out_pix_tiles == _n_outputs)
-    {
-        output_aligned = 1;
-    }
+        _in_tile0      = 4;
+        _in_tile1      = 1;
+        _out_pix_tile0 = 4;
+        _out_pix_tile1 = 1;
 
-    _comp_options =
-        std::string(" -DMLO_DIR_FORWARD=") + std::to_string(static_cast<long long>(_direction)) +
-        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(_pad1)) +
-        std::string(" -DMLO_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs)) +
-        std::string(" -DMLO_N_INPUTS=") + std::to_string(static_cast<long long>(_n_inputs)) +
-        std::string(" -DMLO_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz)) +
-        std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(_out_batch_stride)) +
-        std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(_out_channel_stride)) +
-        std::string(" -DMLO_OUT_STRIDE=") + std::to_string(static_cast<long long>(_out_stride)) +
-        std::string(" -DMLO_IN_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(_in_batch_stride)) +
-        std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(_in_channel_stride)) +
-        std::string(" -DMLO_IN_STRIDE=") + std::to_string(static_cast<long long>(_in_stride)) +
-        std::string(" -DMLO_WEI_BSTRIDE=") + std::to_string(static_cast<long long>(wei_bstride)) +
-        std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(wei_cstride))
-        // algorithm parameters
-        + std::string(" -DMLO_GRP_SZ0=") + std::to_string(static_cast<long long>(GRP_SZ)) +
-        std::string(" -DMLO_MAP_SZ4=") + std::to_string(static_cast<long long>(MAP_SZ4)) +
-        std::string(" -DMLO_C1x1_PIXLEFT=") + std::to_string(static_cast<long long>(C1x1_PIXLEFT)) +
-        std::string(" -DMLO_DIVBY4=") + std::to_string(static_cast<long long>(DIVBY4)) +
-        std::string(" -DMLO_IN_LOOP=") + std::to_string(static_cast<long long>(n_in_loop)) +
-        std::string(" -DMLO_N_LCL_BATCHS=") +
-        std::to_string(static_cast<long long>(_n_stacks)) // # of diff stacks (part of batch).
-        + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
-        std::to_string(
-            static_cast<long long>(_n_out_pix_tiles)) // # output pixel tiles per wk-item (ALU)
-        + std::string(" -DMLO_N_OUT_TILES_PERGROUP=") +
-        std::to_string(static_cast<long long>(n_out_tiles_pergroup)) +
-        std::string(" -DMLO_N_LCL_IN_MAPS=") +
-        std::to_string(static_cast<long long>(
-            _n_in_data_tiles)) // total # of blocks of different inputs in LDS
-        + std::string(" -DMLO_N_MAPS_PERGROUP=") +
-        std::to_string(
-            static_cast<long long>(N_MAPS_PERGROUP)) // total # of blocks of different inputs in LDS
-        + std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(_bias)) +
-        std::string(" -DMLO_BATCH_ALIGNED=") +
-        std::to_string(static_cast<long long>(batch_aligned)) +
-        std::string(" -DMLO_OUTPUTS_ALIGNED=") +
-        std::to_string(static_cast<long long>(output_aligned)) +
-        std::string(" -DMLO_EXCHANGE_STEP=") +
-        std::to_string(static_cast<long long>(exchange_step)) + std::string(" -DMLO_READ_TYPE=") +
-        READ_TYPE + std::string(" -DMLO_READ_UNIT=") +
-        std::to_string(static_cast<long long>(read_unit)) + getGeneralCompOptions();
+        int wei_cstride = _kernel_size0 * _kernel_size1;
+        // backward: inputs are forward outputs
+        int wei_bstride       = (isForwardDirection() ? _n_inputs : _n_outputs) * wei_cstride;
+        int read_unit         = 4;
+        std::string READ_TYPE = (read_unit == 1)
+                                    ? "_FLOAT"
+                                    : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
 
-    _l_wk.clear();
-    _l_wk.push_back(_grp_tile0);
-    _l_wk.push_back(_grp_tile1);
-    _l_wk.push_back(1);
+        // currently always 1
+        int N4S = 1;
 
-    size_t gbl_wk0 = (GRP_SZ < MAP_SZ4) ? ((MAP_SZ4 + GRP_SZ - 1) / GRP_SZ) * GRP_SZ : GRP_SZ;
+        int MAP_SZ4 = (_in_width * _in_height + N4S * read_unit - 1) / (N4S * read_unit);
 
-    size_t gbl_wk1 = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
-    size_t gbl_wk2 = (_batch_sz + _n_stacks - 1) / _n_stacks;
+        int DIVBY4 = (MAP_SZ4 * read_unit == _in_width * _in_height) ? 1 : 0;
 
-    _g_wk.clear();
-    _g_wk.push_back(gbl_wk0);
-    _g_wk.push_back(gbl_wk1);
-    _g_wk.push_back(gbl_wk2);
+        int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0 : _in_width * _in_height - (MAP_SZ4 - 1) * read_unit;
 
-    _kernel_file = "MIOpenConv1x1.cl";
-    _kernel_name = "MIOpenConv1x1";
+        bool small_map      = false;
+        int GRP_SZ          = _grp_tile0;
+        int N_MAPS_PERGROUP = 1;
+        // exchange step is a number of partial sums that can be exchanged in the kernel in one pass
+        // it's used for small maps at the end of the kerenl to reduce partial sums
+        // the number is kept in and passed through _n_in_data_tiles (with abused semantics).
+        int exchange_step = 6;
+        if(MAP_SZ4 <= GRP_SZ / 2)
+        {
+            N_MAPS_PERGROUP  = GRP_SZ / MAP_SZ4;
+            exchange_step    = _n_in_data_tiles;
+            _n_in_data_tiles = 1;
+            small_map        = true;
+        }
 
-    // see above comment
-    if(small_map)
-    {
-        _n_in_data_tiles = exchange_step;
+        // number of inputs inside wk-items
+        _n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
+        // scale input by n of map per wk_item
+        int n_input_scaled = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
+
+        // number of outputs inside wk_item
+        _n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
+
+        if(small_map)
+        {
+            exchange_step    = std::min(std::min(exchange_step, _n_out_pix_tiles), N_MAPS_PERGROUP);
+            _n_out_pix_tiles = (_n_out_pix_tiles / exchange_step) * exchange_step;
+        }
+        // n of input map per group
+        N_MAPS_PERGROUP = std::min(N_MAPS_PERGROUP, n_input_scaled);
+        // number of input loops
+        //   int n_in_loop = (n_input_scaled + N_MAPS_PERGROUP - 1) / N_MAPS_PERGROUP;
+
+        // number of batches inside wk_item
+        _n_stacks = std::min(_batch_sz, _n_stacks);
+
+        int n_out_tiles_pergroup = _n_out_pix_tiles * _n_stacks;
+
+        int batch_aligned  = 0;
+        int output_aligned = 0;
+        if((_batch_sz / _n_stacks) * _n_stacks == _batch_sz)
+        {
+            batch_aligned = 1;
+        }
+        if((_n_outputs / _n_out_pix_tiles) * _n_out_pix_tiles == _n_outputs)
+        {
+            output_aligned = 1;
+        }
+
+        _comp_options =
+            std::string(" -DMLO_DIR_FORWARD=") +
+            std::to_string(static_cast<long long>(_direction)) +
+            std::string(" -DMLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(_pad1)) +
+            std::string(" -DMLO_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs)) +
+            std::string(" -DMLO_N_INPUTS=") + std::to_string(static_cast<long long>(_n_inputs)) +
+            std::string(" -DMLO_BATCH_SZ=") + std::to_string(static_cast<long long>(_batch_sz)) +
+            std::string(" -DMLO_OUT_BATCH_STRIDE=") +
+            std::to_string(static_cast<long long>(_out_batch_stride)) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
+            std::to_string(static_cast<long long>(_out_channel_stride)) +
+            std::string(" -DMLO_OUT_STRIDE=") +
+            std::to_string(static_cast<long long>(_out_stride)) +
+            std::string(" -DMLO_IN_BATCH_STRIDE=") +
+            std::to_string(static_cast<long long>(_in_batch_stride)) +
+            std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
+            std::to_string(static_cast<long long>(_in_channel_stride)) +
+            std::string(" -DMLO_IN_STRIDE=") + std::to_string(static_cast<long long>(_in_stride)) +
+            std::string(" -DMLO_WEI_BSTRIDE=") +
+            std::to_string(static_cast<long long>(wei_bstride)) +
+            std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
+            std::to_string(static_cast<long long>(wei_cstride))
+            // algorithm parameters
+            + std::string(" -DMLO_GRP_SZ0=") + std::to_string(static_cast<long long>(GRP_SZ)) +
+            std::string(" -DMLO_GRP_SZ1=") + std::to_string(1) + std::string(" -DMLO_GRP_SZ2=") +
+            std::to_string(1) +
+
+            std::string(" -DMLO_MAP_SZ4=") + std::to_string(static_cast<long long>(MAP_SZ4)) +
+            std::string(" -DMLO_C1x1_PIXLEFT=") +
+            std::to_string(static_cast<long long>(C1x1_PIXLEFT)) + std::string(" -DMLO_DIVBY4=") +
+            std::to_string(static_cast<long long>(DIVBY4)) +
+            // std::string(" -DMLO_IN_LOOP=") + std::to_string(static_cast<long long>(n_in_loop)) +
+            std::string(" -DMLO_N_LCL_BATCHS=") +
+            std::to_string(static_cast<long long>(_n_stacks)) // # of diff stacks (part of batch).
+            + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
+            std::to_string(
+                static_cast<long long>(_n_out_pix_tiles)) // # output pixel tiles per wk-item (ALU)
+            + std::string(" -DMLO_N_OUT_TILES_PERGROUP=") +
+            std::to_string(static_cast<long long>(n_out_tiles_pergroup)) +
+            std::string(" -DMLO_N_LCL_IN_MAPS=") +
+            std::to_string(static_cast<long long>(
+                _n_in_data_tiles)) // total # of blocks of different inputs in LDS
+            + std::string(" -DMLO_N_MAPS_PERGROUP=") +
+            std::to_string(static_cast<long long>(
+                N_MAPS_PERGROUP)) // total # of blocks of different inputs in LDS
+            + std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(_bias)) +
+            std::string(" -DMLO_BATCH_ALIGNED=") +
+            std::to_string(static_cast<long long>(batch_aligned)) +
+            std::string(" -DMLO_OUTPUTS_ALIGNED=") +
+            std::to_string(static_cast<long long>(output_aligned)) +
+            std::string(" -DMLO_EXCHANGE_STEP=") +
+            std::to_string(static_cast<long long>(exchange_step)) +
+            std::string(" -DMLO_READ_TYPE=") + READ_TYPE + std::string(" -DMLO_READ_UNIT=") +
+            std::to_string(static_cast<long long>(read_unit)) + getGeneralCompOptions();
+
+        _l_wk.clear();
+        _l_wk.push_back(_grp_tile0);
+        _l_wk.push_back(_grp_tile1);
+        _l_wk.push_back(1);
+
+        size_t gbl_wk0 = (GRP_SZ < MAP_SZ4) ? ((MAP_SZ4 + GRP_SZ - 1) / GRP_SZ) * GRP_SZ : GRP_SZ;
+
+        size_t gbl_wk1 = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
+        size_t gbl_wk2 = (_batch_sz + _n_stacks - 1) / _n_stacks;
+
+        _g_wk.clear();
+        _g_wk.push_back(gbl_wk0);
+        _g_wk.push_back(gbl_wk1);
+        _g_wk.push_back(gbl_wk2);
+
+        _kernel_file = "MIOpenConv1x1.cl";
+        _kernel_name = "MIOpenConv1x1";
+
+        // see above comment
+        if(small_map)
+        {
+            _n_in_data_tiles = exchange_step;
+        }
     }
 
     return (ret);
@@ -3375,13 +3596,8 @@ bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
 
 bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
 {
-    // MD: These are actually not performance issues rather
-    // a workaround to mitigate memory fauults on gfx9
-    // They work fine on gfx8
-    // /todo fix memory faults on gfx9
     const std::string name = _stream->GetDeviceName();
-    return !(name == "gfx900" && (_in_width == 13 || _in_width == 27 || _in_width == 54 ||
-                                  _in_width == 57 || _in_width == 17 || _in_width == 250));
+    return !(name == "gfx900" && _in_width <= 14);
 }
 
 int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
@@ -3661,21 +3877,59 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string& conf_val)
     if(_kernel_size0 == 1 && _kernel_size1 == 1)
     {
 
-        _in_tile0 = 4; // size of input data per ALU plane
-        _in_tile1 = 1; // size of input data per ALU plane
+        if((_n_outputs / 16) * 16 == _n_outputs && (_n_inputs / 4) * 4 == _n_inputs)
+        {
+            // version
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs)
+            {
+                _n_in_data_tiles = 128;
 
-        int out_len4 = (_out_height * _out_width + 3) / 4;
+                _n_out_pix_tiles = 32;
+                // 0 or 1
+                // CHEAT_SHADER_COMPILER =
+                _out_pix_tile0 = 0;
 
-        _grp_tile0 = (out_len4 > 192) ? 256 : (out_len4 > 128) ? 192 : (out_len4 > 64) ? 128 : 64;
-        _grp_tile1 = 1;
+                // int version =
+                _out_pix_tile1 = 1;
+            }
+            else
+            {
+                int i_sz       = _out_height * _out_width;
+                _out_pix_tile0 = (i_sz & 1) ? 1 : 2;
 
-        _out_pix_tile0 = 4; // size of ouptput tile per wk-item (ALU))
-        _out_pix_tile1 = 1; // 4; //
+                if(_pad0 > 0 || _kernel_stride0 > 1)
+                {
+                    int row_sz     = (_direction) ? _out_width : _in_width;
+                    _out_pix_tile0 = (row_sz & 1) ? 1 : 2;
+                }
 
-        _n_out_pix_tiles = 16; // 2;  // # output pixel tiles per wk-item (ALU)
-        _n_in_data_tiles = 2;  // 4; // # of blocks of different inputs in LDS
+                _n_out_pix_tiles = 16;
+                _n_in_data_tiles = 4;
+                _grp_tile0       = 64;
+                // int version =
+                _out_pix_tile1 = 0;
+            }
+        }
+        else
+        {
 
-        _n_stacks = (_batch_sz > 1) ? 2 : 1; // # of diff stacks (part of batch).
+            _in_tile0 = 4; // size of input data per ALU plane
+            _in_tile1 = 1; // size of input data per ALU plane
+
+            int out_len4 = (_out_height * _out_width + 3) / 4;
+
+            _grp_tile0 =
+                (out_len4 > 192) ? 256 : (out_len4 > 128) ? 192 : (out_len4 > 64) ? 128 : 64;
+            _grp_tile1 = 1;
+
+            _out_pix_tile0 = 4; // size of ouptput tile per wk-item (ALU))
+            _out_pix_tile1 = 1; // 4; //
+
+            _n_out_pix_tiles = 16; // 2;  // # output pixel tiles per wk-item (ALU)
+            _n_in_data_tiles = 2;  // 4; // # of blocks of different inputs in LDS
+
+            _n_stacks = (_batch_sz > 1) ? 2 : 1; // # of diff stacks (part of batch).
+        }
     }
 
     mloBuildConf_Val(conf_val,
@@ -4017,6 +4271,12 @@ int mlo_construct_direct2D::mloSearchDirect2D()
 
         auto top_ocl_buf = profile_h.Write(top_sys_buf);
 
+        std::vector<float> random_top_sys_buf(top_sz);
+        for(int i = 0; i < top_sz; i++)
+        {
+            random_top_sys_buf[i] = static_cast<float>(rand() * (1.0 / RAND_MAX));
+        }
+
         size_t weights_sz = _weights_sz / sizeof(float);
         std::vector<float> wei_sys_buf(weights_sz);
         for(int i = 0; i < weights_sz; i++)
@@ -4050,21 +4310,19 @@ int mlo_construct_direct2D::mloSearchDirect2D()
         int n_out_tiles_rg[2]  = {1, 8};
         int n_in_tiles_rg[2]   = {1, 4};
         int n_in_stacks_sz[3]  = {1, 2, 4};
+        int in_tiles[4]        = {64, 128, 256, 2048};
         /*
-        std::vector<int> v_tile_sz;
-        std::vector<int> v_out_pix_tile_sz;
-        std::vector<int> v_n_out_tiles_rg;
-        std::vector<int> v_n_in_tiles_rg;
-        std::vector<int> v_n_in_stacks_sz;
-        */
+std::vector<int> v_tile_sz;
+std::vector<int> v_out_pix_tile_sz;
+std::vector<int> v_n_out_tiles_rg;
+std::vector<int> v_n_in_tiles_rg;
+std::vector<int> v_n_in_stacks_sz;
+*/
         //
 
         double min_proc_time = std::numeric_limits<float>::max();
 
 #if 1
-        std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may "
-                     "take few minutes."
-                  << std::endl;
 
         size_t run_counter = 0;
         int n_grp_tiles1   = 2;
@@ -4133,6 +4391,8 @@ int mlo_construct_direct2D::mloSearchDirect2D()
         size_t report_inteval = 100;
         //			_n_timer_iter = 250;
 
+        long long runs_left = 0;
+
         if(_kernel_size0 == 1 && _kernel_size1 == 1)
         {
             grp_tl_ln[0] = 64;
@@ -4158,228 +4418,398 @@ int mlo_construct_direct2D::mloSearchDirect2D()
             report_inteval = 20;
         }
 
-        long long runs_left = n_grp_tiles * n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt *
-                              n_out_tls * n_in_tiles_rg[1] * stack_cnt;
-
-        for(int g1 = 0; g1 < n_grp_tiles1; g1++)
+        if(_kernel_size0 == 1 && _kernel_size1 == 1 && (_n_outputs / 16) * 16 == _n_outputs &&
+           (_n_inputs / 4) * 4 == _n_inputs)
         {
-            _grp_tile1 = (_kernel_size0 == 1 && _kernel_size1 == 1) ? 1 : grp_tl_ln[g1];
-            for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
+
+            std::cout
+                << "Searching the best solution in the 4 dim space. Please, be patient it may "
+                   "take few minutes."
+                << std::endl;
+            _grp_tile1     = 1;
+            _in_tile1      = 1;
+            _in_tile0      = 1;
+            report_inteval = 4;
+
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs)
+            {
+
+                // uint N_LCL_IN_MAPS = _n_in_data_tiles;
+                n_in_tiles_rg[0] = 0;
+                n_in_tiles_rg[1] = 3;
+                int n_in_tls     = 4;
+
+                //					int N_LCL_OUT_MAPS = _n_out_pix_tiles;
+                n_out_tiles_rg[0] = 4;
+                n_out_tiles_rg[1] = 6;
+                // 0 or 1
+                out_pix_tl_cnt = 3;
+                //					uint CHEAT_SHADER_COMPILER = _out_pix_tile0;
+                out_pix_tile_sz[0] = 0;
+                out_pix_tile_sz[1] = 1;
+                n_out_tls          = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
+                n_grp_tiles0       = 0;
+
+                runs_left = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
+
+                _out_pix_tile1 = 1;
+            }
+            else
+            {
+                int i_sz           = _in_width * _in_height;
+                out_pix_tl_cnt     = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
+                out_pix_tile_sz[0] = 1;
+                out_pix_tile_sz[1] = 2;
+                out_pix_tile_sz[2] = 4;
+
+                n_out_tiles_rg[0] = 2;
+                n_out_tiles_rg[1] = ((_n_outputs / 64) * 64 == _n_outputs)
+                                        ? 6
+                                        : ((_n_outputs / 32) * 32 == _n_outputs) ? 5 : 4;
+
+                n_in_tiles_rg[0] = 2;
+                n_in_tiles_rg[1] = ((_n_inputs / 8) * 8 == _n_inputs) ? 3 : 2;
+
+                grp_tl_ln[0] = 64;
+                grp_tl_ln[1] = 128;
+                grp_tl_ln[2] = 256;
+                n_grp_tiles0 = 3;
+                n_grp_tiles1 = 1;
+
+                n_grp_tiles  = n_grp_tiles1 * n_grp_tiles0;
+                n_out_tls    = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
+                int n_in_tls = 2;
+                runs_left    = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
+
+                _out_pix_tile1 = 0;
+            }
+
+            int version = _out_pix_tile1;
+
+            for(int g0 = 0; g0 <= n_grp_tiles0; ++g0)
             {
                 _grp_tile0 = grp_tl_ln[g0];
 
-                // tile1
-                for(int j = 0; j < n_tile1_sz; ++j)
+                // out pix 0
+                for(int o_t = n_out_tiles_rg[0]; o_t <= n_out_tiles_rg[1]; ++o_t)
                 {
-                    _in_tile1 = tile_sz1[j];
-                    if(_out_height * 2 <= _in_tile1 && _in_tile1 > tile_sz[0])
+                    _n_out_pix_tiles = (1 << o_t);
+                    for(int l = 0; l < out_pix_tl_cnt; ++l)
                     {
-                        runs_left--;
-                        runs_left = (runs_left < 0) ? 0 : runs_left;
-                        continue;
-                    }
+                        _out_pix_tile0 = out_pix_tile_sz[l];
+                        if(version == 0 && ((_n_out_pix_tiles == 32 && _out_pix_tile0 >= 4) ||
+                                            (_n_out_pix_tiles == 64 && _out_pix_tile0 >= 2)))
+                        {
+                            continue;
+                        }
 
-                    // tile 0
-                    for(int i = 0; i < n_tile0_sz; ++i)
+                        for(int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
+                        {
+                            if(version == 1)
+                            {
+                                _n_in_data_tiles = in_tiles[i_t];
+                            }
+                            else
+                            {
+                                _n_in_data_tiles = (1 << i_t);
+                            }
+                            // randomize output
+                            profile_h.WriteTo(
+                                reinterpret_cast<const void*>(random_top_sys_buf.data()),
+                                top_ocl_buf,
+                                random_top_sys_buf.size() * sizeof(float));
+
+                            ret = mloMeasuredLoop(&profile_h,
+                                                  bot_ocl_buf.get(),
+                                                  top_ocl_buf.get(),
+                                                  wei_ocl_buf.get(),
+                                                  bias_ocl_buf.get(),
+                                                  processing_time);
+
+                            if(ret != 0)
+                            {
+                                std::cout << "Failed run." << std::endl;
+                                runs_left--;
+                                runs_left = (runs_left < 0) ? 0 : runs_left;
+                                continue;
+                            }
+
+                            if(run_counter != 0 && run_counter % report_inteval == 0)
+                            {
+                                std::cout << "Runs left : " << runs_left << ", "
+                                          << "min time so far : " << min_proc_time << ", "
+                                          << "curr time : " << processing_time
+#if 1
+                                          << ", " << _grp_tile1 << ", " << _grp_tile0 << ", "
+                                          << _in_tile1 << ", " << _in_tile0 << ", "
+                                          << _out_pix_tile1 << ", " << _out_pix_tile0 << ", "
+                                          << _n_out_pix_tiles << ", " << _n_in_data_tiles << ", "
+                                          << _n_stacks
+#endif
+                                          << std::endl;
+                            }
+
+                            run_counter++;
+                            runs_left--;
+                            runs_left = (runs_left < 0) ? 0 : runs_left;
+                            if(min_proc_time > processing_time)
+                            {
+                                min_proc_time       = processing_time;
+                                min_grp_tile0       = _grp_tile0;
+                                min_grp_tile1       = _grp_tile1;
+                                min_in_tile0        = _in_tile0;
+                                min_in_tile1        = _in_tile1;
+                                min_out_pix_tile0   = _out_pix_tile0;
+                                min_out_pix_tile1   = _out_pix_tile1;
+                                min_n_out_pix_tiles = _n_out_pix_tiles;
+                                min_n_in_data_tiles = _n_in_data_tiles;
+                                min_n_stacks        = _n_stacks;
+                            }
+
+                        } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
+                          // ++i_t)
+                    }     // if (_out_pix_tile0 > _in_tile0)
+                }         // for (int l = 0; l < l_l; ++l)
+            }             // for (int g0 = 0; g0 < 2; ++g0)
+        }
+        else
+        {
+
+            std::cout
+                << "Searching the best solution in the 9 dim space. Please, be patient it may "
+                   "take few minutes."
+                << std::endl;
+
+            runs_left = n_grp_tiles * n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
+                        n_in_tiles_rg[1] * stack_cnt;
+
+            for(int g1 = 0; g1 < n_grp_tiles1; g1++)
+            {
+                _grp_tile1 = (_kernel_size0 == 1 && _kernel_size1 == 1) ? 1 : grp_tl_ln[g1];
+                for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
+                {
+                    _grp_tile0 = grp_tl_ln[g0];
+
+                    // tile1
+                    for(int j = 0; j < n_tile1_sz; ++j)
                     {
-                        _in_tile0 = tile_sz0[i];
-                        if((_out_width * 2 <= _in_tile0 && _in_tile0 > tile_sz[0]))
+                        _in_tile1 = tile_sz1[j];
+                        if(_out_height * 2 <= _in_tile1 && _in_tile1 > tile_sz[0])
                         {
                             runs_left--;
                             runs_left = (runs_left < 0) ? 0 : runs_left;
                             continue;
                         }
-                        if(_out_height > 16 && _out_width > 16 &&
-                           ((_in_tile1 == 8 && _in_tile0 == 8) ||
-                            (_grp_tile0 == 8 && _grp_tile1 == 8)))
-                        {
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                            continue;
-                        }
-                        if(_out_width > 32 && _in_tile1 > _in_tile0)
-                        {
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                            continue;
-                        }
-                        // out pix 1
 
-                        for(int k = (unaligned) ? out_pix_tile_sz[0] : 0; k < out_pix_tl_cnt; ++k)
+                        // tile 0
+                        for(int i = 0; i < n_tile0_sz; ++i)
                         {
-                            _out_pix_tile1 = (unaligned) ? k : out_pix_tile_sz[k];
-                            if(_out_pix_tile1 > _in_tile1)
+                            _in_tile0 = tile_sz0[i];
+                            if((_out_width * 2 <= _in_tile0 && _in_tile0 > tile_sz[0]))
                             {
                                 runs_left--;
                                 runs_left = (runs_left < 0) ? 0 : runs_left;
                                 continue;
                             }
-                            // out pix 0
-
-                            for(int l = (unaligned) ? out_pix_tile_sz[0] : 0; l < out_pix_tl_cnt;
-                                ++l)
+                            if(_out_height > 16 && _out_width > 16 &&
+                               ((_in_tile1 == 8 && _in_tile0 == 8) ||
+                                (_grp_tile0 == 8 && _grp_tile1 == 8)))
                             {
-                                _out_pix_tile0 = (_kernel_size0 == 1 && _kernel_size1 == 1)
-                                                     ? 4
-                                                     : (unaligned) ? l : out_pix_tile_sz[l];
+                                runs_left--;
+                                runs_left = (runs_left < 0) ? 0 : runs_left;
+                                continue;
+                            }
+                            if(_out_width > 32 && _in_tile1 > _in_tile0)
+                            {
+                                runs_left--;
+                                runs_left = (runs_left < 0) ? 0 : runs_left;
+                                continue;
+                            }
+                            // out pix 1
 
-                                if(_out_pix_tile0 > _in_tile0)
+                            for(int k = (unaligned) ? out_pix_tile_sz[0] : 0; k < out_pix_tl_cnt;
+                                ++k)
+                            {
+                                _out_pix_tile1 = (unaligned) ? k : out_pix_tile_sz[k];
+                                if(_out_pix_tile1 > _in_tile1)
                                 {
                                     runs_left--;
                                     runs_left = (runs_left < 0) ? 0 : runs_left;
                                     continue;
                                 }
+                                // out pix 0
 
-                                int o_l = n_out_tiles_rg[1];
-                                for(int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
+                                for(int l = (unaligned) ? out_pix_tile_sz[0] : 0;
+                                    l < out_pix_tl_cnt;
+                                    ++l)
                                 {
-                                    _n_out_pix_tiles = o_t;
-                                    if(_n_outputs < _n_out_pix_tiles)
+                                    _out_pix_tile0 = (_kernel_size0 == 1 && _kernel_size1 == 1)
+                                                         ? 4
+                                                         : (unaligned) ? l : out_pix_tile_sz[l];
+
+                                    if(_out_pix_tile0 > _in_tile0)
                                     {
                                         runs_left--;
                                         runs_left = (runs_left < 0) ? 0 : runs_left;
                                         continue;
                                     }
-#if 1
-                                    if(_kernel_size0 == 1 && _kernel_size1 == 1)
+
+                                    int o_l = n_out_tiles_rg[1];
+                                    for(int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
                                     {
-                                        int N4S = 1;
-
-                                        int MAP_SZ4 =
-                                            (_in_width * _in_height + N4S * 4 - 1) / (N4S * 4);
-
-                                        int GRP_SZ          = _grp_tile0;
-                                        int N_MAPS_PERGROUP = 1;
-                                        int exchange_step;
-
-                                        if(MAP_SZ4 <= GRP_SZ / 2)
-                                        {
-                                            N_MAPS_PERGROUP   = GRP_SZ / MAP_SZ4;
-                                            int lcl_mem_avial = (_grp_tile0 <= 192)
-                                                                    ? (_dev_local_mem_sz / 4) / 2
-                                                                    : (_dev_local_mem_sz / 4);
-
-                                            exchange_step =
-                                                lcl_mem_avial / (N_MAPS_PERGROUP * MAP_SZ4 * 4);
-                                            exchange_step =
-                                                std::min(std::min(exchange_step, _n_out_pix_tiles),
-                                                         N_MAPS_PERGROUP);
-                                            if(exchange_step < _n_out_pix_tiles)
-                                            {
-                                                auto tmp_stp = static_cast<int>(std::ceil(
-                                                    std::sqrt(static_cast<float>(exchange_step))));
-                                                n_in_tiles_rg[0] = tmp_stp;
-                                                n_in_tiles_rg[1] = exchange_step;
-                                            }
-                                            else
-                                            {
-                                                n_in_tiles_rg[0] = 1;
-                                                n_in_tiles_rg[1] = 1;
-                                            }
-                                        }
-                                    }
-#endif
-                                    for(int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
-                                    {
-                                        _n_in_data_tiles = i_t;
-                                        if(_n_inputs < _n_in_data_tiles)
+                                        _n_out_pix_tiles = o_t;
+                                        if(_n_outputs < _n_out_pix_tiles)
                                         {
                                             runs_left--;
                                             runs_left = (runs_left < 0) ? 0 : runs_left;
                                             continue;
                                         }
-
-                                        for(int s = 0; s < stack_cnt; ++s)
+#if 1
+                                        if(_kernel_size0 == 1 && _kernel_size1 == 1)
                                         {
+                                            int N4S = 1;
 
-                                            _n_stacks = n_in_stacks_sz[s];
-                                            if(_kernel_size0 == 1 && _kernel_size1 == 1)
+                                            int MAP_SZ4 =
+                                                (_in_width * _in_height + N4S * 4 - 1) / (N4S * 4);
+
+                                            int GRP_SZ          = _grp_tile0;
+                                            int N_MAPS_PERGROUP = 1;
+                                            int exchange_step;
+
+                                            if(MAP_SZ4 <= GRP_SZ / 2)
                                             {
+                                                N_MAPS_PERGROUP = GRP_SZ / MAP_SZ4;
+                                                int lcl_mem_avial =
+                                                    (_grp_tile0 <= 192)
+                                                        ? (_dev_local_mem_sz / 4) / 2
+                                                        : (_dev_local_mem_sz / 4);
+
+                                                exchange_step =
+                                                    lcl_mem_avial / (N_MAPS_PERGROUP * MAP_SZ4 * 4);
+                                                exchange_step = std::min(
+                                                    std::min(exchange_step, _n_out_pix_tiles),
+                                                    N_MAPS_PERGROUP);
+                                                if(exchange_step < _n_out_pix_tiles)
+                                                {
+                                                    auto tmp_stp =
+                                                        static_cast<int>(std::ceil(std::sqrt(
+                                                            static_cast<float>(exchange_step))));
+                                                    n_in_tiles_rg[0] = tmp_stp;
+                                                    n_in_tiles_rg[1] = exchange_step;
+                                                }
+                                                else
+                                                {
+                                                    n_in_tiles_rg[0] = 1;
+                                                    n_in_tiles_rg[1] = 1;
+                                                }
                                             }
-                                            else
+                                        }
+#endif
+                                        for(int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
+                                            ++i_t)
+                                        {
+                                            _n_in_data_tiles = i_t;
+                                            if(_n_inputs < _n_in_data_tiles)
                                             {
-                                                int alu_tile0 =
-                                                    std::max(1, _in_tile0 / _out_pix_tile0);
-                                                int alu_tile1 =
-                                                    std::max(1, _in_tile1 / _out_pix_tile1);
-                                                int alu_tiles_sz = (alu_tile0 * alu_tile1);
-                                                int n_alus_total = (_grp_tile0 * _grp_tile1);
+                                                runs_left--;
+                                                runs_left = (runs_left < 0) ? 0 : runs_left;
+                                                continue;
+                                            }
 
-                                                if(alu_tiles_sz >
-                                                   n_alus_total /* || _n_in_data_tiles*_n_out_pix_tiles*_out_pix_tile1*_out_pix_tile0 > 240*/)
+                                            for(int s = 0; s < stack_cnt; ++s)
+                                            {
+
+                                                _n_stacks = n_in_stacks_sz[s];
+                                                if(_kernel_size0 == 1 && _kernel_size1 == 1)
+                                                {
+                                                }
+                                                else
+                                                {
+                                                    int alu_tile0 =
+                                                        std::max(1, _in_tile0 / _out_pix_tile0);
+                                                    int alu_tile1 =
+                                                        std::max(1, _in_tile1 / _out_pix_tile1);
+                                                    int alu_tiles_sz = (alu_tile0 * alu_tile1);
+                                                    int n_alus_total = (_grp_tile0 * _grp_tile1);
+
+                                                    if(alu_tiles_sz >
+                                                       n_alus_total /* || _n_in_data_tiles*_n_out_pix_tiles*_out_pix_tile1*_out_pix_tile0 > 240*/)
+                                                    {
+                                                        runs_left--;
+                                                        runs_left = (runs_left < 0) ? 0 : runs_left;
+                                                        continue;
+                                                    }
+                                                }
+
+                                                if(_n_stacks > _batch_sz)
                                                 {
                                                     runs_left--;
                                                     runs_left = (runs_left < 0) ? 0 : runs_left;
                                                     continue;
                                                 }
-                                            }
+                                                ret = mloMeasuredLoop(&profile_h,
+                                                                      bot_ocl_buf.get(),
+                                                                      top_ocl_buf.get(),
+                                                                      wei_ocl_buf.get(),
+                                                                      bias_ocl_buf.get(),
+                                                                      processing_time);
 
-                                            if(_n_stacks > _batch_sz)
-                                            {
-                                                runs_left--;
-                                                runs_left = (runs_left < 0) ? 0 : runs_left;
-                                                continue;
-                                            }
-                                            ret = mloMeasuredLoop(&profile_h,
-                                                                  bot_ocl_buf.get(),
-                                                                  top_ocl_buf.get(),
-                                                                  wei_ocl_buf.get(),
-                                                                  bias_ocl_buf.get(),
-                                                                  processing_time);
+                                                if(ret != 0)
+                                                {
+                                                    std::cout << "Failed run." << std::endl;
+                                                    runs_left--;
+                                                    runs_left = (runs_left < 0) ? 0 : runs_left;
+                                                    continue;
+                                                }
 
-                                            if(ret != 0)
-                                            {
-                                                std::cout << "Failed run." << std::endl;
-                                                runs_left--;
-                                                runs_left = (runs_left < 0) ? 0 : runs_left;
-                                                continue;
-                                            }
-
-                                            if(run_counter != 0 &&
-                                               run_counter % report_inteval == 0)
-                                            {
-                                                std::cout
-                                                    << "Runs left : " << runs_left << ", "
-                                                    << "min time so far : " << min_proc_time << ", "
-                                                    << "curr time : " << processing_time
+                                                if(run_counter != 0 &&
+                                                   run_counter % report_inteval == 0)
+                                                {
+                                                    std::cout
+                                                        << "Runs left : " << runs_left << ", "
+                                                        << "min time so far : " << min_proc_time
+                                                        << ", "
+                                                        << "curr time : " << processing_time
 #if 1
-                                                    << ", " << _grp_tile1 << ", " << _grp_tile0
-                                                    << ", " << _in_tile1 << ", " << _in_tile0
-                                                    << ", " << _out_pix_tile1 << ", "
-                                                    << _out_pix_tile0 << ", " << _n_out_pix_tiles
-                                                    << ", " << _n_in_data_tiles << ", " << _n_stacks
+                                                        << ", " << _grp_tile1 << ", " << _grp_tile0
+                                                        << ", " << _in_tile1 << ", " << _in_tile0
+                                                        << ", " << _out_pix_tile1 << ", "
+                                                        << _out_pix_tile0 << ", "
+                                                        << _n_out_pix_tiles << ", "
+                                                        << _n_in_data_tiles << ", " << _n_stacks
 #endif
-                                                    << std::endl;
-                                            }
+                                                        << std::endl;
+                                                }
 
-                                            run_counter++;
-                                            runs_left--;
-                                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                                            if(min_proc_time > processing_time)
-                                            {
-                                                min_proc_time       = processing_time;
-                                                min_grp_tile0       = _grp_tile0;
-                                                min_grp_tile1       = _grp_tile1;
-                                                min_in_tile0        = _in_tile0;
-                                                min_in_tile1        = _in_tile1;
-                                                min_out_pix_tile0   = _out_pix_tile0;
-                                                min_out_pix_tile1   = _out_pix_tile1;
-                                                min_n_out_pix_tiles = _n_out_pix_tiles;
-                                                min_n_in_data_tiles = _n_in_data_tiles;
-                                                min_n_stacks        = _n_stacks;
-                                            }
+                                                run_counter++;
+                                                runs_left--;
+                                                runs_left = (runs_left < 0) ? 0 : runs_left;
+                                                if(min_proc_time > processing_time)
+                                                {
+                                                    min_proc_time       = processing_time;
+                                                    min_grp_tile0       = _grp_tile0;
+                                                    min_grp_tile1       = _grp_tile1;
+                                                    min_in_tile0        = _in_tile0;
+                                                    min_in_tile1        = _in_tile1;
+                                                    min_out_pix_tile0   = _out_pix_tile0;
+                                                    min_out_pix_tile1   = _out_pix_tile1;
+                                                    min_n_out_pix_tiles = _n_out_pix_tiles;
+                                                    min_n_in_data_tiles = _n_in_data_tiles;
+                                                    min_n_stacks        = _n_stacks;
+                                                }
 
-                                        } // for (int s = 0; s < 3; ++s)
-                                    } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
-                                      // ++i_t)
-                                }     // if (_out_pix_tile0 > _in_tile0)
-                            }         // for (int l = 0; l < l_l; ++l)
-                        }             // for (int k = 0; k < k_l; ++k)
-                    }                 // for (int i = 0; i < 3; ++i)
-                }                     // for (int j = 0; j < 3; ++j)
-            }                         // for (int g0 = 0; g0 < 2; ++g0)
-        }                             // for (int g1 = 0; g1 < 2; g1++)
-
+                                            } // for (int s = 0; s < 3; ++s)
+                                        }     // for (int i_t = n_in_tiles_rg[0]; i_t <=
+                                              // n_in_tiles_rg[1];
+                                              // ++i_t)
+                                    }         // if (_out_pix_tile0 > _in_tile0)
+                                }             // for (int l = 0; l < l_l; ++l)
+                            }                 // for (int k = 0; k < k_l; ++k)
+                        }                     // for (int i = 0; i < 3; ++i)
+                    }                         // for (int j = 0; j < 3; ++j)
+                }                             // for (int g0 = 0; g0 < 2; ++g0)
+            }                                 // for (int g1 = 0; g1 < 2; g1++)
+        }
         std::cout << std::endl << "Score: " << min_proc_time << std::endl;
 #endif
 
