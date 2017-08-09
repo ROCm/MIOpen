@@ -310,7 +310,10 @@ int miopenBNFwdTrainSpatialRunHost(
         }
 #endif
 
+        
+        
         variance_accum /= NHW; // (1/N)*sum{ (x_i - mean)^2 }
+        //printf("Variance sum on host: %f\n",variance_accum);
 
         if(runningmeanvar)
         {
@@ -323,6 +326,8 @@ int miopenBNFwdTrainSpatialRunHost(
 
         // #3 add epsilon for numeric stability, sqr_root, and invert
         double invertVar = 1.0 / sqrt(variance_accum + epsilon);
+
+        //printf("invVar on host: %lf\n",invertVar);
 
         if(savemeanvar)
             saveInvVariance[cidx] = invertVar; /*output only*/
