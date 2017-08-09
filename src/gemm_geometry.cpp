@@ -29,17 +29,26 @@
 
 namespace miopen {
 
-// so that MIOpen works whether or not recent MIOpenGEMM changes pulled.
+// so that MIOpen works whether or not recent MIOpenGEMM changes pulled:
+// convert size_t and ulong kernel function parameters to unsigned.
 namespace tempfix {
 void set_offsets_to_uint(std::string& clstr)
 {
+    auto get_target = [](std::string inttype, char x) {
+        std::stringstream ss;
+        ss << "const " << inttype << ' ' << std::string(1, x) << "_offset";
+        return std::regex(ss.str());
+    };
+
     for(char x : {'a', 'b', 'c'})
     {
-        std::string target      = "const size_t " + std::string(1, x) + "_offset";
         std::string replacement = "const unsigned " + std::string(1, x) + "_offset";
-        clstr                   = std::regex_replace(clstr, std::regex(target), replacement);
+        for(auto inttype : {"size_t", "ulong"})
+        {
+            clstr = std::regex_replace(clstr, get_target(inttype, x), replacement);
+        }
     }
-} 
+}
 } // namespace tempfix
 
 std::unordered_map<GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map()
