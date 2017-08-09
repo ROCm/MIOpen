@@ -30,7 +30,10 @@ std::string LoadBinary(const std::string& name, const std::string& args, bool is
         return "";
     }
 }
-void SaveBinary(const std::string& binary_path, const std::string& name, const std::string& args, bool is_kernel_str)
+void SaveBinary(const std::string& binary_path,
+                const std::string& name,
+                const std::string& args,
+                bool is_kernel_str)
 {
     auto err = std::rename(binary_path.c_str(), GetCacheFile(name, args, is_kernel_str).c_str());
     if(err != 0)
