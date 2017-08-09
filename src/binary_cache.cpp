@@ -18,7 +18,8 @@ boost::filesystem::path ComputeCachePath()
     std::string cache_dir = MIOPEN_CACHE_DIR;
 
     auto p = miopen::ReplaceString(cache_dir, "~", getenv("HOME"));
-    if (!boost::filesystem::exists(p)) boost::filesystem::create_directories(p);
+    if(!boost::filesystem::exists(p))
+        boost::filesystem::create_directories(p);
     return p;
 #else
     return {};
@@ -40,7 +41,8 @@ bool IsCacheDisabled()
 #endif
 }
 
-boost::filesystem::path GetCacheFile(const std::string& name, const std::string& args, bool is_kernel_str)
+boost::filesystem::path
+GetCacheFile(const std::string& name, const std::string& args, bool is_kernel_str)
 {
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     return GetCachePath() / miopen::md5(args) / filename;
@@ -48,7 +50,8 @@ boost::filesystem::path GetCacheFile(const std::string& name, const std::string&
 
 std::string LoadBinary(const std::string& name, const std::string& args, bool is_kernel_str)
 {
-    if (miopen::IsCacheDisabled()) return {};
+    if(miopen::IsCacheDisabled())
+        return {};
     auto f = GetCacheFile(name, args, is_kernel_str);
     if(boost::filesystem::exists(f))
     {
@@ -64,7 +67,8 @@ void SaveBinary(const std::string& binary_path,
                 const std::string& args,
                 bool is_kernel_str)
 {
-    if (miopen::IsCacheDisabled()) return;
+    if(miopen::IsCacheDisabled())
+        return;
     auto p = GetCacheFile(name, args, is_kernel_str);
     boost::filesystem::create_directories(p.parent_path());
     boost::filesystem::rename(binary_path, p);
