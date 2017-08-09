@@ -37,10 +37,7 @@ using ClProgramPtr = MIOPEN_MANAGE_PTR(cl_program, clReleaseProgram);
 using ClKernelPtr  = MIOPEN_MANAGE_PTR(cl_kernel, clReleaseKernel);
 using ClAqPtr      = MIOPEN_MANAGE_PTR(miopenAcceleratorQueue_t, clReleaseCommandQueue);
 
-
-ClProgramPtr LoadBinaryProgram(cl_context ctx,
-                         cl_device_id device,
-                         const std::string& source);
+ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::string& source);
 
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,

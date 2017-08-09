@@ -103,9 +103,7 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
     }
 }
 
-ClProgramPtr LoadBinaryProgram(cl_context ctx,
-                         cl_device_id device,
-                         const std::string& source)
+ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::string& source)
 {
     ClProgramPtr result{CreateProgramWithBinary(ctx, device, source.data(), source.size())};
     BuildProgram(result.get(), device);
@@ -162,8 +160,8 @@ void SaveProgramBinary(const ClProgramPtr& program, const std::string& name)
 {
     size_t binary_size;
     clGetProgramInfo(program.get(), CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &binary_size, nullptr);
-    std::vector<char> binary (binary_size);
-    char *src[1] = { binary.data() };
+    std::vector<char> binary(binary_size);
+    char* src[1] = {binary.data()};
     clGetProgramInfo(program.get(), CL_PROGRAM_BINARIES, sizeof(src), &src, nullptr);
     std::ofstream fout(name.c_str(), std::ios::out | std::ios::binary);
     fout.write(binary.data(), binary.size());
