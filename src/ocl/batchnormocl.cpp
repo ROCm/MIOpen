@@ -75,6 +75,8 @@ void BatchNormForwardTraining(Handle& handle,
 
     unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
+    unsigned int in_nhw  = n* h * w;
+    unsigned int in_nchw = n * c * h * w;
 
     size_t xlocalsize = 0;
     size_t ylocalsize = 0;
@@ -116,10 +118,11 @@ void BatchNormForwardTraining(Handle& handle,
     parms += "-DMIO_BN_N=" + std::to_string(n);
     parms += " -DMIO_BN_C=" + std::to_string(c);
     parms += " -DMIO_BN_HW=" + std::to_string(in_cstride);
-    parms += " -DMIO_BN_NHW=" + std::to_string(n * h * w);
+    parms += " -DMIO_BN_NHW=" + std::to_string(in_nhw);
     parms += " -DMIO_BN_CHW=" + std::to_string(in_nstride);
+    parms += " -DMIO_BN_NCHW=" + std::to_string(in_nchw);
 
-    auto inhw = float(1.0 / (n * h * w));
+    auto inhw = float(1.0 / in_nhw);
 
     if(bn_mode == miopenBNSpatial)
     {
@@ -127,7 +130,62 @@ void BatchNormForwardTraining(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(in_cstride > 1024)
+        if(true){
+            
+
+            xlocalsize = 1024;
+            ylocalsize = 1;
+            zlocalsize = 1;
+            
+            variant    = 255;
+            unsigned int nloops  = std::ceil(double(n*in_cstride)/1024.0);
+            unsigned int segment = in_cstride*(xlocalsize/in_cstride);
+            
+            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
+            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
+            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+            parms += " -DMIO_BN_NLOOP=" + std::to_string(nloops);
+            parms += " -DMIO_BN_SEGMENT=" + std::to_string((segment > in_nhw) ? in_nhw : segment);
+            
+            vld.push_back(xlocalsize);
+            vld.push_back(ylocalsize);
+            vld.push_back(zlocalsize);
+
+            xgridsize = 1024*c;
+            ygridsize = 1;
+            zgridsize = 1;
+            vgd.push_back(xgridsize);
+            vgd.push_back(ygridsize);
+            vgd.push_back(zgridsize);
+
+#if(MIOPEN_BN_CPP_DEBUG == 1)
+            std::cout << parms << std::endl;
+#endif
+            bnFwdTrainSelectSingle(handle,
+                                   program_name,
+                                   algo_name,
+                                   kernel_name,
+                                   network_config,
+                                   parms,
+                                   vld,
+                                   vgd,
+                                   x,
+                                   y,
+                                   bnScale,
+                                   bnBias,
+                                   resultsave,
+                                   resultrunning,
+                                   expAvgFactor,
+                                   resultRunningMean,
+                                   resultRunningVariance,
+                                   epsilon,
+                                   resultSaveMean,
+                                   resultSaveInvVariance,
+                                   inhw);
+        }
+        else if(in_cstride > 1024)
         {
             xlocalsize = 1;
             ylocalsize = 256;
@@ -181,6 +239,10 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else
         {
+            
+            xlocalsize = 1;
+            zlocalsize = 1;
+            
             if(in_cstride < n && n <= 64 && in_cstride > 1)
             {
                 variant    = 0;
@@ -198,11 +260,10 @@ void BatchNormForwardTraining(Handle& handle,
             }
             parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
             parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            parms += " -DMIO_BN_GRP0=" + std::to_string(1);
+            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
             parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2=" + std::to_string(1);
-            xlocalsize = 1;
-            zlocalsize = 1;
+            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+            
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
