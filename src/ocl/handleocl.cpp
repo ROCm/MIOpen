@@ -30,6 +30,7 @@
 #include <miopen/manage_ptr.hpp>
 #include <miopen/ocldeviceinfo.hpp>
 #include <miopen/binary_cache.hpp>
+#include <miopen/load_file.hpp>
 #include <string>
 #include <boost/filesystem.hpp>
 
@@ -483,8 +484,9 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
                                      is_kernel_str);
 
         // Save to cache
-        auto path = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
         miopen::SaveProgramBinary(p, path.string());
+        miopen::SaveBinary(path.string(), program_name, params, is_kernel_str);
 
         return std::move(p);
     }
@@ -492,7 +494,7 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
     {
         return LoadBinaryProgram(miopen::GetContext(this->GetStream()),
                                  miopen::GetDevice(this->GetStream()),
-                                 cache_file);
+                                 miopen::LoadFile(cache_file));
     }
 }
 
