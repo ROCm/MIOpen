@@ -474,7 +474,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& 
 Program Handle::LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str)
 {
     auto cache_file = miopen::LoadBinary(program_name, params, is_kernel_str);
-    if (cache_file.empty())
+    if(cache_file.empty())
     {
         auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
                                      miopen::GetDevice(this->GetStream()),
@@ -490,7 +490,9 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
     }
     else
     {
-        return LoadBinaryProgram(miopen::GetContext(this->GetStream()), miopen::GetDevice(this->GetStream()), cache_file);
+        return LoadBinaryProgram(miopen::GetContext(this->GetStream()),
+                                 miopen::GetDevice(this->GetStream()),
+                                 cache_file);
     }
 }
 
