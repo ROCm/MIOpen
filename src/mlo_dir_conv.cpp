@@ -3380,14 +3380,8 @@ bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
 
 bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
 {
-    // MD: These are actually not performance issues rather
-    // a workaround to mitigate memory fauults on gfx9
-    // They work fine on gfx8
-    // /todo fix memory faults on gfx9
     const std::string name = _stream->GetDeviceName();
-    return !(name == "gfx900" &&
-             (_in_width == 13 || _in_width == 27 || _in_width == 54 || _in_width == 57 ||
-              _in_width == 17 || _in_width == 250 || _in_width == 175));
+    return true;
 }
 
 int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
