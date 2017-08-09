@@ -29,7 +29,9 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/ocldeviceinfo.hpp>
+#include <miopen/binary_cache.hpp>
 #include <string>
+#include <boost/filesystem.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -471,13 +473,25 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& 
 
 Program Handle::LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str)
 {
-    auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
-                                 miopen::GetDevice(this->GetStream()),
-                                 program_name,
-                                 params,
-                                 is_kernel_str);
+    auto cache_file = miopen::LoadBinary(program_name, params, is_kernel_str);
+    if (cache_file.empty())
+    {
+        auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
+                                     miopen::GetDevice(this->GetStream()),
+                                     program_name,
+                                     params,
+                                     is_kernel_str);
 
-    return std::move(p);
+        // Save to cache
+        auto path = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        miopen::SaveProgramBinary(p, path.string());
+
+        return std::move(p);
+    }
+    else
+    {
+        return LoadBinaryProgram(miopen::GetContext(this->GetStream()), miopen::GetDevice(this->GetStream()), cache_file);
+    }
 }
 
 void Handle::Finish() const { clFinish(this->GetStream()); }

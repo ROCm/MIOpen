@@ -255,6 +255,9 @@ if(WIN32 AND NOT MSVC)
 endif()
 
 target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
+target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
+# target_link_libraries(MIOpen PRIVATE Boost::filesystem Boost::system)
+target_link_libraries(MIOpen PRIVATE ${Boost_FILESYSTEM_LIBRARY_RELEASE} ${Boost_SYSTEM_LIBRARY_RELEASE})
 
 ############################################################
 # Installation
@@ -269,8 +272,9 @@ rocm_install_targets(
 rocm_export_targets(
   TARGETS MIOpen
   PREFIX ${MIOPEN_INSTALL_DIR}
-  DEPENDS ${PACKAGE_DEPENDS}
- )
+  DEPENDS
+    ${PACKAGE_DEPENDS} 
+)
 
 
 # Install db files

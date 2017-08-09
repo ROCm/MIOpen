@@ -135,6 +135,20 @@ else()
 endif()
 
 find_package(OpenSSL REQUIRED)
+set(BOOST_COMPONENTS filesystem system)
+find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
+foreach(COMP ${BOOST_COMPONENTS})
+    if(NOT TARGET Boost::${COMP})
+        string(TOUPPER ${COMP} COMP_UPPER)
+        add_library(Boost::${COMP} UNKNOWN IMPORTED)
+        set_target_properties(Boost::${COMP} PROPERTIES
+            IMPORTED_LOCATION ${Boost_${COMP_UPPER}_LIBRARY_RELEASE}
+            IMPORTED_LOCATION_RELEASE ${Boost_${COMP_UPPER}_LIBRARY_RELEASE}
+            IMPORTED_LOCATION_DEBUG ${Boost_${COMP_UPPER}_LIBRARY_DEBUG}
+            INTERFACE_INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIR}
+        )
+    endif()
+endforeach()
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
