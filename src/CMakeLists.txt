@@ -60,6 +60,7 @@ set( MIOpen_Source
     convolution_api.cpp
     convolution_fft.cpp
     errors.cpp
+    load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
     logger.cpp
