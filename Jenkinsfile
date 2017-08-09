@@ -70,8 +70,8 @@ def rocmtest(variant, body) {
             rm -rf build
             mkdir build
             cd build
-            CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-            CTEST_PARALLEL_LEVEL=4 dumb-init make MIOpenDriver -j32 check doc
+            CXX=${compiler} CXXFLAGS='-Werror' cmake -DMIOPEN_CACHE_DIR=$(pwd) ${flags} .. 
+            CTEST_PARALLEL_LEVEL=4 dumb-init make -j32 MIOpenDriver check doc
         """
         echo cmd
         sh cmd
