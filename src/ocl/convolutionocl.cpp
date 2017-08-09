@@ -107,9 +107,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                                             int direction) const
 {
 
-    // Disable running any Direct convolutions (Fwd) by checking this env variable
-    // Cannot disable bwd convolutions until col2im+gemm is functional
-    if(direction == 1 && miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return -1;
 
     mlo_construct_direct2D construct_params(direction);
