@@ -7,8 +7,9 @@
 namespace miopen {
 
 boost::filesystem::path GetCachePath();
-std::string LoadBinary(const std::string& name, const std::string& args, bool is_kernel_str);
+std::string LoadBinary(const std::string& device, const std::string& name, const std::string& args, bool is_kernel_str);
 void SaveBinary(const std::string& binary_path,
+                const std::string& device,
                 const std::string& name,
                 const std::string& args,
                 bool is_kernel_str);

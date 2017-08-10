@@ -4,6 +4,7 @@
 #include <miopen/env.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/miopen.h>
+#include <miopen/version.h>
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <iostream>
@@ -17,7 +18,10 @@ boost::filesystem::path ComputeCachePath()
 #ifdef MIOPEN_CACHE_DIR
     std::string cache_dir = MIOPEN_CACHE_DIR;
 
-    auto p = miopen::ReplaceString(cache_dir, "~", getenv("HOME"));
+    std::string version = std::to_string(MIOPEN_VERSION_MAJOR) + "." +
+                            std::to_string(MIOPEN_VERSION_MINOR) + "." +
+                            std::to_string(MIOPEN_VERSION_PATCH);
+    auto p = boost::filesystem::path{miopen::ReplaceString(cache_dir, "~", getenv("HOME"))} / version;
     if(!boost::filesystem::exists(p))
         boost::filesystem::create_directories(p);
     return p;
@@ -42,17 +46,17 @@ bool IsCacheDisabled()
 }
 
 boost::filesystem::path
-GetCacheFile(const std::string& name, const std::string& args, bool is_kernel_str)
+GetCacheFile(const std::string& device, const std::string& name, const std::string& args, bool is_kernel_str)
 {
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
-    return GetCachePath() / miopen::md5(args) / filename;
+    return GetCachePath() / miopen::md5(device+":"+args) / filename;
 }
 
-std::string LoadBinary(const std::string& name, const std::string& args, bool is_kernel_str)
+std::string LoadBinary(const std::string& device, const std::string& name, const std::string& args, bool is_kernel_str)
 {
     if(miopen::IsCacheDisabled())
         return {};
-    auto f = GetCacheFile(name, args, is_kernel_str);
+    auto f = GetCacheFile(device, name, args, is_kernel_str);
     if(boost::filesystem::exists(f))
     {
         return f.string();
@@ -63,13 +67,14 @@ std::string LoadBinary(const std::string& name, const std::string& args, bool is
     }
 }
 void SaveBinary(const std::string& binary_path,
+                const std::string& device,
                 const std::string& name,
                 const std::string& args,
                 bool is_kernel_str)
 {
     if(miopen::IsCacheDisabled())
         return;
-    auto p = GetCacheFile(name, args, is_kernel_str);
+    auto p = GetCacheFile(device, name, args, is_kernel_str);
     boost::filesystem::create_directories(p.parent_path());
     boost::filesystem::rename(binary_path, p);
 }
