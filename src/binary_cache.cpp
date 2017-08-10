@@ -19,9 +19,10 @@ boost::filesystem::path ComputeCachePath()
     std::string cache_dir = MIOPEN_CACHE_DIR;
 
     std::string version = std::to_string(MIOPEN_VERSION_MAJOR) + "." +
-                            std::to_string(MIOPEN_VERSION_MINOR) + "." +
-                            std::to_string(MIOPEN_VERSION_PATCH);
-    auto p = boost::filesystem::path{miopen::ReplaceString(cache_dir, "~", getenv("HOME"))} / version;
+                          std::to_string(MIOPEN_VERSION_MINOR) + "." +
+                          std::to_string(MIOPEN_VERSION_PATCH);
+    auto p =
+        boost::filesystem::path{miopen::ReplaceString(cache_dir, "~", getenv("HOME"))} / version;
     if(!boost::filesystem::exists(p))
         boost::filesystem::create_directories(p);
     return p;
@@ -45,14 +46,19 @@ bool IsCacheDisabled()
 #endif
 }
 
-boost::filesystem::path
-GetCacheFile(const std::string& device, const std::string& name, const std::string& args, bool is_kernel_str)
+boost::filesystem::path GetCacheFile(const std::string& device,
+                                     const std::string& name,
+                                     const std::string& args,
+                                     bool is_kernel_str)
 {
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
-    return GetCachePath() / miopen::md5(device+":"+args) / filename;
+    return GetCachePath() / miopen::md5(device + ":" + args) / filename;
 }
 
-std::string LoadBinary(const std::string& device, const std::string& name, const std::string& args, bool is_kernel_str)
+std::string LoadBinary(const std::string& device,
+                       const std::string& name,
+                       const std::string& args,
+                       bool is_kernel_str)
 {
     if(miopen::IsCacheDisabled())
         return {};
