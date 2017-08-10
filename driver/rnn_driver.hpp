@@ -28,6 +28,7 @@
 
 #include "InputFlags.hpp"
 #include "rnn_verify.hpp"
+#include "rnn_verify_gemm.hpp"
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "tensor_driver.hpp"
