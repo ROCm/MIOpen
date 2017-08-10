@@ -90,6 +90,7 @@ set( MIOpen_Source
     include/miopen/softmax.hpp
     tensor.cpp
     tensor_api.cpp
+    tmp_dir.cpp
     )
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
