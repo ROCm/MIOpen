@@ -261,7 +261,9 @@ int mlo_construct_winograd::mloConstruct()
 int mlo_construct_direct2D::mloConstruct()
 {
     int ret = 0;
-    _gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
+	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 ||
+		((_kernel_stride0 > 1 || _kernel_stride1 > 1) &&
+			!(_kernel_size0 == 1 && _kernel_size1 == 1)));
 
     rocm_meta_version rmv = V3;
     /// \todo See todo in mlo_construct_winograd::mloConstruct().
@@ -351,7 +353,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
          (_out_width > 16 && _out_width < 32));
 
     // no 1x1 backward yet
-    if(_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
+    if(_kernel_size0 == 1 && _kernel_size1 == 1)
     {
         return (mloConstructDirect2D1x1());
     }
@@ -3880,7 +3882,7 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string& conf_val)
         if((_n_outputs / 16) * 16 == _n_outputs && (_n_inputs / 4) * 4 == _n_inputs)
         {
             // version
-            if(_direction && (_n_inputs / 8) * 8 == _n_inputs)
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 && _kernel_stride1 == 1)
             {
                 _n_in_data_tiles = 128;
 
@@ -4431,7 +4433,7 @@ std::vector<int> v_n_in_stacks_sz;
             _in_tile0      = 1;
             report_inteval = 4;
 
-            if(_direction && (_n_inputs / 8) * 8 == _n_inputs)
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 && _kernel_stride1 == 1)
             {
 
                 // uint N_LCL_IN_MAPS = _n_in_data_tiles;
