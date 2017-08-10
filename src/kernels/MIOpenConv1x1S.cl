@@ -302,8 +302,8 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
                     accum[o][i] += dat[c][i] * weights[o][c];
-#if 0
-				if (get_global_id(0) == 2 && get_global_id(1) ==0 && o == 0 && i == 0)
+#if 1
+				if (get_global_id(0) == 1 && get_global_id(1) ==0 && o == 0 && i == 0)
 				{
 					printf((__constant char *)"K:c: %f %f %f %f\n",
 					accum[o][i],
@@ -321,7 +321,10 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
 
     uint gbl_out_off =
         batch_id * MLO_OUT_BATCH_STRIDE + out_id * MLO_OUT_CHANNEL_STRIDE + pos_out_y * MLO_OUT_STRIDE
-		+ pos_out_x *MLO_FILTER_STRIDE0 * MLO_READ_UNIT
+		+ pos_out_x * MLO_READ_UNIT
+#if MLO_DIR_FORWARD == 0
+        * MLO_FILTER_STRIDE0
+#endif
 		;
     for(uint o = 0, gbl_out_off1 = gbl_out_off; o < MLO_N_LCL_OUT_MAPS;
         ++o, gbl_out_off1 += MLO_OUT_CHANNEL_STRIDE)
