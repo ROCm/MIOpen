@@ -17,7 +17,8 @@ void SystemCmd(std::string cmd)
 }
 
 TmpDir::TmpDir(std::string prefix)
-: path(boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("miopen-" + prefix + "-%%%%-%%%%-%%%%-%%%%"))
+    : path(boost::filesystem::temp_directory_path() /
+           boost::filesystem::unique_path("miopen-" + prefix + "-%%%%-%%%%-%%%%-%%%%"))
 {
     boost::filesystem::create_directories(this->path);
 }
@@ -29,9 +30,6 @@ void TmpDir::Execute(std::string exe, std::string args)
     SystemCmd(cmd);
 }
 
-TmpDir::~TmpDir()
-{
-    boost::filesystem::remove_all(this->path);
-}
+TmpDir::~TmpDir() { boost::filesystem::remove_all(this->path); }
 
 } // namespace miopen
