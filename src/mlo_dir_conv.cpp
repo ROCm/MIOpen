@@ -1451,103 +1451,103 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
         else
         {
 
-            // parameters
-            //	int i_sz = _in_width * _in_height;
-            //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
-            int read_unit = _out_pix_tile0;
-            //	_n_out_pix_tiles = 16;
-            //	_n_in_data_tiles = 4;
-            //	_grp_tile0 = 64;
+			// parameters
+			//	int i_sz = _in_width * _in_height;
+			//	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
+			int read_unit = _out_pix_tile0;
+			//	_n_out_pix_tiles = 16;
+			//	_n_in_data_tiles = 4;
+			//	_grp_tile0 = 64;
 
-            int wei_cstride = _kernel_size0 * _kernel_size1;
-            // backward: inputs are forward outputs
-            int wei_bstride = (isForwardDirection() ? _n_inputs : _n_outputs) * wei_cstride;
+			int wei_cstride = _kernel_size0 * _kernel_size1;
+			// backward: inputs are forward outputs
+			int wei_bstride = (isForwardDirection() ? _n_inputs : _n_outputs) * wei_cstride;
 
-            std::string READ_TYPE =
-                (read_unit == 1) ? "_FLOAT"
-                                 : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
+			std::string READ_TYPE =
+				(read_unit == 1) ? "_FLOAT"
+				: "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
 
-            int OUT_WIDTH4 = _out_width;
-            int MAP_SZ4    = (OUT_WIDTH4 * _out_height + read_unit - 1) / (read_unit);
-            // stride > 1 and/or apdding
-            if(_pad0 > 0 || _kernel_stride0 > 1)
-            {
-                int step   = (_direction) ? read_unit : read_unit * _kernel_stride0;
-                OUT_WIDTH4 = (_out_width + step - 1) / (step);
-                MAP_SZ4    = (OUT_WIDTH4 * _out_height);
-            }
+			int OUT_WIDTH4 = _out_width;
+			int MAP_SZ4 = (OUT_WIDTH4 * _out_height + read_unit - 1) / (read_unit);
+			// stride > 1 and/or apdding
+			if (_pad0 > 0 || _kernel_stride0 > 1)
+			{
+				int step = (_direction) ? read_unit : read_unit * _kernel_stride0;
+				OUT_WIDTH4 = (_out_width + step - 1) / (step);
+				MAP_SZ4 = (OUT_WIDTH4 * _out_height);
+			}
 
-            int GRP_SZ = _grp_tile0;
+			int GRP_SZ = _grp_tile0;
 
-            // number of inputs inside wk-items
-            _n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
+			// number of inputs inside wk-items
+			_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
 
-            int CLOOP0 = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
+			int CLOOP0 = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
 
-            // number of outputs inside wk_item
-            _n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
+			// number of outputs inside wk_item
+			_n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
 
-            _comp_options =
-                std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction) +
-                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0) +
-                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1) +
-                std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0) +
-                std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1) +
-                std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0) +
-                std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1) +
-                std::string(" -DMLO_IN_WIDTH=") + std::to_string(_in_width) +
-                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_in_height) +
-                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_outputs) +
-                std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_inputs) +
-                std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz) +
-                std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_out_batch_stride) +
-                std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride) +
-                std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_out_stride) +
-                std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_in_batch_stride) +
-                std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride) +
-                std::string(" -DMLO_IN_STRIDE=") + std::to_string(_in_stride) +
-                std::string(" -DMLO_WEI_BSTRIDE=") + std::to_string(wei_bstride) +
-                std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride) +
-                // algorithm parameters
-                std::string(" -DMLO_GRP_SZ0=") + std::to_string(GRP_SZ) +
-                std::string(" -DMLO_GRP_SZ1=") + std::to_string(1) +
-                std::string(" -DMLO_GRP_SZ2=") + std::to_string(1) +
+			_comp_options =
+				std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction) +
+				std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0) +
+				std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1) +
+				std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0) +
+				std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1) +
+				std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0) +
+				std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1) +
+				std::string(" -DMLO_IN_WIDTH=") + std::to_string(_in_width) +
+				std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_in_height) +
+				std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_outputs) +
+				std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_inputs) +
+				std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz) +
+				std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_out_batch_stride) +
+				std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride) +
+				std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_out_stride) +
+				std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_in_batch_stride) +
+				std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride) +
+				std::string(" -DMLO_IN_STRIDE=") + std::to_string(_in_stride) +
+				std::string(" -DMLO_WEI_BSTRIDE=") + std::to_string(wei_bstride) +
+				std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride) +
+				// algorithm parameters
+				std::string(" -DMLO_GRP_SZ0=") + std::to_string(GRP_SZ) +
+				std::string(" -DMLO_GRP_SZ1=") + std::to_string(1) +
+				std::string(" -DMLO_GRP_SZ2=") + std::to_string(1) +
 
-                std::string(" -DMLO_MAP_SZ4=") + std::to_string(MAP_SZ4) +
-                std::string(" -DMLO_OUT_WIDTH4=") + std::to_string(OUT_WIDTH4) +
+				std::string(" -DMLO_MAP_SZ4=") + std::to_string(MAP_SZ4) +
+				std::string(" -DMLO_OUT_WIDTH4=") + std::to_string(OUT_WIDTH4) +
 
-                std::string(" -DMLO_N_LCL_BATCHS=") +
-                std::to_string(_n_stacks) + // # of diff stacks (part of batch).
-                std::string(" -DMLO_N_LCL_OUT_MAPS=") +
-                std::to_string(_n_out_pix_tiles) + // # output pixel tiles per wk-item (ALU)
-                std::string(" -DMLO_N_LCL_IN_MAPS=") +
-                std::to_string(_n_in_data_tiles) + // total # of blocks of different inputs in LDS
-                std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias) +
+				std::string(" -DMLO_N_LCL_BATCHS=") +
+				std::to_string(_n_stacks) + // # of diff stacks (part of batch).
+				std::string(" -DMLO_N_LCL_OUT_MAPS=") +
+				std::to_string(_n_out_pix_tiles) + // # output pixel tiles per wk-item (ALU)
+				std::string(" -DMLO_N_LCL_IN_MAPS=") +
+				std::to_string(_n_in_data_tiles) + // total # of blocks of different inputs in LDS
+				std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias) +
 
-                std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit) +
-                std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
+				std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit) +
+				std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
 
-                getGeneralCompOptions();
+				getGeneralCompOptions();
 
-            _l_wk.clear();
-            _l_wk.push_back(_grp_tile0);
-            _l_wk.push_back(1);
-            _l_wk.push_back(1);
+			_l_wk.clear();
+			_l_wk.push_back(_grp_tile0);
+			_l_wk.push_back(1);
+			_l_wk.push_back(1);
 
-            size_t gbl_wk0 = _batch_sz * MAP_SZ4;
+			size_t gbl_wk0 = _batch_sz * MAP_SZ4;
 
-            size_t gbl_wk1 = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
-            size_t gbl_wk2 = 1;
+			size_t gbl_wk1 = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
+			size_t gbl_wk2 = 1;
 
-            _g_wk.clear();
-            _g_wk.push_back(gbl_wk0);
-            _g_wk.push_back(gbl_wk1);
-            _g_wk.push_back(gbl_wk2);
+			_g_wk.clear();
+			_g_wk.push_back(gbl_wk0);
+			_g_wk.push_back(gbl_wk1);
+			_g_wk.push_back(gbl_wk2);
 
-            _kernel_file = "MIOpenConv1x1S.cl";
-            _kernel_name =
-                (_pad0 == 0 && _kernel_stride0 == 1) ? "MIOpenConv1x1" : "MIOpenConv1x1pquv";
-        }
+			_kernel_file = "MIOpenConv1x1S.cl";
+			_kernel_name =
+				(_pad0 == 0 && _kernel_stride0 == 1) ? "MIOpenConv1x1" : "MIOpenConv1x1pquv";
+		}
     }
     else
     {
