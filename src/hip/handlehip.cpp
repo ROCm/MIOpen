@@ -29,6 +29,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/binary_cache.hpp>
+#include <boost/filesystem.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -255,8 +256,10 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
         auto p = HIPOCProgram{program_name, params, is_kernel_str};
 
         // Save to cache
+        auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
+        boost::filesystem::copy_file(p.GetBinary(), path);
         miopen::SaveBinary(
-            p.GetBinary(), this->GetDeviceName(), program_name, params, is_kernel_str);
+            path, this->GetDeviceName(), program_name, params, is_kernel_str);
 
         return p;
     }
