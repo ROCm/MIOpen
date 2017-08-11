@@ -258,8 +258,7 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
         // Save to cache
         auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
         boost::filesystem::copy_file(p.GetBinary(), path);
-        miopen::SaveBinary(
-            path, this->GetDeviceName(), program_name, params, is_kernel_str);
+        miopen::SaveBinary(path, this->GetDeviceName(), program_name, params, is_kernel_str);
 
         return p;
     }
