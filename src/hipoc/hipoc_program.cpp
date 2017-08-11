@@ -100,12 +100,12 @@ hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 struct HIPOCProgramImpl
 {
     HIPOCProgramImpl(const std::string& program_name, const boost::filesystem::path& hsaco)
-    : name(program_name), hsaco_file(hsaco)
+        : name(program_name), hsaco_file(hsaco)
     {
         this->module = CreateModule(this->hsaco_file);
     }
     HIPOCProgramImpl(const std::string& program_name, std::string params, bool is_kernel_str)
-    : name(program_name)
+        : name(program_name)
     {
         this->BuildModule(program_name, params, is_kernel_str);
         this->module = CreateModule(this->hsaco_file);
@@ -117,7 +117,7 @@ struct HIPOCProgramImpl
     void BuildModule(const std::string& program_name, std::string params, bool is_kernel_str)
     {
         std::string filename =
-        is_kernel_str ? "tinygemm.cl" : program_name; // jn : don't know what this is
+            is_kernel_str ? "tinygemm.cl" : program_name; // jn : don't know what this is
         dir.emplace(filename);
         hsaco_file = dir->path / (filename + ".o");
 
@@ -136,11 +136,11 @@ struct HIPOCProgramImpl
 
             WriteFile(src, dir->path / filename);
 
-    #if MIOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV
             params += " -Werror" + KernelWarningsString();
-    #else
+#else
             params += " -Wno-everything";
-    #endif
+#endif
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
         }
     }
@@ -148,21 +148,17 @@ struct HIPOCProgramImpl
 
 HIPOCProgram::HIPOCProgram() {}
 HIPOCProgram::HIPOCProgram(const std::string& program_name, std::string params, bool is_kernel_str)
-: impl(std::make_shared<HIPOCProgramImpl>(program_name, params, is_kernel_str))
-{}
+    : impl(std::make_shared<HIPOCProgramImpl>(program_name, params, is_kernel_str))
+{
+}
 
 HIPOCProgram::HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco)
-: impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
-{}
-
-hipModule_t HIPOCProgram::GetModule() const
+    : impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
 {
-    return this->impl->module.get();
 }
 
-boost::filesystem::path HIPOCProgram::GetBinary() const
-{
-    return this->impl->hsaco_file;
-}
+hipModule_t HIPOCProgram::GetModule() const { return this->impl->module.get(); }
+
+boost::filesystem::path HIPOCProgram::GetBinary() const { return this->impl->hsaco_file; }
 
 } // namespace miopen

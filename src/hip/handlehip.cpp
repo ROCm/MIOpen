@@ -255,7 +255,8 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
         auto p = HIPOCProgram{program_name, params, is_kernel_str};
 
         // Save to cache
-        miopen::SaveBinary(p.GetBinary(), this->GetDeviceName(), program_name, params, is_kernel_str);
+        miopen::SaveBinary(
+            p.GetBinary(), this->GetDeviceName(), program_name, params, is_kernel_str);
 
         return p;
     }
