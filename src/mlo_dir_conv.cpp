@@ -3477,7 +3477,7 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
                 (_n_inputs % (64 / pp.chunk_size) != 0)) ||
                ((pp.reverse_inout ? _n_outputs : _n_inputs) % pp.k_per_wave != 0) ||
                !(pp.n_per_group <= _batch_sz) ||
-               !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(_in_height, 8)))
+               !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(_in_height, 16)))
             {
                 MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: incorrect for the "
                              "problem config.");
