@@ -10,12 +10,12 @@ boost::filesystem::path GetCachePath();
 std::string LoadBinary(const std::string& device,
                        const std::string& name,
                        const std::string& args,
-                       bool is_kernel_str);
-void SaveBinary(const std::string& binary_path,
+                       bool is_kernel_str = false);
+void SaveBinary(const boost::filesystem::path& binary_path,
                 const std::string& device,
                 const std::string& name,
                 const std::string& args,
-                bool is_kernel_str);
+                bool is_kernel_str = false);
 
 } // namespace miopen
 

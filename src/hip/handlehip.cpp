@@ -28,6 +28,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel_cache.hpp>
+#include <miopen/binary_cache.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -247,7 +248,21 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
 {
     this->impl->set_ctx();
     params += " -mcpu=" + this->GetDeviceName();
-    return HIPOCProgram{program_name, params, is_kernel_str};
+    auto cache_file =
+        miopen::LoadBinary(this->GetDeviceName(), program_name, params, is_kernel_str);
+    if(cache_file.empty())
+    {
+        auto p = HIPOCProgram{program_name, params, is_kernel_str};
+
+        // Save to cache
+        miopen::SaveBinary(p.GetBinary(), this->GetDeviceName(), program_name, params, is_kernel_str);
+
+        return p;
+    }
+    else
+    {
+        return HIPOCProgram{program_name, cache_file};
+    }
 }
 
 void Handle::Finish() const
