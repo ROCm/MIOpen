@@ -303,7 +303,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                 {
                     accum[o][i] += dat[c][i] * weights[o][c];
 #if 0
-				if (get_global_id(0) == 7 && get_global_id(1) ==0 && o == 0 && i == 0)
+				if (get_global_id(0) == 4 && get_global_id(1) ==0 && o == 0 && i == 0)
 				{
 					printf((__constant char *)"K:c: %f %f %f %f\n",
 					accum[o][i],
@@ -345,30 +345,16 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
 #endif
 			;
             out_ptr[out_off] = accum[o][i];
-#if 0
-				if (out_off == 14)
-				{
-					printf((__constant char *)"K:o0: %f %d %d %d\n",
-					accum[o][i],
-					MLO_READ_UNIT,
-					get_global_id(0),
-					i
-					);
-				}
-#endif
+
 #if MLO_DIR_FORWARD == 0
 			for(uint s = 1; s < MLO_FILTER_STRIDE0; ++s)
 			{
-				out_ptr[out_off + s ] = 0;
-#if 0
-				if (out_off + s == 14)
-				{
-					printf((__constant char *)"K:o1: %d %d\n",
-					get_global_id(0),
-					s
-					);
-				}
+#if MLO_HORIZ_ALIGNED == 0
+				if ( out_x  + s < MLO_OUT_WIDTH)
 #endif
+				{
+					out_ptr[out_off + s ] = 0;
+				}
 			}
 #endif
         }
@@ -376,21 +362,21 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
 #if MLO_DIR_FORWARD == 0
 		for(uint j = 1; j < MLO_FILTER_STRIDE1; ++j)
 		{
-			uint out_off = gbl_out_off1 + j*MLO_OUT_STRIDE;
-			for(uint s = 0; s < MLO_READ_UNIT* MLO_FILTER_STRIDE0; ++s)
+#if MLO_VERT_ALIGNED == 0
+			if ( out_y  + j < MLO_OUT_HEIGHT)
+#endif
 			{
-				out_ptr[out_off + s ] = 0;
-#if 0
-				if (out_off + s == 14)
+				uint out_off = gbl_out_off1 + j*MLO_OUT_STRIDE;
+				for(uint s = 0; s < MLO_READ_UNIT* MLO_FILTER_STRIDE0; ++s)
 				{
-					printf((__constant char *)"K:o2: %d %d\n",
-					get_global_id(0),
-					j
-					);
+#if MLO_HORIZ_ALIGNED == 0
+					if ( out_x  + s < MLO_OUT_WIDTH)
+#endif
+					{
+						out_ptr[out_off + s ] = 0;
+					}
 				}
-#endif			
 			}
-
 		}
 #endif
     }
