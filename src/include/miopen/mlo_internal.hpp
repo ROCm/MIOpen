@@ -174,6 +174,9 @@ class mlo_construct_direct2D
         _kernel_size1   = 3;
         _kernel_stride0 = 1;
         _kernel_stride1 = 1;
+		_kernal_dilation0 = 1;
+		_kernal_dilation1 = 1;
+		_deconvolution = 0;
         _stream         = nullptr;
         _bot_sz         = 0; // bytes
         _top_sz         = 0; // bytes
@@ -748,13 +751,16 @@ class mlo_construct_direct2D
 
     protected:
     int _direction;
+	int _deconvolution;
     int _pad0;
     int _pad1;
     int _kernel_size0;
     int _kernel_size1;
     int _kernel_stride0;
     int _kernel_stride1;
-    int _n_outputs = 0;
+	int _kernal_dilation0;
+	int _kernal_dilation1;
+	int _n_outputs = 0;
     int _n_inputs  = 0;
     int _batch_sz  = 0;
 
