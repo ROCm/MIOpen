@@ -3337,7 +3337,7 @@ static void ParsePerfParamsAsmDirect3x3WrW(const std::string& s, mlo_construct_B
         (8 == pp.chunk_size || 16 == pp.chunk_size) &&
         (1 == pp.k_per_wave || 2 == pp.k_per_wave || 4 == pp.k_per_wave ||
             8 == pp.k_per_wave) &&
-            (1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= 8) &&
+            (1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= 16) &&
         (1 <= pp.n_per_group && pp.n_per_group <= 8)))
     {
         MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: out of range.");
