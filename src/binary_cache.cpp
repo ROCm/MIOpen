@@ -72,7 +72,7 @@ std::string LoadBinary(const std::string& device,
         return {};
     }
 }
-void SaveBinary(const std::string& binary_path,
+void SaveBinary(const boost::filesystem::path& binary_path,
                 const std::string& device,
                 const std::string& name,
                 const std::string& args,
