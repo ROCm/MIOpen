@@ -3364,7 +3364,7 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
     /// reverse_inout    [0..1]
     /// chunk_size       {08,16}
     /// k_per_wave       {1,2,4,8}
-    /// pipe_lines_depth [1..8]
+    /// pipe_lines_depth [1..16]
     /// n_per_group      [1..8]
     /// \note chunk_size is not in included in the format, but computed.
 
@@ -3372,7 +3372,7 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
     /// \todo Test on devices with 64 CUs (e.g. R9 Nano, Vega10) and expand
     /// implementation if optimal values are different.
     static const std::unordered_map<std::string, std::string> perf_vals_map({
-        //              W    H    c    n    k    dir CUs    lwc[2] rio csz[2] kpw pld npg
+        //              W    H    c    n    k    dir CUs                        lwc[2] rio csz[2] kpw pld npg
         {MakeKeyWHCNKD(13, 13, 192, 128, 384, 0),       FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1) },
         {MakeKeyWHCNKD(13, 13, 192, 128, 384, 0, 64),   FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 1) },
         {MakeKeyWHCNKD(13, 13, 256, 128, 256, 0),       FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1) },
@@ -3419,21 +3419,21 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
         {MakeKeyWHCNKD(224, 224, 3, 16, 64, 0, 64),     FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 1,  5, 4) }, /// \todo Find opt values for 56CUs
         {MakeKeyWHCNKD(240, 24, 16, 16, 32, 0),         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  1, 8) },
         {MakeKeyWHCNKD(240, 24, 16, 16, 32, 0, 64),     FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 2,  1, 8) },
-        {MakeKeyWHCNKD(13, 13, 384, 64, 256, 0),        FormPerfParamsAsmDirect3x3WrW(0, 8, 11, 1,  8, 8) }, /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(13, 13, 256, 50, 384, 0),        FormPerfParamsAsmDirect3x3WrW(0, 8, 11, 1,  8, 8) }, /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(13, 13, 384, 50, 384, 0),        FormPerfParamsAsmDirect3x3WrW(0, 8, 11, 1,  8, 8) }, /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(13, 13, 384, 50, 256, 0),        FormPerfParamsAsmDirect3x3WrW(0, 8, 11, 1,  8, 8) }, /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(28, 28, 64, 32, 64, 0),          FormPerfParamsAsmDirect3x3WrW(0, 8,  2, 2,  8, 2) },      /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(28, 28, 64, 32, 96, 0),          FormPerfParamsAsmDirect3x3WrW(0, 8,  5, 2,  8, 2) },      /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(14, 14, 160, 32, 160, 0),        FormPerfParamsAsmDirect3x3WrW(0, 4, 11, 2, 16, 4) },    /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(14, 14, 160, 32, 192, 0),        FormPerfParamsAsmDirect3x3WrW(0, 8,  5, 1,  8, 8) },  /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(14, 14, 192, 32, 256, 0),        FormPerfParamsAsmDirect3x3WrW(0, 8,  3, 1,  8, 4) },  /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(512, 256, 64, 1, 192, 0),        FormPerfParamsAsmDirect3x3WrW(0, 4,  1, 1, 16, 4) }, /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(256, 128, 96, 1, 128, 0),        FormPerfParamsAsmDirect3x3WrW(0, 4,  1, 1, 16, 4) }, /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(256, 128, 128, 1, 192, 0),       FormPerfParamsAsmDirect3x3WrW(0, 4,  1, 1, 16, 4) }, /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(14, 14, 256, 16, 256, 0),        FormPerfParamsAsmDirect3x3WrW(0, 8, 11, 1,  8, 8) }, /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(12, 12, 512, 128, 1024, 0),      FormPerfParamsAsmDirect3x3WrW(0, 8, 11, 1,  8, 8) }, /// \todo Find opt values for 56CUs
-        {MakeKeyWHCNKD(12, 12, 1024, 128, 1024, 0),     FormPerfParamsAsmDirect3x3WrW(0, 8, 11, 1,  8, 8) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(13, 13, 384, 64, 256, 0),        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(13, 13, 256, 50, 384, 0),        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(13, 13, 384, 50, 384, 0),        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(13, 13, 384, 50, 256, 0),        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(28, 28, 64, 32, 64, 0),          FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 2, 2, 2) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(28, 28, 64, 32, 96, 0),          FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 2, 5, 2) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 160, 32, 160, 0),        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 11, 2) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 160, 32, 192, 0),        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 5, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 192, 32, 256, 0),        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 3, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(512, 256, 64, 1, 192, 0),        FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4, 1, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(256, 128, 96, 1, 128, 0),        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 1, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(256, 128, 128, 1, 192, 0),       FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 1, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 256, 16, 256, 0),        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(12, 12, 512, 128, 1024, 0),      FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(12, 12, 1024, 128, 1024, 0),     FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
     });
 
     std::string s;
