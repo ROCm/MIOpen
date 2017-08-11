@@ -1479,6 +1479,14 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 				OUT_HEIGHT4 = (_out_height + _kernel_stride1 - 1) / _kernel_stride1;
 				MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
 			}
+			
+			int VERT_ALIGNED = 1;
+			int HORIZ_ALIGNED = 1;
+			if (!_direction)
+			{
+				VERT_ALIGNED = (_out_height / _kernel_stride1 == _in_height) ? 1 : 0;
+				HORIZ_ALIGNED = (_out_width / _kernel_stride0 == _in_width) ? 1 : 0;
+			}
 
 			int GRP_SZ = _grp_tile0;
 
@@ -1500,6 +1508,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 				std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1) +
 				std::string(" -DMLO_IN_WIDTH=") + std::to_string(_in_width) +
 				std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_in_height) +
+				std::string(" -DMLO_OUT_WIDTH=") + std::to_string(_out_width) +
+				std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(_out_height) +
 				std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_outputs) +
 				std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_inputs) +
 				std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz) +
@@ -1518,6 +1528,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
 				std::string(" -DMLO_MAP_SZ4=") + std::to_string(MAP_SZ4) +
 				std::string(" -DMLO_OUT_WIDTH4=") + std::to_string(OUT_WIDTH4) +
+				std::string(" -DMLO_VERT_ALIGNED=") + std::to_string(VERT_ALIGNED) + 
+				std::string(" -DMLO_HORIZ_ALIGNED=") + std::to_string(HORIZ_ALIGNED) +
 
 				std::string(" -DMLO_N_LCL_BATCHS=") +
 				std::to_string(_n_stacks) + // # of diff stacks (part of batch).
