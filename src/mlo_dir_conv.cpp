@@ -88,7 +88,6 @@ n of input blocks
 n batches (stacks) processed by the group
 */
 
-
 static int mloBuildConf_Val(std::string& conf_val,
                             int grp_tile1,
                             int grp_tile0,
@@ -262,9 +261,9 @@ int mlo_construct_winograd::mloConstruct()
 int mlo_construct_direct2D::mloConstruct()
 {
     int ret = 0;
-	_gen = (_kernel_size0 > 11 || _kernel_size1 > 11 ||
-		((_kernel_stride0 > 1 || _kernel_stride1 > 1) &&
-			!(_kernel_size0 == 1 && _kernel_size1 == 1)));
+    _gen    = (_kernel_size0 > 11 || _kernel_size1 > 11 ||
+            ((_kernel_stride0 > 1 || _kernel_stride1 > 1) &&
+             !(_kernel_size0 == 1 && _kernel_size1 == 1)));
 
     rocm_meta_version rmv = V3;
     /// \todo See todo in mlo_construct_winograd::mloConstruct().
@@ -1452,117 +1451,118 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
         else
         {
 
-			// parameters
-			//	int i_sz = _in_width * _in_height;
-			//	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
-			int read_unit = _out_pix_tile0;
-			//	_n_out_pix_tiles = 16;
-			//	_n_in_data_tiles = 4;
-			//	_grp_tile0 = 64;
+            // parameters
+            //	int i_sz = _in_width * _in_height;
+            //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
+            int read_unit = _out_pix_tile0;
+            //	_n_out_pix_tiles = 16;
+            //	_n_in_data_tiles = 4;
+            //	_grp_tile0 = 64;
 
-			int wei_cstride = _kernel_size0 * _kernel_size1;
-			// backward: inputs are forward outputs
-			int wei_bstride = (isForwardDirection() ? _n_inputs : _n_outputs) * wei_cstride;
+            int wei_cstride = _kernel_size0 * _kernel_size1;
+            // backward: inputs are forward outputs
+            int wei_bstride = (isForwardDirection() ? _n_inputs : _n_outputs) * wei_cstride;
 
-			std::string READ_TYPE =
-				(read_unit == 1) ? "_FLOAT"
-				: "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
+            std::string READ_TYPE =
+                (read_unit == 1) ? "_FLOAT"
+                                 : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
 
-			int OUT_WIDTH4 = _out_width;
-			int OUT_HEIGHT4 = _out_height;
-			int MAP_SZ4 = (OUT_WIDTH4 * _out_height + read_unit - 1) / (read_unit);
-			// stride > 1 and/or apdding
-			if (_pad0 > 0 || _kernel_stride0 > 1 || _pad1 > 0 || _kernel_stride1 > 1)
-			{
-				int step = (_direction) ? read_unit : read_unit * _kernel_stride0;
-				OUT_WIDTH4 = (_out_width + step - 1) / (step);
-				OUT_HEIGHT4 = (_direction) ? _out_height : (_out_height + _kernel_stride1 - 1) / _kernel_stride1;
-				MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
-			}
-			
-			int VERT_ALIGNED = 1;
-			int HORIZ_ALIGNED = 1;
-			if (!_direction)
-			{
-				VERT_ALIGNED = (_out_height / _kernel_stride1 == _in_height) ? 1 : 0;
-				HORIZ_ALIGNED = (_out_width / _kernel_stride0 == _in_width) ? 1 : 0;
-			}
+            int OUT_WIDTH4  = _out_width;
+            int OUT_HEIGHT4 = _out_height;
+            int MAP_SZ4     = (OUT_WIDTH4 * _out_height + read_unit - 1) / (read_unit);
+            // stride > 1 and/or apdding
+            if(_pad0 > 0 || _kernel_stride0 > 1 || _pad1 > 0 || _kernel_stride1 > 1)
+            {
+                int step    = (_direction) ? read_unit : read_unit * _kernel_stride0;
+                OUT_WIDTH4  = (_out_width + step - 1) / (step);
+                OUT_HEIGHT4 = (_direction) ? _out_height
+                                           : (_out_height + _kernel_stride1 - 1) / _kernel_stride1;
+                MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
+            }
 
-			int GRP_SZ = _grp_tile0;
+            int VERT_ALIGNED  = 1;
+            int HORIZ_ALIGNED = 1;
+            if(!_direction)
+            {
+                VERT_ALIGNED  = (_out_height / _kernel_stride1 == _in_height) ? 1 : 0;
+                HORIZ_ALIGNED = (_out_width / _kernel_stride0 == _in_width) ? 1 : 0;
+            }
 
-			// number of inputs inside wk-items
-			_n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
+            int GRP_SZ = _grp_tile0;
 
-			int CLOOP0 = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
+            // number of inputs inside wk-items
+            _n_in_data_tiles = std::min(_n_inputs, _n_in_data_tiles);
 
-			// number of outputs inside wk_item
-			_n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
+            int CLOOP0 = (_n_inputs + _n_in_data_tiles - 1) / _n_in_data_tiles;
 
-			_comp_options =
-				std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction) +
-				std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0) +
-				std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1) +
-				std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0) +
-				std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1) +
-				std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0) +
-				std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1) +
-				std::string(" -DMLO_IN_WIDTH=") + std::to_string(_in_width) +
-				std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_in_height) +
-				std::string(" -DMLO_OUT_WIDTH=") + std::to_string(_out_width) +
-				std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(_out_height) +
-				std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_outputs) +
-				std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_inputs) +
-				std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz) +
-				std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_out_batch_stride) +
-				std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride) +
-				std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_out_stride) +
-				std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_in_batch_stride) +
-				std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride) +
-				std::string(" -DMLO_IN_STRIDE=") + std::to_string(_in_stride) +
-				std::string(" -DMLO_WEI_BSTRIDE=") + std::to_string(wei_bstride) +
-				std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride) +
-				// algorithm parameters
-				std::string(" -DMLO_GRP_SZ0=") + std::to_string(GRP_SZ) +
-				std::string(" -DMLO_GRP_SZ1=") + std::to_string(1) +
-				std::string(" -DMLO_GRP_SZ2=") + std::to_string(1) +
+            // number of outputs inside wk_item
+            _n_out_pix_tiles = std::min(_n_outputs, _n_out_pix_tiles);
 
-				std::string(" -DMLO_MAP_SZ4=") + std::to_string(MAP_SZ4) +
-				std::string(" -DMLO_OUT_WIDTH4=") + std::to_string(OUT_WIDTH4) +
-				std::string(" -DMLO_VERT_ALIGNED=") + std::to_string(VERT_ALIGNED) + 
-				std::string(" -DMLO_HORIZ_ALIGNED=") + std::to_string(HORIZ_ALIGNED) +
+            _comp_options =
+                std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction) +
+                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0) +
+                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1) +
+                std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0) +
+                std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1) +
+                std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0) +
+                std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1) +
+                std::string(" -DMLO_IN_WIDTH=") + std::to_string(_in_width) +
+                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_in_height) +
+                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(_out_width) +
+                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(_out_height) +
+                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_outputs) +
+                std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_inputs) +
+                std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz) +
+                std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_out_batch_stride) +
+                std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride) +
+                std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_out_stride) +
+                std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_in_batch_stride) +
+                std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride) +
+                std::string(" -DMLO_IN_STRIDE=") + std::to_string(_in_stride) +
+                std::string(" -DMLO_WEI_BSTRIDE=") + std::to_string(wei_bstride) +
+                std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride) +
+                // algorithm parameters
+                std::string(" -DMLO_GRP_SZ0=") + std::to_string(GRP_SZ) +
+                std::string(" -DMLO_GRP_SZ1=") + std::to_string(1) +
+                std::string(" -DMLO_GRP_SZ2=") + std::to_string(1) +
 
-				std::string(" -DMLO_N_LCL_BATCHS=") +
-				std::to_string(_n_stacks) + // # of diff stacks (part of batch).
-				std::string(" -DMLO_N_LCL_OUT_MAPS=") +
-				std::to_string(_n_out_pix_tiles) + // # output pixel tiles per wk-item (ALU)
-				std::string(" -DMLO_N_LCL_IN_MAPS=") +
-				std::to_string(_n_in_data_tiles) + // total # of blocks of different inputs in LDS
-				std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias) +
+                std::string(" -DMLO_MAP_SZ4=") + std::to_string(MAP_SZ4) +
+                std::string(" -DMLO_OUT_WIDTH4=") + std::to_string(OUT_WIDTH4) +
+                std::string(" -DMLO_VERT_ALIGNED=") + std::to_string(VERT_ALIGNED) +
+                std::string(" -DMLO_HORIZ_ALIGNED=") + std::to_string(HORIZ_ALIGNED) +
 
-				std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit) +
-				std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
+                std::string(" -DMLO_N_LCL_BATCHS=") +
+                std::to_string(_n_stacks) + // # of diff stacks (part of batch).
+                std::string(" -DMLO_N_LCL_OUT_MAPS=") +
+                std::to_string(_n_out_pix_tiles) + // # output pixel tiles per wk-item (ALU)
+                std::string(" -DMLO_N_LCL_IN_MAPS=") +
+                std::to_string(_n_in_data_tiles) + // total # of blocks of different inputs in LDS
+                std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias) +
 
-				getGeneralCompOptions();
+                std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit) +
+                std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
 
-			_l_wk.clear();
-			_l_wk.push_back(_grp_tile0);
-			_l_wk.push_back(1);
-			_l_wk.push_back(1);
+                getGeneralCompOptions();
 
-			size_t gbl_wk0 = _batch_sz * MAP_SZ4;
+            _l_wk.clear();
+            _l_wk.push_back(_grp_tile0);
+            _l_wk.push_back(1);
+            _l_wk.push_back(1);
 
-			size_t gbl_wk1 = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
-			size_t gbl_wk2 = 1;
+            size_t gbl_wk0 = _batch_sz * MAP_SZ4;
 
-			_g_wk.clear();
-			_g_wk.push_back(gbl_wk0);
-			_g_wk.push_back(gbl_wk1);
-			_g_wk.push_back(gbl_wk2);
+            size_t gbl_wk1 = (_n_outputs + _n_out_pix_tiles - 1) / _n_out_pix_tiles;
+            size_t gbl_wk2 = 1;
 
-			_kernel_file = "MIOpenConv1x1S.cl";
-			_kernel_name =
-				(_pad0 == 0 && _kernel_stride0 == 1) ? "MIOpenConv1x1" : "MIOpenConv1x1pquv";
-		}
+            _g_wk.clear();
+            _g_wk.push_back(gbl_wk0);
+            _g_wk.push_back(gbl_wk1);
+            _g_wk.push_back(gbl_wk2);
+
+            _kernel_file = "MIOpenConv1x1S.cl";
+            _kernel_name =
+                (_pad0 == 0 && _kernel_stride0 == 1) ? "MIOpenConv1x1" : "MIOpenConv1x1pquv";
+        }
     }
     else
     {
@@ -3897,7 +3897,8 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string& conf_val)
         if((_n_outputs / 16) * 16 == _n_outputs && (_n_inputs / 4) * 4 == _n_inputs)
         {
             // version
-            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 && _kernel_stride1 == 1)
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 &&
+               _kernel_stride1 == 1)
             {
                 _n_in_data_tiles = 128;
 
@@ -3916,15 +3917,15 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string& conf_val)
 
                 if(_pad0 > 0 || _kernel_stride0 > 1)
                 {
- 
-					if (_direction)
-					{
-						_out_pix_tile0 = (_out_width & 1) ? 1 : 2;
-					}
-					else
-					{
-						_out_pix_tile0 =  ((_out_width & 1) || (_in_width & 1)) ? 1 : 2;
-					}
+
+                    if(_direction)
+                    {
+                        _out_pix_tile0 = (_out_width & 1) ? 1 : 2;
+                    }
+                    else
+                    {
+                        _out_pix_tile0 = ((_out_width & 1) || (_in_width & 1)) ? 1 : 2;
+                    }
                 }
 
                 _n_out_pix_tiles = 16;
@@ -4455,7 +4456,8 @@ std::vector<int> v_n_in_stacks_sz;
             _in_tile0      = 1;
             report_inteval = 4;
 
-            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 && _kernel_stride1 == 1)
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 &&
+               _kernel_stride1 == 1)
             {
 
                 // uint N_LCL_IN_MAPS = _n_in_data_tiles;
@@ -4480,23 +4482,22 @@ std::vector<int> v_n_in_stacks_sz;
             }
             else
             {
-                int i_sz           = _in_width * _in_height;
-				if (_kernel_stride0 == 1)
-				{
-					out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
-
-				}
-				else
-				{
-					if (_direction)
-					{
-						out_pix_tl_cnt = (_out_width & 1) ? 1 : 2;
-					}
-					else
-					{
-						out_pix_tl_cnt = ((_out_width & 1) || (_in_width & 1)) ? 1 : 2;
-					}
-				}
+                int i_sz = _in_width * _in_height;
+                if(_kernel_stride0 == 1)
+                {
+                    out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
+                }
+                else
+                {
+                    if(_direction)
+                    {
+                        out_pix_tl_cnt = (_out_width & 1) ? 1 : 2;
+                    }
+                    else
+                    {
+                        out_pix_tl_cnt = ((_out_width & 1) || (_in_width & 1)) ? 1 : 2;
+                    }
+                }
                 out_pix_tile_sz[0] = 1;
                 out_pix_tile_sz[1] = 2;
                 out_pix_tile_sz[2] = 4;
