@@ -53,25 +53,25 @@ static int mloLg2(int v)
 }
 
 /*
-   the search db is a text file with the name defined by the device characteristics.
-   each line is a key/value pair, separated by a space:
-   32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
-   or
-   64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
+the search db is a text file with the name defined by the device characteristics.
+each line is a key/value pair, separated by a space:
+32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
+or
+64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
 
-   key format (all values are separted by x):
-   n input maps
-   input height
-   input width
-   filter height
-   filter width
-   n output maps
-   output height
-   output width
-   batch size
-   tensors' layout
-   tensprs' data type
-   direction (1 - forward, 0 - backward)
+key format (all values are separated by x):
+n input maps
+input height
+input width
+filter height
+filter width
+n output maps
+output height
+output width
+batch size
+tensors' layout
+tensors' data type
+direction (1 - forward, 0 - backward)
 
 Note:
 for backward direction - input and output are reversed.
@@ -82,10 +82,10 @@ horizontal group size
 input block vertical size
 input block horizontal size
 output tile vertical size
-output tile horizaontal size
+output tile horizontal size
 n of output tiles
 n of input blocks
-n batchs (stacks) processed by the group
+n batches (stacks) processed by the group
 */
 
 static int mloBuildConf_Val(std::string& conf_val,
@@ -261,7 +261,9 @@ int mlo_construct_winograd::mloConstruct()
 int mlo_construct_direct2D::mloConstruct()
 {
     int ret = 0;
-    _gen = (_kernel_size0 > 11 || _kernel_size1 > 11 || _kernel_stride0 > 1 || _kernel_stride1 > 1);
+    _gen    = (_kernel_size0 > 11 || _kernel_size1 > 11 ||
+            ((_kernel_stride0 > 1 || _kernel_stride1 > 1) &&
+             !(_kernel_size0 == 1 && _kernel_size1 == 1)));
 
     rocm_meta_version rmv = V3;
     /// \todo See todo in mlo_construct_winograd::mloConstruct().
@@ -351,7 +353,7 @@ int mlo_construct_direct2D::mloConstructDirect2DFwd()
          (_out_width > 16 && _out_width < 32));
 
     // no 1x1 backward yet
-    if(_kernel_size0 == 1 && _kernel_size1 == 1 && _kernel_stride0 == 1 && _kernel_stride1 == 1)
+    if(_kernel_size0 == 1 && _kernel_size1 == 1)
     {
         return (mloConstructDirect2D1x1());
     }
@@ -1465,14 +1467,25 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
                 (read_unit == 1) ? "_FLOAT"
                                  : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
 
-            int OUT_WIDTH4 = _out_width;
-            int MAP_SZ4    = (OUT_WIDTH4 * _out_height + read_unit - 1) / (read_unit);
+            int OUT_WIDTH4  = _out_width;
+            int OUT_HEIGHT4 = _out_height;
+            int MAP_SZ4     = (OUT_WIDTH4 * _out_height + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding
-            if(_pad0 > 0 || _kernel_stride0 > 1)
+            if(_pad0 > 0 || _kernel_stride0 > 1 || _pad1 > 0 || _kernel_stride1 > 1)
             {
-                int step   = (_direction) ? read_unit : read_unit * _kernel_stride0;
-                OUT_WIDTH4 = (_out_width + step - 1) / (step);
-                MAP_SZ4    = (OUT_WIDTH4 * _out_height);
+                int step    = (_direction) ? read_unit : read_unit * _kernel_stride0;
+                OUT_WIDTH4  = (_out_width + step - 1) / (step);
+                OUT_HEIGHT4 = (_direction) ? _out_height
+                                           : (_out_height + _kernel_stride1 - 1) / _kernel_stride1;
+                MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
+            }
+
+            int VERT_ALIGNED  = 1;
+            int HORIZ_ALIGNED = 1;
+            if(!_direction)
+            {
+                VERT_ALIGNED  = (_out_height / _kernel_stride1 == _in_height) ? 1 : 0;
+                HORIZ_ALIGNED = (_out_width / _kernel_stride0 == _in_width) ? 1 : 0;
             }
 
             int GRP_SZ = _grp_tile0;
@@ -1495,6 +1508,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
                 std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1) +
                 std::string(" -DMLO_IN_WIDTH=") + std::to_string(_in_width) +
                 std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_in_height) +
+                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(_out_width) +
+                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(_out_height) +
                 std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_outputs) +
                 std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_inputs) +
                 std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz) +
@@ -1513,6 +1528,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
                 std::string(" -DMLO_MAP_SZ4=") + std::to_string(MAP_SZ4) +
                 std::string(" -DMLO_OUT_WIDTH4=") + std::to_string(OUT_WIDTH4) +
+                std::string(" -DMLO_VERT_ALIGNED=") + std::to_string(VERT_ALIGNED) +
+                std::string(" -DMLO_HORIZ_ALIGNED=") + std::to_string(HORIZ_ALIGNED) +
 
                 std::string(" -DMLO_N_LCL_BATCHS=") +
                 std::to_string(_n_stacks) + // # of diff stacks (part of batch).
@@ -3880,7 +3897,8 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string& conf_val)
         if((_n_outputs / 16) * 16 == _n_outputs && (_n_inputs / 4) * 4 == _n_inputs)
         {
             // version
-            if(_direction && (_n_inputs / 8) * 8 == _n_inputs)
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 &&
+               _kernel_stride1 == 1)
             {
                 _n_in_data_tiles = 128;
 
@@ -3899,8 +3917,15 @@ int mlo_construct_direct2D::mloSelectDefaultConfig(std::string& conf_val)
 
                 if(_pad0 > 0 || _kernel_stride0 > 1)
                 {
-                    int row_sz     = (_direction) ? _out_width : _in_width;
-                    _out_pix_tile0 = (row_sz & 1) ? 1 : 2;
+
+                    if(_direction)
+                    {
+                        _out_pix_tile0 = (_out_width & 1) ? 1 : 2;
+                    }
+                    else
+                    {
+                        _out_pix_tile0 = ((_out_width & 1) || (_in_width & 1)) ? 1 : 2;
+                    }
                 }
 
                 _n_out_pix_tiles = 16;
@@ -4431,7 +4456,8 @@ std::vector<int> v_n_in_stacks_sz;
             _in_tile0      = 1;
             report_inteval = 4;
 
-            if(_direction && (_n_inputs / 8) * 8 == _n_inputs)
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 &&
+               _kernel_stride1 == 1)
             {
 
                 // uint N_LCL_IN_MAPS = _n_in_data_tiles;
@@ -4456,8 +4482,22 @@ std::vector<int> v_n_in_stacks_sz;
             }
             else
             {
-                int i_sz           = _in_width * _in_height;
-                out_pix_tl_cnt     = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
+                int i_sz = _in_width * _in_height;
+                if(_kernel_stride0 == 1)
+                {
+                    out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
+                }
+                else
+                {
+                    if(_direction)
+                    {
+                        out_pix_tl_cnt = (_out_width & 1) ? 1 : 2;
+                    }
+                    else
+                    {
+                        out_pix_tl_cnt = ((_out_width & 1) || (_in_width & 1)) ? 1 : 2;
+                    }
+                }
                 out_pix_tile_sz[0] = 1;
                 out_pix_tile_sz[1] = 2;
                 out_pix_tile_sz[2] = 4;
