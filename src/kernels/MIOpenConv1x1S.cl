@@ -222,78 +222,86 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
         }
     }
 
-    for(uint ci = 0; ci < MLO_CLOOP0; ++ci,
-             // move input offset
-                                      gbl_in_off += MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE,
-
-             // move weights offset
-                                      wei_off += MLO_N_LCL_IN_MAPS *
-#if MLO_DIR_FORWARD == 1
-                                                 MLO_WEI_CHANNEL_STRIDE
-#else
-                                                 MLO_WEI_BSTRIDE
-#endif
-        )
+	const __global _FLOAT* i_ptr = &in_ptr[gbl_in_off];
+	__constant _FLOAT* w_ptr = &wei_ptr[wei_off];
+    for(uint ci = 0; ci < MLO_CLOOP0; ++ci)
     {
-        // read weights
 
-        for(uint o = 0, wei_off1 = wei_off; o < MLO_N_LCL_OUT_MAPS; ++o,
-                 wei_off1 +=
-#if MLO_DIR_FORWARD == 1
-                                                                    MLO_WEI_BSTRIDE
-#else
-                                                                    MLO_WEI_CHANNEL_STRIDE
-#endif
-            )
-        {
-            for(uint c = 0, wei_off2 = wei_off1; c < MLO_N_LCL_IN_MAPS; ++c,
-                     wei_off2 +=
-#if MLO_DIR_FORWARD == 1
-                                                                        MLO_WEI_CHANNEL_STRIDE
-#else
-                                                                        MLO_WEI_BSTRIDE
-#endif
-                )
-            {
-                weights[o][c] = wei_ptr[wei_off2];
-            }
-        }
 
         // convolve with all weights
         // read data
-        for(uint j = 0, gbl_in_off1 = gbl_in_off; j < MLO_N_LCL_IN_MAPS;
-            ++j, gbl_in_off1 += MLO_IN_CHANNEL_STRIDE)
+
+        for(uint j = 0; j < MLO_N_LCL_IN_MAPS; ++j)
         {
 			uint i = 0;
 #if MLO_READ_UNIT > 1
             for(; i < MLO_READ_UNIT - 1; ++i)
             {
-				uint off = gbl_in_off1 + i
+				uint off = i
 #if MLO_DIR_FORWARD == 1
 				*MLO_FILTER_STRIDE0
 #endif
 				;
-                dat[j][i] = in_ptr[off];
+                dat[j][i] = i_ptr[off];
             }
 #endif
 
             for(; i < MLO_READ_UNIT; ++i)
             {
 //				vis &= (pos_in_x + i*MLO_FILTER_STRIDE0 < MLO_IN_WIDTH);
-				uint off = gbl_in_off1 + i
+				uint off = i
 #if MLO_DIR_FORWARD == 1
 				*MLO_FILTER_STRIDE0
 #endif
 				;
 //				off = (vis) ? off : 0;
-				_FLOAT val = in_ptr[off];
+				_FLOAT val = i_ptr[off];
                 dat[j][i] = val;
 //              dat[j][i] = (vis)? dat[j][i] : 0;
 
             }
 
+			i_ptr += MLO_IN_CHANNEL_STRIDE;
+
+        }
+        // read weights
+		__constant _FLOAT* w_ptr0 = w_ptr;
+
+        for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+        {
+
+			__constant _FLOAT* w_ptr1 = w_ptr0;
+
+            for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c
+                )
+            {
+                weights[o][c] = *w_ptr1;
+				w_ptr1 +=
+#if MLO_DIR_FORWARD == 1
+                                                                        MLO_WEI_CHANNEL_STRIDE
+#else
+                                                                        MLO_WEI_BSTRIDE
+#endif
+					;
+            }
+
+
+			w_ptr0 +=
+#if MLO_DIR_FORWARD == 1
+                                                                    MLO_WEI_BSTRIDE
+#else
+                                                                    MLO_WEI_CHANNEL_STRIDE
+#endif
+				;
         }
 
+		w_ptr  += MLO_N_LCL_IN_MAPS *
+#if MLO_DIR_FORWARD == 1
+                                                 MLO_WEI_CHANNEL_STRIDE
+#else
+                                                 MLO_WEI_BSTRIDE
+#endif
+		;
         // convolve
         for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
         {
