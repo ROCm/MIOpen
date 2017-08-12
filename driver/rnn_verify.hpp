@@ -76,11 +76,17 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 	int bi = bidirection ? 2 : 1;
 	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
+	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+
+	// forward emulator
 	for (int li = 0; li < numLayer; li++)
 	{
 		bacc = 0;
 		for (int ti = 0; ti < seqLength; ti++)
 		{
+			int hid_shift = li * batch_n * hy_h * bi + bacc * hy_h;
+			int hx_shift = li * bi * in_n[0] * hy_h;
+
 			for (int bs = 0; bs < in_n[ti]; bs++)
 			{
 				for (int h = 0; h < hy_h; h++)
@@ -90,7 +96,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 						// from input
 						for (int w = 0; w < in_h; w++)
 						{
-							hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[w * hy_h + h] * in[(bacc + bs) * in_h + w];
+							hid_state[hid_shift + bs * hy_h + h] += wei[w * hy_h + h] * in[(bacc + bs) * in_h + w];
 						}
 
 						// from previous state
@@ -98,30 +104,33 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 						{
 							if (ti == 0)
 							{
-								hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[in_h * hy_h + w * hy_h + h] * hx[li * bi * in_n[0] * hy_h + bs * hy_h + w];
+								hid_state[hid_shift + bs * hy_h + h] += wei[in_h * hy_h + w * hy_h + h] * hx[hx_shift + bs * hy_h + w];
 							}
 							else
 							{
-								hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[in_h * hy_h + w * hy_h + h] * hy_host[li * bi * in_n[0] * hy_h + bs * hy_h + w];
+								hid_state[hid_shift + bs * hy_h + h] += wei[in_h * hy_h + w * hy_h + h] * hy_host[hx_shift + bs * hy_h + w];
 							}
 						}
 
 						//from bias
 						if (biased)
 						{
-							hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + h];
-							hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + hy_h + h];
+							hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias + h];
+							hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias + hy_h + h];
 						}
 					}
 					else
 					{
+						int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+						int prehid_shift = (li - 1) * batch_n * hy_h * bi + bacc * hy_h;
+
 						// from input
 						for (int w = 0; w < hy_h; w++)
 						{
-							hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + w * hy_h + h] * activfunc(hid_state[(li - 1) * batch_n * hy_h * bi + (bacc + bs) * hy_h + w], squash);
+							hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + w * hy_h + h] * activfunc(hid_state[prehid_shift + bs * hy_h + w], squash);
 							if (bidirection)
 							{
-								hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + hy_h * hy_h + w * hy_h + h] * activfunc(hid_state[(li - 1) * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + w], squash);
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + hy_h * hy_h + w * hy_h + h] * activfunc(hid_state[prehid_shift + batch_n * hy_h + bs * hy_h + w], squash);
 							}
 						}
 
@@ -130,29 +139,31 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 						{
 							if (ti == 0)
 							{
-								hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy * hy + w * hy_h + h] * hx[li * bi * in_n[0] * hy_h + bs * hy_h + w];
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + bi * hy * hy + w * hy_h + h] * hx[hx_shift + bs * hy_h + w];
 							}
 							else
 							{
-								hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy * hy + w * hy_h + h] * hy_host[li * bi * in_n[0] * hy_h + bs * hy_h + w];
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + bi * hy * hy + w * hy_h + h] * hy_host[hx_shift + bs * hy_h + w];
 							}
 						}
 
 						//from bias
 						if (biased)
 						{
-							hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h + h];
+							int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h;
+
+							hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias_temp + h];
 							if (bidirection)
 							{
-								hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h + hy_h + h];
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias_temp + hy_h + h];
 							}
-							hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h + bi * hy_h + h];
+							hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias_temp + bi * hy_h + h];
 						}
 					}
 
-					hy_host[li * bi * in_n[0] * hy_h + bs * hy_h + h] = activfunc(hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h], squash);  // squash_func
+					hy_host[hx_shift + bs * hy_h + h] = activfunc(hid_state[hid_shift + bs * hy_h + h], squash);  // squash_func
 
-					rsvspace[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] = hid_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h];
+					rsvspace[hid_shift + bs * hy_h + h] = hid_state[hid_shift + bs * hy_h + h];
 				}
 			}
 			bacc += in_n[ti];
@@ -163,6 +174,9 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 			bacc = batch_n;
 			for (int ti = seqLength - 1; ti >= 0; ti--)
 			{
+				int hid_shift = li * batch_n * hy_h * bi + batch_n * hy_h + bacc * hy_h;
+				int hx_shift = li * bi * in_n[0] * hy_h + in_n[0] * hy_h;
+
 				bacc -= in_n[ti];
 				for (int bs = 0; bs < in_n[ti]; bs++)
 				{
@@ -170,10 +184,12 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 					{
 						if (li == 0)
 						{
+							int wei_shift = (in_h + hy_h) * hy_h;
+
 							// from input
 							for (int w = 0; w < in_h; w++)
 							{
-								hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[(in_h + hy_h) * hy_h + w * hy_h + h] * in[(bacc + bs) * in_h + w];
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + w * hy_h + h] * in[(bacc + bs) * in_h + w];
 							}
 
 							// from previous state
@@ -181,29 +197,32 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 							{
 								if (ti == seqLength - 1)
 								{
-									hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[(in_h + hy_h) * hy_h + in_h * hy_h + w * hy_h + h] * hx[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + w];
+									hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + in_h * hy_h + w * hy_h + h] * hx[hx_shift + bs * hy_h + w];
 								}
 								else
 								{
-									hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[(in_h + hy_h) * hy_h + in_h * hy_h + w * hy_h + h] * hy_host[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + w];
+									hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + in_h * hy_h + w * hy_h + h] * hy_host[hx_shift + bs * hy_h + w];
 								}
 							}
 
 							//from bias
 							if (biased)
 							{
-								hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + 2 * hy_h + h];
-								hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + 2 * hy_h + hy_h + h];
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias + 2 * hy_h + h];
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias + 2 * hy_h + hy_h + h];
 							}
 						}
 						else
 						{
+							int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h;
+							int prehid_shift = (li - 1) * batch_n * hy_h * bi + bacc * hy_h;
+
 							// from input
 							for (int w = 0; w < hy_h; w++)
 							{
-								hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + w * hy_h + h] * activfunc(hid_state[(li - 1) * batch_n * hy_h * bi + (bacc + bs) * hy_h + w], squash);
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + w * hy_h + h] * activfunc(hid_state[prehid_shift + bs * hy_h + w], squash);
 
-								hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + hy_h * hy_h + w * hy_h + h] * activfunc(hid_state[(li - 1) * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + w], squash);
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + hy_h * hy_h + w * hy_h + h] * activfunc(hid_state[prehid_shift + batch_n * hy_h + bs * hy_h + w], squash);
 							}
 
 							// from previous state
@@ -211,26 +230,28 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 							{
 								if (ti == seqLength - 1)
 								{
-									hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + w * hy_h + h] * hx[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + w];
+									hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + bi * hy_h * hy_h + w * hy_h + h] * hx[hx_shift + bs * hy_h + w];
 								}
 								else
 								{
-									hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + w * hy_h + h] * hy_host[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + w];
+									hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift + bi * hy_h * hy_h + w * hy_h + h] * hy_host[hx_shift + bs * hy_h + w];
 								}
 							}
 
 							//from bias
 							if (biased)
 							{
-								hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h + (bi + 1) * hy_h + h];
-								hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h + (bi + 1) * hy_h + hy_h + h];
-								hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h + (bi + 1) * hy_h + bi * hy_h + h];
+								int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h + (bi + 1) * hy_h;
+
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias_temp + h];
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias_temp + hy_h + h];
+								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias_temp + bi * hy_h + h];
 							}
 						}
 
-						hy_host[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + h] = activfunc(hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h], squash);  // squash_func
+						hy_host[hx_shift + bs * hy_h + h] = activfunc(hid_state[hid_shift + bs * hy_h + h], squash);  // squash_func
 
-						rsvspace[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] = hid_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h];
+						rsvspace[hid_shift + bs * hy_h + h] = hid_state[hid_shift + bs * hy_h + h];
 					}
 				}
 			}
@@ -241,30 +262,35 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 	bacc = 0;
 	for (int ti = 0; ti < seqLength; ti++)
 	{
+		int wei_shift = bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+		int prehid_shift = (numLayer - 1) * batch_n * hy_h * bi + bacc * hy_h;
+
 		for (int bs = 0; bs < in_n[ti]; bs++)
 		{
 			for (int w = 0; w < out_dim; w++)
 			{
 				for (int h = 0; h < hy_h; h++)
 				{
-					out_state[(bacc + bs) * out_h + w] += wei[bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h + w * hy_h + h] * activfunc(hid_state[(numLayer - 1) * batch_n * hy_h * bi + (bacc + bs) * hy_h + h], squash);
+					out_state[(bacc + bs) * out_h + w] += wei[wei_shift + w * hy_h + h] * activfunc(hid_state[prehid_shift + bs * hy_h + h], squash);
 					if (bidirection)
 					{
-						out_state[(bacc + bs) * out_h + w] += wei[bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h + 2 * out_dim * hy_h + w * hy_h + h] * activfunc(hid_state[(numLayer - 1) * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h], squash);
+						out_state[(bacc + bs) * out_h + w] += wei[wei_shift + 2 * out_dim * hy_h + w * hy_h + h] * activfunc(hid_state[prehid_shift + batch_n * hy_h + bs * hy_h + h], squash);
 
-						out_state[(bacc + bs) * out_h + out_dim + w] += (wei[bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h + out_dim * hy_h + w * hy_h + h] * activfunc(hid_state[(numLayer - 1) * batch_n * hy_h * bi + (bacc + bs) * hy_h + h], squash)
-							+ wei[bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h + 3 * out_dim * hy_h + w * hy_h + h] * activfunc(hid_state[(numLayer - 1) * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h], squash));
+						out_state[(bacc + bs) * out_h + out_dim + w] += (wei[wei_shift + out_dim * hy_h + w * hy_h + h] * activfunc(hid_state[prehid_shift + bs * hy_h + h], squash)
+							+ wei[wei_shift + 3 * out_dim * hy_h + w * hy_h + h] * activfunc(hid_state[prehid_shift + batch_n * hy_h + bs * hy_h + h], squash));
 					}
 
 					//from bias
 					if (biased)
 					{
-						out_state[(bacc + bs) * out_h + w] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (bi + 1) * (numLayer - 1) * hy_h + w];
+						int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numLayer - 1) * hy_h;
+
+						out_state[(bacc + bs) * out_h + w] += wei[wei_shift_bias_temp + w];
 						if (bidirection)
 						{
-							out_state[(bacc + bs) * out_h + w] += wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (bi + 1) * (numLayer - 1) * hy_h + 2 * out_dim + w];
-							out_state[(bacc + bs) * out_h + out_dim + w] += (wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (bi + 1) * (numLayer - 1) * hy_h + out_dim + w]
-								+ wei[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + bi * (bi + 1) * (numLayer - 1) * hy_h + 3 * out_dim + w]);
+							out_state[(bacc + bs) * out_h + w] += wei[wei_shift_bias_temp + 2 * out_dim + w];
+							out_state[(bacc + bs) * out_h + out_dim + w] += (wei[wei_shift_bias_temp + out_dim + w]
+								+ wei[wei_shift_bias_temp + 3 * out_dim + w]);
 						}
 					}
 				}
@@ -322,6 +348,10 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 		bacc = batch_n;
 		for (int ti = seqLength - 1; ti >= 0; ti--)
 		{
+			int hid_shift = li * batch_n * hy_h * bi + bacc * hy_h;
+			int hx_shift = li * bi * in_n[0] * hy_h;
+			int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
+
 			bacc -= in_n[ti];
 			for (int bs = 0; bs < in_n[ti]; bs++)
 			{
@@ -332,18 +362,20 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 						// from doutput
 						for (int w = 0; w < out_h; w++)
 						{
-							dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h + w * hy_h + h] * dout[(bacc + bs) * out_h + w];
+							dh_state[hid_shift + bs * hy_h + h] += wei[wei_shift + w * hy_h + h] * dout[(bacc + bs) * out_h + w];
 						}
 					}
 					else
 					{
+						int prehid_shift = (li + 1) * batch_n * hy_h * bi + bacc * hy_h;
+
 						// from doutput
 						for (int w = 0; w < hy_h; w++)
 						{
-							dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h + h * hy_h + w] * dh_state[(li + 1) * batch_n * hy_h * bi + (bacc + bs) * hy_h + w];
+							dh_state[hid_shift + bs * hy_h + h] += wei[wei_shift + h * hy_h + w] * dh_state[prehid_shift + bs * hy_h + w];
 							if (bidirection)
 							{
-								dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + h * hy_h + w] * dh_state[(li + 1) * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + w];
+								dh_state[hid_shift + bs * hy_h + h] += wei[wei_shift + (bi * hy_h + hy_h) * hy_h + h * hy_h + w] * dh_state[prehid_shift + batch_n * hy_h + bs * hy_h + w];
 							}
 						}
 					}
@@ -351,29 +383,31 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 					// from post state
 					if (ti == seqLength - 1)
 					{
-						dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += dhy[li * bi * in_n[0] * hy_h + bs * hy_h + h];
+						dh_state[hid_shift + bs * hy_h + h] += dhy[hx_shift + bs * hy_h + h];
 					}
 					else
 					{
-						dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] += dhx_host[li * bi * in_n[0] * hy_h + bs * hy_h + h];
+						dh_state[hid_shift + bs * hy_h + h] += dhx_host[hx_shift + bs * hy_h + h];
 					}
 					
-					dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] *= dervactivfunc(rsvspace[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h], squash);
-					wkspace[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h] = dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h];
+					dh_state[hid_shift + bs * hy_h + h] *= dervactivfunc(rsvspace[hid_shift + bs * hy_h + h], squash);
+					wkspace[hid_shift + bs * hy_h + h] = dh_state[hid_shift + bs * hy_h + h];
 				}
 					
 				for (int h = 0; h < hy_h; h++)
 				{
-					dhx_host[li * bi * in_n[0] * hy_h + bs * hy_h + h] = 0;
+					dhx_host[hx_shift + bs * hy_h + h] = 0;
 					for (int w = 0; w < hy_h; w++)
 					{
 						if (li == 0)
 						{
-							dhx_host[li * bi * in_n[0] * hy_h + bs * hy_h + h] += wei[in_h * hy_h + h * hy_h + w] * dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + w];
+							dhx_host[hx_shift + bs * hy_h + h] += wei[in_h * hy_h + h * hy_h + w] * dh_state[hid_shift + bs * hy_h + w];
 						}
 						else
 						{
-							dhx_host[li * bi * in_n[0] * hy_h + bs * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] * dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + w];
+							wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
+
+							dhx_host[hx_shift + bs * hy_h + h] += wei[wei_shift + h * hy_h + w] * dh_state[hid_shift + bs * hy_h + w];
 						}
 					}
 				}
@@ -385,6 +419,10 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 			bacc = 0;
 			for (int ti = 0; ti < seqLength; ti++)
 			{
+				int hid_shift = li * batch_n * hy_h * bi + batch_n * hy_h + bacc * hy_h;
+				int hx_shift = li * bi * in_n[0] * hy_h + in_n[0] * hy_h;
+				int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
+
 				for (int bs = 0; bs < in_n[ti]; bs++)
 				{
 					for (int h = 0; h < hy_h; h++)
@@ -394,18 +432,20 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 							// from doutput
 							for (int w = 0; w < out_h; w++)
 							{
-								dh_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h + out_h * hy_h + w * hy_h + h] * dout[(bacc + bs) * out_h + w];
+								dh_state[hid_shift + bs * hy_h + h] += wei[wei_shift + out_h * hy_h + w * hy_h + h] * dout[(bacc + bs) * out_h + w];
 							}
 						}
 						else
 						{
+							int prehid_shift = (li + 1) * batch_n * hy_h * bi + bacc * hy_h;
+
 							// from input
 							for (int w = 0; w < hy_h; w++)
 							{
-								dh_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h + hy_h * hy_h + h * hy_h + w] * dh_state[(li + 1) * batch_n * hy_h * bi + (bacc + bs) * hy_h + w];
+								dh_state[hid_shift + bs * hy_h + h] += wei[wei_shift + hy_h * hy_h + h * hy_h + w] * dh_state[prehid_shift + bs * hy_h + w];
 								if (bidirection)
 								{
-									dh_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + hy_h * hy_h + h * hy_h + w] * dh_state[(li + 1) * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + w];
+									dh_state[hid_shift + bs * hy_h + h] += wei[wei_shift + (bi * hy_h + hy_h) * hy_h + hy_h * hy_h + h * hy_h + w] * dh_state[prehid_shift + batch_n * hy_h + bs * hy_h + w];
 								}
 							}
 						}
@@ -413,29 +453,33 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 						// from post state
 						if (ti == 0)
 						{
-							dh_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += dhy[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + h];
+							dh_state[hid_shift + bs * hy_h + h] += dhy[hx_shift + bs * hy_h + h];
 						}
 						else
 						{
-							dh_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] += dhx_host[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + h];
+							dh_state[hid_shift + bs * hy_h + h] += dhx_host[hx_shift + bs * hy_h + h];
 						}
 
-						dh_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] *= dervactivfunc(rsvspace[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h], squash);
-						wkspace[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h] = dh_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + h];
+						dh_state[hid_shift + bs * hy_h + h] *= dervactivfunc(rsvspace[hid_shift + bs * hy_h + h], squash);
+						wkspace[hid_shift + bs * hy_h + h] = dh_state[hid_shift + bs * hy_h + h];
 					}
 
 					for (int h = 0; h < hy_h; h++)
 					{
-						dhx_host[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + h] = 0;
+						dhx_host[hx_shift + bs * hy_h + h] = 0;
 						for (int w = 0; w < hy_h; w++)
 						{
 							if (li == 0)
 							{
-								dhx_host[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + h] += wei[(in_h + hy_h) * hy_h + in_h * hy_h + h * hy_h + w] * dh_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + w];
+								wei_shift = (in_h + hy_h) * hy_h + in_h * hy_h;
+
+								dhx_host[hx_shift + bs * hy_h + h] += wei[wei_shift + h * hy_h + w] * dh_state[hid_shift + bs * hy_h + w];
 							}
 							else
 							{
-								dhx_host[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + h] += wei[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] * dh_state[li * batch_n * hy_h * bi + batch_n * hy_h + (bacc + bs) * hy_h + w];
+								wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
+
+								dhx_host[hx_shift + bs * hy_h + h] += wei[wei_shift + h * hy_h + w] * dh_state[hid_shift + bs * hy_h + w];
 							}
 						}
 					}
@@ -499,6 +543,9 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 	T * dwei_state = new T[(in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h];
 	memset(dwei_state, 0, (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h * sizeof(T));
 
+	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+
+	// bwd weights emulator
 	for (int li = 0; li <= numlayer; li++)
 	{
 		bacc = 0;
@@ -506,6 +553,11 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 		{
 			if (li == 0)
 			{
+				int hid_shift = li * bi * batch_n * hy_h + bacc * hy_h;
+				int hx_shift = li * bi * in_n[0] * hy_h;
+				int wei_shift = (in_h + hy_h) * hy_h;
+				int prehid_shift;
+
 				// between layers
 				for (int h = 0; h < in_h; h++)
 				{
@@ -513,15 +565,15 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						for (int bs = 0; bs < in_n[ti]; bs++)
 						{
-							dwei_state[h * hy_h + w] += in[(bacc + bs) * in_h + h] * wkspace[li * bi * batch_n * hy_h + (bacc + bs) * hy_h + w];
+							dwei_state[h * hy_h + w] += in[(bacc + bs) * in_h + h] * wkspace[hid_shift + bs * hy_h + w];
 							if (bidirection)
 							{
-								dwei_state[(in_h + hy_h) * hy_h + h * hy_h + w] += in[(bacc + bs) * in_h + h] * wkspace[li * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + w];
+								dwei_state[wei_shift + h * hy_h + w] += in[(bacc + bs) * in_h + h] * wkspace[hid_shift + batch_n * hy_h + bs * hy_h + w];
 							}
 						}
 					}
 				}
-
+						
 				// between time
 				for (int h = 0; h < hy_h; h++)
 				{
@@ -529,24 +581,33 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						for (int bs = 0; bs < in_n[ti]; bs++)
 						{
+							wei_shift = in_h * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
+
 							if (ti == 0)
 							{
-								dwei_state[in_h * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] += hx[li * bi * in_n[0] * hy_h + bs * hy_h + h] * wkspace[li * bi * batch_n * hy_h + (bacc + bs) * hy_h + w];
+								dwei_state[wei_shift + h * hy_h + w] += hx[hx_shift + bs * hy_h + h] * wkspace[hid_shift + bs * hy_h + w];
 							}
 							else
 							{
-								dwei_state[in_h * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] += activfunc(rsvspace[li * bi * batch_n * hy_h + ((bacc - in_n[ti - 1]) + bs) * hy_h + h], squash) * wkspace[li * bi * batch_n * hy_h + (bacc + bs) * hy_h + w];
+								prehid_shift = li * bi * batch_n * hy_h + ((bacc - in_n[ti - 1])) * hy_h;
+
+								dwei_state[wei_shift + h * hy_h + w] += activfunc(rsvspace[prehid_shift + bs * hy_h + h], squash) * wkspace[hid_shift + bs * hy_h + w];
 							}
 
 							if (bidirection)
 							{
+								wei_shift = (in_h + hy_h) * hy_h + in_h * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
+								hx_shift = li * bi * in_n[0] * hy_h + in_n[0] * hy_h;
+								hid_shift = li * bi * batch_n * hy_h + bacc * hy_h + batch_n * hy_h;
+								prehid_shift = li * bi * batch_n * hy_h + batch_n * hy_h + ((bacc + in_n[ti])) * hy_h;
+
 								if (ti == seqLength - 1)
 								{
-									dwei_state[(in_h + hy_h) * hy_h + in_h * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] += hx[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + h] * wkspace[li * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + w];
+									dwei_state[wei_shift + h * hy_h + w] += hx[hx_shift + bs * hy_h + h] * wkspace[hid_shift + bs * hy_h + w];
 								}
 								else
 								{
-									dwei_state[(in_h + hy_h) * hy_h + in_h * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] += activfunc(rsvspace[li * bi * batch_n * hy_h + batch_n * hy_h + ((bacc + in_n[ti]) + bs) * hy_h + h], squash) * wkspace[li * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + w];
+									dwei_state[wei_shift + h * hy_h + w] += activfunc(rsvspace[prehid_shift + bs * hy_h + h], squash) * wkspace[hid_shift + bs * hy_h + w];
 								}
 							}
 						}
@@ -556,6 +617,9 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 			}
 			else if (li == numlayer)
 			{
+				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+				int prehid_shift = (li - 1) * bi * batch_n * hy_h + bacc * hy_h;
+
 				// between layers
 				for (int h = 0; h < out_h; h++)
 				{
@@ -563,10 +627,10 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						for (int bs = 0; bs < in_n[ti]; bs++)
 						{
-							dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + h * hy_h + w] += dout[(bacc + bs) * out_h + h] * activfunc(rsvspace[(li - 1) * bi * batch_n * hy_h + (bacc + bs) * hy_h + w], squash);
+							dwei_state[wei_shift + h * hy_h + w] += dout[(bacc + bs) * out_h + h] * activfunc(rsvspace[prehid_shift + bs * hy_h + w], squash);
 							if (bidirection)
 							{
-								dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + out_h * hy_h + h * hy_h + w] += dout[(bacc + bs) * out_h + h] * activfunc(rsvspace[(li - 1) * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + w], squash);
+								dwei_state[wei_shift + out_h * hy_h + h * hy_h + w] += dout[(bacc + bs) * out_h + h] * activfunc(rsvspace[prehid_shift + batch_n * hy_h + bs * hy_h + w], squash);
 							}
 						}
 					}
@@ -574,6 +638,10 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 			}
 			else
 			{
+				int prehid_shift = (li - 1) * bi * batch_n * hy_h + bacc * hy_h;
+				int hid_shift = li * bi * batch_n * hy_h + bacc * hy_h;
+				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+
 				// between layers
 				for (int h = 0; h < hy_h; h++)
 				{
@@ -581,16 +649,21 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						for (int bs = 0; bs < in_n[ti]; bs++)
 						{
-							dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + h * hy_h + w] += activfunc(rsvspace[(li - 1) * bi * batch_n * hy_h + (bacc + bs) * hy_h + h], squash) * wkspace[li * bi * batch_n * hy_h + (bacc + bs) * hy_h + w];
+							dwei_state[wei_shift + h * hy_h + w] += activfunc(rsvspace[prehid_shift + bs * hy_h + h], squash) * wkspace[hid_shift + bs * hy_h + w];
 							if (bidirection)
 							{
-								dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + hy_h * hy_h + h * hy_h + w] += activfunc(rsvspace[(li - 1) * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + h], squash) * wkspace[li * bi * batch_n * hy_h + (bacc + bs) * hy_h + w];
-								dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + h * hy_h + w] += activfunc(rsvspace[(li - 1) * bi * batch_n * hy_h + (bacc + bs) * hy_h + h], squash) * wkspace[li * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + w];
-								dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + hy_h * hy_h + h * hy_h + w] += activfunc(rsvspace[(li - 1) * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + h], squash) * wkspace[li * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + w];
+								dwei_state[wei_shift + hy_h * hy_h + h * hy_h + w] += activfunc(rsvspace[prehid_shift + batch_n * hy_h + bs * hy_h + h], squash) * wkspace[hid_shift + bs * hy_h + w];
+								dwei_state[wei_shift + (bi * hy_h + hy_h) * hy_h + h * hy_h + w] += activfunc(rsvspace[prehid_shift + bs * hy_h + h], squash) * wkspace[hid_shift + batch_n * hy_h + bs * hy_h + w];
+								dwei_state[wei_shift + (bi * hy_h + hy_h) * hy_h + hy_h * hy_h + h * hy_h + w] += activfunc(rsvspace[prehid_shift + batch_n * hy_h + bs * hy_h + h], squash) * wkspace[hid_shift + batch_n * hy_h + bs * hy_h + w];
 							}
 						}
 					}
 				}			
+
+
+				
+				wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
+				int hx_shift = li * bi * in_n[0] * hy_h;
 
 				// between time
 				for (int h = 0; h < hy_h; h++)
@@ -601,22 +674,26 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 						{
 							if (ti == 0)
 							{
-								dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] += hx[li * bi * in_n[0] * hy_h + bs * hy_h + h] * wkspace[li * bi * batch_n * hy_h + (bacc + bs) * hy_h + w];
+								dwei_state[wei_shift + h * hy_h + w] += hx[hx_shift + bs * hy_h + h] * wkspace[hid_shift + bs * hy_h + w];
 							}
 							else
 							{
-								dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] += activfunc(rsvspace[li * bi * batch_n * hy_h + ((bacc - in_n[ti - 1]) + bs) * hy_h + h], squash) * wkspace[li * bi * batch_n * hy_h + (bacc + bs) * hy_h + w];
+								prehid_shift = li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_h;
+
+								dwei_state[wei_shift + h * hy_h + w] += activfunc(rsvspace[prehid_shift + bs * hy_h + h], squash) * wkspace[hid_shift + bs * hy_h + w];
 							}
 
 							if (bidirection)
 							{
 								if (ti == seqLength - 1)
 								{
-									dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] += hx[li * bi * in_n[0] * hy_h + in_n[0] * hy_h + bs * hy_h + h] * wkspace[li * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + w];
+									dwei_state[wei_shift + (bi * hy_h + hy_h) * hy_h + h * hy_h + w] += hx[hx_shift + in_n[0] * hy_h + bs * hy_h + h] * wkspace[hid_shift + batch_n * hy_h + bs * hy_h + w];
 								}
 								else
 								{
-									dwei_state[bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h + h * hy_h + w] += activfunc(rsvspace[li * bi * batch_n * hy_h + batch_n * hy_h + ((bacc + in_n[ti]) + bs) * hy_h + h], squash) * wkspace[li * bi * batch_n * hy_h + batch_n * hy_h + (bacc + bs) * hy_h + w];
+									prehid_shift = li * bi * batch_n * hy_h + (bacc + in_n[ti]) * hy_h + batch_n * hy_h;
+
+									dwei_state[wei_shift + (bi * hy_h + hy_h) * hy_h + h * hy_h + w] += activfunc(rsvspace[prehid_shift + bs * hy_h + h], squash) * wkspace[hid_shift + batch_n * hy_h + bs * hy_h + w];
 								}
 							}
 						}
@@ -628,25 +705,27 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 			//for bias
 			if (biased)
 			{
+				int wei_shift = wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h;
+
 				if (li == 0)
 				{
 					for (int h = 0; h < hy_h; h++)
 					{
 						for (int w = 0; w < batch_n; w++)
 						{
-							dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + h] += rsvspace[li * bi * batch_n * hy_h + w* hy_h + h];
+							dwei_state[wei_shift_bias + h] += rsvspace[li * bi * batch_n * hy_h + w* hy_h + h];
 
 							if (bidirection)
 							{
-								dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + 2 * hy_h + h] += rsvspace[li * bi * batch_n * hy_h + batch_n * hy_h + w* hy_h + h];
+								dwei_state[wei_shift_bias + 2 * hy_h + h] += rsvspace[li * bi * batch_n * hy_h + batch_n * hy_h + w* hy_h + h];
 							}
 						}
 
-						dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + hy_h + h] = dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + h];
+						dwei_state[wei_shift_bias + hy_h + h] = dwei_state[wei_shift_bias + h];
 						
 						if (bidirection)
 						{
-							dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + 3 * hy_h + h] = dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + 2 * hy_h + h];
+							dwei_state[wei_shift_bias + 3 * hy_h + h] = dwei_state[wei_shift_bias + 2 * hy_h + h];
 						}
 					}
 				}
@@ -656,11 +735,11 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						for (int w = 0; w < batch_n; w++)
 						{
-							dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + (bi * 2 + bi * (bi + 1) * (numLayer - 1)) * hy_h + h] += dout[w * hy_h + h];
+							dwei_state[wei_shift + h] += dout[w * hy_h + h];
 
 							if (bidirection)
 							{
-								dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + (bi * 2 + bi * (bi + 1) * (numLayer - 1)) * hy_h + out_h + h] = dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + (bi * 2 + bi * (bi + 1) * (numLayer - 1)) * hy_h + h];
+								dwei_state[wei_shift + out_h + h] = dwei_state[wei_shift + h];
 							}
 						}
 					}
@@ -671,22 +750,21 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						for (int w = 0; w < batch_n; w++)
 						{
-							dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + h] += rsvspace[li * bi * batch_n * hy_h + w* hy_h + h];
+							dwei_state[wei_shift + h] += rsvspace[li * bi * batch_n * hy_h + w* hy_h + h];
 
 							if (bidirection)
 							{
-								dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + (bi + 1) * hy_h + h] += rsvspace[li * bi * batch_n * hy_h + batch_n * hy_h + w* hy_h + h];
+								dwei_state[wei_shift + (bi + 1) * hy_h + h] += rsvspace[li * bi * batch_n * hy_h + batch_n * hy_h + w* hy_h + h];
 							}
 						}
 
-						dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + bi * hy_h + h] = dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + h];
+						dwei_state[wei_shift + bi * hy_h + h] = dwei_state[wei_shift + h];
 						
 						if (bidirection)
 						{
-							dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + hy_h + h] = dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + h];
-
-							dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + (bi + 1) * hy_h + hy_h + h] = dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + (bi + 1) * hy_h + h];
-							dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + (bi + 1) * hy_h + bi * hy_h + h] = dwei_state[((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h + (bi + 1) * hy_h + h];
+							dwei_state[wei_shift + hy_h + h] = dwei_state[wei_shift + h];
+							dwei_state[wei_shift + (bi + 1) * hy_h + hy_h + h] = dwei_state[wei_shift + (bi + 1) * hy_h + h];
+							dwei_state[wei_shift + (bi + 1) * hy_h + bi * hy_h + h] = dwei_state[wei_shift + (bi + 1) * hy_h + h];
 						}
 					}
 				}
