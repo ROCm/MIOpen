@@ -3655,7 +3655,7 @@ bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
 bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
 {
     const std::string name = _stream->GetDeviceName();
-    return !(name == "gfx900" && _in_width <= 14);
+    return true;
 }
 
 int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
