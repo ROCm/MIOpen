@@ -166,22 +166,22 @@ class mlo_construct_direct2D
         _n_out_pix_tiles = 2; // # output pixel tiles per wk-item (ALU)
         _n_in_data_tiles = 4; // # of blocks of different inputs in LDS
 
-        _n_stacks       = 1; // # of diff stacks (part of batch).
-        _bias           = (do_bias) ? 1 : 0;
-        _pad0           = 1;
-        _pad1           = 1;
-        _kernel_size0   = 3;
-        _kernel_size1   = 3;
-        _kernel_stride0 = 1;
-        _kernel_stride1 = 1;
-		_kernal_dilation0 = 1;
-		_kernal_dilation1 = 1;
-		_deconvolution = 0;
-        _stream         = nullptr;
-        _bot_sz         = 0; // bytes
-        _top_sz         = 0; // bytes
-        _weights_sz     = 0; // bytes
-        _bias_sz        = 0; // bytes
+        _n_stacks         = 1; // # of diff stacks (part of batch).
+        _bias             = (do_bias) ? 1 : 0;
+        _pad0             = 1;
+        _pad1             = 1;
+        _kernel_size0     = 3;
+        _kernel_size1     = 3;
+        _kernel_stride0   = 1;
+        _kernel_stride1   = 1;
+        _kernal_dilation0 = 1;
+        _kernal_dilation1 = 1;
+        _deconvolution    = 0;
+        _stream           = nullptr;
+        _bot_sz           = 0; // bytes
+        _top_sz           = 0; // bytes
+        _weights_sz       = 0; // bytes
+        _bias_sz          = 0; // bytes
 
         _workspce_sz = 0;
 
@@ -751,16 +751,16 @@ class mlo_construct_direct2D
 
     protected:
     int _direction;
-	int _deconvolution;
+    int _deconvolution;
     int _pad0;
     int _pad1;
     int _kernel_size0;
     int _kernel_size1;
     int _kernel_stride0;
     int _kernel_stride1;
-	int _kernal_dilation0;
-	int _kernal_dilation1;
-	int _n_outputs = 0;
+    int _kernal_dilation0;
+    int _kernal_dilation1;
+    int _n_outputs = 0;
     int _n_inputs  = 0;
     int _batch_sz  = 0;
 
