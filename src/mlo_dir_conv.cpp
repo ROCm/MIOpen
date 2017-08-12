@@ -1468,14 +1468,13 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
                                  : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
 
             int OUT_WIDTH4  = _out_width;
-            int OUT_HEIGHT4 = _out_height;
             int MAP_SZ4     = (OUT_WIDTH4 * _out_height + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding
             if(_pad0 > 0 || _kernel_stride0 > 1 || _pad1 > 0 || _kernel_stride1 > 1)
             {
                 int step    = (_direction) ? read_unit : read_unit * _kernel_stride0;
                 OUT_WIDTH4  = (_out_width + step - 1) / (step);
-                OUT_HEIGHT4 = (_direction) ? _out_height
+                int OUT_HEIGHT4 = (_direction) ? _out_height
                                            : (_out_height + _kernel_stride1 - 1) / _kernel_stride1;
                 MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
             }
