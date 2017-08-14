@@ -103,7 +103,8 @@ static_assert (input_channels % c_per_wave == 0)
 static_assert (output_channels % k_per_wave == 0)
 static_assert (1 <= n_per_group && n_per_group <= 8)
 static_assert (n_per_group <= batch_size)
-
+static_assert (c_per_wave * chunk_size == 64)
+static_assert (k_per_wave * chunk_size <= 64)
 
 .macro log2 lg2, num, max_bits=8
    \lg2 = 0
@@ -150,8 +151,8 @@ static_assert (output_feature_map_size < maxU24)
 log2 chunk_size_log2, chunk_size
 chunks = (img_w + chunk_size - 1) / chunk_size
 .if (chunk_size != 16)
-	// force chunks to have enough zeros for padding
-	chunks = (img_w + chunk_size - pad_w - 1) / (chunk_size - pad_w)
+   // force chunks to have enough zeros for padding
+   chunks = (img_w + chunk_size - pad_w - 1) / (chunk_size - pad_w)
 .endif
 active_lanes = (img_w + chunks - 1) / chunks // active lanes in chunk
 .if img_w % chunks == 0
@@ -268,11 +269,11 @@ gcnAsmConv3x3WrW:
    // fill format and size fields of buffer descriptors
    static_assert ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
    s_mov_b32 s[desc_in+2], input_buffer_size
-   s_mov_b32 s[desc_in+3], 0x00804fac
+   s_mov_b32 s[desc_in+3], 0x00027000
    s_mov_b32 s[desc_wei+2], filters_size
-   s_mov_b32 s[desc_wei+3], 0x00804fac
+   s_mov_b32 s[desc_wei+3], 0x00027000
    s_mov_b32 s[desc_out+2], output_buffer_size
-   s_mov_b32 s[desc_out+3], 0x00804fac
+   s_mov_b32 s[desc_out+3], 0x00027000
 
    vtmp = accums
    v_lshrrev_b32 v[vtmp], 6, v[tid]
@@ -314,7 +315,6 @@ gcnAsmConv3x3WrW:
 
    s_mov_b32 exec_lo, active_lanes_mask
    s_mov_b32 exec_hi, active_lanes_mask
-
 
    s_waitcnt 0
 
