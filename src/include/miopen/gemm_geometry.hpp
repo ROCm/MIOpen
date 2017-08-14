@@ -34,8 +34,6 @@ namespace miopen {
 
 struct GemmGeometry
 {
-    std::array<int, 3> dims{};    // m, n, k
-    std::array<int, 3> strides{}; // lda, ldb, ldc
     std::string algorithm_name;
     float alpha{};
     float beta{};
@@ -54,18 +52,8 @@ struct GemmGeometry
     std::array<int, 2> beta_kern_args{};
 
     GemmGeometry() {}
-    GemmGeometry(std::array<int, 3> pdims,
-                 std::array<int, 3> pstrides,
-                 std::string algo_name,
-                 float palpha,
-                 float pbeta,
-                 MIOpenGEMM::Geometry ptgg)
-        : dims(pdims),
-          strides(pstrides),
-          algorithm_name(algo_name),
-          alpha(palpha),
-          beta(pbeta),
-          tgg(ptgg)
+    GemmGeometry(std::string algo_name, float palpha, float pbeta, MIOpenGEMM::Geometry ptgg)
+        : algorithm_name(algo_name), alpha(palpha), beta(pbeta), tgg(ptgg)
     {
         beta_kern_req      = false;
         beta_kern_returned = false;
