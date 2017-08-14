@@ -3377,8 +3377,7 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
     /// \todo Test on devices with 64 CUs (e.g. R9 Nano, Vega10) and expand
     /// implementation if optimal values are different.
     static const std::unordered_map<std::string, std::string> perf_vals_map({
-        //              W    H    c    n    k    dir CUs                        lwc[2] rio csz[2]
-        //              kpw pld npg
+        //              W    H    c    n    k    dir CUs               lwc[2] rio csz[2] kpw pld npg
         { MakeKeyWHCNKD(13, 13, 192, 128, 384, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 1) },
         { MakeKeyWHCNKD(13, 13, 192, 128, 384, 0, 64),
         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 1) },
@@ -3471,6 +3470,26 @@ mlo_construct_BwdWrW2D::mloComputePerfParamsAsmDirect3x3WrW() const
         FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
         { MakeKeyWHCNKD(12, 12, 1024, 128, 1024, 0),
         FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(7, 7, 192, 128, 384, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 7, 1) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(7, 7, 160, 128, 320, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 7, 1) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(14, 14, 160, 128, 320, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 5, 2) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(14, 14, 144, 128, 288, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 5, 2) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(14, 14, 128, 128, 256, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(14, 14, 112, 128, 224, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 5, 2) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(14, 14, 96, 128, 208, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 7, 2) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(56, 56, 64, 128, 192, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 4, 1) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(28, 28, 128, 128, 192, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 2) }, /// \todo Find opt values for 56CUs
+        { MakeKeyWHCNKD(28, 28, 96, 128, 128, 0),
+        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 2) }, /// \todo Find opt values for 56CUs
     });
 
     std::string s;
