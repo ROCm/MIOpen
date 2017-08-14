@@ -342,14 +342,8 @@ bool ConvAsmBwdWrW3x3::IsCorrect(const ImplementationSearchParameters& params) c
 
 bool ConvAsmBwdWrW3x3::IsFast(const ImplementationSearchParameters& params) const
 {
-    // MD: These are actually not performance issues rather
-    // a workaround to mitigate memory fauults on gfx9
-    // They work fine on gfx8
-    // /todo fix memory faults on gfx9
     const std::string name = params.GetStream().GetDeviceName();
-    return !(name == "gfx900" &&
-        (params.in_width == 13 || params.in_width == 27 || params.in_width == 54 || params.in_width == 57 ||
-            params.in_width == 17 || params.in_width == 250 || params.in_width == 175));
+    return !(name == "gfx900" && params.in_width <= 14);
 }
 
 ImplementationUsageDescription
