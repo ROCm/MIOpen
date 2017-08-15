@@ -12,7 +12,7 @@ bool ConvBinWinograd3x3U::IsCorrect(const ImplementationSearchParameters& params
         return false;
     }
 
-    if (!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
     {
         return false;
     }
