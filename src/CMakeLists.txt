@@ -259,7 +259,10 @@ endif()
 target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
 target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 # target_link_libraries(MIOpen PRIVATE Boost::filesystem Boost::system)
-target_link_libraries(MIOpen PRIVATE ${Boost_FILESYSTEM_LIBRARY_RELEASE} ${Boost_SYSTEM_LIBRARY_RELEASE})
+target_link_libraries(MIOpen PRIVATE 
+    optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE} ${Boost_SYSTEM_LIBRARY_RELEASE}
+    debug ${Boost_FILESYSTEM_LIBRARY_DEBUG} ${Boost_SYSTEM_LIBRARY_DEBUG}
+)
 
 ############################################################
 # Installation
