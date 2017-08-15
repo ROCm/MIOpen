@@ -875,7 +875,7 @@ class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
     int mloConstruct1x1Mmap();
     //	int mloConstruct3x3();
 
-public:
+    public:
     struct PerfParamsAsmDirect3x3WrW
     {
         int limit_wave_cnt;
@@ -899,7 +899,7 @@ public:
         }
     };
 
-protected:
+    protected:
     PerfParamsAsmDirect3x3WrW mloComputePerfParamsAsmDirect3x3WrW() const;
     bool mloIsCorrectAsmDirect3x3WrW() const;
     bool mloIsFastAsmDirect3x3WrW() const;
