@@ -221,6 +221,17 @@ typedef enum {
     miopenTranspose   = 1, /*!< Transpose convolutions */
 } miopenConvolutionMode_t;
 
+/*! @ingroup RNN
+*  @enum miopenConvolutionMode_t
+* Convolution mode selection for convolution layer preference
+*/
+typedef enum {
+	miopenRNNRELU = 0, /*!< RNN ReLU squash */
+	miopenRNNTANH = 1, /*!< RNN tanh squash */
+	miopenLSTM = 2, /*!< LSTM */
+	miopenGRU = 3, /*!< GRU */
+} miopenRNNMode_t;
+
 /*! @ingroup pooling
  * @enum miopenPoolingMode_t
  * Pooling layer mode
