@@ -249,7 +249,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
             for(; i < MLO_READ_UNIT; ++i)
             {
                 //				vis &= (pos_in_x + i*MLO_FILTER_STRIDE0 <
-                //MLO_IN_WIDTH);
+                // MLO_IN_WIDTH);
                 uint off = i
 #if MLO_DIR_FORWARD == 1
                            * MLO_FILTER_STRIDE0
