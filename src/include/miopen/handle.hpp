@@ -50,6 +50,10 @@ struct Handle : miopenHandle
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
 
+    void SetAllocator(miopenAllocatorFunction allocator,
+                      miopenDeallocatorFunction deallocator,
+                      void* allocatorContext) const;
+
     void EnableProfiling(bool enable = true);
 
     void ResetKernelTime();
