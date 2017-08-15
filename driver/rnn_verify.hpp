@@ -114,6 +114,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 								int pretime_shift = li * batch_n * hy_h * bi + (bacc - in_n[ti - 1]) * hy_stride;
 
 								hid_state[hid_shift + bs * hy_stride + h] += wei[in_h * hy_stride + w * hy_stride + h] * activfunc(hid_state[pretime_shift + bs * hy_stride + w], squash);
+								// hid_state[hid_shift + bs * hy_stride + h] += wei[in_h * hy_stride + w * hy_stride + h] * hx_state[hx_shift + bs * hy_stride + w];
 							}
 						}
 
@@ -150,6 +151,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 								int pretime_shift = li * batch_n * hy_h * bi + (bacc - in_n[ti - 1]) * hy_stride;
 
 								hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy * hy_stride + w * hy_stride + h] * activfunc(hid_state[pretime_shift + bs * hy_stride + w], squash);
+								// hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy * hy_stride + w * hy_stride + h] * hx_state[hx_shift + bs * hy_stride + w];
 							}
 						}
 
@@ -653,7 +655,10 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 								{
 									prehid_shift = li * bi * batch_n * hy_h + (bacc + in_n[ti]) * hy_stride + hy_h;
 
-									dwei_state[wei_shift + h * hy_stride + hy_h + w] += activfunc(rsvspace[prehid_shift + bs * hy_stride + h], squash) * wkspace[hid_shift + bs * hy_stride + hy_h + w];
+									if (bs < in_n[ti + 1])
+									{
+										dwei_state[wei_shift + h * hy_stride + hy_h + w] += activfunc(rsvspace[prehid_shift + bs * hy_stride + h], squash) * wkspace[hid_shift + bs * hy_stride + hy_h + w];
+									}
 								}
 							}
 						}
