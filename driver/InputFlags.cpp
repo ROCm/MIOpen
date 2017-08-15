@@ -161,3 +161,38 @@ double InputFlags::GetValueDouble(const std::string& long_name) const
 
     return value;
 }
+
+void InputFlags::GetVectorInt(const std::string& long_name, std::vector<int>& vec, int len) const
+{
+	char short_name = FindShortName(long_name);
+	std::string str = MapInputs.at(short_name).value;
+	int value = 0;
+	int cont = 0;
+
+	for (int i = 0; i < str.length(); i++)
+	{
+		if (cont < len)
+		{
+			if (str[i] == ',')
+			{
+				vec[cont] = value;
+				value = 0;
+				cont++;
+			}
+			else if (str[i] >= 0 && str[i] <= 9)
+			{
+				value = value * 10 + atoi(str[i]);
+			}
+			else
+			{
+				printf("illegal in_n batch size");
+				break;
+			}
+		}
+		else
+		{
+			printf("Too many in_n batch size");
+			break;
+		}
+	}
+}

@@ -57,6 +57,7 @@ class InputFlags
     int GetValueInt(const std::string& _long_name) const;
     uint64_t GetValueUint64(const std::string& _long_name) const;
     double GetValueDouble(const std::string& _long_name) const;
+	void GetVectorInt(const std::string& long_name, std::vector<int>& vec, int len);
 
     virtual ~InputFlags() {}
 };
