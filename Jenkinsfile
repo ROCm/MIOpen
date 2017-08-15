@@ -71,7 +71,7 @@ def rocmtest(variant, body) {
             mkdir build
             cd build
             CXX=${compiler} CXXFLAGS='-Werror' cmake ${flags} .. 
-            CTEST_PARALLEL_LEVEL=4 dumb-init make MIOpenDriver -j32 check doc
+            CTEST_PARALLEL_LEVEL=4 dumb-init make -j32 check doc MIOpenDriver
         """
         echo cmd
         sh cmd
@@ -87,7 +87,7 @@ def rocmtest(variant, body) {
         }
         stage("image ${variant}")
         {
-            docker.build("${image}", "--build-arg PREFIX=/usr/local --build-arg REPO_RADEON=10.255.8.5 .")
+            docker.build("${image}", "--build-arg PREFIX=/usr/local .")
         }
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
