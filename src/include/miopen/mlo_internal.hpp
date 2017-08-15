@@ -236,7 +236,8 @@ class AlgotithmImplementationDescription;
 class mlo_construct_direct2D
 {
     public:
-    virtual const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
+    virtual const std::vector<
+        std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
     GetImplementations() const;
     void mloUseSearchResult(const miopen::ImplementationUsageDescription& result); // TODO: remove
 
@@ -378,11 +379,11 @@ class mlo_construct_direct2D
         *W        = _search_params.in_width;
         *K        = _search_params.n_outputs;
         *n_groups = _search_params.GetStream().GetMaxComputeUnits();
-        if (R)
+        if(R)
         {
             *R = _search_params.kernel_size1;
         } // R is height (sic!)
-        if (S)
+        if(S)
         {
             *S = _search_params.kernel_size0;
         }

@@ -32,9 +32,13 @@ ConvOclDirectFwd::PrepareForUsage(const ImplementationSearchParameters& params,
 
     // hacky fix of the incorrect kernel local memory address calculation for data
     result.out_pix_tile1 =
-        (params.forward == 0 && params.kernel_stride1 > 1 && searched_params.out_pix_tile1 == 1) ? 2 : searched_params.out_pix_tile1;
+        (params.forward == 0 && params.kernel_stride1 > 1 && searched_params.out_pix_tile1 == 1)
+            ? 2
+            : searched_params.out_pix_tile1;
     result.out_pix_tile0 =
-        (params.forward == 0 && params.kernel_stride0 > 1 && searched_params.out_pix_tile0 == 1) ? 2 : searched_params.out_pix_tile0;
+        (params.forward == 0 && params.kernel_stride0 > 1 && searched_params.out_pix_tile0 == 1)
+            ? 2
+            : searched_params.out_pix_tile0;
 
     int alu_tile0 = (searched_params.in_tile0 + searched_params.out_pix_tile0 - 1) /
                     searched_params.out_pix_tile0;
