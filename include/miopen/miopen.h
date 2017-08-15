@@ -100,6 +100,9 @@ typedef enum {
     miopenStatusUnknownError   = 7, /*!< Unknown error occurred. */
 } miopenStatus_t;
 
+typedef void* (*miopenAllocatorFunction)(void* context, size_t sizeBytes);
+typedef void (*miopenDeallocatorFunction)(void* context, void* memory);
+
 /*! @brief Method to create the MIOpen handle object.
  *
  * This function creates a MIOpen handle. This is called at the very start to initialize the MIOpen
@@ -114,7 +117,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t* handle);
  *
  * Create a handle with a previously created accelerator command queue.
  * @param handle     A pointer to a  MIOpen handle type
- * @param stream      An accelerator queue type
+ * @param stream     An accelerator queue type
  *
  * @return           miopenStatus_t
 */
@@ -148,6 +151,27 @@ MIOPEN_EXPORT miopenStatus_t miopenSetStream(miopenHandle_t handle,
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetStream(miopenHandle_t handle,
                                              miopenAcceleratorQueue_t* streamID);
+
+/*! @brief Set allocator for previously created miopenHandle
+ *
+ * Set a command queue for an accelerator device
+ * @param handle     MIOpen handle
+ * @param allocator  A callback function MIOpen will use for internal memory allocations.
+ *      The provided callback function should allocate device memory with requested size
+ *      and return a pointer to this memory.
+ *      Passing 0 will restore the default MIOpen allocator and deallocator.
+ * @param deallocator  A callback function MIOpen will use to for internal memory deallocation.
+ *      The provided callback function should free the specified memory pointer
+ * @param allocatorContext  User-specified pointer which is passed to \p allocator and \p
+ * deallocator
+ *      This allows the callback function to access state set by the caller to this function,
+ *      for example a stateful heap allocator or a c++ class.
+ * @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetAllocator(miopenHandle_t handle,
+                                                miopenAllocatorFunction allocator,
+                                                miopenDeallocatorFunction deallocator,
+                                                void* allocatorContext);
 
 /*! @brief Get time for last kernel launched
  *

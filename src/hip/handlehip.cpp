@@ -51,6 +51,24 @@ hipCtx_t get_ctx()
     return ctx;
 }
 
+void* default_allocator(void* allocatorContext, size_t sz)
+{
+    if(allocatorContext)
+    {
+    }; // squish warning, the allocatorContext is for user callbacks
+    void* result;
+    auto status = hipMalloc(&result, sz);
+    return status == hipSuccess ? result : nullptr;
+}
+
+void default_deallocator(void* allocatorContext, void* mem)
+{
+    if(allocatorContext)
+    {
+    }; // squish warning, the allocatorContext is for user callbacks
+    hipFree(mem);
+}
+
 int get_device_id() // Get random device
 {
     int device;
@@ -122,10 +140,13 @@ struct HandleImpl
         // TODO: Check device matches
     }
 
-    bool enable_profiling  = false;
-    StreamPtr stream       = nullptr;
-    float profiling_result = 0.0;
-    int device             = -1;
+    bool enable_profiling                 = false;
+    StreamPtr stream                      = nullptr;
+    miopenAllocatorFunction allocator     = nullptr;
+    miopenDeallocatorFunction deallocator = nullptr;
+    void* allocatorContext                = nullptr;
+    float profiling_result                = 0.0;
+    int device                            = -1;
     KernelCache cache;
     hipCtx_t ctx;
 };
@@ -139,6 +160,9 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
         this->impl->stream = HandleImpl::reference_stream(nullptr);
     else
         this->impl->stream = HandleImpl::reference_stream(stream);
+
+    this->impl->allocator   = default_allocator;
+    this->impl->deallocator = default_deallocator;
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -152,6 +176,8 @@ Handle::Handle() : impl(new HandleImpl())
     this->impl->ctx    = get_ctx();
     this->impl->stream = HandleImpl::reference_stream(nullptr);
 #endif
+    this->impl->allocator   = default_allocator;
+    this->impl->deallocator = default_deallocator;
 }
 
 Handle::~Handle() {}
@@ -162,6 +188,26 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->stream.get(); }
+
+void Handle::SetAllocator(miopenAllocatorFunction allocator,
+                          miopenDeallocatorFunction deallocator,
+                          void* allocatorContext) const
+{
+    if(allocator)
+    {
+        this->impl->allocator   = allocator;
+        this->impl->deallocator = deallocator;
+    }
+    else
+    {
+        this->impl->allocator   = default_allocator;
+        this->impl->deallocator = default_deallocator;
+        if(deallocator != nullptr)
+            MIOPEN_THROW("Expected allocator and deallocator to both be null");
+    }
+
+    this->impl->allocatorContext = allocatorContext;
+}
 
 void Handle::EnableProfiling(bool enable) { this->impl->enable_profiling = enable; }
 
@@ -179,16 +225,10 @@ std::size_t GetAvailableMemory()
 ManageDataPtr Handle::Create(std::size_t sz)
 {
     this->Finish();
-    if(sz > GetAvailableMemory())
-        MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
-    void* result;
-    auto status = hipMalloc(&result, sz);
-    if(status != hipSuccess)
+    void* result = this->impl->allocator(this->impl->allocatorContext, sz);
+    if(result == nullptr)
     {
-        status = hipHostMalloc(&result, sz);
-        if(status != hipSuccess)
-            MIOPEN_THROW_HIP_STATUS(status,
-                                    "Hip error creating buffer " + std::to_string(sz) + ": ");
+        MIOPEN_THROW("Hip error creating buffer " + std::to_string(sz) + ": ");
     }
     return ManageDataPtr{result};
 }

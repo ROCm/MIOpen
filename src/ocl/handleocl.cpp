@@ -417,6 +417,16 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->queue.get(); }
 
+void Handle::SetAllocator(miopenAllocatorFunction allocator,
+                          miopenDeallocatorFunction deallocator,
+                          void* allocatorContext) const
+{
+    if(allocator != nullptr || deallocator != nullptr || allocatorContext != nullptr)
+    {
+        MIOPEN_THROW("MIOpen/OpenCL does not support custom allocator functions");
+    };
+}
+
 void Handle::EnableProfiling(bool enable) { this->impl->enable_profiling = enable; }
 
 void Handle::ResetKernelTime() { this->impl->ResetProfilingResult(); }
