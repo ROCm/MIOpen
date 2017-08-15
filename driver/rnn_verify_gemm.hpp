@@ -63,8 +63,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	int hy_h, // hidden state number
 	std::vector<int>& out_n, // equals in_n
 	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
-    std::vector<T>& rsvspace;
-	std::vector<T>& wkspace
+    std::vector<T>& rsvspace
 )
 {
 	int batch_n = sumvc(in_n);
@@ -78,7 +77,6 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	memset(out_state, 0, batch_n * out_h * sizeof(T));
 
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
-	int out_dim = bidirection ? out_h / 2 : out_h;
 	int bacc; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
 	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
@@ -115,98 +113,138 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	}
 
 	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+	int in_stride = in_h;
+	int hy_stride = hy_h * bi;
+	int out_stride = out_h;
 
 	// forward emulator
 	for (int li = 0; li < numLayer; li++)
 	{
-		bacc = 0;
-		for (int ti = 0; ti < seqLength; ti++)
+		int hid_shift = li * batch_n * hy_h * bi;
+		int hx_shift = li * bi * in_n[0] * hy_h;
+
+		// from input
+		if (li == 0)
 		{
-			int hid_shift = li * batch_n * hy_h * bi + bacc * hy_h;
-			int hx_shift = li * bi * in_n[0] * hy_h;
+			ADNN_mm_cpu<T>((const T*)&in_state[0], in_h, batch_n, in_stride, 0,
+				(const T *)&wei_state[0], hy_h * bi, in_h, hy_stride, 0,
+				&hid_state[hid_shift], hy_h * bi, batch_n, hy_stride, 0,
+				1, 1);
 
-			if (li == 0)
+			//from bias
+			if (biased)
 			{
-				ADNN_mm_cpu<T>((const T*)&in_state[bacc*in_h], in_h, in_n[ti], in_h, 0,
-					(const T *)&wei_state[0], hy_h, in_h, hy_h, 0,
-					&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-					1, 1);
-
-				if (ti == 0) 
+				for (int bs = 0; bs < batch_n; bs++)
 				{
-					ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[in_h*hy_h], hy_h, hy_h, hy_h, 0,
-						&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
-				}
-				else
-				{
-					ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[in_h*hy_h], hy_h, hy_h, hy_h, 0,
-						&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
-				}
-				
-				//from bias
-				if (biased)
-				{
-					for (int bs = 0; bs < in_n[ti]; bs++)
+					for (int h = 0; h < hy_stride; h++)
 					{
-						for (int h = 0; h < hy_h; h++)
+						hid_state[hid_shift + bs * hy_stride + h] += (wei[wei_shift_bias + h] + wei[wei_shift_bias + hy_stride + h]);
+					}
+				}
+			}
+		}
+		else
+		{
+			int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+			int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
+
+			ADNN_mm_cpu<T>((const T *)&wk_state[prelayer_shift], hy_h * bi, batch_n, hy_stride, 0,
+				(const T *)&wei_state[wei_shift], hy_h * bi, hy_h * bi, hy_stride, 0,
+				&hid_state[hid_shift], hy_h * bi, batch_n, hy_stride, 0,
+				1, 1);
+
+			//from bias
+			if (biased)
+			{
+				for (int bs = 0; bs < batch_n; bs++)
+				{
+					for (int h = 0; h < hy_stride; h++)
+					{
+						hid_state[hid_shift + bs * hy_stride + h] += (wei[wei_shift_bias + h] + wei[wei_shift_bias + bi * hy_stride + h]);
+
+						if (bidirection)
 						{
-							hid_state[hid_shift + bs * hy_h + h] += (wei[wei_shift_bias + h] + wei[wei_shift_bias + hy_h + h]);
+							hid_state[hid_shift + bs * hy_stride + h] += (wei[wei_shift_bias + h] + wei[wei_shift_bias + hy_stride + h]);
 						}
 					}
 				}
 			}
-			else
+		}
+		
+		//from hidden state
+		bacc = 0;
+		baccbi = batch_n;
+		for (int ti = 0; ti < seqLength; ti++)
+		{		
+			baccbi -= in_n[seqLength - 1 - ti];
+			
+			if (li == 0)
 			{
-				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
-				int prehid_shift = (li - 1) * batch_n * hy_h * bi + bacc * hy_h;
-
-				ADNN_mm_cpu<T>((const T *)&wk_state[prehid_shift], hy_h, in_n[ti], hy_h, 0,
-					(const T *)&wei_state[wei_shift], hy_h, hy_h, hy_h, 0,
-					&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-					1, 1);
-
-				if (bidirection)
+				if (ti == 0) 
 				{
-					ADNN_mm_cpu<T>((const T *)&wk_state[prehid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[wei_shift + hy_h * hy_h], hy_h, hy_h, hy_h, 0,
-						&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
+					ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift], hy_h, in_n[ti], hy_stride, 0,
+						(const T *)&wei_state[in_h*hy_h*bi], hy_h, hy_h, hy_stride, 0,
+						&hid_state[hid_shift + bacc * hy_stride], hy_h, in_n[ti], hy_stride, 0,
 						1, 1);
-				}
 
-				if (ti == 0)
-				{
-					ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[wei_shift + bi * hy_h * hy_h], hy_h, hy_h, hy_h, 0,
-						&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
+					if (bidirection)
+					{
+						ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
+							(const T *)&wei_state[in_h*hy_h*bi + hy_h], hy_h, hy_h, hy_stride, 0,
+							&hid_state[hid_shift + baccbi * hy_stride + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
+							1, 1);
+					}
 				}
 				else
 				{
-					ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[wei_shift + bi * hy_h * hy_h], hy_h, hy_h, hy_h, 0,
-						&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
+//					int pretime_shift = li * batch_n * hy_h * bi + (bacc - in_n[ti - 1]) * hy_stride;
+					
+					ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift], hy_h, in_n[ti], hy_stride, 0,
+						(const T *)&wei_state[in_h*hy_h*bi], hy_h, hy_h, hy_stride, 0,
+						&hid_state[hid_shift + bacc * hy_stride], hy_h, in_n[ti], hy_stride, 0,
 						1, 1);
-				}
 
-				//from bias
-				if (biased)
-				{
-					for (int bs = 0; bs < in_n[ti]; bs++)
+					if (bidirection)
 					{
-						for (int h = 0; h < hy_h; h++)
-						{
-							int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h;
+						ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
+							(const T *)&wei_state[in_h*hy_h*bi + hy_h], hy_h, hy_h, hy_stride, 0,
+							&hid_state[hid_shift + baccbi * hy_stride + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
+							1, 1);
+					}
+				}				
+			}
+			else
+			{
+				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride;
+				
+				if (ti == 0)
+				{
+					ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift], hy_h, in_n[ti], hy_stride, 0,
+						(const T *)&wei_state[wei_shift], hy_h, hy_h, hy_stride, 0,
+						&hid_state[hid_shift + bacc * hy_stride], hy_h, in_n[ti], hy_stride, 0,
+						1, 1);
 
-							hid_state[hid_shift + bs * hy_h + h] += (wei[wei_shift_bias_temp + h] + wei[wei_shift_bias_temp + bi * hy_h + h]);
-							if (bidirection)
-							{
-								hid_state[hid_shift + bs * hy_h + h] += wei[wei_shift_bias_temp + hy_h + h];
-							}
-						}
+					if (bidirection)
+					{
+						ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
+							(const T *)&wei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, 0,
+							&hid_state[hid_shift + baccbi * hy_stride + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
+							1, 1);
+					}
+				}
+				else
+				{
+					ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift], hy_h, in_n[ti], hy_stride, 0,
+						(const T *)&wei_state[wei_shift], hy_h, hy_h, hy_stride, 0,
+						&hid_state[hid_shift + bacc * hy_stride], hy_h, in_n[ti], hy_stride, 0,
+						1, 1);
+
+					if (bidirection)
+					{
+						ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
+							(const T *)&wei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, 0,
+							&hid_state[hid_shift + baccbi * hy_stride + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
+							1, 1);
 					}
 				}
 			}
@@ -215,181 +253,63 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 			{
 				for (int h = 0; h < hy_h; h++)
 				{
-					wk_state[hid_shift + bs * hy_h + h] = activfunc(hid_state[hid_shift + bs * hy_h + h], squash);  // squash_func
-					hy_state[hx_shift + bs * hy_h + h] = wk_state[hid_shift + bs * hy_h + h];
+					wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h] = activfunc(hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h], squash);  // squash_func
+					hy_state[hx_shift + bs * hy_stride + h] = wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 
-					rsvspace[hid_shift + bs * hy_h + h] = hid_state[hid_shift + bs * hy_h + h];
-					hy_host[hx_shift + bs * hy_h + h] = hy_state[hx_shift + bs * hy_h + h];
+					rsvspace[hid_shift + bacc * hy_stride + bs * hy_stride + h] = hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
+					hy_host[hx_shift + bs * hy_stride + h] = hy_state[hx_shift + bs * hy_stride + h];
 				}
 			}
 
-			bacc += in_n[ti];
-		}
-
-		if (bidirection)
-		{
-			bacc = batch_n;
-			for (int ti = seqLength - 1; ti >= 0; ti--)
+			if (bidirection)
 			{
-				bacc -= in_n[ti];
-
-				int hid_shift = li * batch_n * hy_h * bi + batch_n * hy_h + bacc * hy_h;
-				int hx_shift = li * bi * in_n[0] * hy_h + in_n[0] * hy_h;
-
-				if (li == 0)
-				{
-					int wei_shift = (in_h + hy_h) * hy_h;
-
-					ADNN_mm_cpu<T>((const T*)&in_state[bacc*in_h], in_h, in_n[ti], in_h, 0,
-						(const T *)&wei_state[wei_shift], hy_h, in_h, hy_h, 0,
-						&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
-
-					if (ti == seqLength - 1)
-					{
-						ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-							(const T *)&wei_state[wei_shift + in_h*hy_h], hy_h, hy_h, hy_h, 0,
-							&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-							1, 1);
-					}
-					else
-					{
-						ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-							(const T *)&wei_state[wei_shift + in_h*hy_h], hy_h, hy_h, hy_h, 0,
-							&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-							1, 1);
-					}
-
-					//from bias
-					if (biased)
-					{
-						for (int bs = 0; bs < in_n[ti]; bs++)
-						{
-							for (int h = 0; h < hy_h; h++)
-							{
-								hid_state[hid_shift + bs * hy_h + h] += (wei[wei_shift_bias + 2 * hy_h + h] + wei[wei_shift_bias + 3 * hy_h + h]);
-							}
-						}
-					}
-				}
-				else
-				{
-					int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h;
-					int prehid_shift = (li - 1) * batch_n * hy_h * bi + bacc * hy_h;
-
-					ADNN_mm_cpu<T>((const T *)&wk_state[prehid_shift], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[wei_shift], hy_h, hy_h, hy_h, 0,
-						&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
-
-					ADNN_mm_cpu<T>((const T *)&wk_state[prehid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[wei_shift + hy_h * hy_h], hy_h, hy_h, hy_h, 0,
-						&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);					
-
-					if (ti == seqLength - 1)
-					{
-						ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-							(const T *)&wei_state[wei_shift + bi * hy_h * hy_h], hy_h, hy_h, hy_h, 0,
-							&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-							1, 1);
-					}
-					else
-					{
-						ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-							(const T *)&wei_state[wei_shift + bi * hy_h * hy_h], hy_h, hy_h, hy_h, 0,
-							&hid_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-							1, 1);
-					}
-
-					//from bias
-					if (biased)
-					{
-						for (int bs = 0; bs < in_n[ti]; bs++)
-						{
-							for (int h = 0; h < hy_h; h++)
-							{
-								int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h + (bi + 1) * hy_h;
-
-								hid_state[hid_shift + bs * hy_h + h] += (wei[wei_shift_bias_temp + h] + wei[wei_shift_bias_temp + bi * hy_h + h] + wei[wei_shift_bias_temp + hy_h + h]);
-							}
-						}
-					}
-				}
-
-				for (int bs = 0; bs < in_n[ti]; bs++)
+				for (int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
 				{
 					for (int h = 0; h < hy_h; h++)
 					{
-						wk_state[hid_shift + bs * hy_h + h] = activfunc(hid_state[hid_shift + bs * hy_h + h], squash);  // squash_func
-						hy_state[hx_shift + bs * hy_h + h] = wk_state[hid_shift + bs * hy_h + h];
+						wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] = activfunc(hid_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h], squash);  // squash_func
+						hy_state[hx_shift + bs * hy_stride + h] = wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
 
-						rsvspace[hid_shift + bs * hy_h + h] = hid_state[hid_shift + bs * hy_h + h];
-						hy_host[hx_shift + bs * hy_h + h] = hy_state[hx_shift + bs * hy_h + h];
+						rsvspace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] = hid_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
+						hy_host[hx_shift + bs * hy_stride + h] = hy_state[hx_shift + bs * hy_stride + h];
 					}
 				}
 			}
+			
+			bacc += in_n[ti];
 		}
+
+		
 	}
 
 	// output
-	bacc = 0;
-	for (int ti = 0; ti < seqLength; ti++)
+	int prelayer_shift = (numLayer - 1) * batch_n * hy_h * bi;
+	int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numLayer - 1) * hy_h;
+	int wei_shift = bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+
+	ADNN_mm_cpu<T>((const T *)&wk_state[prelayer_shift], hy_h*bi, batch_n, hy_stride, 0,
+		(const T *)&wei_state[wei_shift], hy_h*bi, out_h, hy_stride, ADNN_MM_TRANSPOSE,
+		&out_state[0], out_h, batch_n, out_stride, 0,
+		1, 1);
+
+	//from bias
+	if (biased)
 	{
-		int wei_shift = bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
-		int prehid_shift = (numLayer - 1) * batch_n * hy_h * bi + bacc * hy_h;
-
-		ADNN_mm_cpu<T>((const T *)&wk_state[prehid_shift], hy_h, in_n[ti], hy_h, 0,
-			(const T *)&wei_state[wei_shift], hy_h, out_dim, hy_h, ADNN_MM_TRANSPOSE,
-			&out_state[bacc*out_h], out_dim, in_n[ti], out_h, 0,
-			1, 1);
-
-		if (bidirection)
+		for (int bs = 0; bs < batch_n; bs++)
 		{
-			ADNN_mm_cpu<T>((const T *)&wk_state[prehid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-				(const T *)&wei_state[wei_shift + 2 * out_dim * hy_h], hy_h, out_dim, hy_h, ADNN_MM_TRANSPOSE,
-				&out_state[bacc*out_h], out_dim, in_n[ti], out_h, 0,
-				1, 1);
-
-			ADNN_mm_cpu<T>((const T *)&wk_state[prehid_shift], hy_h, in_n[ti], hy_h, 0,
-				(const T *)&wei_state[wei_shift + out_dim * hy_h], hy_h, out_dim, hy_h, ADNN_MM_TRANSPOSE,
-				&out_state[bacc*out_h + out_dim], out_dim, in_n[ti], out_h, 0,
-				1, 1);
-
-			ADNN_mm_cpu<T>((const T *)&wk_state[prehid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-				(const T *)&wei_state[wei_shift + 3 * out_dim * hy_h], hy_h, out_dim, hy_h, ADNN_MM_TRANSPOSE,
-				&out_state[bacc*out_h + out_dim], out_dim, in_n[ti], out_h, 0,
-				1, 1);
-		}
-
-		//from bias
-		if (biased)
-		{
-			for (int bs = 0; bs < in_n[ti]; bs++)
+			for (int h = 0; h < out_h; h++)
 			{
-				for (int w = 0; w < out_dim; w++)
-				{
-					int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numLayer - 1) * hy_h;
-					
-					out_state[(bacc + bs) * out_h + w] += wei[wei_shift_bias_temp + w];
-					if (bidirection)
-					{
-						out_state[(bacc + bs) * out_h + w] += wei[wei_shift_bias_temp + 2 * out_dim + w];
+				out_state[bs * hy_stride + h] += wei[wei_shift_bias_temp + h];
 
-						out_state[(bacc + bs) * out_h + out_dim + w] += (wei[wei_shift_bias_temp + out_dim + w] + wei[wei_shift_bias_temp + 3 * out_dim + w]);
-					}
-					
-					out_host[(bacc + bs) * out_h + w] = out_state[(bacc + bs) * out_h + w];
-					if (bidirection)
-					{
-						out_host[(bacc + bs) * out_h + out_dim + w] = out_state[(bacc + bs) * out_h + out_dim + w];
-					}
+				if (bidirection)
+				{
+					out_state[bs * hy_stride + h] += wei[wei_shift_bias_temp + out_h + h];
 				}
+
+				out_host[bs * hy_stride + h] = out_state[bs * hy_stride + h];
 			}
 		}
-		
-		bacc += in_n[ti];
-	}
+	}		
 }
 
 
@@ -423,11 +343,11 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	memset(din_state, 0, batch_n * in_h * sizeof(T));
 
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
-	int out_dim = bidirection ? out_h / 2 : out_h;
 	int bacc; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
 	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
+	// initial dout
 	T * dout_state = new T[batch_n * out_h];
 	for (int h = 0; h < batch_n; h++)
 	{
@@ -437,6 +357,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 		}
 	}
 	
+	// initial hidden states
 	T * dhx_state = new T[hy_d * hy_n * hy_h];
 	T * dhy_state = new T[hy_d * hy_n * hy_h];
 	for (int h = 0; h < hy_d * hy_n * hy_h; h++)
@@ -444,6 +365,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 		dhy_state[h] = dhy[h];
 	}
 
+	// initial weights
 	int wei_len = (bi * (in_h + hy_h + out_h) + (numLayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
 	if (biased)
 	{
@@ -455,44 +377,42 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	{
 		wei_state[h] = wei[h];
 	}
-	
+
+	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+	int in_stride = in_h;
+	int hy_stride = hy_h * bi;
+	int out_stride = out_h;
+
 	// bwd data emulator
 	for (int li = numLayer -1 ; li >= 0; li++)
 	{
+		int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
+		int hid_shift = li * batch_n * hy_h * bi;
+		int hx_shift = li * bi * in_n[0] * hy_h;
+
+		if (li == numLayer - 1)
+		{
+			ADNN_mm_cpu<T>((const T*)&dout_state[0], out_h, batch_n, out_stride, 0,
+				(const T *)&wei_state[wei_shift], hy_h*bi, out_h, hy_stride, 0,
+				&dh_state[hid_shift], hy_h*bi, batch_n, hy_stride, 0,
+				1, 1);
+		}
+		else
+		{
+			int prelayer_shift = (li + 1) * batch_n * hy_h * bi;
+
+			ADNN_mm_cpu<T>((const T*)&dh_state[prelayer_shift], hy_h*bi, batch_n, hy_stride, 0,
+				(const T *)&wei_state[wei_shift], hy_h*bi, hy_h*bi, hy_stride, ADNN_MM_TRANSPOSE,
+				&dh_state[hid_shift], hy_h*bi, batch_n, hy_stride, 0,
+				1, 1);
+		}
+
 		bacc = batch_n;
+		baccbi = 0;
 		for (int ti = seqLength - 1; ti >= 0; ti--)
 		{
 			bacc -= in_n[ti];
-
-			int hid_shift = li * batch_n * hy_h * bi + bacc * hy_h;
-			int hx_shift = li * bi * in_n[0] * hy_h;
-			int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
-
-			if (li == numLayer - 1)
-			{
-				ADNN_mm_cpu<T>((const T*)&dout_state[bacc*out_h], out_h, in_n[ti], out_h, 0,
-					(const T *)&wei_state[wei_shift], hy_h, out_h, hy_h, 0,
-					&dh_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-					1, 1);
-			}
-			else
-			{
-				int prehid_shift = (li + 1) * batch_n * hy_h * bi + bacc * hy_h;
-
-				ADNN_mm_cpu<T>((const T*)&dh_state[prehid_shift], hy_h, in_n[ti], hy_h, 0,
-					(const T *)&wei_state[wei_shift], hy_h, hy_h, hy_h, ADNN_MM_TRANSPOSE,
-					&dh_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-					1, 1);
-
-				if (bidirection) 
-				{
-					ADNN_mm_cpu<T>((const T*)&dh_state[prehid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[wei_shift + (bi * hy_h + hy_h) * hy_h], hy_h, hy_h, hy_h, ADNN_MM_TRANSPOSE,
-						&dh_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
-				}
-			}
-
+			
 			for (int bs = 0; bs < in_n[ti]; bs++)
 			{
 				for (int h = 0; h < hy_h; h++)
@@ -500,143 +420,70 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 					// from post state
 					if (ti == seqLength - 1)
 					{
-						dh_state[hid_shift + bs * hy_h + h] += dhy_state[hx_shift + bs * hy_h + h];
+						dh_state[hid_shift + bacc * hy_strideh + bs * hy_stride + h] += dhy_state[hx_shift + bs * hy_stride + h];
 					}
 					else
 					{
-						dh_state[hid_shift + bs * hy_h + h] += dhx_state[hx_shift + bs * hy_h + h];
+						dh_state[hid_shift + bacc * hy_stride + bs * hy_stride + h] += dhx_state[hx_shift + bs * hy_stride + h];
 					}
 
-					dh_state[hid_shift + bs * hy_h + h] *= dervactivfunc(rsvspace[hid_shift + bs * hy_h + h], squash);
-					wkspace[hid_shift + bs * hy_h + h] = dh_state[li * batch_n * hy_h * bi + (bacc + bs) * hy_h + h];
+					dh_state[hid_shift + bacc * hy_stride + bs * hy_stride + h] *= dervactivfunc(rsvspace[hid_shift + bacc * hy_stride + bs * hy_stride + h], squash);
+					wkspace[hid_shift + bacc * hy_stride + bs * hy_stride + h] = dh_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 				}
 			}
-					
-			memset(&dhx_state[hx_shift], 0, in_n[ti] * hy_h * sizeof(T));
+										
+			memset(&dhx_state[hx_shift], 0, in_n[0] * hy_stride * sizeof(T));
 
-			if (li == 0)
+			wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
+
+			ADNN_mm_cpu<T>((const T*)&dh_state[hid_shift + bacc * hy_stride], hy_h, in_n[ti], hy_stride, 0,
+				(const T *)&wei_state[wei_shift], hy_h, hy_h, hy_stride, ADNN_MM_TRANSPOSE,
+				&dhx_state[hx_shift], hy_h, in_n[ti], hy_stride, 0,
+				1, 1);
+			
+			if (bidirection)
 			{
-				ADNN_mm_cpu<T>((const T*)&dh_state[hid_shift], out_h, in_n[ti], out_h, 0,
-					(const T *)&wei_state[in_h * hy_h], hy_h, hy_h, hy_h, ADNN_MM_TRANSPOSE,
-					&dhx_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-					1, 1);
-			}
-			else
-			{
-				wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
-
-				ADNN_mm_cpu<T>((const T*)&dh_state[hid_shift], out_h, in_n[ti], out_h, 0,
-					(const T *)&wei_state[wei_shift], hy_h, hy_h, hy_h, ADNN_MM_TRANSPOSE,
-					&dhx_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-					1, 1);
-			}						
-		}
-		
-		if (bidirection)
-		{
-			bacc = 0;
-			for (int ti = 0; ti < seqLength; ti++)
-			{
-				int hid_shift = li * batch_n * hy_h * bi + batch_n * hy_h + bacc * hy_h;
-				int hx_shift = li * bi * in_n[0] * hy_h + in_n[0] * hy_h;
-				int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
-
-				if (li == numLayer - 1)
-				{
-					ADNN_mm_cpu<T>((const T*)&dout_state[bacc*out_h], out_h, in_n[ti], out_h, 0,
-						(const T *)&wei_state[wei_shift + out_h * hy_h], hy_h, out_h, hy_h, 0,
-						&dh_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
-				}
-				else
-				{
-					int prehid_shift = (li + 1) * batch_n * hy_h * bi + bacc * hy_h;
-
-					ADNN_mm_cpu<T>((const T*)&dh_state[prehid_shift], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[wei_shift + hy_h * hy_h], hy_h, out_h, hy_h, ADNN_MM_TRANSPOSE,
-						&dh_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
-
-					if (bidirection)
-					{
-						ADNN_mm_cpu<T>((const T*)&dh_state[prehid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-							(const T *)&wei_state[wei_shift + (bi * hy_h + hy_h) * hy_h + hy_h * hy_h], hy_h, out_h, hy_h, ADNN_MM_TRANSPOSE,
-							&dh_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-							1, 1);
-					}
-				}
-
-				for (int bs = 0; bs < in_n[ti]; bs++)
+				for (int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
 				{
 					for (int h = 0; h < hy_h; h++)
 					{
 						// from post state
 						if (ti == 0)
 						{
-							dh_state[hid_shift + bs * hy_h + h] += dhy_state[hx_shift + bs * hy_h + h];
+							dh_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] += dhy_state[hx_shift + hy_h + bs * hy_stride + h];
 						}
 						else
 						{
-							dh_state[hid_shift + bs * hy_h + h] += dhx_host[hx_shift + bs * hy_h + h];
+							dh_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] += dhx_state[hx_shift + hy_h + bs * hy_stride + h];
 						}
 
-						dh_state[hid_shift + bs * hy_h + h] *= dervactivfunc(rsvspace[hid_shift + bs * hy_h + h], squash);
-						wkspace[hid_shift + bs * hy_h + h] = dh_state[hid_shift + bs * hy_h + h];
+						dh_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] *= dervactivfunc(rsvspace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h], squash);
+						wkspace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] = dh_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
 					}
 				}
-
-				memset(&dhx_state[hx_shift], 0, in_n[ti] * hy_h * sizeof(T));
-
-				if (li == 0)
-				{
-					wei_shift = (in_h + hy_h) * hy_h + in_h * hy_h;
-
-					ADNN_mm_cpu<T>((const T*)&dh_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[wei_shift], hy_h, hy_h, hy_h, ADNN_MM_TRANSPOSE,
-						&dhx_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
-				}
-				else
-				{
-					wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
-
-					ADNN_mm_cpu<T>((const T*)&dh_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						(const T *)&wei_state[wei_shift], hy_h, hy_h, hy_h, ADNN_MM_TRANSPOSE,
-						&dhx_state[hx_shift], hy_h, in_n[ti], hy_h, 0,
-						1, 1);
-				}
-
-				bacc += in_n[ti];
+				
+				ADNN_mm_cpu<T>((const T*)&dh_state[hid_shift + baccbi * hy_stride + hy_h], hy_h, in_n[ti], hy_stride, 0,
+					(const T *)&wei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, ADNN_MM_TRANSPOSE,
+					&dhx_state[hx_shift + hy_h], hy_h, in_n[ti], hy_stride, 0,
+					1, 1);
 			}
+
+			baccbi += in_n[ti];
 		}
 	}
 
 	// dinput
-	bacc = 0;
-	for (int ti = 0; ti < seqLength; ti++)
+	ADNN_mm_cpu<T>((const T*)&dh_state[0], hy_h * bi, batch_n, hy_stride, 0,
+		(const T *)&wei_state[0], hy_h * bi, in_h, hy_stride, ADNN_MM_TRANSPOSE,
+		&din_state[0], in_h, batch_n, in_stride, 0,
+		1, 1);
+
+	for (int bs = 0; bs < batch_n; bs++)
 	{
-		ADNN_mm_cpu<T>((const T*)&dh_state[bacc*hy_h], hy_h, in_n[ti], hy_h, 0,
-			(const T *)&wei_state[0], hy_h, in_h, hy_h, ADNN_MM_TRANSPOSE,
-			&din_state[bacc*in_h], in_h, in_n[ti], in_h, 0,
-			1, 1);
-
-		if (bidirection)
+		for (int w = 0; w < in_h; w++)
 		{
-			ADNN_mm_cpu<T>((const T*)&dh_state[batch_n * hy_h + bacc * hy_h], hy_h, in_n[ti], hy_h, 0,
-				(const T *)&wei_state[(in_h + hy_h) * hy_h], hy_h, in_h, hy_h, ADNN_MM_TRANSPOSE,
-				&din_state[bacc*in_h], in_h, in_n[ti], in_h, 0,
-				1, 1);
+			din_host[bs * in_stride + w] = din_state[bs * in_stride + w];
 		}
-
-		for (int bs = 0; bs < in_n[ti]; bs++)
-		{
-			for (int w = 0; w < in_h; w++)
-			{
-				din_host[(bacc + bs) * in_h + w] = din_state[(bacc + bs) * in_h + w];
-			}
-		}
-
-		bacc += in_n[ti];
 	}
 }
 
@@ -662,7 +509,6 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 {
 	int batch_n = sumvc(in_n);
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
-	int out_dim = bidirection ? out_h / 2 : out_h;
 	int bacc; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
 	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
@@ -697,241 +543,146 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 	}
 
 	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+	int in_stride = in_h;
+	int hy_stride = hy_h * bi;
+	int out_stride = out_h;
 
 	// bwd weights emulator
 	for (int li = 0; li <= numlayer; li++)
 	{
+		// between layers
+		if (li == 0)
+		{
+			ADNN_mm_cpu<T>((const T *)&in_state[0], in_h, batch_n, in_stride, ADNN_MM_TRANSPOSE,
+				(const T*)&wkspace_state[0], hy_h*bi, batch_n, hy_stride, 0,
+				&dwei_state[0], hy_h*bi, in_h, hy_stride, 0,
+				1, 1);
+
+			if (biased)
+			{
+				for (int h = 0; h < hy_stride; h++)
+				{
+					for (int w = 0; w < batch_n; w++)
+					{
+						dwei_state[wei_shift_bias + h] += wkspace[w* hy_stride + h];
+					}
+					dwei_state[wei_shift_bias + hy_stride + h] = dwei_state[wei_shift_bias + h];
+				}
+			}
+		}
+		else if (li == numlayer)
+		{
+			int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+			int prelayer_shift = (li - 1) * bi * batch_n * hy_h;
+
+			ADNN_mm_cpu<T>((const T*)&dout_state[0], out_h, batch_n, out_stride, ADNN_MM_TRANSPOSE,
+				(const T *)&rsvspace_state[prelayer_shift], hy_h*bi, batch_n, hy_stride, 0,
+				&dwei_state[wei_shift], hy_h*bi, out_h, hy_stride, 0,
+				1, 1);
+
+			if (biased)
+			{
+				wei_shift = wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h;
+
+				for (int h = 0; h < out_h; h++)
+				{
+					for (int w = 0; w < batch_n; w++)
+					{
+						dwei_state[wei_shift + h] += dout[w* hy_stride + h];
+					}
+
+					if (bidirection)
+					{
+						dwei_state[wei_shift + out_stride + h] = dwei_state[wei_shift + h];
+					}
+				}
+			}
+		}
+		else
+		{
+			int prelayer_shift = (li - 1) * bi * batch_n * hy_h;
+			int hid_shift = li * bi * batch_n * hy_h;
+			int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+
+			ADNN_mm_cpu<T>((const T *)&rsvspace_state[prelayer_shift], hy_h*bi, batch_n, hy_stride, ADNN_MM_TRANSPOSE,
+				(const T*)&wkspace_state[hid_shift], hy_h*bi, batch_n, hy_stride, 0,
+				&dwei_state[wei_shift], hy_h*bi, hy_h*bi, hy_stride, 0,
+				1, 1);
+
+			if (biased)
+			{
+				wei_shift = wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h;
+
+				for (int h = 0; h < hy_stride; h++)
+				{
+					for (int w = 0; w < batch_n; w++)
+					{
+						dwei_state[wei_shift + h] += wkspace[hid_shift + w* hy_h + h];
+					}
+					dwei_state[wei_shift + bi * hy_stride + h] = dwei_state[wei_shift + h];
+
+					if (bidirection)
+					{
+						dwei_state[wei_shift + hy_stride + h] = dwei_state[wei_shift + h];
+					}
+				}
+			}
+		}
+
+
 		bacc = 0;
 		for (int ti = 0; ti < seqLength; ti++)
 		{
-			if (li == 0)
+			int hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride;
+			int hx_shift = li * bi * in_n[0] * hy_h;
+			int wei_shift;
+			int pretime_shift;
+
+			wei_shift = li == 0 ? (in_h * hy_h) : (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
+
+			// between time
+			if (ti == 0)
 			{
-				int hid_shift = li * bi * batch_n * hy_h + bacc * hy_h;
-				int hx_shift = li * bi * in_n[0] * hy_h;
-				int wei_shift = (in_h + hy_h) * hy_h;
-				int prehid_shift;
-
-				// between layers
-				ADNN_mm_cpu<T>((const T *)&in_state[bacc * in_h], in_h, in_n[ti], in_h, ADNN_MM_TRANSPOSE,
-					(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-					&dwei_state[0], hy_h, in_h, hy_h, 0,
+				ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift], hy_h, in_n[ti], hy_stride, ADNN_MM_TRANSPOSE,
+					(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_stride, 0,
+					&dwei_state[wei_shift], hy_h, hy_h, hy_stride, 0,
 					1, 1);
-						
-				if (bidirection)
-				{
-					ADNN_mm_cpu<T>((const T *)&in_state[bacc * in_h], in_h, in_n[ti], in_h, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-						&dwei_state[wei_shift], hy_h, in_h, hy_h, 0,
-						1, 1);
-				}
-
-				// between time
-				wei_shift = in_h * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
-				
-				if (ti == 0)
-				{
-					ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						&dwei_state[wei_shift], hy_h, hy_h, hy_h, 0,
-						1, 1);
-				}
-				else
-				{
-					prehid_shift = li * bi * batch_n * hy_h + ((bacc - in_n[ti - 1])) * hy_h;
-
-					ADNN_mm_cpu<T>((const T *)&rsvspace_state[prehid_shift], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						&dwei_state[wei_shift], hy_h, hy_h, hy_h, 0,
-						1, 1);
-				}
-
-				if (bidirection)
-				{
-					wei_shift = (in_h + hy_h) * hy_h + in_h * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
-					hx_shift = li * bi * in_n[0] * hy_h + in_n[0] * hy_h;
-					hid_shift = li * bi * batch_n * hy_h + bacc * hy_h + batch_n * hy_h;
-					prehid_shift = li * bi * batch_n * hy_h + batch_n * hy_h + ((bacc + in_n[ti])) * hy_h;
-
-					if (ti == seqLength - 1)
-					{
-						ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-							(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-							&dwei_state[wei_shift], hy_h, hy_h, hy_h, 0,
-							1, 1);
-					}
-					else
-					{
-						ADNN_mm_cpu<T>((const T *)&rsvspace_state[prehid_shift], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-							(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-							&dwei_state[wei_shift], hy_h, hy_h, hy_h, 0,
-							1, 1);
-					}
-				}
-			}
-			else if (li == numlayer)
-			{
-				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
-				int prehid_shift = (li - 1) * bi * batch_n * hy_h + bacc * hy_h;
-
-				// between layers
-				ADNN_mm_cpu<T>((const T*)&dout_state[bacc*out_h], out_h, in_n[ti], out_h, ADNN_MM_TRANSPOSE,
-					(const T *)&rsvspace_state[prehid_shift], hy_h, in_n[ti], hy_h, 0,
-					&dwei_state[wei_shift], hy_h, out_h, hy_h, 0,
-					1, 1);
-
-				if (bidirection)
-				{
-					ADNN_mm_cpu<T>((const T*)&dout_state[bacc*out_h], out_h, in_n[ti], out_h, ADNN_MM_TRANSPOSE,
-						(const T *)&rsvspace_state[prehid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-						&dwei_state[wei_shift + out_h * hy_h], hy_h, out_h, hy_h, 0,
-						1, 1);
-				}
 			}
 			else
 			{
-				int prehid_shift = (li - 1) * bi * batch_n * hy_h + bacc * hy_h;
-				int hid_shift = li * bi * batch_n * hy_h + bacc * hy_h;
-				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+				pretime_shift = li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_stride;
 
-				// between layers
-				ADNN_mm_cpu<T>((const T *)&rsvspace_state[prehid_shift], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-					(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-					&dwei_state[wei_shift], hy_h, hy_h, hy_h, 0,
+				ADNN_mm_cpu<T>((const T *)&rsvspace_state[pretime_shift], hy_h, in_n[ti], hy_stride, ADNN_MM_TRANSPOSE,
+					(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_stride, 0,
+					&dwei_state[wei_shift], hy_h, hy_h, hy_stride, 0,
 					1, 1);
-
-				if (bidirection)
-				{
-					ADNN_mm_cpu<T>((const T *)&rsvspace_state[prehid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						&dwei_state[wei_shift + hy_h * hy_h], hy_h, hy_h, hy_h, 0,
-						1, 1);
-
-					ADNN_mm_cpu<T>((const T *)&rsvspace_state[prehid_shift], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-						&dwei_state[wei_shift + (bi * hy_h + hy_h) * hy_h], hy_h, hy_h, hy_h, 0,
-						1, 1);
-
-					ADNN_mm_cpu<T>((const T *)&rsvspace_state[prehid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-						&dwei_state[wei_shift + (bi * hy_h + hy_h) * hy_h + hy_h * hy_h], hy_h, hy_h, hy_h, 0,
-						1, 1);
-				}
-
-				// between time
-				wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_h;
-				int hx_shift = li * bi * in_n[0] * hy_h;
-
-				if (ti == 0)
-				{
-					ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						&dwei_state[wei_shift], hy_h, hy_h, hy_h, 0,
-						1, 1);
-				}
-				else
-				{
-					prehid_shift = li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_h;
-
-					ADNN_mm_cpu<T>((const T *)&rsvspace_state[prehid_shift], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_h, 0,
-						&dwei_state[wei_shift], hy_h, hy_h, hy_h, 0,
-						1, 1);
-				}
-
-				if (bidirection)
-				{
-					if (ti == seqLength - 1)
-					{
-						ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift + in_n[0] * hy_h], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-							(const T*)&wkspace_state[hid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-							&dwei_state[wei_shift + (bi * hy_h + hy_h) * hy_h], hy_h, hy_h, hy_h, 0,
-							1, 1);
-					}
-					else
-					{
-						prehid_shift = li * bi * batch_n * hy_h + (bacc + in_n[ti]) * hy_h + batch_n * hy_h;
-
-						ADNN_mm_cpu<T>((const T *)&rsvspace_state[prehid_shift], hy_h, in_n[ti], hy_h, ADNN_MM_TRANSPOSE,
-							(const T*)&wkspace_state[hid_shift + batch_n * hy_h], hy_h, in_n[ti], hy_h, 0,
-							&dwei_state[wei_shift + (bi * hy_h + hy_h) * hy_h], hy_h, hy_h, hy_h, 0,
-							1, 1);
-					}
-				}								
 			}
-			
-			//for bias
-			if (biased)
+
+			if (bidirection)
 			{
-				int wei_shift = wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h;
-
-				if (li == 0)
-				{					
-					for (int h = 0; h < hy_h; h++)
-					{
-						for (int w = 0; w < batch_n; w++)
-						{
-							dwei_state[wei_shift_bias + h] += rsvspace[li * bi * batch_n * hy_h + w* hy_h + h];
-
-							if (bidirection)
-							{
-								dwei_state[wei_shift_bias + 2 * hy_h + h] += rsvspace[li * bi * batch_n * hy_h + batch_n * hy_h + w* hy_h + h];
-							}
-						}
-
-						dwei_state[wei_shift_bias + hy_h + h] = dwei_state[wei_shift_bias + h];
-						
-						if (bidirection)
-						{
-							dwei_state[wei_shift_bias + 3 * hy_h + h] = dwei_state[wei_shift_bias + 2 * hy_h + h];
-						}
-					}
-				}
-				else if (li == numlayer)
+				if (ti == seqLength - 1)
 				{
-					for (int h = 0; h < out_h; h++)
-					{
-						for (int w = 0; w < batch_n; w++)
-						{
-							dwei_state[wei_shift + h] += dout[w * hy_h + h];
-
-							if (bidirection)
-							{
-								dwei_state[wei_shift + out_h + h] = dwei_state[wei_shift + h];
-							}
-						}
-					}
+					ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift + hy_h], hy_h, in_n[ti], hy_stride, ADNN_MM_TRANSPOSE,
+						(const T*)&wkspace_state[hid_shift + hy_h], hy_h, in_n[ti], hy_stride, 0,
+						&dwei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, 0,
+						1, 1);
 				}
 				else
-				{					
-					for (int h = 0; h < hy_h; h++)
-					{
-						for (int w = 0; w < batch_n; w++)
-						{
-							dwei_state[wei_shift + h] += rsvspace[li * bi * batch_n * hy_h + w* hy_h + h];
+				{
+					pretime_shift = li * bi * batch_n * hy_h + ((bacc + in_n[ti])) * hy_stride;
 
-							if (bidirection)
-							{
-								dwei_state[wei_shift + (bi + 1) * hy_h + h] += rsvspace[li * bi * batch_n * hy_h + batch_n * hy_h + w* hy_h + h];
-							}
-						}
-
-						dwei_state[wei_shift + bi * hy_h + h] = dwei_state[wei_shift + h];
-						
-						if (bidirection)
-						{
-							dwei_state[wei_shift + hy_h + h] = dwei_state[wei_shift + h];
-							dwei_state[wei_shift + (bi + 1) * hy_h + hy_h + h] = dwei_state[wei_shift + (bi + 1) * hy_h + h];
-							dwei_state[wei_shift + (bi + 1) * hy_h + bi * hy_h + h] = dwei_state[wei_shift + (bi + 1) * hy_h + h];
-						}
-					}
+					ADNN_mm_cpu<T>((const T *)&rsvspace_state[pretime_shift + hy_h], hy_h, in_n[ti+1], hy_stride, ADNN_MM_TRANSPOSE,
+						(const T*)&wkspace_state[hid_shift + hy_h], hy_h, in_n[ti+1], hy_stride, 0,
+						&dwei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, 0,
+						1, 1);
 				}
 			}
-
+					
 			bacc += in_n[ti];
 		}
 	}
 
-	for (int i = 0; i < (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h; i++)
+	for (int i = 0; i < (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h + (2 + (numlayer - 1) * (bi + 1)) * bi * hy_h + bi * out_h; i++)
 	{
 		dwei_host[i] = dwei_state[i];
 	}
