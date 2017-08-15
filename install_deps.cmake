@@ -7,11 +7,23 @@ endforeach()
 
 include(CMakeParseArguments)
 
-set(options)
+set(options help)
 set(oneValueArgs --prefix)
 set(multiValueArgs)
 
 cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGS})
+
+if(PARSE_help)
+message("Usage: install_deps.cmake [options] [cmake-args]")
+message("")
+message("Options:")
+message("  --prefix               Set the prefix to install the dependencies.")
+message("")
+message("Commands:")
+message("  help                   Show this message and exit.")
+message("")
+return()
+endif()
 
 set(_PREFIX /usr/local)
 if(PARSE_--prefix)
