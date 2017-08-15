@@ -3,7 +3,6 @@
 
 #define ADNN_MM_TRANSPOSE 1
 
-#include "rnn_verify.hpp"
 #include <math.h>
 #include <cassert>
 
