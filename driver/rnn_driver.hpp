@@ -260,10 +260,9 @@ int RNNDriver<T>::AddCmdLineArgs()
 template <typename T>
 std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
 {
-//	vector<int> in_n;
-//	in_n.push_back(inflags.GetValueInt("batchsize"));
-	int in_n = inflags.GetValueInt("batchsize");
-
+	std::vector<int> in_n(inflags.GetValueInt("seq_len"), 0);
+	inflags.GetVectorInt("batchsize", in_n, inflags.GetValueInt("seq_len"));
+	
     int in_h = inflags.GetValueInt("in_h");
 
     return std::vector<int>({in_n, in_h});
@@ -299,18 +298,18 @@ std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
 template <typename T>
 int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 {
-
-    miopenRNNMode_t mode;
+	int seqLength = inflags.GetValueInt("seq_len");
 	int layer = inflags.GetValueInt("num_layer");
-	int drc = inflags.GetValueInt("bidirection");
+	int bidir = inflags.GetValueInt("bidirection");
+	miopenRNNMode_t mode;
 
-    if((inflags.GetValueStr("mode")) == "tanh")
+	if ((inflags.GetValueStr("mode")) == "relu")
+	{
+		mode = miopenRNNRELU;
+	}
+    else if((inflags.GetValueStr("mode")) == "tanh")
     {
         mode = miopenRNNTANH;
-    }
-    else if((inflags.GetValueStr("mode")) == "relu")
-    {
-        mode = miopenRNNRELU;
     }
 	else if ((inflags.GetValueStr("mode")) == "lstm")
 	{
@@ -327,7 +326,7 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
     }
 
     return miopenInitRNNDescriptor(
-        rnnDesc, mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+        rnnDesc, mode, seqLength, layer, bidir);
 }
 
 template <typename T>

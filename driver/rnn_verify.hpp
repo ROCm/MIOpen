@@ -59,7 +59,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
 	std::vector<int>& out_n, // equals in_n
-	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
     std::vector<T>& rsvspace
 )
 {
