@@ -6,7 +6,7 @@
 static int Ceiling(const int v, const int m)
 {
     assert(m > 0 && v >= 0);
-    if (v % m != 0)
+    if(v % m != 0)
     {
         return (v / m + 1) * m;
     }
@@ -20,43 +20,43 @@ namespace miopen {
 
 bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& params) const
 {
-    if (!params.use_binaries)
+    if(!params.use_binaries)
     {
         return false;
     }
 
-    if (!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
     {
         return false;
     }
 
-    if (params.rmv == V1 || params.rmv == V2)
+    if(params.rmv == V1 || params.rmv == V2)
     {
         return false;
     }
-    if (!params.forward)
+    if(!params.forward)
     {
         return false;
     }
-    if (!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED{}))
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED{}))
     {
         // FIXME remove env var and all this stuff when Winograd v8 gets fixed.
-        if (!(params.kernel_stride0 == 1 && params.kernel_stride1 == 1))
+        if(!(params.kernel_stride0 == 1 && params.kernel_stride1 == 1))
         {
             return false;
         }
         // if(!(params.kernel_size0 <= 3 && params.kernel_size1 <= 3))
         // 3x3 seems to fail on Vega, so let's keep 1x1 only for now.
-        if (!(params.kernel_size0 == 1 && params.kernel_size1 == 1))
+        if(!(params.kernel_size0 == 1 && params.kernel_size1 == 1))
         {
             return false;
         }
     }
-    const auto name = params.GetStream().GetDeviceName();
+    const auto name                    = params.GetStream().GetDeviceName();
     const auto device_is_gfx9_no_xnack = (name == "gfx900");
     const bool device_is_gfx8_no_xnack =
         (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804");
-    if (!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
+    if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
     {
         return false;
     }
@@ -68,9 +68,9 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
     // otherwise S is padded to smallest 6*n for some integer n
     // If stride = 2: S is always padded to smallest 6*n for some integer n
     int padded_S = 0;
-    if (params.kernel_stride0 == 1)
+    if(params.kernel_stride0 == 1)
     {
-        if (params.kernel_size0 < 3)
+        if(params.kernel_size0 < 3)
         {
             padded_S = 3;
         }
@@ -88,13 +88,13 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
     // integer m,
     // otherwise R is padded to smallest 6*m for some integer m
     int padded_R = 0;
-    if (params.kernel_stride1 == 1)
+    if(params.kernel_stride1 == 1)
     {
         padded_R = Ceiling(params.kernel_size1, 3);
     }
     else
     {
-        if (params.kernel_size1 % 6 == 1)
+        if(params.kernel_size1 % 6 == 1)
         {
             padded_R = Ceiling(params.kernel_size1, 3);
         }
@@ -105,7 +105,7 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
     }
     // Check C restrictions:
     // If stride == 1 and S <= 3 then C needs to be even, otherwise not
-    if (params.kernel_stride0 == 1 && params.kernel_size0 <= 3 && params.n_inputs % 2 != 0)
+    if(params.kernel_stride0 == 1 && params.kernel_size0 <= 3 && params.n_inputs % 2 != 0)
     {
         return false;
     }
@@ -115,39 +115,40 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
         assert(padded_R % 3 == 0 && padded_S % 3 == 0);
         const int k = padded_R / 3;
         const int l = padded_S / 3;
-        if (k * l * params.n_inputs < 18)
+        if(k * l * params.n_inputs < 18)
         {
             return false;
         }
     }
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
-                                                 // Opt. Param   Restrictions in source
-    return params.pad0 < std::pow(2, 16)         // -q   pad_w   uint16
-        && params.pad1 < std::pow(2, 16)         // -p   pad_h   uint16
-        && params.kernel_size0 < std::pow(2, 16) // -x   wei_w   S uint16
-        && params.kernel_size1 < std::pow(2, 16) // -y   wei_h   R uint16
-        && params.kernel_stride0 <= 2            // -u   inp_u   1 or 2
-        && params.kernel_stride1 <= 2            // -v   inp_v   1 or 2
-        && params.batch_sz < std::pow(2, 16) && params.n_inputs < std::pow(2, 16) // -c   wei_c
-        && params.n_outputs < std::pow(2, 16)                               // -k   wei_k
-        && params.in_height < std::pow(2, 16)                               // -H   inp_h
-        && params.in_width < std::pow(2, 16)                                // -W   inp_w
-        && grid_workgroup_count_x < std::pow(2, 16) &&
-        (params.n_inputs * params.in_height * params.in_width) <= std::pow(2, 28) &&
-        (params.n_outputs * params.in_height * params.in_width) <= std::pow(2, 28) &&
-        (params.n_inputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28) &&
-        (params.n_outputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28) && params.in_layout == "NCHW";
+    assert(params.weights_layout.length() == 0);    // FIXME _weights_layout is not supported yet.
+                                                    // Opt. Param   Restrictions in source
+    return params.pad0 < std::pow(2, 16)            // -q   pad_w   uint16
+           && params.pad1 < std::pow(2, 16)         // -p   pad_h   uint16
+           && params.kernel_size0 < std::pow(2, 16) // -x   wei_w   S uint16
+           && params.kernel_size1 < std::pow(2, 16) // -y   wei_h   R uint16
+           && params.kernel_stride0 <= 2            // -u   inp_u   1 or 2
+           && params.kernel_stride1 <= 2            // -v   inp_v   1 or 2
+           && params.batch_sz < std::pow(2, 16) && params.n_inputs < std::pow(2, 16) // -c   wei_c
+           && params.n_outputs < std::pow(2, 16)                                     // -k   wei_k
+           && params.in_height < std::pow(2, 16)                                     // -H   inp_h
+           && params.in_width < std::pow(2, 16)                                      // -W   inp_w
+           && grid_workgroup_count_x < std::pow(2, 16) &&
+           (params.n_inputs * params.in_height * params.in_width) <= std::pow(2, 28) &&
+           (params.n_outputs * params.in_height * params.in_width) <= std::pow(2, 28) &&
+           (params.n_inputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28) &&
+           (params.n_outputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28) &&
+           params.in_layout == "NCHW";
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout ==
     // "CKHW" )
 }
 
-ImplementationUsageDescription
-ConvBinWinogradRxSFwd::PrepareForUsage(const ImplementationSearchParameters& params,
-                                       const ExaustiveSearchResult& /*exaustive_search_result*/) const
+ImplementationUsageDescription ConvBinWinogradRxSFwd::PrepareForUsage(
+    const ImplementationSearchParameters& params,
+    const ExaustiveSearchResult& /*exaustive_search_result*/) const
 {
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
-    const auto name = params.GetStream().GetDeviceName();
+    const auto name     = params.GetStream().GetDeviceName();
     KernelUsageDescription kernel;
 
     kernel.g_wk.push_back(512 * n_groups);
@@ -160,15 +161,15 @@ ConvBinWinogradRxSFwd::PrepareForUsage(const ImplementationSearchParameters& par
 
     kernel.kernel_name = "sp3AsmConvRxSF";
     kernel.kernel_file = "conv_";
-    if (params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+    if(params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
     {
         kernel.kernel_file += "u1v1";
     }
-    else if (params.kernel_stride0 == 1 && params.kernel_stride1 == 2)
+    else if(params.kernel_stride0 == 1 && params.kernel_stride1 == 2)
     {
         kernel.kernel_file += "u1v2";
     }
-    else if (params.kernel_stride0 == 2 && params.kernel_stride1 == 1)
+    else if(params.kernel_stride0 == 2 && params.kernel_stride1 == 1)
     {
         kernel.kernel_file += "u2v1";
     }
@@ -177,7 +178,7 @@ ConvBinWinogradRxSFwd::PrepareForUsage(const ImplementationSearchParameters& par
         kernel.kernel_file += "u2v2";
     }
     kernel.kernel_file += "_wheel_alpha_v8_3_6_";
-    if (name.find("gfx8") != std::string::npos)
+    if(name.find("gfx8") != std::string::npos)
     {
         kernel.kernel_file += "gfx803";
     }

@@ -145,8 +145,10 @@ int mlo_construct_direct2D::mloConstruct()
                 implementation.PrepareExaustiveSearchResult(_search_params);
             result = implementation.PrepareForUsage(_search_params, *exaustive_search_result);
 
-            if (!result.Succeeded()) continue;
-            if (_search_params.n_passes) return result.passes;
+            if(!result.Succeeded())
+                continue;
+            if(_search_params.n_passes)
+                return result.passes;
 
             mloUseSearchResult(result);
             return 0;
@@ -170,8 +172,8 @@ class StaticContainer
 const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
 mlo_construct_direct2D::GetImplementations() const
 {
-    static const
-        std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
+    static const std::vector<
+        std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
         implementations({
             StaticContainer<const miopen::ConvAsm3x3U>::Instance(),
             StaticContainer<const miopen::ConvAsm5x10u2v2f1>::Instance(),
@@ -191,8 +193,8 @@ mlo_construct_direct2D::GetImplementations() const
 const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
 mlo_construct_winograd::GetImplementations() const
 {
-    static const
-        std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
+    static const std::vector<
+        std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
         implementations({
 #ifndef HIP_OC_FINALIZER
             StaticContainer<const miopen::ConvBinWinograd3x3U>::Instance(),
@@ -208,8 +210,8 @@ mlo_construct_winograd::GetImplementations() const
 const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
 mlo_construct_BwdWrW2D::GetImplementations() const
 {
-    static const
-        std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
+    static const std::vector<
+        std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
         implementations({
             StaticContainer<const miopen::ConvAsmBwdWrW3x3>::Instance(),
             StaticContainer<const miopen::ConvOclBwdWrW2>::Instance(),

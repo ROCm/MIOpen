@@ -262,10 +262,11 @@ static int mloSelectDefaultConfig(std::string& conf_val,
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
     {
 
-        if ((params.n_outputs / 16) * 16 == params.n_outputs && (params.n_inputs / 4) * 4 == params.n_inputs)
+        if((params.n_outputs / 16) * 16 == params.n_outputs &&
+           (params.n_inputs / 4) * 4 == params.n_inputs)
         {
             // version
-            if (params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
+            if(params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
             {
                 result.n_in_data_tiles = 128;
 
@@ -279,18 +280,18 @@ static int mloSelectDefaultConfig(std::string& conf_val,
             }
             else
             {
-                int i_sz = params.out_height * params.out_width;
+                int i_sz             = params.out_height * params.out_width;
                 result.out_pix_tile0 = (i_sz & 1) ? 1 : 2;
 
-                if (params.pad0 > 0 || params.kernel_stride0 > 1)
+                if(params.pad0 > 0 || params.kernel_stride0 > 1)
                 {
-                    int row_sz = (params.forward) ? params.out_width : params.in_width;
+                    int row_sz           = (params.forward) ? params.out_width : params.in_width;
                     result.out_pix_tile0 = (row_sz & 1) ? 1 : 2;
                 }
 
                 result.n_out_pix_tiles = 16;
                 result.n_in_data_tiles = 4;
-                result.grp_tile0 = 64;
+                result.grp_tile0       = 64;
                 // int version =
                 result.out_pix_tile1 = 0;
             }
@@ -695,7 +696,7 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
         auto top_ocl_buf = profile_h.Write(top_sys_buf);
 
         std::vector<float> random_top_sys_buf(top_sz);
-        for (int i = 0; i < top_sz; i++)
+        for(int i = 0; i < top_sz; i++)
         {
             random_top_sys_buf[i] = static_cast<float>(rand() * (1.0 / RAND_MAX));
         }
@@ -733,7 +734,7 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
         int n_out_tiles_rg[2]  = {1, 8};
         int n_in_tiles_rg[2]   = {1, 4};
         int n_in_stacks_sz[3]  = {1, 2, 4};
-        int in_tiles[4] = { 64, 128, 256, 2048 };
+        int in_tiles[4]        = {64, 128, 256, 2048};
         /*
         std::vector<int> v_tile_sz;
         std::vector<int> v_out_pix_tile_sz;
@@ -844,37 +845,39 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
             report_inteval = 20;
         }
 
-        if (params.kernel_size0 == 1 && params.kernel_size1 == 1 && (params.n_outputs / 16) * 16 == params.n_outputs &&
-            (params.n_inputs / 4) * 4 == params.n_inputs)
+        if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
+           (params.n_outputs / 16) * 16 == params.n_outputs &&
+           (params.n_inputs / 4) * 4 == params.n_inputs)
         {
 
             std::cout
                 << "Searching the best solution in the 4 dim space. Please, be patient it may "
-                "take few minutes."
+                   "take few minutes."
                 << std::endl;
             result.grp_tile1 = 1;
-            result.in_tile1 = 1;
-            result.in_tile0 = 1;
-            report_inteval = 4;
+            result.in_tile1  = 1;
+            result.in_tile0  = 1;
+            report_inteval   = 4;
 
-            if (params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
+            if(params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
             {
 
                 // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
                 n_in_tiles_rg[0] = 0;
                 n_in_tiles_rg[1] = 3;
-                int n_in_tls = 4;
+                int n_in_tls     = 4;
 
                 //					int N_LCL_OUT_MAPS = result.n_out_pix_tiles;
                 n_out_tiles_rg[0] = 4;
                 n_out_tiles_rg[1] = 6;
                 // 0 or 1
                 out_pix_tl_cnt = 3;
-                //					uint CHEAT_SHADER_COMPILER = result.out_pix_tile0;
+                //					uint CHEAT_SHADER_COMPILER =
+                //result.out_pix_tile0;
                 out_pix_tile_sz[0] = 0;
                 out_pix_tile_sz[1] = 1;
-                n_out_tls = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
-                n_grp_tiles0 = 0;
+                n_out_tls          = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
+                n_grp_tiles0       = 0;
 
                 runs_left = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
 
@@ -882,16 +885,17 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
             }
             else
             {
-                int i_sz = params.in_width * params.in_height;
-                out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
+                int i_sz           = params.in_width * params.in_height;
+                out_pix_tl_cnt     = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
                 out_pix_tile_sz[0] = 1;
                 out_pix_tile_sz[1] = 2;
                 out_pix_tile_sz[2] = 4;
 
                 n_out_tiles_rg[0] = 2;
-                n_out_tiles_rg[1] = ((params.n_outputs / 64) * 64 == params.n_outputs)
-                    ? 6
-                    : ((params.n_outputs / 32) * 32 == params.n_outputs) ? 5 : 4;
+                n_out_tiles_rg[1] =
+                    ((params.n_outputs / 64) * 64 == params.n_outputs)
+                        ? 6
+                        : ((params.n_outputs / 32) * 32 == params.n_outputs) ? 5 : 4;
 
                 n_in_tiles_rg[0] = 2;
                 n_in_tiles_rg[1] = ((params.n_inputs / 8) * 8 == params.n_inputs) ? 3 : 2;
@@ -902,36 +906,37 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                 n_grp_tiles0 = 3;
                 n_grp_tiles1 = 1;
 
-                n_grp_tiles = n_grp_tiles1 * n_grp_tiles0;
-                n_out_tls = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
+                n_grp_tiles  = n_grp_tiles1 * n_grp_tiles0;
+                n_out_tls    = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
                 int n_in_tls = 2;
-                runs_left = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
+                runs_left    = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
 
                 result.out_pix_tile1 = 0;
             }
 
             int version = result.out_pix_tile1;
 
-            for (int g0 = 0; g0 <= n_grp_tiles0; ++g0)
+            for(int g0 = 0; g0 <= n_grp_tiles0; ++g0)
             {
                 result.grp_tile0 = grp_tl_ln[g0];
 
                 // out pix 0
-                for (int o_t = n_out_tiles_rg[0]; o_t <= n_out_tiles_rg[1]; ++o_t)
+                for(int o_t = n_out_tiles_rg[0]; o_t <= n_out_tiles_rg[1]; ++o_t)
                 {
                     result.n_out_pix_tiles = (1 << o_t);
-                    for (int l = 0; l < out_pix_tl_cnt; ++l)
+                    for(int l = 0; l < out_pix_tl_cnt; ++l)
                     {
                         result.out_pix_tile0 = out_pix_tile_sz[l];
-                        if (version == 0 && ((result.n_out_pix_tiles == 32 && result.out_pix_tile0 >= 4) ||
+                        if(version == 0 &&
+                           ((result.n_out_pix_tiles == 32 && result.out_pix_tile0 >= 4) ||
                             (result.n_out_pix_tiles == 64 && result.out_pix_tile0 >= 2)))
                         {
                             continue;
                         }
 
-                        for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
+                        for(int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
                         {
-                            if (version == 1)
+                            if(version == 1)
                             {
                                 result.n_in_data_tiles = in_tiles[i_t];
                             }
@@ -946,14 +951,14 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                                 random_top_sys_buf.size() * sizeof(float));
 
                             const auto ret = MeasuredLoop(&profile_h,
-                                bot_ocl_buf.get(),
-                                top_ocl_buf.get(),
-                                wei_ocl_buf.get(),
-                                bias_ocl_buf.get(),
-                                processing_time,
-                                params);
+                                                          bot_ocl_buf.get(),
+                                                          top_ocl_buf.get(),
+                                                          wei_ocl_buf.get(),
+                                                          bias_ocl_buf.get(),
+                                                          processing_time,
+                                                          params);
 
-                            if (ret != 0)
+                            if(ret != 0)
                             {
                                 std::cout << "Failed run." << std::endl;
                                 runs_left--;
@@ -961,36 +966,37 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                                 continue;
                             }
 
-                            if (run_counter != 0 && run_counter % report_inteval == 0)
+                            if(run_counter != 0 && run_counter % report_inteval == 0)
                             {
                                 std::cout << "Runs left : " << runs_left << ", "
-                                    << "min time so far : " << min_proc_time << ", "
-                                    << "curr time : " << processing_time
+                                          << "min time so far : " << min_proc_time << ", "
+                                          << "curr time : " << processing_time
 #if 1
-                                    << ", " << result.grp_tile1 << ", " << result.grp_tile0 << ", "
-                                    << result.in_tile1 << ", " << result.in_tile0 << ", "
-                                    << result.out_pix_tile1 << ", " << result.out_pix_tile0 << ", "
-                                    << result.n_out_pix_tiles << ", " << result.n_in_data_tiles << ", "
-                                    << result.n_stacks
+                                          << ", " << result.grp_tile1 << ", " << result.grp_tile0
+                                          << ", " << result.in_tile1 << ", " << result.in_tile0
+                                          << ", " << result.out_pix_tile1 << ", "
+                                          << result.out_pix_tile0 << ", " << result.n_out_pix_tiles
+                                          << ", " << result.n_in_data_tiles << ", "
+                                          << result.n_stacks
 #endif
-                                    << std::endl;
+                                          << std::endl;
                             }
 
                             run_counter++;
                             runs_left--;
                             runs_left = (runs_left < 0) ? 0 : runs_left;
-                            if (min_proc_time > processing_time)
+                            if(min_proc_time > processing_time)
                             {
-                                min_proc_time = processing_time;
-                                min_grp_tile0 = result.grp_tile0;
-                                min_grp_tile1 = result.grp_tile1;
-                                min_in_tile0 = result.in_tile0;
-                                min_in_tile1 = result.in_tile1;
-                                min_out_pix_tile0 = result.out_pix_tile0;
-                                min_out_pix_tile1 = result.out_pix_tile1;
+                                min_proc_time       = processing_time;
+                                min_grp_tile0       = result.grp_tile0;
+                                min_grp_tile1       = result.grp_tile1;
+                                min_in_tile0        = result.in_tile0;
+                                min_in_tile1        = result.in_tile1;
+                                min_out_pix_tile0   = result.out_pix_tile0;
+                                min_out_pix_tile1   = result.out_pix_tile1;
                                 min_n_out_pix_tiles = result.n_out_pix_tiles;
                                 min_n_in_data_tiles = result.n_in_data_tiles;
-                                min_n_stacks = result.n_stacks;
+                                min_n_stacks        = result.n_stacks;
                             }
 
                         } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
@@ -1004,24 +1010,25 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
 
             std::cout
                 << "Searching the best solution in the 9 dim space. Please, be patient it may "
-                "take few minutes."
+                   "take few minutes."
                 << std::endl;
 
             runs_left = n_grp_tiles * n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
-                n_in_tiles_rg[1] * stack_cnt;
+                        n_in_tiles_rg[1] * stack_cnt;
 
-            for (int g1 = 0; g1 < n_grp_tiles1; g1++)
+            for(int g1 = 0; g1 < n_grp_tiles1; g1++)
             {
-                result.grp_tile1 = (params.kernel_size0 == 1 && params.kernel_size1 == 1) ? 1 : grp_tl_ln[g1];
-                for (int g0 = 0; g0 < n_grp_tiles0; ++g0)
+                result.grp_tile1 =
+                    (params.kernel_size0 == 1 && params.kernel_size1 == 1) ? 1 : grp_tl_ln[g1];
+                for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
                 {
                     result.grp_tile0 = grp_tl_ln[g0];
 
                     // tile1
-                    for (int j = 0; j < n_tile1_sz; ++j)
+                    for(int j = 0; j < n_tile1_sz; ++j)
                     {
                         result.in_tile1 = tile_sz1[j];
-                        if (params.out_height * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
+                        if(params.out_height * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
                         {
                             runs_left--;
                             runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -1029,24 +1036,25 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                         }
 
                         // tile 0
-                        for (int i = 0; i < n_tile0_sz; ++i)
+                        for(int i = 0; i < n_tile0_sz; ++i)
                         {
                             result.in_tile0 = tile_sz0[i];
-                            if ((params.out_width * 2 <= result.in_tile0 && result.in_tile0 > tile_sz[0]))
+                            if((params.out_width * 2 <= result.in_tile0 &&
+                                result.in_tile0 > tile_sz[0]))
                             {
                                 runs_left--;
                                 runs_left = (runs_left < 0) ? 0 : runs_left;
                                 continue;
                             }
-                            if (params.out_height > 16 && params.out_width > 16 &&
-                                ((result.in_tile1 == 8 && result.in_tile0 == 8) ||
+                            if(params.out_height > 16 && params.out_width > 16 &&
+                               ((result.in_tile1 == 8 && result.in_tile0 == 8) ||
                                 (result.grp_tile0 == 8 && result.grp_tile1 == 8)))
                             {
                                 runs_left--;
                                 runs_left = (runs_left < 0) ? 0 : runs_left;
                                 continue;
                             }
-                            if (params.out_width > 32 && result.in_tile1 > result.in_tile0)
+                            if(params.out_width > 32 && result.in_tile1 > result.in_tile0)
                             {
                                 runs_left--;
                                 runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -1054,11 +1062,11 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                             }
                             // out pix 1
 
-                            for (int k = (unaligned) ? out_pix_tile_sz[0] : 0; k < out_pix_tl_cnt;
+                            for(int k = (unaligned) ? out_pix_tile_sz[0] : 0; k < out_pix_tl_cnt;
                                 ++k)
                             {
                                 result.out_pix_tile1 = (unaligned) ? k : out_pix_tile_sz[k];
-                                if (result.out_pix_tile1 > result.in_tile1)
+                                if(result.out_pix_tile1 > result.in_tile1)
                                 {
                                     runs_left--;
                                     runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -1066,15 +1074,16 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                                 }
                                 // out pix 0
 
-                                for (int l = (unaligned) ? out_pix_tile_sz[0] : 0;
+                                for(int l = (unaligned) ? out_pix_tile_sz[0] : 0;
                                     l < out_pix_tl_cnt;
                                     ++l)
                                 {
-                                    result.out_pix_tile0 = (params.kernel_size0 == 1 && params.kernel_size1 == 1)
-                                        ? 4
-                                        : (unaligned) ? l : out_pix_tile_sz[l];
+                                    result.out_pix_tile0 =
+                                        (params.kernel_size0 == 1 && params.kernel_size1 == 1)
+                                            ? 4
+                                            : (unaligned) ? l : out_pix_tile_sz[l];
 
-                                    if (result.out_pix_tile0 > result.in_tile0)
+                                    if(result.out_pix_tile0 > result.in_tile0)
                                     {
                                         runs_left--;
                                         runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -1082,41 +1091,41 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                                     }
 
                                     int o_l = n_out_tiles_rg[1];
-                                    for (int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
+                                    for(int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
                                     {
                                         result.n_out_pix_tiles = o_t;
-                                        if (params.n_outputs < result.n_out_pix_tiles)
+                                        if(params.n_outputs < result.n_out_pix_tiles)
                                         {
                                             runs_left--;
                                             runs_left = (runs_left < 0) ? 0 : runs_left;
                                             continue;
                                         }
 #if 1
-                                        if (params.kernel_size0 == 1 && params.kernel_size1 == 1)
+                                        if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
                                         {
                                             int N4S = 1;
 
                                             int MAP_SZ4 =
-                                                (params.in_width * params.in_height + N4S * 4 - 1) / (N4S * 4);
+                                                (params.in_width * params.in_height + N4S * 4 - 1) /
+                                                (N4S * 4);
 
-                                            int GRP_SZ = result.grp_tile0;
+                                            int GRP_SZ          = result.grp_tile0;
                                             int N_MAPS_PERGROUP = 1;
                                             int exchange_step;
 
-                                            if (MAP_SZ4 <= GRP_SZ / 2)
+                                            if(MAP_SZ4 <= GRP_SZ / 2)
                                             {
-                                                N_MAPS_PERGROUP = GRP_SZ / MAP_SZ4;
-                                                int lcl_mem_avial =
-                                                    (result.grp_tile0 <= 192)
-                                                    ? (dev_local_mem_sz / 4) / 2
-                                                    : (dev_local_mem_sz / 4);
+                                                N_MAPS_PERGROUP   = GRP_SZ / MAP_SZ4;
+                                                int lcl_mem_avial = (result.grp_tile0 <= 192)
+                                                                        ? (dev_local_mem_sz / 4) / 2
+                                                                        : (dev_local_mem_sz / 4);
 
                                                 exchange_step =
                                                     lcl_mem_avial / (N_MAPS_PERGROUP * MAP_SZ4 * 4);
                                                 exchange_step = std::min(
                                                     std::min(exchange_step, result.n_out_pix_tiles),
                                                     N_MAPS_PERGROUP);
-                                                if (exchange_step < result.n_out_pix_tiles)
+                                                if(exchange_step < result.n_out_pix_tiles)
                                                 {
                                                     auto tmp_stp =
                                                         static_cast<int>(std::ceil(std::sqrt(
@@ -1132,35 +1141,37 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                                             }
                                         }
 #endif
-                                        for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
+                                        for(int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
                                             ++i_t)
                                         {
                                             result.n_in_data_tiles = i_t;
-                                            if (params.n_inputs < result.n_in_data_tiles)
+                                            if(params.n_inputs < result.n_in_data_tiles)
                                             {
                                                 runs_left--;
                                                 runs_left = (runs_left < 0) ? 0 : runs_left;
                                                 continue;
                                             }
 
-                                            for (int s = 0; s < stack_cnt; ++s)
+                                            for(int s = 0; s < stack_cnt; ++s)
                                             {
 
                                                 result.n_stacks = n_in_stacks_sz[s];
-                                                if (params.kernel_size0 == 1 && params.kernel_size1 == 1)
+                                                if(params.kernel_size0 == 1 &&
+                                                   params.kernel_size1 == 1)
                                                 {
                                                 }
                                                 else
                                                 {
-                                                    int alu_tile0 =
-                                                        std::max(1, result.in_tile0 / result.out_pix_tile0);
-                                                    int alu_tile1 =
-                                                        std::max(1, result.in_tile1 / result.out_pix_tile1);
+                                                    int alu_tile0 = std::max(
+                                                        1, result.in_tile0 / result.out_pix_tile0);
+                                                    int alu_tile1 = std::max(
+                                                        1, result.in_tile1 / result.out_pix_tile1);
                                                     int alu_tiles_sz = (alu_tile0 * alu_tile1);
-                                                    int n_alus_total = (result.grp_tile0 * result.grp_tile1);
+                                                    int n_alus_total =
+                                                        (result.grp_tile0 * result.grp_tile1);
 
-                                                    if (alu_tiles_sz >
-                                                        n_alus_total /* || result.n_in_data_tiles*result.n_out_pix_tiles*result.out_pix_tile1*result.out_pix_tile0 > 240*/)
+                                                    if(alu_tiles_sz >
+                                                       n_alus_total /* || result.n_in_data_tiles*result.n_out_pix_tiles*result.out_pix_tile1*result.out_pix_tile0 > 240*/)
                                                     {
                                                         runs_left--;
                                                         runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -1168,21 +1179,21 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                                                     }
                                                 }
 
-                                                if (result.n_stacks > params.batch_sz)
+                                                if(result.n_stacks > params.batch_sz)
                                                 {
                                                     runs_left--;
                                                     runs_left = (runs_left < 0) ? 0 : runs_left;
                                                     continue;
                                                 }
                                                 const auto ret = MeasuredLoop(&profile_h,
-                                                    bot_ocl_buf.get(),
-                                                    top_ocl_buf.get(),
-                                                    wei_ocl_buf.get(),
-                                                    bias_ocl_buf.get(),
-                                                    processing_time,
-                                                    params);
+                                                                              bot_ocl_buf.get(),
+                                                                              top_ocl_buf.get(),
+                                                                              wei_ocl_buf.get(),
+                                                                              bias_ocl_buf.get(),
+                                                                              processing_time,
+                                                                              params);
 
-                                                if (ret != 0)
+                                                if(ret != 0)
                                                 {
                                                     std::cout << "Failed run." << std::endl;
                                                     runs_left--;
@@ -1190,8 +1201,8 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                                                     continue;
                                                 }
 
-                                                if (run_counter != 0 &&
-                                                    run_counter % report_inteval == 0)
+                                                if(run_counter != 0 &&
+                                                   run_counter % report_inteval == 0)
                                                 {
                                                     std::cout
                                                         << "Runs left : " << runs_left << ", "
@@ -1199,12 +1210,15 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                                                         << ", "
                                                         << "curr time : " << processing_time
 #if 1
-                                                        << ", " << result.grp_tile1 << ", " << result.grp_tile0
-                                                        << ", " << result.in_tile1 << ", " << result.in_tile0
-                                                        << ", " << result.out_pix_tile1 << ", "
+                                                        << ", " << result.grp_tile1 << ", "
+                                                        << result.grp_tile0 << ", "
+                                                        << result.in_tile1 << ", "
+                                                        << result.in_tile0 << ", "
+                                                        << result.out_pix_tile1 << ", "
                                                         << result.out_pix_tile0 << ", "
                                                         << result.n_out_pix_tiles << ", "
-                                                        << result.n_in_data_tiles << ", " << result.n_stacks
+                                                        << result.n_in_data_tiles << ", "
+                                                        << result.n_stacks
 #endif
                                                         << std::endl;
                                                 }
@@ -1212,18 +1226,18 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
                                                 run_counter++;
                                                 runs_left--;
                                                 runs_left = (runs_left < 0) ? 0 : runs_left;
-                                                if (min_proc_time > processing_time)
+                                                if(min_proc_time > processing_time)
                                                 {
-                                                    min_proc_time = processing_time;
-                                                    min_grp_tile0 = result.grp_tile0;
-                                                    min_grp_tile1 = result.grp_tile1;
-                                                    min_in_tile0 = result.in_tile0;
-                                                    min_in_tile1 = result.in_tile1;
-                                                    min_out_pix_tile0 = result.out_pix_tile0;
-                                                    min_out_pix_tile1 = result.out_pix_tile1;
+                                                    min_proc_time       = processing_time;
+                                                    min_grp_tile0       = result.grp_tile0;
+                                                    min_grp_tile1       = result.grp_tile1;
+                                                    min_in_tile0        = result.in_tile0;
+                                                    min_in_tile1        = result.in_tile1;
+                                                    min_out_pix_tile0   = result.out_pix_tile0;
+                                                    min_out_pix_tile1   = result.out_pix_tile1;
                                                     min_n_out_pix_tiles = result.n_out_pix_tiles;
                                                     min_n_in_data_tiles = result.n_in_data_tiles;
-                                                    min_n_stacks = result.n_stacks;
+                                                    min_n_stacks        = result.n_stacks;
                                                 }
 
                                             } // for (int s = 0; s < 3; ++s)
@@ -1264,15 +1278,16 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
 }
 
 const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>>&
-    ConvOclDirectFwdLegacyExaustiveSearch::GetImplementationsToMeasure()
+ConvOclDirectFwdLegacyExaustiveSearch::GetImplementationsToMeasure()
 {
-    static const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>> implementations = [] {
-        std::vector<std::unique_ptr<const AlgotithmImplementationDescription>> data;
-        data.emplace_back(new ConvOclDirectFwd1x1);
-        data.emplace_back(new ConvOclDirectFwdC);
-        data.emplace_back(new ConvOclDirectFwd);
-        return data;
-    }();
+    static const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>>
+        implementations = [] {
+            std::vector<std::unique_ptr<const AlgotithmImplementationDescription>> data;
+            data.emplace_back(new ConvOclDirectFwd1x1);
+            data.emplace_back(new ConvOclDirectFwdC);
+            data.emplace_back(new ConvOclDirectFwd);
+            return data;
+        }();
 
     return implementations;
 }

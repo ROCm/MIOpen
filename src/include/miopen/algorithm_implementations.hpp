@@ -77,17 +77,17 @@ class Direct2DfwdExaustiveSearchResult : public ExaustiveSearchResult
     int n_in_data_tiles;
     int n_stacks;
 
-    Direct2DfwdExaustiveSearchResult() noexcept
-        : grp_tile1(),
-          grp_tile0(),
-          in_tile1(),
-          in_tile0(),
-          out_pix_tile1(),
-          out_pix_tile0(),
-          n_out_pix_tiles(),
-          n_in_data_tiles(),
-          n_stacks()
-    {}
+    Direct2DfwdExaustiveSearchResult() noexcept : grp_tile1(),
+                                                  grp_tile0(),
+                                                  in_tile1(),
+                                                  in_tile0(),
+                                                  out_pix_tile1(),
+                                                  out_pix_tile0(),
+                                                  n_out_pix_tiles(),
+                                                  n_in_data_tiles(),
+                                                  n_stacks()
+    {
+    }
 
     inline void FillImplementationUsageDescription(ImplementationUsageDescription& iud) const
     {
@@ -242,7 +242,7 @@ class ConvBinWinograd3x3U : public AlgotithmImplementationDescription
 
 class ConvBinWinogradRxSFwd : public AlgotithmImplementationDescription
 {
-public:
+    public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
