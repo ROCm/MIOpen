@@ -89,13 +89,17 @@ class RNNDriver : public Driver
     public:
     RNNDriver() : Driver()
     {
+		/*
         miopenCreateTensorDescriptor(&inputTensor);
 		miopenCreateTensorDescriptor(&hiddenTensor);
         miopenCreateTensorDescriptor(&weightTensor);
         miopenCreateTensorDescriptor(&outputTensor);
         miopenCreateTensorDescriptor(&biasTensor);
+		*/
+//        miopenCreateRNNDescriptor(&rnnDesc);
 
-        miopenCreateRNNDescriptor(&rnnDesc);
+		workspace_bwd_dev = nullptr;
+		workspace_fwd_dev = nullptr;
     }
 
     int AddCmdLineArgs();
@@ -109,37 +113,37 @@ class RNNDriver : public Driver
 
     int SetRNNDescriptorFromCmdLineArgs();
 
-    std::vector<int> GetOutputTensorLengths();
+//    std::vector<int> GetOutputTensorLengths();
 
     int AllocateBuffersAndCopy();
 
-    int FindForward(int& ret_algo_count,
-                    int request_algo_count,
-                    std::vector<miopenConvAlgoPerf_t>& perf_results);
-    int RunForwardGPU();
+//    int FindForward(int& ret_algo_count,
+//                    int request_algo_count,
+//                    std::vector<miopenConvAlgoPerf_t>& perf_results);
+//    int RunForwardGPU();
     int RunForwardCPU();
 
-    int FindBackwardData(int& ret_algo_count,
+//    int FindBackwardData(int& ret_algo_count,
                          int request_algo_count,
                          std::vector<miopenConvAlgoPerf_t>& perf_results);
-    int FindBackwardWeights(int& ret_algo_count,
-                            int request_algo_count,
-                            std::vector<miopenConvAlgoPerf_t>& perf_results);
-    int RunBackwardGPU();
+//    int FindBackwardWeights(int& ret_algo_count,
+//                            int request_algo_count,
+//                            std::vector<miopenConvAlgoPerf_t>& perf_results);
+//    int RunBackwardGPU();
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
-    int RunBackwardBiasCPU();
+//    int RunBackwardBiasCPU();
 
     int VerifyBackward();
     int VerifyForward();
     ~RNNDriver()
     {
 
-        miopenDestroyTensorDescriptor(biasTensor);
-        miopenDestroyTensorDescriptor(outputTensor);
-        miopenDestroyTensorDescriptor(weightTensor);
-		miopenDestroyTensorDescriptor(hiddenTensor);
-        miopenDestroyTensorDescriptor(inputTensor);
+ //       miopenDestroyTensorDescriptor(biasTensor);
+ //       miopenDestroyTensorDescriptor(outputTensor);
+ //       miopenDestroyTensorDescriptor(weightTensor);
+//		miopenDestroyTensorDescriptor(hiddenTensor);
+//        miopenDestroyTensorDescriptor(inputTensor);
 
         miopenDestroyRNNDescriptor(rnnDesc);
     }
@@ -183,11 +187,11 @@ class RNNDriver : public Driver
 
     miopenRNNDescriptor_t rnnDesc;
 
-    std::string GetVerificationCacheFileName() const;
-    bool TryReadVerificationCache(const std::string& file_name,
-                                  miopenTensorDescriptor_t& tensorDesc,
-                                  T* data) const;
-    void TrySaveVerificationCache(const std::string& file_name, std::vector<T>& data) const;
+//    std::string GetVerificationCacheFileName() const;
+//    bool TryReadVerificationCache(const std::string& file_name,
+//                                  miopenTensorDescriptor_t& tensorDesc,
+//                                  T* data) const;
+//    void TrySaveVerificationCache(const std::string& file_name, std::vector<T>& data) const;
 };
 
 template <typename T>
@@ -209,12 +213,15 @@ int RNNDriver<T>::GetandSetData()
 	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
+	/*
     SetTensor4d(inputTensor, in_len);
 	SetTensor4d(hiddenTensor, hid_len);
     SetTensor4d(weightTensor, wei_len);
+	*/
 
     SetRNNDescriptorFromCmdLineArgs();
 
+	/*
     std::vector<int> out_len = GetOutputTensorLengths();
     SetTensor4d(outputTensor, out_len);
 
@@ -223,6 +230,8 @@ int RNNDriver<T>::GetandSetData()
         std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
         SetTensor4d(biasTensor, b_len);
     }
+	*/
+
     return (0);
 }
 
@@ -231,9 +240,9 @@ int RNNDriver<T>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward RNN (Default=0)", "int");
 	inflags.AddInputFlag("num_layer", 'l', "1", "Number of hidden stacks (Default=1)", "int");
-	inflags.AddInputFlag("seq_len", 'k', "10", "Number of iterations to unroll over (Default=10)", "int");
+	inflags.AddInputFlag("seq_len", 'k', "1", "Number of iterations to unroll over (Default=10)", "int");
 	inflags.AddInputFlag("bidirection", 'r', "0", "uni- or bi-direction, default uni- (Default=0)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "4", "Mini-batch size (Default=4)", "int");
+    inflags.AddInputFlag("batchsize", 'n', "4", "Mini-batch size (Default=4)", "vector");
     inflags.AddInputFlag("hid_h", 'H', "32", "Hidden State Length (Default=32)", "int");
     inflags.AddInputFlag("in_h", 'W', "32", "Input Length (Default=32)", "int");
 	inflags.AddInputFlag("out_h", 'O', "32", "Output Length (Default=32)", "int");
@@ -264,6 +273,14 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
 {
 	std::vector<int> in_n(inflags.GetValueInt("seq_len"), 0);
 	inflags.GetVectorInt("batchsize", in_n, inflags.GetValueInt("seq_len"));
+
+	for (int i = 1; i < inflags.GetValueInt("seq_len"); i++)
+	{
+		if (in_n[i] > in_n[i - 1])
+		{
+			printf("Incorrect batch size at time %d\n", i);
+		}
+	}
 	
     int in_h = inflags.GetValueInt("in_h");
 
@@ -277,10 +294,11 @@ std::vector<int> RNNDriver<T>::GetHiddenTensorLengthsFromCmdLine()
 	if ((inflags.GetValueInt("bidirection")) == 1)
 		hid_l *= 2;
 
-	int hid_n = inflags.GetValueInt("batchsize");
+//	int hid_n = inflags.GetValueInt("batchsize");
 	int hid_h = inflags.GetValueInt("hid_h");
 
-	return std::vector<int>({hid_l, hid_n, hid_h});
+//	return std::vector<int>({hid_l, hid_n, hid_h});
+	return std::vector<int>({hid_l, hid_h });
 }
 
 template <typename T>
@@ -331,6 +349,8 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
         rnnDesc, mode, seqLength, layer, bidir);
 }
 
+
+/*
 template <typename T>
 std::vector<int> RNNDriver<T>::GetOutputTensorLengths()  // need removed
 {
@@ -340,18 +360,22 @@ std::vector<int> RNNDriver<T>::GetOutputTensorLengths()  // need removed
 
     return std::vector<int>({n, c, h, w});
 }
+*/
+
 
 template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
 
-    size_t in_sz  = GetTensorSize(inputTensor);
-	size_t hid_sz = GetTensorSize(hiddenTensor);
-    size_t wei_sz = GetTensorSize(weightTensor);
-    size_t out_sz = GetTensorSize(outputTensor);
+	size_t in_sz = 10; //GetTensorSize(inputTensor);
+	size_t hid_sz = 10; //GetTensorSize(hiddenTensor);
+	size_t wei_sz = 10; //GetTensorSize(weightTensor);
+	size_t out_sz = 10; //GetTensorSize(outputTensor);
 
     size_t workSpaceSize_bwd_wt = 0;
     size_t workSpaceSize_bwd_dt = 0;
+
+	/*
     miopenRNNBackwardWeightsGetWorkSpaceSize(
         GetHandle(), outputTensor, inputTensor, rnnDesc, weightTensor, &workSpaceSize_bwd_wt);
     miopenRNNBackwardDataGetWorkSpaceSize(
@@ -380,6 +404,8 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
     workspace_fwd_dev =
         std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
+	*/
+
 
     in                 = std::vector<T>(in_sz);
     din                = std::vector<T>(in_sz);
@@ -423,6 +449,8 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         dout[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
     }
 
+
+	/*
     if(inflags.GetValueInt("bias") != 0)
     {
         size_t b_sz = GetTensorSize(biasTensor);
@@ -440,6 +468,8 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         b_dev->ToGPU(q, b.data());
         db_dev->ToGPU(q, db.data());
     }
+	*/
+
 
     bool weiRead = false;
     if(!weiFileName.empty())
@@ -461,6 +491,8 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         dumpBufferToFile("dump_in.bin", in.data(), in_sz);
         dumpBufferToFile("dump_wei.bin", wei.data(), wei_sz);
     }
+
+	/*
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
 #elif MIOPEN_BACKEND_HIP
@@ -480,10 +512,12 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
+	*/
 
     return miopenStatusSuccess;
 }
 
+/*
 template <typename T>
 int RNNDriver<T>::FindForward(int& ret_algo_count,
                                int request_algo_count,
@@ -585,6 +619,8 @@ int RNNDriver<T>::RunForwardGPU()
 
     return miopenStatusSuccess;
 }
+*/
+
 
 template <typename T>
 int RNNDriver<T>::RunForwardCPU()
@@ -654,10 +690,11 @@ int RNNDriver<T>::RunForwardCPU()
         dumpBufferToFile("dump_fwd_out_cpu.bin", outhost.data(), outhost.size());
     }
 
-    TrySaveVerificationCache("fwd_out", outhost);
+//    TrySaveVerificationCache("fwd_out", outhost);
     return 0;
 }
 
+/*
 template <typename T>
 int RNNDriver<T>::FindBackwardData(int& ret_algo_count,
                                     int request_algo_count,
@@ -819,6 +856,7 @@ int RNNDriver<T>::RunBackwardGPU()
     }
     return ret;
 }
+*/
 
 template <typename T>
 int RNNDriver<T>::RunBackwardWeightsCPU()
@@ -888,7 +926,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
         dumpBufferToFile("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
     }
 
-    TrySaveVerificationCache("bwd_wei", dwei_host);
+//    TrySaveVerificationCache("bwd_wei", dwei_host);
     return 0;
 }
 
@@ -963,10 +1001,11 @@ int RNNDriver<T>::RunBackwardDataCPU()
         dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
     }
 
-    TrySaveVerificationCache("bwd_dat", din_host);
+//    TrySaveVerificationCache("bwd_dat", din_host);
     return 0;
 }
 
+/*
 template <typename T>
 int RNNDriver<T>::RunBackwardBiasCPU()
 {
@@ -1009,7 +1048,10 @@ int RNNDriver<T>::RunBackwardBiasCPU()
     TrySaveVerificationCache("bwd_bai", db_host);
     return 0;
 }
+*/
 
+
+/*
 template <typename T>
 std::string RNNDriver<T>::GetVerificationCacheFileName() const
 {
@@ -1073,12 +1115,15 @@ void RNNDriver<T>::TrySaveVerificationCache(const std::string& file_name,
         dumpBufferToFile(file_path.c_str(), data.data(), data.size());
     }
 }
+*/
+
+
 
 template <typename T>
 int RNNDriver<T>::VerifyForward()
 {
 
-    if(!TryReadVerificationCache("fwd_out", outputTensor, outhost.data()))
+ //   if(!TryReadVerificationCache("fwd_out", outputTensor, outhost.data()))
     {
         RunForwardCPU();
     }
@@ -1102,7 +1147,7 @@ int RNNDriver<T>::VerifyBackward()
 {
     const double tolerance = 1e-6;
 
-    if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
+ //   if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
     {
         RunBackwardDataCPU();
     }
@@ -1119,7 +1164,7 @@ int RNNDriver<T>::VerifyBackward()
         printf("Backward RNN Data Verifies on CPU and GPU\n");
     }
 
-    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
+//    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
         RunBackwardWeightsCPU();
     }
@@ -1135,6 +1180,7 @@ int RNNDriver<T>::VerifyBackward()
         printf("Backward RNN Weights Verifies on CPU and GPU\n");
     }
 
+	/*
     if(inflags.GetValueInt("bias") != 0)
     {
         if(!TryReadVerificationCache("bwd_bai", biasTensor, db_host.data()))
@@ -1153,6 +1199,7 @@ int RNNDriver<T>::VerifyBackward()
             printf("Backward RNN Bias Verifies on CPU and GPU\n");
         }
     }
+	*/
 
     return 0;
 }
