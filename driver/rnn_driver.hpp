@@ -120,7 +120,7 @@ class RNNDriver : public Driver
 //    int FindForward(int& ret_algo_count,
 //                    int request_algo_count,
 //                    std::vector<miopenConvAlgoPerf_t>& perf_results);
-//    int RunForwardGPU();
+    int RunForwardGPU();
     int RunForwardCPU();
 
 //    int FindBackwardData(int& ret_algo_count,
@@ -129,7 +129,7 @@ class RNNDriver : public Driver
 //    int FindBackwardWeights(int& ret_algo_count,
 //                            int request_algo_count,
 //                            std::vector<miopenConvAlgoPerf_t>& perf_results);
-//    int RunBackwardGPU();
+    int RunBackwardGPU();
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
 //    int RunBackwardBiasCPU();
@@ -542,11 +542,13 @@ int RNNDriver<T>::FindForward(int& ret_algo_count,
                                                  (inflags.GetValueInt("search") == 1) ? true
                                                                                       : false);
 }
+*/
+
 
 template <typename T>
 int RNNDriver<T>::RunForwardGPU()
 {
-
+	/*
     int ret_algo_count;
     int request_algo_count = 2;
     std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
@@ -617,12 +619,12 @@ int RNNDriver<T>::RunForwardGPU()
     if(inflags.GetValueInt("dump_output"))
     {
         dumpBufferToFile("dump_fwd_out_gpu.bin", out.data(), out.size());
-    }
+    } 
+	
+	*/
 
     return miopenStatusSuccess;
 }
-*/
-
 
 template <typename T>
 int RNNDriver<T>::RunForwardCPU()
@@ -750,11 +752,12 @@ int RNNDriver<T>::FindBackwardWeights(int& ret_algo_count,
 
     return 0;
 }
+*/
 
 template <typename T>
 int RNNDriver<T>::RunBackwardGPU()
 {
-
+	/*
     int ret_algo_count;
     int request_algo_count = 2;
     std::vector<miopenConvAlgoPerf_t> perf_results_data(request_algo_count);
@@ -862,9 +865,12 @@ int RNNDriver<T>::RunBackwardGPU()
             dumpBufferToFile("dump_bwd_db_gpu.bin", db.data(), db.size());
         }
     }
+
     return ret;
+	*/
+
+    return miopenStatusSuccess;
 }
-*/
 
 template <typename T>
 int RNNDriver<T>::RunBackwardWeightsCPU()
