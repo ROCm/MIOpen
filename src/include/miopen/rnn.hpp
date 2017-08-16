@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MIOPEN_CONVOLUTION_HPP_
-#define GUARD_MIOPEN_CONVOLUTION_HPP_
+#ifndef GUARD_MIOPEN_RNN_HPP_
+#define GUARD_MIOPEN_RNN_HPP_
 
 #include <functional>
 #include <miopen/common.hpp>
