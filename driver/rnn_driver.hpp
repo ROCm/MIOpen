@@ -283,8 +283,10 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
 	}
 	
     int in_h = inflags.GetValueInt("in_h");
+	in_n.push_back(in_h);
 
-    return std::vector<int>({in_n, in_h});
+	return in_n;
+//    return std::vector<int>({in_n, in_h});
 }
 
 template <typename T>
