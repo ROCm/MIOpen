@@ -96,7 +96,7 @@ class RNNDriver : public Driver
         miopenCreateTensorDescriptor(&outputTensor);
         miopenCreateTensorDescriptor(&biasTensor);
 		*/
-//        miopenCreateRNNDescriptor(&rnnDesc);
+        miopenCreateRNNDescriptor(&rnnDesc);
 
 		workspace_bwd_dev = nullptr;
 		workspace_fwd_dev = nullptr;
@@ -124,8 +124,8 @@ class RNNDriver : public Driver
     int RunForwardCPU();
 
 //    int FindBackwardData(int& ret_algo_count,
-                         int request_algo_count,
-                         std::vector<miopenConvAlgoPerf_t>& perf_results);
+//                         int request_algo_count,
+//                         std::vector<miopenConvAlgoPerf_t>& perf_results);
 //    int FindBackwardWeights(int& ret_algo_count,
 //                            int request_algo_count,
 //                            std::vector<miopenConvAlgoPerf_t>& perf_results);
@@ -380,10 +380,12 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         GetHandle(), outputTensor, inputTensor, rnnDesc, weightTensor, &workSpaceSize_bwd_wt);
     miopenRNNBackwardDataGetWorkSpaceSize(
         GetHandle(), outputTensor, weightTensor, rnnDesc, inputTensor, &workSpaceSize_bwd_dt);
-    size_t workSpaceSize_bwd =
-        workSpaceSize_bwd_dt > workSpaceSize_bwd_wt ? workSpaceSize_bwd_dt : workSpaceSize_bwd_wt;
+		*/
+	size_t workSpaceSize_bwd = 0;
+  //      workSpaceSize_bwd_dt > workSpaceSize_bwd_wt ? workSpaceSize_bwd_dt : workSpaceSize_bwd_wt;
 
     size_t workSpaceSize_fwd = 0;
+	/*
     miopenRNNForwardGetWorkSpaceSize(
         GetHandle(), weightTensor, inputTensor, rnnDesc, outputTensor, &workSpaceSize_fwd);
 
@@ -629,6 +631,8 @@ int RNNDriver<T>::RunForwardCPU()
     int in_n, in_c, in_h, in_w;
     int in_nstride, in_cstride, in_hstride, in_wstride;
     miopenDataType_t dt;
+
+	/*
     miopenGet4dTensorDescriptor(inputTensor,
                                 &dt,
                                 &in_n,
@@ -639,6 +643,7 @@ int RNNDriver<T>::RunForwardCPU()
                                 &in_cstride,
                                 &in_hstride,
                                 &in_wstride);
+	*/
 
     int wei_n, wei_c, wei_h, wei_w;
     int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
@@ -648,7 +653,9 @@ int RNNDriver<T>::RunForwardCPU()
 
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
-    miopenGet4dTensorDescriptor(outputTensor,
+
+	/*
+	miopenGet4dTensorDescriptor(outputTensor,
                                 &dt,
                                 &out_n,
                                 &out_c,
@@ -658,11 +665,12 @@ int RNNDriver<T>::RunForwardCPU()
                                 &out_cstride,
                                 &out_hstride,
                                 &out_wstride);
+	*/
 
-    int u, v, pad_h, pad_w, dilation_h, dilation_w;
+    int seqLength, layer, bidir;
     miopenRNNMode_t mode;
     miopenGetRNNDescriptor(
-        rnnDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        rnnDesc, &mode, &seqLength, &layer, &bidir);
 
     /*
 
@@ -865,6 +873,8 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     int in_n, in_c, in_h, in_w;
     int in_nstride, in_cstride, in_hstride, in_wstride;
     miopenDataType_t dt;
+
+	/*
     miopenGet4dTensorDescriptor(inputTensor,
                                 &dt,
                                 &in_n,
@@ -875,6 +885,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                 &in_cstride,
                                 &in_hstride,
                                 &in_wstride);
+								*/
 
     int wei_n, wei_c, wei_h, wei_w;
     int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
@@ -884,6 +895,8 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
 
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
+
+	/*
     miopenGet4dTensorDescriptor(outputTensor,
                                 &dt,
                                 &out_n,
@@ -894,11 +907,12 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                 &out_cstride,
                                 &out_hstride,
                                 &out_wstride);
+	*/
 
-    int u, v, pad_h, pad_w, dilation_h, dilation_w;
+	int seqLength, layer, bidir;
     miopenRNNMode_t mode;
-    miopenGetRNNDescriptor(
-        rnnDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+	miopenGetRNNDescriptor(
+		rnnDesc, &mode, &seqLength, &layer, &bidir);
 
     /*
 	
@@ -937,6 +951,8 @@ int RNNDriver<T>::RunBackwardDataCPU()
     int in_n, in_c, in_h, in_w;
     int in_nstride, in_cstride, in_hstride, in_wstride;
     miopenDataType_t dt;
+
+	/*
     miopenGet4dTensorDescriptor(inputTensor,
                                 &dt,
                                 &in_n,
@@ -947,6 +963,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                 &in_cstride,
                                 &in_hstride,
                                 &in_wstride);
+	*/
 
     int wei_n, wei_c, wei_h, wei_w;
     int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
@@ -956,6 +973,8 @@ int RNNDriver<T>::RunBackwardDataCPU()
 
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
+
+	/*
     miopenGet4dTensorDescriptor(outputTensor,
                                 &dt,
                                 &out_n,
@@ -966,11 +985,12 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                 &out_cstride,
                                 &out_hstride,
                                 &out_wstride);
+	*/
 
-    int u, v, pad_h, pad_w, dilation_h, dilation_w;
+	int seqLength, layer, bidir;
     miopenRNNMode_t mode;
-    miopenGetRNNDescriptor(
-        rnnDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+	miopenGetRNNDescriptor(
+		rnnDesc, &mode, &seqLength, &layer, &bidir);
 
     /*
 
@@ -1058,8 +1078,9 @@ std::string RNNDriver<T>::GetVerificationCacheFileName() const
     std::ostringstream ss;
 
     miopenRNNMode_t mode;
-    int pad_h, pad_w, u, v, sx, sy;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &pad_h, &pad_w, &u, &v, &sx, &sy);
+    int seqLength, layer, bidir;
+    miopenGetRNNDescriptor(
+        rnnDesc, &mode, &seqLength, &layer, &bidir);
 
     const auto inputDesc = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(inputTensor));
     const auto weiDesc   = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(weightTensor));
