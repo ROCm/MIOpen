@@ -1,4 +1,5 @@
-def rocmtestnode(variant, body) {
+
+def rocmtestnode(variant, name, body) {
     def image = 'miopen'
     def cmake_build = { compiler, flags ->
         def cmd = """
@@ -13,7 +14,7 @@ def rocmtestnode(variant, body) {
         echo cmd
         sh cmd
     }
-    node('rocmtest && fiji') {
+    node(name) {
         stage("checkout ${variant}") {
             // env.HCC_SERIALIZE_KERNEL=3
             // env.HCC_SERIALIZE_COPY=3
@@ -40,10 +41,21 @@ def rocmtest(m) {
         def label = e.key;
         def action = e.value;
         builders[label] = {
-            rocmtestnode(label, action)
+            def name = action.hasProperty('node_name') ? action.node_name : 'rocmtest && fiji'
+            rocmtestnode(label, name, action)
         }
     }
     parallel builders
+}
+
+@NonCPS
+def rocmnode(name, body) {
+    if(name == 'vega') {
+        body.metaClass.node_name = 'rocmtest && vega';
+    } else {
+        body.metaClass.node_name = name;
+    }
+    return body;
 }
 
 rocmtest opencl: { cmake_build ->
@@ -80,6 +92,13 @@ rocmtest opencl: { cmake_build ->
     }
     stage('GCC Release') {
         cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+    }
+}, vega: rocmnode('vega') { cmake_build ->
+    stage('Clang Debug') {
+        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+    }
+    stage('Clang Release') {
+        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
 }, hip: { cmake_build ->
     stage('Hip Tidy') {
