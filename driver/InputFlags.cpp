@@ -162,7 +162,8 @@ double InputFlags::GetValueDouble(const std::string& long_name) const
     return value;
 }
 
-void InputFlags::GetVectorInt(const std::string& long_name, std::vector<int>& vec, int len) const
+/*
+std::vector<int> InputFlags::GetVectorInt(const std::string& long_name) const
 {
 	char short_name = FindShortName(long_name);
 	std::string str = MapInputs.at(short_name).value;
@@ -196,3 +197,4 @@ void InputFlags::GetVectorInt(const std::string& long_name, std::vector<int>& ve
 		}
 	}
 }
+*/
