@@ -271,15 +271,41 @@ int RNNDriver<T>::AddCmdLineArgs()
 template <typename T>
 std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
 {
-	std::vector<int> in_n(inflags.GetValueInt("seq_len"), 0);
-	inflags.GetVectorInt("batchsize", in_n, inflags.GetValueInt("seq_len"));
+	int nseq = inflags.GetValueInt("seq_len");
+	std::vector<int> in_n(nseq, 0);
+//	inflags.GetVectorInt("batchsize", in_n, inflags.GetValueInt("seq_len"));
+	std::string batchstr = inflags.GetValueStr("batchsize");
+	int cont = 0;
 
-	for (int i = 1; i < inflags.GetValueInt("seq_len"); i++)
+	for (int i = 0; i < batchstr.length(); i++)
 	{
-		if (in_n[i] > in_n[i - 1])
+		if (cont >= nseq)
 		{
-			printf("Incorrect batch size at time %d\n", i);
+			printf("Too many in_n batch size");
+			break;
 		}
+
+		if (batchstr[i] == ',')
+		{
+			if (cont >= 1)
+			{
+				if (in_n[cont] > in_n[cont - 1])
+				{
+					printf("Incorrect input batch size at time %d\n", cont);
+					break;
+				}
+			}
+			cont++;
+		}
+		else if (batchstr[i] >= 0 && batchstr[i] <= 9)
+		{
+			in_n[cont] = in_n[cont] * 10 + atoi(batchstr[i]);
+		}
+		else
+		{
+			printf("illegal input of in_n batch size");
+			break;
+		}			
 	}
 	
     int in_h = inflags.GetValueInt("in_h");
