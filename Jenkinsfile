@@ -41,7 +41,7 @@ def rocmtest(m) {
         def label = e.key;
         def action = e.value;
         builders[label] = {
-            def name = action.hasProperty('node_name') ? action.node_name : 'rocmtest && fiji'
+            def name = action.hasProperty('node_name') ? action.getProperty('node_name') : 'rocmtest && fiji'
             rocmtestnode(label, name, action)
         }
     }
