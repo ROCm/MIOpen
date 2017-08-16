@@ -297,9 +297,9 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
 			}
 			cont++;
 		}
-		else if (batchstr[i] >= 0 && batchstr[i] <= 9)
+		else if (batchstr[i] >= '0' && batchstr[i] <= '9')
 		{
-			in_n[cont] = in_n[cont] * 10 + atoi(batchstr[i]);
+			in_n[cont] = in_n[cont] * 10 + atoi(batchstr.substr(i,1));
 		}
 		else
 		{
