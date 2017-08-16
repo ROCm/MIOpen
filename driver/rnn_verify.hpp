@@ -1,10 +1,12 @@
-#ifndef GUARD_MIOPEN_RNN_VERIFY_HPP
-#define GUARD_MIOPEN_RNN_VERIFY_HPP
+//#ifndef GUARD_MIOPEN_RNN_VERIFY_HPP
+//#define GUARD_MIOPEN_RNN_VERIFY_HPP
 
 #include <math.h>
 #include <cassert>
+#include <algorithm>
+//#include <numeric>
 
-int sumv(std::vector<int>& x)
+int sumvc(std::vector<int>& x)
 {
 	int sum = 0;
 	for (int i = 0; i < x.size(); i++)
@@ -20,7 +22,8 @@ float activfunc(float x, int actvf)
 	{
 		case 0:  // ReLU
 		{
-			return max(x, 0);
+                        float y = 0;
+			return std::max(x, y);
 		}
 		case 1:  // tanh
 		{
@@ -60,10 +63,13 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 	int hy_h, // hidden state number
 	std::vector<int>& out_n, // equals in_n
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+        int squash,
     std::vector<T>& rsvspace
 )
 {
 	int batch_n = sumvc(in_n);
+// int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0);
+
 	T * hid_state = new T[hy_d * batch_n * hy_h];
 	memset(hid_state, 0, hy_d * batch_n * hy_h * sizeof(T));
 
@@ -72,17 +78,17 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
 	int out_dim = bidirection ? out_h / 2 : out_h;
-	int bacc; // accumulation of batch
+	int bacc,baccbi; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
-	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
+//	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
-	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 	int in_stride = in_h;
 	int hy_stride = hy_h * bi;
 	int out_stride = out_h;
 
 	// forward emulator
-	for (int li = 0; li < numLayer; li++)
+	for (int li = 0; li < numlayer; li++)
 	{
 		bacc = 0;
 		for (int ti = 0; ti < seqLength; ti++)
@@ -144,14 +150,14 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 						{
 							if (ti == 0)
 							{
-								hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy * hy_stride + w * hy_stride + h] * hx[hx_shift + bs * hy_stride + w];
+								hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + h] * hx[hx_shift + bs * hy_stride + w];
 							}
 							else
 							{
 								int pretime_shift = li * batch_n * hy_h * bi + (bacc - in_n[ti - 1]) * hy_stride;
 
-								hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy * hy_stride + w * hy_stride + h] * activfunc(hid_state[pretime_shift + bs * hy_stride + w], squash);
-								// hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy * hy_stride + w * hy_stride + h] * hx_state[hx_shift + bs * hy_stride + w];
+								hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + h] * activfunc(hid_state[pretime_shift + bs * hy_stride + w], squash);
+								// hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + h] * hx_state[hx_shift + bs * hy_stride + w];
 							}
 						}
 
@@ -267,8 +273,8 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 	bacc = 0;
 	for (int ti = 0; ti < seqLength; ti++)
 	{
-		int wei_shift = bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
-		int prelayer_shift = (numLayer - 1) * batch_n * hy_h * bi + bacc * hy_stride;
+		int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+		int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi + bacc * hy_stride;
 
 		for (int bs = 0; bs < in_n[ti]; bs++)
 		{
@@ -281,7 +287,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 					//from bias
 					if (biased)
 					{
-						int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numLayer - 1) * hy_h;
+						int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h;
 
 						out_state[(bacc + bs) * out_h + w] += wei[wei_shift_bias_temp + w];
 						if (bidirection)
@@ -316,8 +322,9 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
 	std::vector<int>& out_n, // equals in_n
-	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
-	std::vector<T>& rsvspace;
+	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+        int squash,
+	std::vector<T>& rsvspace,
 	std::vector<T>& wkspace
 )
 {
@@ -330,17 +337,17 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
 	int out_dim = bidirection ? out_h / 2 : out_h;
-	int bacc; // accumulation of batch
+	int bacc,baccbi; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
-	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
+//	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
-	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 	int in_stride = in_h;
 	int hy_stride = hy_h * bi;
 	int out_stride = out_h;
 
 	// bwd data emulator
-	for (int li = numLayer -1 ; li >= 0; li++)
+	for (int li = numlayer -1 ; li >= 0; li++)
 	{
 		bacc = batch_n;
 		for (int ti = seqLength - 1; ti >= 0; ti--)
@@ -354,7 +361,7 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 			{
 				for (int h = 0; h < hy_h; h++)
 				{
-					if (li == numLayer - 1)
+					if (li == numlayer - 1)
 					{
 						// from doutput
 						for (int w = 0; w < out_h; w++)
@@ -417,7 +424,7 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 				{
 					for (int h = 0; h < hy_h; h++)
 					{
-						if (li == numLayer - 1)
+						if (li == numlayer - 1)
 						{
 							// from doutput
 							for (int w = 0; w < out_h; w++)
@@ -503,22 +510,23 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
 	std::vector<int>& out_n, // equals in_n
-	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
-	std::vector<T>& rsvspace;
+	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+        int squash,
+	std::vector<T>& rsvspace,
 	std::vector<T>& wkspace
 )
 {
 	int batch_n = sumvc(in_n);
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
 	int out_dim = bidirection ? out_h / 2 : out_h;
-	int bacc; // accumulation of batch
+	int bacc,baccbi; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
-	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
+//	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
 	T * dwei_state = new T[(in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h];
 	memset(dwei_state, 0, (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h * sizeof(T));
 
-	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 	int in_stride = in_h;
 	int hy_stride = hy_h * bi;
 	int out_stride = out_h;
