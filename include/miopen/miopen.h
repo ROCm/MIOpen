@@ -192,6 +192,11 @@ MIOPEN_DECLARE_OBJECT(miopenLRNDescriptor);
  * @brief Creates the miopenActivationDescriptor_t type */
 MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
 
+/*! @ingroup RNN
+* @brief Creates the miopenRNNDescriptor_t type
+*/
+MIOPEN_DECLARE_OBJECT(miopenRNNDescriptor);
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Currently only 32-bit floats are fully supported in MIOpen.
@@ -1523,6 +1528,39 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT SOFTMAX DOXYGEN GROUP
+
+
+/** @addtogroup RNN
+*
+*  @{
+*/
+
+/*! @brief Creates a RNN layer descriptor
+*
+* @param rnnDesc   RNN layer descriptor
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc);
+
+/*! @brief Creates a RNN layer descriptor
+*
+* @param rnnDesc    RNN layer descriptor
+* @param mode       RNN mode
+* @param seqLength  Number of iterations to unroll over
+* @param layer      Number of hidden stacks
+* @param bidir      uni- or bi-direction
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
+    miopenRNNMode_t mode,
+    int seqLength, 
+    int layer, 
+    int bidir);
+
+/** @} */
+// CLOSEOUT RNN DOXYGEN GROUP
+
 
 #ifdef __cplusplus
 }
