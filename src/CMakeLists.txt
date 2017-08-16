@@ -191,23 +191,30 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
         )
 endif()
 
+if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
+    list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
+ 
+    add_custom_command(
+        OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS addkernels ${MIOPEN_KERNELS}
+        COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${MIOPEN_KERNELS}
+        COMMENT "Inlining MIOpen kernels"
+        )
+
+    add_custom_target(miopen_tidy_inlining
+        DEPENDS ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
+        )
+
+    add_dependencies(tidy miopen_tidy_inlining)
+endif()
+
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
     )
 
 set_target_properties(MIOpen PROPERTIES SOVERSION 1)
-
-if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-    add_custom_target(addkernels_run
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS addkernels
-        COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${MIOPEN_KERNELS}
-        )
-    
-    add_dependencies(MIOpen addkernels_run)
-    add_dependencies(tidy addkernels_run)
-endif()
 
 clang_tidy_check(MIOpen)
 
