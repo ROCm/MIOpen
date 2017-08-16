@@ -1558,6 +1558,30 @@ MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(miopenRNNDescriptor_t rnnDe
     int layer, 
     int bidir);
 
+/*! @brief Retrieves a RNN layer descriptor's details
+*
+* @param rnnDesc    RNN layer descriptor
+* @param mode       RNN mode
+* @param seqLength  Number of iterations to unroll over
+* @param layer      Number of hidden stacks
+* @param bidir      uni- or bi-direction
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
+	miopenRNNMode_t* mode,
+	int* seqLength,
+	int* layer,
+	int* bidir);
+
+/*! @brief Destroys the tensor descriptor object
+*
+* @param rnnDesc RNN tensor descriptor type
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc);
+
+
 /** @} */
 // CLOSEOUT RNN DOXYGEN GROUP
 
