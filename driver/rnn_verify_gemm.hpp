@@ -1,11 +1,14 @@
-#ifndef GUARD_MIOPEN_RNN_VERIFY_HPP
-#define GUARD_MIOPEN_RNN_VERIFY_HPP
+//#ifndef GUARD_MIOPEN_RNN_VERIFY_HPP
+//#define GUARD_MIOPEN_RNN_VERIFY_HPP
 
 #define ADNN_MM_TRANSPOSE 1
 
 #include <math.h>
 #include <cassert>
+#include <algorithm>
+//#include "rnn_verify.hpp"
 
+/*
 int sumv(std::vector<int>& x)
 {
 	int sum = 0;
@@ -22,7 +25,8 @@ float activfunc(float x, int actvf)
 	{
 	case 0:  // ReLU
 	{
-		return max(x, 0);
+                float y = 0;
+		return std::max(x, y);
 	}
 	case 1:  // tanh
 	{
@@ -45,6 +49,7 @@ float dervactivfunc(float x, int actvf)
 	}
 	}
 }
+*/
 
 template <typename T>
 void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
@@ -61,7 +66,8 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
 	std::vector<int>& out_n, // equals in_n
-	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+        int squash,
     std::vector<T>& rsvspace
 )
 {
@@ -76,9 +82,9 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	memset(out_state, 0, batch_n * out_h * sizeof(T));
 
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
-	int bacc; // accumulation of batch
+	int bacc,baccbi; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
-	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
+//	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
 	// initial input
 	T * in_state = new T[batch_n * in_h];
@@ -99,10 +105,10 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	}
 
 	// initial weights
-	int wei_len = (bi * (in_h + hy_h + out_h) + (numLayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
 	if (biased)
 	{
-		wei_len += (bi * 2 + (numLayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
 	}
 
 	T * wei_state = new T[wei_len * hy_h];
@@ -111,13 +117,13 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 			wei_state[h] = wei[h];	
 	}
 
-	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 	int in_stride = in_h;
 	int hy_stride = hy_h * bi;
 	int out_stride = out_h;
 
 	// forward emulator
-	for (int li = 0; li < numLayer; li++)
+	for (int li = 0; li < numlayer; li++)
 	{
 		int hid_shift = li * batch_n * hy_h * bi;
 		int hx_shift = li * bi * in_n[0] * hy_h;
@@ -282,9 +288,9 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	}
 
 	// output
-	int prelayer_shift = (numLayer - 1) * batch_n * hy_h * bi;
-	int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numLayer - 1) * hy_h;
-	int wei_shift = bi * (in_h + hy_h) * hy_h + (numLayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+	int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
+	int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h;
+	int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
 	ADNN_mm_cpu<T>((const T *)&wk_state[prelayer_shift], hy_h*bi, batch_n, hy_stride, 0,
 		(const T *)&wei_state[wei_shift], hy_h*bi, out_h, hy_stride, ADNN_MM_TRANSPOSE,
@@ -329,8 +335,9 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
 	std::vector<int>& out_n, // equals in_n
-	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
-	std::vector<T>& rsvspace;
+	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+        int squash,
+	std::vector<T>& rsvspace,
 	std::vector<T>& wkspace
 )
 {
@@ -342,9 +349,9 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	memset(din_state, 0, batch_n * in_h * sizeof(T));
 
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
-	int bacc; // accumulation of batch
+	int bacc,baccbi; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
-	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
+//	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
 	// initial dout
 	T * dout_state = new T[batch_n * out_h];
@@ -365,10 +372,10 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	}
 
 	// initial weights
-	int wei_len = (bi * (in_h + hy_h + out_h) + (numLayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
 	if (biased)
 	{
-		wei_len += (bi * 2 + (numLayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
 	}
 
 	T * wei_state = new T[wei_len * hy_h];
@@ -377,19 +384,19 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 		wei_state[h] = wei[h];
 	}
 
-	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 	int in_stride = in_h;
 	int hy_stride = hy_h * bi;
 	int out_stride = out_h;
 
 	// bwd data emulator
-	for (int li = numLayer -1 ; li >= 0; li++)
+	for (int li = numlayer -1 ; li >= 0; li++)
 	{
 		int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
 		int hid_shift = li * batch_n * hy_h * bi;
 		int hx_shift = li * bi * in_n[0] * hy_h;
 
-		if (li == numLayer - 1)
+		if (li == numlayer - 1)
 		{
 			ADNN_mm_cpu<T>((const T*)&dout_state[0], out_h, batch_n, out_stride, 0,
 				(const T *)&wei_state[wei_shift], hy_h*bi, out_h, hy_stride, 0,
@@ -419,7 +426,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 					// from post state
 					if (ti == seqLength - 1)
 					{
-						dh_state[hid_shift + bacc * hy_strideh + bs * hy_stride + h] += dhy_state[hx_shift + bs * hy_stride + h];
+						dh_state[hid_shift + bacc * hy_stride + bs * hy_stride + h] += dhy_state[hx_shift + bs * hy_stride + h];
 					}
 					else
 					{
@@ -501,19 +508,30 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
 	std::vector<int>& out_n, // equals in_n
-	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
-	std::vector<T>& rsvspace;
+	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
+        int squash,
+	std::vector<T>& rsvspace,
 	std::vector<T>& wkspace
 )
 {
 	int batch_n = sumvc(in_n);
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
-	int bacc; // accumulation of batch
+	int bacc,baccbi; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
-	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
+//	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
 	T * dwei_state = new T[(in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h];
 	memset(dwei_state, 0, (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h * sizeof(T));
+
+        // initial input
+	T * in_state = new T[batch_n * in_h];
+	for (int h = 0; h < batch_n; h++)
+	{
+		for (int w = 0; w < in_h; w++)
+		{
+			in_state[h * in_h + w] = in[h * in_h + w];
+		}
+	}
 
 	// initial output difference
 	T * dout_state = new T[batch_n * out_h];
@@ -541,7 +559,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 		hx_state[h] = hx[h];
 	}
 
-	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numLayer - 1)) * hy_h;
+	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 	int in_stride = in_h;
 	int hy_stride = hy_h * bi;
 	int out_stride = out_h;
