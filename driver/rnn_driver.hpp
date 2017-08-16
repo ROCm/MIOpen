@@ -47,6 +47,7 @@
 #include <sstream>
 #include <vector>
 
+/*
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
 {
@@ -80,6 +81,7 @@ bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
         return false;
     }
 }
+*/
 
 template <typename T>
 class RNNDriver : public Driver
