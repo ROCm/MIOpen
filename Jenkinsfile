@@ -33,7 +33,7 @@ def rocmtestnode(variant, body) {
         }
     }
 }
-
+@NonCPS
 def rocmtest(m) {
     def builders = [:]
     for(e in m) {
