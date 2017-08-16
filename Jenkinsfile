@@ -1,6 +1,4 @@
-def builders = [:]
-
-def rocmtest(variant, body) {
+def rocmtestnode(variant, body) {
     def image = 'miopen'
     def cmake_build = { compiler, flags ->
         def cmd = """
@@ -15,30 +13,40 @@ def rocmtest(variant, body) {
         echo cmd
         sh cmd
     }
-    builders[variant] = {
-        node('rocmtest && fiji') {
-            stage("checkout ${variant}") {
-                // env.HCC_SERIALIZE_KERNEL=3
-                // env.HCC_SERIALIZE_COPY=3
-                env.HSA_ENABLE_SDMA=0 
-                // env.HSA_ENABLE_INTERRUPT=0
-                env.WINEPREFIX="/jenkins/.wine"
-                checkout scm
-            }
-            stage("image ${variant}")
-            {
-                docker.build("${image}", "--build-arg PREFIX=/usr/local .")
-            }
-            withDockerContainer(image: image, args: '--device=/dev/kfd') {
-                timeout(time: 1, unit: 'HOURS') {
-                    body(cmake_build)
-                }
+    node('rocmtest && fiji') {
+        stage("checkout ${variant}") {
+            // env.HCC_SERIALIZE_KERNEL=3
+            // env.HCC_SERIALIZE_COPY=3
+            env.HSA_ENABLE_SDMA=0 
+            // env.HSA_ENABLE_INTERRUPT=0
+            env.WINEPREFIX="/jenkins/.wine"
+            checkout scm
+        }
+        stage("image ${variant}")
+        {
+            docker.build("${image}", "--build-arg PREFIX=/usr/local .")
+        }
+        withDockerContainer(image: image, args: '--device=/dev/kfd') {
+            timeout(time: 1, unit: 'HOURS') {
+                body(cmake_build)
             }
         }
     }
 }
 
-rocmtest('opencl') { cmake_build ->
+def rocmtest(m) {
+    def builders = [:]
+    for(e in m) {
+        def label = e.key;
+        def action = e.value;
+        builders[label] = {
+            rocmtestnode(label, action)
+        }
+    }
+    parallel builders
+}
+
+rocmtest opencl: { cmake_build ->
     stage('Clang Tidy') {
         sh '''
             rm -rf build
@@ -73,8 +81,7 @@ rocmtest('opencl') { cmake_build ->
     stage('GCC Release') {
         cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}
-rocmtest('hip') { cmake_build ->
+} hip: { cmake_build ->
     stage('Hip Tidy') {
         sh '''
             rm -rf build
@@ -90,11 +97,8 @@ rocmtest('hip') { cmake_build ->
     stage('Hip Release') {
         cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}
-rocmtest('windows') { cmake_build ->
+} windows: { cmake_build ->
     stage('Windows Release') {
         cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
     }
 }
-
-parallel builders
