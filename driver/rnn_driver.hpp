@@ -785,7 +785,7 @@ int RNNDriver<T>::RunForwardCPU()
         rnnDesc, &mode, &seqLength, &layer, &bidir);
 
 	bidirection = (bidir == 0);
-	bias = (inflags.GetValueInt("bias") != 0);
+	biased = (inflags.GetValueInt("bias") != 0);
 
 	if (mode == miopenRNNRELU)
 	{
@@ -808,7 +808,7 @@ int RNNDriver<T>::RunForwardCPU()
 	hy_h = hid_len[1];
 
 
-	void RunRNNForwardCPUVerify(in,
+	RunRNNForwardCPUVerify(in,
 		wei, 
 		hy, 
 		hx, 
@@ -825,7 +825,7 @@ int RNNDriver<T>::RunForwardCPU()
 		squash,
 		reservespace);
 
-	void RunRNNForwardGEMMCPUVerify(in,
+	RunRNNForwardGEMMCPUVerify(in,
 		wei,
 		hy_host,
 		hx,
