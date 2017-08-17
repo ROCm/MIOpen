@@ -492,7 +492,7 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 	reservespace_dev =
         std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
 	
-	printf("  sz %d  %d  %d  %d \n", in_sz, hid_sz, wei_sz, out_sz);
+	printf("  sz %d  %d  %d  %d  %d \n", in_sz, hid_sz, wei_sz, out_sz, hy_sz);
 
     in                 = std::vector<T>(in_sz);
     din                = std::vector<T>(in_sz, 0);
