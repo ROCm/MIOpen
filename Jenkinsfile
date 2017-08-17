@@ -56,7 +56,7 @@ def rocmnode(name, body) {
     def node_name = 'rocmtest || rocm'
     if(name == 'fiji') {
         node_name = 'rocmtest && fiji';
-    if(name == 'vega') {
+    } else if(name == 'vega') {
         node_name = 'rocmtest && vega';
     } else {
         node_name = name
@@ -81,7 +81,7 @@ rocmtest opencl_tidy: rocmnode { cmake_build ->
             make tidy
         '''
     }
-},mformat: rocmnode { cmake_build ->
+}, format: rocmnode { cmake_build ->
     stage('Clang Format') {
         sh '''
             find . -iname \'*.h\' \
