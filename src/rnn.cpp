@@ -37,7 +37,7 @@ RNNDescriptor::RNNDescriptor(
     : mode(miopenRNNTANH),
 	  seqLength(p_seqLength),
 	  layer(p_layer),
-	  bidir(p_bidir))
+	  bidir(p_bidir)
 {
     if(seqLength < 0 || layer < 0 || bidir < 0)
     {
@@ -52,9 +52,9 @@ RNNDescriptor::RNNDescriptor(miopenRNNMode_t p_mode,
     : mode(p_mode),
 	  seqLength(p_seqLength),
 	  layer(p_layer),
-	  bidir(p_bidir))
+	  bidir(p_bidir)
 {
-    if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0 || dilation_h < 0 || dilation_w < 0)
+    if(seqLength < 0 || layer < 0 || bidir < 0)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN cannot be negative");
     }
