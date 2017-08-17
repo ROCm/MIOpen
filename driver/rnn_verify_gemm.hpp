@@ -65,7 +65,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
-	std::vector<int>& out_n, // equals in_n
+//	std::vector<int>& out_n, // equals in_n
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
         int squash,
     std::vector<T>& rsvspace
@@ -334,7 +334,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
-	std::vector<int>& out_n, // equals in_n
+//	std::vector<int>& out_n, // equals in_n
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
         int squash,
 	std::vector<T>& rsvspace,
@@ -507,7 +507,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 	bool biased, // whether using bias
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
-	std::vector<int>& out_n, // equals in_n
+//	std::vector<int>& out_n, // equals in_n
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
         int squash,
 	std::vector<T>& rsvspace,
