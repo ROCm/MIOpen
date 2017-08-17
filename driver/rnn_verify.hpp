@@ -18,33 +18,23 @@ int sumvc(std::vector<int>& x)
 
 float activfunc(float x, int actvf)
 {
-	switch (actvf)
+	if (actvf == 0)
 	{
-		case 0:  // ReLU
-		{
-                        float y = 0;
-			return std::max(x, y);
-		}
-		case 1:  // tanh
-		{
-			return tanh(x);
-		}
+		float y = 0;
+		return std::max(x, y);
 	}
+
+	return tanh(x);
 }
 
 float dervactivfunc(float x, int actvf)
 {
-	switch (actvf)
+	if (actvf == 0)
 	{
-		case 0:  // ReLU
-		{
-			return (x > 0 ? 1 : 0 );
-		}
-		case 1:  // tanh
-		{
-			return 1/ cosh(x) / cosh(x);
-		}
+		return (x > 0 ? 1 : 0);
 	}
+
+	return 1 / cosh(x) / cosh(x);
 }
 
 template <typename T>
