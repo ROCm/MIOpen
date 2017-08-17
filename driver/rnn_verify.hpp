@@ -1,5 +1,5 @@
-//#ifndef GUARD_MIOPEN_RNN_VERIFY_HPP
-//#define GUARD_MIOPEN_RNN_VERIFY_HPP
+#ifndef GUARD_MIOPEN_RNN_VERIFY_HPP
+#define GUARD_MIOPEN_RNN_VERIFY_HPP
 
 #include <math.h>
 #include <cassert>
@@ -731,3 +731,5 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 		dwei_host[i] = dwei_state[i];
 	}
 }
+
+#endif // GUARD_MIOPEN_RNN_VERIFY_HPP

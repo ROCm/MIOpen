@@ -228,8 +228,8 @@ typedef enum {
 } miopenConvolutionMode_t;
 
 /*! @ingroup RNN
-*  @enum miopenConvolutionMode_t
-* Convolution mode selection for convolution layer preference
+*  @enum miopenRNNMode_t
+* RNN mode selection for rnn layer preference
 */
 typedef enum {
 	miopenRNNRELU = 0, /*!< RNN ReLU squash */

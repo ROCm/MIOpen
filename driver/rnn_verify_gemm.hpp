@@ -1,5 +1,5 @@
-//#ifndef GUARD_MIOPEN_RNN_VERIFY_HPP
-//#define GUARD_MIOPEN_RNN_VERIFY_HPP
+#ifndef GUARD_MIOPEN_RNN_VERIFY_GEMM_HPP
+#define GUARD_MIOPEN_RNN_VERIFY_GEMM_HPP
 
 #define ADNN_MM_TRANSPOSE 1
 
@@ -704,3 +704,5 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 		dwei_host[i] = dwei_state[i];
 	}
 }
+
+#endif // GUARD_MIOPEN_RNN_VERIFY_GEMM_HPP
