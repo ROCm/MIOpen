@@ -26,12 +26,12 @@
 
 #include <miopen/rnn.hpp>
 #include <miopen/errors.hpp>
-//#include <miopen/logger.hpp>
+#include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
 
 // TODO: Make miopenConvAlgoPerf_t loggable
-//inline std::ostream& operator<<(std::ostream& os, miopenConvAlgoPerf_t) { return os; }
+inline std::ostream& operator<<(std::ostream& os, miopenConvAlgoPerf_t) { return os; }
 
 extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc)
 {
