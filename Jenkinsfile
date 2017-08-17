@@ -23,9 +23,13 @@ def rocmtestnode(variant, name, body) {
             env.WINEPREFIX="/jenkins/.wine"
             checkout scm
         }
-        stage("image ${variant}")
-        {
-            docker.build("${image}", "--build-arg PREFIX=/usr/local .")
+        stage("image ${variant}") {
+            try {
+                docker.build("${image}", "--build-arg PREFIX=/usr/local .")
+            } catch(Exception ex) {
+                docker.build("${image}", "--build-arg PREFIX=/usr/local --no-cache .")
+
+            }
         }
         withDockerContainer(image: image, args: '--device=/dev/kfd') {
             timeout(time: 1, unit: 'HOURS') {
