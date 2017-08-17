@@ -56,6 +56,7 @@
  * @defgroup activation
  * @defgroup tensor
  * @defgroup softmax
+ * @defgroup RNN
  *
 */
 
