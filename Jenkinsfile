@@ -53,7 +53,7 @@ def rocmtest(m) {
 
 @NonCPS
 def rocmnode(name, body) {
-    def node_name = 'rocmtest && fiji'
+    def node_name = 'rocmtest || rocm'
     if(name == 'fiji') {
         node_name = 'rocmtest && fiji';
     if(name == 'vega') {
