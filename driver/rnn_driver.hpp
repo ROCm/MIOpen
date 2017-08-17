@@ -778,7 +778,7 @@ int RNNDriver<T>::RunForwardCPU()
                                 &out_wstride);
 	*/
 
-    int seqLength, layer, bidir, squash;
+    int seqLength, layer, bidir, squash = 1;
 	bool bidirection, biased;
     miopenRNNMode_t mode;
     miopenGetRNNDescriptor(
@@ -791,10 +791,7 @@ int RNNDriver<T>::RunForwardCPU()
 	{
 		squash = 0;
 	}
-	else if (mode == miopenRNNTANH)
-	{
-		squash = 1;
-	}
+	else if (mode == miopenRNNTANH);
 	else
 	{
 		printf("illegal RNN squash function mode");
@@ -807,6 +804,7 @@ int RNNDriver<T>::RunForwardCPU()
 	hy_n = in_n[0];
 	hy_h = hid_len[1];
 
+	printf("  sz %d  %d  %d   %B   %B   %d  %d  %d  %d  %d \n", in_n, in_h, seqLength, bidirection, biased,	hy_d,	hy_n,	hy_h,	out_h, squash);
 
 	RunRNNForwardCPUVerify(in,
 		wei, 
@@ -1022,12 +1020,12 @@ int RNNDriver<T>::RunBackwardGPU()
 template <typename T>
 int RNNDriver<T>::RunBackwardWeightsCPU()
 {
-
+	/*
     int in_n, in_c, in_h, in_w;
     int in_nstride, in_cstride, in_hstride, in_wstride;
     miopenDataType_t dt;
 
-	/*
+	
     miopenGet4dTensorDescriptor(inputTensor,
                                 &dt,
                                 &in_n,
@@ -1038,7 +1036,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                 &in_cstride,
                                 &in_hstride,
                                 &in_wstride);
-								*/
+								
 
     int wei_n, wei_c, wei_h, wei_w;
     int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
@@ -1049,7 +1047,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
 
-	/*
+	
     miopenGet4dTensorDescriptor(outputTensor,
                                 &dt,
                                 &out_n,
@@ -1100,12 +1098,12 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
 template <typename T>
 int RNNDriver<T>::RunBackwardDataCPU()
 {
-
+	/*
     int in_n, in_c, in_h, in_w;
     int in_nstride, in_cstride, in_hstride, in_wstride;
     miopenDataType_t dt;
 
-	/*
+	
     miopenGet4dTensorDescriptor(inputTensor,
                                 &dt,
                                 &in_n,
@@ -1116,7 +1114,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                 &in_cstride,
                                 &in_hstride,
                                 &in_wstride);
-	*/
+	
 
     int wei_n, wei_c, wei_h, wei_w;
     int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
@@ -1127,7 +1125,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
 
-	/*
+	
     miopenGet4dTensorDescriptor(outputTensor,
                                 &dt,
                                 &out_n,
