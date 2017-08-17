@@ -98,8 +98,10 @@ class RNNDriver : public Driver
 		*/
         miopenCreateRNNDescriptor(&rnnDesc);
 
-		workspace_bwd_dev = nullptr;
-		workspace_fwd_dev = nullptr;
+//		workspace_bwd_dev = nullptr;
+//		workspace_fwd_dev = nullptr;
+		workspace_dev = nullptr;
+		reservespace_dev = nullptr;
     }
 
     int AddCmdLineArgs();
@@ -113,7 +115,7 @@ class RNNDriver : public Driver
 
     int SetRNNDescriptorFromCmdLineArgs();
 
-//    std::vector<int> GetOutputTensorLengths();
+    std::vector<int> GetOutputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy();
 
@@ -163,8 +165,10 @@ class RNNDriver : public Driver
     std::unique_ptr<GPUMem> dwei_dev;
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> dout_dev;
-    std::unique_ptr<GPUMem> workspace_bwd_dev;
-    std::unique_ptr<GPUMem> workspace_fwd_dev;
+//    std::unique_ptr<GPUMem> workspace_bwd_dev;
+//    std::unique_ptr<GPUMem> workspace_fwd_dev;
+	std::unique_ptr<GPUMem> workspace_dev;
+	std::unique_ptr<GPUMem> reservespace_dev;
     std::unique_ptr<GPUMem> b_dev;
     std::unique_ptr<GPUMem> db_dev;
 
@@ -174,11 +178,15 @@ class RNNDriver : public Driver
     std::vector<T> dwei;
     std::vector<T> out;
     std::vector<T> dout;
-    std::vector<T> workspace_bwd;
-    std::vector<T> workspace_fwd;
+//    std::vector<T> workspace_bwd;
+//    std::vector<T> workspace_fwd;
+	std::vector<T> workspace;
+	std::vector<T> reservespace;
     std::vector<T> outhost;
-    std::vector<T> workspace_bwd_host;
-    std::vector<T> workspace_fwd_host;
+//    std::vector<T> workspace_bwd_host;
+//    std::vector<T> workspace_fwd_host;
+	std::vector<T> workspace_host;
+	std::vector<T> reservespace_host;
     std::vector<T> din_host;
     std::vector<T> dwei_host;
     std::vector<T> b;
@@ -221,8 +229,8 @@ int RNNDriver<T>::GetandSetData()
 
     SetRNNDescriptorFromCmdLineArgs();
 
+	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
 	/*
-    std::vector<int> out_len = GetOutputTensorLengths();
     SetTensor4d(outputTensor, out_len);
 
     if(inflags.GetValueInt("bias") != 0)
@@ -377,28 +385,44 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
         rnnDesc, mode, seqLength, layer, bidir);
 }
 
-
-/*
 template <typename T>
-std::vector<int> RNNDriver<T>::GetOutputTensorLengths()  // need removed
+std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine()  // need removed
 {
+	int out_h = inflags.GetValueInt("out_h");
+
+	return std::vector<int>({ out_h });
+	/*
     int n, c, h, w;
 
     miopenGetRNNForwardOutputDim(rnnDesc, inputTensor, weightTensor, &n, &c, &h, &w);
 
     return std::vector<int>({n, c, h, w});
+	*/
 }
-*/
-
 
 template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
+	// ----
+	std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
+	std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
+	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+	int seqLength, layer, bidir;
+	miopenRNNMode_t mode;
+	miopenGetRNNDescriptor(
+		rnnDesc, &mode, &seqLength, &layer, &bidir);
 
-	size_t in_sz = 10; //GetTensorSize(inputTensor);
-	size_t hid_sz = 10; //GetTensorSize(hiddenTensor);
-	size_t wei_sz = 10; //GetTensorSize(weightTensor);
-	size_t out_sz = 10; //GetTensorSize(outputTensor);
+	int batch_n = std::accumulate(in_len.begin(), in_len.end()-1, 0);
+	int in_h = in_len.back();
+	int out_h = out_len[0];
+	// ----
+
+
+	size_t in_sz = batch_n * in_h; //GetTensorSize(inputTensor);
+	size_t hid_sz = batch_n * hid_len[0] * hid_len[1]; //GetTensorSize(hiddenTensor);
+	size_t wei_sz = wei_len[3] * wei_len[0] * (wei_len[2] + wei_len[3] + wei_len[4] + (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]); //GetTensorSize(weightTensor);
+	size_t out_sz = batch_n * out_h; //GetTensorSize(outputTensor);
 
     size_t workSpaceSize_bwd_wt = 0;
     size_t workSpaceSize_bwd_dt = 0;
@@ -409,14 +433,14 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     miopenRNNBackwardDataGetWorkSpaceSize(
         GetHandle(), outputTensor, weightTensor, rnnDesc, inputTensor, &workSpaceSize_bwd_dt);
 		*/
-	size_t workSpaceSize_bwd = 0;
+	size_t workSpaceSize_bwd = hid_sz * sizeof(T);
   //      workSpaceSize_bwd_dt > workSpaceSize_bwd_wt ? workSpaceSize_bwd_dt : workSpaceSize_bwd_wt;
 
-    size_t workSpaceSize_fwd = 0;
+    size_t workSpaceSize_fwd = hid_sz * sizeof(T);
 	/*
     miopenRNNForwardGetWorkSpaceSize(
         GetHandle(), weightTensor, inputTensor, rnnDesc, outputTensor, &workSpaceSize_fwd);
-
+		*/
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -430,24 +454,32 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
     out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
-    workspace_bwd_dev =
+//    workspace_bwd_dev =
+//        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
+//    workspace_fwd_dev =
+//        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
+	workspace_dev =
         std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
-    workspace_fwd_dev =
+	reservespace_dev =
         std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
-	*/
-
+	
+	printf("  sz %d  %d  %d  %d \n", in_sz, hid_sz, wei_sz, out_sz);
 
     in                 = std::vector<T>(in_sz);
-    din                = std::vector<T>(in_sz);
+    din                = std::vector<T>(in_sz, 0);
     wei                = std::vector<T>(wei_sz);
     dwei               = std::vector<T>(wei_sz, 0);
     dout               = std::vector<T>(out_sz, 0);
     out                = std::vector<T>(out_sz, 0);
-    workspace_bwd      = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-    workspace_fwd      = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+//    workspace_bwd      = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
+//    workspace_fwd      = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+	workspace          = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
+	reservespace       = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
     outhost            = std::vector<T>(out_sz, 0);
-    workspace_bwd_host = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-    workspace_fwd_host = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+//    workspace_bwd_host = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
+//    workspace_fwd_host = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+	workspace_host     = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
+	reservespace_host  = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
     dwei_host          = std::vector<T>(wei_sz, 0);
     din_host           = std::vector<T>(in_sz, 0);
 
