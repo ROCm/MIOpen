@@ -41,8 +41,7 @@ def rocmtest(m) {
         def label = e.key;
         def action = e.value;
         builders[label] = {
-            def name = action.hasProperty('node_name') ? action.getProperty('node_name') : 'rocmtest && fiji'
-            rocmtestnode(label, name, action)
+            action(label)
         }
     }
     parallel builders
@@ -50,15 +49,18 @@ def rocmtest(m) {
 
 @NonCPS
 def rocmnode(name, body) {
+    def node_name = 'rocmtest && fiji'
     if(name == 'vega') {
-        body.metaClass.node_name = 'rocmtest && vega';
+        node_name = 'rocmtest && vega';
     } else {
-        body.metaClass.node_name = name;
+        node_name = name;
     }
-    return body;
+    return { label ->
+        rocmtestnode(label, node_name, body)
+    }
 }
 
-rocmtest opencl: { cmake_build ->
+rocmtest opencl: rocmnode('fiji') { cmake_build ->
     stage('Clang Tidy') {
         sh '''
             rm -rf build
@@ -100,7 +102,7 @@ rocmtest opencl: { cmake_build ->
     stage('Clang Release') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, hip: { cmake_build ->
+}, hip: rocmnode('fiji') { cmake_build ->
     stage('Hip Tidy') {
         sh '''
             rm -rf build
@@ -116,7 +118,7 @@ rocmtest opencl: { cmake_build ->
     stage('Hip Release') {
         cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, windows: { cmake_build ->
+}, windows: rocmnode('fiji') { cmake_build ->
     stage('Windows Release') {
         cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
     }
