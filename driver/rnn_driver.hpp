@@ -165,6 +165,14 @@ class RNNDriver : public Driver
     std::unique_ptr<GPUMem> dwei_dev;
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> dout_dev;
+	std::unique_ptr<GPUMem> hx_dev;
+	std::unique_ptr<GPUMem> cx_dev;
+	std::unique_ptr<GPUMem> hy_dev;
+	std::unique_ptr<GPUMem> cy_dev;
+	std::unique_ptr<GPUMem> dhx_dev;
+	std::unique_ptr<GPUMem> dcx_dev;
+	std::unique_ptr<GPUMem> dhy_dev;
+	std::unique_ptr<GPUMem> dcy_dev;
 //    std::unique_ptr<GPUMem> workspace_bwd_dev;
 //    std::unique_ptr<GPUMem> workspace_fwd_dev;
 	std::unique_ptr<GPUMem> workspace_dev;
@@ -178,6 +186,14 @@ class RNNDriver : public Driver
     std::vector<T> dwei;
     std::vector<T> out;
     std::vector<T> dout;
+	std::vector<T> hx;
+	std::vector<T> cx;
+	std::vector<T> hy;
+	std::vector<T> cy;
+	std::vector<T> dhx;
+	std::vector<T> dcx;
+	std::vector<T> dhy;
+	std::vector<T> dcy;
 //    std::vector<T> workspace_bwd;
 //    std::vector<T> workspace_fwd;
 	std::vector<T> workspace;
@@ -189,6 +205,10 @@ class RNNDriver : public Driver
 	std::vector<T> reservespace_host;
     std::vector<T> din_host;
     std::vector<T> dwei_host;
+	std::vector<T> hy_host;
+	std::vector<T> cy_host;
+	std::vector<T> dhx_host;
+	std::vector<T> dcx_host;
     std::vector<T> b;
     std::vector<T> db;
     std::vector<T> db_host;
@@ -423,6 +443,7 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 	size_t hid_sz = batch_n * hid_len[0] * hid_len[1]; //GetTensorSize(hiddenTensor);
 	size_t wei_sz = wei_len[3] * wei_len[0] * (wei_len[2] + wei_len[3] + wei_len[4] + (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]); //GetTensorSize(weightTensor);
 	size_t out_sz = batch_n * out_h; //GetTensorSize(outputTensor);
+	size_t hy_sz = in_len[0] * hid_len[1] * wei_len[0] * wei_len[1];
 
     size_t workSpaceSize_bwd_wt = 0;
     size_t workSpaceSize_bwd_dt = 0;
@@ -454,6 +475,14 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
     out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+	hx_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+	cx_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+	hy_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+	cy_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+	dhx_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+	dcx_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+	dhy_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+	dcy_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
 //    workspace_bwd_dev =
 //        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
 //    workspace_fwd_dev =
@@ -471,6 +500,14 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     dwei               = std::vector<T>(wei_sz, 0);
     dout               = std::vector<T>(out_sz, 0);
     out                = std::vector<T>(out_sz, 0);
+	hx = std::vector<T>(hy_sz, 0);
+	cx = std::vector<T>(hy_sz, 0);
+	hy = std::vector<T>(hy_sz, 0);
+	cy = std::vector<T>(hy_sz, 0);
+	dhx = std::vector<T>(hy_sz, 0);
+	dcx = std::vector<T>(hy_sz, 0);
+	dhy = std::vector<T>(hy_sz, 0);
+	dcy = std::vector<T>(hy_sz, 0);
 //    workspace_bwd      = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
 //    workspace_fwd      = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
 	workspace          = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
@@ -482,6 +519,10 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 	reservespace_host  = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
     dwei_host          = std::vector<T>(wei_sz, 0);
     din_host           = std::vector<T>(in_sz, 0);
+	hy_host = std::vector<T>(hy_sz, 0);
+	cy_host = std::vector<T>(hy_sz, 0);
+	dhx_host = std::vector<T>(hy_sz, 0);
+	dcx_host = std::vector<T>(hy_sz, 0);
 
     std::string inFileName  = inflags.GetValueStr("in_data");
     std::string weiFileName = inflags.GetValueStr("weights");
@@ -689,10 +730,14 @@ int RNNDriver<T>::RunForwardGPU()
 template <typename T>
 int RNNDriver<T>::RunForwardCPU()
 {
-
-    int in_n, in_c, in_h, in_w;
-    int in_nstride, in_cstride, in_hstride, in_wstride;
-    miopenDataType_t dt;
+	std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+	int in_h;
+	in_h = in_n.back();
+	in_n.pop_back();
+	
+//    int in_n, in_c, in_h, in_w;
+//    int in_nstride, in_cstride, in_hstride, in_wstride;
+//    miopenDataType_t dt;
 
 	/*
     miopenGet4dTensorDescriptor(inputTensor,
@@ -706,15 +751,19 @@ int RNNDriver<T>::RunForwardCPU()
                                 &in_hstride,
                                 &in_wstride);
 	*/
-
-    int wei_n, wei_c, wei_h, wei_w;
-    int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
+	
+//    int wei_n, wei_c, wei_h, wei_w;
+//    int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
     //	miopenGet4dTensorDescriptor(weightTensor, &dt,
     //			&wei_n, &wei_c, &wei_h, &wei_w,
     //			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
-    int out_n, out_c, out_h, out_w;
-    int out_nstride, out_cstride, out_hstride, out_wstride;
+
+	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+	int out_h = out_len[0];
+
+//    int out_n, out_c, out_h, out_w;
+//    int out_nstride, out_cstride, out_hstride, out_wstride;
 
 	/*
 	miopenGet4dTensorDescriptor(outputTensor,
@@ -729,31 +778,69 @@ int RNNDriver<T>::RunForwardCPU()
                                 &out_wstride);
 	*/
 
-    int seqLength, layer, bidir;
+    int seqLength, layer, bidir, squash;
+	bool bidirection, biased;
     miopenRNNMode_t mode;
     miopenGetRNNDescriptor(
         rnnDesc, &mode, &seqLength, &layer, &bidir);
 
-    /*
+	bidirection = (bidir == 0);
+	bias = (inflags.GetValueInt("bias") != 0);
 
-	RunRNNForwardCPUVerify(std::vector<T>& in,
-	std::vector<T>& wei, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
-	std::vector<T>& hy_host, // current/final hidden state
-	std::vector<T>& hx, // initial hidden state
-	std::vector<T>& out_host,
-	std::vector<int>& in_n, // input batch size
-	int in_h, // input data length
-	int seqLength, // Number of iterations to unroll over
-	bool bidirection, // whether using bidirectional net
-	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
-	int hy_n, // equal to input batch size in_n[0]
-	int hy_h, // hidden state number
-	std::vector<int>& out_n, // equals in_n
-	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
-    std::vector<T>& rsvspace
-    )
+	if (mode == miopenRNNRELU)
+	{
+		squash = 0;
+	}
+	else if (mode == miopenRNNTANH)
+	{
+		squash = 1;
+	}
+	else
+	{
+		printf("illegal RNN squash function mode");
+	}
 
-	*/
+	int hy_d, hy_n, hy_h;
+	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
+
+	hy_d = hid_len[0];
+	hy_n = in_n[0];
+	hy_h = hid_len[1];
+
+
+	void RunRNNForwardCPUVerify(in,
+		wei, 
+		hy, 
+		hx, 
+		out,
+		in_n, 
+		in_h, 
+		seqLength, 
+		bidirection, 
+		biased, 
+		hy_d, 
+		hy_n, 
+		hy_h, 
+		out_h,
+		squash,
+		reservespace);
+
+	void RunRNNForwardGEMMCPUVerify(in,
+		wei,
+		hy_host,
+		hx,
+		outhost,
+		in_n,
+		in_h,
+		seqLength,
+		bidirection,
+		biased,
+		hy_d,
+		hy_n,
+		hy_h,
+		out_h,
+		squash,
+		reservespace_host);
 
     if(inflags.GetValueInt("dump_output"))
     {
