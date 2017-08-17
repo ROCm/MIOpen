@@ -72,7 +72,7 @@ def rocmnode(body) {
 }
 
 rocmtest { cmake_build ->
-    return opencl_tidy: rocmnode('rocm') {
+    return [opencl_tidy: rocmnode('rocm') {
         stage('Clang Tidy') {
             sh '''
                 rm -rf build
@@ -138,4 +138,4 @@ rocmtest { cmake_build ->
             cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
         }
     }
-}
+]}
