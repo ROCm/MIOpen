@@ -71,8 +71,7 @@ def rocmnode(body) {
     rocmnode('rocmtest || rocm')
 }
 
-rocmtest 
-opencl_tidy: rocmnode { cmake_build ->
+rocmtest opencl_tidy: rocmnode { cmake_build ->
     stage('Clang Tidy') {
         sh '''
             rm -rf build
@@ -82,8 +81,7 @@ opencl_tidy: rocmnode { cmake_build ->
             make tidy
         '''
     }
-},
-format: rocmnode { cmake_build ->
+},mformat: rocmnode { cmake_build ->
     stage('Clang Format') {
         sh '''
             find . -iname \'*.h\' \
@@ -97,8 +95,7 @@ format: rocmnode { cmake_build ->
             | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'
         '''
     }
-},
-opencl: rocmnode('fiji') { cmake_build ->
+}, opencl: rocmnode('fiji') { cmake_build ->
     stage('Clang Debug') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
@@ -111,16 +108,14 @@ opencl: rocmnode('fiji') { cmake_build ->
     stage('GCC Release') {
         cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, 
-vega: rocmnode('vega') { cmake_build ->
+}, vega: rocmnode('vega') { cmake_build ->
     stage('Vega Clang Debug') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
     stage('Vega Clang Release') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, 
-hip_tidy: rocmnode { cmake_build ->
+}, hip_tidy: rocmnode { cmake_build ->
     stage('Hip Tidy') {
         sh '''
             rm -rf build
@@ -129,16 +124,14 @@ hip_tidy: rocmnode { cmake_build ->
             CXX='hcc' cmake -DBUILD_DEV=On .. 
             make tidy
         '''
-},
-hip: rocmnode('fiji') { cmake_build ->
+}, hip: rocmnode('fiji') { cmake_build ->
     // stage('Hip Debug') {
     //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     // }
     stage('Hip Release') {
         cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, 
-windows: rocmnode('fiji') { cmake_build ->
+}, windows: rocmnode('fiji') { cmake_build ->
     stage('Windows Release') {
         cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
     }
