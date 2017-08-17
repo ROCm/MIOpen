@@ -68,7 +68,7 @@ def rocmnode(name, body) {
 
 @NonCPS
 def rocmnode(body) {
-    rocmnode('rocmtest || rocm')
+    rocmnode('rocmtest || rocm', body)
 }
 
 rocmtest opencl_tidy: rocmnode { cmake_build ->
