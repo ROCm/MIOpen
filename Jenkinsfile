@@ -71,7 +71,7 @@ def rocmnode(body) {
     rocmnode('rocmtest || rocm', body)
 }
 
-rocmtest opencl_tidy: rocmnode { cmake_build ->
+rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
     stage('Clang Tidy') {
         sh '''
             rm -rf build
@@ -81,7 +81,7 @@ rocmtest opencl_tidy: rocmnode { cmake_build ->
             make tidy
         '''
     }
-}, format: rocmnode { cmake_build ->
+}, format: rocmnode('rocm') { cmake_build ->
     stage('Clang Format') {
         sh '''
             find . -iname \'*.h\' \
@@ -115,7 +115,7 @@ rocmtest opencl_tidy: rocmnode { cmake_build ->
     stage('Vega Clang Release') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, hip_tidy: rocmnode { cmake_build ->
+}, hip_tidy: rocmnode('rocm') { cmake_build ->
     stage('Hip Tidy') {
         sh '''
             rm -rf build
