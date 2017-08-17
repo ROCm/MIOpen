@@ -804,7 +804,7 @@ int RNNDriver<T>::RunForwardCPU()
 	hy_n = in_n[0];
 	hy_h = hid_len[1];
 
-	printf("  sz %d  %d  %d   %B   %B   %d  %d  %d  %d  %d \n", in_n, in_h, seqLength, bidirection, biased,	hy_d,	hy_n,	hy_h,	out_h, squash);
+	printf("  sz %d  %d  %d   %d   %d   %d  %d  %d  %d  %d \n", layer, in_h, seqLength, bidirection, biased,	hy_d,	hy_n,	hy_h,	out_h, squash);
 
 	RunRNNForwardCPUVerify(in,
 		wei, 
