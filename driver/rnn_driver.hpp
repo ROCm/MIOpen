@@ -784,7 +784,7 @@ int RNNDriver<T>::RunForwardCPU()
     miopenGetRNNDescriptor(
         rnnDesc, &mode, &seqLength, &layer, &bidir);
 
-	bidirection = (bidir == 0);
+	bidirection = (bidir != 0);
 	biased = (inflags.GetValueInt("bias") != 0);
 
 	if (mode == miopenRNNRELU)
