@@ -261,16 +261,13 @@ struct RNNDescriptor : miopenRNNDescriptor
                                     Data_t dw,
                                     Data_t workSpace,
                                     size_t workSpaceSize) const;
-
-    miopenConvolutionMode_t mode;
-    int pad_h;
-    int pad_w;
-    int u;
-    int v;
-    int dilation_h;
-    int dilation_w;
+									*/
+    miopenRNNMode_t mode;
+	int seqLength;
+	int layer;
+	int bidir;
 };
-
+/*
 void ConvolutionBackwardBias(Handle& handle,
                              const void* alpha,
                              const TensorDescriptor& dyDesc,
@@ -286,4 +283,4 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& c);
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenRNNDescriptor, miopen::RNNDescriptor);
 
-#endif // GUARD_MIOPEN_CONVOLUTION_HPP_
+#endif // GUARD_MIOPEN_RNN_HPP_
