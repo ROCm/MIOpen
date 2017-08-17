@@ -54,6 +54,8 @@ def rocmtest(m) {
 @NonCPS
 def rocmnode(name, body) {
     def node_name = 'rocmtest && fiji'
+    if(name == 'fiji') {
+        node_name = 'rocmtest && fiji';
     if(name == 'vega') {
         node_name = 'rocmtest && vega';
     } else {
@@ -100,10 +102,10 @@ rocmtest opencl: rocmnode('fiji') { cmake_build ->
         cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
 }, vega: rocmnode('vega') { cmake_build ->
-    stage('Clang Debug') {
+    stage('Vega Clang Debug') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
-    stage('Clang Release') {
+    stage('Vega Clang Release') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
 }, hip: rocmnode('fiji') { cmake_build ->
