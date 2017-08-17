@@ -124,6 +124,7 @@ rocmtest opencl_tidy: rocmnode { cmake_build ->
             CXX='hcc' cmake -DBUILD_DEV=On .. 
             make tidy
         '''
+    }
 }, hip: rocmnode('fiji') { cmake_build ->
     // stage('Hip Debug') {
     //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
