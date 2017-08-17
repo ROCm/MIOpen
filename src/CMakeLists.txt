@@ -69,6 +69,8 @@ set( MIOpen_Source
     softmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
+	rnn.cpp
+	rnn_api.cpp
     include/miopen/batch_norm.hpp
     include/miopen/common.hpp
     include/miopen/convolution.hpp
@@ -85,6 +87,7 @@ set( MIOpen_Source
     include/miopen/lrn.hpp
     include/miopen/activ.hpp
     include/miopen/softmax.hpp
+	include/miopen/rnn.hpp
     tensor.cpp
     tensor_api.cpp
     )
