@@ -552,6 +552,25 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         dout[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
     }
 
+	for (int i = 0; i < hy_sz; i++)
+	{
+		hx[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+	}
+
+	for (int i = 0; i < hy_sz; i++)
+	{
+		cx[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+	}
+
+	for (int i = 0; i < hy_sz; i++)
+	{
+		dhy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+	}
+
+	for (int i = 0; i < hy_sz; i++)
+	{
+		dcy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+	}
 
 	/*
     if(inflags.GetValueInt("bias") != 0)
