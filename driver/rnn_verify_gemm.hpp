@@ -111,7 +111,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
 	}
 
-	T * wei_state = new T[wei_len * hy_h];
+	T * wei_state = new T[wei_len];
 	for (int h = 0; h < wei_len ; h++)
 	{
 			wei_state[h] = wei[h];	
@@ -384,7 +384,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
 	}
 
-	T * wei_state = new T[wei_len * hy_h];
+	T * wei_state = new T[wei_len];
 	for (int h = 0; h < wei_len; h++)
 	{
 		wei_state[h] = wei[h];
