@@ -300,6 +300,9 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 		}
 		bacc += in_n[ti];
 	}
+
+	delete[] hid_state;
+	delete[] out_state;
 }
 
 
