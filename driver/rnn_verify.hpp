@@ -179,10 +179,11 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 			bacc = batch_n;
 			for (int ti = seqLength - 1; ti >= 0; ti--)
 			{
+				bacc -= in_n[ti];
+
 				int hid_shift = li * batch_n * hy_h * bi + bacc * hy_stride + hy_h;
 				int hx_shift = li * bi * in_n[0] * hy_h + hy_h;
 
-				bacc -= in_n[ti];
 				for (int bs = 0; bs < in_n[ti]; bs++)
 				{
 					for (int h = 0; h < hy_h; h++)
