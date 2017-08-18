@@ -42,7 +42,8 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 	std::vector<T>& wei, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
 	std::vector<T>& hy_host, // current/final hidden state
 	std::vector<T>& hx, // initial hidden state
-	std::vector<T>& out_host,
+//	std::vector<T>& out_host,
+	std::vector<T>& out_state,
 	std::vector<int>& in_n, // input batch size
 	int in_h, // input data length
 	int seqLength, // Number of iterations to unroll over
@@ -54,17 +55,18 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 //	std::vector<int>& out_n, // equals in_n
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
         int squash,
-    std::vector<T>& rsvspace
+//    std::vector<T>& rsvspace
+    std::vector<T>& hid_state
 )
 {
 	int batch_n = sumvc(in_n);
 // int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0);
 
-	T * hid_state = new T[hy_d * batch_n * hy_h];
-	memset(hid_state, 0, hy_d * batch_n * hy_h * sizeof(T));
+//	T * hid_state = new T[hy_d * batch_n * hy_h];
+//	memset(hid_state, 0, hy_d * batch_n * hy_h * sizeof(T));
 
-	T * out_state = new T[batch_n * out_h];
-	memset(out_state, 0, batch_n * out_h * sizeof(T));
+//	T * out_state = new T[batch_n * out_h];
+//	memset(out_state, 0, batch_n * out_h * sizeof(T));
 
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
 	int out_dim = bidirection ? out_h / 2 : out_h;
@@ -166,7 +168,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 
 					hy_host[hx_shift + bs * hy_stride + h] = activfunc(hid_state[hid_shift + bs * hy_stride + h], squash);  // squash_func
 
-					rsvspace[hid_shift + bs * hy_stride + h] = hid_state[hid_shift + bs * hy_stride + h];
+//					rsvspace[hid_shift + bs * hy_stride + h] = hid_state[hid_shift + bs * hy_stride + h];
 				}
 			}
 			bacc += in_n[ti];
@@ -260,7 +262,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 
 						hy_host[hx_shift + bs * hy_stride + h] = activfunc(hid_state[hid_shift + bs * hy_stride + h], squash);  // squash_func
 
-						rsvspace[hid_shift + bs * hy_stride + h] = hid_state[hid_shift + bs * hy_stride + h];
+//						rsvspace[hid_shift + bs * hy_stride + h] = hid_state[hid_shift + bs * hy_stride + h];
 					}
 				}
 			}
@@ -295,14 +297,14 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 					}
 				}
 
-				out_host[(bacc + bs) * out_stride + w] = out_state[(bacc + bs) * out_stride + w];
+//				out_host[(bacc + bs) * out_stride + w] = out_state[(bacc + bs) * out_stride + w];
 			}
 		}
 		bacc += in_n[ti];
 	}
 
-	delete[] hid_state;
-	delete[] out_state;
+//	delete[] hid_state;
+//	delete[] out_state;
 }
 
 
