@@ -98,6 +98,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 
 	// initial hidden states
 	T * hy_state = new T[hy_d * hy_n * hy_h];
+	memset(hy_state, 0, hy_d * hy_n * hy_h * sizeof(T));
 	T * hx_state = new T[hy_d * hy_n * hy_h];
 	for (int h = 0; h < hy_d * hy_n * hy_h; h++)
 	{
@@ -321,6 +322,14 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 			out_host[bs * out_stride + h] = out_state[bs * out_stride + h];
 		}
 	}
+
+	delete[] hid_state;
+	delete[] wk_state;
+	delete[] out_state;
+	delete[] in_state;
+	delete[] hx_state;
+	delete[] hy_state;
+	delete[] wei_state;
 }
 
 
