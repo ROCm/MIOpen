@@ -147,7 +147,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 								int pretime_shift = li * batch_n * hy_h * bi + (bacc - in_n[ti - 1]) * hy_stride;
 
 								hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + h] * activfunc(hid_state[pretime_shift + bs * hy_stride + w], squash);
-								// hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + h] * hx_state[hx_shift + bs * hy_stride + w];
+//							    hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + h] * hy_host[hx_shift + bs * hy_stride + w];
 							}
 						}
 
@@ -203,8 +203,12 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 								else
 								{
 									int pretime_shift = li * batch_n * hy_h * bi + (bacc + in_n[ti]) * hy_stride + hy_h;
-
-									hid_state[hid_shift + bs * hy_stride + h] += wei[in_h * hy_stride + w * hy_stride + hy_h + h] * activfunc(hid_state[pretime_shift + bs * hy_stride + w], squash);
+									
+									if (bs < in_n[ti + 1])
+									{
+										hid_state[hid_shift + bs * hy_stride + h] += wei[in_h * hy_stride + w * hy_stride + hy_h + h] * activfunc(hid_state[pretime_shift + bs * hy_stride + w], squash);
+									}
+//									hid_state[hid_shift + bs * hy_stride + h] += wei[in_h * hy_stride + w * hy_stride + hy_h + h] * hy_host[hx_shift + bs * hy_stride + w];
 								}
 							}
 
@@ -231,13 +235,17 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 							{
 								if (ti == seqLength - 1)
 								{
-									hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + hy_h + h] * hx[hx_shift + bs * hy_stride + w];
+									hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + h] * hx[hx_shift + bs * hy_stride + w];
 								}
 								else
 								{
 									int pretime_shift = li * batch_n * hy_h * bi + (bacc + in_n[ti]) * hy_stride + hy_h;
 
-									hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + hy_h + h] * activfunc(hid_state[pretime_shift + bs * hy_stride + w], squash);
+									if (bs < in_n[ti + 1])
+									{
+										hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + h] * activfunc(hid_state[pretime_shift + bs * hy_stride + w], squash);
+									}
+//									hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + bi * hy_h * hy_stride + w * hy_stride + h] * hy_host[hx_shift + bs * hy_stride + w];
 								}
 							}
 
