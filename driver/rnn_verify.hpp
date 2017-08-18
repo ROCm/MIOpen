@@ -272,22 +272,22 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 			{
 				for (int h = 0; h < hy_stride; h++)
 				{
-					out_state[(bacc + bs) * out_h + w] += wei[wei_shift + w * hy_stride + h] * activfunc(hid_state[prelayer_shift + bs * hy_stride + h], squash);
+					out_state[(bacc + bs) * out_stride + w] += wei[wei_shift + w * hy_stride + h] * activfunc(hid_state[prelayer_shift + bs * hy_stride + h], squash);
 
 					//from bias
 					if (biased)
 					{
 						int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h;
 
-						out_state[(bacc + bs) * out_h + w] += wei[wei_shift_bias_temp + w];
+						out_state[(bacc + bs) * out_stride + w] += wei[wei_shift_bias_temp + w];
 						if (bidirection)
 						{
-							out_state[(bacc + bs) * out_h + w] += wei[wei_shift_bias_temp + out_h + w];
+							out_state[(bacc + bs) * out_stride + w] += wei[wei_shift_bias_temp + out_stride + w];
 						}
 					}
 				}
 
-				out_host[(bacc + bs) * out_h + w] = out_state[(bacc + bs) * out_h + w];
+				out_host[(bacc + bs) * out_stride + w] = out_state[(bacc + bs) * out_stride + w];
 			}
 		}
 		bacc += in_n[ti];
@@ -599,7 +599,7 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						for (int bs = 0; bs < in_n[ti]; bs++)
 						{
-							dwei_state[wei_shift + h * hy_stride + w] += dout[(bacc + bs) * out_h + h] * activfunc(rsvspace[prehid_shift + bs * hy_stride + w], squash);
+							dwei_state[wei_shift + h * hy_stride + w] += dout[(bacc + bs) * out_stride + h] * activfunc(rsvspace[prehid_shift + bs * hy_stride + w], squash);
 						}
 					}
 				}
@@ -688,11 +688,11 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						for (int w = 0; w < batch_n; w++)
 						{
-							dwei_state[wei_shift + h] += dout[w * out_h + h];
+							dwei_state[wei_shift + h] += dout[w * out_stride + h];
 						}
 						if (bidirection)
 						{
-							dwei_state[wei_shift + out_h + h] = dwei_state[wei_shift + h];
+							dwei_state[wei_shift + out_stride + h] = dwei_state[wei_shift + h];
 						}
 					}
 				}

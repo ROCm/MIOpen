@@ -318,7 +318,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	{
 		for (int h = 0; h < out_h; h++)
 		{
-			out_host[bs * hy_stride + h] = out_state[bs * hy_stride + h];
+			out_host[bs * out_stride + h] = out_state[bs * out_stride + h];
 		}
 	}
 }
