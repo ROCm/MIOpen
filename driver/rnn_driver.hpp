@@ -1123,7 +1123,39 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
 	hy_h = hid_len[1];
 
 
+	RunRNNBackwardWeightCPUVerify(in,
+		dwei,
+		hx,
+		dout,
+		in_n,
+		in_h,
+		seqLength,
+		bidirection,
+		biased,
+		hy_d,
+		hy_n,
+		hy_h,
+		out_h,
+		squash,
+		reservespace,
+		workspace);
 
+	RunRNNBackwardWeightGEMMCPUVerify(in,
+		dwei_host,
+		hx,
+		dout,
+		in_n,
+		in_h,
+		seqLength,
+		bidirection,
+		biased,
+		hy_d,
+		hy_n,
+		hy_h,
+		out_h,
+		squash,
+		reservespace_host,
+		workspace_host);
 
 
 
