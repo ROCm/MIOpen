@@ -442,6 +442,11 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 	size_t in_sz = batch_n * in_h; //GetTensorSize(inputTensor);
 	size_t hid_sz = batch_n * hid_len[0] * hid_len[1]; //GetTensorSize(hiddenTensor);
 	size_t wei_sz = wei_len[3] * wei_len[0] * (wei_len[2] + wei_len[3] + wei_len[4] + (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]); //GetTensorSize(weightTensor);
+	if (inflags.GetValueInt("bias") != 0)
+	{
+		wei_sz += (wei_len[0] * 2 + (wei_len[1] - 1) * wei_len[0] * (wei_len[0] + 1)) * hid_len[1] + wei_len[0] * out_h;
+	}
+
 	size_t out_sz = batch_n * out_h; //GetTensorSize(outputTensor);
 	size_t hy_sz = in_len[0] * hid_len[1] * wei_len[0] * wei_len[1];
 
