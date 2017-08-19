@@ -309,7 +309,8 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 
 
 template <typename T>
-void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
+void RunRNNBackwardDataCPUVerify(std::vector<T>& din_state,
+//	std::vector<T>& din_host,
 	std::vector<T>& wei, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
 	std::vector<T>& dhy, // current/final hidden state
 	std::vector<T>& dhx_host,
@@ -328,15 +329,16 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
         int squash,
 	std::vector<T>& rsvspace,
-	std::vector<T>& wkspace
+	std::vector<T>& dh_state // wkspace
+//	std::vector<T>& wkspace
 )
 {
 	int batch_n = sumvc(in_n);
-	T * dh_state = new T[hy_d * batch_n * hy_h];
-	memset(dh_state, 0, hy_d * batch_n * hy_h * sizeof(T));
+//	T * dh_state = new T[hy_d * batch_n * hy_h];
+//	memset(dh_state, 0, hy_d * batch_n * hy_h * sizeof(T));
 
-	T * din_state = new T[batch_n * in_h];
-	memset(din_state, 0, batch_n * in_h * sizeof(T));
+//	T * din_state = new T[batch_n * in_h];
+//	memset(din_state, 0, batch_n * in_h * sizeof(T));
 
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
 	int out_dim = bidirection ? out_h / 2 : out_h;
@@ -355,18 +357,19 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 		bacc = batch_n;
 		for (int ti = seqLength - 1; ti >= 0; ti--)
 		{
+			bacc -= in_n[ti];
+
 			int hid_shift = li * batch_n * hy_h * bi + bacc * hy_stride;
 			int hx_shift = li * bi * in_n[0] * hy_h;
 			int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
 
-			bacc -= in_n[ti];
 			for (int bs = 0; bs < in_n[ti]; bs++)
 			{
 				for (int h = 0; h < hy_h; h++)
 				{
+					// from doutput
 					if (li == numlayer - 1)
 					{
-						// from doutput
 						for (int w = 0; w < out_h; w++)
 						{
 							dh_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + w * hy_stride + h] * dout[(bacc + bs) * out_stride + w];
@@ -376,7 +379,6 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 					{
 						int prelayer_shift = (li + 1) * batch_n * hy_h * bi + bacc * hy_stride;
 
-						// from doutput
 						for (int w = 0; w < hy_h; w++)
 						{
 							dh_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + h * hy_stride + w] * dh_state[prelayer_shift + bs * hy_stride + w];
@@ -398,7 +400,7 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 					}
 					
 					dh_state[hid_shift + bs * hy_stride + h] *= dervactivfunc(rsvspace[hid_shift + bs * hy_stride + h], squash);
-					wkspace[hid_shift + bs * hy_stride + h] = dh_state[hid_shift + bs * hy_stride + h];
+//					wkspace[hid_shift + bs * hy_stride + h] = dh_state[hid_shift + bs * hy_stride + h];
 				}
 					
 				for (int h = 0; h < hy_h; h++)
@@ -459,7 +461,7 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 						}
 
 						dh_state[hid_shift + bs * hy_stride + h] *= dervactivfunc(rsvspace[hid_shift + bs * hy_stride + h], squash);
-						wkspace[hid_shift + bs * hy_stride + h] = dh_state[hid_shift + bs * hy_stride + h];
+//						wkspace[hid_shift + bs * hy_stride + h] = dh_state[hid_shift + bs * hy_stride + h];
 					}
 
 					for (int h = 0; h < hy_h; h++)
@@ -488,14 +490,18 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
 			{
 				for (int h = 0; h < hy_stride; h++)
 				{
-					din_state[(bacc + bs) * in_h + w] += wei[w * hy_h + h] * dh_state[(bacc + bs) * hy_h + h];
+					din_state[(bacc + bs) * in_stride + w] += wei[w * hy_h + h] * dh_state[(bacc + bs) * hy_h + h];
 				}
 
-				din_host[(bacc + bs) * in_h + w] = din_state[(bacc + bs) * in_h + w];
+				din_host[(bacc + bs) * in_stride + w] = din_state[(bacc + bs) * in_stride + w];
 			}
 		}
 		bacc += in_n[ti];
 	}
+
+
+	//	delete[] dh_state;
+	//	delete[] in_state;
 }
 
 
