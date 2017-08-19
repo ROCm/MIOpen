@@ -455,8 +455,11 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 					wkspace[hid_shift + bacc * hy_stride + bs * hy_stride + h] = dh_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 				}
 			}
-										
-			memset(&dhx_state[hx_shift], 0, in_n[0] * hy_stride * sizeof(T));
+					
+			for (int bs = 0; bs < in_n[ti]; bs++)
+			{
+				memset(&dhx_state[hx_shift + bs * hy_stride], 0, hy_h * sizeof(T));
+			}
 
 			wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
 
@@ -472,7 +475,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 					for (int h = 0; h < hy_h; h++)
 					{
 						// from post state
-						if (ti == 0)
+						if (ti == seqLength - 1)
 						{
 							dh_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] += dhy_state[hx_shift + hy_h + bs * hy_stride + h];
 						}
@@ -486,9 +489,14 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 					}
 				}
 				
-				ADNN_mm_cpu<T>((const T*)&dh_state[hid_shift + baccbi * hy_stride + hy_h], hy_h, in_n[ti], hy_stride, 0,
+				for (int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
+				{
+					memset(&dhx_state[hx_shift + bs * hy_stride + hy_h], 0, hy_h * sizeof(T));
+				}
+
+				ADNN_mm_cpu<T>((const T*)&dh_state[hid_shift + baccbi * hy_stride + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
 					(const T *)&wei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, ADNN_MM_TRANSPOSE,
-					&dhx_state[hx_shift + hy_h], hy_h, in_n[ti], hy_stride, 0,
+					&dhx_state[hx_shift + hy_h], hy_h, in_n[seqLength - 1 - ti], hy_stride, 0,
 					1, 1);
 			}
 

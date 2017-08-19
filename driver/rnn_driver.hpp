@@ -1394,7 +1394,7 @@ int RNNDriver<T>::VerifyForward()
     }
 
     auto error             = miopen::rms_range(outhost, out);
-	auto errorr = miopen::rms_range(reservespace_host, reservespace);
+
     const double tolerance = 1e-6;
     if(!(error < tolerance))
     {
@@ -1404,13 +1404,27 @@ int RNNDriver<T>::VerifyForward()
     {
         printf("Forward RNN Verifies on CPU and GPU\n");
     }
-	if (!(errorr < tolerance))
+
+	auto error1 = miopen::rms_range(reservespace_host, reservespace);
+
+	if (!(error1 < tolerance))
 	{
-		std::cout << std::string("reserve Failed: ") << error << "\n";
+		std::cout << std::string("reserve Failed: ") << error1 << "\n";
 	}
 	else
 	{
 		printf("reserve Verifies on CPU and GPU\n");
+	}
+
+	auto error2 = miopen::rms_range(hy_host, hy);
+
+	if (!(error2 < tolerance))
+	{
+		std::cout << std::string("hy Failed: ") << error2 << "\n";
+	}
+	else
+	{
+		printf("hy Verifies on CPU and GPU\n");
 	}
 
     return 0;
@@ -1437,6 +1451,30 @@ int RNNDriver<T>::VerifyBackward()
     {
         printf("Backward RNN Data Verifies on CPU and GPU\n");
     }
+
+	auto error_data1 = miopen::rms_range(workspace_host, workspace);
+
+	if (!(error_data1 < tolerance))
+	{
+		std::cout << std::string("worksp Failed: ") << error_data1
+			<< std::string("\n");
+	}
+	else
+	{
+		printf("worksp Verifies on CPU and GPU\n");
+	}
+
+	auto error_data2 = miopen::rms_range(dhx_host, dhx);
+
+	if (!(error_data2 < tolerance))
+	{
+		std::cout << std::string("dhx Failed: ") << error_data2 << "\n";
+	}
+	else
+	{
+		printf("dhx Verifies on CPU and GPU\n");
+	}
+
 
 //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
