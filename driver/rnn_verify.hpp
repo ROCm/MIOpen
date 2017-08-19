@@ -43,7 +43,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 	std::vector<T>& hy_host, // current/final hidden state
 	std::vector<T>& hx, // initial hidden state
 //	std::vector<T>& out_host,
-	std::vector<T>& out_state,
+	std::vector<T>& out_state, // out_host
 	std::vector<int>& in_n, // input batch size
 	int in_h, // input data length
 	int seqLength, // Number of iterations to unroll over
@@ -56,7 +56,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
         int squash,
 //    std::vector<T>& rsvspace
-    std::vector<T>& hid_state
+    std::vector<T>& hid_state // rsvspace
 )
 {
 	int batch_n = sumvc(in_n);
@@ -493,7 +493,7 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_state,
 					din_state[(bacc + bs) * in_stride + w] += wei[w * hy_h + h] * dh_state[(bacc + bs) * hy_h + h];
 				}
 
-				din_host[(bacc + bs) * in_stride + w] = din_state[(bacc + bs) * in_stride + w];
+//				din_host[(bacc + bs) * in_stride + w] = din_state[(bacc + bs) * in_stride + w];
 			}
 		}
 		bacc += in_n[ti];
