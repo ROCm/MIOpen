@@ -352,7 +352,7 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_state,
 	int out_stride = out_h;
 
 	// bwd data emulator
-	for (int li = numlayer -1 ; li >= 0; li++)
+	for (int li = numlayer -1 ; li >= 0; li--)
 	{
 		bacc = batch_n;
 		for (int ti = seqLength - 1; ti >= 0; ti--)
