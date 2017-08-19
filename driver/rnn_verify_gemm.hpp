@@ -408,7 +408,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	int out_stride = out_h;
 
 	// bwd data emulator
-	for (int li = numlayer -1 ; li >= 0; li++)
+	for (int li = numlayer -1 ; li >= 0; li--)
 	{
 		int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
 		int hid_shift = li * batch_n * hy_h * bi;
@@ -492,7 +492,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 					1, 1);
 			}
 
-			baccbi += in_n[ti];
+			baccbi += in_n[seqLength - 1 - ti];
 		}
 	}
 
