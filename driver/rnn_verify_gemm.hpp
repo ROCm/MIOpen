@@ -518,6 +518,11 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 		}
 	}
 
+	for (int h = 0; h < hy_d * hy_n * hy_h; h++)
+	{
+		dhx_host[h] = dhx_state[h];
+	}
+
 	delete[] dh_state;
 	delete[] din_state;
 	delete[] dout_state;
