@@ -162,15 +162,17 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 			//from bias
 			if (biased)
 			{
+				int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h;
+
 				for (int bs = 0; bs < batch_n; bs++)
 				{
 					for (int h = 0; h < hy_stride; h++)
 					{
-						hid_state[hid_shift + bs * hy_stride + h] += (wei[wei_shift_bias + h] + wei[wei_shift_bias + bi * hy_stride + h]);
+						hid_state[hid_shift + bs * hy_stride + h] += (wei[wei_shift_bias_temp + h] + wei[wei_shift_bias_temp + bi * hy_stride + h]);
 
 						if (bidirection)
 						{
-							hid_state[hid_shift + bs * hy_stride + h] += (wei[wei_shift_bias + h] + wei[wei_shift_bias + hy_stride + h]);
+							hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift_bias_temp + hy_stride + h];
 						}
 					}
 				}
@@ -309,7 +311,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 
 				if (bidirection)
 				{
-					out_state[bs * hy_stride + h] += wei[wei_shift_bias_temp + out_h + h];
+					out_state[bs * hy_stride + h] += wei[wei_shift_bias_temp + out_stride + h];
 				}
 			}
 		}
