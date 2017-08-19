@@ -433,9 +433,9 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_state,
 					{
 						wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
 
+						// from doutput
 						if (li == numlayer - 1)
 						{
-							// from doutput
 							for (int w = 0; w < out_h; w++)
 							{
 								dh_state[hid_shift + bs * hy_stride + h] += wei[wei_shift + w * hy_stride + hy_h + h] * dout[(bacc + bs) * out_h + w];
@@ -445,7 +445,6 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_state,
 						{
 							int prelayer_shift = (li + 1) * batch_n * hy_h * bi + bacc * hy_stride;
 
-							// from input
 							for (int w = 0; w < hy_h; w++)
 							{
 								dh_state[hid_shift + bs * hy_stride + h] += (wei[wei_shift + (h + hy_h) * hy_stride + w] * dh_state[prelayer_shift + bs * hy_stride + w] 
