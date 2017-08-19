@@ -307,11 +307,11 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 		{
 			for (int h = 0; h < out_h; h++)
 			{
-				out_state[bs * hy_stride + h] += wei[wei_shift_bias_temp + h];
+				out_state[bs * out_stride + h] += wei[wei_shift_bias_temp + h];
 
 				if (bidirection)
 				{
-					out_state[bs * hy_stride + h] += wei[wei_shift_bias_temp + out_stride + h];
+					out_state[bs * out_stride + h] += wei[wei_shift_bias_temp + out_stride + h];
 				}
 			}
 		}
