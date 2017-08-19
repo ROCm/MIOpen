@@ -510,7 +510,8 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_state,
 
 template <typename T>
 void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
-	std::vector<T>& dwei_host, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
+	std::vector<T>& dwei_state, // dwei_host
+//	std::vector<T>& dwei_host, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
 	std::vector<T>& hx, // initial hidden state
 	std::vector<T>& dout,
 	std::vector<int>& in_n, // input batch size
@@ -535,8 +536,8 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 	int bi = bidirection ? 2 : 1;
 //	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
-	T * dwei_state = new T[(in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h];
-	memset(dwei_state, 0, (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h * sizeof(T));
+//	T * dwei_state = new T[(in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h];
+//	memset(dwei_state, 0, (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h * sizeof(T));
 
 	int wei_shift_bias = ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 	int in_stride = in_h;
@@ -738,10 +739,10 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 		}
 	}
 
-	for (int i = 0; i < (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h; i++)
-	{
-		dwei_host[i] = dwei_state[i];
-	}
+//	for (int i = 0; i < (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h; i++)
+//	{
+//		dwei_host[i] = dwei_state[i];
+//	}
 }
 
 #endif // GUARD_MIOPEN_RNN_VERIFY_HPP
