@@ -284,20 +284,19 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 				for (int h = 0; h < hy_stride; h++)
 				{
 					out_state[(bacc + bs) * out_stride + w] += wei[wei_shift + w * hy_stride + h] * activfunc(hid_state[prelayer_shift + bs * hy_stride + h], squash);
-
-					//from bias
-					if (biased)
-					{
-						int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h;
-
-						out_state[(bacc + bs) * out_stride + w] += wei[wei_shift_bias_temp + w];
-						if (bidirection)
-						{
-							out_state[(bacc + bs) * out_stride + w] += wei[wei_shift_bias_temp + out_stride + w];
-						}
-					}
 				}
 
+				//from bias
+				if (biased)
+				{
+					int wei_shift_bias_temp = wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h;
+
+					out_state[(bacc + bs) * out_stride + w] += wei[wei_shift_bias_temp + w];
+					if (bidirection)
+					{
+						out_state[(bacc + bs) * out_stride + w] += wei[wei_shift_bias_temp + out_stride + w];
+					}
+				}
 //				out_host[(bacc + bs) * out_stride + w] = out_state[(bacc + bs) * out_stride + w];
 			}
 		}
