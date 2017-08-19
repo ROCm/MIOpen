@@ -382,6 +382,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	
 	// initial hidden states
 	T * dhx_state = new T[hy_d * hy_n * hy_h];
+	memset(dhx_state, 0, hy_d * hy_n * hy_h * sizeof(T));
 	T * dhy_state = new T[hy_d * hy_n * hy_h];
 	for (int h = 0; h < hy_d * hy_n * hy_h; h++)
 	{
@@ -508,6 +509,13 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 			din_host[bs * in_stride + w] = din_state[bs * in_stride + w];
 		}
 	}
+
+	delete[] dh_state;
+	delete[] din_state;
+	delete[] dout_state;
+	delete[] dhx_state;
+	delete[] dhy_state;
+	delete[] wei_state;
 }
 
 
