@@ -1044,6 +1044,12 @@ int RNNDriver<T>::RunBackwardGPU()
 template <typename T>
 int RNNDriver<T>::RunBackwardWeightsCPU()
 {
+
+	std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+	int in_h;
+	in_h = in_n.back();
+	in_n.pop_back();
+
 	/*
     int in_n, in_c, in_h, in_w;
     int in_nstride, in_cstride, in_hstride, in_wstride;
@@ -1063,11 +1069,16 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
 								
 
     int wei_n, wei_c, wei_h, wei_w;
-    int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
+    int wei_nstride, wei_cstride, wei_hstride, wei_wstride;   */
     //	miopenGet4dTensorDescriptor(weightTensor, &dt,
     //			&wei_n, &wei_c, &wei_h, &wei_w,
     //			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
+
+	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+	int out_h = out_len[0];
+
+	/*
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
 
@@ -1084,31 +1095,37 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                 &out_wstride);
 	*/
 
-	int seqLength, layer, bidir;
-    miopenRNNMode_t mode;
+
+	int seqLength, layer, bidir, squash = 1;
+	bool bidirection, biased;
+	miopenRNNMode_t mode;
 	miopenGetRNNDescriptor(
 		rnnDesc, &mode, &seqLength, &layer, &bidir);
 
-    /*
-	
-	RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
-	std::vector<T>& dwei_host, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
-	std::vector<T>& hx, // initial hidden state
-	std::vector<T>& dout,
-	std::vector<int>& in_n, // input batch size
-	int in_h, // input data length
-	int seqLength, // Number of iterations to unroll over
-	bool bidirection, // whether using bidirectional net
-	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
-	int hy_n, // equal to input batch size in_n[0]
-	int hy_h, // hidden state number
-	std::vector<int>& out_n, // equals in_n
-	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
-	std::vector<T>& rsvspace;
-	std::vector<T>& wkspace
-	)
-	
-	*/
+	bidirection = (bidir != 0);
+	biased = (inflags.GetValueInt("bias") != 0);
+
+	if (mode == miopenRNNRELU)
+	{
+		squash = 0;
+	}
+	else if (mode == miopenRNNTANH);
+	else
+	{
+		printf("illegal RNN squash function mode");
+	}
+
+	int hy_d, hy_n, hy_h;
+	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
+
+	hy_d = hid_len[0];
+	hy_n = in_n[0];
+	hy_h = hid_len[1];
+
+
+
+
+
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1122,6 +1139,11 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
 template <typename T>
 int RNNDriver<T>::RunBackwardDataCPU()
 {
+	std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+	int in_h;
+	in_h = in_n.back();
+	in_n.pop_back();
+
 	/*
     int in_n, in_c, in_h, in_w;
     int in_nstride, in_cstride, in_hstride, in_wstride;
@@ -1141,11 +1163,17 @@ int RNNDriver<T>::RunBackwardDataCPU()
 	
 
     int wei_n, wei_c, wei_h, wei_w;
-    int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
+    int wei_nstride, wei_cstride, wei_hstride, wei_wstride; */
     //	miopenGet4dTensorDescriptor(weightTensor, &dt,
     //			&wei_n, &wei_c, &wei_h, &wei_w,
     //			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
 
+
+	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+	int out_h = out_len[0];
+
+
+	/*
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
 
@@ -1162,34 +1190,75 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                 &out_wstride);
 	*/
 
-	int seqLength, layer, bidir;
-    miopenRNNMode_t mode;
+	int seqLength, layer, bidir, squash = 1;
+	bool bidirection, biased;
+	miopenRNNMode_t mode;
 	miopenGetRNNDescriptor(
 		rnnDesc, &mode, &seqLength, &layer, &bidir);
 
-    /*
+	bidirection = (bidir != 0);
+	biased = (inflags.GetValueInt("bias") != 0);
 
-	RunRNNBackwardDataCPUVerify(std::vector<T>& din_host,
-	std::vector<T>& wei, // [ input_state_weight_trans  hidden_state_weight0_trans input1_trans hidden1_trans ... output_weight; bidirectional reversed weights ]
-	std::vector<T>& dhy, // current/final hidden state
-	std::vector<T>& dhx_host,
-	std::vector<T>& hx, // initial hidden state
-	std::vector<T>& out,
-	std::vector<T>& dout,
-	std::vector<int>& in_n, // input batch size
-	int in_h, // input data length
-	int seqLength, // Number of iterations to unroll over
-	bool bidirection, // whether using bidirectional net
-	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
-	int hy_n, // equal to input batch size in_n[0]
-	int hy_h, // hidden state number
-	std::vector<int>& out_n, // equals in_n
-	int out_h;  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
-	std::vector<T>& rsvspace;
-	std::vector<T>& wkspace
-    )
+	if (mode == miopenRNNRELU)
+	{
+		squash = 0;
+	}
+	else if (mode == miopenRNNTANH);
+	else
+	{
+		printf("illegal RNN squash function mode");
+	}
 
-	*/
+	int hy_d, hy_n, hy_h;
+	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
+
+	hy_d = hid_len[0];
+	hy_n = in_n[0];
+	hy_h = hid_len[1];
+
+
+		RunRNNBackwardDataCPUVerify(din,
+			wei,
+			dhy,
+			dhx,
+			hx,
+			out,
+			dout,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			squash,
+			reservespace,
+			workspace);
+
+
+			RunRNNBackwardDataGEMMCPUVerify(din_host,
+				wei,
+				dhy,
+				dhx_host,
+				hx,
+				out,
+				dout,
+				in_n,
+				in_h,
+				seqLength,
+				bidirection,
+				biased,
+				hy_d,
+				hy_n,
+				hy_h,
+				out_h,
+				squash,
+				reservespace_host,
+				workspace_host);
+
+
 
     if(inflags.GetValueInt("dump_output"))
     {
