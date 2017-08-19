@@ -517,8 +517,8 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 	int in_h, // input data length
 	int seqLength, // Number of iterations to unroll over
 	bool bidirection, // whether using bidirectional net
-	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
 	bool biased, // whether using bias
+	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
 //	std::vector<int>& out_n, // equals in_n
