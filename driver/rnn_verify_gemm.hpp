@@ -741,6 +741,13 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 	{
 		dwei_host[i] = dwei_state[i];
 	}
+
+	delete[] dwei_state;
+	delete[] in_state;
+	delete[] dout_state;
+	delete[] wkspace_state;
+	delete[] rsvspace_state;
+	delete[] hx_state;
 }
 
 #endif // GUARD_MIOPEN_RNN_VERIFY_GEMM_HPP
