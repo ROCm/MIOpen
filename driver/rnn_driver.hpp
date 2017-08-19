@@ -1394,6 +1394,7 @@ int RNNDriver<T>::VerifyForward()
     }
 
     auto error             = miopen::rms_range(outhost, out);
+	auto errorr = miopen::rms_range(reservespace_host, reservespace);
     const double tolerance = 1e-6;
     if(!(error < tolerance))
     {
@@ -1403,6 +1404,14 @@ int RNNDriver<T>::VerifyForward()
     {
         printf("Forward RNN Verifies on CPU and GPU\n");
     }
+	if (!(errorr < tolerance))
+	{
+		std::cout << std::string("reserve Failed: ") << error << "\n";
+	}
+	else
+	{
+		printf("reserve Verifies on CPU and GPU\n");
+	}
 
     return 0;
 }
