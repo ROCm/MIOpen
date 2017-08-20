@@ -693,7 +693,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 			int wei_shift;
 			int pretime_shift;
 
-			wei_shift = li == 0 ? (in_h * hy_h) : (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
+			wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
 
 			// between time
 			if (ti == 0)
