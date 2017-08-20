@@ -554,7 +554,7 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 			{
 				int hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride;
 				int hx_shift = li * bi * in_n[0] * hy_h;
-				int wei_shift;
+				int wei_shift = in_h * hy_stride;
 				int prehid_shift;
 
 				// between layers
@@ -576,8 +576,6 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						for (int bs = 0; bs < in_n[ti]; bs++)
 						{
-							wei_shift = in_h * hy_stride;
-
 							if (ti == 0)
 							{
 								dwei_state[wei_shift + h * hy_stride + w] += hx[hx_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + w];
@@ -591,18 +589,15 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 
 							if (bidirection)
 							{
-								wei_shift = in_h * hy_stride + hy_h;
-								hx_shift = li * bi * in_n[0] * hy_h + hy_h;
-								hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride + hy_h;
 								prehid_shift = li * bi * batch_n * hy_h + ((bacc + in_n[ti])) * hy_stride + hy_h;
 
 								if (ti == seqLength - 1)
 								{
-									dwei_state[wei_shift + h * hy_stride + w] += hx[hx_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + w];
+									dwei_state[wei_shift + hy_h + h * hy_stride + w] += hx[hx_shift + hy_h + bs * hy_stride + h] * wkspace[hid_shift + hy_h + bs * hy_stride + w];
 								}
 								else
 								{
-									dwei_state[wei_shift + h * hy_stride + w] += activfunc(rsvspace[prehid_shift + bs * hy_stride + h], squash) * wkspace[hid_shift + bs * hy_stride + w];
+									dwei_state[wei_shift + hy_h + h * hy_stride + w] += activfunc(rsvspace[prehid_shift + bs * hy_stride + h], squash) * wkspace[hid_shift + hy_h + bs * hy_stride + w];
 								}
 							}
 						}
