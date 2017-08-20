@@ -728,7 +728,7 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 					{
 						dwei_state[wei_shift + h] += wkspace[li * bi * batch_n * hy_h + w* hy_stride + h];
 					}
-					dwei_state[wei_shift + hy_stride + h] = dwei_state[wei_shift + h];
+					dwei_state[wei_shift + bi * hy_stride + h] = dwei_state[wei_shift + h];
 					if (bidirection)
 					{
 						dwei_state[wei_shift + hy_stride + h] = dwei_state[wei_shift + h];
