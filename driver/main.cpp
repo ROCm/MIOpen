@@ -92,12 +92,12 @@ int main(int argc, char* argv[])
         drv->VerifyForward();
     }
 
-    if(drv->GetInputFlags().GetValueInt("forw") == 0)
+ //   if(drv->GetInputFlags().GetValueInt("forw") == 0)
     {
-        if(!(base_arg == "gemm"))
+ //       if(!(base_arg == "gemm"))
         {
             drv->RunBackwardGPU();
-            if(drv->GetInputFlags().GetValueInt("verify") == 1)
+ //           if(drv->GetInputFlags().GetValueInt("verify") == 1)
             {
                 drv->VerifyBackward();
             }
