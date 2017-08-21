@@ -108,13 +108,13 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
     stage('GCC Release') {
         cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, vega: rocmnode('vega') { cmake_build ->
-    stage('Vega Clang Debug') {
-        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
-    }
-    stage('Vega Clang Release') {
-        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
-    }
+// }, vega: rocmnode('vega') { cmake_build ->
+//     stage('Vega Clang Debug') {
+//         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+//     }
+//     stage('Vega Clang Release') {
+//         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+//     }
 }, hip_tidy: rocmnode('rocm') { cmake_build ->
     stage('Hip Tidy') {
         sh '''
