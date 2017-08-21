@@ -496,8 +496,6 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
 	reservespace_dev =
         std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
-	
-	printf("  sz %d  %d  %d  %d  %d \n", in_sz, hid_sz, wei_sz, out_sz, hy_sz);
 
     in                 = std::vector<T>(in_sz);
     din                = std::vector<T>(in_sz, 0);
@@ -827,8 +825,6 @@ int RNNDriver<T>::RunForwardCPU()
 	hy_d = hid_len[0];
 	hy_n = in_n[0];
 	hy_h = hid_len[1];
-
-	printf("  sz %d  %d  %d   %d   %d   %d  %d  %d  %d  %d \n", layer, in_h, seqLength, bidirection, biased,	hy_d,	hy_n,	hy_h,	out_h, squash);
 
 	RunRNNForwardCPUVerify(in,
 		wei, 
@@ -1437,26 +1433,15 @@ int RNNDriver<T>::VerifyForward()
         printf("Forward RNN Verifies on CPU and GPU\n");
     }
 
-	auto error1 = miopen::rms_range(reservespace_host, reservespace);
-
-	if (!(error1 < tolerance))
-	{
-		std::cout << std::string("reserve Failed: ") << error1 << "\n";
-	}
-	else
-	{
-		printf("reserve Verifies on CPU and GPU\n");
-	}
-
 	auto error2 = miopen::rms_range(hy_host, hy);
 
 	if (!(error2 < tolerance))
 	{
-		std::cout << std::string("hy Failed: ") << error2 << "\n";
+		std::cout << std::string("final hidden state Failed: ") << error2 << "\n";
 	}
 	else
 	{
-		printf("hy Verifies on CPU and GPU\n");
+		printf("final hidden Verifies on CPU and GPU\n");
 	}
 
     return 0;
@@ -1484,27 +1469,15 @@ int RNNDriver<T>::VerifyBackward()
         printf("Backward RNN Data Verifies on CPU and GPU\n");
     }
 
-	auto error_data1 = miopen::rms_range(workspace_host, workspace);
-
-	if (!(error_data1 < tolerance))
-	{
-		std::cout << std::string("worksp Failed: ") << error_data1
-			<< std::string("\n");
-	}
-	else
-	{
-		printf("worksp Verifies on CPU and GPU\n");
-	}
-
 	auto error_data2 = miopen::rms_range(dhx_host, dhx);
 
 	if (!(error_data2 < tolerance))
 	{
-		std::cout << std::string("dhx Failed: ") << error_data2 << "\n";
+		std::cout << std::string("difference at inital hidden state Failed: ") << error_data2 << "\n";
 	}
 	else
 	{
-		printf("dhx Verifies on CPU and GPU\n");
+		printf("difference at inital hidden state Verifies on CPU and GPU\n");
 	}
 
 
