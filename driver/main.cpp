@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
  //       if(!(base_arg == "gemm"))
         {
             drv->RunBackwardGPU();
- //           if(drv->GetInputFlags().GetValueInt("verify") == 1)
+            if(drv->GetInputFlags().GetValueInt("verify") == 1)
             {
                 drv->VerifyBackward();
             }
