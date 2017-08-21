@@ -28,7 +28,6 @@
 
 #include <map>
 #include <string>
-#include <vector>
 
 struct Input
 {
@@ -58,7 +57,6 @@ class InputFlags
     int GetValueInt(const std::string& _long_name) const;
     uint64_t GetValueUint64(const std::string& _long_name) const;
     double GetValueDouble(const std::string& _long_name) const;
-//	std::vector<int> GetVectorInt(const std::string& _long_name) const;
 
     virtual ~InputFlags() {}
 };
