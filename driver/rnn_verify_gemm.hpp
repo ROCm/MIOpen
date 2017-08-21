@@ -744,7 +744,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 		}
 	}
 
-	for (int i = 0; i < (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h + (2 + (numlayer - 1) * (bi + 1)) * bi * hy_h + bi * out_h; i++)
+	for (int i = 0; i < wei_len; i++)
 	{
 		dwei_host[i] = dwei_state[i];
 	}
