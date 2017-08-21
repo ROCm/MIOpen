@@ -691,7 +691,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 			}
 		}
 
-		if (li < numLayer)
+		if (li < numlayer)
 		{
 			bacc = 0;
 			for (int ti = 0; ti < seqLength; ti++)
