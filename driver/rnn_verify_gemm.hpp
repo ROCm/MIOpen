@@ -643,7 +643,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 				{
 					for (int w = 0; w < batch_n; w++)
 					{
-						dwei_state[wei_shift + h] += dout[w* hy_stride + h];
+						dwei_state[wei_shift + h] += dout[w* out_stride + h];
 					}
 
 					if (bidirection)
