@@ -121,7 +121,7 @@ struct HandleImpl
     void set_ctx()
     {
         miopen::set_ctx(this->ctx);
-        miopen::set_device(this->device);
+        // TODO: Check device matches
     }
 
     bool enable_profiling  = false;
