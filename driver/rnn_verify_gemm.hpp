@@ -6,50 +6,6 @@
 #include <math.h>
 #include <cassert>
 #include <algorithm>
-//#include "rnn_verify.hpp"
-
-/*
-int sumv(std::vector<int>& x)
-{
-	int sum = 0;
-	for (int i = 0; i < x.size(); i++)
-	{
-		sum += x[i];
-	}
-	return sum;
-}
-
-float activfunc(float x, int actvf)
-{
-	switch (actvf)
-	{
-	case 0:  // ReLU
-	{
-                float y = 0;
-		return std::max(x, y);
-	}
-	case 1:  // tanh
-	{
-		return tanh(x);
-	}
-	}
-}
-
-float dervactivfunc(float x, int actvf)
-{
-	switch (actvf)
-	{
-	case 0:  // ReLU
-	{
-		return (x > 0 ? 1 : 0);
-	}
-	case 1:  // tanh
-	{
-		return 1 / cosh(x) / cosh(x);
-	}
-	}
-}
-*/
 
 template <typename T>
 void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
@@ -65,7 +21,6 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
-//	std::vector<int>& out_n, // equals in_n
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
         int squash,
     std::vector<T>& rsvspace
@@ -84,7 +39,6 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
 	int bacc,baccbi; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
-//	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
 	// initial input
 	T * in_state = new T[batch_n * in_h];
@@ -205,8 +159,6 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 				}
 				else
 				{
-//					int pretime_shift = li * batch_n * hy_h * bi + (bacc - in_n[ti - 1]) * hy_stride;
-					
 					ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift], hy_h, in_n[ti], hy_stride, 0,
 						(const T *)&wei_state[in_h*hy_h*bi], hy_h, hy_h, hy_stride, 0,
 						&hid_state[hid_shift + bacc * hy_stride], hy_h, in_n[ti], hy_stride, 0,
@@ -351,7 +303,6 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
-//	std::vector<int>& out_n, // equals in_n
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
         int squash,
 	std::vector<T>& rsvspace,
@@ -368,7 +319,6 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
 	int bacc,baccbi; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
-//	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
 	// initial dout
 	T * dout_state = new T[batch_n * out_h];
@@ -545,7 +495,6 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 	int hy_d, // 1 by numlayer (number of stacks of hidden layers) for unidirection, 2 by numlayer for bidirection
 	int hy_n, // equal to input batch size in_n[0]
 	int hy_h, // hidden state number
-//	std::vector<int>& out_n, // equals in_n
 	int out_h,  // 1 by hy_h related function for unidirection, 2 by hy_h related function for bidirection
         int squash,
 	std::vector<T>& rsvspace,
@@ -556,7 +505,6 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
 	int bacc,baccbi; // accumulation of batch
 	int bi = bidirection ? 2 : 1;
-//	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
     // weights
 	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
