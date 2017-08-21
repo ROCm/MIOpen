@@ -679,7 +679,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 				{
 					for (int w = 0; w < batch_n; w++)
 					{
-						dwei_state[wei_shift + h] += wkspace[hid_shift + w* hy_h + h];
+						dwei_state[wei_shift + h] += wkspace[hid_shift + w* hy_stride + h];
 					}
 					dwei_state[wei_shift + bi * hy_stride + h] = dwei_state[wei_shift + h];
 
