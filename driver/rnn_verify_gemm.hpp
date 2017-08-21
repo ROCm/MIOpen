@@ -558,8 +558,15 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 	int bi = bidirection ? 2 : 1;
 //	int squash = cudnnRNNMode_t == CUDNN_RNN_RELU ? 0 : 1;
 
-	T * dwei_state = new T[(in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h];
-	memset(dwei_state, 0, (in_h + hy_h + out_h + (numlayer - 1) * (bi * hy_h + hy_h)) * bi * hy_h * sizeof(T));
+    // weights
+	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	if (biased)
+	{
+		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+	}
+
+	T * dwei_state = new T[wei_len];
+	memset(dwei_state, 0, wei_len * sizeof(T));
 
         // initial input
 	T * in_state = new T[batch_n * in_h];
