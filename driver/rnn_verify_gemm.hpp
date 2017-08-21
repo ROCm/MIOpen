@@ -691,56 +691,58 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 			}
 		}
 
-
-		bacc = 0;
-		for (int ti = 0; ti < seqLength; ti++)
+		if (li < numLayer)
 		{
-			int hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride;
-			int hx_shift = li * bi * in_n[0] * hy_h;
-			int wei_shift;
-			int pretime_shift;
-
-			wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
-
-			// between time
-			if (ti == 0)
+			bacc = 0;
+			for (int ti = 0; ti < seqLength; ti++)
 			{
-				ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift], hy_h, in_n[ti], hy_stride, ADNN_MM_TRANSPOSE,
-					(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_stride, 0,
-					&dwei_state[wei_shift], hy_h, hy_h, hy_stride, 0,
-					1, 1);
-			}
-			else
-			{
-				pretime_shift = li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_stride;
+				int hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride;
+				int hx_shift = li * bi * in_n[0] * hy_h;
+				int wei_shift;
+				int pretime_shift;
 
-				ADNN_mm_cpu<T>((const T *)&rsvspace_state[pretime_shift], hy_h, in_n[ti], hy_stride, ADNN_MM_TRANSPOSE,
-					(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_stride, 0,
-					&dwei_state[wei_shift], hy_h, hy_h, hy_stride, 0,
-					1, 1);
-			}
+				wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
 
-			if (bidirection)
-			{
-				if (ti == seqLength - 1)
+				// between time
+				if (ti == 0)
 				{
-					ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift + hy_h], hy_h, in_n[ti], hy_stride, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift + hy_h], hy_h, in_n[ti], hy_stride, 0,
-						&dwei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, 0,
+					ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift], hy_h, in_n[ti], hy_stride, ADNN_MM_TRANSPOSE,
+						(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_stride, 0,
+						&dwei_state[wei_shift], hy_h, hy_h, hy_stride, 0,
 						1, 1);
 				}
 				else
 				{
-					pretime_shift = li * bi * batch_n * hy_h + ((bacc + in_n[ti])) * hy_stride;
+					pretime_shift = li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_stride;
 
-					ADNN_mm_cpu<T>((const T *)&rsvspace_state[pretime_shift + hy_h], hy_h, in_n[ti+1], hy_stride, ADNN_MM_TRANSPOSE,
-						(const T*)&wkspace_state[hid_shift + hy_h], hy_h, in_n[ti+1], hy_stride, 0,
-						&dwei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, 0,
+					ADNN_mm_cpu<T>((const T *)&rsvspace_state[pretime_shift], hy_h, in_n[ti], hy_stride, ADNN_MM_TRANSPOSE,
+						(const T*)&wkspace_state[hid_shift], hy_h, in_n[ti], hy_stride, 0,
+						&dwei_state[wei_shift], hy_h, hy_h, hy_stride, 0,
 						1, 1);
 				}
+
+				if (bidirection)
+				{
+					if (ti == seqLength - 1)
+					{
+						ADNN_mm_cpu<T>((const T *)&hx_state[hx_shift + hy_h], hy_h, in_n[ti], hy_stride, ADNN_MM_TRANSPOSE,
+							(const T*)&wkspace_state[hid_shift + hy_h], hy_h, in_n[ti], hy_stride, 0,
+							&dwei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, 0,
+							1, 1);
+					}
+					else
+					{
+						pretime_shift = li * bi * batch_n * hy_h + ((bacc + in_n[ti])) * hy_stride;
+
+						ADNN_mm_cpu<T>((const T *)&rsvspace_state[pretime_shift + hy_h], hy_h, in_n[ti + 1], hy_stride, ADNN_MM_TRANSPOSE,
+							(const T*)&wkspace_state[hid_shift + hy_h], hy_h, in_n[ti + 1], hy_stride, 0,
+							&dwei_state[wei_shift + hy_h], hy_h, hy_h, hy_stride, 0,
+							1, 1);
+					}
+				}
+
+				bacc += in_n[ti];
 			}
-					
-			bacc += in_n[ti];
 		}
 	}
 
