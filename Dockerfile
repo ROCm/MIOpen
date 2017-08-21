@@ -75,7 +75,7 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install hip
-RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@roc-1.6.0
+RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@660061c3b43ba704018ba5353746cedf7d6ec1a9
 
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 
