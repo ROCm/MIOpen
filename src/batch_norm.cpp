@@ -157,12 +157,12 @@ void bnFwdTrainSelectMulti(Handle& handle,
     }
     else if(resultsave)
     {
-
+        
         kernel_subname = kernel_name + "Mean";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y);
         profileSequence(handle, 0);
-
+        
         kernel_subname = kernel_name + "FinalMean";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             y, inhw, resultSaveMean);
@@ -183,6 +183,7 @@ void bnFwdTrainSelectMulti(Handle& handle,
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y, bnScale, bnBias);
         profileSequence(handle, 2);
+ 
     }
     else if(resultrunning)
     {
