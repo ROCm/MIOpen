@@ -232,10 +232,10 @@ typedef enum {
 * RNN mode selection for rnn layer preference
 */
 typedef enum {
-	miopenRNNRELU = 0, /*!< RNN ReLU squash */
-	miopenRNNTANH = 1, /*!< RNN tanh squash */
-	miopenLSTM = 2, /*!< LSTM */
-	miopenGRU = 3, /*!< GRU */
+    miopenRNNRELU = 0, /*!< RNN ReLU squash */
+    miopenRNNTANH = 1, /*!< RNN tanh squash */
+    miopenLSTM    = 2, /*!< LSTM */
+    miopenGRU     = 3, /*!< GRU */
 } miopenRNNMode_t;
 
 /*! @ingroup pooling
@@ -1530,7 +1530,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT SOFTMAX DOXYGEN GROUP
 
-
 /** @addtogroup RNN
 *
 *  @{
@@ -1541,8 +1540,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 * @param rnnDesc   RNN layer descriptor
 * @return           miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t
-miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc);
+MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc);
 
 /*! @brief Creates a RNN layer descriptor
 *
@@ -1553,11 +1551,8 @@ miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc);
 * @param bidir      uni- or bi-direction
 * @return           miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
-    miopenRNNMode_t mode,
-    int seqLength, 
-    int layer, 
-    int bidir);
+MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir);
 
 /*! @brief Retrieves a RNN layer descriptor's details
 *
@@ -1568,24 +1563,18 @@ MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(miopenRNNDescriptor_t rnnDe
 * @param bidir      uni- or bi-direction
 * @return           miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
-	miopenRNNMode_t* mode,
-	int* seqLength,
-	int* layer,
-	int* bidir);
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir);
 
 /*! @brief Destroys the tensor descriptor object
 *
 * @param rnnDesc RNN tensor descriptor type
 * @return           miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t
-miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc);
-
+MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc);
 
 /** @} */
 // CLOSEOUT RNN DOXYGEN GROUP
-
 
 #ifdef __cplusplus
 }

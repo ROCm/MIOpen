@@ -69,10 +69,10 @@ int main(int argc, char* argv[])
     {
         drv = new BatchNormDriver<float>();
     }
-	else if (base_arg == "rnn")
-	{
-		drv = new RNNDriver<float>();
-	}
+    else if(base_arg == "rnn")
+    {
+        drv = new RNNDriver<float>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");
@@ -92,9 +92,9 @@ int main(int argc, char* argv[])
         drv->VerifyForward();
     }
 
- //   if(drv->GetInputFlags().GetValueInt("forw") == 0)
+    //   if(drv->GetInputFlags().GetValueInt("forw") == 0)
     {
- //       if(!(base_arg == "gemm"))
+        //       if(!(base_arg == "gemm"))
         {
             drv->RunBackwardGPU();
             if(drv->GetInputFlags().GetValueInt("verify") == 1)
