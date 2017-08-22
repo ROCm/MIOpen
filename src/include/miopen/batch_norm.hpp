@@ -35,7 +35,7 @@
 #include <miopen/tensor.hpp>
 
 #define MIO_BN_CPP_PROF 0
-#define MIOPEN_BN_CPP_DEBUG 1
+#define MIOPEN_BN_CPP_DEBUG 0
 #define MIO_BN_STATIC_WGSIZE 256
 #define MIO_BN_TIME_EVERYTHING 0
 
@@ -44,6 +44,46 @@ namespace miopen {
 void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
                               const TensorDescriptor& xDesc,
                               miopenBatchNormMode_t bn_mode);
+
+void bnBwdTrainSelectSingle(Handle& handle,
+                            std::string& program_name,
+                            std::string& algo_name,
+                            std::string& kernel_name,
+                            std::string& network_config,
+                            std::string& parms,
+                            std::vector<size_t>& vld,
+                            std::vector<size_t>& vgd,
+                            ConstData_t x,
+                            ConstData_t dy,
+                            Data_t dx,
+                            ConstData_t bnScale,
+                            Data_t dScale,
+                            Data_t dBias,
+                            bool useSaved,
+                            double epsilon,
+                            Data_t savedMean,
+                            Data_t savedInvVariance,
+                            float inhw);
+
+void bnBwdTrainSelectMulti(Handle& handle,
+                            std::string& program_name,
+                            std::string& algo_name,
+                            std::string& kernel_name,
+                            std::string& network_config,
+                            std::string& parms,
+                            std::vector<size_t>& vld,
+                            std::vector<size_t>& vgd,
+                            ConstData_t x,
+                            ConstData_t dy,
+                            Data_t dx,
+                            ConstData_t bnScale,
+                            Data_t dScale,
+                            Data_t dBias,
+                            bool useSaved,
+                            double epsilon,
+                            Data_t savedMean,
+                            Data_t savedInvVariance,
+                            float inhw);
 
 void bnFwdTrainSelectSingle(Handle& handle,
                             std::string& program_name,
@@ -87,9 +127,7 @@ void bnFwdTrainSelectMulti(Handle& handle,
                            double epsilon,
                            Data_t resultSaveMean,
                            Data_t resultSaveInvVariance,
-                           float inhw/*,
-                           unsigned int in_cstride,
-                           unsigned int c*/);
+                           float inhw);
 
 void profileSequence(Handle& handle, unsigned char select);
 

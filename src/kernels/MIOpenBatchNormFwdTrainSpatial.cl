@@ -101,9 +101,11 @@
 #define MIO_BN_SEGMENT 1
 #endif
 
+/*
 #ifdef __AMDGCN__
 #undef __AMDGCN__
 #endif
+*/
 
 #define UNUSED __attribute__((__unused__))
 
