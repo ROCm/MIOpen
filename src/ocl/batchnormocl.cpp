@@ -130,7 +130,7 @@ void BatchNormForwardTraining(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(true){
+        if(in_cstride <= 512 && n>5 && in_cstride>4){
             
 
             xlocalsize = 1024;
@@ -161,6 +161,7 @@ void BatchNormForwardTraining(Handle& handle,
             vgd.push_back(zgridsize);
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
+            std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
 #endif
             bnFwdTrainSelectSingle(handle,
@@ -188,13 +189,13 @@ void BatchNormForwardTraining(Handle& handle,
         else if(in_cstride > 1024)
         {
             xlocalsize = 1;
-            ylocalsize = 256;
+            ylocalsize = 1024;
             zlocalsize = 1;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
 
-            auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
+            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
             xgridsize    = c;
             ygridsize    = segment * ylocalsize;
             zgridsize    = 1;
@@ -210,11 +211,12 @@ void BatchNormForwardTraining(Handle& handle,
             parms += " -DMIO_BN_GRP0=" + std::to_string(1);
             parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
             parms += " -DMIO_BN_GRP2=" + std::to_string(1);
+            parms += " -DMIO_BN_SEGMENT=" + std::to_string(segment);
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
+            std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
 #endif
-
             bnFwdTrainSelectMulti(handle,
                                   program_name,
                                   algo_name,
@@ -235,7 +237,7 @@ void BatchNormForwardTraining(Handle& handle,
                                   epsilon,
                                   resultSaveMean,
                                   resultSaveInvVariance,
-                                  inhw);
+                                  inhw);   
         }
         else
         {
@@ -256,7 +258,7 @@ void BatchNormForwardTraining(Handle& handle,
             else
             {
                 variant    = 2;
-                ylocalsize = (in_cstride <= 256) ? 256 : 1024;
+                ylocalsize = 64*((in_cstride+63)/64);//(in_cstride <= 256) ? 256 : 1024;
             }
             parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
             parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
@@ -481,6 +483,7 @@ void BatchNormForwardInference(Handle& handle,
             kernel_name += "Est";
             parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
 #if(MIOPEN_BN_CPP_DEBUG == 1)
+            std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
 #endif
             handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
@@ -529,6 +532,7 @@ void BatchNormForwardInference(Handle& handle,
                 kernel_subname = kernel_name + "SingleNorm";
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
+                std::cout << kernel_name << ":: ";
                 std::cout << parms << std::endl;
 #endif
                 handle.GetKernel(
@@ -565,6 +569,7 @@ void BatchNormForwardInference(Handle& handle,
                 parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
+                std::cout << kernel_name << ":: ";
                 std::cout << parms << std::endl;
 #endif
                 kernel_subname = kernel_name + "Mean";
@@ -778,7 +783,8 @@ void BatchNormBackward(Handle& handle,
             {
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << " -DMIO_BN_VARIANT=2" << std::endl;
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
 #endif
                 if(handle.GetDeviceName() == "gfx803")
                     parms += " -DMIO_BN_NODPP=1";
@@ -807,7 +813,8 @@ void BatchNormBackward(Handle& handle,
             else if(in_cstride < 32 && n <= ylocalsize)
             {
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << " -DMIO_BN_VARIANT=0" << std::endl;
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
 #endif
                 parms += " -DMIO_BN_VARIANT=0";
                 parms += " -DMIO_BN_LDS_NSIZE=" + std::to_string(n);
@@ -834,7 +841,8 @@ void BatchNormBackward(Handle& handle,
             {
                 parms += " -DMIO_BN_VARIANT=4";
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << " -DMIO_BN_VARIANT=4" << std::endl;
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
 #endif
                 if(handle.GetDeviceName() == "gfx803")
                     parms += " -DMIO_BN_NODPP=1";
@@ -858,7 +866,8 @@ void BatchNormBackward(Handle& handle,
             else
             {
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << " -DMIO_BN_VARIANT=6" << std::endl;
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
 #endif
                 parms += " -DMIO_BN_VARIANT=6";
                 kernel_subname = kernel_name + "DBias";
@@ -984,7 +993,8 @@ void BatchNormBackward(Handle& handle,
             if(lds_size <= 1 && in_cstride <= 256)
             {
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << " -DMIO_BN_VARIANT=1" << std::endl;
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
 #endif
                 parms += " -DMIO_BN_VARIANT=1";
                 parms += " -DMIO_BN_LDS_NSIZE=" + std::to_string(n);
@@ -1003,7 +1013,8 @@ void BatchNormBackward(Handle& handle,
             else if(in_cstride <= 256)
             {
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << " -DMIO_BN_VARIANT=3" << std::endl;
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
 #endif
                 parms += " -DMIO_BN_VARIANT=3";
                 parms += " -DMIO_BN_LDS_NSIZE=" + std::to_string(n);
@@ -1021,7 +1032,8 @@ void BatchNormBackward(Handle& handle,
             else
             {
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << " -DMIO_BN_VARIANT=5" << std::endl;
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
 #endif
                 parms += " -DMIO_BN_VARIANT=5";
                 kernel_subname = kernel_name + "Mean";

@@ -87,7 +87,9 @@ void bnFwdTrainSelectMulti(Handle& handle,
                            double epsilon,
                            Data_t resultSaveMean,
                            Data_t resultSaveInvVariance,
-                           float inhw);
+                           float inhw/*,
+                           unsigned int in_cstride,
+                           unsigned int c*/);
 
 void profileSequence(Handle& handle, unsigned char select);
 

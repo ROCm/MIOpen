@@ -71,9 +71,11 @@
 
 #define UNUSED __attribute__((__unused__))
 
+/*
 #ifdef __AMDGCN__
 #undef __AMDGCN__
 #endif
+*/
 
 // Disable specific warnings
 #ifdef __clang__
