@@ -16,20 +16,9 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
 * [OpenSSL](https://www.openssl.org/) or [libressl](https://www.libressl.org/)
 * [Boost](http://www.boost.org/) at least version 1.58
+  * MIOpen requires `boost-system` and `boost-filesystem` packages
 
-Please find the install instructions on the above dependencies on their respective repositories.
-
-The dependencies can be installed with the `install_deps.cmake`, script:
-
-```
-cmake -P install_deps.cmake
-```
-
-This will install by default to `/usr/local` but it can be installed in another location with `--prefix` argument:
-
-```
-cmake -P install_deps.cmake --prefix /some/local/dir
-```
+Please find the instructions to install the above dependencies in this [section](#install-dependencies).
 
 ## Configure with cmake
 
@@ -147,4 +136,18 @@ Also, githooks can be installed to format the code per-commit:
 
 ```
 ./.githooks/install
+```
+
+## Install Dependencies
+
+The dependencies can be installed with the `install_deps.cmake`, script:
+
+```
+cmake -P install_deps.cmake
+```
+
+This will install by default to `/usr/local` but it can be installed in another location with `--prefix` argument:
+
+```
+cmake -P install_deps.cmake --prefix /some/local/dir
 ```
