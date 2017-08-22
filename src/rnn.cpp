@@ -27,17 +27,13 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 
-//MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-//MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
+// MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+// MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace miopen {
 
-RNNDescriptor::RNNDescriptor(
-    int p_seqLength, int p_layer, int p_bidir)
-    : mode(miopenRNNTANH),
-	  seqLength(p_seqLength),
-	  layer(p_layer),
-	  bidir(p_bidir)
+RNNDescriptor::RNNDescriptor(int p_seqLength, int p_layer, int p_bidir)
+    : mode(miopenRNNTANH), seqLength(p_seqLength), layer(p_layer), bidir(p_bidir)
 {
     if(seqLength < 0 || layer < 0 || bidir < 0)
     {
@@ -45,14 +41,8 @@ RNNDescriptor::RNNDescriptor(
     }
 }
 
-RNNDescriptor::RNNDescriptor(miopenRNNMode_t p_mode,
-	int p_seqLength, 
-	int p_layer, 
-	int p_bidir)
-    : mode(p_mode),
-	  seqLength(p_seqLength),
-	  layer(p_layer),
-	  bidir(p_bidir)
+RNNDescriptor::RNNDescriptor(miopenRNNMode_t p_mode, int p_seqLength, int p_layer, int p_bidir)
+    : mode(p_mode), seqLength(p_seqLength), layer(p_layer), bidir(p_bidir)
 {
     if(seqLength < 0 || layer < 0 || bidir < 0)
     {
@@ -63,7 +53,6 @@ RNNDescriptor::RNNDescriptor(miopenRNNMode_t p_mode,
         MIOPEN_THROW(miopenStatusBadParm, "RNN mode not supported");
     }
 }
-
 
 /*
 

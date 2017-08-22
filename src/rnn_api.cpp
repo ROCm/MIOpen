@@ -29,43 +29,34 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-
 // TODO: Make miopenConvAlgoPerf_t loggable
 // inline std::ostream& operator<<(std::ostream& os, miopenConvAlgoPerf_t) { return os; }
 
 extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc)
 {
-//    MIOPEN_LOG_FUNCTION(rnnDesc);
+    //    MIOPEN_LOG_FUNCTION(rnnDesc);
     return miopen::try_([&] { miopen::deref(rnnDesc) = new miopen::RNNDescriptor(); });
 }
 
-extern "C" miopenStatus_t miopenInitRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
-	miopenRNNMode_t mode,
-	int seqLength,
-	int layer,
-	int bidir)
+extern "C" miopenStatus_t miopenInitRNNDescriptor(
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir)
 {
 
-//    MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir);
-    return miopen::try_([&] {
-        miopen::deref(rnnDesc) =
-            miopen::RNNDescriptor(mode, seqLength, layer, bidir);
-    });
+    //    MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir);
+    return miopen::try_(
+        [&] { miopen::deref(rnnDesc) = miopen::RNNDescriptor(mode, seqLength, layer, bidir); });
 }
 
-extern "C" miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
-                                                         miopenRNNMode_t* mode,
-	                                                     int* seqLength,
-	                                                     int* layer,
-	                                                     int* bidir)
+extern "C" miopenStatus_t miopenGetRNNDescriptor(
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir)
 {
 
-//	MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir);
+    //	MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir);
     return miopen::try_([&] {
-        miopen::deref(mode)       = miopen::deref(rnnDesc).mode;
-        miopen::deref(seqLength)      = miopen::deref(rnnDesc).seqLength;
-        miopen::deref(layer)      = miopen::deref(rnnDesc).layer;
-        miopen::deref(bidir)          = miopen::deref(rnnDesc).bidir;
+        miopen::deref(mode)      = miopen::deref(rnnDesc).mode;
+        miopen::deref(seqLength) = miopen::deref(rnnDesc).seqLength;
+        miopen::deref(layer)     = miopen::deref(rnnDesc).layer;
+        miopen::deref(bidir)     = miopen::deref(rnnDesc).bidir;
     });
 }
 
@@ -88,13 +79,11 @@ miopenGetConvolutionForwardOutputDim(miopenRNNDescriptor_t rnnDesc,
 }
 */
 
-
 extern "C" miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc)
 {
-//    MIOPEN_LOG_FUNCTION(rnnDesc);
+    //    MIOPEN_LOG_FUNCTION(rnnDesc);
     return miopen::try_([&] { delete rnnDesc; });
 }
-
 
 /*
 extern "C" miopenStatus_t
