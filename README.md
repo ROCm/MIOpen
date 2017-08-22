@@ -14,8 +14,22 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
     * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
+* [OpenSSL](https://www.openssl.org/) or [libressl](https://www.libressl.org/)
+* [Boost](http://www.boost.org/) at least version 1.58
 
 Please find the install instructions on the above dependencies on their respective repositories.
+
+The dependencies can be installed with the `install_deps.cmake`, script:
+
+```
+cmake -P install_deps.cmake
+```
+
+This will install by default to `/usr/local` but it can be installed in another location with `--prefix` argument:
+
+```
+cmake -P install_deps.cmake --prefix /some/local/dir
+```
 
 ## Configure with cmake
 
