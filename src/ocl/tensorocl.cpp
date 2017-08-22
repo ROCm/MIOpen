@@ -114,11 +114,12 @@ static void CreateBitmapAndGrid(unsigned int& bitmap,
 
 static bool IsBitmapLeadingOnes(unsigned int& bitmap, int n_size, int first_not_one)
 {
-    bool leading_ones = false;
+    bool leading_ones = true;
 
     for(int i = first_not_one; i >= 0; i--)
     {
-        leading_ones &= bitmap & (1 << (n_size - 1 - i));
+        bool is_one = (bitmap & (1 << (n_size - 1 - i)));
+        leading_ones &= is_one;
     }
     return leading_ones;
 }
@@ -225,7 +226,9 @@ void OpTensor(Handle& handle,
     std::string program_name = "MIOpenTensorKernels.cl";
 
     const std::vector<size_t> vld{local_threads, 1, 1};
-    size_t global_threads = num_wg * local_threads;
+
+    // Special case for adding tensors inplace
+    size_t global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
     int op = tensorOp;
@@ -234,6 +237,12 @@ void OpTensor(Handle& handle,
     {
         handle.GetKernel("OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
             ATensor, BTensor, b_c, CTensor, c_n, c_nstride, c_cstride, work_per_wg, op);
+    }
+    else if(leading_ones)
+    {
+        handle.GetKernel(
+            "OpTensorLeadingOnes", "", program_name, "OpTensorLeadingOnes", vld, vgd, parms)(
+            ATensor, BTensor, CTensor, c_c, c_h, c_w, c_nstride, c_cstride, work_per_wg, op);
     }
     else
     {
