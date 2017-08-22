@@ -267,7 +267,13 @@ endif()
 
 target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
 target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
-target_link_libraries(MIOpen PRIVATE 
+set(MIOPEN_MAKE_BOOST_PUBLIC Off CACHE BOOL "")
+if(MIOPEN_MAKE_BOOST_PUBLIC)
+set(MIOPEN_BOOST_LIB_VISIBILITY PUBLIC)
+else()
+set(MIOPEN_BOOST_LIB_VISIBILITY PRIVATE)
+endif()
+target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY} 
     optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE} 
     optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG} 
