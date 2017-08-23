@@ -132,8 +132,8 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
     stage('Hip Release') {
         cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, windows: rocmnode('fiji') { cmake_build ->
-    stage('Windows Release') {
-        cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
-    }
+// }, windows: rocmnode('fiji') { cmake_build ->
+//     stage('Windows Release') {
+//         cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
+//     }
 }
