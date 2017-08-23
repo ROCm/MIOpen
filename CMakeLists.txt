@@ -134,10 +134,12 @@ else()
     set(MIOPEN_USE_MIOPENGEMM 0)
 endif()
 
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL)
 set(BOOST_COMPONENTS filesystem system)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
-find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
+find_package(Boost COMPONENTS ${BOOST_COMPONENTS})
+
+set(MIOPEN_USE_CACHE On CACHE BOOL "")
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
