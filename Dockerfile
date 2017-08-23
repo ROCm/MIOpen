@@ -86,14 +86,15 @@ ADD doc/requirements.txt /doc-requirements.txt
 RUN pip install -r /doc-requirements.txt
 
 # Install windows opencl
-RUN cget install -p $PREFIX/x86_64-w64-mingw32 KhronosGroup/OpenCL-Headers@master -X header -DINCLUDE_DIR=opencl22
-RUN cget install -p $PREFIX/x86_64-w64-mingw32 pfultz2/OpenCL-ICD-Loader@master
+RUN cget -p $PREFIX/x86_64-w64-mingw32/opencl init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
+RUN cget install -p $PREFIX/x86_64-w64-mingw32/opencl KhronosGroup/OpenCL-Headers@master -X header -DINCLUDE_DIR=opencl22
+RUN cget install -p $PREFIX/x86_64-w64-mingw32/opencl pfultz2/OpenCL-ICD-Loader@master
 
 # Install windows dependencies
 RUN cget -p $PREFIX/x86_64-w64-mingw32 install pfultz2/rocm-recipes
 RUN cget -p $PREFIX/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@dad05201ad4e096c5d1b2043081f412aeb8f5efb
 RUN ln -s $PREFIX/x86_64-w64-mingw32/include/mingw.thread.h $PREFIX/x86_64-w64-mingw32/include/thread 
-RUN CXXFLAGS='-I $PREFIX/x86_64-w64-mingw32/include' cget -p $PREFIX/x86_64-w64-mingw32 install -f /dev-requirements.txt
+RUN CXXFLAGS='-I $PREFIX/x86_64-w64-mingw32/include' AMDAPPSDKROOT=$PREFIX/x86_64-w64-mingw32/opencl cget -p $PREFIX/x86_64-w64-mingw32 install -f /dev-requirements.txt
 
 # Setup wine
 RUN mkdir -p /jenkins
