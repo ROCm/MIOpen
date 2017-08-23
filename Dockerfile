@@ -1,9 +1,6 @@
 FROM ubuntu:16.04
 
 ARG PREFIX=/opt/rocm
-ARG REPO_RADEON=repo.radeon.com
-ARG GITLAB1=10.236.13.205
-ARG ARTIFACTORY=172.27.226.104
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -89,14 +86,14 @@ ADD doc/requirements.txt /doc-requirements.txt
 RUN pip install -r /doc-requirements.txt
 
 # Install windows opencl
-RUN curl http://$GITLAB1/pfultz/mlopen/uploads/bbab72ad68e65faeee9257b2bb9ca4a1/win-opencl.deb > /win-opencl.deb
-RUN dpkg -i /win-opencl.deb && rm /win-opencl.deb
+RUN cget install -p $PREFIX/x86_64-w64-mingw32 KhronosGroup/OpenCL-Headers@master -X header -DINCLUDE_DIR=opencl22
+RUN cget install -p $PREFIX/x86_64-w64-mingw32 pfultz2/OpenCL-ICD-Loader@master
 
 # Install windows dependencies
 RUN cget -p $PREFIX/x86_64-w64-mingw32 install pfultz2/rocm-recipes
 RUN cget -p $PREFIX/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@dad05201ad4e096c5d1b2043081f412aeb8f5efb
 RUN ln -s $PREFIX/x86_64-w64-mingw32/include/mingw.thread.h $PREFIX/x86_64-w64-mingw32/include/thread 
-RUN cget -p $PREFIX/x86_64-w64-mingw32 install -f /dev-requirements.txt
+RUN CXXFLAGS='-I $PREFIX/x86_64-w64-mingw32/include' cget -p $PREFIX/x86_64-w64-mingw32 install -f /dev-requirements.txt
 
 # Setup wine
 RUN mkdir -p /jenkins
