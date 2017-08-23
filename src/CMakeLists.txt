@@ -69,7 +69,6 @@ set( MIOpen_Source
     activ_api.cpp
     handle_api.cpp
     softmax_api.cpp
-    binary_cache.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     include/miopen/batch_norm.hpp
@@ -90,8 +89,11 @@ set( MIOpen_Source
     include/miopen/softmax.hpp
     tensor.cpp
     tensor_api.cpp
-    tmp_dir.cpp
     )
+
+if(MIOPEN_USE_CACHE)
+    list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp)
+endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNELS
@@ -265,6 +267,7 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
+if(MIOPEN_USE_CACHE)
 target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
 target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 set(MIOPEN_MAKE_BOOST_PUBLIC Off CACHE BOOL "")
@@ -279,6 +282,7 @@ target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG} 
     debug ${Boost_SYSTEM_LIBRARY_DEBUG}
 )
+endif()
 
 ############################################################
 # Installation
