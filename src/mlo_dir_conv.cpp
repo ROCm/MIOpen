@@ -43,7 +43,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
@@ -668,20 +667,6 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version 
     {
         return false;
     }
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED{}))
-    {
-        // FIXME remove env var and all this stuff when Winograd v8 gets fixed.
-        if(!(_kernel_stride0 == 1 && _kernel_stride1 == 1))
-        {
-            return false;
-        }
-        // if(!(_kernel_size0 <= 3 && _kernel_size1 <= 3))
-        // 3x3 seems to fail on Vega, so let's keep 1x1 only for now.
-        if(!(_kernel_size0 == 1 && _kernel_size1 == 1))
-        {
-            return false;
-        }
-    }
     const auto name                    = _stream->GetDeviceName();
     const auto device_is_gfx9_no_xnack = (name == "gfx900");
     const bool device_is_gfx8_no_xnack =
@@ -692,7 +677,6 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version 
     }
     // Check if kernel is suitable for the problem description
     // and able to correctly run with given parameters.
-
     // Calculate padded filter size first.
     // If stride = 1: if S <= 3 it is padded to 3,
     // otherwise S is padded to smallest 6*n for some integer n
@@ -759,6 +743,7 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version 
            && _kernel_size1 < std::pow(2, 16) // -y   wei_h   R uint16
            && _kernel_stride0 <= 2            // -u   inp_u   1 or 2
            && _kernel_stride1 <= 2            // -v   inp_v   1 or 2
+           && _kernel_stride0 == _kernel_stride1 // Only u1v1 or u2v2 for now.
            && _batch_sz < std::pow(2, 16) && _n_inputs < std::pow(2, 16) // -c   wei_c
            && _n_outputs < std::pow(2, 16)                               // -k   wei_k
            && _in_height < std::pow(2, 16)                               // -H   inp_h
@@ -812,7 +797,7 @@ int mlo_construct_direct2D::mloConstructBinaryWinogradRxSFwd()
     {
         _kernel_file += "u2v2";
     }
-    _kernel_file += "_wheel_alpha_v8_3_6_";
+    _kernel_file += "_wheel_alpha_v8_4_4_";
     if(name.find("gfx8") != std::string::npos)
     {
         _kernel_file += "gfx803";
