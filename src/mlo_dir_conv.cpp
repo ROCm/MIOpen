@@ -684,7 +684,7 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version 
     int padded_S = 0;
     if(_kernel_stride0 == 1)
     {
-        if(_kernel_size0 < 3)
+        if(_kernel_size0 <= 3)
         {
             padded_S = 3;
         }
