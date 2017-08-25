@@ -614,6 +614,9 @@ void BatchNormBackward(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
+        // if(handle.GetDeviceName() == "gfx803")
+        //     parms += " -DMIO_BN_NODPP=1";
+
         if(in_cstride <= 512 && n > 3 && in_cstride > 4)
         {
             xlocalsize = 1024;
@@ -646,8 +649,6 @@ void BatchNormBackward(Handle& handle,
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
 #endif
-            // if(handle.GetDeviceName() == "gfx803")
-            //     parms += " -DMIO_BN_NODPP=1";
             bnBwdTrainSelectSingle(handle,
                                    program_name,
                                    algo_name,
