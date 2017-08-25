@@ -65,7 +65,6 @@ set( MIOpen_Source
     kernel_warnings.cpp
     logger.cpp
     lrn_api.cpp
-    md5.cpp
     activ_api.cpp
     handle_api.cpp
     softmax_api.cpp
@@ -92,7 +91,7 @@ set( MIOpen_Source
     )
 
 if(MIOPEN_USE_CACHE)
-    list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp)
+    list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
