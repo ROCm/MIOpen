@@ -503,10 +503,10 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
     }
 #else
     return miopen::LoadProgram(miopen::GetContext(this->GetStream()),
-		    miopen::GetDevice(this->GetStream()),
-		    program_name,
-		    params,
-		    is_kernel_str);
+                               miopen::GetDevice(this->GetStream()),
+                               program_name,
+                               params,
+                               is_kernel_str);
 #endif
 }
 
