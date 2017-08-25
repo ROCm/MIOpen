@@ -496,12 +496,18 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
         return std::move(p);
     }
     else
-#endif
     {
         return LoadBinaryProgram(miopen::GetContext(this->GetStream()),
                                  miopen::GetDevice(this->GetStream()),
                                  miopen::LoadFile(cache_file));
     }
+#else
+    return miopen::LoadProgram(miopen::GetContext(this->GetStream()),
+		    miopen::GetDevice(this->GetStream()),
+		    program_name,
+		    params,
+		    is_kernel_str);
+#endif
 }
 
 void Handle::Finish() const { clFinish(this->GetStream()); }
