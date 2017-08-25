@@ -782,7 +782,7 @@ int BatchNormDriver<T>::RunForwardGPU()
     }
     else
     {
-        //printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
+        // printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
     }
     return miopenStatusSuccess;
 }

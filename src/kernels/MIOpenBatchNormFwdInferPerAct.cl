@@ -52,7 +52,6 @@
 #define MIO_BN_GRP2 1
 #endif
 
-
 // Disable specific warnings
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -61,10 +60,10 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) 
-__kernel void BatchNormFwdInferPerActivationEst(
-    const __global _FLOAT* in, /* x input */
-    __global _FLOAT*  __restrict out,               /* y output */
+__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
+BatchNormFwdInferPerActivationEst(
+    const __global _FLOAT* in,                     /* x input */
+    __global _FLOAT* __restrict out,               /* y output */
     __global _FLOAT* __restrict estimatedMean,     /*input and output, same descriptor as bias*/
     __global _FLOAT* __restrict estimatedVariance, /*input and output*/
     const __global _FLOAT* __restrict scale,       /* gamma 1xCxHxW */

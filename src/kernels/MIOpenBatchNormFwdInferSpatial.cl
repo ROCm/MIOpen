@@ -66,7 +66,6 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 BatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
                             __global _FLOAT* __restrict out,      /* y output */
@@ -78,7 +77,7 @@ BatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
 {
 
     int xgid = get_global_id(0);
-
+    int ygid = get_global_id(1);
     local _FLOAT lmean;
     local _FLOAT lvar;
     local _FLOAT lscale;
@@ -100,7 +99,7 @@ BatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     // move across the sections of the image mini_batch stack
-    if(get_global_id(1) < MIO_BN_HW)
+    if(ygid < MIO_BN_HW)
     {
         mean        = lmean;
         variance    = lvar;
@@ -117,7 +116,6 @@ BatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
         }                                           // end for(img_offset)
     }
 } // end spatial norm
-
 
 #ifdef __clang__
 #pragma clang diagnostic pop
