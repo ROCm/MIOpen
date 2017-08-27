@@ -735,14 +735,14 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version 
         }
     }
     const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
-    assert(_weights_layout.length() == 0);    // FIXME _weights_layout is not supported yet.
-                                              // Opt. Param   Restrictions in source
-    return _pad0 < std::pow(2, 16)            // -q   pad_w   uint16
-           && _pad1 < std::pow(2, 16)         // -p   pad_h   uint16
-           && _kernel_size0 < std::pow(2, 16) // -x   wei_w   S uint16
-           && _kernel_size1 < std::pow(2, 16) // -y   wei_h   R uint16
-           && _kernel_stride0 <= 2            // -u   inp_u   1 or 2
-           && _kernel_stride1 <= 2            // -v   inp_v   1 or 2
+    assert(_weights_layout.length() == 0);       // FIXME _weights_layout is not supported yet.
+                                                 // Opt. Param   Restrictions in source
+    return _pad0 < std::pow(2, 16)               // -q   pad_w   uint16
+           && _pad1 < std::pow(2, 16)            // -p   pad_h   uint16
+           && _kernel_size0 < std::pow(2, 16)    // -x   wei_w   S uint16
+           && _kernel_size1 < std::pow(2, 16)    // -y   wei_h   R uint16
+           && _kernel_stride0 <= 2               // -u   inp_u   1 or 2
+           && _kernel_stride1 <= 2               // -v   inp_v   1 or 2
            && _kernel_stride0 == _kernel_stride1 // Only u1v1 or u2v2 for now.
            && _batch_sz < std::pow(2, 16) && _n_inputs < std::pow(2, 16) // -c   wei_c
            && _n_outputs < std::pow(2, 16)                               // -k   wei_k
