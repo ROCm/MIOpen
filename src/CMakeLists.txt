@@ -60,6 +60,7 @@ set( MIOpen_Source
     convolution_api.cpp
     convolution_fft.cpp
     errors.cpp
+    load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
     logger.cpp
@@ -88,6 +89,10 @@ set( MIOpen_Source
     tensor.cpp
     tensor_api.cpp
     )
+
+if(MIOPEN_USE_CACHE)
+    list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
+endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNELS
@@ -257,6 +262,23 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
+if(MIOPEN_USE_CACHE)
+target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
+target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
+set(MIOPEN_MAKE_BOOST_PUBLIC Off CACHE BOOL "")
+if(MIOPEN_MAKE_BOOST_PUBLIC)
+set(MIOPEN_BOOST_LIB_VISIBILITY PUBLIC)
+else()
+set(MIOPEN_BOOST_LIB_VISIBILITY PRIVATE)
+endif()
+target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY} 
+    optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE} 
+    optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
+    debug ${Boost_FILESYSTEM_LIBRARY_DEBUG} 
+    debug ${Boost_SYSTEM_LIBRARY_DEBUG}
+)
+endif()
+
 ############################################################
 # Installation
 rocm_install_targets(
@@ -270,8 +292,9 @@ rocm_install_targets(
 rocm_export_targets(
   TARGETS MIOpen
   PREFIX ${MIOPEN_INSTALL_DIR}
-  DEPENDS ${PACKAGE_DEPENDS}
- )
+  DEPENDS
+    ${PACKAGE_DEPENDS} 
+)
 
 
 # Install db files
