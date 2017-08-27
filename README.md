@@ -143,7 +143,7 @@ Also, githooks can be installed to format the code per-commit:
 ./.githooks/install
 ```
 
-## Installing Dependencies
+## Installing dependencies
 
 The dependencies can be installed with the `install_deps.cmake`, script:
 
