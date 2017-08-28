@@ -45,7 +45,7 @@
 // Run CPU emulations in hierarchical reduction mode.
 #define MIO_HEIRARCH_SEL 1
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
-#define MIO_BN_TEST_EPSILON 0.00001
+#define MIO_BN_TEST_EPSILON 1e-6
 #define MIO_BN_SP_TEST_DEBUG 0
 
 //****************************************************
