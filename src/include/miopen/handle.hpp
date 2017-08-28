@@ -53,7 +53,7 @@ struct Handle : miopenHandle
     void EnableProfiling(bool enable = true);
 
     void ResetKernelTime();
-    void AccumKernelTime(float x);
+    void AccumKernelTime(float curr_time);
 
     float GetKernelTime() const;
     bool IsProfilingEnabled() const;
