@@ -61,8 +61,8 @@ void bnBwdTrainSelectSingle(Handle& handle,
                             Data_t dBias,
                             bool useSaved,
                             double epsilon,
-                            Data_t savedMean,
-                            Data_t savedInvVariance,
+                            ConstData_t savedMean,
+                            ConstData_t savedInvVariance,
                             float inhw);
 
 void bnBwdTrainSelectMulti(Handle& handle,
@@ -81,8 +81,8 @@ void bnBwdTrainSelectMulti(Handle& handle,
                            Data_t dBias,
                            bool useSaved,
                            double epsilon,
-                           Data_t savedMean,
-                           Data_t savedInvVariance,
+                           ConstData_t savedMean,
+                           ConstData_t savedInvVariance,
                            float inhw);
 
 void bnFwdTrainSelectSingle(Handle& handle,
