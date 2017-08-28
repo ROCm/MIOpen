@@ -333,6 +333,9 @@ void bnBwdTrainSelectSingle(Handle& handle,
     }
     else
     {
+        if(handle.GetDeviceName() == "gfx803")
+            parms += " -DMIO_BN_NODPP=1";
+
         handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x, dy, dx, bnScale, dScale, dBias, epsilon, inhw);
     }
@@ -389,6 +392,10 @@ void bnBwdTrainSelectMulti(Handle& handle,
     }
     else
     {
+
+        if(handle.GetDeviceName() == "gfx803")
+            parms += " -DMIO_BN_NODPP=1";
+
         kernel_subname = kernel_name + "Mean";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, dx);
