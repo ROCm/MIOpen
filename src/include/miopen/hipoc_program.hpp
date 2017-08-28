@@ -28,19 +28,21 @@
 
 #include <hip/hip_runtime_api.h>
 #include <miopen/manage_ptr.hpp>
+#include <boost/filesystem/path.hpp>
 #include <string>
 
 namespace miopen {
 
 using hipModulePtr = MIOPEN_MANAGE_PTR(hipModule_t, hipModuleUnload);
+struct HIPOCProgramImpl;
 struct HIPOCProgram
 {
-    using SharedModulePtr = std::shared_ptr<typename std::remove_pointer<hipModule_t>::type>;
-    using FilePtr         = MIOPEN_MANAGE_PTR(FILE*, std::fclose);
     HIPOCProgram();
     HIPOCProgram(const std::string& program_name, std::string params, bool is_kernel_str);
-    SharedModulePtr module;
-    std::string name;
+    HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco);
+    std::shared_ptr<const HIPOCProgramImpl> impl;
+    hipModule_t GetModule() const;
+    boost::filesystem::path GetBinary() const;
 };
 } // namespace miopen
 
