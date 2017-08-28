@@ -45,7 +45,7 @@
 // Run CPU emulations in hierarchical reduction mode.
 #define MIO_HEIRARCH_SEL 1
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
-#define MIO_BN_TEST_EPSILON 0.000001
+#define MIO_BN_TEST_EPSILON 0.00001
 #define MIO_BN_SP_TEST_DEBUG 0
 
 //****************************************************
@@ -389,7 +389,8 @@ struct verify_forward_infer_bn_spatial_recalc
                             out(bidx, cidx, row, column); // using saved values from output tensor
                         inhat = elemStd * invVar;
                         // #5 Gamma and Beta adjust // y_i = gamma*x_hat + beta
-                        out(bidx, cidx, row, column) = scale(0, cidx, 0, 0) * inhat + shift(0, cidx, 0, 0);
+                        out(bidx, cidx, row, column) =
+                            scale(0, cidx, 0, 0) * inhat + shift(0, cidx, 0, 0);
                     } // end for(n_batchs)
                 }     // for (column)
             }         // for (row)
@@ -501,7 +502,8 @@ struct verify_forward_infer_bn_spatial_use_est
 
                         elemStd = input(bidx, cidx, row, column) - mean;
                         inhat   = elemStd * invVar;
-                        out(bidx, cidx, row, column) = scale(0, cidx, 0, 0) * inhat + shift(0, cidx, 0, 0);
+                        out(bidx, cidx, row, column) =
+                            scale(0, cidx, 0, 0) * inhat + shift(0, cidx, 0, 0);
                     }
                 }
             }
@@ -1064,7 +1066,7 @@ struct batch_norm_spatial_driver : test_driver
     batch_norm_spatial_driver()
     {
         this->batch_factor = 8;
-//        this->verbose=true;
+        //        this->verbose=true;
         add(input, "input", get_bn_spatial_input_tensor());
     }
 
@@ -1099,9 +1101,9 @@ struct batch_norm_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running forward inference spatial recalc." << std::endl;
 #endif
-        //std::fill(input.begin(), input.end(), 1);
-        //std::fill(scale.begin(), scale.end(), 1);
-        //std::fill(shift.begin(), shift.end(), 1);
+        // std::fill(input.begin(), input.end(), 1);
+        // std::fill(scale.begin(), scale.end(), 1);
+        // std::fill(shift.begin(), shift.end(), 1);
         verify(verify_forward_infer_bn_spatial_recalc<T>{input, scale, shift});
 
         // inference use estimated running values
