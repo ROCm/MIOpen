@@ -377,13 +377,9 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
     {
-        PadBufferSize(in_sz, 4);
+        //PadBufferSize(in_sz, 4);
         PadBufferSize(wei_sz, 4);
         PadBufferSize(out_sz, 4);
-
-        // Pad workspaces
-        PadBufferSize(workSpaceSize_bwd, 1);
-        PadBufferSize(workSpaceSize_fwd, 1);
     }
 
 #if MIOPEN_BACKEND_OPENCL
