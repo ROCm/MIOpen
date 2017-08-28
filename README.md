@@ -14,8 +14,11 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
     * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
+* [OpenSSL](https://www.openssl.org/) or [libressl](https://www.libressl.org/)
+* [Boost](http://www.boost.org/) at least version 1.58
+  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent kernel cache
 
-Please find the install instructions on the above dependencies on their respective repositories.
+Instructions to install the above dependencies are present in this [section](#install-dependencies).
 
 ## Configure with cmake
 
@@ -46,6 +49,11 @@ Set the C++ compiler to `hcc`.
 cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-installed-path>;<clang-ocl-installed-path>" ..
 ```
 An example cmake step can be:
+* `OpenSSL` installed using `apt-get` on Ubuntu v16? **Yes**.
+```
+CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" -DCMAKE_CXX_FLAGS="-isystem /usr/include/x86_64-linux-gnu/" ..
+```
+* `OpenSSL` installed using `apt-get` on Ubuntu v16? **No**.
 ```
 CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" ..
 ```
@@ -133,4 +141,26 @@ Also, githooks can be installed to format the code per-commit:
 
 ```
 ./.githooks/install
+```
+
+## Installing dependencies
+
+The dependencies can be installed with the `install_deps.cmake`, script:
+
+```
+cmake -P install_deps.cmake
+```
+
+This will install by default to `/usr/local` but it can be installed in another location with `--prefix` argument:
+
+```
+cmake -P install_deps.cmake --prefix /some/local/dir
+```
+
+If Ubuntu v16 is used then the `OpenSSL` and `Boost` packages can also be installed by:
+```
+sudo apt-get install libssl-dev
+sudo apt-get install libboost-dev
+sudo apt-get install libboost-system
+sudo apt-get install libboost-filesystem
 ```
