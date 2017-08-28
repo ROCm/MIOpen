@@ -73,7 +73,9 @@ std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FAC
         { pick_batch_size(32, n),  160,  14,  14  },
         { pick_batch_size(32, n),  160,  7,   7   },
         { pick_batch_size(32, n),  192,  128, 256 },
+#if MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR > 0
         { pick_batch_size(32, n),  192,  256, 512 },
+#endif
         { pick_batch_size(32, n),  192,  28,  28  },
         { pick_batch_size(32, n),  192,  7,   7   },
         { pick_batch_size(32, n),  24,   14,  14  },
