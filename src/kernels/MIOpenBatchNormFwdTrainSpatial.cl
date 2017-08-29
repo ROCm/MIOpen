@@ -430,7 +430,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     unsigned int index;
     unsigned int ylid = get_local_id(1);
     unsigned int xgid = get_global_id(0);
-    unsigned int ygid = get_global_id(1);
     unsigned int cidx = xgid * MIO_BN_HW;
 
     if(ylid == 0)
@@ -776,7 +775,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     unsigned int index;
     unsigned int ylid    = get_local_id(1);
     unsigned int xgid    = get_global_id(0);
-    unsigned int ygid    = get_global_id(1);
     unsigned int segment = MIO_BN_GRP1 >> 6;
 
 #if(MIO_BN_N < MIO_BN_MAXN)
@@ -903,7 +901,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }     // end if
 
 #if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
-    if(ygid == 0)
+    if(get_global_id(1) == 0)
     {
 
 // Save mean and calculate and save running mean
