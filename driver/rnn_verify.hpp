@@ -644,7 +644,7 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
                             else
                             {
                                 prehid_shift =
-                                    li * bi * batch_n * hy_h + ((bacc - in_n[ti - 1])) * hy_stride;
+                                    li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_stride;
 
                                 dwei_state[wei_shift + h * hy_stride + w] +=
                                     (activfunc(rsvspace[prehid_shift + bs * hy_stride + h],
@@ -663,7 +663,7 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
                                 else
                                 {
                                     prehid_shift = li * bi * batch_n * hy_h +
-                                                   ((bacc + in_n[ti])) * hy_stride + hy_h;
+                                                   (bacc + in_n[ti]) * hy_stride + hy_h;
 
                                     if(bs < in_n[ti + 1])
                                     {
