@@ -176,179 +176,91 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
         {
             baccbi -= in_n[seqLength - 1 - ti];
 
-            if(li == 0)
-            {
-                if(ti == 0)
-                {
-                    ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift],
-                                   hy_h,
-                                   in_n[ti],
-                                   hy_stride,
-                                   0,
-                                   (const T*)&wei_state[in_h * hy_h * bi],
-                                   hy_h,
-                                   hy_h,
-                                   hy_stride,
-                                   0,
-                                   &hid_state[hid_shift + bacc * hy_stride],
-                                   hy_h,
-                                   in_n[ti],
-                                   hy_stride,
-                                   0,
-                                   1,
-                                   1);
+			int wei_shift = li == 0 ? (in_h * hy_h * bi) : (bi * (in_h + hy_h) * hy_h +
+				(li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
 
-                    if(bidirection)
-                    {
-                        ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift + hy_h],
-                                       hy_h,
-                                       in_n[seqLength - 1 - ti],
-                                       hy_stride,
-                                       0,
-                                       (const T*)&wei_state[in_h * hy_h * bi + hy_h],
-                                       hy_h,
-                                       hy_h,
-                                       hy_stride,
-                                       0,
-                                       &hid_state[hid_shift + baccbi * hy_stride + hy_h],
-                                       hy_h,
-                                       in_n[seqLength - 1 - ti],
-                                       hy_stride,
-                                       0,
-                                       1,
-                                       1);
-                    }
-                }
-                else
-                {
-                    ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift],
-                                   hy_h,
-                                   in_n[ti],
-                                   hy_stride,
-                                   0,
-                                   (const T*)&wei_state[in_h * hy_h * bi],
-                                   hy_h,
-                                   hy_h,
-                                   hy_stride,
-                                   0,
-                                   &hid_state[hid_shift + bacc * hy_stride],
-                                   hy_h,
-                                   in_n[ti],
-                                   hy_stride,
-                                   0,
-                                   1,
-                                   1);
+			if (ti == 0)
+			{
+				ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift],
+					hy_h,
+					in_n[ti],
+					hy_stride,
+					0,
+					(const T*)&wei_state[wei_shift],
+					hy_h,
+					hy_h,
+					hy_stride,
+					0,
+					&hid_state[hid_shift + bacc * hy_stride],
+					hy_h,
+					in_n[ti],
+					hy_stride,
+					0,
+					1,
+					1);
 
-                    if(bidirection)
-                    {
-                        ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift + hy_h],
-                                       hy_h,
-                                       in_n[seqLength - 1 - ti],
-                                       hy_stride,
-                                       0,
-                                       (const T*)&wei_state[in_h * hy_h * bi + hy_h],
-                                       hy_h,
-                                       hy_h,
-                                       hy_stride,
-                                       0,
-                                       &hid_state[hid_shift + baccbi * hy_stride + hy_h],
-                                       hy_h,
-                                       in_n[seqLength - 1 - ti],
-                                       hy_stride,
-                                       0,
-                                       1,
-                                       1);
-                    }
-                }
-            }
-            else
-            {
-                int wei_shift = bi * (in_h + hy_h) * hy_h +
-                                (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride;
+				if (bidirection)
+				{
+					ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift + hy_h],
+						hy_h,
+						in_n[seqLength - 1 - ti],
+						hy_stride,
+						0,
+						(const T*)&wei_state[wei_shift + hy_h],
+						hy_h,
+						hy_h,
+						hy_stride,
+						0,
+						&hid_state[hid_shift + baccbi * hy_stride + hy_h],
+						hy_h,
+						in_n[seqLength - 1 - ti],
+						hy_stride,
+						0,
+						1,
+						1);
+				}
+			}
+			else
+			{
+				ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift],
+					hy_h,
+					in_n[ti],
+					hy_stride,
+					0,
+					(const T*)&wei_state[wei_shift],
+					hy_h,
+					hy_h,
+					hy_stride,
+					0,
+					&hid_state[hid_shift + bacc * hy_stride],
+					hy_h,
+					in_n[ti],
+					hy_stride,
+					0,
+					1,
+					1);
 
-                if(ti == 0)
-                {
-                    ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift],
-                                   hy_h,
-                                   in_n[ti],
-                                   hy_stride,
-                                   0,
-                                   (const T*)&wei_state[wei_shift],
-                                   hy_h,
-                                   hy_h,
-                                   hy_stride,
-                                   0,
-                                   &hid_state[hid_shift + bacc * hy_stride],
-                                   hy_h,
-                                   in_n[ti],
-                                   hy_stride,
-                                   0,
-                                   1,
-                                   1);
-
-                    if(bidirection)
-                    {
-                        ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift + hy_h],
-                                       hy_h,
-                                       in_n[seqLength - 1 - ti],
-                                       hy_stride,
-                                       0,
-                                       (const T*)&wei_state[wei_shift + hy_h],
-                                       hy_h,
-                                       hy_h,
-                                       hy_stride,
-                                       0,
-                                       &hid_state[hid_shift + baccbi * hy_stride + hy_h],
-                                       hy_h,
-                                       in_n[seqLength - 1 - ti],
-                                       hy_stride,
-                                       0,
-                                       1,
-                                       1);
-                    }
-                }
-                else
-                {
-                    ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift],
-                                   hy_h,
-                                   in_n[ti],
-                                   hy_stride,
-                                   0,
-                                   (const T*)&wei_state[wei_shift],
-                                   hy_h,
-                                   hy_h,
-                                   hy_stride,
-                                   0,
-                                   &hid_state[hid_shift + bacc * hy_stride],
-                                   hy_h,
-                                   in_n[ti],
-                                   hy_stride,
-                                   0,
-                                   1,
-                                   1);
-
-                    if(bidirection)
-                    {
-                        ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift + hy_h],
-                                       hy_h,
-                                       in_n[seqLength - 1 - ti],
-                                       hy_stride,
-                                       0,
-                                       (const T*)&wei_state[wei_shift + hy_h],
-                                       hy_h,
-                                       hy_h,
-                                       hy_stride,
-                                       0,
-                                       &hid_state[hid_shift + baccbi * hy_stride + hy_h],
-                                       hy_h,
-                                       in_n[seqLength - 1 - ti],
-                                       hy_stride,
-                                       0,
-                                       1,
-                                       1);
-                    }
-                }
-            }
+				if (bidirection)
+				{
+					ADNN_mm_cpu<T>((const T*)&hy_state[hx_shift + hy_h],
+						hy_h,
+						in_n[seqLength - 1 - ti],
+						hy_stride,
+						0,
+						(const T*)&wei_state[wei_shift + hy_h],
+						hy_h,
+						hy_h,
+						hy_stride,
+						0,
+						&hid_state[hid_shift + baccbi * hy_stride + hy_h],
+						hy_h,
+						in_n[seqLength - 1 - ti],
+						hy_stride,
+						0,
+						1,
+						1);
+				}
+			}
 
             for(int bs = 0; bs < in_n[ti]; bs++)
             {
