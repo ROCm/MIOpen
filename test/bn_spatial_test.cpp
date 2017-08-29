@@ -1106,6 +1106,8 @@ struct batch_norm_spatial_driver : test_driver
         // std::fill(shift.begin(), shift.end(), 1);
         verify(verify_forward_infer_bn_spatial_recalc<T>{input, scale, shift});
 
+        return; // Debug
+
         // inference use estimated running values
         auto estMean = std::get<1>(outpair.second);
         auto estVar  = std::get<2>(outpair.second);
@@ -1172,7 +1174,7 @@ struct batch_norm_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running back propagation spatial recalc." << std::endl;
 #endif
-// Debug for Jenkins        verify(verify_backward_bn_spatial_recalc<T>{input, dy_input, scale});
+        verify(verify_backward_bn_spatial_recalc<T>{input, dy_input, scale});
 #endif
 
         // backprop use saved values
