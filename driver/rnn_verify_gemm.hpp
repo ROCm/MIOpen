@@ -924,7 +924,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                     }
                     else
                     {
-                        pretime_shift = li * bi * batch_n * hy_h + ((bacc + in_n[ti])) * hy_stride;
+                        pretime_shift = li * bi * batch_n * hy_h + (bacc + in_n[ti]) * hy_stride;
 
                         ADNN_mm_cpu<T>((const T*)&rsvspace_state[pretime_shift + hy_h],
                                        hy_h,
