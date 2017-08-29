@@ -161,6 +161,6 @@ If Ubuntu v16 is used then the `OpenSSL` and `Boost` packages can also be instal
 ```
 sudo apt-get install libssl-dev
 sudo apt-get install libboost-dev
-sudo apt-get install libboost-system
-sudo apt-get install libboost-filesystem
+sudo apt-get install libboost-system-dev
+sudo apt-get install libboost-filesystem-dev
 ```
