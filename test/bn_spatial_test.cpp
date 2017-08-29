@@ -1101,7 +1101,7 @@ struct batch_norm_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running forward inference spatial recalc." << std::endl;
 #endif
-        
+
         // Debug values
         // std::fill(input.begin(), input.end(), 1);
         // std::fill(scale.begin(), scale.end(), 1);
