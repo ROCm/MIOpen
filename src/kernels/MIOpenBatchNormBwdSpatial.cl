@@ -475,7 +475,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT variance = 0.;
 #endif
     _FLOAT invVar   = 0.;
-    _FLOAT xhat     = 0.;
     _FLOAT pscale   = 0.;
     _FLOAT elemStd  = 0.;
     _FLOAT ds       = 0.;
@@ -720,7 +719,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT variance = 0.;
 #endif
     _FLOAT invVar   = 0.;
-    _FLOAT xhat     = 0.;
     _FLOAT pscale   = 0.;
     _FLOAT elemStd  = 0.;
     _FLOAT ds       = 0.;
@@ -999,7 +997,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT variance = 0.;
 #endif
     _FLOAT invVar   = 0.;
-    _FLOAT xhat     = 0.;
     _FLOAT pscale   = 0.;
     _FLOAT elemStd  = 0.;
     _FLOAT ds       = 0.;
@@ -1009,11 +1006,14 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT dyvalues[MIO_BN_N];
 #endif
 
+#ifdef __AMDGCN__
+    unsigned int segment = MIO_BN_GRP1 >> 6;
+#endif
+
     unsigned int ylid = get_local_id(1);
     unsigned int xgid = get_global_id(0);
     unsigned int index;
-    unsigned int cidx    = xgid * MIO_BN_HW;
-    unsigned int segment = MIO_BN_GRP1 >> 6;
+    unsigned int cidx = xgid * MIO_BN_HW;
     _FLOAT tmp1, tmp2, tmp3;
 
 #if(MIO_BN_USESAVED == 1)
