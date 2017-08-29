@@ -849,6 +849,8 @@ miopenGet4dTensorDescriptor(inputTensor,
 
 	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
 	{
+		printf("reach rnn fwd \n");
+
 		RunRNNForwardCPUVerify(in,
 			wei,
 			hy,
@@ -885,6 +887,8 @@ miopenGet4dTensorDescriptor(inputTensor,
 	}
 	else if (mode == miopenLSTM)
 	{
+		printf("reach lstm fwd \n");
+
 		RunLSTMForwardCPUVerify(in,
 			wei,
 			hy,
@@ -1160,16 +1164,16 @@ miopenGet4dTensorDescriptor(outputTensor,
     bidirection = (bidir != 0);
     biased      = (inflags.GetValueInt("bias") != 0);
 
-    if(mode == miopenRNNRELU)
-    {
-        squash = 0;
-    }
-    else if(mode == miopenRNNTANH)
-        ;
-    else
-    {
-        printf("illegal RNN squash function mode");
-    }
+ //   if(mode == miopenRNNRELU)
+ //   {
+ //       squash = 0;
+ //   }
+ //   else if(mode == miopenRNNTANH)
+ //       ;
+ //   else
+ //   {
+ //       printf("illegal RNN squash function mode");
+ //   }
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -1178,39 +1182,80 @@ miopenGet4dTensorDescriptor(outputTensor,
     hy_n = in_n[0];
     hy_h = hid_len[1];
 
-    RunRNNBackwardWeightCPUVerify(in,
-                                  dwei,
-                                  hx,
-                                  dout,
-                                  in_n,
-                                  in_h,
-                                  seqLength,
-                                  bidirection,
-                                  biased,
-                                  hy_d,
-                                  hy_n,
-                                  hy_h,
-                                  out_h,
-                                  squash,
-                                  reservespace,
-                                  workspace);
+	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
+	{
+		printf("reach rnn bwdwei \n");
 
-    RunRNNBackwardWeightGEMMCPUVerify(in,
-                                      dwei_host,
-                                      hx,
-                                      dout,
-                                      in_n,
-                                      in_h,
-                                      seqLength,
-                                      bidirection,
-                                      biased,
-                                      hy_d,
-                                      hy_n,
-                                      hy_h,
-                                      out_h,
-                                      squash,
-                                      reservespace_host,
-                                      workspace_host);
+		RunRNNBackwardWeightCPUVerify(in,
+			dwei,
+			hx,
+			dout,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			mode,
+			reservespace,
+			workspace);
+
+		RunRNNBackwardWeightGEMMCPUVerify(in,
+			dwei_host,
+			hx,
+			dout,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			mode,
+			reservespace_host,
+			workspace_host);
+	}
+	else if (mode == miopenLSTM)
+	{
+		printf("reach lstm bwdwei \n");
+
+		RunLSTMBackwardWeightCPUVerify(in,
+			dwei,
+			hx,
+			dout,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			reservespace,
+			workspace);
+
+		RunLSTMBackwardWeightGEMMCPUVerify(in,
+			dwei_host,
+			hx,
+			dout,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			reservespace_host,
+			workspace_host);
+	}
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1281,16 +1326,16 @@ miopenGet4dTensorDescriptor(outputTensor,
     bidirection = (bidir != 0);
     biased      = (inflags.GetValueInt("bias") != 0);
 
-    if(mode == miopenRNNRELU)
-    {
-        squash = 0;
-    }
-    else if(mode == miopenRNNTANH)
-        ;
-    else
-    {
-        printf("illegal RNN squash function mode");
-    }
+//    if(mode == miopenRNNRELU)
+//    {
+//        squash = 0;
+//    }
+//    else if(mode == miopenRNNTANH)
+//        ;
+//    else
+//    {
+//        printf("illegal RNN squash function mode");
+//    }
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -1299,45 +1344,98 @@ miopenGet4dTensorDescriptor(outputTensor,
     hy_n = in_n[0];
     hy_h = hid_len[1];
 
-    RunRNNBackwardDataCPUVerify(din,
-                                wei,
-                                dhy,
-                                dhx,
-                                hx,
-                                out,
-                                dout,
-                                in_n,
-                                in_h,
-                                seqLength,
-                                bidirection,
-                                biased,
-                                hy_d,
-                                hy_n,
-                                hy_h,
-                                out_h,
-                                squash,
-                                reservespace,
-                                workspace);
+	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
+	{
+		printf("reach rnn bwddata \n");
 
-    RunRNNBackwardDataGEMMCPUVerify(din_host,
-                                    wei,
-                                    dhy,
-                                    dhx_host,
-                                    hx,
-                                    out,
-                                    dout,
-                                    in_n,
-                                    in_h,
-                                    seqLength,
-                                    bidirection,
-                                    biased,
-                                    hy_d,
-                                    hy_n,
-                                    hy_h,
-                                    out_h,
-                                    squash,
-                                    reservespace_host,
-                                    workspace_host);
+		RunRNNBackwardDataCPUVerify(din,
+			wei,
+			dhy,
+			dhx,
+			hx,
+			out,
+			dout,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			mode,
+			reservespace,
+			workspace);
+
+		RunRNNBackwardDataGEMMCPUVerify(din_host,
+			wei,
+			dhy,
+			dhx_host,
+			hx,
+			out,
+			dout,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			mode,
+			reservespace_host,
+			workspace_host);
+	}
+	else if (mode == miopenLSTM)
+	{
+		printf("reach lstm bwddata \n");
+
+		RunLSTMBackwardDataCPUVerify(din,
+			wei,
+			dhy,
+			dhx,
+			hx,
+			dcy,
+			dcx,
+			cx,
+			out,
+			dout,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			reservespace,
+			workspace);
+
+		RunLSTMBackwardDataGEMMCPUVerify(din_host,
+			wei,
+			dhy,
+			dhx_host,
+			hx,
+			dcy,
+			dcx_host,
+			cx,
+			out,
+			dout,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			reservespace_host,
+			workspace_host);
+	}
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1492,6 +1590,30 @@ int RNNDriver<T>::VerifyForward()
         printf("final hidden Verifies on CPU and GPU\n");
     }
 
+	auto error3= miopen::rms_range(cy_host, cy);
+
+	if (!(error3< tolerance))
+	{
+		std::cout << std::string("final cell state Failed: ") << error3<< "\n";
+	}
+	else
+	{
+		printf("final cell Verifies on CPU and GPU\n");
+	}
+
+	auto error4 = miopen::rms_range(reservespace_host, reservespace);
+
+	if (!(error4< tolerance))
+	{
+		std::cout << std::string("reserve Failed: ") << error4 << "\n";
+	}
+	else
+	{
+		printf("reserve Verifies on CPU and GPU\n");
+	}
+
+	printf("fwd %f , %f , %f , %f \n", outhost[0], hy_host[0], cy_host[0], reservespace_host[0]);
+
     return 0;
 }
 
@@ -1528,6 +1650,30 @@ int RNNDriver<T>::VerifyBackward()
         printf("difference at inital hidden state Verifies on CPU and GPU\n");
     }
 
+	auto error_data3 = miopen::rms_range(dcx_host, dcx);
+
+	if (!(error_data3 < tolerance))
+	{
+		std::cout << std::string("difference at inital cell state Failed: ") << error_data3
+			<< "\n";
+	}
+	else
+	{
+		printf("difference at inital cell state Verifies on CPU and GPU\n");
+	}
+
+	auto error_data4 = miopen::rms_range(workspace_host, workspace);
+
+	if (!(error_data4 < tolerance))
+	{
+		std::cout << std::string("workspace Failed: ") << error_data4
+			<< "\n";
+	}
+	else
+	{
+		printf("workspace on CPU and GPU\n");
+	}
+
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
         RunBackwardWeightsCPU();
@@ -1543,6 +1689,8 @@ int RNNDriver<T>::VerifyBackward()
     {
         printf("Backward RNN Weights Verifies on CPU and GPU\n");
     }
+
+	printf("bwd %f , %f , %f , %f , wei %f \n", din_host[0], dhx_host[0], dcx_host[0], workspace_host[0], dwei_host[0]);
 
     /*
 if(inflags.GetValueInt("bias") != 0)

@@ -7,7 +7,6 @@
 #include <cassert>
 #include <algorithm>
 
-
 template <typename T>
 void RunLSTMForwardGEMMCPUVerify(std::vector<T>& in,
 	std::vector<T>& wei,     // [ input_state_weight_trans
@@ -402,9 +401,9 @@ void RunLSTMBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 						 // bidirectional reversed weights ]
 	std::vector<T>& dhy, // current/final hidden state
 	std::vector<T>& dhx_host,
+	std::vector<T>& hx, // initial hidden state
 	std::vector<T>& dcy, // current/final cell state
 	std::vector<T>& dcx_host,
-	std::vector<T>& hx, // initial hidden state
 	std::vector<T>& cx,
 	std::vector<T>& out,
 	std::vector<T>& dout,
