@@ -92,6 +92,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorStrides(
     });
 }
 
+
 extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                                     miopenDataType_t dataType,
                                                     int nbDims,
@@ -111,6 +112,9 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
         }
     });
 }
+
+
+
 
 // Internal API
 int miopenGetTensorDescriptorElementSize(miopenTensorDescriptor_t tensorDesc)
