@@ -1901,9 +1901,9 @@ BatchNormBwdSpatialDX(const __global _FLOAT* x_in,
                       _FLOAT INHW)
 {
 
-    int xgid    = get_global_id(0);
-    int ygid    = get_global_id(1);
-    int cidx    = MIO_BN_HW * xgid;
+    int xgid = get_global_id(0);
+    int ygid = get_global_id(1);
+    int cidx = MIO_BN_HW * xgid;
     unsigned int index;
     _FLOAT mean, invVar;
     _FLOAT elemStd, xhat;
@@ -1917,8 +1917,8 @@ BatchNormBwdSpatialDX(const __global _FLOAT* x_in,
     {
 
 #if(MIO_BN_USESAVED == 0)
-        int ygrp_id = get_group_id(1);
-        int ygrp_sz = get_local_size(1);
+        int ygrp_id                 = get_group_id(1);
+        int ygrp_sz                 = get_local_size(1);
         unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
         unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
         lmean                       = dx_out[meanstashindex]; // load stashed mean
