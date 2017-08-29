@@ -29,6 +29,8 @@
 #include "InputFlags.hpp"
 #include "rnn_verify.hpp"
 #include "rnn_verify_gemm.hpp"
+#include "lstm_verify.hpp"
+#include "lstm_verify_gemm.hpp"
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "tensor_driver.hpp"
@@ -439,17 +441,35 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     // ----
 
     size_t in_sz = batch_n * in_h;                     // GetTensorSize(inputTensor);
-    size_t hid_sz = batch_n * hid_len[0] * hid_len[1]; // GetTensorSize(hiddenTensor);
-    size_t wei_sz = wei_len[3] * wei_len[0] * (wei_len[2] + wei_len[3] + wei_len[4] +
-                                               (wei_len[1] - 1) * (wei_len[0] + 1) *
-                                                   wei_len[3]); // GetTensorSize(weightTensor);
-    if(inflags.GetValueInt("bias") != 0)
-    {
-        wei_sz += (wei_len[0] * 2 + (wei_len[1] - 1) * wei_len[0] * (wei_len[0] + 1)) * hid_len[1] +
-                  wei_len[0] * out_h;
-    }
+	size_t out_sz = batch_n * out_h; // GetTensorSize(outputTensor);
+	size_t hid_sz = 0;
+	size_t wei_sz = 0;
 
-    size_t out_sz = batch_n * out_h; // GetTensorSize(outputTensor);
+	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
+	{
+		hid_sz = batch_n * hid_len[0] * hid_len[1]; // GetTensorSize(hiddenTensor);
+		wei_sz = wei_len[3] * wei_len[0] * (wei_len[2] + wei_len[3] + wei_len[4] +
+			(wei_len[1] - 1) * (wei_len[0] + 1) *
+			wei_len[3]); // GetTensorSize(weightTensor);
+		if (inflags.GetValueInt("bias") != 0)
+		{
+			wei_sz += (wei_len[0] * 2 + (wei_len[1] - 1) * wei_len[0] * (wei_len[0] + 1)) * hid_len[1] +
+				wei_len[0] * out_h;
+		}
+	}
+	else if (mode == miopenLSTM)
+	{
+		hid_sz = batch_n * hid_len[0] * hid_len[1] * 6;
+
+		wei_sz = 4 * wei_len[3] * wei_len[0] * (wei_len[2] + wei_len[3] + (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]) + wei_len[4] * wei_len[3] * wei_len[0];
+
+		if (inflags.GetValueInt("bias") != 0)
+		{
+			wei_sz += (2 + (wei_len[1] - 1) * (wei_len[0] + 1)) * 4 * wei_len[3] * wei_len[0] +
+				wei_len[0] * out_h;
+		}
+	}
+    
     size_t hy_sz  = in_len[0] * hid_len[1] * wei_len[0] * wei_len[1];
 
     size_t workSpaceSize_bwd_wt = 0;
@@ -808,16 +828,16 @@ miopenGet4dTensorDescriptor(inputTensor,
     bidirection = (bidir != 0);
     biased      = (inflags.GetValueInt("bias") != 0);
 
-    if(mode == miopenRNNRELU)
-    {
-        squash = 0;
-    }
-    else if(mode == miopenRNNTANH)
-        ;
-    else
-    {
-        printf("illegal RNN squash function mode");
-    }
+ //   if(mode == miopenRNNRELU)
+ //   {
+ //       squash = 0;
+ //   }
+ //   else if(mode == miopenRNNTANH)
+ //       ;
+ //   else
+ //   {
+ //       printf("illegal RNN squash function mode");
+ //   }
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -826,39 +846,81 @@ miopenGet4dTensorDescriptor(inputTensor,
     hy_n = in_n[0];
     hy_h = hid_len[1];
 
-    RunRNNForwardCPUVerify(in,
-                           wei,
-                           hy,
-                           hx,
-                           out,
-                           in_n,
-                           in_h,
-                           seqLength,
-                           bidirection,
-                           biased,
-                           hy_d,
-                           hy_n,
-                           hy_h,
-                           out_h,
-                           squash,
-                           reservespace);
 
-    RunRNNForwardGEMMCPUVerify(in,
-                               wei,
-                               hy_host,
-                               hx,
-                               outhost,
-                               in_n,
-                               in_h,
-                               seqLength,
-                               bidirection,
-                               biased,
-                               hy_d,
-                               hy_n,
-                               hy_h,
-                               out_h,
-                               squash,
-                               reservespace_host);
+	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
+	{
+		RunRNNForwardCPUVerify(in,
+			wei,
+			hy,
+			hx,
+			out,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			mode,
+			reservespace);
+
+		RunRNNForwardGEMMCPUVerify(in,
+			wei,
+			hy_host,
+			hx,
+			outhost,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			mode,
+			reservespace_host);
+	}
+	else if (mode == miopenLSTM)
+	{
+		RunLSTMForwardCPUVerify(in,
+			wei,
+			hy,
+			hx,
+			cy,
+			cx,
+			out,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			reservespace);
+
+		RunLSTMForwardGEMMCPUVerify(in,
+			wei,
+			hy_host,
+			hx,
+			cy_host,
+			cx,
+			outhost,
+			in_n,
+			in_h,
+			seqLength,
+			bidirection,
+			biased,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h,
+			reservespace_host);
+	}
 
     if(inflags.GetValueInt("dump_output"))
     {
