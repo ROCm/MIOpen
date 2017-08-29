@@ -44,7 +44,6 @@
 #define MIO_BN_DEBUG 1
 #define MIO_BN_MAX_DEBUGLOOP 65536
 
-// what exactly should this be?
 #define EPSILON 1e-6
 
 #define ERRTOL 1e-6
@@ -783,7 +782,7 @@ int BatchNormDriver<T>::RunForwardGPU()
     }
     else
     {
-        printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
+        // printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
     }
     return miopenStatusSuccess;
 }
