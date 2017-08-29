@@ -569,7 +569,8 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 	int out_h, // 1 by hy_h related function for unidirection, 2 by
 			   // hy_h related function for bidirection
 	std::vector<T>& rsvspace,
-	std::vector<T>& wkspace)
+	std::vector<T>& wkspace
+)
 {
 	int batch_n = sumvc(in_n);
 	int numlayer = bidirection ? hy_d / 2 : hy_d;
@@ -636,9 +637,9 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 								}
 								else
 								{
-									prehid_shift = li * batch_n * hy_stride + ((bacc - in_n[ti - 1])) * hy_stride + bi * 5 * hy_h;
+									prehid_shift = li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride + bi * 5 * hy_h;
 
-									dwei_state[wei_shift + h * wei_stride + gi * hy_h + w] += rsvspace[prehid_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w]);
+									dwei_state[wei_shift + h * wei_stride + gi * hy_h + w] += rsvspace[prehid_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w];
 								}
 
 								if (bidirection)
@@ -649,7 +650,7 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 									}
 									else
 									{
-										prehid_shift = li * batch_n * hy_stride + ((bacc + in_n[ti])) * hy_stride + bi * 5 * hy_h + hy_h;
+										prehid_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride + bi * 5 * hy_h + hy_h;
 
 										if (bs < in_n[ti + 1])
 										{
@@ -721,9 +722,9 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 								}
 								else
 								{
-									prehid_shift = li * batch_n * hy_stride + ((bacc - in_n[ti - 1])) * hy_stride + bi * 5 * hy_h;
+									prehid_shift = li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride + bi * 5 * hy_h;
 
-									dwei_state[wei_shift + h * wei_stride + gi * hy_h + w] += rsvspace[prehid_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w]);
+									dwei_state[wei_shift + h * wei_stride + gi * hy_h + w] += rsvspace[prehid_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w];
 								}
 
 								if (bidirection)
@@ -734,7 +735,7 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 									}
 									else
 									{
-										prehid_shift = li * batch_n * hy_stride + ((bacc + in_n[ti])) * hy_stride + bi * 5 * hy_h + hy_h;
+										prehid_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride + bi * 5 * hy_h + hy_h;
 
 										if (bs < in_n[ti + 1])
 										{
