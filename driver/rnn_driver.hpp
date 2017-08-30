@@ -820,7 +820,7 @@ miopenGet4dTensorDescriptor(inputTensor,
                             &out_wstride);
     */
 
-    int seqLength, layer, bidir, squash = 1;
+    int seqLength, layer, bidir;
     bool bidirection, biased;
     miopenRNNMode_t mode;
     miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir);
@@ -828,25 +828,13 @@ miopenGet4dTensorDescriptor(inputTensor,
     bidirection = (bidir != 0);
     biased      = (inflags.GetValueInt("bias") != 0);
 
- //   if(mode == miopenRNNRELU)
- //   {
- //       squash = 0;
- //   }
- //   else if(mode == miopenRNNTANH)
- //       ;
- //   else
- //   {
- //       printf("illegal RNN squash function mode");
- //   }
-
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
 
     hy_d = hid_len[0];
     hy_n = in_n[0];
     hy_h = hid_len[1];
-
-
+	
 	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
 	{
 		printf("reach rnn fwd \n");
@@ -924,6 +912,15 @@ miopenGet4dTensorDescriptor(inputTensor,
 			hy_h,
 			out_h,
 			reservespace_host);
+	}
+	else if (mode == miopenGRU)
+	{
+		printf("reach gru fwd \n");
+
+	}
+	else
+	{
+		printf("illegal RNN mode");
 	}
 
     if(inflags.GetValueInt("dump_output"))
@@ -1156,24 +1153,13 @@ miopenGet4dTensorDescriptor(outputTensor,
                             &out_wstride);
     */
 
-    int seqLength, layer, bidir, squash = 1;
+    int seqLength, layer, bidir;
     bool bidirection, biased;
     miopenRNNMode_t mode;
     miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir);
 
     bidirection = (bidir != 0);
     biased      = (inflags.GetValueInt("bias") != 0);
-
- //   if(mode == miopenRNNRELU)
- //   {
- //       squash = 0;
- //   }
- //   else if(mode == miopenRNNTANH)
- //       ;
- //   else
- //   {
- //       printf("illegal RNN squash function mode");
- //   }
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -1256,6 +1242,15 @@ miopenGet4dTensorDescriptor(outputTensor,
 			reservespace_host,
 			workspace_host);
 	}
+	else if (mode == miopenGRU)
+	{
+		printf("reach gru bwdwei \n");
+
+	}
+	else
+	{
+		printf("illegal RNN mode");
+	}
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1318,24 +1313,13 @@ miopenGet4dTensorDescriptor(outputTensor,
                             &out_wstride);
     */
 
-    int seqLength, layer, bidir, squash = 1;
+    int seqLength, layer, bidir;
     bool bidirection, biased;
     miopenRNNMode_t mode;
     miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir);
 
     bidirection = (bidir != 0);
     biased      = (inflags.GetValueInt("bias") != 0);
-
-//    if(mode == miopenRNNRELU)
-//    {
-//        squash = 0;
-//    }
-//    else if(mode == miopenRNNTANH)
-//        ;
-//    else
-//    {
-//        printf("illegal RNN squash function mode");
-//    }
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -1435,6 +1419,15 @@ miopenGet4dTensorDescriptor(outputTensor,
 			out_h,
 			reservespace_host,
 			workspace_host);
+	}
+	else if (mode == miopenGRU)
+	{
+		printf("reach gru bwddata \n");
+
+	}
+	else
+	{
+		printf("illegal RNN mode");
 	}
 
     if(inflags.GetValueInt("dump_output"))
@@ -1671,7 +1664,7 @@ int RNNDriver<T>::VerifyBackward()
 	}
 	else
 	{
-		printf("workspace on CPU and GPU\n");
+		printf("workspace Verifies on CPU and GPU\n");
 	}
 
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
