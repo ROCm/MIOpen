@@ -244,7 +244,7 @@ void RunLSTMForwardCPUVerify(std::vector<T>& in,
 
 						if (ti == seqLength - 1)
 						{
-							hid_state[hid_shift_temp + bs * hy_stride + bi * 4 * hy_h + h] += (activfunc(hid_state[hid_shift + bs * hy_stride + 4 * hy_h + h], 2) * activfunc(hid_state[hid_shift + bs * hy_stride + 7 * hy_h + h], 1) + activfunc(hid_state[hid_shift + bs * hy_stride + 5 * hy_h + h], 2) * cx[hx_shift + bs * h_stride + h]);
+							hid_state[hid_shift_temp + bs * hy_stride + bi * 4 * hy_h + h] += (activfunc(hid_state[hid_shift + bs * hy_stride + 0 * hy_h + h], 2) * activfunc(hid_state[hid_shift + bs * hy_stride + 3 * hy_h + h], 1) + activfunc(hid_state[hid_shift + bs * hy_stride + 1 * hy_h + h], 2) * cx[hx_shift + bs * h_stride + h]);
 						}
 						else
 						{
@@ -252,7 +252,7 @@ void RunLSTMForwardCPUVerify(std::vector<T>& in,
 							{
 								int prec_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride + bi * 4 * hy_h + hy_h;
 
-								hid_state[hid_shift_temp + bs * hy_stride + bi * 4 * hy_h + h] += (activfunc(hid_state[hid_shift + bs * hy_stride + 4 * hy_h + h], 2) * activfunc(hid_state[hid_shift + bs * hy_stride + 7 * hy_h + h], 1) + activfunc(hid_state[hid_shift + bs * hy_stride + 5 * hy_h + h], 2) * hid_state[prec_shift + bs * hy_stride + h]);
+								hid_state[hid_shift_temp + bs * hy_stride + bi * 4 * hy_h + h] += (activfunc(hid_state[hid_shift + bs * hy_stride + 0 * hy_h + h], 2) * activfunc(hid_state[hid_shift + bs * hy_stride + 3 * hy_h + h], 1) + activfunc(hid_state[hid_shift + bs * hy_stride + 1 * hy_h + h], 2) * hid_state[prec_shift + bs * hy_stride + h]);
 							}
 						}
 
