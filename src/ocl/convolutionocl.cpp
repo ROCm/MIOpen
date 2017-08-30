@@ -587,7 +587,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int* return_addr = nullptr;
             int N, C, H, W, K, n_groups, R, S;
             construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
-            if(construct_params.getKernelName() == "sp3AsmConvRxSF")
+            if(kernel.GetName() == "sp3AsmConvRxSF")
             {
                 kernel(N,
                        C,
