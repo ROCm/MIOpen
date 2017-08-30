@@ -1535,6 +1535,55 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 *  @{
 */
 
+/*! @enum miopenRNNMode_t
+* RNN mode selection for rnn layer preference
+*/
+typedef enum {
+    miopenRNNRELU = 0, /*!< RNN ReLU squash */
+    miopenRNNTANH = 1, /*!< RNN tanh squash */
+    miopenLSTM    = 2, /*!< LSTM */
+    miopenGRU     = 3, /*!< GRU */
+} miopenRNNMode_t;
+
+
+/*! @enum miopenRNNInputMode_t
+ * Recurrent Neural Network layer initial input mode
+*/
+typedef enum {
+    miopenRNNlinear = 0, /*!< Matrix multiplication at the input of the first layer */
+    miopenRNNskip   = 1, /*!< No operation is performed at the input of the first layer. */
+}miopenRNNInputMode_t;
+
+
+/*! @enum miopenRNNInputMode_t
+ * Recurrent Neural Network layer initial input mode
+*/
+typedef enum {
+    miopenRNNdefault       = 0,
+    miopenRNNpersistStatic = 1,
+    miopenRNNpersistDynamic= 2,
+}miopenRNNAlgo_t;
+    
+
+/*! @enum miopenDirectionMode_t
+ * Recurrent Neural Network direction behavior
+*/
+typedef enum {
+    miopenRNNunidirection = 0,
+    miopenRNNbidirection  = 1,
+}miopenRNNDirectionMode_t;
+
+
+
+/*! @brief Create a RNN layer Descriptor
+ *
+ * API for creating an uninitialized RNN layer descriptor.
+ * @param rnnDesc Pointer to a tensor descriptor type
+ * @return           miopenStatus_t
+*/ 
+MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t *rnnDesc);
+
+
 /*! @brief Creates a RNN layer descriptor
 *
 * @param rnnDesc   RNN layer descriptor
@@ -1572,6 +1621,33 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc);
+
+
+/*! @brief Set the details of the RNN descriptor
+ * 
+ * Interface for setting the values of the RNN descriptor object. This function requires specific algorithm selection.
+ * @param rnnDesc      RNN layer descriptor type
+ * @param hsize        Hidden layer size
+ * @param nlayers      Number of layers
+ * @param dropoutDesc  Dropout descriptor type
+ * @param inMode       RNN first layer input mode
+ * @param direction    RNN direction (if applicable)
+ * @param rnnMode      RNN model type
+ * @param algo         RNN algorithm selected
+ * @param datatype     fp32 or fp16 datatype mode
+ * @return             miopenStatus_t
+*/ 
+MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(
+        miopenRNNDescriptor_t           rnnDesc,
+        int                             hsize,
+        int                             nlayers,
+        miopenRNNInputMode_t            inMode,
+        miopenRNNDirectionMode_t           direction,
+        miopenRNNMode_t                 rnnMode,
+        miopenRNNAlgo_t                 algo,
+        miopenDataType_t                dataType);
+
+
 
 /** @} */
 // CLOSEOUT RNN DOXYGEN GROUP
