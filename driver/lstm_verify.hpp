@@ -433,6 +433,9 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
 					
 					dh_state[hid_shift + bs * hy_stride + 2 * hy_h + h] += dh_state[hid_shift + bs * hy_stride + bi * 5 * hy_h + h] * activfunc(rsvspace[hid_shift + bs * hy_stride + bi * 4 * hy_h + h], 1) * dervactivfunc(rsvspace[hid_shift + bs * hy_stride + 2 * hy_h + h], 2);
 					dh_state[hid_shift + bs * hy_stride + 3 * hy_h + h] += dh_state[hid_shift + bs * hy_stride + bi * 4 * hy_h + h] * activfunc(rsvspace[hid_shift + bs * hy_stride + h], 2) * dervactivfunc(rsvspace[hid_shift + bs * hy_stride + 3 * hy_h + h], 1);
+
+					dcx_host[hx_shift + bs * h_stride + h] = dh_state[hid_shift + bs * hy_stride + bi * 4 * hy_h + h];
+					dhx_host[hx_shift + bs * h_stride + h] = dh_state[hid_shift + bs * hy_stride + bi * 5 * hy_h + h];
 				}
 			}
 		}
@@ -516,6 +519,9 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
 						
 						dh_state[hid_shift + bs * hy_stride + 6 * hy_h + h] += dh_state[hid_shift + bs * hy_stride + bi * 5 * hy_h + hy_h + h] * activfunc(rsvspace[hid_shift + bs * hy_stride + bi * 4 * hy_h + hy_h + h], 1) * dervactivfunc(rsvspace[hid_shift + bs * hy_stride + 6 * hy_h + h], 2);
 						dh_state[hid_shift + bs * hy_stride + 7 * hy_h + h] += dh_state[hid_shift + bs * hy_stride + bi * 4 * hy_h + hy_h + h] * activfunc(rsvspace[hid_shift + bs * hy_stride + 4 * hy_h + h], 2) * dervactivfunc(rsvspace[hid_shift + bs * hy_stride + 7 * hy_h + h], 1);
+
+						dcx_host[hx_shift + bs * h_stride + h] = dh_state[hid_shift + bs * hy_stride + bi * 4 * hy_h + hy_h + h];
+						dhx_host[hx_shift + bs * h_stride + h] = dh_state[hid_shift + bs * hy_stride + bi * 5 * hy_h + hy_h + h];
 					}
 				}
 
