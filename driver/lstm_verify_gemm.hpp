@@ -499,7 +499,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 	// bwd data emulator
 	for (int li = numlayer - 1; li >= 0; li--)
 	{
-		int wei_shift = (in_h + hy_h) * hy_stride + li * (bi * hy_h + hy_h) * hy_stride;
+		int wei_shift = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 		int hid_shift = li * batch_n * hy_stride;
 		int hx_shift = li * in_n[0] * h_stride;
 
@@ -513,7 +513,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 				(const T*)&wei_state[wei_shift],
 				hy_h * bi,
 				out_h,
-				wei_stride,
+				h_stride,
 				0,
 				&dh_state[hid_shift + bi * 5 * hy_h],
 				hy_h * bi,
@@ -579,7 +579,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 			else
 			{
 				int pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
-				int weitime_shift = (in_h + hy_h) * hy_stride + (li - 1) * (bi * hy_h + hy_h) * hy_stride + bi * hy_h * hy_stride;
+				int weitime_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride + bi * hy_h * wei_stride;
 
 				ADNN_mm_cpu<T>((const T*)&dh_state[pretime_shift],
 					hy_h * 4,
@@ -601,8 +601,8 @@ void RunLSTMBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 
 				if (bidirection)
 				{
-					pretime_shift = li * batch_n * hy_stride + (baccbi - in_n[seqLength - 1 - ti]) * hy_stride + hy_h * 4;
-					weitime_shift = (in_h + hy_h) * hy_stride + (li - 1) * (bi * hy_h + hy_h) * hy_stride + bi * hy_h * hy_stride + hy_h * 4;
+					pretime_shift = li * batch_n * hy_stride + (baccbi - in_n[seqLength - 2 - ti]) * hy_stride + hy_h * 4;
+					weitime_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride + bi * hy_h * wei_stride + hy_h * 4;
 
 					ADNN_mm_cpu<T>((const T*)&dh_state[pretime_shift],
 						hy_h * 4,
