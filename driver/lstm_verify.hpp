@@ -641,7 +641,7 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 							{
 								if (ti == 0)
 								{
-									dwei_state[wei_shift + h * wei_stride + gi * hy_h + w] += hx[hx_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w];
+									dwei_state[wei_shift + h * wei_stride + gi * hy_h + w] += hx[hx_shift + bs * h_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w];
 								}
 								else
 								{
@@ -654,7 +654,7 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 								{
 									if (ti == seqLength - 1)
 									{
-										dwei_state[wei_shift + h * wei_stride + (4 + gi) * hy_h + w] += hx[hx_shift + hy_h + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + (4 + gi) * hy_h + w];
+										dwei_state[wei_shift + h * wei_stride + (4 + gi) * hy_h + w] += hx[hx_shift + hy_h + bs * h_stride + h] * wkspace[hid_shift + bs * hy_stride + (4 + gi) * hy_h + w];
 									}
 									else
 									{
@@ -702,11 +702,11 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 						{
 							for (int bs = 0; bs < in_n[ti]; bs++)
 							{
-								dwei_state[h * wei_stride + gi * hy_h + w] += rsvspace[prehid_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w];
+								dwei_state[wei_shift + h * wei_stride + gi * hy_h + w] += rsvspace[prehid_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w];
 
 								if (bidirection)
 								{
-									dwei_state[h * wei_stride + (4 + gi) * hy_h + w] += rsvspace[prehid_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + (4 + gi) * hy_h + w];
+									dwei_state[wei_shift + h * wei_stride + (4 + gi) * hy_h + w] += rsvspace[prehid_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + (4 + gi) * hy_h + w];
 								}
 							}
 						}
@@ -726,7 +726,7 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 							{
 								if (ti == 0)
 								{
-									dwei_state[wei_shift + h * wei_stride + gi * hy_h + w] += hx[hx_shift + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w];
+									dwei_state[wei_shift + h * wei_stride + gi * hy_h + w] += hx[hx_shift + bs * h_stride + h] * wkspace[hid_shift + bs * hy_stride + gi * hy_h + w];
 								}
 								else
 								{
@@ -739,7 +739,7 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 								{
 									if (ti == seqLength - 1)
 									{
-										dwei_state[wei_shift + h * wei_stride + (4 + gi) * hy_h + w] += hx[hx_shift + hy_h + bs * hy_stride + h] * wkspace[hid_shift + bs * hy_stride + (4 + gi) * hy_h + w];
+										dwei_state[wei_shift + h * wei_stride + (4 + gi) * hy_h + w] += hx[hx_shift + hy_h + bs * h_stride + h] * wkspace[hid_shift + bs * hy_stride + (4 + gi) * hy_h + w];
 									}
 									else
 									{

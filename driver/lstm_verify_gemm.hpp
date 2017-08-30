@@ -872,7 +872,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 		}
 		else if (li == numlayer)
 		{
-			int wei_shift = (in_h + hy_h) * hy_stride + (li - 1) * (bi * hy_h + hy_h) * hy_stride;
+			int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 			int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * hy_h * 5;
 
 			ADNN_mm_cpu<T>((const T*)&dout_state[0],
@@ -895,7 +895,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
 			if (biased)
 			{
-				wei_shift = wei_shift_bias + 2 * hy_stride + (li - 1) * (bi + 1) * hy_stride;
+				wei_shift = wei_shift_bias + 2 * wei_stride + (li - 1) * (bi + 1) * wei_stride;
 
 				for (int h = 0; h < out_h; h++)
 				{
@@ -915,7 +915,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 		{
 			int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * hy_h * 5;
 			int hid_shift = li * batch_n * hy_stride;
-			int wei_shift = (in_h + hy_h) * hy_stride + (li - 1) * (bi * hy_h + hy_h) * hy_stride;
+			int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
 			ADNN_mm_cpu<T>((const T*)&rsvspace_state[prelayer_shift],
 				hy_h * bi,
@@ -937,7 +937,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
 			if (biased)
 			{
-				wei_shift = wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h;
+				wei_shift = wei_shift_bias + 2 * wei_stride + (li - 1) * (bi + 1) * wei_stride;
 
 				for (int h = 0; h < wei_stride; h++)
 				{
@@ -966,7 +966,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 				int wei_shift;
 				int pretime_shift;
 
-				wei_shift = li == 0 ? (in_h * hy_stride) : ((in_h + hy_h) * hy_stride + (li - 1) * (bi * hy_h + hy_h) * hy_stride + bi * hy_h * hy_stride);
+				wei_shift = li == 0 ? (in_h * wei_stride) : ((in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride + bi * hy_h * wei_stride);
 
 				// between time
 				if (ti == 0)
