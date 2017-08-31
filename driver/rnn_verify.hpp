@@ -71,7 +71,6 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int out_dim  = bidirection ? out_h / 2 : out_h;
     int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
@@ -80,6 +79,8 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi;
     int out_stride = out_h;
+
+    (void)hy_n;
 
     // forward emulator
     for(int li = 0; li < numlayer; li++)
@@ -100,7 +101,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
                         for(int w = 0; w < in_h; w++)
                         {
                             hid_state[hid_shift + bs * hy_stride + h] +=
-                                wei[w * hy_stride + h] * in[(bacc + bs) * in_h + w];
+                                wei[w * hy_stride + h] * in[(bacc + bs) * in_stride + w];
                         }
 
                         // from previous state
@@ -217,7 +218,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
                             for(int w = 0; w < in_h; w++)
                             {
                                 hid_state[hid_shift + bs * hy_stride + h] +=
-                                    wei[w * hy_stride + hy_h + h] * in[(bacc + bs) * in_h + w];
+                                    wei[w * hy_stride + hy_h + h] * in[(bacc + bs) * in_stride + w];
                             }
 
                             // from previous state
@@ -384,15 +385,17 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_state,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int out_dim  = bidirection ? out_h / 2 : out_h;
     int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
-    int wei_shift_bias =
-        ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi;
     int out_stride = out_h;
+
+    (void)hy_n;
+    (void)biased;
+    (void)hx;
+    (void)out;
 
     // bwd data emulator
     for(int li = numlayer - 1; li >= 0; li--)
@@ -591,7 +594,6 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int out_dim  = bidirection ? out_h / 2 : out_h;
     int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
@@ -600,6 +602,8 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi;
     int out_stride = out_h;
+
+    (void)hy_n;
 
     // bwd weights emulator
     for(int li = 0; li <= numlayer; li++)
@@ -622,7 +626,7 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
                         for(int bs = 0; bs < in_n[ti]; bs++)
                         {
                             dwei_state[h * hy_stride + w] +=
-                                in[(bacc + bs) * in_h + h] *
+                                in[(bacc + bs) * in_stride + h] *
                                 wkspace[hid_shift + bs * hy_stride + w];
                         }
                     }

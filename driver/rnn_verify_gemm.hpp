@@ -401,6 +401,9 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     int bacc, baccbi; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
+    (void)hx;
+    (void)out;
+
     // initial dout
     T* dout_state = new T[batch_n * out_h];
     for(int h = 0; h < batch_n; h++)
@@ -433,8 +436,6 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
         wei_state[h] = wei[h];
     }
 
-    int wei_shift_bias =
-        ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi;
     int out_stride = out_h;
@@ -667,8 +668,10 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
+    int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
+
+    (void)hy_n;
 
     // weights
     int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
