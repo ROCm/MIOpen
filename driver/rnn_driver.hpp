@@ -440,37 +440,40 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     int out_h   = out_len[0];
     // ----
 
-    size_t in_sz = batch_n * in_h;                     // GetTensorSize(inputTensor);
-	size_t out_sz = batch_n * out_h; // GetTensorSize(outputTensor);
-	size_t hid_sz = 0;
-	size_t wei_sz = 0;
+    size_t in_sz  = batch_n * in_h;  // GetTensorSize(inputTensor);
+    size_t out_sz = batch_n * out_h; // GetTensorSize(outputTensor);
+    size_t hid_sz = 0;
+    size_t wei_sz = 0;
 
-	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
-	{
-		hid_sz = batch_n * hid_len[0] * hid_len[1]; // GetTensorSize(hiddenTensor);
-		wei_sz = wei_len[3] * wei_len[0] * (wei_len[2] + wei_len[3] + wei_len[4] +
-			(wei_len[1] - 1) * (wei_len[0] + 1) *
-			wei_len[3]); // GetTensorSize(weightTensor);
-		if (inflags.GetValueInt("bias") != 0)
-		{
-			wei_sz += (wei_len[0] * 2 + (wei_len[1] - 1) * wei_len[0] * (wei_len[0] + 1)) * hid_len[1] +
-				wei_len[0] * out_h;
-		}
-	}
-	else if (mode == miopenLSTM)
-	{
-		hid_sz = batch_n * hid_len[0] * hid_len[1] * 6;
+    if(mode == miopenRNNRELU || mode == miopenRNNTANH)
+    {
+        hid_sz = batch_n * hid_len[0] * hid_len[1]; // GetTensorSize(hiddenTensor);
+        wei_sz = wei_len[3] * wei_len[0] *
+                 (wei_len[2] + wei_len[3] + wei_len[4] +
+                  (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]); // GetTensorSize(weightTensor);
+        if(inflags.GetValueInt("bias") != 0)
+        {
+            wei_sz +=
+                (wei_len[0] * 2 + (wei_len[1] - 1) * wei_len[0] * (wei_len[0] + 1)) * hid_len[1] +
+                wei_len[0] * out_h;
+        }
+    }
+    else if(mode == miopenLSTM)
+    {
+        hid_sz = batch_n * hid_len[0] * hid_len[1] * 6;
 
-		wei_sz = 4 * wei_len[3] * wei_len[0] * (wei_len[2] + wei_len[3] + (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]) + wei_len[4] * wei_len[3] * wei_len[0];
+        wei_sz = 4 * wei_len[3] * wei_len[0] *
+                     (wei_len[2] + wei_len[3] + (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]) +
+                 wei_len[4] * wei_len[3] * wei_len[0];
 
-		if (inflags.GetValueInt("bias") != 0)
-		{
-			wei_sz += (2 + (wei_len[1] - 1) * (wei_len[0] + 1)) * 4 * wei_len[3] * wei_len[0] +
-				wei_len[0] * out_h;
-		}
-	}
-    
-    size_t hy_sz  = in_len[0] * hid_len[1] * wei_len[0] * wei_len[1];
+        if(inflags.GetValueInt("bias") != 0)
+        {
+            wei_sz += (2 + (wei_len[1] - 1) * (wei_len[0] + 1)) * 4 * wei_len[3] * wei_len[0] +
+                      wei_len[0] * out_h;
+        }
+    }
+
+    size_t hy_sz = in_len[0] * hid_len[1] * wei_len[0] * wei_len[1];
 
     size_t workSpaceSize_bwd_wt = 0;
     size_t workSpaceSize_bwd_dt = 0;
@@ -588,18 +591,18 @@ GetHandle(), weightTensor, inputTensor, rnnDesc, outputTensor, &workSpaceSize_fw
         dhy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
     }
 
- 	if ((inflags.GetValueStr("mode")) == "lstm")
-	{
-		for (int i = 0; i < hy_sz; i++)
-		{
-			cx[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
-		}
+    if((inflags.GetValueStr("mode")) == "lstm")
+    {
+        for(int i = 0; i < hy_sz; i++)
+        {
+            cx[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+        }
 
-		for (int i = 0; i < hy_sz; i++)
-		{
-			dcy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
-		}
-	}
+        for(int i = 0; i < hy_sz; i++)
+        {
+            dcy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+        }
+    }
 
     /*
 if(inflags.GetValueInt("bias") != 0)
@@ -837,94 +840,93 @@ miopenGet4dTensorDescriptor(inputTensor,
     hy_d = hid_len[0];
     hy_n = in_n[0];
     hy_h = hid_len[1];
-	
-	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
-	{
-		printf("reach rnn fwd \n");
 
-		RunRNNForwardCPUVerify(in,
-			wei,
-			hy,
-			hx,
-			out,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			mode,
-			reservespace);
+    if(mode == miopenRNNRELU || mode == miopenRNNTANH)
+    {
+        printf("reach rnn fwd \n");
 
-		RunRNNForwardGEMMCPUVerify(in,
-			wei,
-			hy_host,
-			hx,
-			outhost,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			mode,
-			reservespace_host);
-	}
-	else if (mode == miopenLSTM)
-	{
-		printf("reach lstm fwd \n");
+        RunRNNForwardCPUVerify(in,
+                               wei,
+                               hy,
+                               hx,
+                               out,
+                               in_n,
+                               in_h,
+                               seqLength,
+                               bidirection,
+                               biased,
+                               hy_d,
+                               hy_n,
+                               hy_h,
+                               out_h,
+                               mode,
+                               reservespace);
 
-		RunLSTMForwardCPUVerify(in,
-			wei,
-			hy,
-			hx,
-			cy,
-			cx,
-			out,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace);
+        RunRNNForwardGEMMCPUVerify(in,
+                                   wei,
+                                   hy_host,
+                                   hx,
+                                   outhost,
+                                   in_n,
+                                   in_h,
+                                   seqLength,
+                                   bidirection,
+                                   biased,
+                                   hy_d,
+                                   hy_n,
+                                   hy_h,
+                                   out_h,
+                                   mode,
+                                   reservespace_host);
+    }
+    else if(mode == miopenLSTM)
+    {
+        printf("reach lstm fwd \n");
 
-		RunLSTMForwardGEMMCPUVerify(in,
-			wei,
-			hy_host,
-			hx,
-			cy_host,
-			cx,
-			outhost,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace_host);
-	}
-	else if (mode == miopenGRU)
-	{
-		printf("reach gru fwd \n");
+        RunLSTMForwardCPUVerify(in,
+                                wei,
+                                hy,
+                                hx,
+                                cy,
+                                cx,
+                                out,
+                                in_n,
+                                in_h,
+                                seqLength,
+                                bidirection,
+                                biased,
+                                hy_d,
+                                hy_n,
+                                hy_h,
+                                out_h,
+                                reservespace);
 
-	}
-	else
-	{
-		printf("illegal RNN mode");
-	}
+        RunLSTMForwardGEMMCPUVerify(in,
+                                    wei,
+                                    hy_host,
+                                    hx,
+                                    cy_host,
+                                    cx,
+                                    outhost,
+                                    in_n,
+                                    in_h,
+                                    seqLength,
+                                    bidirection,
+                                    biased,
+                                    hy_d,
+                                    hy_n,
+                                    hy_h,
+                                    out_h,
+                                    reservespace_host);
+    }
+    else if(mode == miopenGRU)
+    {
+        printf("reach gru fwd \n");
+    }
+    else
+    {
+        printf("illegal RNN mode");
+    }
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1171,89 +1173,88 @@ miopenGet4dTensorDescriptor(outputTensor,
     hy_n = in_n[0];
     hy_h = hid_len[1];
 
-	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
-	{
-		printf("reach rnn bwdwei \n");
+    if(mode == miopenRNNRELU || mode == miopenRNNTANH)
+    {
+        printf("reach rnn bwdwei \n");
 
-		RunRNNBackwardWeightCPUVerify(in,
-			dwei,
-			hx,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			mode,
-			reservespace,
-			workspace);
+        RunRNNBackwardWeightCPUVerify(in,
+                                      dwei,
+                                      hx,
+                                      dout,
+                                      in_n,
+                                      in_h,
+                                      seqLength,
+                                      bidirection,
+                                      biased,
+                                      hy_d,
+                                      hy_n,
+                                      hy_h,
+                                      out_h,
+                                      mode,
+                                      reservespace,
+                                      workspace);
 
-		RunRNNBackwardWeightGEMMCPUVerify(in,
-			dwei_host,
-			hx,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			mode,
-			reservespace_host,
-			workspace_host);
-	}
-	else if (mode == miopenLSTM)
-	{
-		printf("reach lstm bwdwei \n");
+        RunRNNBackwardWeightGEMMCPUVerify(in,
+                                          dwei_host,
+                                          hx,
+                                          dout,
+                                          in_n,
+                                          in_h,
+                                          seqLength,
+                                          bidirection,
+                                          biased,
+                                          hy_d,
+                                          hy_n,
+                                          hy_h,
+                                          out_h,
+                                          mode,
+                                          reservespace_host,
+                                          workspace_host);
+    }
+    else if(mode == miopenLSTM)
+    {
+        printf("reach lstm bwdwei \n");
 
-		RunLSTMBackwardWeightCPUVerify(in,
-			dwei,
-			hx,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace,
-			workspace);
+        RunLSTMBackwardWeightCPUVerify(in,
+                                       dwei,
+                                       hx,
+                                       dout,
+                                       in_n,
+                                       in_h,
+                                       seqLength,
+                                       bidirection,
+                                       biased,
+                                       hy_d,
+                                       hy_n,
+                                       hy_h,
+                                       out_h,
+                                       reservespace,
+                                       workspace);
 
-		RunLSTMBackwardWeightGEMMCPUVerify(in,
-			dwei_host,
-			hx,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace_host,
-			workspace_host);
-	}
-	else if (mode == miopenGRU)
-	{
-		printf("reach gru bwdwei \n");
-
-	}
-	else
-	{
-		printf("illegal RNN mode");
-	}
+        RunLSTMBackwardWeightGEMMCPUVerify(in,
+                                           dwei_host,
+                                           hx,
+                                           dout,
+                                           in_n,
+                                           in_h,
+                                           seqLength,
+                                           bidirection,
+                                           biased,
+                                           hy_d,
+                                           hy_n,
+                                           hy_h,
+                                           out_h,
+                                           reservespace_host,
+                                           workspace_host);
+    }
+    else if(mode == miopenGRU)
+    {
+        printf("reach gru bwdwei \n");
+    }
+    else
+    {
+        printf("illegal RNN mode");
+    }
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1331,107 +1332,106 @@ miopenGet4dTensorDescriptor(outputTensor,
     hy_n = in_n[0];
     hy_h = hid_len[1];
 
-	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
-	{
-		printf("reach rnn bwddata \n");
+    if(mode == miopenRNNRELU || mode == miopenRNNTANH)
+    {
+        printf("reach rnn bwddata \n");
 
-		RunRNNBackwardDataCPUVerify(din,
-			wei,
-			dhy,
-			dhx,
-			hx,
-			out,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			mode,
-			reservespace,
-			workspace);
+        RunRNNBackwardDataCPUVerify(din,
+                                    wei,
+                                    dhy,
+                                    dhx,
+                                    hx,
+                                    out,
+                                    dout,
+                                    in_n,
+                                    in_h,
+                                    seqLength,
+                                    bidirection,
+                                    biased,
+                                    hy_d,
+                                    hy_n,
+                                    hy_h,
+                                    out_h,
+                                    mode,
+                                    reservespace,
+                                    workspace);
 
-		RunRNNBackwardDataGEMMCPUVerify(din_host,
-			wei,
-			dhy,
-			dhx_host,
-			hx,
-			out,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			mode,
-			reservespace_host,
-			workspace_host);
-	}
-	else if (mode == miopenLSTM)
-	{
-		printf("reach lstm bwddata \n");
+        RunRNNBackwardDataGEMMCPUVerify(din_host,
+                                        wei,
+                                        dhy,
+                                        dhx_host,
+                                        hx,
+                                        out,
+                                        dout,
+                                        in_n,
+                                        in_h,
+                                        seqLength,
+                                        bidirection,
+                                        biased,
+                                        hy_d,
+                                        hy_n,
+                                        hy_h,
+                                        out_h,
+                                        mode,
+                                        reservespace_host,
+                                        workspace_host);
+    }
+    else if(mode == miopenLSTM)
+    {
+        printf("reach lstm bwddata \n");
 
-		RunLSTMBackwardDataCPUVerify(din,
-			wei,
-			dhy,
-			dhx,
-			hx,
-			dcy,
-			dcx,
-			cx,
-			out,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace,
-			workspace);
+        RunLSTMBackwardDataCPUVerify(din,
+                                     wei,
+                                     dhy,
+                                     dhx,
+                                     hx,
+                                     dcy,
+                                     dcx,
+                                     cx,
+                                     out,
+                                     dout,
+                                     in_n,
+                                     in_h,
+                                     seqLength,
+                                     bidirection,
+                                     biased,
+                                     hy_d,
+                                     hy_n,
+                                     hy_h,
+                                     out_h,
+                                     reservespace,
+                                     workspace);
 
-		RunLSTMBackwardDataGEMMCPUVerify(din_host,
-			wei,
-			dhy,
-			dhx_host,
-			hx,
-			dcy,
-			dcx_host,
-			cx,
-			out,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace_host,
-			workspace_host);
-	}
-	else if (mode == miopenGRU)
-	{
-		printf("reach gru bwddata \n");
-
-	}
-	else
-	{
-		printf("illegal RNN mode");
-	}
+        RunLSTMBackwardDataGEMMCPUVerify(din_host,
+                                         wei,
+                                         dhy,
+                                         dhx_host,
+                                         hx,
+                                         dcy,
+                                         dcx_host,
+                                         cx,
+                                         out,
+                                         dout,
+                                         in_n,
+                                         in_h,
+                                         seqLength,
+                                         bidirection,
+                                         biased,
+                                         hy_d,
+                                         hy_n,
+                                         hy_h,
+                                         out_h,
+                                         reservespace_host,
+                                         workspace_host);
+    }
+    else if(mode == miopenGRU)
+    {
+        printf("reach gru bwddata \n");
+    }
+    else
+    {
+        printf("illegal RNN mode");
+    }
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1586,20 +1586,20 @@ int RNNDriver<T>::VerifyForward()
         printf("final hidden Verifies on CPU and GPU\n");
     }
 
-	if ((inflags.GetValueStr("mode")) == "lstm")
-	{
-		auto error3 = miopen::rms_range(cy_host, cy);
+    if((inflags.GetValueStr("mode")) == "lstm")
+    {
+        auto error3 = miopen::rms_range(cy_host, cy);
 
-		if (!(error3< tolerance))
-		{
-			std::cout << std::string("final cell state Failed: ") << error3 << "\n";
-		}
-		else
-		{
-			printf("final cell Verifies on CPU and GPU\n");
-		}
-	}
-	
+        if(!(error3 < tolerance))
+        {
+            std::cout << std::string("final cell state Failed: ") << error3 << "\n";
+        }
+        else
+        {
+            printf("final cell Verifies on CPU and GPU\n");
+        }
+    }
+
     return 0;
 }
 
@@ -1636,21 +1636,21 @@ int RNNDriver<T>::VerifyBackward()
         printf("difference at inital hidden state Verifies on CPU and GPU\n");
     }
 
-	if ((inflags.GetValueStr("mode")) == "lstm")
-	{
-		auto error_data3 = miopen::rms_range(dcx_host, dcx);
+    if((inflags.GetValueStr("mode")) == "lstm")
+    {
+        auto error_data3 = miopen::rms_range(dcx_host, dcx);
 
-		if (!(error_data3 < tolerance))
-		{
-			std::cout << std::string("difference at inital cell state Failed: ") << error_data3
-				<< "\n";
-		}
-		else
-		{
-			printf("difference at inital cell state Verifies on CPU and GPU\n");
-		}
-	}
-	
+        if(!(error_data3 < tolerance))
+        {
+            std::cout << std::string("difference at inital cell state Failed: ") << error_data3
+                      << "\n";
+        }
+        else
+        {
+            printf("difference at inital cell state Verifies on CPU and GPU\n");
+        }
+    }
+
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
         RunBackwardWeightsCPU();
