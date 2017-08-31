@@ -22,10 +22,10 @@ float activfunc(float x, int actvf)
         float y = 0;
         return std::max(x, y);
     }
-	else if (actvf == 2)
-	{
-		return 1 / (1 + exp(-x));
-	}
+    else if(actvf == 2)
+    {
+        return 1 / (1 + exp(-x));
+    }
 
     return tanh(x);
 }
@@ -36,10 +36,10 @@ float dervactivfunc(float x, int actvf)
     {
         return (x > 0 ? 1 : 0);
     }
-	else if (actvf == 2)
-	{
-		return exp(-x)/(1 + exp(-x))/(1 + exp(-x));
-	}
+    else if(actvf == 2)
+    {
+        return exp(-x) / (1 + exp(-x)) / (1 + exp(-x));
+    }
 
     return 1 / cosh(x) / cosh(x);
 }
