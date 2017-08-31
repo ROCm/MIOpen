@@ -476,9 +476,9 @@ void RunLSTMBackwardDataGEMMCPUVerify(
     std::vector<T>& wkspace)
 {
     int batch_n = sumvc(in_n);
+    (void)out;
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int out_dim  = bidirection ? out_h / 2 : out_h;
     int bacc, baccbi; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
@@ -921,7 +921,6 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int out_dim  = bidirection ? out_h / 2 : out_h;
     int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 

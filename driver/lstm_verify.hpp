@@ -33,7 +33,6 @@ void RunLSTMForwardCPUVerify(std::vector<T>& in,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int out_dim  = bidirection ? out_h / 2 : out_h;
     int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
@@ -45,6 +44,8 @@ void RunLSTMForwardCPUVerify(std::vector<T>& in,
 
     int wei_shift_bias =
         (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride + out_h * h_stride;
+
+    (void)hy_n;
 
     // forward emulator
     for(int li = 0; li < numlayer; li++)
@@ -68,7 +69,7 @@ void RunLSTMForwardCPUVerify(std::vector<T>& in,
                             {
                                 hid_state[hid_shift + bs * hy_stride + gi * hy_h + h] +=
                                     wei[w * wei_stride + gi * hy_h + h] *
-                                    in[(bacc + bs) * in_h + w];
+                                    in[(bacc + bs) * in_stride + w];
                             }
 
                             // from previous state
@@ -220,7 +221,7 @@ void RunLSTMForwardCPUVerify(std::vector<T>& in,
                                 {
                                     hid_state[hid_shift + bs * hy_stride + gi * hy_h + h] +=
                                         wei[w * wei_stride + (4 + gi) * hy_h + h] *
-                                        in[(bacc + bs) * in_h + w];
+                                        in[(bacc + bs) * in_stride + w];
                                 }
 
                                 // from previous state
@@ -435,7 +436,6 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int out_dim  = bidirection ? out_h / 2 : out_h;
     int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
@@ -445,8 +445,10 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
     int hy_stride  = bi * 6 * hy_h;
     int h_stride   = bi * hy_h;
 
-    int wei_shift_bias =
-        (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride + out_h * h_stride;
+    (void)hy_n;
+    (void)hx;
+    (void)out;
+    (void)biased;
 
     // bwd data emulator
     for(int li = numlayer - 1; li >= 0; li--)
@@ -727,8 +729,6 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
         {
             for(int h = 0; h < in_h; h++)
             {
-                int prelayer_shift = bacc * hy_stride;
-
                 for(int gi = 0; gi < 4; gi++)
                 {
                     for(int w = 0; w < hy_h; w++)
@@ -773,7 +773,6 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int out_dim  = bidirection ? out_h / 2 : out_h;
     int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
@@ -785,6 +784,8 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
 
     int wei_shift_bias =
         (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride + out_h * h_stride;
+
+    (void)hy_n;
 
     // bwd weights emulator
     for(int li = 0; li <= numlayer; li++)
