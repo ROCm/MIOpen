@@ -585,18 +585,21 @@ GetHandle(), weightTensor, inputTensor, rnnDesc, outputTensor, &workSpaceSize_fw
 
     for(int i = 0; i < hy_sz; i++)
     {
-        cx[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
-    }
-
-    for(int i = 0; i < hy_sz; i++)
-    {
         dhy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
     }
 
-    for(int i = 0; i < hy_sz; i++)
-    {
-        dcy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
-    }
+ 	if ((inflags.GetValueStr("mode")) == "lstm")
+	{
+		for (int i = 0; i < hy_sz; i++)
+		{
+			cx[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+		}
+
+		for (int i = 0; i < hy_sz; i++)
+		{
+			dcy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+		}
+	}
 
     /*
 if(inflags.GetValueInt("bias") != 0)
@@ -1583,30 +1586,20 @@ int RNNDriver<T>::VerifyForward()
         printf("final hidden Verifies on CPU and GPU\n");
     }
 
-	auto error3= miopen::rms_range(cy_host, cy);
-
-	if (!(error3< tolerance))
+	if ((inflags.GetValueStr("mode")) == "lstm")
 	{
-		std::cout << std::string("final cell state Failed: ") << error3<< "\n";
-	}
-	else
-	{
-		printf("final cell Verifies on CPU and GPU\n");
-	}
+		auto error3 = miopen::rms_range(cy_host, cy);
 
-	auto error4 = miopen::rms_range(reservespace_host, reservespace);
-
-	if (!(error4< tolerance))
-	{
-		std::cout << std::string("reserve Failed: ") << error4 << "\n";
+		if (!(error3< tolerance))
+		{
+			std::cout << std::string("final cell state Failed: ") << error3 << "\n";
+		}
+		else
+		{
+			printf("final cell Verifies on CPU and GPU\n");
+		}
 	}
-	else
-	{
-		printf("reserve Verifies on CPU and GPU\n");
-	}
-
-	printf("fwd %f , %f , %f , %f \n", outhost[0], hy_host[0], cy_host[0], reservespace_host[0]);
-
+	
     return 0;
 }
 
@@ -1643,30 +1636,21 @@ int RNNDriver<T>::VerifyBackward()
         printf("difference at inital hidden state Verifies on CPU and GPU\n");
     }
 
-	auto error_data3 = miopen::rms_range(dcx_host, dcx);
-
-	if (!(error_data3 < tolerance))
+	if ((inflags.GetValueStr("mode")) == "lstm")
 	{
-		std::cout << std::string("difference at inital cell state Failed: ") << error_data3
-			<< "\n";
-	}
-	else
-	{
-		printf("difference at inital cell state Verifies on CPU and GPU\n");
-	}
+		auto error_data3 = miopen::rms_range(dcx_host, dcx);
 
-	auto error_data4 = miopen::rms_range(workspace_host, workspace);
-
-	if (!(error_data4 < tolerance))
-	{
-		std::cout << std::string("workspace Failed: ") << error_data4
-			<< "\n";
+		if (!(error_data3 < tolerance))
+		{
+			std::cout << std::string("difference at inital cell state Failed: ") << error_data3
+				<< "\n";
+		}
+		else
+		{
+			printf("difference at inital cell state Verifies on CPU and GPU\n");
+		}
 	}
-	else
-	{
-		printf("workspace Verifies on CPU and GPU\n");
-	}
-
+	
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
         RunBackwardWeightsCPU();
@@ -1682,8 +1666,6 @@ int RNNDriver<T>::VerifyBackward()
     {
         printf("Backward RNN Weights Verifies on CPU and GPU\n");
     }
-
-	printf("bwd %f , %f , %f , %f , wei %f \n", din_host[0], dhx_host[0], dcx_host[0], workspace_host[0], dwei_host[0]);
 
     /*
 if(inflags.GetValueInt("bias") != 0)
