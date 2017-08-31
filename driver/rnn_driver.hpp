@@ -478,6 +478,9 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     size_t workSpaceSize_bwd_wt = 0;
     size_t workSpaceSize_bwd_dt = 0;
 
+    (void)workSpaceSize_bwd_wt;
+    (void)workSpaceSize_bwd_dt;
+
     /*
 miopenRNNBackwardWeightsGetWorkSpaceSize(
     GetHandle(), outputTensor, inputTensor, rnnDesc, weightTensor, &workSpaceSize_bwd_wt);
