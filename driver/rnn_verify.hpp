@@ -22,6 +22,10 @@ float activfunc(float x, int actvf)
         float y = 0;
         return std::max(x, y);
     }
+    else if(actvf == 2)
+    {
+        return 1 / (1 + exp(-x));
+    }
 
     return tanh(x);
 }
@@ -31,6 +35,10 @@ float dervactivfunc(float x, int actvf)
     if(actvf == 0)
     {
         return (x > 0 ? 1 : 0);
+    }
+    else if(actvf == 2)
+    {
+        return exp(-x) / (1 + exp(-x)) / (1 + exp(-x));
     }
 
     return 1 / cosh(x) / cosh(x);
@@ -64,7 +72,7 @@ void RunRNNForwardCPUVerify(std::vector<T>& in,
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
     int out_dim  = bidirection ? out_h / 2 : out_h;
-    int bacc, baccbi; // accumulation of batch
+    int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
     int wei_shift_bias =
@@ -377,7 +385,7 @@ void RunRNNBackwardDataCPUVerify(std::vector<T>& din_state,
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
     int out_dim  = bidirection ? out_h / 2 : out_h;
-    int bacc, baccbi; // accumulation of batch
+    int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
     int wei_shift_bias =
@@ -584,7 +592,7 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
     int out_dim  = bidirection ? out_h / 2 : out_h;
-    int bacc, baccbi; // accumulation of batch
+    int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
     int wei_shift_bias =
@@ -636,7 +644,7 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
                             else
                             {
                                 prehid_shift =
-                                    li * bi * batch_n * hy_h + ((bacc - in_n[ti - 1])) * hy_stride;
+                                    li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_stride;
 
                                 dwei_state[wei_shift + h * hy_stride + w] +=
                                     (activfunc(rsvspace[prehid_shift + bs * hy_stride + h],
@@ -655,7 +663,7 @@ void RunRNNBackwardWeightCPUVerify(std::vector<T>& in,
                                 else
                                 {
                                     prehid_shift = li * bi * batch_n * hy_h +
-                                                   ((bacc + in_n[ti])) * hy_stride + hy_h;
+                                                   (bacc + in_n[ti]) * hy_stride + hy_h;
 
                                     if(bs < in_n[ti + 1])
                                     {
