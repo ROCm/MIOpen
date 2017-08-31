@@ -55,9 +55,6 @@ void RunLSTMForwardGEMMCPUVerify(
     T* hid_state = new T[numlayer * batch_n * hy_stride];
     memset(hid_state, 0, numlayer * batch_n * hy_stride * sizeof(T));
 
-    //	T* wk_state = new T[numlayer * batch_n * hy_stride];
-    //	memset(wk_state, 0, numlayer * batch_n * hy_stride * sizeof(T));
-
     T* out_state = new T[batch_n * out_h];
     memset(out_state, 0, batch_n * out_h * sizeof(T));
 
@@ -436,7 +433,6 @@ void RunLSTMForwardGEMMCPUVerify(
     }
 
     delete[] hid_state;
-    //	delete[] wk_state;
     delete[] out_state;
     delete[] in_state;
     delete[] hx_state;
@@ -498,12 +494,6 @@ void RunLSTMBackwardDataGEMMCPUVerify(
 
     T* dh_state = new T[numlayer * batch_n * hy_stride];
     memset(dh_state, 0, numlayer * batch_n * hy_stride * sizeof(T));
-
-    T* hid_state = new T[numlayer * batch_n * hy_stride];
-    for(int i = 0; i < numlayer * batch_n * hy_stride; i++)
-    {
-        hid_state[i] = rsvspace[i];
-    }
 
     T* din_state = new T[batch_n * in_h];
     memset(din_state, 0, batch_n * in_h * sizeof(T));
@@ -882,7 +872,6 @@ void RunLSTMBackwardDataGEMMCPUVerify(
         }
     }
 
-    delete[] hid_state;
     delete[] dh_state;
     delete[] dout_state;
     delete[] din_state;
