@@ -152,7 +152,7 @@ int ActivationDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
-    inflags.AddInputFlag("alpha", 'A', "0.0", "Activation shift (Default=0.0)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Activation shift (Default=0.0)", "double");
     inflags.AddInputFlag("beta", 'B', "0.0", "Activation scale (Default=0.0)", "double");
     inflags.AddInputFlag("power", 'P', "1.0", "Activation power (Default=1.0)", "double");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -244,7 +244,7 @@ template <typename T>
 int ActivationDriver<T>::RunForwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     miopenActivationForward(GetHandle(),
                             activDesc,
@@ -276,7 +276,7 @@ int ActivationDriver<T>::RunForwardCPU()
 template <typename T>
 int ActivationDriver<T>::RunBackwardGPU()
 {
-    float alpha = 1., beta = 1.;
+    float alpha = 1., beta = 0.;
 
     miopenActivationBackward(GetHandle(),
                              activDesc,

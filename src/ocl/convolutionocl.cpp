@@ -477,13 +477,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
-                                               const void* /*alpha*/,
+                                               const void* alpha,
                                                const TensorDescriptor& xDesc,
                                                ConstData_t x,
                                                const TensorDescriptor& wDesc,
                                                ConstData_t w,
                                                miopenConvFwdAlgorithm_t algo,
-                                               const void* /*beta*/,
+                                               const void* beta,
                                                const TensorDescriptor& yDesc,
                                                Data_t y,
                                                Data_t workSpace,
@@ -508,6 +508,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     if(xDesc.GetSize() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(*((float *)alpha) != 1.0 || *((float *)beta) != 0)
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
     if(mode == miopenConvolution)
@@ -1078,13 +1082,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
 // BackwardDataAlgorithm()
 void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
-                                                    const void* /*alpha*/,
+                                                    const void* alpha,
                                                     const TensorDescriptor& dyDesc,
                                                     ConstData_t dy,
                                                     const TensorDescriptor& wDesc,
                                                     ConstData_t w,
                                                     miopenConvBwdDataAlgorithm_t algo,
-                                                    const void* /*beta*/,
+                                                    const void* beta,
                                                     const TensorDescriptor& dxDesc,
                                                     Data_t dx,
                                                     Data_t workSpace,
@@ -1109,6 +1113,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     if(dyDesc.GetSize() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(*((float *)alpha) != 1.0 || *((float *)beta) != 0)
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
     if(mode == miopenConvolution)
@@ -1650,13 +1658,13 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
 // BackwardWeightsAlgorithm()
 void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
-                                                       const void* /*alpha*/,
+                                                       const void* alpha,
                                                        const TensorDescriptor& dyDesc,
                                                        ConstData_t dy,
                                                        const TensorDescriptor& xDesc,
                                                        ConstData_t x,
                                                        miopenConvBwdWeightsAlgorithm_t algo,
-                                                       const void* /*beta*/,
+                                                       const void* beta,
                                                        const TensorDescriptor& dwDesc,
                                                        Data_t dw,
                                                        Data_t workSpace,
@@ -1682,6 +1690,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     if(dyDesc.GetSize() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(*((float *)alpha) != 1.0 || *((float *)beta) != 0)
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
     int in_n, in_c, in_h, in_w;
@@ -1914,10 +1926,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 }
 
 void ConvolutionBackwardBias(Handle& handle,
-                             const void* /*alpha*/,
+                             const void* alpha,
                              const TensorDescriptor& dyDesc,
                              ConstData_t dy,
-                             const void* /*beta*/,
+                             const void* beta,
                              const TensorDescriptor& dbDesc,
                              Data_t db)
 {
@@ -1928,6 +1940,10 @@ void ConvolutionBackwardBias(Handle& handle,
     if(dyDesc.GetLengths()[1] != dbDesc.GetLengths()[1])
     {
         MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(*((float *)alpha) != 1.0 || *((float *)beta) != 0)
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
     int out_n, out_c, out_h, out_w, stride_n, stride_c, stride_h, stride_w;

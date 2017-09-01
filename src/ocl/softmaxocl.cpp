@@ -49,11 +49,15 @@ int nextPow2(int v)
 }
 
 miopenStatus_t SoftmaxForward(Handle& handle,
-                              const void* /*alpha*/,
-                              const void* /*beta*/,
+                              const void* alpha,
+                              const void* beta,
                               const TensorDescriptor& yDesc,
                               Data_t y)
 {
+    if(*((float *)alpha) != 1.0 || *((float *)beta) != 0)
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
     int n, c, h, w;
     std::tie(n, c, h, w) = tie4(yDesc.GetLengths());
 
@@ -105,10 +109,10 @@ miopenStatus_t SoftmaxForward(Handle& handle,
 }
 
 miopenStatus_t SoftmaxBackward(Handle& handle,
-                               const void* /*alpha*/,
+                               const void* alpha,
                                const TensorDescriptor& yDesc,
                                ConstData_t y,
-                               const void* /*beta*/,
+                               const void* beta,
                                const TensorDescriptor& dxDesc,
                                Data_t dx)
 {
@@ -116,6 +120,11 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
+    if(*((float *)alpha) != 1.0 || *((float *)beta) != 0)
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
+
     int n, c, h, w;
     std::tie(n, c, h, w) = tie4(dxDesc.GetLengths());
 
