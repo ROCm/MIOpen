@@ -267,7 +267,7 @@ int BatchNormDriver<T>::AddCmdLineArgs()
         "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
-    
+
     return miopenStatusSuccess;
 }
 
@@ -773,12 +773,12 @@ int BatchNormDriver<T>::RunForwardGPU()
     double eAF     = 1.0;
 
     Timer t;
-    
+
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        
+
         START_TIME;
-        eAF  = 1.0 / (double(i) + 1.0);
+        eAF = 1.0 / (double(i) + 1.0);
         // if run fwd train
         if(forw == 1)
         { // training only
@@ -793,17 +793,14 @@ int BatchNormDriver<T>::RunForwardGPU()
             // printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
             return miopenStatusSuccess;
         }
-        
+
         STOP_TIME;
         if(WALL_CLOCK)
             printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms\n",
-                    t.gettime_ms());// / inflags.GetValueInt("iter"));
+                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
     }
     return miopenStatusSuccess;
 }
-
-
-
 
 template <typename T>
 void BatchNormDriver<T>::runCPUFwdInference(
@@ -920,15 +917,15 @@ int BatchNormDriver<T>::RunForwardCPU()
     int width    = wIn;
 
     //	T alpha = 0., beta  = 0.;
-    double epsilon                = EPSILON;
-    double eAF                    = 1.0;
+    double epsilon = EPSILON;
+    double eAF     = 1.0;
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        
+
         if(forw == 1)
         { // training only
-            eAF  = 1.0 / (double(i) + 1.0);
+            eAF = 1.0 / (double(i) + 1.0);
             runCPUFwdTrain(epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width);
         }
         else if(forw == 2)
@@ -949,11 +946,11 @@ int BatchNormDriver<T>::RunBackwardGPU()
     double epsilon = EPSILON;
 
     Timer t;
-    
+
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         START_TIME;
-        
+
         if(saveMeanVar)
         {
             miopenBatchNormalizationBackward(GetHandle(),
@@ -1001,7 +998,7 @@ int BatchNormDriver<T>::RunBackwardGPU()
         STOP_TIME;
         if(WALL_CLOCK)
             printf("Wall-clock Time Backwards GPU Batch Norm Elapsed: %f ms\n",
-                   t.gettime_ms());// / inflags.GetValueInt("iter"));
+                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
     }
 
     return miopenStatusSuccess;
@@ -1220,7 +1217,7 @@ int BatchNormDriver<T>::RunBackwardCPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-    if(bn_mode == miopenBNPerActivation)
+        if(bn_mode == miopenBNPerActivation)
         {                                   // 1xCxHxW
             miopenBNBwdPerActivationRunHost(/* alphaDiff, betaDiff, alphaParam, betaParam, */
                                             batch_sz,
