@@ -286,7 +286,7 @@ template <typename T>
 int LRNDriver<T>::RunForwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     miopenLRNForward(GetHandle(),
                      lrnDesc,
@@ -416,7 +416,7 @@ int LRNDriver<T>::RunForwardCPU()
 template <typename T>
 int LRNDriver<T>::RunBackwardGPU()
 {
-    float alpha = 1., beta = 1.;
+    float alpha = 1., beta = 0.;
 
     miopenLRNBackward(GetHandle(),
                       lrnDesc,

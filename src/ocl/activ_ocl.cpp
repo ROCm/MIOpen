@@ -30,14 +30,18 @@
 namespace miopen {
 
 miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
-                                             const void* /* alpha */,
+                                             const void* alpha,
                                              const TensorDescriptor& xDesc,
                                              ConstData_t x,
-                                             const void* /* beta */,
+                                             const void* beta,
                                              const TensorDescriptor& yDesc,
                                              Data_t y)
 {
 
+    if(*((float *)alpha) != 1.0 || *((float *)beta) != 0)
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
     miopenStatus_t status = miopenStatusSuccess;
 
     mlo_construct_neuron construct_params(1); // forward
@@ -109,18 +113,22 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 }
 
 miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
-                                              const void* /* alpha */,
+                                              const void* alpha,
                                               const TensorDescriptor& yDesc,
                                               ConstData_t y,
                                               const TensorDescriptor& dyDesc,
                                               ConstData_t dy,
                                               const TensorDescriptor& xDesc,
                                               ConstData_t x,
-                                              const void* /* beta */,
+                                              const void* beta,
                                               const TensorDescriptor& dxDesc,
                                               Data_t dx)
 {
 
+    if(*((float *)alpha) != 1.0 || *((float *)beta) != 0)
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
     miopenStatus_t status = miopenStatusSuccess;
 
     mlo_construct_neuron construct_params(0); // backward
