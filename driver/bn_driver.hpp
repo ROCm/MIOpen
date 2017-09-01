@@ -765,7 +765,7 @@ template <typename T>
 int BatchNormDriver<T>::RunForwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    T alpha = 1, beta = 0;
     double epsilon                = EPSILON;
     static unsigned int iteration = 0;
     double eAF                    = 1.0 / (double(iteration) + 1.0);
@@ -901,7 +901,6 @@ int BatchNormDriver<T>::RunForwardCPU()
     int height   = hIn;
     int width    = wIn;
 
-    //	T alpha = 0., beta  = 0.;
     double epsilon                = EPSILON;
     static unsigned int iteration = 0;
     double eAF                    = 1.0 / (double(iteration) + 1.0);
