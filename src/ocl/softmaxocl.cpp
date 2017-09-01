@@ -49,13 +49,11 @@ int nextPow2(int v)
     }
 }
 
-miopenStatus_t SoftmaxForward(Handle& handle,
-                              const void* alpha,
-                              const void* beta,
-                              const TensorDescriptor& yDesc,
-                              Data_t y)
+miopenStatus_t SoftmaxForward(
+    Handle& handle, const void* alpha, const void* beta, const TensorDescriptor& yDesc, Data_t y)
 {
-    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
@@ -121,7 +119,8 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }

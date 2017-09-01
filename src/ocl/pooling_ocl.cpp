@@ -47,7 +47,8 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                                           size_t /*workSpaceSize*/) const
 {
 
-    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
@@ -132,7 +133,8 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
                                            ConstData_t workSpace) const
 {
 
-    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
