@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/kernel_cache.hpp>
 #include <miopen/softmax.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
@@ -54,7 +55,7 @@ miopenStatus_t SoftmaxForward(Handle& handle,
                               const TensorDescriptor& yDesc,
                               Data_t y)
 {
-    if(*(static_cast<const float *>(alpha)) != 1.0 || *(static_cast<const float *>(beta)) != 0)
+    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
@@ -120,7 +121,7 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(*(static_cast<const float *>(alpha)) != 1.0 || *(static_cast<const float *>(beta)) != 0)
+    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }

@@ -26,6 +26,7 @@
 #include <miopen/activ.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
@@ -38,7 +39,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                              Data_t y)
 {
 
-    if(*(static_cast<const float *>(alpha)) != 1.0 || *(static_cast<const float *>(beta)) != 0)
+    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
@@ -125,7 +126,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                               Data_t dx)
 {
 
-    if(*(static_cast<const float *>(alpha)) != 1.0 || *(static_cast<const float *>(beta)) != 0)
+    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
