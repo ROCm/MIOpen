@@ -82,7 +82,7 @@ struct verify_forward_activation
         auto in_dev   = handle.Write(input.data);
         auto out_dev  = handle.Write(out.data);
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
 
         desc.Forward(handle, &alpha, input.desc, in_dev.get(), &beta, out.desc, out_dev.get());
 
@@ -129,7 +129,7 @@ struct verify_backwards_activation
         auto out_dev  = handle.Write(out.data);
         auto din_dev  = handle.Write(dinput.data);
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
 
         desc.Forward(handle, &alpha, input.desc, in_dev.get(), &beta, out.desc, out_dev.get());
         desc.Backward(handle,
@@ -171,7 +171,7 @@ struct activation_driver : test_driver
 {
     tensor<T> input;
     double alpha     = 1;
-    double beta      = 1;
+    double beta      = 0;
     double power     = 1;
     std::string mode = "PATHTRU";
     std::unordered_map<std::string, std::function<void()>> lookup;

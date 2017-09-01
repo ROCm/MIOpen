@@ -134,7 +134,7 @@ struct verify_forward_conv : conv_base<T>
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
 
         filter.FindConvFwdAlgorithm(handle,
                                     input.desc,
@@ -242,7 +242,7 @@ struct verify_backward_conv : conv_base<T>
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
 
         filter.FindConvBwdDataAlgorithm(
             handle,
@@ -353,7 +353,7 @@ struct verify_backward_weights_conv : conv_base<T>
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
         filter.FindConvBwdWeightsAlgorithm(
             handle,
             out.desc,
