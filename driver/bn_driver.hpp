@@ -31,6 +31,7 @@
 #include "driver.hpp"
 #include "miopen_BatchNormHost.hpp"
 #include "tensor_driver.hpp"
+#include "timer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -230,20 +231,20 @@ int BatchNormDriver<T>::AddCmdLineArgs()
         "forw",
         'F',
         "0",
-        "Run Forward Train (off: 0, train: 1, inference: 2) Batch Normalization (Default=0)",
+        "Run Forward Train (off: 0, train: 1, inference: 2) Batch Normalization (Default=1)",
         "int");
     inflags.AddInputFlag("back",
                          'b',
                          "0",
                          "Backwards Propagation (off: 0, on: 1) Batch Normalization (Default=0)",
                          "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
+    inflags.AddInputFlag("batchsize", 'n', "32", "Mini-batch size (Default=32)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag("alpha", 'A', "0.001", "Alpha (Default=0.001)", "double");
-    inflags.AddInputFlag("beta", 'B', "0.75", "Beta (Default=0.75)", "double");
-    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "double");
+    inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "double");
+    inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
@@ -264,6 +265,8 @@ int BatchNormDriver<T>::AddCmdLineArgs()
         "0",
         "Keep running mean and variance, or on inference, use these values. (Default=0)",
         "int");
+    inflags.AddInputFlag(
+        "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
 }
@@ -282,8 +285,8 @@ template <typename T>
 int BatchNormDriver<T>::SetBNParametersFromCmdLineArgs()
 {
 
-    //	double bnAlpha = inflags.GetValueDouble("alpha");
-    //	double bnBeta = inflags.GetValueDouble("beta");
+    //    	double bnAlpha = inflags.GetValueDouble("alpha");
+    //    	double bnBeta = inflags.GetValueDouble("beta");
 
     // batch norm mode type
     if(inflags.GetValueInt("mode") == 0)
@@ -349,6 +352,11 @@ int BatchNormDriver<T>::SetBNParametersFromCmdLineArgs()
         printf(
             "Warning: Deactivate forward to run backward on Batch Norm.\nRunning forward only.\n");
         back = 0;
+    }
+    else if(!back && !forw)
+    {
+        back = 0;
+        forw = 1;
     }
 
     return miopenStatusSuccess;
@@ -766,23 +774,37 @@ int BatchNormDriver<T>::RunForwardGPU()
 {
 
     T alpha = 1, beta = 0;
-    double epsilon                = EPSILON;
-    static unsigned int iteration = 0;
-    double eAF                    = 1.0 / (double(iteration) + 1.0);
-    iteration++;
+    int alpha = 1, beta = 1;
+    double epsilon = EPSILON;
+    double eAF     = 1.0;
 
-    // if run fwd train
-    if(forw == 1)
-    { // training only
-        runGPUFwdTrain(epsilon, eAF, alpha, beta);
-    }
-    else if(forw == 2)
-    { // inference only
-        runGPUFwdInference(epsilon, alpha, beta);
-    }
-    else
+    Timer t;
+
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        // printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
+
+        START_TIME;
+        
+        // if run fwd train
+        if(forw == 1)
+        { // training only
+            eAF = 1.0 / (double(i) + 1.0);
+            runGPUFwdTrain(epsilon, eAF, alpha, beta);
+        }
+        else if(forw == 2)
+        { // inference only
+            runGPUFwdInference(epsilon, alpha, beta);
+        }
+        else
+        {
+            // printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
+            return miopenStatusSuccess;
+        }
+
+        STOP_TIME;
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms\n",
+                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
     }
     return miopenStatusSuccess;
 }
@@ -901,14 +923,17 @@ int BatchNormDriver<T>::RunForwardCPU()
     int height   = hIn;
     int width    = wIn;
 
-    double epsilon                = EPSILON;
-    static unsigned int iteration = 0;
-    double eAF                    = 1.0 / (double(iteration) + 1.0);
-    iteration++;
+    //	T alpha = 0., beta  = 0.;
+    double epsilon = EPSILON;
+    double eAF     = 1.0;
 
     if(forw == 1)
     { // training only
-        runCPUFwdTrain(epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width);
+        for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+        {
+            eAF = 1.0 / (double(i) + 1.0);
+            runCPUFwdTrain(epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width);
+        }
     }
     else if(forw == 2)
     { // inference only
@@ -922,60 +947,74 @@ template <typename T>
 int BatchNormDriver<T>::RunBackwardGPU()
 {
 
+    if(!back)
+        return miopenStatusSuccess;
+
     T alphaDataDiff = 1, betaDataDiff = 0;
     T alphaParamDiff = 1, betaParamDiff = 0;
     double epsilon = EPSILON;
 
-    if(saveMeanVar)
-    {
-        miopenBatchNormalizationBackward(GetHandle(),
-                                         bn_mode,
-                                         &alphaDataDiff,
-                                         &betaDataDiff,
-                                         &alphaParamDiff,
-                                         &betaParamDiff,
-                                         inputTensor,
-                                         in_dev->GetMem(),
-                                         dyInputTensor,
-                                         dyin_dev->GetMem(),
-                                         dxOutputTensor,
-                                         dxout_dev->GetMem(),
-                                         biasScaleTensor,
-                                         scale_dev->GetMem(),
-                                         dscale_dev->GetMem(),
-                                         dbias_dev->GetMem(),
-                                         epsilon,
-                                         saveMean_dev->GetMem(),
-                                         saveInvVariance_dev->GetMem());
-    }
-    else
-    {
-        miopenBatchNormalizationBackward(GetHandle(),
-                                         bn_mode,
-                                         &alphaDataDiff,
-                                         &betaDataDiff,
-                                         &alphaParamDiff,
-                                         &betaParamDiff,
-                                         inputTensor,
-                                         in_dev->GetMem(),
-                                         dyInputTensor,
-                                         dyin_dev->GetMem(),
-                                         dxOutputTensor,
-                                         dxout_dev->GetMem(),
-                                         biasScaleTensor,
-                                         scale_dev->GetMem(),
-                                         dscale_dev->GetMem(),
-                                         dbias_dev->GetMem(),
-                                         epsilon,
-                                         nullptr,
-                                         nullptr);
-    }
+    Timer t;
 
-    if(inflags.GetValueStr("time") == "1")
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Backward Batch Normalization Elapsed: %f ms\n", time);
+        START_TIME;
+
+        if(saveMeanVar)
+        {
+            miopenBatchNormalizationBackward(GetHandle(),
+                                             bn_mode,
+                                             &alphaDataDiff,
+                                             &betaDataDiff,
+                                             &alphaParamDiff,
+                                             &betaParamDiff,
+                                             inputTensor,
+                                             in_dev->GetMem(),
+                                             dyInputTensor,
+                                             dyin_dev->GetMem(),
+                                             dxOutputTensor,
+                                             dxout_dev->GetMem(),
+                                             biasScaleTensor,
+                                             scale_dev->GetMem(),
+                                             dscale_dev->GetMem(),
+                                             dbias_dev->GetMem(),
+                                             epsilon,
+                                             saveMean_dev->GetMem(),
+                                             saveInvVariance_dev->GetMem());
+        }
+        else
+        {
+            miopenBatchNormalizationBackward(GetHandle(),
+                                             bn_mode,
+                                             &alphaDataDiff,
+                                             &betaDataDiff,
+                                             &alphaParamDiff,
+                                             &betaParamDiff,
+                                             inputTensor,
+                                             in_dev->GetMem(),
+                                             dyInputTensor,
+                                             dyin_dev->GetMem(),
+                                             dxOutputTensor,
+                                             dxout_dev->GetMem(),
+                                             biasScaleTensor,
+                                             scale_dev->GetMem(),
+                                             dscale_dev->GetMem(),
+                                             dbias_dev->GetMem(),
+                                             epsilon,
+                                             nullptr,
+                                             nullptr);
+        }
+        STOP_TIME;
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Backwards GPU Batch Norm Elapsed: %f ms\n",
+                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
+
+        if(inflags.GetValueStr("time") == "1")
+        {
+            float time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
+            printf("GPU Kernel Time Backwards Batch Normalization Elapsed: %f ms\n", time);
+        }
     }
 
     return miopenStatusSuccess;
@@ -1163,7 +1202,7 @@ int BatchNormDriver<T>::VerifyForward()
     // Done! Results?
     if(!anError)
     {
-        std::cout << "Forward train batch norm verified on CPU and GPU." << std::endl;
+        std::cout << "Forward batch norm verified on CPU and GPU." << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -1172,6 +1211,9 @@ int BatchNormDriver<T>::VerifyForward()
 template <typename T>
 int BatchNormDriver<T>::RunBackwardCPU()
 {
+
+    if(!back)
+        return miopenStatusSuccess;
 
     int nInStride, cInStride, hInStride, wInStride;
     miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
@@ -1241,6 +1283,9 @@ int BatchNormDriver<T>::RunBackwardCPU()
 template <typename T>
 int BatchNormDriver<T>::VerifyBackward()
 {
+
+    if(!back)
+        return miopenStatusSuccess;
 
     const double tolerance = ERRTOL;
     const double maxrms    = RMSTOL;

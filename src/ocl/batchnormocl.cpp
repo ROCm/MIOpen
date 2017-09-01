@@ -137,8 +137,7 @@ void BatchNormForwardTraining(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        // if((in_cstride > 49 && n > 16) && (in_cstride <= 512 && n>5 && in_cstride>4)){
-        if(in_cstride <= 512 && n > 16 && in_cstride > 4)
+        if(in_cstride <= 512 && n > 3 && in_cstride > 4)
         {
             xlocalsize = 1024;
             ylocalsize = 1;
