@@ -270,13 +270,9 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_NLOOP; n++)
         {
-            nid = n * segihw + lidihw;
-            // if(nid < MIO_BN_N){//may be possible to remove this guard
+            nid                    = n * segihw + lidihw;
             index                  = nid * MIO_BN_CHW + chwid;
             mean += batchvalues[n] = (index < MIO_BN_NCHW) ? in[index] : 0.;
-            // batchvalues[n] = (index < MIO_BN_NCHW) ? 1 : 0.;
-            // mean += batchvalues[n];
-            // }
         }
     }
     // barrier(CLK_LOCAL_MEM_FENCE);

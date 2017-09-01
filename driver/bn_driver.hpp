@@ -229,7 +229,7 @@ int BatchNormDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "forw",
         'F',
-        "0",
+        "1",
         "Run Forward Train (off: 0, train: 1, inference: 2) Batch Normalization (Default=0)",
         "int");
     inflags.AddInputFlag("back",
@@ -243,7 +243,7 @@ int BatchNormDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag("alpha", 'A', "0.001", "Alpha (Default=0.001)", "double");
     inflags.AddInputFlag("beta", 'B', "0.75", "Beta (Default=0.75)", "double");
-    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
+    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
@@ -264,7 +264,9 @@ int BatchNormDriver<T>::AddCmdLineArgs()
         "0",
         "Keep running mean and variance, or on inference, use these values. (Default=0)",
         "int");
-
+    inflags.AddInputFlag(
+        "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
+    
     return miopenStatusSuccess;
 }
 
