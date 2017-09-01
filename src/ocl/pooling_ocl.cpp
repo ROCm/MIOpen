@@ -26,6 +26,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/pooling.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
@@ -46,7 +47,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                                           size_t /*workSpaceSize*/) const
 {
 
-    if(*(static_cast<const float *>(alpha)) != 1.0 || *(static_cast<const float *>(beta)) != 0)
+    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
@@ -131,7 +132,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
                                            ConstData_t workSpace) const
 {
 
-    if(*(static_cast<const float *>(alpha)) != 1.0 || *(static_cast<const float *>(beta)) != 0)
+    if(!float_equal(*(static_cast<const float *>(alpha)), 1.0) || !float_equal(*(static_cast<const float *>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
