@@ -71,7 +71,6 @@ void BatchNormForwardTraining(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-
     std::string program_name = "MIOpenBatchNormFwdTrain";
     std::string algo_name    = "miopenBatchNormalizationForwardTraining";
     std::string kernel_name  = "BatchNormFwdTrain";
@@ -432,7 +431,7 @@ void BatchNormForwardInference(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
         if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-            !float_equal(*(static_cast<const float*>(beta)), 0))
+           !float_equal(*(static_cast<const float*>(beta)), 0))
         {
             std::cerr << "Only alpha=1 and beta=0 is supported" << std::endl;
             MIOPEN_THROW(miopenStatusBadParm);
