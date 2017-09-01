@@ -925,29 +925,17 @@ int BatchNormDriver<T>::RunForwardCPU()
     double epsilon = EPSILON;
     double eAF     = 1.0;
 
-    Timer t;
-
-    START_TIME;
     if(forw == 1)
     { // training only
-        // eAF = 1.0 / (double(inflags.GetValueInt("iter")));
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
             eAF = 1.0 / (double(i) + 1.0);
             runCPUFwdTrain(epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width);
         }
-        STOP_TIME;
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Forward CPU Batch Norm Elapsed: %f ms\n",
-                   t.gettime_ms() / inflags.GetValueInt("iter"));
     }
     else if(forw == 2)
     { // inference only
         runCPUFwdInference(epsilon, /* alpha, beta,*/ batch_sz, channels, height, width);
-        STOP_TIME;
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Forward CPU Batch Norm Elapsed: %f ms\n",
-                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
     }
 
     return miopenStatusSuccess;
@@ -1244,10 +1232,6 @@ int BatchNormDriver<T>::RunBackwardCPU()
     //	T alphaParam = 1, betaParam = 0;
     double epsilon = EPSILON;
 
-    Timer t;
-
-    START_TIME;
-
     if(bn_mode == miopenBNPerActivation)
     {                                   // 1xCxHxW
         miopenBNBwdPerActivationRunHost(/* alphaDiff, betaDiff, alphaParam, betaParam, */
@@ -1290,12 +1274,6 @@ int BatchNormDriver<T>::RunBackwardCPU()
                "selection.\nExiting...\n\n");
         exit(EXIT_FAILURE);
     }
-
-    STOP_TIME;
-
-    if(WALL_CLOCK)
-        printf("Wall-clock Time Backwards CPU Batch Norm Elapsed: %f ms\n",
-               t.gettime_ms()); // / inflags.GetValueInt("iter"));
 
     return miopenStatusSuccess;
 }
