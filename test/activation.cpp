@@ -171,7 +171,7 @@ struct activation_driver : test_driver
 {
     tensor<T> input;
     double alpha     = 1;
-    double beta      = 0;
+    double beta      = 1;
     double power     = 1;
     std::string mode = "PATHTRU";
     std::unordered_map<std::string, std::function<void()>> lookup;
