@@ -959,7 +959,7 @@ int BatchNormDriver<T>::RunBackwardGPU()
 
     if(!back)
         return miopenStatusSuccess;
-    
+
     T alphaDataDiff = 1, betaDataDiff = 0;
     T alphaParamDiff = 1, betaParamDiff = 0;
     double epsilon = EPSILON;
@@ -1224,7 +1224,7 @@ int BatchNormDriver<T>::RunBackwardCPU()
 
     if(!back)
         return miopenStatusSuccess;
-    
+
     int nInStride, cInStride, hInStride, wInStride;
     miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
     int nIn, cIn, hIn, wIn;
@@ -1306,7 +1306,7 @@ int BatchNormDriver<T>::VerifyBackward()
 
     if(!back)
         return miopenStatusSuccess;
-    
+
     const double tolerance = ERRTOL;
     const double maxrms    = RMSTOL;
     double diff            = 0.;
