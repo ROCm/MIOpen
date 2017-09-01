@@ -31,6 +31,7 @@
 #include "driver.hpp"
 #include "miopen_BatchNormHost.hpp"
 #include "tensor_driver.hpp"
+#include "timer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -768,26 +769,41 @@ int BatchNormDriver<T>::RunForwardGPU()
 {
 
     int alpha = 1, beta = 1;
-    double epsilon                = EPSILON;
-    static unsigned int iteration = 0;
-    double eAF                    = 1.0 / (double(iteration) + 1.0);
-    iteration++;
+    double epsilon = EPSILON;
+    double eAF     = 1.0;
 
-    // if run fwd train
-    if(forw == 1)
-    { // training only
-        runGPUFwdTrain(epsilon, eAF, alpha, beta);
-    }
-    else if(forw == 2)
-    { // inference only
-        runGPUFwdInference(epsilon, alpha, beta);
-    }
-    else
+    Timer t;
+    
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        // printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
+        
+        START_TIME;
+        eAF  = 1.0 / (double(i) + 1.0);
+        // if run fwd train
+        if(forw == 1)
+        { // training only
+            runGPUFwdTrain(epsilon, eAF, alpha, beta);
+        }
+        else if(forw == 2)
+        { // inference only
+            runGPUFwdInference(epsilon, alpha, beta);
+        }
+        else
+        {
+            // printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
+            return miopenStatusSuccess;
+        }
+        
+        STOP_TIME;
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms\n",
+                    t.gettime_ms());// / inflags.GetValueInt("iter"));
     }
     return miopenStatusSuccess;
 }
+
+
+
 
 template <typename T>
 void BatchNormDriver<T>::runCPUFwdInference(
@@ -905,17 +921,20 @@ int BatchNormDriver<T>::RunForwardCPU()
 
     //	T alpha = 0., beta  = 0.;
     double epsilon                = EPSILON;
-    static unsigned int iteration = 0;
-    double eAF                    = 1.0 / (double(iteration) + 1.0);
-    iteration++;
+    double eAF                    = 1.0;
 
-    if(forw == 1)
-    { // training only
-        runCPUFwdTrain(epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width);
-    }
-    else if(forw == 2)
-    { // inference only
-        runCPUFwdInference(epsilon, /* alpha, beta,*/ batch_sz, channels, height, width);
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
+        
+        if(forw == 1)
+        { // training only
+            eAF  = 1.0 / (double(i) + 1.0);
+            runCPUFwdTrain(epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width);
+        }
+        else if(forw == 2)
+        { // inference only
+            runCPUFwdInference(epsilon, /* alpha, beta,*/ batch_sz, channels, height, width);
+        }
     }
 
     return miopenStatusSuccess;
@@ -929,56 +948,60 @@ int BatchNormDriver<T>::RunBackwardGPU()
     T alphaParamDiff = 1, betaParamDiff = 0;
     double epsilon = EPSILON;
 
-    if(saveMeanVar)
+    Timer t;
+    
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenBatchNormalizationBackward(GetHandle(),
-                                         bn_mode,
-                                         &alphaDataDiff,
-                                         &betaDataDiff,
-                                         &alphaParamDiff,
-                                         &betaParamDiff,
-                                         inputTensor,
-                                         in_dev->GetMem(),
-                                         dyInputTensor,
-                                         dyin_dev->GetMem(),
-                                         dxOutputTensor,
-                                         dxout_dev->GetMem(),
-                                         biasScaleTensor,
-                                         scale_dev->GetMem(),
-                                         dscale_dev->GetMem(),
-                                         dbias_dev->GetMem(),
-                                         epsilon,
-                                         saveMean_dev->GetMem(),
-                                         saveInvVariance_dev->GetMem());
-    }
-    else
-    {
-        miopenBatchNormalizationBackward(GetHandle(),
-                                         bn_mode,
-                                         &alphaDataDiff,
-                                         &betaDataDiff,
-                                         &alphaParamDiff,
-                                         &betaParamDiff,
-                                         inputTensor,
-                                         in_dev->GetMem(),
-                                         dyInputTensor,
-                                         dyin_dev->GetMem(),
-                                         dxOutputTensor,
-                                         dxout_dev->GetMem(),
-                                         biasScaleTensor,
-                                         scale_dev->GetMem(),
-                                         dscale_dev->GetMem(),
-                                         dbias_dev->GetMem(),
-                                         epsilon,
-                                         nullptr,
-                                         nullptr);
-    }
-
-    if(inflags.GetValueStr("time") == "1")
-    {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Backward Batch Normalization Elapsed: %f ms\n", time);
+        START_TIME;
+        
+        if(saveMeanVar)
+        {
+            miopenBatchNormalizationBackward(GetHandle(),
+                                             bn_mode,
+                                             &alphaDataDiff,
+                                             &betaDataDiff,
+                                             &alphaParamDiff,
+                                             &betaParamDiff,
+                                             inputTensor,
+                                             in_dev->GetMem(),
+                                             dyInputTensor,
+                                             dyin_dev->GetMem(),
+                                             dxOutputTensor,
+                                             dxout_dev->GetMem(),
+                                             biasScaleTensor,
+                                             scale_dev->GetMem(),
+                                             dscale_dev->GetMem(),
+                                             dbias_dev->GetMem(),
+                                             epsilon,
+                                             saveMean_dev->GetMem(),
+                                             saveInvVariance_dev->GetMem());
+        }
+        else
+        {
+            miopenBatchNormalizationBackward(GetHandle(),
+                                             bn_mode,
+                                             &alphaDataDiff,
+                                             &betaDataDiff,
+                                             &alphaParamDiff,
+                                             &betaParamDiff,
+                                             inputTensor,
+                                             in_dev->GetMem(),
+                                             dyInputTensor,
+                                             dyin_dev->GetMem(),
+                                             dxOutputTensor,
+                                             dxout_dev->GetMem(),
+                                             biasScaleTensor,
+                                             scale_dev->GetMem(),
+                                             dscale_dev->GetMem(),
+                                             dbias_dev->GetMem(),
+                                             epsilon,
+                                             nullptr,
+                                             nullptr);
+        }
+        STOP_TIME;
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Backwards GPU Batch Norm Elapsed: %f ms\n",
+                   t.gettime_ms());// / inflags.GetValueInt("iter"));
     }
 
     return miopenStatusSuccess;
@@ -1195,47 +1218,50 @@ int BatchNormDriver<T>::RunBackwardCPU()
     //	T alphaParam = 1, betaParam = 0;
     double epsilon = EPSILON;
 
-    if(bn_mode == miopenBNPerActivation)
-    {                                   // 1xCxHxW
-        miopenBNBwdPerActivationRunHost(/* alphaDiff, betaDiff, alphaParam, betaParam, */
-                                        batch_sz,
-                                        channels,
-                                        height,
-                                        width,
-                                        in.data(),
-                                        dyin.data(),
-                                        dxout_host.data(),
-                                        scale.data(),
-                                        dscale_host.data(),
-                                        dbias_host.data(),
-                                        epsilon,
-                                        saveMeanVar,
-                                        saveMean_host.data(),
-                                        saveInvVariance_host.data());
-    }
-    else if(bn_mode == miopenBNSpatial)
-    {                             // 1xCx1x1
-        miopenBNBwdSpatialRunHost(/* alphaDiff, betaDiff, alphaParam, betaParam, */
-                                  batch_sz,
-                                  channels,
-                                  height,
-                                  width,
-                                  in.data(),
-                                  dyin.data(),
-                                  dxout_host.data(),
-                                  scale.data(),
-                                  dscale_host.data(),
-                                  dbias_host.data(),
-                                  epsilon,
-                                  saveMeanVar,
-                                  saveMean_host.data(),
-                                  saveInvVariance_host.data());
-    }
-    else
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        printf("Something went wrong.\nBad batch normalization mode in host kernel "
-               "selection.\nExiting...\n\n");
-        exit(EXIT_FAILURE);
+    if(bn_mode == miopenBNPerActivation)
+        {                                   // 1xCxHxW
+            miopenBNBwdPerActivationRunHost(/* alphaDiff, betaDiff, alphaParam, betaParam, */
+                                            batch_sz,
+                                            channels,
+                                            height,
+                                            width,
+                                            in.data(),
+                                            dyin.data(),
+                                            dxout_host.data(),
+                                            scale.data(),
+                                            dscale_host.data(),
+                                            dbias_host.data(),
+                                            epsilon,
+                                            saveMeanVar,
+                                            saveMean_host.data(),
+                                            saveInvVariance_host.data());
+        }
+        else if(bn_mode == miopenBNSpatial)
+        {                             // 1xCx1x1
+            miopenBNBwdSpatialRunHost(/* alphaDiff, betaDiff, alphaParam, betaParam, */
+                                      batch_sz,
+                                      channels,
+                                      height,
+                                      width,
+                                      in.data(),
+                                      dyin.data(),
+                                      dxout_host.data(),
+                                      scale.data(),
+                                      dscale_host.data(),
+                                      dbias_host.data(),
+                                      epsilon,
+                                      saveMeanVar,
+                                      saveMean_host.data(),
+                                      saveInvVariance_host.data());
+        }
+        else
+        {
+            printf("Something went wrong.\nBad batch normalization mode in host kernel "
+                   "selection.\nExiting...\n\n");
+            exit(EXIT_FAILURE);
+        }
     }
 
     return miopenStatusSuccess;
