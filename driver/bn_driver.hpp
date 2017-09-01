@@ -230,20 +230,20 @@ int BatchNormDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "forw",
         'F',
-        "1",
-        "Run Forward Train (off: 0, train: 1, inference: 2) Batch Normalization (Default=0)",
+        "0",
+        "Run Forward Train (off: 0, train: 1, inference: 2) Batch Normalization (Default=1)",
         "int");
     inflags.AddInputFlag("back",
                          'b',
                          "0",
                          "Backwards Propagation (off: 0, on: 1) Batch Normalization (Default=0)",
                          "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
+    inflags.AddInputFlag("batchsize", 'n', "32", "Mini-batch size (Default=32)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag("alpha", 'A', "0.001", "Alpha (Default=0.001)", "double");
-    inflags.AddInputFlag("beta", 'B', "0.75", "Beta (Default=0.75)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "double");
+    inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "double");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -285,8 +285,8 @@ template <typename T>
 int BatchNormDriver<T>::SetBNParametersFromCmdLineArgs()
 {
 
-    //	double bnAlpha = inflags.GetValueDouble("alpha");
-    //	double bnBeta = inflags.GetValueDouble("beta");
+    //    	double bnAlpha = inflags.GetValueDouble("alpha");
+    //    	double bnBeta = inflags.GetValueDouble("beta");
 
     // batch norm mode type
     if(inflags.GetValueInt("mode") == 0)
@@ -352,6 +352,11 @@ int BatchNormDriver<T>::SetBNParametersFromCmdLineArgs()
         printf(
             "Warning: Deactivate forward to run backward on Batch Norm.\nRunning forward only.\n");
         back = 0;
+    }
+    else if(!back && !forw)
+    {
+        back = 0;
+        forw = 1;
     }
 
     return miopenStatusSuccess;
@@ -921,21 +926,28 @@ int BatchNormDriver<T>::RunForwardCPU()
     double eAF     = 1.0;
 
     Timer t;
-    
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    {
-        START_TIME;
-        if(forw == 1)
-        { // training only
-            //eAF = 1.0 / (double(inflags.GetValueInt("iter")));
+
+    START_TIME;
+    if(forw == 1)
+    { // training only
+        // eAF = 1.0 / (double(inflags.GetValueInt("iter")));
+        for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+        {
             eAF = 1.0 / (double(i) + 1.0);
             runCPUFwdTrain(epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width);
         }
-        else if(forw == 2)
-        { // inference only
-            runCPUFwdInference(epsilon, /* alpha, beta,*/ batch_sz, channels, height, width);
-        }
-        
+        STOP_TIME;
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Forward CPU Batch Norm Elapsed: %f ms\n",
+                   t.gettime_ms() / inflags.GetValueInt("iter"));
+    }
+    else if(forw == 2)
+    { // inference only
+        runCPUFwdInference(epsilon, /* alpha, beta,*/ batch_sz, channels, height, width);
+        STOP_TIME;
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Forward CPU Batch Norm Elapsed: %f ms\n",
+                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
     }
 
     return miopenStatusSuccess;
@@ -945,6 +957,9 @@ template <typename T>
 int BatchNormDriver<T>::RunBackwardGPU()
 {
 
+    if(!back)
+        return miopenStatusSuccess;
+    
     T alphaDataDiff = 1, betaDataDiff = 0;
     T alphaParamDiff = 1, betaParamDiff = 0;
     double epsilon = EPSILON;
@@ -1003,12 +1018,12 @@ int BatchNormDriver<T>::RunBackwardGPU()
         if(WALL_CLOCK)
             printf("Wall-clock Time Backwards GPU Batch Norm Elapsed: %f ms\n",
                    t.gettime_ms()); // / inflags.GetValueInt("iter"));
-        
+
         if(inflags.GetValueStr("time") == "1")
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
-            printf("GPU Kernel Time Forward Batch Normalization Elapsed: %f ms\n", time);
+            printf("GPU Kernel Time Backwards Batch Normalization Elapsed: %f ms\n", time);
         }
     }
 
@@ -1197,7 +1212,7 @@ int BatchNormDriver<T>::VerifyForward()
     // Done! Results?
     if(!anError)
     {
-        std::cout << "Forward train batch norm verified on CPU and GPU." << std::endl;
+        std::cout << "Forward batch norm verified on CPU and GPU." << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -1207,6 +1222,9 @@ template <typename T>
 int BatchNormDriver<T>::RunBackwardCPU()
 {
 
+    if(!back)
+        return miopenStatusSuccess;
+    
     int nInStride, cInStride, hInStride, wInStride;
     miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
     int nIn, cIn, hIn, wIn;
@@ -1227,9 +1245,9 @@ int BatchNormDriver<T>::RunBackwardCPU()
     double epsilon = EPSILON;
 
     Timer t;
-    
+
     START_TIME;
-    
+
     if(bn_mode == miopenBNPerActivation)
     {                                   // 1xCxHxW
         miopenBNBwdPerActivationRunHost(/* alphaDiff, betaDiff, alphaParam, betaParam, */
@@ -1272,10 +1290,12 @@ int BatchNormDriver<T>::RunBackwardCPU()
                "selection.\nExiting...\n\n");
         exit(EXIT_FAILURE);
     }
-    
+
+    STOP_TIME;
+
     if(WALL_CLOCK)
-    printf("Wall-clock Time Backwards CPU Batch Norm Elapsed: %f ms\n",
-           t.gettime_ms()); // / inflags.GetValueInt("iter"));
+        printf("Wall-clock Time Backwards CPU Batch Norm Elapsed: %f ms\n",
+               t.gettime_ms()); // / inflags.GetValueInt("iter"));
 
     return miopenStatusSuccess;
 }
@@ -1284,6 +1304,9 @@ template <typename T>
 int BatchNormDriver<T>::VerifyBackward()
 {
 
+    if(!back)
+        return miopenStatusSuccess;
+    
     const double tolerance = ERRTOL;
     const double maxrms    = RMSTOL;
     double diff            = 0.;
