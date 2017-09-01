@@ -784,7 +784,7 @@ int BatchNormDriver<T>::RunForwardGPU()
     {
 
         START_TIME;
-        
+
         // if run fwd train
         if(forw == 1)
         { // training only
