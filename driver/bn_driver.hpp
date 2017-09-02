@@ -774,7 +774,6 @@ int BatchNormDriver<T>::RunForwardGPU()
 {
 
     T alpha = 1, beta = 0;
-    int alpha = 1, beta = 1;
     double epsilon = EPSILON;
     double eAF     = 1.0;
 
