@@ -548,7 +548,7 @@ int ConvDriver<T>::RunForwardGPU()
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     Timer t;
     START_TIME;
@@ -844,7 +844,7 @@ int ConvDriver<T>::RunBackwardGPU()
 
     FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
     int ret = 0;
 
     Timer t;
