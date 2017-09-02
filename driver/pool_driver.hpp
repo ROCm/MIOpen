@@ -286,7 +286,7 @@ template <typename T>
 int PoolDriver<T>::RunForwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     miopenPoolingForward(GetHandle(),
                          poolDesc,
@@ -340,7 +340,7 @@ template <typename T>
 int PoolDriver<T>::RunBackwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     miopenPoolingBackward(GetHandle(),
                           poolDesc,

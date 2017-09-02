@@ -25,13 +25,14 @@
  *******************************************************************************/
 #include <miopen/batch_norm.hpp>
 #include <miopen/util.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
 void BatchNormForwardTraining(Handle& handle,
                               miopenBatchNormMode_t bn_mode,
-                              const void* /* alpha */,
-                              const void* /* beta  */,
+                              const void* alpha,
+                              const void* beta,
                               const TensorDescriptor& xDesc,
                               ConstData_t x,
                               const TensorDescriptor& yDesc,
@@ -61,6 +62,12 @@ void BatchNormForwardTraining(Handle& handle,
     }
     if(xDesc.GetSize() < 3)
     {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
+    {
+        std::cerr << "Only alpha=1 and beta=0 is supported" << std::endl;
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
@@ -387,8 +394,8 @@ void BatchNormForwardTraining(Handle& handle,
 //============ BEGIN FORWARD INFERENCE ===============
 void BatchNormForwardInference(Handle& handle,
                                miopenBatchNormMode_t bn_mode,
-                               const void* /* alpha */,
-                               const void* /* beta */,
+                               const void* alpha,
+                               const void* beta,
                                const TensorDescriptor& xDesc,
                                ConstData_t x,
                                const TensorDescriptor& yDesc,
@@ -420,6 +427,12 @@ void BatchNormForwardInference(Handle& handle,
         }
         if(xDesc.GetSize() < 3)
         {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+           !float_equal(*(static_cast<const float*>(beta)), 0))
+        {
+            std::cerr << "Only alpha=1 and beta=0 is supported" << std::endl;
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
@@ -498,8 +511,8 @@ void BatchNormForwardInference(Handle& handle,
 #endif
         BatchNormForwardTraining(handle,
                                  bn_mode,
-                                 nullptr,
-                                 nullptr,
+                                 alpha,
+                                 beta,
                                  xDesc,
                                  x,
                                  yDesc,
@@ -520,10 +533,10 @@ void BatchNormForwardInference(Handle& handle,
 //=============== BEGIN BACKWARDS PROPAGATION ================
 void BatchNormBackward(Handle& handle,
                        miopenBatchNormMode_t bn_mode,
-                       const void* /* alphaDataDiff */,
-                       const void* /* betaDataDiff */,
-                       const void* /* alphaParamDiff */,
-                       const void* /* betaParamDiff */,
+                       const void* alphaDataDiff,
+                       const void* betaDataDiff,
+                       const void* alphaParamDiff,
+                       const void* betaParamDiff,
                        const TensorDescriptor& xDesc,
                        ConstData_t x,
                        const TensorDescriptor& dyDesc,
@@ -554,6 +567,18 @@ void BatchNormBackward(Handle& handle,
     }
     if(xDesc.GetSize() < 3)
     {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(!float_equal(*(static_cast<const float*>(alphaDataDiff)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(betaDataDiff)), 0))
+    {
+        std::cerr << "Only alphaDataDiff=1 and betaDataDiff=0 is supported" << std::endl;
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(!float_equal(*(static_cast<const float*>(alphaParamDiff)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(betaParamDiff)), 0))
+    {
+        std::cerr << "Only alphaParamDiff=1 and betaParamDiff=0 is supported" << std::endl;
         MIOPEN_THROW(miopenStatusBadParm);
     }
 

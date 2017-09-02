@@ -773,7 +773,7 @@ template <typename T>
 int BatchNormDriver<T>::RunForwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    T alpha = 1, beta = 0;
     double epsilon = EPSILON;
     double eAF     = 1.0;
 
@@ -783,10 +783,11 @@ int BatchNormDriver<T>::RunForwardGPU()
     {
 
         START_TIME;
-        eAF = 1.0 / (double(i) + 1.0);
+
         // if run fwd train
         if(forw == 1)
         { // training only
+            eAF = 1.0 / (double(i) + 1.0);
             runGPUFwdTrain(epsilon, eAF, alpha, beta);
         }
         else if(forw == 2)
