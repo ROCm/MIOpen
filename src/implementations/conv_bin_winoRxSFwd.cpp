@@ -25,7 +25,7 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
         return false;
     }
 
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
     {
         return false;
     }
