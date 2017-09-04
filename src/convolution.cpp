@@ -173,7 +173,7 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
                                                    const TensorDescriptor& wDesc,
                                                    const TensorDescriptor& xDesc) const
 {
-    const auto perf_filtering = miopen::IsEnabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
+    const auto perf_filtering = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
     if(perf_filtering || miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{}))
     {
         return false;
