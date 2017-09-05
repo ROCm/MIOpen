@@ -756,7 +756,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
                 gg.RunGemm(handle, w, x, workSpace, 0, in_offset, 0);
 
-                if (handle.IsProfilingEnabled())
+                if(handle.IsProfilingEnabled())
                     t1 = handle.GetKernelTime();
 
                 Col2ImGPU(handle,
@@ -1202,7 +1202,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                     gg.RunGemm(handle, w, dy, workSpace, 0, out_offset, 0);
 
-                    if (handle.IsProfilingEnabled())
+                    if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
 
                     Col2ImGPU(handle,
