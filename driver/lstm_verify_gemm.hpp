@@ -184,7 +184,7 @@ void RunLSTMForwardGEMMCPUVerify(
         for(int ti = 0; ti < seqLength; ti++)
         {
             baccbi -= in_n[seqLength - 1 - ti];
-            int wei_shift = li == in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            int wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
             if(ti == 0)
             {
