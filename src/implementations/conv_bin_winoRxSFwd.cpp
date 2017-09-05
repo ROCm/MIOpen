@@ -14,7 +14,6 @@ static int Ceiling(const int v, const int m)
 }
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED)
 
 namespace miopen {
 
@@ -38,20 +37,6 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
     {
         return false;
     }
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED{}))
-    {
-        // FIXME remove env var and all this stuff when Winograd v8 gets fixed.
-        if(!(params.kernel_stride0 == 1 && params.kernel_stride1 == 1))
-        {
-            return false;
-        }
-        // if(!(params.kernel_size0 <= 3 && params.kernel_size1 <= 3))
-        // 3x3 seems to fail on Vega, so let's keep 1x1 only for now.
-        if(!(params.kernel_size0 == 1 && params.kernel_size1 == 1))
-        {
-            return false;
-        }
-    }
     const auto name                    = params.GetStream().GetDeviceName();
     const auto device_is_gfx9_no_xnack = (name == "gfx900");
     const bool device_is_gfx8_no_xnack =
@@ -62,7 +47,6 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
     }
     // Check if kernel is suitable for the problem description
     // and able to correctly run with given parameters.
-
     // Calculate padded filter size first.
     // If stride = 1: if S <= 3 it is padded to 3,
     // otherwise S is padded to smallest 6*n for some integer n
@@ -70,7 +54,7 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
     int padded_S = 0;
     if(params.kernel_stride0 == 1)
     {
-        if(params.kernel_size0 < 3)
+        if(params.kernel_size0 <= 3)
         {
             padded_S = 3;
         }
@@ -129,6 +113,7 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
            && params.kernel_size1 < std::pow(2, 16) // -y   wei_h   R uint16
            && params.kernel_stride0 <= 2            // -u   inp_u   1 or 2
            && params.kernel_stride1 <= 2            // -v   inp_v   1 or 2
+           && params.kernel_stride0 == params.kernel_stride1 // Only u1v1 or u2v2 for now.
            && params.batch_sz < std::pow(2, 16) && params.n_inputs < std::pow(2, 16) // -c   wei_c
            && params.n_outputs < std::pow(2, 16)                                     // -k   wei_k
            && params.in_height < std::pow(2, 16)                                     // -H   inp_h
@@ -177,7 +162,7 @@ ImplementationUsageDescription ConvBinWinogradRxSFwd::PrepareForUsage(
     {
         kernel.kernel_file += "u2v2";
     }
-    kernel.kernel_file += "_wheel_alpha_v8_3_6_";
+    kernel.kernel_file += "_wheel_alpha_v8_4_4_";
     if(name.find("gfx8") != std::string::npos)
     {
         kernel.kernel_file += "gfx803";

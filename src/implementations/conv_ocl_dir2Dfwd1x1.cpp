@@ -5,8 +5,7 @@ namespace miopen {
 
 bool ConvOclDirectFwd1x1::IsCorrect(const ImplementationSearchParameters& params) const
 {
-    return params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.kernel_stride0 == 1 &&
-           params.kernel_stride1 == 1;
+    return params.kernel_size0 == 1 && params.kernel_size1 == 1;
 }
 
 ImplementationUsageDescription
@@ -152,11 +151,21 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
             int OUT_WIDTH4 = params.out_width;
             int MAP_SZ4    = (OUT_WIDTH4 * params.out_height + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding
-            if(params.pad0 > 0 || params.kernel_stride0 > 1)
+            if (params.pad0 > 0 || params.kernel_stride0 > 1 || params.pad1 > 0 || params.kernel_stride1 > 1)
             {
-                int step   = (params.forward) ? read_unit : read_unit * params.kernel_stride0;
+                int step = (params.forward) ? read_unit : read_unit * params.kernel_stride0;
                 OUT_WIDTH4 = (params.out_width + step - 1) / (step);
-                MAP_SZ4    = (OUT_WIDTH4 * params.out_height);
+                int OUT_HEIGHT4 = (params.forward) ? params.out_height : (params.out_height + params.kernel_stride1 - 1) /
+                    params.kernel_stride1;
+                MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
+            }
+
+            int VERT_ALIGNED = 1;
+            int HORIZ_ALIGNED = 1;
+            if (!params.forward)
+            {
+                VERT_ALIGNED = (params.out_height / params.kernel_stride1 == params.in_height) ? 1 : 0;
+                HORIZ_ALIGNED = (params.out_width / params.kernel_stride0 == params.in_width) ? 1 : 0;
             }
 
             int GRP_SZ = result.grp_tile0;
@@ -181,6 +190,8 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
                 std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad1) +
                 std::string(" -DMLO_IN_WIDTH=") + std::to_string(params.in_width) +
                 std::string(" -DMLO_IN_HEIGHT=") + std::to_string(params.in_height) +
+                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.out_width) +
+                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(params.out_height) +
                 std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_outputs) +
                 std::string(" -DMLO_N_INPUTS=") + std::to_string(params.n_inputs) +
                 std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.batch_sz) +
@@ -200,6 +211,8 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
 
                 std::string(" -DMLO_MAP_SZ4=") + std::to_string(MAP_SZ4) +
                 std::string(" -DMLO_OUT_WIDTH4=") + std::to_string(OUT_WIDTH4) +
+                std::string(" -DMLO_VERT_ALIGNED=") + std::to_string(VERT_ALIGNED) +
+                std::string(" -DMLO_HORIZ_ALIGNED=") + std::to_string(HORIZ_ALIGNED) +
 
                 std::string(" -DMLO_N_LCL_BATCHS=") +
                 std::to_string(result.n_stacks) + // # of diff stacks (part of batch).
