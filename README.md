@@ -58,6 +58,11 @@ CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/r
 CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" ..
 ```
 
+If building for HIP and boost was installed via `apt-get` in Ubuntu v16, add this flag to the cmake line:
+```
+-DMIOPEN_MAKE_BOOST_PUBLIC=ON
+```
+
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:
 
 ```
