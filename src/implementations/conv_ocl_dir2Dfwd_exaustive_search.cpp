@@ -266,7 +266,7 @@ static int mloSelectDefaultConfig(std::string& conf_val,
            (params.n_inputs / 4) * 4 == params.n_inputs)
         {
             // version
-            if(params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
+            if (params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
             {
                 result.n_in_data_tiles = 128;
 
@@ -285,8 +285,14 @@ static int mloSelectDefaultConfig(std::string& conf_val,
 
                 if(params.pad0 > 0 || params.kernel_stride0 > 1)
                 {
-                    int row_sz           = (params.forward) ? params.out_width : params.in_width;
-                    result.out_pix_tile0 = (row_sz & 1) ? 1 : 2;
+                    if (params.forward)
+                    {
+                        result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
+                    }
+                    else
+                    {
+                        result.out_pix_tile0 = ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
+                    }
                 }
 
                 result.n_out_pix_tiles = 16;
@@ -859,7 +865,7 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
             result.in_tile0  = 1;
             report_inteval   = 4;
 
-            if(params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
+            if (params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
             {
 
                 // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -885,8 +891,22 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
             }
             else
             {
-                int i_sz           = params.in_width * params.in_height;
-                out_pix_tl_cnt     = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
+                int i_sz = params.in_width * params.in_height;
+                if (params.kernel_stride0 == 1)
+                {
+                    out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
+                }
+                else
+                {
+                    if (params.forward)
+                    {
+                        out_pix_tl_cnt = (params.out_width & 1) ? 1 : 2;
+                    }
+                    else
+                    {
+                        out_pix_tl_cnt = ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
+                    }
+                }
                 out_pix_tile_sz[0] = 1;
                 out_pix_tile_sz[1] = 2;
                 out_pix_tile_sz[2] = 4;

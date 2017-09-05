@@ -179,6 +179,8 @@ class ImplementationSearchParameters
     int pad0, pad1;
     int kernel_stride0, kernel_stride1;
     int kernel_size0, kernel_size1;
+    int kernal_dilation0, kernal_dilation1;
+    int deconvolution;
     int n_inputs, n_outputs;
     int in_width, in_height;
     int out_width, out_height;
@@ -267,18 +269,21 @@ class mlo_construct_direct2D
         _n_out_pix_tiles = 2; // # output pixel tiles per wk-item (ALU)
         _n_in_data_tiles = 4; // # of blocks of different inputs in LDS
 
-        _n_stacks                     = 1; // # of diff stacks (part of batch).
-        _search_params.bias           = (do_bias) ? 1 : 0;
-        _search_params.pad0           = 1;
-        _search_params.pad1           = 1;
-        _search_params.kernel_size0   = 3;
-        _search_params.kernel_size1   = 3;
-        _search_params.kernel_stride0 = 1;
-        _search_params.kernel_stride1 = 1;
-        _search_params.bot_sz         = 0; // bytes
-        _search_params.top_sz         = 0; // bytes
-        _search_params.weights_sz     = 0; // bytes
-        _search_params.bias_sz        = 0; // bytes
+        _n_stacks                       = 1; // # of diff stacks (part of batch).
+        _search_params.bias             = (do_bias) ? 1 : 0;
+        _search_params.pad0             = 1;
+        _search_params.pad1             = 1;
+        _search_params.kernel_size0     = 3;
+        _search_params.kernel_size1     = 3;
+        _search_params.kernel_stride0   = 1;
+        _search_params.kernel_stride1   = 1;
+        _search_params.kernal_dilation0 = 1;
+        _search_params.kernal_dilation1 = 1;
+        _search_params.deconvolution    = 0;
+        _search_params.bot_sz           = 0; // bytes
+        _search_params.top_sz           = 0; // bytes
+        _search_params.weights_sz       = 0; // bytes
+        _search_params.bias_sz          = 0; // bytes
 
         _workspce_sz = 0;
 

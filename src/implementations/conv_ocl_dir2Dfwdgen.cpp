@@ -5,7 +5,8 @@ namespace miopen {
 bool ConvOclDirectFwdGen::IsCorrect(const ImplementationSearchParameters& params) const
 {
     return params.forward && (params.kernel_size0 > 11 || params.kernel_size1 > 11 ||
-                              params.kernel_stride0 > 1 || params.kernel_stride1 > 1);
+        ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
+            !(params.kernel_size0 == 1 && params.kernel_size1 == 1)));
 }
 
 ImplementationUsageDescription
