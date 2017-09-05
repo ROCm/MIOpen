@@ -502,10 +502,7 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
                     }
 
                     // from post state
-                    wei_shift = li == 0 ? (in_h * wei_stride)
-                                        : ((in_h + hy_h) * wei_stride +
-                                           (li - 1) * (bi * hy_h + hy_h) * wei_stride +
-                                           bi * hy_h * wei_stride);
+                    wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
                     if(ti == seqLength - 1)
                     {
@@ -572,13 +569,6 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
                         dh_state[hid_shift + bs * hy_stride + bi * 4 * hy_h + h] *
                         activfunc(rsvspace[hid_shift + bs * hy_stride + h], 2) *
                         dervactivfunc(rsvspace[hid_shift + bs * hy_stride + 3 * hy_h + h], 1);
-
-                    //                    dcx_host[hx_shift + bs * h_stride + h] =
-                    //                        dh_state[hid_shift + bs * hy_stride + bi * 4 * hy_h +
-                    //                        h];
-                    //                    dhx_host[hx_shift + bs * h_stride + h] =
-                    //                        dh_state[hid_shift + bs * hy_stride + bi * 5 * hy_h +
-                    //                        h];
                 }
             }
         }
@@ -711,13 +701,6 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
                             dh_state[hid_shift + bs * hy_stride + bi * 4 * hy_h + hy_h + h] *
                             activfunc(rsvspace[hid_shift + bs * hy_stride + 4 * hy_h + h], 2) *
                             dervactivfunc(rsvspace[hid_shift + bs * hy_stride + 7 * hy_h + h], 1);
-
-                        //                        dcx_host[hx_shift + bs * h_stride + h] =
-                        //                            dh_state[hid_shift + bs * hy_stride + bi * 4 *
-                        //                            hy_h + hy_h + h];
-                        //                        dhx_host[hx_shift + bs * h_stride + h] =
-                        //                            dh_state[hid_shift + bs * hy_stride + bi * 5 *
-                        //                            hy_h + hy_h + h];
                     }
                 }
 
@@ -992,8 +975,7 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
                 }
 
                 // between time
-                wei_shift = (in_h + hy_h + (bi * hy_h + hy_h) * (li - 1)) * wei_stride +
-                            bi * hy_h * wei_stride;
+                wei_shift = (in_h + (bi * hy_h + hy_h) * li) * wei_stride;
 
                 for(int gi = 0; gi < 4; gi++)
                 {
