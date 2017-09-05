@@ -45,7 +45,7 @@
 // Run CPU emulations in hierarchical reduction mode.
 #define MIO_HEIRARCH_SEL 1
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
-#define MIO_BN_TEST_EPSILON 0.000001
+#define MIO_BN_TEST_EPSILON 1e-6
 #define MIO_BN_SP_TEST_DEBUG 0
 
 //****************************************************
@@ -248,7 +248,7 @@ struct verify_forward_train_bn_spatial
         double epsilon      = MIO_BN_TEST_EPSILON;
         double expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
         miopen::BatchNormForwardTraining(handle,
                                          miopenBNSpatial,
                                          &alpha,
@@ -421,7 +421,7 @@ struct verify_forward_infer_bn_spatial_recalc
         auto shift_dev = handle.Write(shift.data);
         auto out_dev   = handle.Write(out.data);
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
@@ -535,7 +535,7 @@ struct verify_forward_infer_bn_spatial_use_est
         auto shift_dev   = handle.Write(shift.data);
         auto out_dev     = handle.Write(out.data);
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
@@ -781,7 +781,7 @@ struct verify_backward_bn_spatial_recalc
         auto dshift = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         auto xin_dev    = handle.Write(x_input.data);
         auto dyin_dev   = handle.Write(dy_input.data);
@@ -991,7 +991,7 @@ struct verify_backward_bn_spatial_use_saved
         auto dshift = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         auto xin_dev         = handle.Write(x_input.data);
         auto dyin_dev        = handle.Write(dy_input.data);
@@ -1065,7 +1065,7 @@ struct batch_norm_spatial_driver : test_driver
     tensor<T> shift;
     batch_norm_spatial_driver()
     {
-        this->batch_factor = 8;
+        this->batch_factor = 4;
         // this->verbose=true;
         add(input, "input", get_bn_spatial_input_tensor());
     }
@@ -1101,6 +1101,11 @@ struct batch_norm_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running forward inference spatial recalc." << std::endl;
 #endif
+
+        // Debug values
+        // std::fill(input.begin(), input.end(), 1);
+        // std::fill(scale.begin(), scale.end(), 1);
+        // std::fill(shift.begin(), shift.end(), 1);
         verify(verify_forward_infer_bn_spatial_recalc<T>{input, scale, shift});
 
         // inference use estimated running values
