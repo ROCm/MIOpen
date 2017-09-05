@@ -102,7 +102,7 @@ set( MIOpen_Source
     implementations/conv_ocl_dir2Dfwdgen.cpp
     implementations/conv_ocl_dir2D11x11.cpp
     implementations/conv_ocl_dir2D3x3.cpp
-    implementations/conv_ocl_dir2Dfwd_exaustive_search.cpp
+    implementations/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     implementations/conv_ocl_dir2Dfwd.cpp
     implementations/conv_ocl_dir2DfwdC.cpp
     implementations/conv_ocl_dir2Dfwd1x1.cpp
