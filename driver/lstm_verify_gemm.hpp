@@ -184,8 +184,7 @@ void RunLSTMForwardGEMMCPUVerify(
         for(int ti = 0; ti < seqLength; ti++)
         {
             baccbi -= in_n[seqLength - 1 - ti];
-            int wei_shift =
-                li == in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            int wei_shift = li == in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
             if(ti == 0)
             {
@@ -626,8 +625,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
             else
             {
                 int pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
-                int weitime_shift = in_h * wei_stride +
-                                    li * (bi * hy_h + hy_h) * wei_stride;
+                int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
                 ADNN_mm_cpu<T>((const T*)&dh_state[pretime_shift],
                                hy_h * 4,
@@ -651,9 +649,8 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                 {
                     pretime_shift = li * batch_n * hy_stride +
                                     (baccbi - in_n[seqLength - 2 - ti]) * hy_stride + hy_h * 4;
-                    weitime_shift = in_h * wei_stride +
-                                    li * (bi * hy_h + hy_h) * wei_stride +
-                                    hy_h * 4;
+                    weitime_shift =
+                        in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride + hy_h * 4;
 
                     ADNN_mm_cpu<T>((const T*)&dh_state[pretime_shift],
                                    hy_h * 4,
@@ -820,8 +817,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
 
         // dcx, dhx
         int pretime_shift = li * batch_n * hy_stride;
-        int weitime_shift = in_h * wei_stride +
-                            li * (bi * hy_h + hy_h) * wei_stride;
+        int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
         ADNN_mm_cpu<T>((const T*)&dh_state[pretime_shift],
                        hy_h * 4,
