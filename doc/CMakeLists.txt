@@ -27,6 +27,7 @@
 include(SphinxDoc)
 include(DoxygenDoc)
 
+
 set(DOXYGEN_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/doxygen/output)
 add_doxygen_doc(
     OUTPUT_DIRECTORY ${DOXYGEN_OUTPUT}
@@ -93,5 +94,5 @@ if(LATEX_FOUND)
     mark_as_doc(build_pdf)
 
 else()
-    message("Latex builder not found. To build PDF documentation run make in ${CMAKE_CURRENT_SOURCE_DIR}/pdf, once a latex builder is installed.")
+    message("Latex builder not found. Latex builder is required only for building the PDF documentation for MIOpen and is not necessary for building the library, or any other components. To build PDF documentation run make in ${CMAKE_CURRENT_SOURCE_DIR}/pdf, once a latex builder is installed.")
 endif()
