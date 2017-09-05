@@ -151,21 +151,26 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
             int OUT_WIDTH4 = params.out_width;
             int MAP_SZ4    = (OUT_WIDTH4 * params.out_height + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding
-            if (params.pad0 > 0 || params.kernel_stride0 > 1 || params.pad1 > 0 || params.kernel_stride1 > 1)
+            if(params.pad0 > 0 || params.kernel_stride0 > 1 || params.pad1 > 0 ||
+               params.kernel_stride1 > 1)
             {
-                int step = (params.forward) ? read_unit : read_unit * params.kernel_stride0;
+                int step   = (params.forward) ? read_unit : read_unit * params.kernel_stride0;
                 OUT_WIDTH4 = (params.out_width + step - 1) / (step);
-                int OUT_HEIGHT4 = (params.forward) ? params.out_height : (params.out_height + params.kernel_stride1 - 1) /
-                    params.kernel_stride1;
+                int OUT_HEIGHT4 =
+                    (params.forward)
+                        ? params.out_height
+                        : (params.out_height + params.kernel_stride1 - 1) / params.kernel_stride1;
                 MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
             }
 
-            int VERT_ALIGNED = 1;
+            int VERT_ALIGNED  = 1;
             int HORIZ_ALIGNED = 1;
-            if (!params.forward)
+            if(!params.forward)
             {
-                VERT_ALIGNED = (params.out_height / params.kernel_stride1 == params.in_height) ? 1 : 0;
-                HORIZ_ALIGNED = (params.out_width / params.kernel_stride0 == params.in_width) ? 1 : 0;
+                VERT_ALIGNED =
+                    (params.out_height / params.kernel_stride1 == params.in_height) ? 1 : 0;
+                HORIZ_ALIGNED =
+                    (params.out_width / params.kernel_stride0 == params.in_width) ? 1 : 0;
             }
 
             int GRP_SZ = result.grp_tile0;
