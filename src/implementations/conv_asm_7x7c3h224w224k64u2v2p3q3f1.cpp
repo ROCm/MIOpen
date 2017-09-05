@@ -43,7 +43,7 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsCorrect(
 
 ImplementationUsageDescription ConvAsm7x7c3h224w224k64u2v2p3q3f1::PrepareForUsage(
     const ImplementationSearchParameters& params,
-    const ExaustiveSearchResult& /*exaustive_search_result*/) const
+    const ExhaustiveSearchResult&) const
 {
     ImplementationUsageDescription result;
 

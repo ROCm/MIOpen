@@ -130,7 +130,7 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
 
 ImplementationUsageDescription ConvBinWinogradRxSFwd::PrepareForUsage(
     const ImplementationSearchParameters& params,
-    const ExaustiveSearchResult& /*exaustive_search_result*/) const
+    const ExhaustiveSearchResult&) const
 {
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
     const auto name     = params.GetStream().GetDeviceName();

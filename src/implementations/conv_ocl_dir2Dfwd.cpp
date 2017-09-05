@@ -5,15 +5,15 @@ namespace miopen {
 
 ImplementationUsageDescription
 ConvOclDirectFwd::PrepareForUsage(const ImplementationSearchParameters& params,
-                                  const ExaustiveSearchResult& exaustive_search_result) const
+                                  const ExhaustiveSearchResult& exhaustive_search_result) const
 {
     const auto& searched_params =
-        dynamic_cast<const Direct2DfwdExaustiveSearchResult&>(exaustive_search_result);
+        dynamic_cast<const Direct2DfwdExhaustiveSearchResult&>(exhaustive_search_result);
 
     // std::size_t localMemSize = params.stream.GetLocalMemorySize();
 
     ImplementationUsageDescription result;
-    searched_params.FillImplementationUsageDescription(result);
+    searched_params.CopyTo(result);
     auto pad0 = params.pad0;
     auto pad1 = params.pad1;
 
