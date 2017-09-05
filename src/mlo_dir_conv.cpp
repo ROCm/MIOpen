@@ -27,6 +27,8 @@
 #define MIOPEN
 
 #include <cmath>
+#include <iomanip>
+#include <sstream>
 #include <miopen/algorithm_implementations.hpp>
 #include <miopen/db.hpp>
 #include <miopen/env.hpp>
@@ -42,25 +44,25 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 /*
-   the search db is a text file with the name defined by the device characteristics.
-   each line is a key/value pair, separated by a space:
-   32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
-   or
-   64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
+the search db is a text file with the name defined by the device characteristics.
+each line is a key/value pair, separated by a space:
+32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
+or
+64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
 
-   key format (all values are separted by x):
-   n input maps
-   input height
-   input width
-   filter height
-   filter width
-   n output maps
-   output height
-   output width
-   batch size
-   tensors' layout
-   tensprs' data type
-   direction (1 - forward, 0 - backward)
+key format (all values are separted by x):
+n input maps
+input height
+input width
+filter height
+filter width
+n output maps
+output height
+output width
+batch size
+tensors' layout
+tensprs' data type
+direction (1 - forward, 0 - backward)
 
 Note:
 for backward direction - input and output are reversed.
@@ -198,9 +200,7 @@ mlo_construct_winograd::GetImplementations() const
         implementations({
 #ifndef HIP_OC_FINALIZER
             StaticContainer<const miopen::ConvBinWinograd3x3U>::Instance(),
-#ifdef MIOPEN_BACKEND_OPENCL
             StaticContainer<const miopen::ConvBinWinogradRxSFwd>::Instance(),
-#endif
 #endif
         });
 
