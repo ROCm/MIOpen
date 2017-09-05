@@ -168,7 +168,7 @@ struct conv_forward : output_tensor_fixture
     void run()
     {
         STATUS(miopenEnableProfiling(handle, Profile));
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
 
         // Setup OpenCL buffers
 

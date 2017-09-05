@@ -42,9 +42,12 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
@@ -371,6 +374,14 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     miopenConvolutionForwardGetWorkSpaceSize(
         GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);
 
+    // Workaround: Pad buffers allocations to be a multiple of 2M
+    if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+    {
+        // PadBufferSize(in_sz, 4);
+        PadBufferSize(wei_sz, 4);
+        PadBufferSize(out_sz, 4);
+    }
+
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -537,7 +548,7 @@ int ConvDriver<T>::RunForwardGPU()
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     Timer t;
     START_TIME;
@@ -833,7 +844,7 @@ int ConvDriver<T>::RunBackwardGPU()
 
     FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
     int ret = 0;
 
     Timer t;
