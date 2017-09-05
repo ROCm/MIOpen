@@ -138,14 +138,14 @@ int mlo_construct_direct2D::mloConstruct()
 
     miopen::ImplementationUsageDescription result(static_cast<miopenStatus_t>(-1));
 
-    for(const miopen::AlgotithmImplementationDescription& implementation : GetImplementations())
+    for(const miopen::ImplementationDescription& implementation : GetImplementations())
     {
         if(implementation.IsCorrect(_search_params) &&
            (no_perf_filtering || implementation.IsFast(_search_params)))
         {
-            const auto exaustive_search_result =
-                implementation.PrepareExaustiveSearchResult(_search_params);
-            result = implementation.PrepareForUsage(_search_params, *exaustive_search_result);
+            const auto exhaustive_search_result =
+                implementation.PrepareExhaustiveSearchResult(_search_params);
+            result = implementation.PrepareForUsage(_search_params, *exhaustive_search_result);
 
             if(!result.Succeeded())
                 continue;
@@ -171,11 +171,11 @@ class StaticContainer
     }
 };
 
-const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
+const std::vector<std::reference_wrapper<const miopen::ImplementationDescription>>&
 mlo_construct_direct2D::GetImplementations() const
 {
     static const std::vector<
-        std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
+        std::reference_wrapper<const miopen::ImplementationDescription>>
         implementations({
             StaticContainer<const miopen::ConvAsm3x3U>::Instance(),
             StaticContainer<const miopen::ConvAsm5x10u2v2f1>::Instance(),
@@ -192,11 +192,11 @@ mlo_construct_direct2D::GetImplementations() const
     return implementations;
 }
 
-const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
+const std::vector<std::reference_wrapper<const miopen::ImplementationDescription>>&
 mlo_construct_winograd::GetImplementations() const
 {
     static const std::vector<
-        std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
+        std::reference_wrapper<const miopen::ImplementationDescription>>
         implementations({
 #ifndef HIP_OC_FINALIZER
             StaticContainer<const miopen::ConvBinWinograd3x3U>::Instance(),
@@ -207,11 +207,11 @@ mlo_construct_winograd::GetImplementations() const
     return implementations;
 }
 
-const std::vector<std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>&
+const std::vector<std::reference_wrapper<const miopen::ImplementationDescription>>&
 mlo_construct_BwdWrW2D::GetImplementations() const
 {
     static const std::vector<
-        std::reference_wrapper<const miopen::AlgotithmImplementationDescription>>
+        std::reference_wrapper<const miopen::ImplementationDescription>>
         implementations({
             StaticContainer<const miopen::ConvAsmBwdWrW3x3>::Instance(),
             StaticContainer<const miopen::ConvOclBwdWrW2>::Instance(),

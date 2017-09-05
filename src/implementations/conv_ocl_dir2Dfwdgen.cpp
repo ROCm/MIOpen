@@ -11,7 +11,7 @@ bool ConvOclDirectFwdGen::IsCorrect(const ImplementationSearchParameters& params
 
 ImplementationUsageDescription
 ConvOclDirectFwdGen::PrepareForUsage(const ImplementationSearchParameters& params,
-                                     const ExaustiveSearchResult& /*exaustive_search_result*/) const
+                                     const ExhaustiveSearchResult&) const
 {
     int n_in_stacks = 0;
     if(params.kernel_size1 == 3 && params.kernel_size0 == 3)

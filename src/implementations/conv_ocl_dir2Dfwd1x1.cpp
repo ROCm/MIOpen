@@ -10,12 +10,12 @@ bool ConvOclDirectFwd1x1::IsCorrect(const ImplementationSearchParameters& params
 
 ImplementationUsageDescription
 ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& params,
-                                     const ExaustiveSearchResult& exaustive_search_result) const
+                                     const ExhaustiveSearchResult& exhaustive_search_result) const
 {
     const auto& searched_params =
-        dynamic_cast<const Direct2DfwdExaustiveSearchResult&>(exaustive_search_result);
+        dynamic_cast<const Direct2DfwdExhaustiveSearchResult&>(exhaustive_search_result);
     ImplementationUsageDescription result;
-    searched_params.FillImplementationUsageDescription(result);
+    searched_params.CopyTo(result);
 
     if((params.n_outputs / 16) * 16 == params.n_outputs &&
        (params.n_inputs / 4) * 4 == params.n_inputs)

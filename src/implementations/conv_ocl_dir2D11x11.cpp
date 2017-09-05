@@ -11,7 +11,7 @@ bool ConvOclDirectFwd11x11::IsCorrect(const ImplementationSearchParameters& para
 
 ImplementationUsageDescription ConvOclDirectFwd11x11::PrepareForUsage(
     const ImplementationSearchParameters& params,
-    const ExaustiveSearchResult& /*exaustive_search_result*/) const
+    const ExhaustiveSearchResult&) const
 {
     // size_t localMemSize = 64 * 1024;
 

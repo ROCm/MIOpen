@@ -8,9 +8,10 @@
 
 namespace miopen {
 
-class KernelUsageDescription
+/// Describes a kernel source and whatever information required in order
+/// to build (except kernels supplied in binary format) and run it.
+struct KernelUsageDescription
 {
-    public:
     std::string comp_options;
     std::vector<size_t> l_wk;
     std::vector<size_t> g_wk;
@@ -18,6 +19,9 @@ class KernelUsageDescription
     std::string kernel_name;
 };
 
+/// Information used to build and run an implementation of particular
+/// algorithm/action (primitive, i.e. Winograd/convolution).
+/// An implementation may consist of multiple kernels.
 class ImplementationUsageDescription
 {
     public:
@@ -39,32 +43,38 @@ class ImplementationUsageDescription
     ImplementationUsageDescription(miopenStatus_t status_ = miopenStatusSuccess, int passes_ = 1)
         : status(status_),
           passes(passes_),
-          workspce_sz(),
-          grp_tile1(),
-          grp_tile0(),
-          in_tile1(),
-          in_tile0(),
-          out_pix_tile1(),
-          out_pix_tile0(),
-          n_out_pix_tiles(),
-          n_in_data_tiles(),
-          n_stacks()
+          workspce_sz(0),
+          grp_tile1(-1),
+          grp_tile0(-1),
+          in_tile1(-1),
+          in_tile0(-1),
+          out_pix_tile1(-1),
+          out_pix_tile0(-1),
+          n_out_pix_tiles(-1),
+          n_in_data_tiles(-1),
+          n_stacks(-1)
     {
     }
 
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
 
-class ExaustiveSearchResult
+
+/// The "Exchaustive search result" classes represent implementation-specific
+/// sets of parameters. This class is a common ancestor for those.
+/// Provides polymorphism and syntax glue.
+class ExhaustiveSearchResult
 {
     public:
-    ExaustiveSearchResult() noexcept {}
-    ExaustiveSearchResult(ExaustiveSearchResult&) noexcept {}
-    ExaustiveSearchResult(ExaustiveSearchResult&&) noexcept {}
-    virtual ~ExaustiveSearchResult() {}
+    ExhaustiveSearchResult() noexcept {}
+    virtual ~ExhaustiveSearchResult() {}
 };
 
-class Direct2DfwdExaustiveSearchResult : public ExaustiveSearchResult
+class NoneExhaustiveSearchResult : public ExhaustiveSearchResult
+{
+};
+
+class Direct2DfwdExhaustiveSearchResult : public ExhaustiveSearchResult
 {
     public:
     int grp_tile1;
@@ -77,7 +87,7 @@ class Direct2DfwdExaustiveSearchResult : public ExaustiveSearchResult
     int n_in_data_tiles;
     int n_stacks;
 
-    Direct2DfwdExaustiveSearchResult() noexcept : grp_tile1(),
+    Direct2DfwdExhaustiveSearchResult() noexcept : grp_tile1(),
                                                   grp_tile0(),
                                                   in_tile1(),
                                                   in_tile0(),
@@ -89,7 +99,7 @@ class Direct2DfwdExaustiveSearchResult : public ExaustiveSearchResult
     {
     }
 
-    inline void FillImplementationUsageDescription(ImplementationUsageDescription& iud) const
+    inline void CopyTo(ImplementationUsageDescription& iud) const
     {
         iud.grp_tile0       = grp_tile0;
         iud.grp_tile1       = grp_tile1;
@@ -103,95 +113,95 @@ class Direct2DfwdExaustiveSearchResult : public ExaustiveSearchResult
     }
 };
 
-class AlgotithmImplementationDescription
+class ImplementationDescription
 {
     public:
-    virtual std::shared_ptr<ExaustiveSearchResult>
-    PrepareExaustiveSearchResult(const ImplementationSearchParameters& /*params*/) const
+    virtual std::shared_ptr<ExhaustiveSearchResult>
+    PrepareExhaustiveSearchResult(const ImplementationSearchParameters&) const
     {
-        return nullptr;
+        return std::shared_ptr<ExhaustiveSearchResult>(new NoneExhaustiveSearchResult());
     }
-    virtual ~AlgotithmImplementationDescription() {}
-    virtual bool IsCorrect(const ImplementationSearchParameters& /*params*/) const { return true; }
-    virtual bool IsFast(const ImplementationSearchParameters& /*params*/) const { return true; }
+    virtual ~ImplementationDescription() {}
+    virtual bool IsCorrect(const ImplementationSearchParameters&) const { return true; }
+    virtual bool IsFast(const ImplementationSearchParameters&) const { return true; }
     virtual ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const = 0;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const = 0;
 };
 
-class ConvAsm3x3U : public AlgotithmImplementationDescription
+class ConvAsm3x3U : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     bool IsFast(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvAsm5x10u2v2f1 : public AlgotithmImplementationDescription
+class ConvAsm5x10u2v2f1 : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvAsm5x10u2v2b1 : public AlgotithmImplementationDescription
+class ConvAsm5x10u2v2b1 : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public AlgotithmImplementationDescription
+class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvOclDirectFwd11x11 : public AlgotithmImplementationDescription
+class ConvOclDirectFwd11x11 : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvOclDirectFwdGen : public AlgotithmImplementationDescription
+class ConvOclDirectFwdGen : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvOclDirectFwd3x3 : public AlgotithmImplementationDescription
+class ConvOclDirectFwd3x3 : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvOclDirectFwdLegacyExaustiveSearch : public AlgotithmImplementationDescription
+class ConvOclDirectFwdLegacyExhaustiveSearch : public ImplementationDescription
 {
     public:
-    std::shared_ptr<ExaustiveSearchResult>
-    PrepareExaustiveSearchResult(const ImplementationSearchParameters& params) const override;
+    std::shared_ptr<ExhaustiveSearchResult>
+    PrepareExhaustiveSearchResult(const ImplementationSearchParameters& params) const override;
 
     private:
     void SearchDirect2D(const ImplementationSearchParameters& params,
-                        Direct2DfwdExaustiveSearchResult& result) const;
+                        Direct2DfwdExhaustiveSearchResult& result) const;
 
     int MeasuredLoop(miopen::Handle* profile_h,
                      Data_t bot_ocl_buf,
@@ -201,89 +211,89 @@ class ConvOclDirectFwdLegacyExaustiveSearch : public AlgotithmImplementationDesc
                      double& processing_time,
                      const ImplementationSearchParameters& params) const;
 
-    static const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>>&
+    static const std::vector<std::unique_ptr<const ImplementationDescription>>&
     GetImplementationsToMeasure();
 };
 
-class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExaustiveSearch
+class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExaustiveSearch
-{
-    public:
-    bool IsCorrect(const ImplementationSearchParameters& params) const override;
-    ImplementationUsageDescription
-    PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
-};
-
-class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExaustiveSearch
+class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvBinWinograd3x3U : public AlgotithmImplementationDescription
+class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvBinWinogradRxSFwd : public AlgotithmImplementationDescription
+class ConvBinWinograd3x3U : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvAsmBwdWrW3x3 : public AlgotithmImplementationDescription
+class ConvBinWinogradRxSFwd : public ImplementationDescription
+{
+    public:
+    bool IsCorrect(const ImplementationSearchParameters& params) const override;
+    ImplementationUsageDescription
+    PrepareForUsage(const ImplementationSearchParameters& params,
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
+};
+
+class ConvAsmBwdWrW3x3 : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     bool IsFast(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvOclBwdWrW2 : public AlgotithmImplementationDescription
+class ConvOclBwdWrW2 : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvOclBwdWrW53 : public AlgotithmImplementationDescription
+class ConvOclBwdWrW53 : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 
-class ConvOclBwdWrW1x1 : public AlgotithmImplementationDescription
+class ConvOclBwdWrW1x1 : public ImplementationDescription
 {
     public:
     bool IsCorrect(const ImplementationSearchParameters& params) const override;
     ImplementationUsageDescription
     PrepareForUsage(const ImplementationSearchParameters& params,
-                    const ExaustiveSearchResult& exaustive_search_result) const override;
+                    const ExhaustiveSearchResult& exhaustive_search_result) const override;
 };
 } // namespace miopen
 

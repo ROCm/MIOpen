@@ -50,7 +50,7 @@ bool ConvAsm5x10u2v2b1::IsCorrect(const ImplementationSearchParameters& params) 
 
 ImplementationUsageDescription
 ConvAsm5x10u2v2b1::PrepareForUsage(const ImplementationSearchParameters& params,
-                                   const ExaustiveSearchResult& /*exaustive_search_result*/) const
+                                   const ExhaustiveSearchResult&) const
 {
     ImplementationUsageDescription result;
 

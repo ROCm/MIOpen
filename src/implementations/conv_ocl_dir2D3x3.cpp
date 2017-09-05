@@ -13,7 +13,7 @@ bool ConvOclDirectFwd3x3::IsCorrect(const ImplementationSearchParameters& params
 
 ImplementationUsageDescription
 ConvOclDirectFwd3x3::PrepareForUsage(const ImplementationSearchParameters& params,
-                                     const ExaustiveSearchResult& /*exaustive_search_result*/) const
+                                     const ExhaustiveSearchResult&) const
 {
     // size_t localMemSize = params.stream.GetLocalMemorySize();
 

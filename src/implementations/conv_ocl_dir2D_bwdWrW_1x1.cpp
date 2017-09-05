@@ -245,7 +245,7 @@ bool ConvOclBwdWrW1x1::IsCorrect(const ImplementationSearchParameters& params) c
 
 ImplementationUsageDescription
 ConvOclBwdWrW1x1::PrepareForUsage(const ImplementationSearchParameters& params,
-                                  const ExaustiveSearchResult& /*exaustive_search_result*/) const
+                                  const ExhaustiveSearchResult&) const
 {
     ImplementationUsageDescription result;
 

@@ -552,12 +552,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             {
                 ConvOclDirectFwd11x11 traits;
                 ImplementationSearchParameters search_params;
-                ExaustiveSearchResult esr;
 
                 construct_params.mloFillSearchParams(search_params);
                 search_params.n_passes = true;
 
-                auto construct_result = traits.PrepareForUsage(search_params, esr);
+                auto esr = traits.PrepareExhaustiveSearchResult(search_params);
+                auto construct_result = traits.PrepareForUsage(search_params, *esr);
                 auto n_passes         = construct_result.passes;
 
                 if(n_passes == 1)

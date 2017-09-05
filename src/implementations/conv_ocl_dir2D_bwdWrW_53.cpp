@@ -9,7 +9,7 @@ bool ConvOclBwdWrW53::IsCorrect(const ImplementationSearchParameters& params) co
 
 ImplementationUsageDescription
 ConvOclBwdWrW53::PrepareForUsage(const ImplementationSearchParameters& params,
-                                 const ExaustiveSearchResult& /*exaustive_search_result*/) const
+                                 const ExhaustiveSearchResult&) const
 {
     size_t localMemSize = 64 * 1024;
 
