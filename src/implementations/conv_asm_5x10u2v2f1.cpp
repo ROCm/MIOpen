@@ -58,7 +58,7 @@ static inline int AlignUp(int val, unsigned step)
 
 ImplementationUsageDescription
 ConvAsm5x10u2v2f1::PrepareForUsage(const ImplementationSearchParameters& params,
-                                   const ExaustiveSearchResult& /*exaustive_search_result*/) const
+                                   const ExhaustiveSearchResult&) const
 {
     const int out_w =
         (params.in_width + params.pad0 * 2 + params.kernel_stride0 - params.kernel_size0) /

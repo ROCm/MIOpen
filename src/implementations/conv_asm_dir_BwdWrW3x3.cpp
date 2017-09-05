@@ -403,14 +403,14 @@ bool ConvAsmBwdWrW3x3::IsCorrect(const ImplementationSearchParameters& params) c
     return ok;
 }
 
-bool ConvAsmBwdWrW3x3::IsFast(const ImplementationSearchParameters& params) const
+bool ConvAsmBwdWrW3x3::IsFast(const ImplementationSearchParameters&) const
 {
     return true;
 }
 
 ImplementationUsageDescription
 ConvAsmBwdWrW3x3::PrepareForUsage(const ImplementationSearchParameters& params,
-                                  const ExaustiveSearchResult& /*exaustive_search_result*/) const
+                                  const ExhaustiveSearchResult&) const
 {
     std::ostringstream options;
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N

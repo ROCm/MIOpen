@@ -157,7 +157,7 @@ n of input blocks
 n batchs (stacks) processed by the group
 */
 
-static int mloSetConf(const std::string& conf_val, Direct2DfwdExaustiveSearchResult& result)
+static int mloSetConf(const std::string& conf_val, Direct2DfwdExhaustiveSearchResult& result)
 {
     mloParseConf(conf_val,
                  result.grp_tile1,
@@ -237,7 +237,7 @@ static int mloBuildConf_Val(std::string& conf_val,
 */
 static int mloSelectDefaultConfig(std::string& conf_val,
                                   const ImplementationSearchParameters& params,
-                                  Direct2DfwdExaustiveSearchResult& result)
+                                  Direct2DfwdExhaustiveSearchResult& result)
 {
 
     //
@@ -409,7 +409,7 @@ static int mloAddConfigReq(Handle& stream, const std::string& conf_key)
 * return a known or default configuration
 */
 static bool mloGetConfig(const ImplementationSearchParameters& params,
-                         Direct2DfwdExaustiveSearchResult& result)
+                         Direct2DfwdExhaustiveSearchResult& result)
 {
     bool known_config = false;
     std::string conf_key;
@@ -510,7 +510,7 @@ static int mloAddConfig(Handle& stream, std::string& conf_key, std::string& conf
 /*
 * mesure the current onfiguration pefformance
 */
-int ConvOclDirectFwdLegacyExaustiveSearch::MeasuredLoop(
+int ConvOclDirectFwdLegacyExhaustiveSearch::MeasuredLoop(
     Handle* profile_h,
     Data_t bot_ocl_buf,
     Data_t top_ocl_buf,
@@ -528,7 +528,7 @@ int ConvOclDirectFwdLegacyExaustiveSearch::MeasuredLoop(
     {
         if(traits->IsCorrect(params))
         {
-            const auto sub_search_result = PrepareExaustiveSearchResult(params);
+            const auto sub_search_result = PrepareExhaustiveSearchResult(params);
             kernel_search_result         = traits->PrepareForUsage(params, *sub_search_result);
 
             if(kernel_search_result.Succeeded())
@@ -626,11 +626,11 @@ int ConvOclDirectFwdLegacyExaustiveSearch::MeasuredLoop(
     return (ret);
 }
 
-std::shared_ptr<ExaustiveSearchResult>
-ConvOclDirectFwdLegacyExaustiveSearch::PrepareExaustiveSearchResult(
+std::shared_ptr<ExhaustiveSearchResult>
+ConvOclDirectFwdLegacyExhaustiveSearch::PrepareExhaustiveSearchResult(
     const ImplementationSearchParameters& params) const
 {
-    Direct2DfwdExaustiveSearchResult result = {};
+    Direct2DfwdExhaustiveSearchResult result = {};
 
     // search known configurations
     bool known_config = mloGetConfig(params, result);
@@ -644,11 +644,11 @@ ConvOclDirectFwdLegacyExaustiveSearch::PrepareExaustiveSearchResult(
         }
     }
 
-    return std::shared_ptr<ExaustiveSearchResult>(new Direct2DfwdExaustiveSearchResult(result));
+    return std::shared_ptr<ExhaustiveSearchResult>(new Direct2DfwdExhaustiveSearchResult(result));
 }
 
-void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
-    const ImplementationSearchParameters& params, Direct2DfwdExaustiveSearchResult& result) const
+void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
+    const ImplementationSearchParameters& params, Direct2DfwdExhaustiveSearchResult& result) const
 {
     miopen::Handle profile_h;
     double processing_time;
@@ -1297,12 +1297,12 @@ void ConvOclDirectFwdLegacyExaustiveSearch::SearchDirect2D(
     // return(ret);
 }
 
-const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>>&
-ConvOclDirectFwdLegacyExaustiveSearch::GetImplementationsToMeasure()
+const std::vector<std::unique_ptr<const ImplementationDescription>>&
+ConvOclDirectFwdLegacyExhaustiveSearch::GetImplementationsToMeasure()
 {
-    static const std::vector<std::unique_ptr<const AlgotithmImplementationDescription>>
+    static const std::vector<std::unique_ptr<const ImplementationDescription>>
         implementations = [] {
-            std::vector<std::unique_ptr<const AlgotithmImplementationDescription>> data;
+            std::vector<std::unique_ptr<const ImplementationDescription>> data;
             data.emplace_back(new ConvOclDirectFwd1x1);
             data.emplace_back(new ConvOclDirectFwdC);
             data.emplace_back(new ConvOclDirectFwd);

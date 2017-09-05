@@ -17,10 +17,10 @@ bool ConvOclDirectFwdC::IsCorrect(const ImplementationSearchParameters& params) 
 
 ImplementationUsageDescription
 ConvOclDirectFwdC::PrepareForUsage(const ImplementationSearchParameters& params,
-                                   const ExaustiveSearchResult& exaustive_search_result) const
+                                   const ExhaustiveSearchResult& exhaustive_search_result) const
 {
     const auto& searched_params =
-        dynamic_cast<const Direct2DfwdExaustiveSearchResult&>(exaustive_search_result);
+        dynamic_cast<const Direct2DfwdExhaustiveSearchResult&>(exhaustive_search_result);
 
     // if (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
     //{
@@ -30,7 +30,7 @@ ConvOclDirectFwdC::PrepareForUsage(const ImplementationSearchParameters& params,
 
     // size_t localMemSize = params.stream.GetLocalMemorySize();
     ImplementationUsageDescription result;
-    searched_params.FillImplementationUsageDescription(result);
+    searched_params.CopyTo(result);
 
     auto hw_wave_sz = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes

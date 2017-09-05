@@ -14,7 +14,7 @@ bool ConvOclBwdWrW2::IsCorrect(const ImplementationSearchParameters& params) con
 
 ImplementationUsageDescription
 ConvOclBwdWrW2::PrepareForUsage(const ImplementationSearchParameters& params,
-                                const ExaustiveSearchResult& /*exaustive_search_result*/) const
+                                const ExhaustiveSearchResult&) const
 {
     static const char* s_stride_table[32][2] = {
         //
