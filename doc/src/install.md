@@ -1,10 +1,6 @@
-# MIOpen
+# Build and Install Instructions
 
-AMD's library for high performance deep learning primitives. 
-
-## Backends
-MIOpen supports two programming models:
-
+AMD's library for high peformance machine learning primitives. MIOpen supports two programming models - 
 1. OpenCL 
 2. [HIP](https://github.com/ROCm-Developer-Tools/HIP)
 
@@ -16,10 +12,13 @@ MIOpen supports two programming models:
   * HIP - 
     * HIP and HCC libraries and header files
     * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
-* MIOpen relies on the [miopengemm](https://github.com/RadeonOpenCompute/tinygemm) library to enable several functionalities that require GEMM. miopengemm is recommended but *not* required.
+* [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
+* [OpenSSL](https://www.openssl.org/) or [libressl](https://www.libressl.org/)
+* [Boost](http://www.boost.org/) at least version 1.58
+  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent kernel cache
 
-Please find the install instructions on the above dependencies on their respective repositories.
+Instructions to install the above dependencies are present in this [section](#install-dependencies).
 
 ## Configure with cmake
 
@@ -50,8 +49,18 @@ Set the C++ compiler to `hcc`.
 cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-installed-path>;<clang-ocl-installed-path>" ..
 ```
 An example cmake step can be:
+* `OpenSSL` installed using `apt-get` on Ubuntu v16? **Yes**.
+```
+CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" -DCMAKE_CXX_FLAGS="-isystem /usr/include/x86_64-linux-gnu/" ..
+```
+* `OpenSSL` installed using `apt-get` on Ubuntu v16? **No**.
 ```
 CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" ..
+```
+
+If building for HIP and boost was installed via `apt-get` in Ubuntu v16, add this flag to the cmake line:
+```
+-DMIOPEN_MAKE_BOOST_PUBLIC=ON
 ```
 
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:
@@ -115,11 +124,48 @@ HTML and PDF documentation can be built using:
 
 This will build a local searchable web site inside the ./MIOpen/doc/html folder and a PDF document inside the ./MIOpen/doc/pdf folder.
 
-Documentation is built using generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/download.html) and should be installed separately. HTML and PDFs are generated using [Sphinx](http://www.sphinx-doc.org/en/stable/index.html) and [Breathe](https://breathe.readthedocs.io/en/latest/), with the [ReadTheDocs theme](https://github.com/rtfd/sphinx_rtd_theme). Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be installed from the MIOpen folder:
+Documentation is built using generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/download.html) and should be installed separately.
 
-`pip install -r ./doc/requirements.txt`
+HTML and PDFs are generated using [Sphinx](http://www.sphinx-doc.org/en/stable/index.html) and [Breathe](https://breathe.readthedocs.io/en/latest/), with the [ReadTheDocs theme](https://github.com/rtfd/sphinx_rtd_theme).
+
+Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be filled for these in the MIOpen/doc folder:
+
+`pip install -r ./requirements.txt`
 
 Depending on your setup `sudo` may be required for the pip install.
 
+## Formatting the code
 
+All the code is formatted using clang-format. To format a file, use:
 
+```
+clang-format-3.8 -style=file -i <path-to-source-file>
+```
+
+Also, githooks can be installed to format the code per-commit:
+
+```
+./.githooks/install
+```
+
+## Installing dependencies
+
+The dependencies can be installed with the `install_deps.cmake`, script:
+
+```
+cmake -P install_deps.cmake
+```
+
+This will install by default to `/usr/local` but it can be installed in another location with `--prefix` argument:
+
+```
+cmake -P install_deps.cmake --prefix /some/local/dir
+```
+
+If Ubuntu v16 is used then the `OpenSSL` and `Boost` packages can also be installed by:
+```
+sudo apt-get install libssl-dev
+sudo apt-get install libboost-dev
+sudo apt-get install libboost-system-dev
+sudo apt-get install libboost-filesystem-dev
+```

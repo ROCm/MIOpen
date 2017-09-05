@@ -46,6 +46,9 @@ import sys
 import re
 import itertools
 sys.path.insert(0, os.path.abspath('.'))
+import recommonmark
+from recommonmark.parser import CommonMarkParser
+from recommonmark.transform import AutoStructify
 
 
 # -- General configuration ------------------------------------------------
@@ -69,8 +72,12 @@ templates_path = ['_templates']
 # -- Source parser for markdown -------------------------------------------
 
 source_parsers = {
-   '.md': 'recommonmark.parser.CommonMarkParser',
+    '.md': CommonMarkParser
 }
+
+#source_parsers = {
+#   '.md': 'recommonmark.parser.CommonMarkParser',
+#}
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -202,6 +209,3 @@ texinfo_documents = [
 
 primary_domain = 'cpp'
 cpp_id_attributes = ['MIOPEN_EXPORT']
-
-
-
