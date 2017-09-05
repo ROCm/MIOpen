@@ -266,7 +266,7 @@ static int mloSelectDefaultConfig(std::string& conf_val,
            (params.n_inputs / 4) * 4 == params.n_inputs)
         {
             // version
-            if (params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
+            if(params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
             {
                 result.n_in_data_tiles = 128;
 
@@ -285,13 +285,14 @@ static int mloSelectDefaultConfig(std::string& conf_val,
 
                 if(params.pad0 > 0 || params.kernel_stride0 > 1)
                 {
-                    if (params.forward)
+                    if(params.forward)
                     {
                         result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
                     }
                     else
                     {
-                        result.out_pix_tile0 = ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
+                        result.out_pix_tile0 =
+                            ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
                     }
                 }
 
@@ -865,7 +866,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
             result.in_tile0  = 1;
             report_inteval   = 4;
 
-            if (params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
+            if(params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
             {
 
                 // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -879,7 +880,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
                 // 0 or 1
                 out_pix_tl_cnt = 3;
                 //					uint CHEAT_SHADER_COMPILER =
-                //result.out_pix_tile0;
+                // result.out_pix_tile0;
                 out_pix_tile_sz[0] = 0;
                 out_pix_tile_sz[1] = 1;
                 n_out_tls          = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
@@ -892,13 +893,13 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
             else
             {
                 int i_sz = params.in_width * params.in_height;
-                if (params.kernel_stride0 == 1)
+                if(params.kernel_stride0 == 1)
                 {
                     out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
                 }
                 else
                 {
-                    if (params.forward)
+                    if(params.forward)
                     {
                         out_pix_tl_cnt = (params.out_width & 1) ? 1 : 2;
                     }

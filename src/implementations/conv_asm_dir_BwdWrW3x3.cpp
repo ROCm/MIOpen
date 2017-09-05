@@ -33,43 +33,42 @@ struct PerfParamsAsmDirect3x3WrW
 inline int PopIntFromString(std::string& s, size_t digits)
 {
     const auto val = std::stoi(s.substr(0, digits));
-    s = s.substr(digits);
+    s              = s.substr(digits);
     return val;
 }
 
-static void ParsePerfParamsAsmDirect3x3WrW(const std::string& s,
-    PerfParamsAsmDirect3x3WrW& pp)
+static void ParsePerfParamsAsmDirect3x3WrW(const std::string& s, PerfParamsAsmDirect3x3WrW& pp)
 {
-    if (s.size() != 9)
+    if(s.size() != 9)
     {
         MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: bad format.");
     }
 
-    std::string temp = s;
-    pp.limit_wave_cnt = PopIntFromString(temp, 2); // two digits
-    pp.reverse_inout = PopIntFromString(temp, 1);
-    pp.chunk_size = PopIntFromString(temp, 2); // two digits
-    pp.k_per_wave = PopIntFromString(temp, 1);
+    std::string temp    = s;
+    pp.limit_wave_cnt   = PopIntFromString(temp, 2); // two digits
+    pp.reverse_inout    = PopIntFromString(temp, 1);
+    pp.chunk_size       = PopIntFromString(temp, 2); // two digits
+    pp.k_per_wave       = PopIntFromString(temp, 1);
     pp.pipe_lines_depth = PopIntFromString(temp, 2);
-    pp.n_per_group = PopIntFromString(temp, 1);
+    pp.n_per_group      = PopIntFromString(temp, 1);
     // Check if values are wrong.
-    if (!((0 <= pp.limit_wave_cnt && pp.limit_wave_cnt <= 10) &&
-        (0 <= pp.reverse_inout && pp.reverse_inout <= 1) &&
-        (8 == pp.chunk_size || 16 == pp.chunk_size) &&
-        (1 == pp.k_per_wave || 2 == pp.k_per_wave || 4 == pp.k_per_wave || 8 == pp.k_per_wave) &&
-        (1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= 16) &&
-        (1 <= pp.n_per_group && pp.n_per_group <= 8)))
+    if(!((0 <= pp.limit_wave_cnt && pp.limit_wave_cnt <= 10) &&
+         (0 <= pp.reverse_inout && pp.reverse_inout <= 1) &&
+         (8 == pp.chunk_size || 16 == pp.chunk_size) &&
+         (1 == pp.k_per_wave || 2 == pp.k_per_wave || 4 == pp.k_per_wave || 8 == pp.k_per_wave) &&
+         (1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= 16) &&
+         (1 <= pp.n_per_group && pp.n_per_group <= 8)))
     {
         MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: out of range.");
     }
 }
 
 static std::string FormPerfParamsAsmDirect3x3WrW(int limit_wave_cnt,
-    int reverse_inout,
-    int chunk_size,
-    int k_per_wave,
-    int pipe_lines_depth,
-    int n_per_group)
+                                                 int reverse_inout,
+                                                 int chunk_size,
+                                                 int k_per_wave,
+                                                 int pipe_lines_depth,
+                                                 int n_per_group)
 {
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(2) << limit_wave_cnt;
@@ -98,134 +97,135 @@ mloComputePerfParamsAsmDirect3x3WrW(const ImplementationSearchParameters& params
     /// implementation if optimal values are different.
     static const std::unordered_map<std::string, std::string> perf_vals_map({
         //              W    H    c    n    k    dir CUs               lwc[2] rio csz[2] kpw pld npg
-        { MakeKeyWHCNKD(13, 13, 192, 128, 384, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 1) },
-        { MakeKeyWHCNKD(13, 13, 192, 128, 384, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 1) },
-        { MakeKeyWHCNKD(13, 13, 256, 128, 256, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 1) },
-        { MakeKeyWHCNKD(13, 13, 256, 128, 256, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 1) },
-        { MakeKeyWHCNKD(13, 13, 256, 128, 384, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 1) },
-        { MakeKeyWHCNKD(13, 13, 256, 128, 384, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 1) },
-        { MakeKeyWHCNKD(13, 13, 384, 128, 256, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 2, 1) },
-        { MakeKeyWHCNKD(13, 13, 384, 128, 256, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 2, 1) },
-        { MakeKeyWHCNKD(13, 13, 384, 128, 384, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 2, 1) },
-        { MakeKeyWHCNKD(13, 13, 384, 128, 384, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 2, 1) },
-        { MakeKeyWHCNKD(14, 14, 128, 8, 256, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 1) },
-        { MakeKeyWHCNKD(14, 14, 512, 8, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 4, 1) },
-        { MakeKeyWHCNKD(14, 14, 512, 16, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1) },
-        { MakeKeyWHCNKD(14, 14, 512, 16, 512, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 4, 1) },
-        { MakeKeyWHCNKD(14, 14, 512, 32, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1) },
-        { MakeKeyWHCNKD(14, 14, 512, 64, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1) },
-        { MakeKeyWHCNKD(16, 16, 256, 8, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 1) },
-        { MakeKeyWHCNKD(27, 27, 128, 8, 128, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 3, 1) },
-        { MakeKeyWHCNKD(28, 28, 256, 8, 512, 0), FormPerfParamsAsmDirect3x3WrW(4, 1, 8, 2, 2, 1) },
-        { MakeKeyWHCNKD(28, 28, 256, 16, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 2, 3, 1) },
-        { MakeKeyWHCNKD(28, 28, 256, 32, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 4, 1) },
-        { MakeKeyWHCNKD(28, 28, 256, 64, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 4, 1) },
-        { MakeKeyWHCNKD(28, 28, 512, 32, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1) },
-        { MakeKeyWHCNKD(28, 28, 512, 64, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1) },
-        { MakeKeyWHCNKD(54, 54, 64, 8, 64, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 2, 2, 4) },
-        { MakeKeyWHCNKD(54, 54, 64, 8, 64, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 2, 3, 2) },
-        { MakeKeyWHCNKD(56, 56, 64, 16, 192, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 4) },
-        { MakeKeyWHCNKD(56, 56, 64, 32, 192, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 4, 4) },
-        { MakeKeyWHCNKD(56, 56, 256, 32, 256, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 2, 4, 1) },
-        { MakeKeyWHCNKD(56, 56, 256, 64, 256, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 2, 4, 1) },
-        { MakeKeyWHCNKD(60, 6, 64, 16, 128, 0), FormPerfParamsAsmDirect3x3WrW(4, 0, 16, 2, 6, 1) },
-        { MakeKeyWHCNKD(60, 6, 64, 16, 128, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 2, 2, 1) },
-        { MakeKeyWHCNKD(112, 112, 64, 8, 128, 0), FormPerfParamsAsmDirect3x3WrW(3, 0, 16, 4, 2, 2) },
-        { MakeKeyWHCNKD(112, 112, 64, 8, 128, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4, 2, 1) },
-        { MakeKeyWHCNKD(112, 112, 64, 16, 128, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 4) },
-        { MakeKeyWHCNKD(112, 112, 64, 16, 128, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 3, 1) },
-        { MakeKeyWHCNKD(112, 112, 64, 32, 128, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 4) },
-        { MakeKeyWHCNKD(112, 112, 64, 32, 128, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4, 3, 1) },
-        { MakeKeyWHCNKD(112, 112, 64, 64, 128, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 4) },
-        { MakeKeyWHCNKD(112, 112, 256, 8, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4, 2, 1) },
-        { MakeKeyWHCNKD(120, 12, 32, 16, 64, 0), FormPerfParamsAsmDirect3x3WrW(3, 1, 16, 2, 1, 4) },
-        { MakeKeyWHCNKD(120, 12, 32, 16, 64, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 2, 2, 2) },
-        { MakeKeyWHCNKD(224, 224, 3, 8, 64, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 1, 2, 4) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(224, 224, 3, 16, 64, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 1, 5, 4) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(240, 24, 16, 16, 32, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 1, 8) },
-        { MakeKeyWHCNKD(240, 24, 16, 16, 32, 0, 64),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 2, 1, 8) },
-        { MakeKeyWHCNKD(13, 13, 384, 64, 256, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(13, 13, 256, 50, 384, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(13, 13, 384, 50, 384, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(13, 13, 384, 50, 256, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(28, 28, 64, 32, 64, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 2, 2, 2) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(28, 28, 64, 32, 96, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 2, 5, 2) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(14, 14, 160, 32, 160, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 11, 2) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(14, 14, 160, 32, 192, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 5, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(14, 14, 192, 32, 256, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 3, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(512, 256, 64, 1, 192, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4, 1, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(256, 128, 96, 1, 128, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 1, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(256, 128, 128, 1, 192, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 1, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(14, 14, 256, 16, 256, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(12, 12, 512, 128, 1024, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(12, 12, 1024, 128, 1024, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 8, 11, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(7, 7, 192, 128, 384, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 7, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(7, 7, 160, 128, 320, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 7, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(14, 14, 160, 128, 320, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 5, 2) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(14, 14, 144, 128, 288, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 5, 2) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(14, 14, 128, 128, 256, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(14, 14, 112, 128, 224, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 5, 2) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(14, 14, 96, 128, 208, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 7, 2) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(56, 56, 64, 128, 192, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 4, 1) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(28, 28, 128, 128, 192, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 2) }, /// \todo Find opt values for 56CUs
-        { MakeKeyWHCNKD(28, 28, 96, 128, 128, 0),
-        FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 2) }, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(13, 13, 192, 128, 384, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 1)},
+        {MakeKeyWHCNKD(13, 13, 192, 128, 384, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 1)},
+        {MakeKeyWHCNKD(13, 13, 256, 128, 256, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 1)},
+        {MakeKeyWHCNKD(13, 13, 256, 128, 256, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 1)},
+        {MakeKeyWHCNKD(13, 13, 256, 128, 384, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 1)},
+        {MakeKeyWHCNKD(13, 13, 256, 128, 384, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 1)},
+        {MakeKeyWHCNKD(13, 13, 384, 128, 256, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 2, 1)},
+        {MakeKeyWHCNKD(13, 13, 384, 128, 256, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 2, 1)},
+        {MakeKeyWHCNKD(13, 13, 384, 128, 384, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 2, 1)},
+        {MakeKeyWHCNKD(13, 13, 384, 128, 384, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 2, 1)},
+        {MakeKeyWHCNKD(14, 14, 128, 8, 256, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 1)},
+        {MakeKeyWHCNKD(14, 14, 512, 8, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 4, 1)},
+        {MakeKeyWHCNKD(14, 14, 512, 16, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1)},
+        {MakeKeyWHCNKD(14, 14, 512, 16, 512, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 4, 1)},
+        {MakeKeyWHCNKD(14, 14, 512, 32, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1)},
+        {MakeKeyWHCNKD(14, 14, 512, 64, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1)},
+        {MakeKeyWHCNKD(16, 16, 256, 8, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 1)},
+        {MakeKeyWHCNKD(27, 27, 128, 8, 128, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 3, 1)},
+        {MakeKeyWHCNKD(28, 28, 256, 8, 512, 0), FormPerfParamsAsmDirect3x3WrW(4, 1, 8, 2, 2, 1)},
+        {MakeKeyWHCNKD(28, 28, 256, 16, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 2, 3, 1)},
+        {MakeKeyWHCNKD(28, 28, 256, 32, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 4, 1)},
+        {MakeKeyWHCNKD(28, 28, 256, 64, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 4, 1)},
+        {MakeKeyWHCNKD(28, 28, 512, 32, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1)},
+        {MakeKeyWHCNKD(28, 28, 512, 64, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1)},
+        {MakeKeyWHCNKD(54, 54, 64, 8, 64, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 2, 2, 4)},
+        {MakeKeyWHCNKD(54, 54, 64, 8, 64, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 2, 3, 2)},
+        {MakeKeyWHCNKD(56, 56, 64, 16, 192, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 4)},
+        {MakeKeyWHCNKD(56, 56, 64, 32, 192, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 4, 4)},
+        {MakeKeyWHCNKD(56, 56, 256, 32, 256, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 2, 4, 1)},
+        {MakeKeyWHCNKD(56, 56, 256, 64, 256, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 2, 4, 1)},
+        {MakeKeyWHCNKD(60, 6, 64, 16, 128, 0), FormPerfParamsAsmDirect3x3WrW(4, 0, 16, 2, 6, 1)},
+        {MakeKeyWHCNKD(60, 6, 64, 16, 128, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 2, 2, 1)},
+        {MakeKeyWHCNKD(112, 112, 64, 8, 128, 0), FormPerfParamsAsmDirect3x3WrW(3, 0, 16, 4, 2, 2)},
+        {MakeKeyWHCNKD(112, 112, 64, 8, 128, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4, 2, 1)},
+        {MakeKeyWHCNKD(112, 112, 64, 16, 128, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 4)},
+        {MakeKeyWHCNKD(112, 112, 64, 16, 128, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 3, 1)},
+        {MakeKeyWHCNKD(112, 112, 64, 32, 128, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 4)},
+        {MakeKeyWHCNKD(112, 112, 64, 32, 128, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4, 3, 1)},
+        {MakeKeyWHCNKD(112, 112, 64, 64, 128, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 2, 4)},
+        {MakeKeyWHCNKD(112, 112, 256, 8, 512, 0), FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4, 2, 1)},
+        {MakeKeyWHCNKD(120, 12, 32, 16, 64, 0), FormPerfParamsAsmDirect3x3WrW(3, 1, 16, 2, 1, 4)},
+        {MakeKeyWHCNKD(120, 12, 32, 16, 64, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 2, 2, 2)},
+        {MakeKeyWHCNKD(224, 224, 3, 8, 64, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 1, 2, 4)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(224, 224, 3, 16, 64, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 1, 5, 4)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(240, 24, 16, 16, 32, 0), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 1, 8)},
+        {MakeKeyWHCNKD(240, 24, 16, 16, 32, 0, 64),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 2, 1, 8)},
+        {MakeKeyWHCNKD(13, 13, 384, 64, 256, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(13, 13, 256, 50, 384, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(13, 13, 384, 50, 384, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(13, 13, 384, 50, 256, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(28, 28, 64, 32, 64, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 2, 2, 2)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(28, 28, 64, 32, 96, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 2, 5, 2)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 160, 32, 160, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 11, 2)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 160, 32, 192, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 5, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 192, 32, 256, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 3, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(512, 256, 64, 1, 192, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4, 1, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(256, 128, 96, 1, 128, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 1, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(256, 128, 128, 1, 192, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 1, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 256, 16, 256, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 8, 11, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(12, 12, 512, 128, 1024, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 8, 11, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(12, 12, 1024, 128, 1024, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 8, 11, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(7, 7, 192, 128, 384, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 7, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(7, 7, 160, 128, 320, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 7, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 160, 128, 320, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 5, 2)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 144, 128, 288, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 5, 2)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 128, 128, 256, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 4, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 112, 128, 224, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 1, 8, 4, 5, 2)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(14, 14, 96, 128, 208, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 7, 2)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(56, 56, 64, 128, 192, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 4, 1)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(28, 28, 128, 128, 192, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 2)}, /// \todo Find opt values for 56CUs
+        {MakeKeyWHCNKD(28, 28, 96, 128, 128, 0),
+         FormPerfParamsAsmDirect3x3WrW(0, 0, 8, 4, 2, 2)}, /// \todo Find opt values for 56CUs
     });
 
     std::string s;
     PerfParamsAsmDirect3x3WrW pp;
     const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
-    if (p_asciz)
+    if(p_asciz)
     {
         s = std::string(p_asciz);
     }
-    if (!s.empty())
+    if(!s.empty())
     { // Parse and check non-empty string from env.
         ParsePerfParamsAsmDirect3x3WrW(s, pp);
-        if (((params.n_outputs % (64 / pp.chunk_size) != 0) && (params.n_inputs % (64 / pp.chunk_size) != 0)) ||
-            ((pp.reverse_inout ? params.n_outputs : params.n_inputs) % pp.k_per_wave != 0) ||
-            !(pp.n_per_group <= params.batch_sz) ||
-            !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(params.in_height, 16)))
+        if(((params.n_outputs % (64 / pp.chunk_size) != 0) &&
+            (params.n_inputs % (64 / pp.chunk_size) != 0)) ||
+           ((pp.reverse_inout ? params.n_outputs : params.n_inputs) % pp.k_per_wave != 0) ||
+           !(pp.n_per_group <= params.batch_sz) ||
+           !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(params.in_height, 16)))
         {
             MIOPEN_THROW(
                 "MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: incorrect for the problem config.");
@@ -236,42 +236,52 @@ mloComputePerfParamsAsmDirect3x3WrW(const ImplementationSearchParameters& params
         // Try to get values from LUT. If not found, use heuristic algorithm.
         // At first, try to find numCUs-specific values.
         const auto numCUs = static_cast<int>(params.GetStream().GetMaxComputeUnits());
-        auto key =
-            MakeKeyWHCNKD(params.in_width, params.in_height, params.n_outputs, params.batch_sz, params.n_inputs, 0, numCUs);
+        auto key          = MakeKeyWHCNKD(params.in_width,
+                                 params.in_height,
+                                 params.n_outputs,
+                                 params.batch_sz,
+                                 params.n_inputs,
+                                 0,
+                                 numCUs);
         auto found = perf_vals_map.find(key);
-        if (found == perf_vals_map.end())
+        if(found == perf_vals_map.end())
         { // numCUs-specific values not found, try to find "universal" ones.
-            key = MakeKeyWHCNKD(params.in_width, params.in_height, params.n_outputs, params.batch_sz, params.n_inputs, 0);
+            key = MakeKeyWHCNKD(params.in_width,
+                                params.in_height,
+                                params.n_outputs,
+                                params.batch_sz,
+                                params.n_inputs,
+                                0);
             found = perf_vals_map.find(key);
         }
-        if (found != perf_vals_map.end())
+        if(found != perf_vals_map.end())
         {
             s = found->second;
             ParsePerfParamsAsmDirect3x3WrW(s, pp);
             /// \todo Copy-paste from above. Generalize.
-            if (((params.n_outputs % (64 / pp.chunk_size) != 0) &&
+            if(((params.n_outputs % (64 / pp.chunk_size) != 0) &&
                 (params.n_inputs % (64 / pp.chunk_size) != 0)) ||
-                ((pp.reverse_inout ? params.n_outputs : params.n_inputs) % pp.k_per_wave != 0) ||
-                !(pp.n_per_group <= params.batch_sz) ||
-                !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(params.in_height, 16)))
+               ((pp.reverse_inout ? params.n_outputs : params.n_inputs) % pp.k_per_wave != 0) ||
+               !(pp.n_per_group <= params.batch_sz) ||
+               !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(params.in_height, 16)))
             {
                 MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: incorrect for the "
-                    "problem config.");
+                             "problem config.");
             }
         }
         else
         {
             {
                 auto& v = pp.chunk_size;
-                v = (params.in_width < 48) ? 8 : 16;
-                if ((params.n_outputs % (64 / v) != 0) && (params.n_inputs % (64 / v) != 0))
+                v       = (params.in_width < 48) ? 8 : 16;
+                if((params.n_outputs % (64 / v) != 0) && (params.n_inputs % (64 / v) != 0))
                 {
                     v = 16; // Fixup for correctness
                 }
             }
             {
                 auto& v = pp.reverse_inout;
-                if ((params.n_outputs % 4 != 0) || (params.in_width < 8))
+                if((params.n_outputs % 4 != 0) || (params.in_width < 8))
                 {
                     v = 1;
                 }
@@ -283,11 +293,11 @@ mloComputePerfParamsAsmDirect3x3WrW(const ImplementationSearchParameters& params
             const auto c_k = params.n_outputs * params.n_inputs; // C*K
             {
                 auto& v = pp.k_per_wave;
-                if (c_k < 256)
+                if(c_k < 256)
                 {
                     v = 1;
                 }
-                else if (c_k < 16384)
+                else if(c_k < 16384)
                 {
                     v = 2;
                 }
@@ -295,22 +305,22 @@ mloComputePerfParamsAsmDirect3x3WrW(const ImplementationSearchParameters& params
                 { // C*K >= 16k
                     v = (pp.chunk_size == 8) ? 2 : 4;
                 }
-                while ((pp.reverse_inout ? params.n_outputs : params.n_inputs) % v != 0)
+                while((pp.reverse_inout ? params.n_outputs : params.n_inputs) % v != 0)
                 {
                     v /= 2; // Fixup for correctness
                 }
             }
             {
                 auto& v = pp.n_per_group;
-                if (c_k <= 512)
+                if(c_k <= 512)
                 {
                     v = 8;
                 }
-                else if (c_k <= 4096)
+                else if(c_k <= 4096)
                 {
                     v = 4;
                 }
-                else if (c_k <= 8192)
+                else if(c_k <= 8192)
                 {
                     v = 2;
                 }
@@ -318,15 +328,15 @@ mloComputePerfParamsAsmDirect3x3WrW(const ImplementationSearchParameters& params
                 {
                     v = 1;
                 }
-                if (v > params.batch_sz)
+                if(v > params.batch_sz)
                 {
                     v = params.batch_sz; // Fixup for correctness
                 }
             }
             {
                 auto& v = pp.pipe_lines_depth;
-                v = (params.in_height <= 1) ? 1 : 2;
-                if ((params.in_height < 8) && (params.in_width < 64))
+                v       = (params.in_height <= 1) ? 1 : 2;
+                if((params.in_height < 8) && (params.in_width < 64))
                 {
                     v = params.in_height; // Special case.
                 }
@@ -403,10 +413,7 @@ bool ConvAsmBwdWrW3x3::IsCorrect(const ImplementationSearchParameters& params) c
     return ok;
 }
 
-bool ConvAsmBwdWrW3x3::IsFast(const ImplementationSearchParameters&) const
-{
-    return true;
-}
+bool ConvAsmBwdWrW3x3::IsFast(const ImplementationSearchParameters&) const { return true; }
 
 ImplementationUsageDescription
 ConvAsmBwdWrW3x3::PrepareForUsage(const ImplementationSearchParameters& params,
