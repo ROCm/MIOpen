@@ -50,10 +50,11 @@
 // WAVE 6  == N0_7x7 + N1_(7x2+1),  output  31-47 from K=64,  Inputplanes from 128-255
 // WAVE 7  == N0_7x7 + N1_(7x2+1),  output  48-63 from K=64,  Inputplanes from 128-255
 
-//STRIDE Mode: Global 0:  H_out * W_out * N * (K/ 16 outplane per threads ) * (( Inputlanes/ 128 )   or 1)
+// STRIDE Mode: Global 0:  H_out * W_out * N * (K/ 16 outplane per threads ) * (( Inputlanes/ 128 )
+// or 1)
 
 // example
-#if  0//ndef MLopen_RUNNING
+#if 0 // ndef MLopen_RUNNING
 #define MLO_FILTER_STRIDE0 2
 #define MLO_FILTER_STRIDE1 2
 #define MLO_N_LCL_IN_MAPS_ONCE 8
@@ -82,8 +83,6 @@
     ((MLO_N_INPUTS - MLO_N_LCL_IN_MAPS * (MLO_N_IN_GROUPS - 1)) / MLO_N_LCL_IN_MAPS_ONCE)
 #define MLO_CHEAT_SHADER_COMPILER 1
 
-
-
 #endif
 
 #define MLO_IN_CHANNEL_STRIDE (H * W)
@@ -91,7 +90,6 @@
 
 #define MLO_WEI_BSTRIDE (1 * 1 * C * K)
 #define MLO_WEI_CHANNEL_STRIDE (1 * 1 * C)
-
 
 #define MLO_OUT_BATCH_STRIDE (H_out * W_out * K)
 #define MLO_OUT_CHANNEL_STRIDE (H_out * W_out)
@@ -165,12 +163,11 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
     uint out_id = out_grp_block * MLO_N_LCL_OUT_MAPS;
 
-	short out_pos_x = pos % W_out; 
+    short out_pos_x = pos % W_out;
     short out_pos_y = pos / W_out;
-    
-    uint in_pos = out_pos_x * MLO_FILTER_STRIDE0  + out_pos_y * MLO_FILTER_STRIDE1 * W ;
 
-	
+    uint in_pos = out_pos_x * MLO_FILTER_STRIDE0 + out_pos_y * MLO_FILTER_STRIDE1 * W;
+
     uint gbl_in_off = batch_id * MLO_IN_BATCH_STRIDE +
                       in_grp_block * MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE + in_pos;
 
@@ -362,7 +359,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             // move weights offset
             w += MLO_N_LCL_IN_MAPS_ONCE;
         }
-    }  
+    }
 
     uint gbl_out_off   = batch_id * MLO_OUT_BATCH_STRIDE + out_id * MLO_OUT_CHANNEL_STRIDE + pos;
     __global _FLOAT* q = out_ptr + gbl_out_off;
