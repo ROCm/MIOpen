@@ -735,10 +735,10 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                         dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h],
                                       1);
 
-                    dcx_state[hx_shift + bs * h_stride + h] =
-                        dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h];
-                    dhx_state[hx_shift + bs * h_stride + h] =
-                        dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h];
+//                    dcx_state[hx_shift + bs * h_stride + h] =
+//                        dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h];
+//                    dhx_state[hx_shift + bs * h_stride + h] =
+//                        dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h];
                 }
             }
 
@@ -820,18 +820,91 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                             dervactivfunc(
                                 rsvspace[hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h], 1);
 
-                        dcx_state[hx_shift + bs * h_stride + hy_h + h] =
-                            dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
-                                     h];
-                        dhx_state[hx_shift + bs * h_stride + hy_h + h] =
-                            dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h + hy_h +
-                                     h];
+//                        dcx_state[hx_shift + bs * h_stride + hy_h + h] =
+//                            dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
+//                                     h];
+//                        dhx_state[hx_shift + bs * h_stride + hy_h + h] =
+//                            dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h + hy_h +
+//                                     h];
                     }
                 }
             }
 
             baccbi += in_n[seqLength - 1 - ti];
         }
+
+		// dcx, dhx
+		int pretime_shift = li * batch_n * hy_stride;
+		int weitime_shift = (in_h + hy_h) * wei_stride +
+			(li - 1) * (bi * hy_h + hy_h) * wei_stride +
+			bi * hy_h * wei_stride;
+
+		ADNN_mm_cpu<T>((const T*)&dh_state[pretime_shift],
+			hy_h * 4,
+			in_n[0],
+			hy_stride,
+			0,
+			(const T*)&wei_state[weitime_shift],
+			hy_h * 4,
+			hy_h,
+			wei_stride,
+			ADNN_MM_TRANSPOSE,
+			&dhx_state[hx_shift],
+			hy_h,
+			in_n[0],
+			h_stride,
+			0,
+			1,
+			1);
+
+		for (int bs = 0; bs < in_n[0]; bs++)
+		{
+			for (int h = 0; h < hy_h; h++)
+			{
+				dcx_state[hx_shift + bs * h_stride + h] +=
+					dh_state[pretime_shift + bs * hy_stride + bi * 4 * hy_h + h] *
+					activfunc(rsvspace[pretime_shift + bs * hy_stride + hy_h + h], 2);
+			}
+		}
+
+		if (bidirection)
+		{
+			pretime_shift = li * batch_n * hy_stride +
+				(batch_n - in_n[seqLength - 1]) * hy_stride;
+			weitime_shift = (in_h + hy_h) * wei_stride +
+				(li - 1) * (bi * hy_h + hy_h) * wei_stride +
+				bi * hy_h * wei_stride + hy_h * 4;
+
+			ADNN_mm_cpu<T>((const T*)&dh_state[pretime_shift + 4 * hy_h],
+				hy_h * 4,
+				in_n[seqLength - 1],
+				hy_stride,
+				0,
+				(const T*)&wei_state[weitime_shift],
+				hy_h * 4,
+				hy_h,
+				wei_stride,
+				ADNN_MM_TRANSPOSE,
+				&dhx_state[hx_shift + hy_h],
+				hy_h,
+				in_n[seqLength - 1],
+				h_stride,
+				0,
+				1,
+				1);
+		
+			for (int bs = 0; bs < in_n[seqLength - 1]; bs++)
+			{
+				for (int h = 0; h < hy_h; h++)
+				{
+					dcx_state[hx_shift + bs * h_stride + hy_h + h] +=
+						dh_state[pretime_shift + bs * hy_stride + bi * 4 * hy_h + hy_h +
+						h] *
+						activfunc(rsvspace[pretime_shift + bs * hy_stride + 5 * hy_h + h],
+							2);
+				}
+			}
+		}
     }
 
     // dinput
