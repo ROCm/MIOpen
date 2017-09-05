@@ -26,6 +26,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/pooling.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
@@ -35,10 +36,10 @@ std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& tensorDe
 }
 
 miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
-                                          const void* /*alpha*/,
+                                          const void* alpha,
                                           const TensorDescriptor& xDesc,
                                           ConstData_t x,
-                                          const void* /*beta*/,
+                                          const void* beta,
                                           const TensorDescriptor& yDesc,
                                           Data_t y,
                                           bool do_backward,
@@ -46,6 +47,11 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                                           size_t /*workSpaceSize*/) const
 {
 
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
     mlo_construct_pooling2D construct_params(1); // forward
 
     construct_params.setStream(&handle);
@@ -114,19 +120,24 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 }
 
 miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
-                                           const void* /*alpha*/,
+                                           const void* alpha,
                                            const TensorDescriptor& yDesc,
                                            ConstData_t /*y*/,
                                            const TensorDescriptor& dyDesc,
                                            ConstData_t dy,
                                            const TensorDescriptor& xDesc,
                                            ConstData_t /*x*/,
-                                           const void* /*beta*/,
+                                           const void* beta,
                                            const TensorDescriptor& dxDesc,
                                            Data_t dx,
                                            ConstData_t workSpace) const
 {
 
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_pooling2D construct_params(0); // backward
 

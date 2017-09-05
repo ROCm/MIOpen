@@ -1,9 +1,6 @@
 FROM ubuntu:16.04
 
 ARG PREFIX=/opt/rocm
-ARG REPO_RADEON=repo.radeon.com
-ARG GITLAB1=10.236.13.205
-ARG ARTIFACTORY=172.27.226.104
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -67,18 +64,6 @@ RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b roc-1.6.
     git clone --depth 1 https://github.com/RadeonOpenCompute/clang-tools-extra.git -b roc-1.6.x clang/tools/extra && \
     cget -p $PREFIX install hcc,. && cd .. && rm -rf /hcc
 
-# RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b roc-1.6.x /hcc && \
-#     git submodule init && \
-#     git submodule foreach --recursive 'git rev-parse HEAD | xargs -I {} git fetch origin {} && git reset --hard FETCH_HEAD' && \
-#     git submodule update --recursive && \
-#     git clone --depth 1 https://github.com/RadeonOpenCompute/hcc-clang-upgrade.git -b roc-1.6.x /hcc/clang && \
-#     git clone --depth 1 https://github.com/RadeonOpenCompute/clang-tools-extra.git -b roc-1.6.x /hcc/clang/tools/extra && \
-#     git clone --depth 1 https://github.com/RadeonOpenCompute/llvm.git -b roc-1.6.x /hcc/compiler && \
-#     git clone --depth 1 https://github.com/RadeonOpenCompute/compiler-rt.git -b roc-1.6.x /hcc/compiler-rt && \
-#     git clone --depth 1 https://github.com/RadeonOpenCompute/lld.git -b roc-1.6.x /hcc/lld && \
-#     git clone --depth 1 https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git -b roc-1.6.x /hcc/rocdl && \
-#     cget -p $PREFIX install /hcc && rm -rf /hcc
-
 # This is a workaround for broken installations
 RUN ln -s $PREFIX /opt/rocm/hip
 RUN ln -s $PREFIX /opt/rocm/hcc
@@ -89,21 +74,27 @@ RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 # Install hip
 RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@660061c3b43ba704018ba5353746cedf7d6ec1a9
 
+RUN cget -p $PREFIX install pfultz2/rocm-recipes
+
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
 RUN cget -p $PREFIX install -f /dev-requirements.txt
+RUN cget -p $PREFIX install RadeonOpenCompute/clang-ocl@2f118b5b6b05f0b17467ef07a8bd3b8e5d8b3aac
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
 RUN pip install -r /doc-requirements.txt
 
-# Install windows dependencies
-RUN cget -p $PREFIX/x86_64-w64-mingw32 install RadeonOpenCompute/rocm-cmake@cb666a28b261fe63ffbcfcf3fee946b1941df604
-RUN cget -p $PREFIX/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@dad05201ad4e096c5d1b2043081f412aeb8f5efb
-
 # Install windows opencl
-RUN curl http://$GITLAB1/pfultz/mlopen/uploads/bbab72ad68e65faeee9257b2bb9ca4a1/win-opencl.deb > /win-opencl.deb
-RUN dpkg -i /win-opencl.deb && rm /win-opencl.deb
+RUN cget -p $PREFIX/x86_64-w64-mingw32/opencl init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
+RUN cget install -p $PREFIX/x86_64-w64-mingw32/opencl KhronosGroup/OpenCL-Headers@master -X header -DINCLUDE_DIR=opencl22
+RUN cget install -p $PREFIX/x86_64-w64-mingw32/opencl pfultz2/OpenCL-ICD-Loader@master
+
+# Install windows dependencies
+RUN cget -p $PREFIX/x86_64-w64-mingw32 install pfultz2/rocm-recipes
+RUN cget -p $PREFIX/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@dad05201ad4e096c5d1b2043081f412aeb8f5efb
+RUN ln -s $PREFIX/x86_64-w64-mingw32/include/mingw.thread.h $PREFIX/x86_64-w64-mingw32/include/thread 
+RUN CXXFLAGS='-I $PREFIX/x86_64-w64-mingw32/include' AMDAPPSDKROOT=$PREFIX/x86_64-w64-mingw32/opencl cget -p $PREFIX/x86_64-w64-mingw32 install -f /dev-requirements.txt
 
 # Setup wine
 RUN mkdir -p /jenkins

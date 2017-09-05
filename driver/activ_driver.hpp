@@ -244,7 +244,7 @@ template <typename T>
 int ActivationDriver<T>::RunForwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     miopenActivationForward(GetHandle(),
                             activDesc,
@@ -276,7 +276,7 @@ int ActivationDriver<T>::RunForwardCPU()
 template <typename T>
 int ActivationDriver<T>::RunBackwardGPU()
 {
-    float alpha = 1., beta = 1.;
+    float alpha = 1., beta = 0.;
 
     miopenActivationBackward(GetHandle(),
                              activDesc,

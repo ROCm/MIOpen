@@ -192,7 +192,7 @@ struct verify_forward_train_bn_per_activation
         double epsilon      = MIO_BN_TEST_EPSILON;
         double expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         miopen::BatchNormForwardTraining(handle,
                                          miopenBNPerActivation,
@@ -353,7 +353,7 @@ struct verify_forward_infer_bn_per_activation_recalc
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         miopen::BatchNormForwardInference(handle,
                                           miopenBNPerActivation,
@@ -469,7 +469,7 @@ struct verify_forward_infer_bn_per_activation_use_est
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         miopen::BatchNormForwardInference(handle,
                                           miopenBNPerActivation,
@@ -621,7 +621,7 @@ struct verify_backward_bn_per_activation_use_saved
         auto dshift = tensor<T>{1, channels, height, width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         auto xin_dev         = handle.Write(x_input.data);
         auto dyin_dev        = handle.Write(dy_input.data);
@@ -812,7 +812,7 @@ struct verify_backward_bn_per_activation_recalc
         auto dshift = tensor<T>{1, channels, height, width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         auto xin_dev    = handle.Write(x_input.data);
         auto dyin_dev   = handle.Write(dy_input.data);
