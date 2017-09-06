@@ -627,25 +627,25 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasuredLoop(
     return (ret);
 }
 
-std::shared_ptr<ExhaustiveSearchResult>
+std::unique_ptr<ExhaustiveSearchResult>
 ConvOclDirectFwdLegacyExhaustiveSearch::PrepareExhaustiveSearchResult(
     const ImplementationSearchParameters& params) const
 {
-    Direct2DfwdExhaustiveSearchResult result = {};
+    auto result = std::make_unique<Direct2DfwdExhaustiveSearchResult>();
 
     // search known configurations
-    bool known_config = mloGetConfig(params, result);
+    bool known_config = mloGetConfig(params, *result);
     // if not known and the saerch is alloed - search
 
     if(!known_config)
     {
         if(params.do_search)
         {
-            SearchDirect2D(params, result);
+            SearchDirect2D(params, *result);
         }
     }
 
-    return std::shared_ptr<ExhaustiveSearchResult>(new Direct2DfwdExhaustiveSearchResult(result));
+    return result;
 }
 
 void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
