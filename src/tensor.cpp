@@ -38,12 +38,10 @@ TensorDescriptor::TensorDescriptor() {}
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens)
     : lens(plens), type(t)
 {
-    
     if(t != miopenFloat)
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
-
     this->CalculateStrides();
 }
 
@@ -62,6 +60,10 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int size)
     : lens(plens, plens + size), type(t)
 {
+    if(t != miopenFloat)
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
+    }
     this->CalculateStrides();
 }
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
@@ -74,7 +76,6 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
-
 }
 
 void TensorDescriptor::CalculateStrides()
