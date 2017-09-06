@@ -1340,6 +1340,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
             int H         = _in_height;
             int C         = _n_inputs;
             int K         = _n_outputs;
+            int W_out     = _out_width;
+            int H_out     = _out_height;
 
             N_LCL_OUT_MAPS   = std::min(N_LCL_OUT_MAPS, K);
             _n_out_pix_tiles = N_LCL_OUT_MAPS;
@@ -1382,18 +1384,23 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
             uint N_IN_GROUPS        = (C + N_LCL_IN_MAPS - 1) / N_LCL_IN_MAPS;
             uint N_LCL_IN_MAPS_ONCE = 8;
-            uint CLOOP0             = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
-            uint CLOOP2             = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
+
+            if(_kernel_stride0 > 1 || _kernel_stride1 > 1)
+                N_LCL_IN_MAPS_ONCE = 4;
+
+            uint CLOOP0 = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
+            uint CLOOP2 = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
 
             _comp_options =
+                std::string(" -DMLO_N_LCL_IN_MAPS_ONCE=") + std::to_string(N_LCL_IN_MAPS_ONCE) +
                 std::string(" -DBATCHSIZE=") + std::to_string(BATCHSIZE) + std::string(" -DH=") +
                 std::to_string(H) + std::string(" -DW=") + std::to_string(W) +
                 std::string(" -DC=") + std::to_string(C) + std::string(" -DK=") +
                 std::to_string(K) + std::string(" -DMLO_N_LCL_IN_MAPS=") +
                 std::to_string(N_LCL_IN_MAPS) + std::string(" -DMLO_N_INPUTS=") +
                 std::to_string(C) + std::string(" -DMLO_N_OUTPUTS=") + std::to_string(K) +
-                std::string(" -DH_out=") + std::to_string(H) + std::string(" -DW_out=") +
-                std::to_string(W) + std::string(" -DMLO_N_IN_GROUPS=") +
+                std::string(" -DH_out=") + std::to_string(H_out) + std::string(" -DW_out=") +
+                std::to_string(W_out) + std::string(" -DMLO_N_IN_GROUPS=") +
                 std::to_string(N_IN_GROUPS) + std::string(" -DMLO_CLOOP0=") +
                 std::to_string(CLOOP0) + std::string(" -DMLO_CLOOP2=") + std::to_string(CLOOP2) +
                 std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(N_LCL_OUT_MAPS) +
@@ -1403,35 +1410,73 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
                     " -DMLopen_RUNNING=1") + // to disable macro defines for CodeXL Shader Analyzer
                 getGeneralCompOptions();
 
+            _comp_options = std::string(" -DMLO_FILTER_STRIDE0=") +
+                            std::to_string(_kernel_stride0) +
+                            std::string(" -DMLO_FILTER_STRIDE1=") +
+                            std::to_string(_kernel_stride1) + _comp_options;
+
             // std::cout << "compile options:\n"<< _comp_options << std::endl;
+            // 1x1_Stride: FIX ME!!! NO padding support
+            if(_kernel_stride0 > 1 || _kernel_stride1 > 1)
+            {
+                int FIXED_WORKGROUP_SIZE = 64;
 
-            int FIXED_WORKGROUP_SIZE = 64;
+                _l_wk.clear();
+                size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
 
-            _l_wk.clear();
-            _l_wk.push_back(FIXED_WORKGROUP_SIZE);
-            _l_wk.push_back(1);
-            _l_wk.push_back(1);
+                size_t local_wk1 = 1;
+                _l_wk.push_back(FIXED_WORKGROUP_SIZE);
+                _l_wk.push_back(local_wk1);
+                _l_wk.push_back(1);
 
-            size_t imagesizeAlign =
-                ((_in_width * _in_height * _batch_sz + FIXED_WORKGROUP_SIZE - 1) /
-                 FIXED_WORKGROUP_SIZE) *
-                FIXED_WORKGROUP_SIZE;
-            size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
+                size_t imagesizeAlign =
+                    ((_out_width * _out_height * _batch_sz + FIXED_WORKGROUP_SIZE - 1) /
+                     FIXED_WORKGROUP_SIZE) *
+                    FIXED_WORKGROUP_SIZE;
 
-            size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+                size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+                size_t gbl_wk1 = local_wk1;
+                size_t gbl_wk2 = 1;
 
-            size_t gbl_wk1 = 1;
-            ;
-            size_t gbl_wk2 = 1;
+                _g_wk.clear();
+                _g_wk.push_back(gbl_wk0);
+                _g_wk.push_back(gbl_wk1);
+                _g_wk.push_back(gbl_wk2);
 
-            _g_wk.clear();
-            _g_wk.push_back(gbl_wk0);
-            _g_wk.push_back(gbl_wk1);
-            _g_wk.push_back(gbl_wk2);
+                _kernel_file = "MIOpenConv1x1J1_stride.cl";
+                _kernel_name = "MIOpenConv1x1";
+            }
+            else
+            {
+                int FIXED_WORKGROUP_SIZE = 64;
 
-            _kernel_file = "MIOpenConv1x1J1.cl";
+                _l_wk.clear();
+                _l_wk.push_back(FIXED_WORKGROUP_SIZE);
+                _l_wk.push_back(1);
+                _l_wk.push_back(1);
 
-            _kernel_name = "MIOpenConv1x1";
+                size_t imagesizeAlign =
+                    ((_in_width * _in_height * _batch_sz + FIXED_WORKGROUP_SIZE - 1) /
+                     FIXED_WORKGROUP_SIZE) *
+                    FIXED_WORKGROUP_SIZE;
+                size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
+
+                size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+
+                size_t gbl_wk1 = 1;
+                ;
+                size_t gbl_wk2 = 1;
+
+                _g_wk.clear();
+                _g_wk.push_back(gbl_wk0);
+                _g_wk.push_back(gbl_wk1);
+                _g_wk.push_back(gbl_wk2);
+
+                _kernel_file = "MIOpenConv1x1J1.cl";
+
+                _kernel_name = "MIOpenConv1x1";
+            }
+            // std::cout << _kernel_file << std::endl;
         }
         else
         {
@@ -4515,8 +4560,8 @@ std::vector<int> v_n_in_stacks_sz;
             _in_tile0      = 1;
             report_inteval = 4;
 
-            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 &&
-               _kernel_stride1 == 1)
+            // Add 1x1_stride : no padding support yet
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _pad0 == 0 && _pad1 == 0)
             {
 
                 // uint N_LCL_IN_MAPS = _n_in_data_tiles;
