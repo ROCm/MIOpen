@@ -394,7 +394,8 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescripto
  *
  * This function implements the equation \f$ C = op ( alpha1[0] * A, alpha2[0] * B * ) + beta[0] *
  * C \f$
- *  For Forward Bias one can also use, miopenConvolutionForwardBias()
+ * For Forward Bias one can also use, miopenConvolutionForwardBias()
+ * 
  * @param handle     MIOpen handle (input)
  * @param tensorOp   Operation from miopenTensorOp_t (input)
  * @param alpha1     Tensor A's floating point scaling factor, allocated on the host (input)
@@ -626,7 +627,11 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
  * This function is mandatory before using forward convolutions. In order to execute this function,
  * miopenConvolutionForwardGetWorkSpaceSize() must be run to determine the required memory for this search.
  * 
- * If exhaustiveSearch == 0 nothing is searched for and the function returns.
+ * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a 
+ * configuration match is not found, a default configuration will be returned.
+ * 
+ * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If a
+ * match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
  * @param xDesc              Tensor descriptor for data input tensor x (input)
@@ -759,7 +764,11 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
  * this function, miopenConvolutionBackwardsDataGetWorkSpaceSize() must be run to determine the required 
  * memory for this search.
  * 
- * If exhaustiveSearch == 0 nothing is searched for and the function returns.
+ * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a 
+ * configuration match is not found, a default configuration will be returned.
+ * 
+ * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If a
+ * match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
@@ -865,7 +874,11 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
  * this function, miopenConvolutionBackwardsWeightsGetWorkSpaceSize() must be run to determine the required 
  * memory for this search.
  *
- * If exhaustiveSearch == 0 nothing is searched for and the function returns.
+ * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a 
+ * configuration match is not found, a default configuration will be returned.
+ * 
+ * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If a
+ * match is not found, an exhaustive search is performed by running individual algorithms.
  * 
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
@@ -1059,7 +1072,9 @@ MIOPEN_EXPORT miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDes
 /*! @brief Execute a forward pooling layer
  * 
  * Runs forward pooling. miopenGetPoolingForwardOutputDim() should be called before miopenPoolingForward().
- * If the parameter do_backward == 0, then set workSpace = nullptr and workSpaceSize = 0.
+ * If the parameter do_backward == 0, then set workSpace = nullptr and workSpaceSize = 0. However, if the 
+ * user wishes to execute backwards, then they must set do_backwards = 1 in miopenPoolingForward().
+ * 
  * Alpha scaling and beta shifting are currently disabled for forward pooling.
  * 
  * @param handle         MIOpen handle (input)
@@ -1198,7 +1213,8 @@ MIOPEN_EXPORT miopenStatus_t miopenLRNGetWorkSpaceSize(const miopenTensorDescrip
 /*! @brief Execute a LRN forward layer
  * 
  * Runs the forward layer normalization in the forward direction. If do_backward == 0, then 
- * set workSpace = nullptr and workSpaceSize = 0.
+ * set workSpace = nullptr and workSpaceSize = 0. However, if the user wishes to execute backwards, 
+ * then they must set do_backwards = 1 in miopenLRNForward().
  * 
  * Alpha scaling and beta shifting are currently disabled for forward LRN.
  *

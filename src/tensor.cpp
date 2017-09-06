@@ -39,11 +39,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std
     : lens(plens), type(t)
 {
     
-    if(type == miopenHalf)
+    if(t != miopenFloat)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "16-bit floating point type is not supported in MIOpen. "
-                                          "Use enum miopenFloat for miopenDataType_t.");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
+
     this->CalculateStrides();
 }
 
@@ -52,11 +52,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::initializer_list<std::size_t> pstrides)
     : lens(plens), strides(pstrides), type(t)
 {
-    if(type == miopenHalf)
+    if(t != miopenFloat)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "16-bit floating point type is not supported in MIOpen. "
-                                          "Use enum miopenFloat for miopenDataType_t.");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
+
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int size)
@@ -70,18 +70,18 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    int size)
     : lens(plens, plens + size), strides(pstrides, pstrides + size), type(t)
 {
-    if(type == miopenHalf)
+    if(t != miopenFloat)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "16-bit floating point type is not supported in MIOpen. "
-                                          "Use enum miopenFloat for miopenDataType_t.");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
+
 }
 
 void TensorDescriptor::CalculateStrides()
 {
     strides.clear();
     strides.resize(lens.size(), 0);
-    strides.back() = 1;
+    strides.back() = 1;https://arxiv.org/pdf/1412.3555
     std::partial_sum(lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
 }
 
