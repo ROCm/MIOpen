@@ -82,7 +82,6 @@ void TensorDescriptor::CalculateStrides()
     strides.clear();
     strides.resize(lens.size(), 0);
     strides.back() = 1;
-https: // arxiv.org/pdf/1412.3555
     std::partial_sum(lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
 }
 
