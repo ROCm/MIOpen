@@ -116,10 +116,10 @@ class Direct2DfwdExhaustiveSearchResult : public ExhaustiveSearchResult
 class ImplementationDescription
 {
     public:
-    virtual std::shared_ptr<ExhaustiveSearchResult>
+    virtual std::unique_ptr<ExhaustiveSearchResult>
     PrepareExhaustiveSearchResult(const ImplementationSearchParameters&) const
     {
-        return std::shared_ptr<ExhaustiveSearchResult>(new NoneExhaustiveSearchResult());
+        return std::unique_ptr<ExhaustiveSearchResult>(new NoneExhaustiveSearchResult());
     }
     virtual ~ImplementationDescription() {}
     virtual bool IsCorrect(const ImplementationSearchParameters&) const { return true; }
@@ -196,7 +196,7 @@ class ConvOclDirectFwd3x3 : public ImplementationDescription
 class ConvOclDirectFwdLegacyExhaustiveSearch : public ImplementationDescription
 {
     public:
-    std::shared_ptr<ExhaustiveSearchResult>
+    std::unique_ptr<ExhaustiveSearchResult>
     PrepareExhaustiveSearchResult(const ImplementationSearchParameters& params) const override;
 
     private:
