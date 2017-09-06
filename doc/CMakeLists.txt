@@ -79,7 +79,7 @@ if(LATEX_FOUND)
 
 
     add_custom_target(delete_slashmiopen
-        COMMAND sed s/MIOPEN\\// -i ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex
+        COMMAND sed -e s/sret{MIOPEN\\/sret{/ -i ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex
         COMMENT "Removing MIOPEN_EXPORT from latex document. ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex"
     )
     add_dependencies(delete_slashmiopen delete_export)

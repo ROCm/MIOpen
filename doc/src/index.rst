@@ -11,7 +11,9 @@ Welcome to MIOpen version 1.0
     :maxdepth: 4
     :caption: Contents:
 
+    changelog
     install
+    driver
     apireference
     
 
