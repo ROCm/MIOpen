@@ -6,16 +6,16 @@
 - Performance improvements for batch normalization kernels
 - Performance improvements for all types of convolutions for 1x1 filters
 - Performance improvements for all types of convolutions with non-unit strides
-- Performance improvements for backwards-weights convolutions for 3x3 filters
+- Performance improvements for backward-weights convolutions for 3x3 filters
 - Performance improvements for the AddTensor operation
-- Fixed and enabled Winograd kernels 
+- Various bug fixes for Winograd convolutions 
 
 
 ### 08/27/2017 [ 1.0.2 ]
 - Fixed 1x1 forward and backward convolutions for large input
 - Fixed pooling MIOpendriver
 - Disabled 1x1 Winograd convolution for HIP
-- Disabled assembly Winograd kernel for input width == 175 
+- Disabled asm. backward-weights convolutions for input width == 175 
  
 ### 07/26/2017 [ 1.0.1 ] 
 - Added dilation support for convolutions 
