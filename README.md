@@ -39,7 +39,7 @@ cmake -DMIOPEN_BACKEND=OpenCL ..
 The above assumes that OpenCL is installed in one of the standard locations. If not, then manually set these two cmake variables: 
 
 ```
-cmake -DMIOPEN_BACKEND=OpenCL -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS<opencl-headers-path> ..
+cmake -DMIOPEN_BACKEND=OpenCL -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS=<opencl-headers-path> ..
 ```
 
 #### For HIP, run:
@@ -97,10 +97,10 @@ The driver can be built using the `MIOpenDriver` target:
 
 ` cmake --build . --config Release --target MIOpenDriver ` **OR** ` make MIOpenDriver `
 
-Documentation on how to run the driver is [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/driver/README.md) 
+Documentation on how to run the driver is [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/driver/README.md). 
 
 
-If building for HIP and boost was installed via `apt-get` in Ubuntu v16, add this flag to the cmake line:
+If building for HIP and `boost` was installed via `apt-get` in Ubuntu v16, add the following to the cmake line [above](#configure-with-cmake):
 ```
 -DMIOPEN_MAKE_BOOST_PUBLIC=ON
 ```
