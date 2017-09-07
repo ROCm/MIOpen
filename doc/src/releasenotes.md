@@ -1,7 +1,11 @@
 
-## MIOPEN ChangeLog
+## MIOPEN Release notes
 
 ### 09/08/2017 [ 1.1.0 ]
+
+Alpha beta 
+
+Changes:
 - Added persistent cache for compiled GPU kernels
 - Performance improvements for batch normalization kernels
 - Performance improvements for all types of convolutions for 1x1 filters
