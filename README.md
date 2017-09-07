@@ -18,7 +18,7 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent kernel cache
 
-Instructions to install the above dependencies are present in this [section](#install-dependencies).
+Instructions to install the above dependencies are present in this [section](#installing-the-dependencies).
 
 ## Configure with cmake
 
@@ -118,7 +118,7 @@ cmake --build . --config Release --target test_tensor
 ./test/test_tensor
 ```
 
-If building for HIP and boost was installed via `apt-get` in Ubuntu v16, add this flag to the cmake line above:
+If building for HIP and `boost` was installed via `apt-get` in Ubuntu v16, add the following to the cmake line [above](#configure-with-cmake):
 ```
 -DMIOPEN_MAKE_BOOST_PUBLIC=ON
 ```
@@ -155,7 +155,7 @@ Also, githooks can be installed to format the code per-commit:
 ./.githooks/install
 ```
 
-## Installing dependencies
+## Installing the dependencies
 
 The dependencies can be installed with the `install_deps.cmake`, script:
 
