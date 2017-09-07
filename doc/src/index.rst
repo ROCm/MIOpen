@@ -14,6 +14,7 @@ Welcome to MIOpen version 1.0
     changelog
     install
     driver
+    cache
     apireference
     
 
