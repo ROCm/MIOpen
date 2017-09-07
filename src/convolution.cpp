@@ -222,7 +222,8 @@ bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) con
     int _kernel_size0, _kernel_size1;
     std::tie(std::ignore, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
 
-    return !(_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1));
+    return !((_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1)) ||
+             (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0)));
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
