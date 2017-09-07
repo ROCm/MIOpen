@@ -1,8 +1,10 @@
 # MIOpenDriver
 
-The MIOpen driver enables the user to test the functionality of the of any particular 
-layer in the MIOpen library in both the forward and backward direction. To build the driver, 
-type ```make MIOpenDriver``` from the ```build``` directory.
+The `MIOpenDriver` enables the user to test the functionality of any particular 
+layer in MIOpen in both the forward and backward direction. 
+MIOpenDriver can be build by typing:
+
+```make MIOpenDriver``` from the ```build``` directory.
 
 All the supported layers in MIOpen can be found by the supported `base_args` here:
 
@@ -16,7 +18,6 @@ Or to execute the default configuration simpily run:
 
 ```./bin/MIOpenDriver *base_arg*```
 
-<br>
 MIOpenDriver example usages:
 
 - Convolution with search on:
@@ -41,9 +42,5 @@ MIOpenDriver example usages:
 
 - Printout layer specific input arguments:
 
-```./bin/MIOpenDriver *base_arg* -?```   
-
- or,   
-
-```./bin/MIOpenDriver *base_arg* -h (--help)```
+`./bin/MIOpenDriver *base_arg* -?` **OR**  `./bin/MIOpenDriver *base_arg* -h (--help)`
 
