@@ -3,18 +3,18 @@
 
 namespace miopen {
 
-bool ConvOclDirectFwd1x1::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvOclDirectFwd1x1::IsCorrect(const SearchParameters& params) const
 {
     return params.kernel_size0 == 1 && params.kernel_size1 == 1;
 }
 
-ImplementationUsageDescription
-ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvOclDirectFwd1x1::PrepareForUsage(ImplementationUsageDescription& result,
+                                     const SearchParameters& params,
                                      const ExhaustiveSearchResult& exhaustive_search_result) const
 {
     const auto& searched_params =
-        dynamic_cast<const Direct2DfwdExhaustiveSearchResult&>(exhaustive_search_result);
-    ImplementationUsageDescription result;
+        dynamic_cast<const ExhaustiveSearchResultImpl&>(exhaustive_search_result);
     searched_params.CopyTo(result);
 
     if((params.n_outputs / 16) * 16 == params.n_outputs &&
@@ -81,7 +81,7 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
             uint CLOOP0             = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
             uint CLOOP2             = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
 
-            KernelUsageDescription kernel;
+            KernelInfo kernel;
 
             kernel.comp_options =
                 std::string(" -DBATCHSIZE=") + std::to_string(BATCHSIZE) + std::string(" -DH=") +
@@ -183,7 +183,7 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
             // number of outputs inside wk_item
             result.n_out_pix_tiles = std::min(params.n_outputs, result.n_out_pix_tiles);
 
-            KernelUsageDescription kernel;
+            KernelInfo kernel;
 
             kernel.comp_options =
                 std::string(" -DMLO_DIR_FORWARD=") + std::to_string(params.forward) +
@@ -337,7 +337,7 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
             output_aligned = 1;
         }
 
-        KernelUsageDescription kernel;
+        KernelInfo kernel;
 
         kernel.comp_options =
             std::string(" -DMLO_DIR_FORWARD=") +
@@ -422,7 +422,5 @@ ConvOclDirectFwd1x1::PrepareForUsage(const ImplementationSearchParameters& param
             result.n_in_data_tiles = exchange_step;
         }
     }
-
-    return result;
 }
 } // namespace miopen

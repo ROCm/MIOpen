@@ -43,7 +43,7 @@ int mloReadConfigDB(Handle& stream, std::map<std::string, std::string>& conf_db)
     return (ret);
 }
 
-static int mloBuildConf_Key(const ImplementationSearchParameters& params, std::string& conf_key)
+static int mloBuildConf_Key(const SearchParameters& params, std::string& conf_key)
 {
     conf_key = std::to_string(static_cast<long long>(params.n_inputs)) + std::string("x") +
                std::to_string(static_cast<long long>(params.in_height)) + std::string("x") +
@@ -78,7 +78,7 @@ static bool mloSearchConfigDB(std::map<std::string, std::string>& conf_db,
     return (found);
 }
 
-static bool mloSearchConfigInDB(const ImplementationSearchParameters& params,
+static bool mloSearchConfigInDB(const SearchParameters& params,
                                 std::string& conf_key,
                                 std::string& conf_val)
 {
@@ -157,7 +157,7 @@ n of input blocks
 n batchs (stacks) processed by the group
 */
 
-static int mloSetConf(const std::string& conf_val, Direct2DfwdExhaustiveSearchResult& result)
+static int mloSetConf(const std::string& conf_val, ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearchResultImpl& result)
 {
     mloParseConf(conf_val,
                  result.grp_tile1,
@@ -236,8 +236,8 @@ static int mloBuildConf_Val(std::string& conf_val,
 * select defult configuration if a known configuration has not been found.
 */
 static int mloSelectDefaultConfig(std::string& conf_val,
-                                  const ImplementationSearchParameters& params,
-                                  Direct2DfwdExhaustiveSearchResult& result)
+                                  const SearchParameters& params,
+                                  ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearchResultImpl& result)
 {
 
     //
@@ -409,8 +409,8 @@ static int mloAddConfigReq(Handle& stream, const std::string& conf_key)
 /*
 * return a known or default configuration
 */
-static bool mloGetConfig(const ImplementationSearchParameters& params,
-                         Direct2DfwdExhaustiveSearchResult& result)
+static bool mloGetConfig(const SearchParameters& params,
+                         ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearchResultImpl& result)
 {
     bool known_config = false;
     std::string conf_key;
@@ -508,17 +508,32 @@ static int mloAddConfig(Handle& stream, std::string& conf_key, std::string& conf
     return (ret);
 }
 
+const std::vector<std::unique_ptr<const Implementation>>&
+ConvOclDirectFwdLegacyExhaustiveSearch::GetImplementationsToMeasure()
+{
+    static const std::vector<std::unique_ptr<const Implementation>>
+        implementations = [] {
+            std::vector<std::unique_ptr<const Implementation>> data;
+            data.emplace_back(new ConvOclDirectFwd1x1);
+            data.emplace_back(new ConvOclDirectFwdC);
+            data.emplace_back(new ConvOclDirectFwd);
+            return data;
+        }();
+
+    return implementations;
+}
+
 /*
-* mesure the current onfiguration pefformance
+* Measure the current configuration performance.
 */
-int ConvOclDirectFwdLegacyExhaustiveSearch::MeasuredLoop(
+int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(
     Handle* profile_h,
     Data_t bot_ocl_buf,
     Data_t top_ocl_buf,
     Data_t wei_ocl_buf,
     Data_t bias_ocl_buf,
     double& processing_time,
-    const ImplementationSearchParameters& params) const
+    const SearchParameters& params) const
 {
     int ret = 0;
     ImplementationUsageDescription kernel_search_result;
@@ -530,7 +545,7 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasuredLoop(
         if(traits->IsCorrect(params))
         {
             const auto sub_search_result = PrepareExhaustiveSearchResult(params);
-            kernel_search_result         = traits->PrepareForUsage(params, *sub_search_result);
+            traits->PrepareForUsage(kernel_search_result, params, *sub_search_result);
 
             if(kernel_search_result.Succeeded())
                 break;
@@ -627,15 +642,15 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasuredLoop(
     return (ret);
 }
 
-std::unique_ptr<ExhaustiveSearchResult>
+std::unique_ptr<ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearchResult>
 ConvOclDirectFwdLegacyExhaustiveSearch::PrepareExhaustiveSearchResult(
-    const ImplementationSearchParameters& params) const
+    const SearchParameters& params) const
 {
-    auto result = std::make_unique<Direct2DfwdExhaustiveSearchResult>();
+    auto result = std::make_unique<ExhaustiveSearchResultImpl>();
 
     // search known configurations
     bool known_config = mloGetConfig(params, *result);
-    // if not known and the saerch is alloed - search
+    // if not known and the search is allowed - do actual search
 
     if(!known_config)
     {
@@ -649,7 +664,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::PrepareExhaustiveSearchResult(
 }
 
 void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
-    const ImplementationSearchParameters& params, Direct2DfwdExhaustiveSearchResult& result) const
+    const SearchParameters& params, ExhaustiveSearchResultImpl& result) const
 {
     miopen::Handle profile_h;
     double processing_time;
@@ -971,7 +986,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
                                 top_ocl_buf,
                                 random_top_sys_buf.size() * sizeof(float));
 
-                            const auto ret = MeasuredLoop(&profile_h,
+                            const auto ret = MeasureLoop(&profile_h,
                                                           bot_ocl_buf.get(),
                                                           top_ocl_buf.get(),
                                                           wei_ocl_buf.get(),
@@ -1206,7 +1221,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
                                                     runs_left = (runs_left < 0) ? 0 : runs_left;
                                                     continue;
                                                 }
-                                                const auto ret = MeasuredLoop(&profile_h,
+                                                const auto ret = MeasureLoop(&profile_h,
                                                                               bot_ocl_buf.get(),
                                                                               top_ocl_buf.get(),
                                                                               wei_ocl_buf.get(),
@@ -1298,18 +1313,4 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
     // return(ret);
 }
 
-const std::vector<std::unique_ptr<const ImplementationDescription>>&
-ConvOclDirectFwdLegacyExhaustiveSearch::GetImplementationsToMeasure()
-{
-    static const std::vector<std::unique_ptr<const ImplementationDescription>>
-        implementations = [] {
-            std::vector<std::unique_ptr<const ImplementationDescription>> data;
-            data.emplace_back(new ConvOclDirectFwd1x1);
-            data.emplace_back(new ConvOclDirectFwdC);
-            data.emplace_back(new ConvOclDirectFwd);
-            return data;
-        }();
-
-    return implementations;
-}
 } // namespace miopen
