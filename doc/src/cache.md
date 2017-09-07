@@ -1,7 +1,7 @@
 Kernel Cache
 ============
 
-MIOpen will cache binary kernels to disk, so they don't need to be compiled the next time application is ran. This cache is stored by default in `$HOME/.cache/miopen`. This location can be customized at build time by setting the `MIOPEN_CACHE_DIR` cmake variable. 
+MIOpen will cache binary kernels to disk, so they don't need to be compiled the next time the application is run. This cache is stored by default in `$HOME/.cache/miopen`. This location can be customized at build time by setting the `MIOPEN_CACHE_DIR` cmake variable. 
 
 Clear the cache
 ---------------
