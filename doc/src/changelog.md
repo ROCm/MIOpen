@@ -17,6 +17,7 @@
 - Disabled 1x1 Winograd convolution for HIP
 - Disabled asm. backward-weights convolutions for input width == 175 
  
+
 ### 07/26/2017 [ 1.0.1 ] 
 - Added dilation support for convolutions 
 - Added unit-tests for Softmax
