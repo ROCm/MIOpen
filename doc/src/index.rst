@@ -3,15 +3,18 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to MIOpen version 1.0
-=============================
+Welcome to MIOpen
+=================
 **Advanced Micro Devices, Inc's open source deep learning library.**
 
 .. toctree::
     :maxdepth: 4
     :caption: Contents:
 
+    releasenotes
     install
+    driver
+    cache
     apireference
     
 
