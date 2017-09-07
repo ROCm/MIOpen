@@ -513,7 +513,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
     }
 
     if(mode == miopenConvolution)
@@ -1119,7 +1119,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
     }
 
     if(mode == miopenConvolution)
@@ -1697,7 +1697,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
     }
 
     int in_n, in_c, in_h, in_w;
@@ -1948,7 +1948,7 @@ void ConvolutionBackwardBias(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
     }
 
     int out_n, out_c, out_h, out_w, stride_n, stride_c, stride_h, stride_w;
