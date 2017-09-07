@@ -238,26 +238,26 @@ per wk-item (ALU)
 
 namespace miopen {
 
-bool ConvOclBwdWrW1x1::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvOclBwdWrW1x1::IsCorrect(const SearchParameters& params) const
 {
     return (params.kernel_size0 == 1) || (params.kernel_size1 == 1);
 }
 
-ImplementationUsageDescription
-ConvOclBwdWrW1x1::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvOclBwdWrW1x1::PrepareForUsage(ImplementationUsageDescription& result,
+                                  const SearchParameters& params,
                                   const ExhaustiveSearchResult&) const
 {
-    ImplementationUsageDescription result;
-
     if(params.n_passes)
     {
         result.passes = 1;
-        return result;
+        return;
     }
 #if 0 // MD: Calls old 1x1 kernel (MIOpenConvBwdWrW1x1Mmap.cl) that has been optimized by Stas
         if (params.in_width == 14 && params.in_height == 14 && params.n_inputs == 192 && params.n_outputs == 512)
         {
-            return(mloConstruct1x1Mmap());
+            result = mloConstruct1x1Mmap();
+            return;
         }
 #endif
     // size_t localMemSize = 64 * 1024;
@@ -467,7 +467,7 @@ ConvOclBwdWrW1x1::PrepareForUsage(const ImplementationSearchParameters& params,
 
     // wrt to W
     {
-        KernelUsageDescription kernel;
+        KernelInfo kernel;
 
         kernel.l_wk.push_back(result.grp_tile0);
         kernel.l_wk.push_back(result.grp_tile1);
@@ -489,7 +489,5 @@ ConvOclBwdWrW1x1::PrepareForUsage(const ImplementationSearchParameters& params,
         result.construction_params.push_back(kernel);
         result.workspce_sz = 0;
     }
-
-    return result;
 }
 } // namespace miopen

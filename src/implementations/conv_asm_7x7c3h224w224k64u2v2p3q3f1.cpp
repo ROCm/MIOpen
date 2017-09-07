@@ -3,7 +3,7 @@
 
 namespace miopen {
 bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsCorrect(
-    const ImplementationSearchParameters& params) const
+    const SearchParameters& params) const
 {
     if(!params.assembler_available)
     {
@@ -41,12 +41,12 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsCorrect(
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
 }
 
-ImplementationUsageDescription ConvAsm7x7c3h224w224k64u2v2p3q3f1::PrepareForUsage(
-    const ImplementationSearchParameters& params,
+void
+ConvAsm7x7c3h224w224k64u2v2p3q3f1::PrepareForUsage(
+    ImplementationUsageDescription& result,
+    const SearchParameters& params,
     const ExhaustiveSearchResult&) const
 {
-    ImplementationUsageDescription result;
-
     const int out_w =
         (params.in_width + params.pad0 * 2 + params.kernel_stride0 - params.kernel_size0) /
         params.kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
@@ -54,7 +54,7 @@ ImplementationUsageDescription ConvAsm7x7c3h224w224k64u2v2p3q3f1::PrepareForUsag
         (params.in_height + params.pad1 * 2 + params.kernel_stride1 - params.kernel_size1) /
         params.kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
 
-    KernelUsageDescription constr_params;
+    KernelInfo constr_params;
     constr_params.comp_options = "";
 
     constr_params.l_wk.push_back(64);
@@ -70,6 +70,5 @@ ImplementationUsageDescription ConvAsm7x7c3h224w224k64u2v2p3q3f1::PrepareForUsag
     constr_params.kernel_name = "gcnAsmConv7x7c3h224w224k64u2v2p3q3f1";
 
     result.construction_params.push_back(constr_params);
-    return result;
 }
 } // namespace miopen

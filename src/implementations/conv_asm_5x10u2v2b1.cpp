@@ -3,7 +3,8 @@
 #include "miopen/gcn_asm_utils.hpp"
 
 namespace miopen {
-bool ConvAsm5x10u2v2b1::IsCorrect(const ImplementationSearchParameters& params) const
+
+bool ConvAsm5x10u2v2b1::IsCorrect(const SearchParameters& params) const
 {
     if(!params.assembler_available)
     {
@@ -48,12 +49,11 @@ bool ConvAsm5x10u2v2b1::IsCorrect(const ImplementationSearchParameters& params) 
     // fixme above.
 }
 
-ImplementationUsageDescription
-ConvAsm5x10u2v2b1::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvAsm5x10u2v2b1::PrepareForUsage(ImplementationUsageDescription& result,
+                                   const SearchParameters& params,
                                    const ExhaustiveSearchResult&) const
 {
-    ImplementationUsageDescription result;
-
     std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", params.out_height);
     GenerateClangDefsym(options, "inp_w", params.out_width);
@@ -61,7 +61,7 @@ ConvAsm5x10u2v2b1::PrepareForUsage(const ImplementationSearchParameters& params,
     GenerateClangDefsym(options, "wei_k", params.n_inputs);
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", (params.rmv == V1) ? 1 : 3);
 
-    KernelUsageDescription constr_params;
+    KernelInfo constr_params;
     constr_params.comp_options = options.str();
 
     constr_params.l_wk.push_back(64);
@@ -78,6 +78,5 @@ ConvAsm5x10u2v2b1::PrepareForUsage(const ImplementationSearchParameters& params,
     constr_params.kernel_name = "conv5x10u2v2b1";
 
     result.construction_params.push_back(constr_params);
-    return result;
 }
 } // namespace miopen

@@ -3,7 +3,7 @@
 
 namespace miopen {
 
-bool ConvOclBwdWrW2::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvOclBwdWrW2::IsCorrect(const SearchParameters& params) const
 {
     return ((params.kernel_size0 >= params.kernel_size1) &&
             ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) ||
@@ -12,8 +12,9 @@ bool ConvOclBwdWrW2::IsCorrect(const ImplementationSearchParameters& params) con
             (params.kernel_size0 != 1 || params.kernel_size1 != 1));
 }
 
-ImplementationUsageDescription
-ConvOclBwdWrW2::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvOclBwdWrW2::PrepareForUsage(ImplementationUsageDescription& result,
+                                const SearchParameters& params,
                                 const ExhaustiveSearchResult&) const
 {
     static const char* s_stride_table[32][2] = {
@@ -56,8 +57,6 @@ ConvOclBwdWrW2::PrepareForUsage(const ImplementationSearchParameters& params,
         }
     }
 
-    ImplementationUsageDescription result;
-
     int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
                            // n of map in a block (see below)
     result.out_pix_tile1 = (params.out_width > 512) ? 1 : 2;
@@ -96,7 +95,7 @@ ConvOclBwdWrW2::PrepareForUsage(const ImplementationSearchParameters& params,
     if(params.n_passes)
     {
         result.passes = (n_batch_blks > 1) ? 2 : 1;
-        return result;
+        return;
     }
 
     // number of filter taps in the processing wk_item
@@ -140,7 +139,8 @@ ConvOclBwdWrW2::PrepareForUsage(const ImplementationSearchParameters& params,
                                          params.kernel_size1);
     if(lcl_mem_sz > 8 * 1024)
     {
-        return ImplementationUsageDescription(miopenStatusNotInitialized);
+        result = ImplementationUsageDescription(miopenStatusNotInitialized);
+        return;
     }
 
     int OUT_N_PIXS_OFF = params.in_width - (params.in_width / read_unit) * read_unit;
@@ -220,7 +220,7 @@ ConvOclBwdWrW2::PrepareForUsage(const ImplementationSearchParameters& params,
 
     // wrt to W
     {
-        KernelUsageDescription kernel;
+        KernelInfo kernel;
 
         kernel.l_wk.push_back(result.grp_tile0);
         kernel.l_wk.push_back(result.grp_tile1);
@@ -246,7 +246,7 @@ ConvOclBwdWrW2::PrepareForUsage(const ImplementationSearchParameters& params,
     // sum over batch
     if(n_batch_blks > 1)
     {
-        KernelUsageDescription kernel;
+        KernelInfo kernel;
 
         kernel.kernel_file  = "MIOpenConvBwdWrWS2.cl";
         kernel.kernel_name  = "MIOpenCvBwdWrW_rdc";
@@ -266,7 +266,5 @@ ConvOclBwdWrW2::PrepareForUsage(const ImplementationSearchParameters& params,
         int data_len       = (params.out_data_type == "FP32" ? 4 : 8);
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
-
-    return result;
 }
 } // namespace miopen

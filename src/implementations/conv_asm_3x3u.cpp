@@ -7,7 +7,8 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
 
 namespace miopen {
-bool ConvAsm3x3U::IsCorrect(const ImplementationSearchParameters& params) const
+
+bool ConvAsm3x3U::IsCorrect(const SearchParameters& params) const
 {
     if(!params.assembler_available)
     {
@@ -28,13 +29,14 @@ bool ConvAsm3x3U::IsCorrect(const ImplementationSearchParameters& params) const
     // See fixme above.
 }
 
-bool ConvAsm3x3U::IsFast(const ImplementationSearchParameters& params) const
+bool ConvAsm3x3U::IsFast(const SearchParameters& params) const
 {
     return params.in_width >= 50;
 }
 
-ImplementationUsageDescription
-ConvAsm3x3U::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvAsm3x3U::PrepareForUsage(ImplementationUsageDescription& result,
+                             const SearchParameters& params,
                              const ExhaustiveSearchResult&) const
 {
     std::string perf_vals;
@@ -114,7 +116,7 @@ ConvAsm3x3U::PrepareForUsage(const ImplementationSearchParameters& params,
     GenerateClangDefsym(
         options, "ROCM_METADATA_VERSION", (params.rmv == V1) ? 1 : ((params.rmv == V2) ? 2 : 3));
 
-    KernelUsageDescription construction_params;
+    KernelInfo construction_params;
     construction_params.comp_options = options.str();
 
     construction_params.l_wk.push_back(active_lanes);
@@ -130,8 +132,6 @@ ConvAsm3x3U::PrepareForUsage(const ImplementationSearchParameters& params,
     construction_params.kernel_file = "conv3x3.s";
     construction_params.kernel_name = "gcnAsmConv3x3U";
 
-    ImplementationUsageDescription result;
     result.construction_params.push_back(construction_params);
-    return result;
 }
 } // namespace miopen

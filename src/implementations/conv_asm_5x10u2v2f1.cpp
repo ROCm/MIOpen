@@ -3,7 +3,7 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
-bool ConvAsm5x10u2v2f1::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvAsm5x10u2v2f1::IsCorrect(const SearchParameters& params) const
 {
     if(!params.assembler_available)
     {
@@ -56,8 +56,9 @@ static inline int AlignUp(int val, unsigned step)
     return ((val + step - 1) / step) * step;
 }
 
-ImplementationUsageDescription
-ConvAsm5x10u2v2f1::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvAsm5x10u2v2f1::PrepareForUsage(ImplementationUsageDescription& result,
+                                   const SearchParameters& params,
                                    const ExhaustiveSearchResult&) const
 {
     const int out_w =
@@ -78,7 +79,7 @@ ConvAsm5x10u2v2f1::PrepareForUsage(const ImplementationSearchParameters& params,
     GenerateClangDefsym(
         options, "ROCM_METADATA_VERSION", (params.rmv == V1) ? 1 : ((params.rmv == V2) ? 2 : 3));
 
-    KernelUsageDescription construction_params;
+    KernelInfo construction_params;
     construction_params.comp_options = options.str();
 
     construction_params.l_wk.push_back(64);
@@ -93,8 +94,6 @@ ConvAsm5x10u2v2f1::PrepareForUsage(const ImplementationSearchParameters& params,
     construction_params.kernel_file = "conv5x10u2v2f1.s";
     construction_params.kernel_name = "conv5x10u2v2f1";
 
-    ImplementationUsageDescription result;
     result.construction_params.push_back(construction_params);
-    return result;
 }
 } // namespace miopen

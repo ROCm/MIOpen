@@ -160,7 +160,7 @@ enum rocm_meta_version
 
 namespace miopen {
 
-class ImplementationSearchParameters
+class SearchParameters
 {
     public:
     bool n_passes = false;
@@ -193,7 +193,7 @@ class ImplementationSearchParameters
     rocm_meta_version rmv;
     std::string general_compile_options;
 
-    ImplementationSearchParameters()
+    SearchParameters()
         : forward(),
           bot_sz(),
           top_sz(),
@@ -232,14 +232,14 @@ class ImplementationSearchParameters
 };
 
 class ImplementationUsageDescription;
-class ImplementationDescription;
+class Implementation;
 } // namespace miopen
 
 class mlo_construct_direct2D
 {
     public:
     virtual const std::vector<
-        std::reference_wrapper<const miopen::ImplementationDescription>>&
+        std::reference_wrapper<const miopen::Implementation>>&
     GetImplementations() const;
     void mloUseSearchResult(const miopen::ImplementationUsageDescription& result); // TODO: remove
 
@@ -793,7 +793,7 @@ class mlo_construct_direct2D
     bool mloIsCompilerWorkarounds() const;
     bool mloIsFastBinaryWinograd3x3U() const;
 
-    inline void mloFillSearchParams(miopen::ImplementationSearchParameters& params) const
+    inline void mloFillSearchParams(miopen::SearchParameters& params) const
     {
         params = _search_params;
     }
@@ -807,7 +807,7 @@ class mlo_construct_direct2D
     //	int mloBuildConf_Key(std::string & conf_key) const;
 
     protected:
-    miopen::ImplementationSearchParameters _search_params;
+    miopen::SearchParameters _search_params;
 
     int _in_df_width          = 0;
     int _in_df_height         = 0;
@@ -890,7 +890,7 @@ class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
 
     bool mloIsCompilerWorkarounds() const;
     int mloMultiStep();
-    const std::vector<std::reference_wrapper<const miopen::ImplementationDescription>>&
+    const std::vector<std::reference_wrapper<const miopen::Implementation>>&
     GetImplementations() const override;
 };
 
@@ -903,7 +903,7 @@ class mlo_construct_winograd : public mlo_construct_direct2D
     public:
     mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
 
-    const std::vector<std::reference_wrapper<const miopen::ImplementationDescription>>&
+    const std::vector<std::reference_wrapper<const miopen::Implementation>>&
     GetImplementations() const override;
 };
 

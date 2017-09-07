@@ -2,13 +2,14 @@
 
 namespace miopen {
 
-bool ConvOclBwdWrW53::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvOclBwdWrW53::IsCorrect(const SearchParameters& params) const
 {
     return (params.kernel_size0 >= 2) || (params.kernel_size1 >= 2);
 }
 
-ImplementationUsageDescription
-ConvOclBwdWrW53::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvOclBwdWrW53::PrepareForUsage(ImplementationUsageDescription& result,
+                                 const SearchParameters& params,
                                  const ExhaustiveSearchResult&) const
 {
     size_t localMemSize = 64 * 1024;
@@ -23,8 +24,6 @@ ConvOclBwdWrW53::PrepareForUsage(const ImplementationSearchParameters& params,
 
     int read_unit         = 4;
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
-
-    ImplementationUsageDescription result;
 
     // number  of batch iterations
     result.n_stacks = 1;
@@ -42,7 +41,7 @@ ConvOclBwdWrW53::PrepareForUsage(const ImplementationSearchParameters& params,
     if(params.n_passes)
     {
         result.passes = (n_batch_blks > 1) ? 2 : 1;
-        return result;
+        return;
     }
 
     result.out_pix_tile0 = params.kernel_size0;
@@ -93,7 +92,8 @@ ConvOclBwdWrW53::PrepareForUsage(const ImplementationSearchParameters& params,
         else if(in_n_vert_reads < 2)
         {
             printf("CONFIG ERROR: not enough local memory for the configuration\n");
-            return ImplementationUsageDescription(static_cast<miopenStatus_t>(-1));
+            result = ImplementationUsageDescription(static_cast<miopenStatus_t>(-1));
+            return;
         }
     }
     int in_n_vert_read_loops = (params.in_height + in_n_vert_reads - 1) / in_n_vert_reads;
@@ -180,7 +180,7 @@ ConvOclBwdWrW53::PrepareForUsage(const ImplementationSearchParameters& params,
 
     // wrt to W
     {
-        KernelUsageDescription kernel;
+        KernelInfo kernel;
 
         kernel.l_wk.push_back(result.grp_tile0);
         kernel.l_wk.push_back(result.grp_tile1);
@@ -210,7 +210,7 @@ ConvOclBwdWrW53::PrepareForUsage(const ImplementationSearchParameters& params,
     // sum over batch
     if(n_batch_blks > 1)
     {
-        KernelUsageDescription kernel;
+        KernelInfo kernel;
 
         kernel.kernel_file =
             (params.kernel_size0 == 5 && params.kernel_size1 == 5 && in_n_vert_read_loops == 1)
@@ -234,7 +234,5 @@ ConvOclBwdWrW53::PrepareForUsage(const ImplementationSearchParameters& params,
         result.construction_params.push_back(kernel);
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
-
-    return result;
 }
 } // namespace miopen
