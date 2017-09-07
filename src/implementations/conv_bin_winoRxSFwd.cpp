@@ -17,7 +17,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
 
 namespace miopen {
 
-bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvBinWinogradRxSFwd::IsCorrect(const SearchParameters& params) const
 {
     if(!params.use_binaries)
     {
@@ -128,13 +128,15 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const ImplementationSearchParameters& para
     // "CKHW" )
 }
 
-ImplementationUsageDescription ConvBinWinogradRxSFwd::PrepareForUsage(
-    const ImplementationSearchParameters& params,
+void
+ConvBinWinogradRxSFwd::PrepareForUsage(
+    ImplementationUsageDescription& result,
+    const SearchParameters& params,
     const ExhaustiveSearchResult&) const
 {
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
     const auto name     = params.GetStream().GetDeviceName();
-    KernelUsageDescription kernel;
+    KernelInfo kernel;
 
     kernel.g_wk.push_back(512 * n_groups);
     kernel.g_wk.push_back(1);
@@ -173,8 +175,6 @@ ImplementationUsageDescription ConvBinWinogradRxSFwd::PrepareForUsage(
     }
     kernel.kernel_file += ".so";
 
-    ImplementationUsageDescription result;
     result.construction_params.push_back(kernel);
-    return result;
 }
 } // namespace miopen

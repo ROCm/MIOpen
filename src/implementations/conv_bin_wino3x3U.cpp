@@ -5,7 +5,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
 namespace miopen {
 
-bool ConvBinWinograd3x3U::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvBinWinograd3x3U::IsCorrect(const SearchParameters& params) const
 {
     if(!params.use_binaries)
     {
@@ -51,15 +51,15 @@ bool ConvBinWinograd3x3U::IsCorrect(const ImplementationSearchParameters& params
     // both directions.
 }
 
-ImplementationUsageDescription
-ConvBinWinograd3x3U::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvBinWinograd3x3U::PrepareForUsage(ImplementationUsageDescription& result,
+                                     const SearchParameters& params,
                                      const ExhaustiveSearchResult&) const
 {
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
     const auto name     = params.GetStream().GetDeviceName();
 
-    ImplementationUsageDescription result;
-    KernelUsageDescription kernel;
+    KernelInfo kernel;
 
     kernel.g_wk.clear();
     kernel.g_wk.push_back(512 * n_groups);
@@ -90,6 +90,5 @@ ConvBinWinograd3x3U::PrepareForUsage(const ImplementationSearchParameters& param
     }
 
     result.construction_params.push_back(kernel);
-    return result;
 }
 } // namespace miopen

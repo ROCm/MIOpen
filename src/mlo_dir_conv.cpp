@@ -121,31 +121,29 @@ bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
    */
 int mlo_construct_direct2D::mloConstruct()
 {
-    // See comment in mlo_construct_winograd::mloConstruct().
     const auto no_perf_filtering =
         miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 
+    _search_params.use_binaries = false;
+    _search_params.assembler_available = false;
     _search_params.rmv = V3;
-
-    /// \todo See todo in mlo_construct_winograd::mloConstruct().
-    _search_params.assembler_available = mloIsAmdOpenclRocm(_search_params.rmv) &&
-                                         !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) &&
-                                         ValidateGcnAssembler();
-
+    if (mloIsAmdOpenclRocm(_search_params.rmv)) {
+        _search_params.assembler_available = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) &&
+                                             ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
-    _search_params.use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
+        _search_params.use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
+    }
 
-    miopen::ImplementationUsageDescription result(static_cast<miopenStatus_t>(-1));
-
-    for(const miopen::ImplementationDescription& implementation : GetImplementations())
+    for(const miopen::Implementation& i : GetImplementations())
     {
-        if(implementation.IsCorrect(_search_params) &&
-           (no_perf_filtering || implementation.IsFast(_search_params)))
+        if(i.IsCorrect(_search_params) &&
+           (no_perf_filtering || i.IsFast(_search_params)))
         {
             const auto exhaustive_search_result =
-                implementation.PrepareExhaustiveSearchResult(_search_params);
-            result = implementation.PrepareForUsage(_search_params, *exhaustive_search_result);
+                i.PrepareExhaustiveSearchResult(_search_params);
+            miopen::ImplementationUsageDescription result;
+            i.PrepareForUsage(result, _search_params, *exhaustive_search_result);
 
             if(!result.Succeeded())
                 continue;
@@ -157,7 +155,7 @@ int mlo_construct_direct2D::mloConstruct()
         }
     }
 
-    return static_cast<int>(result.status);
+    return -1;
 }
 
 template <class TInstance>
@@ -171,11 +169,11 @@ class StaticContainer
     }
 };
 
-const std::vector<std::reference_wrapper<const miopen::ImplementationDescription>>&
+const std::vector<std::reference_wrapper<const miopen::Implementation>>&
 mlo_construct_direct2D::GetImplementations() const
 {
     static const std::vector<
-        std::reference_wrapper<const miopen::ImplementationDescription>>
+        std::reference_wrapper<const miopen::Implementation>>
         implementations({
             StaticContainer<const miopen::ConvAsm3x3U>::Instance(),
             StaticContainer<const miopen::ConvAsm5x10u2v2f1>::Instance(),
@@ -192,11 +190,11 @@ mlo_construct_direct2D::GetImplementations() const
     return implementations;
 }
 
-const std::vector<std::reference_wrapper<const miopen::ImplementationDescription>>&
+const std::vector<std::reference_wrapper<const miopen::Implementation>>&
 mlo_construct_winograd::GetImplementations() const
 {
     static const std::vector<
-        std::reference_wrapper<const miopen::ImplementationDescription>>
+        std::reference_wrapper<const miopen::Implementation>>
         implementations({
 #ifndef HIP_OC_FINALIZER
             StaticContainer<const miopen::ConvBinWinograd3x3U>::Instance(),
@@ -207,11 +205,11 @@ mlo_construct_winograd::GetImplementations() const
     return implementations;
 }
 
-const std::vector<std::reference_wrapper<const miopen::ImplementationDescription>>&
+const std::vector<std::reference_wrapper<const miopen::Implementation>>&
 mlo_construct_BwdWrW2D::GetImplementations() const
 {
     static const std::vector<
-        std::reference_wrapper<const miopen::ImplementationDescription>>
+        std::reference_wrapper<const miopen::Implementation>>
         implementations({
             StaticContainer<const miopen::ConvAsmBwdWrW3x3>::Instance(),
             StaticContainer<const miopen::ConvOclBwdWrW2>::Instance(),

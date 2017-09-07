@@ -81,7 +81,7 @@ static std::string FormPerfParamsAsmDirect3x3WrW(int limit_wave_cnt,
 }
 
 static PerfParamsAsmDirect3x3WrW
-mloComputePerfParamsAsmDirect3x3WrW(const ImplementationSearchParameters& params)
+mloComputePerfParamsAsmDirect3x3WrW(const SearchParameters& params)
 {
     /// LUT entry/env.var format: 8 decimal ASCII digits, left to right:
     /// limit_wave_cnt   [00..10]
@@ -347,7 +347,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const ImplementationSearchParameters& params
     return pp;
 }
 
-bool ConvAsmBwdWrW3x3::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvAsmBwdWrW3x3::IsCorrect(const SearchParameters& params) const
 {
     if(!params.assembler_available)
     {
@@ -413,10 +413,11 @@ bool ConvAsmBwdWrW3x3::IsCorrect(const ImplementationSearchParameters& params) c
     return ok;
 }
 
-bool ConvAsmBwdWrW3x3::IsFast(const ImplementationSearchParameters&) const { return true; }
+bool ConvAsmBwdWrW3x3::IsFast(const SearchParameters&) const { return true; }
 
-ImplementationUsageDescription
-ConvAsmBwdWrW3x3::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvAsmBwdWrW3x3::PrepareForUsage(ImplementationUsageDescription& result,
+                                  const SearchParameters& params,
                                   const ExhaustiveSearchResult&) const
 {
     std::ostringstream options;
@@ -446,8 +447,7 @@ ConvAsmBwdWrW3x3::PrepareForUsage(const ImplementationSearchParameters& params,
     // Debugging:
     GenerateClangDefsym(options, "enable_debug_output", 0);
 
-    ImplementationUsageDescription result;
-    KernelUsageDescription kernel;
+    KernelInfo kernel;
 
     kernel.comp_options = options.str();
 
@@ -475,7 +475,5 @@ ConvAsmBwdWrW3x3::PrepareForUsage(const ImplementationSearchParameters& params,
 
     result.construction_params.push_back(kernel);
     result.workspce_sz = 0;
-
-    return result;
 }
 } // namespace miopen

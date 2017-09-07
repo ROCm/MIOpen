@@ -2,7 +2,7 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
-bool ConvOclDirectFwd3x3::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvOclDirectFwd3x3::IsCorrect(const SearchParameters& params) const
 {
     return (params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad1 == 1 &&
             params.pad0 == 1 && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
@@ -11,13 +11,12 @@ bool ConvOclDirectFwd3x3::IsCorrect(const ImplementationSearchParameters& params
             params.out_width == 256);
 }
 
-ImplementationUsageDescription
-ConvOclDirectFwd3x3::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvOclDirectFwd3x3::PrepareForUsage(ImplementationUsageDescription& result,
+                                     const SearchParameters& params,
                                      const ExhaustiveSearchResult&) const
 {
     // size_t localMemSize = params.stream.GetLocalMemorySize();
-
-    ImplementationUsageDescription result;
     auto hw_wave_sz = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
     int n_waves = 4;
@@ -51,7 +50,8 @@ ConvOclDirectFwd3x3::PrepareForUsage(const ImplementationSearchParameters& param
     if(logical_wave_sz > GRP_SZ)
     {
         printf("Conv3x3 conf error\n");
-        return ImplementationUsageDescription(static_cast<miopenStatus_t>(-1));
+        result = ImplementationUsageDescription(static_cast<miopenStatus_t>(-1));
+        return;
     }
     int logical_n_waves = std::max(1, GRP_SZ / logical_wave_sz);
     int LG2_WAVE_SZ     = std::ceil(std::log(logical_wave_sz) / std::log(2));
@@ -80,7 +80,7 @@ ConvOclDirectFwd3x3::PrepareForUsage(const ImplementationSearchParameters& param
 
     //	_gen_comp_options += std::string(" -limit-vector-registers=64 ");
 
-    KernelUsageDescription construction_parameters;
+    KernelInfo construction_parameters;
 
     construction_parameters.comp_options =
         std::string(" -DMLO_DIR_FORWARD=") +
@@ -164,6 +164,5 @@ ConvOclDirectFwd3x3::PrepareForUsage(const ImplementationSearchParameters& param
     construction_parameters.kernel_name = "MIOpenCvD3x3_WSR0";
 
     result.construction_params.push_back(construction_parameters);
-    return result;
 }
 } // namespace miopen

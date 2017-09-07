@@ -2,15 +2,16 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
-bool ConvOclDirectFwdGen::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvOclDirectFwdGen::IsCorrect(const SearchParameters& params) const
 {
     return params.forward && (params.kernel_size0 > 11 || params.kernel_size1 > 11 ||
                               ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
                                !(params.kernel_size0 == 1 && params.kernel_size1 == 1)));
 }
 
-ImplementationUsageDescription
-ConvOclDirectFwdGen::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvOclDirectFwdGen::PrepareForUsage(ImplementationUsageDescription& result,
+                                     const SearchParameters& params,
                                      const ExhaustiveSearchResult&) const
 {
     int n_in_stacks = 0;
@@ -112,7 +113,7 @@ ConvOclDirectFwdGen::PrepareForUsage(const ImplementationSearchParameters& param
     }
 
     int bias = params.bias;
-    KernelUsageDescription construction_params;
+    KernelInfo construction_params;
 
     construction_params.comp_options =
         std::string("-DMLO_GRP_SZ=") +
@@ -210,8 +211,6 @@ ConvOclDirectFwdGen::PrepareForUsage(const ImplementationSearchParameters& param
     construction_params.g_wk.push_back(gbl1);
     construction_params.g_wk.push_back(gbl2);
 
-    ImplementationUsageDescription result;
     result.construction_params.push_back(construction_params);
-    return result;
 }
 } // namespace miopen

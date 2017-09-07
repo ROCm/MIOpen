@@ -2,20 +2,20 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
-bool ConvOclDirectFwd11x11::IsCorrect(const ImplementationSearchParameters& params) const
+bool ConvOclDirectFwd11x11::IsCorrect(const SearchParameters& params) const
 {
     return params.forward && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
            params.kernel_size1 == 11 && params.kernel_size0 == 11 && params.kernel_stride1 == 4 &&
            params.kernel_stride0 == 4;
 }
 
-ImplementationUsageDescription ConvOclDirectFwd11x11::PrepareForUsage(
-    const ImplementationSearchParameters& params,
+void
+ConvOclDirectFwd11x11::PrepareForUsage(
+    ImplementationUsageDescription& result,
+    const SearchParameters& params,
     const ExhaustiveSearchResult&) const
 {
     // size_t localMemSize = 64 * 1024;
-
-    ImplementationUsageDescription result;
     auto hw_wave_sz = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
     // major parameters
@@ -157,7 +157,7 @@ ImplementationUsageDescription ConvOclDirectFwd11x11::PrepareForUsage(
     if(params.n_passes)
     {
         result.passes = (second_pass && params.forward) ? 2 : 1;
-        return result;
+        return;
     }
 
     // it's backward - inputs are outputs and vs versa
@@ -230,7 +230,7 @@ ImplementationUsageDescription ConvOclDirectFwd11x11::PrepareForUsage(
 
     // 1st pass
     {
-        KernelUsageDescription construction_parameters;
+        KernelInfo construction_parameters;
 
         construction_parameters.l_wk.push_back(result.grp_tile0);
         construction_parameters.l_wk.push_back(result.grp_tile1);
@@ -256,7 +256,7 @@ ImplementationUsageDescription ConvOclDirectFwd11x11::PrepareForUsage(
     // 2nd  pass
     if(second_pass)
     {
-        KernelUsageDescription construction_parameters;
+        KernelInfo construction_parameters;
 
         construction_parameters.kernel_file  = "MIOpenConvFwd_LxL_11.cl";
         construction_parameters.kernel_name  = "MIOpenCvFwd11x11_2";
@@ -278,7 +278,5 @@ ImplementationUsageDescription ConvOclDirectFwd11x11::PrepareForUsage(
 
         result.construction_params.push_back(construction_parameters);
     }
-
-    return result;
 }
 } // namespace miopen

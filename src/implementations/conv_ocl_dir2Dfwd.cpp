@@ -3,16 +3,16 @@
 
 namespace miopen {
 
-ImplementationUsageDescription
-ConvOclDirectFwd::PrepareForUsage(const ImplementationSearchParameters& params,
+void
+ConvOclDirectFwd::PrepareForUsage(ImplementationUsageDescription& result,
+                                  const SearchParameters& params,
                                   const ExhaustiveSearchResult& exhaustive_search_result) const
 {
     const auto& searched_params =
-        dynamic_cast<const Direct2DfwdExhaustiveSearchResult&>(exhaustive_search_result);
+        dynamic_cast<const ExhaustiveSearchResultImpl&>(exhaustive_search_result);
 
     // std::size_t localMemSize = params.stream.GetLocalMemorySize();
 
-    ImplementationUsageDescription result;
     searched_params.CopyTo(result);
     auto pad0 = params.pad0;
     auto pad1 = params.pad1;
@@ -48,7 +48,8 @@ ConvOclDirectFwd::PrepareForUsage(const ImplementationSearchParameters& params,
     if(alu_tiles_sz > 256)
     {
         //			std::cout << "ERROR: need out pix size ajustments\n";
-        return ImplementationUsageDescription(static_cast<miopenStatus_t>(-1));
+        result = ImplementationUsageDescription(static_cast<miopenStatus_t>(-1));
+        return;
     }
 
     int n_alus_total = (searched_params.grp_tile0 * searched_params.grp_tile1);
@@ -87,7 +88,7 @@ ConvOclDirectFwd::PrepareForUsage(const ImplementationSearchParameters& params,
 
     n_out_tiles_perstack = std::min(n_out_tiles_perstack, params.n_outputs);
 
-    KernelUsageDescription kernel_params;
+    KernelInfo kernel_params;
 
     kernel_params.comp_options =
         std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(static_cast<long long>(hw_wave_sz)) +
@@ -173,6 +174,5 @@ ConvOclDirectFwd::PrepareForUsage(const ImplementationSearchParameters& params,
     kernel_params.kernel_name = "MIOpenConvUni";
 
     result.construction_params.push_back(kernel_params);
-    return result;
 }
 } // namespace miopen
