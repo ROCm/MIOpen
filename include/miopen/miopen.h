@@ -621,13 +621,13 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
 
 /*! @brief Search and run the forward convolutional algorithms and return a list of kernel times.
  *
- * This function attempts all MIOpen algorithms for miopenConvolutionForward() based on the
- * configuration of the convolution descriptors, and outputs performance metrics to a
- * user-allocated array of miopenConvAlgoPerf_t. These metrics are written in sorted fashion
+ * This function attempts all MIOpen forward convolution algorithms based on the
+ * input configuration, and outputs performance metrics to a
+ * user-allocated array of type miopenConvAlgoPerf_t. These metrics are written in a sorted fashion
  * where the first element has the lowest compute time. Users can chose the top-most
  * algorithm if they only care about the fastest algorithm.
  *
- * This function is mandatory before using forward convolutions. In order to execute this function,
+ * This function is mandatory before using miopenConvolutionForward(). In order to execute this function,
  * miopenConvolutionForwardGetWorkSpaceSize() must be run to determine the required memory for this
  * search.
  *
@@ -673,11 +673,10 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
 
 /*! @brief Execute a forward convolution layer
  *
- * Runs the forward convolution layer based on the selected algorithm. The function
+ * Runs the forward convolution layer based on the selected algorithm. The functions
  * miopenConvolutionForwardGetWorkSpaceSize() and miopenFindConvolutionForwardAlgorithm() must have
  * been executed previously to determine the required memory needed for the workspace and the
- * search function miopenFindConvolutionForwardAlgorithm() must have been run to determine the
- * best convolutional algorithm.
+ * best convolutional algorithm, respectively.
  *
  * Alpha scaling and beta shifting are currently disabled for forward convolutions.
  *
@@ -758,16 +757,16 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t dxDesc,
                                               size_t* workSpaceSize);
 
-/*! @brief Search and run the backwards data convolutional algorithms and return a list of kernel
+/*! @brief Search and run the backwards data convolution algorithms and return a list of kernel
  * times.
  *
- * This function attempts all MIOpen algorithms for miopenConvolutionBackwardsData(), and outputs
- * performance metrics to a user-allocated array of miopenConvAlgoPerf_t.
+ * This function attempts all MIOpen backward data convolution algorithms, and outputs the
+ * performance metrics to a user-allocated array of type miopenConvAlgoPerf_t.
  * These metrics are written in sorted fashion where the first element has the lowest compute time.
  * This function is mandatory before using backwards convolutions. Users can chose the top-most
  * algorithm if they only care about the fastest algorithm.
  *
- * This function is mandatory before using data backwards propagation convolutions. In order to
+ * This function is mandatory before using miopenConvolutionBackwardData(). In order to
  * execute
  * this function, miopenConvolutionBackwardsDataGetWorkSpaceSize() must be run to determine the
  * required
@@ -815,7 +814,12 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
 
 /*! @brief Execute a backward data convolution layer
  *
- *  Alpha scaling and beta shifting are currently disabled for forward convolutions.
+ * Runs the backward data convolution layer based on the selected algorithm. The function
+ * miopenConvolutionBackwardDataGetWorkSpaceSize() and miopenFindConvolutionBackwardDataAlgorithm() must have
+ * been executed previously to determine the required memory needed for the workspace and the
+ * best convolutional algorithm, respectively.
+ * 
+ * Alpha scaling and beta shifting are currently disabled for forward convolutions.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -876,13 +880,13 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
 /*! @brief Search and run the backwards weights convolutional algorithms and return a list of kernel
  * times.
  *
- * This function attempts all MIOpen algorithms for miopenConvolutionBackwardsWeights(), and outputs
- * performance metrics to a user- allocated array of miopenConvAlgoPerf_t. These metrics are written
+ * This function attempts all MIOpen backward weights convolution algorithms, and outputs
+ * the performance metrics to a user-allocated array of type miopenConvAlgoPerf_t. These metrics are written
  * in sorted fashion where the first element has the lowest compute time.
  * This function is mandatory before using backwards weight convolutions. Users can chose the
  * top-most algorithm if they only care about the fastest algorithm.
  *
- * This function is mandatory before using weights backwards propagation convolutions. In order to
+ * This function is mandatory before using miopenConvolutionBackwardWeights(). In order to
  * execute
  * this function, miopenConvolutionBackwardsWeightsGetWorkSpaceSize() must be run to determine the
  * required
@@ -930,11 +934,10 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
 
 /*! @brief Execute a backward weights convolution layer
  *
- * Runs the forward convolution layer based on the selected algorithm. The function
- * miopenConvolutionBackwardGetWorkSpaceSize() and miopenFindConvolutionForwardAlgorithm() must have
+ * Runs the backward weights convolution layer based on the selected algorithm. The function
+ * miopenConvolutionBackwardWeightsGetWorkSpaceSize() and miopenFindConvolutionBackwardWeightsAlgorithm() must have
  * been executed previously to determine the required memory needed for the workspace and the
- * search function miopenFindConvolutionForwardAlgorithm() must have been run to determine the
- * best convolutional algorithm.
+ * best convolutional algorithm, respectively.
  *
  * Alpha scaling and beta shifting are currently disabled for backward weight convolutions.
  *
