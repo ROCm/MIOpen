@@ -198,8 +198,7 @@ MIOPEN_DECLARE_OBJECT(miopenConvolutionDescriptor);
  * @brief Creates the miopenPoolingDescriptor_t type
  *
  * Pooling descriptor is an object that allows the user to specify the dimension sizes of the
- * pooling
- * windows, paddings, strides, and pooling mode.
+ * pooling windows, paddings, strides, and pooling mode.
  *
  */
 MIOPEN_DECLARE_OBJECT(miopenPoolingDescriptor);
@@ -208,8 +207,7 @@ MIOPEN_DECLARE_OBJECT(miopenPoolingDescriptor);
  *  @brief Creates the miopenLRNDescriptor_t type
  *
  * LRN descriptor is an object that allows the user to specify the LRN mode, the number of elements
- * in
- * the normalization window, and the LRN k-parameter.
+ * in the normalization window, and the LRN k-parameter.
  *
  */
 MIOPEN_DECLARE_OBJECT(miopenLRNDescriptor);
@@ -621,22 +619,22 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
 
 /*! @brief Search and run the forward convolutional algorithms and return a list of kernel times.
  *
- * This function attempts all MIOpen forward convolution algorithms based on the
- * input configuration, and outputs performance metrics to a
- * user-allocated array of type miopenConvAlgoPerf_t. These metrics are written in a sorted fashion
- * where the first element has the lowest compute time. Users can chose the top-most
- * algorithm if they only care about the fastest algorithm.
+ * This function attempts all MIOpen forward convolution algorithms based on
+ * the input configuration, and outputs performance metrics to a
+ * user-allocated array of type miopenConvAlgoPerf_t. These metrics are written
+ * in a sorted fashion where the first element has the lowest compute time.
+ * Users can chose the top-most algorithm if they only care about the fastest
+ * algorithm.
  *
- * This function is mandatory before using miopenConvolutionForward(). In order to execute this function,
- * miopenConvolutionForwardGetWorkSpaceSize() must be run to determine the required memory for this
- * search.
+ * This function is mandatory before using miopenConvolutionForward(). In order
+ * to execute this function, miopenConvolutionForwardGetWorkSpaceSize() must be
+ * run to determine the required memory for this search.
  *
  * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
  * configuration match is not found, a default configuration will be returned.
  *
  * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If
- * a
- * match is not found, an exhaustive search is performed by running individual algorithms.
+ * a match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
  * @param xDesc              Tensor descriptor for data input tensor x (input)
@@ -678,8 +676,6 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * been executed previously to determine the required memory needed for the workspace and the
  * best convolutional algorithm, respectively.
  *
- * Alpha scaling and beta shifting are currently disabled for forward convolutions.
- *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
  * @param xDesc          Tensor descriptor for data input tensor x (input)
@@ -712,7 +708,6 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
 /*! @brief Calculate element-wise scale and shift of a tensor via a bias tensor
  *
  *  This function applies an element-wise bias to a data tensor from an input bias tensor.
- *  Alpha scaling and beta shifting are currently disabled for forward convolutions.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -735,10 +730,10 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
  *
  * For a provided tensor descriptors and algorithm selection, this function calculates and returns
  * the workspace size required for back propagation on data. This call is required and must be
- * executed
- * before running the miopenFindConvolutionBackwardDataAlgorithm() and before executing convolution
- * layer
- * functions. The maximum size of the memory needed from the set of potential forward convolution
+ * executed before running the miopenFindConvolutionBackwardDataAlgorithm() and before executing
+ * convolution
+ * layer functions. The maximum size of the memory needed from the set of potential forward
+ * convolution
  * algorithms is returned.
  *
  * @param handle         MIOpen handle (input)
@@ -767,17 +762,15 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
  * algorithm if they only care about the fastest algorithm.
  *
  * This function is mandatory before using miopenConvolutionBackwardData(). In order to
- * execute
- * this function, miopenConvolutionBackwardsDataGetWorkSpaceSize() must be run to determine the
- * required
- * memory for this search.
+ * execute this function, miopenConvolutionBackwardsDataGetWorkSpaceSize() must be run to determine
+ * the
+ * required memory for this search.
  *
  * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
  * configuration match is not found, a default configuration will be returned.
  *
  * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If
- * a
- * match is not found, an exhaustive search is performed by running individual algorithms.
+ * a match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
@@ -815,11 +808,10 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
 /*! @brief Execute a backward data convolution layer
  *
  * Runs the backward data convolution layer based on the selected algorithm. The function
- * miopenConvolutionBackwardDataGetWorkSpaceSize() and miopenFindConvolutionBackwardDataAlgorithm() must have
- * been executed previously to determine the required memory needed for the workspace and the
+ * miopenConvolutionBackwardDataGetWorkSpaceSize() and miopenFindConvolutionBackwardDataAlgorithm()
+ * must have been executed previously to determine the required memory needed for the workspace and
+ * the
  * best convolutional algorithm, respectively.
- * 
- * Alpha scaling and beta shifting are currently disabled for forward convolutions.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -855,10 +847,9 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
  *
  * For a provided tensor descriptors and algorithm selection, this function calculates and returns
  * the workspace size required for back propagation on weights. This call is required and must be
- * executed
- * before running the miopenFindConvolutionBackwardWeightsAlgorithm() and before executing
- * convolution layer
- * functions. The maximum size of the memory needed from the set of potential forward convolution
+ * executed before running the miopenFindConvolutionBackwardWeightsAlgorithm() and before executing
+ * convolution layer functions. The maximum size of the memory needed from the set of potential
+ * forward convolution
  * algorithms is returned.
  *
  * @param handle         MIOpen handle (input)
@@ -881,23 +872,21 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
  * times.
  *
  * This function attempts all MIOpen backward weights convolution algorithms, and outputs
- * the performance metrics to a user-allocated array of type miopenConvAlgoPerf_t. These metrics are written
- * in sorted fashion where the first element has the lowest compute time.
+ * the performance metrics to a user-allocated array of type miopenConvAlgoPerf_t. These metrics are
+ * written in sorted fashion where the first element has the lowest compute time.
  * This function is mandatory before using backwards weight convolutions. Users can chose the
  * top-most algorithm if they only care about the fastest algorithm.
  *
  * This function is mandatory before using miopenConvolutionBackwardWeights(). In order to
- * execute
- * this function, miopenConvolutionBackwardsWeightsGetWorkSpaceSize() must be run to determine the
- * required
- * memory for this search.
+ * execute this function, miopenConvolutionBackwardsWeightsGetWorkSpaceSize() must be run to
+ * determine the
+ * required memory for this search.
  *
  * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
  * configuration match is not found, a default configuration will be returned.
  *
  * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If
- * a
- * match is not found, an exhaustive search is performed by running individual algorithms.
+ * a match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
@@ -935,11 +924,10 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
 /*! @brief Execute a backward weights convolution layer
  *
  * Runs the backward weights convolution layer based on the selected algorithm. The function
- * miopenConvolutionBackwardWeightsGetWorkSpaceSize() and miopenFindConvolutionBackwardWeightsAlgorithm() must have
+ * miopenConvolutionBackwardWeightsGetWorkSpaceSize() and
+ * miopenFindConvolutionBackwardWeightsAlgorithm() must have
  * been executed previously to determine the required memory needed for the workspace and the
  * best convolutional algorithm, respectively.
- *
- * Alpha scaling and beta shifting are currently disabled for backward weight convolutions.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -1093,10 +1081,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDes
  * Runs forward pooling. miopenGetPoolingForwardOutputDim() should be called before
  * miopenPoolingForward().
  * If the parameter do_backward == 0, then set workSpace = nullptr and workSpaceSize = 0. However,
- * if the
- * user wishes to execute backwards, then they must set do_backwards = 1 in miopenPoolingForward().
- *
- * Alpha scaling and beta shifting are currently disabled for forward pooling.
+ * for back-propagation do_backwards must be set to 1 in miopenPoolingForward().
  *
  * @param handle         MIOpen handle (input)
  * @param poolDesc       Descriptor for pooling layer (input)
@@ -1126,9 +1111,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPoolingForward(miopenHandle_t handle,
 /*! @brief Execute a backward pooling layer
  *
  * Runs backward pooling. miopenPoolingGetWorkSpaceSize() must be called before
- * miopenPoolingBackward()
- * to determine the amount of workSpace to be allocated.
- * Alpha scaling and beta shifting are currently disabled for backward pooling.
+ * miopenPoolingBackward() to determine the amount of workSpace to be allocated.
  *
  * @param handle         MIOpen handle (input)
  * @param poolDesc       Descriptor for pooling layer (input)
@@ -1238,8 +1221,6 @@ MIOPEN_EXPORT miopenStatus_t miopenLRNGetWorkSpaceSize(const miopenTensorDescrip
  * set workSpace = nullptr and workSpaceSize = 0. However, if the user wishes to execute backwards,
  * then they must set do_backwards = 1 in miopenLRNForward().
  *
- * Alpha scaling and beta shifting are currently disabled for forward LRN.
- *
  * @param handle         MIOpen handle (input)
  * @param lrnDesc        Descriptor for LRN layer (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -1264,8 +1245,6 @@ MIOPEN_EXPORT miopenStatus_t miopenLRNForward(miopenHandle_t handle,
                                               void* workSpace);
 
 /*! @brief Execute a LRN backward layer
- *
- * Alpha scaling and beta shifting are currently disabled for backward LRN.
  *
  * @param handle         MIOpen handle (input)
  * @param lrnDesc        Descriptor for LRN layer (input)
@@ -1344,8 +1323,6 @@ MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescript
  * factor=1/(1+iteration)
  * \f]
  *
- * Alpha scaling and beta shifting are currently disabled for batch normalization forward training.
- *
  * @param handle                    MIOpen handle (input)
  * @param bn_mode                   Batch normalization mode (input)
  * @param alpha                     Floating point scaling factor, allocated on the host (input)
@@ -1393,8 +1370,6 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
  * If either estimatedMEan, or estimatedVariance are null pointers then the values for the mean and
  * variance will not be used.
  *
- * Alpha scaling and beta shifting are currently disabled for batch normalization forward inference.
- *
  * @param handle                    MIOpen handle (input)
  * @param bn_mode                   Batch normalization mode (input)
  * @param alpha                     Floating point scaling factor, allocated on the host (input)
@@ -1437,8 +1412,6 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
  * descriptor.
  * If BOTH savedMean, and savedVariance are not null pointers then the method will use the saved
  * mean and variance calculated by the forward training phase.
- *
- * Alpha scaling and beta shifting are currently disabled for batch normalization back propagation.
  *
  * @param handle                    MIOpen handle (input)
  * @param bn_mode                   Batch normalization mode (input)
@@ -1537,8 +1510,6 @@ miopenGetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
 
 /*! @brief Execute an activation forward layer
  *
- * Alpha scaling and beta shifting are currently disabled for forward activation.
- *
  * @param handle         MIOpen handle (input)
  * @param activDesc      Descriptor for activation layer (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -1559,8 +1530,6 @@ MIOPEN_EXPORT miopenStatus_t miopenActivationForward(miopenHandle_t handle,
                                                      void* y);
 
 /*! @brief Execute a activation backwards layer
- *
- * Alpha scaling and beta shifting are currently disabled for backwards activation.
  *
  * @param handle         MIOpen handle (input)
  * @param activDesc      Descriptor for activation layer (input)
@@ -1608,7 +1577,6 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 /*! @brief Execute a softmax forward layer
  *
  * MIOpen does not support Softmax modes. MIOpen implements the SOFTMAX_MODE_CHANNEL flavor.
- * Alpha scaling and beta shifting are currently disabled for softmax forward.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -1630,7 +1598,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxForward(miopenHandle_t handle,
 /*! @brief Execute a softmax backwards layer
  *
  * MIOpen does not support Softmax modes. MIOpen implements the SOFTMAX_MODE_CHANNEL flavor.
- * Alpha scaling and beta shifting are currently disabled for backwards softmax.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
