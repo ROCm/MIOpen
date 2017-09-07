@@ -395,7 +395,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescripto
  *
  * This function implements the equation \f$ C = op ( alpha1[0] * A, alpha2[0] * B * ) + beta[0] *
  * C \f$
- * 
+ *
  * For Forward Bias one can also use, miopenConvolutionForwardBias()
  *
  * @param handle     MIOpen handle (input)
@@ -716,7 +716,7 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
  * @param b              Bias tensor b (input)
  * @param beta           Floating point shift factor, allocated on the host (input)
  * @param yDesc          Tensor descriptor for data tensor y (input)
- * @param y              Data tensor y (input and ouput)
+ * @param y              Data tensor y (input and output)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
@@ -732,9 +732,8 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
  * For a provided tensor descriptors and algorithm selection, this function calculates and returns
  * the workspace size required for back propagation on data. This call is required and must be
  * executed before running the miopenFindConvolutionBackwardDataAlgorithm() and before executing
- * convolution
- * layer functions. The maximum size of the memory needed from the set of potential forward
- * convolution algorithms is returned.
+ * convolution layer functions. The maximum size of the memory needed from the set of potential
+ * forward convolution algorithms is returned.
  *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
@@ -763,8 +762,7 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
  *
  * This function is mandatory before using miopenConvolutionBackwardData(). In order to
  * execute this function, miopenConvolutionBackwardsDataGetWorkSpaceSize() must be run to determine
- * the
- * required memory for this search.
+ * the required memory for this search.
  *
  * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
  * configuration match is not found, a default configuration will be returned.
@@ -810,8 +808,7 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
  * Runs the backward data convolution layer based on the selected algorithm. The function
  * miopenConvolutionBackwardDataGetWorkSpaceSize() and miopenFindConvolutionBackwardDataAlgorithm()
  * must have been executed previously to determine the required memory needed for the workspace and
- * the
- * best convolutional algorithm, respectively.
+ * the best convolutional algorithm, respectively.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -849,8 +846,7 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
  * the workspace size required for back propagation on weights. This call is required and must be
  * executed before running the miopenFindConvolutionBackwardWeightsAlgorithm() and before executing
  * convolution layer functions. The maximum size of the memory needed from the set of potential
- * forward convolution
- * algorithms is returned.
+ * forward convolution algorithms is returned.
  *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
@@ -879,8 +875,7 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
  *
  * This function is mandatory before using miopenConvolutionBackwardWeights(). In order to
  * execute this function, miopenConvolutionBackwardsWeightsGetWorkSpaceSize() must be run to
- * determine the
- * required memory for this search.
+ * determine the required memory for this search.
  *
  * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
  * configuration match is not found, a default configuration will be returned.
@@ -1367,7 +1362,7 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
  * Batch normalization pass for forward inference pass.
  * Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale
  * with their descriptor.
- * If either estimatedMEan, or estimatedVariance are null pointers then the values for the mean and
+ * If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and
  * variance will not be used.
  *
  * @param handle                    MIOpen handle (input)
