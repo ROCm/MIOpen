@@ -14,6 +14,7 @@ Welcome to MIOpen
     releasenotes
     install
     driver
+    cache
     apireference
     
 
