@@ -1,9 +1,16 @@
 
-## MIOPEN Release notes
+## MIOpen Release notes
 
 ### 09/08/2017 [ 1.1.0 ]
 
-Alpha beta 
+Notes: 
+
+- The scaling parameter alpha and shift parameter beta for layers kernels are only supported for alpha = 1 and beta = 0.
+The exceptions to this are for miopenOptTensor, miopenConvolutionForwardBias, and miopenConvolutionBackwardBias.
+
+- Currently, only 32-bit floats are supported in MIOpen.
+
+- MIOpen only supports tensor layout NCHW.
 
 Changes:
 - Added persistent cache for compiled GPU kernels

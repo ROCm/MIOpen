@@ -395,6 +395,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescripto
  *
  * This function implements the equation \f$ C = op ( alpha1[0] * A, alpha2[0] * B * ) + beta[0] *
  * C \f$
+ * 
  * For Forward Bias one can also use, miopenConvolutionForwardBias()
  *
  * @param handle     MIOpen handle (input)
@@ -733,8 +734,7 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
  * executed before running the miopenFindConvolutionBackwardDataAlgorithm() and before executing
  * convolution
  * layer functions. The maximum size of the memory needed from the set of potential forward
- * convolution
- * algorithms is returned.
+ * convolution algorithms is returned.
  *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
