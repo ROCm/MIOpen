@@ -331,8 +331,8 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
     // from bias
     if(biased)
     {
-		int wei_shift_bias_temp =
-			wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h;
+        int wei_shift_bias_temp =
+            wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h;
 
         for(int bs = 0; bs < batch_n; bs++)
         {

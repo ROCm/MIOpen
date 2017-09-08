@@ -394,8 +394,8 @@ void RunLSTMForwardGEMMCPUVerify(
     // from bias
     if(biased)
     {
-		int wei_shift_bias_temp =
-			wei_shift_bias + 2 * wei_stride + (bi + 1) * (numlayer - 1) * wei_stride;
+        int wei_shift_bias_temp =
+            wei_shift_bias + 2 * wei_stride + (bi + 1) * (numlayer - 1) * wei_stride;
 
         for(int bs = 0; bs < batch_n; bs++)
         {
