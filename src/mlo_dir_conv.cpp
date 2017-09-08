@@ -3717,10 +3717,7 @@ bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
     return ok;
 }
 
-bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
-{
-    return true;
-}
+bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const { return true; }
 
 int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
 {
