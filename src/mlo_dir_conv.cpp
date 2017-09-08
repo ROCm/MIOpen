@@ -240,12 +240,14 @@ int mlo_construct_winograd::mloConstruct()
             {
                 return (mloConstructBinaryWinograd3x3U(rmv));
             }
+#if MIOPEN_BACKEND_OPENCL
             if(mloIsCorrectBinaryWinogradRxSFwd(rmv) &&
                !miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}) &&
                (no_perf_filtering || mloIsFastBinaryWinogradRxSFwd()))
             {
                 return (mloConstructBinaryWinogradRxSFwd());
             }
+#endif
         }
     }
 #endif
@@ -3717,7 +3719,6 @@ bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
 
 bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
 {
-    const std::string name = _stream->GetDeviceName();
     return true;
 }
 
