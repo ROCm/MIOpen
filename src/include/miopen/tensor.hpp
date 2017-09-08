@@ -48,7 +48,7 @@ auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
     return std::tie(x[Ns]...);
 }
 
-template <class T, std::size_t N>
+template <std::size_t N, class T>
 auto tien(T&& x) -> decltype(tie_impl(std::forward<T>(x), typename
 detail::gens<N>::type{}))
 {
@@ -56,19 +56,6 @@ detail::gens<N>::type{}))
 }
 
 
-template <class T>
-auto tie4(T&& x) -> decltype(std::tie(x[0], x[1], x[2], x[3]))
-{
-    assert(x.size() == 4);
-    return std::tie(x[0], x[1], x[2], x[3]);
-}
-
-template <class T>
-auto tie2(T&& x) -> decltype(std::tie(x[0], x[1]))
-{
-    assert(x.size() == 2);
-    return std::tie(x[0], x[1]);
-}
 
 struct TensorDescriptor : miopenTensorDescriptor
 {

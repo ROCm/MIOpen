@@ -74,9 +74,9 @@ struct verify_tensor_ops : tensor_ops_base<T>
         std::fill(c.begin(), c.end(), 0);
 
         int c_n, c_c, c_h, c_w;
-        std::tie(c_n, c_c, c_h, c_w) = miopen::tie4(c.desc.GetLengths());
+        std::tie(c_n, c_c, c_h, c_w) = miopen::tien<4>(c.desc.GetLengths());
         int b_n, b_c, b_h, b_w;
-        std::tie(b_n, b_c, b_h, b_w) = miopen::tie4(b.desc.GetLengths());
+        std::tie(b_n, b_c, b_h, b_w) = miopen::tien<4>(b.desc.GetLengths());
 
         for(int n = 0; n < c_n; n++)
         {
