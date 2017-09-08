@@ -119,7 +119,8 @@ extern "C" miopenStatus_t miopenLRNBackward(miopenHandle_t handle,
                                             const void* workSpace)
 {
 
-    MIOPEN_LOG_FUNCTION(lrnDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
+    MIOPEN_LOG_FUNCTION(
+        lrnDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
     return miopen::try_([&] {
         miopen::deref(lrnDesc).Backward(miopen::deref(handle),
                                         alpha,
