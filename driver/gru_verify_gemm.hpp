@@ -833,25 +833,25 @@ void RunGRUBackwardDataGEMMCPUVerify(
 					dh_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h] +=
 						dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] *
 						(1 - activfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + h], 2)) *
-						dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h);
+						dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h], 1);
 
 					dh_state[hid_shift + (bacc + bs) * hy_stride + hy_h + h] *=
 						(dh_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h] *
-						dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + hy_h + h));
+						dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + hy_h + h], 2));
 
 					if (ti == 0)
 					{
 						dh_state[hid_shift + (bacc + bs) * hy_stride + h] +=
 							dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] *
-							(hx_state[hx_shift + bs * hy_stride + h] - activfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h], 2)) *
-							dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + h);
+							(hx_state[hx_shift + bs * hy_stride + h] - activfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h], 1)) *
+							dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + h], 2);
 					}
 					else
 					{
 						dh_state[hid_shift + (bacc + bs) * hy_stride + h] +=
 							dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] *
-							(rsvspace[hid_shift + (bacc - in_n[ti - 1] + bs) * hy_stride + bi * 3 * hy_h + h] - activfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h], 2)) *
-							dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + h);
+							(rsvspace[hid_shift + (bacc - in_n[ti - 1] + bs) * hy_stride + bi * 3 * hy_h + h] - activfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h], 1)) *
+							dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + h], 2);
 					}
                 }
             }
@@ -865,18 +865,18 @@ void RunGRUBackwardDataGEMMCPUVerify(
 						dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] +=
 							dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] *
 							(1 - activfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h], 2)) *
-							dervactivfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h);
+							dervactivfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 1);
 
 						dh_state[hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h] *=
 							(dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] *
-								dervactivfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h));
+								dervactivfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h], 2));
 
 						if (ti == 0)
 						{
 							dh_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h] +=
 								dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] *
-								(hx_state[hx_shift + bs * hy_stride + hy_h + h] - activfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 2)) *
-								dervactivfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h);
+								(hx_state[hx_shift + bs * hy_stride + hy_h + h] - activfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 1)) *
+								dervactivfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h], 2);
 						}
 						else
 						{
@@ -884,8 +884,8 @@ void RunGRUBackwardDataGEMMCPUVerify(
 							{
 								dh_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h] +=
 									dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] *
-									(rsvspace[hid_shift + (baccbi + in_n[seqLength - 1 - ti] + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] - activfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 2)) *
-									dervactivfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h);
+									(rsvspace[hid_shift + (baccbi + in_n[seqLength - 1 - ti] + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] - activfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 1)) *
+									dervactivfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h], 2);
 							}
 						}
                     }
