@@ -85,12 +85,12 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& tensorDesc) const
     std::size_t input_h;
     std::size_t input_w;
 
-    std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(tensorDesc.GetLengths());
+    std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(tensorDesc.GetLengths());
 
     int u, v, pad_h, pad_w, window_h, window_w;
-    std::tie(u, v)               = miopen::tie2(GetStrides());
-    std::tie(pad_h, pad_w)       = miopen::tie2(GetPads());
-    std::tie(window_h, window_w) = miopen::tie2(GetLengths());
+    std::tie(u, v)               = miopen::tien<2>(GetStrides());
+    std::tie(pad_h, pad_w)       = miopen::tien<2>(GetPads());
+    std::tie(window_h, window_w) = miopen::tien<2>(GetLengths());
 
     return std::make_tuple(
         input_n,

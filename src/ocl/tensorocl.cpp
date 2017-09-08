@@ -175,16 +175,16 @@ void OpTensor(Handle& handle,
     int work_per_wg = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
 
     int c_n, c_c, c_h, c_w;
-    std::tie(c_n, c_c, c_h, c_w) = tie4(cTensorDesc.GetLengths());
+    std::tie(c_n, c_c, c_h, c_w) = tien<4>(cTensorDesc.GetLengths());
 
     int b_c, b_h, b_w;
-    std::tie(std::ignore, b_c, b_h, b_w) = tie4(bTensorDesc.GetLengths());
+    std::tie(std::ignore, b_c, b_h, b_w) = tien<4>(bTensorDesc.GetLengths());
 
     int c_nstride, c_cstride;
-    std::tie(c_nstride, c_cstride, std::ignore, std::ignore) = tie4(cTensorDesc.GetStrides());
+    std::tie(c_nstride, c_cstride, std::ignore, std::ignore) = tien<4>(cTensorDesc.GetStrides());
 
     int b_nstride, b_cstride;
-    std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tie4(bTensorDesc.GetStrides());
+    std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tien<4>(bTensorDesc.GetStrides());
 
     unsigned int bitmap = 0;
     // update bitmap for first_not_one

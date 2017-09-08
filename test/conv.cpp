@@ -93,10 +93,10 @@ struct verify_forward_conv : conv_base<T>
         out = get_output_tensor(filter, input, weights);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
         out.par_for_each([&](int o, int w, int i, int j) {
             const int start_x = i * filter.v - filter.pad_h;
@@ -201,13 +201,13 @@ struct verify_backward_conv : conv_base<T>
         std::fill(input.begin(), input.end(), 0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
         int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(out.desc.GetLengths());
+        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
 
         par_ford(out_n, wei_c)([&](int o, int k) {
             ford(out_c, out_h, out_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
@@ -310,13 +310,13 @@ struct verify_backward_weights_conv : conv_base<T>
         std::fill(weights.begin(), weights.end(), 0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
         int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(out.desc.GetLengths());
+        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
 
         par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y) {
             double acc = 0.0;
@@ -424,7 +424,7 @@ struct conv_driver : test_driver
     void run()
     {
         int wei_h, wei_w;
-        std::tie(std::ignore, std::ignore, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
         if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
            wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w)
         {
