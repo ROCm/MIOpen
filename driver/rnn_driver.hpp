@@ -474,20 +474,20 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
                       wei_len[0] * out_h;
         }
     }
-	else if (mode == miopenGRU)
-	{
-		hid_sz = batch_n * hid_len[0] * hid_len[1] * 4;
+    else if(mode == miopenGRU)
+    {
+        hid_sz = batch_n * hid_len[0] * hid_len[1] * 4;
 
-		wei_sz = 3 * wei_len[3] * wei_len[0] *
-			(wei_len[2] + wei_len[3] + (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]) +
-			wei_len[4] * wei_len[3] * wei_len[0];
+        wei_sz = 3 * wei_len[3] * wei_len[0] *
+                     (wei_len[2] + wei_len[3] + (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]) +
+                 wei_len[4] * wei_len[3] * wei_len[0];
 
-		if (inflags.GetValueInt("bias") != 0)
-		{
-			wei_sz += (2 + (wei_len[1] - 1) * (wei_len[0] + 1)) * 3 * wei_len[3] * wei_len[0] +
-				wei_len[0] * out_h;
-		}
-	}
+        if(inflags.GetValueInt("bias") != 0)
+        {
+            wei_sz += (2 + (wei_len[1] - 1) * (wei_len[0] + 1)) * 3 * wei_len[3] * wei_len[0] +
+                      wei_len[0] * out_h;
+        }
+    }
 
     size_t hy_sz = in_len[0] * hid_len[1] * wei_len[0] * wei_len[1];
 
@@ -942,37 +942,37 @@ miopenGet4dTensorDescriptor(inputTensor,
     {
         printf("reach gru fwd \n");
 
-		RunGRUForwardCPUVerify(in,
-			wei,
-			hy,
-			hx,
-			out,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace);
+        RunGRUForwardCPUVerify(in,
+                               wei,
+                               hy,
+                               hx,
+                               out,
+                               in_n,
+                               in_h,
+                               seqLength,
+                               bidirection,
+                               biased,
+                               hy_d,
+                               hy_n,
+                               hy_h,
+                               out_h,
+                               reservespace);
 
-		RunGRUForwardGEMMCPUVerify(in,
-			wei,
-			hy_host,
-			hx,
-			outhost,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace_host);
+        RunGRUForwardGEMMCPUVerify(in,
+                                   wei,
+                                   hy_host,
+                                   hx,
+                                   outhost,
+                                   in_n,
+                                   in_h,
+                                   seqLength,
+                                   bidirection,
+                                   biased,
+                                   hy_d,
+                                   hy_n,
+                                   hy_h,
+                                   out_h,
+                                   reservespace_host);
     }
     else
     {
@@ -1302,37 +1302,37 @@ miopenGet4dTensorDescriptor(outputTensor,
     {
         printf("reach gru bwdwei \n");
 
-		RunGRUBackwardWeightCPUVerify(in,
-			dwei,
-			hx,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace,
-			workspace);
+        RunGRUBackwardWeightCPUVerify(in,
+                                      dwei,
+                                      hx,
+                                      dout,
+                                      in_n,
+                                      in_h,
+                                      seqLength,
+                                      bidirection,
+                                      biased,
+                                      hy_d,
+                                      hy_n,
+                                      hy_h,
+                                      out_h,
+                                      reservespace,
+                                      workspace);
 
-		RunGRUBackwardWeightGEMMCPUVerify(in,
-			dwei_host,
-			hx,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace_host,
-			workspace_host);
+        RunGRUBackwardWeightGEMMCPUVerify(in,
+                                          dwei_host,
+                                          hx,
+                                          dout,
+                                          in_n,
+                                          in_h,
+                                          seqLength,
+                                          bidirection,
+                                          biased,
+                                          hy_d,
+                                          hy_n,
+                                          hy_h,
+                                          out_h,
+                                          reservespace_host,
+                                          workspace_host);
     }
     else
     {
@@ -1511,43 +1511,43 @@ miopenGet4dTensorDescriptor(outputTensor,
     {
         printf("reach gru bwddata \n");
 
-		RunGRUBackwardDataCPUVerify(din,
-			wei,
-			dhy,
-			dhx,
-			hx,
-			out,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace,
-			workspace);
+        RunGRUBackwardDataCPUVerify(din,
+                                    wei,
+                                    dhy,
+                                    dhx,
+                                    hx,
+                                    out,
+                                    dout,
+                                    in_n,
+                                    in_h,
+                                    seqLength,
+                                    bidirection,
+                                    biased,
+                                    hy_d,
+                                    hy_n,
+                                    hy_h,
+                                    out_h,
+                                    reservespace,
+                                    workspace);
 
-		RunGRUBackwardDataGEMMCPUVerify(din_host,
-			wei,
-			dhy,
-			dhx_host,
-			hx,
-			out,
-			dout,
-			in_n,
-			in_h,
-			seqLength,
-			bidirection,
-			biased,
-			hy_d,
-			hy_n,
-			hy_h,
-			out_h,
-			reservespace_host,
-			workspace_host);
+        RunGRUBackwardDataGEMMCPUVerify(din_host,
+                                        wei,
+                                        dhy,
+                                        dhx_host,
+                                        hx,
+                                        out,
+                                        dout,
+                                        in_n,
+                                        in_h,
+                                        seqLength,
+                                        bidirection,
+                                        biased,
+                                        hy_d,
+                                        hy_n,
+                                        hy_h,
+                                        out_h,
+                                        reservespace_host,
+                                        workspace_host);
     }
     else
     {
