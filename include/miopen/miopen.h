@@ -1535,17 +1535,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 *  @{
 */
 
-/*! @enum miopenRNNMode_t
-* RNN mode selection for rnn layer preference
-*/
-typedef enum {
-    miopenRNNRELU = 0, /*!< RNN ReLU squash */
-    miopenRNNTANH = 1, /*!< RNN tanh squash */
-    miopenLSTM    = 2, /*!< LSTM */
-    miopenGRU     = 3, /*!< GRU */
-} miopenRNNMode_t;
-
-
 /*! @enum miopenRNNInputMode_t
  * Recurrent Neural Network layer initial input mode
 */
@@ -1614,13 +1603,13 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rn
  * @param direction    RNN direction (if applicable)
  * @param rnnMode      RNN model type
  * @param algo         RNN algorithm selected
- * @param datatype     fp32 or fp16 datatype mode
+ * @param dataType     fp32 or fp16 datatype mode
  * @return             miopenStatus_t
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(
         miopenRNNDescriptor_t           rnnDesc,
-        int                             hsize,
-        int                             nlayers,
+        const int                       hsize,
+        const int                       nlayers,
         miopenRNNInputMode_t            inMode,
         miopenRNNDirectionMode_t        direction,
         miopenRNNMode_t                 rnnMode,
@@ -1628,6 +1617,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(
         miopenDataType_t                dataType);
 
 
+//***** TODO (dlowell) this requires a special array_view class to pass into MIOpen an array of tensor descriptors
 /*! @brief Query the amount of memory required to execute the RNN layer
  * 
  * This function calculates the amount of memory required to run the RNN layer given an RNN descriptor and a tensor descriptor.
@@ -1639,14 +1629,15 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(
  * @param numBytes        Number of bytes required for RNN layer execution
  * @return                miopenStatus_t
 */ 
-MIOPEN_EXPORT miopenStatus_t miopenGetRNNWorkspaceSize(
-        miopenHandle_t                  handle,
-        miopenRNNDescriptor_t           rnnDesc,
-        const int                       sequenceLen,
-        miopenTensorDescriptor_t*       xDesc,
-        size_t                          *numBytes);
+//MIOPEN_EXPORT miopenStatus_t miopenGetRNNWorkspaceSize(
+//        miopenHandle_t                  handle,
+//        miopenRNNDescriptor_t           rnnDesc,
+//        const int                       sequenceLen,
+//        miopenTensorDescriptor_t        *xDesc,
+//        size_t                          *numBytes);
 
 
+//***** TODO (dlowell) this requires a special array_view class to pass into MIOpen an array of tensor descriptors
 /*! @brief Query the amount of memory required for RNN training
  * 
  * This function calculates the amount of memory required to train the RNN layer given an 
@@ -1666,12 +1657,12 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNWorkspaceSize(
  * @param numBytes        Number of bytes required for RNN layer execution
  * @return                miopenStatus_t
 */ 
-MIOPEN_EXPORT miopenStatus_t miopenGetRNNTrainingReserveSize(
-        miopenHandle_t                  handle,
-        miopenRNNDescriptor_t           rnnDesc,
-        const int                       sequenceLen,
-        miopenTensorDescriptor_t        *xDesc,
-        size_t                          *numBytes);
+//MIOPEN_EXPORT miopenStatus_t miopenGetRNNTrainingReserveSize(
+//        miopenHandle_t                  handle,
+//        miopenRNNDescriptor_t           rnnDesc,
+//        const int                       sequenceLen,
+//        miopenTensorDescriptor_t        *xDesc,
+//        size_t                          *numBytes);
 
 
 /*! @brief Query the amount of parameter memory required for RNN training
@@ -1681,7 +1672,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNTrainingReserveSize(
  * 
  * @param handle          MIOpen handle
  * @param rnnDesc         RNN layer descriptor type
- * @param sequenceLen     Number of iteration unrolls
  * @param xDesc           A tensor descriptor 
  * @param numBytes        Number of bytes required for RNN layer execution
  * @param dtype           MIOpen data type enum
@@ -1691,7 +1681,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsSize(
         miopenHandle_t                  handle,
         miopenRNNDescriptor_t           rnnDesc,
         miopenTensorDescriptor_t        xDesc,
-        int                             nlayers,
         size_t                          *numBytes,
         miopenDataType_t                dtype);
 
@@ -1766,7 +1755,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(
  * @param workspace             Pointer to memory allocated for forward training
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @param reserveSpace          Pointer to memory allocated for random states
- * @param reservedSpaceNumBytes Number of allocated bytes in memory for use in the forward
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrainCell(
@@ -1810,7 +1799,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrainCell(
  * @param workspace             Pointer to memory allocated for forward training
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @param reserveSpace          Pointer to memory allocated for random states
- * @param reservedSpaceNumBytes Number of allocated bytes in memory for use in the forward
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardDataCell(
@@ -1848,12 +1837,12 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardDataCell(
  * @param hx                    Pointer to the hidden layer input tensor 
  * @param yDesc                 An output tensor descriptor 
  * @param y                     Pointer to output tensor
- * @param dwDesc                 A weights tensor descriptor 
- * @param dw                     Pointer to input weights tensor
+ * @param dwDesc                A weights tensor descriptor 
+ * @param dw                    Pointer to input weights tensor
  * @param workspace             Pointer to memory allocated for forward training
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @param reserveSpace          Pointer to memory allocated for random states
- * @param reservedSpaceNumBytes Number of allocated bytes in memory for use in the forward
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */ 
 MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeightsCell(
@@ -1866,7 +1855,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeightsCell(
         miopenTensorDescriptor_t        yDesc,
         const void                      *y,
         miopenTensorDescriptor_t        dwDesc,
-        const void                      *dw,
+        void                            *dw,
         const void                      *workspace,
         size_t                          workSpaceNumBytes,
         const void                      *reserveSpace,
@@ -1886,10 +1875,10 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeightsCell(
  * @param hx                    Pointer to the hidden layer input tensor 
  * @param wDesc                 A weights tensor descriptor 
  * @param w                     Pointer to input weights tensor
- * @param hyDesc                An output hidden layer tensor descriptor 
- * @param hy                    Pointer to the hidden layer output tensor
  * @param yDesc                 An output tensor descriptor 
  * @param y                     Pointer to output tensor
+ * @param hyDesc                An output hidden layer tensor descriptor 
+ * @param hy                    Pointer to the hidden layer output tensor
  * @param workspace             Pointer to memory allocated for forward training
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @return                      miopenStatus_t
@@ -1903,10 +1892,10 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInferenceCell(
         const void                      *hx,
         miopenTensorDescriptor_t        wDesc,
         const void                      *w,
-        miopenTensorDescriptor_t        hyDesc,
-        const void                      *hy,
         miopenTensorDescriptor_t        yDesc,
         void                            *y,
+        miopenTensorDescriptor_t        hyDesc,
+        void                            *hy,
         void                            *workspace,
         size_t                          workSpaceNumBytes);
 
