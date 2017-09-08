@@ -48,7 +48,7 @@ include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 
-rocm_setup_version(VERSION 1.1.0)
+rocm_setup_version(VERSION 1.1.1)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -160,6 +160,7 @@ endif()
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "openssl, rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
 set(CPACK_RPM_PACKAGE_REQUIRES "openssl, rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
+
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
     DESCRIPTION "AMD's DNN Library"
