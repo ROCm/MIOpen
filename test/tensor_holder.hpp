@@ -83,7 +83,7 @@ struct tensor
     void for_each(F f) const
     {
         int n, c, h, w;
-        std::tie(n, c, h, w) = miopen::tie4(desc.GetLengths());
+        std::tie(n, c, h, w) = miopen::tien<4>(desc.GetLengths());
         ford(n, c, h, w)(std::move(f));
     }
 
@@ -91,7 +91,7 @@ struct tensor
     void par_for_each(F f) const
     {
         int n, c, h, w;
-        std::tie(n, c, h, w) = miopen::tie4(desc.GetLengths());
+        std::tie(n, c, h, w) = miopen::tien<4>(desc.GetLengths());
         par_ford(n, c, h, w)(std::move(f));
     }
 

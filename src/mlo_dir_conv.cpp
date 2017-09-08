@@ -4993,9 +4993,9 @@ mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor& 
     int hWeiStride;
     int wWeiStride;
 
-    std::tie(nWei, cWei, hWei, wWei) = miopen::tie4(weight_tensor.GetLengths());
+    std::tie(nWei, cWei, hWei, wWei) = miopen::tien<4>(weight_tensor.GetLengths());
     std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) =
-        miopen::tie4(weight_tensor.GetStrides());
+        miopen::tien<4>(weight_tensor.GetStrides());
 
     setWeightsDescr(
         "NCHW", "FP32", nWei, cWei, hWei, wWei, nWeiStride, cWeiStride, hWeiStride, wWeiStride);
@@ -5017,9 +5017,9 @@ mlo_construct_direct2D::setOutputDescFromMLDesc(const miopen::TensorDescriptor& 
     int hOutStride;
     int wOutStride;
 
-    std::tie(nOut, cOut, hOut, wOut) = miopen::tie4(output_tensor.GetLengths());
+    std::tie(nOut, cOut, hOut, wOut) = miopen::tien<4>(output_tensor.GetLengths());
     std::tie(nOutStride, cOutStride, hOutStride, wOutStride) =
-        miopen::tie4(output_tensor.GetStrides());
+        miopen::tien<4>(output_tensor.GetStrides());
 
     setOutputDescr(
         "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
@@ -5040,8 +5040,8 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescri
     int hInStride;
     int wInStride;
 
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tie4(input_tensor.GetLengths());
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tie4(input_tensor.GetStrides());
+    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(input_tensor.GetLengths());
+    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(input_tensor.GetStrides());
 
     setInputDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 

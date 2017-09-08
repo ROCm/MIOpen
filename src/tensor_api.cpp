@@ -62,9 +62,9 @@ extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t t
     MIOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w, nStride, cStride, hStride, wStride);
     return miopen::try_([&] {
         miopen::deref(dataType) = miopen::deref(tensorDesc).GetType();
-        miopen::tie_deref(n, c, h, w) = miopen::tie4(miopen::deref(tensorDesc).GetLengths());
+        miopen::tie_deref(n, c, h, w) = miopen::tien<4>(miopen::deref(tensorDesc).GetLengths());
         miopen::tie_deref(nStride, cStride, hStride, wStride) =
-            miopen::tie4(miopen::deref(tensorDesc).GetStrides());
+            miopen::tien<4>(miopen::deref(tensorDesc).GetStrides());
     });
 }
 
@@ -76,7 +76,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorLengths(
 
     MIOPEN_LOG_FUNCTION(tensorDesc, n, c, h, w);
     return miopen::try_([&] {
-        miopen::tie_deref(n, c, h, w) = miopen::tie4(miopen::deref(tensorDesc).GetLengths());
+        miopen::tie_deref(n, c, h, w) = miopen::tien<4>(miopen::deref(tensorDesc).GetLengths());
     });
 }
 
@@ -88,7 +88,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorStrides(
     MIOPEN_LOG_FUNCTION(tensorDesc, nStride, cStride, hStride, wStride);
     return miopen::try_([&] {
         miopen::tie_deref(nStride, cStride, hStride, wStride) =
-            miopen::tie4(miopen::deref(tensorDesc).GetStrides());
+            miopen::tien<4>(miopen::deref(tensorDesc).GetStrides());
     });
 }
 
