@@ -32,11 +32,29 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
+#include <miopen/each_args.hpp>
 #include <vector>
 // TODO(paul): remove this include later
 #include <cstdio>
 
 namespace miopen {
+
+    
+    
+template <class T, std::size_t... Ns>
+auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
+{
+    assert(x.size() == sizeof...(Ns));
+    return std::tie(x[Ns]...);
+}
+
+template <class T, std::size_t N>
+auto tien(T&& x) -> decltype(tie_impl(std::forward<T>(x), typename
+detail::gens<N>::type{}))
+{
+    return tie_impl(std::forward<T>(x), typename detail::gens<N>::type{});
+}
+
 
 template <class T>
 auto tie4(T&& x) -> decltype(std::tie(x[0], x[1], x[2], x[3]))
