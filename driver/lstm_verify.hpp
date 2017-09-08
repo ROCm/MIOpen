@@ -708,9 +708,9 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
             }
         }
 
-		// dcx, dhx
+        // dcx, dhx
         int pretime_shift = li * batch_n * hy_stride;
-        int hx_shift  = li * in_n[0] * h_stride;
+        int hx_shift      = li * in_n[0] * h_stride;
 
         for(int bs = 0; bs < in_n[0]; bs++)
         {
@@ -735,7 +735,7 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
 
         if(bidirection)
         {
-			pretime_shift = li * batch_n * hy_stride + (batch_n - in_n[seqLength - 1]) * hy_stride;
+            pretime_shift = li * batch_n * hy_stride + (batch_n - in_n[seqLength - 1]) * hy_stride;
 
             for(int bs = 0; bs < in_n[seqLength - 1]; bs++)
             {
