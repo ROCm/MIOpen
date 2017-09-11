@@ -693,11 +693,11 @@ int ConvDriver<T>::RunForwardCPU()
             { // out_channels (num filters)
                 for(int i = 0; i < out_h; i++)
                 { // output_height (from getforwardoutputdim())
-                    int in_off_h = i * v;
+                    int in_off_h = i * u;
                     for(int j = 0; j < out_w; j++)
                     { // output_width (from getforwardoutputdim())
                         float acc    = 0;
-                        int in_off_w = j * u;
+                        int in_off_w = j * v;
                         for(int k = 0; k < in_c; k++)
                         { // in_channels (RGB)
                             for(int x = 0; x < wei_h; x++)
