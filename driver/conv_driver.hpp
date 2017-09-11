@@ -213,6 +213,7 @@ int ConvDriver<T>::GetandSetData()
     SetConvDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengths();
+
     SetTensor4d(outputTensor, out_len);
 
     if(inflags.GetValueInt("bias") != 0)
@@ -1038,8 +1039,8 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
                           out_w,
                           pad_h,
                           pad_w,
-                          v,
                           u,
+                          v,
                           workspace_bwd_host);
 
                 for(int i = 0; i < workspace_bwd.size(); i++)
@@ -1251,10 +1252,10 @@ int ConvDriver<T>::RunBackwardDataCPU()
                 { // out_channels (num filters)
                     for(int i = 0; i < out_h; i++)
                     { // output_height (from getforwardoutputdim())
-                        int in_off_h = i * v;
+                        int in_off_h = i * u;
                         for(int j = 0; j < out_w; j++)
                         { // output_width (from getforwardoutputdim())
-                            int in_off_w = j * u;
+                            int in_off_w = j * v;
                             for(int x = 0; x < wei_h; x++)
                             {
                                 int in_x = in_off_h - pad_h + x * dilation_h;

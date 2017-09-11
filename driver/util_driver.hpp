@@ -38,8 +38,8 @@ void Im2ColCPU(std::vector<T>& in,
                const int out_w,
                const int pad_h,
                const int pad_w,
-               const int v,
                const int u,
+               const int v,
                std::vector<T>& col)
 {
     int col_m = in_c * wei_h * wei_w;
