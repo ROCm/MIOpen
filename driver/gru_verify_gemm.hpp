@@ -937,10 +937,10 @@ void RunGRUBackwardDataGEMMCPUVerify(
 		{
 			for (int h = 0; h < hy_h; h++)
 			{
-				dhx_state[hx_shift + bs * hy_stride + h] +=
+				dhx_state[hx_shift + bs * h_stride + h] +=
 					dh_state[pretime_shift + bs * hy_stride + bi * 3 * hy_h + h] * activfunc(rsvspace[pretime_shift + bs * hy_stride + h], 2);
 
-				dcx_state[hx_shift + bs * hy_stride + h] =
+				dcx_state[hx_shift + bs * h_stride + h] =
 					dh_state[pretime_shift + bs * hy_stride + 2 * hy_h + h] * activfunc(rsvspace[pretime_shift + bs * hy_stride + hy_h + h], 2);
 			}
 		}
@@ -989,10 +989,10 @@ void RunGRUBackwardDataGEMMCPUVerify(
 			{
 				for (int h = 0; h < hy_h; h++)
 				{
-					dhx_state[hx_shift + bs * hy_stride + hy_h + h] +=
+					dhx_state[hx_shift + bs * h_stride + hy_h + h] +=
 						dh_state[pretime_shift + bs * hy_stride + bi * 3 * hy_h + hy_h + h] * activfunc(rsvspace[pretime_shift + bs * hy_stride + 3 * hy_h + h], 2);
 
-					dcx_state[hx_shift + bs * hy_stride + hy_h + h] =
+					dcx_state[hx_shift + bs * h_stride + hy_h + h] =
 						dh_state[pretime_shift + bs * hy_stride + 5 * hy_h + h] * activfunc(rsvspace[pretime_shift + bs * hy_stride + 4 * hy_h + h], 2);
 				}
 			}
