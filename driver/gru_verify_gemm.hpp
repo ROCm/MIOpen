@@ -347,7 +347,7 @@ void RunGRUForwardGEMMCPUVerify(
 
             if(bidirection)
             {
-				pretime_shift = li * batch_n * hy_stride + (baccbi + in_n[ti]) * hy_stride + bi * 3 * hy_h + hy_h;
+				pretime_shift = li * batch_n * hy_stride + (baccbi + in_n[seqLength - 1 - ti]) * hy_stride + bi * 3 * hy_h + hy_h;
 
                 for(int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
                 {
