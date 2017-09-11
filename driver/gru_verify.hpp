@@ -218,9 +218,18 @@ void RunGRUForwardCPUVerify(std::vector<T>& in,
 					hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h] += hid_state[hid_shift + bs * hy_stride + bi * 3 * hy_h + h] * activfunc(hid_state[hid_shift + bs * hy_stride + hy_h + h], 2);
 					hid_state[hid_shift + bs * hy_stride + bi * 3 * hy_h + h] = 0;
 
-                    hid_state[hid_shift + bs * hy_stride + bi * 3 * hy_h + h] +=
-                        (1 - activfunc(hid_state[hid_shift + bs * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h], 1) +
-						activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hid_state[pretime_shift + bs * hy_stride + h];
+					if (ti == 0)
+					{
+						hid_state[hid_shift + bs * hy_stride + bi * 3 * hy_h + h] +=
+							(1 - activfunc(hid_state[hid_shift + bs * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h], 1) +
+							activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hx[hx_shift + bs * h_stride + w];
+					}
+					else
+					{
+						hid_state[hid_shift + bs * hy_stride + bi * 3 * hy_h + h] +=
+							(1 - activfunc(hid_state[hid_shift + bs * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h], 1) +
+							activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hid_state[pretime_shift + bs * hy_stride + h];
+					}                    
 
                     hy_host[hx_shift + bs * h_stride + h] =
                         hid_state[hid_shift + bs * hy_stride + bi * 3 * hy_h + h];
@@ -405,9 +414,18 @@ void RunGRUForwardCPUVerify(std::vector<T>& in,
                         hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h] += hid_state[hid_shift + bs * hy_stride + 3 * hy_h + hy_h + h] * activfunc(hid_state[hid_shift + bs * hy_stride + hy_h + h], 2);
 						hid_state[hid_shift + bs * hy_stride + 3 * hy_h + hy_h + h] = 0;
 
-						hid_state[hid_shift + bs * hy_stride + 3 * hy_h + hy_h + h] +=
-							(1 - activfunc(hid_state[hid_shift + bs * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h], 1) +
-							activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hid_state[pretime_shift + bs * hy_stride + h];
+						if (ti == seqLength - 1)
+						{
+							hid_state[hid_shift + bs * hy_stride + 3 * hy_h + hy_h + h] +=
+								(1 - activfunc(hid_state[hid_shift + bs * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h], 1) +
+								activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hx[hx_shift + bs * h_stride + w];
+						}
+						else
+						{
+							hid_state[hid_shift + bs * hy_stride + 3 * hy_h + hy_h + h] +=
+								(1 - activfunc(hid_state[hid_shift + bs * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h], 1) +
+								activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hid_state[pretime_shift + bs * hy_stride + h];
+						}						
                         
                         hy_host[hx_shift + bs * h_stride + h] =
                             hid_state[hid_shift + bs * hy_stride + 3 * hy_h + hy_h + h];

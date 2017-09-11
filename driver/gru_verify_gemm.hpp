@@ -336,9 +336,18 @@ void RunGRUForwardGEMMCPUVerify(
 					hid_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h] += activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + hy_h + h], 2) * hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h];
 					hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] = 0;
 
-					hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] +=
-						((1 - activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h], 1) +
-						activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + h], 2) * hid_state[pretime_shift + bs * hy_stride + h]);
+					if (ti == 0)
+					{
+						hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] +=
+							((1 - activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h], 1) +
+								activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + h], 2) * hx[hx_shift + bs * h_stride + h]);
+					}
+					else
+					{
+						hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] +=
+							((1 - activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h], 1) +
+								activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + h], 2) * hid_state[pretime_shift + bs * hy_stride + h]);
+					}					
 
                     hy_state[hx_shift + bs * h_stride + h] =
                         hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h];
@@ -378,9 +387,18 @@ void RunGRUForwardGEMMCPUVerify(
 						hid_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] += activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h], 2) * hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h];
 						hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] = 0;
 
-						hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] +=
-							((1 - activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h], 2)) * activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 1) +
-							activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h], 2) * hid_state[pretime_shift + bs * hy_stride + h]);
+						if (ti == 0)
+						{
+							hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] +=
+								((1 - activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h], 2)) * activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 1) +
+									activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h], 2) * hx[hx_shift + bs * h_stride + hy_h + h]);
+						}
+						else
+						{
+							hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] +=
+								((1 - activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h], 2)) * activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 1) +
+									activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h], 2) * hid_state[pretime_shift + bs * hy_stride + h]);
+						}						
 
 						hy_state[hx_shift + bs * h_stride + hy_h + h] =
 							hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h];
