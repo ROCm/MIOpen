@@ -621,7 +621,6 @@ void RunGRUBackwardDataCPUVerify(std::vector<T>& din_state,
 						{
 							dh_state[hid_shift + bs * hy_stride + hy_h + h] += hx[hx_shift + bs * h_stride + w] * wei[wei_shift + w * wei_stride + 2 * hy_h + h];
 						}
-						dh_state[hid_shift + bs * hy_stride + hy_h + h] *= (dh_state[hid_shift + bs * hy_stride + 2 * hy_h + h] * dervactivfunc(rsvspace[hid_shift + bs * hy_stride + hy_h + h], 2));
 					}
 					else
 					{
@@ -636,8 +635,8 @@ void RunGRUBackwardDataCPUVerify(std::vector<T>& din_state,
 						{
 							dh_state[hid_shift + bs * hy_stride + hy_h + h] += rsvspace[pretime_shift + bs * hy_stride + bi * 3 * hy_h + w] * wei[wei_shift + w * wei_stride + 2 * hy_h + h];
 						}
-						dh_state[hid_shift + bs * hy_stride + hy_h + h] *= (dh_state[hid_shift + bs * hy_stride + 2 * hy_h + h] * dervactivfunc(rsvspace[hid_shift + bs * hy_stride + hy_h + h], 2));
 					}
+					dh_state[hid_shift + bs * hy_stride + hy_h + h] *= (dh_state[hid_shift + bs * hy_stride + 2 * hy_h + h] * dervactivfunc(rsvspace[hid_shift + bs * hy_stride + hy_h + h], 2));
                 }
             }
         }
