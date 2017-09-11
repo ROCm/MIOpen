@@ -222,7 +222,7 @@ void RunGRUForwardCPUVerify(std::vector<T>& in,
 					{
 						hid_state[hid_shift + bs * hy_stride + bi * 3 * hy_h + h] +=
 							(1 - activfunc(hid_state[hid_shift + bs * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h], 1) +
-							activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hx[hx_shift + bs * h_stride + w];
+							activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hx[hx_shift + bs * h_stride + h];
 					}
 					else
 					{
@@ -418,7 +418,7 @@ void RunGRUForwardCPUVerify(std::vector<T>& in,
 						{
 							hid_state[hid_shift + bs * hy_stride + 3 * hy_h + hy_h + h] +=
 								(1 - activfunc(hid_state[hid_shift + bs * hy_stride + h], 2)) * activfunc(hid_state[hid_shift + bs * hy_stride + 2 * hy_h + h], 1) +
-								activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hx[hx_shift + bs * h_stride + w];
+								activfunc(hid_state[hid_shift + bs * hy_stride + h], 2) * hx[hx_shift + bs * h_stride + h];
 						}
 						else
 						{
