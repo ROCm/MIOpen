@@ -30,7 +30,7 @@
 #include "network_data.hpp"
 #include <miopen/tensor.hpp>
 
-template<class F>
+template <class F>
 void visit_tensor_size(std::size_t n, F f)
 {
     switch(n)
@@ -118,12 +118,12 @@ struct tensor
         });
     }
 
-    template<class Loop, class F>
+    template <class Loop, class F>
     struct for_each_unpacked
     {
         Loop loop;
         F f;
-        template<class... Ts>
+        template <class... Ts>
         auto operator()(Ts... xs) const -> decltype(f(xs...), void())
         {
             loop(xs...)(std::move(f));
@@ -137,7 +137,7 @@ struct tensor
 
     struct for_each_handler
     {
-        template<class Self, class Loop, class F, class Size>
+        template <class Self, class Loop, class F, class Size>
         void operator()(Self* self, Loop loop, F f, Size size) const
         {
             auto dims = miopen::tien<size>(self->desc.GetLengths());
@@ -148,23 +148,27 @@ struct tensor
     template <class F>
     void for_each(F f) const
     {
-        visit_tensor_size(desc.GetLengths().size(), std::bind(for_each_handler{}, this, ford, std::move(f), std::placeholders::_1));
+        visit_tensor_size(
+            desc.GetLengths().size(),
+            std::bind(for_each_handler{}, this, ford, std::move(f), std::placeholders::_1));
     }
 
     template <class F>
     void par_for_each(F f) const
     {
-        visit_tensor_size(desc.GetLengths().size(), std::bind(for_each_handler{}, this, par_ford, std::move(f), std::placeholders::_1));
+        visit_tensor_size(
+            desc.GetLengths().size(),
+            std::bind(for_each_handler{}, this, par_ford, std::move(f), std::placeholders::_1));
     }
 
-    template<class... Ts>
+    template <class... Ts>
     T& operator()(Ts... xs)
     {
         assert(this->desc.GetIndex(xs...) < data.size());
         return this->data[this->desc.GetIndex(xs...)];
     }
 
-    template<class... Ts>
+    template <class... Ts>
     const T& operator()(Ts... xs) const
     {
         assert(this->desc.GetIndex(xs...) < data.size());
