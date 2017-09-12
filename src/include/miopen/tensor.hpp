@@ -47,8 +47,7 @@ auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
 }
 
 template <std::size_t N, class T>
-auto tien(T&& x) -> decltype(tie_impl(std::forward<T>(x), typename
-detail::gens<N>::type{}))
+auto tien(T&& x) -> decltype(tie_impl(std::forward<T>(x), typename detail::gens<N>::type{}))
 {
     return tie_impl(std::forward<T>(x), typename detail::gens<N>::type{});
 }

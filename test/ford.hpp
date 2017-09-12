@@ -113,7 +113,7 @@ void par_for(std::size_t n, F f)
     par_for(n, min_grain, f);
 }
 
-template<class T>
+template <class T>
 struct ford_wrapper
 {
     template <class... Ts>
