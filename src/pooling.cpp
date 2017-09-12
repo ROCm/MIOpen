@@ -115,8 +115,8 @@ std::ostream& operator<<(std::ostream& stream, const PoolingDescriptor& x)
 {
     MIOPEN_LOG_ENUM(stream, x.mode, miopenPoolingMax, miopenPoolingAverage) << ", ";
     LogRange(stream, x.lens, ", ") << ", ";
-    LogRange(stream, x.strides, ", ") << ", ";
     LogRange(stream, x.pads, ", ") << ", ";
+    LogRange(stream, x.strides, ", ") << ", ";
     return stream;
 }
 
