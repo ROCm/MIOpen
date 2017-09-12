@@ -591,7 +591,7 @@ void RunGRUBackwardDataCPUVerify(std::vector<T>& din_state,
 									{
 										dh_state[hid_shift + bs * hy_stride + bi * 3 * hy_h + h] +=
 											wei[wei_shift + h * wei_stride + gi * hy_h + w] *
-											dh_state[pretime_shift + bs * hy_stride + gi * hy_h + w] * activfunc(rsvspace[pretime_shift + bs * hy_stride + hy_h + h], 2);
+											dh_state[pretime_shift + bs * hy_stride + gi * hy_h + w] * activfunc(rsvspace[pretime_shift + bs * hy_stride + hy_h + w], 2);
 									}                                    
 									else
 									{
@@ -713,7 +713,7 @@ void RunGRUBackwardDataCPUVerify(std::vector<T>& din_state,
 									{
 										dh_state[hid_shift + bs * hy_stride + bi * 3 * hy_h + hy_h + h] +=
 											wei[wei_shift + h * wei_stride + gi * hy_h + w] *
-											dh_state[pretime_shift + bs * hy_stride + (3 + gi) * hy_h + w] * activfunc(rsvspace[pretime_shift + bs * hy_stride + 4 * hy_h + h], 2);
+											dh_state[pretime_shift + bs * hy_stride + (3 + gi) * hy_h + w] * activfunc(rsvspace[pretime_shift + bs * hy_stride + 4 * hy_h + w], 2);
 									}
 									else
 									{
@@ -789,7 +789,7 @@ void RunGRUBackwardDataCPUVerify(std::vector<T>& din_state,
 						{
 							dhx_host[hx_shift + bs * h_stride + h] +=
 								wei[wei_shift + h * wei_stride + gi * hy_h + w] *
-								dh_state[pretime_shift + bs * hy_stride + gi * hy_h + w] * activfunc(rsvspace[pretime_shift + bs * hy_stride + hy_h + h], 2);
+								dh_state[pretime_shift + bs * hy_stride + gi * hy_h + w] * activfunc(rsvspace[pretime_shift + bs * hy_stride + hy_h + w], 2);
 						}
 						else
 						{
@@ -822,7 +822,7 @@ void RunGRUBackwardDataCPUVerify(std::vector<T>& din_state,
 							{
 								dhx_host[hx_shift + bs * h_stride + hy_h + h] +=
 									wei[wei_shift + h * wei_stride + gi * hy_h + w] *
-									dh_state[pretime_shift + bs * hy_stride + (3 + gi) * hy_h + w] * activfunc(rsvspace[pretime_shift + bs * hy_stride + 4 * hy_h + h], 2);
+									dh_state[pretime_shift + bs * hy_stride + (3 + gi) * hy_h + w] * activfunc(rsvspace[pretime_shift + bs * hy_stride + 4 * hy_h + w], 2);
 							}
 							else
 							{
