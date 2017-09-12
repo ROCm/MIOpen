@@ -29,6 +29,7 @@
 #include "ford.hpp"
 #include "network_data.hpp"
 #include <miopen/tensor.hpp>
+#include <miopen/functional.hpp>
 
 template <class F>
 void visit_tensor_size(std::size_t n, F f)
@@ -111,11 +112,13 @@ struct tensor
     void generate_impl(G g)
     {
         auto iterator = data.begin();
-        this->for_each([&](int i, int j, int k, int m) {
-            assert(iterator < data.end());
-            *iterator = g(i, j, k, m);
-            ++iterator;
-        });
+        auto assign = [&](T x)
+        {
+           assert(iterator < data.end());
+            *iterator = x;
+            ++iterator; 
+        };
+        this->for_each(miopen::compose(assign, std::move(g)));
     }
 
     template <class Loop, class F>
