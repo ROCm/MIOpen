@@ -61,11 +61,17 @@ const std::string& get_type_name()
     return name;
 }
 
+
 struct rand_gen
 {
-    double operator()(int n, int c, int h, int w) const
+    template<class... Ts>
+    double operator()(Ts... Xs) const
     {
-        return double((547 * n + 701 * c + 877 * h + 1049 * w + 173) % 17);
+        static_assert(sizeof...(Ts) < 6, "Dimensions in rand_gen must be less than 6.");
+        std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
+        std::array<unsigned long, 5> right = {{613, 547, 701, 877, 1049 }};
+        unsigned long dot = std::inner_product(left.begin(),left.end(),right.begin(),173);
+        return double(dot%17);
     };
 };
 
