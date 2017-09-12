@@ -154,7 +154,8 @@ void OpTensor(Handle& handle,
 
     auto b_lens = bTensorDesc.GetLengths();
     auto c_lens = cTensorDesc.GetLengths();
-
+    auto dims   = c_lens.size();
+    
     if(b_lens.size() != c_lens.size())
     {
         MIOPEN_THROW("Number of dims in B and C Tensors do not match: " +
@@ -190,14 +191,16 @@ void OpTensor(Handle& handle,
 //    int b_nstride, b_cstride;
 //    std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tien<4>(bTensorDesc.GetStrides());
 
-    int c_n, c_c, c_h, c_w;
-    int b_c, b_h, b_w;
+    int c_n, c_c, c_d, c_h, c_w;
+    int b_c, b_d, b_h, b_w;
     int c_nstride, c_cstride;
-    std::tie(c_nstride, c_cstride, std::ignore, std::ignore) = tien<4>(cTensorDesc.GetStrides());
-//
-//    int b_nstride, b_cstride;
-//    std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tien<4>(bTensorDesc.GetStrides());
+    //std::tie(c_nstride, c_cstride, std::ignore, std::ignore) = tien<4>(cTensorDesc.GetStrides());
+    auto cstrides = cTensorDesc.GetStrides();
+    int b_nstride, b_cstride, b_dstride;
+    auto bstrides =bTensorDesc.GetStrides();
+    //std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tien<4>(bTensorDesc.GetStrides());
 
+    printf("D is %d\n", d);
     unsigned int bitmap = 0;
     // update bitmap for first_not_one
     bitmap |= (1 << (b_lens.size() - d));
@@ -223,7 +226,8 @@ void OpTensor(Handle& handle,
 
     // Does the bitmap contain leading ones, i.e. 1,1,1,0 or 1,1,0,0
     // or 1,1,1,1 or 1,0,0,0
-    bool leading_ones = IsBitmapLeadingOnes(bitmap, 4, (d - 2)); 
+   // bool leading_ones = IsBitmapLeadingOnes(bitmap, 4, (d - 2)); // DLOWELL: not quite working
+    bool leading_ones = IsBitmapLeadingOnes(bitmap, dims, (d - 2)); // DLOWELL: not quite working
     if(leading_ones && work_per_wg < 64)
     {
         local_threads = 64;

@@ -290,6 +290,7 @@ __kernel void OpTensorGeneric(global MIOPEN_TYPE* a,
 // (samples, color_depth, frames, width, height )
 __kernel void OpNdTensorGeneric(global MIOPEN_TYPE* a,
                               global MIOPEN_TYPE* b,
+                              const int b_d,
                               const int b_c,
                               const int b_h,
                               const int b_w,
@@ -297,10 +298,12 @@ __kernel void OpNdTensorGeneric(global MIOPEN_TYPE* a,
                               const int b_cstride,
                               global MIOPEN_TYPE* c,
                               const int c_c,
+                              const int c_d,
                               const int c_h,
                               const int c_w,
                               const int c_nstride,
                               const int c_cstride,
+                              const int c_dstride,
                               const unsigned int bitmap,
                               const int work_per_wg,
                               int op)
@@ -310,11 +313,13 @@ __kernel void OpNdTensorGeneric(global MIOPEN_TYPE* a,
 
     MIOPEN_TYPE operand = b[gid];
     int o_h_div         = bitmap & (1 << 0) ? 1 : c_w;
-    int o_c_div         = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
-    int o_n_div         = o_c_div * (bitmap & (1 << 2) ? 1 : c_c);
+    int o_d_div         = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
+    int o_c_div         = o_d_div * (bitmap & (1 << 2) ? 1 : c_d);
+    int o_n_div         = o_c_div * (bitmap & (1 << 3) ? 1 : c_c);
 
     int o_w_gid_off = gid % b_w;
     int o_h_gid_off = (gid / b_w) % b_h;
+    int o_d_gid_off = (gid / b_dstride) % b_d;
     int o_c_gid_off = (gid / b_cstride) % b_c;
     int o_n_gid_off = gid / b_nstride;
 
@@ -322,11 +327,12 @@ __kernel void OpNdTensorGeneric(global MIOPEN_TYPE* a,
     {
         int o_w = (bitmap & (1 << 0)) ? o_w_gid_off : lid % c_w;
         int o_h = (bitmap & (1 << 1)) ? o_h_gid_off : (lid / o_h_div) % c_h;
-        int o_c = (bitmap & (1 << 2)) ? o_c_gid_off : (lid / o_c_div) % c_c;
-        int o_n = (bitmap & (1 << 3)) ? o_n_gid_off : lid / o_n_div;
+        int o_d = (bitmap & (1 << 2)) ? o_d_gid_off : (lid / o_d_div) % c_d;
+        int o_c = (bitmap & (1 << 3)) ? o_c_gid_off : (lid / o_c_div) % c_c;
+        int o_n = (bitmap & (1 << 4)) ? o_n_gid_off : lid / o_n_div;
 
-        c[o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w] =
-            OP(op, a[o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w], operand);
+        c[o_n * c_nstride + o_c * c_cstride + o_d*c_dstride + o_h * c_w + o_w] =
+            OP(op, a[o_n * c_nstride + o_c * c_cstride + o_d*c_dstride + o_h * c_w + o_w], operand);
 
         lid += get_local_size(0);
     }

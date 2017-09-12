@@ -173,17 +173,17 @@ struct tensor
     }
 
     template <class... Ts>
-    T& operator()(Ts... ds)
+    T& operator()(Ts... xs)
     {
-        assert(this->desc.GetIndex(ds...) < data.size());
-        return this->data[this->desc.GetIndex(ds...)];
+        assert(this->desc.GetIndex(xs...) < data.size());
+        return this->data[this->desc.GetIndex(xs...)];
     }
 
     template <class... Ts>
-    const T& operator()(Ts... ds) const
+    const T& operator()(Ts... xs) const
     {
-        assert(this->desc.GetIndex(ds...) < data.size());
-        return this->data[this->desc.GetIndex(ds...)];
+        assert(this->desc.GetIndex(xs...) < data.size());
+        return this->data[this->desc.GetIndex(xs...)];
     }
     
 

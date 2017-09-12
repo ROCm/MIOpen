@@ -84,9 +84,9 @@ struct verify_tensor_ops : tensor_ops_base<T>
             size_t acoffset, size_t acscale, 
             size_t boffset, size_t bscale, int dim){
         
-        //static int cnt = 0;
-        //printf("count: %d\n", cnt);
-        //printf("DIM: %d adim-1: %d\n", dim, int(a_dims.size()) - 1);
+//        static int cnt = 0;
+//        printf("count: %d\n", cnt++);
+//        printf("DIM: %d adim-1: %d\n", dim, int(a_dims.size()) - 1);
                 
         for(int idx = 0; idx < a_dims[dim]; idx++){
             size_t acindex = acoffset + idx;
@@ -115,7 +115,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
                                 newdim);
             }
         }
-        //cnt++;
+//        cnt--;
         return;
     }
     
@@ -177,6 +177,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
         auto&& handle = get_handle();
 
         c = a;
+        //return c;
         std::fill(c.begin(), c.end(), 0);
 
         auto c_dev = handle.Write(c.data);
@@ -216,10 +217,14 @@ struct tensor_ops_driver : test_driver
 
     tensor_ops_driver()
     {
+        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13, 7}));
+        add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 13, 7}));
 //        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));
 //        add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 1}));
-         add(a, "a", generate_tensor(get_tensor_a(), {11, 7}));
-         add(b, "b", generate_tensor(get_tensor_b(), {1, 7}));
+//        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13}));
+//        add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1}));
+//         add(a, "a", generate_tensor(get_tensor_a(), {11, 7}));
+//         add(b, "b", generate_tensor(get_tensor_b(), {1, 7}));
     }
 
     std::set<std::vector<int>> get_tensor_a()
@@ -248,6 +253,7 @@ struct tensor_ops_driver : test_driver
         return (std::set<std::vector<int>>(b_dims.begin(), b_dims.end()));
     }
 
+    //void run() { verify(verify_tensor_ops<T, 2>{a, b}); }
     //void run() { verify(verify_tensor_ops<T, 4>{a, b}); }
     void run() { verify(verify_tensor_ops<T>{a, b}); }
 };
