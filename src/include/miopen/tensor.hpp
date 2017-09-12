@@ -29,8 +29,8 @@
 #include <cassert>
 #include <iostream>
 #include <miopen/common.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/miopen.h>
+#include <miopen/handle.hpp>
 #include <miopen/object.hpp>
 #include <miopen/each_args.hpp>
 #include <vector>
@@ -39,8 +39,6 @@
 
 namespace miopen {
 
-    
-    
 template <class T, std::size_t... Ns>
 auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
 {
@@ -54,8 +52,6 @@ detail::gens<N>::type{}))
 {
     return tie_impl(std::forward<T>(x), typename detail::gens<N>::type{});
 }
-
-
 
 struct TensorDescriptor : miopenTensorDescriptor
 {

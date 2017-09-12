@@ -113,6 +113,13 @@ void par_for(std::size_t n, F f)
     par_for(n, min_grain, f);
 }
 
+template<class T>
+struct ford_wrapper
+{
+    template <class... Ts>
+    auto operator()(Ts... xs) const MIOPEN_RETURNS(std::bind(T{}, std::placeholders::_1, xs...));
+};
+
 // Multidimensional for loop
 struct ford_impl
 {
@@ -133,8 +140,7 @@ struct ford_impl
     }
 };
 
-template <class... Ts>
-auto ford(Ts... xs) MIOPEN_RETURNS(std::bind(ford_impl{}, std::placeholders::_1, xs...));
+static constexpr ford_wrapper<ford_impl> ford{};
 
 struct par_ford_impl
 {
@@ -160,7 +166,6 @@ struct par_ford_impl
     }
 };
 
-template <class... Ts>
-auto par_ford(Ts... xs) MIOPEN_RETURNS(std::bind(par_ford_impl{}, std::placeholders::_1, xs...));
+static constexpr ford_wrapper<par_ford_impl> par_ford{};
 
 #endif
