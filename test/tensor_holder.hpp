@@ -75,6 +75,8 @@ void visit_tensor_size(std::size_t n, F f)
 
 
 
+
+
 template <class T>
 struct tensor
 {
@@ -178,10 +180,10 @@ struct tensor
     }
 
     template <class... Ts>
-    const T& operator()(Ts... xs) const
+    const T& operator()(Ts... ds) const
     {
-        assert(this->desc.GetIndex(xs...) < data.size());
-        return this->data[this->desc.GetIndex(xs...)];
+        assert(this->desc.GetIndex(ds...) < data.size());
+        return this->data[this->desc.GetIndex(ds...)];
     }
     
 
