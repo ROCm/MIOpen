@@ -30,7 +30,6 @@
 #include <iostream>
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/handle.hpp>
 #include <miopen/object.hpp>
 #include <miopen/each_args.hpp>
 #include <vector>
