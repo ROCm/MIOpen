@@ -138,6 +138,7 @@ using mlo_kernel_info = std::tuple<const std::string,
 #include <miopen/oclkernel.hpp>
 #endif
 #include <miopen/tensor.hpp>
+#include <miopen/handle.hpp>
 
 class mlo_construct_direct2D
 {
