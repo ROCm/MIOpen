@@ -71,6 +71,7 @@ void visit_tensor_size(std::size_t n, F f)
 }
 
 
+
 template <class T>
 struct tensor
 {
