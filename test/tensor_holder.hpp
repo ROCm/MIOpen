@@ -70,6 +70,7 @@ void visit_tensor_size(std::size_t n, F f)
     }
 }
 
+
 template <class T>
 struct tensor
 {
@@ -84,6 +85,7 @@ struct tensor
     {
     }
 
+    
     tensor(std::size_t n, std::size_t c, std::size_t h, std::size_t w)
         : desc(miopenFloat, {n, c, h, w}), data(n * c * h * w)
     {

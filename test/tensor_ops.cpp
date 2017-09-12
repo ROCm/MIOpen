@@ -68,21 +68,75 @@ struct verify_tensor_ops : tensor_ops_base<T>
         b = pb;
     }
 
-    tensor<T> cpu()
+    verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const std::vector<T>& dims)
     {
+        a = pa(dims);
+        b = pb(dims);
+    }
+    
+    T add_elem(T a, T b){
+        return a + b;
+    }
+    
+    //template<typename F>
+    void tensor_for_loop(const tensor<T>& a, const tensor<T>& b,  tensor<T>& c, 
+            const std::vector<size_t>& a_dims, const std::vector<size_t>& b_dims, 
+            size_t acoffset, size_t acscale, 
+            size_t boffset, size_t bscale, int dim){
+        
+        //static int cnt = 0;
+        //printf("count: %d\n", cnt);
+        //printf("DIM: %d adim-1: %d\n", dim, int(a_dims.size()) - 1);
+                
+        for(int idx = 0; idx < a_dims[dim]; idx++){
+            size_t acindex = acoffset + idx;
+            size_t bidx  = (b_dims[dim] == a_dims[dim]) ? acindex : 0;
+            size_t bindex = boffset + bidx;
+//            printf("acscale :%d, bscale: %d\n", acscale, bscale);
+//            printf("acoffset :%d, boffset: %d\n", acoffset, boffset);
+//            printf("acindex: %d, bindex: %d, acsize: %d, bsize: %d\n", 
+//                    acindex, bindex, a.desc.GetElementSize(), b.desc.GetElementSize());
+            if (bindex < b.desc.GetElementSize()) c[acindex] = add_elem(a[acindex], b[bindex]);
+            
+            if(dim < (a_dims.size() - 1)){
+                
+                int newdim = dim+1;
+                
+                size_t newacoffset = acscale*idx + acoffset;
+                size_t newacscale  = acscale / a_dims[dim];
+                
+                size_t newboffset = bscale*bidx + boffset;
+                size_t newbscale  = bscale / b_dims[dim];
+                
+                tensor_for_loop(a, b, c, 
+                                a_dims, b_dims, 
+                                newacoffset, newacscale, 
+                                newboffset, newbscale, 
+                                newdim);
+            }
+        }
+        //cnt++;
+        return;
+    }
+    
+    
+    
+    tensor<T> cpu()
+    {//TODO: (dlowell) make this variable length
         c = a;
         std::fill(c.begin(), c.end(), 0);
-
-        int c_n, c_c, c_h, c_w;
-        std::tie(c_n, c_c, c_h, c_w) = miopen::tien<4>(c.desc.GetLengths());
-        int b_n, b_c, b_h, b_w;
-        std::tie(b_n, b_c, b_h, b_w) = miopen::tien<4>(b.desc.GetLengths());
-
+        const std::vector<size_t>& a_dims = a.desc.GetLengths();
+        const std::vector<size_t>& b_dims = b.desc.GetLengths();
+        
+        //const std::vector<size_t>& c_dims = c.desc.GetLengths();
+        
+        /*for(int n = 0; n < c_n; n++)
+        {
+        
         for(int n = 0; n < c_n; n++)
         {
-            c(n, 0, 0, 0) = (b_n == c_n) ? a(n, 0, 0, 0) + b((b_n == c_n ? n : 0), 0, 0, 0)
+            c(n, 0, 0, 0) = (b_n == c_n) ? a(n, 0, 0, 0) + b(n, 0, 0, 0)
                                          : a(n, 0, 0, 0) + b(0, 0, 0, 0);
-
             for(int x = 0; x < c_c; x++)
             {
                 c(n, x, 0, 0) = (b_c == c_c) ? a(n, x, 0, 0) + b((b_n == c_n ? n : 0), x, 0, 0)
@@ -109,7 +163,12 @@ struct verify_tensor_ops : tensor_ops_base<T>
                     }
                 }
             }
-        }
+        }*/
+        
+        size_t acscale = a.desc.GetElementSize() / a_dims[0];
+        size_t bscale = b.desc.GetElementSize() / b_dims[0];
+        
+        tensor_for_loop(a, b, c, a_dims, b_dims, 0, acscale, 0, bscale, 0);
         return c;
     }
 
@@ -157,8 +216,10 @@ struct tensor_ops_driver : test_driver
 
     tensor_ops_driver()
     {
-        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));
-        add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 1}));
+//        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));
+//        add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 1}));
+         add(a, "a", generate_tensor(get_tensor_a(), {11, 7}));
+         add(b, "b", generate_tensor(get_tensor_b(), {1, 7}));
     }
 
     std::set<std::vector<int>> get_tensor_a()
@@ -187,6 +248,7 @@ struct tensor_ops_driver : test_driver
         return (std::set<std::vector<int>>(b_dims.begin(), b_dims.end()));
     }
 
+    //void run() { verify(verify_tensor_ops<T, 4>{a, b}); }
     void run() { verify(verify_tensor_ops<T>{a, b}); }
 };
 

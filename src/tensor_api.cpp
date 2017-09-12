@@ -69,7 +69,7 @@ extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t t
 }
 
 // Internal API
-// MD: This should not be reqired to be exported. Temporary hack
+// MD: This should not be required to be exported. Temporary hack
 MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorLengths(
     miopenTensorDescriptor_t tensorDesc, int* n, int* c, int* h, int* w)
 {

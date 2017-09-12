@@ -344,9 +344,9 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
                                                          int* hStride,
                                                          int* wStride);
 
-/*! @brief Set shape of 4D tensor
+/*! @brief Set shape of N-dimensional tensor
  *
- * Interface for setting ensor shape. MIOpen only has 4-D tensors in NCHW layout.
+ * Interface for setting ensor shape. MIOpen has support for 2, 3, 4, 5 dimensional tensor of layout (NCHWT).
  * @param tensorDesc   Tensor descriptor type (input)
  * @param dataType     Currently only miopenFloat is implemented (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
@@ -360,9 +360,9 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        int* dimsA,
                                                        int* stridesA);
 
-/*! @brief Set shape of 4D tensor
+/*! @brief Set shape of N-dimensional tensor
  *
- * Interface for querying tensor size. MIOpen only has 4-D tensors in NCHW layout.
+ * Interface for querying tensor size. MIOpen has support for 2, 3, 4, 5 dimensional tensor of layout (NCHWT).
  * @param tensorDesc   Tensor descriptor type (input)
  * @param size         number of elements in tensor described by the descriptor (output)
  * @return             miopenStatus_t
@@ -370,7 +370,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
 MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t tensorDesc,
                                                            int* size);
 
-/*! @brief Get the details of the n-dimensional tensor descriptor.
+/*! @brief Get the details of the N-dimensional tensor descriptor.
  *
  * @param tensorDesc Tensor descriptor type (input)
  * @param dataType   Currently only miopenFloat is implemented (output)
