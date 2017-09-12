@@ -30,6 +30,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+
 #include <miopen/batch_norm.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -48,6 +49,7 @@
 //#define MIO_HEIRARCH_SEL 0
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
 #define MIO_BN_TEST_EPSILON 1e-6
+
 
 //****************************************************
 // FORWARD TRAIN

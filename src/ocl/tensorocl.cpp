@@ -99,7 +99,7 @@ static void CreateBitmapAndGrid(unsigned int& bitmap,
                                 int& num_wg,
                                 int& work,
                                 int d)
-{
+{// DLOWELL why doesn't this work for 5-D tensors? 
     for(int i = d; i >= 0; i--)
     {
         if(a_lens[i] != 1)
@@ -174,17 +174,29 @@ void OpTensor(Handle& handle,
     int num_wg      = *first_not_one == 0 ? 1 : *first_not_one;
     int work_per_wg = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
 
+    
+    
+// RIGHT BELOW HERE IS SPECIFICALLY FOR 4-DIMENSIONAL
+//-----------------------------------------------------------------
+//    int c_n, c_c, c_h, c_w;
+//    std::tie(c_n, c_c, c_h, c_w) = tien<4>(cTensorDesc.GetLengths());
+//
+//    int b_c, b_h, b_w;
+//    std::tie(std::ignore, b_c, b_h, b_w) = tien<4>(bTensorDesc.GetLengths());
+//
+//    int c_nstride, c_cstride;
+//    std::tie(c_nstride, c_cstride, std::ignore, std::ignore) = tien<4>(cTensorDesc.GetStrides());
+//
+//    int b_nstride, b_cstride;
+//    std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tien<4>(bTensorDesc.GetStrides());
+
     int c_n, c_c, c_h, c_w;
-    std::tie(c_n, c_c, c_h, c_w) = tien<4>(cTensorDesc.GetLengths());
-
     int b_c, b_h, b_w;
-    std::tie(std::ignore, b_c, b_h, b_w) = tien<4>(bTensorDesc.GetLengths());
-
     int c_nstride, c_cstride;
     std::tie(c_nstride, c_cstride, std::ignore, std::ignore) = tien<4>(cTensorDesc.GetStrides());
-
-    int b_nstride, b_cstride;
-    std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tien<4>(bTensorDesc.GetStrides());
+//
+//    int b_nstride, b_cstride;
+//    std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tien<4>(bTensorDesc.GetStrides());
 
     unsigned int bitmap = 0;
     // update bitmap for first_not_one
@@ -211,7 +223,7 @@ void OpTensor(Handle& handle,
 
     // Does the bitmap contain leading ones, i.e. 1,1,1,0 or 1,1,0,0
     // or 1,1,1,1 or 1,0,0,0
-    bool leading_ones = IsBitmapLeadingOnes(bitmap, 4, (d - 2));
+    bool leading_ones = IsBitmapLeadingOnes(bitmap, 4, (d - 2)); 
     if(leading_ones && work_per_wg < 64)
     {
         local_threads = 64;
@@ -233,7 +245,27 @@ void OpTensor(Handle& handle,
 
     int op = tensorOp;
 
-    if(fwd_conv_bias)
+    if(d != 4)
+    {
+        handle.GetKernel("OpNdTensorGeneric", "", program_name, "OpNdTensorGeneric", vld, vgd, parms)(
+            ATensor,
+            BTensor,
+            b_c,
+            b_h,
+            b_w,
+            b_nstride,
+            b_cstride,
+            CTensor,
+            c_c,
+            c_h,
+            c_w,
+            c_nstride,
+            c_cstride,
+            bitmap,
+            work_per_wg,
+            op);
+    }    
+    else if(fwd_conv_bias)
     {
         handle.GetKernel("OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
             ATensor, BTensor, b_c, CTensor, c_n, c_nstride, c_cstride, work_per_wg, op);
