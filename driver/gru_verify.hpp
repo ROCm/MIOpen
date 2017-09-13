@@ -931,9 +931,9 @@ void RunGRUBackwardWeightCPUVerify(std::vector<T>& in,
 
                                 if(bidirection)
                                 {
-                                    dwei_state[h * wei_stride + (4 + gi) * hy_h + w] +=
+                                    dwei_state[h * wei_stride + (3 + gi) * hy_h + w] +=
                                         in[(bacc + bs) * in_stride + h] *
-                                        wkspace[hid_shift + bs * hy_stride + (4 + gi) * hy_h + w];
+                                        wkspace[hid_shift + bs * hy_stride + (3 + gi) * hy_h + w];
                                 }
                             }
                         }
