@@ -43,7 +43,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
@@ -241,14 +240,12 @@ int mlo_construct_winograd::mloConstruct()
             {
                 return (mloConstructBinaryWinograd3x3U(rmv));
             }
-#if MIOPEN_BACKEND_OPENCL
             if(mloIsCorrectBinaryWinogradRxSFwd(rmv) &&
                !miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}) &&
                (no_perf_filtering || mloIsFastBinaryWinogradRxSFwd()))
             {
                 return (mloConstructBinaryWinogradRxSFwd());
             }
-#endif
         }
     }
 #endif
@@ -668,20 +665,6 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version 
     {
         return false;
     }
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_ALLOW_UNTESTED{}))
-    {
-        // FIXME remove env var and all this stuff when Winograd v8 gets fixed.
-        if(!(_kernel_stride0 == 1 && _kernel_stride1 == 1))
-        {
-            return false;
-        }
-        // if(!(_kernel_size0 <= 3 && _kernel_size1 <= 3))
-        // 3x3 seems to fail on Vega, so let's keep 1x1 only for now.
-        if(!(_kernel_size0 == 1 && _kernel_size1 == 1))
-        {
-            return false;
-        }
-    }
     const auto name                    = _stream->GetDeviceName();
     const auto device_is_gfx9_no_xnack = (name == "gfx900");
     const bool device_is_gfx8_no_xnack =
@@ -692,7 +675,6 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version 
     }
     // Check if kernel is suitable for the problem description
     // and able to correctly run with given parameters.
-
     // Calculate padded filter size first.
     // If stride = 1: if S <= 3 it is padded to 3,
     // otherwise S is padded to smallest 6*n for some integer n
@@ -700,7 +682,7 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version 
     int padded_S = 0;
     if(_kernel_stride0 == 1)
     {
-        if(_kernel_size0 < 3)
+        if(_kernel_size0 <= 3)
         {
             padded_S = 3;
         }
@@ -751,14 +733,15 @@ bool mlo_construct_direct2D::mloIsCorrectBinaryWinogradRxSFwd(rocm_meta_version 
         }
     }
     const auto grid_workgroup_count_x = _stream->GetMaxComputeUnits();
-    assert(_weights_layout.length() == 0);    // FIXME _weights_layout is not supported yet.
-                                              // Opt. Param   Restrictions in source
-    return _pad0 < std::pow(2, 16)            // -q   pad_w   uint16
-           && _pad1 < std::pow(2, 16)         // -p   pad_h   uint16
-           && _kernel_size0 < std::pow(2, 16) // -x   wei_w   S uint16
-           && _kernel_size1 < std::pow(2, 16) // -y   wei_h   R uint16
-           && _kernel_stride0 <= 2            // -u   inp_u   1 or 2
-           && _kernel_stride1 <= 2            // -v   inp_v   1 or 2
+    assert(_weights_layout.length() == 0);       // FIXME _weights_layout is not supported yet.
+                                                 // Opt. Param   Restrictions in source
+    return _pad0 < std::pow(2, 16)               // -q   pad_w   uint16
+           && _pad1 < std::pow(2, 16)            // -p   pad_h   uint16
+           && _kernel_size0 < std::pow(2, 16)    // -x   wei_w   S uint16
+           && _kernel_size1 < std::pow(2, 16)    // -y   wei_h   R uint16
+           && _kernel_stride0 <= 2               // -u   inp_u   1 or 2
+           && _kernel_stride1 <= 2               // -v   inp_v   1 or 2
+           && _kernel_stride0 == _kernel_stride1 // Only u1v1 or u2v2 for now.
            && _batch_sz < std::pow(2, 16) && _n_inputs < std::pow(2, 16) // -c   wei_c
            && _n_outputs < std::pow(2, 16)                               // -k   wei_k
            && _in_height < std::pow(2, 16)                               // -H   inp_h
@@ -812,7 +795,7 @@ int mlo_construct_direct2D::mloConstructBinaryWinogradRxSFwd()
     {
         _kernel_file += "u2v2";
     }
-    _kernel_file += "_wheel_alpha_v8_3_6_";
+    _kernel_file += "_wheel_alpha_v8_4_4_";
     if(name.find("gfx8") != std::string::npos)
     {
         _kernel_file += "gfx803";
@@ -1357,6 +1340,8 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
             int H         = _in_height;
             int C         = _n_inputs;
             int K         = _n_outputs;
+            int W_out     = _out_width;
+            int H_out     = _out_height;
 
             N_LCL_OUT_MAPS   = std::min(N_LCL_OUT_MAPS, K);
             _n_out_pix_tiles = N_LCL_OUT_MAPS;
@@ -1399,18 +1384,23 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
 
             uint N_IN_GROUPS        = (C + N_LCL_IN_MAPS - 1) / N_LCL_IN_MAPS;
             uint N_LCL_IN_MAPS_ONCE = 8;
-            uint CLOOP0             = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
-            uint CLOOP2             = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
+
+            if(_kernel_stride0 > 1 || _kernel_stride1 > 1)
+                N_LCL_IN_MAPS_ONCE = 4;
+
+            uint CLOOP0 = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
+            uint CLOOP2 = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
 
             _comp_options =
+                std::string(" -DMLO_N_LCL_IN_MAPS_ONCE=") + std::to_string(N_LCL_IN_MAPS_ONCE) +
                 std::string(" -DBATCHSIZE=") + std::to_string(BATCHSIZE) + std::string(" -DH=") +
                 std::to_string(H) + std::string(" -DW=") + std::to_string(W) +
                 std::string(" -DC=") + std::to_string(C) + std::string(" -DK=") +
                 std::to_string(K) + std::string(" -DMLO_N_LCL_IN_MAPS=") +
                 std::to_string(N_LCL_IN_MAPS) + std::string(" -DMLO_N_INPUTS=") +
                 std::to_string(C) + std::string(" -DMLO_N_OUTPUTS=") + std::to_string(K) +
-                std::string(" -DH_out=") + std::to_string(H) + std::string(" -DW_out=") +
-                std::to_string(W) + std::string(" -DMLO_N_IN_GROUPS=") +
+                std::string(" -DH_out=") + std::to_string(H_out) + std::string(" -DW_out=") +
+                std::to_string(W_out) + std::string(" -DMLO_N_IN_GROUPS=") +
                 std::to_string(N_IN_GROUPS) + std::string(" -DMLO_CLOOP0=") +
                 std::to_string(CLOOP0) + std::string(" -DMLO_CLOOP2=") + std::to_string(CLOOP2) +
                 std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(N_LCL_OUT_MAPS) +
@@ -1420,35 +1410,73 @@ int mlo_construct_direct2D::mloConstructDirect2D1x1()
                     " -DMLopen_RUNNING=1") + // to disable macro defines for CodeXL Shader Analyzer
                 getGeneralCompOptions();
 
+            _comp_options = std::string(" -DMLO_FILTER_STRIDE0=") +
+                            std::to_string(_kernel_stride0) +
+                            std::string(" -DMLO_FILTER_STRIDE1=") +
+                            std::to_string(_kernel_stride1) + _comp_options;
+
             // std::cout << "compile options:\n"<< _comp_options << std::endl;
+            // 1x1_Stride: FIX ME!!! NO padding support
+            if(_kernel_stride0 > 1 || _kernel_stride1 > 1)
+            {
+                int FIXED_WORKGROUP_SIZE = 64;
 
-            int FIXED_WORKGROUP_SIZE = 64;
+                _l_wk.clear();
+                size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
 
-            _l_wk.clear();
-            _l_wk.push_back(FIXED_WORKGROUP_SIZE);
-            _l_wk.push_back(1);
-            _l_wk.push_back(1);
+                size_t local_wk1 = 1;
+                _l_wk.push_back(FIXED_WORKGROUP_SIZE);
+                _l_wk.push_back(local_wk1);
+                _l_wk.push_back(1);
 
-            size_t imagesizeAlign =
-                ((_in_width * _in_height * _batch_sz + FIXED_WORKGROUP_SIZE - 1) /
-                 FIXED_WORKGROUP_SIZE) *
-                FIXED_WORKGROUP_SIZE;
-            size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
+                size_t imagesizeAlign =
+                    ((_out_width * _out_height * _batch_sz + FIXED_WORKGROUP_SIZE - 1) /
+                     FIXED_WORKGROUP_SIZE) *
+                    FIXED_WORKGROUP_SIZE;
 
-            size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+                size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+                size_t gbl_wk1 = local_wk1;
+                size_t gbl_wk2 = 1;
 
-            size_t gbl_wk1 = 1;
-            ;
-            size_t gbl_wk2 = 1;
+                _g_wk.clear();
+                _g_wk.push_back(gbl_wk0);
+                _g_wk.push_back(gbl_wk1);
+                _g_wk.push_back(gbl_wk2);
 
-            _g_wk.clear();
-            _g_wk.push_back(gbl_wk0);
-            _g_wk.push_back(gbl_wk1);
-            _g_wk.push_back(gbl_wk2);
+                _kernel_file = "MIOpenConv1x1J1_stride.cl";
+                _kernel_name = "MIOpenConv1x1";
+            }
+            else
+            {
+                int FIXED_WORKGROUP_SIZE = 64;
 
-            _kernel_file = "MIOpenConv1x1J1.cl";
+                _l_wk.clear();
+                _l_wk.push_back(FIXED_WORKGROUP_SIZE);
+                _l_wk.push_back(1);
+                _l_wk.push_back(1);
 
-            _kernel_name = "MIOpenConv1x1";
+                size_t imagesizeAlign =
+                    ((_in_width * _in_height * _batch_sz + FIXED_WORKGROUP_SIZE - 1) /
+                     FIXED_WORKGROUP_SIZE) *
+                    FIXED_WORKGROUP_SIZE;
+                size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
+
+                size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+
+                size_t gbl_wk1 = 1;
+                ;
+                size_t gbl_wk2 = 1;
+
+                _g_wk.clear();
+                _g_wk.push_back(gbl_wk0);
+                _g_wk.push_back(gbl_wk1);
+                _g_wk.push_back(gbl_wk2);
+
+                _kernel_file = "MIOpenConv1x1J1.cl";
+
+                _kernel_name = "MIOpenConv1x1";
+            }
+            // std::cout << _kernel_file << std::endl;
         }
         else
         {
@@ -3687,11 +3715,7 @@ bool mlo_construct_BwdWrW2D::mloIsCorrectAsmDirect3x3WrW() const
     return ok;
 }
 
-bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const
-{
-    const std::string name = _stream->GetDeviceName();
-    return true;
-}
+bool mlo_construct_BwdWrW2D::mloIsFastAsmDirect3x3WrW() const { return true; }
 
 int mlo_construct_BwdWrW2D::mloConstructAsmDirect3x3WrW()
 {
@@ -4532,8 +4556,8 @@ std::vector<int> v_n_in_stacks_sz;
             _in_tile0      = 1;
             report_inteval = 4;
 
-            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _kernel_stride0 == 1 &&
-               _kernel_stride1 == 1)
+            // Add 1x1_stride : no padding support yet
+            if(_direction && (_n_inputs / 8) * 8 == _n_inputs && _pad0 == 0 && _pad1 == 0)
             {
 
                 // uint N_LCL_IN_MAPS = _n_in_data_tiles;

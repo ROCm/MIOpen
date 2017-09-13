@@ -103,6 +103,13 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
     }
 }
 
+ClProgramPtr LoadBinaryProgram(cl_context ctx, cl_device_id device, const std::string& source)
+{
+    ClProgramPtr result{CreateProgramWithBinary(ctx, device, source.data(), source.size())};
+    BuildProgram(result.get(), device);
+    return result;
+}
+
 ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
                          const std::string& program_name,
@@ -130,15 +137,13 @@ ClProgramPtr LoadProgram(cl_context ctx,
         }
     }
 
-    cl_program result = nullptr;
     if(is_binary)
     {
-        result = CreateProgramWithBinary(ctx, device, source.data(), source.size());
-        BuildProgram(result, device);
+        return LoadBinaryProgram(ctx, device, source);
     }
     else
     {
-        result = CreateProgram(ctx, source.data(), source.size());
+        ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
 #ifdef __linux__
@@ -146,9 +151,20 @@ ClProgramPtr LoadProgram(cl_context ctx,
 #endif
 #endif
         params += " -cl-std=CL1.2";
-        BuildProgram(result, device, params);
+        BuildProgram(result.get(), device, params);
+        return result;
     }
-    return ClProgramPtr{result};
+}
+
+void SaveProgramBinary(const ClProgramPtr& program, const std::string& name)
+{
+    size_t binary_size;
+    clGetProgramInfo(program.get(), CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &binary_size, nullptr);
+    std::vector<char> binary(binary_size);
+    char* src[1] = {binary.data()};
+    clGetProgramInfo(program.get(), CL_PROGRAM_BINARIES, sizeof(src), &src, nullptr);
+    std::ofstream fout(name.c_str(), std::ios::out | std::ios::binary);
+    fout.write(binary.data(), binary.size());
 }
 
 ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name)

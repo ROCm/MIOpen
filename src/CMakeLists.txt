@@ -60,6 +60,7 @@ set( MIOpen_Source
     convolution_api.cpp
     convolution_fft.cpp
     errors.cpp
+    load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
     logger.cpp
@@ -92,6 +93,10 @@ set( MIOpen_Source
     tensor_api.cpp
     )
 
+if(MIOPEN_USE_CACHE)
+    list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
+endif()
+
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNELS
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
@@ -111,6 +116,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1.cl
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
+        kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenConvD3x3.cl
         kernels/MIOpenUtilKernels.cl
@@ -129,14 +135,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenTensorScaleKernel.cl
-        kernels/conv_u1v1_wheel_alpha_v8_3_6_gfx803.so
-        kernels/conv_u1v1_wheel_alpha_v8_3_6_gfx900.so
-        kernels/conv_u1v2_wheel_alpha_v8_3_6_gfx803.so
-        kernels/conv_u1v2_wheel_alpha_v8_3_6_gfx900.so
-        kernels/conv_u2v1_wheel_alpha_v8_3_6_gfx803.so
-        kernels/conv_u2v1_wheel_alpha_v8_3_6_gfx900.so
-        kernels/conv_u2v2_wheel_alpha_v8_3_6_gfx803.so
-        kernels/conv_u2v2_wheel_alpha_v8_3_6_gfx900.so
+        kernels/conv_u1v1_wheel_alpha_v8_4_4_gfx803.so
+        kernels/conv_u1v1_wheel_alpha_v8_4_4_gfx900.so
+        kernels/conv_u2v2_wheel_alpha_v8_4_4_gfx803.so
+        kernels/conv_u2v2_wheel_alpha_v8_4_4_gfx900.so
         kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
@@ -264,6 +266,23 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
+if(MIOPEN_USE_CACHE)
+target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
+target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
+set(MIOPEN_MAKE_BOOST_PUBLIC Off CACHE BOOL "")
+if(MIOPEN_MAKE_BOOST_PUBLIC)
+set(MIOPEN_BOOST_LIB_VISIBILITY PUBLIC)
+else()
+set(MIOPEN_BOOST_LIB_VISIBILITY PRIVATE)
+endif()
+target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY} 
+    optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE} 
+    optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
+    debug ${Boost_FILESYSTEM_LIBRARY_DEBUG} 
+    debug ${Boost_SYSTEM_LIBRARY_DEBUG}
+)
+endif()
+
 ############################################################
 # Installation
 rocm_install_targets(
@@ -277,8 +296,9 @@ rocm_install_targets(
 rocm_export_targets(
   TARGETS MIOpen
   PREFIX ${MIOPEN_INSTALL_DIR}
-  DEPENDS ${PACKAGE_DEPENDS}
- )
+  DEPENDS
+    ${PACKAGE_DEPENDS} 
+)
 
 
 # Install db files

@@ -73,7 +73,9 @@ std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FAC
         { pick_batch_size(32, n),  160,  14,  14  },
         { pick_batch_size(32, n),  160,  7,   7   },
         { pick_batch_size(32, n),  192,  128, 256 },
+#if MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR > 0
         { pick_batch_size(32, n),  192,  256, 512 },
+#endif
         { pick_batch_size(32, n),  192,  28,  28  },
         { pick_batch_size(32, n),  192,  7,   7   },
         { pick_batch_size(32, n),  24,   14,  14  },
@@ -335,8 +337,8 @@ std::set<std::vector<int>> get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BAT
         { pick_batch_size(32, n),  64,   56,  56  },
         { pick_batch_size(32, n),  96,   28,  28  },
         { pick_batch_size(32, n),  192,  256, 512 },
-        { pick_batch_size(32, n),  256,  28,  28  },
-        //{ pick_batch_size(32, n),  3,    224, 224 },
+        //{ pick_batch_size(32, n),  256,  28,  28  },
+        { pick_batch_size(32, n),  3,    224, 224 },
         { pick_batch_size(32, n),  480,  128, 256 },
         { pick_batch_size(32, n),  528,  64,  128 }
     };
