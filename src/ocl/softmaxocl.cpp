@@ -55,7 +55,7 @@ miopenStatus_t SoftmaxForward(
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
     int n, c, h, w;
     std::tie(n, c, h, w) = tie4(yDesc.GetLengths());
@@ -122,7 +122,7 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
     int n, c, h, w;
