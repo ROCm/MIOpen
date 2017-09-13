@@ -166,7 +166,7 @@ class StaticContainer
     public:
     inline static TInstance& Instance()
     {
-        static TInstance data;
+        static TInstance data{};
         return data;
     }
 };
