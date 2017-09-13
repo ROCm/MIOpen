@@ -44,7 +44,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
-include_directories(/usr/local/x86_64-w64-mingw32/include)
+include_directories(/usr/local/${TOOLCHAIN_PREFIX}/include)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS On CACHE BOOL "Export windows symbols")
 
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -static-libgcc -static-libstdc++" CACHE STRING "")

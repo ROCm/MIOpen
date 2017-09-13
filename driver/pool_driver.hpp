@@ -153,8 +153,6 @@ int PoolDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag(
-        "out_channels", 'k', "32", "Number of Output Channels (Default=32)", "int");
     inflags.AddInputFlag("win_h", 'y', "3", "Window Height (Default=3)", "int");
     inflags.AddInputFlag("win_w", 'x', "3", "Window Width (Default=3)", "int");
     inflags.AddInputFlag("pool_stride_0", 'u', "1", "Pooling Stride Vertical (Default=1)", "int");
@@ -286,7 +284,7 @@ template <typename T>
 int PoolDriver<T>::RunForwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     miopenPoolingForward(GetHandle(),
                          poolDesc,
@@ -340,7 +338,7 @@ template <typename T>
 int PoolDriver<T>::RunBackwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     miopenPoolingBackward(GetHandle(),
                           poolDesc,

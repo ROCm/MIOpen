@@ -214,15 +214,20 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
     int _kernel_size0, _kernel_size1;
     std::tie(std::ignore, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
 
-    return !(_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1));
+    return !((_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
+             (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
+             (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
 }
 
 bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) const
 {
-    int _kernel_size0, _kernel_size1;
-    std::tie(std::ignore, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
+    int k, _kernel_size0, _kernel_size1;
+    std::tie(k, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
 
-    return !(_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1));
+    return !(
+        (_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 1 || v > 1)) ||
+        (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0 || k == 1)) ||
+        (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,

@@ -175,7 +175,7 @@ struct HIPOCKernel
         std::copy(global_dims.begin(), global_dims.end(), gdims.begin());
 
         kernel_module = name;
-        auto status   = hipModuleGetFunction(&fun, program.module.get(), kernel_module.c_str());
+        auto status   = hipModuleGetFunction(&fun, program.GetModule(), kernel_module.c_str());
         if(hipSuccess != status)
             MIOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);
     }
