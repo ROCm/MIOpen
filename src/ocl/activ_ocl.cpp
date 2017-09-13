@@ -42,7 +42,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
     miopenStatus_t status = miopenStatusSuccess;
 
@@ -130,7 +130,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
     miopenStatus_t status = miopenStatusSuccess;
 
