@@ -308,8 +308,6 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 
     // output
     int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
-    int wei_shift_bias_temp =
-        wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h;
     int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
     ADNN_mm_cpu<T>((const T*)&wk_state[prelayer_shift],
@@ -333,6 +331,9 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
     // from bias
     if(biased)
     {
+        int wei_shift_bias_temp =
+            wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h;
+
         for(int bs = 0; bs < batch_n; bs++)
         {
             for(int h = 0; h < out_h; h++)

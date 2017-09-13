@@ -371,8 +371,6 @@ void RunLSTMForwardGEMMCPUVerify(
 
     // output
     int prelayer_shift = (numlayer - 1) * batch_n * hy_stride + bi * 5 * hy_h;
-    int wei_shift_bias_temp =
-        wei_shift_bias + 2 * wei_stride + (bi + 1) * (numlayer - 1) * wei_stride;
     int wei_shift = (in_h + hy_h) * wei_stride + (numlayer - 1) * (bi * hy_h + hy_h) * wei_stride;
 
     ADNN_mm_cpu<T>((const T*)&hid_state[prelayer_shift],
@@ -396,6 +394,9 @@ void RunLSTMForwardGEMMCPUVerify(
     // from bias
     if(biased)
     {
+        int wei_shift_bias_temp =
+            wei_shift_bias + 2 * wei_stride + (bi + 1) * (numlayer - 1) * wei_stride;
+
         for(int bs = 0; bs < batch_n; bs++)
         {
             for(int h = 0; h < out_h; h++)
@@ -1143,10 +1144,8 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
             {
                 int hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
                 int hx_shift  = li * in_n[0] * h_stride;
-                int wei_shift;
+                int wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
                 int pretime_shift;
-
-                wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
                 // between time
                 if(ti == 0)

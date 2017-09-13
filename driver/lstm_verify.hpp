@@ -206,7 +206,7 @@ void RunLSTMForwardCPUVerify(std::vector<T>& in,
                 bacc -= in_n[ti];
 
                 int hid_shift = li * batch_n * hy_stride + bacc * hy_stride + 4 * hy_h;
-                int hx_shift  = li * bi * in_n[0] * hy_h + hy_h;
+                int hx_shift  = li * in_n[0] * h_stride + hy_h;
 
                 for(int bs = 0; bs < in_n[ti]; bs++)
                 {
@@ -708,16 +708,15 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
             }
         }
 
-        int hid_shift = li * batch_n * hy_stride;
-        int hx_shift  = li * in_n[0] * h_stride;
+        // dcx, dhx
+        int pretime_shift = li * batch_n * hy_stride;
+        int hx_shift      = li * in_n[0] * h_stride;
 
         for(int bs = 0; bs < in_n[0]; bs++)
         {
             for(int h = 0; h < hy_h; h++)
             {
                 int wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
-
-                int pretime_shift = li * batch_n * hy_stride;
 
                 for(int gi = 0; gi < 4; gi++)
                 {
@@ -736,7 +735,7 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
 
         if(bidirection)
         {
-            hid_shift = li * batch_n * hy_stride + (batch_n - in_n[seqLength - 1]) * hy_stride;
+            pretime_shift = li * batch_n * hy_stride + (batch_n - in_n[seqLength - 1]) * hy_stride;
 
             for(int bs = 0; bs < in_n[seqLength - 1]; bs++)
             {
@@ -744,9 +743,6 @@ void RunLSTMBackwardDataCPUVerify(std::vector<T>& din_state,
                 {
                     int wei_shift =
                         in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride + 4 * hy_h;
-
-                    int pretime_shift =
-                        li * batch_n * hy_stride + (batch_n - in_n[seqLength - 1]) * hy_stride;
 
                     for(int gi = 0; gi < 4; gi++)
                     {
@@ -838,7 +834,7 @@ void RunLSTMBackwardWeightCPUVerify(std::vector<T>& in,
         for(int ti = 0; ti < seqLength; ti++)
         {
             int hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
-            int hx_shift  = li * bi * in_n[0] * hy_h;
+            int hx_shift  = li * in_n[0] * h_stride;
             int wei_shift;
             int prehid_shift;
 
