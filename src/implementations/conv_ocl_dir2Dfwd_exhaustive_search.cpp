@@ -645,7 +645,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::PrepareExhaustiveSearchResult(
         }
     }
 
-    return result;
+    return std::unique_ptr<ExhaustiveSearchResult>(result.release());
 }
 
 void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
