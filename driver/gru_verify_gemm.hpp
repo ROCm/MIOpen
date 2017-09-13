@@ -716,7 +716,7 @@ void RunGRUBackwardDataGEMMCPUVerify(
                                    hy_h,
                                    wei_stride,
                                    ADNN_MM_TRANSPOSE,
-                                   &dh_state[hid_shift + baccbi * hy_stride + bi * 2 * hy_h + hy_h],
+                                   &dh_state[hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h],
                                    hy_h,
                                    in_n[seqLength - 1 - ti],
                                    hy_stride,
@@ -728,7 +728,7 @@ void RunGRUBackwardDataGEMMCPUVerify(
 					{
 						for (int h = 0; h < hy_h; h++)
 						{
-							dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] +=
+							dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h] +=
 								dh_state[pretime_shift + bs * hy_stride + 3 * hy_h + hy_h + h] * activfunc(rsvspace[pretime_shift + bs * hy_stride + h], 2);
 
 							dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] =
@@ -746,7 +746,7 @@ void RunGRUBackwardDataGEMMCPUVerify(
 						hy_h,
 						wei_stride,
 						ADNN_MM_TRANSPOSE,
-						&dh_state[hid_shift + baccbi * hy_stride + bi * 2 * hy_h + hy_h],
+						&dh_state[hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h],
 						hy_h,
 						in_n[seqLength - 1 - ti],
 						hy_stride,
@@ -754,7 +754,7 @@ void RunGRUBackwardDataGEMMCPUVerify(
 						1,
 						1);
 
-					for (int bs = 0; bs < in_n[ti + 1]; bs++)
+					for (int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
 					{
 						memset(&dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h], 0, hy_h * sizeof(T));
 					}
