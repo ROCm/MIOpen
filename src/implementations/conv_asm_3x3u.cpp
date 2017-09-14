@@ -7,6 +7,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
 
 namespace miopen {
+namespace impl {
 
 bool ConvAsm3x3U::IsCorrect(const SearchParameters& params) const
 {
@@ -35,7 +36,7 @@ bool ConvAsm3x3U::IsFast(const SearchParameters& params) const
 }
 
 void
-ConvAsm3x3U::PrepareForUsage(ImplementationUsageDescription& result,
+ConvAsm3x3U::MakeUsage(Usage& result,
                              const SearchParameters& params,
                              const PerformanceConfig&) const
 {
@@ -134,4 +135,5 @@ ConvAsm3x3U::PrepareForUsage(ImplementationUsageDescription& result,
 
     result.construction_params.push_back(construction_params);
 }
+} // namespace impl
 } // namespace miopen

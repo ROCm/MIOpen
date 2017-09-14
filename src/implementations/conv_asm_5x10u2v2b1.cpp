@@ -3,6 +3,7 @@
 #include "miopen/gcn_asm_utils.hpp"
 
 namespace miopen {
+namespace impl {
 
 bool ConvAsm5x10u2v2b1::IsCorrect(const SearchParameters& params) const
 {
@@ -50,7 +51,7 @@ bool ConvAsm5x10u2v2b1::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvAsm5x10u2v2b1::PrepareForUsage(ImplementationUsageDescription& result,
+ConvAsm5x10u2v2b1::MakeUsage(Usage& result,
                                    const SearchParameters& params,
                                    const PerformanceConfig&) const
 {
@@ -79,4 +80,5 @@ ConvAsm5x10u2v2b1::PrepareForUsage(ImplementationUsageDescription& result,
 
     result.construction_params.push_back(constr_params);
 }
+} // namespace impl
 } // namespace miopen

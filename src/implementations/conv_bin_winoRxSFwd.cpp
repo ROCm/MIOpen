@@ -16,6 +16,7 @@ static int Ceiling(const int v, const int m)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
 
 namespace miopen {
+namespace impl {
 
 bool ConvBinWinogradRxSFwd::IsCorrect(const SearchParameters& params) const
 {
@@ -129,8 +130,8 @@ bool ConvBinWinogradRxSFwd::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvBinWinogradRxSFwd::PrepareForUsage(
-    ImplementationUsageDescription& result,
+ConvBinWinogradRxSFwd::MakeUsage(
+    Usage& result,
     const SearchParameters& params,
     const PerformanceConfig&) const
 {
@@ -177,4 +178,5 @@ ConvBinWinogradRxSFwd::PrepareForUsage(
 
     result.construction_params.push_back(kernel);
 }
+} // namespace impl
 } // namespace miopen

@@ -231,17 +231,20 @@ class SearchParameters
     Handle* _stream;
 };
 
-class ImplementationUsageDescription;
+namespace impl {
+class Usage;
 class Implementation;
+} // namespace impl
+
 } // namespace miopen
 
 class mlo_construct_direct2D
 {
     public:
     virtual const std::vector<
-        std::reference_wrapper<const miopen::Implementation>>&
+        std::reference_wrapper<const miopen::impl::Implementation>>&
     GetImplementations() const;
-    void mloUseSearchResult(const miopen::ImplementationUsageDescription& result); // TODO: remove
+    void mloUseSearchResult(const miopen::impl::Usage& result); // TODO: remove
 
     mlo_construct_direct2D(int dir, bool do_bias = false)
     {
@@ -890,7 +893,7 @@ class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
 
     bool mloIsCompilerWorkarounds() const;
     int mloMultiStep();
-    const std::vector<std::reference_wrapper<const miopen::Implementation>>&
+    const std::vector<std::reference_wrapper<const miopen::impl::Implementation>>&
     GetImplementations() const override;
 };
 
@@ -903,7 +906,7 @@ class mlo_construct_winograd : public mlo_construct_direct2D
     public:
     mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
 
-    const std::vector<std::reference_wrapper<const miopen::Implementation>>&
+    const std::vector<std::reference_wrapper<const miopen::impl::Implementation>>&
     GetImplementations() const override;
 };
 

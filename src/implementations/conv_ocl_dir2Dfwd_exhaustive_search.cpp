@@ -6,6 +6,8 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
+namespace impl {
+
 static int mloReadDb(const std::string confreq_db_name, std::vector<std::string>& db)
 {
     int ret = 0;
@@ -536,7 +538,7 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(
     const SearchParameters& params) const
 {
     int ret = 0;
-    ImplementationUsageDescription kernel_search_result;
+    Usage kernel_search_result;
     auto sub_search_params      = params;
     sub_search_params.do_search = false;
 
@@ -545,7 +547,7 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(
         if(traits->IsCorrect(params))
         {
             const auto sub_search_result = Find(params);
-            traits->PrepareForUsage(kernel_search_result, params, *sub_search_result);
+            traits->MakeUsage(kernel_search_result, params, *sub_search_result);
 
             if(kernel_search_result.Succeeded())
                 break;
@@ -1313,4 +1315,5 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
     // return(ret);
 }
 
+} // namespace impl
 } // namespace miopen

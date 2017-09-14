@@ -2,6 +2,7 @@
 #include "miopen/mlo_utils.hpp"
 
 namespace miopen {
+namespace impl {
 
 bool ConvOclBwdWrW2::IsCorrect(const SearchParameters& params) const
 {
@@ -13,7 +14,7 @@ bool ConvOclBwdWrW2::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvOclBwdWrW2::PrepareForUsage(ImplementationUsageDescription& result,
+ConvOclBwdWrW2::MakeUsage(Usage& result,
                                 const SearchParameters& params,
                                 const PerformanceConfig&) const
 {
@@ -139,7 +140,7 @@ ConvOclBwdWrW2::PrepareForUsage(ImplementationUsageDescription& result,
                                          params.kernel_size1);
     if(lcl_mem_sz > 8 * 1024)
     {
-        result = ImplementationUsageDescription(miopenStatusNotInitialized);
+        result = Usage(miopenStatusNotInitialized);
         return;
     }
 
@@ -267,4 +268,5 @@ ConvOclBwdWrW2::PrepareForUsage(ImplementationUsageDescription& result,
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
 }
+} // namespace impl
 } // namespace miopen

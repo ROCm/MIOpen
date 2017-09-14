@@ -2,6 +2,7 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
+namespace impl {
 
 bool ConvOclDirectFwdC::IsCorrect(const SearchParameters& params) const
 {
@@ -16,7 +17,7 @@ bool ConvOclDirectFwdC::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvOclDirectFwdC::PrepareForUsage(ImplementationUsageDescription& result,
+ConvOclDirectFwdC::MakeUsage(Usage& result,
                                    const SearchParameters& params,
                                    const PerformanceConfig& exhaustive_search_result) const
 {
@@ -56,7 +57,7 @@ ConvOclDirectFwdC::PrepareForUsage(ImplementationUsageDescription& result,
     if(alu_tiles_sz > searched_params.grp_tile0 * searched_params.grp_tile1)
     {
         //			std::cout << "ERROR: need out pix size ajustments\n";
-        result = ImplementationUsageDescription(static_cast<miopenStatus_t>(-1));
+        result = Usage(static_cast<miopenStatus_t>(-1));
         return;
     }
 
@@ -189,4 +190,5 @@ ConvOclDirectFwdC::PrepareForUsage(ImplementationUsageDescription& result,
 
     result.construction_params.push_back(kernel_params);
 }
+} // namespace impl
 } // namespace miopen
