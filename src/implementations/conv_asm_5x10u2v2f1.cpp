@@ -3,6 +3,8 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
+namespace impl {
+
 bool ConvAsm5x10u2v2f1::IsCorrect(const SearchParameters& params) const
 {
     if(!params.assembler_available)
@@ -57,7 +59,7 @@ static inline int AlignUp(int val, unsigned step)
 }
 
 void
-ConvAsm5x10u2v2f1::PrepareForUsage(ImplementationUsageDescription& result,
+ConvAsm5x10u2v2f1::MakeUsage(Usage& result,
                                    const SearchParameters& params,
                                    const PerformanceConfig&) const
 {
@@ -96,4 +98,5 @@ ConvAsm5x10u2v2f1::PrepareForUsage(ImplementationUsageDescription& result,
 
     result.construction_params.push_back(construction_params);
 }
+} // namespace impl
 } // namespace miopen

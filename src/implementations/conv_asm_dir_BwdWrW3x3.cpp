@@ -7,6 +7,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 
 namespace miopen {
+namespace impl {
 
 struct PerfParamsAsmDirect3x3WrW
 {
@@ -416,7 +417,7 @@ bool ConvAsmBwdWrW3x3::IsCorrect(const SearchParameters& params) const
 bool ConvAsmBwdWrW3x3::IsFast(const SearchParameters&) const { return true; }
 
 void
-ConvAsmBwdWrW3x3::PrepareForUsage(ImplementationUsageDescription& result,
+ConvAsmBwdWrW3x3::MakeUsage(Usage& result,
                                   const SearchParameters& params,
                                   const PerformanceConfig&) const
 {
@@ -476,4 +477,5 @@ ConvAsmBwdWrW3x3::PrepareForUsage(ImplementationUsageDescription& result,
     result.construction_params.push_back(kernel);
     result.workspce_sz = 0;
 }
+} // namespace impl
 } // namespace miopen

@@ -8,6 +8,8 @@
 
 namespace miopen {
 
+namespace impl {
+
 /// Describes a kernel source and whatever information required in order
 /// to build and run it (the former is unused for binary kernels).
 struct KernelInfo
@@ -24,7 +26,7 @@ struct KernelInfo
 /// TODO: This one is suitable for a subset of existing OpenCL-written forward direct
 /// convolution implementations. Shall we elaborate this to a class hierarchy so that
 /// descendants would be implementation-specific.
-class ImplementationUsageDescription
+class Usage
 {
     public:
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
@@ -42,7 +44,7 @@ class ImplementationUsageDescription
     int n_in_data_tiles;
     int n_stacks;
 
-    ImplementationUsageDescription(miopenStatus_t status_ = miopenStatusSuccess, int passes_ = 1)
+    Usage(miopenStatus_t status_ = miopenStatusSuccess, int passes_ = 1)
         : status(status_),
           passes(passes_),
           workspce_sz(0),
@@ -118,7 +120,7 @@ class Implementation
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     virtual void
-    PrepareForUsage(ImplementationUsageDescription& out,
+    MakeUsage(Usage& out,
                     const SearchParameters& params,
                     const PerformanceConfig& exhaustive_search_result) const = 0;
 };
@@ -128,7 +130,7 @@ class ConvAsm3x3U : public Implementation
     public:
     bool IsCorrect(const SearchParameters& params) const override;
     bool IsFast(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -137,7 +139,7 @@ class ConvAsm5x10u2v2f1 : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -146,7 +148,7 @@ class ConvAsm5x10u2v2b1 : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -155,7 +157,7 @@ class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -164,7 +166,7 @@ class ConvOclDirectFwd11x11 : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -173,7 +175,7 @@ class ConvOclDirectFwdGen : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -182,7 +184,7 @@ class ConvOclDirectFwd3x3 : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -215,7 +217,7 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Implementation
         {
         }
     
-        inline void CopyTo(ImplementationUsageDescription& iud) const
+        inline void CopyTo(Usage& iud) const
         {
             iud.grp_tile0       = grp_tile0;
             iud.grp_tile1       = grp_tile1;
@@ -251,7 +253,7 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Implementation
 class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -260,7 +262,7 @@ class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -269,7 +271,7 @@ class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -278,7 +280,7 @@ class ConvBinWinograd3x3U : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -287,7 +289,7 @@ class ConvBinWinogradRxSFwd : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -297,7 +299,7 @@ class ConvAsmBwdWrW3x3 : public Implementation
     public:
     bool IsCorrect(const SearchParameters& params) const override;
     bool IsFast(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -306,7 +308,7 @@ class ConvOclBwdWrW2 : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -315,7 +317,7 @@ class ConvOclBwdWrW53 : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -324,10 +326,11 @@ class ConvOclBwdWrW1x1 : public Implementation
 {
     public:
     bool IsCorrect(const SearchParameters& params) const override;
-    void PrepareForUsage(ImplementationUsageDescription& out,
+    void MakeUsage(Usage& out,
                          const SearchParameters& params,
                          const PerformanceConfig& exhaustive_search_result) const override;
 };
+} // namespace impl
 } // namespace miopen
 
 #endif // !KERNEL_TRAITS_HPP

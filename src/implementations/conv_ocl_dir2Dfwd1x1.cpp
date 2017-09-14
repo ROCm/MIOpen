@@ -2,6 +2,7 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
+namespace impl {
 
 bool ConvOclDirectFwd1x1::IsCorrect(const SearchParameters& params) const
 {
@@ -9,7 +10,7 @@ bool ConvOclDirectFwd1x1::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvOclDirectFwd1x1::PrepareForUsage(ImplementationUsageDescription& result,
+ConvOclDirectFwd1x1::MakeUsage(Usage& result,
                                      const SearchParameters& params,
                                      const PerformanceConfig& exhaustive_search_result) const
 {
@@ -423,4 +424,5 @@ ConvOclDirectFwd1x1::PrepareForUsage(ImplementationUsageDescription& result,
         }
     }
 }
+} // namespace impl
 } // namespace miopen

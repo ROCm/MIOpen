@@ -2,6 +2,8 @@
 #include "miopen/algorithm_implementations.hpp"
 
 namespace miopen {
+namespace impl {
+
 bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsCorrect(
     const SearchParameters& params) const
 {
@@ -42,8 +44,8 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsCorrect(
 }
 
 void
-ConvAsm7x7c3h224w224k64u2v2p3q3f1::PrepareForUsage(
-    ImplementationUsageDescription& result,
+ConvAsm7x7c3h224w224k64u2v2p3q3f1::MakeUsage(
+    Usage& result,
     const SearchParameters& params,
     const PerformanceConfig&) const
 {
@@ -71,4 +73,5 @@ ConvAsm7x7c3h224w224k64u2v2p3q3f1::PrepareForUsage(
 
     result.construction_params.push_back(constr_params);
 }
+} // namespace impl
 } // namespace miopen

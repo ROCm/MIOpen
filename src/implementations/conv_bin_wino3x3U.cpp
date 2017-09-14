@@ -4,6 +4,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
 namespace miopen {
+namespace impl {
 
 bool ConvBinWinograd3x3U::IsCorrect(const SearchParameters& params) const
 {
@@ -52,7 +53,7 @@ bool ConvBinWinograd3x3U::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvBinWinograd3x3U::PrepareForUsage(ImplementationUsageDescription& result,
+ConvBinWinograd3x3U::MakeUsage(Usage& result,
                                      const SearchParameters& params,
                                      const PerformanceConfig&) const
 {
@@ -91,4 +92,5 @@ ConvBinWinograd3x3U::PrepareForUsage(ImplementationUsageDescription& result,
 
     result.construction_params.push_back(kernel);
 }
+} // namespace impl
 } // namespace miopen

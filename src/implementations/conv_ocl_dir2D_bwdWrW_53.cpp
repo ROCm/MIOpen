@@ -1,6 +1,7 @@
 #include "miopen/algorithm_implementations.hpp"
 
 namespace miopen {
+namespace impl {
 
 bool ConvOclBwdWrW53::IsCorrect(const SearchParameters& params) const
 {
@@ -8,7 +9,7 @@ bool ConvOclBwdWrW53::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvOclBwdWrW53::PrepareForUsage(ImplementationUsageDescription& result,
+ConvOclBwdWrW53::MakeUsage(Usage& result,
                                  const SearchParameters& params,
                                  const PerformanceConfig&) const
 {
@@ -92,7 +93,7 @@ ConvOclBwdWrW53::PrepareForUsage(ImplementationUsageDescription& result,
         else if(in_n_vert_reads < 2)
         {
             printf("CONFIG ERROR: not enough local memory for the configuration\n");
-            result = ImplementationUsageDescription(static_cast<miopenStatus_t>(-1));
+            result = Usage(static_cast<miopenStatus_t>(-1));
             return;
         }
     }
@@ -235,4 +236,5 @@ ConvOclBwdWrW53::PrepareForUsage(ImplementationUsageDescription& result,
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
 }
+} // namespace impl
 } // namespace miopen

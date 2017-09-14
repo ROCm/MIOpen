@@ -237,6 +237,7 @@ per wk-item (ALU)
 */
 
 namespace miopen {
+namespace impl {
 
 bool ConvOclBwdWrW1x1::IsCorrect(const SearchParameters& params) const
 {
@@ -244,7 +245,7 @@ bool ConvOclBwdWrW1x1::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvOclBwdWrW1x1::PrepareForUsage(ImplementationUsageDescription& result,
+ConvOclBwdWrW1x1::MakeUsage(Usage& result,
                                   const SearchParameters& params,
                                   const PerformanceConfig&) const
 {
@@ -490,4 +491,5 @@ ConvOclBwdWrW1x1::PrepareForUsage(ImplementationUsageDescription& result,
         result.workspce_sz = 0;
     }
 }
+} // namespace impl
 } // namespace miopen
