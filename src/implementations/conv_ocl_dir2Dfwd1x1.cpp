@@ -11,10 +11,10 @@ bool ConvOclDirectFwd1x1::IsCorrect(const SearchParameters& params) const
 void
 ConvOclDirectFwd1x1::PrepareForUsage(ImplementationUsageDescription& result,
                                      const SearchParameters& params,
-                                     const ExhaustiveSearchResult& exhaustive_search_result) const
+                                     const PerformanceConfig& exhaustive_search_result) const
 {
     const auto& searched_params =
-        dynamic_cast<const ExhaustiveSearchResultImpl&>(exhaustive_search_result);
+        dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
     searched_params.CopyTo(result);
 
     if((params.n_outputs / 16) * 16 == params.n_outputs &&

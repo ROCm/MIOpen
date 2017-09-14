@@ -157,7 +157,7 @@ n of input blocks
 n batchs (stacks) processed by the group
 */
 
-static int mloSetConf(const std::string& conf_val, ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearchResultImpl& result)
+static int mloSetConf(const std::string& conf_val, ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl& result)
 {
     mloParseConf(conf_val,
                  result.grp_tile1,
@@ -237,7 +237,7 @@ static int mloBuildConf_Val(std::string& conf_val,
 */
 static int mloSelectDefaultConfig(std::string& conf_val,
                                   const SearchParameters& params,
-                                  ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearchResultImpl& result)
+                                  ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl& result)
 {
 
     //
@@ -410,7 +410,7 @@ static int mloAddConfigReq(Handle& stream, const std::string& conf_key)
 * return a known or default configuration
 */
 static bool mloGetConfig(const SearchParameters& params,
-                         ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearchResultImpl& result)
+                         ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl& result)
 {
     bool known_config = false;
     std::string conf_key;
@@ -544,7 +544,7 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(
     {
         if(traits->IsCorrect(params))
         {
-            const auto sub_search_result = PrepareExhaustiveSearchResult(params);
+            const auto sub_search_result = Find(params);
             traits->PrepareForUsage(kernel_search_result, params, *sub_search_result);
 
             if(kernel_search_result.Succeeded())
@@ -642,11 +642,11 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(
     return (ret);
 }
 
-std::unique_ptr<ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearchResult>
-ConvOclDirectFwdLegacyExhaustiveSearch::PrepareExhaustiveSearchResult(
+std::unique_ptr<Implementation::PerformanceConfig>
+ConvOclDirectFwdLegacyExhaustiveSearch::Find(
     const SearchParameters& params) const
 {
-    auto result = std::make_unique<ExhaustiveSearchResultImpl>();
+    auto result = std::make_unique<PerformanceConfigImpl>();
 
     // search known configurations
     bool known_config = mloGetConfig(params, *result);
@@ -664,7 +664,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::PrepareExhaustiveSearchResult(
 }
 
 void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
-    const SearchParameters& params, ExhaustiveSearchResultImpl& result) const
+    const SearchParameters& params, PerformanceConfigImpl& result) const
 {
     miopen::Handle profile_h;
     double processing_time;
