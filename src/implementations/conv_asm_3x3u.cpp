@@ -37,7 +37,7 @@ bool ConvAsm3x3U::IsFast(const SearchParameters& params) const
 void
 ConvAsm3x3U::PrepareForUsage(ImplementationUsageDescription& result,
                              const SearchParameters& params,
-                             const ExhaustiveSearchResult&) const
+                             const PerformanceConfig&) const
 {
     std::string perf_vals;
     {

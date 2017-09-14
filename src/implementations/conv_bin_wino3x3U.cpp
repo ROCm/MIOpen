@@ -54,7 +54,7 @@ bool ConvBinWinograd3x3U::IsCorrect(const SearchParameters& params) const
 void
 ConvBinWinograd3x3U::PrepareForUsage(ImplementationUsageDescription& result,
                                      const SearchParameters& params,
-                                     const ExhaustiveSearchResult&) const
+                                     const PerformanceConfig&) const
 {
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
     const auto name     = params.GetStream().GetDeviceName();

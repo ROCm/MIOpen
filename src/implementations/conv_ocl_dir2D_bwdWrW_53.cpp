@@ -10,7 +10,7 @@ bool ConvOclBwdWrW53::IsCorrect(const SearchParameters& params) const
 void
 ConvOclBwdWrW53::PrepareForUsage(ImplementationUsageDescription& result,
                                  const SearchParameters& params,
-                                 const ExhaustiveSearchResult&) const
+                                 const PerformanceConfig&) const
 {
     size_t localMemSize = 64 * 1024;
 

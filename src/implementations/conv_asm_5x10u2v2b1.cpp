@@ -52,7 +52,7 @@ bool ConvAsm5x10u2v2b1::IsCorrect(const SearchParameters& params) const
 void
 ConvAsm5x10u2v2b1::PrepareForUsage(ImplementationUsageDescription& result,
                                    const SearchParameters& params,
-                                   const ExhaustiveSearchResult&) const
+                                   const PerformanceConfig&) const
 {
     std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", params.out_height);

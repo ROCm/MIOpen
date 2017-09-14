@@ -45,7 +45,7 @@ void
 ConvAsm7x7c3h224w224k64u2v2p3q3f1::PrepareForUsage(
     ImplementationUsageDescription& result,
     const SearchParameters& params,
-    const ExhaustiveSearchResult&) const
+    const PerformanceConfig&) const
 {
     const int out_w =
         (params.in_width + params.pad0 * 2 + params.kernel_stride0 - params.kernel_size0) /

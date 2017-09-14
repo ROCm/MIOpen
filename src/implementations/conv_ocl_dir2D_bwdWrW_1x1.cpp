@@ -246,7 +246,7 @@ bool ConvOclBwdWrW1x1::IsCorrect(const SearchParameters& params) const
 void
 ConvOclBwdWrW1x1::PrepareForUsage(ImplementationUsageDescription& result,
                                   const SearchParameters& params,
-                                  const ExhaustiveSearchResult&) const
+                                  const PerformanceConfig&) const
 {
     if(params.n_passes)
     {

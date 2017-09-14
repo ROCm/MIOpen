@@ -13,7 +13,7 @@ void
 ConvOclDirectFwd11x11::PrepareForUsage(
     ImplementationUsageDescription& result,
     const SearchParameters& params,
-    const ExhaustiveSearchResult&) const
+    const PerformanceConfig&) const
 {
     // size_t localMemSize = 64 * 1024;
     auto hw_wave_sz = 64;

@@ -6,10 +6,10 @@ namespace miopen {
 void
 ConvOclDirectFwd::PrepareForUsage(ImplementationUsageDescription& result,
                                   const SearchParameters& params,
-                                  const ExhaustiveSearchResult& exhaustive_search_result) const
+                                  const PerformanceConfig& exhaustive_search_result) const
 {
     const auto& searched_params =
-        dynamic_cast<const ExhaustiveSearchResultImpl&>(exhaustive_search_result);
+        dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
 
     // std::size_t localMemSize = params.stream.GetLocalMemorySize();
 

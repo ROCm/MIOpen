@@ -12,7 +12,7 @@ bool ConvOclDirectFwdGen::IsCorrect(const SearchParameters& params) const
 void
 ConvOclDirectFwdGen::PrepareForUsage(ImplementationUsageDescription& result,
                                      const SearchParameters& params,
-                                     const ExhaustiveSearchResult&) const
+                                     const PerformanceConfig&) const
 {
     int n_in_stacks = 0;
     if(params.kernel_size1 == 3 && params.kernel_size0 == 3)
