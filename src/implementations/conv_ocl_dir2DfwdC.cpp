@@ -18,10 +18,10 @@ bool ConvOclDirectFwdC::IsCorrect(const SearchParameters& params) const
 void
 ConvOclDirectFwdC::PrepareForUsage(ImplementationUsageDescription& result,
                                    const SearchParameters& params,
-                                   const ExhaustiveSearchResult& exhaustive_search_result) const
+                                   const PerformanceConfig& exhaustive_search_result) const
 {
     const auto& searched_params =
-        dynamic_cast<const ExhaustiveSearchResultImpl&>(exhaustive_search_result);
+        dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
 
     // if (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
     //{

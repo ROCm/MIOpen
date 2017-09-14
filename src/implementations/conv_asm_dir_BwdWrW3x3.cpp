@@ -418,7 +418,7 @@ bool ConvAsmBwdWrW3x3::IsFast(const SearchParameters&) const { return true; }
 void
 ConvAsmBwdWrW3x3::PrepareForUsage(ImplementationUsageDescription& result,
                                   const SearchParameters& params,
-                                  const ExhaustiveSearchResult&) const
+                                  const PerformanceConfig&) const
 {
     std::ostringstream options;
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N

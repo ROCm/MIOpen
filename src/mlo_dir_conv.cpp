@@ -141,7 +141,7 @@ int mlo_construct_direct2D::mloConstruct()
            (no_perf_filtering || i.IsFast(_search_params)))
         {
             const auto exhaustive_search_result =
-                i.PrepareExhaustiveSearchResult(_search_params);
+                i.Find(_search_params);
             miopen::ImplementationUsageDescription result;
             i.PrepareForUsage(result, _search_params, *exhaustive_search_result);
 

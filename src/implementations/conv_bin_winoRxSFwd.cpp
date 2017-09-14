@@ -132,7 +132,7 @@ void
 ConvBinWinogradRxSFwd::PrepareForUsage(
     ImplementationUsageDescription& result,
     const SearchParameters& params,
-    const ExhaustiveSearchResult&) const
+    const PerformanceConfig&) const
 {
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
     const auto name     = params.GetStream().GetDeviceName();

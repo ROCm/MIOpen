@@ -556,7 +556,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 construct_params.mloFillSearchParams(search_params);
                 search_params.n_passes = true;
 
-                auto esr = traits.PrepareExhaustiveSearchResult(search_params);
+                auto esr = traits.Find(search_params);
                 ImplementationUsageDescription construct_result;
                 traits.PrepareForUsage(construct_result, search_params, *esr);
                 auto n_passes = construct_result.passes;
@@ -720,6 +720,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 bool timed  = handle.IsProfilingEnabled();
                 float timev = ExecuteFwdFFTKernel(
                     handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed);
+                        // FIXME: Is workSpaceSize correct here? It seems that workspace_fft is.
 
                 if(timed)
                 {

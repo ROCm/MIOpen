@@ -14,7 +14,7 @@ bool ConvOclDirectFwd3x3::IsCorrect(const SearchParameters& params) const
 void
 ConvOclDirectFwd3x3::PrepareForUsage(ImplementationUsageDescription& result,
                                      const SearchParameters& params,
-                                     const ExhaustiveSearchResult&) const
+                                     const PerformanceConfig&) const
 {
     // size_t localMemSize = params.stream.GetLocalMemorySize();
     auto hw_wave_sz = 64;
