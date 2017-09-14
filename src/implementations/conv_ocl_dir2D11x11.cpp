@@ -2,6 +2,8 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
+namespace impl {
+
 bool ConvOclDirectFwd11x11::IsCorrect(const SearchParameters& params) const
 {
     return params.forward && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
@@ -10,8 +12,8 @@ bool ConvOclDirectFwd11x11::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvOclDirectFwd11x11::PrepareForUsage(
-    ImplementationUsageDescription& result,
+ConvOclDirectFwd11x11::MakeUsage(
+    Usage& result,
     const SearchParameters& params,
     const PerformanceConfig&) const
 {
@@ -279,4 +281,5 @@ ConvOclDirectFwd11x11::PrepareForUsage(
         result.construction_params.push_back(construction_parameters);
     }
 }
+} // namespace impl
 } // namespace miopen

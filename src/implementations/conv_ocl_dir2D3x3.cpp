@@ -2,6 +2,8 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
+namespace impl {
+
 bool ConvOclDirectFwd3x3::IsCorrect(const SearchParameters& params) const
 {
     return (params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad1 == 1 &&
@@ -12,7 +14,7 @@ bool ConvOclDirectFwd3x3::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvOclDirectFwd3x3::PrepareForUsage(ImplementationUsageDescription& result,
+ConvOclDirectFwd3x3::MakeUsage(Usage& result,
                                      const SearchParameters& params,
                                      const PerformanceConfig&) const
 {
@@ -50,7 +52,7 @@ ConvOclDirectFwd3x3::PrepareForUsage(ImplementationUsageDescription& result,
     if(logical_wave_sz > GRP_SZ)
     {
         printf("Conv3x3 conf error\n");
-        result = ImplementationUsageDescription(static_cast<miopenStatus_t>(-1));
+        result = Usage(static_cast<miopenStatus_t>(-1));
         return;
     }
     int logical_n_waves = std::max(1, GRP_SZ / logical_wave_sz);
@@ -165,4 +167,5 @@ ConvOclDirectFwd3x3::PrepareForUsage(ImplementationUsageDescription& result,
 
     result.construction_params.push_back(construction_parameters);
 }
+} // namespace impl
 } // namespace miopen

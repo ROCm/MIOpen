@@ -2,6 +2,8 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
+namespace impl {
+
 bool ConvOclDirectFwdGen::IsCorrect(const SearchParameters& params) const
 {
     return params.forward && (params.kernel_size0 > 11 || params.kernel_size1 > 11 ||
@@ -10,7 +12,7 @@ bool ConvOclDirectFwdGen::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvOclDirectFwdGen::PrepareForUsage(ImplementationUsageDescription& result,
+ConvOclDirectFwdGen::MakeUsage(Usage& result,
                                      const SearchParameters& params,
                                      const PerformanceConfig&) const
 {
@@ -213,4 +215,5 @@ ConvOclDirectFwdGen::PrepareForUsage(ImplementationUsageDescription& result,
 
     result.construction_params.push_back(construction_params);
 }
+} // namespace impl
 } // namespace miopen
