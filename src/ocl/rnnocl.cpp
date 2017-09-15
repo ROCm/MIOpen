@@ -89,7 +89,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	{
 		MIOPEN_THROW(miopenStatusBadParm);
 	}
-
+*/
 	int in_n, in_c, in_h, in_w;
 	//		std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
@@ -98,7 +98,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 	int out_h, out_w;
 	//		std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
-
+/*
 	if (workSpace == nullptr ||
 		workSpaceSize < ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc) || reserveSpaceSize < ForwardGetReserveSpaceSize(handle, wDesc, xDesc, yDesc))
 	{
@@ -181,7 +181,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	*/
 };
 
-void RNNDescriptor::(Handle& handle,
+void RNNDescriptor::RNNBackwardData(Handle& handle,
 	const int seqLength,
 	const TensorDescriptor& yDesc,
 	ConstData_t y,
@@ -224,8 +224,17 @@ void RNNDescriptor::(Handle& handle,
 
 
 	*/
-};
 
+        int in_n, in_c, in_h, in_w;
+	//		std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+
+	int wei_n, wei_h, wei_w;
+	//		std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+
+	int out_h, out_w;
+	//		std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+};
+/*
 void RNNBackwardWeights(Handle& handle,
 	const int seqLength,
 	const TensorDescriptor& xDesc,
@@ -242,6 +251,14 @@ void RNNBackwardWeights(Handle& handle,
 	size_t reserveSpaceSize) const
 {
 
-};
+        int in_n, in_c, in_h, in_w;
+	//		std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
+	int wei_n, wei_h, wei_w;
+	//		std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+
+	int out_h, out_w;
+	//		std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+};
+*/
 } // namespace miopen
