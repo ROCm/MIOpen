@@ -178,8 +178,8 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	size_t reserveSpaceSize)
 {
 
-    MIOPEN_LOG_FUNCTION(
-		rnnDesc, seqLength, xDesc, x, hxDesc, hx, cxDesc, cx, wDesc, w, yDesc, y, hyDesc, hy, cyDesc, cy, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
+//    MIOPEN_LOG_FUNCTION(
+//		rnnDesc, seqLength, xDesc, x, hxDesc, hx, cxDesc, cx, wDesc, w, yDesc, y, hyDesc, hy, cyDesc, cy, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
     return miopen::try_([&] {
         miopen::deref(rnnDesc).RNNForwardTraining(miopen::deref(handle),
 													seqLength,
@@ -309,8 +309,8 @@ miopenRNNBackwardData(miopenHandle_t handle,
 	size_t reserveSpaceSize)
 {
 
-    MIOPEN_LOG_FUNCTION(
-	rnnDesc, seqLength, yDesc, y, dyDesc, dy, dhyDesc, dhy, dcyDesc, dcy, wDesc, w, hxDesc, hx, cxDesc, cx, dxDesc, dx, dhxDesc, dhx, dcxDesc, dcx, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
+//    MIOPEN_LOG_FUNCTION(
+//	rnnDesc, seqLength, yDesc, y, dyDesc, dy, dhyDesc, dhy, dcyDesc, dcy, wDesc, w, hxDesc, hx, cxDesc, cx, dxDesc, dx, dhxDesc, dhx, dcxDesc, dcx, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
     return miopen::try_([&] {
         miopen::deref(rnnDesc).RNNBackwardData(miopen::deref(handle),
 		seqLength,
@@ -447,8 +447,8 @@ miopenRNNBackwardWeights(miopenHandle_t handle,
 	size_t reserveSpaceSize)
 {
 
-    MIOPEN_LOG_FUNCTION(
-	rnnDesc, seqLength, xDesc, x, hxDesc, hx, dyDesc, dy, workSpace, workSpaceSize, dwDesc, dw, reserveSpace, reserveSpaceSize);
+//    MIOPEN_LOG_FUNCTION(
+//	rnnDesc, seqLength, xDesc, x, hxDesc, hx, dyDesc, dy, workSpace, workSpaceSize, dwDesc, dw, reserveSpace, reserveSpaceSize);
     return miopen::try_([&] {
         miopen::deref(rnnDesc).RNNBackwardWeights(miopen::deref(handle),
 			seqLength,
