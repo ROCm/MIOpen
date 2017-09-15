@@ -140,7 +140,7 @@ struct verify_forward_train_bn_per_activation
                     // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
                     adjust = (n_batch == 1) ? variance_accum : (n / (n - 1.0)) * variance_accum;
                     runVar(0, cidx, row, column) =
-                        expAvgFactor * runVar(0, cidx, row, column) + (1 - expAvgFactor) * adjust;
+                        (1 - expAvgFactor) * runVar(0, cidx, row, column) + expAvgFactor * adjust;
 
                     saveMean(0, cidx, row, column)   = mean_accum;
                     saveInvVar(0, cidx, row, column) = elemInvVar;

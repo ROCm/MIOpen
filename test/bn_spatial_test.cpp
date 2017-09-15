@@ -192,7 +192,7 @@ struct verify_forward_train_bn_spatial
             adjust = (n_batch * height * width == 1) ? variance_accum
                                                      : (nhw / (nhw - 1)) * variance_accum;
             runVar(0, cidx, 0, 0) =
-                expAvgFactor * runVar(0, cidx, 0, 0) + (1 - expAvgFactor) * adjust;
+                (1 - expAvgFactor) * runVar(0, cidx, 0, 0) + expAvgFactor * adjust;
         });
 
 #if(MIO_BN_TIME_EVERYTHING == 1)

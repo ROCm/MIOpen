@@ -122,7 +122,7 @@ int miopenBNFwdTrainPerActivationRunHost(
                             ? variance_accum
                             : (double(n_batchs) / double(n_batchs - 1) * variance_accum);
                     runningVariance[adjIndex] =
-                        expAvgFactor * runningVariance[adjIndex] + (1.0 - expAvgFactor) * adjust;
+                        (1 - expAvgFactor) * runningVariance[cidx] + expAvgFactor * adjust;
                 }
 
                 // #3 add epsilon for numeric stability, sqr_root, and invert
@@ -320,7 +320,7 @@ int miopenBNFwdTrainSpatialRunHost(
             double adjust = (n_batchs * in_cstride == 1) ? variance_accum
                                                          : (NHW / (NHW - 1.0) * variance_accum);
             runningVariance[cidx] =
-                expAvgFactor * runningVariance[cidx] + (1 - expAvgFactor) * adjust;
+                (1 - expAvgFactor) * runningVariance[cidx] + expAvgFactor * adjust;
         }
 
         // #3 add epsilon for numeric stability, sqr_root, and invert
