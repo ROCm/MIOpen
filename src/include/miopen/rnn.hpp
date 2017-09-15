@@ -162,20 +162,30 @@ int FindDirectKernel(Handle& handle,
                      std::vector<KernelInvoke>& kernels,
                      bool exhaustiveSearch,
                      int direction) const;
+					 */
 
-void ConvolutionForward(Handle& handle,
-                        const void* alpha,
-                        const TensorDescriptor& xDesc,
-                        ConstData_t x,
-                        const TensorDescriptor& wDesc,
-                        ConstData_t w,
-                        miopenConvFwdAlgorithm_t algo,
-                        const void* beta,
-                        const TensorDescriptor& yDesc,
-                        Data_t y,
-                        Data_t workSpace,
-                        size_t workSpaceSize) const;
+void RNNForwardTraining(Handle& handle,
+	const int seqLength,
+	const TensorDescriptor& xDesc,
+	ConstData_t x,
+	const TensorDescriptor& hxDesc,
+	ConstData_t hx,
+	const TensorDescriptor& cxDesc,
+	ConstData_t cx,
+	const TensorDescriptor& wDesc,
+	ConstData_t w,
+	const TensorDescriptor& yDesc,
+	Data_t y,
+	const TensorDescriptor& hyDesc,
+	Data_t hy,
+	const TensorDescriptor& cyDesc,
+	Data_t cy,
+	Data_t workSpace,
+	size_t workSpaceSize,
+	Data_t reserveSpace,
+	size_t reserveSpaceSize) const;
 
+/*
 size_t BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
                                         const TensorDescriptor& wDesc,
                                         const TensorDescriptor& dyDesc) const;
@@ -202,20 +212,36 @@ void FindConvBwdDataAlgorithm(Handle& handle,
                               Data_t workSpace,
                               size_t workSpaceSize,
                               bool exhaustiveSearch) const;
+*/
 
-void ConvolutionBackwardData(Handle& handle,
-                             const void* alpha,
-                             const TensorDescriptor& dyDesc,
-                             ConstData_t dy,
-                             const TensorDescriptor& wDesc,
-                             ConstData_t w,
-                             miopenConvBwdDataAlgorithm_t algo,
-                             const void* beta,
-                             const TensorDescriptor& dxDesc,
-                             Data_t dx,
-                             Data_t workSpace,
-                             size_t workSpaceSize) const;
+void RNNBackwardData(Handle& handle,
+	const int seqLength,
+	const TensorDescriptor& yDesc,
+	ConstData_t y,
+	const TensorDescriptor& dyDesc,
+	ConstData_t dy,
+	const TensorDescriptor& dhyDesc,
+	ConstData_t dhy,
+	const TensorDescriptor& dcyDesc,
+	ConstData_t dcy,
+	const TensorDescriptor& wDesc,
+	ConstData_t w,
+	const TensorDescriptor& hxDesc,
+	ConstData_t hx,
+	const TensorDescriptor& cxDesc,
+	ConstData_t cx,
+	const TensorDescriptor& dxDesc,
+	Data_t dx,
+	const TensorDescriptor& dhxDesc,
+	Data_t dhx,
+	const TensorDescriptor& dcxDesc,
+	Data_t dcx,
+	Data_t workSpace,
+	size_t workSpaceSize,
+	ConstData_t reserveSpace,
+	size_t reserveSpaceSize) const;
 
+/*
 size_t ConvolutionBackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                   const TensorDescriptor& dyDesc,
                                                   const TensorDescriptor& xDesc,
@@ -243,20 +269,23 @@ void FindConvBwdWeightsAlgorithm(Handle& handle,
                                  Data_t workSpace,
                                  size_t workSpaceSize,
                                  bool exhaustiveSearch) const;
+								 */
 
-void ConvolutionBackwardWeights(Handle& handle,
-                                const void* alpha,
-                                const TensorDescriptor& dyDesc,
-                                ConstData_t dy,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                miopenConvBwdWeightsAlgorithm_t algo,
-                                const void* beta,
-                                const TensorDescriptor& dwDesc,
-                                Data_t dw,
-                                Data_t workSpace,
-                                size_t workSpaceSize) const;
-                                                                    */
+void RNNBackwardWeights(Handle& handle,
+	const int seqLength,
+	const TensorDescriptor& xDesc,
+	ConstData_t x,
+	const TensorDescriptor& hxDesc,
+	ConstData_t hx,
+	const TensorDescriptor& dyDesc,
+	ConstData_t dy,
+	ConstData_t workSpace,
+	size_t workSpaceSize,
+	const TensorDescriptor& dwDesc,
+	Data_t dw,
+	ConstData_t reserveSpace,
+	size_t reserveSpaceSize) const;
+                                                                    
     miopenRNNMode_t mode;
     int seqLength;
     int layer;
