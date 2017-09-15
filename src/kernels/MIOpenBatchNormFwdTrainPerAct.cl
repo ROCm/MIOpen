@@ -179,8 +179,7 @@ Note from cuDNN: expAvgFactor
 #if(MIO_RUNNING_RESULT == 1)
             const _FLOAT adjust = (MIO_BN_N == 1) ? variance_accum : variance_accum * (N / (N - 1));
             const _FLOAT tmp    = mad((_FLOAT)-expAvgFactor, adjust, adjust);
-            resultRunningVariance[adjIndex] =
-                mad((_FLOAT)expAvgFactor, resultRunningVariance[adjIndex], tmp);
+            resultRunningVariance[adjIndex] = (1 - (_FLOAT)expAvgFactor)*resultRunningVariance[adjIndex] + (_FLOAT)expAvgFactor * adjust;
 #endif
 
             // #3 add epsilon for numeric stability, sqr_root, and invert
