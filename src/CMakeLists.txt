@@ -163,6 +163,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
         ocl/softmaxocl.cpp
+        ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/gcn_asm_utils.cpp
         pooling.cpp
