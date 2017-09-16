@@ -85,17 +85,18 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
         MIOPEN_THROW(miopenStatusBadParm, "Types do not match for the filter");
     }
 
-    std::size_t input_n;
-    std::size_t input_c;
-    std::size_t input_h;
-    std::size_t input_w;
+    // We use signed integers here to avoid possible underflows
+    std::ptrdiff_t input_n;
+    std::ptrdiff_t input_c;
+    std::ptrdiff_t input_h;
+    std::ptrdiff_t input_w;
 
     std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(inputTensorDesc.GetLengths());
 
-    std::size_t filter_k;
-    std::size_t filter_c;
-    std::size_t filter_h;
-    std::size_t filter_w;
+    std::ptrdiff_t filter_k;
+    std::ptrdiff_t filter_c;
+    std::ptrdiff_t filter_h;
+    std::ptrdiff_t filter_w;
 
     std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tie4(filterDesc.GetLengths());
 
@@ -114,23 +115,23 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
         }
     }
 
-    std::size_t output_c;
-    std::size_t output_h;
-    std::size_t output_w;
+    std::ptrdiff_t output_c;
+    std::ptrdiff_t output_h;
+    std::ptrdiff_t output_w;
     if(mode == miopenTranspose)
     {
         output_c = filter_c;
-        output_h = std::max<std::size_t>(
-            1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1) - 2 * pad_h);
-        output_w = std::max<std::size_t>(
-            1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1) - 2 * pad_w);
+        output_h = std::max<std::ptrdiff_t>(
+            1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h);
+        output_w = std::max<std::ptrdiff_t>(
+            1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
     }
     else
     {
         output_c = filter_k;
-        output_h = std::max<std::size_t>(
+        output_h = std::max<std::ptrdiff_t>(
             1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
-        output_w = std::max<std::size_t>(
+        output_w = std::max<std::ptrdiff_t>(
             1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
     }
 
