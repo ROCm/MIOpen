@@ -234,8 +234,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 	int out_h, out_w;
 	//		std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 };
-/*
-void RNNBackwardWeights(Handle& handle,
+
+void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 	const int seqLength,
 	const TensorDescriptor& xDesc,
 	ConstData_t x,
@@ -260,5 +260,5 @@ void RNNBackwardWeights(Handle& handle,
 	int out_h, out_w;
 	//		std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 };
-*/
+
 } // namespace miopen

@@ -47,6 +47,7 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>
