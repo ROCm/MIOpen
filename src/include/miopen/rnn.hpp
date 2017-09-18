@@ -53,8 +53,8 @@ bool operator<(const PerfField& p) const { return (time < p.time); }
 struct RNNDescriptor : miopenRNNDescriptor
 {
 
-    RNNDescriptor(int seqLength = 1, int layer = 1, int bidir = 0);
-    RNNDescriptor(miopenRNNMode_t p_mode, int seqLength = 1, int layer = 1, int bidir = 0);
+    RNNDescriptor(int seqLength = 1, int layer = 1, int bidir = 0, int bias = 0);
+    RNNDescriptor(miopenRNNMode_t p_mode, int seqLength = 1, int layer = 1, int bidir = 0, int bias = 0);
 
     /*
 std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
@@ -183,7 +183,13 @@ void RNNForwardTraining(Handle& handle,
 	Data_t workSpace,
 	size_t workSpaceSize,
 	Data_t reserveSpace,
-	size_t reserveSpaceSize) const;
+	size_t reserveSpaceSize, 
+	const int *in_n,
+	const int in_h,
+	const int out_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h) const;
 
 /*
 size_t BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
@@ -290,6 +296,7 @@ void RNNBackwardWeights(Handle& handle,
     int seqLength;
     int layer;
     int bidir;
+	int bias;
 };
 /*
 void ConvolutionBackwardBias(Handle& handle,

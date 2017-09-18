@@ -75,7 +75,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	Data_t workSpace,
 	size_t workSpaceSize,
 	Data_t reserveSpace,
-	size_t reserveSpaceSize) const
+	size_t reserveSpaceSize,
+	const int *in_n,
+	const int in_h,
+	const int out_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h) const
 {/*
 	if (x == nullptr || w == nullptr || y == nullptr)
 	{
@@ -90,13 +96,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		MIOPEN_THROW(miopenStatusBadParm);
 	}
 */
-	int in_n, in_c, in_h, in_w;
+//	int in_n, in_c, in_h, in_w;
 	//		std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
-	int wei_n, wei_h, wei_w;
-	//		std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
-
-	int out_h, out_w;
+//	int out_h, out_w;
 	//		std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
 /*
 	if (workSpace == nullptr ||
