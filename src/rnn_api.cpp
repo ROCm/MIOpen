@@ -39,24 +39,25 @@ extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDe
 }
 
 extern "C" miopenStatus_t miopenInitRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir)
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir, int bias)
 {
 
-    //    MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir);
+    //    MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir, bias);
     return miopen::try_(
-        [&] { miopen::deref(rnnDesc) = miopen::RNNDescriptor(mode, seqLength, layer, bidir); });
+        [&] { miopen::deref(rnnDesc) = miopen::RNNDescriptor(mode, seqLength, layer, bidir, bias); });
 }
 
 extern "C" miopenStatus_t miopenGetRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir)
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir, int *bias)
 {
 
-    //	MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir);
+    //	MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir, bias);
     return miopen::try_([&] {
         miopen::deref(mode)      = miopen::deref(rnnDesc).mode;
         miopen::deref(seqLength) = miopen::deref(rnnDesc).seqLength;
         miopen::deref(layer)     = miopen::deref(rnnDesc).layer;
         miopen::deref(bidir)     = miopen::deref(rnnDesc).bidir;
+		miopen::deref(bias) = miopen::deref(rnnDesc).bias;
     });
 }
 
@@ -175,7 +176,13 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	void* workSpace,
 	size_t workSpaceSize,
 	void* reserveSpace,
-	size_t reserveSpaceSize)
+	size_t reserveSpaceSize,
+	const int *in_n,
+	const int in_h,
+	const int out_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h)
 {
 
 //    MIOPEN_LOG_FUNCTION(
@@ -200,7 +207,13 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                    DataCast(workSpace),
                                                    workSpaceSize,
 													DataCast(reserveSpace),
-													reserveSpaceSize);
+													reserveSpaceSize,
+			&in_n,
+			in_h,
+			out_h,
+			hy_d,
+			hy_n,
+			hy_h);
     });
 }
 

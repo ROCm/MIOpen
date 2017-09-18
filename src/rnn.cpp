@@ -32,19 +32,27 @@
 
 namespace miopen {
 
-RNNDescriptor::RNNDescriptor(int p_seqLength, int p_layer, int p_bidir)
-    : mode(miopenRNNTANH), seqLength(p_seqLength), layer(p_layer), bidir(p_bidir)
+RNNDescriptor::RNNDescriptor(int p_seqLength, int p_layer, int p_bidir, int p_bias)
+    : mode(miopenRNNTANH), seqLength(p_seqLength), layer(p_layer), bidir(p_bidir), bias(p_bias)
 {
-    if(seqLength < 0 || layer < 0 || bidir < 0)
+    if(seqLength < 0 || layer < 0)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN cannot be negative");
     }
+	if (bidir != 0 && bidir != 1)
+	{
+		MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
+	}
+	if (bias != 0 && bias != 1)
+	{
+		MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
+	}
 }
 
-RNNDescriptor::RNNDescriptor(miopenRNNMode_t p_mode, int p_seqLength, int p_layer, int p_bidir)
-    : mode(p_mode), seqLength(p_seqLength), layer(p_layer), bidir(p_bidir)
+RNNDescriptor::RNNDescriptor(miopenRNNMode_t p_mode, int p_seqLength, int p_layer, int p_bidir, int p_bias)
+    : mode(p_mode), seqLength(p_seqLength), layer(p_layer), bidir(p_bidir), bias(p_bias)
 {
-    if(seqLength < 0 || layer < 0 || bidir < 0)
+    if(seqLength < 0 || layer < 0)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN cannot be negative");
     }
@@ -52,6 +60,14 @@ RNNDescriptor::RNNDescriptor(miopenRNNMode_t p_mode, int p_seqLength, int p_laye
     {
         MIOPEN_THROW(miopenStatusBadParm, "RNN mode not supported");
     }
+	if (bidir != 0 && bidir != 1)
+	{
+		MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
+	}
+	if (bias != 0 && bias != 1)
+	{
+		MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
+	}
 }
 
 /*
