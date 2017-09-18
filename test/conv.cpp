@@ -424,10 +424,11 @@ struct conv_driver : test_driver
 
     void run()
     {
-        int wei_h, wei_w;
-        std::tie(std::ignore, std::ignore, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
+        int input_h, input_w, wei_h, wei_w;
+        std::tie(input_h, input_w, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
         if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
-           wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w)
+           wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
+           input_h > (2 * filter.pad_h + wei_h) && input_w > (2 * filter.pad_w + wei_w))
         {
             auto out_p = verify(verify_forward_conv<T>{input, weights, filter});
             for(auto& x : out_p.first)
