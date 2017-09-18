@@ -36,6 +36,21 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
+function(add_test_command NAME EXE)
+    if(WIN32)
+        set(WINPATH)
+        foreach(PATH ${CMAKE_FIND_ROOT_PATH})
+            list(APPEND WINPATH ${PATH}/bin)
+        endforeach()
+        file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd"
+            CONTENT "set PATH=${WINPATH};%PATH%
+                    %1 ${ARGN}")
+        add_test(NAME ${NAME} COMMAND ${WINE_CMD} cmd /c "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd" $<TARGET_FILE:${EXE}>)
+    else()
+        add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
+    endif()
+endfunction()
+
 function(add_test_executable TEST_NAME)
     add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
     target_link_libraries(${TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
@@ -45,11 +60,11 @@ function(add_test_executable TEST_NAME)
     endif()
     separate_arguments(MIOPEN_TEST_FLAGS_ARGS UNIX_COMMAND ${MIOPEN_TEST_FLAGS})
     if(MIOPEN_TEST_ALL)
-        set(TEST_COMMAND $<TARGET_FILE:${TEST_NAME}> --all ${MIOPEN_TEST_FLAGS_ARGS})
+        set(TEST_COMMAND ${TEST_NAME} --all ${MIOPEN_TEST_FLAGS_ARGS})
     else()
-        set(TEST_COMMAND $<TARGET_FILE:${TEST_NAME}> ${MIOPEN_TEST_FLAGS_ARGS})
+        set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLAGS_ARGS})
     endif()
-    add_test(NAME ${TEST_NAME} COMMAND ${WINE_CMD} ${TEST_COMMAND})
+    add_test_command(${TEST_NAME} ${TEST_COMMAND})
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
@@ -69,13 +84,13 @@ endfunction()
 
 if(MIOPEN_TEST_ALL)
     add_custom_test(test_extra
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1, 1, 1, 1 --weights 1, 1, 2, 2 --filter 0 0 3 3
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 227 227  --weights 1 3 11 11 --filter 0 0 4 4 --disable-backward-data
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 224 224  --weights 1 3 11 11 --filter 2 2 4 4
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 128 64 27 27  --weights 192 64 5 5 --filter 2 2 1 1
     )
 endif()
 

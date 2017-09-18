@@ -73,7 +73,7 @@ struct verify_forward_sofmax
 
         auto out_dev = handle.Write(out.data);
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
 
         miopen::SoftmaxForward(handle, &alpha, &beta, input.desc, out_dev.get());
 
@@ -118,7 +118,7 @@ struct verify_backward_sofmax
         auto in_dev  = handle.Write(input.data);
         auto out_dev = handle.Write(out.data);
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
 
         miopen::SoftmaxBackward(
             handle, &alpha, out.desc, out_dev.get(), &beta, input.desc, in_dev.get());
