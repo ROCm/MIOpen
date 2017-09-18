@@ -29,9 +29,8 @@
 #include <miopen/float_equal.hpp>
 #include <vector>
 #include <numeric>
-#if MIOPEN_USE_MIOPENGEMM
-#include <miopen/gemm.hpp>
-#endif
+
+#include <miopengemm/gemm.hpp>
 
 namespace miopen {
 
@@ -201,6 +200,16 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 		printf("rnn gpu \n");
 
+		auto confirm = [](cl_int clstat) {
+			if (clstat != CL_SUCCESS)
+			{
+				std::stringstream ss;
+				ss << "OpenCL error status : " << clstat;
+				throw std::runtime_error(ss.str());
+			}
+		};
+
+
 		cl_int  clstat;
 		size_t  platform_id = 0;
 		cl_uint num_platforms;
@@ -237,7 +246,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			// from input
 			if (li == 0)
 			{
-				GemmStatus gemm0(true,
+				MIOpenGEMM::gemm0<float>(true,
 					false,
 					false,
 					hy_h,
