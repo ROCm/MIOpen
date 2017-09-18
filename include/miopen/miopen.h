@@ -1654,10 +1654,11 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rn
 * @param seqLength  Number of iterations to unroll over
 * @param layer      Number of hidden stacks
 * @param bidir      uni- or bi-direction
+* @param bias       bias or not
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir);
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir, int bias);
 
 /*! @brief Retrieves a RNN layer descriptor's details
 *
@@ -1666,10 +1667,11 @@ MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(
 * @param seqLength  Number of iterations to unroll over
 * @param layer      Number of hidden stacks
 * @param bidir      uni- or bi-direction
+* @param bias       bias or not
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir);
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir, int *bias);
 
 /*! @brief Destroys the tensor descriptor object
 *
@@ -1723,7 +1725,13 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	void* workSpace,
 	size_t workSpaceSize,
 	void* reserveSpace,
-	size_t reserveSpaceSize);
+	size_t reserveSpaceSize,
+	const int *in_n,
+	const int in_h,
+	const int out_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h);
 
 /*! @brief Execute a backward data RNN layer
 *
