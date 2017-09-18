@@ -75,13 +75,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	Data_t workSpace,
 	size_t workSpaceSize,
 	Data_t reserveSpace,
-	size_t reserveSpaceSize,
-	const std::vector<int> &in_n,
-	const int in_h,
-	const int out_h,
-	const int hy_d,
-	const int hy_n,
-	const int hy_h) const
+	size_t reserveSpaceSize) const
 {/*
 	if (x == nullptr || w == nullptr || y == nullptr)
 	{
