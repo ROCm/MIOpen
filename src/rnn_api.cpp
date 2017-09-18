@@ -28,7 +28,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
-
+#include <vector>
 // TODO: Make miopenConvAlgoPerf_t loggable
 // inline std::ostream& operator<<(std::ostream& os, miopenConvAlgoPerf_t) { return os; }
 
@@ -176,7 +176,8 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	void* workSpace,
 	size_t workSpaceSize,
 	void* reserveSpace,
-	size_t reserveSpaceSize)
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n)
 {
 
 //    MIOPEN_LOG_FUNCTION(
@@ -201,7 +202,8 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                    DataCast(workSpace),
                                                    workSpaceSize,
 													DataCast(reserveSpace),
-													reserveSpaceSize);
+													reserveSpaceSize,
+			in_n);
     });
 }
 

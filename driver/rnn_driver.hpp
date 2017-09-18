@@ -719,7 +719,11 @@ int RNNDriver<T>::FindForward(int& ret_algo_count,
 template <typename T>
 int RNNDriver<T>::RunForwardGPU()
 {
-    
+	std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+	int in_h;
+	in_h = in_n.back();
+	in_n.pop_back();
+
 //int ret_algo_count;
 //int request_algo_count = 2;
 //std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
@@ -758,7 +762,8 @@ for(int i = 0; i < inflags.GetValueInt("iter"); i++)
                              workspace_dev->GetMem(),
                              workspace_dev->GetSize(),
 		                     reservespace_dev->GetMem(),
-		                     reservespace_dev->GetSize());
+		                     reservespace_dev->GetSize(),
+		in_n);
 }
 /*
 if(inflags.GetValueInt("time") == 1)
