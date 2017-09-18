@@ -34,7 +34,7 @@
 #include <miopen/miopen.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/tensor.hpp>
-
+#include <vector>
 namespace miopen {
 
 /*
@@ -183,7 +183,8 @@ void RNNForwardTraining(Handle& handle,
 	Data_t workSpace,
 	size_t workSpaceSize,
 	Data_t reserveSpace,
-	size_t reserveSpaceSize) const;
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n) const;
 
 /*
 size_t BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,

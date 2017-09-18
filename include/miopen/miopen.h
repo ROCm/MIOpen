@@ -35,7 +35,7 @@
 
 #include <miopen/config.h>
 #include <miopen/export.h>
-
+#include <vector>
 #if MIOPEN_BACKEND_OPENCL
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
@@ -1725,7 +1725,8 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	void* workSpace,
 	size_t workSpaceSize,
 	void* reserveSpace,
-	size_t reserveSpaceSize);
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n);
 
 /*! @brief Execute a backward data RNN layer
 *
