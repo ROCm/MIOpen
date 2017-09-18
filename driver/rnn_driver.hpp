@@ -882,13 +882,14 @@ miopenGet4dTensorDescriptor(inputTensor,
                             &out_wstride);
     */
 
-    int seqLength, layer, bidir;
+    int seqLength, layer, bidir, bias;
     bool bidirection, biased;
     miopenRNNMode_t mode;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir);
+    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir, &bias);
 
     bidirection = (bidir != 0);
-    biased      = (inflags.GetValueInt("bias") != 0);
+//    biased      = (inflags.GetValueInt("bias") != 0);
+	biased = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -1274,13 +1275,14 @@ miopenGet4dTensorDescriptor(outputTensor,
                             &out_wstride);
     */
 
-    int seqLength, layer, bidir;
+    int seqLength, layer, bidir, bias;
     bool bidirection, biased;
     miopenRNNMode_t mode;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir);
+    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir, &bias);
 
     bidirection = (bidir != 0);
-    biased      = (inflags.GetValueInt("bias") != 0);
+//    biased      = (inflags.GetValueInt("bias") != 0);
+	biased = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -1468,13 +1470,14 @@ miopenGet4dTensorDescriptor(outputTensor,
                             &out_wstride);
     */
 
-    int seqLength, layer, bidir;
+    int seqLength, layer, bidir, bias;
     bool bidirection, biased;
     miopenRNNMode_t mode;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir);
+    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir, &bias);
 
     bidirection = (bidir != 0);
-    biased      = (inflags.GetValueInt("bias") != 0);
+//    biased      = (inflags.GetValueInt("bias") != 0);
+	biased = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
