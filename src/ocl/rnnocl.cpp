@@ -57,7 +57,7 @@ struct AutoEnableProfiling
 
 
 void RNNDescriptor::RNNForwardTraining(Handle& handle,
-	const int seqLength,
+	const int seqLen,
 	const TensorDescriptor& xDesc,
 	ConstData_t x,
 	const TensorDescriptor& hxDesc,
@@ -182,7 +182,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 };
 
 void RNNDescriptor::RNNBackwardData(Handle& handle,
-	const int seqLength,
+	const int seqLen,
 	const TensorDescriptor& yDesc,
 	ConstData_t y,
 	const TensorDescriptor& dyDesc,
@@ -236,7 +236,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 };
 
 void RNNDescriptor::RNNBackwardWeights(Handle& handle,
-	const int seqLength,
+	const int seqLen,
 	const TensorDescriptor& xDesc,
 	ConstData_t x,
 	const TensorDescriptor& hxDesc,
