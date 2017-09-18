@@ -158,7 +158,7 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
 
 extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	const miopenRNNDescriptor_t rnnDesc,
-	const int* seqLen,
+	const int seqLen,
 	const miopenTensorDescriptor_t xDesc,
 	const void* x,
 	const miopenTensorDescriptor_t hxDesc,
@@ -178,11 +178,11 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	void* reserveSpace,
 	size_t reserveSpaceSize,
 	const std::vector<int> &in_n,
-	const int* in_h,
-	const int* out_h,
-	const int* hy_d,
-	const int* hy_n,
-	const int* hy_h)
+	const int in_h,
+	const int out_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h)
 {
 
 //    MIOPEN_LOG_FUNCTION(
