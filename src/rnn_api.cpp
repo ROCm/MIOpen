@@ -157,7 +157,7 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
 
 extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	const miopenRNNDescriptor_t rnnDesc,
-	const int seqLength,
+	const int seqLen,
 	const miopenTensorDescriptor_t xDesc,
 	const void* x,
 	const miopenTensorDescriptor_t hxDesc,
@@ -179,10 +179,10 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 {
 
 //    MIOPEN_LOG_FUNCTION(
-//		rnnDesc, seqLength, xDesc, x, hxDesc, hx, cxDesc, cx, wDesc, w, yDesc, y, hyDesc, hy, cyDesc, cy, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
+//		rnnDesc, seqLen, xDesc, x, hxDesc, hx, cxDesc, cx, wDesc, w, yDesc, y, hyDesc, hy, cyDesc, cy, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
     return miopen::try_([&] {
         miopen::deref(rnnDesc).RNNForwardTraining(miopen::deref(handle),
-													seqLength,
+													seqLen,
                                                    miopen::deref(xDesc),
                                                    DataCast(x),
 													miopen::deref(hxDesc),
@@ -282,7 +282,7 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
 extern "C" miopenStatus_t
 miopenRNNBackwardData(miopenHandle_t handle,
 	const miopenRNNDescriptor_t rnnDesc,
-	const int seqLength,
+	const int seqLen,
 	const miopenTensorDescriptor_t yDesc,
 	const void* y,
 	const miopenTensorDescriptor_t dyDesc,
@@ -310,10 +310,10 @@ miopenRNNBackwardData(miopenHandle_t handle,
 {
 
 //    MIOPEN_LOG_FUNCTION(
-//	rnnDesc, seqLength, yDesc, y, dyDesc, dy, dhyDesc, dhy, dcyDesc, dcy, wDesc, w, hxDesc, hx, cxDesc, cx, dxDesc, dx, dhxDesc, dhx, dcxDesc, dcx, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
+//	rnnDesc, seqLen, yDesc, y, dyDesc, dy, dhyDesc, dhy, dcyDesc, dcy, wDesc, w, hxDesc, hx, cxDesc, cx, dxDesc, dx, dhxDesc, dhx, dcxDesc, dcx, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
     return miopen::try_([&] {
         miopen::deref(rnnDesc).RNNBackwardData(miopen::deref(handle),
-		seqLength,
+		seqLen,
 			miopen::deref(yDesc),
 			DataCast(y),
 			miopen::deref(dyDesc),
@@ -432,7 +432,7 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
 extern "C" miopenStatus_t
 miopenRNNBackwardWeights(miopenHandle_t handle,
 	const miopenRNNDescriptor_t rnnDesc,
-	const int seqLength,
+	const int seqLen,
 	const miopenTensorDescriptor_t xDesc,
 	const void* x,
 	const miopenTensorDescriptor_t hxDesc,
@@ -448,10 +448,10 @@ miopenRNNBackwardWeights(miopenHandle_t handle,
 {
 
 //    MIOPEN_LOG_FUNCTION(
-//	rnnDesc, seqLength, xDesc, x, hxDesc, hx, dyDesc, dy, workSpace, workSpaceSize, dwDesc, dw, reserveSpace, reserveSpaceSize);
+//	rnnDesc, seqLen, xDesc, x, hxDesc, hx, dyDesc, dy, workSpace, workSpaceSize, dwDesc, dw, reserveSpace, reserveSpaceSize);
     return miopen::try_([&] {
         miopen::deref(rnnDesc).RNNBackwardWeights(miopen::deref(handle),
-			seqLength,
+			seqLen,
 			miopen::deref(xDesc),
 			DataCast(x),
 			miopen::deref(hxDesc),

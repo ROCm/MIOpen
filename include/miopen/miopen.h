@@ -1682,7 +1682,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rn
 *
 * @param handle         MIOpen handle
 * @param rnnDesc        RNN layer descriptor
-* @param seqLength      Number of iterations to unroll over
+* @param seqLen         Number of iterations to unroll over
 * @param xDesc          Tensor descriptor for data input tensor x
 * @param x              Data tensor x
 * @param hxDesc         Tensor descriptor for data input tensor hx
@@ -1705,7 +1705,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rn
 */
 MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	const miopenRNNDescriptor_t rnnDesc,
-	const int seqLength,
+	const int seqLen,
 	const miopenTensorDescriptor_t xDesc,
 	const void* x,
 	const miopenTensorDescriptor_t hxDesc,
@@ -1729,7 +1729,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 *
 * @param handle         MIOpen handle
 * @param rnnDesc        RNN layer descriptor
-* @param seqLength      Number of iterations to unroll over
+* @param seqLen         Number of iterations to unroll over
 * @param yDesc          Tensor descriptor for data input tensor y
 * @param y              Data tensor y
 * @param dyDesc         Tensor descriptor for data input tensor dy
@@ -1759,7 +1759,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t
 miopenRNNBackwardData(miopenHandle_t handle,
 	const miopenRNNDescriptor_t rnnDesc,
-	const int seqLength,
+	const int seqLen,
 	const miopenTensorDescriptor_t yDesc,
 	const void* y,
 	const miopenTensorDescriptor_t dyDesc,
@@ -1789,7 +1789,7 @@ miopenRNNBackwardData(miopenHandle_t handle,
 *
 * @param handle         MIOpen handle
 * @param rnnDesc        RNN layer descriptor
-* @param seqLength      Number of iterations to unroll over
+* @param seqLen         Number of iterations to unroll over
 * @param xDesc          Tensor descriptor for data input tensor x
 * @param x              Data tensor x
 * @param hxDesc         Tensor descriptor for data input tensor hx
@@ -1807,7 +1807,7 @@ miopenRNNBackwardData(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t
 miopenRNNBackwardWeights(miopenHandle_t handle,
 	const miopenRNNDescriptor_t rnnDesc,
-	const int seqLength,
+	const int seqLen,
 	const miopenTensorDescriptor_t xDesc,
 	const void* x,
 	const miopenTensorDescriptor_t hxDesc,

@@ -165,7 +165,7 @@ int FindDirectKernel(Handle& handle,
 					 */
 
 void RNNForwardTraining(Handle& handle,
-	const int seqLength,
+	const int seqLen,
 	const TensorDescriptor& xDesc,
 	ConstData_t x,
 	const TensorDescriptor& hxDesc,
@@ -215,7 +215,7 @@ void FindConvBwdDataAlgorithm(Handle& handle,
 */
 
 void RNNBackwardData(Handle& handle,
-	const int seqLength,
+	const int seqLen,
 	const TensorDescriptor& yDesc,
 	ConstData_t y,
 	const TensorDescriptor& dyDesc,
@@ -272,7 +272,7 @@ void FindConvBwdWeightsAlgorithm(Handle& handle,
 								 */
 
 void RNNBackwardWeights(Handle& handle,
-	const int seqLength,
+	const int seqLen,
 	const TensorDescriptor& xDesc,
 	ConstData_t x,
 	const TensorDescriptor& hxDesc,
