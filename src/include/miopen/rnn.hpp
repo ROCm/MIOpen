@@ -184,7 +184,12 @@ void RNNForwardTraining(Handle& handle,
 	size_t workSpaceSize,
 	Data_t reserveSpace,
 	size_t reserveSpaceSize,
-	const std::vector<int> &in_n) const;
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h) const;
 
 /*
 size_t BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,

@@ -28,6 +28,7 @@
 #include <miopen/util.hpp>
 #include <miopen/float_equal.hpp>
 #include <vector>
+#include <numeric>
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
 #endif
@@ -76,7 +77,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	size_t workSpaceSize,
 	Data_t reserveSpace,
 	size_t reserveSpaceSize,
-	const std::vector<int> &in_n) const
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h) const
 {/*
 	if (x == nullptr || w == nullptr || y == nullptr)
 	{
@@ -102,16 +108,43 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	{
 		MIOPEN_THROW("Workspace is required");
 	}
+	*/
 
-	
+//	miopenRNNMode_t mode;
+//	int seqLength;
+//	int layer;
+//	int bidir;
+//	int bias;
+
+	int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0);
+
+	bool bidirection = (bidir != 0);
+	bool biased = (bias != 0);
+	int numlayer = layer;
+	int bacc, baccbi;
+	int bi = bidirection ? 2 : 1;
+
+	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	if (biased)
+	{
+		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+	}
+
+	int wei_shift_bias =
+		((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
+	int in_stride = in_h;
+	int hy_stride = hy_h * bi;
+	int out_stride = out_h;
+	int wei_stride = hy_h * bi;
+
 	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
 	{				
-		std::string network_config;
+//		std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-		CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
-		GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
+//		CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+//		GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
-		float time_0 = 0;
+/*		float time_0 = 0;
 		float t1 = 0;
 		for (int i = 0; i < in_n; i++)
 		{
@@ -164,19 +197,85 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				}
 			}
 		}
+		*/
+
+		printf("rnn gpu \n");
+
+		cl_int  clstat;
+		size_t  platform_id = 0;
+		cl_uint num_platforms;
+		clGetPlatformIDs(0, nullptr, &num_platforms);
+		std::vector<cl_platform_id> platforms(num_platforms);
+		
+		clstat = clGetPlatformIDs(num_platforms, platforms.data(), nullptr);
+		confirm(clstat);
+		cl_platform_id platform = platforms[platform_id];
+
+		size_t device_id = 0;
+		cl_uint num_devices;
+		clstat = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &num_devices);
+		std::vector<cl_device_id> devices(num_devices);
+		clstat = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices, devices.data(), nullptr);
+		cl_device_id device = devices[device_id];
+
+		cl_context context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &clstat);
+		cl_queue_properties properties = 0;  // CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE; 
+
+#if (CL_VERSION_2_0 == 1) 
+		std::vector<cl_queue_properties> props = { CL_QUEUE_PROPERTIES, properties, 0 };
+		cl_command_queue Q = clCreateCommandQueueWithProperties(context, device, props.data(), &clstat);
+#else
+		cl_command_queue Q = clCreateCommandQueue(context, device, properties, &clstat);
+#endif
+
+
+		for (int li = 0; li < numlayer; li++)
+		{
+			int hid_shift = li * batch_n * hy_h * bi;
+			int hx_shift = li * bi * in_n[0] * hy_h;
+
+			// from input
+			if (li == 0)
+			{
+				GemmStatus gemm0(true,
+					false,
+					false,
+					hy_h,
+					hy_h,
+					in_h,
+					1,
+					w,
+					0,
+					wei_stride,
+					x,
+					0,
+					in_stride,
+					1,
+					y,
+					hid_shift,
+					hy_stride,
+					&Q,
+					0,
+					nullptr,
+					nullptr);
+
+			}
+			clFinish(Q);
+
+		}
 #else
 		MIOPEN_THROW("GEMM is not supported");
 #endif
 	}
 	else if (mode == miopenLSTM)
 	{
-
+		printf("lstm gpu \n");
 	}
 	else if (mode == miopenGRU)
 	{
-
+		printf("gru gpu \n");
 	}
-	*/
+	
 };
 
 void RNNDescriptor::RNNBackwardData(Handle& handle,
