@@ -775,7 +775,7 @@ for(int i = 0; i < inflags.GetValueInt("iter"); i++)
                              workspace_dev->GetSize(),
 		                     reservespace_dev->GetMem(),
 		                     reservespace_dev->GetSize(),
-		&in_n,
+		in_n,
 		in_h,
 		out_h,
 		hy_d,
