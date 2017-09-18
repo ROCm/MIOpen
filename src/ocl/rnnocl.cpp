@@ -27,7 +27,7 @@
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
 #include <miopen/float_equal.hpp>
-
+#include <vector>
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
 #endif

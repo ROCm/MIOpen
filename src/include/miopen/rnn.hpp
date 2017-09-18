@@ -34,7 +34,7 @@
 #include <miopen/miopen.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/tensor.hpp>
-
+#include <vector>
 namespace miopen {
 
 /*
