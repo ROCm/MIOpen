@@ -374,7 +374,7 @@ gcnAsmConv3x3WrW:
 
       vals_to_load = partial_chunks
       vo = voffset_part_\inout
-      .rept (full_chunks / 4)
+      .rept (partial_chunks / 4)
          .single_vload line_base, vo, so, desc, 4
       .endr
       .single_vload line_base, vo, so, desc, 3
