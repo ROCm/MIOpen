@@ -263,6 +263,7 @@ __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
     int gid = get_group_id(0);
     int lid = get_local_id(0);
 
+    //if(gid>=b_nstride) return;
     MIOPEN_TYPE operand = b[gid];
     int o_h_div         = bitmap & (1 << 0) ? 1 : c_w;
     int o_d_div         = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
