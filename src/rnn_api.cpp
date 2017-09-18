@@ -177,7 +177,12 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	size_t workSpaceSize,
 	void* reserveSpace,
 	size_t reserveSpaceSize,
-	const std::vector<int> &in_n)
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h)
 {
 
 //    MIOPEN_LOG_FUNCTION(
@@ -203,7 +208,12 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                    workSpaceSize,
 													DataCast(reserveSpace),
 													reserveSpaceSize,
-			in_n);
+			in_n,
+			in_h,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h);
     });
 }
 

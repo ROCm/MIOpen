@@ -724,6 +724,16 @@ int RNNDriver<T>::RunForwardGPU()
 	in_h = in_n.back();
 	in_n.pop_back();
 
+	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+	int out_h = out_len[0];
+
+	int hy_d, hy_n, hy_h;
+	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
+
+	hy_d = hid_len[0];
+	hy_n = in_n[0];
+	hy_h = hid_len[1];
+
 //int ret_algo_count;
 //int request_algo_count = 2;
 //std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
@@ -763,7 +773,12 @@ for(int i = 0; i < inflags.GetValueInt("iter"); i++)
                              workspace_dev->GetSize(),
 		                     reservespace_dev->GetMem(),
 		                     reservespace_dev->GetSize(),
-		in_n);
+		in_n,
+		in_h,
+		hy_d,
+		hy_n,
+		hy_h,
+		out_h);
 }
 /*
 if(inflags.GetValueInt("time") == 1)
