@@ -133,7 +133,7 @@ struct verify_forward_pooling
         auto out_dev       = handle.Create<T>(out.data.size());
         auto workspace_dev = handle.Write(indices);
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
         filter.Forward(handle,
                        &alpha,
                        input.desc,
@@ -256,7 +256,7 @@ struct verify_backward_pooling
         // auto workspace_dev = handle.Write(workspace);
         auto workspace_dev = handle.Write(indices);
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
         filter.Backward(handle,
                         &alpha,
                         // y

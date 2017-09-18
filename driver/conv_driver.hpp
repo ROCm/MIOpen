@@ -42,9 +42,12 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
@@ -210,6 +213,7 @@ int ConvDriver<T>::GetandSetData()
     SetConvDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengths();
+
     SetTensor4d(outputTensor, out_len);
 
     if(inflags.GetValueInt("bias") != 0)
@@ -370,6 +374,14 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     size_t workSpaceSize_fwd = 0;
     miopenConvolutionForwardGetWorkSpaceSize(
         GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);
+
+    // Workaround: Pad buffers allocations to be a multiple of 2M
+    if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+    {
+        // PadBufferSize(in_sz, 4);
+        PadBufferSize(wei_sz, 4);
+        PadBufferSize(out_sz, 4);
+    }
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
@@ -537,17 +549,13 @@ int ConvDriver<T>::RunForwardGPU()
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     Timer t;
     START_TIME;
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        // Clearing out the output incase GEMM is chosen as the algo
-        std::fill(out.begin(), out.end(), 0);
-        out_dev->ToGPU(GetStream(), out.data());
-
         miopenConvolutionForward(GetHandle(),
                                  &alpha,
                                  inputTensor,
@@ -681,11 +689,11 @@ int ConvDriver<T>::RunForwardCPU()
             { // out_channels (num filters)
                 for(int i = 0; i < out_h; i++)
                 { // output_height (from getforwardoutputdim())
-                    int in_off_h = i * v;
+                    int in_off_h = i * u;
                     for(int j = 0; j < out_w; j++)
                     { // output_width (from getforwardoutputdim())
                         float acc    = 0;
-                        int in_off_w = j * u;
+                        int in_off_w = j * v;
                         for(int k = 0; k < in_c; k++)
                         { // in_channels (RGB)
                             for(int x = 0; x < wei_h; x++)
@@ -833,7 +841,7 @@ int ConvDriver<T>::RunBackwardGPU()
 
     FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
     int ret = 0;
 
     Timer t;
@@ -1027,8 +1035,8 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
                           out_w,
                           pad_h,
                           pad_w,
-                          v,
                           u,
+                          v,
                           workspace_bwd_host);
 
                 for(int i = 0; i < workspace_bwd.size(); i++)
@@ -1240,10 +1248,10 @@ int ConvDriver<T>::RunBackwardDataCPU()
                 { // out_channels (num filters)
                     for(int i = 0; i < out_h; i++)
                     { // output_height (from getforwardoutputdim())
-                        int in_off_h = i * v;
+                        int in_off_h = i * u;
                         for(int j = 0; j < out_w; j++)
                         { // output_width (from getforwardoutputdim())
-                            int in_off_w = j * u;
+                            int in_off_w = j * v;
                             for(int x = 0; x < wei_h; x++)
                             {
                                 int in_x = in_off_h - pad_h + x * dilation_h;
