@@ -313,8 +313,10 @@ struct tensor_ops_driver : test_driver
   //     add(b, "b", generate_tensor(get_tensor_b(), {2, 1, 2, 2, 2}));
 //          add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13, 7}));
 //          add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 13, 7}));
-          add(a, "a", generate_tensor(get_tensor_a(), {2, 2, 2, 2, 2}));
-          add(b, "b", generate_tensor(get_tensor_b(), {2, 2, 2, 2, 1}));
+          add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13, 7}));
+          add(b, "b", generate_tensor(get_tensor_b(), {11, 7, 13, 13, 7}));
+ //         add(a, "a", generate_tensor(get_tensor_a(), {2, 2, 2, 2, 2}));
+  //        add(b, "b", generate_tensor(get_tensor_b(), {2, 2, 2, 2, 2}));
 //          add(a, "a", generate_tensor(get_tensor_a(), {32, 16, 8, 4, 2}));
 //          add(b, "b", generate_tensor(get_tensor_b(), {32, 16, 8, 4, 1}));
     //    add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));

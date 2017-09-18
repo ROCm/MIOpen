@@ -142,7 +142,8 @@ void OpTensor(Handle& handle,
               const TensorDescriptor& cTensorDesc,
               Data_t CTensor)
 {
-
+                
+    printf("\n\nSTARTING\n\n.");
     if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -205,6 +206,7 @@ void OpTensor(Handle& handle,
         b_d = blens[2];
         b_h = blens[3];
         b_w = blens[4];
+        printf("blens[0,1,2,3,4]: %lu, %lu, %lu, %lu, %lu\n", blens[0], blens[1], blens[2], blens[3], blens[4]);
     }
     else if(bsize == 4)
     {
@@ -212,23 +214,26 @@ void OpTensor(Handle& handle,
         b_c = blens[1];
         b_h = blens[2];
         b_w = blens[3];
+        printf("blens[0,1,2,3]: %lu, %lu, %lu, %lu\n", blens[0], blens[1], blens[2], blens[3]);
     }
     else if(bsize == 3)
     {
         b_n = blens[0];
         b_c = blens[1];
         b_h = blens[2];
+        printf("blens[0,1,2]: %lu, %lu, %lu\n", blens[0], blens[1], blens[2]);
     }
     else if(bsize == 2)
     {
         b_n = blens[0];
         b_c = blens[1];
+        printf("blens[0,1]: %lu, %lu\n", blens[0], blens[1]);
     }
     else if(bsize == 1)
     {
         b_n = blens[0];
+        printf("blens[0]: %lu\n", blens[0]);
     }
-    printf("blens[0,1,2,3,4]: %lu, %lu, %lu, %lu, %lu\n", blens[0], blens[1], blens[2], blens[3], blens[4]);
 
     auto clens = cTensorDesc.GetLengths();
     auto csize = clens.size();
@@ -238,6 +243,8 @@ void OpTensor(Handle& handle,
         c_d = clens[2];
         c_h = clens[3];
         c_w = clens[4];
+        printf("clens[0,1,2,3,4]: %lu, %lu, %lu, %lu, %lu\n", clens[0], clens[1], clens[2], clens[3], clens[4]);
+
     }
     else if(csize == 4)
     {
@@ -245,23 +252,27 @@ void OpTensor(Handle& handle,
         c_c = clens[1];
         c_h = clens[2];
         c_w = clens[3];
+        printf("clens[0,1,2,3]: %lu, %lu, %lu, %lu\n", clens[0], clens[1], clens[2], clens[3]);
+
     }
     else if(csize == 3)
     {
         c_n = clens[0];
         c_c = clens[1];
         c_h = clens[2];
+        printf("clens[0,1,2]: %lu, %lu, %lu\n", clens[0], clens[1], clens[2]);
     }
     else if(csize == 2)
     {
         c_n = clens[0];
         c_c = clens[1];
+        printf("clens[0,1,2]: %lu, %lu\n", clens[0], clens[1]);
     }
     else if(csize == 1)
     {
         c_n = clens[0];
+        printf("clens[0,1,2]: %lu\n", clens[0]);
     }
-    printf("clens[0,1,2,3,4]: %lu, %lu, %lu, %lu, %lu\n", clens[0], clens[1], clens[2], clens[3], clens[4]);
 
     int c_dstride = 0;
     int c_nstride = 0;
@@ -273,19 +284,19 @@ void OpTensor(Handle& handle,
         c_nstride = cstrides[0];
         c_cstride = cstrides[1];
         c_dstride = cstrides[2];
+        printf("cstride[0,1,2,3,4]: %lu, %lu, %lu\n", cstrides[0], cstrides[1], cstrides[2]);
     }
     else if(csize == 4)
     {
         c_nstride = cstrides[0];
         c_cstride = cstrides[1];
+        printf("cstride[0,1]: %lu, %lu\n", cstrides[0], cstrides[1]);
     }
     else if(csize == 3 || csize == 2)
     {
         c_nstride = cstrides[0];
+        printf("cstride[0,1,2,3,4]: %lu\n", cstrides[0]);
     }
-
-    printf("cstride[0,1,2,3,4]: %lu, %lu, %lu, %lu, %lu\n", cstrides[0], cstrides[1], cstrides[2], cstrides[3], cstrides[4]);
-    //printf("cstride[0,1,2]: %d, %d, %d\n", cstrides[0], cstrides[1], cstrides[2]);
     
     int b_nstride = 0;
     int b_cstride = 0;
@@ -296,18 +307,21 @@ void OpTensor(Handle& handle,
         b_nstride = bstrides[0];
         b_cstride = bstrides[1];
         b_dstride = bstrides[2];
+        printf("bstride[0,1,2]: %lu, %lu, %lu\n", bstrides[0], bstrides[1], bstrides[2]);
     }
     else if(bsize == 4)
     {
         b_nstride = bstrides[0];
         b_cstride = bstrides[1];
+        printf("bstride[0,1]: %lu, %lu\n", bstrides[0], bstrides[1]);
     }
     else if(bsize == 3 || bsize == 2)
     {
         b_nstride = bstrides[0];
+        printf("bstride[0]: %lu\n", bstrides[0]);
     }
     //printf("bstride[0,1,2]: %d, %d, %d\n", bstrides[0], bstrides[1], bstrides[2]);
-    printf("bstride[0,1,2,3,4]: %lu, %lu, %lu, %lu, %lu\n", bstrides[0], bstrides[1], bstrides[2], bstrides[3], bstrides[4]);
+    //printf("bstride[0,1,2,3,4]: %lu, %lu, %lu, %lu, %lu\n", bstrides[0], bstrides[1], bstrides[2], bstrides[3], bstrides[4]);
     //std::tie(b_nstride, b_cstride, std::ignore, std::ignore) = tien<4>(bTensorDesc.GetStrides());
    // printf("D is %d\n", d);
     
@@ -357,10 +371,12 @@ void OpTensor(Handle& handle,
     const std::vector<size_t> vld{local_threads, 1, 1};
 
     // Special case for adding tensors in place
-    //size_t global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
     size_t global_threads;
-    global_threads = (leading_ones == 1 && (d - 1) == dims -1) ? num_wg : num_wg * local_threads;
-    //global_threads = (global_threads < local_threads) ? local_threads : global_threads;
+    if(dims == 4)global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
+    //else global_threads = (leading_ones == 1 && (d - 1) == dims -1) ? num_wg : num_wg * local_threads;
+    else global_threads = (leading_ones == 1 && (d - 1) == dims) ? num_wg : num_wg * local_threads;
+    //global_threads = (leading_ones == 1 && (d) == dims) ? num_wg : num_wg * local_threads;
+    global_threads = (global_threads < local_threads) ? local_threads : global_threads;
     
     const std::vector<size_t> vgd{global_threads, 1, 1};
     //work_per_wg = 64;
