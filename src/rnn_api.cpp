@@ -28,7 +28,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
-
+#include <vector>
 // TODO: Make miopenConvAlgoPerf_t loggable
 // inline std::ostream& operator<<(std::ostream& os, miopenConvAlgoPerf_t) { return os; }
 
