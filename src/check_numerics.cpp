@@ -12,7 +12,7 @@ namespace CheckNumerics
     static const int Warn                = 0x02;   // print only if abnormal detected
     static const int Throw               = 0x04;   // MIOPEN_THROW on abnormal result
     static const int Abort               = 0x08;   // abort on abnormal result (to drop into debugger)
-    static const int ComputeFloatStats   = 0x10;  // Print mean/absmean/min/max (slow)
+    static const int ComputeStats        = 0x10;  // Print mean/absmean/min/max (slow)
 }
 int CheckNumericsEnabled(int bitMask) { return (miopen::Value(MIOPEN_CHECK_NUMERICS{})) & bitMask; }
 
@@ -41,7 +41,7 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
     const int numBlocks = handle.GetMaxComputeUnits() * 6;
     const size_t numGlobalWorkItems = blockSize * numBlocks;
 
-    const int computeFloatStats = CheckNumericsEnabled(CheckNumerics::ComputeFloatStats);
+    const int computeStats = CheckNumericsEnabled(CheckNumerics::ComputeStats);
 
     CheckNumericsResult abnormal_h;
 
@@ -52,7 +52,7 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
     std::string kernel_name  = "MIOpenCheckNumerics";
     const std::vector<size_t> vld = {size_t{blockSize}, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {numGlobalWorkItems, size_t{1}, size_t{1}};
-    handle.GetKernel("MIOpenCheckNumerics", "", program_name, kernel_name, vld, vgd, "" ) (data, numElements, abnormal_d.get(), computeFloatStats); 
+    handle.GetKernel("MIOpenCheckNumerics", "", program_name, kernel_name, vld, vgd, "" ) (data, numElements, abnormal_d.get(), computeStats); 
 
     handle.ReadTo(&abnormal_h, abnormal_d, sizeof(CheckNumericsResult));
 
@@ -69,7 +69,7 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
                   << " zeros=" << abnormal_h._hasZero
                   << " nans="  << abnormal_h._hasNan
                   << " infs="  << abnormal_h._hasInf;
-        if (computeFloatStats) {
+        if (computeStats) {
             std::cerr << " mean="  << abnormal_h._sum / numElements
                       << " absmean="  << abnormal_h._absSum / numElements
                       << " min="  << abnormal_h._min 
