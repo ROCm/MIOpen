@@ -316,11 +316,10 @@ int miopenBNFwdTrainSpatialRunHost(
 
         if(runningmeanvar)
         {
-            // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
             double adjust = (n_batchs * in_cstride == 1) ? variance_accum
                                                          : (NHW / (NHW - 1.0) * variance_accum);
             runningVariance[cidx] =
-                expAvgFactor * runningVariance[cidx] + (1 - expAvgFactor) * adjust;
+                (1 - expAvgFactor) * runningVariance[cidx] + expAvgFactor * adjust;
         }
 
         // #3 add epsilon for numeric stability, sqr_root, and invert
