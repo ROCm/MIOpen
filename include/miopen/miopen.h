@@ -1726,7 +1726,12 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
 	size_t workSpaceSize,
 	void* reserveSpace,
 	size_t reserveSpaceSize,
-	const std::vector<int> &in_n);
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h);
 
 /*! @brief Execute a backward data RNN layer
 *
