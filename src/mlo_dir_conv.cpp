@@ -43,65 +43,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
-/*
-the search db is a text file with the name defined by the device characteristics.
-each line is a key/value pair, separated by a space:
-32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
-or
-64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
-
-key format (all values are separted by x):
-n input maps
-input height
-input width
-filter height
-filter width
-n output maps
-output height
-output width
-batch size
-tensors' layout
-tensprs' data type
-direction (1 - forward, 0 - backward)
-
-Note:
-for backward direction - input and output are reversed.
-
-value format (all values are separated by .):
-vertical group size
-horizontal group size
-input block vertical size
-input block horizontal size
-output tile vertical size
-output tile horizaontal size
-n of output tiles
-n of input blocks
-n batchs (stacks) processed by the group
-*/
-
-static int mloBuildConf_Val(std::string& conf_val,
-                            int grp_tile1,
-                            int grp_tile0,
-                            int in_tile1,
-                            int in_tile0,
-                            int out_pix_tile1,
-                            int out_pix_tile0,
-                            int n_out_pix_tiles,
-                            int n_in_data_tiles,
-                            int n_stacks)
-{
-    conf_val = std::to_string(static_cast<long long>(grp_tile1)) + std::string(".") +
-               std::to_string(static_cast<long long>(grp_tile0)) + std::string(".") +
-               std::to_string(static_cast<long long>(in_tile1)) + std::string(".") +
-               std::to_string(static_cast<long long>(in_tile0)) + std::string(".") +
-               std::to_string(static_cast<long long>(out_pix_tile1)) + std::string(".") +
-               std::to_string(static_cast<long long>(out_pix_tile0)) + std::string(".") +
-               std::to_string(static_cast<long long>(n_out_pix_tiles)) + std::string(".") +
-               std::to_string(static_cast<long long>(n_in_data_tiles)) + std::string(".") +
-               std::to_string(static_cast<long long>(n_stacks));
-    return (0);
-}
-
 bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
 {
     bool ret = false;
@@ -343,48 +284,6 @@ int mlo_construct_BwdWrW2D::mloMultiStep()
     _search_params.n_passes = false;
 
     return (ret);
-}
-
-/*
- * makes a unique key that represent the current kernel c0onfiguration
- */
-
-int mlo_construct_direct2D::mloMakeKernelHash(std::string& hash) const
-{
-
-    std::string conf_key, conf_val;
-    mloBuildConf_Key(conf_key);
-    int grp_tile1;
-    int grp_tile0;
-    int in_tile1;
-    int in_tile0;
-    int out_pix_tile1;
-    int out_pix_tile0;
-    int n_out_pix_tiles;
-    int n_in_data_tiles;
-    int n_stacks;
-
-    getConfigParameters(grp_tile1,
-                        grp_tile0,
-                        in_tile1,
-                        in_tile0,
-                        out_pix_tile1,
-                        out_pix_tile0,
-                        n_out_pix_tiles,
-                        n_in_data_tiles,
-                        n_stacks);
-    mloBuildConf_Val(conf_val,
-                     grp_tile1,
-                     grp_tile0,
-                     in_tile1,
-                     in_tile0,
-                     out_pix_tile1,
-                     out_pix_tile0,
-                     n_out_pix_tiles,
-                     n_in_data_tiles,
-                     n_stacks);
-    hash = conf_key + std::string(" ") + conf_val;
-    return (0);
 }
 
 /***********************************************************************************************************
