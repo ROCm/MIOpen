@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/algorithm_implementations.hpp"
+#include "miopen/solver.hpp"
 #include "miopen/mlo_utils.hpp"
 
 namespace miopen {

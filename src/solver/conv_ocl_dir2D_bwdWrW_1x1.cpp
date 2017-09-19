@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/algorithm_implementations.hpp"
+#include "miopen/solver.hpp"
 
 /*
 int mlo_construct_BwdWrW2D::mloConstruct1x1Mmap()

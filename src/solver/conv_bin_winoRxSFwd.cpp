@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/algorithm_implementations.hpp"
+#include "miopen/solver.hpp"
 #include "miopen/env.hpp"
 
 /// \return v rounded up (towards +inf) to the nearest multiple of m.

@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include <unordered_map>
-#include "miopen/algorithm_implementations.hpp"
+#include "miopen/solver.hpp"
 
 namespace miopen {
 namespace solver {

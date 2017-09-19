@@ -26,7 +26,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
-#include <miopen/algorithm_implementations.hpp>
+#include <miopen/solver.hpp>
 #include <miopen/float_equal.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
