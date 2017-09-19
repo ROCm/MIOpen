@@ -426,7 +426,8 @@ struct conv_driver : test_driver
     {
         int input_h, input_w, wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
-        std::tie(std::ignore, std::ignore, input_h, input_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, input_h, input_w) =
+            miopen::tie4(input.desc.GetLengths());
         if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
            wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
            input_h >= (2 * filter.pad_h + wei_h) && input_w >= (2 * filter.pad_w + wei_w))
