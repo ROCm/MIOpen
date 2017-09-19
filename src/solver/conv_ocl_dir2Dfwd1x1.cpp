@@ -279,6 +279,7 @@ ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
             kernel.kernel_name = (params.pad0 == 0 && params.kernel_stride0 == 1)
                                      ? "MIOpenConv1x1"
                                      : "MIOpenConv1x1pquv";
+            result.construction_params.push_back(kernel);
         }
     }
     else
@@ -442,6 +443,7 @@ ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
 
         kernel.kernel_file = "MIOpenConv1x1.cl";
         kernel.kernel_name = "MIOpenConv1x1";
+        result.construction_params.push_back(kernel);
 
         // see above comment
         if(small_map)
