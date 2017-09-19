@@ -652,7 +652,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Find(
         }
     }
 
-    return result;
+    return std::unique_ptr<Solver::PerformanceConfig>(result.release());
 }
 
 void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
