@@ -201,42 +201,6 @@ static int mloSetConf(const std::string& conf_val, ConvOclDirectFwdLegacyExhaust
     return (0);
 }
 
-/*
-the search db is a text file with the name defined by the device characteristics.
-each line is a key/value pair, separated by a space:
-32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
-or
-64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
-
-key format (all values are separted by x):
-n input maps
-input height
-input width
-filter height
-filter width
-n output maps
-output height
-output width
-batch size
-tensors' layout
-tensprs' data type
-direction (1 - forward, 0 - backward)
-
-Note:
-for backward direction - input and output are reversed.
-
-value format (all values are separated by .):
-vertical group size
-horizontal group size
-input block vertical size
-input block horizontal size
-output tile vertical size
-output tile horizaontal size
-n of output tiles
-n of input blocks
-n batchs (stacks) processed by the group
-*/
-
 static int mloBuildConf_Val(std::string& conf_val,
                             int grp_tile1,
                             int grp_tile0,
