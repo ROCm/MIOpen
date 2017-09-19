@@ -550,18 +550,16 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-                impl::ConvOclDirectFwd11x11 traits;
-                SearchParameters search_params;
+                ConvolutionContext context;
+                construct_params.mloCopyTo(context);
+                context.n_passes = true;
 
-                construct_params.mloFillSearchParams(search_params);
-                search_params.n_passes = true;
+                solver::ConvOclDirectFwd11x11 solver;
+                auto config = solver.Find(context);
+                solver::ConvSolution solution;
+                solver.GetSolution(solution, context, *config);
 
-                auto esr = traits.Find(search_params);
-                impl::Usage construct_result;
-                traits.MakeUsage(construct_result, search_params, *esr);
-                auto n_passes = construct_result.passes;
-
-                if(n_passes == 1)
+                if(solution.passes == 1)
                 {
                     kernel(x, w, y, padding_val);
                 }
