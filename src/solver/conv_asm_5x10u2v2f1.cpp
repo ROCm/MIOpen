@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/algorithm_implementations.hpp"
+#include "miopen/solver.hpp"
 #include "miopen/gcn_asm_utils.hpp"
 #include "miopen/handle.hpp"
 

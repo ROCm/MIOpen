@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/algorithm_implementations.hpp"
+#include "miopen/solver.hpp"
 #include "miopen/env.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)

@@ -29,7 +29,7 @@
 #include <cmath>
 #include <iomanip>
 #include <sstream>
-#include <miopen/algorithm_implementations.hpp>
+#include <miopen/solver.hpp>
 #include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>

@@ -26,7 +26,7 @@
 
 #include <unordered_map>
 #include "miopen/env.hpp"
-#include "miopen/algorithm_implementations.hpp"
+#include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
 #include "miopen/gcn_asm_utils.hpp"
 
