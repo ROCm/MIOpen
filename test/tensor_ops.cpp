@@ -309,12 +309,12 @@ struct tensor_ops_driver : test_driver
 
     tensor_ops_driver()
     {
-  //              add(a, "a", generate_tensor(get_tensor_a(), {2, 2, 2, 2, 2}));
-  //     add(b, "b", generate_tensor(get_tensor_b(), {2, 1, 2, 2, 2}));
+ //               add(a, "a", generate_tensor(get_tensor_a(), {2, 2, 2, 16, 8}));
+  //     add(b, "b", generate_tensor(get_tensor_b(), {1, 1, 2, 1, 1}));
 //          add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13, 7}));
 //          add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 13, 7}));
-          add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13, 7}));
-          add(b, "b", generate_tensor(get_tensor_b(), {11, 7, 13, 13, 7}));
+ //         add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13, 7}));
+ //         add(b, "b", generate_tensor(get_tensor_b(), {11, 7, 13, 13, 7}));
  //         add(a, "a", generate_tensor(get_tensor_a(), {2, 2, 2, 2, 2}));
   //        add(b, "b", generate_tensor(get_tensor_b(), {2, 2, 2, 2, 2}));
 //          add(a, "a", generate_tensor(get_tensor_a(), {32, 16, 8, 4, 2}));
@@ -325,10 +325,12 @@ struct tensor_ops_driver : test_driver
 //          add(b, "b", generate_tensor(get_tensor_b(), {2, 2, 2, 1}));
     //    add(a, "a", generate_tensor(get_tensor_a(), {1, 2, 2, 2}));
     //    add(b, "b", generate_tensor(get_tensor_b(), {1, 2, 1, 1}));
-//        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13}));
-//        add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1}));
-          //add(a, "a", generate_tensor(get_tensor_a(), {11, 7}));
-          //add(b, "b", generate_tensor(get_tensor_b(), {1, 7}));
+     //   add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13}));
+    //    add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1}));
+//                add(a, "a", generate_tensor(get_tensor_a(), {2, 2, 2}));
+//        add(b, "b", generate_tensor(get_tensor_b(), {1, 2, 1}));
+          add(a, "a", generate_tensor(get_tensor_a(), {11, 7}));
+          add(b, "b", generate_tensor(get_tensor_b(), {11, 7}));
 //         add(a, "a", generate_tensor(get_tensor_a(), {7}));
 //         add(b, "b", generate_tensor(get_tensor_b(), {7}));
     }
@@ -338,6 +340,9 @@ struct tensor_ops_driver : test_driver
         std::vector<std::vector<int>> a_dims{
             {32, 8, 16, 16, 8},
             {32, 8, 16, 16},
+            {32, 8, 16},
+            {32, 8},
+            {8},
         };
         return (std::set<std::vector<int>>(a_dims.begin(), a_dims.end()));
     }
@@ -368,6 +373,17 @@ struct tensor_ops_driver : test_driver
             {32, 8, 1, 16},
             {32, 8, 16, 1},
             {32, 8, 16, 16},
+            {1, 8, 1},
+            {1, 1, 16},
+            {32, 1, 1},
+            {1, 8, 16},
+            {32, 8, 1},
+            {32, 1, 16},
+            {32, 8, 16},
+            {1, 8},
+            {32, 1},
+            {32, 8},
+            {8},
         };
         return (std::set<std::vector<int>>(b_dims.begin(), b_dims.end()));
     }
