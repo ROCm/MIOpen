@@ -666,7 +666,6 @@ if(inflags.GetValueInt("bias") != 0)
         dumpBufferToFile("dump_wei.bin", wei.data(), wei_sz);
     }
 
-    /*
 #if MIOPEN_BACKEND_OPENCL
 cl_int status;
 #elif MIOPEN_BACKEND_HIP
@@ -674,19 +673,30 @@ cl_int status;
 int status;
 #endif
 status = in_dev->ToGPU(q, in.data());
-status |= din_dev->ToGPU(q, in.data());
+status |= din_dev->ToGPU(q, din.data());
 status |= wei_dev->ToGPU(q, wei.data());
 status |= dwei_dev->ToGPU(q, dwei.data());
 status |= dout_dev->ToGPU(q, dout.data());
 status |= out_dev->ToGPU(q, out.data());
+status |= hx_dev->ToGPU(q, hx.data());
+status |= cx_dev->ToGPU(q, cx.data());
+status |= hy_dev->ToGPU(q, hy.data());
+status |= cy_dev->ToGPU(q, cy.data());
+status |= dhx_dev->ToGPU(q, dhx.data());
+status |= dcx_dev->ToGPU(q, dcx.data());
+status |= dhy_dev->ToGPU(q, dhy.data());
+status |= dcy_dev->ToGPU(q, dcy.data());
 if(workSpaceSize_bwd != 0)
-    status |= workspace_bwd_dev->ToGPU(q, workspace_bwd.data());
+    status |= workspace_dev->ToGPU(q, workspace.data());
 if(workSpaceSize_fwd != 0)
-    status |= workspace_fwd_dev->ToGPU(q, workspace_fwd.data());
+    status |= reservespace_dev->ToGPU(q, reservespace.data());
+//if(workSpaceSize_bwd != 0)
+//    status |= workspace_bwd_dev->ToGPU(q, workspace_bwd.data());
+//if(workSpaceSize_fwd != 0)
+//    status |= workspace_fwd_dev->ToGPU(q, workspace_fwd.data());
 
 if(status != CL_SUCCESS)
     printf("Error copying data to GPU\n");
-    */
 
     return miopenStatusSuccess;
 }
