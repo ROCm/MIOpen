@@ -818,7 +818,7 @@ if(inflags.GetValueInt("bias") != 0)
 out_dev->FromGPU(GetStream(), out.data());
 hy_dev->FromGPU(GetStream(), hy.data());
 cy_dev->FromGPU(GetStream(), cy.data());
-reservespace->FromGPU(GetStream(), reservespace.data());
+reservespace_dev->FromGPU(GetStream(), reservespace.data());
 
 /*
 if(inflags.GetValueInt("dump_output"))
