@@ -135,22 +135,22 @@ int mlo_construct_direct2D::mloConstruct()
 #endif
     }
 
-    for(const miopen::impl::Implementation& i : GetImplementations())
+    for(const miopen::solver::Solver& solver : SolverStore())
     {
-        if(i.IsCorrect(_search_params) &&
-           (no_perf_filtering || i.IsFast(_search_params)))
+        if(solver.IsApplicable(_search_params) &&
+           (no_perf_filtering || solver.IsFast(_search_params)))
         {
-            const auto exhaustive_search_result =
-                i.Find(_search_params);
-            miopen::impl::Usage result;
-            i.MakeUsage(result, _search_params, *exhaustive_search_result);
+            const auto perfConfig =
+                solver.Find(_search_params);
+            miopen::solver::ConvSolution solution;
+            solver.GetSolution(solution, _search_params, *perfConfig);
 
-            if(!result.Succeeded())
+            if(!solution.Succeeded())
                 continue;
             if(_search_params.n_passes)
-                return result.passes;
+                return solution.passes;
 
-            mloUseSearchResult(result);
+            mloUseSolution(solution);
             return 0;
         }
     }
@@ -169,78 +169,76 @@ class StaticContainer
     }
 };
 
-const std::vector<std::reference_wrapper<const miopen::impl::Implementation>>&
-mlo_construct_direct2D::GetImplementations() const
+const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
+mlo_construct_direct2D::SolverStore() const
 {
     static const std::vector<
-        std::reference_wrapper<const miopen::impl::Implementation>>
-        implementations({
-            StaticContainer<const miopen::impl::ConvAsm3x3U>::Instance(),
-            StaticContainer<const miopen::impl::ConvAsm5x10u2v2f1>::Instance(),
-            StaticContainer<const miopen::impl::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
-            StaticContainer<const miopen::impl::ConvAsm5x10u2v2b1>::Instance(),
-            StaticContainer<const miopen::impl::ConvOclDirectFwd11x11>::Instance(),
-            StaticContainer<const miopen::impl::ConvOclDirectFwdGen>::Instance(),
-            StaticContainer<const miopen::impl::ConvOclDirectFwd3x3>::Instance(),
-            StaticContainer<const miopen::impl::ConvOclDirectFwd1x1>::Instance(),
-            StaticContainer<const miopen::impl::ConvOclDirectFwdC>::Instance(),
-            StaticContainer<const miopen::impl::ConvOclDirectFwd>::Instance(),
+        std::reference_wrapper<const miopen::solver::Solver>>
+        store({
+            StaticContainer<const miopen::solver::ConvAsm3x3U>::Instance(),
+            StaticContainer<const miopen::solver::ConvAsm5x10u2v2f1>::Instance(),
+            StaticContainer<const miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
+            StaticContainer<const miopen::solver::ConvAsm5x10u2v2b1>::Instance(),
+            StaticContainer<const miopen::solver::ConvOclDirectFwd11x11>::Instance(),
+            StaticContainer<const miopen::solver::ConvOclDirectFwdGen>::Instance(),
+            StaticContainer<const miopen::solver::ConvOclDirectFwd3x3>::Instance(),
+            StaticContainer<const miopen::solver::ConvOclDirectFwd1x1>::Instance(),
+            StaticContainer<const miopen::solver::ConvOclDirectFwdC>::Instance(),
+            StaticContainer<const miopen::solver::ConvOclDirectFwd>::Instance(),
         });
 
-    return implementations;
+    return store;
 }
 
-const std::vector<std::reference_wrapper<const miopen::impl::Implementation>>&
-mlo_construct_winograd::GetImplementations() const
+const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
+mlo_construct_winograd::SolverStore() const
 {
     static const std::vector<
-        std::reference_wrapper<const miopen::impl::Implementation>>
-        implementations({
-#ifndef HIP_OC_FINALIZER
-            StaticContainer<const miopen::impl::ConvBinWinograd3x3U>::Instance(),
-            StaticContainer<const miopen::impl::ConvBinWinogradRxSFwd>::Instance(),
-#endif
+        std::reference_wrapper<const miopen::solver::Solver>>
+        store({
+            StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance(),
+            StaticContainer<const miopen::solver::ConvBinWinogradRxSFwd>::Instance(),
         });
 
-    return implementations;
+    return store;
 }
 
-const std::vector<std::reference_wrapper<const miopen::impl::Implementation>>&
-mlo_construct_BwdWrW2D::GetImplementations() const
+const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
+mlo_construct_BwdWrW2D::SolverStore() const
 {
     static const std::vector<
-        std::reference_wrapper<const miopen::impl::Implementation>>
-        implementations({
-            StaticContainer<const miopen::impl::ConvAsmBwdWrW3x3>::Instance(),
-            StaticContainer<const miopen::impl::ConvOclBwdWrW2>::Instance(),
-            StaticContainer<const miopen::impl::ConvOclBwdWrW53>::Instance(),
-            StaticContainer<const miopen::impl::ConvOclBwdWrW1x1>::Instance(),
+        std::reference_wrapper<const miopen::solver::Solver>>
+        store({
+            StaticContainer<const miopen::solver::ConvAsmBwdWrW3x3>::Instance(),
+            StaticContainer<const miopen::solver::ConvOclBwdWrW2>::Instance(),
+            StaticContainer<const miopen::solver::ConvOclBwdWrW53>::Instance(),
+            StaticContainer<const miopen::solver::ConvOclBwdWrW1x1>::Instance(),
         });
 
-    return implementations;
+    return store;
 }
 
-void mlo_construct_direct2D::mloUseSearchResult(
-    const miopen::impl::Usage& result)
+void mlo_construct_direct2D::mloUseSolution(
+    const miopen::solver::ConvSolution& s)
 {
-    _comp_options = result.construction_params[0].comp_options;
-    _kernel_file  = result.construction_params[0].kernel_file;
-    _kernel_name  = result.construction_params[0].kernel_name;
-    _g_wk         = result.construction_params[0].g_wk;
-    _l_wk         = result.construction_params[0].l_wk;
+    _comp_options = s.construction_params[0].comp_options;
+    _kernel_file  = s.construction_params[0].kernel_file;
+    _kernel_name  = s.construction_params[0].kernel_name;
+    _g_wk         = s.construction_params[0].g_wk;
+    _l_wk         = s.construction_params[0].l_wk;
 
-    _workspce_sz     = result.workspce_sz;
-    _grp_tile0       = result.grp_tile0;
-    _grp_tile1       = result.grp_tile1;
-    _in_tile0        = result.in_tile0;
-    _in_tile1        = result.in_tile1;
-    _out_pix_tile0   = result.out_pix_tile0;
-    _out_pix_tile1   = result.out_pix_tile1;
-    _n_out_pix_tiles = result.n_out_pix_tiles;
-    _n_in_data_tiles = result.n_in_data_tiles;
-    _n_stacks        = result.n_stacks;
+    _workspce_sz     = s.workspce_sz;
+    _grp_tile0       = s.grp_tile0;
+    _grp_tile1       = s.grp_tile1;
+    _in_tile0        = s.in_tile0;
+    _in_tile1        = s.in_tile1;
+    _out_pix_tile0   = s.out_pix_tile0;
+    _out_pix_tile1   = s.out_pix_tile1;
+    _n_out_pix_tiles = s.n_out_pix_tiles;
+    _n_in_data_tiles = s.n_in_data_tiles;
+    _n_stacks        = s.n_stacks;
 
-    for(const auto& params : result.construction_params)
+    for(const auto& params : s.construction_params)
     {
         _mlo_kernels_info.push_back(std::make_tuple(
             params.kernel_name, params.kernel_file, params.comp_options, params.g_wk, params.l_wk));
@@ -335,7 +333,7 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
-    return StaticContainer<const miopen::impl::ConvBinWinograd3x3U>::Instance().IsFast(_search_params);
+    return StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance().IsFast(_search_params);
 }
 
 int mlo_construct_BwdWrW2D::mloMultiStep()

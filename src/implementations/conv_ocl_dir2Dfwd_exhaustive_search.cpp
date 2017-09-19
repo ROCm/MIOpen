@@ -1,3 +1,29 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 #define MIOPEN
 
 #include "miopen/algorithm_implementations.hpp"
@@ -6,7 +32,7 @@
 #include "miopen/handle.hpp"
 
 namespace miopen {
-namespace impl {
+namespace solver {
 
 static int mloReadDb(const std::string confreq_db_name, std::vector<std::string>& db)
 {
@@ -45,7 +71,7 @@ int mloReadConfigDB(Handle& stream, std::map<std::string, std::string>& conf_db)
     return (ret);
 }
 
-static int mloBuildConf_Key(const SearchParameters& params, std::string& conf_key)
+static int mloBuildConf_Key(const ConvolutionContext& params, std::string& conf_key)
 {
     conf_key = std::to_string(static_cast<long long>(params.n_inputs)) + std::string("x") +
                std::to_string(static_cast<long long>(params.in_height)) + std::string("x") +
@@ -80,7 +106,7 @@ static bool mloSearchConfigDB(std::map<std::string, std::string>& conf_db,
     return (found);
 }
 
-static bool mloSearchConfigInDB(const SearchParameters& params,
+static bool mloSearchConfigInDB(const ConvolutionContext& params,
                                 std::string& conf_key,
                                 std::string& conf_val)
 {
@@ -238,7 +264,7 @@ static int mloBuildConf_Val(std::string& conf_val,
 * select defult configuration if a known configuration has not been found.
 */
 static int mloSelectDefaultConfig(std::string& conf_val,
-                                  const SearchParameters& params,
+                                  const ConvolutionContext& params,
                                   ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl& result)
 {
 
@@ -411,7 +437,7 @@ static int mloAddConfigReq(Handle& stream, const std::string& conf_key)
 /*
 * return a known or default configuration
 */
-static bool mloGetConfig(const SearchParameters& params,
+static bool mloGetConfig(const ConvolutionContext& params,
                          ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl& result)
 {
     bool known_config = false;
@@ -510,12 +536,12 @@ static int mloAddConfig(Handle& stream, std::string& conf_key, std::string& conf
     return (ret);
 }
 
-const std::vector<std::unique_ptr<const Implementation>>&
+const std::vector<std::unique_ptr<const Solver>>&
 ConvOclDirectFwdLegacyExhaustiveSearch::GetImplementationsToMeasure()
 {
-    static const std::vector<std::unique_ptr<const Implementation>>
+    static const std::vector<std::unique_ptr<const Solver>>
         implementations = [] {
-            std::vector<std::unique_ptr<const Implementation>> data;
+            std::vector<std::unique_ptr<const Solver>> data;
             data.emplace_back(new ConvOclDirectFwd1x1);
             data.emplace_back(new ConvOclDirectFwdC);
             data.emplace_back(new ConvOclDirectFwd);
@@ -535,19 +561,19 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(
     Data_t wei_ocl_buf,
     Data_t bias_ocl_buf,
     double& processing_time,
-    const SearchParameters& params) const
+    const ConvolutionContext& params) const
 {
     int ret = 0;
-    Usage kernel_search_result;
+    ConvSolution kernel_search_result;
     auto sub_search_params      = params;
     sub_search_params.do_search = false;
 
     for(const auto& traits : GetImplementationsToMeasure())
     {
-        if(traits->IsCorrect(params))
+        if(traits->IsApplicable(params))
         {
             const auto sub_search_result = Find(params);
-            traits->MakeUsage(kernel_search_result, params, *sub_search_result);
+            traits->GetSolution(kernel_search_result, params, *sub_search_result);
 
             if(kernel_search_result.Succeeded())
                 break;
@@ -644,9 +670,9 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(
     return (ret);
 }
 
-std::unique_ptr<Implementation::PerformanceConfig>
+std::unique_ptr<Solver::PerformanceConfig>
 ConvOclDirectFwdLegacyExhaustiveSearch::Find(
-    const SearchParameters& params) const
+    const ConvolutionContext& params) const
 {
     auto result = std::make_unique<PerformanceConfigImpl>();
 
@@ -666,7 +692,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Find(
 }
 
 void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
-    const SearchParameters& params, PerformanceConfigImpl& result) const
+    const ConvolutionContext& params, PerformanceConfigImpl& result) const
 {
     miopen::Handle profile_h;
     double processing_time;
@@ -1315,5 +1341,5 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
     // return(ret);
 }
 
-} // namespace impl
+} // namespace solver
 } // namespace miopen
