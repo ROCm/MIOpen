@@ -1,10 +1,36 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 #include "miopen/algorithm_implementations.hpp"
 #include "miopen/mlo_utils.hpp"
 
 namespace miopen {
-namespace impl {
+namespace solver {
 
-bool ConvOclBwdWrW2::IsCorrect(const SearchParameters& params) const
+bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
     return ((params.kernel_size0 >= params.kernel_size1) &&
             ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) ||
@@ -14,8 +40,8 @@ bool ConvOclBwdWrW2::IsCorrect(const SearchParameters& params) const
 }
 
 void
-ConvOclBwdWrW2::MakeUsage(Usage& result,
-                                const SearchParameters& params,
+ConvOclBwdWrW2::GetSolution(ConvSolution& result,
+                                const ConvolutionContext& params,
                                 const PerformanceConfig&) const
 {
     static const char* s_stride_table[32][2] = {
@@ -140,7 +166,7 @@ ConvOclBwdWrW2::MakeUsage(Usage& result,
                                          params.kernel_size1);
     if(lcl_mem_sz > 8 * 1024)
     {
-        result = Usage(miopenStatusNotInitialized);
+        result = ConvSolution(miopenStatusNotInitialized);
         return;
     }
 
@@ -268,5 +294,5 @@ ConvOclBwdWrW2::MakeUsage(Usage& result,
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
 }
-} // namespace impl
+} // namespace solver
 } // namespace miopen

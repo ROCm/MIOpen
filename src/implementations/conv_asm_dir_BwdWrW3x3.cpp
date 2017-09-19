@@ -1,3 +1,29 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 #include <unordered_map>
 
 #include "miopen/algorithm_implementations.hpp"
@@ -7,7 +33,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 
 namespace miopen {
-namespace impl {
+namespace solver {
 
 struct PerfParamsAsmDirect3x3WrW
 {
@@ -82,7 +108,7 @@ static std::string FormPerfParamsAsmDirect3x3WrW(int limit_wave_cnt,
 }
 
 static PerfParamsAsmDirect3x3WrW
-mloComputePerfParamsAsmDirect3x3WrW(const SearchParameters& params)
+mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
 {
     /// LUT entry/env.var format: 8 decimal ASCII digits, left to right:
     /// limit_wave_cnt   [00..10]
@@ -348,7 +374,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const SearchParameters& params)
     return pp;
 }
 
-bool ConvAsmBwdWrW3x3::IsCorrect(const SearchParameters& params) const
+bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.assembler_available)
     {
@@ -414,11 +440,11 @@ bool ConvAsmBwdWrW3x3::IsCorrect(const SearchParameters& params) const
     return ok;
 }
 
-bool ConvAsmBwdWrW3x3::IsFast(const SearchParameters&) const { return true; }
+bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
 
 void
-ConvAsmBwdWrW3x3::MakeUsage(Usage& result,
-                                  const SearchParameters& params,
+ConvAsmBwdWrW3x3::GetSolution(ConvSolution& result,
+                                  const ConvolutionContext& params,
                                   const PerformanceConfig&) const
 {
     std::ostringstream options;
@@ -477,5 +503,5 @@ ConvAsmBwdWrW3x3::MakeUsage(Usage& result,
     result.construction_params.push_back(kernel);
     result.workspce_sz = 0;
 }
-} // namespace impl
+} // namespace solver
 } // namespace miopen

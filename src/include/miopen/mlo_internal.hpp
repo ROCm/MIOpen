@@ -160,7 +160,11 @@ enum rocm_meta_version
 
 namespace miopen {
 
-class SearchParameters
+/// A leftover of the legacy design, houses problem config, 
+/// environmental context (e.g. HW/SW platform) and solver-specific state.
+///
+/// TODO: These three entities should be made separate.
+class ConvolutionContext
 {
     public:
     bool n_passes = false;
@@ -193,7 +197,7 @@ class SearchParameters
     rocm_meta_version rmv;
     std::string general_compile_options;
 
-    SearchParameters()
+    ConvolutionContext()
         : forward(),
           bot_sz(),
           top_sz(),
@@ -231,10 +235,10 @@ class SearchParameters
     Handle* _stream;
 };
 
-namespace impl {
-class Usage;
-class Implementation;
-} // namespace impl
+namespace solver {
+class ConvSolution;
+class Solver;
+} // namespace solver
 
 } // namespace miopen
 
@@ -242,9 +246,9 @@ class mlo_construct_direct2D
 {
     public:
     virtual const std::vector<
-        std::reference_wrapper<const miopen::impl::Implementation>>&
-    GetImplementations() const;
-    void mloUseSearchResult(const miopen::impl::Usage& result); // TODO: remove
+        std::reference_wrapper<const miopen::solver::Solver>>&
+    SolverStore() const;
+    void mloUseSolution(const miopen::solver::ConvSolution& s); // TODO: remove
 
     mlo_construct_direct2D(int dir, bool do_bias = false)
     {
@@ -796,7 +800,7 @@ class mlo_construct_direct2D
     bool mloIsCompilerWorkarounds() const;
     bool mloIsFastBinaryWinograd3x3U() const;
 
-    inline void mloFillSearchParams(miopen::SearchParameters& params) const
+    inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
     {
         params = _search_params;
     }
@@ -810,7 +814,7 @@ class mlo_construct_direct2D
     //	int mloBuildConf_Key(std::string & conf_key) const;
 
     protected:
-    miopen::SearchParameters _search_params;
+    miopen::ConvolutionContext _search_params;
 
     int _in_df_width          = 0;
     int _in_df_height         = 0;
@@ -893,8 +897,8 @@ class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
 
     bool mloIsCompilerWorkarounds() const;
     int mloMultiStep();
-    const std::vector<std::reference_wrapper<const miopen::impl::Implementation>>&
-    GetImplementations() const override;
+    const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
+    SolverStore() const override;
 };
 
 /*
@@ -906,8 +910,8 @@ class mlo_construct_winograd : public mlo_construct_direct2D
     public:
     mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
 
-    const std::vector<std::reference_wrapper<const miopen::impl::Implementation>>&
-    GetImplementations() const override;
+    const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
+    SolverStore() const override;
 };
 
 #define MLO_POOLING_OP_AVE 0
