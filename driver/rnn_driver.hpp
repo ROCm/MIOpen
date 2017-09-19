@@ -1796,6 +1796,17 @@ int RNNDriver<T>::VerifyForward()
         }
     }
 
+	auto error4 = miopen::rms_range(reservespace_host, reservespace);
+
+	if (!(error4 < tolerance))
+	{
+		std::cout << std::string("reserve space Failed: ") << error4 << "\n";
+	}
+	else
+	{
+		printf("reserve space Verifies on CPU and GPU\n");
+	}
+
     return 0;
 }
 
@@ -1846,6 +1857,17 @@ int RNNDriver<T>::VerifyBackward()
             printf("difference at inital cell state Verifies on CPU and GPU\n");
         }
     }
+
+	auto error_data4 = miopen::rms_range(workspace_host, workspace);
+
+	if (!(error_data4 < tolerance))
+	{
+		std::cout << std::string("work space Failed: ") << error_data4 << "\n";
+	}
+	else
+	{
+		printf("work space Verifies on CPU and GPU\n");
+	}
 
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
