@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MIOPEN_IMPLEMENTATIONS_HPP
-#define GUARD_MIOPEN_IMPLEMENTATIONS_HPP
+#ifndef GUARD_MIOPEN_SOLVER_HPP
+#define GUARD_MIOPEN_SOLVER_HPP
 
 #include <vector>
 #include <memory>
@@ -367,4 +367,4 @@ class ConvOclBwdWrW1x1 : public Solver
 } // namespace solver
 } // namespace miopen
 
-#endif // !GUARD_MIOPEN_IMPLEMENTATIONS_HPP
+#endif // GUARD_MIOPEN_SOLVER_HPP

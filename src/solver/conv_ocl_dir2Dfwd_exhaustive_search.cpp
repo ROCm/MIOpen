@@ -26,7 +26,7 @@
 
 #define MIOPEN
 
-#include "miopen/algorithm_implementations.hpp"
+#include "miopen/solver.hpp"
 #include "miopen/db.hpp"
 #include "miopen/mlo_utils.hpp"
 #include "miopen/handle.hpp"
