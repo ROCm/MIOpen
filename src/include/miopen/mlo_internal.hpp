@@ -317,66 +317,6 @@ class mlo_construct_direct2D
     virtual int mloConstruct();
 
     /*
-    * makes a unique key that represent the current kernel c0onfiguration
-    */
-    int mloMakeKernelHash(std::string& hash) const;
-
-    /*
-    * ontains major configuration parameres:
-    * grp_tile1, grp_tile0 - group work size vertically and horizontally
-    * in_tile1, in_tile0 - vertical and horizotal size of input data block processed by the group
-    * out_pix_tile1, out_pix_tile0 - vertical and horizontal size of output tile process by a single
-    * wk-item
-    * n_out_pix_tiles - number of output maps processed by a simgle wk-item. that's wk-item
-    * processes a stack of n_out_pix_tiles tiles out_pix_tile1 x out_pix_tile0.
-    * n_in_data_tiles - number of different input maps kept in LDS per one batch (or stack).
-    * n_stacks - number of batches processed by the group
-    */
-    inline void getConfigParameters(int& grp_tile1,
-                                    int& grp_tile0,
-                                    int& in_tile1,
-                                    int& in_tile0,
-                                    int& out_pix_tile1,
-                                    int& out_pix_tile0,
-                                    int& n_out_pix_tiles,
-                                    int& n_in_data_tiles,
-                                    int& n_stacks) const
-    {
-
-        grp_tile0       = _grp_tile0;
-        grp_tile1       = _grp_tile1;
-        in_tile0        = _in_tile0;
-        in_tile1        = _in_tile1;
-        out_pix_tile0   = _out_pix_tile0;
-        out_pix_tile1   = _out_pix_tile1;
-        n_out_pix_tiles = _n_out_pix_tiles;
-        n_in_data_tiles = _n_in_data_tiles;
-        n_stacks        = _n_stacks;
-    }
-
-    inline void setConfigParameters(int grp_tile1,
-                                    int grp_tile0,
-                                    int in_tile1,
-                                    int in_tile0,
-                                    int out_pix_tile1,
-                                    int out_pix_tile0,
-                                    int n_out_pix_tiles,
-                                    int n_in_data_tiles,
-                                    int n_stacks)
-    {
-
-        _grp_tile0       = grp_tile0;
-        _grp_tile1       = grp_tile1;
-        _in_tile0        = in_tile0;
-        _in_tile1        = in_tile1;
-        _out_pix_tile0   = out_pix_tile0;
-        _out_pix_tile1   = out_pix_tile1;
-        _n_out_pix_tiles = n_out_pix_tiles;
-        _n_in_data_tiles = n_in_data_tiles;
-        _n_stacks        = n_stacks;
-    }
-
-    /*
     * returns parameter values that are compiled in legacy kernels for kernels using them as
     * arguments.
     */
