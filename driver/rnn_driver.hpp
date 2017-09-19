@@ -818,6 +818,7 @@ if(inflags.GetValueInt("bias") != 0)
 out_dev->FromGPU(GetStream(), out.data());
 hy_dev->FromGPU(GetStream(), hy.data());
 cy_dev->FromGPU(GetStream(), cy.data());
+reserveSpace->FromGPU(GetStream(), reserveSpace.data());
 
 /*
 if(inflags.GetValueInt("dump_output"))
@@ -1145,6 +1146,7 @@ if(inflags.GetValueInt("time") == 1)
 din_dev->FromGPU(GetStream(), din.data());
 dhx_dev->FromGPU(GetStream(), dhx.data());
 dcx_dev->FromGPU(GetStream(), dcx.data());
+workspace_dev->FromGPU(GetStream(), workspace.data());
 
 /*
 std::vector<miopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
