@@ -636,7 +636,7 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(Handle* profile_h,
 std::unique_ptr<Solver::PerformanceConfig>
 ConvOclDirectFwdLegacyExhaustiveSearch::Find(const ConvolutionContext& params) const
 {
-    auto result = std::make_unique<PerformanceConfigImpl>();
+    auto result = std::unique_ptr<PerformanceConfigImpl>(new PerformanceConfigImpl()); // NOLINT
 
     // search known configurations
     bool known_config = mloGetConfig(params, *result);
@@ -650,7 +650,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Find(const ConvolutionContext& params) c
         }
     }
 
-    return std::unique_ptr<Solver::PerformanceConfig>(result.release());
+    return std::move(result);
 }
 
 void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionContext& params,
