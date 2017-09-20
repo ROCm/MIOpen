@@ -155,11 +155,9 @@ bool ConvBinWinogradRxSFwd::IsApplicable(const ConvolutionContext& params) const
     // "CKHW" )
 }
 
-void
-ConvBinWinogradRxSFwd::GetSolution(
-    ConvSolution& result,
-    const ConvolutionContext& params,
-    const PerformanceConfig&) const
+void ConvBinWinogradRxSFwd::GetSolution(ConvSolution& result,
+                                        const ConvolutionContext& params,
+                                        const PerformanceConfig&) const
 {
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
     const auto name     = params.GetStream().GetDeviceName();

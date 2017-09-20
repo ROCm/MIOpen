@@ -34,10 +34,9 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
     return (params.kernel_size0 >= 2) || (params.kernel_size1 >= 2);
 }
 
-void
-ConvOclBwdWrW53::GetSolution(ConvSolution& result,
-                                 const ConvolutionContext& params,
-                                 const PerformanceConfig&) const
+void ConvOclBwdWrW53::GetSolution(ConvSolution& result,
+                                  const ConvolutionContext& params,
+                                  const PerformanceConfig&) const
 {
     size_t localMemSize = 64 * 1024;
 

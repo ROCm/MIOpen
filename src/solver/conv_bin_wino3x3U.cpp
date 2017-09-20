@@ -78,10 +78,9 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // both directions.
 }
 
-void
-ConvBinWinograd3x3U::GetSolution(ConvSolution& result,
-                                     const ConvolutionContext& params,
-                                     const PerformanceConfig&) const
+void ConvBinWinograd3x3U::GetSolution(ConvSolution& result,
+                                      const ConvolutionContext& params,
+                                      const PerformanceConfig&) const
 {
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
     const auto name     = params.GetStream().GetDeviceName();

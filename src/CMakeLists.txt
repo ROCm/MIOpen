@@ -77,7 +77,7 @@ set( MIOpen_Source
     include/miopen/errors.hpp
     include/miopen/handle.hpp
     include/miopen/kernel_cache.hpp
-	include/miopen/solver.hpp
+    include/miopen/solver.hpp
     include/miopen/mlo_internal.hpp
     include/miopen/mlo_utils.hpp
     include/miopen/oclkernel.hpp
@@ -95,7 +95,7 @@ set( MIOpen_Source
     solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
     solver/conv_asm_dir_BwdWrW3x3.cpp
     solver/conv_bin_wino3x3U.cpp
-	solver/conv_bin_winoRxSFwd.cpp
+    solver/conv_bin_winoRxSFwd.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp

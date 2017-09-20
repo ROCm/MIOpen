@@ -76,10 +76,9 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     // fixme above.
 }
 
-void
-ConvAsm5x10u2v2b1::GetSolution(ConvSolution& result,
-                                   const ConvolutionContext& params,
-                                   const PerformanceConfig&) const
+void ConvAsm5x10u2v2b1::GetSolution(ConvSolution& result,
+                                    const ConvolutionContext& params,
+                                    const PerformanceConfig&) const
 {
     std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", params.out_height);

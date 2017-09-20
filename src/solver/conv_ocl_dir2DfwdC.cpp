@@ -42,10 +42,9 @@ bool ConvOclDirectFwdC::IsApplicable(const ConvolutionContext& params) const
            params.kernel_stride0 <= 1 && params.kernel_stride1 <= 1;
 }
 
-void
-ConvOclDirectFwdC::GetSolution(ConvSolution& result,
-                                   const ConvolutionContext& params,
-                                   const PerformanceConfig& exhaustive_search_result) const
+void ConvOclDirectFwdC::GetSolution(ConvSolution& result,
+                                    const ConvolutionContext& params,
+                                    const PerformanceConfig& exhaustive_search_result) const
 {
     const auto& searched_params =
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);

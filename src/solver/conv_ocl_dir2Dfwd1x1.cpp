@@ -35,10 +35,9 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
     return params.kernel_size0 == 1 && params.kernel_size1 == 1;
 }
 
-void
-ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
-                                     const ConvolutionContext& params,
-                                     const PerformanceConfig& exhaustive_search_result) const
+void ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
+                                      const ConvolutionContext& params,
+                                      const PerformanceConfig& exhaustive_search_result) const
 {
     const auto& searched_params =
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
@@ -108,7 +107,7 @@ ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
             uint N_IN_GROUPS        = (C + N_LCL_IN_MAPS - 1) / N_LCL_IN_MAPS;
             uint N_LCL_IN_MAPS_ONCE = 8;
 
-            if (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
+            if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
                 N_LCL_IN_MAPS_ONCE = 4;
 
             uint CLOOP0 = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
@@ -136,14 +135,14 @@ ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
                 params.general_compile_options;
 
             kernel.comp_options = std::string(" -DMLO_FILTER_STRIDE0=") +
-                std::to_string(params.kernel_stride0) +
-                std::string(" -DMLO_FILTER_STRIDE1=") +
-                std::to_string(params.kernel_stride1) + kernel.comp_options;
+                                  std::to_string(params.kernel_stride0) +
+                                  std::string(" -DMLO_FILTER_STRIDE1=") +
+                                  std::to_string(params.kernel_stride1) + kernel.comp_options;
 
             // std::cout << "compile options:\n"<< _comp_options << std::endl;
 
             // 1x1_Stride: FIX ME!!! NO padding support
-            if (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
+            if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
             {
                 int FIXED_WORKGROUP_SIZE = 64;
 
@@ -154,10 +153,10 @@ ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
                 kernel.l_wk.push_back(local_wk1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign =
-                    ((params.out_width * params.out_height * params.batch_sz + FIXED_WORKGROUP_SIZE - 1) /
-                        FIXED_WORKGROUP_SIZE) *
-                    FIXED_WORKGROUP_SIZE;
+                size_t imagesizeAlign = ((params.out_width * params.out_height * params.batch_sz +
+                                          FIXED_WORKGROUP_SIZE - 1) /
+                                         FIXED_WORKGROUP_SIZE) *
+                                        FIXED_WORKGROUP_SIZE;
 
                 size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
                 size_t gbl_wk1 = local_wk1;
@@ -178,10 +177,10 @@ ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
                 kernel.l_wk.push_back(1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign =
-                    ((params.in_width * params.in_height * params.batch_sz + FIXED_WORKGROUP_SIZE - 1) /
-                     FIXED_WORKGROUP_SIZE) *
-                    FIXED_WORKGROUP_SIZE;
+                size_t imagesizeAlign = ((params.in_width * params.in_height * params.batch_sz +
+                                          FIXED_WORKGROUP_SIZE - 1) /
+                                         FIXED_WORKGROUP_SIZE) *
+                                        FIXED_WORKGROUP_SIZE;
                 size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
 
                 size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;

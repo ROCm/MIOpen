@@ -442,10 +442,9 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 
 bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
 
-void
-ConvAsmBwdWrW3x3::GetSolution(ConvSolution& result,
-                                  const ConvolutionContext& params,
-                                  const PerformanceConfig&) const
+void ConvAsmBwdWrW3x3::GetSolution(ConvSolution& result,
+                                   const ConvolutionContext& params,
+                                   const PerformanceConfig&) const
 {
     std::ostringstream options;
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
