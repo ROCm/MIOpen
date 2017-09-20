@@ -353,7 +353,7 @@ void OpTensor(Handle& handle,
     auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
     auto incr_wg       = 0;
     // This block gives off indexing for 5d tensors, skipping
-    if(fwd_conv_bias == 1 && dims < 5 && num_wg < 640 && work_per_wg > 256)
+    if(fwd_conv_bias == 1 && dims < 5 && num_wg < 640 && work_per_wg > 256 && c_n > 0)
     { // 640 workgroups of size 256 needed to completely fill the GPU
 
         work_per_wg /= c_n;
