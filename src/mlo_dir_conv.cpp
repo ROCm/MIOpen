@@ -5036,8 +5036,9 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescri
     int hInStride;
     int wInStride;
 
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(input_tensor.GetLengths());
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(input_tensor.GetStrides());
+    std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(input_tensor.GetLengths());
+    std::tie(nInStride, cInStride, hInStride, wInStride) =
+        miopen::tien<4>(input_tensor.GetStrides());
 
     setInputDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
