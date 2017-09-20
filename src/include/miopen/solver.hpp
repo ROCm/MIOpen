@@ -32,19 +32,6 @@
 #include "miopen/mlo_internal.hpp"
 #include "miopen/miopen.h"
 
-// For old C++. hip-tidy fails to find std::make_unique.
-#if __cplusplus < 201402L // C++14 or later
-namespace std {
-
-template <typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args)
-{
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
-} // namespace std
-#endif
-
 namespace miopen {
 
 namespace solver {
