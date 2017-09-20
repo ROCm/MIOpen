@@ -32,6 +32,19 @@
 #include "miopen/mlo_internal.hpp"
 #include "miopen/miopen.h"
 
+// For old C++. hip-tidy fails to find std::make_unique.
+#if __cplusplus < 201402L // C++14 or later
+namespace std {
+
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+} // namespace std
+#endif
+
 namespace miopen {
 
 namespace solver {
@@ -134,14 +147,16 @@ class Solver
     /// Limitations: The solution shall be adequate for the proglem config.
     /// Otherwise, the function may return incorrect results or fail.
     ///
-    /// Legacy behavior:
-    ///     Lookup for a suitable PerformanceConfig in the perfDb;
+    /// Possible implementation which tries to find optimal configuration
+    /// in the perfDb (legacy behavior):
+    ///
+    ///     Lookup for a suitable config in the perfDb;
     ///     if (found) {
-    ///         return (value found in the PerfDb);
+    ///         return (config);
     ///     } else if (exhaustive search is requested) {
-    ///         Do exhaustive search; // May be slow.
-    ///         Update PerfDb with the PerformanceConfig found;
-    ///         return (value found);
+    ///         Do exhaustive search to find optimal config; // May be slow.
+    ///         Add config to the PerfDb;
+    ///         return (config);
     ///     }
     ///     return (solution-specific defaults); // May involve some heuristic math.
     ///
