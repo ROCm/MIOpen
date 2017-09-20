@@ -357,8 +357,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                     out_w,
                                     pad_h,
                                     pad_w,
-                                    v,
                                     u,
+                                    v,
                                     dilation_h,
                                     dilation_w,
                                     workSpace);
@@ -514,7 +514,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
     }
 
     if(mode == miopenConvolution)
@@ -671,8 +671,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                               out_w,
                               pad_h,
                               pad_w,
-                              v,
                               u,
+                              v,
                               dilation_h,
                               dilation_w,
                               workSpace);
@@ -769,10 +769,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             {
                 size_t in_offset = i * in_c * in_h * in_w;
 
+                gg.RunGemm(handle, w, x, workSpace, 0, in_offset, 0);
+
                 if(handle.IsProfilingEnabled())
                     t1 = handle.GetKernelTime();
-
-                gg.RunGemm(handle, w, x, workSpace, 0, in_offset, 0);
 
                 Col2ImGPU(handle,
                           workSpace,
@@ -908,8 +908,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                     in_w,
                                     pad_h,
                                     pad_w,
-                                    v,
                                     u,
+                                    v,
                                     dilation_h,
                                     dilation_w,
                                     workSpace);
@@ -1220,10 +1220,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 {
                     size_t in_offset = i * in_c * in_h * in_w;
 
+                    gg.RunGemm(handle, w, dy, workSpace, 0, out_offset, 0);
+
                     if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
-
-                    gg.RunGemm(handle, w, dy, workSpace, 0, out_offset, 0);
 
                     Col2ImGPU(handle,
                               workSpace,
@@ -1343,8 +1343,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                           in_w,
                           pad_h,
                           pad_w,
-                          v,
                           u,
+                          v,
                           dilation_h,
                           dilation_w,
                           workSpace);
@@ -1466,8 +1466,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                     in_w,
                                     pad_h,
                                     pad_w,
-                                    v,
                                     u,
+                                    v,
                                     dilation_h,
                                     dilation_w,
                                     workSpace);
@@ -1520,8 +1520,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                     out_w,
                                     pad_h,
                                     pad_w,
-                                    v,
                                     u,
+                                    v,
                                     dilation_h,
                                     dilation_w,
                                     workSpace);
@@ -1760,8 +1760,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                               out_w,
                               pad_h,
                               pad_w,
-                              v,
                               u,
+                              v,
                               dilation_h,
                               dilation_w,
                               workSpace);
@@ -1898,8 +1898,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                           in_w,
                           pad_h,
                           pad_w,
-                          v,
                           u,
+                          v,
                           dilation_h,
                           dilation_w,
                           workSpace);
