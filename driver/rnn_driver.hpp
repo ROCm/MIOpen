@@ -493,27 +493,9 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 
     size_t hy_sz = in_len[0] * hid_len[1] * wei_len[0] * wei_len[1];
 
-    size_t workSpaceSize_bwd_wt = 0;
-    size_t workSpaceSize_bwd_dt = 0;
+    size_t workSpaceSize = hid_sz * sizeof(T);
+    size_t reserveSpaceSize = hid_sz * sizeof(T);
 
-    (void)workSpaceSize_bwd_wt;
-    (void)workSpaceSize_bwd_dt;
-
-    /*
-miopenRNNBackwardWeightsGetWorkSpaceSize(
-    GetHandle(), outputTensor, inputTensor, rnnDesc, weightTensor, &workSpaceSize_bwd_wt);
-miopenRNNBackwardDataGetWorkSpaceSize(
-    GetHandle(), outputTensor, weightTensor, rnnDesc, inputTensor, &workSpaceSize_bwd_dt);
-            */
-    size_t workSpaceSize_bwd = hid_sz * sizeof(T);
-    //      workSpaceSize_bwd_dt > workSpaceSize_bwd_wt ? workSpaceSize_bwd_dt :
-    //      workSpaceSize_bwd_wt;
-
-    size_t workSpaceSize_fwd = hid_sz * sizeof(T);
-/*
-miopenRNNForwardGetWorkSpaceSize(
-GetHandle(), weightTensor, inputTensor, rnnDesc, outputTensor, &workSpaceSize_fwd);
-        */
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -535,14 +517,10 @@ GetHandle(), weightTensor, inputTensor, rnnDesc, outputTensor, &workSpaceSize_fw
     dcx_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
     dhy_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
     dcy_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
-    //    workspace_bwd_dev =
-    //        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
-    //    workspace_fwd_dev =
-    //        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
     workspace_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
+        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize / sizeof(T), sizeof(T)));
     reservespace_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
+        std::unique_ptr<GPUMem>(new GPUMem(ctx, reserveSpaceSize / sizeof(T), sizeof(T)));
 
     in   = std::vector<T>(in_sz);
     din  = std::vector<T>(in_sz, 0);
@@ -558,15 +536,11 @@ GetHandle(), weightTensor, inputTensor, rnnDesc, outputTensor, &workSpaceSize_fw
     dcx  = std::vector<T>(hy_sz, 0);
     dhy  = std::vector<T>(hy_sz, 0);
     dcy  = std::vector<T>(hy_sz, 0);
-    //    workspace_bwd      = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-    //    workspace_fwd      = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
-    workspace    = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-    reservespace = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+    workspace    = std::vector<T>(workSpaceSize / sizeof(T), 0);
+    reservespace = std::vector<T>(reserveSpaceSize / sizeof(T), 0);
     outhost      = std::vector<T>(out_sz, 0);
-    //    workspace_bwd_host = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-    //    workspace_fwd_host = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
-    workspace_host    = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-    reservespace_host = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+    workspace_host    = std::vector<T>(workSpaceSize / sizeof(T), 0);
+    reservespace_host = std::vector<T>(reserveSpaceSize / sizeof(T), 0);
     dwei_host         = std::vector<T>(wei_sz, 0);
     din_host          = std::vector<T>(in_sz, 0);
     hy_host           = std::vector<T>(hy_sz, 0);
@@ -686,14 +660,10 @@ status |= dhx_dev->ToGPU(q, dhx.data());
 status |= dcx_dev->ToGPU(q, dcx.data());
 status |= dhy_dev->ToGPU(q, dhy.data());
 status |= dcy_dev->ToGPU(q, dcy.data());
-if(workSpaceSize_bwd != 0)
+if(workSpaceSize != 0)
     status |= workspace_dev->ToGPU(q, workspace.data());
-if(workSpaceSize_fwd != 0)
+if(reserveSpaceSize != 0)
     status |= reservespace_dev->ToGPU(q, reservespace.data());
-//if(workSpaceSize_bwd != 0)
-//    status |= workspace_bwd_dev->ToGPU(q, workspace_bwd.data());
-//if(workSpaceSize_fwd != 0)
-//    status |= workspace_fwd_dev->ToGPU(q, workspace_fwd.data());
 
 if(status != CL_SUCCESS)
     printf("Error copying data to GPU\n");
