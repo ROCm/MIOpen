@@ -408,6 +408,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							nullptr);
 					}
 				}
+
+
+				bacc += in_n[ti];
 			}
 
 			
