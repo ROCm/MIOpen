@@ -133,6 +133,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 	int in_stride = in_h;
 	int hy_stride = hy_h * bi;
+	int h_stride = hy_h * bi;
 	int out_stride = out_h;
 	int wei_stride = hy_h * bi;
 
@@ -269,9 +270,151 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					nullptr);
 
 			}
-			clFinish(Q);
+			else
+			{
+				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
+
+				MIOpenGEMM::gemm0<float>(false,
+					false,
+					false,
+					batch_n,
+					hy_h * bi,
+					hy_h * bi,
+					1,
+					workSpace,
+					prelayer_shift,
+					hy_stride,
+					w,
+					wei_shift,
+					wei_stride,
+					1,
+					reserveSpace,
+					hid_shift,
+					hy_stride,
+					&Q,
+					0,
+					nullptr,
+					nullptr);
+			}
+
+			// from hidden state
+			bacc = 0;
+			baccbi = batch_n;
+			for (int ti = 0; ti < seqLen; ti++)
+			{
+				baccbi -= in_n[seqLen - 1 - ti];
+
+				int wei_shift =
+					li == 0 ? (in_h * hy_h * bi)
+					: (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
+						bi * hy_h * hy_stride);
+
+				if (ti == 0)
+				{
+					MIOpenGEMM::gemm0<float>(false,
+						false,
+						false,
+						in_n[ti],
+						hy_h,
+						hy_h,
+						1,
+						hx,
+						hx_shift,
+						h_stride,
+						w,
+						wei_shift,
+						wei_stride,
+						1,
+						reserveSpace,
+						hid_shift + bacc * hy_stride,
+						hy_stride,
+						&Q,
+						0,
+						nullptr,
+						nullptr);
+
+					if (bidirection)
+					{
+						MIOpenGEMM::gemm0<float>(false,
+							false,
+							false,
+							in_n[seqLen - 1 - ti],
+							hy_h,
+							hy_h,
+							1,
+							hx,
+							hx_shift + hy_h,
+							h_stride,
+							w,
+							wei_shift + hy_h,
+							wei_stride,
+							1,
+							reserveSpace,
+							hid_shift + baccbi * hy_stride + hy_h,
+							hy_stride,
+							&Q,
+							0,
+							nullptr,
+							nullptr);
+					}
+				}
+				else
+				{
+					MIOpenGEMM::gemm0<float>(false,
+						false,
+						false,
+						in_n[ti],
+						hy_h,
+						hy_h,
+						1,
+						hy,
+						hx_shift,
+						h_stride,
+						w,
+						wei_shift,
+						wei_stride,
+						1,
+						reserveSpace,
+						hid_shift + bacc * hy_stride,
+						hy_stride,
+						&Q,
+						0,
+						nullptr,
+						nullptr);
+
+					if (bidirection)
+					{
+						MIOpenGEMM::gemm0<float>(false,
+							false,
+							false,
+							in_n[seqLen - 1 - ti],
+							hy_h,
+							hy_h,
+							1,
+							hy,
+							hx_shift + hy_h,
+							h_stride,
+							w,
+							wei_shift + hy_h,
+							wei_stride,
+							1,
+							reserveSpace,
+							hid_shift + baccbi * hy_stride + hy_h,
+							hy_stride,
+							&Q,
+							0,
+							nullptr,
+							nullptr);
+					}
+				}
+			}
+
+			
 
 		}
+
+		clFinish(Q);
 #else
 		MIOPEN_THROW("GEMM is not supported");
 #endif
