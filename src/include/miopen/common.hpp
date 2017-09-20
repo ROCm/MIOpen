@@ -54,7 +54,6 @@ inline ConstData_t DataCast(const void* p)
 
 using Data_t      = void*;
 using ConstData_t = const void*;
-// TODO: Set the deleter
 using ManageDataPtr = MIOPEN_MANAGE_PTR(void, hipFree);
 
 inline Data_t DataCast(void* p) { return p; }
