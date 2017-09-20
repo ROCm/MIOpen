@@ -63,6 +63,8 @@ ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
             int H         = params.in_height;
             int C         = params.n_inputs;
             int K         = params.n_outputs;
+            int W_out     = params.out_width;
+            int H_out     = params.out_height;
 
             N_LCL_OUT_MAPS         = std::min(N_LCL_OUT_MAPS, K);
             result.n_out_pix_tiles = N_LCL_OUT_MAPS;
@@ -105,20 +107,25 @@ ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
 
             uint N_IN_GROUPS        = (C + N_LCL_IN_MAPS - 1) / N_LCL_IN_MAPS;
             uint N_LCL_IN_MAPS_ONCE = 8;
-            uint CLOOP0             = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
-            uint CLOOP2             = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
+
+            if (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
+                N_LCL_IN_MAPS_ONCE = 4;
+
+            uint CLOOP0 = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
+            uint CLOOP2 = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
 
             KernelInfo kernel;
 
             kernel.comp_options =
+                std::string(" -DMLO_N_LCL_IN_MAPS_ONCE=") + std::to_string(N_LCL_IN_MAPS_ONCE) +
                 std::string(" -DBATCHSIZE=") + std::to_string(BATCHSIZE) + std::string(" -DH=") +
                 std::to_string(H) + std::string(" -DW=") + std::to_string(W) +
                 std::string(" -DC=") + std::to_string(C) + std::string(" -DK=") +
                 std::to_string(K) + std::string(" -DMLO_N_LCL_IN_MAPS=") +
                 std::to_string(N_LCL_IN_MAPS) + std::string(" -DMLO_N_INPUTS=") +
                 std::to_string(C) + std::string(" -DMLO_N_OUTPUTS=") + std::to_string(K) +
-                std::string(" -DH_out=") + std::to_string(H) + std::string(" -DW_out=") +
-                std::to_string(W) + std::string(" -DMLO_N_IN_GROUPS=") +
+                std::string(" -DH_out=") + std::to_string(H_out) + std::string(" -DW_out=") +
+                std::to_string(W_out) + std::string(" -DMLO_N_IN_GROUPS=") +
                 std::to_string(N_IN_GROUPS) + std::string(" -DMLO_CLOOP0=") +
                 std::to_string(CLOOP0) + std::string(" -DMLO_CLOOP2=") + std::to_string(CLOOP2) +
                 std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(N_LCL_OUT_MAPS) +
@@ -128,33 +135,70 @@ ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
                     " -DMLopen_RUNNING=1") + // to disable macro defines for CodeXL Shader Analyzer
                 params.general_compile_options;
 
+            kernel.comp_options = std::string(" -DMLO_FILTER_STRIDE0=") +
+                std::to_string(params.kernel_stride0) +
+                std::string(" -DMLO_FILTER_STRIDE1=") +
+                std::to_string(params.kernel_stride1) + kernel.comp_options;
+
             // std::cout << "compile options:\n"<< _comp_options << std::endl;
 
-            int FIXED_WORKGROUP_SIZE = 64;
+            // 1x1_Stride: FIX ME!!! NO padding support
+            if (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
+            {
+                int FIXED_WORKGROUP_SIZE = 64;
 
-            kernel.l_wk.push_back(FIXED_WORKGROUP_SIZE);
-            kernel.l_wk.push_back(1);
-            kernel.l_wk.push_back(1);
+                size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
 
-            size_t imagesizeAlign =
-                ((params.in_width * params.in_height * params.batch_sz + FIXED_WORKGROUP_SIZE - 1) /
-                 FIXED_WORKGROUP_SIZE) *
-                FIXED_WORKGROUP_SIZE;
-            size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
+                size_t local_wk1 = 1;
+                kernel.l_wk.push_back(FIXED_WORKGROUP_SIZE);
+                kernel.l_wk.push_back(local_wk1);
+                kernel.l_wk.push_back(1);
 
-            size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+                size_t imagesizeAlign =
+                    ((params.out_width * params.out_height * params.batch_sz + FIXED_WORKGROUP_SIZE - 1) /
+                        FIXED_WORKGROUP_SIZE) *
+                    FIXED_WORKGROUP_SIZE;
 
-            size_t gbl_wk1 = 1;
-            ;
-            size_t gbl_wk2 = 1;
+                size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+                size_t gbl_wk1 = local_wk1;
+                size_t gbl_wk2 = 1;
 
-            kernel.g_wk.push_back(gbl_wk0);
-            kernel.g_wk.push_back(gbl_wk1);
-            kernel.g_wk.push_back(gbl_wk2);
+                kernel.g_wk.push_back(gbl_wk0);
+                kernel.g_wk.push_back(gbl_wk1);
+                kernel.g_wk.push_back(gbl_wk2);
 
-            kernel.kernel_file = "MIOpenConv1x1J1.cl";
-            kernel.kernel_name = "MIOpenConv1x1";
-            result.construction_params.push_back(kernel);
+                kernel.kernel_file = "MIOpenConv1x1J1_stride.cl";
+                kernel.kernel_name = "MIOpenConv1x1";
+            }
+            else
+            {
+                int FIXED_WORKGROUP_SIZE = 64;
+
+                kernel.l_wk.push_back(FIXED_WORKGROUP_SIZE);
+                kernel.l_wk.push_back(1);
+                kernel.l_wk.push_back(1);
+
+                size_t imagesizeAlign =
+                    ((params.in_width * params.in_height * params.batch_sz + FIXED_WORKGROUP_SIZE - 1) /
+                     FIXED_WORKGROUP_SIZE) *
+                    FIXED_WORKGROUP_SIZE;
+                size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
+
+                size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
+
+                size_t gbl_wk1 = 1;
+                ;
+                size_t gbl_wk2 = 1;
+
+                kernel.g_wk.push_back(gbl_wk0);
+                kernel.g_wk.push_back(gbl_wk1);
+                kernel.g_wk.push_back(gbl_wk2);
+
+                kernel.kernel_file = "MIOpenConv1x1J1.cl";
+                kernel.kernel_name = "MIOpenConv1x1";
+                result.construction_params.push_back(kernel);
+            }
+            // std::cout << _kernel_file << std::endl;
         }
         else
         {
