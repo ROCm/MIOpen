@@ -234,6 +234,7 @@ void dumpKernel(cl_kernel kern,
 
 void* default_allocator(void* context, size_t sz)
 {
+    assert(context != nullptr);
     cl_int status = CL_SUCCESS;
     auto result   = clCreateBuffer(
         reinterpret_cast<cl_context>(context), CL_MEM_READ_ONLY, sz, nullptr, &status);
@@ -567,14 +568,7 @@ std::size_t Handle::GetMaxComputeUnits()
 
 Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 {
-    cl_int status = CL_SUCCESS;
-    auto result   = Allocator::ManageDataPtr{
-        clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
-    if(status != CL_SUCCESS)
-    {
-        MIOPEN_THROW_CL_STATUS(status, "OpenCL error creating buffer: " + std::to_string(sz));
-    }
-    return result;
+    return this->impl->allocator(sz);
 }
 Allocator::ManageDataPtr&
 Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
