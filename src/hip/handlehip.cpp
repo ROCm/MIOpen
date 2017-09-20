@@ -78,10 +78,7 @@ void* default_allocator(void*, size_t sz)
     return result;
 }
 
-void default_deallocator(void*, void* mem)
-{
-    hipFree(mem);
-}
+void default_deallocator(void*, void* mem) { hipFree(mem); }
 
 int get_device_id() // Get random device
 {
@@ -154,10 +151,10 @@ struct HandleImpl
         // TODO: Check device matches
     }
 
-    bool enable_profiling                 = false;
-    StreamPtr stream                      = nullptr;
-    float profiling_result                = 0.0;
-    int device                            = -1;
+    bool enable_profiling  = false;
+    StreamPtr stream       = nullptr;
+    float profiling_result = 0.0;
+    int device             = -1;
     Allocator allocator{};
     KernelCache cache;
     hipCtx_t ctx;
@@ -203,7 +200,7 @@ void Handle::SetAllocator(miopenAllocatorFunction allocator,
                           miopenDeallocatorFunction deallocator,
                           void* allocatorContext) const
 {
-    this->impl->allocator.allocator = allocator == nullptr ? default_allocator : allocator;
+    this->impl->allocator.allocator   = allocator == nullptr ? default_allocator : allocator;
     this->impl->allocator.deallocator = deallocator == nullptr ? default_deallocator : deallocator;
 
     this->impl->allocator.context = allocatorContext;
@@ -218,7 +215,8 @@ Allocator::ManageDataPtr Handle::Create(std::size_t sz)
     this->Finish();
     return this->impl->allocator(sz);
 }
-Allocator::ManageDataPtr& Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
+Allocator::ManageDataPtr&
+Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
     this->Finish();
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);

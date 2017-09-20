@@ -52,8 +52,8 @@ inline ConstData_t DataCast(const void* p)
 
 #elif MIOPEN_BACKEND_HIP
 
-using Data_t      = void*;
-using ConstData_t = const void*;
+using Data_t        = void*;
+using ConstData_t   = const void*;
 using ManageDataPtr = MIOPEN_MANAGE_PTR(void, hipFree);
 
 inline Data_t DataCast(void* p) { return p; }
