@@ -34,6 +34,7 @@ struct Allocator
     ManageDataPtr operator()(std::size_t n) const
     {
         assert(allocator != nullptr);
+        assert(deallocator != nullptr);
         auto result = allocator(context, n);
         if(result == nullptr && n != 0)
         {
