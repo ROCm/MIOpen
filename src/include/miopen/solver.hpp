@@ -149,7 +149,7 @@ class Solver
     ///
     virtual std::unique_ptr<PerformanceConfig> Find(const ConvolutionContext&) const
     {
-        return std::make_unique<PerformanceConfig>(); // NOLINT
+        return std::unique_ptr<PerformanceConfig>(new PerformanceConfig()); // NOLINT
     }
 
     /// Takes problem config, optimization parameters and other info
