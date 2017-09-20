@@ -53,21 +53,33 @@ hipCtx_t get_ctx()
     return ctx;
 }
 
-void* default_allocator(void* allocatorContext, size_t sz)
+std::size_t GetAvailableMemory()
 {
-    if(allocatorContext)
-    {
-    }; // squish warning, the allocatorContext is for user callbacks
-    void* result;
-    auto status = hipMalloc(&result, sz);
-    return status == hipSuccess ? result : nullptr;
+    size_t free, total;
+    auto status = hipMemGetInfo(&free, &total);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
+    return free;
 }
 
-void default_deallocator(void* allocatorContext, void* mem)
+void* default_allocator(void*, size_t sz)
 {
-    if(allocatorContext)
+    if(sz > GetAvailableMemory())
+        MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
+    void* result;
+    auto status = hipMalloc(&result, sz);
+    if(status != hipSuccess)
     {
-    }; // squish warning, the allocatorContext is for user callbacks
+        status = hipHostMalloc(&result, sz);
+        if(status != hipSuccess)
+            MIOPEN_THROW_HIP_STATUS(status,
+                                    "Hip error creating buffer " + std::to_string(sz) + ": ");
+    }
+    return result;
+}
+
+void default_deallocator(void*, void* mem)
+{
     hipFree(mem);
 }
 
@@ -144,11 +156,9 @@ struct HandleImpl
 
     bool enable_profiling                 = false;
     StreamPtr stream                      = nullptr;
-    miopenAllocatorFunction allocator     = nullptr;
-    miopenDeallocatorFunction deallocator = nullptr;
-    void* allocatorContext                = nullptr;
     float profiling_result                = 0.0;
     int device                            = -1;
+    Allocator allocator{};
     KernelCache cache;
     hipCtx_t ctx;
 };
@@ -163,8 +173,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     else
         this->impl->stream = HandleImpl::reference_stream(stream);
 
-    this->impl->allocator   = default_allocator;
-    this->impl->deallocator = default_deallocator;
+    this->SetAllocator(nullptr, nullptr, nullptr);
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -178,8 +187,7 @@ Handle::Handle() : impl(new HandleImpl())
     this->impl->ctx    = get_ctx();
     this->impl->stream = HandleImpl::reference_stream(nullptr);
 #endif
-    this->impl->allocator   = default_allocator;
-    this->impl->deallocator = default_deallocator;
+    this->SetAllocator(nullptr, nullptr, nullptr);
 }
 
 Handle::~Handle() {}
@@ -195,46 +203,22 @@ void Handle::SetAllocator(miopenAllocatorFunction allocator,
                           miopenDeallocatorFunction deallocator,
                           void* allocatorContext) const
 {
-    if(allocator)
-    {
-        this->impl->allocator   = allocator;
-        this->impl->deallocator = deallocator;
-    }
-    else
-    {
-        this->impl->allocator   = default_allocator;
-        this->impl->deallocator = default_deallocator;
-        if(deallocator != nullptr)
-            MIOPEN_THROW("Expected allocator and deallocator to both be null");
-    }
+    this->impl->allocator.allocator = allocator == nullptr ? default_allocator : allocator;
+    this->impl->allocator.deallocator = deallocator == nullptr ? default_deallocator : deallocator;
 
-    this->impl->allocatorContext = allocatorContext;
+    this->impl->allocator.context = allocatorContext;
 }
 
 void Handle::EnableProfiling(bool enable) { this->impl->enable_profiling = enable; }
 
 float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
-std::size_t GetAvailableMemory()
-{
-    size_t free, total;
-    auto status = hipMemGetInfo(&free, &total);
-    if(status != hipSuccess)
-        MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
-    return free;
-}
-
-ManageDataPtr Handle::Create(std::size_t sz)
+Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 {
     this->Finish();
-    void* result = this->impl->allocator(this->impl->allocatorContext, sz);
-    if(result == nullptr)
-    {
-        MIOPEN_THROW("Hip error creating buffer " + std::to_string(sz) + ": ");
-    }
-    return ManageDataPtr{result};
+    return this->impl->allocator(sz);
 }
-ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, std::size_t sz)
+Allocator::ManageDataPtr& Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
     this->Finish();
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);
@@ -242,7 +226,7 @@ ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, std::size
         MIOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
-void Handle::ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz)
+void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
     this->Finish();
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
