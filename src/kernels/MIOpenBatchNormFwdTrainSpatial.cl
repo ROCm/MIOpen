@@ -1388,15 +1388,15 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     __local _FLOAT lcl_scale;
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 
-    unsigned int index  = 0;
-    unsigned int ylid   = get_local_id(1);
-    unsigned int xgrpid = get_group_id(0);
-    unsigned int lidhw  = 0;
+    unsigned int index   = 0;
+    unsigned int ylid    = get_local_id(1);
+    unsigned int xgrpid  = get_group_id(0);
+    unsigned int lidhw   = 0;
     unsigned int xgid    = get_global_id(0);
     unsigned int ygid    = get_global_id(1);
     unsigned int ygrp_sz = get_local_size(1);
     unsigned int cid     = xgid * MIO_BN_HW;
-    unsigned int nid = 0;
+    unsigned int nid     = 0;
 
     if(ylid == 0)
     {

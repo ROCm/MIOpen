@@ -347,7 +347,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
 
 /*! @brief Set shape of N-dimensional tensor
  *
- * Interface for setting ensor shape. MIOpen has support for 2, 3, 4, 5 dimensional tensor of layout (NCHWT).
+ * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of layout.
  * @param tensorDesc   Tensor descriptor type (input)
  * @param dataType     Currently only miopenFloat is implemented (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
@@ -363,7 +363,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
 
 /*! @brief Set shape of N-dimensional tensor
  *
- * Interface for querying tensor size. MIOpen has support for 2, 3, 4, 5 dimensional tensor of layout (NCHWT).
+ * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of layout.
  * @param tensorDesc   Tensor descriptor type (input)
  * @param size         number of elements in tensor described by the descriptor (output)
  * @return             miopenStatus_t
@@ -1377,9 +1377,9 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
  * mean (input)
  * @param bnScale                   Batch norm scaling, gamma, tensor (input)
  * @param bnBias                    Batch norm bias, beta, tensor (input)
- * @param estimatedMean             Running average saved during forward training (output)
- * @param estimatedVariance         Running variance saved during forward training (output)
- * @param epsilon                   Value to stablize inverse variance calculation (input)
+ * @param estimatedMean             Running average saved during forward training (input)
+ * @param estimatedVariance         Running variance saved during forward training (input)
+ * @param epsilon                   Value to stabilize inverse variance calculation (input)
  * @return                          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
@@ -1425,7 +1425,7 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
  * @param bnScale                   Batch norm scaling, gamma, tensor (input)
  * @param resultBnScaleDiff         Tensor for dscale (output)
  * @param resultBnBiasDiff          Tensor for dbias (output)
- * @param epsilon                   Value to stablize inverse variance calculation (input)
+ * @param epsilon                   Value to stabilize inverse variance calculation (input)
  * @param savedMean                 Saved mini-batch mean for backwards pass (input)
  * @param savedInvVariance          Saved mini-bathc inverse variance for backwards pass (input)
  * @return                          miopenStatus_t
@@ -1493,7 +1493,7 @@ miopenSetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
  * @param mode         Activation mode enum (output)
  * @param activAlpha   Alpha value for some activation modes (output)
  * @param activBeta    Beta value for some activation modes (output)
- * @param activPower   Power exponent value for some activation modes (putput)
+ * @param activPower   Power exponent value for some activation modes (output)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
