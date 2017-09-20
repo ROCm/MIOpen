@@ -270,10 +270,9 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     return (params.kernel_size0 == 1) || (params.kernel_size1 == 1);
 }
 
-void
-ConvOclBwdWrW1x1::GetSolution(ConvSolution& result,
-                                  const ConvolutionContext& params,
-                                  const PerformanceConfig&) const
+void ConvOclBwdWrW1x1::GetSolution(ConvSolution& result,
+                                   const ConvolutionContext& params,
+                                   const PerformanceConfig&) const
 {
     if(params.n_passes)
     {

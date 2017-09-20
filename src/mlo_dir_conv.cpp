@@ -65,14 +65,16 @@ int mlo_construct_direct2D::mloConstruct()
     const auto no_perf_filtering =
         miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 
-    _search_params.use_binaries = false;
+    _search_params.use_binaries        = false;
     _search_params.assembler_available = false;
-    _search_params.rmv = V3;
-    if (mloIsAmdOpenclRocm(_search_params.rmv)) {
-        _search_params.assembler_available = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) &&
-                                             ValidateGcnAssembler();
+    _search_params.rmv                 = V3;
+    if(mloIsAmdOpenclRocm(_search_params.rmv))
+    {
+        _search_params.assembler_available =
+            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
-        _search_params.use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
+        _search_params.use_binaries =
+            !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
 
@@ -81,8 +83,7 @@ int mlo_construct_direct2D::mloConstruct()
         if(solver.IsApplicable(_search_params) &&
            (no_perf_filtering || solver.IsFast(_search_params)))
         {
-            const auto perfConfig =
-                solver.Find(_search_params);
+            const auto perfConfig = solver.Find(_search_params);
             miopen::solver::ConvSolution solution;
             solver.GetSolution(solution, _search_params, *perfConfig);
 
@@ -113,20 +114,18 @@ class StaticContainer
 const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
 mlo_construct_direct2D::SolverStore() const
 {
-    static const std::vector<
-        std::reference_wrapper<const miopen::solver::Solver>>
-        store({
-            StaticContainer<const miopen::solver::ConvAsm3x3U>::Instance(),
-            StaticContainer<const miopen::solver::ConvAsm5x10u2v2f1>::Instance(),
-            StaticContainer<const miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
-            StaticContainer<const miopen::solver::ConvAsm5x10u2v2b1>::Instance(),
-            StaticContainer<const miopen::solver::ConvOclDirectFwd11x11>::Instance(),
-            StaticContainer<const miopen::solver::ConvOclDirectFwdGen>::Instance(),
-            StaticContainer<const miopen::solver::ConvOclDirectFwd3x3>::Instance(),
-            StaticContainer<const miopen::solver::ConvOclDirectFwd1x1>::Instance(),
-            StaticContainer<const miopen::solver::ConvOclDirectFwdC>::Instance(),
-            StaticContainer<const miopen::solver::ConvOclDirectFwd>::Instance(),
-        });
+    static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
+        StaticContainer<const miopen::solver::ConvAsm3x3U>::Instance(),
+        StaticContainer<const miopen::solver::ConvAsm5x10u2v2f1>::Instance(),
+        StaticContainer<const miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
+        StaticContainer<const miopen::solver::ConvAsm5x10u2v2b1>::Instance(),
+        StaticContainer<const miopen::solver::ConvOclDirectFwd11x11>::Instance(),
+        StaticContainer<const miopen::solver::ConvOclDirectFwdGen>::Instance(),
+        StaticContainer<const miopen::solver::ConvOclDirectFwd3x3>::Instance(),
+        StaticContainer<const miopen::solver::ConvOclDirectFwd1x1>::Instance(),
+        StaticContainer<const miopen::solver::ConvOclDirectFwdC>::Instance(),
+        StaticContainer<const miopen::solver::ConvOclDirectFwd>::Instance(),
+    });
 
     return store;
 }
@@ -134,12 +133,10 @@ mlo_construct_direct2D::SolverStore() const
 const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
 mlo_construct_winograd::SolverStore() const
 {
-    static const std::vector<
-        std::reference_wrapper<const miopen::solver::Solver>>
-        store({
-            StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance(),
-            StaticContainer<const miopen::solver::ConvBinWinogradRxSFwd>::Instance(),
-        });
+    static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
+        StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance(),
+        StaticContainer<const miopen::solver::ConvBinWinogradRxSFwd>::Instance(),
+    });
 
     return store;
 }
@@ -147,20 +144,17 @@ mlo_construct_winograd::SolverStore() const
 const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
 mlo_construct_BwdWrW2D::SolverStore() const
 {
-    static const std::vector<
-        std::reference_wrapper<const miopen::solver::Solver>>
-        store({
-            StaticContainer<const miopen::solver::ConvAsmBwdWrW3x3>::Instance(),
-            StaticContainer<const miopen::solver::ConvOclBwdWrW2>::Instance(),
-            StaticContainer<const miopen::solver::ConvOclBwdWrW53>::Instance(),
-            StaticContainer<const miopen::solver::ConvOclBwdWrW1x1>::Instance(),
-        });
+    static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
+        StaticContainer<const miopen::solver::ConvAsmBwdWrW3x3>::Instance(),
+        StaticContainer<const miopen::solver::ConvOclBwdWrW2>::Instance(),
+        StaticContainer<const miopen::solver::ConvOclBwdWrW53>::Instance(),
+        StaticContainer<const miopen::solver::ConvOclBwdWrW1x1>::Instance(),
+    });
 
     return store;
 }
 
-void mlo_construct_direct2D::mloUseSolution(
-    const miopen::solver::ConvSolution& s)
+void mlo_construct_direct2D::mloUseSolution(const miopen::solver::ConvSolution& s)
 {
     _comp_options = s.construction_params[0].comp_options;
     _kernel_file  = s.construction_params[0].kernel_file;
@@ -274,7 +268,8 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
-    return StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance().IsFast(_search_params);
+    return StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance().IsFast(
+        _search_params);
 }
 
 int mlo_construct_BwdWrW2D::mloMultiStep()

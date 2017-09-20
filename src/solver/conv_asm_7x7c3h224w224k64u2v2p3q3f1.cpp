@@ -30,8 +30,7 @@
 namespace miopen {
 namespace solver {
 
-bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(
-    const ConvolutionContext& params) const
+bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.assembler_available)
     {
@@ -69,11 +68,9 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
 }
 
-void
-ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(
-    ConvSolution& result,
-    const ConvolutionContext& params,
-    const PerformanceConfig&) const
+void ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(ConvSolution& result,
+                                                    const ConvolutionContext& params,
+                                                    const PerformanceConfig&) const
 {
     const int out_w =
         (params.in_width + params.pad0 * 2 + params.kernel_stride0 - params.kernel_size0) /

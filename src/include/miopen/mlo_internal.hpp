@@ -160,7 +160,7 @@ enum rocm_meta_version
 
 namespace miopen {
 
-/// A leftover of the legacy design, houses problem config, 
+/// A leftover of the legacy design, houses problem config,
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
 /// TODO: These three entities should be made separate.
@@ -245,8 +245,7 @@ class Solver;
 class mlo_construct_direct2D
 {
     public:
-    virtual const std::vector<
-        std::reference_wrapper<const miopen::solver::Solver>>&
+    virtual const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
     SolverStore() const;
     void mloUseSolution(const miopen::solver::ConvSolution& s); // TODO: remove
 

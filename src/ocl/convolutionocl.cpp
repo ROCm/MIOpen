@@ -718,7 +718,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 bool timed  = handle.IsProfilingEnabled();
                 float timev = ExecuteFwdFFTKernel(
                     handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed);
-                        // FIXME: Is workSpaceSize correct here? It seems that workspace_fft is.
+                // FIXME: Is workSpaceSize correct here? It seems that workspace_fft is.
 
                 if(timed)
                 {

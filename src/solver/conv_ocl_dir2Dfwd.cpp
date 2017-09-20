@@ -30,10 +30,9 @@
 namespace miopen {
 namespace solver {
 
-void
-ConvOclDirectFwd::GetSolution(ConvSolution& result,
-                                  const ConvolutionContext& params,
-                                  const PerformanceConfig& exhaustive_search_result) const
+void ConvOclDirectFwd::GetSolution(ConvSolution& result,
+                                   const ConvolutionContext& params,
+                                   const PerformanceConfig& exhaustive_search_result) const
 {
     const auto& searched_params =
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
