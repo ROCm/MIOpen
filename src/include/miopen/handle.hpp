@@ -86,7 +86,8 @@ struct Handle : miopenHandle
     void Copy(ConstData_t src, Data_t dest, std::size_t size);
 
     Allocator::ManageDataPtr Create(std::size_t sz);
-    Allocator::ManageDataPtr& WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz);
+    Allocator::ManageDataPtr&
+    WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz);
     void ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz);
 
     template <class T>
