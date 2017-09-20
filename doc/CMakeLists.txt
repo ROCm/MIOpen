@@ -41,6 +41,7 @@ add_doxygen_doc(
     GENERATE_XML YES
     GENERATE_LATEX YES
     USE_PDFLATEX YES
+
 )
 add_sphinx_doc(src 
     BUILDER html 
@@ -51,11 +52,35 @@ add_sphinx_doc(src
     DEPENDS doxygen
 )
 
+
+    add_custom_target(copyover_installreadme
+        COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/../README.md ${CMAKE_CURRENT_SOURCE_DIR}/src/install.md
+        COMMENT "Copying over README.md to docs folder as install.md."
+    )
+    add_dependencies(copyover_installreadme doxygen)
+    mark_as_doc(copyover_installreadme)
+
+    add_custom_target(change_section_title_install
+        COMMAND sed -e '0,/MIOpen/ s/MIOpen/Build and Install Instructions/' -i ${CMAKE_CURRENT_SOURCE_DIR}/src/install.md
+        COMMENT "Replacing section title."
+    )
+    add_dependencies(change_section_title_install copyover_installreadme)
+    mark_as_doc(change_section_title_install)
+
+    add_custom_target(copyover_driverreadme
+        COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/../driver/README.md ${CMAKE_CURRENT_SOURCE_DIR}/src/driver.md
+        COMMENT "Copying over MIOpenDriver README.md to docs folder as driver.md."
+    )
+    add_dependencies(copyover_driverreadme copyover_installreadme)
+    mark_as_doc(copyover_driverreadme)
+
+
+
 add_custom_target(delete_miopenexporthtml
     COMMAND sed -e s/MIOPEN_EXPORT// -i ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html
     COMMENT "Removing MIOPEN_EXPORT from html document. ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html"
 )
-add_dependencies(delete_miopenexporthtml sphinx-HTML)
+add_dependencies(delete_miopenexporthtml sphinx-HTML copyover_driverreadme)
 mark_as_doc(delete_miopenexporthtml)
 
 
@@ -74,12 +99,12 @@ if(LATEX_FOUND)
         COMMAND sed -e s/_EXPORT// -i ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex
         COMMENT "Removing MIOPEN_EXPORT from latex document. ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex"
     )
-    add_dependencies(delete_export sphinx-LATEX)
+    add_dependencies(delete_export sphinx-LATEX copyover_driverreadme)
     mark_as_doc(delete_export)
 
 
     add_custom_target(delete_slashmiopen
-        COMMAND sed s/MIOPEN\\// -i ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex
+        COMMAND sed -e s/sret{MIOPEN\\/sret{/ -i ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex
         COMMENT "Removing MIOPEN_EXPORT from latex document. ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex"
     )
     add_dependencies(delete_slashmiopen delete_export)

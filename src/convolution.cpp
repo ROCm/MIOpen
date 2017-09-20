@@ -85,17 +85,18 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
         MIOPEN_THROW(miopenStatusBadParm, "Types do not match for the filter");
     }
 
-    std::size_t input_n;
-    std::size_t input_c;
-    std::size_t input_h;
-    std::size_t input_w;
+    // We use signed integers here to avoid possible underflows
+    std::ptrdiff_t input_n;
+    std::ptrdiff_t input_c;
+    std::ptrdiff_t input_h;
+    std::ptrdiff_t input_w;
 
     std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(inputTensorDesc.GetLengths());
 
-    std::size_t filter_k;
-    std::size_t filter_c;
-    std::size_t filter_h;
-    std::size_t filter_w;
+    std::ptrdiff_t filter_k;
+    std::ptrdiff_t filter_c;
+    std::ptrdiff_t filter_h;
+    std::ptrdiff_t filter_w;
 
     std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tien<4>(filterDesc.GetLengths());
 
@@ -114,23 +115,23 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
         }
     }
 
-    std::size_t output_c;
-    std::size_t output_h;
-    std::size_t output_w;
+    std::ptrdiff_t output_c;
+    std::ptrdiff_t output_h;
+    std::ptrdiff_t output_w;
     if(mode == miopenTranspose)
     {
         output_c = filter_c;
-        output_h = std::max<std::size_t>(
-            1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1) - 2 * pad_h);
-        output_w = std::max<std::size_t>(
-            1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1) - 2 * pad_w);
+        output_h = std::max<std::ptrdiff_t>(
+            1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h);
+        output_w = std::max<std::ptrdiff_t>(
+            1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
     }
     else
     {
         output_c = filter_k;
-        output_h = std::max<std::size_t>(
+        output_h = std::max<std::ptrdiff_t>(
             1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
-        output_w = std::max<std::size_t>(
+        output_w = std::max<std::ptrdiff_t>(
             1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
     }
 
@@ -214,15 +215,37 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
     int _kernel_size0, _kernel_size1;
     std::tie(std::ignore, std::ignore, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
 
-    return !(_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1));
+    bool supported_filters =
+        ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
+         (_kernel_size0 == 11 && _kernel_size1 == 11) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 10) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 20));
+
+    return !(
+        !supported_filters || (_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
+        (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
+        (_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 1 || v > 1)) ||
+        (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
 }
 
 bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) const
 {
-    int _kernel_size0, _kernel_size1;
-    std::tie(std::ignore, std::ignore, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
 
-    return !(_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1));
+    int k, _kernel_size0, _kernel_size1;
+    std::tie(k, std::ignore, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
+
+    bool supported_filters =
+        ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
+         (_kernel_size0 == 11 && _kernel_size1 == 11) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 10) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 20));
+
+    return !(!supported_filters || (_kernel_size0 == 3 && _kernel_size1 == 3 &&
+                                    (pad_h > 1 || pad_w > 1 || u > 1 || v > 1)) ||
+             (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0 || k == 1)) ||
+             (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
@@ -315,7 +338,8 @@ ConvolutionDescriptor::GetBackwardsWeightsDim(const TensorDescriptor& inputTenso
     std::size_t output_h;
     std::size_t output_w;
 
-    std::tie(output_n, output_c, output_h, output_w) = miopen::tien<4>(outputTensorDesc.GetLengths());
+    std::tie(output_n, output_c, output_h, output_w) =
+        miopen::tien<4>(outputTensorDesc.GetLengths());
 
     // if(input_c != filter_c) {
     // 	MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
@@ -344,7 +368,8 @@ ConvolutionDescriptor::GetBackwardOutputDim(const TensorDescriptor& outputTensor
     std::size_t output_h;
     std::size_t output_w;
 
-    std::tie(output_n, output_c, output_h, output_w) = miopen::tien<4>(outputTensorDesc.GetLengths());
+    std::tie(output_n, output_c, output_h, output_w) =
+        miopen::tien<4>(outputTensorDesc.GetLengths());
 
     std::size_t filter_k;
     std::size_t filter_c;
