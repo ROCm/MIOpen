@@ -28,7 +28,8 @@ struct Allocator
     miopenDeallocatorFunction deallocator;
     void* context;
 
-    using ManageDataPtr = std::unique_ptr<typename std::remove_pointer<Data_t>::type, AllocatorDeleter>;
+    using ManageDataPtr =
+        std::unique_ptr<typename std::remove_pointer<Data_t>::type, AllocatorDeleter>;
 
     ManageDataPtr operator()(std::size_t n) const
     {
@@ -36,7 +37,8 @@ struct Allocator
         auto result = allocator(context, n);
         if(result == nullptr && n != 0)
         {
-            MIOPEN_THROW("Custom allocator failed to allocate memory for buffer size " + std::to_string(n) + ": ");
+            MIOPEN_THROW("Custom allocator failed to allocate memory for buffer size " +
+                         std::to_string(n) + ": ");
         }
         return ManageDataPtr{DataCast(result), AllocatorDeleter{deallocator, context}};
     }
