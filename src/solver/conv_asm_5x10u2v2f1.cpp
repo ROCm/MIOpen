@@ -84,10 +84,9 @@ static inline int AlignUp(int val, unsigned step)
     return ((val + step - 1) / step) * step;
 }
 
-void
-ConvAsm5x10u2v2f1::GetSolution(ConvSolution& result,
-                                   const ConvolutionContext& params,
-                                   const PerformanceConfig&) const
+void ConvAsm5x10u2v2f1::GetSolution(ConvSolution& result,
+                                    const ConvolutionContext& params,
+                                    const PerformanceConfig&) const
 {
     const int out_w =
         (params.in_width + params.pad0 * 2 + params.kernel_stride0 - params.kernel_size0) /

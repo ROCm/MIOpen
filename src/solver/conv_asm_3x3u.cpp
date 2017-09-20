@@ -56,15 +56,11 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     // See fixme above.
 }
 
-bool ConvAsm3x3U::IsFast(const ConvolutionContext& params) const
-{
-    return params.in_width >= 50;
-}
+bool ConvAsm3x3U::IsFast(const ConvolutionContext& params) const { return params.in_width >= 50; }
 
-void
-ConvAsm3x3U::GetSolution(ConvSolution& result,
-                             const ConvolutionContext& params,
-                             const PerformanceConfig&) const
+void ConvAsm3x3U::GetSolution(ConvSolution& result,
+                              const ConvolutionContext& params,
+                              const PerformanceConfig&) const
 {
     std::string perf_vals;
     {

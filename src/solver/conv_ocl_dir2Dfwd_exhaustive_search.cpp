@@ -106,9 +106,8 @@ static bool mloSearchConfigDB(std::map<std::string, std::string>& conf_db,
     return (found);
 }
 
-static bool mloSearchConfigInDB(const ConvolutionContext& params,
-                                std::string& conf_key,
-                                std::string& conf_val)
+static bool
+mloSearchConfigInDB(const ConvolutionContext& params, std::string& conf_key, std::string& conf_val)
 {
     bool known_config = false;
     // build searchable db
@@ -185,7 +184,8 @@ n of input blocks
 n batchs (stacks) processed by the group
 */
 
-static int mloSetConf(const std::string& conf_val, ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl& result)
+static int mloSetConf(const std::string& conf_val,
+                      ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl& result)
 {
     mloParseConf(conf_val,
                  result.grp_tile1,
@@ -227,9 +227,10 @@ static int mloBuildConf_Val(std::string& conf_val,
 /*
 * select defult configuration if a known configuration has not been found.
 */
-static int mloSelectDefaultConfig(std::string& conf_val,
-                                  const ConvolutionContext& params,
-                                  ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl& result)
+static int
+mloSelectDefaultConfig(std::string& conf_val,
+                       const ConvolutionContext& params,
+                       ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl& result)
 {
 
     //
@@ -503,14 +504,13 @@ static int mloAddConfig(Handle& stream, std::string& conf_key, std::string& conf
 const std::vector<std::unique_ptr<const Solver>>&
 ConvOclDirectFwdLegacyExhaustiveSearch::GetImplementationsToMeasure()
 {
-    static const std::vector<std::unique_ptr<const Solver>>
-        implementations = [] {
-            std::vector<std::unique_ptr<const Solver>> data;
-            data.emplace_back(new ConvOclDirectFwd1x1);
-            data.emplace_back(new ConvOclDirectFwdC);
-            data.emplace_back(new ConvOclDirectFwd);
-            return data;
-        }();
+    static const std::vector<std::unique_ptr<const Solver>> implementations = [] {
+        std::vector<std::unique_ptr<const Solver>> data;
+        data.emplace_back(new ConvOclDirectFwd1x1);
+        data.emplace_back(new ConvOclDirectFwdC);
+        data.emplace_back(new ConvOclDirectFwd);
+        return data;
+    }();
 
     return implementations;
 }
@@ -518,14 +518,13 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetImplementationsToMeasure()
 /*
 * Measure the current configuration performance.
 */
-int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(
-    Handle* profile_h,
-    Data_t bot_ocl_buf,
-    Data_t top_ocl_buf,
-    Data_t wei_ocl_buf,
-    Data_t bias_ocl_buf,
-    double& processing_time,
-    const ConvolutionContext& params) const
+int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(Handle* profile_h,
+                                                        Data_t bot_ocl_buf,
+                                                        Data_t top_ocl_buf,
+                                                        Data_t wei_ocl_buf,
+                                                        Data_t bias_ocl_buf,
+                                                        double& processing_time,
+                                                        const ConvolutionContext& params) const
 {
     int ret = 0;
     ConvSolution kernel_search_result;
@@ -635,8 +634,7 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(
 }
 
 std::unique_ptr<Solver::PerformanceConfig>
-ConvOclDirectFwdLegacyExhaustiveSearch::Find(
-    const ConvolutionContext& params) const
+ConvOclDirectFwdLegacyExhaustiveSearch::Find(const ConvolutionContext& params) const
 {
     auto result = std::make_unique<PerformanceConfigImpl>();
 
@@ -655,8 +653,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Find(
     return std::unique_ptr<Solver::PerformanceConfig>(result.release());
 }
 
-void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
-    const ConvolutionContext& params, PerformanceConfigImpl& result) const
+void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionContext& params,
+                                                            PerformanceConfigImpl& result) const
 {
     miopen::Handle profile_h;
     double processing_time;
@@ -979,12 +977,12 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
                                 random_top_sys_buf.size() * sizeof(float));
 
                             const auto ret = MeasureLoop(&profile_h,
-                                                          bot_ocl_buf.get(),
-                                                          top_ocl_buf.get(),
-                                                          wei_ocl_buf.get(),
-                                                          bias_ocl_buf.get(),
-                                                          processing_time,
-                                                          params);
+                                                         bot_ocl_buf.get(),
+                                                         top_ocl_buf.get(),
+                                                         wei_ocl_buf.get(),
+                                                         bias_ocl_buf.get(),
+                                                         processing_time,
+                                                         params);
 
                             if(ret != 0)
                             {
@@ -1214,12 +1212,12 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(
                                                     continue;
                                                 }
                                                 const auto ret = MeasureLoop(&profile_h,
-                                                                              bot_ocl_buf.get(),
-                                                                              top_ocl_buf.get(),
-                                                                              wei_ocl_buf.get(),
-                                                                              bias_ocl_buf.get(),
-                                                                              processing_time,
-                                                                              params);
+                                                                             bot_ocl_buf.get(),
+                                                                             top_ocl_buf.get(),
+                                                                             wei_ocl_buf.get(),
+                                                                             bias_ocl_buf.get(),
+                                                                             processing_time,
+                                                                             params);
 
                                                 if(ret != 0)
                                                 {
