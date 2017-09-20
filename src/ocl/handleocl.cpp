@@ -566,10 +566,7 @@ std::size_t Handle::GetMaxComputeUnits()
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
 }
 
-Allocator::ManageDataPtr Handle::Create(std::size_t sz)
-{
-    return this->impl->allocator(sz);
-}
+Allocator::ManageDataPtr Handle::Create(std::size_t sz) { return this->impl->allocator(sz); }
 Allocator::ManageDataPtr&
 Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
