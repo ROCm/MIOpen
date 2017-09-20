@@ -42,7 +42,6 @@ struct tensor_fixture_4
     ~tensor_fixture_4() { miopenDestroyTensorDescriptor(tensor); }
 };
 
-
 // 1-DIMENSIONAL -------------------
 struct tensor_fixture_n1d
 {
@@ -129,7 +128,6 @@ struct tensor_test_suit_1d
     }
 };
 //- END 1-D ---------------------------
-
 
 // 2-DIMENSIONAL ----------------------
 struct tensor_fixture_n2d
@@ -222,7 +220,6 @@ struct tensor_test_suit_2d
     }
 };
 //----------------------------
-
 
 // 3-DIMENSIONAL -------------
 struct tensor_fixture_n3d
@@ -324,7 +321,6 @@ struct tensor_test_suit_3d
     }
 };
 //-----------------------------
-
 
 // 4-DIMENSIONAL --------------
 struct tensor_fixture_n4d
@@ -495,8 +491,6 @@ struct tensor_test_suit_4d
 };
 //-END 4-D-----------------------------
 
-
-
 // 5-DIMENSIONAL --------------
 struct tensor_fixture_n5d
 {
@@ -604,37 +598,29 @@ struct tensor_test_suit_5d
 };
 //-END 5-d -----------------------------
 
-
-
-
-
-
-
-
-
 int main()
 {
     // printf("Running 1-D.\n");
     // 1-dimensional tests
     tensor_test_suit_1d<tensor_fixture_n1d>::run_tests();
     tensor_test_suit_1d<tensor_fixture_n1d_strides>::run_tests();
-    
+
     // printf("Running 2-D.\n");
     // 2-dimensional tests
     tensor_test_suit_2d<tensor_fixture_n2d>::run_tests();
     tensor_test_suit_2d<tensor_fixture_n2d_strides>::run_tests();
-    
+
     // printf("Running 3-D.\n");
     // 3-dimensional tests
     tensor_test_suit_3d<tensor_fixture_n3d>::run_tests();
     tensor_test_suit_3d<tensor_fixture_n3d_strides>::run_tests();
-    
+
     // printf("Running 4-D.\n");
     // 4-dimensional tests
     tensor_test_suit_4d<tensor_fixture_4>::run_tests();
     tensor_test_suit_4d<tensor_fixture_n4d>::run_tests();
     tensor_test_suit_4d<tensor_fixture_n4d_strides>::run_tests();
-    
+
     // printf("Running 5-D.\n");
     // 5-dimensional tests
     tensor_test_suit_5d<tensor_fixture_n5d>::run_tests();
