@@ -377,7 +377,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[grpid] = (1 - (_FLOAT)expAvgFactor)*resultRunningVariance[grpid] + (_FLOAT)expAvgFactor * adjust;
+        resultRunningVariance[grpid] = (1 - (_FLOAT)expAvgFactor) * resultRunningVariance[grpid] +
+                                       (_FLOAT)expAvgFactor * adjust;
 #endif
     }
 #endif
@@ -551,7 +552,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor)*resultRunningVariance[xgid] + (_FLOAT)expAvgFactor * adjust;
+        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor) * resultRunningVariance[xgid] +
+                                      (_FLOAT)expAvgFactor * adjust;
 
 #endif
     }
@@ -727,7 +729,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor)*resultRunningVariance[xgid] + (_FLOAT)expAvgFactor * adjust;
+        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor) * resultRunningVariance[xgid] +
+                                      (_FLOAT)expAvgFactor * adjust;
 #endif
     }
 #endif
@@ -912,7 +915,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor)*resultRunningVariance[xgid] + (_FLOAT)expAvgFactor * adjust;
+        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor) * resultRunningVariance[xgid] +
+                                      (_FLOAT)expAvgFactor * adjust;
 #endif
     }
 #endif
@@ -1104,7 +1108,8 @@ BatchNormFwdTrainSpatialFinalVariance(__global _FLOAT* __restrict varbuff,
         // var(n+1) = (p* var(n-1)) +  (-p*adjust + adjust)
         _FLOAT NHW                  = (_FLOAT)MIO_BN_NHW;
         const _FLOAT adjust         = (MIO_BN_NHW == 1) ? variance : variance * (NHW / (NHW - 1));
-        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor)*resultRunningVariance[xgid] + (_FLOAT)expAvgFactor * adjust;
+        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor) * resultRunningVariance[xgid] +
+                                      (_FLOAT)expAvgFactor * adjust;
 #endif
     }
 #endif
@@ -1526,7 +1531,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[grpid] = (1 - (_FLOAT)expAvgFactor)*resultRunningVariance[grpid] + (_FLOAT)expAvgFactor * adjust;
+        resultRunningVariance[grpid] = (1 - (_FLOAT)expAvgFactor) * resultRunningVariance[grpid] +
+                                       (_FLOAT)expAvgFactor * adjust;
 #endif
     }
 #endif
