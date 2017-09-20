@@ -18,7 +18,7 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent kernel cache
 
-Instructions to install the above dependencies are present in this [section](#install-dependencies).
+Instructions to install the above dependencies are present in this [section](#installing-the-dependencies).
 
 ## Configure with cmake
 
@@ -39,7 +39,7 @@ cmake -DMIOPEN_BACKEND=OpenCL ..
 The above assumes that OpenCL is installed in one of the standard locations. If not, then manually set these two cmake variables: 
 
 ```
-cmake -DMIOPEN_BACKEND=OpenCL -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS<opencl-headers-path> ..
+cmake -DMIOPEN_BACKEND=OpenCL -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS=<opencl-headers-path> ..
 ```
 
 #### For HIP, run:
@@ -58,10 +58,6 @@ CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/r
 CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" ..
 ```
 
-If building for HIP and boost was installed via `apt-get` in Ubuntu v16, add this flag to the cmake line:
-```
--DMIOPEN_MAKE_BOOST_PUBLIC=ON
-```
 
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:
 
@@ -101,7 +97,13 @@ The driver can be built using the `MIOpenDriver` target:
 
 ` cmake --build . --config Release --target MIOpenDriver ` **OR** ` make MIOpenDriver `
 
-Documentation on how to run the driver is [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/driver/README.md) 
+Documentation on how to run the driver is [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/driver/README.md). 
+
+
+If building for HIP and `boost` was installed via `apt-get` in Ubuntu v16, add the following to the cmake line [above](#configure-with-cmake):
+```
+-DMIOPEN_MAKE_BOOST_PUBLIC=ON
+```
 
 ## Running the tests
 
@@ -114,6 +116,11 @@ A single test can be built and ran, by doing:
 ```
 cmake --build . --config Release --target test_tensor
 ./test/test_tensor
+```
+
+If building for HIP and `boost` was installed via `apt-get` in Ubuntu v16, add the following to the cmake line [above](#configure-with-cmake):
+```
+-DMIOPEN_MAKE_BOOST_PUBLIC=ON
 ```
 
 ## Building the documentation
@@ -148,7 +155,7 @@ Also, githooks can be installed to format the code per-commit:
 ./.githooks/install
 ```
 
-## Installing dependencies
+## Installing the dependencies
 
 The dependencies can be installed with the `install_deps.cmake`, script:
 

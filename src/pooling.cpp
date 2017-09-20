@@ -95,12 +95,10 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& tensorDesc) const
     return std::make_tuple(
         input_n,
         input_c,
-        std::max(std::size_t{1},
-                 static_cast<std::size_t>(
-                     std::ceil((input_h - window_h + 2 * pad_h) / static_cast<float>(u)) + 1)),
-        std::max(std::size_t{1},
-                 static_cast<std::size_t>(
-                     std::ceil((input_w - window_w + 2 * pad_w) / static_cast<float>(v)) + 1)));
+        std::max<std::ptrdiff_t>(
+            1, std::ceil((input_h - window_h + 2 * pad_h) / static_cast<float>(u)) + 1),
+        std::max<std::ptrdiff_t>(
+            1, std::ceil((input_w - window_w + 2 * pad_w) / static_cast<float>(v)) + 1));
 }
 
 TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescriptor& tensorDesc) const
@@ -115,8 +113,8 @@ std::ostream& operator<<(std::ostream& stream, const PoolingDescriptor& x)
 {
     MIOPEN_LOG_ENUM(stream, x.mode, miopenPoolingMax, miopenPoolingAverage) << ", ";
     LogRange(stream, x.lens, ", ") << ", ";
-    LogRange(stream, x.strides, ", ") << ", ";
     LogRange(stream, x.pads, ", ") << ", ";
+    LogRange(stream, x.strides, ", ") << ", ";
     return stream;
 }
 

@@ -124,7 +124,8 @@ std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FAC
         { pick_batch_size(32, n),  608,  4,   4   },
         { pick_batch_size(32, n),  1056, 7,   7   },
         { pick_batch_size(32, n),  1024, 7,   7   },
-        { pick_batch_size(32, n),  2048, 11,  11  }
+        { pick_batch_size(32, n),  2048, 11,  11  },
+        { 1,                       1,    1,   1   }
     };
     // clang-format on
 }
@@ -186,6 +187,8 @@ std::set<std::vector<int>> get_weights(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FA
         { pick_batch_size(64, n),  24,   5,  5  },
         { pick_batch_size(64, n),  256,  1,  1  },
         { pick_batch_size(1024, n),256,  1,  1  },
+        { pick_batch_size(64, n),  1,    2,  2  },
+        { pick_batch_size(64, n),  1,    3,  3  },
         { pick_batch_size(64, n),  3,    3,  3  },
         { pick_batch_size(64, n),  3,    7,  7  },
         { pick_batch_size(32, n),  3,    7,  7  },
