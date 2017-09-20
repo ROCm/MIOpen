@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <cassert>
 #include <algorithm>
 #include <miopen/errors.hpp>
 #include <miopen/tensor.hpp>
@@ -269,6 +270,7 @@ void OpTensor(Handle& handle,
     auto clens    = cTensorDesc.GetLengths();
     auto cstrides = cTensorDesc.GetStrides();
     auto csize    = clens.size();
+    assert(csize > 0 && csize < 6);
     if(csize == 5)
     {
         c_n       = clens[0];
@@ -353,6 +355,7 @@ void OpTensor(Handle& handle,
     // This block gives off indexing for 5d tensors, skipping
     if(fwd_conv_bias == 1 && dims < 5 && num_wg < 640 && work_per_wg > 256)
     { // 640 workgroups of size 256 needed to completely fill the GPU
+
         work_per_wg /= c_n;
         num_wg *= c_n;
         incr_wg = 1;
