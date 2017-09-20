@@ -347,7 +347,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
 
 /*! @brief Set shape of N-dimensional tensor
  *
- * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of layout.
+ * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
+ * layout.
  * @param tensorDesc   Tensor descriptor type (input)
  * @param dataType     Currently only miopenFloat is implemented (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
@@ -363,7 +364,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
 
 /*! @brief Set shape of N-dimensional tensor
  *
- * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of layout.
+ * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
+ * layout.
  * @param tensorDesc   Tensor descriptor type (input)
  * @param size         number of elements in tensor described by the descriptor (output)
  * @return             miopenStatus_t
