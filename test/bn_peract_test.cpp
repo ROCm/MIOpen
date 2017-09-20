@@ -50,7 +50,6 @@
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
 #define MIO_BN_TEST_EPSILON 1e-6
 
-
 //****************************************************
 // FORWARD TRAIN
 //****************************************************
