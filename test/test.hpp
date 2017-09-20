@@ -51,13 +51,16 @@ void failed(const char* msg, const char* file, int line)
 
 #define FAIL(...) failed(__VA_ARGS__, __FILE__, __LINE__)
 
-template<class F>
+template <class F>
 bool throws(F f)
 {
-    try {
+    try
+    {
         f();
         return false;
-    } catch(...) {
+    }
+    catch(...)
+    {
         return true;
     }
 }
