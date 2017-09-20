@@ -235,8 +235,8 @@ void dumpKernel(cl_kernel kern,
 void* default_allocator(void* context, size_t sz)
 {
     cl_int status = CL_SUCCESS;
-    auto result =
-        clCreateBuffer(reinterpret_cast<cl_context>(context), CL_MEM_READ_ONLY, sz, nullptr, &status);
+    auto result   = clCreateBuffer(
+        reinterpret_cast<cl_context>(context), CL_MEM_READ_ONLY, sz, nullptr, &status);
     if(status != CL_SUCCESS)
     {
         MIOPEN_THROW_CL_STATUS(status, "OpenCL error creating buffer: " + std::to_string(sz));
@@ -444,14 +444,15 @@ void Handle::SetAllocator(miopenAllocatorFunction allocator,
                           miopenDeallocatorFunction deallocator,
                           void* allocatorContext) const
 {
-    if (allocator == nullptr && allocatorContext != nullptr)
+    if(allocator == nullptr && allocatorContext != nullptr)
     {
         MIOPEN_THROW("Allocator context can not be used with the default allocator");
     }
     this->impl->allocator.allocator   = allocator == nullptr ? default_allocator : allocator;
     this->impl->allocator.deallocator = deallocator == nullptr ? default_deallocator : deallocator;
 
-    this->impl->allocator.context = allocatorContext == nullptr ? this->impl->context.get() : allocatorContext;
+    this->impl->allocator.context =
+        allocatorContext == nullptr ? this->impl->context.get() : allocatorContext;
 }
 
 void Handle::EnableProfiling(bool enable) { this->impl->enable_profiling = enable; }
@@ -567,15 +568,16 @@ std::size_t Handle::GetMaxComputeUnits()
 Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 {
     cl_int status = CL_SUCCESS;
-    auto result =
-        Allocator::ManageDataPtr{clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
+    auto result   = Allocator::ManageDataPtr{
+        clCreateBuffer(impl->context.get(), CL_MEM_READ_ONLY, sz, nullptr, &status)};
     if(status != CL_SUCCESS)
     {
         MIOPEN_THROW_CL_STATUS(status, "OpenCL error creating buffer: " + std::to_string(sz));
     }
     return result;
 }
-Allocator::ManageDataPtr& Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
+Allocator::ManageDataPtr&
+Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
     cl_int status = clEnqueueWriteBuffer(
         this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
