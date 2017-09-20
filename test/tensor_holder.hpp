@@ -70,13 +70,6 @@ void visit_tensor_size(std::size_t n, F f)
     }
 }
 
-
-
-
-
-
-
-
 template <class T>
 struct tensor
 {
@@ -91,7 +84,6 @@ struct tensor
     {
     }
 
-    
     tensor(std::size_t n, std::size_t c, std::size_t h, std::size_t w)
         : desc(miopenFloat, {n, c, h, w}), data(n * c * h * w)
     {
@@ -120,11 +112,10 @@ struct tensor
     void generate_impl(G g)
     {
         auto iterator = data.begin();
-        auto assign = [&](T x)
-        {
-           assert(iterator < data.end());
+        auto assign   = [&](T x) {
+            assert(iterator < data.end());
             *iterator = x;
-            ++iterator; 
+            ++iterator;
         };
         this->for_each(miopen::compose(assign, std::move(g)));
     }
@@ -185,7 +176,6 @@ struct tensor
         assert(this->desc.GetIndex(xs...) < data.size());
         return this->data[this->desc.GetIndex(xs...)];
     }
-    
 
     T& operator[](std::size_t i) { return data.at(i); }
 
