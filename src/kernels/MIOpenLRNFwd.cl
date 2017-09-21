@@ -385,8 +385,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
     }
 }
 
-#if(MLO_LRN_N_INPUTS + 2 * MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ || \
-    MLO_LRN_N_OUTPUTS + 2 * MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ)
+#if(MLO_LRN_N_INPUTS + 2 * MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ)
 #define MLO_LOW_CHNL_COUNT 1
 #else
 #define MLO_LOW_CHNL_COUNT 0
@@ -532,11 +531,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         }
     }
 
-    for(; c_i < MLO_LRN_N_CHANNELS
-#if MLO_LOW_CHNL_COUNT == 1
-          &&
-          (c_i < MLO_LRN_N_INPUTS)
-#endif
+    for(; c_i < MLO_LRN_N_INPUTS
             ;
         c_i++, c_o++)
     {
@@ -621,7 +616,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         }
     }
 
-    for(; c_i < MLO_LRN_N_CHANNELS + MLO_LRN_PAD; c_i++, c_o++)
+    for(; c_i < MLO_LRN_N_INPUTS + MLO_LRN_PAD; c_i++, c_o++)
     {
 
         accum = accum - bot_in2[0];

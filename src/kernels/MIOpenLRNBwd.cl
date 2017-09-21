@@ -313,7 +313,7 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
         }
     }
 
-    for(; c_i < MLO_LRN_N_CHANNELS; c_i++, c_o++)
+    for(; c_i < MLO_LRN_N_INPUTS; c_i++, c_o++)
     {
 
         _FLOAT prv_top_df_in =
@@ -367,7 +367,7 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
         }
     }
 
-    for(; c_i < MLO_LRN_N_CHANNELS + MLO_LRN_PAD; c_i++, c_o++)
+    for(; c_i < MLO_LRN_N_INPUTS + MLO_LRN_PAD; c_i++, c_o++)
     {
 
         accum_ratio = accum_ratio - ratio_dta[0];
