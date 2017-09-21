@@ -178,8 +178,6 @@ miopenCreateTensorDescriptor(&biasTensor);
     std::unique_ptr<GPUMem> dcx_dev;
     std::unique_ptr<GPUMem> dhy_dev;
     std::unique_ptr<GPUMem> dcy_dev;
-    //    std::unique_ptr<GPUMem> workspace_bwd_dev;
-    //    std::unique_ptr<GPUMem> workspace_fwd_dev;
     std::unique_ptr<GPUMem> workspace_dev;
     std::unique_ptr<GPUMem> reservespace_dev;
     std::unique_ptr<GPUMem> b_dev;
@@ -199,13 +197,9 @@ miopenCreateTensorDescriptor(&biasTensor);
     std::vector<T> dcx;
     std::vector<T> dhy;
     std::vector<T> dcy;
-    //    std::vector<T> workspace_bwd;
-    //    std::vector<T> workspace_fwd;
     std::vector<T> workspace;
     std::vector<T> reservespace;
     std::vector<T> outhost;
-    //    std::vector<T> workspace_bwd_host;
-    //    std::vector<T> workspace_fwd_host;
     std::vector<T> workspace_host;
     std::vector<T> reservespace_host;
     std::vector<T> din_host;
@@ -660,10 +654,8 @@ status |= dhx_dev->ToGPU(q, dhx.data());
 status |= dcx_dev->ToGPU(q, dcx.data());
 status |= dhy_dev->ToGPU(q, dhy.data());
 status |= dcy_dev->ToGPU(q, dcy.data());
-if(workSpaceSize != 0)
-    status |= workspace_dev->ToGPU(q, workspace.data());
-if(reserveSpaceSize != 0)
-    status |= reservespace_dev->ToGPU(q, reservespace.data());
+status |= workspace_dev->ToGPU(q, workspace.data());
+status |= reservespace_dev->ToGPU(q, reservespace.data());
 
 if(status != CL_SUCCESS)
     printf("Error copying data to GPU\n");

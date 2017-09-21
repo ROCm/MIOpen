@@ -139,65 +139,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
 	{				
-//		std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-//		CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
-//		GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
-
-/*		float time_0 = 0;
-		float t1 = 0;
-		for (int i = 0; i < in_n; i++)
-		{
-			int out_offset = i * wei_n * out_h * out_w;
-			if (wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
-			{
-				size_t in_offset = i * in_c * in_h * in_w;
-				Im2ColGPU(handle,
-					xDesc.GetElementSize(),
-					x,
-					in_offset,
-					in_c,
-					in_h,
-					in_w,
-					wei_h,
-					wei_w,
-					out_h,
-					out_w,
-					pad_h,
-					pad_w,
-					v,
-					u,
-					dilation_h,
-					dilation_w,
-					workSpace);
-				if (handle.IsProfilingEnabled())
-					t1 = handle.GetKernelTime();
-
-				gg.RunGemm(handle, workSpace, w, y, 0, 0, out_offset);
-
-				// Update times for both the kernels
-				if (handle.IsProfilingEnabled())
-				{
-					if (i == in_n - 1)
-						handle.AccumKernelTime(t1 + time_0);
-					else
-						handle.AccumKernelTime(t1);
-					time_0 += handle.GetKernelTime();
-				}
-			}
-			else if (wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
-			{
-				int in_offset = i * in_c * in_h * in_w;
-				gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
-				if (handle.IsProfilingEnabled())
-				{
-					if (i == in_n - 1)
-						handle.AccumKernelTime(time_0);
-					time_0 += handle.GetKernelTime();
-				}
-			}
-		}
-		*/
 
 		printf("rnn gpu \n");
 
@@ -408,8 +350,29 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							nullptr);
 					}
 				}
+				/*
+				mlo_construct_neuron construct_params(1); // forward
 
+				if (mode == miopenRNNRELU)
+				{
+					construct_params.setNeuronDescr(static_cast<int>(miopenActivationRELU), 1.0, 0.0, 0.0);
+				}
+				else if (mode == miopenRNNTANH)
+				{
+					construct_params.setNeuronDescr(static_cast<int>(miopenActivationTANH), 1.0, 0.0, 0.0);
+				}
 
+				const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+				const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+
+				handle.GetKernel("miopenActivationForward",
+					"",
+					"",
+					"",
+					vld,
+					vgd,
+					"")(reserveSpace, workSpace, 1.0, 0.0, 0.0);
+				*/
 				bacc += in_n[ti];
 			}
 
