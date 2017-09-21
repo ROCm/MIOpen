@@ -164,7 +164,7 @@ int mlo_construct_norm::mloConstructFwd()
         std::string(" -DMLO_LRN_KERNEL_SZ0=") + std::to_string(static_cast<long long>(_norm_area)) +
         std::string(" -DMLO_LRN_PAD0=") + std::to_string(static_cast<long long>(pad)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") + std::to_string(static_cast<long long>(_n_outputs)) +
-        std::string(" -DMLO_LRN_N_CHANNELS=") + std::to_string(static_cast<long long>(_n_inputs)) +
+        std::string(" -DMLO_LRN_N_INPUTS=") + std::to_string(static_cast<long long>(_n_inputs)) +
         std::string(" -DMLO_LRN_N_HORIZ_OUT_PIX=") +
         std::to_string(static_cast<long long>(_out_pix_tile0)) +
         std::string(" -DMLO_LRN_N_VERT_OUT_PIX=") +
