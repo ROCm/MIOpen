@@ -50,6 +50,15 @@ extern "C" miopenStatus_t miopenGetStream(miopenHandle_t handle, miopenAccelerat
     return miopen::try_([&] { miopen::deref(streamID) = miopen::deref(handle).GetStream(); });
 }
 
+extern "C" miopenStatus_t miopenSetAllocator(miopenHandle_t handle,
+                                             miopenAllocatorFunction allocator,
+                                             miopenDeallocatorFunction deallocator,
+                                             void* allocatorContext)
+{
+    return miopen::try_(
+        [&] { miopen::deref(handle).SetAllocator(allocator, deallocator, allocatorContext); });
+}
+
 extern "C" miopenStatus_t miopenDestroy(miopenHandle_t handle)
 {
     return miopen::try_([&] { miopen_destroy_object(handle); });
