@@ -39,9 +39,8 @@ bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
             (params.kernel_size0 != 1 || params.kernel_size1 != 1));
 }
 
-void ConvOclBwdWrW2::GetSolution(ConvSolution& result,
-                                 const ConvolutionContext& params,
-                                 const PerformanceConfig&) const
+ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
+                                         const PerformanceConfig&) const
 {
     static const char* s_stride_table[32][2] = {
         //
@@ -83,6 +82,8 @@ void ConvOclBwdWrW2::GetSolution(ConvSolution& result,
         }
     }
 
+    ConvSolution result;
+
     int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
                            // n of map in a block (see below)
     result.out_pix_tile1 = (params.out_width > 512) ? 1 : 2;
@@ -121,7 +122,7 @@ void ConvOclBwdWrW2::GetSolution(ConvSolution& result,
     if(params.n_passes)
     {
         result.passes = (n_batch_blks > 1) ? 2 : 1;
-        return;
+        return result;
     }
 
     // number of filter taps in the processing wk_item
@@ -165,8 +166,7 @@ void ConvOclBwdWrW2::GetSolution(ConvSolution& result,
                                          params.kernel_size1);
     if(lcl_mem_sz > 8 * 1024)
     {
-        result = ConvSolution(miopenStatusNotInitialized);
-        return;
+        return ConvSolution(miopenStatusNotInitialized);
     }
 
     int OUT_N_PIXS_OFF = params.in_width - (params.in_width / read_unit) * read_unit;
@@ -292,6 +292,7 @@ void ConvOclBwdWrW2::GetSolution(ConvSolution& result,
         int data_len       = (params.out_data_type == "FP32" ? 4 : 8);
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
+    return result;
 }
 } // namespace solver
 } // namespace miopen

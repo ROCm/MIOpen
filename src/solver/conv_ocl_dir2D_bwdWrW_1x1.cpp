@@ -270,20 +270,19 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     return (params.kernel_size0 == 1) || (params.kernel_size1 == 1);
 }
 
-void ConvOclBwdWrW1x1::GetSolution(ConvSolution& result,
-                                   const ConvolutionContext& params,
-                                   const PerformanceConfig&) const
+ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params,
+                                           const PerformanceConfig&) const
 {
+    ConvSolution result;
     if(params.n_passes)
     {
         result.passes = 1;
-        return;
+        return result;
     }
 #if 0 // MD: Calls old 1x1 kernel (MIOpenConvBwdWrW1x1Mmap.cl) that has been optimized by Stas
         if (params.in_width == 14 && params.in_height == 14 && params.n_inputs == 192 && params.n_outputs == 512)
         {
-            result = mloConstruct1x1Mmap();
-            return;
+            return(mloConstruct1x1Mmap());
         }
 #endif
     // size_t localMemSize = 64 * 1024;
@@ -515,6 +514,7 @@ void ConvOclBwdWrW1x1::GetSolution(ConvSolution& result,
         result.construction_params.push_back(kernel);
         result.workspce_sz = 0;
     }
+    return result;
 }
 } // namespace solver
 } // namespace miopen

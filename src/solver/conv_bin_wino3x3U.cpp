@@ -78,10 +78,10 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // both directions.
 }
 
-void ConvBinWinograd3x3U::GetSolution(ConvSolution& result,
-                                      const ConvolutionContext& params,
-                                      const PerformanceConfig&) const
+ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params,
+                                              const PerformanceConfig&) const
 {
+    ConvSolution result;
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
     const auto name     = params.GetStream().GetDeviceName();
 
@@ -116,6 +116,7 @@ void ConvBinWinograd3x3U::GetSolution(ConvSolution& result,
     }
 
     result.construction_params.push_back(kernel);
+    return result;
 }
 } // namespace solver
 } // namespace miopen

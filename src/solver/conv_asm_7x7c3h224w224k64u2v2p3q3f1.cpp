@@ -68,10 +68,10 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
 }
 
-void ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(ConvSolution& result,
-                                                    const ConvolutionContext& params,
-                                                    const PerformanceConfig&) const
+ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionContext& params,
+                                                            const PerformanceConfig&) const
 {
+    ConvSolution result;
     const int out_w =
         (params.in_width + params.pad0 * 2 + params.kernel_stride0 - params.kernel_size0) /
         params.kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
@@ -95,6 +95,7 @@ void ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(ConvSolution& result,
     constr_params.kernel_name = "gcnAsmConv7x7c3h224w224k64u2v2p3q3f1";
 
     result.construction_params.push_back(constr_params);
+    return result;
 }
 } // namespace solver
 } // namespace miopen

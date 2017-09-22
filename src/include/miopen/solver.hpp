@@ -34,6 +34,16 @@
 
 namespace miopen {
 
+#if __cplusplus < 201402L // For ex. hip is not C++14 yet.
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...)); // NOLINT
+}
+#else
+using std::make_unique; // re-use as miopen::make_unique
+#endif
+
 namespace solver {
 
 /// Describes a kernel source and whatever information required in order
@@ -149,14 +159,13 @@ class Solver
     ///
     virtual std::unique_ptr<PerformanceConfig> Find(const ConvolutionContext&) const
     {
-        return std::unique_ptr<PerformanceConfig>(new PerformanceConfig()); // NOLINT
+        return miopen::make_unique<PerformanceConfig>();
     }
 
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
-    virtual void GetSolution(ConvSolution& result,
-                             const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const = 0;
+    virtual ConvSolution GetSolution(const ConvolutionContext& params,
+                                     const PerformanceConfig& exhaustive_search_result) const = 0;
 };
 
 class ConvAsm3x3U : public Solver
@@ -164,63 +173,56 @@ class ConvAsm3x3U : public Solver
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsFast(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvAsm5x10u2v2f1 : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvAsm5x10u2v2b1 : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvOclDirectFwd11x11 : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvOclDirectFwdGen : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvOclDirectFwd3x3 : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
@@ -284,45 +286,40 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
 class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvBinWinograd3x3U : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvBinWinogradRxSFwd : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvAsmBwdWrW3x3 : public Solver
@@ -330,36 +327,32 @@ class ConvAsmBwdWrW3x3 : public Solver
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsFast(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvOclBwdWrW2 : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvOclBwdWrW53 : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 
 class ConvOclBwdWrW1x1 : public Solver
 {
     public:
     bool IsApplicable(const ConvolutionContext& params) const override;
-    void GetSolution(ConvSolution& result,
-                     const ConvolutionContext& params,
-                     const PerformanceConfig& exhaustive_search_result) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfig& exhaustive_search_result) const override;
 };
 } // namespace solver
 } // namespace miopen

@@ -37,10 +37,10 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
            params.kernel_stride0 == 4;
 }
 
-void ConvOclDirectFwd11x11::GetSolution(ConvSolution& result,
-                                        const ConvolutionContext& params,
-                                        const PerformanceConfig&) const
+ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params,
+                                                const PerformanceConfig&) const
 {
+    ConvSolution result;
     // size_t localMemSize = 64 * 1024;
     auto hw_wave_sz = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
@@ -183,7 +183,7 @@ void ConvOclDirectFwd11x11::GetSolution(ConvSolution& result,
     if(params.n_passes)
     {
         result.passes = (second_pass && params.forward) ? 2 : 1;
-        return;
+        return result;
     }
 
     // it's backward - inputs are outputs and vs versa
@@ -304,6 +304,7 @@ void ConvOclDirectFwd11x11::GetSolution(ConvSolution& result,
 
         result.construction_params.push_back(construction_parameters);
     }
+    return result;
 }
 } // namespace solver
 } // namespace miopen

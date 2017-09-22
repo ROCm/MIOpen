@@ -35,10 +35,11 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
     return params.kernel_size0 == 1 && params.kernel_size1 == 1;
 }
 
-void ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
-                                      const ConvolutionContext& params,
-                                      const PerformanceConfig& exhaustive_search_result) const
+ConvSolution
+ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
+                                 const PerformanceConfig& exhaustive_search_result) const
 {
+    ConvSolution result;
     const auto& searched_params =
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
     searched_params.CopyTo(result);
@@ -494,6 +495,7 @@ void ConvOclDirectFwd1x1::GetSolution(ConvSolution& result,
             result.n_in_data_tiles = exchange_step;
         }
     }
+    return result;
 }
 } // namespace solver
 } // namespace miopen

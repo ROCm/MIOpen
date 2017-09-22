@@ -84,10 +84,10 @@ static inline int AlignUp(int val, unsigned step)
     return ((val + step - 1) / step) * step;
 }
 
-void ConvAsm5x10u2v2f1::GetSolution(ConvSolution& result,
-                                    const ConvolutionContext& params,
-                                    const PerformanceConfig&) const
+ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params,
+                                            const PerformanceConfig&) const
 {
+    ConvSolution result;
     const int out_w =
         (params.in_width + params.pad0 * 2 + params.kernel_stride0 - params.kernel_size0) /
         params.kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
@@ -122,6 +122,7 @@ void ConvAsm5x10u2v2f1::GetSolution(ConvSolution& result,
     construction_params.kernel_name = "conv5x10u2v2f1";
 
     result.construction_params.push_back(construction_params);
+    return result;
 }
 } // namespace solver
 } // namespace miopen

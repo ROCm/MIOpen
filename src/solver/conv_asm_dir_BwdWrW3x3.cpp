@@ -442,10 +442,10 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 
 bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
 
-void ConvAsmBwdWrW3x3::GetSolution(ConvSolution& result,
-                                   const ConvolutionContext& params,
-                                   const PerformanceConfig&) const
+ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
+                                           const PerformanceConfig&) const
 {
+    ConvSolution result;
     std::ostringstream options;
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
     GenerateClangDefsym(options, "img_h", params.in_height);     // H
@@ -501,6 +501,7 @@ void ConvAsmBwdWrW3x3::GetSolution(ConvSolution& result,
 
     result.construction_params.push_back(kernel);
     result.workspce_sz = 0;
+    return result;
 }
 } // namespace solver
 } // namespace miopen

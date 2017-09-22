@@ -83,9 +83,8 @@ int mlo_construct_direct2D::mloConstruct()
         if(solver.IsApplicable(_search_params) &&
            (no_perf_filtering || solver.IsFast(_search_params)))
         {
-            const auto perfConfig = solver.Find(_search_params);
-            miopen::solver::ConvSolution solution;
-            solver.GetSolution(solution, _search_params, *perfConfig);
+            const auto perfConfig                 = solver.Find(_search_params);
+            miopen::solver::ConvSolution solution = solver.GetSolution(_search_params, *perfConfig);
 
             if(!solution.Succeeded())
                 continue;

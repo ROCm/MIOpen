@@ -250,7 +250,7 @@ class mlo_construct_direct2D
     public:
     virtual const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
     SolverStore() const;
-    void mloUseSolution(const miopen::solver::ConvSolution& s); // TODO: remove
+    void mloUseSolution(const miopen::solver::ConvSolution& s);
 
     mlo_construct_direct2D(int dir, bool do_bias = false)
     {
@@ -316,6 +316,8 @@ class mlo_construct_direct2D
     * arbitrary combination of kerenl sizes, strides
     */
 
+    /// \todo The function is never called through the vtable. Remove "virtual". Consider moving
+    /// into ctor, if possible.
     virtual int mloConstruct();
 
     /*

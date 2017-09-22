@@ -155,10 +155,10 @@ bool ConvBinWinogradRxSFwd::IsApplicable(const ConvolutionContext& params) const
     // "CKHW" )
 }
 
-void ConvBinWinogradRxSFwd::GetSolution(ConvSolution& result,
-                                        const ConvolutionContext& params,
-                                        const PerformanceConfig&) const
+ConvSolution ConvBinWinogradRxSFwd::GetSolution(const ConvolutionContext& params,
+                                                const PerformanceConfig&) const
 {
+    ConvSolution result;
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
     const auto name     = params.GetStream().GetDeviceName();
     KernelInfo kernel;
@@ -201,6 +201,7 @@ void ConvBinWinogradRxSFwd::GetSolution(ConvSolution& result,
     kernel.kernel_file += ".so";
 
     result.construction_params.push_back(kernel);
+    return result;
 }
 } // namespace solver
 } // namespace miopen

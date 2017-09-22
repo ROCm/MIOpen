@@ -42,10 +42,10 @@ bool ConvOclDirectFwdC::IsApplicable(const ConvolutionContext& params) const
            params.kernel_stride0 <= 1 && params.kernel_stride1 <= 1;
 }
 
-void ConvOclDirectFwdC::GetSolution(ConvSolution& result,
-                                    const ConvolutionContext& params,
-                                    const PerformanceConfig& exhaustive_search_result) const
+ConvSolution ConvOclDirectFwdC::GetSolution(const ConvolutionContext& params,
+                                            const PerformanceConfig& exhaustive_search_result) const
 {
+    ConvSolution result;
     const auto& searched_params =
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
 
@@ -82,8 +82,7 @@ void ConvOclDirectFwdC::GetSolution(ConvSolution& result,
     if(alu_tiles_sz > searched_params.grp_tile0 * searched_params.grp_tile1)
     {
         //			std::cout << "ERROR: need out pix size ajustments\n";
-        result = ConvSolution(static_cast<miopenStatus_t>(-1));
-        return;
+        return ConvSolution(static_cast<miopenStatus_t>(-1));
     }
 
     int n_real_alus =
@@ -214,6 +213,7 @@ void ConvOclDirectFwdC::GetSolution(ConvSolution& result,
     kernel_params.kernel_name = "MIOpenConvUniC";
 
     result.construction_params.push_back(kernel_params);
+    return result;
 }
 } // namespace solver
 } // namespace miopen
