@@ -34,6 +34,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
+#include <miopen/allocator.hpp>
 
 #include <cstring>
 #include <unordered_map>
@@ -4412,7 +4413,7 @@ int mlo_construct_direct2D::mloSearchDirect2D()
         auto wei_ocl_buf = profile_h.Write(wei_sys_buf);
 
         std::vector<float> bias_sys_buf;
-        ManageDataPtr bias_ocl_buf = nullptr;
+        miopen::Allocator::ManageDataPtr bias_ocl_buf = nullptr;
 
         if(_bias)
         {
