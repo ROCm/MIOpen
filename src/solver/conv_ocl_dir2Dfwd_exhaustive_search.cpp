@@ -30,6 +30,7 @@
 #include "miopen/db.hpp"
 #include "miopen/mlo_utils.hpp"
 #include "miopen/handle.hpp"
+#include "miopen/allocator.hpp"
 
 namespace miopen {
 namespace solver {
@@ -723,7 +724,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionCon
         auto wei_ocl_buf = profile_h.Write(wei_sys_buf);
 
         std::vector<float> bias_sys_buf;
-        ManageDataPtr bias_ocl_buf = nullptr;
+        miopen::Allocator::ManageDataPtr bias_ocl_buf = nullptr;
 
         if(params.bias)
         {
