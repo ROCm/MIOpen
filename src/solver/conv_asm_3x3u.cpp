@@ -58,10 +58,10 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 
 bool ConvAsm3x3U::IsFast(const ConvolutionContext& params) const { return params.in_width >= 50; }
 
-void ConvAsm3x3U::GetSolution(ConvSolution& result,
-                              const ConvolutionContext& params,
-                              const PerformanceConfig&) const
+ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
+                                      const PerformanceConfig&) const
 {
+    ConvSolution result;
     std::string perf_vals;
     {
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS{});
@@ -156,6 +156,7 @@ void ConvAsm3x3U::GetSolution(ConvSolution& result,
     construction_params.kernel_name = "gcnAsmConv3x3U";
 
     result.construction_params.push_back(construction_params);
+    return result;
 }
 } // namespace solver
 } // namespace miopen

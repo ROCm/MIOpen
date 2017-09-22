@@ -39,10 +39,10 @@ bool ConvOclDirectFwd3x3::IsApplicable(const ConvolutionContext& params) const
             params.out_width == 256);
 }
 
-void ConvOclDirectFwd3x3::GetSolution(ConvSolution& result,
-                                      const ConvolutionContext& params,
-                                      const PerformanceConfig&) const
+ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params,
+                                              const PerformanceConfig&) const
 {
+    ConvSolution result;
     // size_t localMemSize = params.stream.GetLocalMemorySize();
     auto hw_wave_sz = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
@@ -77,8 +77,7 @@ void ConvOclDirectFwd3x3::GetSolution(ConvSolution& result,
     if(logical_wave_sz > GRP_SZ)
     {
         printf("Conv3x3 conf error\n");
-        result = ConvSolution(static_cast<miopenStatus_t>(-1));
-        return;
+        return ConvSolution(static_cast<miopenStatus_t>(-1));
     }
     int logical_n_waves = std::max(1, GRP_SZ / logical_wave_sz);
     int LG2_WAVE_SZ     = std::ceil(std::log(logical_wave_sz) / std::log(2));
@@ -191,6 +190,7 @@ void ConvOclDirectFwd3x3::GetSolution(ConvSolution& result,
     construction_parameters.kernel_name = "MIOpenCvD3x3_WSR0";
 
     result.construction_params.push_back(construction_parameters);
+    return result;
 }
 } // namespace solver
 } // namespace miopen

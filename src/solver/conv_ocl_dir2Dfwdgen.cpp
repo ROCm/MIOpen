@@ -37,9 +37,8 @@ bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& params) const
                                !(params.kernel_size0 == 1 && params.kernel_size1 == 1)));
 }
 
-void ConvOclDirectFwdGen::GetSolution(ConvSolution& result,
-                                      const ConvolutionContext& params,
-                                      const PerformanceConfig&) const
+ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params,
+                                              const PerformanceConfig&) const
 {
     int n_in_stacks = 0;
     if(params.kernel_size1 == 3 && params.kernel_size0 == 3)
@@ -238,7 +237,9 @@ void ConvOclDirectFwdGen::GetSolution(ConvSolution& result,
     construction_params.g_wk.push_back(gbl1);
     construction_params.g_wk.push_back(gbl2);
 
+    ConvSolution result;
     result.construction_params.push_back(construction_params);
+    return result;
 }
 } // namespace solver
 } // namespace miopen

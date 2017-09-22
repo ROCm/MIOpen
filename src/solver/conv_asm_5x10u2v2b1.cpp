@@ -76,10 +76,10 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     // fixme above.
 }
 
-void ConvAsm5x10u2v2b1::GetSolution(ConvSolution& result,
-                                    const ConvolutionContext& params,
-                                    const PerformanceConfig&) const
+ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params,
+                                            const PerformanceConfig&) const
 {
+    ConvSolution result;
     std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", params.out_height);
     GenerateClangDefsym(options, "inp_w", params.out_width);
@@ -104,6 +104,7 @@ void ConvAsm5x10u2v2b1::GetSolution(ConvSolution& result,
     constr_params.kernel_name = "conv5x10u2v2b1";
 
     result.construction_params.push_back(constr_params);
+    return result;
 }
 } // namespace solver
 } // namespace miopen
