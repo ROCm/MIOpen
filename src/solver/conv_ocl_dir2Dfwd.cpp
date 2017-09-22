@@ -30,10 +30,10 @@
 namespace miopen {
 namespace solver {
 
-void ConvOclDirectFwd::GetSolution(ConvSolution& result,
-                                   const ConvolutionContext& params,
-                                   const PerformanceConfig& exhaustive_search_result) const
+ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
+                                           const PerformanceConfig& exhaustive_search_result) const
 {
+    ConvSolution result;
     const auto& searched_params =
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
 
@@ -74,8 +74,7 @@ void ConvOclDirectFwd::GetSolution(ConvSolution& result,
     if(alu_tiles_sz > 256)
     {
         //			std::cout << "ERROR: need out pix size ajustments\n";
-        result = ConvSolution(static_cast<miopenStatus_t>(-1));
-        return;
+        return ConvSolution(static_cast<miopenStatus_t>(-1));
     }
 
     int n_alus_total = (searched_params.grp_tile0 * searched_params.grp_tile1);
@@ -200,6 +199,7 @@ void ConvOclDirectFwd::GetSolution(ConvSolution& result,
     kernel_params.kernel_name = "MIOpenConvUni";
 
     result.construction_params.push_back(kernel_params);
+    return result;
 }
 } // namespace solver
 } // namespace miopen

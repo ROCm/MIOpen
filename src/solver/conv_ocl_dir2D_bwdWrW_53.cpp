@@ -34,10 +34,10 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
     return (params.kernel_size0 >= 2) || (params.kernel_size1 >= 2);
 }
 
-void ConvOclBwdWrW53::GetSolution(ConvSolution& result,
-                                  const ConvolutionContext& params,
-                                  const PerformanceConfig&) const
+ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params,
+                                          const PerformanceConfig&) const
 {
+    ConvSolution result;
     size_t localMemSize = 64 * 1024;
 
     const auto hw_wave_sz       = 64;
@@ -67,7 +67,7 @@ void ConvOclBwdWrW53::GetSolution(ConvSolution& result,
     if(params.n_passes)
     {
         result.passes = (n_batch_blks > 1) ? 2 : 1;
-        return;
+        return result;
     }
 
     result.out_pix_tile0 = params.kernel_size0;
@@ -118,8 +118,7 @@ void ConvOclBwdWrW53::GetSolution(ConvSolution& result,
         else if(in_n_vert_reads < 2)
         {
             printf("CONFIG ERROR: not enough local memory for the configuration\n");
-            result = ConvSolution(static_cast<miopenStatus_t>(-1));
-            return;
+            return ConvSolution(static_cast<miopenStatus_t>(-1));
         }
     }
     int in_n_vert_read_loops = (params.in_height + in_n_vert_reads - 1) / in_n_vert_reads;
@@ -260,6 +259,7 @@ void ConvOclBwdWrW53::GetSolution(ConvSolution& result,
         result.construction_params.push_back(kernel);
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
+    return result;
 }
 } // namespace solver
 } // namespace miopen

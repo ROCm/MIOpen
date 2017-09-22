@@ -555,9 +555,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 context.n_passes = true;
 
                 solver::ConvOclDirectFwd11x11 solver;
-                auto config = solver.Find(context);
-                solver::ConvSolution solution;
-                solver.GetSolution(solution, context, *config);
+                auto config                   = solver.Find(context);
+                solver::ConvSolution solution = solver.GetSolution(context, *config);
 
                 if(solution.passes == 1)
                 {

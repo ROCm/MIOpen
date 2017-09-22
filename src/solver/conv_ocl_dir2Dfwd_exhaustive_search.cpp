@@ -536,7 +536,7 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(Handle* profile_h,
         if(traits->IsApplicable(params))
         {
             const auto sub_search_result = Find(params);
-            traits->GetSolution(kernel_search_result, params, *sub_search_result);
+            kernel_search_result         = traits->GetSolution(params, *sub_search_result);
 
             if(kernel_search_result.Succeeded())
                 break;
@@ -636,7 +636,7 @@ int ConvOclDirectFwdLegacyExhaustiveSearch::MeasureLoop(Handle* profile_h,
 std::unique_ptr<Solver::PerformanceConfig>
 ConvOclDirectFwdLegacyExhaustiveSearch::Find(const ConvolutionContext& params) const
 {
-    auto result = std::unique_ptr<PerformanceConfigImpl>(new PerformanceConfigImpl()); // NOLINT
+    auto result = miopen::make_unique<PerformanceConfigImpl>();
 
     // search known configurations
     bool known_config = mloGetConfig(params, *result);
