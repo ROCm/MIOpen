@@ -220,8 +220,10 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
          (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
          (_kernel_size0 == 7 && _kernel_size1 == 7) ||
          (_kernel_size0 == 11 && _kernel_size1 == 11) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 10) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 20));
+         (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0));
 
     return !(
         !supported_filters || (_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
@@ -240,8 +242,10 @@ bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) con
          (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
          (_kernel_size0 == 7 && _kernel_size1 == 7) ||
          (_kernel_size0 == 11 && _kernel_size1 == 11) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2));
+         (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0));
 
     return !(!supported_filters || (_kernel_size0 == 3 && _kernel_size1 == 3 &&
                                     (pad_h > 1 || pad_w > 1 || u > 1 || v > 1)) ||
