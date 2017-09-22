@@ -49,6 +49,22 @@ void failed(const char* msg, const char* file, int line)
     failed_abort(#__VA_ARGS__, __FILE__, __LINE__)
 #define STATUS(...) EXPECT((__VA_ARGS__) == 0)
 
+#define FAIL(...) failed(__VA_ARGS__, __FILE__, __LINE__)
+
+template <class F>
+bool throws(F f)
+{
+    try
+    {
+        f();
+        return false;
+    }
+    catch(...)
+    {
+        return true;
+    }
+}
+
 template <class T>
 void run_test()
 {

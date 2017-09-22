@@ -31,7 +31,6 @@
 #include <numeric>
 #include <iso646.h>
 
-
 namespace miopen {
 
 template <class... Ts>
