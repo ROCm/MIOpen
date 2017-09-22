@@ -99,8 +99,8 @@ struct verify_forward_conv : conv_base<T>
         std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
 
         out.par_for_each([&](int o, int w, int i, int j) {
-            const int start_x = i * filter.v - filter.pad_h;
-            const int start_y = j * filter.u - filter.pad_w;
+            const int start_x = i * filter.u - filter.pad_h;
+            const int start_y = j * filter.v - filter.pad_w;
 
             double acc = bias;
             ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
@@ -211,8 +211,8 @@ struct verify_backward_conv : conv_base<T>
 
         par_ford(out_n, wei_c)([&](int o, int k) {
             ford(out_c, out_h, out_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
-                const int start_x = i * filter.v - filter.pad_h;
-                const int start_y = j * filter.u - filter.pad_w;
+                const int start_x = i * filter.u - filter.pad_h;
+                const int start_y = j * filter.v - filter.pad_w;
                 const int in_x    = start_x + x;
                 const int in_y    = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
@@ -321,8 +321,8 @@ struct verify_backward_weights_conv : conv_base<T>
         par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y) {
             double acc = 0.0;
             ford(out_n, out_h, out_w)([&](int o, int i, int j) {
-                const int start_x = i * filter.v - filter.pad_h;
-                const int start_y = j * filter.u - filter.pad_w;
+                const int start_x = i * filter.u - filter.pad_h;
+                const int start_y = j * filter.v - filter.pad_w;
                 const int in_x    = start_x + x;
                 const int in_y    = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
