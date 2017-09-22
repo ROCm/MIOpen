@@ -227,8 +227,7 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
     }
 }
 
-#if(MLO_LRN_N_INPUTS + 2 * MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ || \
-    MLO_LRN_N_OUTPUTS + 2 * MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ)
+#if(MLO_LRN_N_INPUTS < MLO_LRN_KERNEL_SZ)
 #define MLO_LOW_CHNL_COUNT 1
 #else
 #define MLO_LOW_CHNL_COUNT 0
