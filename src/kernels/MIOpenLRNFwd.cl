@@ -29,6 +29,9 @@
 #define _FLOAT4 float4
 #define _FLOAT8 float8
 
+
+#define DBG_OUT 0
+
 #define MLO_LRN_GROUP_SZ2 1
 #define MLO_LRN_STRIDE 1
 
@@ -385,7 +388,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
     }
 }
 
-#if(MLO_LRN_N_INPUTS + 2 * MLO_LRN_PAD - 1 < MLO_LRN_KERNEL_SZ)
+#if(MLO_LRN_N_INPUTS < MLO_LRN_KERNEL_SZ)
 #define MLO_LOW_CHNL_COUNT 1
 #else
 #define MLO_LOW_CHNL_COUNT 0
@@ -418,20 +421,20 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
     int scale_off = 0;
 
     for(c_i = 0; c_i < MLO_LRN_PAD
-#if MLO_LOW_CHNL_COUNT == 1
-                 &&
-                 (c_i < MLO_LRN_N_INPUTS)
-#endif
             ;
         c_i++)
     {
-
         MLO_READ_TYPE prv_in;
+        prv_in = 0;
+
+#if MLO_LOW_CHNL_COUNT == 1
+        if (c_i < MLO_LRN_N_INPUTS)
+#endif
+		{
 #if MLO_C1x1_PIXLEFT > 0
         // if the last one
         if(pix_id == MLO_MAP_SZ4 - 1)
         {
-            prv_in = 0;
 
             for(int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
             {
@@ -447,6 +450,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
                                                        MLO_LRN_BOT_CHANNEL_STRIDE * c_i +
                                                        (pix_id * MLO_READ_UNIT)];
         }
+		}
 
         bot_in2[c_i] = prv_in * prv_in;
         accum        = accum + bot_in2[c_i];
@@ -455,34 +459,38 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
     }
 
     for(; c_i < MLO_LRN_KERNEL_SZ
-#if MLO_LOW_CHNL_COUNT == 1
-          &&
-          (c_i < MLO_LRN_N_INPUTS)
-#endif
             ;
         c_i++, c_o++)
     {
         MLO_READ_TYPE prv_in;
+		prv_in = 0;
+
+#if MLO_LOW_CHNL_COUNT == 1
+       if (c_i < MLO_LRN_N_INPUTS)
+#endif
+		{
+
 #if MLO_C1x1_PIXLEFT > 0
         // if the last one
-        if(pix_id == MLO_MAP_SZ4 - 1)
-        {
-            prv_in = 0;
+			if(pix_id == MLO_MAP_SZ4 - 1)
+			{
 
-            for(int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
-            {
-                ((_FLOAT*)&prv_in)[j] =
-                    bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE * c_i +
-                           (pix_id * MLO_READ_UNIT) + j];
-            }
-        }
-        else
+				for(int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
+				{
+					((_FLOAT*)&prv_in)[j] =
+						bottom[MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE * c_i +
+							   (pix_id * MLO_READ_UNIT) + j];
+				}	
+			}
+			else
 #endif
-        {
-            prv_in = *(__global MLO_READ_TYPE*)&bottom[MLO_LRN_BOT_BATCH_STRIDE * b +
+		   {
+			    prv_in = *(__global MLO_READ_TYPE*)&bottom[MLO_LRN_BOT_BATCH_STRIDE * b +
                                                        MLO_LRN_BOT_CHANNEL_STRIDE * c_i +
                                                        (pix_id * MLO_READ_UNIT)];
-        }
+			}
+
+		}
 
         bot_in2[c_i] = prv_in * prv_in;
         accum        = accum + bot_in2[c_i];
@@ -514,6 +522,17 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
                 for(int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
                 {
                     top[top_off + j] = ((_FLOAT*)&out_val)[j];
+#if DBG_OUT
+					printf("K:o0: %d %f %f %f %f %f\n",
+					top_off + j,
+					top[top_off + j],
+					((_FLOAT*)&prv_out)[j],
+					((_FLOAT*)&exp_scale)[j],
+					((_FLOAT*)&prv_scale)[j],
+					((_FLOAT*)&accum)[j]
+					);
+#endif
+
 #if MLO_LRN_DO_SCALE
                     scale[scale_off + j] = ((_FLOAT*)&prv_scale)[j];
 #endif
@@ -537,11 +556,12 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
     {
 
         MLO_READ_TYPE prv_in;
+        prv_in = 0;
+
 #if MLO_C1x1_PIXLEFT > 0
         // if the last one
         if(pix_id == MLO_MAP_SZ4 - 1)
         {
-            prv_in = 0;
 
             for(int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
             {
@@ -599,6 +619,15 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
                 for(int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
                 {
                     top[top_off + j] = ((_FLOAT*)&out_val)[j];
+#if DBG_OUT
+					printf("K:o1: %d %f %f %f\n",
+					top_off + j,
+					top[top_off + j],
+					((_FLOAT*)&prv_out)[j],
+					((_FLOAT*)&exp_scale)[j]
+					);
+#endif
+
 #if MLO_LRN_DO_SCALE
                     scale[scale_off + j] = ((_FLOAT*)&prv_scale)[j];
 #endif
@@ -655,6 +684,15 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
                 for(int j = 0; j < MLO_C1x1_PIXLEFT; ++j)
                 {
                     top[top_off + j] = ((_FLOAT*)&out_val)[j];
+#if DBG_OUT
+					printf("K:o2: %d %f %f %f\n",
+					top_off + j,
+					top[top_off + j],
+					((_FLOAT*)&prv_out)[j],
+					((_FLOAT*)&exp_scale)[j]
+					);
+#endif
+
 #if MLO_LRN_DO_SCALE
                     scale[scale_off + j] = ((_FLOAT*)&prv_scale)[j];
 #endif
