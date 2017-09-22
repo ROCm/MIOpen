@@ -178,6 +178,7 @@ void OpTensor(Handle& handle,
             MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " + std::to_string(i));
         }
     }
+
     auto first_not_one = std::find_if(b_lens.rbegin(), b_lens.rend(), [](int i) { return i != 1; });
     auto d             = std::distance(b_lens.begin(), first_not_one.base());
 
@@ -376,6 +377,15 @@ void OpTensor(Handle& handle,
                         GetDataType(bTensorDesc.GetType()) + " -DFIRST_NOT_ONE=" +
                         std::to_string(d - 1);
 
+    parms += " -DMIOPEN_TENSOR_OP=";
+    assert(tensorOp < 4);
+    switch(tensorOp)
+    {
+    case 0: parms += "miopenAdd"; break;
+    case 1: parms += "miopenMul"; break;
+    case 2: parms += "miopenMin"; break;
+    case 3: parms += "miopenMax"; break;
+    }
     std::string program_name = "MIOpenTensorKernels.cl";
 
     const std::vector<size_t> vld{local_threads, 1, 1};
@@ -389,9 +399,6 @@ void OpTensor(Handle& handle,
     global_threads     = (global_threads < local_threads) ? local_threads : global_threads;
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
-    // work_per_wg = 64;
-
-    int op = tensorOp;
 
     if(bsize == 5)
     {
@@ -415,8 +422,7 @@ void OpTensor(Handle& handle,
             c_cstride,
             c_dstride,
             bitmap,
-            work_per_wg,
-            op);
+            work_per_wg);
     }
     else if(bsize == 3)
     {
@@ -432,31 +438,30 @@ void OpTensor(Handle& handle,
             c_h,
             c_nstride,
             bitmap,
-            work_per_wg,
-            op);
+            work_per_wg);
     }
     else if(bsize == 2)
     {
         handle.GetKernel(
             "Op2dTensorGeneric", "", program_name, "Op2dTensorGeneric", vld, vgd, parms)(
-            ATensor, BTensor, b_c, b_nstride, CTensor, c_c, c_nstride, bitmap, work_per_wg, op);
+            ATensor, BTensor, b_c, b_nstride, CTensor, c_c, c_nstride, bitmap, work_per_wg);
     }
     else if(bsize == 1)
     {
         handle.GetKernel(
             "Op1dTensorGeneric", "", program_name, "Op1dTensorGeneric", vld, vgd, parms)(
-            ATensor, BTensor, b_n, CTensor, c_n, bitmap, work_per_wg, op);
+            ATensor, BTensor, b_n, CTensor, c_n, bitmap, work_per_wg);
     }
     else if(fwd_conv_bias)
     {
         handle.GetKernel("OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
-            ATensor, BTensor, b_c, CTensor, c_n, c_nstride, c_cstride, work_per_wg, op);
+            ATensor, BTensor, b_c, CTensor, c_n, c_nstride, c_cstride, work_per_wg);
     }
     else if(leading_ones)
     {
         handle.GetKernel(
             "OpTensorLeadingOnes", "", program_name, "OpTensorLeadingOnes", vld, vgd, parms)(
-            ATensor, BTensor, CTensor, c_c, c_h, c_w, c_nstride, c_cstride, work_per_wg, op);
+            ATensor, BTensor, CTensor, c_c, c_h, c_w, c_nstride, c_cstride, work_per_wg);
     }
     else
     {
@@ -475,8 +480,7 @@ void OpTensor(Handle& handle,
             c_nstride,
             c_cstride,
             bitmap,
-            work_per_wg,
-            op);
+            work_per_wg);
     }
 }
 
