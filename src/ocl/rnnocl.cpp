@@ -153,34 +153,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		};
 
 
-		cl_int  clstat;
-		size_t  platform_id = 0;
-		cl_uint num_platforms;
-		clGetPlatformIDs(0, nullptr, &num_platforms);
-		std::vector<cl_platform_id> platforms(num_platforms);
-		
-		clstat = clGetPlatformIDs(num_platforms, platforms.data(), nullptr);
-		confirm(clstat);
-		cl_platform_id platform = platforms[platform_id];
-
-		size_t device_id = 0;
-		cl_uint num_devices;
-		clstat = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &num_devices);
-		std::vector<cl_device_id> devices(num_devices);
-		clstat = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices, devices.data(), nullptr);
-		cl_device_id device = devices[device_id];
-
-		cl_context context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &clstat);
-		cl_queue_properties properties = 0;  // CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE; 
-
-#if (CL_VERSION_2_0 == 1) 
-		std::vector<cl_queue_properties> props = { CL_QUEUE_PROPERTIES, properties, 0 };
-		cl_command_queue Q = clCreateCommandQueueWithProperties(context, device, props.data(), &clstat);
-#else
-		cl_command_queue Q = clCreateCommandQueue(context, device, properties, &clstat);
-#endif
-
-
 		for (int li = 0; li < numlayer; li++)
 		{
 			int hid_shift = li * batch_n * hy_h * bi;
@@ -206,7 +178,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					reserveSpace,
 					hid_shift,
 					hy_stride,
-					&Q,
+					handle.GetStream(),
 					0,
 					nullptr,
 					nullptr);
@@ -234,7 +206,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					reserveSpace,
 					hid_shift,
 					hy_stride,
-					&Q,
+					handle.GetStream(),
 					0,
 					nullptr,
 					nullptr);
@@ -271,7 +243,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						reserveSpace,
 						hid_shift + bacc * hy_stride,
 						hy_stride,
-						&Q,
+						handle.GetStream(),
 						0,
 						nullptr,
 						nullptr);
@@ -295,7 +267,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							reserveSpace,
 							hid_shift + baccbi * hy_stride + hy_h,
 							hy_stride,
-							&Q,
+							handle.GetStream(),
 							0,
 							nullptr,
 							nullptr);
@@ -320,7 +292,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						reserveSpace,
 						hid_shift + bacc * hy_stride,
 						hy_stride,
-						&Q,
+						handle.GetStream(),
 						0,
 						nullptr,
 						nullptr);
@@ -344,7 +316,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							reserveSpace,
 							hid_shift + baccbi * hy_stride + hy_h,
 							hy_stride,
-							&Q,
+							handle.GetStream(),
 							0,
 							nullptr,
 							nullptr);
@@ -380,7 +352,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 		}
 
-		clFinish(Q);
 #else
 		MIOPEN_THROW("GEMM is not supported");
 #endif
