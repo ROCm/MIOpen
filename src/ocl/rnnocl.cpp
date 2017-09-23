@@ -177,7 +177,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 				clFinish(Q);
 			}
-			else
+/*			else
 			{
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
@@ -207,6 +207,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 				clFinish(Q);
 			}
+			*/
 
 			// from hidden state
 			bacc = 0;
@@ -219,7 +220,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					li == 0 ? (in_h * hy_h * bi)
 					: (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
 						bi * hy_h * hy_stride);
-
+/*
 				if (ti == 0)
 				{
 					cl_commmand_queue Q = (cl_commmand_queue)handle.GetStream();
@@ -326,6 +327,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 					clFinish(Q);
 				}
+
+				*/
+
 				/*
 				mlo_construct_neuron construct_params(1); // forward
 

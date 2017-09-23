@@ -110,7 +110,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                            1);
 
             // from bias
-            if(biased)
+ /*           if(biased)
             {
                 for(int bs = 0; bs < batch_n; bs++)
                 {
@@ -120,9 +120,9 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                             (wei[wei_shift_bias + h] + wei[wei_shift_bias + hy_stride + h]);
                     }
                 }
-            }
+            }*/
         }
-        else
+ /*       else
         {
             int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
             int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
@@ -168,7 +168,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                 }
             }
         }
-
+		*/
         // from hidden state
         bacc   = 0;
         baccbi = batch_n;
@@ -180,7 +180,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                 li == 0 ? (in_h * hy_h * bi)
                         : (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
                            bi * hy_h * hy_stride);
-
+			/*
             if(ti == 0)
             {
                 ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift],
@@ -263,7 +263,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                                    1);
                 }
             }
-
+			*/
             for(int bs = 0; bs < in_n[ti]; bs++)
             {
                 for(int h = 0; h < hy_h; h++)
