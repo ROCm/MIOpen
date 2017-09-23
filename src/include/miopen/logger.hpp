@@ -33,8 +33,10 @@
 
 
 // Helper macros to output a cmdline argument for the driver
-#define DRIVER_NAME "./bin/MIOpenDriver "
-#define DRIVER_ARG(flag,value) " " << (flag) << " " << (value)
+namespace miopen {
+};
+#define MIOPEN_DRIVER_CMD(op) __func__ << ": " << "./bin/MIOpenDriver " << op
+#define MIOPEN_DRIVER_ARG(flag,value) " " << (flag) << " " << (value)
 
 // See https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
 #define MIOPEN_PP_CAT(x, y) MIOPEN_PP_PRIMITIVE_CAT(x, y)
@@ -132,6 +134,7 @@
     MIOPEN_PP_IIF(MIOPEN_PP_IS_PAREN(x))(MIOPEN_PP_EAT, m)(x)
 
 namespace miopen {
+
 
 template <class Range>
 std::ostream& LogRange(std::ostream& os, Range&& r, std::string delim)
