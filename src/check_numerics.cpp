@@ -82,7 +82,11 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
     if (isAbnormal) {
 
         if (CheckNumericsEnabled(CheckNumerics::Throw)) {
-            MIOPEN_THROW(miopenStatusInternalError, "abnormal checkNumerics result detected");
+            if (isInput) {
+                MIOPEN_THROW(miopenStatusInternalError, "abnormal checkNumerics result detected on INPUT");
+            } else {
+                MIOPEN_THROW(miopenStatusInternalError, "abnormal checkNumerics result detected on OUTPUT");
+            }
         }
         if (CheckNumericsEnabled(CheckNumerics::Abort)) {
             abort();
