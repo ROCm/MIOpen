@@ -1143,7 +1143,9 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     if (miopen::CheckNumericsEnabled()) {
         miopen::checkNumericsInput(handle, dyDesc, dy);
         miopen::checkNumericsInput(handle, wDesc,  w);
-        miopen::checkNumericsInput(handle, dxDesc, dx);
+        if (!float_equal(*(static_cast<const float*>(beta)), 0)) {
+            miopen::checkNumericsInput(handle, dxDesc, dx);
+        }
     }
 
     if(mode == miopenConvolution)
@@ -1730,7 +1732,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     if (miopen::CheckNumericsEnabled()) {
         miopen::checkNumericsInput(handle, dyDesc, dy);
         miopen::checkNumericsInput(handle, xDesc,  x);
-        miopen::checkNumericsInput(handle, dwDesc, dw);
+        if (!float_equal(*(static_cast<const float*>(beta)), 0)) {
+            miopen::checkNumericsInput(handle, dwDesc, dw);
+        }
     }
 
     int in_n, in_c, in_h, in_w;
