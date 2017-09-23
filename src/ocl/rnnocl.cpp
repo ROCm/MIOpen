@@ -151,7 +151,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			// from input
 			if (li == 0)
 			{
-				cl_command_queue Q = (cl_commmand_queue)handle.GetStream();
+				cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 				MIOpenGEMM::gemm0<float>(false,
 					false,
@@ -181,7 +181,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			{
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
-				cl_command_queue Q = (cl_commmand_queue)handle.GetStream();
+				cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 				MIOpenGEMM::gemm0<float>(false,
 					false,
@@ -223,7 +223,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 /*
 				if (ti == 0)
 				{
-					cl_command_queue Q = (cl_commmand_queue)handle.GetStream();
+					cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 					MIOpenGEMM::gemm0<float>(false,
 						false,
@@ -276,7 +276,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				}
 				else
 				{
-					cl_command_queue Q = (cl_commmand_queue)handle.GetStream();
+					cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 					MIOpenGEMM::gemm0<float>(false,
 						false,
