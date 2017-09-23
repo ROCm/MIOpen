@@ -143,16 +143,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 		printf("rnn gpu \n");
 
-		auto confirm = [](cl_int clstat) {
-			if (clstat != CL_SUCCESS)
-			{
-				std::stringstream ss;
-				ss << "OpenCL error status : " << clstat;
-				throw std::runtime_error(ss.str());
-			}
-		};
-
-
 		for (int li = 0; li < numlayer; li++)
 		{
 			int hid_shift = li * batch_n * hy_h * bi;
@@ -161,6 +151,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			// from input
 			if (li == 0)
 			{
+				cl_commmand_queue Q = (cl_commmand_queue)handle.GetStream();
+
 				MIOpenGEMM::gemm0<float>(false,
 					false,
 					false,
@@ -178,16 +170,18 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					reserveSpace,
 					hid_shift,
 					hy_stride,
-					handle.GetStream(),
+					&Q,
 					0,
 					nullptr,
 					nullptr);
 
+				clFinish(Q);
 			}
 			else
 			{
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
+				cl_commmand_queue Q = (cl_commmand_queue)handle.GetStream();
 
 				MIOpenGEMM::gemm0<float>(false,
 					false,
@@ -206,10 +200,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					reserveSpace,
 					hid_shift,
 					hy_stride,
-					handle.GetStream(),
+					&Q,
 					0,
 					nullptr,
 					nullptr);
+
+				clFinish(Q);
 			}
 
 			// from hidden state
@@ -226,6 +222,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 				if (ti == 0)
 				{
+					cl_commmand_queue Q = (cl_commmand_queue)handle.GetStream();
+
 					MIOpenGEMM::gemm0<float>(false,
 						false,
 						false,
@@ -243,7 +241,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						reserveSpace,
 						hid_shift + bacc * hy_stride,
 						hy_stride,
-						handle.GetStream(),
+						&Q,
 						0,
 						nullptr,
 						nullptr);
@@ -267,14 +265,18 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							reserveSpace,
 							hid_shift + baccbi * hy_stride + hy_h,
 							hy_stride,
-							handle.GetStream(),
+							&Q,
 							0,
 							nullptr,
 							nullptr);
 					}
+
+					clFinish(Q);
 				}
 				else
 				{
+					cl_commmand_queue Q = (cl_commmand_queue)handle.GetStream();
+
 					MIOpenGEMM::gemm0<float>(false,
 						false,
 						false,
@@ -292,7 +294,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						reserveSpace,
 						hid_shift + bacc * hy_stride,
 						hy_stride,
-						handle.GetStream(),
+						&Q,
 						0,
 						nullptr,
 						nullptr);
@@ -316,11 +318,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							reserveSpace,
 							hid_shift + baccbi * hy_stride + hy_h,
 							hy_stride,
-							handle.GetStream(),
+							&Q,
 							0,
 							nullptr,
 							nullptr);
 					}
+
+					clFinish(Q);
 				}
 				/*
 				mlo_construct_neuron construct_params(1); // forward
