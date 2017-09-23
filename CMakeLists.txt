@@ -177,6 +177,7 @@ include(ClangTidy)
 enable_clang_tidy(
     CHECKS 
         *
+        -android-cloexec-fopen
         -cert-err60-cpp
         # Yea we shouldn't be using rand()
         -cert-msc30-c
@@ -198,7 +199,11 @@ enable_clang_tidy(
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
+        -hicpp-braces-around-statements
         -hicpp-explicit-conversions
+        # We really shouldn't use bitwise operators with signed integers, but
+        # opencl leaves us no choice
+        -hicpp-signed-bitwise
         -hicpp-special-member-functions
         -hicpp-use-equals-default
         -hicpp-use-override
@@ -217,6 +222,7 @@ enable_clang_tidy(
         -readability-braces-around-statements
         -readability-else-after-return
         -readability-implicit-bool-cast
+        -readability-implicit-bool-conversion
         -readability-misleading-indentation
         -readability-named-parameter
         ${CLANG_TIDY_CHECKS}
