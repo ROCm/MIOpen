@@ -45,8 +45,6 @@ tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& input,
                             const tensor<T>& weights)
 {
-    assert(filter.GetBackwardOutputTensor(filter.GetForwardOutputTensor(input.desc, weights.desc),
-                                          weights.desc) == input.desc);
     return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
 }
 
