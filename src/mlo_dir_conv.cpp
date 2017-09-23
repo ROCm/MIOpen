@@ -155,6 +155,7 @@ mlo_construct_BwdWrW2D::SolverStore() const
 
 void mlo_construct_direct2D::mloUseSolution(const miopen::solver::ConvSolution& s)
 {
+    assert(s.construction_params.size() > 0);
     _comp_options = s.construction_params[0].comp_options;
     _kernel_file  = s.construction_params[0].kernel_file;
     _kernel_name  = s.construction_params[0].kernel_name;
