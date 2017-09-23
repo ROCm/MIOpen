@@ -27,6 +27,7 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/pooling.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/check_numerics.hpp>
 
 namespace miopen {
 
@@ -52,6 +53,13 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
+    if (miopen::CheckNumericsEnabled()) {
+        miopen::checkNumericsInput(handle, xDesc, x);
+        if (!float_equal(*(static_cast<const float*>(beta)), 0)) {
+            miopen::checkNumericsInput(handle, yDesc, y);
+        }
+    }
+
     mlo_construct_pooling2D construct_params(1); // forward
 
     construct_params.setStream(&handle);
@@ -116,6 +124,11 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     handle.GetKernel("miopenPooling2dDForward", "", program_name, kernel_name, vld, vgd, parms)(
         x, y, workSpace);
 
+
+    if (miopen::CheckNumericsEnabled()) {
+        miopen::checkNumericsOutput(handle, yDesc, y);
+    }
+
     return miopenStatusSuccess;
 }
 
@@ -138,6 +151,15 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
+    if (miopen::CheckNumericsEnabled()) {
+        //miopen::checkNumericsInput(handle, yDesc, y); // not actually used?
+        miopen::checkNumericsInput(handle, dyDesc, dy);
+        //miopen::checkNumericsInput(handle, xDesc, x); // not actually used?
+        if (!float_equal(*(static_cast<const float*>(beta)), 0)) {
+            miopen::checkNumericsInput(handle, dxDesc, dx);
+        }
+    }
+
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_pooling2D construct_params(0); // backward
 
@@ -249,6 +271,10 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     else
     {
         k(dy, dx);
+    }
+
+    if (miopen::CheckNumericsEnabled()) {
+        miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
 
     return (status);
