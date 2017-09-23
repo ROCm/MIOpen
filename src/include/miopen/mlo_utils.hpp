@@ -78,7 +78,7 @@ inline double miopen_mach_absolute_time() // Linux
     t.tv_sec  = 0;
     t.tv_usec = 0;
     gettimeofday(&t, nullptr);
-    d = (t.tv_sec * 1000.0) + t.tv_usec / 1000; // TT: was 1000000.0
+    d = (t.tv_sec * 1000.0) + t.tv_usec / 1000.0; // TT: was 1000000.0
     return (d);
 }
 #endif
