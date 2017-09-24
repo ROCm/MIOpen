@@ -169,6 +169,7 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 
                 kernel.kernel_file = "MIOpenConv1x1J1_stride.cl";
                 kernel.kernel_name = "MIOpenConv1x1";
+                result.construction_params.push_back(kernel);
             }
             else
             {
