@@ -91,7 +91,7 @@ int mlo_construct_direct2D::mloConstruct()
             if(_search_params.n_passes)
                 return solution.passes;
 
-            if (solution.construction_params.empty())
+            if(solution.construction_params.empty())
             {
                 MIOPEN_THROW(std::string("Internal error in solver: ") + typeid(solver).name());
             }
