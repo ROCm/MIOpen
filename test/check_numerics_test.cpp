@@ -45,55 +45,63 @@ struct check_numerics_base
 
 struct numeric_0 : check_numerics_base
 {
-    numeric_0() : check_numerics_base(0.0)
-    {}
+    numeric_0() : check_numerics_base(0.0) {}
 
     void run()
     {
-        CHECK(!miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true));
-        CHECK(!miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false));
+        CHECK(
+            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true));
+        CHECK(
+            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false));
     }
 };
 
 struct numeric_1 : check_numerics_base
 {
-    numeric_1() : check_numerics_base(1.0)
-    {}
+    numeric_1() : check_numerics_base(1.0) {}
 
     void run()
     {
-        CHECK(!miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true));
-        CHECK(!miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false));
+        CHECK(
+            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true));
+        CHECK(
+            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false));
     }
 };
 
 struct numeric_nan : check_numerics_base
 {
-    numeric_nan() : check_numerics_base(std::numeric_limits<float>::quiet_NaN())
-    {}
+    numeric_nan() : check_numerics_base(std::numeric_limits<float>::quiet_NaN()) {}
 
     void run()
     {
         CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn, desc, buffer.get(), true));
         CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn, desc, buffer.get(), false));
 
-        CHECK(throws([&] { miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true); }));
-        CHECK(throws([&] { miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false); }));
+        CHECK(throws([&] {
+            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true);
+        }));
+        CHECK(throws([&] {
+            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false);
+        }));
     }
 };
 
 struct numeric_inf : check_numerics_base
 {
-    numeric_inf() : check_numerics_base(std::numeric_limits<float>::infinity())
-    {}
+    numeric_inf() : check_numerics_base(std::numeric_limits<float>::infinity()) {}
 
     void run()
     {
         CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn, desc, buffer.get(), true));
         CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn, desc, buffer.get(), false));
 
-        CHECK(throws([&] { miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true); }));
-        CHECK(throws([&] { miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false); }));
+        CHECK(throws([&] {
+            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true);
+        }));
+        CHECK(throws([&] {
+            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false);
+        }));
     }
 };
 
