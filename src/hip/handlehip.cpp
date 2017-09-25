@@ -316,7 +316,7 @@ void Handle::Flush() const {}
 bool Handle::IsProfilingEnabled() const { return this->impl->enable_profiling; }
 
 void Handle::ResetKernelTime() { this->impl->profiling_result = 0.0; }
-void Handle::AccumKernelTime(float x) { this->impl->profiling_result += x; }
+void Handle::AccumKernelTime(float curr_time) { this->impl->profiling_result += curr_time; }
 
 std::size_t Handle::GetLocalMemorySize()
 {

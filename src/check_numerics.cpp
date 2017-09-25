@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include <miopen/check_numerics.hpp>
 #include <miopen/env.hpp>
 
@@ -13,22 +12,20 @@ namespace CheckNumerics
     static const int Throw               = 0x04;   // MIOPEN_THROW on abnormal result
     static const int Abort               = 0x08;   // abort on abnormal result (to drop into debugger)
     static const int ComputeStats        = 0x10;  // Print mean/absmean/min/max (slow)
-}
+} // namespace CheckNumerics
 int CheckNumericsEnabled(int bitMask) { return (miopen::Value(MIOPEN_CHECK_NUMERICS{})) & bitMask; }
 
-#define DTYPE     float
-#define ACCUMTYPE float 
 // Must keep this structure synchronized with one in MIOpenCheckNumerics
 struct CheckNumericsResult 
 {
-    ACCUMTYPE _sum = 0.0f;
-    ACCUMTYPE _absSum = 0.0f;
-    DTYPE     _min = 0.0f;
-    DTYPE     _max = 0.0f;
+    float     sum = 0.0f;
+    float     absSum = 0.0f;
+    float     min = 0.0f;
+    float     max = 0.0f;
 
-    int       _hasZero = 0;
-    int       _hasNan = 0;
-    int       _hasInf = 0;
+    int       hasZero = 0;
+    int       hasNan = 0;
+    int       hasInf = 0;
 };
 
 
@@ -56,7 +53,7 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
 
     handle.ReadTo(&abnormal_h, abnormal_d, sizeof(CheckNumericsResult));
 
-    bool isAbnormal = abnormal_h._hasNan || abnormal_h._hasInf;
+    bool isAbnormal = abnormal_h.hasNan || abnormal_h.hasInf;
 
     if ( CheckNumericsEnabled(CheckNumerics::Info) ||
         (CheckNumericsEnabled(CheckNumerics::Warn) && isAbnormal)) {
@@ -66,14 +63,14 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
                   << " checkNumerics on" 
                   << " " << (isInput ? "INPUT ":"OUTPUT")
                   << " ptr=" << data 
-                  << " zeros=" << abnormal_h._hasZero
-                  << " nans="  << abnormal_h._hasNan
-                  << " infs="  << abnormal_h._hasInf;
+                  << " zeros=" << abnormal_h.hasZero
+                  << " nans="  << abnormal_h.hasNan
+                  << " infs="  << abnormal_h.hasInf;
         if (computeStats) {
-            std::cerr << " mean="  << abnormal_h._sum / numElements
-                      << " absmean="  << abnormal_h._absSum / numElements
-                      << " min="  << abnormal_h._min 
-                      << " max="  << abnormal_h._max ;
+            std::cerr << " mean="  << abnormal_h.sum / numElements
+                      << " absmean="  << abnormal_h.absSum / numElements
+                      << " min="  << abnormal_h.min 
+                      << " max="  << abnormal_h.max ;
         }
         std::cerr << "  {" << dDesc  << "}"
                   << "\n";
