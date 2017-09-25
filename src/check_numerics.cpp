@@ -5,14 +5,6 @@ namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CHECK_NUMERICS)
 
-namespace CheckNumerics
-{
-    static const int Info                = 0x01;   // print results from all checks
-    static const int Warn                = 0x02;   // print only if abnormal detected
-    static const int Throw               = 0x04;   // MIOPEN_THROW on abnormal result
-    static const int Abort               = 0x08;   // abort on abnormal result (to drop into debugger)
-    static const int ComputeStats        = 0x10;  // Print mean/absmean/min/max (slow)
-} // namespace CheckNumerics
 int CheckNumericsEnabled(int bitMask) { return (miopen::Value(MIOPEN_CHECK_NUMERICS{})) & bitMask; }
 
 // Must keep this structure synchronized with one in MIOpenCheckNumerics
@@ -29,7 +21,7 @@ struct CheckNumericsResult
 };
 
 
-static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, ConstData_t data, bool isInput) 
+bool checkNumericsImpl(Handle &handle, int mode, const TensorDescriptor &dDesc, ConstData_t data, bool isInput) 
 {
     int numElements = dDesc.GetElementSize();
 
@@ -38,7 +30,7 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
     const int numBlocks = handle.GetMaxComputeUnits() * 6;
     const size_t numGlobalWorkItems = blockSize * numBlocks;
 
-    const int computeStats = CheckNumericsEnabled(CheckNumerics::ComputeStats);
+    const int computeStats = (mode & CheckNumerics::ComputeStats);
 
     CheckNumericsResult abnormal_h;
 
@@ -55,8 +47,8 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
 
     bool isAbnormal = abnormal_h.hasNan || abnormal_h.hasInf;
 
-    if ( CheckNumericsEnabled(CheckNumerics::Info) ||
-        (CheckNumericsEnabled(CheckNumerics::Warn) && isAbnormal)) {
+    if ( (mode & CheckNumerics::Info) ||
+        ((mode & CheckNumerics::Warn) && isAbnormal)) {
 
 
         std::cerr << (isAbnormal ? "warn:" : "info:")
@@ -78,14 +70,14 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
 
     if (isAbnormal) {
 
-        if (CheckNumericsEnabled(CheckNumerics::Throw)) {
+        if ((mode & CheckNumerics::Throw)) {
             if (isInput) {
                 MIOPEN_THROW(miopenStatusInternalError, "abnormal checkNumerics result detected on INPUT");
             } else {
                 MIOPEN_THROW(miopenStatusInternalError, "abnormal checkNumerics result detected on OUTPUT");
             }
         }
-        if (CheckNumericsEnabled(CheckNumerics::Abort)) {
+        if ((mode & CheckNumerics::Abort)) {
             abort();
         }
     }
@@ -99,7 +91,7 @@ static bool checkNumericsImpl(Handle &handle, const TensorDescriptor &dDesc, Con
 // Returns: 1 if abnormal value (inf or nan) detected in specified data, 0 otherwise
 bool checkNumericsInput(Handle &handle, const TensorDescriptor &dDesc, ConstData_t data) 
 {
-    return checkNumericsImpl(handle, dDesc, data, true);
+    return checkNumericsImpl(handle, miopen::Value(MIOPEN_CHECK_NUMERICS{}), dDesc, data, true);
 }
 
 
@@ -109,7 +101,7 @@ bool checkNumericsOutput(Handle &handle, const TensorDescriptor &dDesc, Data_t d
 {
     handle.Finish(); 
 
-    return checkNumericsImpl(handle, dDesc, data, false);
+    return checkNumericsImpl(handle, miopen::Value(MIOPEN_CHECK_NUMERICS{}), dDesc, data, false);
 }
 
 } // namespace miopen
