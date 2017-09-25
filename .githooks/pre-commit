@@ -51,7 +51,10 @@ fi
 # do the formatting
 for file in $(git diff-index --cached --name-only $against | grep -E '\.h$|\.hpp$|\.cpp$|\.cl$|\.h\.in$|\.hpp\.in$|\.cpp\.in$')
 do
-    echo "$format $file"
-    "$format" -i -style=file "$file"
+    if [ -e "$file" ]
+    then
+        echo "$format $file"
+        "$format" -i -style=file "$file"
+    fi
 done
 
