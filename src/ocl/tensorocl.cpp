@@ -378,7 +378,6 @@ void OpTensor(Handle& handle,
                         std::to_string(d - 1);
 
     parms += " -DMIOPEN_TENSOR_OP=";
-    assert(tensorOp < 4);
     switch(tensorOp)
     {
     case 0: parms += "miopenAdd"; break;
