@@ -37,13 +37,13 @@ static size_t GetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                   bool fwd)
 {
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(xDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
 
     int out_n, out_c, out_h, out_w;
-    std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(yDesc.GetLengths());
+    std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(yDesc.GetLengths());
 
     int wei_k, wei_c, wei_h, wei_w;
-    std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tie4(wDesc.GetLengths());
+    std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
 
     bool supported = true;
 
