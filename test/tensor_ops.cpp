@@ -183,10 +183,6 @@ struct tensor_ops_driver : test_driver
     {
         add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));
         add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 1}));
-        //     add(a, "a", generate_tensor(get_tensor_a(), {2, 2}));
-        //     add(b, "b", generate_tensor(get_tensor_b(), {1, 2}));
-        // add(a, "a", generate_tensor(get_tensor_a(), {2}));
-        // add(b, "b", generate_tensor(get_tensor_b(), {2}));
     }
 
     std::set<std::vector<int>> get_tensor_a()
