@@ -126,10 +126,10 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
 
     static const std::unordered_map<std::string, std::string> perf_vals_map({
         // clang-format off
-        //            W    H    c    n    k {u  v} dir CUs                 lwc[2] rio csz[2] kpw pld[2] npg
+        //            W    H    c    n    k {u  v} dir {CUs}               lwc[2] rio csz[2] kpw pld[2] npg
         {MakeLutKey(  7,   7, 160, 128, 320, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1)},                                    
         {MakeLutKey(  7,   7, 192, 128, 384, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1)},                                    
-        {MakeLutKey(  7,   7, 512,  16, 512, 2, 2, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1)},                                    
+        {MakeLutKey(  7,   7, 512,  16, 512, 2, 2, 0),     FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1)},                                    
         {MakeLutKey( 12,  12, 512, 128,1024, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1,  8, 8, 11, 1)},                                    
         {MakeLutKey( 12,  12,1024, 128,1024, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1,  8, 8, 11, 1)},                                    
         {MakeLutKey( 13,  13, 192, 128, 384, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1)},                                    
@@ -149,7 +149,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
         {MakeLutKey( 14,  14,  96, 128, 208, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 2)},                                    
         {MakeLutKey( 14,  14, 112, 128, 224, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  5, 2)}, /// \todo Find opt values for 56CUs
         {MakeLutKey( 14,  14, 128,   8, 256, 0, 64),       FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1)},                                    
-        {MakeLutKey( 14,  14, 128,  32, 192, 2, 2, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1)},                                    
+        {MakeLutKey( 14,  14, 128,  32, 192, 2, 2, 0),     FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1)},                                    
         {MakeLutKey( 14,  14, 128, 128, 256, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1)},                                    
         {MakeLutKey( 14,  14, 144, 128, 288, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  5, 2)},                                    
         {MakeLutKey( 14,  14, 160,  32, 160, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 11, 2)},                                    
@@ -157,8 +157,8 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
         {MakeLutKey( 14,  14, 160, 128, 320, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  5, 2)},                                    
         {MakeLutKey( 14,  14, 192,  32, 256, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1)},                                    
         {MakeLutKey( 14,  14, 256,  16, 256, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1)},                                    
-        {MakeLutKey( 14,  14, 256,  16, 256, 2, 2, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  7, 1)},                                    
-        {MakeLutKey( 14,  14, 256,  32, 256, 2, 2, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  4, 1)},                                    
+        {MakeLutKey( 14,  14, 256,  16, 256, 2, 2, 0),     FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  7, 1)},                                    
+        {MakeLutKey( 14,  14, 256,  32, 256, 2, 2, 0),     FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  4, 1)},                                    
         {MakeLutKey( 14,  14, 512,   8, 512, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  4, 1)},                                    
         {MakeLutKey( 14,  14, 512,  16, 512, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1)},                                    
         {MakeLutKey( 14,  14, 512,  16, 512, 0, 64),       FormPerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  4, 1)},                                    
@@ -168,10 +168,10 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
         {MakeLutKey( 27,  27, 128,   8, 128, 0, 64),       FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1)}, /// \todo Find opt values for 56CUs
         {MakeLutKey( 28,  28,  64,  32,  64, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 2,  2, 2)},                                    
         {MakeLutKey( 28,  28,  64,  32,  96, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 2,  5, 2)},                                    
-        {MakeLutKey( 28,  28,  96,  32,  96, 2, 2, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 1)},                                    
+        {MakeLutKey( 28,  28,  96,  32,  96, 2, 2, 0),     FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 1)},                                    
         {MakeLutKey( 28,  28,  96, 128, 128, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 2)},                                    
-        {MakeLutKey( 28,  28, 128,  16, 128, 2, 2, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1)},                                    
-        {MakeLutKey( 28,  28, 128,  32, 160, 2, 2, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1)},                                    
+        {MakeLutKey( 28,  28, 128,  16, 128, 2, 2, 0),     FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1)},                                    
+        {MakeLutKey( 28,  28, 128,  32, 160, 2, 2, 0),     FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1)},                                    
         {MakeLutKey( 28,  28, 128, 128, 192, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 2)},                                    
         {MakeLutKey( 28,  28, 256,   8, 512, 0),           FormPerfParamsAsmDirect3x3WrW(4, 1,  8, 2,  2, 1)},                                    
         {MakeLutKey( 28,  28, 256,  16, 512, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1,  8, 2,  3, 1)},                                    
@@ -181,7 +181,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
         {MakeLutKey( 28,  28, 512,  64, 512, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1)},                                    
         {MakeLutKey( 54,  54,  64,   8,  64, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 2,  2, 4)},                                    
         {MakeLutKey( 54,  54,  64,   8,  64, 0, 64),       FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 2,  3, 2)},                                    
-        {MakeLutKey( 56,  56,  64,  16,  64, 2, 2, 0, 64), FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 2)},                                    
+        {MakeLutKey( 56,  56,  64,  16,  64, 2, 2, 0),     FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 2)},                                    
         {MakeLutKey( 56,  56,  64,  16, 192, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 4)},                                    
         {MakeLutKey( 56,  56,  64,  32, 192, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 4)},                                    
         {MakeLutKey( 56,  56,  64, 128, 192, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 1)},                                    
