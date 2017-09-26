@@ -205,7 +205,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
         {MakeLutKey(240,  24,  16,  16,  32, 0, 64),       FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 2,  1, 8)},                                    
         {MakeLutKey(256, 128,  96,   1, 128, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  1, 1)},                                    
         {MakeLutKey(256, 128, 128,   1, 192, 0),           FormPerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  1, 1)},                                    
-        {MakeLutKey(512, 256,  64,   1, 192, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  1, 1)},                                    
+        {MakeLutKey(512, 256,  64,   1, 192, 0),           FormPerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  1, 1)},
         // clang-format on
     });
 
