@@ -52,6 +52,8 @@
 #include <sstream>
 #include <vector>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
+
 /*
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
@@ -489,6 +491,14 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 
     size_t workSpaceSize = hid_sz * sizeof(T);
     size_t reserveSpaceSize = hid_sz * sizeof(T);
+
+	// Workaround: Pad buffers allocations to be a multiple of 2M
+	if (miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+	{
+		// PadBufferSize(in_sz, 4);
+		PadBufferSize(wei_sz, 4);
+		PadBufferSize(out_sz, 4);
+	}
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
