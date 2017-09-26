@@ -215,7 +215,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
             (params.n_inputs % (64 / pp.chunk_size) != 0)) ||
            ((pp.reverse_inout ? params.n_outputs : params.n_inputs) % pp.k_per_wave != 0) ||
            !(pp.n_per_group <= params.batch_sz) ||
-           !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(params.in_height, 16)) ||
+           !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(params.out_height, 16)) ||
            (pp.reverse_inout && !IsReverseInOutAllowed(params)))
         {
             MIOPEN_THROW(
@@ -227,8 +227,8 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
         // Try to get values from LUT. If not found, use heuristic algorithm.
         // At first, try to find numCUs-specific values.
         const auto numCUs = static_cast<int>(params.GetStream().GetMaxComputeUnits());
-        auto key          = MakeLutKey(params.in_width,
-                              params.in_height,
+        auto key          = MakeLutKey(params.out_width,
+                              params.out_height,
                               params.n_outputs,
                               params.batch_sz,
                               params.n_inputs,
@@ -239,8 +239,8 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
         auto found = perf_vals_map.find(key);
         if(found == perf_vals_map.end())
         { // numCUs-specific values not found, try to find "universal" ones.
-            key = MakeLutKey(params.in_width,
-                             params.in_height,
+            key = MakeLutKey(params.out_width,
+                             params.out_height,
                              params.n_outputs,
                              params.batch_sz,
                              params.n_inputs,
@@ -259,7 +259,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
                ((pp.reverse_inout ? params.n_outputs : params.n_inputs) % pp.k_per_wave != 0) ||
                !(pp.n_per_group <= params.batch_sz) ||
                !(1 <= pp.pipe_lines_depth &&
-                 pp.pipe_lines_depth <= std::min(params.in_height, 16)) ||
+                 pp.pipe_lines_depth <= std::min(params.out_height, 16)) ||
                (pp.reverse_inout && !IsReverseInOutAllowed(params)))
             {
                 MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: incorrect for the "
@@ -270,7 +270,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
         {
             {
                 auto& v = pp.chunk_size;
-                v       = (params.in_width < 48) ? 8 : 16;
+                v       = (params.out_width < 48) ? 8 : 16;
                 if((params.n_outputs % (64 / v) != 0) && (params.n_inputs % (64 / v) != 0))
                 {
                     v = 16; // Fixup for correctness
@@ -279,7 +279,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
             {
                 auto& v = pp.reverse_inout;
                 if(IsReverseInOutAllowed(params) &&
-                   ((params.n_outputs % 4 != 0) || (params.in_width < 8)))
+                   ((params.n_outputs % 4 != 0) || (params.out_width < 8)))
                 {
                     v = 1;
                 }
@@ -333,10 +333,10 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
             }
             {
                 auto& v = pp.pipe_lines_depth;
-                v       = (params.in_height <= 1) ? 1 : 2;
-                if((params.in_height < 8) && (params.in_width < 64))
+                v       = (params.out_height <= 1) ? 1 : 2;
+                if((params.out_height < 8) && (params.out_width < 64))
                 {
-                    v = params.in_height; // Special case.
+                    v = params.out_height; // Special case.
                 }
             }
         }
@@ -363,12 +363,12 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
-    bool ok = params.pad0 == 1                   // -q     pad_w
-              && params.pad1 == 1                // -p     pad_h
-              && (params.kernel_stride0 <= 2)    // -u     stride_w
-              && (params.kernel_stride1 <= 2)    // -v     stride_h
-              && params.kernel_size0 == 3        // -x   S wei_w
-              && params.kernel_size1 == 3        // -y   R wei_h
+    bool ok = params.pad0 == 1                   // -q  pad_w
+              && params.pad1 == 1                // -p  pad_h
+              && (params.kernel_stride0 <= 2)    // -u  stride_w
+              && (params.kernel_stride1 <= 2)    // -v  stride_h
+              && params.kernel_size0 == 3        // -x  S wei_w
+              && params.kernel_size1 == 3        // -y  R wei_h
               && params.in_layout == "NCHW";
     // && _weights_layout == "KCHW"
     if(!ok)
@@ -376,7 +376,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false; // Early exit to speed up the check.
     }
     // Check limits:
-    const auto h_w     = static_cast<long>(params.in_height) * params.in_width;
+    const auto h_w     = static_cast<long>(params.out_height) * params.out_width;
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
@@ -385,8 +385,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     const auto n_c_h_w = static_cast<long>(params.batch_sz) * c_h_w;  // N*C*H*W
     const auto n_k_h_w = static_cast<long>(params.batch_sz) * k_h_w;  // N*K*H*W
     const auto c_k_r_s = static_cast<long>(params.n_outputs) * k_r_s; // C*K*R*S
-    ok                 = params.in_width > 0 && params.in_width <= 512 &&
-         params.in_height < std::pow(2, 16)    // -H   H img_h
+    ok                 = params.out_width > 0 && params.out_width <= 512 &&
+         params.out_height < std::pow(2, 16)   // -H   H img_h
          && params.batch_sz < std::pow(2, 16)  // -n   N batch_size
          && params.n_outputs < std::pow(2, 16) // -c   C input_channels
          && params.n_inputs < std::pow(2, 16)  // -k   K output_channels
@@ -419,8 +419,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
     std::ostringstream options;
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
-    GenerateClangDefsym(options, "img_h", params.in_height);     // H
-    GenerateClangDefsym(options, "img_w", params.in_width);      // W
+    GenerateClangDefsym(options, "img_h", params.out_height);    // H
+    GenerateClangDefsym(options, "img_w", params.out_width);     // W
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
     GenerateClangDefsym(options, "output_channels", params.n_inputs); // K
