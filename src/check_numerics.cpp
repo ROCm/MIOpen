@@ -100,7 +100,7 @@ bool checkNumericsInput(Handle& handle, const TensorDescriptor& dDesc, ConstData
 
 // Synchronizes to wait for kernel to finish, then checks data for output:
 // Returns: 1 if abnormal value (inf or nan) detected in specified data, 0 otherwise
-bool checkNumericsOutput(Handle& handle, const TensorDescriptor& dDesc, Data_t data)
+bool checkNumericsOutput(Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
     handle.Finish();
 
