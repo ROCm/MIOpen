@@ -424,8 +424,8 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     dwei_host = std::vector<T>(wei_sz, 0);
     din_host  = std::vector<T>(in_sz, 0);
 
-    std::string inFileName  = inflags.GetValueStr("in_data");
-    std::string weiFileName = inflags.GetValueStr("weights");
+    std::string inFileName   = inflags.GetValueStr("in_data");
+    std::string weiFileName  = inflags.GetValueStr("weights");
     std::string biasFileName = inflags.GetValueStr("in_bias");
 
     /* Unless seed is persistent between runs validation using cache stored in file is impossible.
