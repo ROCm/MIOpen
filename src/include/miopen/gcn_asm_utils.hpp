@@ -28,6 +28,7 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
 
 std::string GetGcnAssemblerPath();
 bool ValidateGcnAssembler();
@@ -35,5 +36,19 @@ int ExecuteGcnAssembler(std::vector<std::string>& args,
                         std::istream* clang_stdin_content,
                         std::ostream* clang_stdout_content);
 void AmdgcnAssemble(std::string& source, const std::string& params);
+
+template <typename TValue>
+void GenerateClangDefsym(std::ostream& stream, const std::string& name, TValue value)
+{
+    GenerateClangDefsym<const std::string&>(stream, name, std::to_string(value));
+}
+
+template <>
+void GenerateClangDefsym<const std::string&>(std::ostream& stream,
+                                             const std::string& name,
+                                             const std::string& value);
+
+/// @param dir 1: fwd, 0: bwd wrt data
+std::string MakeKeyWHCNKD(int w, int h, int c, int n, int k, int dir, int CUs = -1);
 
 #endif // GCN_ASM_UTILS_H
