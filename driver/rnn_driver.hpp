@@ -52,7 +52,7 @@
 #include <sstream>
 #include <vector>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
+//MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
 /*
 template <typename T>
