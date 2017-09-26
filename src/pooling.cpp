@@ -85,22 +85,20 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& tensorDesc) const
     std::size_t input_h;
     std::size_t input_w;
 
-    std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(tensorDesc.GetLengths());
+    std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(tensorDesc.GetLengths());
 
     int u, v, pad_h, pad_w, window_h, window_w;
-    std::tie(u, v)               = miopen::tie2(GetStrides());
-    std::tie(pad_h, pad_w)       = miopen::tie2(GetPads());
-    std::tie(window_h, window_w) = miopen::tie2(GetLengths());
+    std::tie(u, v)               = miopen::tien<2>(GetStrides());
+    std::tie(pad_h, pad_w)       = miopen::tien<2>(GetPads());
+    std::tie(window_h, window_w) = miopen::tien<2>(GetLengths());
 
     return std::make_tuple(
         input_n,
         input_c,
-        std::max(std::size_t{1},
-                 static_cast<std::size_t>(
-                     std::ceil((input_h - window_h + 2 * pad_h) / static_cast<float>(u)) + 1)),
-        std::max(std::size_t{1},
-                 static_cast<std::size_t>(
-                     std::ceil((input_w - window_w + 2 * pad_w) / static_cast<float>(v)) + 1)));
+        std::max<std::ptrdiff_t>(
+            1, std::ceil((input_h - window_h + 2 * pad_h) / static_cast<float>(u)) + 1),
+        std::max<std::ptrdiff_t>(
+            1, std::ceil((input_w - window_w + 2 * pad_w) / static_cast<float>(v)) + 1));
 }
 
 TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescriptor& tensorDesc) const
