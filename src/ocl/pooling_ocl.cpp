@@ -53,9 +53,11 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsInput(handle, xDesc, x);
-        if (!float_equal(*(static_cast<const float*>(beta)), 0)) {
+        if(!float_equal(*(static_cast<const float*>(beta)), 0))
+        {
             miopen::checkNumericsInput(handle, yDesc, y);
         }
     }
@@ -124,8 +126,8 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     handle.GetKernel("miopenPooling2dDForward", "", program_name, kernel_name, vld, vgd, parms)(
         x, y, workSpace);
 
-
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
 
@@ -151,11 +153,13 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if (miopen::CheckNumericsEnabled()) {
-        //miopen::checkNumericsInput(handle, yDesc, y); // not actually used?
+    if(miopen::CheckNumericsEnabled())
+    {
+        // miopen::checkNumericsInput(handle, yDesc, y); // not actually used?
         miopen::checkNumericsInput(handle, dyDesc, dy);
-        //miopen::checkNumericsInput(handle, xDesc, x); // not actually used?
-        if (!float_equal(*(static_cast<const float*>(beta)), 0)) {
+        // miopen::checkNumericsInput(handle, xDesc, x); // not actually used?
+        if(!float_equal(*(static_cast<const float*>(beta)), 0))
+        {
             miopen::checkNumericsInput(handle, dxDesc, dx);
         }
     }
@@ -273,7 +277,8 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
         k(dy, dx);
     }
 
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
 

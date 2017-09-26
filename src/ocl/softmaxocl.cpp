@@ -105,7 +105,8 @@ miopenStatus_t SoftmaxForward(
         handle.GetKernel("miopenSoftmaxForward", "", program_name, kernel_name, vld, vgd, parms)(
             y, c, grid_size, spatial_dim);
     }
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
     return miopenStatusSuccess;
@@ -128,7 +129,8 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsInput(handle, yDesc, y);
     }
 
@@ -176,7 +178,8 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
         handle.GetKernel("miopenSoftmaxBackward", "", program_name, kernel_name, vld, vgd, parms)(
             y, dx, c, grid_size, spatial_dim);
     }
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
 
