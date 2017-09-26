@@ -27,6 +27,7 @@
 #include <initializer_list>
 #include <miopen/errors.hpp>
 #include <miopen/lrn.hpp>
+#include <miopen/logger.hpp>
 
 extern "C" miopenStatus_t miopenCreateLRNDescriptor(miopenLRNDescriptor_t* lrnDesc)
 {
@@ -41,7 +42,7 @@ extern "C" miopenStatus_t miopenSetLRNDescriptor(miopenLRNDescriptor_t lrnDesc,
                                                  double lrnBeta,
                                                  double lrnK)
 {
-
+    MIOPEN_LOG_FUNCTION(lrnDesc, mode, lrnN, lrnAlpha, lrnBeta, lrnK);
     return miopen::try_([&] {
         std::initializer_list<double> parms = {lrnAlpha, lrnBeta, lrnK};
         miopen::deref(lrnDesc)              = miopen::LRNDescriptor(mode, lrnN, parms.begin());
@@ -56,6 +57,7 @@ extern "C" miopenStatus_t miopenGetLRNDescriptor(const miopenLRNDescriptor_t lrn
                                                  double* lrnK)
 {
 
+    MIOPEN_LOG_FUNCTION(lrnDesc, mode, lrnN, lrnAlpha, lrnBeta, lrnK);
     return miopen::try_([&] {
         *mode     = miopen::deref(lrnDesc).GetMode();
         *lrnN     = miopen::deref(lrnDesc).GetN();
@@ -88,6 +90,7 @@ extern "C" miopenStatus_t miopenLRNForward(miopenHandle_t handle,
                                            void* workSpace)
 {
 
+    MIOPEN_LOG_FUNCTION(lrnDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace);
     return miopen::try_([&] {
         miopen::deref(lrnDesc).Forward(miopen::deref(handle),
                                        alpha,
@@ -116,6 +119,8 @@ extern "C" miopenStatus_t miopenLRNBackward(miopenHandle_t handle,
                                             const void* workSpace)
 {
 
+    MIOPEN_LOG_FUNCTION(
+        lrnDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
     return miopen::try_([&] {
         miopen::deref(lrnDesc).Backward(miopen::deref(handle),
                                         alpha,
@@ -134,5 +139,6 @@ extern "C" miopenStatus_t miopenLRNBackward(miopenHandle_t handle,
 
 extern "C" miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lrnDesc)
 {
+    MIOPEN_LOG_FUNCTION(lrnDesc);
     return miopen::try_([&] { delete lrnDesc; });
 }

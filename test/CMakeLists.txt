@@ -84,13 +84,13 @@ endfunction()
 
 if(MIOPEN_TEST_ALL)
     add_custom_test(test_extra
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1, 1, 1, 1 --weights 1, 1, 2, 2 --filter 0 0 3 3
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 227 227  --weights 1 3 11 11 --filter 0 0 4 4 --disable-backward-data
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 224 224  --weights 1 3 11 11 --filter 2 2 4 4
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 128 64 27 27  --weights 192 64 5 5 --filter 2 2 1 1
     )
 endif()
 
