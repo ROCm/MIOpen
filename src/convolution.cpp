@@ -28,7 +28,6 @@
 #include <miopen/errors.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace miopen {
 
@@ -174,9 +173,10 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
                                                    const TensorDescriptor& wDesc,
                                                    const TensorDescriptor& xDesc) const
 {
-    const auto perf_filtering = miopen::IsEnabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
-    if(perf_filtering || miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{}))
     {
+        // Support for MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING is not copypasted here.
+        // Right now this does not matter as there is none perf filtering for Winograd
         return false;
     }
 
@@ -217,10 +217,13 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
 
     bool supported_filters =
         ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
+         (_kernel_size0 == 7 && _kernel_size1 == 7) ||
          (_kernel_size0 == 11 && _kernel_size1 == 11) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 10) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 20));
+         (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0));
 
     return !(
         !supported_filters || (_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
@@ -237,10 +240,13 @@ bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) con
 
     bool supported_filters =
         ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
+         (_kernel_size0 == 7 && _kernel_size1 == 7) ||
          (_kernel_size0 == 11 && _kernel_size1 == 11) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 10) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 20));
+         (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0));
 
     return !(!supported_filters || (_kernel_size0 == 3 && _kernel_size1 == 3 &&
                                     (pad_h > 1 || pad_w > 1 || u > 1 || v > 1)) ||
