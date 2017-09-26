@@ -79,10 +79,15 @@ void SaveBinary(const boost::filesystem::path& binary_path,
                 bool is_kernel_str)
 {
     if(miopen::IsCacheDisabled())
-        return;
-    auto p = GetCacheFile(device, name, args, is_kernel_str);
-    boost::filesystem::create_directories(p.parent_path());
-    boost::filesystem::rename(binary_path, p);
+    {
+        boost::filesystem::remove(binary_path);
+    }
+    else
+    {
+        auto p = GetCacheFile(device, name, args, is_kernel_str);
+        boost::filesystem::create_directories(p.parent_path());
+        boost::filesystem::rename(binary_path, p);
+    }
 }
 
 } // namespace miopen
