@@ -76,11 +76,11 @@ struct verify_tensor_ops : tensor_ops_base<T>
         b = pb(dims);
     }
 
-    T add_elem(T a, T b) { return a + b; }
+    T add_elem(T aelem, T belem) { return aelem + belem; }
 
-    void tensor_for_loop(const tensor<T>& a,
-                         const tensor<T>& b,
-                         tensor<T>& c,
+    void tensor_for_loop(const tensor<T>& aten,
+                         const tensor<T>& bten,
+                         tensor<T>& cten,
                          const std::vector<size_t>& a_dims,
                          const std::vector<size_t>& b_dims,
                          int coffset,
@@ -88,20 +88,20 @@ struct verify_tensor_ops : tensor_ops_base<T>
                          int dim)
     {
 
-        int cstride = c.desc.GetStrides()[dim];
-        int bstride = b.desc.GetStrides()[dim];
+        int cstride = cten.desc.GetStrides()[dim];
+        int bstride = bten.desc.GetStrides()[dim];
 
         for(int idx = 0; idx < a_dims[dim]; idx++)
         {
             size_t acindex = coffset + cstride * idx;
             size_t bindex  = (b_dims[dim] == a_dims[dim]) ? boffset + bstride * idx : boffset;
 
-            if(bindex < b.desc.GetElementSize())
-                c[acindex] = add_elem(a[acindex], b[bindex]);
+            if(bindex < bten.desc.GetElementSize())
+                cten[acindex] = add_elem(aten[acindex], bten[bindex]);
             if(dim < (a_dims.size() - 1))
             {
 
-                tensor_for_loop(a, b, c, a_dims, b_dims, acindex, bindex, dim + 1);
+                tensor_for_loop(aten, bten, cten, a_dims, b_dims, acindex, bindex, dim + 1);
             }
         }
         return;
