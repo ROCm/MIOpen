@@ -26,6 +26,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
+#include <miopen/solver.hpp>
 #include <miopen/float_equal.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
@@ -549,9 +550,15 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-                int n_passes = construct_params.mloConstructDirect2D_11x11(true);
+                ConvolutionContext context;
+                construct_params.mloCopyTo(context);
+                context.n_passes = true;
 
-                if(n_passes == 1)
+                solver::ConvOclDirectFwd11x11 solver;
+                auto config                   = solver.Find(context);
+                solver::ConvSolution solution = solver.GetSolution(context, *config);
+
+                if(solution.passes == 1)
                 {
                     kernel(x, w, y, padding_val);
                 }
@@ -710,6 +717,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 bool timed  = handle.IsProfilingEnabled();
                 float timev = ExecuteFwdFFTKernel(
                     handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed);
+                // FIXME: Is workSpaceSize correct here? It seems that workspace_fft is.
 
                 if(timed)
                 {
