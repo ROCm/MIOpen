@@ -34,13 +34,13 @@ GemmGeometry CreateGemmGeometryTranBwdData(const TensorDescriptor& dyDesc,
                                            std::string& network_config)
 {
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
 
     int wei_c, wei_n, wei_h, wei_w;
-    std::tie(wei_c, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
+    std::tie(wei_c, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     // GEMM
     int K       = wei_n * wei_h * wei_w;
@@ -81,13 +81,13 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
                                            std::string& network_config)
 {
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
 
     int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     // GEMM
     int K       = wei_n;
@@ -128,13 +128,13 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(const TensorDescriptor& dyDesc,
                                               std::string& network_config)
 {
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
     int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     // GEMM
     int N       = in_c * wei_h * wei_w;
@@ -172,13 +172,13 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
                                        std::string& network_config)
 {
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
     int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
     // GEMM
     int K       = in_c * wei_h * wei_w;
