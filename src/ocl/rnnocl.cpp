@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <../driver/tensor_driver.hpp>
+#include <miopen/tensor.hpp>
 #include <miopen/rnn.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
