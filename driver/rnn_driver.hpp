@@ -491,7 +491,7 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 
     size_t workSpaceSize = hid_sz * sizeof(T);
     size_t reserveSpaceSize = hid_sz * sizeof(T);
-
+	/*
 	// Workaround: Pad buffers allocations to be a multiple of 2M
 	if (miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
 	{
@@ -499,7 +499,7 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 		PadBufferSize(wei_sz, 4);
 		PadBufferSize(out_sz, 4);
 	}
-
+	*/
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
