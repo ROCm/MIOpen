@@ -67,11 +67,11 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             int H_out     = params.out_height;
 
             N_LCL_OUT_MAPS         = std::min(N_LCL_OUT_MAPS, K);
-			if (N_LCL_OUT_MAPS > 32 && (K/ N_LCL_OUT_MAPS) != K)
+			if (N_LCL_OUT_MAPS > 32 && (K % N_LCL_OUT_MAPS) != 0)
 			{
 				N_LCL_OUT_MAPS = 32;
 			}
-			if (N_LCL_OUT_MAPS > 16 && (K / N_LCL_OUT_MAPS) != K)
+			if (N_LCL_OUT_MAPS > 16 && (K % N_LCL_OUT_MAPS) != 0)
 			{
 				N_LCL_OUT_MAPS = 16;
 			}
