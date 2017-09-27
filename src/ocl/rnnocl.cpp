@@ -142,6 +142,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
 
 		printf("rnn gpu \n");
+		cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 		for (int li = 0; li < numlayer; li++)
 		{
@@ -151,13 +152,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			// from input
 			if (li == 0)
 			{
-				cl_command_queue Q = (cl_command_queue)handle.GetStream();
-
 				MIOpenGEMM::gemm0<float>(false,
 					false,
 					false,
 					batch_n,
-					hy_h,
+					hy_h * bi,
 					in_h,
 					1,
 					x,
@@ -174,14 +173,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					0,
 					nullptr,
 					nullptr);
-
-				clFinish(Q);
 			}
-/*			else
+			else
 			{
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
-				cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 				MIOpenGEMM::gemm0<float>(false,
 					false,
@@ -204,10 +200,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					0,
 					nullptr,
 					nullptr);
-
-				clFinish(Q);
 			}
-			*/
+			
 
 			// from hidden state
 			bacc = 0;
@@ -220,11 +214,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					li == 0 ? (in_h * hy_h * bi)
 					: (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
 						bi * hy_h * hy_stride);
-/*
+
 				if (ti == 0)
 				{
-					cl_command_queue Q = (cl_command_queue)handle.GetStream();
-
 					MIOpenGEMM::gemm0<float>(false,
 						false,
 						false,
@@ -271,13 +263,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							nullptr,
 							nullptr);
 					}
-
-					clFinish(Q);
 				}
 				else
 				{
-					cl_command_queue Q = (cl_command_queue)handle.GetStream();
-
 					MIOpenGEMM::gemm0<float>(false,
 						false,
 						false,
@@ -324,11 +312,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							nullptr,
 							nullptr);
 					}
-
-					clFinish(Q);
 				}
 
-				*/
+				
 
 				/*
 				mlo_construct_neuron construct_params(1); // forward
@@ -360,6 +346,32 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 		}
 
+		int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
+		int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+
+		MIOpenGEMM::gemm0<float>(false,
+			false,
+			true,
+			batch_n,
+			out_h,
+			hy_h * bi,
+			1,
+			workSpace,
+			prelayer_shift,
+			hy_stride,
+			w,
+			wei_shift,
+			wei_stride,
+			1,
+			y,
+			0,
+			out_stride,
+			&Q,
+			0,
+			nullptr,
+			nullptr);
+
+		clFinish(Q);
 #else
 		MIOPEN_THROW("GEMM is not supported");
 #endif
