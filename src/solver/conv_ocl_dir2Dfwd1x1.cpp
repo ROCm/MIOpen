@@ -45,7 +45,7 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
     searched_params.CopyTo(result);
 
     if((params.n_outputs / 16) * 16 == params.n_outputs &&
-       (params.n_inputs / 4) * 4 == params.n_inputs)
+       (params.n_inputs / 16) * 16 == params.n_inputs)
     {
         int version = result.out_pix_tile1;
 
@@ -67,7 +67,16 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             int H_out     = params.out_height;
 
             N_LCL_OUT_MAPS         = std::min(N_LCL_OUT_MAPS, K);
-            result.n_out_pix_tiles = N_LCL_OUT_MAPS;
+			if (N_LCL_OUT_MAPS > 32 && (K/ N_LCL_OUT_MAPS) != K)
+			{
+				N_LCL_OUT_MAPS = 32;
+			}
+			if (N_LCL_OUT_MAPS > 16 && (K / N_LCL_OUT_MAPS) != K)
+			{
+				N_LCL_OUT_MAPS = 16;
+			}
+
+			result.n_out_pix_tiles = N_LCL_OUT_MAPS;
 
             if(N_LCL_IN_MAPS < C && N_LCL_IN_MAPS > 0 && (N_LCL_IN_MAPS % 8) == 0)
             {
