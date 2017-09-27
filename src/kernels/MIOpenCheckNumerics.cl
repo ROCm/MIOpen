@@ -4,14 +4,14 @@
 // Must keep this structure synchronized with one in MIOpenCheckNumerics
 struct CheckNumericsResult 
 {
-    ACCUMTYPE _sum;
-    ACCUMTYPE _absSum;
-    DTYPE     _min;
-    DTYPE     _max;
+    ACCUMTYPE sum;
+    ACCUMTYPE absSum;
+    DTYPE     min;
+    DTYPE     max;
 
-    int       _hasZero;
-    int       _hasNan;
-    int       _hasInf;
+    int       hasZero;
+    int       hasNan;
+    int       hasInf;
 };
 
 union AtomicFloat {
@@ -19,7 +19,7 @@ union AtomicFloat {
    float        f32;
 };
 
-cl_atomic_add_float (volatile __global float *addr, float val)
+void cl_atomic_add_float (volatile __global float *addr, float val)
 {
     union AtomicFloat current, expected, next;
 
@@ -33,7 +33,7 @@ cl_atomic_add_float (volatile __global float *addr, float val)
     } while (current.u32 != expected.u32);
 }
 
-cl_atomic_min_float (volatile __global float *addr, float val)
+void cl_atomic_min_float (volatile __global float *addr, float val)
 {
     union AtomicFloat current, expected, next;
 
@@ -48,7 +48,7 @@ cl_atomic_min_float (volatile __global float *addr, float val)
 }
 
 
-cl_atomic_max_float (volatile __global float *addr, float val)
+void cl_atomic_max_float (volatile __global float *addr, float val)
 {
     union AtomicFloat current, expected, next;
 
@@ -97,13 +97,13 @@ __kernel void MIOpenCheckNumerics(const __global DTYPE *data, int size, __global
         maxV = max(maxV, value);
         
         if (fabs(value) <= 0.0f) { // iszero check
-           abnormal->_hasZero = 1;
+           abnormal->hasZero = 1;
         }
         if (isnan(value)) {
-            abnormal->_hasNan  = 1;
+            abnormal->hasNan  = 1;
         }
         if (isinf(value)) {
-            abnormal->_hasInf  = 1;
+            abnormal->hasInf  = 1;
         }
         offset += total_wi_size;
     }
@@ -125,10 +125,10 @@ __kernel void MIOpenCheckNumerics(const __global DTYPE *data, int size, __global
         REDUCE_OPS(1)
 
         if (lid == 0) {
-          cl_atomic_add_float(&abnormal->_sum,    stats[0]);
-          cl_atomic_add_float(&abnormal->_absSum, stats[1]);
-          cl_atomic_min_float(&abnormal->_min,    stats[2]);
-          cl_atomic_max_float(&abnormal->_max,    stats[3]);
+          cl_atomic_add_float(&abnormal->sum,    stats[0]);
+          cl_atomic_add_float(&abnormal->absSum, stats[1]);
+          cl_atomic_min_float(&abnormal->min,    stats[2]);
+          cl_atomic_max_float(&abnormal->max,    stats[3]);
         }
     }
 }
