@@ -873,8 +873,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionCon
             report_inteval   = 4;
 
             // Add 1x1_stride : no padding support yet
-            if(params.forward && (params.n_inputs / 16) * 16 == params.n_inputs && params.pad0 == 0 &&
-               params.pad1 == 0)
+            if(params.forward && (params.n_inputs / 16) * 16 == params.n_inputs &&
+               params.pad0 == 0 && params.pad1 == 0)
             {
 
                 // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
