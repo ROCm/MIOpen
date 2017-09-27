@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "tensor_driver.hpp"
+#include <../driver/tensor_driver.hpp>
 #include <miopen/rnn.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
