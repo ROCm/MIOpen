@@ -37,12 +37,9 @@
 #define MIOPEN_TENSOR_OP miopenMul
 #endif
 
-#define OP_0(a, b) (a) + (b)
-#define OP_1(a, b) (a) * (b)
-#define OP_2(a, b) (((a) < (b)) ? (a) : (b))
-#define OP_3(a, b) (((a) > (b)) ? (a) : (b))
-#define OP(op, a, b) \
-    (op == 0 ? OP_0(a, b) : (op == 1 ? OP_1(a, b) : (op == 2 ? OP_2(a, b) : OP_3(a, b))))
+#ifndef MIOPEN_TENSOR_DIMS
+#define MIOPEN_TENSOR_DIMS 4
+#endif
 
 #define UNUSED __attribute__((__unused__))
 
@@ -103,7 +100,7 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
 }
 
 // DLOWELL : cutting out this section
-#if FIRST_NOT_ONE < 4
+#if(FIRST_NOT_ONE < 4 && MIOPEN_TENSOR_DIMS == 4)
 
 __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
                                   global MIOPEN_TYPE* b,
@@ -357,7 +354,8 @@ __kernel void Op2dTensorGeneric(global MIOPEN_TYPE* a,
         int o_c   = (bitmap & (1 << 0)) ? o_c_gid_off : lid % c_c;
         int o_n   = (bitmap & (1 << 1)) ? o_n_gid_off : lid / o_n_div;
         int index = o_n * c_nstride + o_c;
-        c[index]  = MIOPEN_TENSOR_OP(a[index], operand);
+        // printf("aindex: %d, bindex: %d\n",index, gid);
+        c[index] = MIOPEN_TENSOR_OP(a[index], operand);
         lid += get_local_size(0);
     }
 }
