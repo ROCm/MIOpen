@@ -79,36 +79,36 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
             /// implementation if optimal values are different.
             static_assert('9' - '0' == 9, "Characters must be in ASCII encoding");
             static const std::unordered_map<std::string, std::string> perf_vals_map({
-                //                              W    H    c    n    k   dir  fpw olpw lwc
-                {MakeKeyWHCNKD(54, 54, 64, 8, 64, 0), "820"},
-                {MakeKeyWHCNKD(54, 54, 64, 8, 64, 1), "820"},
-                {MakeKeyWHCNKD(56, 56, 128, 8, 256, 0), "840"},
-                {MakeKeyWHCNKD(56, 56, 128, 8, 256, 1), "840"},
-                {MakeKeyWHCNKD(56, 56, 128, 16, 256, 0), "840"},
-                {MakeKeyWHCNKD(56, 56, 128, 16, 256, 1), "840"},
-                {MakeKeyWHCNKD(60, 6, 64, 16, 128, 0), "420"},
-                {MakeKeyWHCNKD(60, 6, 64, 16, 128, 1), "260"},
-                {MakeKeyWHCNKD(112, 112, 64, 8, 128, 0), "820"},
-                {MakeKeyWHCNKD(112, 112, 64, 8, 128, 1), "820"},
-                {MakeKeyWHCNKD(112, 112, 64, 16, 128, 0), "820"},
-                {MakeKeyWHCNKD(112, 112, 64, 16, 128, 1), "820"},
-                {MakeKeyWHCNKD(120, 12, 32, 16, 64, 0), "413"},
-                {MakeKeyWHCNKD(120, 12, 32, 16, 64, 1), "420"},
-                {MakeKeyWHCNKD(240, 24, 16, 16, 32, 0), "420"},
-                {MakeKeyWHCNKD(240, 24, 16, 16, 32, 1), "810"},
+                //          W   H   c   n  k   dir  "fpw olpw lwc"
+                {MakeLutKey(54, 54, 64, 8, 64, 0), "820"},
+                {MakeLutKey(54, 54, 64, 8, 64, 1), "820"},
+                {MakeLutKey(56, 56, 128, 8, 256, 0), "840"},
+                {MakeLutKey(56, 56, 128, 8, 256, 1), "840"},
+                {MakeLutKey(56, 56, 128, 16, 256, 0), "840"},
+                {MakeLutKey(56, 56, 128, 16, 256, 1), "840"},
+                {MakeLutKey(60, 6, 64, 16, 128, 0), "420"},
+                {MakeLutKey(60, 6, 64, 16, 128, 1), "260"},
+                {MakeLutKey(112, 112, 64, 8, 128, 0), "820"},
+                {MakeLutKey(112, 112, 64, 8, 128, 1), "820"},
+                {MakeLutKey(112, 112, 64, 16, 128, 0), "820"},
+                {MakeLutKey(112, 112, 64, 16, 128, 1), "820"},
+                {MakeLutKey(120, 12, 32, 16, 64, 0), "413"},
+                {MakeLutKey(120, 12, 32, 16, 64, 1), "420"},
+                {MakeLutKey(240, 24, 16, 16, 32, 0), "420"},
+                {MakeLutKey(240, 24, 16, 16, 32, 1), "810"},
             });
-            const auto key = params.forward ? MakeKeyWHCNKD(params.in_width,
-                                                            params.in_height,
-                                                            params.n_inputs,
-                                                            params.batch_sz,
-                                                            params.n_outputs,
-                                                            1)
-                                            : MakeKeyWHCNKD(params.in_width,
-                                                            params.in_height,
-                                                            params.n_outputs,
-                                                            params.batch_sz,
-                                                            params.n_inputs,
-                                                            0);
+            const auto key = params.forward ? MakeLutKey(params.in_width,
+                                                         params.in_height,
+                                                         params.n_inputs,
+                                                         params.batch_sz,
+                                                         params.n_outputs,
+                                                         1)
+                                            : MakeLutKey(params.in_width,
+                                                         params.in_height,
+                                                         params.n_outputs,
+                                                         params.batch_sz,
+                                                         params.n_inputs,
+                                                         0);
             const auto found = perf_vals_map.find(key);
             if(found != perf_vals_map.end())
             {
