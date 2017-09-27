@@ -314,31 +314,30 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					}
 				}
 
-				
+				int rsv_sz = batch_n * hy_d * hy_h;
+				std::vector<int> rsv_size(3, 1);
+				rsv_size.push_back(rsv_sz);
 
-				/*
-				mlo_construct_neuron construct_params(1); // forward
+				miopenTensorDescriptor_t rsvTensor;
+				miopenCreateTensorDescriptor(&rsvTensor);
+				SetTensor4d(rsvTensor, rsv_size);
 
-				if (mode == miopenRNNRELU)
-				{
-					construct_params.setNeuronDescr(static_cast<int>(miopenActivationRELU), 1.0, 0.0, 0.0);
-				}
-				else if (mode == miopenRNNTANH)
-				{
-					construct_params.setNeuronDescr(static_cast<int>(miopenActivationTANH), 1.0, 0.0, 0.0);
-				}
+				miopenActivationDescriptor_t activDesc;
+				miopenCreateActivationDescriptor(&activDesc);
 
-				const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-				const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+				miopenActivationMode_t amode;
+				amode = (mode == miopenRNNRELU) ? miopenActivationRELU : miopenActivationLOGISTIC;
+				miopenSetActivationDescriptor(activDesc, amode, 1, 0, 1);
 
-				handle.GetKernel("miopenActivationForward",
-					"",
-					"",
-					"",
-					vld,
-					vgd,
-					"")(reserveSpace, workSpace, 1.0, 0.0, 0.0);
-				*/
+				miopenActivationForward(handle,
+					activDesc,
+					1,
+					rsvTensor,
+					reserveSpace,
+					0,
+					rsvTensor,
+					workSpace);
+
 				bacc += in_n[ti];
 			}
 
