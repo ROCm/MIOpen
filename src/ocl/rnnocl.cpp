@@ -316,7 +316,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							nullptr);
 					}
 				}
-
+				printf("mark0\n");
 				int rsv_sz = batch_n * hy_d * hy_h;
 				std::vector<int> rsv_size(3, 1);
 				rsv_size.push_back(rsv_sz);
@@ -334,6 +334,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 				float alpha = 1, beta = 0;
 				miopenHandle_t ahandle;
+				printf("mark1\n");
 				miopenActivationForward(ahandle,
 					activDesc,
 					&alpha,
@@ -342,7 +343,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					&beta,
 					rsvTensor,
 					workSpace);
-
+				printf("mark2\n");
 				bacc += in_n[ti];
 			}
 
