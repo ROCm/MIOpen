@@ -267,7 +267,7 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
-    return (params.kernel_size0 == 1) || (params.kernel_size1 == 1);
+    return (params.kernel_size0 == 1) && (params.kernel_size1 == 1);
 }
 
 ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params,
