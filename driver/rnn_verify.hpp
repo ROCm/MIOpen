@@ -17,7 +17,6 @@ int sumvc(std::vector<int>& x)
 
 float activfunc(float x, int actvf)
 {
-	printf("actvf %d \n", actvf);
     if(actvf == 0)
     {
         float y = 0;
@@ -27,7 +26,7 @@ float activfunc(float x, int actvf)
     {
         return 1 / (1 + exp(-x));
     }
-	printf("actvf   %f   %f \n", x, tanh(x));
+
     return tanh(x);
 }
 
