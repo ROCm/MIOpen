@@ -23,9 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <../driver/tensor_driver.hpp>
+
 #include <../driver/activ_driver.hpp>
-#include <../driver/driver.hpp>
+#include <miopen/activ.hpp>
 #include <miopen/rnn.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
@@ -316,7 +316,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							nullptr);
 					}
 				}
-				printf("mark0\n");
+				
 				int rsv_sz = batch_n * hy_d * hy_h;
 				std::vector<int> rsv_size(3, 1);
 				rsv_size.push_back(rsv_sz);
@@ -324,29 +324,22 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				miopenTensorDescriptor_t rsvTensor;
 				miopenCreateTensorDescriptor(&rsvTensor);
 				SetTensor4d(rsvTensor, rsv_size);
-
-				miopenActivationDescriptor_t activDesc;
-				miopenCreateActivationDescriptor(&activDesc);
-
+				
 				miopenActivationMode_t amode;
 				amode = (mode == miopenRNNRELU) ? miopenActivationRELU : miopenActivationLOGISTIC;
-				miopenSetActivationDescriptor(activDesc, amode, 1, 0, 1);
+				
+				ActivationDescriptor activDesc = {amode, 1, 0, 1};
 
 				float alpha = 1, beta = 0;
-				miopenHandle_t ahandle;
-				miopenCreate(&ahandle);
-				miopenGetStream(ahandle, &Q);
-
-				printf("mark1\n");
-				miopenActivationForward(ahandle,
-					activDesc,
+				
+				activDesc.Forward(handle,
 					&alpha,
-					rsvTensor,
+					miopen::deref(rsvTensor),
 					reserveSpace,
 					&beta,
-					rsvTensor,
+					miopen::deref(rsvTensor),
 					workSpace);
-				printf("mark2\n");
+				
 				bacc += in_n[ti];
 			}
 

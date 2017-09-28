@@ -268,11 +268,11 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
             {
                 for(int h = 0; h < hy_h; h++)
                 {
- //                   wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
- //                       activfunc(hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h],
- //                                 squash); // squash_func
-                    hy_state[hx_shift + bs * hy_stride + h] =
-                        wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
+                    wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
+                        activfunc(hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h],
+                                  squash); // squash_func
+ //                   hy_state[hx_shift + bs * hy_stride + h] =
+ //                       wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 
                     rsvspace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
                         hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
@@ -287,12 +287,12 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                 {
                     for(int h = 0; h < hy_h; h++)
                     {
- //                       wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
- //                           activfunc(hid_state[hid_shift + baccbi * hy_stride + hy_h +
-//                                                bs * hy_stride + h],
-//                                      squash); // squash_func
-                        hy_state[hx_shift + hy_h + bs * hy_stride + h] =
-                            wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
+                        wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
+                            activfunc(hid_state[hid_shift + baccbi * hy_stride + hy_h +
+                                                bs * hy_stride + h],
+                                      squash); // squash_func
+//                        hy_state[hx_shift + hy_h + bs * hy_stride + h] =
+//                            wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
 
                         rsvspace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
                             hid_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
