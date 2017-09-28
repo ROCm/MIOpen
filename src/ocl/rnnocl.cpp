@@ -330,7 +330,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				
 				ActivationDescriptor activDesc = {amode, 1, 1, 1};
 
-				float alpha = 1, beta = 1;
+				float alpha = 1, beta = 0;
 				
 				activDesc.Forward(handle,
 					&alpha,
