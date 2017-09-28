@@ -224,7 +224,9 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
            ((pp.reverse_inout ? params.n_outputs : params.n_inputs) % pp.k_per_wave != 0) ||
            !(pp.n_per_group <= params.batch_sz) ||
            !(1 <= pp.pipe_lines_depth && pp.pipe_lines_depth <= std::min(params.out_height, 16)) ||
-           (pp.reverse_inout && !IsReverseInOutAllowed(params)))
+           (pp.reverse_inout && !IsReverseInOutAllowed(params)) ||
+           (params.out_width >= 256 &&
+            pp.n_per_group > 4)) // when width >= 256, n_per_group should not be > 4.
         {
             MIOPEN_THROW(
                 "MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: incorrect for the problem config.");
@@ -268,7 +270,9 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
                !(pp.n_per_group <= params.batch_sz) ||
                !(1 <= pp.pipe_lines_depth &&
                  pp.pipe_lines_depth <= std::min(params.out_height, 16)) ||
-               (pp.reverse_inout && !IsReverseInOutAllowed(params)))
+               (pp.reverse_inout && !IsReverseInOutAllowed(params)) ||
+               (params.out_width >= 256 &&
+                pp.n_per_group > 4)) // when width >= 256, n_per_group should not be > 4.
             {
                 MIOPEN_THROW("mloComputePerfParamsAsmDirect3x3WrW: LUT entry: incorrect for the "
                              "problem config.");
@@ -336,7 +340,12 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
                 }
                 if(v > params.batch_sz)
                 {
-                    v = params.batch_sz; // Fixup for correctness
+                    v = params.batch_sz; // n_per_group should never be > batch size.
+                }
+                if(params.out_width >= 256 &&
+                   v > 4) // when width >= 256, n_per_group should not be > 4.
+                {
+                    v = 4;
                 }
             }
             {
