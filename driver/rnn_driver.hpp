@@ -916,6 +916,7 @@ miopenGet4dTensorDescriptor(inputTensor,
                                    hy_h,
                                    out_h,
                                    mode,
+			workspace_host,
                                    reservespace_host);
     }
     else if(mode == miopenLSTM)
@@ -1740,6 +1741,16 @@ int RNNDriver<T>::VerifyForward()
     {
         RunForwardCPU();
     }
+
+	for (int i; i < reservespace_dev->GetSize() / sizeof(T); i++)
+		printf(" %f   %f  \n", reservespace_host[i], reservespace[i]);
+
+	printf("\n\n");
+
+	for (int i; i < workspace_dev->GetSize() / sizeof(T); i++)
+		printf(" %f   %f  \n", workspace_host[i], workspace[i]);
+
+	printf("\n\n");
 
     auto error = miopen::rms_range(outhost, out);
 
