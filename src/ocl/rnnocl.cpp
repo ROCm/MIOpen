@@ -326,7 +326,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				SetTensor4d(rsvTensor, rsv_size);
 				
 				miopenActivationMode_t amode;
-				amode = (mode == miopenRNNRELU) ? miopenActivationRELU : miopenActivationLOGISTIC;
+				amode = (mode == miopenRNNRELU) ? miopenActivationRELU : miopenActivationTANH;
 				
 				ActivationDescriptor activDesc = {amode, 1, 0, 1};
 
