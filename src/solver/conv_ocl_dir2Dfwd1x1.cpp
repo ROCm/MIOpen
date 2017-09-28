@@ -44,11 +44,11 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
     searched_params.CopyTo(result);
 
-    if(params.n_outputs % 8 == 0 && params.n_inputs % 8 == 0)
+    if(params.n_outputs % 8 == 0 && params.n_inputs % 4 == 0)
     {
         int version = result.out_pix_tile1;
 
-        if(version)
+        if(version && params.n_inputs % 8 == 0)
         {
 
             int N_LCL_IN_MAPS = result.n_in_data_tiles;
