@@ -178,7 +178,6 @@ enable_clang_tidy(
     CHECKS 
         *
         -android-cloexec-fopen
-        -cert-err60-cpp
         # Yea we shouldn't be using rand()
         -cert-msc30-c
         -cert-msc50-cpp
@@ -206,13 +205,11 @@ enable_clang_tidy(
         -hicpp-signed-bitwise
         -hicpp-special-member-functions
         -hicpp-use-equals-default
-        -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order
         -misc-macro-parentheses
         -misc-misplaced-const
         -misc-misplaced-widening-cast
-        -modernize-loop-convert
         -modernize-pass-by-value
         -modernize-use-default-member-init
         -modernize-use-emplace
