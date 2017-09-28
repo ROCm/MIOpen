@@ -328,7 +328,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				miopenActivationMode_t amode;
 				amode = (mode == miopenRNNRELU) ? miopenActivationRELU : miopenActivationLOGISTIC;
 				
-				ActivationDescriptor activDesc = {amode, 1, 1, 1};
+				ActivationDescriptor activDesc = {amode, 1, 0, 1};
 
 				float alpha = 1, beta = 0;
 				
