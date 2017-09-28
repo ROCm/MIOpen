@@ -257,10 +257,10 @@ mloSelectDefaultConfig(std::string& conf_val,
     {
 
         if(params.n_outputs % 8  == 0 &&
-           params.n_inputs % 8 == 0)
+           params.n_inputs % 4 == 0)
         {
             // version
-            if(params.forward && params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+            if(params.forward &&  params.n_inputs % 8 == 0  && params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
             {
                 result.n_in_data_tiles = 128;
 
@@ -863,7 +863,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionCon
         }
 
         if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs % 8 == 0 &&
-           params.n_inputs % 8 == 0)
+           params.n_inputs % 4 == 0)
         {
 
             std::cout
@@ -876,7 +876,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionCon
             report_inteval   = 4;
 
             // Add 1x1_stride : no padding support yet
-            if(params.forward && params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+            if(params.forward && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 && params.n_inputs % 8 == 0)
             {
 
                 // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
