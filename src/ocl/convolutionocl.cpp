@@ -1724,6 +1724,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         {
         case miopenConvolutionBwdWeightsAlgoGEMM:
         {
+            // Zeroing out the output buffer
+            float zero = 0.0f;
+            SetTensor(handle, dwDesc, dw, &zero);
+
             std::string network_config;
 
             if((wei_h != 1 || wei_w != 1 || v != 1 || u != 1) &&
