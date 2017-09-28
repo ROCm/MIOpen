@@ -287,8 +287,7 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
 class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
-		bool IsApplicable(const ConvolutionContext& params) const override;
-		ConvSolution GetSolution(const ConvolutionContext& params,
+    ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& exhaustive_search_result) const override;
 };
 
