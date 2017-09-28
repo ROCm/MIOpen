@@ -156,192 +156,48 @@ void OpTensor(Handle& handle,
         MIOPEN_THROW("Datatypes for B and C tensors do not match !");
     }
 
-    auto b_lens = bTensorDesc.GetLengths();
-    auto c_lens = cTensorDesc.GetLengths();
-    auto dims   = c_lens.size();
+    auto blens = bTensorDesc.GetLengths();
+    auto clens = cTensorDesc.GetLengths();
+    auto dims  = clens.size();
 
-    if(c_lens.size() > 5)
+    if(clens.size() > 5)
     {
-        MIOPEN_THROW("Tensor dimension larger than 5: " + std::to_string(c_lens.size()));
+        MIOPEN_THROW("Tensor dimension larger than 5: " + std::to_string(clens.size()));
     }
 
-    if(b_lens.size() != c_lens.size())
+    if(blens.size() != clens.size())
     {
         MIOPEN_THROW("Number of dims in B and C Tensors do not match: " +
-                     std::to_string(b_lens.size()) + ", " + std::to_string(c_lens.size()));
+                     std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
     }
 
-    for(auto i = 0; i < c_lens.size(); i++)
+    for(auto i = 0; i < clens.size(); i++)
     {
-        if(b_lens[i] != 1 && b_lens[i] != c_lens[i])
+        if(blens[i] != 1 && blens[i] != clens[i])
         {
             MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " + std::to_string(i));
         }
     }
 
-    auto first_not_one = std::find_if(b_lens.rbegin(), b_lens.rend(), [](int i) { return i != 1; });
-    auto d             = std::distance(b_lens.begin(), first_not_one.base());
-
-    int num_wg      = *first_not_one == 0 ? 1 : *first_not_one;
-    int work_per_wg = std::accumulate(c_lens.begin() + d, c_lens.end(), 1, std::multiplies<int>());
-
-    int b_n       = 0;
-    int b_c       = 0;
-    int b_d       = 0;
-    int b_h       = 0;
-    int b_w       = 0;
-    int b_nstride = 0;
-    int b_cstride = 0;
-    int b_dstride = 0;
-    auto blens    = bTensorDesc.GetLengths();
     auto bstrides = bTensorDesc.GetStrides();
     auto bsize    = blens.size();
-
-    if(bsize == 5)
-    {
-        b_n       = blens[0];
-        b_c       = blens[1];
-        b_d       = blens[2];
-        b_h       = blens[3];
-        b_w       = blens[4];
-        b_nstride = bstrides[0];
-        b_cstride = bstrides[1];
-        b_dstride = bstrides[2];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("blens[0,1,2,3,4]: %lu, %lu, %lu, %lu, %lu\n",
-               blens[0],
-               blens[1],
-               blens[2],
-               blens[3],
-               blens[4]);
-        printf("bstride[0,1,2]: %lu, %lu, %lu\n", bstrides[0], bstrides[1], bstrides[2]);
-#endif
-    }
-    else if(bsize == 4)
-    {
-        b_n = blens[0];
-        b_c = blens[1];
-        b_h = blens[2];
-        b_w = blens[3];
-
-        b_nstride = bstrides[0];
-        b_cstride = bstrides[1];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("blens[0,1,2,3]: %lu, %lu, %lu, %lu\n", blens[0], blens[1], blens[2], blens[3]);
-        printf("bstride[0,1]: %lu, %lu\n", bstrides[0], bstrides[1]);
-#endif
-    }
-    else if(bsize == 3)
-    {
-        b_n       = blens[0];
-        b_c       = blens[1];
-        b_h       = blens[2];
-        b_nstride = bstrides[0];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("blens[0,1,2]: %lu, %lu, %lu\n", blens[0], blens[1], blens[2]);
-        printf("bstride[0]: %lu\n", bstrides[0]);
-#endif
-    }
-    else if(bsize == 2)
-    {
-        b_n       = blens[0];
-        b_c       = blens[1];
-        b_nstride = bstrides[0];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("blens[0,1]: %lu, %lu\n", blens[0], blens[1]);
-        printf("bstride[0]: %lu\n", bstrides[0]);
-#endif
-    }
-    else if(bsize == 1)
-    {
-        b_n = blens[0];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("blens[0]: %lu\n", blens[0]);
-#endif
-    }
-
-    int c_n       = 0;
-    int c_c       = 0;
-    int c_d       = 0;
-    int c_h       = 0;
-    int c_w       = 0;
-    int c_dstride = 0;
-    int c_nstride = 0;
-    int c_cstride = 0;
-    auto clens    = cTensorDesc.GetLengths();
     auto cstrides = cTensorDesc.GetStrides();
-    auto csize    = clens.size();
-    assert(csize > 0 && csize < 6);
-    if(csize == 5)
-    {
-        c_n       = clens[0];
-        c_c       = clens[1];
-        c_d       = clens[2];
-        c_h       = clens[3];
-        c_w       = clens[4];
-        c_nstride = cstrides[0];
-        c_cstride = cstrides[1];
-        c_dstride = cstrides[2];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("clens[0,1,2,3,4]: %lu, %lu, %lu, %lu, %lu\n",
-               clens[0],
-               clens[1],
-               clens[2],
-               clens[3],
-               clens[4]);
-        printf("cstride[0,1,2,3,4]: %lu, %lu, %lu\n", cstrides[0], cstrides[1], cstrides[2]);
-#endif
-    }
-    else if(csize == 4)
-    {
-        c_n       = clens[0];
-        c_c       = clens[1];
-        c_h       = clens[2];
-        c_w       = clens[3];
-        c_nstride = cstrides[0];
-        c_cstride = cstrides[1];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("clens[0,1,2,3]: %lu, %lu, %lu, %lu\n", clens[0], clens[1], clens[2], clens[3]);
-        printf("cstride[0,1]: %lu, %lu\n", cstrides[0], cstrides[1]);
-#endif
-    }
-    else if(csize == 3)
-    {
-        c_n       = clens[0];
-        c_c       = clens[1];
-        c_h       = clens[2];
-        c_nstride = cstrides[0];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("clens[0,1,2]: %lu, %lu, %lu\n", clens[0], clens[1], clens[2]);
-        printf("cstride[0]: %lu\n", cstrides[0]);
-#endif
-    }
-    else if(csize == 2)
-    {
-        c_n       = clens[0];
-        c_c       = clens[1];
-        c_nstride = cstrides[0];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("clens[0,1]: %lu, %lu\n", clens[0], clens[1]);
-        printf("cstride[0]: %lu\n", cstrides[0]);
-#endif
-    }
-    else if(csize == 1)
-    {
-        c_n = clens[0];
-#if(MIO_TENSOROCL_DEBUG == 1)
-        printf("clens[0]: %lu\n", clens[0]);
-#endif
-    }
+
+    auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
+    auto d             = std::distance(blens.begin(), first_not_one.base());
+
+    int num_wg      = 1;
+    num_wg          = *first_not_one == 0 ? 1 : *first_not_one;
+    int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
     // update bitmap for first_not_one
-    bitmap |= (1 << (b_lens.size() - d));
+    bitmap |= (1 << (bsize - d));
 
     // (d-2) is because distance starts from 1 and 0
     // also, we need to go past the "first_not_one" as that is already
     // accounted for in the bitmap
-    CreateBitmapAndGrid(bitmap, b_lens, c_lens, num_wg, work_per_wg, (d - 2));
+    CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, (d - 2));
 
 #if(MIO_TENSOROCL_DEBUG == 1)
     printf("bitmap: %u\n", bitmap);
@@ -354,18 +210,18 @@ void OpTensor(Handle& handle,
     auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
     auto incr_wg       = 0;
     // This block gives off indexing for 5d tensors, skipping
-    if(fwd_conv_bias == 1 && dims < 5 && num_wg < 640 && work_per_wg > 256 && c_n > 0)
+    if(fwd_conv_bias == 1 && dims < 5 && num_wg < 640 && work_per_wg > 256 && clens[0] > 0)
     { // 640 workgroups of size 256 needed to completely fill the GPU
 
-        work_per_wg /= c_n;
-        num_wg *= c_n;
+        work_per_wg /= clens[0]; // c_n;
+        num_wg *= clens[0];      // c_n;
         incr_wg = 1;
     }
     size_t local_threads = 256;
 
     // Does the bitmap contain leading ones, i.e. 1,1,1,0 or 1,1,0,0
     // or 1,1,1,1 or 1,0,0,0
-    bool leading_ones = IsBitmapLeadingOnes(bitmap, dims, (d - 2)); // DLOWELL
+    bool leading_ones = IsBitmapLeadingOnes(bitmap, dims, (d - 2));
     if(leading_ones && work_per_wg < 64)
     {
         local_threads = 64;
@@ -375,7 +231,7 @@ void OpTensor(Handle& handle,
                         std::to_string(incr_wg) + " -DLEADING_ONES=" +
                         std::to_string(leading_ones) + " -DMIOPEN_TYPE=" +
                         GetDataType(bTensorDesc.GetType()) + " -DFIRST_NOT_ONE=" +
-                        std::to_string(d - 1);
+                        std::to_string(d - 1) + " -DMIOPEN_TENSOR_DIMS=" + std::to_string(bsize);
 
     parms += " -DMIOPEN_TENSOR_OP=";
     switch(tensorOp)
@@ -405,21 +261,21 @@ void OpTensor(Handle& handle,
             "Op5dTensorGeneric", "", program_name, "Op5dTensorGeneric", vld, vgd, parms)(
             ATensor,
             BTensor,
-            b_c,
-            b_d,
-            b_h,
-            b_w,
-            b_nstride,
-            b_cstride,
-            b_dstride,
+            int(blens[1]),    // b_c,
+            int(blens[2]),    // b_d,
+            int(blens[3]),    // b_h,
+            int(blens[4]),    // b_w,
+            int(bstrides[0]), // b_nstride,
+            int(bstrides[1]), // b_cstride,
+            int(bstrides[2]), // b_dstride,
             CTensor,
-            c_c,
-            c_d,
-            c_h,
-            c_w,
-            c_nstride,
-            c_cstride,
-            c_dstride,
+            int(clens[1]),    // c_c,
+            int(clens[2]),    // c_d,
+            int(clens[3]),    // c_h,
+            int(clens[4]),    // c_w,
+            int(cstrides[0]), // c_nstride,
+            int(cstrides[1]), // c_cstride,
+            int(cstrides[2]), // c_dstride,
             bitmap,
             work_per_wg);
     }
@@ -429,13 +285,13 @@ void OpTensor(Handle& handle,
             "Op3dTensorGeneric", "", program_name, "Op3dTensorGeneric", vld, vgd, parms)(
             ATensor,
             BTensor,
-            b_c,
-            b_h,
-            b_nstride,
+            int(blens[1]),    // b_c,
+            int(blens[2]),    // b_h,
+            int(bstrides[0]), // b_nstride,
             CTensor,
-            c_c,
-            c_h,
-            c_nstride,
+            int(clens[1]),    // c_c,
+            int(clens[2]),    // c_h,
+            int(cstrides[0]), // c_nstride,
             bitmap,
             work_per_wg);
     }
@@ -443,41 +299,64 @@ void OpTensor(Handle& handle,
     {
         handle.GetKernel(
             "Op2dTensorGeneric", "", program_name, "Op2dTensorGeneric", vld, vgd, parms)(
-            ATensor, BTensor, b_c, b_nstride, CTensor, c_c, c_nstride, bitmap, work_per_wg);
+            ATensor,
+            BTensor,
+            int(blens[1]),
+            int(bstrides[0]),
+            CTensor,
+            int(clens[1]),
+            int(cstrides[0]),
+            bitmap,
+            work_per_wg);
     }
     else if(bsize == 1)
     {
         handle.GetKernel(
             "Op1dTensorGeneric", "", program_name, "Op1dTensorGeneric", vld, vgd, parms)(
-            ATensor, BTensor, b_n, CTensor, c_n, bitmap, work_per_wg);
+            ATensor, BTensor, int(blens[0]), CTensor, int(clens[0]), bitmap, work_per_wg);
     }
     else if(fwd_conv_bias)
     {
         handle.GetKernel("OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
-            ATensor, BTensor, b_c, CTensor, c_n, c_nstride, c_cstride, work_per_wg);
+            ATensor,
+            BTensor,
+            int(blens[1]),
+            CTensor,
+            int(clens[0]),
+            int(cstrides[0]),
+            int(cstrides[1]),
+            work_per_wg);
     }
     else if(leading_ones)
     {
         handle.GetKernel(
             "OpTensorLeadingOnes", "", program_name, "OpTensorLeadingOnes", vld, vgd, parms)(
-            ATensor, BTensor, CTensor, c_c, c_h, c_w, c_nstride, c_cstride, work_per_wg);
+            ATensor,
+            BTensor,
+            CTensor,
+            int(clens[1]),
+            int(clens[2]),
+            int(clens[3]),
+            int(cstrides[0]),
+            int(cstrides[1]),
+            work_per_wg);
     }
     else
     {
         handle.GetKernel("OpTensorGeneric", "", program_name, "OpTensorGeneric", vld, vgd, parms)(
             ATensor,
             BTensor,
-            b_c,
-            b_h,
-            b_w,
-            b_nstride,
-            b_cstride,
+            int(blens[1]),    // b_c,
+            int(blens[2]),    // b_h,
+            int(blens[3]),    // b_w,
+            int(bstrides[0]), // b_nstride,
+            int(bstrides[1]), // b_cstride,
             CTensor,
-            c_c,
-            c_h,
-            c_w,
-            c_nstride,
-            c_cstride,
+            int(clens[1]),    // c_c,
+            int(clens[2]),    // c_h,
+            int(clens[3]),    // c_w,
+            int(cstrides[0]), // c_nstride,
+            int(cstrides[1]), // c_cstride,
             bitmap,
             work_per_wg);
     }
