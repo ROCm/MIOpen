@@ -30,13 +30,6 @@
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
-{
-
-// uni does not handle these parmeters correctly
-		return !(!params.forward && params.kernel_size0 == 1 && params.kernel_size1 == 1 && ( params.n_outputs < 8 || params.n_inputs <8));
-}
-
 ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
                                            const PerformanceConfig& exhaustive_search_result) const
 {
