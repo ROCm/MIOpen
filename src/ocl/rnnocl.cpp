@@ -325,20 +325,25 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				miopenCreateTensorDescriptor(&rsvTensor);
 				SetTensor4d(rsvTensor, rsv_size);
 				
-				miopenActivationMode_t amode;
-				amode = (mode == miopenRNNRELU) ? miopenActivationRELU : miopenActivationTANH;
-				
-				ActivationDescriptor activDesc = {amode, 1, 0, 1};
-
 				float alpha = 1, beta = 0;
-				
+				ActivationDescriptor activDesc;
+
+				if (mode == miopenRNNRELU)
+				{
+					activDesc = { miopenActivationRELU, 1, 0, 1 };
+				}
+				else if (mode == miopenRNNTANH)
+				{
+					activDesc = { miopenActivationTANH, 1, 1, 1 };
+				}
+
 				activDesc.Forward(handle,
 					&alpha,
 					miopen::deref(rsvTensor),
 					reserveSpace,
 					&beta,
 					miopen::deref(rsvTensor),
-					workSpace);
+					workSpace);			
 				
 				bacc += in_n[ti];
 			}
