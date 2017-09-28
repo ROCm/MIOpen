@@ -44,8 +44,8 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
     searched_params.CopyTo(result);
 
-    if((params.n_outputs / 16) * 16 == params.n_outputs &&
-       (params.n_inputs / 16) * 16 == params.n_inputs)
+    if(params.n_outputs % 16 == 0 &&
+       params.n_inputs % 16 == 0)
     {
         int version = result.out_pix_tile1;
 
