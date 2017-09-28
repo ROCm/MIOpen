@@ -17,6 +17,7 @@ int sumvc(std::vector<int>& x)
 
 float activfunc(float x, int actvf)
 {
+	printf("actvf %d \n", actvf);
     if(actvf == 0)
     {
         float y = 0;
