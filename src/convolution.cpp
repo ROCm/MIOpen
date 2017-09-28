@@ -212,44 +212,55 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
 
 bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const
 {
-    int _kernel_size0, _kernel_size1;
-    std::tie(std::ignore, std::ignore, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
+    int c, _kernel_size0, _kernel_size1;
+    std::tie(std::ignore, c, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
 
     bool supported_filters =
         ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
+         (_kernel_size0 == 7 && _kernel_size1 == 7) ||
          (_kernel_size0 == 11 && _kernel_size1 == 11) ||
          (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
           pad_w == 0) ||
          (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
           pad_w == 0));
 
-    return !(
-        !supported_filters || (_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
-        (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
-        (_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 2 || v > 2)) ||
-        (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
+    bool workarounds =
+        ((_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
+         (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
+         (_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 2 || v > 2)) ||
+         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
+
+    bool knowns = (_kernel_size0 == 5 && _kernel_size1 == 5 && c == 1 && u == 2 && v == 2);
+
+    return knowns || !(!supported_filters || workarounds);
 }
 
 bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) const
 {
 
-    int k, _kernel_size0, _kernel_size1;
-    std::tie(k, std::ignore, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
+    int k, c, _kernel_size0, _kernel_size1;
+    std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
 
     bool supported_filters =
         ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
+         (_kernel_size0 == 7 && _kernel_size1 == 7) ||
          (_kernel_size0 == 11 && _kernel_size1 == 11) ||
          (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
           pad_w == 0) ||
          (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
           pad_w == 0));
 
-    return !(!supported_filters || (_kernel_size0 == 3 && _kernel_size1 == 3 &&
-                                    (pad_h > 1 || pad_w > 1 || u > 2 || v > 2)) ||
-             (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0 || k == 1)) ||
-             (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
+    bool workarounds =
+        ((_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 1 || v > 1)) ||
+         (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0 || k == 1)) ||
+         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
+
+    bool knowns = ((_kernel_size0 == 3 && _kernel_size1 == 3 && c == 3 && u == 2 && v == 2) ||
+                   (_kernel_size0 == 5 && _kernel_size1 == 5 && c == 1 && u == 2 && v == 2));
+
+    return knowns || !(!supported_filters || workarounds);
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
