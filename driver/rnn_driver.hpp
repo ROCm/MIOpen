@@ -801,6 +801,7 @@ out_dev->FromGPU(GetStream(), out.data());
 hy_dev->FromGPU(GetStream(), hy.data());
 cy_dev->FromGPU(GetStream(), cy.data());
 reservespace_dev->FromGPU(GetStream(), reservespace.data());
+workspace_dev->FromGPU(GetStream(), workspace.data());
 
 /*
 if(inflags.GetValueInt("dump_output"))
