@@ -44,11 +44,11 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
     searched_params.CopyTo(result);
 
-    if(params.n_outputs % 16 == 0 && params.n_inputs % 16 == 0)
+    if(params.n_outputs % 8 == 0 && params.n_inputs % 16 == 0)
     {
         int version = result.out_pix_tile1;
 
-        if(version == 1)
+        if(true)
         {
 
             uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -74,6 +74,10 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             {
                 N_LCL_OUT_MAPS = 16;
             }
+			if (N_LCL_OUT_MAPS > 8 && (K % N_LCL_OUT_MAPS) != 0)
+			{
+				N_LCL_OUT_MAPS = 8;
+			}
 
             result.n_out_pix_tiles = N_LCL_OUT_MAPS;
 

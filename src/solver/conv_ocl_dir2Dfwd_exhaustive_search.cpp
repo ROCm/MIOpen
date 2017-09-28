@@ -256,8 +256,8 @@ mloSelectDefaultConfig(std::string& conf_val,
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
     {
 
-        if((params.n_outputs / 16) * 16 == params.n_outputs &&
-           (params.n_inputs / 16) * 16 == params.n_inputs)
+        if(params.n_outputs % 8  == 0 &&
+           params.n_inputs % 16 == params.n_inputs)
         {
             // version
             if(params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
@@ -862,7 +862,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionCon
             report_inteval = 20;
         }
 
-        if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs % 16 == 0 &&
+        if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs % 8 == 0 &&
            params.n_inputs % 16 == 0)
         {
 
