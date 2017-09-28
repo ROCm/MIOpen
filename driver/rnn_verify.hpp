@@ -27,7 +27,7 @@ float activfunc(float x, int actvf)
     {
         return 1 / (1 + exp(-x));
     }
-
+	printf("actvf %f \n", tanh(x));
     return tanh(x);
 }
 
