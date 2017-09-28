@@ -114,7 +114,7 @@ function(clang_tidy_check TARGET)
     foreach(SOURCE ${SOURCES})
         string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)        
         add_custom_target(tidy-${TARGET}-${tidy_file}
-            COMMAND ${CLANG_TIDY_COMMAND} ${SOURCE}
+            COMMAND ${CLANG_TIDY_COMMAND} -quiet ${SOURCE}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             COMMENT "clang-tidy: Running clang-tidy on target ${SOURCE}..."
         )
