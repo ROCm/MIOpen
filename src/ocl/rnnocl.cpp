@@ -332,13 +332,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				amode = (mode == miopenRNNRELU) ? miopenActivationRELU : miopenActivationLOGISTIC;
 				miopenSetActivationDescriptor(activDesc, amode, 1, 0, 1);
 
+				float alpha = 1, beta = 0;
 				miopenHandle_t ahandle;
 				miopenActivationForward(ahandle,
 					activDesc,
-					1,
+					&alpha,
 					rsvTensor,
 					reserveSpace,
-					0,
+					&beta,
 					rsvTensor,
 					workSpace);
 
