@@ -334,6 +334,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 				float alpha = 1, beta = 0;
 				miopenHandle_t ahandle;
+				miopenCreate(&ahandle);
+				miopenGetStream(ahandle, &Q);
+
 				printf("mark1\n");
 				miopenActivationForward(ahandle,
 					activDesc,
