@@ -279,7 +279,7 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
                     Data_t bias_ocl_buf,
                     double& processing_time,
                     const ConvolutionContext& params,
-					const PerformanceConfigImpl& result) const;
+                    const PerformanceConfigImpl& result) const;
 
     static const std::vector<std::unique_ptr<const Solver>>& GetImplementationsToMeasure();
 };
