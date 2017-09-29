@@ -1511,6 +1511,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT SOFTMAX DOXYGEN GROUP
 
+#if 0
 // GEMM API
 /** @addtogroup gemm
  *
@@ -1556,6 +1557,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGemm(miopenHandle_t handle,
                                         const void* beta,
                                         void* C,
                                         int ldc);
+#endif
 /** @} */
 // CLOSEOUT GEMM DOXYGEN GROUP
 
