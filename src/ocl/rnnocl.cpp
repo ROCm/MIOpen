@@ -23,6 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#include <../driver/activ_driver.hpp>
+#include <miopen/activ.hpp>
 #include <miopen/rnn.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
@@ -273,9 +276,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						hy_h,
 						hy_h,
 						1,
-						hy,
-						hx_shift,
-						h_stride,
+						workSpace,
+						hid_shift + (bacc - in_n[ti - 1]) * hy_stride,
+						hy_stride,
 						w,
 						wei_shift,
 						wei_stride,
@@ -293,13 +296,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						MIOpenGEMM::gemm0<float>(false,
 							false,
 							false,
-							in_n[seqLen - 1 - ti],
+							in_n[seqLen - ti],
 							hy_h,
 							hy_h,
 							1,
-							hy,
-							hx_shift + hy_h,
-							h_stride,
+							workSpace,
+							hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride + hy_h,
+							hy_stride,
 							w,
 							wei_shift + hy_h,
 							wei_stride,
@@ -313,32 +316,35 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							nullptr);
 					}
 				}
-
 				
+				int rsv_sz = batch_n * hy_d * hy_h;
+				std::vector<int> rsv_size(3, 1);
+				rsv_size.push_back(rsv_sz);
 
-				/*
-				mlo_construct_neuron construct_params(1); // forward
+				miopenTensorDescriptor_t rsvTensor;
+				miopenCreateTensorDescriptor(&rsvTensor);
+				SetTensor4d(rsvTensor, rsv_size);
+				
+				float alpha = 1, beta = 0;
+				ActivationDescriptor activDesc;
 
 				if (mode == miopenRNNRELU)
 				{
-					construct_params.setNeuronDescr(static_cast<int>(miopenActivationRELU), 1.0, 0.0, 0.0);
+					activDesc = { miopenActivationRELU, 1, 0, 1 };
 				}
 				else if (mode == miopenRNNTANH)
 				{
-					construct_params.setNeuronDescr(static_cast<int>(miopenActivationTANH), 1.0, 0.0, 0.0);
+					activDesc = { miopenActivationTANH, 1, 1, 1 };
 				}
 
-				const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-				const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-
-				handle.GetKernel("miopenActivationForward",
-					"",
-					"",
-					"",
-					vld,
-					vgd,
-					"")(reserveSpace, workSpace, 1.0, 0.0, 0.0);
-				*/
+				activDesc.Forward(handle,
+					&alpha,
+					miopen::deref(rsvTensor),
+					reserveSpace,
+					&beta,
+					miopen::deref(rsvTensor),
+					workSpace);			
+				
 				bacc += in_n[ti];
 			}
 
