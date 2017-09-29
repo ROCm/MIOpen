@@ -116,7 +116,7 @@ struct GPUMem
 [[gnu::noreturn]] void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, bnorm\n");
+    printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, bnorm, gemm\n");
     exit(0);
 }
 
@@ -131,7 +131,7 @@ std::string ParseBaseArg(int argc, char* argv[])
     std::string arg = argv[1];
 
     if(arg != "conv" && arg != "pool" && arg != "lrn" && arg != "activ" && arg != "softmax" &&
-       arg != "bnorm") 
+       arg != "bnorm" && arg != "gemm")
     {
         printf("Invalid Base Input Argument\n");
         Usage();
