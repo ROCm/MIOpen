@@ -256,11 +256,11 @@ mloSelectDefaultConfig(std::string& conf_val,
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
     {
 
-        if((params.n_outputs / 16) * 16 == params.n_outputs &&
-           (params.n_inputs / 16) * 16 == params.n_inputs)
+        if(params.n_outputs % 4 == 0 && params.n_inputs % 4 == 0)
         {
             // version
-            if(params.forward && (params.n_inputs / 8) * 8 == params.n_inputs)
+            if(params.forward && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0 &&
+               params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
             {
                 result.n_in_data_tiles = 128;
 
@@ -862,8 +862,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionCon
             report_inteval = 20;
         }
 
-        if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs % 16 == 0 &&
-           params.n_inputs % 16 == 0)
+        if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs % 4 == 0 &&
+           params.n_inputs % 4 == 0)
         {
 
             std::cout
@@ -876,8 +876,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionCon
             report_inteval   = 4;
 
             // Add 1x1_stride : no padding support yet
-            if(params.forward && (params.n_inputs / 16) * 16 == params.n_inputs &&
-               params.pad0 == 0 && params.pad1 == 0)
+            if(params.forward && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
+               params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
             {
 
                 // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -925,12 +925,10 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionCon
 
                 n_out_tiles_rg[0] = 2;
                 n_out_tiles_rg[1] =
-                    ((params.n_outputs / 64) * 64 == params.n_outputs)
-                        ? 6
-                        : ((params.n_outputs / 32) * 32 == params.n_outputs) ? 5 : 4;
+                    (params.n_outputs % 64 == 0) ? 6 : (params.n_outputs % 32 == 0) ? 5 : 4;
 
                 n_in_tiles_rg[0] = 2;
-                n_in_tiles_rg[1] = ((params.n_inputs / 8) * 8 == params.n_inputs) ? 3 : 2;
+                n_in_tiles_rg[1] = (params.n_inputs % 8 == 0) ? 3 : 2;
 
                 grp_tl_ln[0] = 64;
                 grp_tl_ln[1] = 128;
