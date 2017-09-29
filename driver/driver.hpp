@@ -113,6 +113,15 @@ struct GPUMem
 #endif
 };
 
+void PadBufferSize(size_t& sz, int datatype_sz)
+{
+    size_t page_sz = (2 * 1024 * 1024) / datatype_sz;
+    if(sz % page_sz != 0)
+    {
+        sz = ((sz + page_sz) / page_sz) * page_sz;
+    }
+}
+
 [[gnu::noreturn]] void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");

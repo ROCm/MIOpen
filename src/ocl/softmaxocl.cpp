@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/kernel_cache.hpp>
 #include <miopen/softmax.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
@@ -48,14 +49,16 @@ int nextPow2(int v)
     }
 }
 
-miopenStatus_t SoftmaxForward(Handle& handle,
-                              const void* /*alpha*/,
-                              const void* /*beta*/,
-                              const TensorDescriptor& yDesc,
-                              Data_t y)
+miopenStatus_t SoftmaxForward(
+    Handle& handle, const void* alpha, const void* beta, const TensorDescriptor& yDesc, Data_t y)
 {
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
     int n, c, h, w;
-    std::tie(n, c, h, w) = tie4(yDesc.GetLengths());
+    std::tie(n, c, h, w) = tien<4>(yDesc.GetLengths());
 
     std::string program_name = "MIOpenSoftmax.cl";
     std::string kernel_name  = "SoftmaxForward";
@@ -105,10 +108,10 @@ miopenStatus_t SoftmaxForward(Handle& handle,
 }
 
 miopenStatus_t SoftmaxBackward(Handle& handle,
-                               const void* /*alpha*/,
+                               const void* alpha,
                                const TensorDescriptor& yDesc,
                                ConstData_t y,
-                               const void* /*beta*/,
+                               const void* beta,
                                const TensorDescriptor& dxDesc,
                                Data_t dx)
 {
@@ -116,8 +119,14 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
+
     int n, c, h, w;
-    std::tie(n, c, h, w) = tie4(dxDesc.GetLengths());
+    std::tie(n, c, h, w) = tien<4>(dxDesc.GetLengths());
 
     std::string program_name = "MIOpenSoftmax.cl";
     std::string kernel_name  = "SoftmaxBackward";
