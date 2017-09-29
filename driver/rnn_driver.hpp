@@ -491,7 +491,7 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 
     size_t workSpaceSize = hid_sz * sizeof(T);
     size_t reserveSpaceSize = hid_sz * sizeof(T);
-
+	/*
 	// Workaround: Pad buffers allocations to be a multiple of 2M
 	if (miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
 	{
@@ -499,7 +499,7 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 		PadBufferSize(wei_sz, 4);
 		PadBufferSize(out_sz, 4);
 	}
-
+	*/
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -801,6 +801,7 @@ out_dev->FromGPU(GetStream(), out.data());
 hy_dev->FromGPU(GetStream(), hy.data());
 cy_dev->FromGPU(GetStream(), cy.data());
 reservespace_dev->FromGPU(GetStream(), reservespace.data());
+workspace_dev->FromGPU(GetStream(), workspace.data());
 
 /*
 if(inflags.GetValueInt("dump_output"))
@@ -916,6 +917,7 @@ miopenGet4dTensorDescriptor(inputTensor,
                                    hy_h,
                                    out_h,
                                    mode,
+			workspace_host,
                                    reservespace_host);
     }
     else if(mode == miopenLSTM)
@@ -1740,6 +1742,24 @@ int RNNDriver<T>::VerifyForward()
     {
         RunForwardCPU();
     }
+	
+	for (int i; i < reservespace_dev->GetSize() / sizeof(T); i++)
+	if(i%1000 ==0)
+		printf(" %.20f   %.20f  \n", reservespace_host[i], reservespace[i]);
+
+	printf("\n\n");
+
+	for (int i; i < workspace_dev->GetSize() / sizeof(T); i++)
+	if(i%1000 ==0)
+		printf(" %.20f   %.20f  \n", workspace_host[i], workspace[i]);
+		
+	printf("\n\n");
+
+	for (int i; i < out_dev->GetSize() / sizeof(T); i++)
+//		if (i % 1000 == 0)
+			printf(" %.20f   %.20f  \n", outhost[i], out[i]);
+
+	printf("\n\n");
 
     auto error = miopen::rms_range(outhost, out);
 
