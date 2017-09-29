@@ -232,12 +232,7 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
             true, tA, tB, false, lda, ldb, ldc, M, N, K, 0, 'f'); // jn : added 0 for no workspace,
                                                                   // 'f' for single prec.
 
-        return GemmGeometry{std::array<int, 3>{{M, N, K}},
-                            std::array<int, 3>{{lda, ldb, ldc}},
-                            "miopenGEMM",
-                            alpha,
-                            beta,
-                            tgg};
+        return GemmGeometry{"miopenGEMM", alpha, beta, tgg};
     }
     else
     {
@@ -245,12 +240,7 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
             true, tB, tA, false, ldb, lda, ldc, N, M, K, 0, 'f'); // jn : added 0 for no workspace,
                                                                   // 'f' for single prec.
 
-        return GemmGeometry{std::array<int, 3>{{N, M, K}},
-                            std::array<int, 3>{{ldb, lda, ldc}},
-                            "miopenGEMM",
-                            alpha,
-                            beta,
-                            tgg};
+        return GemmGeometry{"miopenGEMM", alpha, beta, tgg};
     }
 }
 

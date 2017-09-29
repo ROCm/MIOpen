@@ -26,21 +26,22 @@
 #include <miopen/errors.hpp>
 #include <miopen/gemm.hpp>
 
-extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
-                                     bool isDataColMajor,
-                                     bool transA,
-                                     bool transB,
-                                     int M,
-                                     int N,
-                                     int K,
-                                     const void* alpha,
-                                     const void* A,
-                                     int lda,
-                                     const void* B,
-                                     int ldb,
-                                     const void* beta,
-                                     void* C,
-                                     int ldc)
+miopenStatus_t miopenGemm(miopenHandle_t handle,
+                          bool isDataColMajor,
+                          bool transA,
+                          bool transB,
+                          int M,
+                          int N,
+                          int K,
+                          const void* alpha,
+                          const void* A,
+                          int lda,
+                          const void* B,
+                          int ldb,
+                          const void* beta,
+                          void* C,
+                          int ldc,
+                          int find)
 {
 
     // JN make column major
@@ -67,8 +68,14 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
                                              *(static_cast<const float*>(alpha)),
                                              *(static_cast<const float*>(beta)));
 
-        gg.FindSolution(.003, miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), false);
+        if(find)
+        {
+            gg.FindSolution(
+                .003, miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), false);
 
-        gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
+            gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
+        }
+        else
+            gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
     });
 }
