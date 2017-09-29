@@ -33,6 +33,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
+#include <miopen/allocator.hpp>
 #include <vector>
 
 namespace miopen {
@@ -50,10 +51,14 @@ struct Handle : miopenHandle
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
 
+    void SetAllocator(miopenAllocatorFunction allocator,
+                      miopenDeallocatorFunction deallocator,
+                      void* allocatorContext) const;
+
     void EnableProfiling(bool enable = true);
 
     void ResetKernelTime();
-    void AccumKernelTime(float x);
+    void AccumKernelTime(float curr_time);
 
     float GetKernelTime() const;
     bool IsProfilingEnabled() const;
@@ -80,18 +85,19 @@ struct Handle : miopenHandle
 
     void Copy(ConstData_t src, Data_t dest, std::size_t size);
 
-    ManageDataPtr Create(std::size_t sz);
-    ManageDataPtr& WriteTo(const void* data, ManageDataPtr& ddata, std::size_t sz);
-    void ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz);
+    Allocator::ManageDataPtr Create(std::size_t sz);
+    Allocator::ManageDataPtr&
+    WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz);
+    void ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz);
 
     template <class T>
-    ManageDataPtr Create(std::size_t sz)
+    Allocator::ManageDataPtr Create(std::size_t sz)
     {
         return this->Create(sz * sizeof(T));
     }
 
     template <class Container>
-    ManageDataPtr Write(const Container& c)
+    Allocator::ManageDataPtr Write(const Container& c)
     {
         using type = typename Container::value_type;
         auto buf   = this->Create<type>(c.size());
@@ -100,7 +106,7 @@ struct Handle : miopenHandle
     }
 
     template <class T>
-    std::vector<T> Read(const ManageDataPtr& ddata, std::size_t sz)
+    std::vector<T> Read(const Allocator::ManageDataPtr& ddata, std::size_t sz)
     {
         std::vector<T> result(sz);
         this->ReadTo(result.data(), ddata, sz * sizeof(T));

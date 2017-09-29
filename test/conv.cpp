@@ -45,8 +45,6 @@ tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& input,
                             const tensor<T>& weights)
 {
-    assert(filter.GetBackwardOutputTensor(filter.GetForwardOutputTensor(input.desc, weights.desc),
-                                          weights.desc) == input.desc);
     return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
 }
 
@@ -93,14 +91,14 @@ struct verify_forward_conv : conv_base<T>
         out = get_output_tensor(filter, input, weights);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
         out.par_for_each([&](int o, int w, int i, int j) {
-            const int start_x = i * filter.v - filter.pad_h;
-            const int start_y = j * filter.u - filter.pad_w;
+            const int start_x = i * filter.u - filter.pad_h;
+            const int start_y = j * filter.v - filter.pad_w;
 
             double acc = bias;
             ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
@@ -134,7 +132,7 @@ struct verify_forward_conv : conv_base<T>
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
 
         filter.FindConvFwdAlgorithm(handle,
                                     input.desc,
@@ -201,18 +199,18 @@ struct verify_backward_conv : conv_base<T>
         std::fill(input.begin(), input.end(), 0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
         int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(out.desc.GetLengths());
+        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
 
         par_ford(out_n, wei_c)([&](int o, int k) {
             ford(out_c, out_h, out_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
-                const int start_x = i * filter.v - filter.pad_h;
-                const int start_y = j * filter.u - filter.pad_w;
+                const int start_x = i * filter.u - filter.pad_h;
+                const int start_y = j * filter.v - filter.pad_w;
                 const int in_x    = start_x + x;
                 const int in_y    = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
@@ -242,7 +240,7 @@ struct verify_backward_conv : conv_base<T>
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
 
         filter.FindConvBwdDataAlgorithm(
             handle,
@@ -310,19 +308,19 @@ struct verify_backward_weights_conv : conv_base<T>
         std::fill(weights.begin(), weights.end(), 0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
         int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(out.desc.GetLengths());
+        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
 
         par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y) {
             double acc = 0.0;
             ford(out_n, out_h, out_w)([&](int o, int i, int j) {
-                const int start_x = i * filter.v - filter.pad_h;
-                const int start_y = j * filter.u - filter.pad_w;
+                const int start_x = i * filter.u - filter.pad_h;
+                const int start_y = j * filter.v - filter.pad_w;
                 const int in_x    = start_x + x;
                 const int in_y    = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
@@ -353,7 +351,7 @@ struct verify_backward_weights_conv : conv_base<T>
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
         filter.FindConvBwdWeightsAlgorithm(
             handle,
             out.desc,
@@ -414,7 +412,8 @@ struct conv_driver : test_driver
     std::vector<miopen::ConvolutionDescriptor> get_filters()
     {
         return {miopen::ConvolutionDescriptor{0, 0, 1, 1},
-                // miopen::ConvolutionDescriptor{ 0, 0, 2, 2 },
+                miopen::ConvolutionDescriptor{0, 0, 2, 2},
+                // miopen::ConvolutionDescriptor{ 0, 0, 3, 3 },
                 miopen::ConvolutionDescriptor{1, 1, 1, 1},
                 miopen::ConvolutionDescriptor{1, 1, 2, 2},
                 miopen::ConvolutionDescriptor{2, 2, 1, 1},
@@ -423,14 +422,20 @@ struct conv_driver : test_driver
 
     void run()
     {
-        int wei_h, wei_w;
-        std::tie(std::ignore, std::ignore, wei_h, wei_w) = miopen::tie4(weights.desc.GetLengths());
+
+        int input_h, input_w, wei_h, wei_w;
+        std::tie(std::ignore, std::ignore, wei_h, wei_w) =
+            miopen::tien<4>(weights.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, input_h, input_w) =
+            miopen::tien<4>(input.desc.GetLengths());
+
         if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
-           wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w)
+           wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
+           input_h >= (2 * filter.pad_h + wei_h) && input_w >= (2 * filter.pad_w + wei_w))
         {
             auto out_p = verify(verify_forward_conv<T>{input, weights, filter});
             for(auto& x : out_p.first)
-                x = (long(x + 1) * 2) % 17; // Clamp big numbers
+                x = (long(x + 19) * 2) % 17; // Clamp big numbers
             if(do_backward_data)
                 verify(verify_backward_conv<T>{input, weights, out_p.first, filter});
             if(enable_backward_weights or MIOPEN_USE_MIOPENGEMM)

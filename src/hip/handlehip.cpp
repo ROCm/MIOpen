@@ -28,6 +28,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel_cache.hpp>
+#include <miopen/binary_cache.hpp>
+#include <boost/filesystem.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -39,14 +41,44 @@
 
 namespace miopen {
 
-hipDevice_t get_device(int id)
+// Get current context
+// We leak resources for now as there is no hipCtxRetain API
+hipCtx_t get_ctx()
 {
-    hipDevice_t device;
-    auto status = hipDeviceGet(&device, id);
+    hipInit(0);
+    hipCtx_t ctx;
+    auto status = hipCtxGetCurrent(&ctx);
     if(status != hipSuccess)
         MIOPEN_THROW("No device");
-    return device;
+    return ctx;
 }
+
+std::size_t GetAvailableMemory()
+{
+    size_t free, total;
+    auto status = hipMemGetInfo(&free, &total);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
+    return free;
+}
+
+void* default_allocator(void*, size_t sz)
+{
+    if(sz > GetAvailableMemory())
+        MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
+    void* result;
+    auto status = hipMalloc(&result, sz);
+    if(status != hipSuccess)
+    {
+        status = hipHostMalloc(&result, sz);
+        if(status != hipSuccess)
+            MIOPEN_THROW_HIP_STATUS(status,
+                                    "Hip error creating buffer " + std::to_string(sz) + ": ");
+    }
+    return result;
+}
+
+void default_deallocator(void*, void* mem) { hipFree(mem); }
 
 int get_device_id() // Get random device
 {
@@ -62,6 +94,13 @@ void set_device(int id)
     auto status = hipSetDevice(id);
     if(status != hipSuccess)
         MIOPEN_THROW("Error setting device");
+}
+
+void set_ctx(hipCtx_t ctx)
+{
+    auto status = hipCtxSetCurrent(ctx);
+    if(status != hipSuccess)
+        MIOPEN_THROW("Error setting context");
 }
 
 int set_default_device()
@@ -82,7 +121,7 @@ struct HandleImpl
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
 
-    HandleImpl() : device(get_device_id()) {}
+    HandleImpl() : ctx(get_ctx()) {}
 
     StreamPtr create_stream()
     {
@@ -106,31 +145,46 @@ struct HandleImpl
             &HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
     }
 
-    void set_device() const { miopen::set_device(device); }
+    void set_ctx()
+    {
+        miopen::set_ctx(this->ctx);
+        // TODO: Check device matches
+    }
 
     bool enable_profiling  = false;
     StreamPtr stream       = nullptr;
     float profiling_result = 0.0;
+    int device             = -1;
+    Allocator allocator{};
     KernelCache cache;
-    int device;
+    hipCtx_t ctx;
 };
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 {
+    this->impl->device = get_device_id();
+    this->impl->ctx    = get_ctx();
+
     if(stream == nullptr)
         this->impl->stream = HandleImpl::reference_stream(nullptr);
     else
         this->impl->stream = HandleImpl::reference_stream(stream);
+
+    this->SetAllocator(nullptr, nullptr, nullptr);
 }
 
 Handle::Handle() : impl(new HandleImpl())
 {
 #if MIOPEN_BUILD_DEV
     this->impl->device = set_default_device();
+    this->impl->ctx    = get_ctx();
     this->impl->stream = impl->create_stream();
 #else
+    this->impl->device = get_device_id();
+    this->impl->ctx    = get_ctx();
     this->impl->stream = HandleImpl::reference_stream(nullptr);
 #endif
+    this->SetAllocator(nullptr, nullptr, nullptr);
 }
 
 Handle::~Handle() {}
@@ -142,36 +196,27 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->stream.get(); }
 
+void Handle::SetAllocator(miopenAllocatorFunction allocator,
+                          miopenDeallocatorFunction deallocator,
+                          void* allocatorContext) const
+{
+    this->impl->allocator.allocator   = allocator == nullptr ? default_allocator : allocator;
+    this->impl->allocator.deallocator = deallocator == nullptr ? default_deallocator : deallocator;
+
+    this->impl->allocator.context = allocatorContext;
+}
+
 void Handle::EnableProfiling(bool enable) { this->impl->enable_profiling = enable; }
 
 float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
-std::size_t GetAvailableMemory()
-{
-    size_t free, total;
-    auto status = hipMemGetInfo(&free, &total);
-    if(status != hipSuccess)
-        MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
-    return free;
-}
-
-ManageDataPtr Handle::Create(std::size_t sz)
+Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 {
     this->Finish();
-    if(sz > GetAvailableMemory())
-        MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
-    void* result;
-    auto status = hipMalloc(&result, sz);
-    if(status != hipSuccess)
-    {
-        status = hipHostMalloc(&result, sz);
-        if(status != hipSuccess)
-            MIOPEN_THROW_HIP_STATUS(status,
-                                    "Hip error creating buffer " + std::to_string(sz) + ": ");
-    }
-    return ManageDataPtr{result};
+    return this->impl->allocator(sz);
 }
-ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, std::size_t sz)
+Allocator::ManageDataPtr&
+Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
     this->Finish();
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);
@@ -179,7 +224,7 @@ ManageDataPtr& Handle::WriteTo(const void* data, ManageDataPtr& ddata, std::size
         MIOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
-void Handle::ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz)
+void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
     this->Finish();
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
@@ -189,7 +234,7 @@ void Handle::ReadTo(void* data, const ManageDataPtr& ddata, std::size_t sz)
 
 void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
 {
-    this->impl->set_device();
+    this->impl->set_ctx();
     auto status = hipMemcpy(dest, src, size, hipMemcpyDeviceToDevice);
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
@@ -203,7 +248,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
                                const std::vector<size_t>& vgd,
                                const std::string& params)
 {
-    this->impl->set_device();
+    this->impl->set_ctx();
     auto k = this->impl->cache.GetKernel(
         *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params);
     if(this->impl->enable_profiling)
@@ -214,7 +259,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
 
 KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& network_config)
 {
-    this->impl->set_device();
+    this->impl->set_ctx();
     auto k = this->impl->cache.GetKernel(algorithm, network_config);
     if(this->impl->enable_profiling)
         return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
@@ -224,14 +269,30 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& 
 
 Program Handle::LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str)
 {
-    this->impl->set_device();
+    this->impl->set_ctx();
     params += " -mcpu=" + this->GetDeviceName();
-    return HIPOCProgram{program_name, params, is_kernel_str};
+    auto cache_file =
+        miopen::LoadBinary(this->GetDeviceName(), program_name, params, is_kernel_str);
+    if(cache_file.empty())
+    {
+        auto p = HIPOCProgram{program_name, params, is_kernel_str};
+
+        // Save to cache
+        auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
+        boost::filesystem::copy_file(p.GetBinary(), path);
+        miopen::SaveBinary(path, this->GetDeviceName(), program_name, params, is_kernel_str);
+
+        return p;
+    }
+    else
+    {
+        return HIPOCProgram{program_name, cache_file};
+    }
 }
 
 void Handle::Finish() const
 {
-    this->impl->set_device();
+    this->impl->set_ctx();
 #if MIOPEN_BUILD_DEV
     auto start = std::chrono::system_clock::now();
     auto ev    = make_hip_event();

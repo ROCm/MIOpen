@@ -89,8 +89,8 @@ void RunBackwardWeightsCPUVerify(std::vector<T>& dwei_host,
                         {
                             for(int j = 0; j < out_w; j++) // output width
                             {
-                                int in_i = x * dilation_h + i * u - pad_h;
-                                int in_j = y * dilation_w + j * v - pad_w;
+                                int in_i = x * dilation_h + i * u - pad_h; // vertical
+                                int in_j = y * dilation_w + j * v - pad_w; // horizontal
 
                                 if((in_i >= 0) && (in_i < in_h) && (in_j >= 0) && (in_j < in_w))
                                 {

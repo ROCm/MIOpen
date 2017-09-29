@@ -88,12 +88,12 @@ struct verify_forward_pooling
         auto out = get_output_tensor(filter, input);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         int u, v, pad_h, pad_w, window_h, window_w;
-        std::tie(u, v)               = miopen::tie2(filter.GetStrides());
-        std::tie(pad_h, pad_w)       = miopen::tie2(filter.GetPads());
-        std::tie(window_h, window_w) = miopen::tie2(filter.GetLengths());
+        std::tie(u, v)               = miopen::tien<2>(filter.GetStrides());
+        std::tie(pad_h, pad_w)       = miopen::tien<2>(filter.GetPads());
+        std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
 
         auto op = pooling_operators<T>{filter};
 
@@ -133,7 +133,7 @@ struct verify_forward_pooling
         auto out_dev       = handle.Create<T>(out.data.size());
         auto workspace_dev = handle.Write(indices);
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
         filter.Forward(handle,
                        &alpha,
                        input.desc,
@@ -188,15 +188,15 @@ struct verify_backward_pooling
         std::fill(dinput.begin(), dinput.end(), 0.0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(dinput.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(dinput.desc.GetLengths());
 
         int u, v, pad_h, pad_w, window_h, window_w;
-        std::tie(u, v)               = miopen::tie2(filter.GetStrides());
-        std::tie(pad_h, pad_w)       = miopen::tie2(filter.GetPads());
-        std::tie(window_h, window_w) = miopen::tie2(filter.GetLengths());
+        std::tie(u, v)               = miopen::tien<2>(filter.GetStrides());
+        std::tie(pad_h, pad_w)       = miopen::tien<2>(filter.GetPads());
+        std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
 
         int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = miopen::tie4(out.desc.GetLengths());
+        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
 
         par_ford(out_n, out_c)([&](int o, int w) {
             if(filter.GetMode() == miopenPoolingMax)
@@ -256,7 +256,7 @@ struct verify_backward_pooling
         // auto workspace_dev = handle.Write(workspace);
         auto workspace_dev = handle.Write(indices);
 
-        int alpha = 1, beta = 1;
+        float alpha = 1, beta = 0;
         filter.Backward(handle,
                         &alpha,
                         // y
@@ -330,7 +330,7 @@ struct pooling_driver : test_driver
     void run()
     {
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         miopen::PoolingDescriptor filter{
             mode_lookup.at(miopen::ToUpper(mode)), lens, strides, pads};

@@ -30,6 +30,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+
 #include <miopen/batch_norm.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -70,7 +71,7 @@ struct verify_forward_train_bn_per_activation
         double expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
         auto out = tensor<T>{n_batch, channels, height, width};
         std::fill(out.begin(), out.end(), 0);
@@ -138,7 +139,7 @@ struct verify_forward_train_bn_per_activation
                     // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
                     adjust = (n_batch == 1) ? variance_accum : (n / (n - 1.0)) * variance_accum;
                     runVar(0, cidx, row, column) =
-                        expAvgFactor * runVar(0, cidx, row, column) + (1 - expAvgFactor) * adjust;
+                        (1 - expAvgFactor) * runVar(0, cidx, row, column) + expAvgFactor * adjust;
 
                     saveMean(0, cidx, row, column)   = mean_accum;
                     saveInvVar(0, cidx, row, column) = elemInvVar;
@@ -168,7 +169,7 @@ struct verify_forward_train_bn_per_activation
         auto&& handle = get_handle();
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
         auto out = input;
         std::fill(out.begin(), out.end(), 0);
@@ -192,7 +193,7 @@ struct verify_forward_train_bn_per_activation
         double epsilon      = MIO_BN_TEST_EPSILON;
         double expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         miopen::BatchNormForwardTraining(handle,
                                          miopenBNPerActivation,
@@ -267,7 +268,7 @@ struct verify_forward_infer_bn_per_activation_recalc
         double epsilon = MIO_BN_TEST_EPSILON;
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
         auto out = tensor<T>{n_batch, channels, height, width};
         std::fill(out.begin(), out.end(), 0);
@@ -353,7 +354,7 @@ struct verify_forward_infer_bn_per_activation_recalc
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         miopen::BatchNormForwardInference(handle,
                                           miopenBNPerActivation,
@@ -408,7 +409,7 @@ struct verify_forward_infer_bn_per_activation_use_est
         double epsilon = MIO_BN_TEST_EPSILON;
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
         auto out = tensor<T>{n_batch, channels, height, width};
         std::fill(out.begin(), out.end(), 0);
@@ -469,7 +470,7 @@ struct verify_forward_infer_bn_per_activation_use_est
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         miopen::BatchNormForwardInference(handle,
                                           miopenBNPerActivation,
@@ -525,7 +526,7 @@ struct verify_backward_bn_per_activation_use_saved
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(x_input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
@@ -610,7 +611,7 @@ struct verify_backward_bn_per_activation_use_saved
         double epsilon = MIO_BN_TEST_EPSILON;
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(x_input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
@@ -621,7 +622,7 @@ struct verify_backward_bn_per_activation_use_saved
         auto dshift = tensor<T>{1, channels, height, width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         auto xin_dev         = handle.Write(x_input.data);
         auto dyin_dev        = handle.Write(dy_input.data);
@@ -698,7 +699,7 @@ struct verify_backward_bn_per_activation_recalc
         double epsilon = MIO_BN_TEST_EPSILON;
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(x_input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
@@ -801,7 +802,7 @@ struct verify_backward_bn_per_activation_recalc
         auto&& handle = get_handle();
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(x_input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, height, width};
         // std::fill(dx_out.begin(), dx_out.end(), 0);
@@ -812,7 +813,7 @@ struct verify_backward_bn_per_activation_recalc
         auto dshift = tensor<T>{1, channels, height, width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        int alpha = 1, beta = 1;
+        T alpha = 1, beta = 0;
 
         auto xin_dev    = handle.Write(x_input.data);
         auto dyin_dev   = handle.Write(dy_input.data);
@@ -891,7 +892,7 @@ struct batch_norm_per_activation_driver : test_driver
     void run()
     {
         std::size_t n, c, h, w;
-        std::tie(n, c, h, w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
 
         if(n == 1)
         { // Invalid batch size for batch norm tests.

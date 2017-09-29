@@ -94,16 +94,21 @@ default reverse_weights, 0
 .endif
 
 static_assert (pad_h == 1 && pad_w == 1)
-static_assert (stride_h == 1 && stride_w == 1)
+static_assert (stride_h == 1 || stride_h == 2)
+static_assert (stride_w == 1 || stride_w == 2)
+.if reverse_inout
+   static_assert (stride_h == 1 && stride_w == 1)
+.endif
 static_assert (wei_h == 3 && wei_w == 3)
-static_assert (img_w <= 256)
+static_assert (img_w <= 512)
 static_assert (pipe_lines_depth <= img_h)
 static_assert (pad_h < wei_h)
 static_assert (input_channels % c_per_wave == 0)
 static_assert (output_channels % k_per_wave == 0)
 static_assert (1 <= n_per_group && n_per_group <= 8)
 static_assert (n_per_group <= batch_size)
-
+static_assert (c_per_wave * chunk_size == 64)
+static_assert (k_per_wave * chunk_size <= 64)
 
 .macro log2 lg2, num, max_bits=8
    \lg2 = 0
@@ -133,11 +138,13 @@ log2 k_per_wave_log2, k_per_wave
 
 
 // input/output
+out_w = (img_w + 2 * pad_w - wei_w) / stride_w + 1;
+out_h = (img_h + 2 * pad_h - wei_h) / stride_h + 1;
 input_line_size = 4 * img_w
 input_feature_map_size = input_line_size * img_h
 input_stack_size = input_feature_map_size * input_channels
-output_line_size = 4 * img_w
-output_feature_map_size = output_line_size * img_h
+output_line_size = 4 * out_w
+output_feature_map_size = output_line_size * out_h
 output_stack_size = output_feature_map_size * output_channels
 
 maxU24 = 1 << 24
@@ -148,21 +155,39 @@ static_assert (output_feature_map_size < maxU24)
 
 // chunk parameters
 log2 chunk_size_log2, chunk_size
-chunks = (img_w + chunk_size - 1) / chunk_size
+chunks_in = (img_w + chunk_size - 1) / chunk_size
 .if (chunk_size != 16)
-	// force chunks to have enough zeros for padding
-	chunks = (img_w + chunk_size - pad_w - 1) / (chunk_size - pad_w)
+   // force chunks to have enough zeros for padding
+   chunks_in = (img_w + chunk_size - pad_w - 1) / (chunk_size - pad_w)
 .endif
-active_lanes = (img_w + chunks - 1) / chunks // active lanes in chunk
-.if img_w % chunks == 0
-   full_chunks = chunks
-   partial_chunks = 0
+.if (chunks_in % stride_w) && (chunks_in > 1)
+   // force chunks to be aligned with stride
+   chunks_in = chunks_in + chunks_in % stride_w
+.endif
+.if chunks_in > 1
+   chunks_out = chunks_in / stride_w
+   static_assert ((chunks_out * stride_w) == chunks_in)
 .else
-   full_chunks =  img_w % chunks
-   partial_chunks = chunks - full_chunks
+   chunks_out = 1
 .endif
-mbufs_per_line = (full_chunks + 3) / 4 + (partial_chunks + 3) / 4 // memory buffer instructions per line
-gprs_per_line = full_chunks + partial_chunks
+active_in_lanes = (img_w + chunks_in - 1) / chunks_in // active lanes in chunk
+active_out_lanes = (out_w + chunks_out - 1) / chunks_out
+static_assert (active_in_lanes == active_out_lanes || chunks_in == 1)
+active_lanes = active_in_lanes
+full_chunks_in = img_w % chunks_in
+full_chunks_out = out_w % chunks_out
+.if full_chunks_in == 0
+   full_chunks_in = chunks_in
+.endif
+.if full_chunks_out == 0
+   full_chunks_out = chunks_out
+.endif
+partial_chunks_in = chunks_in - full_chunks_in
+partial_chunks_out = chunks_out - full_chunks_out
+mbufs_per_line_in = (full_chunks_in + 3) / 4 + (partial_chunks_in + 3) / 4 // memory buffer instructions per line
+mbufs_per_line_out = (full_chunks_out + 3) / 4 + (partial_chunks_out + 3) / 4 // memory buffer instructions per line
+gprs_per_line_in = full_chunks_in + partial_chunks_in
+gprs_per_line_out = full_chunks_out + partial_chunks_out
 
 
 static_assert ((chunk_size == 16) || (chunk_size == 64) || (active_lanes < chunk_size)) // 64 for future expansion
@@ -179,17 +204,22 @@ shift = chunk_size
 input_buffer_size = input_stack_size * batch_size
 output_buffer_size = output_stack_size * batch_size
 
-.set max_hw_wctn, 15
-.macro s_wait vmcnt=max_hw_wctn, lgkmcnt=max_hw_wctn
+.if (.option.machine_version_major == 8)
+   .set max_hw_vctn, 15
+.elseif (.option.machine_version_major == 9)
+   .set max_hw_vctn, 63
+.endif
+max_hw_lcnt = 15
+.macro s_wait vmcnt=max_hw_vctn, lgkmcnt=max_hw_lcnt
    vm_cnt = \vmcnt
    lgkm_cnt = \lgkmcnt
-   .if vm_cnt > max_hw_wctn
-      vm_cnt = max_hw_wctn
+   .if vm_cnt > max_hw_vctn
+      vm_cnt = max_hw_vctn
    .elseif vm_cnt < 0
       vm_cnt = 0
    .endif
-   .if lgkm_cnt > max_hw_wctn
-      lgkm_cnt = max_hw_wctn
+   .if lgkm_cnt > max_hw_lcnt
+      lgkm_cnt = max_hw_lcnt
    .elseif lgkm_cnt < 0
       lgkm_cnt = 0
    .endif
@@ -225,10 +255,10 @@ output_buffer_size = output_stack_size * batch_size
 .VGPR_ALLOC voffset_part_out
 accums_cnt = wei_w * wei_h * c_per_wave * k_per_wave * chunk_size / 64
 lines_cnt_in = pipe_lines_depth + wei_h - 1
-lines_cnt_out = pipe_lines_depth
+lines_cnt_out = (pipe_lines_depth + stride_h - 1) / stride_h
 .VGPR_ALLOC accums, accums_cnt
-.VGPR_ALLOC lines_in, gprs_per_line * lines_cnt_in
-.VGPR_ALLOC lines_out, gprs_per_line * lines_cnt_out
+.VGPR_ALLOC lines_in, gprs_per_line_in * lines_cnt_in
+.VGPR_ALLOC lines_out, gprs_per_line_out * lines_cnt_out
 .VGPR_ALLOC permute_addr
 
 .LDS_ALLOC_FROM 0
@@ -268,13 +298,14 @@ gcnAsmConv3x3WrW:
    // fill format and size fields of buffer descriptors
    static_assert ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
    s_mov_b32 s[desc_in+2], input_buffer_size
-   s_mov_b32 s[desc_in+3], 0x00804fac
+   s_mov_b32 s[desc_in+3], 0x00027000
    s_mov_b32 s[desc_wei+2], filters_size
-   s_mov_b32 s[desc_wei+3], 0x00804fac
+   s_mov_b32 s[desc_wei+3], 0x00027000
    s_mov_b32 s[desc_out+2], output_buffer_size
-   s_mov_b32 s[desc_out+3], 0x00804fac
+   s_mov_b32 s[desc_out+3], 0x00027000
 
    vtmp = accums
+   vtmp2 = voffset_part_in
    v_lshrrev_b32 v[vtmp], 6, v[tid]
    v_readfirstlane_b32 s[wave_id], v[vtmp]
    v_and_b32 v[tid], 0x3f, v[tid]
@@ -291,18 +322,32 @@ gcnAsmConv3x3WrW:
    v_and_b32 v[voffset_out], 0 + (1 << k_per_wave_log2) - 1, v[vtmp]
    v_mul_u32_u24 v[voffset_out], 0 + output_feature_map_size, v[voffset_out]
 
-   v_and_b32 v[vtmp], 0 + (1 << chunk_size_log2) - 1, v[tid] // vtmp = lane in wave part
-   v_mul_u32_u24 v[vtmp], 4 * gprs_per_line, v[vtmp]
-   v_add_u32 v[voffset_in], vcc, v[voffset_in], v[vtmp]
-   v_add_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
-
-   .GPR_INVALIDATE vtmp
-
    i = 0
    .rept accums_cnt
       v_mov_b32 v[accums+i], 0
       i = i + 1
    .endr
+
+   v_and_b32 v[vtmp2], 0 + (1 << chunk_size_log2) - 1, v[tid] // vtmp = lane in wave part
+   v_mul_u32_u24 v[vtmp], 4 * gprs_per_line_in, v[vtmp2]
+   v_add_u32 v[voffset_in], vcc, v[voffset_in], v[vtmp]
+   .if stride_w == 1 || chunks_in > 1
+      v_mul_u32_u24 v[vtmp], 4 * gprs_per_line_out, v[vtmp2]
+      v_add_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
+   .else
+      static_assert (stride_w == 2)
+      v_lshrrev_b32 v[vtmp2], 1, v[vtmp2]
+      v_mul_u32_u24 v[vtmp], 4 * gprs_per_line_out, v[vtmp2]
+      v_add_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
+      s_mov_b32 exec_lo, 0xAAAAAAAA
+      s_mov_b32 exec_hi, 0xAAAAAAAA
+      v_mov_b32 v[voffset_out], 0x80000000
+      s_mov_b32 exec_lo, -1
+      s_mov_b32 exec_hi, -1
+   .endif
+
+   .GPR_INVALIDATE vtmp
+   .GPR_INVALIDATE vtmp2
 
    // calculate offsets for partial chunks
    v_mov_b32 v[voffset_part_in], v[voffset_in]
@@ -314,7 +359,6 @@ gcnAsmConv3x3WrW:
 
    s_mov_b32 exec_lo, active_lanes_mask
    s_mov_b32 exec_hi, active_lanes_mask
-
 
    s_waitcnt 0
 
@@ -331,7 +375,7 @@ gcnAsmConv3x3WrW:
 
    s_mov_b32 s[loop_n_cnt], 0
 
-   .macro .single_vload base, v_offset, s_offset, desc, count
+   .macro .single_vload base, v_offset, s_offset, desc, mbufs_inflight, count
       .if ((vals_to_load - \count) >= 0) && vals_to_load > 0
          .if imm_off >= (1 << 12)
             .error "Error: Immediate offset is too large for buffer_load instruction"
@@ -343,6 +387,7 @@ gcnAsmConv3x3WrW:
             buffer_load_dwordx\count v[\base+vals_loaded:\base+vals_loaded+\count-1], v[\v_offset], s[\desc:\desc+3], s[\s_offset] offen offset:0+imm_off
          .endif
 
+         \mbufs_inflight = \mbufs_inflight + 1
          vals_to_load = vals_to_load - \count
          vals_loaded = vals_loaded + \count
          imm_off = imm_off + 4 * \count
@@ -357,29 +402,30 @@ gcnAsmConv3x3WrW:
       .endif
    .endm
 
-   .macro .load_line inout, line, go_to_next_line = 1
-      vals_to_load = full_chunks
-      vals_loaded = 0
-      imm_off = 0
-      line_base = lines_\inout + gprs_per_line * \line
+   .macro .load_line inout, line, mbufs_inflight, go_to_next_line = 1
       vo = voffset_\inout
       so = soffset_\inout
       desc = desc_\inout
-      .rept (full_chunks / 4)
-         .single_vload line_base, vo, so, desc, 4
-      .endr
-      .single_vload line_base, vo, so, desc, 3
-      .single_vload line_base, vo, so, desc, 2
-      .single_vload line_base, vo, so, desc, 1
+      vals_to_load = full_chunks_\inout
+      vals_loaded = 0
+      imm_off = 0
+      line_base = lines_\inout + gprs_per_line_\inout * \line
 
-      vals_to_load = partial_chunks
-      vo = voffset_part_\inout
-      .rept (full_chunks / 4)
-         .single_vload line_base, vo, so, desc, 4
+      .rept (full_chunks_\inout / 4)
+         .single_vload line_base, vo, so, desc, \mbufs_inflight, 4
       .endr
-      .single_vload line_base, vo, so, desc, 3
-      .single_vload line_base, vo, so, desc, 2
-      .single_vload line_base, vo, so, desc, 1
+      .single_vload line_base, vo, so, desc, \mbufs_inflight, 3
+      .single_vload line_base, vo, so, desc, \mbufs_inflight, 2
+      .single_vload line_base, vo, so, desc, \mbufs_inflight, 1
+
+      vals_to_load = partial_chunks_\inout
+      vo = voffset_part_\inout
+      .rept (partial_chunks_\inout / 4)
+         .single_vload line_base, vo, so, desc, \mbufs_inflight, 4
+      .endr
+      .single_vload line_base, vo, so, desc, \mbufs_inflight, 3
+      .single_vload line_base, vo, so, desc, \mbufs_inflight, 2
+      .single_vload line_base, vo, so, desc, \mbufs_inflight, 1
 
       .if \go_to_next_line
          .next_line \inout, \line
@@ -392,25 +438,25 @@ gcnAsmConv3x3WrW:
    .endm
 
    .macro conv_line in_line, out_line, acc_line, acc_batch, sync=0, swizzle=0
-      in_base = lines_in + gprs_per_line * \in_line
-      out_base = lines_out + gprs_per_line * \out_line
+      in_base = lines_in + gprs_per_line_in * \in_line
+      out_base = lines_out + gprs_per_line_out * \out_line
       acc_base = accums + wei_w * \acc_line + weights_per_filter * \acc_batch
       out_x = 0 // current gpr in line
-      .rept gprs_per_line
+      .rept gprs_per_line_out
          acc_x = 0
          .if \sync
-            s_wait , gprs_per_line-out_x-1
+            s_wait , gprs_per_line_out-out_x-1
          .endif
          .rept wei_w
-            in_x = out_x - pad_w + acc_x
+            in_x = out_x * stride_w - pad_w + acc_x
             .if reverse_weights
                acc_off = wei_w - acc_x - 1
             .else
                acc_off = acc_x
             .endif
             .if in_x < 0
-               v_mac_f32 v[acc_base + acc_off], v[in_base+gprs_per_line-1], v[out_base + out_x] row_shr:1 bound_ctrl:0
-            .elseif in_x >= gprs_per_line
+               v_mac_f32 v[acc_base + acc_off], v[in_base+gprs_per_line_in-1], v[out_base + out_x] row_shr:1 bound_ctrl:0
+            .elseif in_x >= gprs_per_line_in
                v_mac_f32 v[acc_base + acc_off], v[in_base], v[out_base + out_x] row_shl:1 bound_ctrl:0
             .else
                v_mac_f32 v[acc_base + acc_off], v[in_base + in_x], v[out_base + out_x]
@@ -475,14 +521,18 @@ loop_n_begin: // loop over batch (n)
       .endif
    .endm
 
-   .macro fetch_step
+   .macro fetch_step mbufs_inflight
       .if g_line_fetch < img_h
          .if g_line_fetch < img_h - 1
-            .load_line in, line_fetch_in
+            .load_line in, line_fetch_in, \mbufs_inflight
          .else
             skipped_fetches = skipped_fetches + 1
          .endif
-         .load_line out, line_fetch_out
+         .if !(g_line_fetch % stride_h)
+            .load_line out, line_fetch_out, \mbufs_inflight
+         .else
+            skipped_fetches = skipped_fetches + 1
+         .endif
       .else
          skipped_fetches = skipped_fetches + 2
       .endif
@@ -496,53 +546,59 @@ loop_n_begin: // loop over batch (n)
          .next_line in, l2
          l1 = l2
          .next_line in, l2
+         .next_line in, line_conv_in
 
-         .if k_per_wave == 1
-            conv_filter l0, l1, l2, line_conv_out, 0
-         .elseif k_per_wave == 2
-            conv_filter l0, l1, l2, line_conv_out, 0, 0, chunk_size
-            conv_filter l0, l1, l2, line_conv_out, 1, 1, 0
-         .elseif k_per_wave == 4
-            conv_filter l0, l1, l2, line_conv_out, 0, 0, chunk_size
-            conv_filter l0, l1, l2, line_conv_out, 1, 1, chunk_size * 2
-            conv_filter l0, l1, l2, line_conv_out, 2, 1, chunk_size
-            conv_filter l0, l1, l2, line_conv_out, 3, 1, 0
-         .elseif k_per_wave == 8
-            conv_filter l0, l1, l2, line_conv_out, 0, 0, chunk_size
-            conv_filter l0, l1, l2, line_conv_out, 1, 1, chunk_size * 2
-            conv_filter l0, l1, l2, line_conv_out, 2, 1, chunk_size
-            conv_filter l0, l1, l2, line_conv_out, 3, 1, chunk_size * 4
-            conv_filter l0, l1, l2, line_conv_out, 4, 1, chunk_size
-            conv_filter l0, l1, l2, line_conv_out, 5, 1, chunk_size * 2
-            conv_filter l0, l1, l2, line_conv_out, 6, 1, chunk_size
-            conv_filter l0, l1, l2, line_conv_out, 7, 1, 0
-         .else
-            static_assert(0)
+         .if !(g_line_conv % stride_h)
+            .if k_per_wave == 1
+               conv_filter l0, l1, l2, line_conv_out, 0
+            .elseif k_per_wave == 2
+               conv_filter l0, l1, l2, line_conv_out, 0, 0, chunk_size
+               conv_filter l0, l1, l2, line_conv_out, 1, 1, 0
+            .elseif k_per_wave == 4
+               conv_filter l0, l1, l2, line_conv_out, 0, 0, chunk_size
+               conv_filter l0, l1, l2, line_conv_out, 1, 1, chunk_size * 2
+               conv_filter l0, l1, l2, line_conv_out, 2, 1, chunk_size
+               conv_filter l0, l1, l2, line_conv_out, 3, 1, 0
+            .elseif k_per_wave == 8
+               conv_filter l0, l1, l2, line_conv_out, 0, 0, chunk_size
+               conv_filter l0, l1, l2, line_conv_out, 1, 1, chunk_size * 2
+               conv_filter l0, l1, l2, line_conv_out, 2, 1, chunk_size
+               conv_filter l0, l1, l2, line_conv_out, 3, 1, chunk_size * 4
+               conv_filter l0, l1, l2, line_conv_out, 4, 1, chunk_size
+               conv_filter l0, l1, l2, line_conv_out, 5, 1, chunk_size * 2
+               conv_filter l0, l1, l2, line_conv_out, 6, 1, chunk_size
+               conv_filter l0, l1, l2, line_conv_out, 7, 1, 0
+            .else
+               static_assert(0)
+            .endif
+            .next_line out, line_conv_out
          .endif
 
-         .next_line in, line_conv_in
-         .next_line out, line_conv_out
       .endif
 
       g_line_conv = g_line_conv + 1
    .endm
 
-   .load_line in, line_fetch_in
+   mbufs_cur = 0
+   .load_line in, line_fetch_in, mbufs_cur
    s_mov_b32 s[loop_h_cnt], 0
 
    // pipe prologue
    skipped_fetches = 0
-   .rept pipe_lines_depth
-      fetch_step
+   fetch_step mbufs_cur
+   mbufs_1row = mbufs_cur
+   .rept pipe_lines_depth-1
+      fetch_step mbufs_cur
    .endr
-   vmcnt_per_step = mbufs_per_line * 2
+   vmcnt_per_step = mbufs_per_line_in + mbufs_per_line_out
 
-   s_wait vmcnt_per_step*(pipe_lines_depth-1) - skipped_fetches * mbufs_per_line
+   mbufs_piped = mbufs_cur - mbufs_1row
+   s_wait mbufs_piped
    conv_step
 
    // software pipeline
 loop_h_begin:
-   period = lines_cnt_in * lines_cnt_out
+   period = lines_cnt_in * lines_cnt_out * stride_h
    unroll_factor = 1 * period
    pipelined_steps = img_h - pipe_lines_depth - 1
    .if pipelined_steps < 0
@@ -553,8 +609,8 @@ loop_h_begin:
       cur_conv_line = g_line_conv
       cur_fetch_line = g_line_fetch
       .rept unroll_factor
-         fetch_step
-         s_wait vmcnt_per_step*(pipe_lines_depth-1)
+         fetch_step mbufs_cur
+         s_wait mbufs_piped
          conv_step
       .endr
       s_addk_i32 s[loop_h_cnt], 1
@@ -567,15 +623,17 @@ loop_h_begin:
 loop_h_end:
 
    .rept non_looped_pipelined_steps
-      fetch_step
-      s_wait vmcnt_per_step*(pipe_lines_depth-1)
+      fetch_step mbufs_cur
+      s_wait mbufs_piped
       conv_step
    .endr
 
    // pipe epilogue
-   fetch_step
-   s_wait 0 // todo: add proper counter (last line is different)
+   fetch_step mbufs_cur
+   iii = 0
    .rept pipe_lines_depth
+      iii = iii + 1
+      s_wait mbufs_piped - iii * vmcnt_per_step
       conv_step
    .endr
 
@@ -586,7 +644,6 @@ loop_n_end:
    s_addk_i32 s[loop_n_cnt], 1
    s_cmpk_ge_u32 s[loop_n_cnt], 0 + (batch_size + n_per_group - 1) / n_per_group
    s_cbranch_scc0 loop_n_begin
-
 
    // reduction across waves in group
    // all waves but last store accums to LDS and dies
