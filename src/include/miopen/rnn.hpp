@@ -42,16 +42,15 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
     miopenDataType_t dataType;
-    /*
-        //TODO (dlowell)  this requires array_view for the array of tensor descriptors
-
+    
     size_t GetWorkspaceSize(Handle& handle,
                                 const int seqLength,
-                                const TensorDescriptor& *xDesc) const;
+                                TensorDescriptor** xDesc) const;
+    
     size_t GetReserveSize(Handle& handle,
                                 const int seqLength,
-                                const TensorDescriptor *xDesc) const;
-     */
+                                TensorDescriptor** xDesc) const;
+    
     size_t
     GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
 
@@ -71,21 +70,60 @@ struct RNNDescriptor : miopenRNNDescriptor
                       const TensorDescriptor& biasDesc,
                       Data_t** layerBias) const;
 
-    void ForwardInferRNNCell(Handle& handle,
+    
+    void ForwardRNNTrain(Handle& handle,
+                             const TensorDescriptor& xDesc,
+                             ConstData_t x,
+                             const TensorDescriptor& hxDesc,
+                             ConstData_t hx,
+                             const TensorDescriptor& cxDesc,
+                             ConstData_t cx,
+                             const TensorDescriptor& wDesc,
+                             ConstData_t w,
+                             const TensorDescriptor& yDesc,
+                             ConstData_t y,
+                             const TensorDescriptor& hyDesc,
+                             Data_t hy,
+                             const TensorDescriptor& cyDesc,
+                             ConstData_t cy,
+                             Data_t workSpace,
+                             size_t workSpaceSize,
+                             Data_t reserveSpace,
+                             size_t reserveSpaceSize) const;
+
+    void ForwardRNNInference(Handle& handle,
+                             const TensorDescriptor& xDesc,
+                             ConstData_t x,
+                             const TensorDescriptor& hxDesc,
+                             ConstData_t hx,
+                             const TensorDescriptor& cxDesc,
+                             ConstData_t cx,
+                             const TensorDescriptor& wDesc,
+                             ConstData_t w,
+                             const TensorDescriptor& yDesc,
+                             Data_t y,
+                             const TensorDescriptor& hyDesc,
+                             Data_t hy,
+                             const TensorDescriptor& cyDesc,
+                             Data_t cy,
+                             Data_t workSpace,
+                             size_t workSpaceSize) const;
+    
+    void ForwardRNNInferCell(Handle& handle,
                              const TensorDescriptor& xDesc,
                              ConstData_t x,
                              const TensorDescriptor& hxDesc,
                              ConstData_t hx,
                              const TensorDescriptor& wDesc,
                              ConstData_t w,
-                             const TensorDescriptor& hyDesc,
-                             ConstData_t hy,
                              const TensorDescriptor& yDesc,
                              Data_t y,
+                             const TensorDescriptor& hyDesc,
+                             Data_t hy,
                              Data_t workSpace,
                              size_t workSpaceSize) const;
 
-    void ForwardTrainRNNCell(Handle& handle,
+    void ForwardRNNTrainCell(Handle& handle,
                              const TensorDescriptor& xDesc,
                              ConstData_t x,
                              const TensorDescriptor& hxDesc,
@@ -101,7 +139,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                              Data_t reserveSpace,
                              size_t reserveSpaceSize) const;
 
-    void BackwardDataRNNCell(Handle& handle,
+    void BackwardRNNDataCell(Handle& handle,
                              const TensorDescriptor& yDesc,
                              ConstData_t y,
                              const TensorDescriptor& dyDesc,
@@ -121,7 +159,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                              ConstData_t reserveSpace,
                              size_t reserveSpaceSize) const;
 
-    void BackwardWeightsRNNCell(Handle& handle,
+    void BackwardRNNWeightsCell(Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 ConstData_t x,
                                 const TensorDescriptor& hxDesc,
