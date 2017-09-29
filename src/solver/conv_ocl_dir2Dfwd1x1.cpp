@@ -33,11 +33,9 @@ namespace solver {
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {
 
-    return (
-		(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs >= 4 && params.n_inputs >= 4)
-		&& params.n_outputs % 4 == 0 && params.n_inputs %4 == 0
-		)		
-		;
+    return ((params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs >= 4 &&
+             params.n_inputs >= 4) &&
+            params.n_outputs % 4 == 0 && params.n_inputs % 4 == 0);
 }
 
 ConvSolution
@@ -269,19 +267,19 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 
             // number of inputs inside wk-items
             result.n_in_data_tiles = std::min(params.n_inputs, result.n_in_data_tiles);
-			while (params.n_inputs % result.n_in_data_tiles != 0 && result.n_in_data_tiles > 1)
-			{
-				result.n_in_data_tiles /= 2;
-			}
+            while(params.n_inputs % result.n_in_data_tiles != 0 && result.n_in_data_tiles > 1)
+            {
+                result.n_in_data_tiles /= 2;
+            }
 
             int CLOOP0 = (params.n_inputs + result.n_in_data_tiles - 1) / result.n_in_data_tiles;
 
             // number of outputs inside wk_item
             result.n_out_pix_tiles = std::min(params.n_outputs, result.n_out_pix_tiles);
-			while (params.n_outputs % result.n_out_pix_tiles != 0 && result.n_out_pix_tiles  > 1)
-			{
-				result.n_out_pix_tiles /= 2;
-			}
+            while(params.n_outputs % result.n_out_pix_tiles != 0 && result.n_out_pix_tiles > 1)
+            {
+                result.n_out_pix_tiles /= 2;
+            }
 
             KernelInfo kernel;
 
