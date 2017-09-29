@@ -136,7 +136,7 @@ int SoftmaxDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag("alpha", 'A', "0.0", "Softmax shift (Default=0.0)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Softmax shift (Default=0.0)", "double");
     inflags.AddInputFlag("beta", 'B', "0.0", "Softmax scale (Default=0.0)", "double");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -215,7 +215,7 @@ template <typename T>
 int SoftmaxDriver<T>::RunForwardGPU()
 {
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     miopenSoftmaxForward(
         GetHandle(), &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
@@ -295,7 +295,7 @@ int SoftmaxDriver<T>::RunForwardCPU()
 template <typename T>
 int SoftmaxDriver<T>::RunBackwardGPU()
 {
-    float alpha = 1., beta = 1.;
+    float alpha = 1., beta = 0.;
 
     miopenSoftmaxBackward(GetHandle(),
                           &alpha,
