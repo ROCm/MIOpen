@@ -26,18 +26,24 @@
 #include <miopen/activ.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
 miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
-                                             const void* /* alpha */,
+                                             const void* alpha,
                                              const TensorDescriptor& xDesc,
                                              ConstData_t x,
-                                             const void* /* beta */,
+                                             const void* beta,
                                              const TensorDescriptor& yDesc,
                                              Data_t y)
 {
 
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
     miopenStatus_t status = miopenStatusSuccess;
 
     mlo_construct_neuron construct_params(1); // forward
@@ -53,8 +59,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     int hOutStride;
     int wOutStride;
 
-    std::tie(nOut, cOut, hOut, wOut)                         = tie4(yDesc.GetLengths());
-    std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc.GetStrides());
+    std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
+    std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
 
     construct_params.setTopDescr(
         "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
@@ -67,8 +73,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     int hInStride;
     int wInStride;
 
-    std::tie(nIn, cIn, hIn, wIn)                         = tie4(xDesc.GetLengths());
-    std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
+    std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
+    std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
 
     construct_params.setBotDescr(
         "NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
@@ -109,18 +115,23 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 }
 
 miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
-                                              const void* /* alpha */,
+                                              const void* alpha,
                                               const TensorDescriptor& yDesc,
                                               ConstData_t y,
                                               const TensorDescriptor& dyDesc,
                                               ConstData_t dy,
                                               const TensorDescriptor& xDesc,
                                               ConstData_t x,
-                                              const void* /* beta */,
+                                              const void* beta,
                                               const TensorDescriptor& dxDesc,
                                               Data_t dx)
 {
 
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
     miopenStatus_t status = miopenStatusSuccess;
 
     mlo_construct_neuron construct_params(0); // backward
@@ -135,8 +146,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     int hdOutStride;
     int wdOutStride;
 
-    std::tie(ndOut, cdOut, hdOut, wdOut)                         = tie4(dyDesc.GetLengths());
-    std::tie(ndOutStride, cdOutStride, hdOutStride, wdOutStride) = tie4(dyDesc.GetStrides());
+    std::tie(ndOut, cdOut, hdOut, wdOut)                         = tien<4>(dyDesc.GetLengths());
+    std::tie(ndOutStride, cdOutStride, hdOutStride, wdOutStride) = tien<4>(dyDesc.GetStrides());
 
     construct_params.setTopDfDescr("NCHW",
                                    "FP32",
@@ -158,8 +169,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     int hOutStride;
     int wOutStride;
 
-    std::tie(nOut, cOut, hOut, wOut)                         = tie4(yDesc.GetLengths());
-    std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tie4(yDesc.GetStrides());
+    std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
+    std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
 
     construct_params.setTopDescr(
         "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
@@ -173,8 +184,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     int hdInStride;
     int wdInStride;
 
-    std::tie(ndIn, cdIn, hdIn, wdIn)                         = tie4(dxDesc.GetLengths());
-    std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tie4(dxDesc.GetStrides());
+    std::tie(ndIn, cdIn, hdIn, wdIn)                         = tien<4>(dxDesc.GetLengths());
+    std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tien<4>(dxDesc.GetStrides());
 
     construct_params.setBotDfDescr(
         "NCHW", "FP32", ndIn, cdIn, hdIn, wdIn, ndInStride, cdInStride, hdInStride, wdInStride);
@@ -188,8 +199,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     int hInStride;
     int wInStride;
 
-    std::tie(nIn, cIn, hIn, wIn)                         = tie4(xDesc.GetLengths());
-    std::tie(nInStride, cInStride, hInStride, wInStride) = tie4(xDesc.GetStrides());
+    std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
+    std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
 
     construct_params.setBotDescr(
         "NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);

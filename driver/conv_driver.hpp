@@ -42,9 +42,12 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
@@ -92,6 +95,9 @@ class ConvDriver : public Driver
         miopenCreateTensorDescriptor(&biasTensor);
 
         miopenCreateConvolutionDescriptor(&convDesc);
+
+        workspace_bwd_dev = nullptr;
+        workspace_fwd_dev = nullptr;
     }
 
     int AddCmdLineArgs();
@@ -207,12 +213,21 @@ int ConvDriver<T>::GetandSetData()
     SetConvDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengths();
+
     SetTensor4d(outputTensor, out_len);
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
-        SetTensor4d(biasTensor, b_len);
+        if((inflags.GetValueStr("mode")) == "conv")
+        {
+            std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
+            SetTensor4d(biasTensor, b_len);
+        }
+        else if((inflags.GetValueStr("mode")) == "trans")
+        {
+            std::vector<int> b_len{1, inflags.GetValueInt("in_channels"), 1, 1};
+            SetTensor4d(biasTensor, b_len);
+        }
     }
     return (0);
 }
@@ -256,6 +271,7 @@ int ConvDriver<T>::AddCmdLineArgs()
         "mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
     inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)", "int");
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
+    inflags.AddInputFlag("in_bias", 'a', "", "Input bias filename (Default=)", "string");
 
     return 0;
 }
@@ -360,6 +376,14 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     miopenConvolutionForwardGetWorkSpaceSize(
         GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);
 
+    // Workaround: Pad buffers allocations to be a multiple of 2M
+    if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+    {
+        // PadBufferSize(in_sz, 4);
+        PadBufferSize(wei_sz, 4);
+        PadBufferSize(out_sz, 4);
+    }
+
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -373,27 +397,36 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
     out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
-    workspace_bwd_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
-    workspace_fwd_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
+    if(workSpaceSize_bwd != 0)
+    {
+        workspace_bwd_dev =
+            std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
+        workspace_bwd      = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
+        workspace_bwd_host = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
+    }
+    if(workSpaceSize_fwd != 0)
+    {
+        workspace_fwd_dev =
+            std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_fwd / sizeof(T), sizeof(T)));
+        workspace_fwd      = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+        workspace_fwd_host = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
+    }
 
-    in                 = std::vector<T>(in_sz);
-    din                = std::vector<T>(in_sz);
-    wei                = std::vector<T>(wei_sz);
-    dwei               = std::vector<T>(wei_sz, 0);
-    dout               = std::vector<T>(out_sz, 0);
-    out                = std::vector<T>(out_sz, 0);
-    workspace_bwd      = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-    workspace_fwd      = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
-    outhost            = std::vector<T>(out_sz, 0);
-    workspace_bwd_host = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-    workspace_fwd_host = std::vector<T>(workSpaceSize_fwd / sizeof(T), 0);
-    dwei_host          = std::vector<T>(wei_sz, 0);
-    din_host           = std::vector<T>(in_sz, 0);
+    in   = std::vector<T>(in_sz);
+    din  = std::vector<T>(in_sz);
+    wei  = std::vector<T>(wei_sz);
+    dwei = std::vector<T>(wei_sz, 0);
+    dout = std::vector<T>(out_sz, 0);
+    out  = std::vector<T>(out_sz, 0);
 
-    std::string inFileName  = inflags.GetValueStr("in_data");
-    std::string weiFileName = inflags.GetValueStr("weights");
+    outhost = std::vector<T>(out_sz, 0);
+
+    dwei_host = std::vector<T>(wei_sz, 0);
+    din_host  = std::vector<T>(in_sz, 0);
+
+    std::string inFileName   = inflags.GetValueStr("in_data");
+    std::string weiFileName  = inflags.GetValueStr("weights");
+    std::string biasFileName = inflags.GetValueStr("in_bias");
 
     /* Unless seed is persistent between runs validation using cache stored in file is impossible.
      */
@@ -432,6 +465,15 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
         {
             b[i]  = i % 8;
             db[i] = i % 8;
+            if((inflags.GetValueStr("mode")) == "trans")
+            {
+                db[i] = 0;
+            }
+        }
+
+        if(!biasFileName.empty())
+        {
+            readBufferFromFile(b.data(), b_sz, biasFileName.c_str());
         }
 
         b_dev->ToGPU(q, b.data());
@@ -457,6 +499,8 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     {
         dumpBufferToFile("dump_in.bin", in.data(), in_sz);
         dumpBufferToFile("dump_wei.bin", wei.data(), wei_sz);
+        if(inflags.GetValueInt("bias") != 0)
+            dumpBufferToFile("dump_bias.bin", b.data(), GetTensorSize(biasTensor));
     }
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
@@ -487,21 +531,21 @@ int ConvDriver<T>::FindForward(int& ret_algo_count,
                                std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
-    return miopenFindConvolutionForwardAlgorithm(GetHandle(),
-                                                 inputTensor,
-                                                 in_dev->GetMem(),
-                                                 weightTensor,
-                                                 wei_dev->GetMem(),
-                                                 convDesc,
-                                                 outputTensor,
-                                                 out_dev->GetMem(),
-                                                 request_algo_count,
-                                                 &ret_algo_count,
-                                                 perf_results.data(),
-                                                 workspace_fwd_dev->GetMem(),
-                                                 workspace_fwd_dev->GetSize(),
-                                                 (inflags.GetValueInt("search") == 1) ? true
-                                                                                      : false);
+    return miopenFindConvolutionForwardAlgorithm(
+        GetHandle(),
+        inputTensor,
+        in_dev->GetMem(),
+        weightTensor,
+        wei_dev->GetMem(),
+        convDesc,
+        outputTensor,
+        out_dev->GetMem(),
+        request_algo_count,
+        &ret_algo_count,
+        perf_results.data(),
+        (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
+        (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0,
+        (inflags.GetValueInt("search") == 1) ? true : false);
 }
 
 template <typename T>
@@ -514,17 +558,13 @@ int ConvDriver<T>::RunForwardGPU()
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
 
     Timer t;
     START_TIME;
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        // Clearing out the output incase GEMM is chosen as the algo
-        std::fill(out.begin(), out.end(), 0);
-        out_dev->ToGPU(GetStream(), out.data());
-
         miopenConvolutionForward(GetHandle(),
                                  &alpha,
                                  inputTensor,
@@ -536,8 +576,9 @@ int ConvDriver<T>::RunForwardGPU()
                                  &beta,
                                  outputTensor,
                                  out_dev->GetMem(),
-                                 workspace_fwd_dev->GetMem(),
-                                 workspace_fwd_dev->GetSize());
+                                 (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem()
+                                                                : nullptr,
+                                 (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0);
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -556,13 +597,26 @@ int ConvDriver<T>::RunForwardGPU()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        miopenConvolutionForwardBias(GetHandle(),
-                                     &alpha,
-                                     biasTensor,
-                                     b_dev->GetMem(),
-                                     &beta,
-                                     outputTensor,
-                                     out_dev->GetMem());
+        if((inflags.GetValueStr("mode")) == "conv")
+        {
+            miopenConvolutionForwardBias(GetHandle(),
+                                         &alpha,
+                                         biasTensor,
+                                         b_dev->GetMem(),
+                                         &beta,
+                                         outputTensor,
+                                         out_dev->GetMem());
+        }
+        else if((inflags.GetValueStr("mode")) == "trans")
+        {
+            miopenConvolutionBackwardBias(GetHandle(),
+                                          &alpha,
+                                          inputTensor,
+                                          in_dev->GetMem(),
+                                          &beta,
+                                          biasTensor,
+                                          b_dev->GetMem());
+        }
 
         if(inflags.GetValueInt("time") == 1)
         {
@@ -644,11 +698,11 @@ int ConvDriver<T>::RunForwardCPU()
             { // out_channels (num filters)
                 for(int i = 0; i < out_h; i++)
                 { // output_height (from getforwardoutputdim())
-                    int in_off_h = i * v;
+                    int in_off_h = i * u;
                     for(int j = 0; j < out_w; j++)
                     { // output_width (from getforwardoutputdim())
                         float acc    = 0;
-                        int in_off_w = j * u;
+                        int in_off_w = j * v;
                         for(int k = 0; k < in_c; k++)
                         { // in_channels (RGB)
                             for(int x = 0; x < wei_h; x++)
@@ -796,7 +850,7 @@ int ConvDriver<T>::RunBackwardGPU()
 
     FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
 
-    int alpha = 1, beta = 1;
+    float alpha = 1, beta = 0;
     int ret = 0;
 
     Timer t;
@@ -876,13 +930,27 @@ int ConvDriver<T>::RunBackwardGPU()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        ret = miopenConvolutionBackwardBias(GetHandle(),
-                                            &alpha,
-                                            outputTensor,
-                                            dout_dev->GetMem(),
-                                            &beta,
-                                            biasTensor,
-                                            db_dev->GetMem());
+
+        if((inflags.GetValueStr("mode")) == "conv")
+        {
+            ret = miopenConvolutionBackwardBias(GetHandle(),
+                                                &alpha,
+                                                outputTensor,
+                                                dout_dev->GetMem(),
+                                                &beta,
+                                                biasTensor,
+                                                db_dev->GetMem());
+        }
+        //       else if((inflags.GetValueStr("mode")) == "trans")
+        //       {
+        //           ret = miopenConvolutionForwardBias(GetHandle(),
+        //		                            &alpha,
+        //		                            biasTensor,
+        //		                            db_dev->GetMem(),
+        //		                            &beta,
+        //		                            inputTensor,
+        //		                            din_dev->GetMem());
+        //       }
 
         if(inflags.GetValueInt("time") == 1)
         {
@@ -976,8 +1044,8 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
                           out_w,
                           pad_h,
                           pad_w,
-                          v,
                           u,
+                          v,
                           workspace_bwd_host);
 
                 for(int i = 0; i < workspace_bwd.size(); i++)
@@ -1189,10 +1257,10 @@ int ConvDriver<T>::RunBackwardDataCPU()
                 { // out_channels (num filters)
                     for(int i = 0; i < out_h; i++)
                     { // output_height (from getforwardoutputdim())
-                        int in_off_h = i * v;
+                        int in_off_h = i * u;
                         for(int j = 0; j < out_w; j++)
                         { // output_width (from getforwardoutputdim())
-                            int in_off_w = j * u;
+                            int in_off_w = j * v;
                             for(int x = 0; x < wei_h; x++)
                             {
                                 int in_x = in_off_h - pad_h + x * dilation_h;
@@ -1264,7 +1332,8 @@ int ConvDriver<T>::RunBackwardDataCPU()
                                 }
                             }
                         }
-                        acc = inflags.GetValueInt("bias") != 0 ? acc + b[w] : acc;
+                        //                      acc = inflags.GetValueInt("bias") != 0 ? acc + db[w]
+                        //                      : acc;  // db is zero in transpose case
                         din_host[o * in_nstride + w * in_cstride + i * in_hstride + j] = acc;
                     }
                 }
@@ -1309,7 +1378,15 @@ int ConvDriver<T>::RunBackwardBiasCPU()
             {
                 for(int w = 0; w < out_w; w++)
                 {
-                    db_host[c] += dout[n * out_nstride + c * out_cstride + h * out_hstride + w];
+                    if((inflags.GetValueStr("mode")) == "conv")
+                    {
+                        db_host[c] += dout[n * out_nstride + c * out_cstride + h * out_hstride + w];
+                    }
+                    //                    else if((inflags.GetValueStr("mode")) == "trans")
+                    //                    {
+                    //                        db_host[c] += dout[n * out_nstride + c * out_cstride +
+                    //                        h * out_hstride + w] * dYb[c];
+                    //                    }
                 }
             }
         }
