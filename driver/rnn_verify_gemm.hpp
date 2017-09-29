@@ -28,6 +28,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                                 int out_h, // 1 by hy_h related function for unidirection, 2 by hy_h
                                            // related function for bidirection
                                 int squash,
+	std::vector<T>& wkspace,
                                 std::vector<T>& rsvspace)
 {
     int batch_n  = sumvc(in_n);
@@ -268,14 +269,18 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
             {
                 for(int h = 0; h < hy_h; h++)
                 {
- //                   wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
- //                       activfunc(hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h],
- //                                 squash); // squash_func
+                    wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
+                        activfunc(hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h],
+                                  squash); // squash_func
                     hy_state[hx_shift + bs * hy_stride + h] =
                         wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 
                     rsvspace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
                         hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
+
+					wkspace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
+						wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
+
                     hy_host[hx_shift + bs * hy_stride + h] =
                         hy_state[hx_shift + bs * hy_stride + h];
                 }
@@ -287,15 +292,19 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                 {
                     for(int h = 0; h < hy_h; h++)
                     {
- //                       wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
- //                           activfunc(hid_state[hid_shift + baccbi * hy_stride + hy_h +
-//                                                bs * hy_stride + h],
-//                                      squash); // squash_func
+                        wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
+                            activfunc(hid_state[hid_shift + baccbi * hy_stride + hy_h +
+                                                bs * hy_stride + h],
+                                      squash); // squash_func
                         hy_state[hx_shift + hy_h + bs * hy_stride + h] =
                             wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
 
                         rsvspace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
                             hid_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
+
+						wkspace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
+							wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
+
                         hy_host[hx_shift + hy_h + bs * hy_stride + h] =
                             hy_state[hx_shift + hy_h + bs * hy_stride + h];
                     }

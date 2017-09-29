@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_TENSOR_DRIVER_HPP
 #define GUARD_MIOPEN_TENSOR_DRIVER_HPP
 
+#include "driver.hpp"
 #include <algorithm>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
