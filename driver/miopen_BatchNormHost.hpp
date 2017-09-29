@@ -122,7 +122,7 @@ int miopenBNFwdTrainPerActivationRunHost(
                             ? variance_accum
                             : (double(n_batchs) / double(n_batchs - 1) * variance_accum);
                     runningVariance[adjIndex] =
-                        expAvgFactor * runningVariance[adjIndex] + (1.0 - expAvgFactor) * adjust;
+                        (1 - expAvgFactor) * runningVariance[cidx] + expAvgFactor * adjust;
                 }
 
                 // #3 add epsilon for numeric stability, sqr_root, and invert
@@ -216,6 +216,7 @@ int miopenBNFwdTrainSpatialRunHost(
                         // #1 calculate the mean
                         // iterating through the stack of images in the mini_batch
                         mean_accum += in_ptr[index];
+                        // mean_accum += 1;
                     } // end for (n)
                 }
             } // end for (column)
@@ -311,18 +312,20 @@ int miopenBNFwdTrainSpatialRunHost(
 #endif
 
         variance_accum /= NHW; // (1/N)*sum{ (x_i - mean)^2 }
+        // printf("Variance sum on host: %f\n",variance_accum);
 
         if(runningmeanvar)
         {
-            // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
             double adjust = (n_batchs * in_cstride == 1) ? variance_accum
                                                          : (NHW / (NHW - 1.0) * variance_accum);
             runningVariance[cidx] =
-                expAvgFactor * runningVariance[cidx] + (1 - expAvgFactor) * adjust;
+                (1 - expAvgFactor) * runningVariance[cidx] + expAvgFactor * adjust;
         }
 
         // #3 add epsilon for numeric stability, sqr_root, and invert
         double invertVar = 1.0 / sqrt(variance_accum + epsilon);
+
+        // printf("invVar on host: %lf\n",invertVar);
 
         if(savemeanvar)
             saveInvVariance[cidx] = invertVar; /*output only*/
@@ -1087,6 +1090,7 @@ int miopenBNBwdSpatialRunHost(
             dscale_ptr[cidx] /= NHW;
 // printf("dscale: %f\n",dscale_ptr[cidx]);
 // printf("dbias: %f\n",dbias_ptr[cidx]);
+// printf("HELLO BASTARDS!!!");
 #if(MIO_HEIRARCH_SEL == 0)
             for(int row = 0; row < height; row++)
             { // via rows
@@ -1115,7 +1119,7 @@ int miopenBNBwdSpatialRunHost(
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
                         index = in_nstride * bidx + adjIndex;
-                        if(index < in_nstride * n_batchs)
+                        if(imgIndex < in_cstride)
                         {
                             elemStd       = x_ptr[index] - mean; // (x_i - mean)
                             double tmp1   = NHW * dy_ptr[index] - dbias_ptr[cidx];
