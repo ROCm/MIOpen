@@ -134,12 +134,12 @@ static int FindFFTKernel(Handle& handle,
         return -1;
 
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(xDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
 
     (void)wDesc;
 
     int out_n, out_c;
-    std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tie4(yDesc.GetLengths());
+    std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tien<4>(yDesc.GetLengths());
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);
     const int NumKernels = FFTConvParams::NumKernels;
@@ -386,10 +386,10 @@ static float ExecuteFFTKernel(Handle& handle,
 
     int halfw = static_cast<int>(workSpaceSize) / (2 * 2 * sizeof(float));
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(xDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
 
     int out_n, out_c;
-    std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tie4(yDesc.GetLengths());
+    std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tien<4>(yDesc.GetLengths());
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);
     const int Padding    = FFTConvParams::TransposePadding;

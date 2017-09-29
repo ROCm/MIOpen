@@ -50,7 +50,8 @@ struct Exception : std::exception
         return *this;
     }
 
-    const char* what() const noexcept override;
+    // Workaround for HIP, this must be inline
+    const char* what() const noexcept override { return message.c_str(); }
 };
 
 std::string OpenCLErrorMessage(int error, const std::string& msg = "");
