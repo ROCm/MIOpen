@@ -32,6 +32,7 @@ namespace solver {
 
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {
+
     return (
 		(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs >= 4 && params.n_inputs >= 4)
 		&& params.n_outputs % 4 == 0 && params.n_inputs %4 == 0
@@ -69,8 +70,8 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             int W_out     = params.out_width;
             int H_out     = params.out_height;
 
-			N_LCL_IN_MAPS = std::min(N_LCL_IN_MAPS, C);
-			N_LCL_OUT_MAPS = std::min(N_LCL_OUT_MAPS, K);
+            N_LCL_IN_MAPS  = std::min(N_LCL_IN_MAPS, C);
+            N_LCL_OUT_MAPS = std::min(N_LCL_OUT_MAPS, K);
             if(N_LCL_OUT_MAPS > 32 && (K % N_LCL_OUT_MAPS) != 0)
             {
                 N_LCL_OUT_MAPS = 32;
@@ -80,12 +81,12 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             {
                 N_LCL_OUT_MAPS = 16;
             }
-/*
-			if (N_LCL_OUT_MAPS > 8 && (K % N_LCL_OUT_MAPS) != 0)
-			{
-				N_LCL_OUT_MAPS = 8;
-			}
-*/
+            /*
+                                    if (N_LCL_OUT_MAPS > 8 && (K % N_LCL_OUT_MAPS) != 0)
+                                    {
+                                            N_LCL_OUT_MAPS = 8;
+                                    }
+            */
             result.n_out_pix_tiles = N_LCL_OUT_MAPS;
 
             if(N_LCL_IN_MAPS < C && N_LCL_IN_MAPS > 0 && (N_LCL_IN_MAPS % 8) == 0)
