@@ -127,10 +127,10 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             {
                 weights[o][c] = wei_ptr[wei_off2];
 #if DBG_OUT_OF_RNGE
-				if ( wei_off2 >= MLO_N_INPUTS*MLO_N_OUTPUTS)
-				{
-					printf("K:oor: weights\n");
-				}
+                if(wei_off2 >= MLO_N_INPUTS * MLO_N_OUTPUTS)
+                {
+                    printf("K:oor: weights\n");
+                }
 #endif
             }
         }
@@ -144,11 +144,10 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             {
                 dat[j][i] = in_ptr[gbl_in_off1 + i];
 #if DBG_OUT_OF_RNGE
-				if ( gbl_in_off1 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-				{
-					printf("K:oor: inputs\n"
-					);
-				}
+                if(gbl_in_off1 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+                {
+                    printf("K:oor: inputs\n");
+                }
 #endif
             }
         }
