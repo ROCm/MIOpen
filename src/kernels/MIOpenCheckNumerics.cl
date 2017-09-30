@@ -4,14 +4,14 @@
 // Must keep this structure synchronized with one in MIOpenCheckNumerics
 struct CheckNumericsResult
 {
-    float     sum;
-    float     absSum;
-    float     min;
-    float     max;
+    float sum;
+    float absSum;
+    float min;
+    float max;
 
-    int       hasZero;
-    int       hasNan;
-    int       hasInf;
+    int hasZero;
+    int hasNan;
+    int hasInf;
 };
 
 union AtomicFloat
@@ -20,7 +20,7 @@ union AtomicFloat
     float f32;
 };
 
-void cl_atomic_add_float (volatile __global float *addr, float val)
+void cl_atomic_add_float(volatile __global float* addr, float val)
 {
     union AtomicFloat current, expected, next;
 
@@ -34,7 +34,7 @@ void cl_atomic_add_float (volatile __global float *addr, float val)
     } while(current.u32 != expected.u32);
 }
 
-void cl_atomic_min_float (volatile __global float *addr, float val)
+void cl_atomic_min_float(volatile __global float* addr, float val)
 {
     union AtomicFloat current, expected, next;
 
@@ -48,7 +48,7 @@ void cl_atomic_min_float (volatile __global float *addr, float val)
     } while(current.u32 != expected.u32);
 }
 
-void cl_atomic_max_float (volatile __global float *addr, float val)
+void cl_atomic_max_float(volatile __global float* addr, float val)
 {
     union AtomicFloat current, expected, next;
 
@@ -101,15 +101,18 @@ __kernel void MIOpenCheckNumerics(const __global DTYPE* data,
         abssum += fabs(value);
         minV = min(minV, value);
         maxV = max(maxV, value);
-        
-        if (fabs(value) <= 0.0f) { // iszero check
-           abnormal->hasZero = 1;
+
+        if(fabs(value) <= 0.0f)
+        { // iszero check
+            abnormal->hasZero = 1;
         }
-        if (isnan(value)) {
-            abnormal->hasNan  = 1;
+        if(isnan(value))
+        {
+            abnormal->hasNan = 1;
         }
-        if (isinf(value)) {
-            abnormal->hasInf  = 1;
+        if(isinf(value))
+        {
+            abnormal->hasInf = 1;
         }
         offset += total_wi_size;
     }
@@ -131,11 +134,12 @@ __kernel void MIOpenCheckNumerics(const __global DTYPE* data,
         REDUCE_OPS(2)
         REDUCE_OPS(1)
 
-        if (lid == 0) {
-          cl_atomic_add_float(&abnormal->sum,    stats[0]);
-          cl_atomic_add_float(&abnormal->absSum, stats[1]);
-          cl_atomic_min_float(&abnormal->min,    stats[2]);
-          cl_atomic_max_float(&abnormal->max,    stats[3]);
+        if(lid == 0)
+        {
+            cl_atomic_add_float(&abnormal->sum, stats[0]);
+            cl_atomic_add_float(&abnormal->absSum, stats[1]);
+            cl_atomic_min_float(&abnormal->min, stats[2]);
+            cl_atomic_max_float(&abnormal->max, stats[3]);
         }
     }
 }
