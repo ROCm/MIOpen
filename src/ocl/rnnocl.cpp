@@ -683,6 +683,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 	int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0);
 
+	bool bidirection = (bidir != 0);
 	bool biased = (bias != 0);
 	int numlayer = layer;
 	int bacc;
