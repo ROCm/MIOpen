@@ -319,7 +319,13 @@ miopenRNNBackwardData(miopenHandle_t handle,
 	void* workSpace,
 	size_t workSpaceSize,
 	const void* reserveSpace,
-	size_t reserveSpaceSize)
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h)
 {
 
 //    MIOPEN_LOG_FUNCTION(
@@ -327,30 +333,36 @@ miopenRNNBackwardData(miopenHandle_t handle,
     return miopen::try_([&] {
         miopen::deref(rnnDesc).RNNBackwardData(miopen::deref(handle),
 		seqLen,
-			miopen::deref(yDesc),
+//			miopen::deref(yDesc),
 			DataCast(y),
-			miopen::deref(dyDesc),
+//			miopen::deref(dyDesc),
 			DataCast(dy),
-			miopen::deref(dhyDesc),
+//			miopen::deref(dhyDesc),
 			DataCast(dhy),
-			miopen::deref(dcyDesc),
+//			miopen::deref(dcyDesc),
 			DataCast(dcy),
-			miopen::deref(wDesc),
+//			miopen::deref(wDesc),
 			DataCast(w),
-			miopen::deref(hxDesc),
+//			miopen::deref(hxDesc),
 			DataCast(hx),
-			miopen::deref(cxDesc),
+//			miopen::deref(cxDesc),
 			DataCast(cx),
-			miopen::deref(dxDesc),
+//			miopen::deref(dxDesc),
 			DataCast(dx),
-			miopen::deref(dhxDesc),
+//			miopen::deref(dhxDesc),
 			DataCast(dhx),
-			miopen::deref(dcxDesc),
+//			miopen::deref(dcxDesc),
 			DataCast(dcx),
 			DataCast(workSpace),
 			workSpaceSize,
 			DataCast(reserveSpace),
-			reserveSpaceSize);
+			reserveSpaceSize,
+			in_n,
+			in_h,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h);
     });
 }
 
@@ -457,7 +469,13 @@ miopenRNNBackwardWeights(miopenHandle_t handle,
 	const miopenTensorDescriptor_t dwDesc,
 	void* dw,
 	const void* reserveSpace,
-	size_t reserveSpaceSize)
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h)
 {
 
 //    MIOPEN_LOG_FUNCTION(
@@ -465,18 +483,24 @@ miopenRNNBackwardWeights(miopenHandle_t handle,
     return miopen::try_([&] {
         miopen::deref(rnnDesc).RNNBackwardWeights(miopen::deref(handle),
 			seqLen,
-			miopen::deref(xDesc),
+//			miopen::deref(xDesc),
 			DataCast(x),
-			miopen::deref(hxDesc),
+//			miopen::deref(hxDesc),
 			DataCast(hx),
-			miopen::deref(dyDesc),
+//			miopen::deref(dyDesc),
 			DataCast(dy),
 			DataCast(workSpace),
 			workSpaceSize,
-			miopen::deref(dwDesc),
+//			miopen::deref(dwDesc),
 			DataCast(dw),
 			DataCast(reserveSpace),
-			reserveSpaceSize);
+			reserveSpaceSize,
+			in_n,
+			in_h,
+			hy_d,
+			hy_n,
+			hy_h,
+			out_h);
     });
 }
 

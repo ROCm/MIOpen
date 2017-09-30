@@ -1107,8 +1107,13 @@ for(int i = 0; i < inflags.GetValueInt("iter"); i++)
 		workspace_dev->GetMem(),
 		workspace_dev->GetSize(),
 		reservespace_dev->GetMem(),
-		reservespace_dev->GetSize());
-
+		reservespace_dev->GetSize(),
+	in_n,
+		in_h,
+		hy_d,
+		hy_n,
+		hy_h,
+		out_h);
 }
 
 /*
@@ -1151,7 +1156,13 @@ ret = miopenRNNBackwardWeights(GetHandle(),
 	weightTensor,
 	dwei_dev->GetMem(),
 	reservespace_dev->GetMem(),
-	reservespace_dev->GetSize());
+	reservespace_dev->GetSize(),
+	in_n,
+	in_h,
+	hy_d,
+	hy_n,
+	hy_h,
+	out_h);
 
 /*
 if(inflags.GetValueInt("time") == 1)
@@ -1742,7 +1753,7 @@ int RNNDriver<T>::VerifyForward()
     {
         RunForwardCPU();
     }
-	
+	/*
 	for (int i; i < reservespace_dev->GetSize() / sizeof(T); i++)
 	if(i%1000 ==0)
 		printf(" %.20f   %.20f  \n", reservespace_host[i], reservespace[i]);
@@ -1760,7 +1771,7 @@ int RNNDriver<T>::VerifyForward()
 			printf(" %.20f   %.20f  \n", outhost[i], out[i]);
 
 	printf("\n\n");
-
+	*/
     auto error = miopen::rms_range(outhost, out);
 
     const double tolerance = 1e-6;
@@ -1821,6 +1832,20 @@ int RNNDriver<T>::VerifyBackward()
     {
         RunBackwardDataCPU();
     }
+
+
+	for (int i; i < workspace_dev->GetSize() / sizeof(T); i++)
+		if (i % 1000 == 0)
+			printf(" %.20f   %.20f  \n", workspace_host[i], workspace[i]);
+
+	printf("\n\n");
+
+	for (int i; i < din_dev->GetSize() / sizeof(T); i++)
+		//		if (i % 1000 == 0)
+		printf(" %.20f   %.20f  \n", din_host[i], din[i]);
+
+	printf("\n\n");
+
 
     auto error_data = miopen::rms_range(din_host, din);
 
