@@ -85,11 +85,11 @@ int main(int argc, char* argv[])
 
     drv->AllocateBuffersAndCopy();
 
-    drv->RunForwardGPU();
+//    drv->RunForwardGPU();
 
     if(drv->GetInputFlags().GetValueInt("verify") == 1)
     {
-        drv->VerifyForward();
+//        drv->VerifyForward();
     }
 
     if(drv->GetInputFlags().GetValueInt("forw") == 0)

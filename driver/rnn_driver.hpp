@@ -575,6 +575,12 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         }
     }
 
+	for (int i = 0; i < hid_sz; i++)
+	{
+		reservespace[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+		workspace[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+	}
+
     for(int i = 0; i < out_sz; i++)
     {
         dout[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
@@ -1078,7 +1084,7 @@ int ret = 0;
 
 //Timer t;
 //START_TIME;
-
+/*
 for(int i = 0; i < inflags.GetValueInt("iter"); i++)
 {
     ret = miopenRNNBackwardData(GetHandle(),
@@ -1115,7 +1121,7 @@ for(int i = 0; i < inflags.GetValueInt("iter"); i++)
 		hy_h,
 		out_h);
 }
-
+*/
 /*
 if(inflags.GetValueInt("time") == 1)
 {
@@ -1827,7 +1833,7 @@ template <typename T>
 int RNNDriver<T>::VerifyBackward()
 {
     const double tolerance = 1e-6;
-
+/*
     //   if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
     {
         RunBackwardDataCPU();
@@ -1895,7 +1901,7 @@ int RNNDriver<T>::VerifyBackward()
 	{
 		printf("work space Verifies on CPU and GPU\n");
 	}
-
+	*/
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
         RunBackwardWeightsCPU();
