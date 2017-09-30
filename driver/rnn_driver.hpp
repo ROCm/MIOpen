@@ -1094,6 +1094,7 @@ int RNNDriver<T>::RunBackwardGPU()
 	//FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
 
 	//int alpha = 1, beta = 1;
+	int ret = 0;
 
 	//Timer t;
 	//START_TIME;
