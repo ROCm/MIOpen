@@ -1071,19 +1071,33 @@ int RNNDriver<T>::FindBackwardWeights(int& ret_algo_count,
 template <typename T>
 int RNNDriver<T>::RunBackwardGPU()
 {
-    
-//int ret_algo_count;
-//int request_algo_count = 2;
-//std::vector<miopenConvAlgoPerf_t> perf_results_data(request_algo_count);
-int seqLength = inflags.GetValueInt("seq_len");
+	std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+	int in_h;
+	in_h = in_n.back();
+	in_n.pop_back();
 
-//FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
+	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+	int out_h = out_len[0];
 
-//int alpha = 1, beta = 1;
-int ret = 0;
+	int hy_d, hy_n, hy_h;
+	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
 
-//Timer t;
-//START_TIME;
+	hy_d = hid_len[0];
+	hy_n = in_n[0];
+	hy_h = hid_len[1];
+
+	//int ret_algo_count;
+	//int request_algo_count = 2;
+	//std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
+	int seqLength = inflags.GetValueInt("seq_len");
+
+	//FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
+
+	//int alpha = 1, beta = 1;
+
+	//Timer t;
+	//START_TIME;
+
 /*
 for(int i = 0; i < inflags.GetValueInt("iter"); i++)
 {
