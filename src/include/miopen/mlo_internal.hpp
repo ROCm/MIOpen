@@ -161,76 +161,82 @@ enum rocm_meta_version
 
 namespace miopen {
 
-/// A leftover of the legacy design, houses problem config,
+template <class TInstance>
+class StaticContainer
+{
+    public:
+    inline static TInstance& Instance()
+    {
+        static TInstance data{};
+        return data;
+    }
+};
+
+class ProblemDescription
+{
+    public:
+    int n_inputs;
+    int in_height;
+    int in_width;
+    int kernel_size1;
+    int kernel_size0;
+    int n_outputs;
+    int out_height;
+    int out_width;
+    int batch_sz;
+    std::string in_layout;
+    std::string in_data_type;
+    int forward;
+
+    void Serialize(std::ostream& stream) const
+    {
+        const auto separator = ",";
+
+        // clang-format off
+        stream           << n_inputs
+            << separator << in_height
+            << separator << in_width
+            << separator << kernel_size1
+            << separator << kernel_size0
+            << separator << n_outputs
+            << separator << out_height
+            << separator << out_width
+            << separator << batch_sz
+            << separator << in_layout
+            << separator << in_data_type
+            << separator << forward;
+        // clang-format on
+    }
+};
+
+// A leftover of the legacy design, houses problem config,
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
 /// TODO: These three entities should be made separate.
-class ConvolutionContext
+class ConvolutionContext : public ProblemDescription
 {
     public:
     bool n_passes = false;
 
-    bool forward;
     bool do_search           = false;
     bool save_srch_req       = false;
     bool assembler_available = false;
     bool use_binaries        = true;
     std::string weights_layout;
-    std::string in_layout;
-    std::string in_data_type;
     std::string out_data_type;
     std::string out_layout;
     size_t bot_sz, top_sz, weights_sz, bias_sz;
     int pad0, pad1;
     int kernel_stride0, kernel_stride1;
-    int kernel_size0, kernel_size1;
     int kernal_dilation0, kernal_dilation1;
     int deconvolution;
-    int n_inputs, n_outputs;
-    int in_width, in_height;
-    int out_width, out_height;
     int in_stride, out_stride;
     int in_channel_stride, in_batch_stride;
     int out_channel_stride, out_batch_stride;
-    int batch_sz;
     int bias;
     int n_timer_iter = 0;
     rocm_meta_version rmv;
     std::string general_compile_options;
-
-    ConvolutionContext()
-        : forward(),
-          bot_sz(),
-          top_sz(),
-          weights_sz(),
-          bias_sz(),
-          pad0(),
-          pad1(),
-          kernel_stride0(),
-          kernel_stride1(),
-          kernel_size0(),
-          kernel_size1(),
-          kernal_dilation0(),
-          kernal_dilation1(),
-          deconvolution(),
-          n_inputs(),
-          n_outputs(),
-          in_width(),
-          in_height(),
-          out_width(),
-          out_height(),
-          in_stride(),
-          out_stride(),
-          in_channel_stride(),
-          in_batch_stride(),
-          out_channel_stride(),
-          out_batch_stride(),
-          batch_sz(),
-          bias(),
-          rmv(),
-          _stream()
-    {
-    }
 
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }

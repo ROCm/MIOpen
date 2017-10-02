@@ -59,6 +59,7 @@ set( MIOpen_Source
     convolution.cpp
     convolution_api.cpp
     convolution_fft.cpp
+    data_entry.cpp
     load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
@@ -69,6 +70,7 @@ set( MIOpen_Source
     softmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
+    include/miopen/data_entry.hpp
     include/miopen/batch_norm.hpp
     include/miopen/common.hpp
     include/miopen/convolution.hpp
