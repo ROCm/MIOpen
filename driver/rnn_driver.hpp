@@ -1092,6 +1092,7 @@ int RNNDriver<T>::RunBackwardGPU()
 	//Timer t;
 	//START_TIME;
 
+	workspace_dev->ToGPU(q, workspace.data());
 
 for(int i = 0; i < inflags.GetValueInt("iter"); i++)
 {
