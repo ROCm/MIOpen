@@ -89,7 +89,7 @@ void GemmGeometry::FindSolution(
     (void)tgg;
     (void)alpha;
     (void)beta;
-    MIOpenGEMM::Solution soln = MIOpenGEMM::get_default(tgg);
+    MIOpenGEMM::Solver soln = MIOpenGEMM::get_default(tgg);
 #endif
 
     // jn : the main kernel is at the back of the solution vector

@@ -24,8 +24,9 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
+#include "miopen/legacy_exhaustive_search.hpp"
+#include "miopen/solver.hpp"
 
 namespace miopen {
 namespace solver {
@@ -41,7 +42,7 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 {
     ConvSolution result;
     const auto& searched_params =
-        dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
+        dynamic_cast<const LegacyPerformanceConfig&>(exhaustive_search_result);
     searched_params.CopyTo(result);
 
     if((params.n_outputs / 16) * 16 == params.n_outputs &&

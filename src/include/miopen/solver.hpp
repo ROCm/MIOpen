@@ -1,34 +1,38 @@
 /*******************************************************************************
- *
- * MIT License
- *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- *******************************************************************************/
+*
+* MIT License
+*
+* Copyright (c) 2017 Advanced Micro Devices, Inc.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*******************************************************************************/
 
 #ifndef GUARD_MIOPEN_SOLVER_HPP
 #define GUARD_MIOPEN_SOLVER_HPP
 
-#include <vector>
+#include <functional>
 #include <memory>
+#include <string>
+#include <vector>
+
+#include "miopen/data_entry.hpp"
 #include "miopen/mlo_internal.hpp"
 #include "miopen/miopen.h"
 
@@ -100,6 +104,25 @@ class ConvSolution
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
 
+/// The descendants of this class comprise an solution-specific
+/// set of optimization parameters, i.e. those which expected to be used by
+/// the solution to optimize its kernel(s) for the best performance.
+///
+/// This class provides its descendants with polymorphism and supplies syntax
+/// glue at the source text level. Also serves as en "empty set of parameters"
+/// for solutions which do not have parameters that affect performance
+/// (e.g. for 3x3 Wingrad convolutions).
+class PerformanceConfig
+{
+    public:
+    PerformanceConfig() noexcept {}
+    PerformanceConfig(const PerformanceConfig&) {}
+    PerformanceConfig& operator=(const PerformanceConfig&) { return *this; }
+    virtual ~PerformanceConfig() {}
+    virtual void Serialize(std::ostream&) const { std::abort(); }
+    virtual bool Deserialize(const std::string&) { return false; }
+};
+
 /// Base class for problem solvers.
 ///
 /// Solvers are to be instantiated as const objects and shall not have any variable
@@ -112,22 +135,25 @@ class ConvSolution
 class Solver
 {
     public:
-    /// The descendants of this class comprise an solution-specific
-    /// set of optimization parameters, i.e. those which expected to be used by
-    /// the solution to optimize its kernel(s) for the best performance.
-    ///
-    /// This class provides its descendants with polymorphism and supplies syntax
-    /// glue at the source text level. Also serves as en "empty set of parameters"
-    /// for solutions which do not have parameters that affect performance
-    /// (e.g. for 3x3 Wingrad convolutions).
-    class PerformanceConfig
-    {
-        public:
-        PerformanceConfig() noexcept {}
-        virtual ~PerformanceConfig() {}
-    };
-
     virtual ~Solver() {}
+
+    virtual const std::string& SearchDbId() const
+    {
+        static const std::string no_id;
+        return no_id;
+    }
+
+    virtual bool CanDoEuristics() const { return false; }
+    virtual bool CanDoExaustiveSearch() const { return false; }
+    virtual bool CanLoadSearchResluts() const { return CanDoExaustiveSearch(); }
+    virtual std::unique_ptr<PerformanceConfig> AllocateSearchResult() const
+    {
+        return make_unique<PerformanceConfig>();
+    }
+    virtual void EuristicSearch(const ConvolutionContext&, PerformanceConfig&) const {}
+    virtual void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig&) const {}
+    inline ConvSolution GetSolution(const ConvolutionContext& search_params,
+                                    DataEntry& search_results) const;
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
@@ -139,33 +165,9 @@ class Solver
     /// Warning: Non-trivial implementations introduce implicit dependencies between solutions.
     virtual bool IsFast(const ConvolutionContext&) const { return true; }
 
-    /// Given the specific problem config, finds optimization parameters for the solution.
-    /// Could take long if an exhaustive search is performed/requested.
-    /// Limitations: The solution shall be adequate for the proglem config.
-    /// Otherwise, the function may return incorrect results or fail.
-    ///
-    /// Possible implementation which tries to find optimal configuration
-    /// in the perfDb (legacy behavior):
-    ///
-    ///     Lookup for a suitable config in the perfDb;
-    ///     if (found) {
-    ///         return (config);
-    ///     } else if (exhaustive search is requested) {
-    ///         Do exhaustive search to find optimal config; // May be slow.
-    ///         Add config to the PerfDb;
-    ///         return (config);
-    ///     }
-    ///     return (solution-specific defaults); // May involve some heuristic math.
-    ///
-    virtual std::unique_ptr<PerformanceConfig> Find(const ConvolutionContext&) const
-    {
-        return miopen::make_unique<PerformanceConfig>();
-    }
-
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
-    virtual ConvSolution GetSolution(const ConvolutionContext& params,
-                                     const PerformanceConfig& exhaustive_search_result) const = 0;
+    virtual ConvSolution GetSolution(const ConvolutionContext&, const PerformanceConfig&) const = 0;
 };
 
 class ConvAsm3x3U : public Solver
@@ -195,7 +197,7 @@ class ConvAsm5x10u2v2b1 : public Solver
 
 class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public Solver
 {
-    public:
+    protected:
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& exhaustive_search_result) const override;
@@ -228,64 +230,22 @@ class ConvOclDirectFwd3x3 : public Solver
 class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
 {
     public:
-    class PerformanceConfigImpl : public PerformanceConfig
-    {
-        public:
-        int grp_tile1;
-        int grp_tile0;
-        int in_tile1;
-        int in_tile0;
-        int out_pix_tile1;
-        int out_pix_tile0;
-        int n_out_pix_tiles;
-        int n_in_data_tiles;
-        int n_stacks;
-
-        PerformanceConfigImpl() noexcept : grp_tile1(),
-                                           grp_tile0(),
-                                           in_tile1(),
-                                           in_tile0(),
-                                           out_pix_tile1(),
-                                           out_pix_tile0(),
-                                           n_out_pix_tiles(),
-                                           n_in_data_tiles(),
-                                           n_stacks()
-        {
-        }
-
-        inline void CopyTo(ConvSolution& iud) const
-        {
-            iud.grp_tile0       = grp_tile0;
-            iud.grp_tile1       = grp_tile1;
-            iud.in_tile0        = in_tile0;
-            iud.in_tile1        = in_tile1;
-            iud.out_pix_tile0   = out_pix_tile0;
-            iud.out_pix_tile1   = out_pix_tile1;
-            iud.n_out_pix_tiles = n_out_pix_tiles;
-            iud.n_in_data_tiles = n_in_data_tiles;
-            iud.n_stacks        = n_stacks;
-        }
-    };
-
-    std::unique_ptr<PerformanceConfig> Find(const ConvolutionContext& params) const override;
-
-    private:
-    void SearchDirect2D(const ConvolutionContext& params, PerformanceConfigImpl& result) const;
-
-    int MeasureLoop(miopen::Handle* profile_h,
-                    Data_t bot_ocl_buf,
-                    Data_t top_ocl_buf,
-                    Data_t wei_ocl_buf,
-                    Data_t bias_ocl_buf,
-                    double& processing_time,
-                    const ConvolutionContext& params) const;
-
-    static const std::vector<std::unique_ptr<const Solver>>& GetImplementationsToMeasure();
+    bool CanDoEuristics() const override { return true; }
+    bool CanDoExaustiveSearch() const override { return true; }
+    std::unique_ptr<PerformanceConfig> AllocateSearchResult() const override;
+    void EuristicSearch(const ConvolutionContext&, PerformanceConfig& result) const override;
+    void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig& result) const override;
 };
 
 class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
+    const std::string& SearchDbId() const override
+    {
+        static const std::string id = "ConvOclDirectFwd";
+        return id;
+    }
+
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& exhaustive_search_result) const override;
 };
@@ -293,6 +253,12 @@ class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
 class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
+    const std::string& SearchDbId() const override
+    {
+        static const std::string id = "ConvOclDirectFwd1x1";
+        return id;
+    }
+
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& exhaustive_search_result) const override;
@@ -301,6 +267,12 @@ class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
 class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
+    const std::string& SearchDbId() const override
+    {
+        static const std::string id = "ConvOclDirectFwdC";
+        return id;
+    }
+
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& exhaustive_search_result) const override;
@@ -325,6 +297,9 @@ class ConvBinWinogradRxSFwd : public Solver
 class ConvAsmBwdWrW3x3 : public Solver
 {
     public:
+    bool CanDoEuristics() const override { return true; }
+    std::unique_ptr<PerformanceConfig> AllocateSearchResult() const override;
+    void EuristicSearch(const ConvolutionContext&, PerformanceConfig& result) const override;
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsFast(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
@@ -354,7 +329,48 @@ class ConvOclBwdWrW1x1 : public Solver
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& exhaustive_search_result) const override;
 };
+
+ConvSolution Solver::GetSolution(const ConvolutionContext& search_params,
+                                 DataEntry& search_results) const
+{
+    std::unique_ptr<PerformanceConfig> search_result(nullptr);
+    auto loaded_search_result = false;
+
+    if(CanLoadSearchResluts() || CanDoEuristics() || CanDoExaustiveSearch())
+        search_result = AllocateSearchResult();
+
+    const auto& id = SearchDbId();
+
+    if(CanLoadSearchResluts())
+    {
+        if(!search_results.Read())
+            search_results.ReadFromDisk();
+
+        loaded_search_result = search_results.Load(id, *search_result);
+    }
+
+    if(!loaded_search_result)
+    {
+        if(CanDoExaustiveSearch() && search_params.do_search)
+        {
+            ExhaustiveSearch(search_params, *search_result);
+            search_results.Save(id, *search_result);
+        }
+        else if(CanDoEuristics())
+            EuristicSearch(search_params, *search_result);
+    }
+
+    if(search_result)
+        return GetSolution(search_params, *search_result);
+    else
+    {
+        static const PerformanceConfig none{};
+        return GetSolution(search_params, none);
+    }
+}
+
 } // namespace solver
+
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_SOLVER_HPP

@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 #include <miopen/convolution.hpp>
+#include <miopen/data_entry.hpp>
+#include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
 #include <miopen/solver.hpp>
@@ -554,9 +556,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
-                solver::ConvOclDirectFwd11x11 solver;
-                auto config                   = solver.Find(context);
-                solver::ConvSolution solution = solver.GetSolution(context, *config);
+                DataEntry search_results(miopen::GetDbPath(), context);
+                const solver::Solver& solver =
+                    StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
+                solver::ConvSolution solution = solver.GetSolution(context, search_results);
 
                 if(solution.passes == 1)
                 {
