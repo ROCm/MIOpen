@@ -1935,6 +1935,16 @@ int RNNDriver<T>::VerifyBackward()
         printf("Backward RNN Weights Verifies on CPU and GPU\n");
     }
 
+
+	printf("\n\n");
+
+	for (int i; i < dwei_dev->GetSize() / sizeof(T); i++)
+				if (i % 1000 == 0)
+		printf(" %.20f   %.20f  \n", dwei_host[i], dwei[i]);
+
+	printf("\n\n");
+
+
     /*
 if(inflags.GetValueInt("bias") != 0)
 {
