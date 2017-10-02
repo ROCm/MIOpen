@@ -607,7 +607,7 @@ shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::siz
         std::size_t size;
     };
     cl_int error = 0;
-    auto r = region{offset, size};
+    auto r       = region{offset, size};
     auto mem = clCreateSubBuffer(data, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &r, &error);
     return {mem, manage_deleter<decltype(&clReleaseMemObject), &clReleaseMemObject>{}};
 }
