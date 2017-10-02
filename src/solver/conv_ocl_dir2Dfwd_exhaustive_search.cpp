@@ -530,8 +530,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearch(const ConvolutionC
         report_inteval = 20;
     }
 
-        if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs % 4 == 0 &&
-           params.n_inputs % 4 == 0)
+    if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs % 4 == 0 &&
+       params.n_inputs % 4 == 0)
     {
 
         std::cout << "Searching the best solution in the 4 dim space. Please, be patient it may "
@@ -543,8 +543,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearch(const ConvolutionC
         report_inteval   = 4;
 
         // Add 1x1_stride : no padding support yet
-            if(params.forward && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
-               params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if(params.forward && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
+           params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 
             // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -591,11 +591,11 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearch(const ConvolutionC
             out_pix_tile_sz[2] = 4;
 
             n_out_tiles_rg[0] = 2;
-                n_out_tiles_rg[1] =
-                    (params.n_outputs % 64 == 0) ? 6 : (params.n_outputs % 32 == 0) ? 5 : 4;
+            n_out_tiles_rg[1] =
+                (params.n_outputs % 64 == 0) ? 6 : (params.n_outputs % 32 == 0) ? 5 : 4;
 
             n_in_tiles_rg[0] = 2;
-                n_in_tiles_rg[1] = (params.n_inputs % 8 == 0) ? 3 : 2;
+            n_in_tiles_rg[1] = (params.n_inputs % 8 == 0) ? 3 : 2;
 
             grp_tl_ln[0] = 64;
             grp_tl_ln[1] = 128;
