@@ -348,4 +348,16 @@ std::string Handle::GetDeviceName()
     std::string n("gfx" + std::to_string(props.gcnArch));
     return GetDeviceNameFromMap(n);
 }
+
+shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t)
+{
+    auto cdata = reinterpret_cast<char*>(data);
+    return {cdata+offset, null_deleter{}};
+}
+
+shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t)
+{
+    auto cdata = reinterpret_cast<const char*>(data);
+    return {cdata+offset, null_deleter{}};
+}
 } // namespace miopen
