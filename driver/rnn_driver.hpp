@@ -579,6 +579,8 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 	{
 		reservespace[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
 		workspace[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+		reservespace_host[i] = reservespace[i];
+		workspace_host[i] = workspace[i];
 	}
 
     for(int i = 0; i < out_sz; i++)
