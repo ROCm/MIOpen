@@ -200,7 +200,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
         std::to_string(params.n_outputs) + std::string(" -DMLO_BATCH_SZ=") +
         std::to_string(params.batch_sz) + std::string(" -DMLO_N_BATCH_LOOPS=") +
         std::to_string(N_BATCH_LOOPS) + std::string(" -DMLO_N_BATCH_BLKS=") +
-		std::to_string(n_batch_blks) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
+        std::to_string(n_batch_blks) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
         std::to_string((params.in_batch_stride)) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
         std::to_string((params.in_channel_stride)) + std::string(" -DMLO_OUT_STRIDE=") +
         std::to_string((params.in_stride)) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
