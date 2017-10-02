@@ -575,14 +575,6 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         }
     }
 
-	for (int i = 0; i < hid_sz; i++)
-	{
-		reservespace[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
-		workspace[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
-		reservespace_host[i] = reservespace[i];
-		workspace_host[i] = workspace[i];
-	}
-
     for(int i = 0; i < out_sz; i++)
     {
         dout[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
@@ -809,7 +801,6 @@ out_dev->FromGPU(GetStream(), out.data());
 hy_dev->FromGPU(GetStream(), hy.data());
 cy_dev->FromGPU(GetStream(), cy.data());
 reservespace_dev->FromGPU(GetStream(), reservespace.data());
-workspace_dev->FromGPU(GetStream(), workspace.data());
 
 /*
 if(inflags.GetValueInt("dump_output"))
@@ -1101,7 +1092,7 @@ int RNNDriver<T>::RunBackwardGPU()
 	//Timer t;
 	//START_TIME;
 
-/*
+
 for(int i = 0; i < inflags.GetValueInt("iter"); i++)
 {
     ret = miopenRNNBackwardData(GetHandle(),
@@ -1138,7 +1129,7 @@ for(int i = 0; i < inflags.GetValueInt("iter"); i++)
 		hy_h,
 		out_h);
 }
-*/
+
 /*
 if(inflags.GetValueInt("time") == 1)
 {
@@ -1850,13 +1841,13 @@ template <typename T>
 int RNNDriver<T>::VerifyBackward()
 {
     const double tolerance = 1e-6;
-/*
+
     //   if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
     {
         RunBackwardDataCPU();
     }
 
-
+	/*
 	for (int i; i < workspace_dev->GetSize() / sizeof(T); i++)
 		if (i % 1000 == 0)
 			printf(" %.20f   %.20f  \n", workspace_host[i], workspace[i]);
@@ -1868,7 +1859,7 @@ int RNNDriver<T>::VerifyBackward()
 		printf(" %.20f   %.20f  \n", din_host[i], din[i]);
 
 	printf("\n\n");
-
+	*/
 
     auto error_data = miopen::rms_range(din_host, din);
 
@@ -1918,7 +1909,7 @@ int RNNDriver<T>::VerifyBackward()
 	{
 		printf("work space Verifies on CPU and GPU\n");
 	}
-	*/
+	
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
         RunBackwardWeightsCPU();
@@ -1934,16 +1925,6 @@ int RNNDriver<T>::VerifyBackward()
     {
         printf("Backward RNN Weights Verifies on CPU and GPU\n");
     }
-
-
-	printf("\n\n");
-
-	for (int i; i < dwei_dev->GetSize() / sizeof(T); i++)
-				if (i % 1000 == 0)
-		printf(" %.20f   %.20f  \n", dwei_host[i], dwei[i]);
-
-	printf("\n\n");
-
 
     /*
 if(inflags.GetValueInt("bias") != 0)
