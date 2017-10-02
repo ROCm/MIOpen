@@ -718,7 +718,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     T* rsvspace_state = new T[hy_d * batch_n * hy_h];
     for(int h = 0; h < hy_d * batch_n * hy_h; h++)
     {
-		printf(" sp  %f  %f \n", rsvspace_state[h], wkspace_state[h]);
+		printf(" sp  %f  %f \n", rsvspace[h], wkspace[h]);
         rsvspace_state[h] = activfunc(rsvspace[h], squash);
         wkspace_state[h]  = wkspace[h]; printf(" sp  %f  %f \n", rsvspace_state[h], wkspace_state[h]);
     }
