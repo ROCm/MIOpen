@@ -699,7 +699,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     {
         for(int w = 0; w < in_h; w++)
         {
-			in_state[h * in_h + w] = in[h * in_h + w]; printf(" in  %f \n", in_state[h * in_h + w]);
+            in_state[h * in_h + w] = in[h * in_h + w];
         }
     }
 
@@ -709,7 +709,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     {
         for(int w = 0; w < out_h; w++)
         {
-            dout_state[h * out_h + w] = dout[h * out_h + w]; printf(" out  %f \n", dout_state[h * out_h + w]);
+            dout_state[h * out_h + w] = dout[h * out_h + w];
         }
     }
 
@@ -718,9 +718,8 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     T* rsvspace_state = new T[hy_d * batch_n * hy_h];
     for(int h = 0; h < hy_d * batch_n * hy_h; h++)
     {
-		printf(" sp  %f  %f \n", rsvspace[h], wkspace[h]);
         rsvspace_state[h] = activfunc(rsvspace[h], squash);
-        wkspace_state[h]  = wkspace[h]; printf(" sp  %f  %f \n", rsvspace_state[h], wkspace_state[h]);
+        wkspace_state[h]  = wkspace[h];
     }
 
     // initial hidden states
