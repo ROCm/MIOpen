@@ -27,17 +27,19 @@
 #define MIOPEN
 
 #include <cmath>
+#include <cstring>
 #include <iomanip>
+#include <memory>
 #include <sstream>
+#include <unordered_map>
+
 #include <miopen/solver.hpp>
+#include <miopen/data_entry.hpp>
 #include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
-
-#include <cstring>
-#include <unordered_map>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
@@ -78,16 +80,24 @@ int mlo_construct_direct2D::mloConstruct()
 #endif
     }
 
+    miopen::solver::ConvSolution result(static_cast<miopenStatus_t>(-1));
+    const auto db_path = miopen::GetDbPath() + std::string("/") +
+                         _search_params.GetStream().GetDeviceName() + "_" +
+                         std::to_string(_search_params.GetStream().GetMaxComputeUnits()) + "." +
+                         std::string("cd.rdb.txt");
+    miopen::DataEntry search_results(db_path, _search_params);
+
     for(const miopen::solver::Solver& solver : SolverStore())
     {
         if(solver.IsApplicable(_search_params) &&
            (no_perf_filtering || solver.IsFast(_search_params)))
         {
-            const auto perfConfig                 = solver.Find(_search_params);
-            miopen::solver::ConvSolution solution = solver.GetSolution(_search_params, *perfConfig);
+            miopen::solver::ConvSolution solution =
+                solver.GetSolution(_search_params, search_results);
 
             if(!solution.Succeeded())
                 continue;
+
             if(_search_params.n_passes)
                 return solution.passes;
 
@@ -104,31 +114,22 @@ int mlo_construct_direct2D::mloConstruct()
     return -1;
 }
 
-template <class TInstance>
-class StaticContainer
-{
-    public:
-    inline static TInstance& Instance()
-    {
-        static TInstance data{};
-        return data;
-    }
-};
-
 const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
 mlo_construct_direct2D::SolverStore() const
 {
     static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
-        StaticContainer<const miopen::solver::ConvAsm3x3U>::Instance(),
-        StaticContainer<const miopen::solver::ConvAsm5x10u2v2f1>::Instance(),
-        StaticContainer<const miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
-        StaticContainer<const miopen::solver::ConvAsm5x10u2v2b1>::Instance(),
-        StaticContainer<const miopen::solver::ConvOclDirectFwd11x11>::Instance(),
-        StaticContainer<const miopen::solver::ConvOclDirectFwdGen>::Instance(),
-        StaticContainer<const miopen::solver::ConvOclDirectFwd3x3>::Instance(),
-        StaticContainer<const miopen::solver::ConvOclDirectFwd1x1>::Instance(),
-        StaticContainer<const miopen::solver::ConvOclDirectFwdC>::Instance(),
-        StaticContainer<const miopen::solver::ConvOclDirectFwd>::Instance(),
+        // clang-format off
+        miopen::StaticContainer<const miopen::solver::ConvAsm3x3U>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvAsm5x10u2v2f1>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvAsm5x10u2v2b1>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvOclDirectFwd11x11>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvOclDirectFwdGen>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvOclDirectFwd3x3>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvOclDirectFwd1x1>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvOclDirectFwdC>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvOclDirectFwd>::Instance(),
+        // clang-format on
     });
 
     return store;
@@ -138,8 +139,8 @@ const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
 mlo_construct_winograd::SolverStore() const
 {
     static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
-        StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance(),
-        StaticContainer<const miopen::solver::ConvBinWinogradRxSFwd>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvBinWinogradRxSFwd>::Instance(),
     });
 
     return store;
@@ -149,10 +150,10 @@ const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
 mlo_construct_BwdWrW2D::SolverStore() const
 {
     static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
-        StaticContainer<const miopen::solver::ConvAsmBwdWrW3x3>::Instance(),
-        StaticContainer<const miopen::solver::ConvOclBwdWrW2>::Instance(),
-        StaticContainer<const miopen::solver::ConvOclBwdWrW53>::Instance(),
-        StaticContainer<const miopen::solver::ConvOclBwdWrW1x1>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvAsmBwdWrW3x3>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvOclBwdWrW2>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvOclBwdWrW53>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvOclBwdWrW1x1>::Instance(),
     });
 
     return store;
@@ -160,7 +161,7 @@ mlo_construct_BwdWrW2D::SolverStore() const
 
 void mlo_construct_direct2D::mloUseSolution(const miopen::solver::ConvSolution& s)
 {
-    assert(s.construction_params.size() > 0);
+    assert(!s.construction_params.empty());
     _comp_options = s.construction_params[0].comp_options;
     _kernel_file  = s.construction_params[0].kernel_file;
     _kernel_name  = s.construction_params[0].kernel_name;
@@ -273,7 +274,7 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
-    return StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance().IsFast(
+    return miopen::StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance().IsFast(
         _search_params);
 }
 
