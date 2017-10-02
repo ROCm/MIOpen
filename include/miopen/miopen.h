@@ -1791,7 +1791,13 @@ miopenRNNBackwardData(miopenHandle_t handle,
 	void* workSpace,
 	size_t workSpaceSize,
 	const void* reserveSpace,
-	size_t reserveSpaceSize);
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h);
 
 /*! @brief Execute a backward weight RNN layer
 *
@@ -1827,7 +1833,13 @@ miopenRNNBackwardWeights(miopenHandle_t handle,
 	const miopenTensorDescriptor_t dwDesc,
 	void* dw,
 	const void* reserveSpace,
-	size_t reserveSpaceSize);
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h);
 
 /** @} */
 // CLOSEOUT RNN DOXYGEN GROUP

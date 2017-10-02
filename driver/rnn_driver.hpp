@@ -801,7 +801,6 @@ out_dev->FromGPU(GetStream(), out.data());
 hy_dev->FromGPU(GetStream(), hy.data());
 cy_dev->FromGPU(GetStream(), cy.data());
 reservespace_dev->FromGPU(GetStream(), reservespace.data());
-workspace_dev->FromGPU(GetStream(), workspace.data());
 
 /*
 if(inflags.GetValueInt("dump_output"))
@@ -1065,19 +1064,35 @@ int RNNDriver<T>::FindBackwardWeights(int& ret_algo_count,
 template <typename T>
 int RNNDriver<T>::RunBackwardGPU()
 {
-    
-//int ret_algo_count;
-//int request_algo_count = 2;
-//std::vector<miopenConvAlgoPerf_t> perf_results_data(request_algo_count);
-int seqLength = inflags.GetValueInt("seq_len");
+	std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+	int in_h;
+	in_h = in_n.back();
+	in_n.pop_back();
 
-//FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
+	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+	int out_h = out_len[0];
 
-//int alpha = 1, beta = 1;
-int ret = 0;
+	int hy_d, hy_n, hy_h;
+	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
 
-//Timer t;
-//START_TIME;
+	hy_d = hid_len[0];
+	hy_n = in_n[0];
+	hy_h = hid_len[1];
+
+	//int ret_algo_count;
+	//int request_algo_count = 2;
+	//std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
+	int seqLength = inflags.GetValueInt("seq_len");
+
+	//FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
+
+	//int alpha = 1, beta = 1;
+	int ret = 0;
+
+	//Timer t;
+	//START_TIME;
+
+	workspace_dev->ToGPU(q, workspace.data());
 
 for(int i = 0; i < inflags.GetValueInt("iter"); i++)
 {
@@ -1107,8 +1122,13 @@ for(int i = 0; i < inflags.GetValueInt("iter"); i++)
 		workspace_dev->GetMem(),
 		workspace_dev->GetSize(),
 		reservespace_dev->GetMem(),
-		reservespace_dev->GetSize());
-
+		reservespace_dev->GetSize(),
+	in_n,
+		in_h,
+		hy_d,
+		hy_n,
+		hy_h,
+		out_h);
 }
 
 /*
@@ -1151,7 +1171,13 @@ ret = miopenRNNBackwardWeights(GetHandle(),
 	weightTensor,
 	dwei_dev->GetMem(),
 	reservespace_dev->GetMem(),
-	reservespace_dev->GetSize());
+	reservespace_dev->GetSize(),
+	in_n,
+	in_h,
+	hy_d,
+	hy_n,
+	hy_h,
+	out_h);
 
 /*
 if(inflags.GetValueInt("time") == 1)
@@ -1742,7 +1768,7 @@ int RNNDriver<T>::VerifyForward()
     {
         RunForwardCPU();
     }
-	
+	/*
 	for (int i; i < reservespace_dev->GetSize() / sizeof(T); i++)
 	if(i%1000 ==0)
 		printf(" %.20f   %.20f  \n", reservespace_host[i], reservespace[i]);
@@ -1760,7 +1786,7 @@ int RNNDriver<T>::VerifyForward()
 			printf(" %.20f   %.20f  \n", outhost[i], out[i]);
 
 	printf("\n\n");
-
+	*/
     auto error = miopen::rms_range(outhost, out);
 
     const double tolerance = 1e-6;
@@ -1822,6 +1848,20 @@ int RNNDriver<T>::VerifyBackward()
         RunBackwardDataCPU();
     }
 
+	/*
+	for (int i; i < workspace_dev->GetSize() / sizeof(T); i++)
+		if (i % 1000 == 0)
+			printf(" %.20f   %.20f  \n", workspace_host[i], workspace[i]);
+
+	printf("\n\n");
+
+	for (int i; i < din_dev->GetSize() / sizeof(T); i++)
+		//		if (i % 1000 == 0)
+		printf(" %.20f   %.20f  \n", din_host[i], din[i]);
+
+	printf("\n\n");
+	*/
+
     auto error_data = miopen::rms_range(din_host, din);
 
     if(!(error_data < tolerance))
@@ -1870,7 +1910,7 @@ int RNNDriver<T>::VerifyBackward()
 	{
 		printf("work space Verifies on CPU and GPU\n");
 	}
-
+	
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
         RunBackwardWeightsCPU();

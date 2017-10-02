@@ -139,13 +139,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	int h_stride = hy_h * bi;
 	int out_stride = out_h;
 	int wei_stride = hy_h * bi;
+	cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
 	{				
 #if MIOPEN_USE_MIOPENGEMM
-
-		printf("rnn gpu \n");
-		cl_command_queue Q = (cl_command_queue)handle.GetStream();
+		printf("rnn gpu fwd \n");
 
 		for (int li = 0; li < numlayer; li++)
 		{
@@ -176,6 +175,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					0,
 					nullptr,
 					nullptr);
+
+				if (biased)
+				{
+
+				}
 			}
 			else
 			{
@@ -203,8 +207,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					0,
 					nullptr,
 					nullptr);
+
+				if (biased)
+				{
+
+				}
 			}
-			
 
 			// from hidden state
 			bacc = 0;
@@ -343,15 +351,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					reserveSpace,
 					&beta,
 					miopen::deref(rsvTensor),
-					workSpace);			
+					workSpace);
 				
 				bacc += in_n[ti];
 			}
-
-			
-
 		}
 
+		// output
 		int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
 		int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
@@ -377,48 +383,58 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			nullptr,
 			nullptr);
 
-		clFinish(Q);
+		if (biased)
+		{
+
+		}
 #else
 		MIOPEN_THROW("GEMM is not supported");
 #endif
 	}
 	else if (mode == miopenLSTM)
 	{
-		printf("lstm gpu \n");
+		printf("lstm gpu fwd \n");
 	}
 	else if (mode == miopenGRU)
 	{
-		printf("gru gpu \n");
+		printf("gru gpu fwd \n");
 	}
 	
+	clFinish(Q);
 };
 
 void RNNDescriptor::RNNBackwardData(Handle& handle,
 	const int seqLen,
-	const TensorDescriptor& yDesc,
+//	const TensorDescriptor& yDesc,
 	ConstData_t y,
-	const TensorDescriptor& dyDesc,
+//	const TensorDescriptor& dyDesc,
 	ConstData_t dy,
-	const TensorDescriptor& dhyDesc,
+//	const TensorDescriptor& dhyDesc,
 	ConstData_t dhy,
-	const TensorDescriptor& dcyDesc,
+//	const TensorDescriptor& dcyDesc,
 	ConstData_t dcy,
-	const TensorDescriptor& wDesc,
+//	const TensorDescriptor& wDesc,
 	ConstData_t w,
-	const TensorDescriptor& hxDesc,
+//	const TensorDescriptor& hxDesc,
 	ConstData_t hx,
-	const TensorDescriptor& cxDesc,
+//	const TensorDescriptor& cxDesc,
 	ConstData_t cx,
-	const TensorDescriptor& dxDesc,
+//	const TensorDescriptor& dxDesc,
 	Data_t dx,
-	const TensorDescriptor& dhxDesc,
+//	const TensorDescriptor& dhxDesc,
 	Data_t dhx,
-	const TensorDescriptor& dcxDesc,
+//	const TensorDescriptor& dcxDesc,
 	Data_t dcx,
 	Data_t workSpace,
 	size_t workSpaceSize,
 	ConstData_t reserveSpace,
-	size_t reserveSpaceSize) const
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h) const
 {
 	/*
 	if (dx == nullptr || w == nullptr || dy == nullptr)
@@ -437,40 +453,527 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
 	*/
 
-        int in_n, in_c, in_h, in_w;
+//        int in_n, in_c, in_h, in_w;
 	//		std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
-	int wei_n, wei_h, wei_w;
+//	int wei_n, wei_h, wei_w;
 	//		std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
-	int out_h, out_w;
+//	int out_h, out_w;
 	//		std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+
+	int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0);
+
+	bool bidirection = (bidir != 0);
+	bool biased = (bias != 0);
+	int numlayer = layer;
+	int bacc, baccbi;
+	int bi = bidirection ? 2 : 1;
+
+	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	if (biased)
+	{
+		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+	}
+
+	int in_stride = in_h;
+	int hy_stride = hy_h * bi;
+	int h_stride = hy_h * bi;
+	int out_stride = out_h;
+	int wei_stride = hy_h * bi;
+	cl_command_queue Q = (cl_command_queue)handle.GetStream();
+
+	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
+	{
+#if MIOPEN_USE_MIOPENGEMM
+		printf("rnn gpu bwd data \n");
+
+		for (int li = numlayer - 1; li >= 0; li--)
+		{
+			int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
+			int hid_shift = li * batch_n * hy_h * bi;
+			int hx_shift = li * bi * in_n[0] * hy_h;
+
+			// feedback from output
+			if (li == numlayer - 1)
+			{
+				MIOpenGEMM::gemm0<float>(false,
+					false,
+					false,
+					batch_n,
+					hy_h * bi,
+					out_h,
+					1,
+					dy,
+					0,
+					out_stride,
+					w,
+					wei_shift,
+					wei_stride,
+					1,
+					workSpace,
+					hid_shift,
+					hy_stride,
+					&Q,
+					0,
+					nullptr,
+					nullptr);
+			}
+			else
+			{
+				int prelayer_shift = (li + 1) * batch_n * hy_h * bi;
+
+				MIOpenGEMM::gemm0<float>(false,
+					false,
+					true,
+					batch_n,
+					hy_h * bi,
+					hy_h * bi,
+					1,
+					workSpace,
+					prelayer_shift,
+					hy_stride,
+					w,
+					wei_shift,
+					wei_stride,
+					1,
+					workSpace,
+					hid_shift,
+					hy_stride,
+					&Q,
+					0,
+					nullptr,
+					nullptr);
+			}
+
+
+			// from hidden state
+			bacc = batch_n;
+			baccbi = 0;
+			for (int ti = seqLen - 1; ti >= 0; ti--)
+			{
+				bacc -= in_n[ti];
+				wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h +
+					(li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
+					bi * hy_h * hy_stride);
+
+
+				MIOpenGEMM::gemm0<float>(false,
+					false,
+					true,
+					in_n[ti],
+					hy_h,
+					hy_h,
+					1,
+					workSpace,
+					hid_shift + bacc * hy_stride,
+					hy_stride,
+					w,
+					wei_shift,
+					wei_stride,
+					0,
+					dhx,
+					hx_shift,
+					hy_stride,
+					&Q,
+					0,
+					nullptr,
+					nullptr);
+
+				if (bidirection)
+				{
+
+
+					MIOpenGEMM::gemm0<float>(false,
+						false,
+						true,
+						in_n[seqLen - 1 - ti],
+						hy_h,
+						hy_h,
+						1,
+						workSpace,
+						hid_shift + baccbi * hy_stride + hy_h,
+						hy_stride,
+						w,
+						wei_shift + hy_h,
+						wei_stride,
+						0,
+						dhx,
+						hx_shift + hy_h,
+						hy_stride,
+						&Q,
+						0,
+						nullptr,
+						nullptr);
+				}
+
+				baccbi += in_n[seqLen - 1 - ti];
+			}
+		}
+
+		// dinput
+		MIOpenGEMM::gemm0<float>(false,
+			false,
+			true,
+			batch_n,
+			in_h,
+			hy_h * bi,
+			1,
+			workSpace,
+			0,
+			hy_stride,
+			w,
+			0,
+			wei_stride,
+			1,
+			dx,
+			0,
+			in_stride,
+			&Q,
+			0,
+			nullptr,
+			nullptr);
+#else
+		MIOPEN_THROW("GEMM is not supported");
+#endif
+	}
+	else if (mode == miopenLSTM)
+	{
+		printf("lstm gpu bwd data \n");
+	}
+	else if (mode == miopenGRU)
+	{
+		printf("gru gpu bwd data \n");
+	}
+
+	clFinish(Q);
 };
 
 void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 	const int seqLen,
-	const TensorDescriptor& xDesc,
+//	const TensorDescriptor& xDesc,
 	ConstData_t x,
-	const TensorDescriptor& hxDesc,
+//	const TensorDescriptor& hxDesc,
 	ConstData_t hx,
-	const TensorDescriptor& dyDesc,
+//	const TensorDescriptor& dyDesc,
 	ConstData_t dy,
 	ConstData_t workSpace,
 	size_t workSpaceSize,
-	const TensorDescriptor& dwDesc,
+//	const TensorDescriptor& dwDesc,
 	Data_t dw,
 	ConstData_t reserveSpace,
-	size_t reserveSpaceSize) const
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h) const
 {
 
-        int in_n, in_c, in_h, in_w;
+//        int in_n, in_c, in_h, in_w;
 	//		std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
 
-	int wei_n, wei_h, wei_w;
+//	int wei_n, wei_h, wei_w;
 	//		std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
 
-	int out_h, out_w;
+//	int out_h, out_w;
 	//		std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+
+
+	int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0);
+
+	bool bidirection = (bidir != 0);
+	bool biased = (bias != 0);
+	int numlayer = layer;
+	int bacc;
+	int bi = bidirection ? 2 : 1;
+
+	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	if (biased)
+	{
+		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+	}
+
+	int wei_shift_bias =
+		((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
+	int in_stride = in_h;
+	int hy_stride = hy_h * bi;
+	int h_stride = hy_h * bi;
+	int out_stride = out_h;
+	int wei_stride = hy_h * bi;
+	cl_command_queue Q = (cl_command_queue)handle.GetStream();
+
+	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
+	{
+#if MIOPEN_USE_MIOPENGEMM
+		printf("rnn gpu bwd weights \n");
+
+		int rsv_sz = batch_n * hy_d * hy_h;
+		std::vector<int> rsv_size(3, 1);
+		rsv_size.push_back(rsv_sz);
+
+		miopenTensorDescriptor_t rsvTensor;
+		miopenCreateTensorDescriptor(&rsvTensor);
+		SetTensor4d(rsvTensor, rsv_size);
+
+		float alpha = 1, beta = 0;
+		ActivationDescriptor activDesc;
+
+		if (mode == miopenRNNRELU)
+		{
+			activDesc = { miopenActivationRELU, 1, 0, 1 };
+		}
+		else if (mode == miopenRNNTANH)
+		{
+			activDesc = { miopenActivationTANH, 1, 1, 1 };
+		}
+
+		activDesc.Forward(handle,
+			&alpha,
+			miopen::deref(rsvTensor),
+			reserveSpace,
+			&beta,
+			miopen::deref(rsvTensor),
+			reserveSpace);
+
+		for (int li = 0; li <= numlayer; li++)
+		{
+			// between layers
+			if (li == 0)
+			{
+				MIOpenGEMM::gemm0<float>(false,
+					true,
+					false,
+					in_h,
+					hy_h * bi,
+					batch_n,
+					1,
+					x,
+					0,
+					in_stride,
+					workSpace,
+					0,
+					hy_stride,
+					1,
+					dw,
+					0,
+					wei_stride,
+					&Q,
+					0,
+					nullptr,
+					nullptr);
+
+				if (biased)
+				{
+
+				}
+			}
+			else if (li == numlayer)
+			{
+				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+				int prelayer_shift = (li - 1) * bi * batch_n * hy_h;
+
+				MIOpenGEMM::gemm0<float>(false,
+					true,
+					false,
+					out_h,
+					hy_h * bi,
+					batch_n,
+					1,
+					dy,
+					0,
+					out_stride,
+					reserveSpace,
+					prelayer_shift,
+					hy_stride,
+					1,
+					dw,
+					wei_shift,
+					wei_stride,
+					&Q,
+					0,
+					nullptr,
+					nullptr);
+
+				if (biased)
+				{
+
+				}
+			}
+			else
+			{
+				int prelayer_shift = (li - 1) * bi * batch_n * hy_h;
+				int hid_shift = li * bi * batch_n * hy_h;
+				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+
+				MIOpenGEMM::gemm0<float>(false,
+					true,
+					false,
+					hy_h * bi,
+					hy_h * bi,
+					batch_n,
+					1,
+					reserveSpace,
+					prelayer_shift,
+					hy_stride,
+					workSpace,
+					hid_shift,
+					hy_stride,
+					1,
+					dw,
+					wei_shift,
+					wei_stride,
+					&Q,
+					0,
+					nullptr,
+					nullptr);
+
+				if (biased)
+				{
+
+				}
+			}
+
+			// between time
+			if (li < numlayer)
+			{
+				bacc = 0;
+				for (int ti = 0; ti < seqLen; ti++)
+				{
+					int hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride;
+					int hx_shift = li * bi * in_n[0] * hy_h;
+					int wei_shift;
+					int pretime_shift;
+
+					wei_shift =
+						li == 0 ? (in_h * hy_stride)
+						: (bi * (in_h + hy_h) * hy_h +
+						(li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
+
+					if (ti == 0)
+					{
+						MIOpenGEMM::gemm0<float>(false,
+							true,
+							false,
+							hy_h,
+							hy_h,
+							in_n[ti],
+							1,
+							hx,
+							hx_shift,
+							h_stride,
+							workSpace,
+							hid_shift,
+							hy_stride,
+							1,
+							dw,
+							wei_shift,
+							wei_stride,
+							&Q,
+							0,
+							nullptr,
+							nullptr);
+					}
+					else
+					{
+						pretime_shift = li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_stride;
+
+						MIOpenGEMM::gemm0<float>(false,
+							true,
+							false,
+							hy_h,
+							hy_h,
+							in_n[ti],
+							1,
+							reserveSpace,
+							pretime_shift,
+							hy_stride,
+							workSpace,
+							hid_shift,
+							hy_stride,
+							1,
+							dw,
+							wei_shift,
+							wei_stride,
+							&Q,
+							0,
+							nullptr,
+							nullptr);
+					}
+
+					if (bidirection)
+					{
+						if (ti == seqLen - 1)
+						{
+							MIOpenGEMM::gemm0<float>(false,
+								true,
+								false,
+								hy_h,
+								hy_h,
+								in_n[ti],
+								1,
+								hx,
+								hx_shift + hy_h,
+								h_stride,
+								workSpace,
+								hid_shift + hy_h,
+								hy_stride,
+								1,
+								dw,
+								wei_shift + hy_h,
+								wei_stride,
+								&Q,
+								0,
+								nullptr,
+								nullptr);
+						}
+						else
+						{
+							pretime_shift = li * bi * batch_n * hy_h + (bacc + in_n[ti]) * hy_stride;
+
+							MIOpenGEMM::gemm0<float>(false,
+								true,
+								false,
+								hy_h,
+								hy_h,
+								in_n[ti + 1],
+								1,
+								reserveSpace,
+								pretime_shift + hy_h,
+								hy_stride,
+								workSpace,
+								hid_shift + hy_h,
+								hy_stride,
+								1,
+								dw,
+								wei_shift + hy_h,
+								wei_stride,
+								&Q,
+								0,
+								nullptr,
+								nullptr);
+						}
+					}
+
+					bacc += in_n[ti];
+				}
+			}
+		}
+#else
+		MIOPEN_THROW("GEMM is not supported");
+#endif
+	}
+	else if (mode == miopenLSTM)
+	{
+		printf("lstm gpu bwd weights \n");
+	}
+	else if (mode == miopenGRU)
+	{
+		printf("gru gpu bwd weights \n");
+	}
+
+	clFinish(Q);
 };
 
 } // namespace miopen
