@@ -60,7 +60,8 @@ int mlo_construct_neuron::mloConstruct()
     int read_unit         = 4;
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
-    size_t map_size         = _in_width * _in_height * _n_inputs * _batch_sz;
+    size_t map_size = _search_params.in_width * _search_params.in_height * _search_params.n_inputs *
+                      _search_params.batch_sz;
     size_t map_size_aligned = (map_size + read_unit - 1) / read_unit;
     int N_PIXS_OFF          = map_size - (map_size / read_unit) * read_unit;
 

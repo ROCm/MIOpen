@@ -29,27 +29,26 @@
 #include <cassert>
 #include <iostream>
 #include <miopen/common.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
+#include <miopen/each_args.hpp>
 #include <vector>
 // TODO(paul): remove this include later
 #include <cstdio>
 
 namespace miopen {
 
-template <class T>
-auto tie4(T&& x) -> decltype(std::tie(x[0], x[1], x[2], x[3]))
+template <class T, std::size_t... Ns>
+auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
 {
-    assert(x.size() == 4);
-    return std::tie(x[0], x[1], x[2], x[3]);
+    assert(x.size() == sizeof...(Ns));
+    return std::tie(x[Ns]...);
 }
 
-template <class T>
-auto tie2(T&& x) -> decltype(std::tie(x[0], x[1]))
+template <std::size_t N, class T>
+auto tien(T&& x) -> decltype(tie_impl(std::forward<T>(x), typename detail::gens<N>::type{}))
 {
-    assert(x.size() == 2);
-    return std::tie(x[0], x[1]);
+    return tie_impl(std::forward<T>(x), typename detail::gens<N>::type{});
 }
 
 struct TensorDescriptor : miopenTensorDescriptor
