@@ -28,6 +28,7 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
 
 std::string GetGcnAssemblerPath();
 bool ValidateGcnAssembler();
@@ -35,5 +36,22 @@ int ExecuteGcnAssembler(std::vector<std::string>& args,
                         std::istream* clang_stdin_content,
                         std::ostream* clang_stdout_content);
 void AmdgcnAssemble(std::string& source, const std::string& params);
+
+template <typename TValue>
+void GenerateClangDefsym(std::ostream& stream, const std::string& name, TValue value)
+{
+    GenerateClangDefsym<const std::string&>(stream, name, std::to_string(value));
+}
+
+template <>
+void GenerateClangDefsym<const std::string&>(std::ostream& stream,
+                                             const std::string& name,
+                                             const std::string& value);
+
+/// @param dir 1: fwd, 0: bwd wrt data. Use 0 for WrW.
+/// Encodes key with default strides (u1v1)
+std::string MakeLutKey(int w, int h, int c, int n, int k, int dir, int CUs = -1);
+/// Allows for any strides.
+std::string MakeLutKey(int w, int h, int c, int n, int k, int u, int v, int dir, int CUs = -1);
 
 #endif // GCN_ASM_UTILS_H
