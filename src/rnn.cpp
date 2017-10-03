@@ -16,7 +16,7 @@ namespace miopen {
 RNNDescriptor::RNNDescriptor()
 {
     seqLength = 0;
-    nlayers   = 0;
+    nLayers   = 0;
     rnnMode   = miopenRNNRELU;
     dirMode   = miopenRNNunidirection;
     algoMode  = miopenRNNdefault;
@@ -50,7 +50,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
                              miopenDataType_t dType)
 {
     hsize = seqLength = hsz;
-    nlayers           = layers;
+    nLayers           = layers;
 
     inputMode = inMode;
     dirMode   = bidir;
@@ -65,7 +65,11 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                 const int sLen,
                                 TensorDescriptor** xDesc) const 
 {
-    size_t x = 0;
+    // NOTE dlowell: this calculation may change during development.
+    // currently this is calculated the same as Workspace size
+    // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType * numberOfHiddenMatricesPerCell + Extra 
+    // GetElemSize will get vector len * batch_size
+    size_t x = sLen*xDesc[0]->GetElementSize()*nLayers*sizeof(xDesc[0]->GetType())*nHiddenLayers;
     return x;
 }
 
@@ -75,7 +79,10 @@ size_t RNNDescriptor::GetReserveSize(Handle& handle,
                                 const int sLen,
                                 TensorDescriptor** xDesc) const
 {
-    size_t x = 0;
+    // NOTE dlowell: this calculation may change during development.
+    // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType * numberOfHiddenMatricesPerCell + Extra 
+    // GetElemSize will get vector len * batch_size
+    size_t x = sLen*xDesc[0]->GetElementSize()*nLayers*sizeof(xDesc[0]->GetType())*nHiddenLayers;
     return x;
 }
 
@@ -84,7 +91,7 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
                                     const TensorDescriptor& xDesc,
                                     miopenDataType_t dtype) const
 {
-    size_t x = 0;
+    // x = nLayers * 
     return x;
 }
 
@@ -96,6 +103,8 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
                                   const TensorDescriptor& paramDesc,
                                   Data_t** layerParam) const
 {
+    
+    
 }
 
 void RNNDescriptor::GetLayerBias(Handle& handle,

@@ -35,7 +35,8 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     int hsize;
     int seqLength;
-    int nlayers;
+    int nLayers;
+    int nHiddenLayers; // TODO dlowell: set via constructor, or "set" functions
 
     miopenRNNMode_t rnnMode;
     miopenRNNDirectionMode_t dirMode;
