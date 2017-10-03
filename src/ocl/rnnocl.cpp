@@ -210,7 +210,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					li == 0 ? (in_h * hy_h * bi)
 					: (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
 						bi * hy_h * hy_stride);
-				
+				/*
 				if (ti == 0)
 				{
 //					auto tmp_y = handle.Create(hy_h * in_n[ti] * sizeof(yDesc.GetType()));
@@ -292,7 +292,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							hid_shift + baccbi * hy_stride + hy_h);
 					}
 				}
-				
+				*/
 				int rsv_sz = batch_n * hy_d * hy_h;
 				std::vector<int> rsv_size(3, 1);
 				rsv_size.push_back(rsv_sz);
