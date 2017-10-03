@@ -570,6 +570,8 @@ typedef enum {
     miopenConvolutionFwdAlgoDirect   = 1, /*!< Direct convolutions */
     miopenConvolutionFwdAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionFwdAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+	miopenRNNFwdAlgoGEMMfull = 4,  /*!< GEMM for RNN */
+	miopenRNNFwdAlgoGEMMpartial = 5,
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -589,6 +591,7 @@ typedef enum {
     miopenConvolutionBwdDataAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
     miopenTransposeBwdDataAlgoGEMM       = 4, /*!< Transpose GEMM variant */
+	miopenRNNBwdDataAlgoGEMMfull = 5,
 } miopenConvBwdDataAlgorithm_t;
 
 /*! @struct miopenConvAlgoPerf_t
