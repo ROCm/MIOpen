@@ -50,7 +50,7 @@ struct verify_forward_sofmax
         std::fill(out.begin(), out.end(), 0);
 
         int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
             T max_c = std::numeric_limits<T>::lowest();
@@ -97,7 +97,7 @@ struct verify_backward_sofmax
         auto input = dout;
 
         int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
             T sum = 0;

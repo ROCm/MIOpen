@@ -52,6 +52,21 @@ by_t<F, P> by(F f, P p)
     return {std::move(f), std::move(p)};
 }
 
+template <class F, class G>
+struct compose_t
+{
+    F f;
+    G g;
+    template <class... Ts>
+    auto operator()(Ts&&... xs) const MIOPEN_RETURNS(f(g(std::forward<Ts>(xs)...)))
+};
+
+template <class F, class G>
+compose_t<F, G> compose(F f, G g)
+{
+    return {std::move(f), std::move(g)};
+}
+
 template <class F>
 struct sequence_t
 {
