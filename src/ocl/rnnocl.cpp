@@ -414,13 +414,27 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
 		int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
+		gg = CreateGemmGeometryRNN(batch_n,
+			out_h,
+			hy_h * bi,
+			1,
+			1,
+			false,
+			true,
+			false,
+			hy_stride,
+			wei_stride,
+			out_stride,
+			false,
+			network_config);
+
 /*		gg = CreateGemmGeometryRNNbwddatafull(batch_n,
 			out_h,
 			hy_h * bi,
 			false,
-			network_config);
+			network_config);*/
 
-//		gg.FindSolution(.003, handle, workSpace, w, y, false);
+		gg.FindSolution(.003, handle, workSpace, w, y, false);
 		//gg = GetGemmGeometry("miopenRNNBwdDataAlgoGEMMfull", network_config);
 
 		gg.RunGemm(handle,
@@ -429,7 +443,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			y,
 			prelayer_shift,
 			wei_shift,
-			0);*/
+			0);
 
 		if (biased)
 		{
