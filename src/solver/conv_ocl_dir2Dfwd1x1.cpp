@@ -71,21 +71,12 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 
             N_LCL_IN_MAPS  = std::min(N_LCL_IN_MAPS, C);
             N_LCL_OUT_MAPS = std::min(N_LCL_OUT_MAPS, K);
-            if(N_LCL_OUT_MAPS > 32 && (K % N_LCL_OUT_MAPS) != 0)
+
+            while((K % N_LCL_OUT_MAPS) != 0 && N_LCL_OUT_MAPS > 16)
             {
-                N_LCL_OUT_MAPS = 32;
+                N_LCL_OUT_MAPS /= 2;
             }
 
-            if(N_LCL_OUT_MAPS > 16 && (K % N_LCL_OUT_MAPS) != 0)
-            {
-                N_LCL_OUT_MAPS = 16;
-            }
-            /*
-                                    if (N_LCL_OUT_MAPS > 8 && (K % N_LCL_OUT_MAPS) != 0)
-                                    {
-                                            N_LCL_OUT_MAPS = 8;
-                                    }
-            */
             result.n_out_pix_tiles = N_LCL_OUT_MAPS;
 
             if(N_LCL_IN_MAPS < C && N_LCL_IN_MAPS > 0 && (N_LCL_IN_MAPS % 8) == 0)
