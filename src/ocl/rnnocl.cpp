@@ -160,11 +160,25 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			{
 //				auto tmp_y = handle.Create(hy_h * bi * batch_n * sizeof(yDesc.GetType()));
 
-				gg = CreateGemmGeometryRNNfwdfull(batch_n,
+				gg = CreateGemmGeometryRNN(batch_n,
+					hy_h * bi,
+					in_h,
+					1,
+					1,
+					false,
+					false,
+					false,
+					in_stride,
+					wei_stride,
+					hy_stride,
+					false,
+					std::string& network_config);
+
+/*				gg = CreateGemmGeometryRNNfwdfull(batch_n,
 					hy_h * bi,
 					in_h,
 					false,
-					network_config);
+					network_config);*/
 
 				gg.FindSolution(.003, handle, x, w, reserveSpace, false);
 //				gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
@@ -182,11 +196,25 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
 //				auto tmp_y = handle.Create(hy_h * bi * batch_n * sizeof(yDesc.GetType()));
 
-				gg = CreateGemmGeometryRNNfwdfull(batch_n,
+				gg = CreateGemmGeometryRNN(batch_n,
+					hy_h * bi,
+					hy_h * bi,
+					1,
+					1,
+					false,
+					false,
+					false,
+					hy_stride,
+					wei_stride,
+					hy_stride,
+					false,
+					std::string& network_config);
+
+/*				gg = CreateGemmGeometryRNNfwdfull(batch_n,
 					hy_h * bi,
 					hy_h * bi,
 					false,
-					network_config);
+					network_config);*/
 
 				gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
 				//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
@@ -253,7 +281,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							hid_shift + baccbi * hy_stride + hy_h);
 					}
 				}
-				else
+/*				else
 				{
 					gg = CreateGemmGeometryRNNfwdpartial(in_n[ti],
 						hy_h,
