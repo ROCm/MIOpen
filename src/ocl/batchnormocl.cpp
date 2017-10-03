@@ -78,7 +78,7 @@ void BatchNormForwardTraining(Handle& handle,
     std::string network_config{};
 
     int n, c, h, w;
-    std::tie(n, c, h, w) = tie4(xDesc.GetLengths());
+    std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
     unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
@@ -444,7 +444,7 @@ void BatchNormForwardInference(Handle& handle,
         std::string parms{}; // compiler parameters
 
         int n, c, h, w;
-        std::tie(n, c, h, w) = tie4(xDesc.GetLengths());
+        std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
         unsigned int in_nstride = c * h * w;
         unsigned int in_cstride = h * w;
@@ -590,7 +590,7 @@ void BatchNormBackward(Handle& handle,
     std::string parms{};
 
     int n, c, h, w;
-    std::tie(n, c, h, w) = tie4(xDesc.GetLengths());
+    std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
     unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;

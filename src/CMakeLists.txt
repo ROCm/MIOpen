@@ -56,10 +56,10 @@ function(add_kernels KERNEL_FILES)
 endfunction()
 
 set( MIOpen_Source
+    check_numerics.cpp
     convolution.cpp
     convolution_api.cpp
     convolution_fft.cpp
-    errors.cpp
     load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
@@ -73,12 +73,14 @@ set( MIOpen_Source
 	rnn.cpp
 	rnn_api.cpp
     include/miopen/batch_norm.hpp
+    include/miopen/check_numerics.hpp
     include/miopen/common.hpp
     include/miopen/convolution.hpp
     include/miopen/convolution_fft.hpp
     include/miopen/errors.hpp
     include/miopen/handle.hpp
     include/miopen/kernel_cache.hpp
+    include/miopen/solver.hpp
     include/miopen/mlo_internal.hpp
     include/miopen/mlo_utils.hpp
     include/miopen/oclkernel.hpp
@@ -91,6 +93,23 @@ set( MIOpen_Source
 	include/miopen/rnn.hpp
     tensor.cpp
     tensor_api.cpp
+    solver/conv_asm_3x3u.cpp
+    solver/conv_asm_5x10u2v2f1.cpp
+    solver/conv_asm_5x10u2v2b1.cpp
+    solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
+    solver/conv_asm_dir_BwdWrW3x3.cpp
+    solver/conv_bin_wino3x3U.cpp
+    solver/conv_bin_winoRxSFwd.cpp
+    solver/conv_ocl_dir2D_bwdWrW_2.cpp
+    solver/conv_ocl_dir2D_bwdWrW_53.cpp
+    solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
+    solver/conv_ocl_dir2Dfwdgen.cpp
+    solver/conv_ocl_dir2D11x11.cpp
+    solver/conv_ocl_dir2D3x3.cpp
+    solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
+    solver/conv_ocl_dir2Dfwd.cpp
+    solver/conv_ocl_dir2DfwdC.cpp
+    solver/conv_ocl_dir2Dfwd1x1.cpp
     )
 
 if(MIOPEN_USE_CACHE)
@@ -99,6 +118,7 @@ endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNELS
+        kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
         kernels/MIOpenBatchNormFwdTrainPerAct.cl
         kernels/MIOpenBatchNormFwdInferSpatial.cl

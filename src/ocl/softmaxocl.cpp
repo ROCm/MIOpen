@@ -26,6 +26,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/softmax.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/check_numerics.hpp>
 
 namespace miopen {
 
@@ -58,7 +59,7 @@ miopenStatus_t SoftmaxForward(
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
     int n, c, h, w;
-    std::tie(n, c, h, w) = tie4(yDesc.GetLengths());
+    std::tie(n, c, h, w) = tien<4>(yDesc.GetLengths());
 
     std::string program_name = "MIOpenSoftmax.cl";
     std::string kernel_name  = "SoftmaxForward";
@@ -104,6 +105,10 @@ miopenStatus_t SoftmaxForward(
         handle.GetKernel("miopenSoftmaxForward", "", program_name, kernel_name, vld, vgd, parms)(
             y, c, grid_size, spatial_dim);
     }
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, yDesc, y);
+    }
     return miopenStatusSuccess;
 }
 
@@ -124,9 +129,13 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, yDesc, y);
+    }
 
     int n, c, h, w;
-    std::tie(n, c, h, w) = tie4(dxDesc.GetLengths());
+    std::tie(n, c, h, w) = tien<4>(dxDesc.GetLengths());
 
     std::string program_name = "MIOpenSoftmax.cl";
     std::string kernel_name  = "SoftmaxBackward";
@@ -168,6 +177,10 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
 
         handle.GetKernel("miopenSoftmaxBackward", "", program_name, kernel_name, vld, vgd, parms)(
             y, dx, c, grid_size, spatial_dim);
+    }
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
 
     return miopenStatusSuccess;
