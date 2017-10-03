@@ -256,44 +256,44 @@ mloSelectDefaultConfig(std::string& conf_val,
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
     {
 
-            // version
-            if(params.forward && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0 &&
-               params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+        // version
+        if(params.forward && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0 &&
+           params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+        {
+            result.n_in_data_tiles = 128;
+
+            result.n_out_pix_tiles = 32;
+            // 0 or 1
+            // CHEAT_SHADER_COMPILER =
+            result.out_pix_tile0 = 0;
+
+            // int version =
+            result.out_pix_tile1 = 1;
+        }
+        else
+        {
+            int i_sz             = params.out_height * params.out_width;
+            result.out_pix_tile0 = (i_sz & 1) ? 1 : 2;
+
+            if(params.pad0 > 0 || params.kernel_stride0 > 1)
             {
-                result.n_in_data_tiles = 128;
-
-                result.n_out_pix_tiles = 32;
-                // 0 or 1
-                // CHEAT_SHADER_COMPILER =
-                result.out_pix_tile0 = 0;
-
-                // int version =
-                result.out_pix_tile1 = 1;
-            }
-            else
-            {
-                int i_sz             = params.out_height * params.out_width;
-                result.out_pix_tile0 = (i_sz & 1) ? 1 : 2;
-
-                if(params.pad0 > 0 || params.kernel_stride0 > 1)
+                if(params.forward)
                 {
-                    if(params.forward)
-                    {
-                        result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
-                    }
-                    else
-                    {
-                        result.out_pix_tile0 =
-                            ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
-                    }
+                    result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
                 }
-
-                result.n_out_pix_tiles = 16;
-                result.n_in_data_tiles = 4;
-                result.grp_tile0       = 64;
-                // int version =
-                result.out_pix_tile1 = 0;
+                else
+                {
+                    result.out_pix_tile0 =
+                        ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
+                }
             }
+
+            result.n_out_pix_tiles = 16;
+            result.n_in_data_tiles = 4;
+            result.grp_tile0       = 64;
+            // int version =
+            result.out_pix_tile1 = 0;
+        }
     }
 
     mloBuildConf_Val(conf_val,
