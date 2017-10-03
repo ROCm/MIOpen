@@ -78,7 +78,7 @@ inline double miopen_mach_absolute_time() // Linux
     t.tv_sec  = 0;
     t.tv_usec = 0;
     gettimeofday(&t, nullptr);
-    d = (t.tv_sec * 1000.0) + t.tv_usec / 1000; // TT: was 1000000.0
+    d = (t.tv_sec * 1000.0) + t.tv_usec / 1000.0; // TT: was 1000000.0
     return (d);
 }
 #endif
@@ -109,25 +109,25 @@ inline double subtractTimes(double endTime, double startTime)
 #endif
 
 /**
-* for the opencl program file processing
-*/
+ * for the opencl program file processing
+ */
 class mloFile
 {
     public:
     /**
-    *Default constructor
-    */
+     *Default constructor
+     */
     mloFile() : source_("") {}
 
     /**
-    * Destructor
-    */
+     * Destructor
+     */
     ~mloFile() = default;
 
     /**
-    * Opens the CL program file
-    * @return true if success else false
-    */
+     * Opens the CL program file
+     * @return true if success else false
+     */
     bool open(const char* fileName)
     {
         size_t size;
@@ -160,12 +160,12 @@ class mloFile
     }
 
     /**
-    * writeBinaryToFile
-    * @param fileName Name of the file
-    * @param binary char binary array
-    * @param numBytes number of bytes
-    * @return true if success else false
-    */
+     * writeBinaryToFile
+     * @param fileName Name of the file
+     * @param binary char binary array
+     * @param numBytes number of bytes
+     * @return true if success else false
+     */
     int writeBinaryToFile(const char* fileName, const char* binary, size_t numBytes)
     {
         FILE* output = nullptr;
@@ -180,10 +180,10 @@ class mloFile
     }
 
     /**
-    * readBinaryToFile
-    * @param fileName name of file
-    * @return true if success else false
-    */
+     * readBinaryToFile
+     * @param fileName name of file
+     * @return true if success else false
+     */
     int readBinaryFromFile(const char* fileName)
     {
         using FilePtr = MIOPEN_MANAGE_PTR(FILE, fclose);
@@ -207,8 +207,8 @@ class mloFile
     }
 
     /**
-    * Replaces Newline with spaces
-    */
+     * Replaces Newline with spaces
+     */
     void replaceNewlineWithSpaces()
     {
         size_t pos = source_.find_first_of('\n', 0);
@@ -226,19 +226,19 @@ class mloFile
     }
 
     /**
-    * source
-    * Returns a pointer to the string object with the source code
-    */
+     * source
+     * Returns a pointer to the string object with the source code
+     */
     const std::string& source() const { return source_; }
 
     /**
-    * Disable copy constructor
-    */
+     * Disable copy constructor
+     */
     mloFile(const mloFile&) = delete;
 
     /**
-    * Disable operator=
-    */
+     * Disable operator=
+     */
     mloFile& operator=(const mloFile&) = delete;
 
     private:

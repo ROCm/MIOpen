@@ -29,6 +29,46 @@
 #include "ford.hpp"
 #include "network_data.hpp"
 #include <miopen/tensor.hpp>
+#include <miopen/functional.hpp>
+
+template <class F>
+void visit_tensor_size(std::size_t n, F f)
+{
+    switch(n)
+    {
+    case 0:
+    {
+        f(std::integral_constant<std::size_t, 0>{});
+        break;
+    }
+    case 1:
+    {
+        f(std::integral_constant<std::size_t, 1>{});
+        break;
+    }
+    case 2:
+    {
+        f(std::integral_constant<std::size_t, 2>{});
+        break;
+    }
+    case 3:
+    {
+        f(std::integral_constant<std::size_t, 3>{});
+        break;
+    }
+    case 4:
+    {
+        f(std::integral_constant<std::size_t, 4>{});
+        break;
+    }
+    case 5:
+    {
+        f(std::integral_constant<std::size_t, 5>{});
+        break;
+    }
+    default: throw std::runtime_error("Unknown tensor size");
+    }
+}
 
 template <class T>
 struct tensor
@@ -72,39 +112,69 @@ struct tensor
     void generate_impl(G g)
     {
         auto iterator = data.begin();
-        this->for_each([&](int i, int j, int k, int m) {
+        auto assign   = [&](T x) {
             assert(iterator < data.end());
-            *iterator = g(i, j, k, m);
+            *iterator = x;
             ++iterator;
-        });
+        };
+        this->for_each(miopen::compose(assign, std::move(g)));
     }
+
+    template <class Loop, class F>
+    struct for_each_unpacked
+    {
+        Loop loop;
+        F f;
+        template <class... Ts>
+        auto operator()(Ts... xs) const -> decltype(f(xs...), void())
+        {
+            loop(xs...)(std::move(f));
+        }
+
+        void operator()(...) const
+        {
+            throw std::runtime_error("Arguments to for_each do not match tensor size");
+        }
+    };
+
+    struct for_each_handler
+    {
+        template <class Self, class Loop, class F, class Size>
+        void operator()(Self* self, Loop loop, F f, Size size) const
+        {
+            auto dims = miopen::tien<size>(self->desc.GetLengths());
+            miopen::unpack(for_each_unpacked<Loop, F>{loop, std::move(f)}, dims);
+        }
+    };
 
     template <class F>
     void for_each(F f) const
     {
-        int n, c, h, w;
-        std::tie(n, c, h, w) = miopen::tie4(desc.GetLengths());
-        ford(n, c, h, w)(std::move(f));
+        visit_tensor_size(
+            desc.GetLengths().size(),
+            std::bind(for_each_handler{}, this, ford, std::move(f), std::placeholders::_1));
     }
 
     template <class F>
     void par_for_each(F f) const
     {
-        int n, c, h, w;
-        std::tie(n, c, h, w) = miopen::tie4(desc.GetLengths());
-        par_ford(n, c, h, w)(std::move(f));
+        visit_tensor_size(
+            desc.GetLengths().size(),
+            std::bind(for_each_handler{}, this, par_ford, std::move(f), std::placeholders::_1));
     }
 
-    T& operator()(int n, int c, int h, int w)
+    template <class... Ts>
+    T& operator()(Ts... xs)
     {
-        assert(this->desc.GetIndex(n, c, h, w) < data.size());
-        return this->data[this->desc.GetIndex(n, c, h, w)];
+        assert(this->desc.GetIndex(xs...) < data.size());
+        return this->data[this->desc.GetIndex(xs...)];
     }
 
-    const T& operator()(int n, int c, int h, int w) const
+    template <class... Ts>
+    const T& operator()(Ts... xs) const
     {
-        assert(this->desc.GetIndex(n, c, h, w) < data.size());
-        return this->data[this->desc.GetIndex(n, c, h, w)];
+        assert(this->desc.GetIndex(xs...) < data.size());
+        return this->data[this->desc.GetIndex(xs...)];
     }
 
     T& operator[](std::size_t i) { return data.at(i); }
