@@ -170,7 +170,6 @@ static inline void dppRegReduce16(_FLOAT* value, _FLOAT scale)
     *value += as_float(__builtin_amdgcn_mov_dpp(as_int(*value), 0x102, 0xF, 0xF, 0));
     *value += as_float(__builtin_amdgcn_mov_dpp(as_int(*value), 0x104, 0xF, 0xF, 0));
     *value += as_float(__builtin_amdgcn_mov_dpp(as_int(*value), 0x108, 0xF, 0xF, 0));
-    //    *value += as_float(__builtin_amdgcn_mov_dpp(as_int(*value), 0x108, 0xF, 0x9, 0));
     *value = as_float(__builtin_amdgcn_readlane(as_int(*value), 0));
     *value *= scale;
 }
@@ -451,6 +450,10 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_VARIANT == 1)
 
+#ifdef __AMDGCN__
+#undef __AMDGCN__
+#endif
+
 //=============== SINGLE WORKGROUP PER CHANNEL
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
@@ -601,7 +604,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     // #3 add epsilon for numeric stability, sq_root, and invert
     invVar = rsqrt(variance + epsilon);
 #endif // !useSaved
-
     if(ylid < MIO_BN_HW)
     {
 #pragma unroll
@@ -620,6 +622,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 //===dBias reduction=======================
 #ifdef __AMDGCN__
+
 #if(MIO_BN_HW > 16)
     dppRegReduce64(&db, 1);
 #elif(MIO_BN_HW > 1)
@@ -627,8 +630,9 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif // HW
 #else  // GCN
 
+    barrier(CLK_LOCAL_MEM_FENCE);
 #if(MIO_BN_HW > 16)
-    regLDSreduce(&db, lcl_data, ylid, INHW);
+    regLDSreduce(&db, lcl_data, ylid, 1);
 #elif(MIO_BN_HW > 1)
     lcl_data[ylid] = db;
     barrier(CLK_LOCAL_MEM_FENCE);
