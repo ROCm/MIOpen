@@ -158,12 +158,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			// from input
 			if (li == 0)
 			{
-				CreateGemmGeometryRNNfwdfull(batch_n,
+				gg = CreateGemmGeometryRNNfwdfull(batch_n,
 					hy_h * bi,
 					in_h,
 					false,
 					network_config);
-				gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
+//				gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
 				
 				gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
@@ -177,12 +177,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
 
-				CreateGemmGeometryRNNfwdfull(batch_n,
+				gg = CreateGemmGeometryRNNfwdfull(batch_n,
 					hy_h * bi,
 					hy_h * bi,
 					false,
 					network_config);
-				gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
+				//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
 
 				gg.RunGemm(handle, workSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
@@ -206,12 +206,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 				if (ti == 0)
 				{
-					CreateGemmGeometryRNNfwdpartial(in_n[ti],
+					gg = CreateGemmGeometryRNNfwdpartial(in_n[ti],
 						hy_h,
 						hy_h,
 						false,
 						network_config);
-					gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
+					//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
 
 					gg.RunGemm(handle, 
 						hx, 
@@ -222,12 +222,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 					if (bidirection)
 					{
-						CreateGemmGeometryRNNfwdpartial(in_n[seqLen - 1 - ti],
+						gg = CreateGemmGeometryRNNfwdpartial(in_n[seqLen - 1 - ti],
 							hy_h,
 							hy_h,
 							false,
 							network_config);
-						gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
+						//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
 
 						gg.RunGemm(handle, 
 							hx, 
@@ -240,12 +240,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				}
 				else
 				{
-					CreateGemmGeometryRNNfwdpartial(in_n[ti],
+					gg = CreateGemmGeometryRNNfwdpartial(in_n[ti],
 						hy_h,
 						hy_h,
 						false,
 						network_config);
-					gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
+					//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
 
 					gg.RunGemm(handle, 
 						workSpace, 
@@ -257,12 +257,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 					if (bidirection)
 					{
-						CreateGemmGeometryRNNfwdpartial(in_n[seqLen - ti],
+						gg = CreateGemmGeometryRNNfwdpartial(in_n[seqLen - ti],
 							hy_h,
 							hy_h,
 							false,
 							network_config);
-						gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
+						//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
 
 						gg.RunGemm(handle, 
 							workSpace, 
@@ -310,12 +310,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
 		int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
-		CreateGemmGeometryRNNbwddatafull(batch_n,
+		gg = CreateGemmGeometryRNNbwddatafull(batch_n,
 			out_h,
 			hy_h * bi,
 			false,
 			network_config);
-		gg = GetGemmGeometry("miopenRNNBwdDataAlgoGEMMfull", network_config);
+		//gg = GetGemmGeometry("miopenRNNBwdDataAlgoGEMMfull", network_config);
 
 		gg.RunGemm(handle,
 			workSpace,
