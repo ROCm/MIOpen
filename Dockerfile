@@ -59,9 +59,7 @@ RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/
 RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b roc-1.6.x /hcc && \
     cd hcc && \
     git submodule init && \
-    git submodule foreach --recursive 'git rev-parse HEAD | xargs -I {} git fetch --depth=1 origin {} && git reset --hard FETCH_HEAD' && \
     git submodule update --recursive && \
-    git clone --depth 1 https://github.com/RadeonOpenCompute/clang-tools-extra.git -b roc-1.6.x clang/tools/extra && \
     cget -p $PREFIX install hcc,. && cd .. && rm -rf /hcc
 
 # This is a workaround for broken installations
@@ -72,7 +70,7 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install hip
-RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@660061c3b43ba704018ba5353746cedf7d6ec1a9
+RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@roc-1.6.x
 
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 
@@ -94,7 +92,7 @@ RUN cget install -p $PREFIX/x86_64-w64-mingw32/opencl pfultz2/OpenCL-ICD-Loader@
 RUN cget -p $PREFIX/x86_64-w64-mingw32 install pfultz2/rocm-recipes
 RUN cget -p $PREFIX/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@dad05201ad4e096c5d1b2043081f412aeb8f5efb
 RUN ln -s $PREFIX/x86_64-w64-mingw32/include/mingw.thread.h $PREFIX/x86_64-w64-mingw32/include/thread 
-RUN CXXFLAGS='-I $PREFIX/x86_64-w64-mingw32/include' AMDAPPSDKROOT=$PREFIX/x86_64-w64-mingw32/opencl cget -p $PREFIX/x86_64-w64-mingw32 install -f /dev-requirements.txt
+# RUN CXXFLAGS='-I $PREFIX/x86_64-w64-mingw32/include' AMDAPPSDKROOT=$PREFIX/x86_64-w64-mingw32/opencl cget -p $PREFIX/x86_64-w64-mingw32 install -f /dev-requirements.txt
 
 # Setup wine
 RUN mkdir -p /jenkins

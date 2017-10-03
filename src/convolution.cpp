@@ -28,7 +28,6 @@
 #include <miopen/errors.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace miopen {
 
@@ -91,14 +90,14 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
     std::ptrdiff_t input_h;
     std::ptrdiff_t input_w;
 
-    std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(inputTensorDesc.GetLengths());
+    std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(inputTensorDesc.GetLengths());
 
     std::ptrdiff_t filter_k;
     std::ptrdiff_t filter_c;
     std::ptrdiff_t filter_h;
     std::ptrdiff_t filter_w;
 
-    std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tie4(filterDesc.GetLengths());
+    std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tien<4>(filterDesc.GetLengths());
 
     if(mode == miopenConvolution)
     {
@@ -150,10 +149,10 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
                                                           const TensorDescriptor& yDesc) const
 {
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tie4(yDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tien<4>(yDesc.GetLengths());
 
     int wei_c, wei_h, wei_w;
-    std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(wDesc.GetLengths());
+    std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
 
     size_t workspace_size = wei_c * wei_h * wei_w * out_h * out_w * sizeof(yDesc.GetType());
 
@@ -174,9 +173,10 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
                                                    const TensorDescriptor& wDesc,
                                                    const TensorDescriptor& xDesc) const
 {
-    const auto perf_filtering = miopen::IsEnabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
-    if(perf_filtering || miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{}))
     {
+        // Support for MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING is not copypasted here.
+        // Right now this does not matter as there is none perf filtering for Winograd
         return false;
     }
 
@@ -195,8 +195,8 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
         return false;
     }
 
-    std::tie(_batch_sz, _n_inputs, _in_height, _in_width)             = tie4(xDesc.GetLengths());
-    std::tie(_n_outputs_w, _n_inputs_w, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
+    std::tie(_batch_sz, _n_inputs, _in_height, _in_width)             = tien<4>(xDesc.GetLengths());
+    std::tie(_n_outputs_w, _n_inputs_w, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
 
     _n_outputs = direction ? _n_outputs_w : _n_inputs_w;
     return pad_h == 1 && pad_w == 1 && _kernel_size0 == 3 && _kernel_size1 == 3 && u == 1 &&
@@ -212,23 +212,55 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
 
 bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const
 {
-    int _kernel_size0, _kernel_size1;
-    std::tie(std::ignore, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
+    int k, c, _kernel_size0, _kernel_size1;
+    std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
 
-    return !((_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
-             (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
-             (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
+    bool supported_filters =
+        ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
+         (_kernel_size0 == 7 && _kernel_size1 == 7) ||
+         (_kernel_size0 == 11 && _kernel_size1 == 11) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0));
+
+    bool workarounds =
+        ((_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
+         (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
+         (_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 2 || v > 2)) ||
+         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0) || (k < 16 || (k & (k - 1)) != 0));
+
+    bool knowns = (_kernel_size0 == 5 && _kernel_size1 == 5 && c == 1 && u == 2 && v == 2);
+
+    return knowns || !(!supported_filters || workarounds);
 }
 
 bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) const
 {
-    int k, _kernel_size0, _kernel_size1;
-    std::tie(k, std::ignore, _kernel_size0, _kernel_size1) = tie4(wDesc.GetLengths());
 
-    return !(
-        (_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 1 || v > 1)) ||
-        (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0 || k == 1)) ||
-        (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
+    int k, c, _kernel_size0, _kernel_size1;
+    std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
+
+    bool supported_filters =
+        ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
+         (_kernel_size0 == 7 && _kernel_size1 == 7) ||
+         (_kernel_size0 == 11 && _kernel_size1 == 11) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0));
+
+    bool workarounds =
+        ((_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 1 || v > 1)) ||
+         (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0 || k == 1)) ||
+         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0) || (k < 16 || (k & (k - 1)) != 0));
+
+    bool knowns = ((_kernel_size0 == 3 && _kernel_size1 == 3 && c == 3 && u == 2 && v == 2) ||
+                   (_kernel_size0 == 5 && _kernel_size1 == 5 && c == 1 && u == 2 && v == 2));
+
+    return knowns || !(!supported_filters || workarounds);
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
@@ -314,14 +346,15 @@ ConvolutionDescriptor::GetBackwardsWeightsDim(const TensorDescriptor& inputTenso
     std::size_t input_h;
     std::size_t input_w;
 
-    std::tie(input_n, input_c, input_h, input_w) = miopen::tie4(inputTensorDesc.GetLengths());
+    std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(inputTensorDesc.GetLengths());
 
     std::size_t output_n;
     std::size_t output_c;
     std::size_t output_h;
     std::size_t output_w;
 
-    std::tie(output_n, output_c, output_h, output_w) = miopen::tie4(outputTensorDesc.GetLengths());
+    std::tie(output_n, output_c, output_h, output_w) =
+        miopen::tien<4>(outputTensorDesc.GetLengths());
 
     // if(input_c != filter_c) {
     // 	MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
@@ -350,14 +383,15 @@ ConvolutionDescriptor::GetBackwardOutputDim(const TensorDescriptor& outputTensor
     std::size_t output_h;
     std::size_t output_w;
 
-    std::tie(output_n, output_c, output_h, output_w) = miopen::tie4(outputTensorDesc.GetLengths());
+    std::tie(output_n, output_c, output_h, output_w) =
+        miopen::tien<4>(outputTensorDesc.GetLengths());
 
     std::size_t filter_k;
     std::size_t filter_c;
     std::size_t filter_h;
     std::size_t filter_w;
 
-    std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tie4(filterDesc.GetLengths());
+    std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tien<4>(filterDesc.GetLengths());
 
     if(output_c != filter_k)
     {
@@ -405,9 +439,9 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
                                                                const TensorDescriptor& dyDesc) const
 {
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tie4(dyDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tien<4>(dyDesc.GetLengths());
     int wei_c, wei_h, wei_w;
-    std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(wDesc.GetLengths());
+    std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
     size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * sizeof(dyDesc.GetType());
 
     // gfx803 devices have limited memory
@@ -423,9 +457,9 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
     Handle& handle, const TensorDescriptor& dyDesc, const TensorDescriptor& dwDesc) const
 {
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tie4(dyDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tien<4>(dyDesc.GetLengths());
     int wei_c, wei_h, wei_w;
-    std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tie4(dwDesc.GetLengths());
+    std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(dwDesc.GetLengths());
     size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * sizeof(dyDesc.GetType());
 
     // gfx803 devices have limited memory

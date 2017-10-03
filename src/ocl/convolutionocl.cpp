@@ -26,7 +26,9 @@
 #include <miopen/convolution.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
+#include <miopen/solver.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/check_numerics.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
@@ -251,12 +253,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     // GEMM based
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
     int wei_n, wei_h, wei_w;
 
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
     std::string network_config;
     std::string program_name;
@@ -265,7 +267,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     if(mode == miopenTranspose)
     {
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
+        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
 #if MIOPEN_USE_MIOPENGEMM
         size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
@@ -321,7 +323,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
     else if(mode == miopenConvolution)
     {
-        std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+        std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
 #if MIOPEN_USE_MIOPENGEMM
         size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
@@ -516,6 +518,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
     }
 
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, xDesc, x);
+        miopen::checkNumericsInput(handle, wDesc, w);
+    }
+
     if(mode == miopenConvolution)
     {
         if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
@@ -549,9 +557,15 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-                int n_passes = construct_params.mloConstructDirect2D_11x11(true);
+                ConvolutionContext context;
+                construct_params.mloCopyTo(context);
+                context.n_passes = true;
 
-                if(n_passes == 1)
+                solver::ConvOclDirectFwd11x11 solver;
+                auto config                   = solver.Find(context);
+                solver::ConvSolution solution = solver.GetSolution(context, *config);
+
+                if(solution.passes == 1)
                 {
                     kernel(x, w, y, padding_val);
                 }
@@ -622,13 +636,13 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         case miopenConvolutionFwdAlgoGEMM:
         {
             int in_n, in_c, in_h, in_w;
-            std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+            std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
             int wei_n, wei_h, wei_w;
-            std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+            std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
             int out_h, out_w;
-            std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+            std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
             if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
                (workSpace == nullptr ||
@@ -710,6 +724,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 bool timed  = handle.IsProfilingEnabled();
                 float timev = ExecuteFwdFFTKernel(
                     handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed);
+                // FIXME: Is workSpaceSize correct here? It seems that workspace_fft is.
 
                 if(timed)
                 {
@@ -730,13 +745,13 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         // GEMM based
         int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+        std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
         int wei_n, wei_h, wei_w;
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
+        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
         int out_h, out_w;
-        std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
+        std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
         if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
            (workSpace == nullptr ||
@@ -809,6 +824,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         MIOPEN_THROW("GEMM is not supported");
 #endif
     }
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, yDesc, y);
+    }
 }
 
 // FindBackwardDataAlgorithm()
@@ -848,12 +868,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     // GEMM based
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
 
     int wei_n, wei_h, wei_w;
 
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     std::string network_config;
     std::string program_name;
@@ -863,7 +883,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     if(mode == miopenTranspose)
     {
         // GEMM based
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
+        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
 #if MIOPEN_USE_MIOPENGEMM
         size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
@@ -1008,7 +1028,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         }
 
         // GEMM based
-        std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+        std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
 #if MIOPEN_USE_MIOPENGEMM
         size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
@@ -1122,6 +1142,16 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, dyDesc, dy);
+        miopen::checkNumericsInput(handle, wDesc, w);
+        if(!float_equal(*(static_cast<const float*>(beta)), 0))
+        {
+            miopen::checkNumericsInput(handle, dxDesc, dx);
+        }
+    }
+
     if(mode == miopenConvolution)
     {
         if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
@@ -1179,13 +1209,13 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         case miopenConvolutionBwdDataAlgoGEMM:
         {
             int in_n, in_c, in_h, in_w;
-            std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+            std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
 
             int wei_n, wei_h, wei_w;
-            std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
+            std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
             int out_h, out_w;
-            std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+            std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
             if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
                (workSpace == nullptr ||
@@ -1293,13 +1323,13 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         }
 
         int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = tie4(dxDesc.GetLengths());
+        std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
 
         int wei_n, wei_h, wei_w;
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(wDesc.GetLengths());
+        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
         int out_h, out_w;
-        std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+        std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
         if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
            (workSpace == nullptr ||
@@ -1370,6 +1400,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         MIOPEN_THROW("GEMM is not supported");
 #endif
     }
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dxDesc, dx);
+    }
 }
 
 // ConvolutionBackwardWeightsGetWorkSpaceSize
@@ -1410,19 +1444,19 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     // GEMM based
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
     int wei_n, wei_h, wei_w;
 
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     std::string network_config;
     size_t workspace_req = 0;
 
     if(mode == miopenTranspose)
     {
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
 #if MIOPEN_USE_MIOPENGEMM
         GemmGeometry gg =
@@ -1476,7 +1510,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     }
     else if(mode == miopenConvolution)
     {
-        std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+        std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
 #if MIOPEN_USE_MIOPENGEMM
         GemmGeometry gg =
@@ -1700,22 +1734,36 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, dyDesc, dy);
+        miopen::checkNumericsInput(handle, xDesc, x);
+        if(!float_equal(*(static_cast<const float*>(beta)), 0))
+        {
+            miopen::checkNumericsInput(handle, dwDesc, dw);
+        }
+    }
+
     int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
+    std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
     int wei_n, wei_h, wei_w;
 
     int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(dyDesc.GetLengths());
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     if(mode == miopenConvolution)
     {
-        std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+        std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
         switch(algo)
         {
         case miopenConvolutionBwdWeightsAlgoGEMM:
         {
+            // Zeroing out the output buffer
+            float zero = 0.0f;
+            SetTensor(handle, dwDesc, dw, &zero);
+
             std::string network_config;
 
             if((wei_h != 1 || wei_w != 1 || v != 1 || u != 1) &&
@@ -1853,7 +1901,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     }
     else if(mode == miopenTranspose)
     {
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tie4(dwDesc.GetLengths());
+        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
         std::string network_config;
 
@@ -1927,6 +1975,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         MIOPEN_THROW("GEMM is not supported");
 #endif
     }
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dwDesc, dw);
+    }
 }
 
 void ConvolutionBackwardBias(Handle& handle,
@@ -1950,10 +2003,14 @@ void ConvolutionBackwardBias(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, dyDesc, dy);
+    }
 
     int out_n, out_c, out_h, out_w, stride_n, stride_c, stride_h, stride_w;
-    std::tie(out_n, out_c, out_h, out_w)             = tie4(dyDesc.GetLengths());
-    std::tie(stride_n, stride_c, stride_h, stride_w) = tie4(dyDesc.GetStrides());
+    std::tie(out_n, out_c, out_h, out_w)             = tien<4>(dyDesc.GetLengths());
+    std::tie(stride_n, stride_c, stride_h, stride_w) = tien<4>(dyDesc.GetStrides());
     std::string program_name = "MIOpenConvBwdBias.cl";
     std::string kernel_name  = "MIOpenConvBwdB";
 
@@ -1984,6 +2041,11 @@ void ConvolutionBackwardBias(Handle& handle,
 
     handle.GetKernel("miopenConvolutionBwdBias", "", program_name, kernel_name, vld, vgd, params)(
         dy, db);
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dbDesc, db);
+    }
 }
 
 } // namespace miopen
