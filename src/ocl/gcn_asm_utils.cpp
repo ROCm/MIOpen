@@ -439,5 +439,26 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
     (void)source; // -warning
     (void)params; // -warning
     MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
-#endif // __linux__
+#endif //__linux__
+}
+
+template <>
+void GenerateClangDefsym<const std::string&>(std::ostream& stream,
+                                             const std::string& name,
+                                             const std::string& value)
+{
+    stream << " -Wa,-defsym," << name << "=" << value;
+}
+
+std::string MakeLutKey(int w, int h, int c, int n, int k, int u, int v, int dir, int CUs)
+{
+    std::ostringstream ss;
+    ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << u << ";" << v << ";" << dir
+       << ";" << CUs;
+    return ss.str();
+}
+
+std::string MakeLutKey(int w, int h, int c, int n, int k, int dir, int CUs)
+{
+    return MakeLutKey(w, h, c, n, k, 1, 1, dir, CUs);
 }

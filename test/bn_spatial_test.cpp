@@ -68,14 +68,14 @@ struct verify_forward_train_bn_spatial
         double expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
         std::size_t rs_n_batch, rs_channels, rs_height, rs_width;
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
 
         std::tie(rs_n_batch, rs_channels, rs_height, rs_width) =
-            miopen::tie4(derivedBnDesc.GetLengths());
+            miopen::tien<4>(derivedBnDesc.GetLengths());
 
         auto runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
         auto runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
@@ -192,7 +192,7 @@ struct verify_forward_train_bn_spatial
             adjust = (n_batch * height * width == 1) ? variance_accum
                                                      : (nhw / (nhw - 1)) * variance_accum;
             runVar(0, cidx, 0, 0) =
-                expAvgFactor * runVar(0, cidx, 0, 0) + (1 - expAvgFactor) * adjust;
+                (1 - expAvgFactor) * runVar(0, cidx, 0, 0) + expAvgFactor * adjust;
         });
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -215,7 +215,7 @@ struct verify_forward_train_bn_spatial
         auto&& handle = get_handle();
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
         auto out = input;
         std::fill(out.begin(), out.end(), 0);
@@ -226,7 +226,7 @@ struct verify_forward_train_bn_spatial
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
 
         std::tie(rs_n_batch, rs_channels, rs_height, rs_width) =
-            miopen::tie4(derivedBnDesc.GetLengths());
+            miopen::tien<4>(derivedBnDesc.GetLengths());
 
         auto runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
         auto runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
@@ -323,7 +323,7 @@ struct verify_forward_infer_bn_spatial_recalc
         double epsilon = MIO_BN_TEST_EPSILON;
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
         auto out = input;
         std::fill(out.begin(), out.end(), 0);
@@ -477,7 +477,7 @@ struct verify_forward_infer_bn_spatial_use_est
         double epsilon = MIO_BN_TEST_EPSILON;
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
         auto out = input;
         std::fill(out.begin(), out.end(), 0);
@@ -591,13 +591,13 @@ struct verify_backward_bn_spatial_recalc
         double epsilon = MIO_BN_TEST_EPSILON;
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(x_input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
 
         std::size_t ss_n_batch, ss_channels, ss_height, ss_width;
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_height, ss_width) =
-            miopen::tie4(derivedBnDesc.GetLengths());
+            miopen::tien<4>(derivedBnDesc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
@@ -764,7 +764,7 @@ struct verify_backward_bn_spatial_recalc
         auto&& handle = get_handle();
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(x_input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
@@ -773,7 +773,7 @@ struct verify_backward_bn_spatial_recalc
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_height, ss_width) =
-            miopen::tie4(derivedBnDesc.GetLengths());
+            miopen::tien<4>(derivedBnDesc.GetLengths());
 
         auto dscale = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
         std::fill(dscale.begin(), dscale.end(), 0);
@@ -859,7 +859,7 @@ struct verify_backward_bn_spatial_use_saved
 #endif
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(x_input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
@@ -868,7 +868,7 @@ struct verify_backward_bn_spatial_use_saved
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_height, ss_width) =
-            miopen::tie4(derivedBnDesc.GetLengths());
+            miopen::tien<4>(derivedBnDesc.GetLengths());
 
         auto dscale = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
         std::fill(dscale.begin(), dscale.end(), 0);
@@ -974,7 +974,7 @@ struct verify_backward_bn_spatial_use_saved
         auto&& handle = get_handle();
 
         std::size_t n_batch, channels, height, width;
-        std::tie(n_batch, channels, height, width) = miopen::tie4(x_input.desc.GetLengths());
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
 
         auto dx_out = tensor<T>{n_batch, channels, height, width};
         std::fill(dx_out.begin(), dx_out.end(), 0);
@@ -983,7 +983,7 @@ struct verify_backward_bn_spatial_use_saved
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x_input.desc, miopenBNSpatial);
         std::tie(ss_n_batch, ss_channels, ss_height, ss_width) =
-            miopen::tie4(derivedBnDesc.GetLengths());
+            miopen::tien<4>(derivedBnDesc.GetLengths());
 
         auto dscale = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
         std::fill(dscale.begin(), dscale.end(), 0);
@@ -1075,7 +1075,7 @@ struct batch_norm_spatial_driver : test_driver
 
         std::size_t n, c, h, w;
 
-        std::tie(n, c, h, w) = miopen::tie4(input.desc.GetLengths());
+        std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
 
         if(n == 1)
         { // Invalid batch size for batch normalization
@@ -1085,7 +1085,7 @@ struct batch_norm_spatial_driver : test_driver
         std::size_t ssn, ssc, ssh, ssw;
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
-        std::tie(ssn, ssc, ssh, ssw) = miopen::tie4(derivedBnDesc.GetLengths());
+        std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
         scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
         shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
