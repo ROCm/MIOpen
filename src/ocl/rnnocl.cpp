@@ -33,7 +33,9 @@
 #include <vector>
 #include <numeric>
 
-#include <miopengemm/gemm.hpp>
+#if MIOPEN_USE_MIOPENGEMM
+#include <miopen/gemm.hpp>
+#endif
 
 namespace miopen {
 
@@ -142,10 +144,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
-	{				
+	{
+		std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
 		printf("rnn gpu fwd \n");
 
+		GemmGeometry gg;
 		for (int li = 0; li < numlayer; li++)
 		{
 			int hid_shift = li * batch_n * hy_h * bi;
@@ -154,27 +158,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			// from input
 			if (li == 0)
 			{
-				MIOpenGEMM::gemm0<float>(false,
-					false,
-					false,
-					batch_n,
+				CreateGemmGeometryRNNfwdfull(batch_n,
 					hy_h * bi,
 					in_h,
-					1,
-					x,
-					0,
-					in_stride,
-					w,
-					0,
-					wei_stride,
-					1,
-					reserveSpace,
-					hid_shift,
-					hy_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
+				
+				gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
 				if (biased)
 				{
@@ -186,27 +177,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
 
-				MIOpenGEMM::gemm0<float>(false,
-					false,
-					false,
-					batch_n,
+				CreateGemmGeometryRNNfwdfull(batch_n,
 					hy_h * bi,
 					hy_h * bi,
-					1,
-					workSpace,
-					prelayer_shift,
-					hy_stride,
-					w,
-					wei_shift,
-					wei_stride,
-					1,
-					reserveSpace,
-					hid_shift,
-					hy_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
+
+				gg.RunGemm(handle, workSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
 				if (biased)
 				{
@@ -228,100 +206,71 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 				if (ti == 0)
 				{
-					MIOpenGEMM::gemm0<float>(false,
-						false,
-						false,
-						in_n[ti],
+					CreateGemmGeometryRNNfwdpartial(in_n[ti],
 						hy_h,
 						hy_h,
-						1,
-						hx,
-						hx_shift,
-						h_stride,
-						w,
-						wei_shift,
-						wei_stride,
-						1,
-						reserveSpace,
-						hid_shift + bacc * hy_stride,
-						hy_stride,
-						&Q,
-						0,
-						nullptr,
-						nullptr);
+						false,
+						network_config);
+					gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
+
+					gg.RunGemm(handle, 
+						hx, 
+						w, 
+						reserveSpace, 
+						hx_shift, 
+						wei_shift, hid_shift + bacc * hy_stride);
 
 					if (bidirection)
 					{
-						MIOpenGEMM::gemm0<float>(false,
-							false,
-							false,
-							in_n[seqLen - 1 - ti],
+						CreateGemmGeometryRNNfwdpartial(in_n[seqLen - 1 - ti],
 							hy_h,
 							hy_h,
-							1,
-							hx,
-							hx_shift + hy_h,
-							h_stride,
-							w,
-							wei_shift + hy_h,
-							wei_stride,
-							1,
-							reserveSpace,
-							hid_shift + baccbi * hy_stride + hy_h,
-							hy_stride,
-							&Q,
-							0,
-							nullptr,
-							nullptr);
+							false,
+							network_config);
+						gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
+
+						gg.RunGemm(handle, 
+							hx, 
+							w, 
+							reserveSpace, 
+							hx_shift + hy_h, 
+							wei_shift + hy_h, 
+							hid_shift + baccbi * hy_stride + hy_h);
 					}
 				}
 				else
 				{
-					MIOpenGEMM::gemm0<float>(false,
-						false,
-						false,
-						in_n[ti],
+					CreateGemmGeometryRNNfwdpartial(in_n[ti],
 						hy_h,
 						hy_h,
-						1,
-						workSpace,
-						hid_shift + (bacc - in_n[ti - 1]) * hy_stride,
-						hy_stride,
-						w,
-						wei_shift,
-						wei_stride,
-						1,
-						reserveSpace,
-						hid_shift + bacc * hy_stride,
-						hy_stride,
-						&Q,
-						0,
-						nullptr,
-						nullptr);
+						false,
+						network_config);
+					gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
+
+					gg.RunGemm(handle, 
+						workSpace, 
+						w, 
+						reserveSpace, 
+						hid_shift + (bacc - in_n[ti - 1]) * hy_stride, 
+						wei_shift, 
+						hid_shift + bacc * hy_stride);
 
 					if (bidirection)
 					{
-						MIOpenGEMM::gemm0<float>(false,
-							false,
-							false,
-							in_n[seqLen - ti],
+						CreateGemmGeometryRNNfwdpartial(in_n[seqLen - ti],
 							hy_h,
 							hy_h,
-							1,
-							workSpace,
-							hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride + hy_h,
-							hy_stride,
-							w,
-							wei_shift + hy_h,
-							wei_stride,
-							1,
-							reserveSpace,
-							hid_shift + baccbi * hy_stride + hy_h,
-							hy_stride,
-							&Q,
-							0,
-							nullptr,
-							nullptr);
+							false,
+							network_config);
+						gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
+
+						gg.RunGemm(handle, 
+							workSpace, 
+							w, 
+							reserveSpace, 
+							hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride + hy_h, 
+							wei_shift + hy_h, 
+							hid_shift + baccbi * hy_stride + hy_h);
 					}
 				}
 				
@@ -361,27 +310,20 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
 		int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
-		MIOpenGEMM::gemm0<float>(false,
-			false,
-			true,
-			batch_n,
+		CreateGemmGeometryRNNbwddatafull(batch_n,
 			out_h,
 			hy_h * bi,
-			1,
+			false,
+			network_config);
+		gg = GetGemmGeometry("miopenRNNBwdDataAlgoGEMMfull", network_config);
+
+		gg.RunGemm(handle,
 			workSpace,
-			prelayer_shift,
-			hy_stride,
 			w,
-			wei_shift,
-			wei_stride,
-			1,
 			y,
-			0,
-			out_stride,
-			&Q,
-			0,
-			nullptr,
-			nullptr);
+			prelayer_shift,
+			wei_shift,
+			0);
 
 		if (biased)
 		{
@@ -487,7 +429,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 	{
 #if MIOPEN_USE_MIOPENGEMM
 		printf("rnn gpu bwd data \n");
-
+/*
 		for (int li = numlayer - 1; li >= 0; li--)
 		{
 			int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
@@ -632,7 +574,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 			&Q,
 			0,
 			nullptr,
-			nullptr);
+			nullptr);*/
 #else
 		MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -708,7 +650,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 	{
 #if MIOPEN_USE_MIOPENGEMM
 		printf("rnn gpu bwd weights \n");
-
+/*
 		int rsv_sz = batch_n * hy_d * hy_h;
 		std::vector<int> rsv_size(3, 1);
 		rsv_size.push_back(rsv_sz);
@@ -959,7 +901,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 					bacc += in_n[ti];
 				}
 			}
-		}
+		}*/
 #else
 		MIOPEN_THROW("GEMM is not supported");
 #endif
