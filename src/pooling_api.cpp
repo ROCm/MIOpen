@@ -71,11 +71,11 @@ extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescri
     return miopen::try_([&] {
         miopen::deref(mode) = miopen::deref(poolDesc).mode;
         std::tie(miopen::deref(windowHeight), miopen::deref(windowWidth)) =
-            miopen::tie2(miopen::deref(poolDesc).GetLengths());
+            miopen::tien<2>(miopen::deref(poolDesc).GetLengths());
         std::tie(miopen::deref(u), miopen::deref(v)) =
-            miopen::tie2(miopen::deref(poolDesc).GetStrides());
+            miopen::tien<2>(miopen::deref(poolDesc).GetStrides());
         std::tie(miopen::deref(pad_h), miopen::deref(pad_w)) =
-            miopen::tie2(miopen::deref(poolDesc).GetPads());
+            miopen::tien<2>(miopen::deref(poolDesc).GetPads());
     });
 }
 
