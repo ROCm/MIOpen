@@ -341,10 +341,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						activDesc.Forward(handle,
 							&alpha,
 							miopen::deref(rsvTensor),
-							handle.CreateSubBuffer(reserveSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h),
+							DataCast(handle.CreateSubBuffer(reserveSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h)),
 							&beta,
 							miopen::deref(rsvTensor),
-							handle.CreateSubBuffer(workSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h));
+							DataCast(handle.CreateSubBuffer(workSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h)));
 					
 				}
 				else
