@@ -723,7 +723,7 @@ loop_channel:
   s_mov_b32 s14, 2*inp_stride_c
   s_mov_b32 s15, 0x00020000
   v_mul_u32_u24 v0, 2, v6
-  v_add_u32 v0, vcc, v0, s22
+  v_add_u32 v0, vcc, s22, v0
   v_cmp_gt_u32 vcc, 4 * inp_w, v0
   s_mov_b64 s[0:1], vcc
   v_cmp_gt_u32 vcc, 4 * (inp_w - 1), v0

@@ -271,6 +271,7 @@ int ConvDriver<T>::AddCmdLineArgs()
         "mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
     inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)", "int");
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
+    inflags.AddInputFlag("in_bias", 'a', "", "Input bias filename (Default=)", "string");
 
     return 0;
 }
@@ -423,8 +424,9 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     dwei_host = std::vector<T>(wei_sz, 0);
     din_host  = std::vector<T>(in_sz, 0);
 
-    std::string inFileName  = inflags.GetValueStr("in_data");
-    std::string weiFileName = inflags.GetValueStr("weights");
+    std::string inFileName   = inflags.GetValueStr("in_data");
+    std::string weiFileName  = inflags.GetValueStr("weights");
+    std::string biasFileName = inflags.GetValueStr("in_bias");
 
     /* Unless seed is persistent between runs validation using cache stored in file is impossible.
      */
@@ -469,6 +471,11 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
             }
         }
 
+        if(!biasFileName.empty())
+        {
+            readBufferFromFile(b.data(), b_sz, biasFileName.c_str());
+        }
+
         b_dev->ToGPU(q, b.data());
         db_dev->ToGPU(q, db.data());
     }
@@ -492,6 +499,8 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     {
         dumpBufferToFile("dump_in.bin", in.data(), in_sz);
         dumpBufferToFile("dump_wei.bin", wei.data(), wei_sz);
+        if(inflags.GetValueInt("bias") != 0)
+            dumpBufferToFile("dump_bias.bin", b.data(), GetTensorSize(biasTensor));
     }
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
