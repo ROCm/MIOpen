@@ -166,7 +166,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					false,
 					network_config);
 
-//				gg.FindSolution(.003, handle, x, w, tmp_y.get(), false);
+				gg.FindSolution(.003, handle, x, w, reserveSpace, false);
 //				gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
 				
 				gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
@@ -181,7 +181,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
 //				auto tmp_y = handle.Create(hy_h * bi * batch_n * sizeof(yDesc.GetType()));
-
+/*
 				gg = CreateGemmGeometryRNNfwdfull(batch_n,
 					hy_h * bi,
 					hy_h * bi,
@@ -196,7 +196,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				if (biased)
 				{
 
-				}
+				}*/
 			}
 
 			// from hidden state
@@ -210,7 +210,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					li == 0 ? (in_h * hy_h * bi)
 					: (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
 						bi * hy_h * hy_stride);
-
+				/*
 				if (ti == 0)
 				{
 //					auto tmp_y = handle.Create(hy_h * in_n[ti] * sizeof(yDesc.GetType()));
@@ -292,7 +292,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							hid_shift + baccbi * hy_stride + hy_h);
 					}
 				}
-				
+				*/
 				int rsv_sz = batch_n * hy_d * hy_h;
 				std::vector<int> rsv_size(3, 1);
 				rsv_size.push_back(rsv_sz);
@@ -329,7 +329,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
 		int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
-		gg = CreateGemmGeometryRNNbwddatafull(batch_n,
+/*		gg = CreateGemmGeometryRNNbwddatafull(batch_n,
 			out_h,
 			hy_h * bi,
 			false,
@@ -344,7 +344,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			y,
 			prelayer_shift,
 			wei_shift,
-			0);
+			0);*/
 
 		if (biased)
 		{
