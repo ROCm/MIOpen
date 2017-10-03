@@ -316,7 +316,83 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					}
 				}
 				
-				int rsv_sz = batch_n * hy_d * hy_h;
+				if (!bidirection)
+				{
+						int rsv_sz = in_n[ti] * hy_h;
+						std::vector<int> rsv_size(3, 1);
+						rsv_size.push_back(rsv_sz);
+
+						miopenTensorDescriptor_t rsvTensor;
+						miopenCreateTensorDescriptor(&rsvTensor);
+						SetTensor4d(rsvTensor, rsv_size);
+
+						float alpha = 1, beta = 0;
+						ActivationDescriptor activDesc;
+
+						if (mode == miopenRNNRELU)
+						{
+							activDesc = { miopenActivationRELU, 1, 0, 1 };
+						}
+						else if (mode == miopenRNNTANH)
+						{
+							activDesc = { miopenActivationTANH, 1, 1, 1 };
+						}
+
+						activDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(reserveSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h),
+							&beta,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(workSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h));
+					
+				}
+				else
+				{
+					int rsv_sz = hy_h;
+					std::vector<int> rsv_size(3, 1);
+					rsv_size.push_back(rsv_sz);
+
+					miopenTensorDescriptor_t rsvTensor;
+					miopenCreateTensorDescriptor(&rsvTensor);
+					SetTensor4d(rsvTensor, rsv_size);
+
+					float alpha = 1, beta = 0;
+					ActivationDescriptor activDesc;
+
+					if (mode == miopenRNNRELU)
+					{
+						activDesc = { miopenActivationRELU, 1, 0, 1 };
+					}
+					else if (mode == miopenRNNTANH)
+					{
+						activDesc = { miopenActivationTANH, 1, 1, 1 };
+					}
+
+					for (int bs = 0; bs < in_n[ti]; bs++)
+					{
+						activDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(reserveSpace, hid_shift + (bacc + bs) * hy_stride, hy_h),
+							&beta,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(workSpace, hid_shift + (bacc + bs) * hy_stride, hy_h));
+					}
+
+					for (int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
+					{
+						activDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(reserveSpace, hid_shift + (baccbi + bs) * hy_stride + hy_h, hy_h),
+							&beta,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(workSpace, hid_shift + (baccbi + bs) * hy_stride + hy_h, hy_h));
+					}
+				}
+
+/*				int rsv_sz = batch_n * hy_d * hy_h;
 				std::vector<int> rsv_size(3, 1);
 				rsv_size.push_back(rsv_sz);
 
@@ -343,6 +419,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					&beta,
 					miopen::deref(rsvTensor),
 					workSpace);
+					*/
 				
 				bacc += in_n[ti];
 			}
