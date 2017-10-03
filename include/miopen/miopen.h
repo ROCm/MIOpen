@@ -1417,21 +1417,12 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
  * @param yDesc                     Tensor descriptor for output data tensor y (input)
  * @param y                         Data tensor y (output)
  * @param bnScaleBiasMeanVarDesc    Tensor descriptor for BN scaling, shifting, saved variance and
-<<<<<<< HEAD
- * mean
- * @param bnScale                   Batch norm scaling (gamma) tensor
- * @param bnBias                    Batch norm bias (beta) tensor
- * @param estimatedMean             Running average saved during forward training
- * @param estimatedVariance         Running variance saved during forward training
- * @param epsilon                   Value to stabilize inverse variance calculation
-=======
  * mean (input)
  * @param bnScale                   Batch norm scaling, gamma, tensor (input)
  * @param bnBias                    Batch norm bias, beta, tensor (input)
  * @param estimatedMean             Running average saved during forward training (input)
  * @param estimatedVariance         Running variance saved during forward training (input)
  * @param epsilon                   Value to stabilize inverse variance calculation (input)
->>>>>>> develop
  * @return                          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
@@ -1473,15 +1464,6 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
  * @param dxDesc                    Tensor descriptor for output data tensor dx (input)
  * @param dx                        Data delta tensor dx (output)
  * @param bnScaleBiasDiffDesc       Tensor descriptor for BN scaling, shifting, saved variance and
-<<<<<<< HEAD
- * mean
- * @param bnScale                   Batch norm scaling (gamma) tensor
- * @param resultBnScaleDiff         Tensor for dscale
- * @param resultBnBiasDiff          Tensor for dbias
- * @param epsilon                   Value to stabilize inverse variance calculation
- * @param savedMean                 Saved mini-batch mean for backwards pass
- * @param savedInvVariance          Saved mini-bathc inverse variance for backwards pass
-=======
  * mean (input)
  * @param bnScale                   Batch norm scaling, gamma, tensor (input)
  * @param resultBnScaleDiff         Tensor for dscale (output)
@@ -1489,7 +1471,6 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
  * @param epsilon                   Value to stabilize inverse variance calculation (input)
  * @param savedMean                 Saved mini-batch mean for backwards pass (input)
  * @param savedInvVariance          Saved mini-bathc inverse variance for backwards pass (input)
->>>>>>> develop
  * @return                          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
@@ -1567,16 +1548,6 @@ miopenGetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
 
 /*! @brief Execute an activation forward layer
  *
-<<<<<<< HEAD
- * @param handle         MIOpen handle
- * @param activDesc      Descriptor for LRN layer
- * @param alpha          Scaling factor, always equal to 1
- * @param xDesc          Tensor descriptor for data input tensor x
- * @param x              Data tensor x
- * @param beta           Shift factor, always equal to 0
- * @param yDesc          Tensor descriptor for output data tensor y
- * @param y              Data tensor y
-=======
  * @param handle         MIOpen handle (input)
  * @param activDesc      Descriptor for activation layer (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -1585,7 +1556,6 @@ miopenGetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
  * @param beta           Floating point shift factor, allocated on the host (input)
  * @param yDesc          Tensor descriptor for output data tensor y (input)
  * @param y              Data tensor y (output)
->>>>>>> develop
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenActivationForward(miopenHandle_t handle,
