@@ -33,8 +33,7 @@ namespace solver {
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {
 
-	return (params.kernel_size0 == 1 && params.kernel_size1 == 1);
-
+    return (params.kernel_size0 == 1 && params.kernel_size1 == 1);
 }
 
 ConvSolution
@@ -46,7 +45,7 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
         dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
     searched_params.CopyTo(result);
 
- //   if(params.n_outputs % 4 == 0 && params.n_inputs % 4 == 0)
+    //   if(params.n_outputs % 4 == 0 && params.n_inputs % 4 == 0)
     {
         int version = result.out_pix_tile1;
 
@@ -215,20 +214,20 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             // parameters
             //	int i_sz = params.in_width * params.in_height;
             //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
-			result.out_pix_tile0 = std::min(params.out_width, result.out_pix_tile0);
-			result.out_pix_tile1 = std::min(params.out_height, result.out_pix_tile1);
-			while (params.out_width % result.out_pix_tile0 != 0 && result.out_pix_tile0 > 1)
-			{
-				result.out_pix_tile0 /= 2;
-			}
+            result.out_pix_tile0 = std::min(params.out_width, result.out_pix_tile0);
+            result.out_pix_tile1 = std::min(params.out_height, result.out_pix_tile1);
+            while(params.out_width % result.out_pix_tile0 != 0 && result.out_pix_tile0 > 1)
+            {
+                result.out_pix_tile0 /= 2;
+            }
 
-			int read_unit = result.out_pix_tile0;
-			while (params.in_width % read_unit != 0 && read_unit > 1)
-			{
-				read_unit /= 2;
-			}
+            int read_unit = result.out_pix_tile0;
+            while(params.in_width % read_unit != 0 && read_unit > 1)
+            {
+                read_unit /= 2;
+            }
 
-			//params.out_width
+            // params.out_width
             //	_n_out_pix_tiles = 16;
             //	_n_in_data_tiles = 4;
             //	_grp_tile0 = 64;
