@@ -172,7 +172,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					wei_stride,
 					hy_stride,
 					false,
-					std::string& network_config);
+					network_config);
 
 /*				gg = CreateGemmGeometryRNNfwdfull(batch_n,
 					hy_h * bi,
@@ -208,7 +208,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					wei_stride,
 					hy_stride,
 					false,
-					std::string& network_config);
+					network_config);
 
 /*				gg = CreateGemmGeometryRNNfwdfull(batch_n,
 					hy_h * bi,
