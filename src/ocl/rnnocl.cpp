@@ -163,6 +163,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					in_h,
 					false,
 					network_config);
+
+				gg.FindSolution(.003, handle, x, w, reserveSpace, false);
 //				gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
 				
 				gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
@@ -182,6 +184,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					hy_h * bi,
 					false,
 					network_config);
+
+				gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
 				//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMfull", network_config);
 
 				gg.RunGemm(handle, workSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
@@ -211,6 +215,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						hy_h,
 						false,
 						network_config);
+
+					gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
 					//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
 
 					gg.RunGemm(handle, 
@@ -227,6 +233,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							hy_h,
 							false,
 							network_config);
+
+						gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
 						//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
 
 						gg.RunGemm(handle, 
@@ -245,6 +253,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						hy_h,
 						false,
 						network_config);
+
+					gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
 					//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
 
 					gg.RunGemm(handle, 
@@ -262,6 +272,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							hy_h,
 							false,
 							network_config);
+
+						gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
 						//gg = GetGemmGeometry("miopenRNNFwdAlgoGEMMpartial", network_config);
 
 						gg.RunGemm(handle, 
@@ -315,6 +327,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			hy_h * bi,
 			false,
 			network_config);
+
+		gg.FindSolution(.003, handle, workSpace, w, y, false);
 		//gg = GetGemmGeometry("miopenRNNBwdDataAlgoGEMMfull", network_config);
 
 		gg.RunGemm(handle,
