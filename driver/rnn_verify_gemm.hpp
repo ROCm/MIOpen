@@ -128,7 +128,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
             int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
             int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
 
- /*           ADNN_mm_cpu<T>((const T*)&wk_state[prelayer_shift],
+            ADNN_mm_cpu<T>((const T*)&wk_state[prelayer_shift],
                            hy_h * bi,
                            batch_n,
                            hy_stride,
@@ -145,7 +145,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                            0,
                            1,
                            1);
-						   */
+
             // from bias
             if(biased)
             {
@@ -181,7 +181,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                 li == 0 ? (in_h * hy_h * bi)
                         : (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
                            bi * hy_h * hy_stride);
-			/*
+
             if(ti == 0)
             {
                 ADNN_mm_cpu<T>((const T*)&hx_state[hx_shift],
@@ -264,7 +264,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                                    1);
                 }
             }
-			*/
+
             for(int bs = 0; bs < in_n[ti]; bs++)
             {
                 for(int h = 0; h < hy_h; h++)
