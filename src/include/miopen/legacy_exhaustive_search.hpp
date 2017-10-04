@@ -46,10 +46,10 @@ class LegacyPerformanceConfig : public PerformanceConfig
     int n_stacks;
 
     void CopyTo(ConvSolution& iud) const;
-    void Serialize(std::ostream& stream) const;
-    bool Deserialize(const std::string& from);
+    void Serialize(std::ostream& stream) const override;
+    bool Deserialize(const std::string& from) override;
 };
-}
-}
+} // namespace solver
+} // namespace miopen
 
 #endif
