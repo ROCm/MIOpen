@@ -38,8 +38,6 @@ inline int FwdAlgoResolver(const std::string& s)
         {"miopenConvolutionFwdAlgoDirect", 1},
         {"miopenConvolutionFwdAlgoFFT", 2},
         {"miopenConvolutionFwdAlgoWinograd", 3},
-//		{ "miopenRNNFwdAlgoGEMMfull", 4 },
-//		{ "miopenRNNFwdAlgoGEMMpartial", 5 },
 		{ "miopenRNNAlgoGEMM", 4 },
     };
     return data.at(s);
@@ -53,7 +51,6 @@ inline int BwdDataAlgoResolver(const std::string& s)
         {"miopenConvolutionBwdDataAlgoFFT", 2},
         {"miopenConvolutionBwdDataAlgoWinograd", 3},
         {"miopenTransposeBwdDataAlgoGEMM", 4},
-//		{ "miopenRNNBwdDataAlgoGEMMfull", 5 },
     };
     return data.at(s);
 }
