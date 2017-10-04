@@ -55,6 +55,20 @@ struct null_deleter
 template <class T, class F, F f>
 using manage_ptr = std::unique_ptr<T, manage_deleter<F, f>>;
 
+template <class T>
+struct element_type
+{
+    using type = typename T::element_type;
+};
+
+template <class T>
+using remove_ptr = typename std::conditional<std::is_pointer<T>::value,
+                                             std::remove_pointer<T>,
+                                             element_type<T>>::type::type;
+
+template <class T>
+using shared = std::shared_ptr<remove_ptr<T>>;
+
 } // namespace miopen
 
 #define MIOPEN_MANAGE_PTR(T, F) \

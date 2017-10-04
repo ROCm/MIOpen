@@ -33,7 +33,9 @@
 #include <vector>
 #include <numeric>
 
-#include <miopengemm/gemm.hpp>
+#if MIOPEN_USE_MIOPENGEMM
+#include <miopen/gemm.hpp>
+#endif
 
 namespace miopen {
 
@@ -139,13 +141,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	int h_stride = hy_h * bi;
 	int out_stride = out_h;
 	int wei_stride = hy_h * bi;
-	cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
-	{				
+	{
+		std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
 		printf("rnn gpu fwd \n");
 
+		GemmGeometry gg;
 		for (int li = 0; li < numlayer; li++)
 		{
 			int hid_shift = li * batch_n * hy_h * bi;
@@ -154,27 +157,21 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			// from input
 			if (li == 0)
 			{
-				MIOpenGEMM::gemm0<float>(false,
-					false,
-					false,
-					batch_n,
+				gg = CreateGemmGeometryRNN(batch_n,
 					hy_h * bi,
 					in_h,
 					1,
-					x,
-					0,
-					in_stride,
-					w,
-					0,
-					wei_stride,
 					1,
-					reserveSpace,
-					hid_shift,
+					false,
+					false,
+					false,
+					in_stride,
+					wei_stride,
 					hy_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg.FindSolution(.003, handle, x, w, reserveSpace, false);
+				gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
 				if (biased)
 				{
@@ -186,27 +183,21 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
 
-				MIOpenGEMM::gemm0<float>(false,
-					false,
-					false,
-					batch_n,
+				gg = CreateGemmGeometryRNN(batch_n,
 					hy_h * bi,
 					hy_h * bi,
 					1,
-					workSpace,
-					prelayer_shift,
+					1,
+					false,
+					false,
+					false,
 					hy_stride,
-					w,
-					wei_shift,
 					wei_stride,
-					1,
-					reserveSpace,
-					hid_shift,
 					hy_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
+				gg.RunGemm(handle, workSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
 				if (biased)
 				{
@@ -225,106 +216,185 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					li == 0 ? (in_h * hy_h * bi)
 					: (bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
 						bi * hy_h * hy_stride);
-
+				
 				if (ti == 0)
 				{
-					MIOpenGEMM::gemm0<float>(false,
-						false,
-						false,
-						in_n[ti],
+					gg = CreateGemmGeometryRNN(in_n[ti],
 						hy_h,
 						hy_h,
 						1,
-						hx,
-						hx_shift,
+						1,
+						false,
+						false,
+						false,
 						h_stride,
-						w,
-						wei_shift,
 						wei_stride,
-						1,
-						reserveSpace,
-						hid_shift + bacc * hy_stride,
 						hy_stride,
-						&Q,
-						0,
-						nullptr,
-						nullptr);
+						false,
+						network_config);
+					gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
+					gg.RunGemm(handle, 
+						hx, 
+						w, 
+						reserveSpace, 
+						hx_shift, 
+						wei_shift, 
+						hid_shift + bacc * hy_stride);
 
 					if (bidirection)
 					{
-						MIOpenGEMM::gemm0<float>(false,
-							false,
-							false,
-							in_n[seqLen - 1 - ti],
+						gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
 							hy_h,
 							hy_h,
 							1,
-							hx,
-							hx_shift + hy_h,
+							1,
+							false,
+							false,
+							false,
 							h_stride,
-							w,
-							wei_shift + hy_h,
 							wei_stride,
-							1,
-							reserveSpace,
-							hid_shift + baccbi * hy_stride + hy_h,
 							hy_stride,
-							&Q,
-							0,
-							nullptr,
-							nullptr);
+							false,
+							network_config);
+						gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
+						gg.RunGemm(handle, 
+							hx, 
+							w, 
+							reserveSpace, 
+							hx_shift + hy_h, 
+							wei_shift + hy_h, 
+							hid_shift + baccbi * hy_stride + hy_h);
 					}
 				}
 				else
 				{
-					MIOpenGEMM::gemm0<float>(false,
-						false,
-						false,
-						in_n[ti],
+					gg = CreateGemmGeometryRNN(in_n[ti],
 						hy_h,
 						hy_h,
 						1,
-						workSpace,
-						hid_shift + (bacc - in_n[ti - 1]) * hy_stride,
+						1,
+						false,
+						false,
+						false,
 						hy_stride,
-						w,
-						wei_shift,
 						wei_stride,
-						1,
-						reserveSpace,
-						hid_shift + bacc * hy_stride,
 						hy_stride,
-						&Q,
-						0,
-						nullptr,
-						nullptr);
+						false,
+						network_config);
+					gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
+					gg.RunGemm(handle, 
+						workSpace, 
+						w, 
+						reserveSpace, 
+						hid_shift + (bacc - in_n[ti - 1]) * hy_stride, 
+						wei_shift, 
+						hid_shift + bacc * hy_stride);
 
 					if (bidirection)
 					{
-						MIOpenGEMM::gemm0<float>(false,
-							false,
-							false,
-							in_n[seqLen - ti],
+						gg = CreateGemmGeometryRNN(in_n[seqLen - ti],
 							hy_h,
 							hy_h,
 							1,
-							workSpace,
-							hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride + hy_h,
+							1,
+							false,
+							false,
+							false,
 							hy_stride,
-							w,
-							wei_shift + hy_h,
 							wei_stride,
-							1,
-							reserveSpace,
-							hid_shift + baccbi * hy_stride + hy_h,
 							hy_stride,
-							&Q,
-							0,
-							nullptr,
-							nullptr);
+							false,
+							network_config);
+						gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
+						gg.RunGemm(handle, 
+							workSpace, 
+							w, 
+							reserveSpace, 
+							hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride + hy_h, 
+							wei_shift + hy_h, 
+							hid_shift + baccbi * hy_stride + hy_h);
 					}
 				}
 				
+/*				if (!bidirection)
+				{
+						int rsv_sz = in_n[ti] * hy_h;
+						std::vector<int> rsv_size(3, 1);
+						rsv_size.push_back(rsv_sz);
+
+						miopenTensorDescriptor_t rsvTensor;
+						miopenCreateTensorDescriptor(&rsvTensor);
+						SetTensor4d(rsvTensor, rsv_size);
+
+						float alpha = 1, beta = 0;
+						ActivationDescriptor activDesc;
+
+						if (mode == miopenRNNRELU)
+						{
+							activDesc = { miopenActivationRELU, 1, 0, 1 };
+						}
+						else if (mode == miopenRNNTANH)
+						{
+							activDesc = { miopenActivationTANH, 1, 1, 1 };
+						}
+
+						shared<Data_t> mem1 = handle.CreateSubBuffer(reserveSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h);
+						shared<Data_t> mem2 = handle.CreateSubBuffer(workSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h);
+
+						activDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							mem1,
+							&beta,
+							miopen::deref(rsvTensor),
+							mem2);
+					
+				}
+				else
+				{
+					int rsv_sz = hy_h;
+					std::vector<int> rsv_size(3, 1);
+					rsv_size.push_back(rsv_sz);
+
+					miopenTensorDescriptor_t rsvTensor;
+					miopenCreateTensorDescriptor(&rsvTensor);
+					SetTensor4d(rsvTensor, rsv_size);
+
+					float alpha = 1, beta = 0;
+					ActivationDescriptor activDesc;
+
+					if (mode == miopenRNNRELU)
+					{
+						activDesc = { miopenActivationRELU, 1, 0, 1 };
+					}
+					else if (mode == miopenRNNTANH)
+					{
+						activDesc = { miopenActivationTANH, 1, 1, 1 };
+					}
+
+					for (int bs = 0; bs < in_n[ti]; bs++)
+					{
+						activDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(reserveSpace, hid_shift + (bacc + bs) * hy_stride, hy_h),
+							&beta,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(workSpace, hid_shift + (bacc + bs) * hy_stride, hy_h));
+					}
+
+					for (int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
+					{
+						activDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(reserveSpace, hid_shift + (baccbi + bs) * hy_stride + hy_h, hy_h),
+							&beta,
+							miopen::deref(rsvTensor),
+							handle.CreateSubBuffer(workSpace, hid_shift + (baccbi + bs) * hy_stride + hy_h, hy_h));
+					}
+				}*/
+
 				int rsv_sz = batch_n * hy_d * hy_h;
 				std::vector<int> rsv_size(3, 1);
 				rsv_size.push_back(rsv_sz);
@@ -361,27 +431,27 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
 		int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
-		MIOpenGEMM::gemm0<float>(false,
-			false,
-			true,
-			batch_n,
+		gg = CreateGemmGeometryRNN(batch_n,
 			out_h,
 			hy_h * bi,
 			1,
-			workSpace,
-			prelayer_shift,
-			hy_stride,
-			w,
-			wei_shift,
-			wei_stride,
 			1,
-			y,
-			0,
+			false,
+			true,
+			false,
+			hy_stride,
+			wei_stride,
 			out_stride,
-			&Q,
-			0,
-			nullptr,
-			nullptr);
+			false,
+			network_config);
+		gg.FindSolution(.003, handle, workSpace, w, y, false);
+		gg.RunGemm(handle,
+			workSpace,
+			w,
+			y,
+			prelayer_shift,
+			wei_shift,
+			0);
 
 		if (biased)
 		{
@@ -399,8 +469,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	{
 		printf("gru gpu fwd \n");
 	}
-	
-	clFinish(Q);
 };
 
 void RNNDescriptor::RNNBackwardData(Handle& handle,
@@ -481,12 +549,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 	int h_stride = hy_h * bi;
 	int out_stride = out_h;
 	int wei_stride = hy_h * bi;
-	cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
 	{
+		std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
 		printf("rnn gpu bwd data \n");
+
+		GemmGeometry gg;
 
 		for (int li = numlayer - 1; li >= 0; li--)
 		{
@@ -497,53 +567,41 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 			// feedback from output
 			if (li == numlayer - 1)
 			{
-				MIOpenGEMM::gemm0<float>(false,
-					false,
-					false,
-					batch_n,
+				gg = CreateGemmGeometryRNN(batch_n,
 					hy_h * bi,
 					out_h,
 					1,
-					dy,
-					0,
-					out_stride,
-					w,
-					wei_shift,
-					wei_stride,
 					1,
-					workSpace,
-					hid_shift,
+					false,
+					false,
+					false,
+					out_stride,
+					wei_stride,
 					hy_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg.FindSolution(.003, handle, dy, w, workSpace, false);
+				gg.RunGemm(handle, dy, w, workSpace, 0, wei_shift, hid_shift);
 			}
 			else
 			{
 				int prelayer_shift = (li + 1) * batch_n * hy_h * bi;
 
-				MIOpenGEMM::gemm0<float>(false,
+				gg = CreateGemmGeometryRNN(batch_n,
+					hy_h * bi,
+					hy_h * bi,
+					1,
+					1,
 					false,
 					true,
-					batch_n,
-					hy_h * bi,
-					hy_h * bi,
-					1,
-					workSpace,
-					prelayer_shift,
+					false,
 					hy_stride,
-					w,
-					wei_shift,
 					wei_stride,
-					1,
-					workSpace,
-					hid_shift,
 					hy_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg.FindSolution(.003, handle, workSpace, w, workSpace, false);
+				gg.RunGemm(handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift);
 			}
 
 
@@ -557,54 +615,41 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 					(li - 1) * bi * (bi * hy_h + hy_h) * hy_h +
 					bi * hy_h * hy_stride);
 
-
-				MIOpenGEMM::gemm0<float>(false,
-					false,
-					true,
-					in_n[ti],
+				gg = CreateGemmGeometryRNN(in_n[ti],
 					hy_h,
 					hy_h,
 					1,
-					workSpace,
-					hid_shift + bacc * hy_stride,
+					0,
+					false,
+					true,
+					false,
 					hy_stride,
-					w,
-					wei_shift,
 					wei_stride,
-					0,
-					dhx,
-					hx_shift,
 					hy_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg.FindSolution(.003, handle, workSpace, w, dhx, false);
+				gg.RunGemm(handle, workSpace, w, dhx, hid_shift + bacc * hy_stride, wei_shift, hx_shift);
 
 				if (bidirection)
 				{
 
 
-					MIOpenGEMM::gemm0<float>(false,
-						false,
-						true,
-						in_n[seqLen - 1 - ti],
+					gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
 						hy_h,
 						hy_h,
 						1,
-						workSpace,
-						hid_shift + baccbi * hy_stride + hy_h,
+						0,
+						false,
+						true,
+						false,
 						hy_stride,
-						w,
-						wei_shift + hy_h,
 						wei_stride,
-						0,
-						dhx,
-						hx_shift + hy_h,
 						hy_stride,
-						&Q,
-						0,
-						nullptr,
-						nullptr);
+						false,
+						network_config);
+					gg.FindSolution(.003, handle, workSpace, w, dhx, false);
+					gg.RunGemm(handle, workSpace, w, dhx, hid_shift + baccbi * hy_stride + hy_h, wei_shift + hy_h, hx_shift + hy_h);
 				}
 
 				baccbi += in_n[seqLen - 1 - ti];
@@ -612,27 +657,21 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 		}
 
 		// dinput
-		MIOpenGEMM::gemm0<float>(false,
-			false,
-			true,
-			batch_n,
+		gg = CreateGemmGeometryRNN(batch_n,
 			in_h,
 			hy_h * bi,
 			1,
-			workSpace,
-			0,
-			hy_stride,
-			w,
-			0,
-			wei_stride,
 			1,
-			dx,
-			0,
+			false,
+			true,
+			false,
+			hy_stride,
+			wei_stride,
 			in_stride,
-			&Q,
-			0,
-			nullptr,
-			nullptr);
+			false,
+			network_config);
+		gg.FindSolution(.003, handle, workSpace, w, dx, false);
+		gg.RunGemm(handle, workSpace, w, dx, 0, 0, 0);
 #else
 		MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -645,8 +684,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 	{
 		printf("gru gpu bwd data \n");
 	}
-
-	clFinish(Q);
 };
 
 void RNNDescriptor::RNNBackwardWeights(Handle& handle,
@@ -702,13 +739,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 	int h_stride = hy_h * bi;
 	int out_stride = out_h;
 	int wei_stride = hy_h * bi;
-	cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
 	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
 	{
+		std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
 		printf("rnn gpu bwd weights \n");
 
+		GemmGeometry gg;
 		int rsv_sz = batch_n * hy_d * hy_h;
 		std::vector<int> rsv_size(3, 1);
 		rsv_size.push_back(rsv_sz);
@@ -742,27 +780,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 			// between layers
 			if (li == 0)
 			{
-				MIOpenGEMM::gemm0<float>(false,
-					true,
-					false,
-					in_h,
+				gg = CreateGemmGeometryRNN(in_h,
 					hy_h * bi,
 					batch_n,
 					1,
-					x,
-					0,
-					in_stride,
-					workSpace,
-					0,
-					hy_stride,
 					1,
-					dw,
-					0,
+					true,
+					false,
+					false,
+					in_stride,
+					hy_stride,
 					wei_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg.FindSolution(.003, handle, x, workSpace, dw, false);
+				gg.RunGemm(handle, x, workSpace, dw, 0, 0, 0);
 
 				if (biased)
 				{
@@ -774,27 +806,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * bi * batch_n * hy_h;
 
-				MIOpenGEMM::gemm0<float>(false,
-					true,
-					false,
-					out_h,
+				gg = CreateGemmGeometryRNN(out_h,
 					hy_h * bi,
 					batch_n,
 					1,
-					dy,
-					0,
-					out_stride,
-					reserveSpace,
-					prelayer_shift,
-					hy_stride,
 					1,
-					dw,
-					wei_shift,
+					true,
+					false,
+					false,
+					out_stride,
+					hy_stride,
 					wei_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg.FindSolution(.003, handle, dy, reserveSpace, dw, false);
+				gg.RunGemm(handle, dy, reserveSpace, dw, 0, prelayer_shift, wei_shift);
 
 				if (biased)
 				{
@@ -807,27 +833,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 				int hid_shift = li * bi * batch_n * hy_h;
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
-				MIOpenGEMM::gemm0<float>(false,
-					true,
-					false,
-					hy_h * bi,
+				gg = CreateGemmGeometryRNN(hy_h * bi,
 					hy_h * bi,
 					batch_n,
 					1,
-					reserveSpace,
-					prelayer_shift,
-					hy_stride,
-					workSpace,
-					hid_shift,
-					hy_stride,
 					1,
-					dw,
-					wei_shift,
+					true,
+					false,
+					false,
+					hy_stride,
+					hy_stride,
 					wei_stride,
-					&Q,
-					0,
-					nullptr,
-					nullptr);
+					false,
+					network_config);
+				gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+				gg.RunGemm(handle, reserveSpace, workSpace, dw, prelayer_shift, hid_shift, wei_shift);
 
 				if (biased)
 				{
@@ -853,106 +873,82 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 					if (ti == 0)
 					{
-						MIOpenGEMM::gemm0<float>(false,
-							true,
-							false,
-							hy_h,
+						gg = CreateGemmGeometryRNN(hy_h,
 							hy_h,
 							in_n[ti],
 							1,
-							hx,
-							hx_shift,
-							h_stride,
-							workSpace,
-							hid_shift,
-							hy_stride,
 							1,
-							dw,
-							wei_shift,
+							true,
+							false,
+							false,
+							h_stride,
+							hy_stride,
 							wei_stride,
-							&Q,
-							0,
-							nullptr,
-							nullptr);
+							false,
+							network_config);
+						gg.FindSolution(.003, handle, hx, workSpace, dw, false);
+						gg.RunGemm(handle, hx, workSpace, dw, hx_shift, hid_shift, wei_shift);
 					}
 					else
 					{
 						pretime_shift = li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_stride;
 
-						MIOpenGEMM::gemm0<float>(false,
-							true,
-							false,
-							hy_h,
+						gg = CreateGemmGeometryRNN(hy_h,
 							hy_h,
 							in_n[ti],
 							1,
-							reserveSpace,
-							pretime_shift,
-							hy_stride,
-							workSpace,
-							hid_shift,
-							hy_stride,
 							1,
-							dw,
-							wei_shift,
+							true,
+							false,
+							false,
+							hy_stride,
+							hy_stride,
 							wei_stride,
-							&Q,
-							0,
-							nullptr,
-							nullptr);
+							false,
+							network_config);
+						gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+						gg.RunGemm(handle, reserveSpace, workSpace, dw, pretime_shift, hid_shift, wei_shift);
 					}
 
 					if (bidirection)
 					{
 						if (ti == seqLen - 1)
 						{
-							MIOpenGEMM::gemm0<float>(false,
-								true,
-								false,
-								hy_h,
+							gg = CreateGemmGeometryRNN(hy_h,
 								hy_h,
 								in_n[ti],
 								1,
-								hx,
-								hx_shift + hy_h,
-								h_stride,
-								workSpace,
-								hid_shift + hy_h,
-								hy_stride,
 								1,
-								dw,
-								wei_shift + hy_h,
+								true,
+								false,
+								false,
+								h_stride,
+								hy_stride,
 								wei_stride,
-								&Q,
-								0,
-								nullptr,
-								nullptr);
+								false,
+								network_config);
+							gg.FindSolution(.003, handle, hx, workSpace, dw, false);
+							gg.RunGemm(handle, hx, workSpace, dw, hx_shift + hy_h, hid_shift + hy_h, wei_shift + hy_h);
 						}
 						else
 						{
 							pretime_shift = li * bi * batch_n * hy_h + (bacc + in_n[ti]) * hy_stride;
 
-							MIOpenGEMM::gemm0<float>(false,
-								true,
-								false,
-								hy_h,
+							gg = CreateGemmGeometryRNN(hy_h,
 								hy_h,
 								in_n[ti + 1],
 								1,
-								reserveSpace,
-								pretime_shift + hy_h,
-								hy_stride,
-								workSpace,
-								hid_shift + hy_h,
-								hy_stride,
 								1,
-								dw,
-								wei_shift + hy_h,
+								true,
+								false,
+								false,
+								hy_stride,
+								hy_stride,
 								wei_stride,
-								&Q,
-								0,
-								nullptr,
-								nullptr);
+								false,
+								network_config);
+							gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+							gg.RunGemm(handle, reserveSpace, workSpace, dw, pretime_shift + hy_h, hid_shift + hy_h, wei_shift + hy_h);
 						}
 					}
 
@@ -972,8 +968,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 	{
 		printf("gru gpu bwd weights \n");
 	}
-
-	clFinish(Q);
 };
 
 } // namespace miopen
