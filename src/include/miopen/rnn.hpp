@@ -29,140 +29,18 @@
 
 #include <functional>
 #include <miopen/common.hpp>
-//#include <miopen/conv_algo_name.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/tensor.hpp>
 #include <vector>
 namespace miopen {
-
-/*
-using WinogradKernelParams = std::tuple<int, int, int, int, int, int, int, int, bool>;
-
-struct PerfField
-{
-std::string name;
-float time;
-std::size_t workspace;
-
-bool operator<(const PerfField& p) const { return (time < p.time); }
-};
-*/
-
+	
 struct RNNDescriptor : miopenRNNDescriptor
 {
 
     RNNDescriptor(int seqLength = 1, int layer = 1, int bidir = 0, int bias = 0);
     RNNDescriptor(miopenRNNMode_t p_mode, int seqLength = 1, int layer = 1, int bidir = 0, int bias = 0);
-
-    /*
-std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
-GetForwardOutputDim(const TensorDescriptor& inputTensorDesc,
-                    const TensorDescriptor& filterDesc) const;
-TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& inputTensorDesc,
-                                        const TensorDescriptor& filterDesc) const;
-
-std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
-GetBackwardsWeightsDim(const TensorDescriptor& inputTensorDesc,
-                       const TensorDescriptor& outputTensorDesc) const;
-TensorDescriptor GetBackwardWeightsTensor(const TensorDescriptor& inputTensorDesc,
-                                          const TensorDescriptor& outputTensorDesc) const;
-
-std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
-GetBackwardOutputDim(const TensorDescriptor& outputTensorDesc,
-                     const TensorDescriptor& filterDesc) const;
-TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
-                                         const TensorDescriptor& filterDesc) const;
-
-size_t ForwardGetWorkSpaceSizeGEMM(Handle& handle,
-                                   const TensorDescriptor& wDesc,
-                                   const TensorDescriptor& yDesc) const;
-
-size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
-                                  const TensorDescriptor& xDesc,
-                                  const TensorDescriptor& yDesc) const;
-
-bool IsWinograd3x3Supported(Handle& handle,
-                            bool direction,
-                            const TensorDescriptor& wDesc,
-                            const TensorDescriptor& xDesc) const;
-
-bool IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const;
-
-bool IsDirectSupported(const TensorDescriptor& wDesc) const;
-
-size_t ForwardGetWorkSpaceSize(Handle& handle,
-                               const TensorDescriptor& wDesc,
-                               const TensorDescriptor& xDesc,
-                               const TensorDescriptor& yDesc) const;
-
-void FindConvFwdAlgorithm(Handle& handle,
-                          const TensorDescriptor& xDesc,
-                          ConstData_t x,
-                          const TensorDescriptor& wDesc,
-                          ConstData_t w,
-                          const TensorDescriptor& yDesc,
-                          ConstData_t y,
-                          int requestAlgoCount,
-                          int* returnedAlgoCount,
-                          miopenConvAlgoPerf_t* perfResults,
-                          Data_t workSpace,
-                          size_t workSpaceSize,
-                          bool exhaustiveSearch) const;
-
-int FindWinogradKernel(Handle& handle,
-                       const TensorDescriptor& xDesc,
-                       const TensorDescriptor& wDesc,
-                       const TensorDescriptor& yDesc,
-                       WinogradKernelParams& k_p,
-                       KernelInvoke& kernel,
-                       int direction) const;
-
-int FindFwdFFTKernel(Handle& handle,
-                     const TensorDescriptor& xDesc,
-                     const TensorDescriptor& wDesc,
-                     const TensorDescriptor& yDesc,
-                     size_t workSpaceSize,
-                     std::vector<KernelInvoke>& kernels) const;
-
-float ExecuteFwdFFTKernel(Handle& handle,
-                          const TensorDescriptor& xDesc,
-                          ConstData_t x,
-                          const TensorDescriptor& wDesc,
-                          ConstData_t w,
-                          const TensorDescriptor& yDesc,
-                          Data_t y,
-                          Data_t workSpace,
-                          size_t workSpaceSize,
-                          bool timed = false) const;
-
-int FindBwdFFTKernel(Handle& handle,
-                     const TensorDescriptor& dyDesc,
-                     const TensorDescriptor& wDesc,
-                     const TensorDescriptor& dxDesc,
-                     size_t workSpaceSize,
-                     std::vector<KernelInvoke>& kernels) const;
-
-float ExecuteBwdFFTKernel(Handle& handle,
-                          const TensorDescriptor& dyDesc,
-                          ConstData_t dy,
-                          const TensorDescriptor& wDesc,
-                          ConstData_t w,
-                          const TensorDescriptor& dxDesc,
-                          Data_t dx,
-                          Data_t workSpace,
-                          size_t workSpaceSize,
-                          bool timed = false) const;
-
-int FindDirectKernel(Handle& handle,
-                     const TensorDescriptor& xDesc,
-                     const TensorDescriptor& wDesc,
-                     const TensorDescriptor& yDesc,
-                     std::vector<KernelInvoke>& kernels,
-                     bool exhaustiveSearch,
-                     int direction) const;
-					 */
 
 void RNNForwardTraining(Handle& handle,
 	const int seqLen,
@@ -190,35 +68,6 @@ void RNNForwardTraining(Handle& handle,
 	const int hy_n,
 	const int hy_h,
 	const int out_h) const;
-
-/*
-size_t BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
-                                        const TensorDescriptor& wDesc,
-                                        const TensorDescriptor& dyDesc) const;
-
-size_t BackwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
-                                   const TensorDescriptor& dyDesc,
-                                   const TensorDescriptor& dxDesc) const;
-
-size_t BackwardDataGetWorkSpaceSize(Handle& handle,
-                                    const TensorDescriptor& wDesc,
-                                    const TensorDescriptor& dyDesc,
-                                    const TensorDescriptor& dxDesc) const;
-
-void FindConvBwdDataAlgorithm(Handle& handle,
-                              const TensorDescriptor& dyDesc,
-                              ConstData_t dy,
-                              const TensorDescriptor& wDesc,
-                              ConstData_t w,
-                              const TensorDescriptor& dxDesc,
-                              ConstData_t dx,
-                              int requestAlgoCount,
-                              int* returnedAlgoCount,
-                              miopenConvAlgoPerf_t* perfResults,
-                              Data_t workSpace,
-                              size_t workSpaceSize,
-                              bool exhaustiveSearch) const;
-*/
 
 void RNNBackwardData(Handle& handle,
 	const int seqLen,
@@ -253,36 +102,6 @@ void RNNBackwardData(Handle& handle,
 	const int hy_h,
 	const int out_h) const;
 
-/*
-size_t ConvolutionBackwardWeightsGetWorkSpaceSize(Handle& handle,
-                                                  const TensorDescriptor& dyDesc,
-                                                  const TensorDescriptor& xDesc,
-                                                  const TensorDescriptor& dwDesc) const;
-
-size_t BackwardWeightsGetWorkSpaceSizeGEMM(Handle& handle,
-                                           const TensorDescriptor& dyDesc,
-                                           const TensorDescriptor& dwDesc) const;
-
-size_t BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
-                                             const TensorDescriptor& dyDesc,
-                                             const TensorDescriptor& xDesc,
-                                             const TensorDescriptor& dwDesc) const;
-
-void FindConvBwdWeightsAlgorithm(Handle& handle,
-                                 const TensorDescriptor& dyDesc,
-                                 ConstData_t dy,
-                                 const TensorDescriptor& xDesc,
-                                 ConstData_t x,
-                                 const TensorDescriptor& dwDesc,
-                                 ConstData_t dw,
-                                 int requestAlgoCount,
-                                 int* returnedAlgoCount,
-                                 miopenConvAlgoPerf_t* perfResults,
-                                 Data_t workSpace,
-                                 size_t workSpaceSize,
-                                 bool exhaustiveSearch) const;
-								 */
-
 void RNNBackwardWeights(Handle& handle,
 	const int seqLen,
 //	const TensorDescriptor& xDesc,
@@ -310,19 +129,6 @@ void RNNBackwardWeights(Handle& handle,
     int bidir;
 	int bias;
 };
-/*
-void ConvolutionBackwardBias(Handle& handle,
-                             const void* alpha,
-                             const TensorDescriptor& dyDesc,
-                             ConstData_t dy,
-                             const void* beta,
-                             const TensorDescriptor& dbDesc,
-                             Data_t db);
-
-std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& c);
-
-*/
-
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenRNNDescriptor, miopen::RNNDescriptor);
 
