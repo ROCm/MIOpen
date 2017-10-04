@@ -223,4 +223,145 @@ GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_con
     }
 }
 
+GemmGeometry CreateGemmGeometryRNN(const int M,
+	const int N,
+	const int K,
+	const float alpha,
+	const float beta,
+	bool tA,
+	bool tB,
+	bool tC,
+	const int lda,
+	const int ldb,
+	const int ldc,
+	bool isDataColMajor,
+	std::string& network_config)
+{
+	// GEMM
+	MIOpenGEMM::Geometry tgg{};
+	GemmGeometry gg;
+	(void)isDataColMajor;
+
+		tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+		gg = GemmGeometry{ "miopenRNNAlgoGEMM", alpha, beta, tgg };
+	
+	network_config = tgg.get_networkconfig_string();
+	return gg;
+}
+
+/*
+GemmGeometry CreateGemmGeometryRNNfwdfull(const int m,
+	const int n,
+	const int k,
+	bool isDataColMajor,
+	std::string& network_config)
+{
+	// GEMM
+	int K = k;
+	int M = m;
+	int N = n;
+	float alpha = 1.0;
+	float beta = 1.0;
+	bool tA = false;
+	bool tB = false;
+	bool tC = false;
+	int lda = K;
+	int ldb = N;
+	int ldc = N;
+
+	MIOpenGEMM::Geometry tgg{};
+	GemmGeometry gg;
+	(void)isDataColMajor;
+#if 0   
+	if (!isDataColMajor)
+	{
+		tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
+		gg = GemmGeometry{ "miopenRNNFwdAlgoGEMMfull", alpha, beta, tgg };
+	}
+	else
+#endif
+	{
+		tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+		gg = GemmGeometry{ "miopenRNNFwdAlgoGEMMfull", alpha, beta, tgg };
+	}
+	network_config = tgg.get_networkconfig_string();
+	return gg;
+}
+
+GemmGeometry CreateGemmGeometryRNNfwdpartial(const int m,
+	const int n,
+	const int k,
+	bool isDataColMajor,
+	std::string& network_config)
+{
+	// GEMM
+	int K = k;
+	int M = m;
+	int N = n;
+	float alpha = 1.0;
+	float beta = 1.0;
+	bool tA = false;
+	bool tB = false;
+	bool tC = false;
+	int lda = K * 2;
+	int ldb = N * 2;
+	int ldc = N * 2;
+
+	MIOpenGEMM::Geometry tgg{};
+	GemmGeometry gg;
+	(void)isDataColMajor;
+#if 0   
+	if (!isDataColMajor)
+	{
+		tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
+		gg = GemmGeometry{ "miopenRNNFwdAlgoGEMMpartial", alpha, beta, tgg };
+	}
+	else
+#endif
+	{
+		tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+		gg = GemmGeometry{ "miopenRNNFwdAlgoGEMMpartial", alpha, beta, tgg };
+	}
+	network_config = tgg.get_networkconfig_string();
+	return gg;
+}
+
+GemmGeometry CreateGemmGeometryRNNbwddatafull(const int m,
+	const int n,
+	const int k,
+	bool isDataColMajor,
+	std::string& network_config)
+{
+	// GEMM
+	int K = k;
+	int M = m;
+	int N = n;
+	float alpha = 1.0;
+	float beta = 1.0;
+	bool tA = false;
+	bool tB = true;
+	bool tC = false;
+	int lda = K;
+	int ldb = K;
+	int ldc = N;
+
+	MIOpenGEMM::Geometry tgg{};
+	GemmGeometry gg;
+	(void)isDataColMajor;
+#if 0   
+	if (!isDataColMajor)
+	{
+		tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
+		gg = GemmGeometry{ "miopenRNNBwdDataAlgoGEMMfull", alpha, beta, tgg };
+	}
+	else
+#endif
+	{
+		tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+		gg = GemmGeometry{ "miopenRNNBwdDataAlgoGEMMfull", alpha, beta, tgg };
+	}
+	network_config = tgg.get_networkconfig_string();
+	return gg;
+}
+*/
 } // namespace miopen
