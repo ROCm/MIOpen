@@ -113,14 +113,16 @@ function(clang_tidy_check TARGET)
     # COMMAND ${CLANG_TIDY_COMMAND} $<TARGET_PROPERTY:${TARGET},SOURCES>
     # COMMAND ${CLANG_TIDY_COMMAND} $<JOIN:$<TARGET_PROPERTY:${TARGET},SOURCES>, >
     foreach(SOURCE ${SOURCES})
-        string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)        
-        add_custom_target(tidy-${TARGET}-${tidy_file}
-            COMMAND ${CLANG_TIDY_COMMAND} ${SOURCE}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            COMMENT "clang-tidy: Running clang-tidy on target ${SOURCE}..."
-        )
-        add_dependencies(tidy-${TARGET}-${tidy_file} ${TARGET})
-        add_dependencies(tidy tidy-${TARGET}-${tidy_file})
+        if(NOT "${SOURCE}" MATCHES "(h|hpp|hxx)$")
+            string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)        
+            add_custom_target(tidy-${TARGET}-${tidy_file}
+                COMMAND ${CLANG_TIDY_COMMAND} ${SOURCE}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                COMMENT "clang-tidy: Running clang-tidy on target ${SOURCE}..."
+            )
+            add_dependencies(tidy-${TARGET}-${tidy_file} ${TARGET})
+            add_dependencies(tidy tidy-${TARGET}-${tidy_file})
+        endif()
     endforeach()
 endfunction()
 
