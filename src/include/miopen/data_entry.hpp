@@ -35,6 +35,7 @@ namespace miopen {
 class DataEntry
 {
     private:
+    static bool _instance_loaded;
     bool _read        = false;
     bool _has_changes = false;
     /// Caches position of the found (read) record in the db file
@@ -43,9 +44,8 @@ class DataEntry
     /// update of db file made by one instance may invalidate cached position
     /// in another instance.
     ///
-    /// \todo 1. FIXME disallow creating > 1 instances of this class for now.
-    /// \todo 2. Redesign db access and remove the limitation that only 
-    /// one instance of this class is allowed to exist.
+    /// \todo Redesign db access and remove the limitation that only 
+    /// one instance of this class is allowed to be loaded.
     std::streamoff _record_begin = -1;
     std::streamoff _record_end   = -1;
     const std::string _path;
@@ -64,8 +64,9 @@ class DataEntry
 
     bool ParseEntry(const std::string& entry);
     bool Save(const std::string& key, const std::string& value);
-    bool Load(const std::string& key, std::string& value) const;
+    bool Load(const std::string& key, std::string& value);
     void Flush();
+    void ReadFromDisk();
 
     public:
     DataEntry(const std::string& path, const std::string& entry_key)
@@ -79,9 +80,11 @@ class DataEntry
     {
     }
 
-    ~DataEntry() { Flush(); }
-
-    inline bool Read() const { return _read; }
+    ~DataEntry()
+    {
+        Flush();
+        _instance_loaded = false;
+    }
 
     template <class T>
     bool Save(const std::string& key, const T& value)
@@ -99,8 +102,6 @@ class DataEntry
 
         return value.Deserialize(str);
     }
-
-    void ReadFromDisk();
 };
 } // namespace miopen
 
