@@ -342,12 +342,7 @@ ConvSolution Solver::GetSolution(const ConvolutionContext& search_params,
     const auto& id = SearchDbId();
 
     if(CanLoadSearchResluts())
-    {
-        if(!search_results.Read())
-            search_results.ReadFromDisk();
-
         loaded_search_result = search_results.Load(id, *search_result);
-    }
 
     if(!loaded_search_result)
     {

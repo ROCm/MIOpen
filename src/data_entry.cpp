@@ -30,6 +30,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "miopen/errors.hpp"
+
 namespace miopen {
 
 enum class LogType
@@ -56,6 +58,8 @@ Log(std::ostream& stream, LogType type, const std::string& source, const std::st
     stream << "[\033[" << static_cast<int>(type) << "m" << GetLogTypeName(type) << "\033[0m]["
            << source << "] " << message << std::endl;
 }
+
+bool DataEntry::_instance_loaded = false;
 
 // Record format:
 // KEY=[ID:VALUE[;ID:VALUE]*]
@@ -104,17 +108,20 @@ bool DataEntry::ParseEntry(const std::string& entry)
 
 bool DataEntry::Save(const std::string& key, const std::string& value)
 {
-    /// \todo FIXME fail if record have not been read (from persistent storage) yet.
-    /// Duplicates of records may appear in the db otherwise.
+    if (!_read)
+        ReadFromDisk();
+
     _has_changes  = true;
     _content[key] = value;
 
     return true;
 }
 
-bool DataEntry::Load(const std::string& key, std::string& value) const
+bool DataEntry::Load(const std::string& key, std::string& value)
 {
-    /// \todo FXIEM fail if record have not been read (from persistent storage) yet.
+    if (!_read)
+        ReadFromDisk();
+
     const auto it = _content.find(key);
 
     if (it == _content.end())
@@ -211,6 +218,11 @@ void DataEntry::Flush()
 
 void DataEntry::ReadFromDisk()
 {
+    if (_instance_loaded)
+        MIOPEN_THROW("Keeping several data entries in memory at the same time is not allowed.");
+
+    _instance_loaded = true;
+
     _content.clear();
     _has_changes = false;
     _read        = true;
