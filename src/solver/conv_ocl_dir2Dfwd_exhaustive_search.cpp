@@ -256,66 +256,43 @@ mloSelectDefaultConfig(std::string& conf_val,
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
     {
 
-        if(params.n_outputs % 4 == 0 && params.n_inputs % 4 == 0)
+        // version
+        if(params.forward && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0 &&
+           params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
         {
-            // version
-            if(params.forward && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0 &&
-               params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
-            {
-                result.n_in_data_tiles = 128;
+            result.n_in_data_tiles = 128;
 
-                result.n_out_pix_tiles = 32;
-                // 0 or 1
-                // CHEAT_SHADER_COMPILER =
-                result.out_pix_tile0 = 0;
+            result.n_out_pix_tiles = 32;
+            // 0 or 1
+            // CHEAT_SHADER_COMPILER =
+            result.out_pix_tile0 = 0;
 
-                // int version =
-                result.out_pix_tile1 = 1;
-            }
-            else
-            {
-                int i_sz             = params.out_height * params.out_width;
-                result.out_pix_tile0 = (i_sz & 1) ? 1 : 2;
-
-                if(params.pad0 > 0 || params.kernel_stride0 > 1)
-                {
-                    if(params.forward)
-                    {
-                        result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
-                    }
-                    else
-                    {
-                        result.out_pix_tile0 =
-                            ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
-                    }
-                }
-
-                result.n_out_pix_tiles = 16;
-                result.n_in_data_tiles = 4;
-                result.grp_tile0       = 64;
-                // int version =
-                result.out_pix_tile1 = 0;
-            }
+            // int version =
+            result.out_pix_tile1 = 1;
         }
         else
         {
-            result.in_tile0 = 4; // size of input data per ALU plane
-            result.in_tile1 = 1; // size of input data per ALU plane
+            int i_sz             = params.out_height * params.out_width;
+            result.out_pix_tile0 = (i_sz & 1) ? 1 : 2;
 
-            int out_len4 = (params.out_height * params.out_width + 3) / 4;
+            if(params.pad0 > 0 || params.kernel_stride0 > 1)
+            {
+                if(params.forward)
+                {
+                    result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
+                }
+                else
+                {
+                    result.out_pix_tile0 =
+                        ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
+                }
+            }
 
-            result.grp_tile0 =
-                (out_len4 > 192) ? 256 : (out_len4 > 128) ? 192 : (out_len4 > 64) ? 128 : 64;
-            result.grp_tile1 = 1;
-
-            result.out_pix_tile0 = 4; // size of ouptput tile per wk-item (ALU))
-            result.out_pix_tile1 = 1; // 4; //
-
-            result.n_out_pix_tiles = 16; // 2;  // # output pixel tiles per wk-item (ALU)
-            result.n_in_data_tiles = 2;  // 4; // # of blocks of different inputs in LDS
-
-            result.n_stacks = (params.batch_sz > 1) ? 2 : 1; // # of diff stacks (part of batch).
-            result.n_stacks = (params.batch_sz > 1) ? 2 : 1; // # of diff stacks (part of batch).
+            result.n_out_pix_tiles = 16;
+            result.n_in_data_tiles = 4;
+            result.grp_tile0       = 64;
+            // int version =
+            result.out_pix_tile1 = 0;
         }
     }
 
@@ -838,32 +815,6 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::SearchDirect2D(const ConvolutionCon
         long long runs_left = 0;
 
         if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
-        {
-            grp_tl_ln[0] = 64;
-            grp_tl_ln[1] = 128;
-            grp_tl_ln[2] = 256;
-            grp_tl_ln[3] = 512;
-            n_grp_tiles1 = 1;
-            n_grp_tiles0 = 4;
-
-            tile_sz1[0] = 1;
-            tile_sz0[0] = 4;
-            n_tile0_sz = n_tile1_sz = 1;
-            n_tiles_cnt             = n_tile0_sz * n_tile1_sz;
-            out_pix_tile_sz[0]      = (unaligned) ? 0 : out_pix_tile_sz[0];
-            out_pix_tile_sz[1]      = 1;
-            n_out_tiles_rg[1]       = 16;
-            n_in_tiles_rg[1]        = 8;
-            stack_cnt               = 3;
-            out_pix_tl_cnt          = out_pix_tile_sz[1];
-            n_out_tls               = n_out_tiles_rg[1];
-            n_grp_tiles             = n_grp_tiles1 * n_grp_tiles0;
-
-            report_inteval = 20;
-        }
-
-        if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs % 4 == 0 &&
-           params.n_inputs % 4 == 0)
         {
 
             std::cout
