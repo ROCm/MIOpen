@@ -101,7 +101,6 @@ miopenCreateTensorDescriptor(&inputTensor);
         miopenCreateTensorDescriptor(&hiddenTensor);
 miopenCreateTensorDescriptor(&weightTensor);
 miopenCreateTensorDescriptor(&outputTensor);
-miopenCreateTensorDescriptor(&biasTensor);
         */
         miopenCreateRNNDescriptor(&rnnDesc);
 
@@ -141,14 +140,12 @@ miopenCreateTensorDescriptor(&biasTensor);
     int RunBackwardGPU();
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
-    //    int RunBackwardBiasCPU();
 
     int VerifyBackward();
     int VerifyForward();
     ~RNNDriver()
     {
 
-        //       miopenDestroyTensorDescriptor(biasTensor);
         //       miopenDestroyTensorDescriptor(outputTensor);
         //       miopenDestroyTensorDescriptor(weightTensor);
         //		miopenDestroyTensorDescriptor(hiddenTensor);
@@ -164,7 +161,6 @@ miopenCreateTensorDescriptor(&biasTensor);
     miopenTensorDescriptor_t hiddenTensor;
     miopenTensorDescriptor_t weightTensor;
     miopenTensorDescriptor_t outputTensor;
-//    miopenTensorDescriptor_t biasTensor;
 
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> din_dev;
@@ -251,15 +247,6 @@ SetTensor4d(weightTensor, wei_len);
     SetRNNDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
-    /*
-SetTensor4d(outputTensor, out_len);
-
-if(inflags.GetValueInt("bias") != 0)
-{
-    std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
-    SetTensor4d(biasTensor, b_len);
-}
-    */
 
     return (0);
 }
@@ -603,26 +590,6 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         }
     }
 
-    /*
-if(inflags.GetValueInt("bias") != 0)
-{
-    size_t b_sz = GetTensorSize(biasTensor);
-    b_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(float)));
-    db_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(float)));
-    b           = std::vector<T>(b_sz);
-    db          = std::vector<T>(b_sz);
-    db_host     = std::vector<T>(b_sz, 0);
-    for(int i = 0; i < b_sz; i++)
-    {
-        b[i]  = i % 8;
-        db[i] = i % 8;
-    }
-
-    b_dev->ToGPU(q, b.data());
-    db_dev->ToGPU(q, db.data());
-}
-    */
-
     bool weiRead = false;
     if(!weiFileName.empty())
     {
@@ -672,31 +639,6 @@ if(status != CL_SUCCESS)
 
     return miopenStatusSuccess;
 }
-
-/*
-template <typename T>
-int RNNDriver<T>::FindForward(int& ret_algo_count,
-                               int request_algo_count,
-                               std::vector<miopenConvAlgoPerf_t>& perf_results)
-{
-
-    return miopenFindRNNForwardAlgorithm(GetHandle(),
-                                                 inputTensor,
-                                                 in_dev->GetMem(),
-                                                 weightTensor,
-                                                 wei_dev->GetMem(),
-                                                 rnnDesc,
-                                                 outputTensor,
-                                                 out_dev->GetMem(),
-                                                 request_algo_count,
-                                                 &ret_algo_count,
-                                                 perf_results.data(),
-                                                 workspace_fwd_dev->GetMem(),
-                                                 workspace_fwd_dev->GetSize(),
-                                                 (inflags.GetValueInt("search") == 1) ? true
-                                                                                      : false);
-}
-*/
 
 template <typename T>
 int RNNDriver<T>::RunForwardGPU()
@@ -775,25 +717,6 @@ if(inflags.GetValueInt("time") == 1)
 
     printf("MIOpen Forward RNN Algorithm: %d\n", perf_results[0].fwd_algo);
     printf("GPU Kernel Time Forward RNN Elapsed: %f ms\n", time);
-}
-
-if(inflags.GetValueInt("bias") != 0)
-{
-    miopenRNNForwardBias(GetHandle(),
-                                 &alpha,
-                                 biasTensor,
-                                 b_dev->GetMem(),
-                                 &beta,
-                                 outputTensor,
-                                 out_dev->GetMem());
-
-    if(inflags.GetValueInt("time") == 1)
-    {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-
-        printf("GPU Kernel Time Forward RNN Bias Elapsed: %f ms\n", time);
-    }
 }
 */
 
@@ -1011,56 +934,6 @@ miopenGet4dTensorDescriptor(inputTensor,
     return 0;
 }
 
-/*
-template <typename T>
-int RNNDriver<T>::FindBackwardData(int& ret_algo_count,
-                                    int request_algo_count,
-                                    std::vector<miopenConvAlgoPerf_t>& perf_results)
-{
-
-    return miopenFindRNNBackwardDataAlgorithm(GetHandle(),
-                                                      outputTensor,
-                                                      dout_dev->GetMem(),
-                                                      weightTensor,
-                                                      wei_dev->GetMem(),
-                                                      rnnDesc,
-                                                      inputTensor,
-                                                      din_dev->GetMem(),
-                                                      request_algo_count,
-                                                      &ret_algo_count,
-                                                      perf_results.data(),
-                                                      workspace_bwd_dev->GetMem(),
-                                                      workspace_bwd_dev->GetSize(),
-                                                      (inflags.GetValueInt("search") == 1) ? true
-                                                                                           : false);
-}
-
-template <typename T>
-int RNNDriver<T>::FindBackwardWeights(int& ret_algo_count,
-                                       int request_algo_count,
-                                       std::vector<miopenConvAlgoPerf_t>& perf_results)
-{
-
-    miopenFindRNNBackwardWeightsAlgorithm(GetHandle(),
-                                                  outputTensor,
-                                                  dout_dev->GetMem(),
-                                                  inputTensor,
-                                                  in_dev->GetMem(),
-                                                  rnnDesc,
-                                                  weightTensor,
-                                                  wei_dev->GetMem(),
-                                                  request_algo_count,
-                                                  &ret_algo_count,
-                                                  perf_results.data(),
-                                                  workspace_bwd_dev->GetMem(),
-                                                  workspace_bwd_dev->GetSize(),
-                                                  (inflags.GetValueInt("search") == 1) ? true
-                                                                                       : false);
-
-    return 0;
-}
-*/
-
 template <typename T>
 int RNNDriver<T>::RunBackwardGPU()
 {
@@ -1201,35 +1074,9 @@ if(inflags.GetValueInt("dump_output"))
     dumpBufferToFile("dump_bwd_din_gpu.bin", din.data(), din.size());
     dumpBufferToFile("dump_bwd_dwei_gpu.bin", dwei.data(), dwei.size());
 }
-
-if(inflags.GetValueInt("bias") != 0)
-{
-    ret = miopenRNNBackwardBias(GetHandle(),
-                                        &alpha,
-                                        outputTensor,
-                                        dout_dev->GetMem(),
-                                        &beta,
-                                        biasTensor,
-                                        db_dev->GetMem());
-
-    if(inflags.GetValueInt("time") == 1)
-    {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Backward Bias RNN Elapsed: %f ms\n", time);
-    }
-
-    db_dev->FromGPU(GetStream(), db.data());
-    if(inflags.GetValueInt("dump_output"))
-    {
-        dumpBufferToFile("dump_bwd_db_gpu.bin", db.data(), db.size());
-    }
-}
-
-return ret;
     */
 
-    return miopenStatusSuccess;
+    return ret;
 }
 
 template <typename T>
@@ -1650,51 +1497,6 @@ miopenGet4dTensorDescriptor(outputTensor,
 
 /*
 template <typename T>
-int RNNDriver<T>::RunBackwardBiasCPU()
-{
-
-    miopenDataType_t dt;
-    int out_n, out_c, out_h, out_w;
-    int out_nstride, out_cstride, out_hstride, out_wstride;
-
-    miopenGet4dTensorDescriptor(outputTensor,
-                                &dt,
-                                &out_n,
-                                &out_c,
-                                &out_h,
-                                &out_w,
-                                &out_nstride,
-                                &out_cstride,
-                                &out_hstride,
-                                &out_wstride);
-
-    for(int c = 0; c < out_c; c++)
-    {
-        db_host[c] = 0.0f;
-        for(int n = 0; n < out_n; n++)
-        {
-            for(int h = 0; h < out_h; h++)
-            {
-                for(int w = 0; w < out_w; w++)
-                {
-                    db_host[c] += dout[n * out_nstride + c * out_cstride + h * out_hstride + w];
-                }
-            }
-        }
-    }
-
-    if(inflags.GetValueInt("dump_output"))
-    {
-        dumpBufferToFile("dump_bwd_db_cpu.bin", db_host.data(), db_host.size());
-    }
-
-    TrySaveVerificationCache("bwd_bai", db_host);
-    return 0;
-}
-*/
-
-/*
-template <typename T>
 std::string RNNDriver<T>::GetVerificationCacheFileName() const
 {
     std::ostringstream ss;
@@ -1768,25 +1570,7 @@ int RNNDriver<T>::VerifyForward()
     {
         RunForwardCPU();
     }
-	/*
-	for (int i; i < reservespace_dev->GetSize() / sizeof(T); i++)
-	if(i%1000 ==0)
-		printf(" %.20f   %.20f  \n", reservespace_host[i], reservespace[i]);
 
-	printf("\n\n");
-
-	for (int i; i < workspace_dev->GetSize() / sizeof(T); i++)
-	if(i%1000 ==0)
-		printf(" %.20f   %.20f  \n", workspace_host[i], workspace[i]);
-		
-	printf("\n\n");
-
-	for (int i; i < out_dev->GetSize() / sizeof(T); i++)
-//		if (i % 1000 == 0)
-			printf(" %.20f   %.20f  \n", outhost[i], out[i]);
-
-	printf("\n\n");
-	*/
     auto error = miopen::rms_range(outhost, out);
 
     const double tolerance = 1e-6;
@@ -1847,20 +1631,6 @@ int RNNDriver<T>::VerifyBackward()
     {
         RunBackwardDataCPU();
     }
-
-	/*
-	for (int i; i < workspace_dev->GetSize() / sizeof(T); i++)
-		if (i % 1000 == 0)
-			printf(" %.20f   %.20f  \n", workspace_host[i], workspace[i]);
-
-	printf("\n\n");
-
-	for (int i; i < din_dev->GetSize() / sizeof(T); i++)
-		//		if (i % 1000 == 0)
-		printf(" %.20f   %.20f  \n", din_host[i], din[i]);
-
-	printf("\n\n");
-	*/
 
     auto error_data = miopen::rms_range(din_host, din);
 
@@ -1926,27 +1696,6 @@ int RNNDriver<T>::VerifyBackward()
     {
         printf("Backward RNN Weights Verifies on CPU and GPU\n");
     }
-
-    /*
-if(inflags.GetValueInt("bias") != 0)
-{
-    if(!TryReadVerificationCache("bwd_bai", biasTensor, db_host.data()))
-    {
-        RunBackwardBiasCPU();
-    }
-
-    auto error_bias = miopen::rms_range(db_host, db);
-    if(!(error_bias < tolerance))
-    {
-        std::cout << std::string("Backward RNN Bias Failed: ") << error_bias
-                  << std::string("\n");
-    }
-    else
-    {
-        printf("Backward RNN Bias Verifies on CPU and GPU\n");
-    }
-}
-    */
 
     return 0;
 }
