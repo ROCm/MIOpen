@@ -344,10 +344,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						activDesc.Forward(handle,
 							&alpha,
 							miopen::deref(rsvTensor),
-							mem1.mem(),
+							mem1[0],
 							&beta,
 							miopen::deref(rsvTensor),
-							mem2.mem());
+							mem2[0]);
 					
 				}
 /*				else
