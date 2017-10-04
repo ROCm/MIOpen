@@ -42,19 +42,14 @@ const char* GetLogTypeName(LogType type)
 {
     switch(type)
     {
-    case LogType::Error:
-    {
-        static const auto err_str = "Error";
-        return err_str;
-    }
-    case LogType::Warning:
-    {
-        static const auto warn_str = "Warning";
-        return warn_str;
-    }
+    case LogType::Error: return "Error";
+    case LogType::Warning: return "Warning";
+    default: return "<Unknown importance>";
     }
 }
 
+/// \todo Better diags everywhere. Print db filename, line number, key, id etc.
+/// \todo Reuse existing logging machinery.
 static void
 Log(std::ostream& stream, LogType type, const std::string& source, const std::string& message)
 {
@@ -62,39 +57,45 @@ Log(std::ostream& stream, LogType type, const std::string& source, const std::st
            << source << "] " << message << std::endl;
 }
 
-DataEntry::DataEntry(const std::string& path, const std::string& entry_key)
-    : _path(path), _entry_key(entry_key)
-{
-}
-
-DataEntry::~DataEntry() { Flush(); }
+// Record format:
+// KEY=[ID:VALUE[;ID:VALUE]*]
+//
+// KEY - An identifer of a problem description.
+// ID  - An identifer of a solution.
+// VALUE - Represents a performance config of a solution.
+//
+// KEY, ID and VALUE shall be ascii strings.
+// Any of ";:=" are not allowed.
+// Formatting of VALUE is a solution-specific.
+// Note: If VALUE is used to represent a set of values,
+// then it is recommended to use "," as a separator.
 
 bool DataEntry::ParseEntry(const std::string& entry)
 {
     std::istringstream ss(entry);
-    std::string pair;
+    std::string id_and_value;
     auto found = 0u;
 
-    while(std::getline(ss, pair, ';'))
+    while(std::getline(ss, id_and_value, ';'))
     {
-        const auto key_size = pair.find(':');
+        const auto id_size = id_and_value.find(':');
 
-        if(key_size == std::string::npos || pair.size() < key_size + 2)
+        if (id_size == std::string::npos || id_and_value.size() < id_size + 2)
         {
-            Log(std::cerr, LogType::Error, "Database", "Empty item.");
+            Log(std::cerr, LogType::Error, "Database", "ID not found or empty VALUE. Ignored.");
             continue;
         }
 
-        const auto key   = pair.substr(0, key_size);
-        const auto value = pair.substr(key_size + 1);
+        const auto id = id_and_value.substr(0, id_size);
+        const auto value = id_and_value.substr(id_size + 1);
 
-        if(_content.find(key) != _content.end())
+        if (_content.find(id) != _content.end())
         {
-            Log(std::cerr, LogType::Error, "Database", "Duplicate keys.");
+            Log(std::cerr, LogType::Error, "Database", "Duplicate IDs. Ignored.");
             continue;
         }
 
-        _content.emplace(key, value);
+        _content.emplace(id, value);
         found++;
     }
 
@@ -103,6 +104,8 @@ bool DataEntry::ParseEntry(const std::string& entry)
 
 bool DataEntry::Save(const std::string& key, const std::string& value)
 {
+    /// \todo FIXME fail if record have not been read (from persistent storage) yet.
+    /// Duplicates of records may appear in the db otherwise.
     _has_changes  = true;
     _content[key] = value;
 
@@ -111,9 +114,10 @@ bool DataEntry::Save(const std::string& key, const std::string& value)
 
 bool DataEntry::Load(const std::string& key, std::string& value) const
 {
+    /// \todo FXIEM fail if record have not been read (from persistent storage) yet.
     const auto it = _content.find(key);
 
-    if(it == _content.end())
+    if (it == _content.end())
         return false;
 
     value = it->second;
@@ -154,20 +158,20 @@ static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
 
 void DataEntry::Flush()
 {
-    if(!_has_changes)
+    if (!_has_changes)
         return;
 
-    if(_start == -1)
+    if (_record_begin == -1)
     {
         std::ofstream file(_path, std::ios::app);
 
-        if(!file)
+        if (!file)
         {
             Log(std::cerr, LogType::Error, "Database", "File is unwritable.");
             return;
         }
 
-        _start = file.tellp();
+        _record_begin = file.tellp();
         Write(file, _entry_key, _content);
         _has_changes = false;
         return;
@@ -176,7 +180,7 @@ void DataEntry::Flush()
     const auto temp_name = _path + ".temp";
     std::ifstream from(_path, std::ios::ate);
 
-    if(!from)
+    if (!from)
     {
         Log(std::cerr, LogType::Error, "Database", "File is unreadable.");
         return;
@@ -184,7 +188,7 @@ void DataEntry::Flush()
 
     std::ofstream to(temp_name);
 
-    if(!to)
+    if (!to)
     {
         Log(std::cerr, LogType::Error, "Database", "File is unwritable.");
         return;
@@ -193,9 +197,10 @@ void DataEntry::Flush()
     const auto from_size = from.tellg();
     from.seekg(std::ios::beg);
 
-    Copy(from, to, _start);
+    Copy(from, to, _record_begin);
     Write(to, _entry_key, _content);
-    Copy(from, to, from_size - from.tellg());
+    from.seekg(_record_end);
+    Copy(from, to, from_size - _record_end);
 
     from.close();
     to.close();
@@ -212,45 +217,56 @@ void DataEntry::ReadFromDisk()
 
     std::ifstream file(_path);
 
-    if(!file)
+    if (!file)
     {
         Log(std::cerr, LogType::Warning, "Database", "File is unreadable.");
         return;
     }
 
     std::string line;
-    std::streamoff start = 0;
+    std::streamoff line_begin = 0;
+    std::streamoff next_line_begin = -1;
 
-    while(std::getline(file, line))
+    _record_begin = -1;
+    _record_end = -1;
+    while (true)
     {
+        line_begin = file.tellg();
+        if (!std::getline(file, line)) {
+            _record_begin = -1;
+            _record_end = -1;
+            break;
+        }
+        next_line_begin = file.tellg();
+        
         const auto key_size = line.find('=');
-
-        if(key_size == std::string::npos)
-            continue;
-
-        if(line.size() < key_size + 2)
+        if (key_size == std::string::npos || key_size == 0)
         {
-            Log(std::cerr, LogType::Error, "Database", "Empty entry.");
+            if (line.size() > 0) // Do not blame empty lines.
+            {
+                Log(std::cerr, LogType::Error, "Database", "None key found.");
+            }
             continue;
         }
 
         const auto key = line.substr(0, key_size);
-
-        if(key != _entry_key)
+        if (key != _entry_key)
             continue;
 
-        const auto entry = line.substr(key_size + 1);
-
-        if(ParseEntry(entry))
+        const auto key_payload = line.substr(key_size + 1);
+        if (key_payload.size() < 1)
         {
-            _start = start;
-            break;
+            Log(std::cerr, LogType::Error, "Database", std::string("None payload under the key: ") + key);
+            continue;
         }
 
-        Log(std::cerr, LogType::Error, "Database", "Empty entry.");
-        start = file.tellg();
+        if (ParseEntry(key_payload)) {
+            Log(std::cerr, LogType::Error, "Database", std::string("Error parsing payload under the key:") + key);
+        }
+        // A record with matching key have been found.
+        _record_begin = line_begin;
+        _record_end = next_line_begin;
+        break;
     }
-
-    _start = -1;
 }
 }

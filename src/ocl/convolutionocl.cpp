@@ -559,11 +559,13 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
+                /// \todo Something strange is happening here.
+                /// Shall we rework this.
                 ConvolutionContext context;
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
-                DataEntry search_results(miopen::GetDbPath(), context);
+                DataEntry search_results(miopen::GetDbPath(), context); // FIXME
                 const solver::Solver& solver =
                     StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
                 solver::ConvSolution solution = solver.GetSolution(context, search_results);

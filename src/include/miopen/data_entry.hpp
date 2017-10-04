@@ -31,45 +31,66 @@
 #include <unordered_map>
 
 namespace miopen {
-template <class TData>
-inline std::string Serialize(const TData& data)
-{
-    std::ostringstream ss;
-    data.Serialize(ss);
-    return ss.str();
-}
 
 class DataEntry
 {
-    public:
-    DataEntry(const std::string& path, const std::string& entry_key);
+    private:
+    bool _read        = false;
+    bool _has_changes = false;
+    /// Caches position of the found (read) record in the db file
+    /// in order to optimize record update (i.e. write to file).
+    /// This introduces an implicit dependence between class instances, i.e.
+    /// update of db file made by one instance may invalidate cached position
+    /// in another instance.
+    ///
+    /// \todo 1. FIXME disallow creating > 1 instances of this class for now.
+    /// \todo 2. Redesign db access and remove the limitation that only 
+    /// one instance of this class is allowed to exist.
+    std::streamoff _record_begin = -1;
+    std::streamoff _record_end   = -1;
+    const std::string _path;
+    const std::string _entry_key;
+    std::unordered_map<std::string, std::string> _content;
 
-    template <class TEntryKey>
-    DataEntry(const std::string& path, const TEntryKey& entry_key)
-        : DataEntry(path, Serialize(entry_key))
+    template <class T>
+    static // for calling from ctor
+        std::string
+        Serialize(const T& data)
+    {
+        std::ostringstream ss;
+        data.Serialize(ss);
+        return ss.str();
+    }
+
+    bool ParseEntry(const std::string& entry);
+    bool Save(const std::string& key, const std::string& value);
+    bool Load(const std::string& key, std::string& value) const;
+    void Flush();
+
+    public:
+    DataEntry(const std::string& path, const std::string& entry_key)
+        : _path(path), _entry_key(entry_key)
     {
     }
 
-    ~DataEntry();
+    // K which shall provide "void Serialize(std::ostream&) const" method.
+    template <class K>
+    DataEntry(const std::string& path, const K& entry_key) : DataEntry(path, Serialize(entry_key))
+    {
+    }
+
+    ~DataEntry() { Flush(); }
 
     inline bool Read() const { return _read; }
 
-    /// Returns true on success
-    bool Save(const std::string& key, const std::string& value);
-
-    /// Returns true on success
-    template <class TData>
-    bool Save(const std::string& key, const TData& value)
+    template <class T>
+    bool Save(const std::string& key, const T& value)
     {
         return Save(key, Serialize(value));
     }
 
-    /// Returns true on success
-    bool Load(const std::string& key, std::string& value) const;
-
-    /// Returns true on success
-    template <class TData>
-    bool Load(const std::string& key, TData& value) const
+    template <class T>
+    bool Load(const std::string& key, T& value) const
     {
         std::string str;
 
@@ -79,18 +100,7 @@ class DataEntry
         return value.Deserialize(str);
     }
 
-    void Flush();
     void ReadFromDisk();
-
-    private:
-    bool _read            = false;
-    bool _has_changes     = false;
-    std::streamoff _start = -1;
-    const std::string _path;
-    const std::string _entry_key;
-    std::unordered_map<std::string, std::string> _content;
-
-    bool ParseEntry(const std::string& entry);
 };
 } // namespace miopen
 
