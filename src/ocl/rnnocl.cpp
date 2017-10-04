@@ -338,16 +338,16 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							activDesc = { miopenActivationTANH, 1, 1, 1 };
 						}
 
-						cl_mem mem1 = handle.CreateSubBuffer(reserveSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h);
-						cl_mem mem2 = handle.CreateSubBuffer(workSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h);
+						shared<Data_t> mem1 = handle.CreateSubBuffer(reserveSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h);
+						shared<Data_t> mem2 = handle.CreateSubBuffer(workSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h);
 
 						activDesc.Forward(handle,
 							&alpha,
 							miopen::deref(rsvTensor),
-							mem1,
+							mem1.mem(),
 							&beta,
 							miopen::deref(rsvTensor),
-							mem2);
+							mem2.mem());
 					
 				}
 /*				else
