@@ -153,7 +153,7 @@ class Solver
     virtual void EuristicSearch(const ConvolutionContext&, PerformanceConfig&) const {}
     virtual void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig&) const {}
     inline ConvSolution GetSolution(const ConvolutionContext& search_params,
-                                    DataEntry& search_results) const;
+                             DataEntry& search_results) const;
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
@@ -233,8 +233,8 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
     bool CanDoEuristics() const override { return true; }
     bool CanDoExaustiveSearch() const override { return true; }
     std::unique_ptr<PerformanceConfig> AllocateSearchResult() const override;
-    void EuristicSearch(const ConvolutionContext&, PerformanceConfig& result) const override;
-    void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig& result) const override;
+    void EuristicSearch(const ConvolutionContext&, PerformanceConfig& result_) const override;
+    void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig& result_) const override;
 };
 
 class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
@@ -342,12 +342,7 @@ ConvSolution Solver::GetSolution(const ConvolutionContext& search_params,
     const auto& id = SearchDbId();
 
     if(CanLoadSearchResluts())
-    {
-        if(!search_results.Read())
-            search_results.ReadFromDisk();
-
         loaded_search_result = search_results.Load(id, *search_result);
-    }
 
     if(!loaded_search_result)
     {
