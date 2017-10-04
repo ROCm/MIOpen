@@ -565,7 +565,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
-                DataEntry search_results(miopen::GetDbPath(), context); // FIXME
+                const auto db_path = miopen::GetDbPath() + std::string("/") +
+                    context.GetStream().GetDeviceName() + "_" +
+                    std::to_string(context.GetStream().GetMaxComputeUnits()) + "." +
+                    std::string("cd.rdb.txt");
+
+                DataEntry search_results(db_path, context);
                 const solver::Solver& solver =
                     StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
                 solver::ConvSolution solution = solver.GetSolution(context, search_results);
