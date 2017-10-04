@@ -338,16 +338,19 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							activDesc = { miopenActivationTANH, 1, 1, 1 };
 						}
 
+						cl_mem mem1 = (cl_mem)handle.CreateSubBuffer(reserveSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h);
+						cl_mem mem2 = (cl_mem)handle.CreateSubBuffer(workSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h);
+
 						activDesc.Forward(handle,
 							&alpha,
 							miopen::deref(rsvTensor),
-							DataCast(handle.CreateSubBuffer(reserveSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h)),
+							mem1,
 							&beta,
 							miopen::deref(rsvTensor),
-							DataCast(handle.CreateSubBuffer(workSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h)));
+							mem2);
 					
 				}
-				else
+/*				else
 				{
 					int rsv_sz = hy_h;
 					std::vector<int> rsv_size(3, 1);
@@ -390,7 +393,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							miopen::deref(rsvTensor),
 							handle.CreateSubBuffer(workSpace, hid_shift + (baccbi + bs) * hy_stride + hy_h, hy_h));
 					}
-				}
+				}*/
 
 /*				int rsv_sz = batch_n * hy_d * hy_h;
 				std::vector<int> rsv_size(3, 1);
