@@ -44,7 +44,7 @@ class DataEntry
     /// update of db file made by one instance may invalidate cached position
     /// in another instance.
     ///
-    /// \todo Redesign db access and remove the limitation that only 
+    /// \todo Redesign db access and remove the limitation that only
     /// one instance of this class is allowed to be loaded.
     std::streamoff _record_begin = -1;
     std::streamoff _record_end   = -1;
@@ -93,7 +93,7 @@ class DataEntry
     }
 
     template <class T>
-    bool Load(const std::string& key, T& value) const
+    bool Load(const std::string& key, T& value)
     {
         std::string str;
 
