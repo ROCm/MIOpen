@@ -49,8 +49,8 @@ struct BwdAsm3x3PerformanceConfig : public PerformanceConfig
     int reverse_inout;    // 0 or 1
 
     BwdAsm3x3PerformanceConfig();
-    void Serialize(std::ostream&) const;
-    bool Deserialize(const std::string& str);
+    void Serialize(std::ostream&) const override;
+    bool Deserialize(const std::string& str) override;
 };
 
 static bool DeserializeField(char separator, std::istream& from, int& to)
