@@ -26,6 +26,7 @@
 #include "miopen/data_entry.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -42,11 +43,12 @@ enum class LogType
 
 const char* GetLogTypeName(LogType type)
 {
+    assert(type == LogType::Error || type == LogType::Warning);
+
     switch(type)
     {
     case LogType::Error: return "Error";
     case LogType::Warning: return "Warning";
-    default: return "<Unknown importance>";
     }
 }
 
@@ -84,16 +86,16 @@ bool DataEntry::ParseEntry(const std::string& entry)
     {
         const auto id_size = id_and_value.find(':');
 
-        if (id_size == std::string::npos || id_and_value.size() < id_size + 2)
+        if(id_size == std::string::npos || id_and_value.size() < id_size + 2)
         {
             Log(std::cerr, LogType::Error, "Database", "ID not found or empty VALUE. Ignored.");
             continue;
         }
 
-        const auto id = id_and_value.substr(0, id_size);
+        const auto id    = id_and_value.substr(0, id_size);
         const auto value = id_and_value.substr(id_size + 1);
 
-        if (_content.find(id) != _content.end())
+        if(_content.find(id) != _content.end())
         {
             Log(std::cerr, LogType::Error, "Database", "Duplicate IDs. Ignored.");
             continue;
@@ -108,7 +110,7 @@ bool DataEntry::ParseEntry(const std::string& entry)
 
 bool DataEntry::Save(const std::string& key, const std::string& value)
 {
-    if (!_read)
+    if(!_read)
         ReadFromDisk();
 
     _has_changes  = true;
@@ -119,12 +121,12 @@ bool DataEntry::Save(const std::string& key, const std::string& value)
 
 bool DataEntry::Load(const std::string& key, std::string& value)
 {
-    if (!_read)
+    if(!_read)
         ReadFromDisk();
 
     const auto it = _content.find(key);
 
-    if (it == _content.end())
+    if(it == _content.end())
         return false;
 
     value = it->second;
@@ -165,14 +167,14 @@ static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
 
 void DataEntry::Flush()
 {
-    if (!_has_changes)
+    if(!_has_changes)
         return;
 
-    if (_record_begin == -1)
+    if(_record_begin == -1)
     {
         std::ofstream file(_path, std::ios::app);
 
-        if (!file)
+        if(!file)
         {
             Log(std::cerr, LogType::Error, "Database", "File is unwritable.");
             return;
@@ -187,7 +189,7 @@ void DataEntry::Flush()
     const auto temp_name = _path + ".temp";
     std::ifstream from(_path, std::ios::ate);
 
-    if (!from)
+    if(!from)
     {
         Log(std::cerr, LogType::Error, "Database", "File is unreadable.");
         return;
@@ -195,7 +197,7 @@ void DataEntry::Flush()
 
     std::ofstream to(temp_name);
 
-    if (!to)
+    if(!to)
     {
         Log(std::cerr, LogType::Error, "Database", "File is unwritable.");
         return;
@@ -218,7 +220,7 @@ void DataEntry::Flush()
 
 void DataEntry::ReadFromDisk()
 {
-    if (_instance_loaded)
+    if(_instance_loaded)
         MIOPEN_THROW("Keeping several data entries in memory at the same time is not allowed.");
 
     _instance_loaded = true;
@@ -229,32 +231,33 @@ void DataEntry::ReadFromDisk()
 
     std::ifstream file(_path);
 
-    if (!file)
+    if(!file)
     {
         Log(std::cerr, LogType::Warning, "Database", "File is unreadable.");
         return;
     }
 
     std::string line;
-    std::streamoff line_begin = 0;
+    std::streamoff line_begin      = 0;
     std::streamoff next_line_begin = -1;
 
     _record_begin = -1;
-    _record_end = -1;
-    while (true)
+    _record_end   = -1;
+    while(true)
     {
         line_begin = file.tellg();
-        if (!std::getline(file, line)) {
+        if(!std::getline(file, line))
+        {
             _record_begin = -1;
-            _record_end = -1;
+            _record_end   = -1;
             break;
         }
         next_line_begin = file.tellg();
-        
+
         const auto key_size = line.find('=');
-        if (key_size == std::string::npos || key_size == 0)
+        if(key_size == std::string::npos || key_size == 0)
         {
-            if (line.size() > 0) // Do not blame empty lines.
+            if(!line.empty()) // Do not blame empty lines.
             {
                 Log(std::cerr, LogType::Error, "Database", "None key found.");
             }
@@ -262,23 +265,30 @@ void DataEntry::ReadFromDisk()
         }
 
         const auto key = line.substr(0, key_size);
-        if (key != _entry_key)
+        if(key != _entry_key)
             continue;
 
         const auto key_payload = line.substr(key_size + 1);
-        if (key_payload.size() < 1)
+        if(key_payload.empty())
         {
-            Log(std::cerr, LogType::Error, "Database", std::string("None payload under the key: ") + key);
+            Log(std::cerr,
+                LogType::Error,
+                "Database",
+                std::string("None payload under the key: ") + key);
             continue;
         }
 
-        if (ParseEntry(key_payload)) {
-            Log(std::cerr, LogType::Error, "Database", std::string("Error parsing payload under the key:") + key);
+        if(ParseEntry(key_payload))
+        {
+            Log(std::cerr,
+                LogType::Error,
+                "Database",
+                std::string("Error parsing payload under the key:") + key);
         }
         // A record with matching key have been found.
         _record_begin = line_begin;
-        _record_end = next_line_begin;
+        _record_end   = next_line_begin;
         break;
     }
 }
-}
+} // namespace miopen
