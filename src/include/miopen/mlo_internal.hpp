@@ -209,7 +209,7 @@ class ProblemDescription
     }
 };
 
-// A leftover of the legacy design, houses problem config,
+/// A leftover of the legacy design, houses problem config,
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
 /// TODO: These three entities should be made separate.
