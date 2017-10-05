@@ -153,7 +153,7 @@ class Solver
     virtual void EuristicSearch(const ConvolutionContext&, PerformanceConfig&) const {}
     virtual void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig&) const {}
     inline ConvSolution GetSolution(const ConvolutionContext& search_params,
-                             DataEntry& search_results) const;
+                                    DbRecord& search_results) const;
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
@@ -331,7 +331,7 @@ class ConvOclBwdWrW1x1 : public Solver
 };
 
 ConvSolution Solver::GetSolution(const ConvolutionContext& search_params,
-                                 DataEntry& search_results) const
+                                 DbRecord& search_results) const
 {
     std::unique_ptr<PerformanceConfig> search_result(nullptr);
     auto loaded_search_result = false;

@@ -86,7 +86,7 @@ int mlo_construct_direct2D::mloConstruct()
                          std::to_string(_search_params.GetStream().GetMaxComputeUnits()) + "." +
                          std::string("cd.rdb.txt");
 
-    miopen::DataEntry search_results(db_path, _search_params);
+    miopen::DbRecord search_results(db_path, _search_params);
 
     for(const miopen::solver::Solver& solver : SolverStore())
     {

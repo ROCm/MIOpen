@@ -41,15 +41,9 @@ enum class LogType
     Warning = 33,
 };
 
-const char* GetLogTypeName(LogType type)
+inline const char* GetLogTypeName(LogType type)
 {
-    assert(type == LogType::Error || type == LogType::Warning);
-
-    switch(type)
-    {
-    case LogType::Error: return "Error";
-    case LogType::Warning: return "Warning";
-    }
+    return (type == LogType::Warning) ? "Warning" : "Error";
 }
 
 /// \todo Better diags everywhere. Print db filename, line number, key, id etc.
@@ -61,75 +55,74 @@ Log(std::ostream& stream, LogType type, const std::string& source, const std::st
            << source << "] " << message << std::endl;
 }
 
-bool DataEntry::_instance_loaded = false;
-
-// Record format:
-// KEY=[ID:VALUE[;ID:VALUE]*]
-//
-// KEY - An identifer of a problem description.
-// ID  - An identifer of a solution.
-// VALUE - Represents a performance config of a solution.
-//
-// KEY, ID and VALUE shall be ascii strings.
-// Any of ";:=" are not allowed.
-// Formatting of VALUE is a solution-specific.
-// Note: If VALUE is used to represent a set of values,
-// then it is recommended to use "," as a separator.
-
-bool DataEntry::ParseEntry(const std::string& entry)
+bool DbRecord::ParseContents(const std::string& contents)
 {
-    std::istringstream ss(entry);
-    std::string id_and_value;
-    auto found = 0u;
+    std::istringstream ss(contents);
+    std::string id_and_values;
+    int found = 0;
 
-    while(std::getline(ss, id_and_value, ';'))
+    while(std::getline(ss, id_and_values, ';'))
     {
-        const auto id_size = id_and_value.find(':');
+        const auto id_size = id_and_values.find(':');
 
-        if(id_size == std::string::npos || id_and_value.size() < id_size + 2)
+        // Empty VALUES is ok, empty ID is not:
+        if(id_size == std::string::npos)
         {
-            Log(std::cerr, LogType::Error, "Database", "ID not found or empty VALUE. Ignored.");
+            Log(std::cerr,
+                LogType::Error,
+                "Database",
+                std::string("Ill-formed file: ID not found; skipped; key: ") + _key);
             continue;
         }
 
-        const auto id    = id_and_value.substr(0, id_size);
-        const auto value = id_and_value.substr(id_size + 1);
+        const auto id     = id_and_values.substr(0, id_size);
+        const auto values = id_and_values.substr(id_size + 1);
 
         if(_content.find(id) != _content.end())
         {
-            Log(std::cerr, LogType::Error, "Database", "Duplicate IDs. Ignored.");
+            Log(std::cerr,
+                LogType::Error,
+                "Database",
+                std::string("Duplicate ID (ignored): ") + id + "; key: " + _key);
             continue;
         }
 
-        _content.emplace(id, value);
-        found++;
+        _content.emplace(id, values);
+        ++found;
     }
 
-    return found > 0;
+    return (found > 0);
 }
 
-bool DataEntry::Save(const std::string& key, const std::string& value)
+bool DbRecord::Save(const std::string& id, const std::string& values)
 {
-    if(!_read)
-        ReadFromDisk();
-
-    _has_changes  = true;
-    _content[key] = value;
-
+    if(!_is_content_cached)
+    {
+        // If there is a record with the same key, we need to find its position in the file.
+        // Otherwise the new record with the same key wll be appended and db file become ill-formed.
+        ReadIntoCache();
+    }
+    // No need to update the file if values are the same:
+    const auto it = _content.find(id);
+    if(it == _content.end() || it->second != values)
+    {
+        _is_cache_dirty = true;
+        _content[id]    = values;
+    }
     return true;
 }
 
-bool DataEntry::Load(const std::string& key, std::string& value)
+bool DbRecord::Load(const std::string& id, std::string& values)
 {
-    if(!_read)
-        ReadFromDisk();
+    if(!_is_content_cached)
+        ReadIntoCache();
 
-    const auto it = _content.find(key);
+    const auto it = _content.find(id);
 
     if(it == _content.end())
         return false;
 
-    value = it->second;
+    values = it->second;
     return true;
 }
 
@@ -165,14 +158,24 @@ static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
     }
 }
 
-void DataEntry::Flush()
-{
-    if(!_has_changes)
-        return;
+std::atomic_int DbRecord::_n_cached_records(0);
 
-    if(_record_begin == -1)
+void DbRecord::Flush()
+{
+    if(!_is_cache_dirty)
+        return;
+    if(_n_cached_records > 1)
     {
-        std::ofstream file(_path, std::ios::app);
+        Log(std::cerr,
+            LogType::Error,
+            "Database",
+            std::string("File update canceled to avoid db corruption. Key: ") + _key);
+        return;
+    }
+
+    if(_pos_begin < 0 || _pos_end < 0)
+    {
+        std::ofstream file(_db_filename, std::ios::app);
 
         if(!file)
         {
@@ -180,56 +183,61 @@ void DataEntry::Flush()
             return;
         }
 
-        _record_begin = file.tellp();
-        Write(file, _entry_key, _content);
-        _has_changes = false;
-        return;
+        _pos_begin = file.tellp();
+        Write(file, _key, _content);
+        _pos_end = file.tellp();
     }
-
-    const auto temp_name = _path + ".temp";
-    std::ifstream from(_path, std::ios::ate);
-
-    if(!from)
+    else
     {
-        Log(std::cerr, LogType::Error, "Database", "File is unreadable.");
-        return;
+        const auto temp_name = _db_filename + ".temp";
+        std::ifstream from(_db_filename, std::ios::ate);
+
+        if(!from)
+        {
+            Log(std::cerr, LogType::Error, "Database", "File is unreadable.");
+            return;
+        }
+
+        std::ofstream to(temp_name);
+
+        if(!to)
+        {
+            Log(std::cerr, LogType::Error, "Database", "Temp file is unwritable.");
+            return;
+        }
+
+        const auto from_size = from.tellg();
+        from.seekg(std::ios::beg);
+
+        Copy(from, to, _pos_begin);
+        Write(to, _key, _content);
+        const auto new_end = to.tellp();
+        from.seekg(_pos_end);
+        Copy(from, to, from_size - _pos_end);
+
+        from.close();
+        to.close();
+
+        std::remove(_db_filename.c_str());
+        std::rename(temp_name.c_str(), _db_filename.c_str());
+        /// \todo What if rename fails? Thou shalt not loose the original file.
+
+        // After successful write, position of the record's end needs to be updated.
+        // Position of the beginning remains the same.
+        _pos_end = new_end;
     }
-
-    std::ofstream to(temp_name);
-
-    if(!to)
-    {
-        Log(std::cerr, LogType::Error, "Database", "File is unwritable.");
-        return;
-    }
-
-    const auto from_size = from.tellg();
-    from.seekg(std::ios::beg);
-
-    Copy(from, to, _record_begin);
-    Write(to, _entry_key, _content);
-    from.seekg(_record_end);
-    Copy(from, to, from_size - _record_end);
-
-    from.close();
-    to.close();
-
-    std::remove(_path.c_str());
-    std::rename(temp_name.c_str(), _path.c_str());
+    _is_cache_dirty = false;
 }
 
-void DataEntry::ReadFromDisk()
+void DbRecord::ReadIntoCache()
 {
-    if(_instance_loaded)
-        MIOPEN_THROW("Keeping several data entries in memory at the same time is not allowed.");
-
-    _instance_loaded = true;
-
+    ++_n_cached_records;
     _content.clear();
-    _has_changes = false;
-    _read        = true;
+    _is_cache_dirty = false;
+    _is_content_cached =
+        true; // This is true even if no record found in the db: nothing read <-> nothing cached.
 
-    std::ifstream file(_path);
+    std::ifstream file(_db_filename);
 
     if(!file)
     {
@@ -237,39 +245,32 @@ void DataEntry::ReadFromDisk()
         return;
     }
 
-    std::string line;
-    std::streamoff line_begin      = 0;
-    std::streamoff next_line_begin = -1;
-
-    _record_begin = -1;
-    _record_end   = -1;
+    _pos_begin = -1;
+    _pos_end   = -1;
     while(true)
     {
-        line_begin = file.tellg();
+        std::string line;
+        std::streamoff line_begin = file.tellg();
         if(!std::getline(file, line))
-        {
-            _record_begin = -1;
-            _record_end   = -1;
             break;
-        }
-        next_line_begin = file.tellg();
+        std::streamoff next_line_begin = file.tellg();
 
         const auto key_size = line.find('=');
         if(key_size == std::string::npos || key_size == 0)
         {
             if(!line.empty()) // Do not blame empty lines.
             {
-                Log(std::cerr, LogType::Error, "Database", "None key found.");
+                Log(std::cerr, LogType::Error, "Database", "Ill-formed record: Empty key.");
             }
             continue;
         }
 
         const auto key = line.substr(0, key_size);
-        if(key != _entry_key)
+        if(key != _key)
             continue;
 
-        const auto key_payload = line.substr(key_size + 1);
-        if(key_payload.empty())
+        const auto contents = line.substr(key_size + 1);
+        if(contents.empty())
         {
             Log(std::cerr,
                 LogType::Error,
@@ -278,7 +279,7 @@ void DataEntry::ReadFromDisk()
             continue;
         }
 
-        if(ParseEntry(key_payload))
+        if(ParseContents(contents))
         {
             Log(std::cerr,
                 LogType::Error,
@@ -286,8 +287,8 @@ void DataEntry::ReadFromDisk()
                 std::string("Error parsing payload under the key:") + key);
         }
         // A record with matching key have been found.
-        _record_begin = line_begin;
-        _record_end   = next_line_begin;
+        _pos_begin = line_begin;
+        _pos_end   = next_line_begin;
         break;
     }
 }
