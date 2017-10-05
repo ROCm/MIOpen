@@ -84,7 +84,7 @@ int mlo_construct_direct2D::mloConstruct()
     const auto db_path = miopen::GetDbPath() + std::string("/") +
                          _search_params.GetStream().GetDeviceName() + "_" +
                          std::to_string(_search_params.GetStream().GetMaxComputeUnits()) + "." +
-                         std::string("cd.rdb.txt");
+                         std::string("cd.pdb.txt");
 
     miopen::DbRecord search_results(db_path, _search_params);
 
