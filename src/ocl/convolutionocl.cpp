@@ -568,7 +568,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 const auto db_path = miopen::GetDbPath() + std::string("/") +
                                      context.GetStream().GetDeviceName() + "_" +
                                      std::to_string(context.GetStream().GetMaxComputeUnits()) +
-                                     "." + std::string("cd.rdb.txt");
+                                     "." + std::string("cd.pdb.txt");
 
                 DbRecord search_results(db_path, context);
                 const solver::Solver& solver =

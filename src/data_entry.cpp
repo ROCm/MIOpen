@@ -39,11 +39,14 @@ enum class LogType
 {
     Error   = 31,
     Warning = 33,
+    Info = 37,
 };
 
 inline const char* GetLogTypeName(LogType type)
 {
-    return (type == LogType::Warning) ? "Warning" : "Error";
+    return (type == LogType::Warning) ? "Warning"
+           : (type == LogType::Info) ? "Info"
+           : "Error";
 }
 
 /// \todo Better diags everywhere. Print db filename, line number, key, id etc.
@@ -70,7 +73,7 @@ bool DbRecord::ParseContents(const std::string& contents)
         {
             Log(std::cerr,
                 LogType::Error,
-                "Database",
+                "DbRecord::ParseContents",
                 std::string("Ill-formed file: ID not found; skipped; key: ") + _key);
             continue;
         }
@@ -82,7 +85,7 @@ bool DbRecord::ParseContents(const std::string& contents)
         {
             Log(std::cerr,
                 LogType::Error,
-                "Database",
+                "DbRecord::ParseContents",
                 std::string("Duplicate ID (ignored): ") + id + "; key: " + _key);
             continue;
         }
@@ -168,7 +171,7 @@ void DbRecord::Flush()
     {
         Log(std::cerr,
             LogType::Error,
-            "Database",
+            "DbRecord::Flush",
             std::string("File update canceled to avoid db corruption. Key: ") + _key);
         return;
     }
@@ -179,7 +182,7 @@ void DbRecord::Flush()
 
         if(!file)
         {
-            Log(std::cerr, LogType::Error, "Database", "File is unwritable.");
+            Log(std::cerr, LogType::Error, "DbRecord::Flush", "File is unwritable.");
             return;
         }
 
@@ -194,7 +197,7 @@ void DbRecord::Flush()
 
         if(!from)
         {
-            Log(std::cerr, LogType::Error, "Database", "File is unreadable.");
+            Log(std::cerr, LogType::Error, "DbRecord::Flush", "File is unreadable.");
             return;
         }
 
@@ -202,7 +205,7 @@ void DbRecord::Flush()
 
         if(!to)
         {
-            Log(std::cerr, LogType::Error, "Database", "Temp file is unwritable.");
+            Log(std::cerr, LogType::Error, "DbRecord::Flush", "Temp file is unwritable.");
             return;
         }
 
@@ -241,18 +244,20 @@ void DbRecord::ReadIntoCache()
 
     if(!file)
     {
-        Log(std::cerr, LogType::Warning, "Database", "File is unreadable.");
+        Log(std::cerr, LogType::Warning, "DbRecord::ReadIntoCache", "File is unreadable.");
         return;
     }
 
     _pos_begin = -1;
     _pos_end   = -1;
+    int n_line = 0;
     while(true)
     {
         std::string line;
         std::streamoff line_begin = file.tellg();
         if(!std::getline(file, line))
             break;
+        ++n_line;
         std::streamoff next_line_begin = file.tellg();
 
         const auto key_size = line.find('=');
@@ -260,7 +265,8 @@ void DbRecord::ReadIntoCache()
         {
             if(!line.empty()) // Do not blame empty lines.
             {
-                Log(std::cerr, LogType::Error, "Database", "Ill-formed record: Empty key.");
+                Log(std::cerr, LogType::Error, "DbRecord::ReadIntoCache", "Ill-formed record: key not found.");
+                Log(std::cerr, LogType::Info, "DbRecord::ReadIntoCache", _db_filename + ", line#: " + std::to_string(n_line));
             }
             continue;
         }
@@ -274,7 +280,7 @@ void DbRecord::ReadIntoCache()
         {
             Log(std::cerr,
                 LogType::Error,
-                "Database",
+                "DbRecord::ReadIntoCache",
                 std::string("None payload under the key: ") + key);
             continue;
         }
@@ -283,7 +289,7 @@ void DbRecord::ReadIntoCache()
         {
             Log(std::cerr,
                 LogType::Error,
-                "Database",
+                "DbRecord::ReadIntoCache",
                 std::string("Error parsing payload under the key:") + key);
         }
         // A record with matching key have been found.
