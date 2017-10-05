@@ -35,7 +35,7 @@
 
 #include <miopen/config.h>
 #include <miopen/export.h>
-
+#include <vector>
 #if MIOPEN_BACKEND_OPENCL
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
@@ -596,6 +596,7 @@ typedef enum {
     miopenConvolutionFwdAlgoDirect   = 1, /*!< Direct convolutions */
     miopenConvolutionFwdAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionFwdAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+	miopenRNNAlgoGEMM = 4,  /*!< GEMM for RNN */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -1666,6 +1667,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 *  @{
 */
 
+
 /*! @enum miopenRNNInputMode_t
  * Recurrent Neural Network layer initial input mode
 */
@@ -1699,6 +1701,19 @@ typedef enum {
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc);
 
+/*! @brief Creates a RNN layer descriptor
+*
+* @param rnnDesc    RNN layer descriptor
+* @param mode       RNN mode
+* @param seqLength  Number of iterations to unroll over
+* @param layer      Number of hidden stacks
+* @param bidir      uni- or bi-direction
+* @param bias       bias or not
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir, int bias);
+
 /*! @brief Retrieves a RNN layer descriptor's details
 *
 * @param rnnDesc    RNN layer descriptor
@@ -1706,17 +1721,185 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rn
 * @param seqLength  Number of iterations to unroll over
 * @param layer      Number of hidden stacks
 * @param bidir      uni- or bi-direction
+
+* @param bias       bias or not
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir);
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir, int *bias);
 
+/* // discuss later
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir
+*/
+  
 /*! @brief Destroys the tensor descriptor object
 *
 * @param rnnDesc RNN tensor descriptor type
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc);
+
+/*! @brief Execute a forward RNN layer
+*
+* @param handle         MIOpen handle
+* @param rnnDesc        RNN layer descriptor
+* @param seqLen         Number of iterations to unroll over
+* @param xDesc          Tensor descriptor for data input tensor x
+* @param x              Data tensor x
+* @param hxDesc         Tensor descriptor for data input tensor hx
+* @param hx             Data tensor hx
+* @param cxDesc         Tensor descriptor for data input tensor cx
+* @param cx             Data tensor cx
+* @param wDesc          Tensor descriptor for weight tensor w
+* @param w              Weights tensor w
+* @param yDesc          Tensor descriptor for output data tensor y
+* @param y              Data tensor y
+* @param hyDesc         Tensor descriptor for output data tensor hy
+* @param hy             Data tensor hy
+* @param cyDesc         Tensor descriptor for output data tensor cy
+* @param cy             Data tensor cy
+* @param workSpace      Pointer to workspace required
+* @param workSpaceSize  Size in bytes of the memory determined by the find step
+* @param reserveSpace      Pointer to reservespace required
+* @param reserveSpaceSize  Size in bytes of the memory determined by the find step
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
+	const miopenRNNDescriptor_t rnnDesc,
+	const int seqLen,
+	const miopenTensorDescriptor_t xDesc,
+	const void* x,
+	const miopenTensorDescriptor_t hxDesc,
+	const void* hx,
+	const miopenTensorDescriptor_t cxDesc,
+	const void* cx,
+	const miopenTensorDescriptor_t wDesc,
+	const void* w,
+	const miopenTensorDescriptor_t yDesc,
+	void* y,
+	const miopenTensorDescriptor_t hyDesc,
+	void* hy,
+	const miopenTensorDescriptor_t cyDesc,
+	void* cy,
+	void* workSpace,
+	size_t workSpaceSize,
+	void* reserveSpace,
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h);
+
+/*! @brief Execute a backward data RNN layer
+*
+* @param handle         MIOpen handle
+* @param rnnDesc        RNN layer descriptor
+* @param seqLen         Number of iterations to unroll over
+* @param yDesc          Tensor descriptor for data input tensor y
+* @param y              Data tensor y
+* @param dyDesc         Tensor descriptor for data input tensor dy
+* @param dy             Data delta tensor dy
+* @param dhyDesc        Tensor descriptor for data input tensor dhy
+* @param dhy            Data delta tensor dhy
+* @param dcyDesc        Tensor descriptor for data input tensor dcy
+* @param dcy            Data delta tensor dcy
+* @param wDesc          Tensor descriptor for weight tensor w
+* @param w              Weights tensor w
+* @param hxDesc         Tensor descriptor for data input tensor hx
+* @param hx             Data tensor hx
+* @param cxDesc         Tensor descriptor for data input tensor cx
+* @param cx             Data tensor cx
+* @param dxDesc         Tensor descriptor for output data tensor dx
+* @param dx             Data delta tensor dx
+* @param dhyDesc        Tensor descriptor for output data tensor dhx
+* @param dhy            Data delta tensor dhx
+* @param dcyDesc        Tensor descriptor for output data tensor dcx
+* @param dcy            Data delta tensor dcx
+* @param workSpace      Pointer to workspace required
+* @param workSpaceSize  Size in bytes of the memory determined by the find step
+* @param reserveSpace      Pointer to reservespace required
+* @param reserveSpaceSize  Size in bytes of the memory determined by the find step
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenRNNBackwardData(miopenHandle_t handle,
+	const miopenRNNDescriptor_t rnnDesc,
+	const int seqLen,
+	const miopenTensorDescriptor_t yDesc,
+	const void* y,
+	const miopenTensorDescriptor_t dyDesc,
+	const void* dy,
+	const miopenTensorDescriptor_t dhyDesc,
+	const void* dhy,
+	const miopenTensorDescriptor_t dcyDesc,
+	const void* dcy,
+	const miopenTensorDescriptor_t wDesc,
+	const void* w,
+	const miopenTensorDescriptor_t hxDesc,
+	const void* hx,
+	const miopenTensorDescriptor_t cxDesc,
+	const void* cx,
+	const miopenTensorDescriptor_t dxDesc,
+	void* dx,
+	const miopenTensorDescriptor_t dhxDesc,
+	void* dhx,
+	const miopenTensorDescriptor_t dcxDesc,
+	void* dcx,
+	void* workSpace,
+	size_t workSpaceSize,
+	const void* reserveSpace,
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h);
+
+/*! @brief Execute a backward weight RNN layer
+*
+* @param handle         MIOpen handle
+* @param rnnDesc        RNN layer descriptor
+* @param seqLen         Number of iterations to unroll over
+* @param xDesc          Tensor descriptor for data input tensor x
+* @param x              Data tensor x
+* @param hxDesc         Tensor descriptor for data input tensor hx
+* @param hx             Data tensor hx
+* @param dyDesc         Tensor descriptor for data input tensor dy
+* @param dy             Data delta tensor dy
+* @param workSpace      Pointer to workspace required
+* @param workSpaceSize  Size in bytes of the memory determined by the find step
+* @param dwDesc         Tensor descriptor for output weight tensor w
+* @param dw             Weights delta tensor w
+* @param reserveSpace      Pointer to reservespace required
+* @param reserveSpaceSize  Size in bytes of the memory determined by the find step
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenRNNBackwardWeights(miopenHandle_t handle,
+	const miopenRNNDescriptor_t rnnDesc,
+	const int seqLen,
+	const miopenTensorDescriptor_t xDesc,
+	const void* x,
+	const miopenTensorDescriptor_t hxDesc,
+	const void* hx,
+	const miopenTensorDescriptor_t dyDesc,
+	const void* dy,
+	const void* workSpace,
+	size_t workSpaceSize,
+	const miopenTensorDescriptor_t dwDesc,
+	void* dw,
+	const void* reserveSpace,
+	size_t reserveSpaceSize,
+	const std::vector<int> &in_n,
+	const int in_h,
+	const int hy_d,
+	const int hy_n,
+	const int hy_h,
+	const int out_h);
 
 /*! @brief Set the details of the RNN descriptor
  *
@@ -2112,6 +2295,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInferenceCell(miopenHandle_t handle
                                                            void* hy,
                                                            void* workspace,
                                                            size_t workSpaceNumBytes);
+
 
 /** @} */
 // CLOSEOUT RNN DOXYGEN GROUP
