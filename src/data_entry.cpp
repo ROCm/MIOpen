@@ -266,7 +266,7 @@ void DbRecord::ReadIntoCache()
             if(!line.empty()) // Do not blame empty lines.
             {
                 Log(std::cerr, LogType::Error, "DbRecord::ReadIntoCache", "Ill-formed record: key not found.");
-                Log(std::cerr, LogType::Info, "DbRecord::ReadIntoCache", _db_filename + ", line#: " + std::to_string(n_line));
+                Log(std::cerr, LogType::Info, "^", _db_filename + "#" + std::to_string(n_line));
             }
             continue;
         }
@@ -285,12 +285,14 @@ void DbRecord::ReadIntoCache()
             continue;
         }
 
-        if(ParseContents(contents))
+        if(!ParseContents(contents))
         {
             Log(std::cerr,
                 LogType::Error,
                 "DbRecord::ReadIntoCache",
-                std::string("Error parsing payload under the key:") + key);
+                std::string("Error parsing payload under the key: ") + key);
+            Log(std::cerr, LogType::Info, "^", _db_filename + "#" + std::to_string(n_line));
+            Log(std::cerr, LogType::Info, "^", contents);
         }
         // A record with matching key have been found.
         _pos_begin = line_begin;
