@@ -223,4 +223,29 @@ GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_con
     }
 }
 
+GemmGeometry CreateGemmGeometryRNN(const int M,
+	const int N,
+	const int K,
+	const float alpha,
+	const float beta,
+	bool tA,
+	bool tB,
+	bool tC,
+	const int lda,
+	const int ldb,
+	const int ldc,
+	bool isDataColMajor,
+	std::string& network_config)
+{
+	// GEMM
+	MIOpenGEMM::Geometry tgg{};
+	GemmGeometry gg;
+	(void)isDataColMajor;
+
+		tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+		gg = GemmGeometry{ "miopenRNNAlgoGEMM", alpha, beta, tgg };
+	
+	network_config = tgg.get_networkconfig_string();
+	return gg;
+}
 } // namespace miopen

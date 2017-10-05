@@ -17,17 +17,20 @@ int sumvc(std::vector<int>& x)
 
 float activfunc(float x, int actvf)
 {
+	float alpha = 1, beta0 = 0, beta1 = 1;
     if(actvf == 0)
     {
-        float y = 0;
-        return std::max(x, y);
+//        float y = 0;
+//        return std::max(x, y);
+		return (x > 0) ? x : x * beta0;
     }
     else if(actvf == 2)
     {
         return 1 / (1 + exp(-x));
     }
 
-    return tanh(x);
+//    return tanh(x);
+	return alpha * tanh(beta1 * x);
 }
 
 float dervactivfunc(float x, int actvf)
