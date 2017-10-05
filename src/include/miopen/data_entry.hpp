@@ -108,7 +108,7 @@ class DbRecord
     }
 
     public:
-    /// T shall provide a db KEY by means of the 
+    /// T shall provide a db KEY by means of the
     /// "void Serialize(std::ostream&) const"
     /// member function.
     template <class T>
