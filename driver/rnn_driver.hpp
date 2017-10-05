@@ -140,7 +140,6 @@ miopenCreateTensorDescriptor(&outputTensor);
     int RunBackwardGPU();
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
-
     int VerifyBackward();
     int VerifyForward();
     ~RNNDriver()
@@ -367,7 +366,8 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
     int seqLength = inflags.GetValueInt("seq_len");
     int layer     = inflags.GetValueInt("num_layer");
     int bidir     = inflags.GetValueInt("bidirection");
-	int bias = inflags.GetValueInt("bias");
+	  int bias = inflags.GetValueInt("bias");
+
     miopenRNNMode_t mode;
 
     if((inflags.GetValueStr("mode")) == "relu")
@@ -793,7 +793,7 @@ miopenGet4dTensorDescriptor(inputTensor,
 
     bidirection = (bidir != 0);
 //    biased      = (inflags.GetValueInt("bias") != 0);
-	biased = (bias != 0);
+	  biased = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -823,6 +823,7 @@ miopenGet4dTensorDescriptor(inputTensor,
                                mode,
                                reservespace);
 							   */
+
 
         RunRNNForwardGEMMCPUVerify(in,
                                    wei,
@@ -1139,7 +1140,7 @@ miopenGet4dTensorDescriptor(outputTensor,
 
     bidirection = (bidir != 0);
 //    biased      = (inflags.GetValueInt("bias") != 0);
-	biased = (bias != 0);
+	  biased = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -1334,7 +1335,7 @@ miopenGet4dTensorDescriptor(outputTensor,
 
     bidirection = (bidir != 0);
 //    biased      = (inflags.GetValueInt("bias") != 0);
-	biased = (bias != 0);
+	  biased = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
