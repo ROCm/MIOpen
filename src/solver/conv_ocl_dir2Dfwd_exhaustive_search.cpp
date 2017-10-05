@@ -60,12 +60,12 @@ void LegacyPerformanceConfig::Serialize(std::ostream& stream) const
     static const auto separator = ',';
 
     // clang-format off
-    stream           << grp_tile0
-        << separator << grp_tile1
-        << separator << in_tile0
+    stream           << grp_tile1
+        << separator << grp_tile0
         << separator << in_tile1
-        << separator << out_pix_tile0
+        << separator << in_tile0
         << separator << out_pix_tile1
+        << separator << out_pix_tile0
         << separator << n_out_pix_tiles
         << separator << n_in_data_tiles
         << separator << n_stacks;
@@ -92,12 +92,12 @@ bool LegacyPerformanceConfig::Deserialize(const std::string& from)
 
     const auto succeded =
         // clang-format off
-        DeserializeField(',', ss, temp.grp_tile0) &&
         DeserializeField(',', ss, temp.grp_tile1) &&
-        DeserializeField(',', ss, temp.in_tile0) &&
+        DeserializeField(',', ss, temp.grp_tile0) &&
         DeserializeField(',', ss, temp.in_tile1) &&
-        DeserializeField(',', ss, temp.out_pix_tile0) &&
+        DeserializeField(',', ss, temp.in_tile0) &&
         DeserializeField(',', ss, temp.out_pix_tile1) &&
+        DeserializeField(',', ss, temp.out_pix_tile0) &&
         DeserializeField(',', ss, temp.n_out_pix_tiles) &&
         DeserializeField(',', ss, temp.n_in_data_tiles) &&
         DeserializeField(',', ss, temp.n_stacks);
