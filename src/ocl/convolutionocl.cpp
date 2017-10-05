@@ -570,7 +570,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                      std::to_string(context.GetStream().GetMaxComputeUnits()) +
                                      "." + std::string("cd.rdb.txt");
 
-                DataEntry search_results(db_path, context);
+                DbRecord search_results(db_path, context);
                 const solver::Solver& solver =
                     StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
                 solver::ConvSolution solution = solver.GetSolution(context, search_results);
