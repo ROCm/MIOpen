@@ -38,6 +38,7 @@ inline int FwdAlgoResolver(const std::string& s)
         {"miopenConvolutionFwdAlgoDirect", 1},
         {"miopenConvolutionFwdAlgoFFT", 2},
         {"miopenConvolutionFwdAlgoWinograd", 3},
+		{ "miopenRNNAlgoGEMM", 4 },
     };
     return data.at(s);
 }
