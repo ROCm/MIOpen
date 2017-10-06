@@ -62,7 +62,6 @@ struct RNNDescriptor : miopenRNNDescriptor
 
 
     size_t hsize; // DLOWELL: is this uniform over all layers?
-    size_t seqLength; //DLOWELL: remove?
     size_t nLayers;
     size_t nHiddenTensorsPerLayer; // TODO dlowell: set via constructor, or "set" functions
     size_t workspaceScale;
@@ -123,13 +122,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                         Data_t workSpace,
                         size_t workSpaceSize,
                         Data_t reserveSpace,
-                        size_t reserveSpaceSize/*,
-                        const std::vector<int> &in_n,
-                        const int in_h,
-                        const int hy_d,
-                        const int hy_n,
-                        const int hy_h, // DLOWELL: These should all be internal
-                        const int out_h*/) const;
+                        size_t reserveSpaceSize) const;
 
     
     
@@ -180,13 +173,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                             Data_t workSpace,
                             size_t workSpaceSize,
                             ConstData_t reserveSpace,
-                            size_t reserveSpaceSize/*,
-                            const std::vector<int> &in_n,
-                            const int in_h,
-                            const int hy_d,
-                            const int hy_n,
-                            const int hy_h,
-                            const int out_h*/) const;
+                            size_t reserveSpaceSize) const;
     
     
     void RNNBackwardWeights(Handle& handle,
@@ -202,13 +189,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                             ConstData_t workSpace,
                             size_t workSpaceSize,
                             ConstData_t reserveSpace,
-                            size_t reserveSpaceSize/*,
-                            const std::vector<int> &in_n,
-                            const int in_h,
-                            const int hy_d,
-                            const int hy_n,
-                            const int hy_h,
-                            const int out_h*/) const;
+                            size_t reserveSpaceSize) const;
     
     
     // DLOWELL : These will be implemented once all the other elements are in place
