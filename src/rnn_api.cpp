@@ -166,7 +166,7 @@ extern "C" miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
                                                  const void* w,
                                                  const int layerID,
                                                  miopenTensorDescriptor_t paramDesc,
-                                                 void** layerParam)
+                                                 size_t* layerParam)
 {
 
     // TODO (dlowell) implement this
@@ -181,7 +181,7 @@ extern "C" miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
                                                 const void* w,
                                                 const int layerID,
                                                 miopenTensorDescriptor_t biasDesc,
-                                                void** layerBias)
+                                                size_t* layerBias)
 {
 
     // TODO (dlowell) implement this
