@@ -30,28 +30,28 @@
 namespace miopen {
 namespace solver {
 
-ConvSolution Solver::GetSolution(const ConvolutionContext& search_params, DbRecord& dbRecord) const
+ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
 {
     std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
-    if(!CanDoExaustiveSearch())
+    if(!IsSearchable())
     {
-        InitPerformanceConfigImpl(search_params, *config);
-        return GetSolution(search_params, *config);
+        InitPerformanceConfigImpl(context, *config);
+        return GetSolution(context, *config);
     }
     if(dbRecord.Load(SolverId(), *config))
     {
-        return GetSolution(search_params, *config);
+        return GetSolution(context, *config);
     }
-    if(search_params.do_search)
+    if(context.do_search)
     {
-        ExhaustiveSearch(search_params, *config);
+        Search(context, *config);
         dbRecord.Save(SolverId(), *config);
     }
     else
     {
-        InitPerformanceConfigImpl(search_params, *config);
+        InitPerformanceConfigImpl(context, *config);
     }
-    return GetSolution(search_params, *config);
+    return GetSolution(context, *config);
 }
 
 } // namespace solver
