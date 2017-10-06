@@ -54,14 +54,13 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& c)
 
 RNNDescriptor::RNNDescriptor()
 {
-    seqLength     = 0;
     nLayers       = 1;
     hsize         = 0;
     inputBatchLenSum = 0;
     nHiddenTensorsPerLayer = 0;
     rnnMode   = miopenRNNRELU;
     dirMode   = miopenRNNunidirection;
-    biasMode  = miopenRNNWithBias;
+    biasMode  = miopenRNNwithBias;
     algoMode  = miopenRNNdefault;
     inputMode = miopenRNNskip;
 }
@@ -76,7 +75,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
                              miopenDataType_t dType)
 {
     
-    if(hsize < 0 || layers < 0)
+    if(hsz < 0 || layers < 0)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameter to RNN must be a positive integer.");
     }
@@ -212,7 +211,7 @@ recurrent input.*/
     // 0 --> Wx_t
     // 1 --> Rh_t-1
     
-    
+    // TODO: FILL
     
     
     
@@ -227,7 +226,7 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
                                  const TensorDescriptor& biasDesc,
                                  size_t biasOffset) const
 {
-    
+    // TODO: FILL
     
     
 }
@@ -235,7 +234,7 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
 
 
 
-
+// TODO: LATER
 
 
 void RNNDescriptor::ForwardRNNInferCell(Handle& handle,

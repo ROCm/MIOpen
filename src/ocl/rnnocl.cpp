@@ -103,56 +103,54 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	Data_t workSpace,
 	size_t workSpaceSize,
 	Data_t reserveSpace,
-	size_t reserveSpaceSize)//,
-	/*const std::vector<int> &in_n,
-	const int in_h,
-	const int hy_d,
-	const int hy_n,
-	const int hy_h,
-	const int out_h) */ const
+	size_t reserveSpaceSize) const
 {
+    
+    //TODO: DLOWELL put guards here.
+    std::string network_config;
     std::vector<int> in_n;
-    int in_h;
-    int hy_d;
-    int hy_n;
-    int hy_h;
-    int out_h;
+    int in_h  = xDesc[0].GetLengths()[1];
+    int hy_d  = 0; // TODO: DLOWELL these need to be filled.
+    int hy_n  = 0;
+    int hy_h  = 0;
+    int out_h = 0;
                            
-    int batchsize = xDesc[0].GetLength()[0];
+    int batchsize = xDesc[0].GetLengths()[0];
     
 	//int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0); //DLOWELL moved this to descriptor
     
-    assert(inputBatchLen>0);
-    int batch_n = inputBatchLen;
-
-	bool bidirection = (bidir != 0);
-	bool biased = (bias != 0);
-	int numlayer = layer;
+    int batch_n = 0;
+    for(int i = 0 ; i < seqLen ; i++)
+    {
+        in_n.push_back(xDesc[i].GetLengths()[0]);
+        batch_n += xDesc[i].GetLengths()[0];
+    }
+        
 	int bacc, baccbi;
-	int bi = bidirection ? 2 : 1;
+	int bi = dirMode ? 2 : 1;
 
-	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
-	if (biased)
+	int wei_len = (bi * (in_h + hy_h + out_h) + (nLayers - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	if (biasMode)
 	{
-		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+		wei_len += (bi * 2 + (nLayers - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
 	}
 
 	int wei_shift_bias =
-		((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
+		((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (nLayers - 1)) * hy_h;
 	int in_stride = in_h;
 	int hy_stride = hy_h * bi;
 	int h_stride = hy_h * bi;
 	int out_stride = out_h;
 	int wei_stride = hy_h * bi;
 
-	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
+	if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
 	{
-		std::string network_config;
+
 #if MIOPEN_USE_MIOPENGEMM
 		printf("rnn gpu fwd \n");
 
 		GemmGeometry gg;
-		for (int li = 0; li < numlayer; li++)
+		for (int li = 0; li < nLayers; li++)
 		{
 			int hid_shift = li * batch_n * hy_h * bi;
 			int hx_shift = li * bi * batchsize * hy_h;
@@ -177,7 +175,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				gg.FindSolution(.003, handle, x, w, reserveSpace, false);
 				gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
-				if (biased)
+				if (biasMode)
 				{
 
 				}
@@ -203,7 +201,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
 				gg.RunGemm(handle, workSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
-				if (biased)
+				if (biasMode)
 				{
 
 				}
@@ -245,7 +243,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						wei_shift, 
 						hid_shift + bacc * hy_stride);
 
-					if (bidirection)
+					if (dirMode)
 					{
 						gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
 							hy_h,
@@ -294,7 +292,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						wei_shift, 
 						hid_shift + bacc * hy_stride);
 
-					if (bidirection)
+					if (dirMode)
 					{
 						gg = CreateGemmGeometryRNN(in_n[seqLen - ti],
 							hy_h,
@@ -333,11 +331,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						float alpha = 1, beta = 0;
 						ActivationDescriptor activDesc;
 
-						if (mode == miopenRNNRELU)
+						if (rnnMode == miopenRNNRELU)
 						{
 							activDesc = { miopenActivationRELU, 1, 0, 1 };
 						}
-						else if (mode == miopenRNNTANH)
+ else if (rnnMode == miopenRNNTANH)
 						{
 							activDesc = { miopenActivationTANH, 1, 1, 1 };
 						}
@@ -367,11 +365,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					float alpha = 1, beta = 0;
 					ActivationDescriptor activDesc;
 
-					if (mode == miopenRNNRELU)
+					if (rnnMode == miopenRNNRELU)
 					{
 						activDesc = { miopenActivationRELU, 1, 0, 1 };
 					}
-					else if (mode == miopenRNNTANH)
+					else if (rnnMode == miopenRNNTANH)
 					{
 						activDesc = { miopenActivationTANH, 1, 1, 1 };
 					}
@@ -411,11 +409,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				float alpha = 1, beta = 0;
 				ActivationDescriptor activDesc;
 
-				if (mode == miopenRNNRELU)
+				if (rnnMode == miopenRNNRELU)
 				{
 					activDesc = { miopenActivationRELU, 1, 0, 1 };
 				}
-				else if (mode == miopenRNNTANH)
+				else if (rnnMode == miopenRNNTANH)
 				{
 					activDesc = { miopenActivationTANH, 1, 1, 1 };
 				}
@@ -433,8 +431,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		}
 
 		// output
-		int prelayer_shift = (numlayer - 1) * batch_n * hy_h * bi;
-		int wei_shift = bi * (in_h + hy_h) * hy_h + (numlayer - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+		int prelayer_shift = (nLayers - 1) * batch_n * hy_h * bi;
+		int wei_shift = bi * (in_h + hy_h) * hy_h + (nLayers - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 
 		gg = CreateGemmGeometryRNN(batch_n,
 			out_h,
@@ -458,7 +456,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			wei_shift,
 			0);
 
-		if (biased)
+		if (biasMode)
 		{
 
 		}
@@ -466,11 +464,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		MIOPEN_THROW("GEMM is not supported");
 #endif
 	}
-	else if (mode == miopenLSTM)
+	else if (rnnMode == miopenLSTM)
 	{
 		printf("lstm gpu fwd \n");
 	}
-	else if (mode == miopenGRU)
+	else if (rnnMode == miopenGRU)
 	{
 		printf("gru gpu fwd \n");
 	}
@@ -501,50 +499,35 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 	Data_t workSpace,
 	size_t workSpaceSize,
 	ConstData_t reserveSpace,
-	size_t reserveSpaceSize)//,
-	/*const std::vector<int> &in_n,
-	const int in_h,
-	const int hy_d,
-	const int hy_n,
-	const int hy_h,
-	const int out_h) */const
+	size_t reserveSpaceSize) const
 {
-                          
-    std::vector<int> &in_n;
-	int in_h;
-	int hy_d;
-	int hy_n;
-	int hy_h;
-	int out_h;
+    //TODO: DLOWELL put guards here.
+    std::string network_config; 
+    std::vector<int> in_n;
+    int in_h  = yDesc[0].GetLengths()[1];
+    int hy_d  = 0; // TODO: DLOWELL these need to be filled.
+    int hy_n  = 0;
+    int hy_h  = 0;
+    int out_h = 0;
+                           
+    int batchsize = yDesc[0].GetLengths()[0];
+    
+	//int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0); //DLOWELL moved this to descriptor
+    
+    int batch_n = 0;
+    for(int i = 0 ; i < seqLen ; i++)
+    {
+        in_n.push_back(yDesc[i].GetLengths()[0]);
+        batch_n += yDesc[i].GetLengths()[0];
+    }
 
-	/*
-	if (dx == nullptr || w == nullptr || dy == nullptr)
-	{
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
-	if (dyDesc.GetSize() != dxDesc.GetSize() || dyDesc.GetSize() != wDesc.GetSize())
-	{
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
-	if (dyDesc.GetType() != dxDesc.GetType() || dyDesc.GetType() != wDesc.GetType())
-	{
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
-	*/
-
-
-	int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0);
-
-	bool bidirection = (bidir != 0);
-	bool biased = (bias != 0);
-	int numlayer = layer;
 	int bacc, baccbi;
-	int bi = bidirection ? 2 : 1;
+	int bi = dirMode ? 2 : 1;
 
-	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
-	if (biased)
+	int wei_len = (bi * (in_h + hy_h + out_h) + (nLayers - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	if (biasMode)
 	{
-		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+		wei_len += (bi * 2 + (nLayers - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
 	}
 
 	int in_stride = in_h;
@@ -554,21 +537,21 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 	int wei_stride = hy_h * bi;
 
 
-	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
+	if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
 	{
 #if MIOPEN_USE_MIOPENGEMM
 		printf("rnn gpu bwd data \n");
 
 		GemmGeometry gg;
 
-		for (int li = numlayer - 1; li >= 0; li--)
+		for (int li = nLayers - 1; li >= 0; li--)
 		{
 			int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
 			int hid_shift = li * batch_n * hy_h * bi;
 			int hx_shift = li * bi * in_n[0] * hy_h;
 
 			// feedback from output
-			if (li == numlayer - 1)
+			if (li == nLayers - 1)
 			{
 
 				gg = CreateGemmGeometryRNN(batch_n,
@@ -637,7 +620,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 				gg.FindSolution(.003, handle, workSpace, w, dhx, false);
 				gg.RunGemm(handle, workSpace, w, dhx, hid_shift + bacc * hy_stride, wei_shift, hx_shift);
 
-				if (bidirection)
+				if (dirMode)
 				{
 
 
@@ -685,11 +668,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 		MIOPEN_THROW("GEMM is not supported");
 #endif
 	}
-	else if (mode == miopenLSTM)
+	else if (rnnMode == miopenLSTM)
 	{
 		printf("lstm gpu bwd data \n");
 	}
-	else if (mode == miopenGRU)
+	else if (rnnMode == miopenGRU)
 	{
 		printf("gru gpu bwd data \n");
 	}
@@ -709,50 +692,39 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 	ConstData_t workSpace,
 	size_t workSpaceSize,
 	ConstData_t reserveSpace,
-	size_t reserveSpaceSize)//,
-	/*const std::vector<int> &in_n,
-	const int in_h,
-	const int hy_d,
-	const int hy_n,
-	const int hy_h,
-	const int out_h) */const
+	size_t reserveSpaceSize) const
 {
+    //TODO: DLOWELL put guards here.
+    std::string network_config;
+    std::vector<int> in_n;
+    int in_h  = xDesc[0].GetLengths()[1];
+    int hy_d  = 0; // TODO: DLOWELL these need to be filled.
+    int hy_n  = 0;
+    int hy_h  = 0;
+    int out_h = 0;
+                           
+    int batchsize = xDesc[0].GetLengths()[0];
+    
+	//int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0); //DLOWELL moved this to descriptor
+    
+    int batch_n = 0;
+    for(int i = 0 ; i < seqLen ; i++)
+    {
+        in_n.push_back(xDesc[i].GetLengths()[0]);
+        batch_n += xDesc[i].GetLengths()[0];
+    }
 
-    std::vector<int> &in_n;
-	int in_h;
-	int hy_d;
-	int hy_n;
-	int hy_h;
-	int out_h;
-
-
-
-//        int in_n, in_c, in_h, in_w;
-	//		std::tie(in_n, in_c, in_h, in_w) = tie4(xDesc.GetLengths());
-
-//	int wei_n, wei_h, wei_w;
-	//		std::tie(wei_n, std::ignore, wei_h, wei_w) = tie4(wDesc.GetLengths());
-
-//	int out_h, out_w;
-	//		std::tie(std::ignore, std::ignore, out_h, out_w) = tie4(yDesc.GetLengths());
-
-
-	int batch_n = std::accumulate(in_n.begin(), in_n.end(), 0);
-
-	bool bidirection = (bidir != 0);
-	bool biased = (bias != 0);
-	int numlayer = layer;
 	int bacc;
-	int bi = bidirection ? 2 : 1;
+	int bi = dirMode ? 2 : 1;
 
-	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
-	if (biased)
+	int wei_len = (bi * (in_h + hy_h + out_h) + (nLayers - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	if (biasMode)
 	{
-		wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+		wei_len += (bi * 2 + (nLayers - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
 	}
 
 	int wei_shift_bias =
-		((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
+		((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (nLayers - 1)) * hy_h;
 	int in_stride = in_h;
 	int hy_stride = hy_h * bi;
 	int h_stride = hy_h * bi;
@@ -761,10 +733,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 	//cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
-	if (mode == miopenRNNRELU || mode == miopenRNNTANH)
+	if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
 	{
 
-		std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
 		printf("rnn gpu bwd weights \n");
 
@@ -781,11 +752,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 		float alpha = 1, beta = 0;
 		ActivationDescriptor activDesc;
 
-		if (mode == miopenRNNRELU)
+		if (rnnMode == miopenRNNRELU)
 		{
 			activDesc = { miopenActivationRELU, 1, 0, 1 };
 		}
-		else if (mode == miopenRNNTANH)
+		else if (rnnMode == miopenRNNTANH)
 		{
 			activDesc = { miopenActivationTANH, 1, 1, 1 };
 		}
@@ -798,7 +769,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 			miopen::deref(rsvTensor),
 			reserveSpace);
 
-		for (int li = 0; li <= numlayer; li++)
+		for (int li = 0; li <= nLayers; li++)
 		{
 			// between layers
 			if (li == 0)
@@ -820,12 +791,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 				gg.FindSolution(.003, handle, x, workSpace, dw, false);
 				gg.RunGemm(handle, x, workSpace, dw, 0, 0, 0);
 
-				if (biased)
+				if (biasMode)
 				{
 
 				}
 			}
-			else if (li == numlayer)
+			else if (li == nLayers)
 			{
 				int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
 				int prelayer_shift = (li - 1) * bi * batch_n * hy_h;
@@ -844,10 +815,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 					wei_stride,
 					false,
 					network_config);
-				gg.FindSolution(.003, handle, dy, reserveSpace, dw, false);
-				gg.RunGemm(handle, dy, reserveSpace, dw, 0, prelayer_shift, wei_shift);
+				gg.FindSolution(.003, handle, y, reserveSpace, dw, false);
+				gg.RunGemm(handle, y, reserveSpace, dw, 0, prelayer_shift, wei_shift);
 
-				if (biased)
+				if (biasMode)
 				{
 
 				}
@@ -875,14 +846,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 				gg.RunGemm(handle, reserveSpace, workSpace, dw, prelayer_shift, hid_shift, wei_shift);
 
 
-				if (biased)
+				if (biasMode)
 				{
 
 				}
 			}
 
 			// between time
-			if (li < numlayer)
+			if (li < nLayers)
 			{
 				bacc = 0;
 				for (int ti = 0; ti < seqLen; ti++)
@@ -940,7 +911,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 					}
 
-					if (bidirection)
+					if (dirMode)
 					{
 						if (ti == seqLen - 1)
 						{
@@ -995,11 +966,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 		MIOPEN_THROW("GEMM is not supported");
 #endif
 	}
-	else if (mode == miopenLSTM)
+	else if (rnnMode == miopenLSTM)
 	{
 		printf("lstm gpu bwd weights \n");
 	}
-	else if (mode == miopenGRU)
+	else if (rnnMode == miopenGRU)
 	{
 		printf("gru gpu bwd weights \n");
 	}

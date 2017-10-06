@@ -28,45 +28,10 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
-//<<<<<<< rnngpu
 #include <vector>
 // TODO: Make miopenConvAlgoPerf_t loggable
 // inline std::ostream& operator<<(std::ostream& os, miopenConvAlgoPerf_t) { return os; }
 
-extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc)
-{
-    //    MIOPEN_LOG_FUNCTION(rnnDesc);
-    return miopen::try_([&] { miopen::deref(rnnDesc) = new miopen::RNNDescriptor(); });
-}
-
-extern "C" miopenStatus_t miopenInitRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir, int bias)
-{
-
-    //    MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir, bias);
-    return miopen::try_(
-        [&] { miopen::deref(rnnDesc) = miopen::RNNDescriptor(mode, seqLength, layer, bidir, bias); });
-}
-
-extern "C" miopenStatus_t miopenGetRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir, int *bias)
-{
-
-    //	MIOPEN_LOG_FUNCTION(rnnDesc, mode, seqLength, layer, bidir, bias);
-    return miopen::try_([&] {
-        miopen::deref(mode)      = miopen::deref(rnnDesc).mode;
-        miopen::deref(seqLength) = miopen::deref(rnnDesc).seqLength;
-        miopen::deref(layer)     = miopen::deref(rnnDesc).layer;
-        miopen::deref(bidir)     = miopen::deref(rnnDesc).bidir;
-		miopen::deref(bias) = miopen::deref(rnnDesc).bias;
-    });
-}
-
-extern "C" miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc)
-{
-    //    MIOPEN_LOG_FUNCTION(rnnDesc);
-    return miopen::try_([&] { delete rnnDesc; });
-}
 
 extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc)
 {
@@ -74,21 +39,71 @@ extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDe
     return miopen::try_([&] { miopen::deref(rnnDesc) = new miopen::RNNDescriptor(); });
 }
 
+extern "C" miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc)
+{
+    MIOPEN_LOG_FUNCTION(rnnDesc);
+    return miopen::try_([&] { delete rnnDesc; });
+}
+
+extern "C" miopenStatus_t miopenGetRNNDescriptor(
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, miopenRNNAlgo_t * algoMode, miopenRNNInputMode_t *inputMode,
+                        miopenRNNDirectionMode_t* bidir, 
+        miopenRNNBiasMode_t *bias, int* hiddenSize, int* layer)
+{
+
+    MIOPEN_LOG_FUNCTION(rnnDesc, mode, algoMode, inputMode, bidir, bias, hiddenSize, layer);
+    return miopen::try_([&] {
+        if(mode != nullptr)
+        {
+            miopen::deref(mode) = miopen::deref(rnnDesc).rnnMode;
+        }
+        if(algoMode != nullptr)
+        {
+            miopen::deref(algoMode) = miopen::deref(rnnDesc).algoMode;
+        }
+        if(inputMode != nullptr)
+        {
+            miopen::deref(inputMode) = miopen::deref(rnnDesc).inputMode;
+        }
+        if(layer != nullptr)
+        {
+            miopen::deref(layer)      = miopen::deref(rnnDesc).nLayers;
+        }
+        if(bias != nullptr)
+        {
+            miopen::deref(bias)       = miopen::deref(rnnDesc).biasMode;
+        }
+        if(mode != nullptr)
+        {
+            miopen::deref(bidir)      = miopen::deref(rnnDesc).dirMode;
+        }
+        if(hiddenSize != nullptr)
+        {
+            miopen::deref(hiddenSize) = miopen::deref(rnnDesc).hsize;
+        }
+        
+    });
+}
+
+
+
+
 extern "C" miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
                                                  const int hsize,
                                                  const int nlayers,
                                                  miopenRNNInputMode_t inMode,
                                                  miopenRNNDirectionMode_t direction,
                                                  miopenRNNMode_t rnnMode,
+                                                 miopenRNNBiasMode_t biasMode,
                                                  miopenRNNAlgo_t algo,
                                                  miopenDataType_t dataType)
 {
 
-    MIOPEN_LOG_FUNCTION(rnnDesc, hsize, nlayers, inMode, direction, rnnMode, algo, dataType);
+    MIOPEN_LOG_FUNCTION(rnnDesc, hsize, nlayers, inMode, direction, rnnMode, biasMode, algo, dataType);
     return miopen::try_([&] {
 
         miopen::deref(rnnDesc) =
-            miopen::RNNDescriptor(hsize, nlayers, rnnMode, inMode, direction,algo, dataType);
+            miopen::RNNDescriptor(hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, dataType);
     });
 }
 
@@ -173,11 +188,6 @@ extern "C" miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
     return miopenStatusSuccess;
 }
 
-extern "C" miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc)
-{
-    MIOPEN_LOG_FUNCTION(rnnDesc);
-    return miopen::try_([&] { delete rnnDesc; });
-}
 
 
 

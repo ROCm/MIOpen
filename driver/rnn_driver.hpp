@@ -433,7 +433,7 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     size_t wei_sz = 0;
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
-    {
+    { //TODO: DLOWELL : Move these into the library
         hid_sz = batch_n * hid_len[0] * hid_len[1]; // GetTensorSize(hiddenTensor);
         wei_sz = wei_len[3] * wei_len[0] *
                  (wei_len[2] + wei_len[3] + wei_len[4] +
