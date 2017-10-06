@@ -23,8 +23,6 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-#include "miopen/data_entry.hpp"
-
 #include <algorithm>
 #include <cassert>
 #include <fstream>
@@ -32,6 +30,7 @@
 #include <sstream>
 
 #include "miopen/errors.hpp"
+#include "miopen/db_record.hpp"
 
 namespace miopen {
 

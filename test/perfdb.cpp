@@ -4,8 +4,9 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <cstdlib>
 
-#include "miopen/data_entry.hpp"
+#include "miopen/db_record.hpp"
 
 namespace miopen {
 namespace tests {
@@ -14,6 +15,9 @@ struct TestData
 {
     int x;
     int y;
+
+    TestData() : x(rand()), y(rand()) {}
+    TestData(int x_, int y_) : x(x_), y(y_) {}
 
     void Serialize(std::ostream& s) const
     {

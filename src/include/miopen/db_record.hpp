@@ -23,8 +23,8 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-#ifndef MIOPEN_DATA_ENTRY_HPP_
-#define MIOPEN_DATA_ENTRY_HPP_
+#ifndef GUARD_MIOPEN_DB_RECORD_HPP
+#define GUARD_MIOPEN_DB_RECORD_HPP
 
 #include <sstream>
 #include <string>
@@ -151,4 +151,4 @@ class DbRecord
 };
 } // namespace miopen
 
-#endif
+#endif // GUARD_MIOPEN_DB_RECORD_HPP

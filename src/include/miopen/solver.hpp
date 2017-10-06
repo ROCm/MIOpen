@@ -32,7 +32,7 @@
 #include <string>
 #include <vector>
 
-#include "miopen/data_entry.hpp"
+#include "miopen/db_record.hpp"
 #include "miopen/mlo_internal.hpp"
 #include "miopen/miopen.h"
 
