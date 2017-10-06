@@ -1762,8 +1762,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNWorkspaceSize(
         miopenTensorDescriptor_t        *xDesc,
         size_t                          *numBytes);
 
-//***** TODO (dlowell) this requires a special array_view class to pass into MIOpen an array of
-//tensor descriptors
+
 /*! @brief Query the amount of memory required for RNN training
  *
  * This function calculates the amount of memory required to train the RNN layer given an
@@ -1793,8 +1792,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNTrainingReserveSize(
 /*! @brief Query the amount of parameter memory required for RNN training
  *
  * This function calculates the amount of parameter memory required to train the RNN layer given an
- * RNN
- * descriptor and a tensor descriptor.
+ * RNN descriptor and a tensor descriptor.
  *
  * @param handle          MIOpen handle
  * @param rnnDesc         RNN layer descriptor type
@@ -1889,7 +1887,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrain(miopenHandle_t handle,
                                                        miopenRNNDescriptor_t rnnDesc,
                                                        const int sequenceLen,
-                                                       miopenTensorDescriptor_t xDesc,
+                                                       miopenTensorDescriptor_t *xDesc,
                                                        const void* x,
                                                        miopenTensorDescriptor_t hxDesc,
                                                        const void* hx,
@@ -1907,6 +1905,112 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrain(miopenHandle_t handle,
                                                        size_t workSpaceNumBytes,
                                                        void* reserveSpace,
                                                        size_t reserveSpaceNumBytes);
+
+
+/*! @brief Execute forward training for recurrent layer
+ *
+ * Interface for executing the forward training pass on a RNN.
+ *
+ * @param handle                MIOpen handle
+ * @param rnnDesc               RNN layer descriptor type
+ * @param sequenceLen           Temporal iterations to unroll
+ * @param yDesc                 A tensor descriptor
+ * @param y                     Pointer to input tensor
+ * @param dyDesc                A hidden layer tensor descriptor
+ * @param dy                    Pointer to the hidden layer input tensor
+ * @param dhyDesc                A cell layer tensor descriptor
+ * @param dhy                    Pointer to the cell layer input tensor
+ * @param dcyDesc                A cell layer tensor descriptor
+ * @param dcy                    Pointer to the cell layer input tensor
+ * @param wDesc                 A weights tensor descriptor
+ * @param w                     Pointer to input weights tensor
+ * @param hxDesc                 An output tensor descriptor
+ * @param hx                     Pointer to output tensor
+ * @param cxDesc                An output hidden layer tensor descriptor
+ * @param cx                    Pointer to the hidden layer output tensor
+ * @param dxDesc                An output cell layer tensor descriptor
+ * @param dx                    Pointer to the cell layer output tensor
+ * @param dhxDesc                An output cell layer tensor descriptor
+ * @param dhx                    Pointer to the cell layer output tensor
+ * @param dcxDesc                An output cell layer tensor descriptor
+ * @param dcx                    Pointer to the cell layer output tensor
+ * @param workspace             Pointer to memory allocated for forward training
+ * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
+ * @param reserveSpace          Pointer to memory allocated for random states
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
+ * @return                      miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
+                                                       miopenRNNDescriptor_t rnnDesc,
+                                                       const int sequenceLen,
+                                                       miopenTensorDescriptor_t *yDesc,
+                                                       const void* y,
+                                                       miopenTensorDescriptor_t *dyDesc,
+                                                       const void* dy,
+                                                       miopenTensorDescriptor_t dhyDesc,
+                                                       const void* dhy,
+                                                       miopenTensorDescriptor_t dcyDesc,
+                                                       const void* dcy,
+                                                       miopenTensorDescriptor_t wDesc,
+                                                       const void* w,
+                                                       miopenTensorDescriptor_t hxDesc,
+                                                       const void* hx,
+                                                       miopenTensorDescriptor_t cxDesc,
+                                                       const void* cx,
+                                                       miopenTensorDescriptor_t *dxDesc,
+                                                       void* dx,
+                                                       miopenTensorDescriptor_t dhxDesc,
+                                                       void* dhx,
+                                                       miopenTensorDescriptor_t dcxDesc,
+                                                       void* dcx,
+                                                       void* workspace,
+                                                       size_t workSpaceNumBytes,
+                                                       const void* reserveSpace,
+                                                       size_t reserveSpaceNumBytes);
+
+
+/*! @brief Execute forward training for recurrent layer
+ *
+ * Interface for executing the forward training pass on a RNN.
+ *
+ * @param handle                MIOpen handle
+ * @param rnnDesc               RNN layer descriptor type
+ * @param sequenceLen           Temporal iterations to unroll
+ * @param xDesc                 A tensor descriptor
+ * @param x                     Pointer to input tensor
+ * @param hxDesc                A hidden layer tensor descriptor
+ * @param hx                    Pointer to the hidden layer input tensor
+ * @param yDesc                A cell layer tensor descriptor
+ * @param y                    Pointer to the cell layer input tensor
+ * @param dwDesc                 A weights tensor descriptor
+ * @param dw                     Pointer to input weights tensor
+ * @param workspace             Pointer to memory allocated for forward training
+ * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
+ * @param reserveSpace          Pointer to memory allocated for random states
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
+ * @return                      miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
+                                                       miopenRNNDescriptor_t rnnDesc,
+                                                       const int sequenceLen,
+                                                       miopenTensorDescriptor_t *xDesc,
+                                                       const void* x,
+                                                       miopenTensorDescriptor_t hxDesc,
+                                                       const void* hx,
+                                                       miopenTensorDescriptor_t *yDesc,
+                                                       const void* y,
+                                                       miopenTensorDescriptor_t dwDesc,
+                                                       void* dw,
+                                                       const void* workspace,
+                                                       size_t workSpaceNumBytes,
+                                                       const void* reserveSpace,
+                                                       size_t reserveSpaceNumBytes);
+
+
+
+
+
+
 
 
 /*! @brief Execute forward inference for RNN layer
@@ -1937,7 +2041,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrain(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
                                                            miopenRNNDescriptor_t rnnDesc,
                                                            const int sequenceLen,
-                                                           miopenTensorDescriptor_t xDesc,
+                                                           miopenTensorDescriptor_t *xDesc,
                                                            const void* x,
                                                            miopenTensorDescriptor_t hxDesc,
                                                            const void* hx,
@@ -1953,6 +2057,13 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
                                                            void* cy,
                                                            void* workspace,
                                                            size_t workSpaceNumBytes);
+
+
+
+
+
+
+
 
 
 /*! @brief Execute forward training for RNN layer
@@ -2042,6 +2153,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardDataCell(miopenHandle_t handle,
                                                        size_t workSpaceNumBytes,
                                                        const void* reserveSpace,
                                                        size_t reserveSpaceNumBytes);
+
 
 /*! @brief Execute backwards weights training for RNN layer
  *
