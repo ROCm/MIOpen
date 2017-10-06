@@ -86,21 +86,19 @@ struct RNNDescriptor : miopenRNNDescriptor
     size_t
     GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
 
-    void GetLayerParam(Handle& handle,
+    size_t GetLayerParam(Handle& handle,
                        const TensorDescriptor& xDesc,
                        const TensorDescriptor& wDesc,
                        ConstData_t w,
                        const int layerID,
-                       const TensorDescriptor& paramDesc,
-                       size_t paramOffset) const;
+                       const TensorDescriptor& paramDesc) const;
 
-    void GetLayerBias(Handle& handle,
+    size_t GetLayerBias(Handle& handle,
                       const TensorDescriptor& xDesc,
                       const TensorDescriptor& wDesc,
                       ConstData_t w,
                       const int layerID,
-                      const TensorDescriptor& biasDesc,
-                      size_t biasOffset) const;
+                      const TensorDescriptor& biasDesc) const;
 
     
     void RNNForwardTraining(Handle& handle,
