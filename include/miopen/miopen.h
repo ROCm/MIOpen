@@ -1853,7 +1853,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
                                                     const void* w,
                                                     const int layerID,
                                                     miopenTensorDescriptor_t paramDesc,
-                                                    void** layerParam);
+                                                    size_t* layerParam);
 
 /*! @brief Gets a pointer to memory containing a bias tensor for a specific layer in an RNN stack
  *
@@ -1877,7 +1877,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
                                                    const void* w,
                                                    const int layerID,
                                                    miopenTensorDescriptor_t biasDesc,
-                                                   void** layerBias);
+                                                   size_t* layerBias);
 
 
 
