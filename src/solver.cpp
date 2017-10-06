@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/data_entry.hpp"
+#include "miopen/db_record.hpp"
 #include "miopen/solver.hpp"
 
 namespace miopen {

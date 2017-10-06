@@ -34,8 +34,7 @@
 #include <unordered_map>
 
 #include <miopen/solver.hpp>
-#include <miopen/data_entry.hpp>
-#include <miopen/db.hpp>
+#include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
