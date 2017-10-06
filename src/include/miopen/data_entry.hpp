@@ -44,17 +44,15 @@ namespace miopen {
 /// values, hence the name.
 ///
 /// Neither of ";:=" within KEY, ID and VALUES is allowed.
-/// There should be none identical KEYs in the db.
+/// There should be none identical KEYs in the same db file.
 /// There should be none identical IDs within the same record.
 ///
 /// Intended usage:
 /// KEY: A stringized problem config.
-/// ID: A symbolic name of the solution applicable for the KEY (problem config). There could be
-/// several solutions
-/// for the same problem config, so several IDs can be put under a KEY.
-/// Format of VALUES stored under each ID is solution-specific. in other words, how a set of values
-/// (or whatever a solution
-/// wants to store in VALUES) is encoded into a string depends on the solution.
+/// ID: A symbolic name of the Solver applicable for the KEY (problem config). There could be
+/// several Solvers able to handle the same config, so several IDs can be put under a KEY.
+/// Format of VALUES stored under each ID is Solver-specific. in other words, how a set of values
+/// (or whatever a Solver wants to store in VALUES) is encoded into a string depends on the Solver.
 /// Note: If VALUES is used to represent a set of numeric values, then it is recommended to use ","
 /// as a separator.
 
@@ -63,13 +61,14 @@ namespace miopen {
 /// Upon construction, allows getting and modifying contents of a record (IDs and VALUES).
 /// A record in db file is updated when an instance is destroyed.
 ///
-/// Note: An instance of this class caches position of the found (read) record in the db file.
+/// Note: An instance of this class caches position of the found (read) record within db file.
 /// This allows to optimize record update (i.e. write to db file).
-/// The drawback is an implicit dependencies among class instances:
-/// update of db file made by one instance may invalidate cached position
+/// The drawback is: there are implicit dependencies among class instances.
+/// An update of db file made by one instance may invalidate cached position
 /// stored in another instance. That is why write to db file is disabled when
 /// more than 1 instance if this class exist.
 ///
+/// \todo Separate "db file" and "db record" abstractions.
 /// \todo Redesign db access and remove the limitation.
 /// \todo Check if implementation is MT- and MP-safe.
 class DbRecord

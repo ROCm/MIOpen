@@ -39,14 +39,12 @@ enum class LogType
 {
     Error   = 31,
     Warning = 33,
-    Info = 37,
+    Info    = 37,
 };
 
 inline const char* GetLogTypeName(LogType type)
 {
-    return (type == LogType::Warning) ? "Warning"
-           : (type == LogType::Info) ? "Info"
-           : "Error";
+    return (type == LogType::Warning) ? "Warning" : (type == LogType::Info) ? "Info" : "Error";
 }
 
 /// \todo Better diags everywhere. Print db filename, line number, key, id etc.
@@ -265,7 +263,10 @@ void DbRecord::ReadIntoCache()
         {
             if(!line.empty()) // Do not blame empty lines.
             {
-                Log(std::cerr, LogType::Error, "DbRecord::ReadIntoCache", "Ill-formed record: key not found.");
+                Log(std::cerr,
+                    LogType::Error,
+                    "DbRecord::ReadIntoCache",
+                    "Ill-formed record: key not found.");
                 Log(std::cerr, LogType::Info, "^", _db_filename + "#" + std::to_string(n_line));
             }
             continue;

@@ -37,7 +37,7 @@ namespace miopen {
 namespace solver {
 
 std::unique_ptr<PerformanceConfig>
-ConvOclDirectFwdLegacyExhaustiveSearch::AllocateSearchResult() const
+ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl() const
 {
     return make_unique<LegacyPerformanceConfig>();
 }
@@ -113,8 +113,8 @@ bool LegacyPerformanceConfig::Deserialize(const std::string& from)
 /*
 * select defult configuration if a known configuration has not been found.
 */
-void ConvOclDirectFwdLegacyExhaustiveSearch::EuristicSearch(const ConvolutionContext& params,
-                                                            PerformanceConfig& result_) const
+void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
+    const ConvolutionContext& params, PerformanceConfig& result_) const
 {
     auto& result = dynamic_cast<LegacyPerformanceConfig&>(result_);
 
@@ -695,8 +695,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearch(const ConvolutionC
                             min_n_stacks        = result.n_stacks;
                         }
 
-                    } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
-                      // ++i_t)
+                    } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
                 }     // if (result.out_pix_tile0 > result.in_tile0)
             }         // for (int l = 0; l < l_l; ++l)
         }             // for (int g0 = 0; g0 < 2; ++g0)
@@ -930,16 +929,15 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearch(const ConvolutionC
                                             }
 
                                         } // for (int s = 0; s < 3; ++s)
-                                    }     // for (int i_t = n_in_tiles_rg[0]; i_t <=
-                                          // n_in_tiles_rg[1];
-                                          // ++i_t)
-                                }         // if (result.out_pix_tile0 > result.in_tile0)
-                            }             // for (int l = 0; l < l_l; ++l)
-                        }                 // for (int k = 0; k < k_l; ++k)
-                    }                     // for (int i = 0; i < 3; ++i)
-                }                         // for (int j = 0; j < 3; ++j)
-            }                             // for (int g0 = 0; g0 < 2; ++g0)
-        }                                 // for (int g1 = 0; g1 < 2; g1++)
+                                    } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
+                                      // ++i_t)
+                                }     // if (result.out_pix_tile0 > result.in_tile0)
+                            }         // for (int l = 0; l < l_l; ++l)
+                        }             // for (int k = 0; k < k_l; ++k)
+                    }                 // for (int i = 0; i < 3; ++i)
+                }                     // for (int j = 0; j < 3; ++j)
+            }                         // for (int g0 = 0; g0 < 2; ++g0)
+        }                             // for (int g1 = 0; g1 < 2; g1++)
     }
 
     std::cout << std::endl << "Score: " << min_proc_time << std::endl;

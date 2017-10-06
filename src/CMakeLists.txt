@@ -92,6 +92,7 @@ set( MIOpen_Source
     include/miopen/softmax.hpp
     tensor.cpp
     tensor_api.cpp
+    solver.cpp
     solver/conv_asm_3x3u.cpp
     solver/conv_asm_5x10u2v2f1.cpp
     solver/conv_asm_5x10u2v2b1.cpp

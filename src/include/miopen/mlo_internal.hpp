@@ -139,6 +139,7 @@ using mlo_kernel_info = std::tuple<const std::string,
 #endif
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
+#include "miopen/db.hpp"
 
 inline int mloLg2(int v)
 {
@@ -240,6 +241,17 @@ class ConvolutionContext : public ProblemDescription
 
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }
+
+    std::string GetPerfDbPath() const
+    {
+        return GetDbPath()
+             + std::string("/")
+             + GetStream().GetDeviceName()
+             + "_"
+             + std::to_string(GetStream().GetMaxComputeUnits())
+             + "."
+             + std::string("cd.pdb.txt");
+    }
 
     private:
     Handle* _stream;

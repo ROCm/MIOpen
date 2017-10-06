@@ -565,12 +565,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
-                const auto db_path = miopen::GetDbPath() + std::string("/") +
-                                     context.GetStream().GetDeviceName() + "_" +
-                                     std::to_string(context.GetStream().GetMaxComputeUnits()) +
-                                     "." + std::string("cd.pdb.txt");
-
-                DbRecord search_results(db_path, context);
+                DbRecord search_results(context.GetPerfDbPath(), context);
                 const solver::Solver& solver =
                     StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
                 solver::ConvSolution solution = solver.GetSolution(context, search_results);
