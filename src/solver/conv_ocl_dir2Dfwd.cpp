@@ -32,11 +32,10 @@ namespace miopen {
 namespace solver {
 
 ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfig& exhaustive_search_result) const
+                                           const PerformanceConfig& config) const
 {
     ConvSolution result;
-    const auto& searched_params =
-        dynamic_cast<const LegacyPerformanceConfig&>(exhaustive_search_result);
+    const auto& searched_params = dynamic_cast<const LegacyPerformanceConfig&>(config);
 
     // std::size_t localMemSize = params.stream.GetLocalMemorySize();
 
