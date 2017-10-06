@@ -81,12 +81,7 @@ int mlo_construct_direct2D::mloConstruct()
     }
 
     miopen::solver::ConvSolution result(static_cast<miopenStatus_t>(-1));
-    const auto db_path = miopen::GetDbPath() + std::string("/") +
-                         _search_params.GetStream().GetDeviceName() + "_" +
-                         std::to_string(_search_params.GetStream().GetMaxComputeUnits()) + "." +
-                         std::string("cd.pdb.txt");
-
-    miopen::DbRecord search_results(db_path, _search_params);
+    miopen::DbRecord search_results(_search_params.GetPerfDbPath(), _search_params);
 
     for(const miopen::solver::Solver& solver : SolverStore())
     {

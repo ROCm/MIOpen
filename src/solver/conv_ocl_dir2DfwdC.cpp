@@ -44,11 +44,10 @@ bool ConvOclDirectFwdC::IsApplicable(const ConvolutionContext& params) const
 }
 
 ConvSolution ConvOclDirectFwdC::GetSolution(const ConvolutionContext& params,
-                                            const PerformanceConfig& exhaustive_search_result) const
+                                            const PerformanceConfig& config) const
 {
     ConvSolution result;
-    const auto& searched_params =
-        dynamic_cast<const LegacyPerformanceConfig&>(exhaustive_search_result);
+    const auto& searched_params = dynamic_cast<const LegacyPerformanceConfig&>(config);
 
     // if (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
     //{

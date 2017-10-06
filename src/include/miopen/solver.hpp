@@ -115,12 +115,10 @@ class ConvSolution
 class PerformanceConfig
 {
     public:
-    PerformanceConfig() noexcept {}
-    PerformanceConfig(const PerformanceConfig&) {}
-    PerformanceConfig& operator=(const PerformanceConfig&) { return *this; }
+    PerformanceConfig() {}
     virtual ~PerformanceConfig() {}
-    virtual void Serialize(std::ostream&) const { std::abort(); }
-    virtual bool Deserialize(const std::string&) { return false; }
+    virtual void Serialize(std::ostream&) const {}
+    virtual bool Deserialize(const std::string& s) { return s.empty(); }
 };
 
 /// Base class for problem solvers.
@@ -137,23 +135,31 @@ class Solver
     public:
     virtual ~Solver() {}
 
-    virtual const std::string& SearchDbId() const
-    {
-        static const std::string no_id;
-        return no_id;
-    }
-
-    virtual bool CanDoEuristics() const { return false; }
-    virtual bool CanDoExaustiveSearch() const { return false; }
-    virtual bool CanLoadSearchResluts() const { return CanDoExaustiveSearch(); }
-    virtual std::unique_ptr<PerformanceConfig> AllocateSearchResult() const
+    /// Each non-abstract descendant shall have unique name.
+    virtual const char* SolverId() const = 0;
+    /// Constructs performance config instance used by a Solver.
+    virtual std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const
     {
         return make_unique<PerformanceConfig>();
     }
-    virtual void EuristicSearch(const ConvolutionContext&, PerformanceConfig&) const {}
+    /// Initializes performance config to the default values.
+    /// The function may involve some euristic to guess the best solution
+    /// configuration. It is assumed that the function takes constant time
+    /// to finish and does not run kernels to measure performance etc.
+    ///
+    /// Every Solver which overrides PerformanceConfigImpl() shall
+    /// override this function as well.
+    virtual void InitPerformanceConfigImpl(const ConvolutionContext&, PerformanceConfig& c) const
+    {
+        c = PerformanceConfig();
+    }
+    /// \todo perf
+    virtual bool CanDoExaustiveSearch() const { return false; }
+    /// \todo doc
     virtual void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig&) const {}
-    inline ConvSolution GetSolution(const ConvolutionContext& search_params,
-                                    DbRecord& search_results) const;
+    /// \todo doc
+    ConvSolution GetSolution(const ConvolutionContext& search_params,
+                             DbRecord& dbRecord) const;
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
@@ -173,199 +179,164 @@ class Solver
 class ConvAsm3x3U : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvAsm3x3U"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsFast(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvAsm5x10u2v2f1 : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvAsm5x10u2v2f1"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvAsm5x10u2v2b1 : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvAsm5x10u2v2b1"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public Solver
 {
     protected:
+    const char* SolverId() const override { return "ConvAsm7x7c3h224w224k64u2v2p3q3f1"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvOclDirectFwd11x11 : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvOclDirectFwd11x11"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvOclDirectFwdGen : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvOclDirectFwdGen"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvOclDirectFwd3x3 : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvOclDirectFwd3x3"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
+/// Holds common member functions for the Solvers which share the same
+/// "legacy exhaustive search" machinery.
 class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
 {
     public:
-    bool CanDoEuristics() const override { return true; }
     bool CanDoExaustiveSearch() const override { return true; }
-    std::unique_ptr<PerformanceConfig> AllocateSearchResult() const override;
-    void EuristicSearch(const ConvolutionContext&, PerformanceConfig& result_) const override;
+    std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const override;
+    void InitPerformanceConfigImpl(const ConvolutionContext&,
+                                   PerformanceConfig& result_) const override;
     void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig& result_) const override;
 };
 
 class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
-    const std::string& SearchDbId() const override
-    {
-        static const std::string id = "ConvOclDirectFwd";
-        return id;
-    }
-
+    const char* SolverId() const override { return "ConvOclDirectFwd"; }
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
-    const std::string& SearchDbId() const override
-    {
-        static const std::string id = "ConvOclDirectFwd1x1";
-        return id;
-    }
-
+    const char* SolverId() const override { return "ConvOclDirectFwd1x1"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
     public:
-    const std::string& SearchDbId() const override
-    {
-        static const std::string id = "ConvOclDirectFwdC";
-        return id;
-    }
-
+    const char* SolverId() const override { return "ConvOclDirectFwdC"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvBinWinograd3x3U : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvBinWinograd3x3U"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvBinWinogradRxSFwd : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvBinWinogradRxSFwd"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvAsmBwdWrW3x3 : public Solver
 {
     public:
-    bool CanDoEuristics() const override { return true; }
-    std::unique_ptr<PerformanceConfig> AllocateSearchResult() const override;
-    void EuristicSearch(const ConvolutionContext&, PerformanceConfig& result) const override;
+    const char* SolverId() const override { return "ConvAsmBwdWrW3x3"; }
+    std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const override;
+    void InitPerformanceConfigImpl(const ConvolutionContext&,
+                                   PerformanceConfig& result) const override;
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsFast(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvOclBwdWrW2 : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvOclBwdWrW2"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvOclBwdWrW53 : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvOclBwdWrW53"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
 class ConvOclBwdWrW1x1 : public Solver
 {
     public:
+    const char* SolverId() const override { return "ConvOclBwdWrW1x1"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfig& config) const override;
 };
 
-ConvSolution Solver::GetSolution(const ConvolutionContext& search_params,
-                                 DbRecord& search_results) const
-{
-    std::unique_ptr<PerformanceConfig> search_result(nullptr);
-    auto loaded_search_result = false;
-
-    if(CanLoadSearchResluts() || CanDoEuristics() || CanDoExaustiveSearch())
-        search_result = AllocateSearchResult();
-
-    const auto& id = SearchDbId();
-
-    if(CanLoadSearchResluts())
-        loaded_search_result = search_results.Load(id, *search_result);
-
-    if(!loaded_search_result)
-    {
-        if(CanDoExaustiveSearch() && search_params.do_search)
-        {
-            ExhaustiveSearch(search_params, *search_result);
-            search_results.Save(id, *search_result);
-        }
-        else if(CanDoEuristics())
-            EuristicSearch(search_params, *search_result);
-    }
-
-    if(search_result)
-        return GetSolution(search_params, *search_result);
-    else
-    {
-        static const PerformanceConfig none{};
-        return GetSolution(search_params, none);
-    }
-}
-
 } // namespace solver
-
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_SOLVER_HPP

@@ -156,13 +156,13 @@ static bool IsReverseInOutAllowed(const ConvolutionContext& params)
     return params.kernel_stride0 == 1 && params.kernel_stride1 == 1;
 }
 
-std::unique_ptr<PerformanceConfig> ConvAsmBwdWrW3x3::AllocateSearchResult() const
+std::unique_ptr<PerformanceConfig> ConvAsmBwdWrW3x3::PerformanceConfigImpl() const
 {
     return make_unique<BwdAsm3x3PerformanceConfig>();
 }
 
-void ConvAsmBwdWrW3x3::EuristicSearch(const ConvolutionContext& params,
-                                      PerformanceConfig& result) const
+void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& params,
+                                                 PerformanceConfig& result) const
 {
     /// LUT entry/env.var format: 8 decimal ASCII digits, left to right:
     /// limit_wave_cnt   [00..10]
@@ -466,7 +466,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     }
     // Check other constraints:
     BwdAsm3x3PerformanceConfig pp;
-    EuristicSearch(params, pp);
+    InitPerformanceConfigImpl(params, pp);
 
     if(pp.reverse_inout == 0)
     {
@@ -482,7 +482,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
 
 ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfig& perf_params) const
+                                           const PerformanceConfig& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -501,7 +501,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     // Perf tune:
-    const auto& pp = dynamic_cast<const BwdAsm3x3PerformanceConfig&>(perf_params);
+    const auto& pp = dynamic_cast<const BwdAsm3x3PerformanceConfig&>(config);
     GenerateClangDefsym(options, "limit_wave_cnt", pp.limit_wave_cnt);
     GenerateClangDefsym(options, "chunk_size", pp.chunk_size);
     GenerateClangDefsym(options, "c_per_wave", pp.c_per_wave);
