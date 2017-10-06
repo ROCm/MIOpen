@@ -1709,32 +1709,23 @@ typedef enum {
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc);
 
-/*! @brief Creates a RNN layer descriptor
-*
-* @param rnnDesc    RNN layer descriptor
-* @param mode       RNN mode
-* @param seqLength  Number of iterations to unroll over
-* @param layer      Number of hidden stacks
-* @param bidir      uni- or bi-direction
-* @param bias       bias or not
-* @return           miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir, int bias);
 
 /*! @brief Retrieves a RNN layer descriptor's details
 *
 * @param rnnDesc    RNN layer descriptor
 * @param mode       RNN mode
-* @param seqLength  Number of iterations to unroll over
-* @param layer      Number of hidden stacks
-* @param bidir      uni- or bi-direction
-
-* @param bias       bias or not
+* @param algoMode   RNN algorithm mode
+* @param inputMode  RNN data input mode
+* @param bidir      Uni or bi direction mode
+* @param bias       Bias used
+* @param hiddenSize size of hidden state
+* @param layer      number of stacked layers
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir, int *bias);
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, miopenRNNAlgo_t * algoMode, miopenRNNInputMode_t *inputMode,
+                        miopenRNNDirectionMode_t* bidir, 
+        miopenRNNBiasMode_t *bias, int* hiddenSize, int* layer);
 
 /* // discuss later
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
@@ -1760,6 +1751,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rn
  * @param inMode       RNN first layer input mode
  * @param direction    RNN direction (if applicable)
  * @param rnnMode      RNN model type
+ * @param biasMode         RNN bias included
  * @param algo         RNN algorithm selected
  * @param dataType     fp32 or fp16 datatype mode
  * @return             miopenStatus_t
@@ -1770,6 +1762,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     miopenRNNInputMode_t inMode,
                                                     miopenRNNDirectionMode_t direction,
                                                     miopenRNNMode_t rnnMode,
+                                                    miopenRNNBiasMode_t biasMode,
                                                     miopenRNNAlgo_t algo,
                                                     miopenDataType_t dataType);
 
