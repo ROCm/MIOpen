@@ -135,13 +135,15 @@ class Solver
     public:
     virtual ~Solver() {}
 
-    /// Each non-abstract descendant shall have unique name.
+    /// Each non-abstract descendant shall have unique id.
     virtual const char* SolverId() const = 0;
+
     /// Constructs performance config instance used by a Solver.
     virtual std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const
     {
         return make_unique<PerformanceConfig>();
     }
+
     /// Initializes performance config to the default values.
     /// The function may involve some euristic to guess the best solution
     /// configuration. It is assumed that the function takes constant time
@@ -153,12 +155,14 @@ class Solver
     {
         c = PerformanceConfig();
     }
-    /// \todo perf
-    virtual bool CanDoExaustiveSearch() const { return false; }
-    /// \todo doc
-    virtual void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig&) const {}
-    /// \todo doc
-    ConvSolution GetSolution(const ConvolutionContext& search_params, DbRecord& dbRecord) const;
+
+    /// Solver-specific implementation of exhaustive search procedure.
+    /// Returns (hopefully) optimal performance config for a solution.
+    /// Takes long time to finish.
+    virtual void Search(const ConvolutionContext&, PerformanceConfig&) const {}
+
+    /// Should return true if Search() is implemented in a Solver, false otherwise.
+    virtual bool IsSearchable() const { return false; }
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
@@ -173,6 +177,14 @@ class Solver
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     virtual ConvSolution GetSolution(const ConvolutionContext&, const PerformanceConfig&) const = 0;
+
+    /// Finds optimized Solution. Generic method.
+    ///
+    /// Given the specific problem config, finds (hopefully) optimal
+    /// solution-specific parameters and returns the Solution object.
+    /// Could take long if an exhaustive search is requested/performed.
+    /// May read/write perfDb.
+    ConvSolution FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const;
 };
 
 class ConvAsm3x3U : public Solver
@@ -244,11 +256,11 @@ class ConvOclDirectFwd3x3 : public Solver
 class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
 {
     public:
-    bool CanDoExaustiveSearch() const override { return true; }
     std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const override;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfig& result_) const override;
-    void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig& result_) const override;
+    void Search(const ConvolutionContext&, PerformanceConfig& result_) const override;
+    bool IsSearchable() const override { return true; }
 };
 
 class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
