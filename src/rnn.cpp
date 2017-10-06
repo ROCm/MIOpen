@@ -1,9 +1,35 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 #include <miopen/rnn.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/env.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
+//MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+//MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 // Disable specific warnings
 #ifdef __clang__
@@ -12,6 +38,19 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 #endif
 
 namespace miopen {
+
+/*
+std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& c)
+{
+    stream << c.pad_h << ", ";
+    stream << c.pad_w << ", ";
+    stream << c.u << ", ";
+    stream << c.v << ", ";
+    stream << c.dilation_h << ", ";
+    stream << c.dilation_w << ", ";
+    return stream;
+}
+*/
 
 RNNDescriptor::RNNDescriptor()
 {
@@ -22,6 +61,7 @@ RNNDescriptor::RNNDescriptor()
     nHiddenTensorsPerLayer = 0;
     rnnMode   = miopenRNNRELU;
     dirMode   = miopenRNNunidirection;
+    biasMode  = miopenRNNWithBias;
     algoMode  = miopenRNNdefault;
     inputMode = miopenRNNskip;
 }
@@ -31,20 +71,41 @@ RNNDescriptor::RNNDescriptor(int hsz,
                              miopenRNNMode_t rmode,
                              miopenRNNInputMode_t inMode,
                              miopenRNNDirectionMode_t bidir,
+                             miopenRNNBiasMode_t bmode,
                              miopenRNNAlgo_t amode,
                              miopenDataType_t dType)
 {
+    
+    if(hsize < 0 || layers < 0)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameter to RNN must be a positive integer.");
+    }
+    if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM || rmode == miopenGRU))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "RNN mode not supported");
+    }
+	if (bidir != 0 && bidir != 1)
+	{
+		MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
+	}
+	if (bmode != 0 && bmode != 1)
+	{
+		MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
+	}
+    if(dType != miopenFloat)
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
+    }
+    
     hsize     = hsz;
     nLayers   = layers;
     inputMode = inMode;
     dirMode   = bidir;
     rnnMode   = rmode;
     algoMode  = amode;
+    biasMode  = bmode;
     dataType  = dType;
-    if(dType != miopenFloat)
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
-    }
+    
     assert(rmode < 4);
     switch (rmode)
     {
@@ -255,3 +316,4 @@ void RNNDescriptor::BackwardRNNWeightsCell(Handle& handle,
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+

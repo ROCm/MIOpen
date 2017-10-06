@@ -1,3 +1,30 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+
 #ifndef GUARD_MIOPEN_RNN_HPP_
 #define GUARD_MIOPEN_RNN_HPP_
 
@@ -29,8 +56,10 @@ struct RNNDescriptor : miopenRNNDescriptor
                   miopenRNNMode_t rmode = miopenRNNRELU,
                   miopenRNNInputMode_t inMode = miopenRNNskip,
                   miopenRNNDirectionMode_t bidir = miopenRNNunidirection,
+                  miopenRNNBiasMode_t bias = miopenRNNwithBias,
                   miopenRNNAlgo_t amode = miopenRNNdefault,
                   miopenDataType_t dType = miopenFloat);
+
 
     size_t hsize; // DLOWELL: is this uniform over all layers?
     size_t seqLength; //DLOWELL: remove?
@@ -44,6 +73,7 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNDirectionMode_t dirMode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
+    miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
     
     size_t GetWorkspaceSize(Handle& handle,
@@ -254,3 +284,4 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& c);
 MIOPEN_DEFINE_OBJECT(miopenRNNDescriptor, miopen::RNNDescriptor);
 
 #endif // GUARD_MIOPEN_RNN_HPP_
+

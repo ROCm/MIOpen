@@ -35,7 +35,7 @@
 
 #include <miopen/config.h>
 #include <miopen/export.h>
-
+#include <vector>
 #if MIOPEN_BACKEND_OPENCL
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
@@ -278,17 +278,6 @@ typedef enum {
     miopenConvolution = 0, /*!< Convolutions */
     miopenTranspose   = 1, /*!< Transpose convolutions */
 } miopenConvolutionMode_t;
-
-/*! @ingroup RNN
-*  @enum miopenRNNMode_t
-* RNN mode selection for rnn layer preference
-*/
-typedef enum {
-    miopenRNNRELU = 0, /*!< RNN ReLU squash */
-    miopenRNNTANH = 1, /*!< RNN tanh squash */
-    miopenLSTM    = 2, /*!< LSTM */
-    miopenGRU     = 3, /*!< GRU */
-} miopenRNNMode_t;
 
 /*! @ingroup pooling
  * @enum miopenPoolingMode_t
@@ -596,6 +585,7 @@ typedef enum {
     miopenConvolutionFwdAlgoDirect   = 1, /*!< Direct convolutions */
     miopenConvolutionFwdAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionFwdAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+	miopenRNNAlgoGEMM = 4,  /*!< GEMM for RNN */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -1666,6 +1656,17 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 *  @{
 */
 
+
+/*!  @enum miopenRNNMode_t
+* RNN mode selection for rnn layer preference
+*/
+typedef enum {
+    miopenRNNRELU = 0, /*!< RNN ReLU squash */
+    miopenRNNTANH = 1, /*!< RNN tanh squash */
+    miopenLSTM    = 2, /*!< LSTM */
+    miopenGRU     = 3, /*!< GRU */
+} miopenRNNMode_t;
+
 /*! @enum miopenRNNInputMode_t
  * Recurrent Neural Network layer initial input mode
 */
@@ -1691,6 +1692,15 @@ typedef enum {
     miopenRNNbidirection  = 1,
 } miopenRNNDirectionMode_t;
 
+/*! @enum miopenRNNBiasMode_t
+ * Recurrent Neural Network add on bias
+*/
+typedef enum {
+    miopenRNNNoBias   = 0,
+    miopenRNNwithBias = 1,
+} miopenRNNBiasMode_t;
+
+
 /*! @brief Create a RNN layer Descriptor
  *
  * API for creating an uninitialized RNN layer descriptor.
@@ -1699,6 +1709,19 @@ typedef enum {
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc);
 
+/*! @brief Creates a RNN layer descriptor
+*
+* @param rnnDesc    RNN layer descriptor
+* @param mode       RNN mode
+* @param seqLength  Number of iterations to unroll over
+* @param layer      Number of hidden stacks
+* @param bidir      uni- or bi-direction
+* @param bias       bias or not
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenInitRNNDescriptor(
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t mode, int seqLength, int layer, int bidir, int bias);
+
 /*! @brief Retrieves a RNN layer descriptor's details
 *
 * @param rnnDesc    RNN layer descriptor
@@ -1706,17 +1729,26 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rn
 * @param seqLength  Number of iterations to unroll over
 * @param layer      Number of hidden stacks
 * @param bidir      uni- or bi-direction
+
+* @param bias       bias or not
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir);
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir, int *bias);
 
+/* // discuss later
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir
+*/
+  
 /*! @brief Destroys the tensor descriptor object
 *
 * @param rnnDesc RNN tensor descriptor type
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc);
+
+
 
 /*! @brief Set the details of the RNN descriptor
  *
@@ -1741,8 +1773,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     miopenRNNAlgo_t algo,
                                                     miopenDataType_t dataType);
 
-//***** TODO (dlowell) this requires a special array_view class to pass into MIOpen an array of
-//tensor descriptors
+
 /*! @brief Query the amount of memory required to execute the RNN layer
  *
  * This function calculates the amount of memory required to run the RNN layer given an RNN
@@ -2224,6 +2255,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInferenceCell(miopenHandle_t handle
                                                            void* hy,
                                                            void* workspace,
                                                            size_t workSpaceNumBytes);
+
 
 /** @} */
 // CLOSEOUT RNN DOXYGEN GROUP
