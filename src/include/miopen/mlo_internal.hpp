@@ -244,6 +244,7 @@ class ConvolutionContext : public ProblemDescription
 
     std::string GetPerfDbPath() const
     {
+        // clang-format off
         return GetDbPath()
              + std::string("/")
              + GetStream().GetDeviceName()
@@ -251,6 +252,7 @@ class ConvolutionContext : public ProblemDescription
              + std::to_string(GetStream().GetMaxComputeUnits())
              + "."
              + std::string("cd.pdb.txt");
+        // clang-format on
     }
 
     private:

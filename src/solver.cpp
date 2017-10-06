@@ -42,7 +42,7 @@ ConvSolution Solver::GetSolution(const ConvolutionContext& search_params, DbReco
     {
         return GetSolution(search_params, *config);
     }
-    if (search_params.do_search)
+    if(search_params.do_search)
     {
         ExhaustiveSearch(search_params, *config);
         dbRecord.Save(SolverId(), *config);

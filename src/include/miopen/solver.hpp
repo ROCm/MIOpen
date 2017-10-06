@@ -158,8 +158,7 @@ class Solver
     /// \todo doc
     virtual void ExhaustiveSearch(const ConvolutionContext&, PerformanceConfig&) const {}
     /// \todo doc
-    ConvSolution GetSolution(const ConvolutionContext& search_params,
-                             DbRecord& dbRecord) const;
+    ConvSolution GetSolution(const ConvolutionContext& search_params, DbRecord& dbRecord) const;
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
