@@ -1181,15 +1181,15 @@ loop_channel:
     s_cbranch_scc1 skip_write
     buffer_store_dword v[vreg_oval+0], v[vreg_dx], s[sreg_wval+0:sreg_wval+3], 0              offen offset:0*out_stride_y
     buffer_store_dword v[vreg_oval+4], v[vreg_dx], s[sreg_wval+0:sreg_wval+3], s[sreg_wval+4] offen offset:0*out_stride_y
-    s_cmpk_ge_u32 s[sreg_dy], 0+out_h-1
+    s_cmpk_ge_i32 s[sreg_dy], 0+out_h-1
     s_cbranch_scc1 skip_write
     buffer_store_dword v[vreg_oval+1], v[vreg_dx], s[sreg_wval+0:sreg_wval+3], 0              offen offset:1*out_stride_y
     buffer_store_dword v[vreg_oval+5], v[vreg_dx], s[sreg_wval+0:sreg_wval+3], s[sreg_wval+4] offen offset:1*out_stride_y
-    s_cmpk_ge_u32 s[sreg_dy], 0+out_h-2
+    s_cmpk_ge_i32 s[sreg_dy], 0+out_h-2
     s_cbranch_scc1 skip_write
     buffer_store_dword v[vreg_oval+2], v[vreg_dx], s[sreg_wval+0:sreg_wval+3], 0              offen offset:2*out_stride_y
     buffer_store_dword v[vreg_oval+6], v[vreg_dx], s[sreg_wval+0:sreg_wval+3], s[sreg_wval+4] offen offset:2*out_stride_y
-    s_cmpk_ge_u32 s[sreg_dy], 0+out_h-3
+    s_cmpk_ge_i32 s[sreg_dy], 0+out_h-3
     s_cbranch_scc1 skip_write
     buffer_store_dword v[vreg_oval+3], v[vreg_dx], s[sreg_wval+0:sreg_wval+3], 0              offen offset:3*out_stride_y
     buffer_store_dword v[vreg_oval+7], v[vreg_dx], s[sreg_wval+0:sreg_wval+3], s[sreg_wval+4] offen offset:3*out_stride_y
