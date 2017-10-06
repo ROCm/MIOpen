@@ -559,16 +559,15 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-                /// \todo Something strange is happening here.
-                /// Shall we rework this.
+                /// \todo Something unusual is happening here, why? Shall we rework this?
                 ConvolutionContext context;
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
-                DbRecord search_results(context.GetPerfDbPath(), context);
+                DbRecord dbRecord(context.GetPerfDbPath(), context);
                 const solver::Solver& solver =
                     StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
-                solver::ConvSolution solution = solver.GetSolution(context, search_results);
+                solver::ConvSolution solution = solver.FindSolution(context, dbRecord);
 
                 if(solution.passes == 1)
                 {

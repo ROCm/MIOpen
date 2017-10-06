@@ -52,8 +52,7 @@ inline const char* GetLogTypeName(LogType type)
 static void
 Log(std::ostream& stream, LogType type, const std::string& source, const std::string& message)
 {
-    stream << "[\033[" << static_cast<int>(type) << "m" << GetLogTypeName(type) << "\033[0m]["
-           << source << "] " << message << std::endl;
+    stream << GetLogTypeName(type) << " [" << source << "]: " << message << std::endl;
 }
 
 bool DbRecord::ParseContents(const std::string& contents)

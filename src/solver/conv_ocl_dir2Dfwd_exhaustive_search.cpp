@@ -333,8 +333,8 @@ static int MeasureLoop(Handle* profile_h,
     return (ret);
 }
 
-void ConvOclDirectFwdLegacyExhaustiveSearch::ExhaustiveSearch(const ConvolutionContext& params,
-                                                              PerformanceConfig& result_) const
+void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
+                                                    PerformanceConfig& result_) const
 {
     auto& result = dynamic_cast<LegacyPerformanceConfig&>(result_);
 
