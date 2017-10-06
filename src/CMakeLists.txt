@@ -70,8 +70,8 @@ set( MIOpen_Source
     softmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
-	rnn.cpp
-	rnn_api.cpp
+    rnn.cpp
+    rnn_api.cpp
     include/miopen/batch_norm.hpp
     include/miopen/check_numerics.hpp
     include/miopen/common.hpp
@@ -183,6 +183,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
         ocl/softmaxocl.cpp
+#        ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/gcn_asm_utils.cpp
         pooling.cpp
