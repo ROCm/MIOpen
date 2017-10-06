@@ -146,7 +146,7 @@ class DbRecord
         if(!Load(id, s))
             return false;
 
-        return values.Deserialize(s);
+        return values.Deserialize(s); /// \todo Log warning if failed.
     }
 };
 } // namespace miopen
