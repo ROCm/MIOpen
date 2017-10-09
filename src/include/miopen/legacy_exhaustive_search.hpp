@@ -27,6 +27,7 @@
 #ifndef GUARD_MIOPEN_LEGACY_EXHAUSTIVE_SEARCH_HPP
 #define GUARD_MIOPEN_LEGACY_EXHAUSTIVE_SEARCH_HPP
 
+#include "miopen/config.h"
 #include "miopen/solver.hpp"
 
 namespace miopen {
@@ -48,6 +49,9 @@ class LegacyPerformanceConfig : public PerformanceConfig
     void CopyTo(ConvSolution& iud) const;
     void Serialize(std::ostream& stream) const override;
     bool Deserialize(const std::string& from) override;
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    bool LegacyDeserialize(const std::string& from) override;
+#endif
 };
 } // namespace solver
 } // namespace miopen

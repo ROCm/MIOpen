@@ -57,22 +57,21 @@ void LegacyPerformanceConfig::CopyTo(ConvSolution& iud) const
 
 void LegacyPerformanceConfig::Serialize(std::ostream& stream) const
 {
-    static const auto separator = ',';
+    static const auto sep = ',';
 
     // clang-format off
-    stream           << grp_tile1
-        << separator << grp_tile0
-        << separator << in_tile1
-        << separator << in_tile0
-        << separator << out_pix_tile1
-        << separator << out_pix_tile0
-        << separator << n_out_pix_tiles
-        << separator << n_in_data_tiles
-        << separator << n_stacks;
-    // clang-format on
+    stream     << grp_tile1
+        << sep << grp_tile0
+        << sep << in_tile1
+        << sep << in_tile0
+        << sep << out_pix_tile1
+        << sep << out_pix_tile0
+        << sep << n_out_pix_tiles
+        << sep << n_in_data_tiles
+        << sep << n_stacks; // clang-format on
 }
 
-static bool DeserializeField(char separator, std::istream& from, int& to)
+static bool DeserializeField(const char separator, std::istream& from, int& to)
 {
     std::string part;
 
@@ -89,19 +88,18 @@ bool LegacyPerformanceConfig::Deserialize(const std::string& from)
 {
     std::istringstream ss(from);
     LegacyPerformanceConfig temp;
+    const char sep = ',';
 
-    const auto succeded =
-        // clang-format off
-        DeserializeField(',', ss, temp.grp_tile1) &&
-        DeserializeField(',', ss, temp.grp_tile0) &&
-        DeserializeField(',', ss, temp.in_tile1) &&
-        DeserializeField(',', ss, temp.in_tile0) &&
-        DeserializeField(',', ss, temp.out_pix_tile1) &&
-        DeserializeField(',', ss, temp.out_pix_tile0) &&
-        DeserializeField(',', ss, temp.n_out_pix_tiles) &&
-        DeserializeField(',', ss, temp.n_in_data_tiles) &&
-        DeserializeField(',', ss, temp.n_stacks);
-    // clang-format on
+    const auto succeded = // clang-format off
+        DeserializeField(sep, ss, temp.grp_tile1) &&
+        DeserializeField(sep, ss, temp.grp_tile0) &&
+        DeserializeField(sep, ss, temp.in_tile1) &&
+        DeserializeField(sep, ss, temp.in_tile0) &&
+        DeserializeField(sep, ss, temp.out_pix_tile1) &&
+        DeserializeField(sep, ss, temp.out_pix_tile0) &&
+        DeserializeField(sep, ss, temp.n_out_pix_tiles) &&
+        DeserializeField(sep, ss, temp.n_in_data_tiles) &&
+        DeserializeField(sep, ss, temp.n_stacks); // clang-format on
 
     if(!succeded)
         return false;
@@ -109,6 +107,32 @@ bool LegacyPerformanceConfig::Deserialize(const std::string& from)
     *this = temp;
     return true;
 }
+
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
+{
+    std::istringstream ss(from);
+    LegacyPerformanceConfig temp;
+    const char sep = '.';
+
+    const auto succeded = // clang-format off
+        DeserializeField(sep, ss, temp.grp_tile1) &&
+        DeserializeField(sep, ss, temp.grp_tile0) &&
+        DeserializeField(sep, ss, temp.in_tile1) &&
+        DeserializeField(sep, ss, temp.in_tile0) &&
+        DeserializeField(sep, ss, temp.out_pix_tile1) &&
+        DeserializeField(sep, ss, temp.out_pix_tile0) &&
+        DeserializeField(sep, ss, temp.n_out_pix_tiles) &&
+        DeserializeField(sep, ss, temp.n_in_data_tiles) &&
+        DeserializeField(sep, ss, temp.n_stacks); // clang-format on
+
+    if(!succeded)
+        return false;
+
+    *this = temp;
+    return true;
+}
+#endif
 
 /*
 * select defult configuration if a known configuration has not been found.
