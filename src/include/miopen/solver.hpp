@@ -118,6 +118,11 @@ class PerformanceConfig
 {
     public:
     PerformanceConfig() {}
+    PerformanceConfig(const PerformanceConfig&) {} // clang-tidy wants this
+    PerformanceConfig& operator=(const PerformanceConfig&)
+    {
+        return *this;
+    } // clang-tidy wants this
     virtual ~PerformanceConfig() {}
     virtual void Serialize(std::ostream&) const {}
     virtual bool Deserialize(const std::string& s) { return s.empty(); }
