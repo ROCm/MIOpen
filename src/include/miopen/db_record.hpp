@@ -133,7 +133,7 @@ class DbRecord
     const std::string _key;
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     const std::string _legacy_key;
-    bool _is_backward_compatible;
+    bool _is_backward_compatible = false; // for clang-tidy
 #endif
     std::unordered_map<std::string, std::string> _content;
 

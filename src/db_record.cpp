@@ -266,14 +266,12 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
     values = it->second;
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     content_format = ContentFormat::Current;
+    LOG_I(std::string("Read record ") +
+          ((_record_format == RecordFormat::Mixed) ? "(Mixed) " : "(Current) ") + _key + ":" + id +
+          ":" + values);
+#else
+    LOG_I(std::string("Read record ") + _key + ":" + id + ":" + values);
 #endif
-    LOG_I(std::string("Read record ")
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-          +
-          ((_record_format == RecordFormat::Mixed) ? "(Mixed) " : "(Current) ")
-#endif
-          +
-          _key + ":" + id + ":" + values);
     return true;
 }
 
@@ -387,12 +385,12 @@ void DbRecord::ReadIntoCache()
     _is_content_cached =
         true; // This is true even if no record found in the db: nothing read <-> nothing cached.
 
-    LOG_I(std::string("Looking for key: ") + _key
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-          +
-          ", legacy_key: " + _legacy_key
+    LOG_I(std::string("Looking for key: ") + _key + ", legacy_key: " + _legacy_key);
+#else
+    LOG_I(std::string("Looking for key: ") + _key);
 #endif
-          );
+
     std::ifstream file(_db_filename);
 
     if(!file)
