@@ -1,5 +1,5 @@
 RadeonOpenCompute/rocm-cmake@cb666a28b261fe63ffbcfcf3fee946b1941df604
-ROCmSoftwarePlatform/MIOpenGEMM@3f7555519207aaf203424afff82e7d912e1020e4
+ROCmSoftwarePlatform/MIOpenGEMM@30eade02e15c85a312ccfcddcea3dabba122a2dc
 # RadeonOpenCompute/clang-ocl@2f118b5b6b05f0b17467ef07a8bd3b8e5d8b3aac
 libressl
 boost@1.58 -DCMAKE_POSITION_INDEPENDENT_CODE=On
