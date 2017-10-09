@@ -285,8 +285,13 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(int n,
 
 __attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NRN_GROUP_SZ2)))
 __kernel void
-MIOpenNeuronFwd(
-    const __global _FLOAT* bot, __global _FLOAT* top, _FLOAT power, _FLOAT scale, _FLOAT shift)
+MIOpenNeuronFwd(const __global _FLOAT* bot,
+                __global _FLOAT* top,
+                _FLOAT power,
+                _FLOAT scale,
+                _FLOAT shift,
+                UNUSED const long xOffset,
+                UNUSED const long yOffset)
 {
     int x = get_global_id(0); // channel x
 
@@ -343,7 +348,11 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                 _FLOAT diff_scale,
                 _FLOAT power,
                 _FLOAT scale,
-                _FLOAT shift)
+                _FLOAT shift,
+                UNUSED const long yOffset,
+                UNUSED const long dyOffset,
+                UNUSED const long xOffset,
+                UNUSED const long dxOffset)
 {
 
     (void)diff_scale;
