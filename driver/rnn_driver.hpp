@@ -96,16 +96,32 @@ class RNNDriver : public Driver
     public:
     RNNDriver() : Driver()
     {
-        /*
-miopenCreateTensorDescriptor(&inputTensor);
-        miopenCreateTensorDescriptor(&hiddenTensor);
-miopenCreateTensorDescriptor(&weightTensor);
-miopenCreateTensorDescriptor(&outputTensor);
-        */
+        
+        miopenCreateTensorDescriptor(&wDesc);
+        miopenCreateTensorDescriptor(&hxDescFwd);
+        miopenCreateTensorDescriptor(&cxDescFwd);
+        miopenCreateTensorDescriptor(&yDescFwd);
+        miopenCreateTensorDescriptor(&hyDescFwd);
+        miopenCreateTensorDescriptor(&cyDescFwd);
+    
+        miopenCreateTensorDescriptor(&dhyDescBackData);
+        miopenCreateTensorDescriptor(&dcyDescBackData);
+        miopenCreateTensorDescriptor(&hxDescBackData);    
+        miopenCreateTensorDescriptor(&dhxDescBackData);
+        miopenCreateTensorDescriptor(&dcxDescBackData);
+
+        miopenCreateTensorDescriptor(&hxDescBwdWeights);
+        miopenCreateTensorDescriptor(&dwDescBwdWeights);
+
+        *xDescFwd = nullptr;
+        *dxDescBackData = nullptr;
+        *yDescBackData = nullptr;
+        *dyDescBackData = nullptr;
+        *yDescBwdWeights = nullptr;
+        *xDescBwdWeights = nullptr;
+        
         miopenCreateRNNDescriptor(&rnnDesc);
 
-        //		workspace_bwd_dev = nullptr;
-        //		workspace_fwd_dev = nullptr;
         workspace_dev    = nullptr;
         reservespace_dev = nullptr;
     }
@@ -145,22 +161,39 @@ miopenCreateTensorDescriptor(&outputTensor);
     ~RNNDriver()
     {
 
-        //       miopenDestroyTensorDescriptor(outputTensor);
-        //       miopenDestroyTensorDescriptor(weightTensor);
-        //		miopenDestroyTensorDescriptor(hiddenTensor);
-        //        miopenDestroyTensorDescriptor(inputTensor);
-
+        // TODO dlowell: destroy all of these descriptors!
+        miopenDestroyTensorDescriptor(wDesc);
+        
         miopenDestroyRNNDescriptor(rnnDesc);
     }
 
     private:
     InputFlags inflags;
-
-    miopenTensorDescriptor_t inputTensor;
-    miopenTensorDescriptor_t hiddenTensor;
-    miopenTensorDescriptor_t weightTensor;
-    miopenTensorDescriptor_t outputTensor;
-
+    
+    miopenTensorDescriptor_t wDesc;
+    
+    miopenTensorDescriptor_t *xDescFwd;
+    miopenTensorDescriptor_t hxDescFwd;
+    miopenTensorDescriptor_t cxDescFwd;
+    miopenTensorDescriptor_t yDescFwd;
+    miopenTensorDescriptor_t hyDescFwd;
+    miopenTensorDescriptor_t cyDescFwd;
+    
+    miopenTensorDescriptor_t *yDescBackData;
+    miopenTensorDescriptor_t *dyDescBackData;
+    miopenTensorDescriptor_t dhyDescBackData;
+    miopenTensorDescriptor_t dcyDescBackData;
+    miopenTensorDescriptor_t hxDescBackData;
+    miopenTensorDescriptor_t *dxDescBackData;
+    miopenTensorDescriptor_t dhxDescBackData;
+    miopenTensorDescriptor_t dcxDescBackData;
+    
+    miopenTensorDescriptor_t *xDescBwdWeights;
+    miopenTensorDescriptor_t hxDescBwdWeights;
+    miopenTensorDescriptor_t *yDescBwdWeights;
+    miopenTensorDescriptor_t dwDescBwdWeights;
+    
+    
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> wei_dev;
@@ -210,6 +243,8 @@ miopenCreateTensorDescriptor(&outputTensor);
     std::vector<T> db_host;
 
     miopenRNNDescriptor_t rnnDesc;
+    
+    int batchsize;
 
     //    std::string GetVerificationCacheFileName() const;
     //    bool TryReadVerificationCache(const std::string& file_name,
@@ -237,11 +272,7 @@ int RNNDriver<T>::GetandSetData()
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
-    /*
-SetTensor4d(inputTensor, in_len);
-    SetTensor4d(hiddenTensor, hid_len);
-SetTensor4d(weightTensor, wei_len);
-    */
+    
 
     SetRNNDescriptorFromCmdLineArgs();
 
@@ -289,11 +320,17 @@ template <typename T>
 std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
 {
     int nseq = inflags.GetValueInt("seq_len");
+    int in_h = inflags.GetValueInt("in_h");
     std::vector<int> in_n(nseq, 0);
+    std::vector<miopenTensorDescriptor_t> inDesc(nseq);
     //	inflags.GetVectorInt("batchsize", in_n, inflags.GetValueInt("seq_len"));
     std::string batchstr = inflags.GetValueStr("batchsize");
     int cont             = 0;
 
+    std::vector<int> tensorDims;
+    
+    //TODO: populate all tensor descriptors here
+    
     for(int i = 0; i < batchstr.length(); i++)
     {
         if(cont >= nseq)
@@ -316,7 +353,18 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
         }
         else if(batchstr[i] >= '0' && batchstr[i] <= '9')
         {
-            in_n[cont] = in_n[cont] * 10 + stoi(batchstr.substr(i, 1));
+            
+            int batchseq = stoi(batchstr.substr(i, 1);
+            in_n[cont] = in_n[cont] * 10 + batchseq;
+            tensorDims.clear();
+            tensorDims.push_back(batchseq);
+            tensorDims.push_back(in_h);
+            miopenSetTensorDescriptor(inDesc[cont], miopenFloat, 2, tensorDims.data(), nullptr);
+            
+            if(inflags.GetValueInt("forw") == 0)
+            {
+                
+            }
         }
         else
         {
@@ -363,13 +411,13 @@ std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
 template <typename T>
 int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 {
-    int seqLength = inflags.GetValueInt("seq_len");
     int layer     = inflags.GetValueInt("num_layer");
-    int bidir     = inflags.GetValueInt("bidirection");
-	  int bias = inflags.GetValueInt("bias");
+    int wei_hh = inflags.GetValueInt("hid_h"); // hidden state size
+    miopenRNNDirectionMode_t bidir = (inflags.GetValueInt("bidirection") == 0) ? miopenRNNunidirection : miopenRNNbidirection;
+	miopenRNNBiasMode_t bias       = (inflags.GetValueInt("bias") == 0) ? miopenRNNNoBias : miopenRNNwithBias;
 
     miopenRNNMode_t mode;
-
+    
     if((inflags.GetValueStr("mode")) == "relu")
     {
         mode = miopenRNNRELU;
@@ -392,40 +440,35 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    return miopenInitRNNDescriptor(rnnDesc, mode, seqLength, layer, bidir, bias);
+    return miopenSetRNNDescriptor(rnnDesc, wei_hh, layer, miopenRNNlinear, bidir, mode, bias, miopenRNNdefault, miopenFloat);
 }
 
 template <typename T>
 std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine() // need removed
 {
     int out_h = inflags.GetValueInt("out_h");
-
     return std::vector<int>({out_h});
-    /*
-int n, c, h, w;
-
-miopenGetRNNForwardOutputDim(rnnDesc, inputTensor, weightTensor, &n, &c, &h, &w);
-
-return std::vector<int>({n, c, h, w});
-    */
 }
 
 template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
-    // ----
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
-    int seqLength, layer, bidir, bias;
+    int seqLength, layer, hiddenSize;
     miopenRNNMode_t mode;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir, &bias);
+    miopenRNNDirectionMode_t bidir;
+    miopenRNNBiasMode_t bias;
+    miopenRNNAlgo_t amode;
+    miopenRNNInputMode_t inMode;
+    miopenDataType_t dType;
+    miopenGetRNNDescriptor(rnnDesc, &mode, &amode,&inMode, &bidir, &bias, &hiddenSize, &layer);
 
     int batch_n = std::accumulate(in_len.begin(), in_len.end() - 1, 0);
     int in_h    = in_len.back();
     int out_h   = out_len[0];
-    // ----
 
     size_t in_sz  = batch_n * in_h;  // GetTensorSize(inputTensor);
     size_t out_sz = batch_n * out_h; // GetTensorSize(outputTensor);
@@ -478,15 +521,7 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 
     size_t workSpaceSize = hid_sz * sizeof(T);
     size_t reserveSpaceSize = hid_sz * sizeof(T);
-	/*
-	// Workaround: Pad buffers allocations to be a multiple of 2M
-	if (miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
-	{
-		// PadBufferSize(in_sz, 4);
-		PadBufferSize(wei_sz, 4);
-		PadBufferSize(out_sz, 4);
-	}
-	*/
+
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -679,7 +714,7 @@ for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     miopenRNNForwardTraining(GetHandle(),
 		                     rnnDesc,
 		                     seqLength,
-                             inputTensor,
+                             inputTensor,  
                              in_dev->GetMem(),
 		                     hiddenTensor,
 		                     hx_dev->GetMem(),
@@ -786,14 +821,18 @@ miopenGet4dTensorDescriptor(inputTensor,
                             &out_wstride);
     */
 
-    int seqLength, layer, bidir, bias;
+    int seqLength, layer, hiddenSize;
     bool bidirection, biased;
     miopenRNNMode_t mode;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir, &bias);
+    miopenRNNDirectionMode_t bidir;
+    miopenRNNBiasMode_t bias;
+    miopenRNNAlgo_t amode;
+    miopenRNNInputMode_t inMode;
+    miopenDataType_t dType;
+    miopenGetRNNDescriptor(rnnDesc, &mode, &amode,&inMode, &bidir, &bias, &hiddenSize, &layer);
 
     bidirection = (bidir != 0);
-//    biased      = (inflags.GetValueInt("bias") != 0);
-	  biased = (bias != 0);
+    biased = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();

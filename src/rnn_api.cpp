@@ -46,7 +46,8 @@ extern "C" miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDe
 }
 
 extern "C" miopenStatus_t miopenGetRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, miopenRNNAlgo_t * algoMode, miopenRNNInputMode_t *inputMode,
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, 
+        miopenRNNAlgo_t * algoMode, miopenRNNInputMode_t *inputMode,
                         miopenRNNDirectionMode_t* bidir, 
         miopenRNNBiasMode_t *bias, int* hiddenSize, int* layer)
 {
@@ -191,7 +192,7 @@ extern "C" miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
 
 
 
-extern "C" miopenStatus_t miopenRNNForwardTrain(miopenHandle_t handle,
+extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                     miopenRNNDescriptor_t rnnDesc,
                                                     const int sequenceLen,
                                                     miopenTensorDescriptor_t *xDesc,
@@ -395,18 +396,6 @@ miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
                                                    reserveSpaceNumBytes);
     });
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

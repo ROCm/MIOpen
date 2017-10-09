@@ -1908,7 +1908,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrain(miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                        miopenRNNDescriptor_t rnnDesc,
                                                        const int sequenceLen,
                                                        miopenTensorDescriptor_t *xDesc,
