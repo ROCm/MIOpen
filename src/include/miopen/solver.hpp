@@ -27,6 +27,8 @@
 #ifndef GUARD_MIOPEN_SOLVER_HPP
 #define GUARD_MIOPEN_SOLVER_HPP
 
+#include "miopen/config.h"
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -119,6 +121,9 @@ class PerformanceConfig
     virtual ~PerformanceConfig() {}
     virtual void Serialize(std::ostream&) const {}
     virtual bool Deserialize(const std::string& s) { return s.empty(); }
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    virtual bool LegacyDeserialize(const std::string&) { return false; }
+#endif
 };
 
 /// Base class for problem solvers.

@@ -24,6 +24,7 @@ struct TestData
         static const auto sep = ',';
         s << x << sep << y;
     }
+    void LegacySerialize(std::ostream&) const {}
 
     bool Deserialize(const std::string& s)
     {
@@ -39,6 +40,7 @@ struct TestData
         *this = t;
         return true;
     }
+    bool LegacyDeserialize(const std::string&) { return false; }
 
     bool operator==(const TestData& other) { return x == other.x && y == other.y; }
 
