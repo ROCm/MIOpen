@@ -176,22 +176,25 @@ class StaticContainer
 class ProblemDescription
 {
     public:
-    int n_inputs;
-    int in_height;
-    int in_width;
-    int kernel_size1;
-    int kernel_size0;
-    int n_outputs;
-    int out_height;
-    int out_width;
-    int batch_sz;
+    int n_inputs         = 0;
+    int in_height        = 0;
+    int in_width         = 0;
+    int kernel_size1     = 0;
+    int kernel_size0     = 0;
+    int n_outputs        = 0;
+    int out_height       = 0;
+    int out_width        = 0;
+    int batch_sz         = 0;
+    int forward          = 0;
+    int pad0             = 0;
+    int pad1             = 0;
+    int kernel_stride0   = 0;
+    int kernel_stride1   = 0;
+    int kernal_dilation0 = 0;
+    int kernal_dilation1 = 0;
+    int bias             = 0;
     std::string in_layout;
     std::string in_data_type;
-    int forward;
-    int pad0, pad1;
-    int kernel_stride0, kernel_stride1;
-    int kernal_dilation0, kernal_dilation1;
-    int bias;
 
     void Serialize(std::ostream& stream) const
     {
@@ -250,13 +253,19 @@ class ConvolutionContext : public ProblemDescription
     std::string weights_layout;
     std::string out_data_type;
     std::string out_layout;
-    size_t bot_sz, top_sz, weights_sz, bias_sz;
-    int deconvolution;
-    int in_stride, out_stride;
-    int in_channel_stride, in_batch_stride;
-    int out_channel_stride, out_batch_stride;
-    int n_timer_iter = 0;
-    rocm_meta_version rmv;
+    size_t bot_sz          = 0;
+    size_t top_sz          = 0;
+    size_t weights_sz      = 0;
+    size_t bias_sz         = 0;
+    int deconvolution      = 0;
+    int in_stride          = 0;
+    int out_stride         = 0;
+    int in_channel_stride  = 0;
+    int in_batch_stride    = 0;
+    int out_channel_stride = 0;
+    int out_batch_stride   = 0;
+    int n_timer_iter       = 0;
+    rocm_meta_version rmv  = V3;
     std::string general_compile_options;
 
     inline Handle& GetStream() const { return *_stream; }
@@ -276,7 +285,7 @@ class ConvolutionContext : public ProblemDescription
     }
 
     private:
-    Handle* _stream;
+    Handle* _stream = nullptr;
 };
 
 namespace solver {
