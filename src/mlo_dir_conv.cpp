@@ -26,6 +26,8 @@
 
 #define MIOPEN
 
+#include <miopen/config.h>
+
 #include <cmath>
 #include <cstring>
 #include <iomanip>
@@ -80,7 +82,11 @@ int mlo_construct_direct2D::mloConstruct()
     }
 
     miopen::solver::ConvSolution result(static_cast<miopenStatus_t>(-1));
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    miopen::DbRecord dbRecord(_search_params.GetPerfDbPath(), _search_params, true);
+#else
     miopen::DbRecord dbRecord(_search_params.GetPerfDbPath(), _search_params);
+#endif
 
     for(const miopen::solver::Solver& solver : SolverStore())
     {

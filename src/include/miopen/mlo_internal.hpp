@@ -188,26 +188,50 @@ class ProblemDescription
     std::string in_layout;
     std::string in_data_type;
     int forward;
+    int pad0, pad1;
+    int kernel_stride0, kernel_stride1;
+    int kernal_dilation0, kernal_dilation1;
+    int bias;
 
     void Serialize(std::ostream& stream) const
     {
-        const auto separator = ",";
-
+        const auto sep = '-';
         // clang-format off
-        stream           << n_inputs
-            << separator << in_height
-            << separator << in_width
-            << separator << kernel_size1
-            << separator << kernel_size0
-            << separator << n_outputs
-            << separator << out_height
-            << separator << out_width
-            << separator << batch_sz
-            << separator << in_layout
-            << separator << in_data_type
-            << separator << forward;
-        // clang-format on
+        // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
+        stream
+            << n_inputs << sep << in_height << sep << in_width
+            << sep << kernel_size1 << 'x' << kernel_size0
+            << sep << n_outputs << sep << out_height << sep << out_width
+            << sep << batch_sz
+            << sep << pad1 << 'x' << pad0
+            << sep << kernel_stride1 << 'x' << kernel_stride0
+            << sep << kernal_dilation1 << 'x' << kernal_dilation1
+            << sep << bias
+            << sep << in_layout
+            << sep << in_data_type
+            << sep << (forward ? "F" : "B"); // clang-format on
     }
+
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    void LegacySerialize(std::ostream& stream) const
+    {
+        const auto sep = 'x';
+        // clang-format off
+        // 576x4x4x1x1x192x4x4x8xNCHWxFP32xF
+        stream << n_inputs
+            << sep << in_height
+            << sep << in_width
+            << sep << kernel_size1
+            << sep << kernel_size0
+            << sep << n_outputs
+            << sep << out_height
+            << sep << out_width
+            << sep << batch_sz
+            << sep << in_layout
+            << sep << in_data_type
+            << sep << forward; // clang-format on
+    }
+#endif
 };
 
 /// A leftover of the legacy design, houses problem config,
@@ -227,14 +251,10 @@ class ConvolutionContext : public ProblemDescription
     std::string out_data_type;
     std::string out_layout;
     size_t bot_sz, top_sz, weights_sz, bias_sz;
-    int pad0, pad1;
-    int kernel_stride0, kernel_stride1;
-    int kernal_dilation0, kernal_dilation1;
     int deconvolution;
     int in_stride, out_stride;
     int in_channel_stride, in_batch_stride;
     int out_channel_stride, out_batch_stride;
-    int bias;
     int n_timer_iter = 0;
     rocm_meta_version rmv;
     std::string general_compile_options;

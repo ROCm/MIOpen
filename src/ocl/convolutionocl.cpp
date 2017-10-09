@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include <miopen/convolution.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
@@ -563,7 +564,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+                DbRecord dbRecord(context.GetPerfDbPath(), context, true);
+#else
                 DbRecord dbRecord(context.GetPerfDbPath(), context);
+#endif
                 const solver::Solver& solver =
                     StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
                 solver::ConvSolution solution = solver.FindSolution(context, dbRecord);
