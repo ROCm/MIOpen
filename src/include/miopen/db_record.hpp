@@ -161,7 +161,7 @@ class DbRecord
     bool ParseContents(const std::string& contents);
     bool SaveValues(const std::string& id, const std::string& values);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    bool LoadValues(const std::string& id, std::string& values, ContentFormat& values_format);
+    bool LoadValues(const std::string& id, std::string& values, ContentFormat& content_format);
 #else
     bool LoadValues(const std::string& id, std::string& values);
 #endif
