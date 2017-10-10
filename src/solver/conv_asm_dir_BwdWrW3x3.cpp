@@ -56,34 +56,42 @@ class Asm3x3WrwPerformanceConfig : public PerformanceConfig
     bool IsValidRange() const;
     // Values are valid for specific problem config.
     bool IsValid(const ConvolutionContext& config) const;
-    // 
+    //
     void EuristicInit(const ConvolutionContext& config);
 
-    Asm3x3WrwPerformanceConfig(int limit_wave_cnt_, int reverse_inout_,
-                               int chunk_size_, int k_per_wave_,
-                               int pipe_lines_depth_, int n_per_group_)
-    : limit_wave_cnt(limit_wave_cnt_), reverse_inout(reverse_inout_),
-      chunk_size(chunk_size_), k_per_wave(k_per_wave_),
-      pipe_lines_depth(pipe_lines_depth_), n_per_group(n_per_group_)
-    {}
+    Asm3x3WrwPerformanceConfig(int limit_wave_cnt_,
+                               int reverse_inout_,
+                               int chunk_size_,
+                               int k_per_wave_,
+                               int pipe_lines_depth_,
+                               int n_per_group_)
+        : limit_wave_cnt(limit_wave_cnt_),
+          reverse_inout(reverse_inout_),
+          chunk_size(chunk_size_),
+          k_per_wave(k_per_wave_),
+          pipe_lines_depth(pipe_lines_depth_),
+          n_per_group(n_per_group_)
+    {
+    }
     std::string ToString() const;
-    int GetCPerWave() const { assert(chunk_size != 0); return 64/chunk_size; }
-    
+    int GetCPerWave() const
+    {
+        assert(chunk_size != 0);
+        return 64 / chunk_size;
+    }
+
     public:
-    Asm3x3WrwPerformanceConfig()
-    : Asm3x3WrwPerformanceConfig(0,0,16,4,2,1)
-    {}
+    Asm3x3WrwPerformanceConfig() : Asm3x3WrwPerformanceConfig(-1, -1, -1, -1, -1, -1) {}
     void Serialize(std::ostream&) const override;
     bool Deserialize(const std::string& str) override;
-    
+
     friend class ConvAsmBwdWrW3x3;
 };
 
 bool Asm3x3WrwPerformanceConfig::IsValidRange() const
 {
     return (0 <= limit_wave_cnt && limit_wave_cnt <= 10) &&
-           (0 <= reverse_inout && reverse_inout <= 1) &&
-           (8 == chunk_size || 16 == chunk_size) &&
+           (0 <= reverse_inout && reverse_inout <= 1) && (8 == chunk_size || 16 == chunk_size) &&
            (1 == k_per_wave || 2 == k_per_wave || 4 == k_per_wave || 8 == k_per_wave) &&
            (1 <= pipe_lines_depth && pipe_lines_depth <= 16) &&
            (1 <= n_per_group && n_per_group <= 8);
@@ -92,34 +100,37 @@ bool Asm3x3WrwPerformanceConfig::IsValidRange() const
 bool Asm3x3WrwPerformanceConfig::IsValid(const ConvolutionContext& config) const
 {
     assert(chunk_size != 0);
-    if ((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
+    if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
         return false;
-    if ((reverse_inout ? config.n_inputs : config.n_outputs) % GetCPerWave() != 0)
+    if((reverse_inout ? config.n_inputs : config.n_outputs) % GetCPerWave() != 0)
         return false;
-    if ((reverse_inout ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
+    if((reverse_inout ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
         return false;
-    if (!(n_per_group <= config.batch_sz))
+    if(!(n_per_group <= config.batch_sz))
         return false;
-    if (!(1 <= pipe_lines_depth && pipe_lines_depth <= std::min(config.out_height, 16))) // FIXME out_? What if stride != 1?
+    if(!(1 <= pipe_lines_depth &&
+         pipe_lines_depth <= std::min(config.out_height, 16))) // FIXME out_? What if stride != 1?
         return false;
-    if (reverse_inout && !IsReverseInOutAllowed(config))
+    if(reverse_inout && !IsReverseInOutAllowed(config))
         return false;
-    if (config.out_width >= 256 && n_per_group > 4) // when width >= 256, n_per_group should NOT be > 4. // FIXME out_? What if stride != 1?
+    if(config.out_width >= 256 && n_per_group > 4) // when width >= 256, n_per_group should NOT be >
+                                                   // 4. // FIXME out_? What if stride != 1?
         return false;
-    return true;        
+    return true;
 }
 
 void Asm3x3WrwPerformanceConfig::EuristicInit(const ConvolutionContext& config)
 {
-    // chunk_size
+    limit_wave_cnt = 0;
+
     chunk_size = (config.out_width < 48) ? 8 : 16;
     if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
         chunk_size = 16; // Fixup for correctness
-    // reverse_inout
+
     reverse_inout = 0;
     if(IsReverseInOutAllowed(config) && ((config.n_outputs % 4 != 0) || (config.out_width < 8)))
         reverse_inout = 1;
-    // k_per_wave
+
     const auto c_k = config.n_outputs * config.n_inputs; // C*K
     if(c_k < 256)
         k_per_wave = 1;
@@ -129,7 +140,7 @@ void Asm3x3WrwPerformanceConfig::EuristicInit(const ConvolutionContext& config)
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
     while((reverse_inout ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
         k_per_wave /= 2; // Fixup for correctness
-    // n_per_group
+
     if(c_k <= 512)
         n_per_group = 8;
     else if(c_k <= 4096)
@@ -140,29 +151,34 @@ void Asm3x3WrwPerformanceConfig::EuristicInit(const ConvolutionContext& config)
         n_per_group = 1;
     if(n_per_group > config.batch_sz)
         n_per_group = config.batch_sz; // n_per_group should never be > batch size.
-    if(config.out_width >= 256 && n_per_group > 4) // when width >= 256, n_per_group should not be > 4.
+    if(config.out_width >= 256 &&
+       n_per_group > 4) // when width >= 256, n_per_group should not be > 4.
         n_per_group = 4;
-    // pipe_lines_depth
+
     pipe_lines_depth = (config.out_height <= 1) ? 1 : 2;
     if((config.out_height < 8) && (config.out_width < 64))
     {
         pipe_lines_depth = config.out_height; // Special case.
     }
+
     assert(IsValidRange());
-    if (!IsValid(config))
+    if(!IsValid(config))
     {
-        limit_wave_cnt = 0;
-        reverse_inout = 0;
-        chunk_size = 16; //CPerWave() = 4;
-        k_per_wave = 1;
+        limit_wave_cnt   = 0;
+        reverse_inout    = 0;
+        chunk_size       = 16; // CPerWave() = 4;
+        k_per_wave       = 1;
         pipe_lines_depth = 2;
-        n_per_group = 1;
-        if (config.n_outputs % 4 != 0) {
+        n_per_group      = 1;
+        if(config.n_outputs % 4 != 0)
+        {
             /// (1) If reverse is Off, then both (C % c_per_wave) and (K % k_per_wave) must be 0.
             /// Toggling reverse swaps C and K in the condition above.
-            /// (2) From the other hand, IsApplicable() ensures that either C or K is evenly divisable by 4.
-            /// (3) We just set k_per_wave=1, c_per_wave=4. Therefore, (1) always can be satisfied here.
-            /// If (C % c_per_wave) is not zero, just push reverse button so K and C will swap.
+            /// (2) From the other hand, IsApplicable() ensures that either C or K is evenly
+            /// divisable by 4.
+            /// (3) We just set k_per_wave=1, c_per_wave=4. Therefore, (1) always can be satisfied
+            /// here. If (C % c_per_wave) is not zero, just push reverse button so K and C will
+            /// swap.
             ///
             /// \note C (input channels) resides in n_outputs, K (output channels) - in n_inputs,
             /// because that's how reverse convolutions are handled in MIOpen.
@@ -172,8 +188,7 @@ void Asm3x3WrwPerformanceConfig::EuristicInit(const ConvolutionContext& config)
     }
 }
 
-static
-bool DeserializeField(const char separator, std::istream& from, int& to)
+static bool DeserializeField(const char separator, std::istream& from, int& to)
 {
     std::string part;
 
@@ -327,17 +342,17 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
     if(!s.empty()) // Otherwise, nothing is set in env -> nothing to parse.
     {
         static const std::string h("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: ");
-        if (!pp.Deserialize(s))
+        if(!pp.Deserialize(s))
         {
-            MIOPEN_THROW(h+"Bad format:"+s);
+            MIOPEN_THROW(h + "Bad format:" + s);
         }
         if(!pp.IsValidRange())
         {
-            MIOPEN_THROW(h+"Out of range:"+s);
+            MIOPEN_THROW(h + "Out of range:" + s);
         }
-        if (!pp.IsValid(params))
+        if(!pp.IsValid(params))
         {
-            MIOPEN_THROW(h+"Incorrect for the problem config:"+s);
+            MIOPEN_THROW(h + "Incorrect for the problem config:" + s);
         }
     }
     else
@@ -371,17 +386,17 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
         {
             static const std::string h("ConvAsmBwdWrW3x3: LUT entry: ");
             s = found->second;
-            if (!pp.Deserialize(s))
+            if(!pp.Deserialize(s))
             {
-                MIOPEN_THROW(h+"Bad format:"+s);
+                MIOPEN_THROW(h + "Bad format:" + s);
             }
             if(!pp.IsValidRange())
             {
-                MIOPEN_THROW(h+"Out of range:"+s);
+                MIOPEN_THROW(h + "Out of range:" + s);
             }
-            if (!pp.IsValid(params))
+            if(!pp.IsValid(params))
             {
-                MIOPEN_THROW(h+"Incorrect for the problem config:"+s);
+                MIOPEN_THROW(h + "Incorrect for the problem config:" + s);
             }
         }
         else
@@ -448,7 +463,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
          && k_r_s < std::pow(2, 22)
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
-         && c_k_r_s < std::pow(2, 29); // clang-format on
+         && c_k_r_s < std::pow(2, 29);                                    // clang-format on
     if(!ok)
     {
         return false;
