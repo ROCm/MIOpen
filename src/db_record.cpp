@@ -146,9 +146,9 @@ static bool isLegacySolver(const std::string& id)
 }
 #endif
 
-bool DbRecord::SaveValues(const std::string& id, const std::string& values)
+bool DbRecord::StoreValues(const std::string& id, const std::string& values)
 {
-    static const Logger logger("DbRecord::SaveValues");
+    static const Logger logger("DbRecord::StoreValues");
     if(!_is_content_cached)
     {
         // If there is a record with the same key, we need to find its position
