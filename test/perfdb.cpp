@@ -221,8 +221,8 @@ class DbRecordWriteTest : public Test
         {
             DbRecord record(path, key);
 
-            AssertTrue("Write0", record.Save(id0, value0));
-            AssertTrue("Write1", record.Save(id1, value1));
+            AssertTrue("Write0", record.Store(id0, value0));
+            AssertTrue("Write1", record.Store(id1, value1));
         }
 
         std::string read;

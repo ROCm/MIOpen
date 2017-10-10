@@ -45,7 +45,7 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
     if(context.do_search)
     {
         Search(context, *config);
-        dbRecord.Save(SolverId(), *config);
+        dbRecord.Store(SolverId(), *config);
     }
     else
     {
