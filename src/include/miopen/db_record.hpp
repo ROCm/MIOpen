@@ -159,7 +159,7 @@ class DbRecord
 
     bool ParseLegacyContents(const std::string& contents);
     bool ParseContents(const std::string& contents);
-    bool SaveValues(const std::string& id, const std::string& values);
+    bool StoreValues(const std::string& id, const std::string& values);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     bool LoadValues(const std::string& id, std::string& values, ContentFormat& content_format);
 #else
@@ -217,9 +217,9 @@ class DbRecord
     /// T shall have the "void Serialize(std::ostream&) const"
     /// member function available.
     template <class T>
-    bool Save(const std::string& id, const T& values)
+    bool Store(const std::string& id, const T& values)
     {
-        return SaveValues(id, Serialize(values));
+        return StoreValues(id, Serialize(values));
     }
 
     /// Loads values associated with id under the current key
