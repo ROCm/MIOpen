@@ -176,6 +176,11 @@ class Solver
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
+    ///
+    /// Every Solver which IsApplicable() for some problem config, must be able to
+    /// InitPerformanceConfigImpl() in a way that GetSolution() would return valid
+    /// solution for a problem (i.e. convolution). In other words, if a Solution
+    /// says "i'am suitable" for a problem, it agrees to solve the problem correctly.
     virtual bool IsApplicable(const ConvolutionContext&) const { return true; }
 
     /// Legacy euristic method which shall return false when a solution
@@ -324,6 +329,8 @@ class ConvAsmBwdWrW3x3 : public Solver
     std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const override;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfig& result) const override;
+    void Search(const ConvolutionContext&, PerformanceConfig& config) const override;
+    bool IsSearchable() const override { return false; } // FIXME
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsFast(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
