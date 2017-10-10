@@ -173,16 +173,17 @@ void Asm3x3WrwPerformanceConfig::EuristicInit(const ConvolutionContext& config)
 }
 
 static
-bool DeserializeField(char separator, std::istream& from, int& to)
+bool DeserializeField(const char separator, std::istream& from, int& to)
 {
     std::string part;
 
     if(!std::getline(from, part, separator))
         return false;
 
+    const auto start = part.c_str();
     char* end;
-    to = std::strtol(part.c_str(), &end, 10);
-    return part.c_str() == end;
+    to = std::strtol(start, &end, 10);
+    return start != end;
 }
 
 void Asm3x3WrwPerformanceConfig::Serialize(std::ostream& stream) const
@@ -325,17 +326,18 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
     }
     if(!s.empty()) // Otherwise, nothing is set in env -> nothing to parse.
     {
+        static const std::string h("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: ");
         if (!pp.Deserialize(s))
         {
-            MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: Bad format (hint: lwc,rio,csz,kpw,lpd,npg)");
+            MIOPEN_THROW(h+"Bad format:"+s);
         }
         if(!pp.IsValidRange())
         {
-            MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: Out of range.");
+            MIOPEN_THROW(h+"Out of range:"+s);
         }
         if (!pp.IsValid(params))
         {
-            MIOPEN_THROW("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: Incorrect for the problem config.");
+            MIOPEN_THROW(h+"Incorrect for the problem config:"+s);
         }
     }
     else
@@ -367,18 +369,19 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
         }
         if(found != perf_vals_map.end())
         {
+            static const std::string h("ConvAsmBwdWrW3x3: LUT entry: ");
             s = found->second;
             if (!pp.Deserialize(s))
             {
-                MIOPEN_THROW("ConvAsmBwdWrW3x3: LUT entry: Bad format (hint: lwc,rio,csz,kpw,lpd,npg)");
+                MIOPEN_THROW(h+"Bad format:"+s);
             }
             if(!pp.IsValidRange())
             {
-                MIOPEN_THROW("ConvAsmBwdWrW3x3: LUT entry: Out of range.");
+                MIOPEN_THROW(h+"Out of range:"+s);
             }
             if (!pp.IsValid(params))
             {
-                MIOPEN_THROW("ConvAsmBwdWrW3x3: LUT entry: Incorrect for the problem config.");
+                MIOPEN_THROW(h+"Incorrect for the problem config:"+s);
             }
         }
         else
