@@ -36,15 +36,15 @@ namespace solver {
 class LegacyPerformanceConfig : public PerformanceConfig
 {
     public:
-    int grp_tile1 = 0;
-    int grp_tile0 = 0;
-    int in_tile1 = 0;
-    int in_tile0 = 0;
-    int out_pix_tile1 = 0;
-    int out_pix_tile0 = 0;
+    int grp_tile1       = 0;
+    int grp_tile0       = 0;
+    int in_tile1        = 0;
+    int in_tile0        = 0;
+    int out_pix_tile1   = 0;
+    int out_pix_tile0   = 0;
     int n_out_pix_tiles = 0;
     int n_in_data_tiles = 0;
-    int n_stacks = 0;
+    int n_stacks        = 0;
 
     void CopyTo(ConvSolution& iud) const;
     void Serialize(std::ostream& stream) const override;
