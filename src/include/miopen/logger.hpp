@@ -172,7 +172,10 @@ std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
     return os;
 }
 
-bool IsLogging();
+bool IsLoggingLevelError();
+bool IsLoggingLevelWarning();
+bool IsLoggingLevelInfo();
+bool IsLoggingLevelTrace();
 
 template <class T>
 auto LogObjImpl(T* x) -> decltype(get_object(*x))
@@ -205,7 +208,7 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #define MIOPEN_LOG_FUNCTION_EACH(param) miopen::LogParam(std::cerr, #param, param) << std::endl;
 
 #define MIOPEN_LOG_FUNCTION(...)                                   \
-    if(miopen::IsLogging())                                        \
+    if(miopen::IsLoggingLevelTrace())                              \
     {                                                              \
         std::cerr << __PRETTY_FUNCTION__ << "{" << std::endl;      \
         MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__) \
@@ -214,6 +217,33 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #else
 #define MIOPEN_LOG_FUNCTION(...)
 #endif
+
+/// \todo __PRETTY_FUNCTION__ is too verbose, __func_ it too short.
+/// Shall we add filename (no path, no ext) prior __func__.
+#define MIOPEN_LOG_E(...)                                                           \
+    do                                                                              \
+    {                                                                               \
+        if(miopen::IsLoggingLevelError())                                           \
+        {                                                                           \
+            std::cerr << "Error [" << __func__ << "] " << __VA_ARGS__ << std::endl; \
+        }                                                                           \
+    } while(false);
+#define MIOPEN_LOG_W(...)                                                             \
+    do                                                                                \
+    {                                                                                 \
+        if(miopen::IsLoggingLevelWarning())                                           \
+        {                                                                             \
+            std::cerr << "Warning [" << __func__ << "] " << __VA_ARGS__ << std::endl; \
+        }                                                                             \
+    } while(false);
+#define MIOPEN_LOG_I(...)                                                          \
+    do                                                                             \
+    {                                                                              \
+        if(miopen::IsLoggingLevelInfo())                                           \
+        {                                                                          \
+            std::cerr << "Info [" << __func__ << "] " << __VA_ARGS__ << std::endl; \
+        }                                                                          \
+    } while(false);
 
 } // namespace miopen
 

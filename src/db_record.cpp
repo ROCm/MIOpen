@@ -31,45 +31,12 @@
 
 #include "miopen/errors.hpp"
 #include "miopen/db_record.hpp"
+#include "miopen/logger.hpp"
 
 namespace miopen {
 
-using perfdb::Logger;
-
-#if defined(LOG_I) || defined(LOG_W) || defined(LOG_E)
-#error "Error: Unexpected definition(s) of LOG_I, LOG_W, LOG_E macros found."
-#endif
-#if MIOPEN_DB_RECORD_LOGLEVEL >= 3
-#define LOG_I(...)             \
-    do                         \
-    {                          \
-        logger.I(__VA_ARGS__); \
-    } while(false)
-#else
-#define LOG_I(...)
-#endif
-#if MIOPEN_DB_RECORD_LOGLEVEL >= 2
-#define LOG_W(...)             \
-    do                         \
-    {                          \
-        logger.W(__VA_ARGS__); \
-    } while(false)
-#else
-#define LOG_W(...)
-#endif
-#if MIOPEN_DB_RECORD_LOGLEVEL >= 1
-#define LOG_E(...)             \
-    do                         \
-    {                          \
-        logger.E(__VA_ARGS__); \
-    } while(false)
-#else
-#define LOG_E(...)
-#endif
-
 bool DbRecord::ParseContents(const std::string& contents)
 {
-    static const Logger logger("DbRecord::ParseContents");
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     assert(_record_format == RecordFormat::CurrentOrMixed ||
            _record_format == RecordFormat::Current);
@@ -89,7 +56,7 @@ bool DbRecord::ParseContents(const std::string& contents)
         // Empty VALUES is ok, empty ID is not:
         if(id_size == std::string::npos)
         {
-            LOG_E(std::string("Ill-formed file: ID not found; skipped; key: ") + _key);
+            MIOPEN_LOG_E("Ill-formed file: ID not found; skipped; key: " << _key);
             continue;
         }
 
@@ -101,7 +68,7 @@ bool DbRecord::ParseContents(const std::string& contents)
             if(id == MIOPEN_PERFDB_CONV_LEGACY_ID)
             {
                 is_legacy_content_found = true;
-                LOG_I(std::string("Legacy content found under key: ") + _key + " Record is Mixed.");
+                MIOPEN_LOG_I("Legacy content found under key: " << _key << " Record is Mixed.");
             }
         }
 #endif
@@ -109,7 +76,7 @@ bool DbRecord::ParseContents(const std::string& contents)
 
         if(_content.find(id) != _content.end())
         {
-            LOG_E(std::string("Duplicate ID (ignored): ") + id + "; key: " + _key);
+            MIOPEN_LOG_E("Duplicate ID (ignored): " << id << "; key: " << _key);
             continue;
         }
 
@@ -148,7 +115,6 @@ static bool isLegacySolver(const std::string& id)
 
 bool DbRecord::StoreValues(const std::string& id, const std::string& values)
 {
-    static const Logger logger("DbRecord::StoreValues");
     if(!_is_content_cached)
     {
         // If there is a record with the same key, we need to find its position
@@ -172,8 +138,8 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
         _content.emplace(id, values);
         _is_cache_dirty = true;
         _record_format  = RecordFormat::Current;
-        LOG_I(std::string("Legacy content under key: ") + _key + " replaced by " + id + ":" +
-              values);
+        MIOPEN_LOG_I("Legacy content under key: " << _key << " replaced by " << id << ":"
+                                                  << values);
         return true;
     }
     else if(_record_format == RecordFormat::Legacy && !isLegacySolver(id))
@@ -184,8 +150,8 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
         _content.emplace(id, values);
         _is_cache_dirty = true;
         _record_format  = RecordFormat::Mixed;
-        LOG_I(std::string("Legacy record under key: ") + _key + " appended by " + id + ":" +
-              values + " and becomes Mixed");
+        MIOPEN_LOG_I("Legacy record under key: " << _key << " appended by " << id << ":" << values
+                                                 << " and becomes Mixed");
         return true;
     }
     assert((_record_format == RecordFormat::Mixed && !isLegacySolver(id)) ||
@@ -195,15 +161,20 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
     const auto it = _content.find(id);
     if(it == _content.end() || it->second != values)
     {
-        LOG_I(std::string("Record under key: ") + _key + ", content " +
-              (it == _content.end() ? "inserted" : "overwritten") + ": " + id + ":" + values);
+        MIOPEN_LOG_I("Record under key: " << _key << ", content "
+                                          << (it == _content.end() ? "inserted" : "overwritten")
+                                          << ": "
+                                          << id
+                                          << ":"
+                                          << values);
         _content[id]    = values;
         _is_cache_dirty = true;
     }
     else
     {
-        LOG_I(std::string("Record under key: ") + _key + ", content is the same, not saved:" + id +
-              ":" + values);
+        MIOPEN_LOG_I("Record under key: " << _key << ", content is the same, not saved:" << id
+                                          << ":"
+                                          << values);
     }
     return true;
 }
@@ -216,7 +187,6 @@ bool DbRecord::LoadValues(const std::string& id,
 bool DbRecord::LoadValues(const std::string& id, std::string& values)
 #endif
 {
-    static const Logger logger("DbRecord::LoadValues");
     if(!_is_content_cached)
         ReadIntoCache();
 
@@ -232,7 +202,7 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
 
         values         = it->second;
         content_format = ContentFormat::Legacy;
-        LOG_I(std::string("Legacy record read: ") + _key + ":" + values + " for id: " + id);
+        MIOPEN_LOG_I("Legacy record read: " << _key << ":" << values << " for id: " << id);
         return true;
     }
     else if(_record_format == RecordFormat::Mixed)
@@ -245,8 +215,8 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
             {
                 values         = it->second;
                 content_format = ContentFormat::Legacy;
-                LOG_I(std::string("Legacy content read from record (Mixed): ") + _key + ":" + id +
-                      ":" + values);
+                MIOPEN_LOG_I("Legacy content read from record (Mixed): " << _key << ":" << id << ":"
+                                                                         << values);
                 return true;
             }
             // Legacy content not found.
@@ -266,11 +236,15 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
     values = it->second;
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     content_format = ContentFormat::Current;
-    LOG_I(std::string("Read record ") +
-          ((_record_format == RecordFormat::Mixed) ? "(Mixed) " : "(Current) ") + _key + ":" + id +
-          ":" + values);
+    MIOPEN_LOG_I(
+        "Read record " << ((_record_format == RecordFormat::Mixed) ? "(Mixed) " : "(Current) ")
+                       << _key
+                       << ":"
+                       << id
+                       << ":"
+                       << values);
 #else
-    LOG_I(std::string("Read record ") + _key + ":" + id + ":" + values);
+    MIOPEN_LOG_I("Read record " << _key << ":" << id << ":" << values);
 #endif
     return true;
 }
@@ -311,12 +285,11 @@ std::atomic_int DbRecord::_n_cached_records(0);
 
 void DbRecord::Flush()
 {
-    static const Logger logger("DbRecord::Flush");
     if(!_is_cache_dirty)
         return;
     if(_n_cached_records > 1)
     {
-        LOG_E(std::string("File update canceled to avoid db corruption. Key: ") + _key);
+        MIOPEN_LOG_E("File update canceled to avoid db corruption. Key: " << _key);
         return;
     }
 
@@ -326,7 +299,7 @@ void DbRecord::Flush()
 
         if(!file)
         {
-            LOG_E("File is unwritable.");
+            MIOPEN_LOG_E("File is unwritable.");
             return;
         }
 
@@ -341,7 +314,7 @@ void DbRecord::Flush()
 
         if(!from)
         {
-            LOG_E("File is unreadable.");
+            MIOPEN_LOG_E("File is unreadable.");
             return;
         }
 
@@ -349,7 +322,7 @@ void DbRecord::Flush()
 
         if(!to)
         {
-            LOG_E("Temp file is unwritable.");
+            MIOPEN_LOG_E("Temp file is unwritable.");
             return;
         }
 
@@ -378,7 +351,6 @@ void DbRecord::Flush()
 
 void DbRecord::ReadIntoCache()
 {
-    static const Logger logger("DbRecord::ReadIntoCache");
     ++_n_cached_records;
     _content.clear();
     _is_cache_dirty = false;
@@ -386,16 +358,16 @@ void DbRecord::ReadIntoCache()
         true; // This is true even if no record found in the db: nothing read <-> nothing cached.
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    LOG_I(std::string("Looking for key: ") + _key + ", legacy_key: " + _legacy_key);
+    MIOPEN_LOG_I("Looking for key: " << _key << ", legacy_key: " << _legacy_key);
 #else
-    LOG_I(std::string("Looking for key: ") + _key);
+    MIOPEN_LOG_I("Looking for key: " << _key);
 #endif
 
     std::ifstream file(_db_filename);
 
     if(!file)
     {
-        LOG_W("File is unreadable.");
+        MIOPEN_LOG_W("File is unreadable.");
         return;
     }
 
@@ -426,8 +398,8 @@ void DbRecord::ReadIntoCache()
         {
             if(!line.empty()) // Do not blame empty lines.
             {
-                LOG_E("Ill-formed record: key not found.");
-                LOG_E(_db_filename + "#" + std::to_string(n_line));
+                MIOPEN_LOG_E("Ill-formed record: key not found.");
+                MIOPEN_LOG_E(_db_filename << "#" << std::to_string(n_line));
             }
             continue;
         }
@@ -466,28 +438,30 @@ void DbRecord::ReadIntoCache()
             }
         }
         _record_format = this_record_format;
-        LOG_I(std::string("Key match: ") + key + " record format: " +
-              ((_record_format == RecordFormat::Legacy)
-                   ? "Legacy"
-                   : (_record_format == RecordFormat::CurrentOrMixed)
-                         ? "CurrentOrMixed"
-                         : (_record_format == RecordFormat::Mixed) ? "Mixed" : "Current"));
+        MIOPEN_LOG_I("Key match: " << key << " record format: "
+                                   << ((_record_format == RecordFormat::Legacy)
+                                           ? "Legacy"
+                                           : (_record_format == RecordFormat::CurrentOrMixed)
+                                                 ? "CurrentOrMixed"
+                                                 : (_record_format == RecordFormat::Mixed)
+                                                       ? "Mixed"
+                                                       : "Current"));
         const auto contents = line.substr((is_key ? key_size : legacy_key_size) + 1);
 #else
         if(key != _key)
         {
             continue;
         }
-        LOG_I(std::string("Key match: ") + key);
+        MIOPEN_LOG_I(std::string("Key match: " << key);
         const auto contents    = line.substr(key_size + 1);
 #endif
 
         if(contents.empty())
         {
-            LOG_E(std::string("None contents under the key: ") + key);
+            MIOPEN_LOG_E("None contents under the key: " << key);
             continue;
         }
-        LOG_I(std::string("Contents found: ") + contents);
+        MIOPEN_LOG_I("Contents found: " << contents);
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
         const bool is_parse_ok = (_record_format == RecordFormat::Legacy)
@@ -499,9 +473,9 @@ void DbRecord::ReadIntoCache()
 
         if(!is_parse_ok)
         {
-            LOG_E(std::string("Error parsing payload under the key: ") + key);
-            LOG_E(_db_filename + "#" + std::to_string(n_line));
-            LOG_E(contents);
+            MIOPEN_LOG_E("Error parsing payload under the key: " << key);
+            MIOPEN_LOG_E(_db_filename << "#" << std::to_string(n_line));
+            MIOPEN_LOG_E(contents);
         }
         // A record with matching key have been found.
         _pos_begin = line_begin;
