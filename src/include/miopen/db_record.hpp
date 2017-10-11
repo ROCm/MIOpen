@@ -27,14 +27,13 @@
 #define GUARD_MIOPEN_DB_RECORD_HPP
 
 #include "miopen/config.h"
+#include "miopen/logger.hpp"
 
 #include <sstream>
 #include <string>
 #include <atomic>
 #include <unordered_map>
 #include <iostream>
-
-#define MIOPEN_DB_RECORD_LOGLEVEL 2 // 0: quiet, 1: errors, 2: +warnings, 3: +misc info.
 
 namespace miopen {
 
@@ -60,25 +59,6 @@ namespace miopen {
 /// (or whatever a Solver wants to store in VALUES) is encoded into a string depends on the Solver.
 /// Note: If VALUES is used to represent a set of numeric values, then it is recommended to use ","
 /// as a separator.
-
-namespace perfdb {
-
-class Logger
-{
-    const std::string _subtitle;
-    void Do(const char* level, const std::string& m) const
-    {
-        std::cerr << level << " [" << _subtitle << "] " << m << std::endl;
-    }
-
-    public:
-    Logger(const char* subtitle) : _subtitle(subtitle) {}
-    void E(const std::string& m) const { Do("Error", m); }
-    void W(const std::string& m) const { Do("Warning", m); }
-    void I(const std::string& m) const { Do("Info", m); }
-};
-
-} // namespace perfdb
 
 /// Represents a db record associated with specific KEY.
 /// Ctor arguments are path to db file and a KEY (or an object able to provide a KEY).
@@ -256,12 +236,10 @@ class DbRecord
 #else
         const bool ok = values.Deserialize(s);
 #endif
-#if MIOPEN_DB_RECORD_LOGLEVEL >= 1
         if(!ok)
         {
-            perfdb::Logger("DbRecord::Load").E("deserialize failed: " + s);
+            MIOPEN_LOG_E("deserialize failed: " << s);
         }
-#endif
         return ok;
     }
 };

@@ -29,8 +29,40 @@
 
 namespace miopen {
 
+/// Kept for backward compatibility for some time.
+/// Enables all logging levels at once.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING)
 
-bool IsLogging() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}); }
+/// 0 or undefined - Set logging level to the default:
+///     3 for Release builds,
+///     5 for Debug builds.
+/// 1 - None log messages.
+/// 2 - (Reserved for FATAL messages)
+/// 3 - ERROR messages.
+/// 4 - ...plus WARNINGs.
+/// 5 - ...plus INFO messages.
+/// 6 - ...plus TRACE information (e.g. output by MIOPEN_LOG_FUNCTION).
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
+
+int GetLoggingLevel()
+{
+    if(miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}))
+        return 6;
+    const int val = miopen::Value(MIOPEN_LOG_LEVEL{});
+    if(val == 0)
+    {
+#ifdef NDEBUG // Simplest way.
+        return 3;
+#else
+        return 5;
+#endif
+    }
+    return val;
+}
+
+bool IsLoggingLevelError() { return GetLoggingLevel() >= 3; }
+bool IsLoggingLevelWarning() { return GetLoggingLevel() >= 4; }
+bool IsLoggingLevelInfo() { return GetLoggingLevel() >= 5; }
+bool IsLoggingLevelTrace() { return GetLoggingLevel() >= 6; }
 
 } // namespace miopen
