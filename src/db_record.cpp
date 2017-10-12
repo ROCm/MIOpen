@@ -33,6 +33,10 @@
 #include "miopen/db_record.hpp"
 #include "miopen/logger.hpp"
 
+#define MIOPEN_LOG_E(...) MIOPEN_LOG(LoggingLevel::Error, __VA_ARGS__)
+#define MIOPEN_LOG_W(...) MIOPEN_LOG(LoggingLevel::Warning, __VA_ARGS__)
+#define MIOPEN_LOG_I(...) MIOPEN_LOG(LoggingLevel::Info, __VA_ARGS__)
+
 namespace miopen {
 
 bool DbRecord::ParseContents(const std::string& contents)
@@ -199,7 +203,7 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
 
         values         = it->second;
         content_format = ContentFormat::Legacy;
-        MIOPEN_LOG_I("Legacy record read: " << key << ":" << values << " for id: " << id);
+        MIOPEN_LOG_I("Read record (Legacy): " << legacy_key << " " << values << " for id: " << id);
         return true;
     }
     else if(record_format == RecordFormat::Mixed)
@@ -212,8 +216,11 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
             {
                 values         = it->second;
                 content_format = ContentFormat::Legacy;
-                MIOPEN_LOG_I("Legacy content read from record (Mixed): " << key << ":" << id << ":"
-                                                                         << values);
+                MIOPEN_LOG_I("Read record (Mixed): " << key << "=" << MIOPEN_PERFDB_CONV_LEGACY_ID
+                                                     << ":"
+                                                     << values
+                                                     << " for id: "
+                                                     << id);
                 return true;
             }
             // Legacy content not found.
@@ -236,12 +243,12 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
     MIOPEN_LOG_I(
         "Read record " << ((record_format == RecordFormat::Mixed) ? "(Mixed) " : "(Current) ")
                        << key
-                       << ":"
+                       << "="
                        << id
                        << ":"
                        << values);
 #else
-    MIOPEN_LOG_I("Read record " << key << ":" << id << ":" << values);
+    MIOPEN_LOG_I("Read record " << key << "=" << id << ":" << values);
 #endif
     return true;
 }

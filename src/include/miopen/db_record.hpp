@@ -238,7 +238,7 @@ class DbRecord
 #endif
         if(!ok)
         {
-            MIOPEN_LOG_E("deserialize failed: " << s);
+            MIOPEN_LOG(LoggingLevel::Error, "deserialize failed: " << s);
         }
         return ok;
     }

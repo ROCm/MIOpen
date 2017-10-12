@@ -172,10 +172,22 @@ std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
     return os;
 }
 
-bool IsLoggingLevelError();
-bool IsLoggingLevelWarning();
-bool IsLoggingLevelInfo();
-bool IsLoggingLevelTrace();
+enum LoggingLevel
+{
+    Default = 0, // ERROR for Release builds, INFO for Debug builds.
+    Quiet,
+    Fatal,
+    Error,
+    Warning,
+    Info,
+    Trace // E.g. messages output by MIOPEN_LOG_FUNCTION).
+};
+
+const char* LoggingLevelToCString(const enum LoggingLevel level);
+
+/// \return true if level is enabled.
+/// \param level - one of the values defined in LoggingLevel.
+int IsLogging(const int level = LoggingLevel::Error);
 
 template <class T>
 auto LogObjImpl(T* x) -> decltype(get_object(*x))
@@ -208,7 +220,7 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #define MIOPEN_LOG_FUNCTION_EACH(param) miopen::LogParam(std::cerr, #param, param) << std::endl;
 
 #define MIOPEN_LOG_FUNCTION(...)                                   \
-    if(miopen::IsLoggingLevelTrace())                              \
+    if(miopen::IsLogging(miopen::LoggingLevel::Trace))             \
     {                                                              \
         std::cerr << __PRETTY_FUNCTION__ << "{" << std::endl;      \
         MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__) \
@@ -220,29 +232,14 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 
 /// \todo __PRETTY_FUNCTION__ is too verbose, __func_ it too short.
 /// Shall we add filename (no path, no ext) prior __func__.
-#define MIOPEN_LOG_E(...)                                                           \
-    do                                                                              \
-    {                                                                               \
-        if(miopen::IsLoggingLevelError())                                           \
-        {                                                                           \
-            std::cerr << "Error [" << __func__ << "] " << __VA_ARGS__ << std::endl; \
-        }                                                                           \
-    } while(false);
-#define MIOPEN_LOG_W(...)                                                             \
-    do                                                                                \
-    {                                                                                 \
-        if(miopen::IsLoggingLevelWarning())                                           \
-        {                                                                             \
-            std::cerr << "Warning [" << __func__ << "] " << __VA_ARGS__ << std::endl; \
-        }                                                                             \
-    } while(false);
-#define MIOPEN_LOG_I(...)                                                          \
-    do                                                                             \
-    {                                                                              \
-        if(miopen::IsLoggingLevelInfo())                                           \
-        {                                                                          \
-            std::cerr << "Info [" << __func__ << "] " << __VA_ARGS__ << std::endl; \
-        }                                                                          \
+#define MIOPEN_LOG(level, ...)                                                                   \
+    do                                                                                           \
+    {                                                                                            \
+        if(miopen::IsLogging(level))                                                             \
+        {                                                                                        \
+            std::cerr << LoggingLevelToCString(level) << " [" << __func__ << "] " << __VA_ARGS__ \
+                      << std::endl;                                                              \
+        }                                                                                        \
     } while(false);
 
 } // namespace miopen
