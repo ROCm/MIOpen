@@ -202,6 +202,8 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
                       << MIOPEN_DRIVER_ARG("-v", miopen::deref(convDesc).v)
                       << MIOPEN_DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
                       << MIOPEN_DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
+
+                      << MIOPEN_DRIVER_ARG("-t", "1")
                       << "\n";
     }
 
@@ -330,6 +332,8 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
                       << MIOPEN_DRIVER_ARG("-v", miopen::deref(convDesc).v)
                       << MIOPEN_DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
                       << MIOPEN_DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
+
+                      << MIOPEN_DRIVER_ARG("-t", "1")
                       << "\n";
     }
 
@@ -437,6 +441,8 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
                       << MIOPEN_DRIVER_ARG("-v", miopen::deref(convDesc).v)
                       << MIOPEN_DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
                       << MIOPEN_DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
+
+                      << MIOPEN_DRIVER_ARG("-t", "1")
                       << "\n";
     }
 
