@@ -38,12 +38,18 @@
 }
 
 template <class TLeft, class TRight>
-inline void expect_equality(const TLeft& left, const TRight& right, const char* left_s, const char* riglt_s, const char* file, int line)
+inline void expect_equality(const TLeft& left,
+                            const TRight& right,
+                            const char* left_s,
+                            const char* riglt_s,
+                            const char* file,
+                            int line)
 {
-    if (left == right)
+    if(left == right)
         return;
 
-    std::cout << "FAILED: " << left_s << "(" << left << ") == " << riglt_s << "(" << right << "): " << file << ':' << line << std::endl;
+    std::cout << "FAILED: " << left_s << "(" << left << ") == " << riglt_s << "(" << right
+              << "): " << file << ':' << line << std::endl;
     std::abort();
 }
 
@@ -58,8 +64,7 @@ void failed(const char* msg, const char* file, int line)
 #define EXPECT(...)    \
     if(!(__VA_ARGS__)) \
     failed_abort(#__VA_ARGS__, __FILE__, __LINE__)
-#define EXPECT_EQUAL(LEFT, RIGHT)\
-    expect_equality(LEFT, RIGHT, #LEFT, #RIGHT, __FILE__, __LINE__)
+#define EXPECT_EQUAL(LEFT, RIGHT) expect_equality(LEFT, RIGHT, #LEFT, #RIGHT, __FILE__, __LINE__)
 #define STATUS(...) EXPECT((__VA_ARGS__) == 0)
 
 #define FAIL(...) failed(__VA_ARGS__, __FILE__, __LINE__)
