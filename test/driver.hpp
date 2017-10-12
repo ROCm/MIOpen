@@ -120,7 +120,7 @@ struct test_driver
     bool full_set    = false;
     bool verbose     = false;
     double tolerance = 80;
-    bool time = false;
+    bool time        = false;
     int batch_factor = 0;
     bool no_validate = false;
 
@@ -373,13 +373,13 @@ struct test_driver
         try
         {
             auto&& h = get_handle();
-            if (time)
+            if(time)
             {
                 h.EnableProfiling();
                 h.ResetKernelTime();
             }
             auto gpu = v.gpu(xs...);
-            if (time)
+            if(time)
             {
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
                 h.EnableProfiling(false);
@@ -390,8 +390,7 @@ struct test_driver
             }
             else
             {
-                return verify_check(
-                    v.cpu(xs...), gpu, [&](int mode) { v.fail(mode, xs...); });
+                return verify_check(v.cpu(xs...), gpu, [&](int mode) { v.fail(mode, xs...); });
             }
         }
         catch(const std::exception& ex)
