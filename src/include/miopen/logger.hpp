@@ -183,11 +183,11 @@ enum LoggingLevel
     Trace // E.g. messages output by MIOPEN_LOG_FUNCTION).
 };
 
-const char* LoggingLevelToCString(const enum LoggingLevel level);
+const char* LoggingLevelToCString(enum LoggingLevel level);
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-int IsLogging(const int level = LoggingLevel::Error);
+int IsLogging(int level = LoggingLevel::Error);
 
 template <class T>
 auto LogObjImpl(T* x) -> decltype(get_object(*x))
