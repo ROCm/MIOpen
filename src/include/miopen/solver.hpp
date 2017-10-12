@@ -24,8 +24,8 @@
 *
 *******************************************************************************/
 
-#ifndef GUARD_MIOPEN_SOLVER_HPP
-#define GUARD_MIOPEN_SOLVER_HPP
+#ifndef GUARD_MIOPEN_SOLVER_HPP_
+#define GUARD_MIOPEN_SOLVER_HPP_
 
 #include "miopen/config.h"
 
@@ -367,4 +367,4 @@ class ConvOclBwdWrW1x1 : public Solver
 } // namespace solver
 } // namespace miopen
 
-#endif // GUARD_MIOPEN_SOLVER_HPP
+#endif // GUARD_MIOPEN_SOLVER_HPP_
