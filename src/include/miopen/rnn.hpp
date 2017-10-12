@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-
 #ifndef GUARD_MIOPEN_RNN_HPP_
 #define GUARD_MIOPEN_RNN_HPP_
 
@@ -47,86 +46,96 @@ struct PerfField
     bool operator<(const PerfField& p) const { return (time < p.time); }
 };
 
+template <class T>
+struct c_array_view
+{
+    T* data;
+    size_t n;
+
+    using value_type =
+        typename std::remove_cv<typename std::decay<decltype(deref(*data))>::type>::type;
+
+    size_t size() const { return size; }
+
+    const value_type& operator[](size_t i) const { return deref(data[i]); }
+
+    value_type& operator[](size_t i) { return deref(data[i]); }
+};
+
 struct RNNDescriptor : miopenRNNDescriptor
 {
 
     RNNDescriptor();
     RNNDescriptor(int hsz,
-                  int layers = 1,
-                  miopenRNNMode_t rmode = miopenRNNRELU,
-                  miopenRNNInputMode_t inMode = miopenRNNskip,
+                  int layers                     = 1,
+                  miopenRNNMode_t rmode          = miopenRNNRELU,
+                  miopenRNNInputMode_t inMode    = miopenRNNskip,
                   miopenRNNDirectionMode_t bidir = miopenRNNunidirection,
-                  miopenRNNBiasMode_t bias = miopenRNNwithBias,
-                  miopenRNNAlgo_t amode = miopenRNNdefault,
-                  miopenDataType_t dType = miopenFloat);
-
+                  miopenRNNBiasMode_t bias       = miopenRNNwithBias,
+                  miopenRNNAlgo_t amode          = miopenRNNdefault,
+                  miopenDataType_t dType         = miopenFloat);
 
     size_t hsize; // DLOWELL: is this uniform over all layers?
     size_t nLayers;
     size_t nHiddenTensorsPerLayer; // TODO dlowell: set via constructor, or "set" functions
     size_t workspaceScale;
-    
+
     size_t inputBatchLenSum;
-    
+
     miopenRNNMode_t rnnMode;
     miopenRNNDirectionMode_t dirMode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
     miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
-    
-    size_t GetWorkspaceSize(Handle& handle,
-                                const int seqLength,
-                                TensorDescriptor* xDesc) ;
-    
-    size_t GetReserveSize(Handle& handle,
-                                const int seqLength,
-                                TensorDescriptor* xDesc) ;
-    
+
+    size_t GetWorkspaceSize(Handle& handle, const int seqLength, TensorDescriptor* xDesc);
+
+    size_t GetReserveSize(Handle& handle, const int seqLength, TensorDescriptor* xDesc);
+
     size_t
     GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
 
-    size_t GetLayerParam(Handle& handle,
-                       const TensorDescriptor& xDesc,
-                       const TensorDescriptor& wDesc,
-                       ConstData_t w,
-                       const int layerID,
-                       const TensorDescriptor& paramDesc) const;
+    void GetLayerParam(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    const TensorDescriptor& wDesc,
+                                    ConstData_t w,
+                                    const int layerID,
+                                    const TensorDescriptor& paramDesc,
+                                    Data_t param) const;
 
-    size_t GetLayerBias(Handle& handle,
-                      const TensorDescriptor& xDesc,
-                      const TensorDescriptor& wDesc,
-                      ConstData_t w,
-                      const int layerID,
-                      const TensorDescriptor& biasDesc) const;
+    void GetLayerBias(Handle& handle,
+                                   const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& wDesc,
+                                   ConstData_t w,
+                                   const int layerID,
+                                   const TensorDescriptor& biasDesc,
+                                   Data_t bias) const;
 
-    
     void RNNForwardTraining(Handle& handle,
-                        const int seqLen,
-                    	TensorDescriptor* xDesc,
-                        ConstData_t x,
-                    	const TensorDescriptor& hxDesc,
-                        ConstData_t hx,
-                    	const TensorDescriptor& cxDesc,
-                        ConstData_t cx,
-                    	const TensorDescriptor& wDesc,
-                        ConstData_t w,
-                    	const TensorDescriptor& yDesc,
-                        Data_t y,
-                    	const TensorDescriptor& hyDesc,
-                        Data_t hy,
-                    	const TensorDescriptor& cyDesc,
-                        Data_t cy,
-                        Data_t workSpace,
-                        size_t workSpaceSize,
-                        Data_t reserveSpace,
-                        size_t reserveSpaceSize) const;
+                            const int seqLen,
+                            c_array_view<miopenTensorDescriptor_t> xDesc,
+                            ConstData_t x,
+                            const TensorDescriptor& hxDesc,
+                            ConstData_t hx,
+                            const TensorDescriptor& cxDesc,
+                            ConstData_t cx,
+                            const TensorDescriptor& wDesc,
+                            ConstData_t w,
+                            c_array_view<miopenTensorDescriptor_t> yDesc,
+                            Data_t y,
+                            const TensorDescriptor& hyDesc,
+                            Data_t hy,
+                            const TensorDescriptor& cyDesc,
+                            Data_t cy,
+                            Data_t workSpace,
+                            size_t workSpaceSize,
+                            Data_t reserveSpace,
+                            size_t reserveSpaceSize) const;
 
-    
-    
     void RNNForwardInference(Handle& handle,
                              const int seqLen,
-                             TensorDescriptor* xDesc,
+                             c_array_view<miopenTensorDescriptor_t> xDesc,
                              ConstData_t x,
                              const TensorDescriptor& hxDesc,
                              ConstData_t hx,
@@ -134,7 +143,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                              ConstData_t cx,
                              const TensorDescriptor& wDesc,
                              ConstData_t w,
-                             const TensorDescriptor& yDesc,
+                             c_array_view<miopenTensorDescriptor_t> yDesc,
                              Data_t y,
                              const TensorDescriptor& hyDesc,
                              Data_t hy,
@@ -142,56 +151,51 @@ struct RNNDescriptor : miopenRNNDescriptor
                              Data_t cy,
                              Data_t workSpace,
                              size_t workSpaceSize) const;
-    
-    
-    
-    
+
     void RNNBackwardData(Handle& handle,
-                            const int seqLen,
-                        	TensorDescriptor* yDesc,
-                            ConstData_t y,
-                        	TensorDescriptor* dyDesc,
-                            ConstData_t dy,
-                        	const TensorDescriptor& dhyDesc,
-                            ConstData_t dhy,
-                        	const TensorDescriptor& dcyDesc,
-                            ConstData_t dcy,
-                        	const TensorDescriptor& wDesc,
-                            ConstData_t w,
-                        	const TensorDescriptor& hxDesc,
-                            ConstData_t hx,
-                        	const TensorDescriptor& cxDesc,
-                            ConstData_t cx,
-                        	TensorDescriptor* dxDesc,
-                            Data_t dx,
-                        	const TensorDescriptor& dhxDesc,
-                            Data_t dhx,
-                        	const TensorDescriptor& dcxDesc,
-                            Data_t dcx,
-                            Data_t workSpace,
-                            size_t workSpaceSize,
-                            ConstData_t reserveSpace,
-                            size_t reserveSpaceSize) const;
-    
-    
+                         const int seqLen,
+                         c_array_view<miopenTensorDescriptor_t> yDesc,
+                         ConstData_t y,
+                         c_array_view<miopenTensorDescriptor_t> dyDesc,
+                         ConstData_t dy,
+                         const TensorDescriptor& dhyDesc,
+                         ConstData_t dhy,
+                         const TensorDescriptor& dcyDesc,
+                         ConstData_t dcy,
+                         const TensorDescriptor& wDesc,
+                         ConstData_t w,
+                         const TensorDescriptor& hxDesc,
+                         ConstData_t hx,
+                         const TensorDescriptor& cxDesc,
+                         ConstData_t cx,
+                         c_array_view<miopenTensorDescriptor_t> dxDesc,
+                         Data_t dx,
+                         const TensorDescriptor& dhxDesc,
+                         Data_t dhx,
+                         const TensorDescriptor& dcxDesc,
+                         Data_t dcx,
+                         Data_t workSpace,
+                         size_t workSpaceSize,
+                         ConstData_t reserveSpace,
+                         size_t reserveSpaceSize) const;
+
     void RNNBackwardWeights(Handle& handle,
                             const int seqLen,
-                        	TensorDescriptor* xDesc,
+                            c_array_view<miopenTensorDescriptor_t> xDesc,
                             ConstData_t x,
-                        	const TensorDescriptor& hxDesc,
+                            const TensorDescriptor& hxDesc,
                             ConstData_t hx,
-                        	TensorDescriptor* yDesc,
+                            c_array_view<miopenTensorDescriptor_t> yDesc,
                             ConstData_t y,
-                        	const TensorDescriptor& dwDesc,
+                            const TensorDescriptor& dwDesc,
                             Data_t dw,
                             ConstData_t workSpace,
                             size_t workSpaceSize,
                             ConstData_t reserveSpace,
                             size_t reserveSpaceSize) const;
-    
-    
+
     // DLOWELL : These will be implemented once all the other elements are in place
-    
+
     void ForwardRNNInferCell(Handle& handle,
                              const TensorDescriptor& xDesc,
                              ConstData_t x,
@@ -263,4 +267,3 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& c);
 MIOPEN_DEFINE_OBJECT(miopenRNNDescriptor, miopen::RNNDescriptor);
 
 #endif // GUARD_MIOPEN_RNN_HPP_
-
