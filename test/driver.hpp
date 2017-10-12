@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "args.hpp"
+#include "get_handle.hpp"
 #include "network_data.hpp"
 #include "tensor_holder.hpp"
 #include "test.hpp"
@@ -119,6 +120,7 @@ struct test_driver
     bool full_set    = false;
     bool verbose     = false;
     double tolerance = 80;
+    bool time = false;
     int batch_factor = 0;
     bool no_validate = false;
 
@@ -128,6 +130,7 @@ struct test_driver
         v(full_set, {"--all"}, "Run all tests");
         v(verbose, {"--verbose", "-v"}, "Run verbose mode");
         v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
+        v(time, {"--time"}, "Time the kernel on GPU");
         v(batch_factor, {"--batch-factor", "-n"}, "Set batch factor");
         v(no_validate,
           {"--disable-validation"},
@@ -365,18 +368,31 @@ struct test_driver
     template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        if(verbose)
+        if(verbose or time)
             v.fail(std::integral_constant<int, -1>{}, xs...);
         try
         {
+            auto&& h = get_handle();
+            if (time)
+            {
+                h.EnableProfiling();
+                h.ResetKernelTime();
+            }
+            auto gpu = v.gpu(xs...);
+            if (time)
+            {
+                std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
+                h.EnableProfiling(false);
+            }
             if(no_validate)
             {
-                auto gpu = v.gpu(xs...);
                 return std::make_pair(gpu, gpu);
             }
             else
+            {
                 return verify_check(
-                    v.cpu(xs...), v.gpu(xs...), [&](int mode) { v.fail(mode, xs...); });
+                    v.cpu(xs...), gpu, [&](int mode) { v.fail(mode, xs...); });
+            }
         }
         catch(const std::exception& ex)
         {
