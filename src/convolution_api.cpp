@@ -193,8 +193,8 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
                       << MIOPEN_DRIVER_ARG("-W", miopen::deref(xDesc).GetLengths()[3])
 
                       << MIOPEN_DRIVER_ARG("-k", miopen::deref(wDesc).GetLengths()[0])
-                      << MIOPEN_DRIVER_ARG("-x", miopen::deref(wDesc).GetLengths()[2])
-                      << MIOPEN_DRIVER_ARG("-y", miopen::deref(wDesc).GetLengths()[3])
+                      << MIOPEN_DRIVER_ARG("-y", miopen::deref(wDesc).GetLengths()[2])
+                      << MIOPEN_DRIVER_ARG("-x", miopen::deref(wDesc).GetLengths()[3])
 
                       << MIOPEN_DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
                       << MIOPEN_DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
@@ -321,8 +321,8 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
                       << MIOPEN_DRIVER_ARG("-W", miopen::deref(dxDesc).GetLengths()[3])
 
                       << MIOPEN_DRIVER_ARG("-k", miopen::deref(wDesc).GetLengths()[0])
-                      << MIOPEN_DRIVER_ARG("-x", miopen::deref(wDesc).GetLengths()[2])
-                      << MIOPEN_DRIVER_ARG("-y", miopen::deref(wDesc).GetLengths()[3])
+                      << MIOPEN_DRIVER_ARG("-y", miopen::deref(wDesc).GetLengths()[2])
+                      << MIOPEN_DRIVER_ARG("-x", miopen::deref(wDesc).GetLengths()[3])
 
                       << MIOPEN_DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
                       << MIOPEN_DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
@@ -428,8 +428,8 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
                       << MIOPEN_DRIVER_ARG("-W", miopen::deref(xDesc).GetLengths()[3])
 
                       << MIOPEN_DRIVER_ARG("-k", miopen::deref(dwDesc).GetLengths()[0])
-                      << MIOPEN_DRIVER_ARG("-x", miopen::deref(dwDesc).GetLengths()[2])
-                      << MIOPEN_DRIVER_ARG("-y", miopen::deref(dwDesc).GetLengths()[3])
+                      << MIOPEN_DRIVER_ARG("-y", miopen::deref(dwDesc).GetLengths()[2])
+                      << MIOPEN_DRIVER_ARG("-x", miopen::deref(dwDesc).GetLengths()[3])
 
                       << MIOPEN_DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
                       << MIOPEN_DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
