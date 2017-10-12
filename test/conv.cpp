@@ -80,14 +80,14 @@ struct verify_forward_conv : conv_base<T>
     verify_forward_conv(const tensor<T>& pinput,
                         const tensor<T>& pweights,
                         const miopen::ConvolutionDescriptor& pfilter,
-                        int pbias = 0,
+                        int pbias   = 0,
                         int psearch = 0)
     {
         input   = pinput;
         weights = pweights;
         filter  = pfilter;
         bias    = pbias;
-        search    = psearch;
+        search  = psearch;
     }
 
     tensor<T> cpu()
@@ -190,7 +190,7 @@ struct verify_backward_conv : conv_base<T>
                          const tensor<T>& pweights,
                          const tensor<T>& pout,
                          const miopen::ConvolutionDescriptor& pfilter,
-                         int pbias = 0,
+                         int pbias   = 0,
                          int psearch = 0)
     {
         input   = pinput;
@@ -198,7 +198,7 @@ struct verify_backward_conv : conv_base<T>
         out     = pout;
         filter  = pfilter;
         bias    = pbias;
-        search    = psearch;
+        search  = psearch;
     }
 
     tensor<T> cpu()
@@ -249,20 +249,19 @@ struct verify_backward_conv : conv_base<T>
 
         float alpha = 1, beta = 0;
 
-        filter.FindConvBwdDataAlgorithm(
-            handle,
-            out.desc,
-            out_dev.get(),
-            weights.desc,
-            wei_dev.get(),
-            input.desc,
-            in_dev.get(),
-            1,
-            &ret_algo_count,
-            &perf,
-            workspace_dev.get(),
-            workspace_size,
-            search);
+        filter.FindConvBwdDataAlgorithm(handle,
+                                        out.desc,
+                                        out_dev.get(),
+                                        weights.desc,
+                                        wei_dev.get(),
+                                        input.desc,
+                                        in_dev.get(),
+                                        1,
+                                        &ret_algo_count,
+                                        &perf,
+                                        workspace_dev.get(),
+                                        workspace_size,
+                                        search);
 
         filter.ConvolutionBackwardData(handle,
                                        &alpha,
@@ -302,7 +301,7 @@ struct verify_backward_weights_conv : conv_base<T>
                                  const tensor<T>& pweights,
                                  const tensor<T>& pout,
                                  const miopen::ConvolutionDescriptor& pfilter,
-                                 int pbias = 0,
+                                 int pbias   = 0,
                                  int psearch = 0)
     {
         input   = pinput;
@@ -310,7 +309,7 @@ struct verify_backward_weights_conv : conv_base<T>
         out     = pout;
         filter  = pfilter;
         bias    = pbias;
-        search    = psearch;
+        search  = psearch;
     }
 
     tensor<T> cpu()
@@ -362,20 +361,19 @@ struct verify_backward_weights_conv : conv_base<T>
         miopenConvAlgoPerf_t perf;
 
         float alpha = 1, beta = 0;
-        filter.FindConvBwdWeightsAlgorithm(
-            handle,
-            out.desc,
-            out_dev.get(),
-            input.desc,
-            in_dev.get(),
-            weights.desc,
-            wei_dev.get(),
-            1,
-            &ret_algo_count,
-            &perf,
-            workspace_dev.get(),
-            workspace_size,
-            search);
+        filter.FindConvBwdWeightsAlgorithm(handle,
+                                           out.desc,
+                                           out_dev.get(),
+                                           input.desc,
+                                           in_dev.get(),
+                                           weights.desc,
+                                           wei_dev.get(),
+                                           1,
+                                           &ret_algo_count,
+                                           &perf,
+                                           workspace_dev.get(),
+                                           workspace_size,
+                                           search);
 
         filter.ConvolutionBackwardWeights(handle,
                                           &alpha,
@@ -409,7 +407,7 @@ struct conv_driver : test_driver
     miopen::ConvolutionDescriptor filter;
     bool enable_backward_weights = false;
     bool do_backward_data        = true;
-    int search = 0;
+    int search                   = 0;
 
     conv_driver()
     {
@@ -452,7 +450,8 @@ struct conv_driver : test_driver
                 verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
             if(enable_backward_weights or MIOPEN_USE_MIOPENGEMM)
             {
-                verify(verify_backward_weights_conv<T>{input, weights, out_p.first, filter, 0, search});
+                verify(verify_backward_weights_conv<T>{
+                    input, weights, out_p.first, filter, 0, search});
             }
         }
     }
