@@ -26,10 +26,13 @@
 
 #include <sstream>
 #include <unordered_map>
+#include <limits>
 
-#include "miopen/solver.hpp"
 #include "miopen/gcn_asm_utils.hpp"
 #include "miopen/env.hpp"
+#include "miopen/logger.hpp"
+#include "miopen/handle.hpp"
+#include "miopen/solver.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 
@@ -41,7 +44,7 @@ static bool IsReverseInOutAllowed(const ConvolutionContext& config)
     return config.kernel_stride0 == 1 && config.kernel_stride1 == 1;
 }
 
-class PerfParamsAsmDirect3x3WrW : public PerformanceConfig
+class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
 {
     int limit_wave_cnt;   // [0..10]
     int reverse_inout;    // [0..1], 1 is allowed for stride=1x1 only.
@@ -59,7 +62,7 @@ class PerfParamsAsmDirect3x3WrW : public PerformanceConfig
     //
     void EuristicInit(const ConvolutionContext& config);
 
-    PerfParamsAsmDirect3x3WrW(int limit_wave_cnt_,
+    PerformanceConfigAsmDirect3x3WrW(int limit_wave_cnt_,
                                int reverse_inout_,
                                int chunk_size_,
                                int k_per_wave_,
@@ -81,14 +84,14 @@ class PerfParamsAsmDirect3x3WrW : public PerformanceConfig
     }
 
     public:
-    PerfParamsAsmDirect3x3WrW() : PerfParamsAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
+    PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
     void Serialize(std::ostream&) const override;
     bool Deserialize(const std::string& str) override;
 
     friend class ConvAsmBwdWrW3x3;
 };
 
-bool PerfParamsAsmDirect3x3WrW::IsValidRange() const
+bool PerformanceConfigAsmDirect3x3WrW::IsValidRange() const
 {
     return (0 <= limit_wave_cnt && limit_wave_cnt <= 10) &&
            (0 <= reverse_inout && reverse_inout <= 1) && (8 == chunk_size || 16 == chunk_size) &&
@@ -97,7 +100,7 @@ bool PerfParamsAsmDirect3x3WrW::IsValidRange() const
            (1 <= n_per_group && n_per_group <= 8);
 }
 
-bool PerfParamsAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
+bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
 {
     assert(chunk_size != 0);
     if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
@@ -119,7 +122,7 @@ bool PerfParamsAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
     return true;
 }
 
-void PerfParamsAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& config)
 {
     limit_wave_cnt = 0;
 
@@ -164,6 +167,7 @@ void PerfParamsAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& config)
     assert(IsValidRange());
     if(!IsValid(config))
     {
+        MIOPEN_LOG(miopen::LoggingLevel::Info, "!IsValid(): " << ToString() << ". Conservative re-init..." );
         limit_wave_cnt   = 0;
         reverse_inout    = 0;
         chunk_size       = 16; // CPerWave() = 4;
@@ -186,6 +190,7 @@ void PerfParamsAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& config)
         }
         assert(IsValid(config));
     }
+    MIOPEN_LOG(miopen::LoggingLevel::Info, ToString());
 }
 
 static bool DeserializeField(const char separator, std::istream& from, int& to)
@@ -201,7 +206,7 @@ static bool DeserializeField(const char separator, std::istream& from, int& to)
     return start != end;
 }
 
-void PerfParamsAsmDirect3x3WrW::Serialize(std::ostream& stream) const
+void PerformanceConfigAsmDirect3x3WrW::Serialize(std::ostream& stream) const
 {
     static const auto sep = ','; // clang-format off
     stream << limit_wave_cnt
@@ -212,9 +217,9 @@ void PerfParamsAsmDirect3x3WrW::Serialize(std::ostream& stream) const
         << sep << n_per_group; // clang-format on
 }
 
-bool PerfParamsAsmDirect3x3WrW::Deserialize(const std::string& str)
+bool PerformanceConfigAsmDirect3x3WrW::Deserialize(const std::string& str)
 {
-    PerfParamsAsmDirect3x3WrW out;
+    PerformanceConfigAsmDirect3x3WrW out;
     {
         std::istringstream tmp(str);
         const auto ok = // clang-format off
@@ -232,7 +237,7 @@ bool PerfParamsAsmDirect3x3WrW::Deserialize(const std::string& str)
     return true;
 }
 
-std::string PerfParamsAsmDirect3x3WrW::ToString() const
+std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
 {
     std::ostringstream ss;
     Serialize(ss);
@@ -241,7 +246,7 @@ std::string PerfParamsAsmDirect3x3WrW::ToString() const
 
 std::unique_ptr<PerformanceConfig> ConvAsmBwdWrW3x3::PerformanceConfigImpl() const
 {
-    return make_unique<PerfParamsAsmDirect3x3WrW>();
+    return make_unique<PerformanceConfigAsmDirect3x3WrW>();
 }
 
 void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& params,
@@ -250,90 +255,90 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
     static const std::unordered_map<std::string, std::string> perf_vals_map({
         // clang-format off
         //            W    H    c    n    k {u  v} dir {CUs}            lwc[2] rio csz[2] kpw pld[2] npg
-        {MakeLutKey(  7,   7, 160, 128, 320, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
-        {MakeLutKey(  7,   7, 192, 128, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
-        {MakeLutKey(  7,   7, 512,  16, 512, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
-        {MakeLutKey( 12,  12, 512, 128,1024, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 12,  12,1024, 128,1024, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 192, 128, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 192, 128, 384, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256,  50, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 256, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 384, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384,  50, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384,  50, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384,  64, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 256, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 384, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  2, 1).ToString()},                                    
-        {MakeLutKey( 14,  14,  96, 128, 208, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 112, 128, 224, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey( 14,  14, 128,   8, 256, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 128,  32, 192, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 128, 128, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 144, 128, 288, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 160,  32, 160, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 11, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 160,  32, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  5, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 160, 128, 320, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 192,  32, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 256,  16, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 256,  16, 256, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  7, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 256,  32, 256, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,   8, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  16, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  16, 512, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  32, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  64, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 16,  16, 256,   8, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 27,  27, 128,   8, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey( 28,  28,  64,  32,  64, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 2,  2, 2).ToString()},                                    
-        {MakeLutKey( 28,  28,  64,  32,  96, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 2,  5, 2).ToString()},                                    
-        {MakeLutKey( 28,  28,  96,  32,  96, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28,  96, 128, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 2).ToString()},                                    
-        {MakeLutKey( 28,  28, 128,  16, 128, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 128,  32, 160, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 128, 128, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 2).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,   8, 512, 0),           PerfParamsAsmDirect3x3WrW(4, 1,  8, 2,  2, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,  16, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 2,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,  32, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,  64, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 512,  32, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 512,  64, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 54,  54,  64,   8,  64, 0),           PerfParamsAsmDirect3x3WrW(0, 1, 16, 2,  2, 4).ToString()},                                    
-        {MakeLutKey( 54,  54,  64,   8,  64, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0,  8, 2,  3, 2).ToString()},                                    
-        {MakeLutKey( 56,  56,  64,  16,  64, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 2).ToString()},                                    
-        {MakeLutKey( 56,  56,  64,  16, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 4).ToString()},                                    
-        {MakeLutKey( 56,  56,  64,  32, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 4).ToString()},                                    
-        {MakeLutKey( 56,  56,  64, 128, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 56,  56, 256,  32, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 2,  4, 1).ToString()},                                    
-        {MakeLutKey( 56,  56, 256,  64, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 2,  4, 1).ToString()},                                    
-        {MakeLutKey( 60,   6,  64,  16, 128, 0),           PerfParamsAsmDirect3x3WrW(4, 0, 16, 2,  6, 1).ToString()},                                    
-        {MakeLutKey( 60,   6,  64,  16, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 2,  2, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,   8, 128, 0),           PerfParamsAsmDirect3x3WrW(3, 0, 16, 4,  2, 2).ToString()},                                    
-        {MakeLutKey(112, 112,  64,   8, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  16, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  16, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  32, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  32, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  3, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  64, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
-        {MakeLutKey(112, 112, 256,   8, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey(120,  12,  32,  16,  64, 0),           PerfParamsAsmDirect3x3WrW(3, 1, 16, 2,  1, 4).ToString()},                                    
-        {MakeLutKey(120,  12,  32,  16,  64, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 2,  2, 2).ToString()},                                    
-        {MakeLutKey(224, 224,   3,   8,  64, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1, 16, 1,  2, 4).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey(224, 224,   3,  16,  64, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1, 16, 1,  5, 4).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey(240,  24,  16,  16,  32, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  1, 8).ToString()},                                    
-        {MakeLutKey(240,  24,  16,  16,  32, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 2,  1, 8).ToString()},                                    
-        {MakeLutKey(256, 128,  96,   1, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  1, 1).ToString()},                                    
-        {MakeLutKey(256, 128, 128,   1, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  1, 1).ToString()},                                    
-        {MakeLutKey(512, 256,  64,   1, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  1, 1).ToString()},
+        {MakeLutKey(  7,   7, 160, 128, 320, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
+        {MakeLutKey(  7,   7, 192, 128, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
+        {MakeLutKey(  7,   7, 512,  16, 512, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
+        {MakeLutKey( 12,  12, 512, 128,1024, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 12,  12,1024, 128,1024, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 192, 128, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 192, 128, 384, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256,  50, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256, 128, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256, 128, 256, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256, 128, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256, 128, 384, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384,  50, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384,  50, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384,  64, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384, 128, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384, 128, 256, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384, 128, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384, 128, 384, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8,  2, 1).ToString()},                                    
+        {MakeLutKey( 14,  14,  96, 128, 208, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  7, 2).ToString()},                                    
+        {MakeLutKey( 14,  14, 112, 128, 224, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()}, /// \todo Find opt values for 56CUs
+        {MakeLutKey( 14,  14, 128,   8, 256, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 128,  32, 192, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 128, 128, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 144, 128, 288, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()},                                    
+        {MakeLutKey( 14,  14, 160,  32, 160, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4, 11, 2).ToString()},                                    
+        {MakeLutKey( 14,  14, 160,  32, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8,  5, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 160, 128, 320, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()},                                    
+        {MakeLutKey( 14,  14, 192,  32, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 256,  16, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 256,  16, 256, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8,  7, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 256,  32, 256, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,   8, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,  16, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,  16, 512, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,  32, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,  64, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 16,  16, 256,   8, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 27,  27, 128,   8, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()}, /// \todo Find opt values for 56CUs
+        {MakeLutKey( 28,  28,  64,  32,  64, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 2,  2, 2).ToString()},                                    
+        {MakeLutKey( 28,  28,  64,  32,  96, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 2,  5, 2).ToString()},                                    
+        {MakeLutKey( 28,  28,  96,  32,  96, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 28,  28,  96, 128, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 2).ToString()},                                    
+        {MakeLutKey( 28,  28, 128,  16, 128, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 128,  32, 160, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 128, 128, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 2).ToString()},                                    
+        {MakeLutKey( 28,  28, 256,   8, 512, 0),           PerformanceConfigAsmDirect3x3WrW(4, 1,  8, 2,  2, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 256,  16, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 2,  3, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 256,  32, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 256,  64, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 512,  32, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 512,  64, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 54,  54,  64,   8,  64, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 2,  2, 4).ToString()},                                    
+        {MakeLutKey( 54,  54,  64,   8,  64, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 2,  3, 2).ToString()},                                    
+        {MakeLutKey( 56,  56,  64,  16,  64, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  3, 2).ToString()},                                    
+        {MakeLutKey( 56,  56,  64,  16, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 4).ToString()},                                    
+        {MakeLutKey( 56,  56,  64,  32, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  4, 4).ToString()},                                    
+        {MakeLutKey( 56,  56,  64, 128, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 56,  56, 256,  32, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 2,  4, 1).ToString()},                                    
+        {MakeLutKey( 56,  56, 256,  64, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 2,  4, 1).ToString()},                                    
+        {MakeLutKey( 60,   6,  64,  16, 128, 0),           PerformanceConfigAsmDirect3x3WrW(4, 0, 16, 2,  6, 1).ToString()},                                    
+        {MakeLutKey( 60,   6,  64,  16, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 2,  2, 1).ToString()},                                    
+        {MakeLutKey(112, 112,  64,   8, 128, 0),           PerformanceConfigAsmDirect3x3WrW(3, 0, 16, 4,  2, 2).ToString()},                                    
+        {MakeLutKey(112, 112,  64,   8, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  16, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  16, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  3, 1).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  32, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  32, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 4,  3, 1).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  64, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
+        {MakeLutKey(112, 112, 256,   8, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey(120,  12,  32,  16,  64, 0),           PerformanceConfigAsmDirect3x3WrW(3, 1, 16, 2,  1, 4).ToString()},                                    
+        {MakeLutKey(120,  12,  32,  16,  64, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 2,  2, 2).ToString()},                                    
+        {MakeLutKey(224, 224,   3,   8,  64, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 1,  2, 4).ToString()}, /// \todo Find opt values for 56CUs
+        {MakeLutKey(224, 224,   3,  16,  64, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 1,  5, 4).ToString()}, /// \todo Find opt values for 56CUs
+        {MakeLutKey(240,  24,  16,  16,  32, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  1, 8).ToString()},                                    
+        {MakeLutKey(240,  24,  16,  16,  32, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 2,  1, 8).ToString()},                                    
+        {MakeLutKey(256, 128,  96,   1, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  1, 1).ToString()},                                    
+        {MakeLutKey(256, 128, 128,   1, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  1, 1).ToString()},                                    
+        {MakeLutKey(512, 256,  64,   1, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 4,  1, 1).ToString()},
         // clang-format on
     });
 
     std::string s;
-    PerfParamsAsmDirect3x3WrW pp;
+    PerformanceConfigAsmDirect3x3WrW pp;
     const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
     if(p_asciz)
     {
@@ -354,6 +359,7 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
         {
             MIOPEN_THROW(h + "Incorrect for the problem config:" + s);
         }
+        MIOPEN_LOG(miopen::LoggingLevel::Info, "From env: " << pp.ToString());
     }
     else
     {
@@ -398,13 +404,15 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
             {
                 MIOPEN_THROW(h + "Incorrect for the problem config:" + s);
             }
+            MIOPEN_LOG(miopen::LoggingLevel::Info, "From LUT: " << pp.ToString());
         }
         else
         {
             pp.EuristicInit(params);
         }
     }
-    dynamic_cast<PerfParamsAsmDirect3x3WrW&>(result) = pp;
+    MIOPEN_LOG(miopen::LoggingLevel::Info, pp.ToString());
+    dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(result) = pp;
 }
 
 bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
@@ -431,8 +439,11 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
               && (params.kernel_stride1 <= 2)    // -v  stride_h
               && params.kernel_size0 == 3        // -x  S wei_w
               && params.kernel_size1 == 3        // -y  R wei_h
+              && params.kernal_dilation0 == 1
+              && params.kernal_dilation1 == 1
+              && params.bias             == 0
               && params.in_layout == "NCHW";
-    // && _weights_layout == "KCHW"
+           // && _weights_layout == "KCHW"
     if(!ok)
     {
         return false; // Early exit to speed up the check.
@@ -493,7 +504,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     // Perf tune:
-    const auto& pp = dynamic_cast<const PerfParamsAsmDirect3x3WrW&>(config);
+    const auto& pp = dynamic_cast<const PerformanceConfigAsmDirect3x3WrW&>(config);
     GenerateClangDefsym(options, "limit_wave_cnt", pp.limit_wave_cnt);
     GenerateClangDefsym(options, "chunk_size", pp.chunk_size);
     GenerateClangDefsym(options, "c_per_wave", pp.GetCPerWave());
@@ -535,349 +546,132 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
+int ConvAsmBwdWrW3x3::Measure(miopen::Handle& profile_h,
+                       Data_t bot_ocl_buf,
+                       Data_t top_ocl_buf,
+                       Data_t wei_ocl_buf,
+                       Data_t bias_ocl_buf,
+                       double& processing_time,
+                       const ConvolutionContext& params,
+                       const PerformanceConfig& config) const
+{
+
+
+    ConvSolution solution = GetSolution(params, config);
+    if (!solution.Succeeded())
+        return 1;
+    const KernelInfo k_info = solution.construction_params[0];
+    try
+    {
+        float padding_value = 0;
+        processing_time = std::numeric_limits<float>::max();
+        // ConvolutionContext::general_compile_options is for OpenCL kernels ad thus not applicable for assembly.
+        miopen::KernelInvoke /*auto*/ kernel =
+            profile_h.GetKernel("", "", k_info.kernel_file, k_info.kernel_name, k_info.l_wk, k_info.g_wk, k_info.comp_options);
+        kernel(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
+        processing_time = profile_h.GetKernelTime();
+    }
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
+    return 0;
+}
+
+
+static
+void InitVectorRandomly(std::vector<float>& vec)
+{
+    float* p = vec.data();
+    for(int i = 0; i < vec.size(); ++i)
+        *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX));
+}
+
+static
+void InitVectorRandomly(std::vector<float>& vec, const double offset, const double factor)
+{
+    float* p = vec.data();
+    for(int i = 0; i < vec.size(); ++i)
+        *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
+}
+
 void ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfig& config) const
 {
-#if 0
-    auto& result = dynamic_cast<LegacyPerformanceConfig&>(result_);
+    auto& result = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
 
     miopen::Handle profile_h;
     double processing_time;
     std::string conf_key;
     std::string conf_val;
 
-    int min_grp_tile0 = 16;
-    int min_grp_tile1 = 16;
-    // tile 0
-    int min_in_tile0 = 16;
-    // tile 1
-    int min_in_tile1 = 16;
-    // out pix 0
-    int min_out_pix_tile0 = 1;
-    // out pix 1
-    int min_out_pix_tile1   = 1;
-    int min_n_out_pix_tiles = 2;
-    int min_n_in_data_tiles = 3;
-    int min_n_stacks        = 1;
+    profile_h.EnableProfiling(true);
 
-    // enable profiling for the handle for benchmarking
-    profile_h.EnableProfiling();
-
-    size_t localMemSize = profile_h.GetLocalMemorySize();
-    profile_h.EnableProfiling();
-
-    // const auto hw_wave_sz = 64;
-    const auto dev_local_mem_sz = localMemSize; // in bytes
-
-    // allocate tem input/output buffers
+    // Allocate and init I/O buffers
     size_t bot_sz = params.bot_sz / sizeof(float);
     std::vector<float> bot_sys_buf(bot_sz);
-
-    for(int i = 0; i < bot_sz; i++)
-    {
-        bot_sys_buf[i] = static_cast<float>(rand() * (1.0 / RAND_MAX));
-    }
-
+    InitVectorRandomly(bot_sys_buf);
     auto bot_ocl_buf = profile_h.Write(bot_sys_buf);
 
     size_t top_sz = params.top_sz / sizeof(float);
     std::vector<float> top_sys_buf(top_sz);
-
     auto top_ocl_buf = profile_h.Write(top_sys_buf);
 
     std::vector<float> random_top_sys_buf(top_sz);
-    for(int i = 0; i < top_sz; i++)
-    {
-        random_top_sys_buf[i] = static_cast<float>(rand() * (1.0 / RAND_MAX));
-    }
+    InitVectorRandomly(random_top_sys_buf);
 
     size_t weights_sz = params.weights_sz / sizeof(float);
     std::vector<float> wei_sys_buf(weights_sz);
-    for(int i = 0; i < weights_sz; i++)
-    {
-        wei_sys_buf[i] = static_cast<float>((rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
-    }
-
+    InitVectorRandomly(wei_sys_buf, -0.5, 0.001);
     auto wei_ocl_buf = profile_h.Write(wei_sys_buf);
 
     std::vector<float> bias_sys_buf;
     miopen::Allocator::ManageDataPtr bias_ocl_buf = nullptr;
 
-    if(params.bias)
-    {
-        size_t bias_sz = params.bias_sz / sizeof(float);
-        bias_sys_buf   = std::vector<float>(bias_sz);
-        for(int i = 0; i < bias_sz; i++)
-        {
-            bias_sys_buf[i] = static_cast<float>(rand() * (1.0 / RAND_MAX));
-        }
-
-        bias_ocl_buf = profile_h.Write(bias_sys_buf);
-    }
 
     // search loop here
-    int grp_tl_ln[4]       = {8, 16};
-    int tile_sz[3]         = {8, 16, 32};
-    int tile_sz1[3]        = {8, 16, 32};
-    int tile_sz0[3]        = {8, 16, 32};
-    int out_pix_tile_sz[3] = {1, 2, 4};
-    int n_out_tiles_rg[2]  = {1, 8};
-    int n_in_tiles_rg[2]   = {1, 4};
-    int n_in_stacks_sz[3]  = {1, 2, 4};
-    int in_tiles[4]        = {64, 128, 256, 2048};
-    /*
-    std::vector<int> v_tile_sz;
-    std::vector<int> v_out_pix_tile_sz;
-    std::vector<int> v_n_out_tiles_rg;
-    std::vector<int> v_n_in_tiles_rg;
-    std::vector<int> v_n_in_stacks_sz;
-    */
-    //
 
     double min_proc_time = std::numeric_limits<float>::max();
-
-#if 1
-
     size_t run_counter = 0;
-    int n_grp_tiles1   = 2;
-    int n_grp_tiles0   = 2;
-
-    int out_pix_tl_cnt = 3; // out_pix_tile_sz[1];
-    int n_out_tls      = n_out_tiles_rg[1];
-    int stack_cnt      = 2;
-    int n_tile0_sz     = 3;
-    int n_tile1_sz     = 3;
-
-    n_out_tls = std::min(params.n_outputs, n_out_tls);
-
-    if(params.in_width <= 8)
-    {
-        n_tile0_sz       = 1;
-        n_in_tiles_rg[1] = 16;
-    }
-    else if(params.in_width <= 16)
-    {
-        n_tile0_sz       = 1;
-        tile_sz0[0]      = 16;
-        n_in_tiles_rg[1] = 8;
-    }
-    else if(params.in_width <= 32)
-    {
-        n_tile0_sz  = 2;
-        tile_sz0[0] = 16;
-        tile_sz0[1] = 32;
-    }
-
-    if(params.in_height <= 8)
-    {
-        n_tile1_sz       = 1;
-        n_in_tiles_rg[1] = 16;
-    }
-    else if(params.in_height <= 16)
-    {
-        n_tile1_sz       = 1;
-        tile_sz1[0]      = 16;
-        n_in_tiles_rg[1] = 8;
-    }
-    else if(params.in_width <= 32)
-    {
-        n_tile1_sz  = 2;
-        tile_sz1[0] = 16;
-        tile_sz1[1] = 32;
-    }
-
-    bool unaligned = (params.out_height < 8 || params.out_width < 8 ||
-                      (params.out_height > 8 && params.out_height < 16) ||
-                      (params.out_width > 8 && params.out_width < 16) ||
-                      (params.out_height > 16 && params.out_height < 32) ||
-                      (params.out_width > 16 && params.out_width < 32));
-
-    if(unaligned)
-    {
-        out_pix_tile_sz[1] = 6;
-        out_pix_tl_cnt     = out_pix_tile_sz[1];
-    }
-
-    int n_grp_tiles = n_grp_tiles1 * n_grp_tiles0;
-
-    int n_tiles_cnt = n_tile0_sz * n_tile1_sz;
-    n_grp_tiles = (params.out_height > 16 && params.out_width > 16) ? n_grp_tiles - 1 : n_grp_tiles;
-    n_tiles_cnt = (params.out_height > 16 && params.out_width > 16) ? n_tiles_cnt - 1 : n_tiles_cnt;
     size_t report_inteval = 100;
-    //			_n_timer_iter = 250;
 
     long long runs_left = 0;
 
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
-    {
-        grp_tl_ln[0] = 64;
-        grp_tl_ln[1] = 128;
-        grp_tl_ln[2] = 256;
-        grp_tl_ln[3] = 512;
-        n_grp_tiles1 = 1;
-        n_grp_tiles0 = 4;
+/*    MIOPEN_LOG(miopen::LoggingLevel::Warning, "Searching the best solution among " << n_solutions << "...");*/
 
-        tile_sz1[0] = 1;
-        tile_sz0[0] = 4;
-        n_tile0_sz = n_tile1_sz = 1;
-        n_tiles_cnt             = n_tile0_sz * n_tile1_sz;
-        out_pix_tile_sz[0]      = (unaligned) ? 0 : out_pix_tile_sz[0];
-        out_pix_tile_sz[1]      = 1;
-        n_out_tiles_rg[1]       = 16;
-        n_in_tiles_rg[1]        = 8;
-        stack_cnt               = 3;
-        out_pix_tl_cnt          = out_pix_tile_sz[1];
-        n_out_tls               = n_out_tiles_rg[1];
-        n_grp_tiles             = n_grp_tiles1 * n_grp_tiles0;
+    
 
-        report_inteval = 20;
-    }
-
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.n_outputs % 4 == 0 &&
-       params.n_inputs % 4 == 0)
-    {
-
-        std::cout << "Searching the best solution in the 4 dim space. Please, be patient it may "
-                     "take few minutes."
-                  << std::endl;
-        result.grp_tile1 = 1;
-        result.in_tile1  = 1;
-        result.in_tile0  = 1;
-        report_inteval   = 4;
-
-        // Add 1x1_stride : no padding support yet
-        if(params.forward && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
-           params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        /*for(int g0 = 0; g0 <= XXX_n_grp_tiles0; ++g0)
         {
-
-            // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
-            n_in_tiles_rg[0] = 0;
-            n_in_tiles_rg[1] = 3;
-            int n_in_tls     = 4;
-
-            //					int N_LCL_OUT_MAPS = result.n_out_pix_tiles;
-            n_out_tiles_rg[0] = 4;
-            n_out_tiles_rg[1] = 6;
-            // 0 or 1
-            out_pix_tl_cnt = 3;
-            //					uint CHEAT_SHADER_COMPILER =
-            // result.out_pix_tile0;
-            out_pix_tile_sz[0] = 0;
-            out_pix_tile_sz[1] = 1;
-            n_out_tls          = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
-            n_grp_tiles0       = 0;
-
-            runs_left = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
-
-            result.out_pix_tile1 = 1;
-        }
-        else
-        {
-            int i_sz = params.in_width * params.in_height;
-            if(params.kernel_stride0 == 1)
+            for(int o_t = KILL_n_out_tiles_rg[0]; o_t <= KILL_n_out_tiles_rg[1]; ++o_t)
             {
-                out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
-            }
-            else
-            {
-                if(params.forward)
+                for(int l = 0; l < XXX_out_pix_tl_cnt; ++l)
                 {
-                    out_pix_tl_cnt = (params.out_width & 1) ? 1 : 2;
-                }
-                else
-                {
-                    out_pix_tl_cnt = ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
-                }
-            }
-            out_pix_tile_sz[0] = 1;
-            out_pix_tile_sz[1] = 2;
-            out_pix_tile_sz[2] = 4;
-
-            n_out_tiles_rg[0] = 2;
-            n_out_tiles_rg[1] =
-                (params.n_outputs % 64 == 0) ? 6 : (params.n_outputs % 32 == 0) ? 5 : 4;
-
-            n_in_tiles_rg[0] = 2;
-            n_in_tiles_rg[1] = (params.n_inputs % 8 == 0) ? 3 : 2;
-
-            grp_tl_ln[0] = 64;
-            grp_tl_ln[1] = 128;
-            grp_tl_ln[2] = 256;
-            n_grp_tiles0 = 3;
-            n_grp_tiles1 = 1;
-
-            n_grp_tiles  = n_grp_tiles1 * n_grp_tiles0;
-            n_out_tls    = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
-            int n_in_tls = 2;
-            runs_left    = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
-
-            result.out_pix_tile1 = 0;
-        }
-
-        int version = result.out_pix_tile1;
-
-        for(int g0 = 0; g0 <= n_grp_tiles0; ++g0)
-        {
-            result.grp_tile0 = grp_tl_ln[g0];
-
-            // out pix 0
-            for(int o_t = n_out_tiles_rg[0]; o_t <= n_out_tiles_rg[1]; ++o_t)
-            {
-                result.n_out_pix_tiles = (1 << o_t);
-                for(int l = 0; l < out_pix_tl_cnt; ++l)
-                {
-                    result.out_pix_tile0 = out_pix_tile_sz[l];
-                    if(version == 0 &&
-                       ((result.n_out_pix_tiles == 32 && result.out_pix_tile0 >= 4) ||
-                        (result.n_out_pix_tiles == 64 && result.out_pix_tile0 >= 2)))
-                    {
-                        continue;
-                    }
-
-                    for(int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
-                    {
-                        if(version == 1)
-                        {
-                            result.n_in_data_tiles = in_tiles[i_t];
-                        }
-                        else
-                        {
-                            result.n_in_data_tiles = (1 << i_t);
-                        }
+                    for(int i_t = KILL_n_in_tiles_rg[0]; i_t <= KILL_n_in_tiles_rg[1]; ++i_t)
+                    */{
                         // randomize output
                         profile_h.WriteTo(reinterpret_cast<const void*>(random_top_sys_buf.data()),
                                           top_ocl_buf,
                                           random_top_sys_buf.size() * sizeof(float));
 
-                        const auto ret = MeasureLoop(&profile_h,
+                        const auto ret = Measure(profile_h,
                                                      bot_ocl_buf.get(),
                                                      top_ocl_buf.get(),
                                                      wei_ocl_buf.get(),
                                                      bias_ocl_buf.get(),
                                                      processing_time,
                                                      params,
-                                                     result);
+                                                     config);
 
-                        if(ret != 0)
+                        /*if(ret != 0)
                         {
-                            std::cout << "Failed run." << std::endl;
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
+                            MIOPEN_LOG(miopen::LoggingLevel::Error, "#" << n << "/" << n_solutions << ": " << " Failed (" << ret << ")");
                             continue;
                         }
 
                         if(run_counter != 0 && run_counter % report_inteval == 0)
                         {
-                            std::cout << "Runs left : " << runs_left << ", "
-                                      << "min time so far : " << min_proc_time << ", "
-                                      << "curr time : " << processing_time
-#if 1
-                                      << ", " << result.grp_tile1 << ", " << result.grp_tile0
-                                      << ", " << result.in_tile1 << ", " << result.in_tile0 << ", "
-                                      << result.out_pix_tile1 << ", " << result.out_pix_tile0
-                                      << ", " << result.n_out_pix_tiles << ", "
-                                      << result.n_in_data_tiles << ", " << result.n_stacks
-#endif
-                                      << std::endl;
+                            MIOPEN_LOG(miopen::LoggingLevel::Info, "#" << n << "/" << n_solutions << ": " << " Ok (" << ret << ")"
+                                      << "min time: " << min_proc_time_interval << "/" << min_proc_time);
                         }
 
                         run_counter++;
@@ -895,255 +689,16 @@ void ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
                             min_n_out_pix_tiles = result.n_out_pix_tiles;
                             min_n_in_data_tiles = result.n_in_data_tiles;
                             min_n_stacks        = result.n_stacks;
-                        }
+                        }*/
 
-                    } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
+                    }/* // for (int i_t = KILL_n_in_tiles_rg[0]; i_t <= KILL_n_in_tiles_rg[1]; ++i_t)
                 }     // if (result.out_pix_tile0 > result.in_tile0)
             }         // for (int l = 0; l < l_l; ++l)
         }             // for (int g0 = 0; g0 < 2; ++g0)
-    }
-    else
-    {
+    */
+    
 
-        std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may "
-                     "take few minutes."
-                  << std::endl;
-
-        runs_left = n_grp_tiles * n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
-                    n_in_tiles_rg[1] * stack_cnt;
-
-        for(int g1 = 0; g1 < n_grp_tiles1; g1++)
-        {
-            result.grp_tile1 =
-                (params.kernel_size0 == 1 && params.kernel_size1 == 1) ? 1 : grp_tl_ln[g1];
-            for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
-            {
-                result.grp_tile0 = grp_tl_ln[g0];
-
-                // tile1
-                for(int j = 0; j < n_tile1_sz; ++j)
-                {
-                    result.in_tile1 = tile_sz1[j];
-                    if(params.out_height * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
-                    {
-                        runs_left--;
-                        runs_left = (runs_left < 0) ? 0 : runs_left;
-                        continue;
-                    }
-
-                    // tile 0
-                    for(int i = 0; i < n_tile0_sz; ++i)
-                    {
-                        result.in_tile0 = tile_sz0[i];
-                        if((params.out_width * 2 <= result.in_tile0 &&
-                            result.in_tile0 > tile_sz[0]))
-                        {
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                            continue;
-                        }
-                        if(params.out_height > 16 && params.out_width > 16 &&
-                           ((result.in_tile1 == 8 && result.in_tile0 == 8) ||
-                            (result.grp_tile0 == 8 && result.grp_tile1 == 8)))
-                        {
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                            continue;
-                        }
-                        if(params.out_width > 32 && result.in_tile1 > result.in_tile0)
-                        {
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                            continue;
-                        }
-                        // out pix 1
-
-                        for(int k = (unaligned) ? out_pix_tile_sz[0] : 0; k < out_pix_tl_cnt; ++k)
-                        {
-                            result.out_pix_tile1 = (unaligned) ? k : out_pix_tile_sz[k];
-                            if(result.out_pix_tile1 > result.in_tile1)
-                            {
-                                runs_left--;
-                                runs_left = (runs_left < 0) ? 0 : runs_left;
-                                continue;
-                            }
-                            // out pix 0
-
-                            for(int l = (unaligned) ? out_pix_tile_sz[0] : 0; l < out_pix_tl_cnt;
-                                ++l)
-                            {
-                                result.out_pix_tile0 =
-                                    (params.kernel_size0 == 1 && params.kernel_size1 == 1)
-                                        ? 4
-                                        : (unaligned) ? l : out_pix_tile_sz[l];
-
-                                if(result.out_pix_tile0 > result.in_tile0)
-                                {
-                                    runs_left--;
-                                    runs_left = (runs_left < 0) ? 0 : runs_left;
-                                    continue;
-                                }
-
-                                int o_l = n_out_tiles_rg[1];
-                                for(int o_t = n_out_tiles_rg[0]; o_t <= o_l; ++o_t)
-                                {
-                                    result.n_out_pix_tiles = o_t;
-                                    if(params.n_outputs < result.n_out_pix_tiles)
-                                    {
-                                        runs_left--;
-                                        runs_left = (runs_left < 0) ? 0 : runs_left;
-                                        continue;
-                                    }
-#if 1
-                                    if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
-                                    {
-                                        int N4S = 1;
-
-                                        int MAP_SZ4 =
-                                            (params.in_width * params.in_height + N4S * 4 - 1) /
-                                            (N4S * 4);
-
-                                        int GRP_SZ          = result.grp_tile0;
-                                        int N_MAPS_PERGROUP = 1;
-                                        int exchange_step;
-
-                                        if(MAP_SZ4 <= GRP_SZ / 2)
-                                        {
-                                            N_MAPS_PERGROUP   = GRP_SZ / MAP_SZ4;
-                                            int lcl_mem_avial = (result.grp_tile0 <= 192)
-                                                                    ? (dev_local_mem_sz / 4) / 2
-                                                                    : (dev_local_mem_sz / 4);
-
-                                            exchange_step =
-                                                lcl_mem_avial / (N_MAPS_PERGROUP * MAP_SZ4 * 4);
-                                            exchange_step = std::min(
-                                                std::min(exchange_step, result.n_out_pix_tiles),
-                                                N_MAPS_PERGROUP);
-                                            if(exchange_step < result.n_out_pix_tiles)
-                                            {
-                                                auto tmp_stp = static_cast<int>(std::ceil(
-                                                    std::sqrt(static_cast<float>(exchange_step))));
-                                                n_in_tiles_rg[0] = tmp_stp;
-                                                n_in_tiles_rg[1] = exchange_step;
-                                            }
-                                            else
-                                            {
-                                                n_in_tiles_rg[0] = 1;
-                                                n_in_tiles_rg[1] = 1;
-                                            }
-                                        }
-                                    }
-#endif
-                                    for(int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
-                                    {
-                                        result.n_in_data_tiles = i_t;
-                                        if(params.n_inputs < result.n_in_data_tiles)
-                                        {
-                                            runs_left--;
-                                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                                            continue;
-                                        }
-
-                                        for(int s = 0; s < stack_cnt; ++s)
-                                        {
-
-                                            result.n_stacks = n_in_stacks_sz[s];
-                                            if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
-                                            {
-                                            }
-                                            else
-                                            {
-                                                int alu_tile0 = std::max(
-                                                    1, result.in_tile0 / result.out_pix_tile0);
-                                                int alu_tile1 = std::max(
-                                                    1, result.in_tile1 / result.out_pix_tile1);
-                                                int alu_tiles_sz = (alu_tile0 * alu_tile1);
-                                                int n_alus_total =
-                                                    (result.grp_tile0 * result.grp_tile1);
-
-                                                if(alu_tiles_sz >
-                                                   n_alus_total /* || result.n_in_data_tiles*result.n_out_pix_tiles*result.out_pix_tile1*result.out_pix_tile0 > 240*/)
-                                                {
-                                                    runs_left--;
-                                                    runs_left = (runs_left < 0) ? 0 : runs_left;
-                                                    continue;
-                                                }
-                                            }
-
-                                            if(result.n_stacks > params.batch_sz)
-                                            {
-                                                runs_left--;
-                                                runs_left = (runs_left < 0) ? 0 : runs_left;
-                                                continue;
-                                            }
-                                            const auto ret = MeasureLoop(&profile_h,
-                                                                         bot_ocl_buf.get(),
-                                                                         top_ocl_buf.get(),
-                                                                         wei_ocl_buf.get(),
-                                                                         bias_ocl_buf.get(),
-                                                                         processing_time,
-                                                                         params,
-                                                                         result);
-
-                                            if(ret != 0)
-                                            {
-                                                std::cout << "Failed run." << std::endl;
-                                                runs_left--;
-                                                runs_left = (runs_left < 0) ? 0 : runs_left;
-                                                continue;
-                                            }
-
-                                            if(run_counter != 0 &&
-                                               run_counter % report_inteval == 0)
-                                            {
-                                                std::cout
-                                                    << "Runs left : " << runs_left << ", "
-                                                    << "min time so far : " << min_proc_time << ", "
-                                                    << "curr time : " << processing_time
-#if 1
-                                                    << ", " << result.grp_tile1 << ", "
-                                                    << result.grp_tile0 << ", " << result.in_tile1
-                                                    << ", " << result.in_tile0 << ", "
-                                                    << result.out_pix_tile1 << ", "
-                                                    << result.out_pix_tile0 << ", "
-                                                    << result.n_out_pix_tiles << ", "
-                                                    << result.n_in_data_tiles << ", "
-                                                    << result.n_stacks
-#endif
-                                                    << std::endl;
-                                            }
-
-                                            run_counter++;
-                                            runs_left--;
-                                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                                            if(min_proc_time > processing_time)
-                                            {
-                                                min_proc_time       = processing_time;
-                                                min_grp_tile0       = result.grp_tile0;
-                                                min_grp_tile1       = result.grp_tile1;
-                                                min_in_tile0        = result.in_tile0;
-                                                min_in_tile1        = result.in_tile1;
-                                                min_out_pix_tile0   = result.out_pix_tile0;
-                                                min_out_pix_tile1   = result.out_pix_tile1;
-                                                min_n_out_pix_tiles = result.n_out_pix_tiles;
-                                                min_n_in_data_tiles = result.n_in_data_tiles;
-                                                min_n_stacks        = result.n_stacks;
-                                            }
-
-                                        } // for (int s = 0; s < 3; ++s)
-                                    } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
-                                      // ++i_t)
-                                }     // if (result.out_pix_tile0 > result.in_tile0)
-                            }         // for (int l = 0; l < l_l; ++l)
-                        }             // for (int k = 0; k < k_l; ++k)
-                    }                 // for (int i = 0; i < 3; ++i)
-                }                     // for (int j = 0; j < 3; ++j)
-            }                         // for (int g0 = 0; g0 < 2; ++g0)
-        }                             // for (int g1 = 0; g1 < 2; g1++)
-    }
-
-    std::cout << std::endl << "Score: " << min_proc_time << std::endl;
-#endif
+    /*std::cout << std::endl << "Score: " << min_proc_time << std::endl;
     result.grp_tile0       = min_grp_tile0;
     result.grp_tile1       = min_grp_tile1;
     result.in_tile0        = min_in_tile0;
@@ -1152,10 +707,9 @@ void ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
     result.out_pix_tile1   = min_out_pix_tile1;
     result.n_out_pix_tiles = min_n_out_pix_tiles;
     result.n_in_data_tiles = min_n_in_data_tiles;
-    result.n_stacks        = min_n_stacks;
+    result.n_stacks        = min_n_stacks;*/
 
     profile_h.EnableProfiling(false);
-#endif
 }
 
 } // namespace solver

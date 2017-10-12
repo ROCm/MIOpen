@@ -335,6 +335,15 @@ class ConvAsmBwdWrW3x3 : public Solver
     bool IsFast(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const override;
+    private:
+int Measure(miopen::Handle& profile_h,
+                       Data_t bot_ocl_buf,
+                       Data_t top_ocl_buf,
+                       Data_t wei_ocl_buf,
+                       Data_t bias_ocl_buf,
+                       double& processing_time,
+                       const ConvolutionContext& params,
+                       const PerformanceConfig& result) const;    
 };
 
 class ConvOclBwdWrW2 : public Solver
