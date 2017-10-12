@@ -23,18 +23,17 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-#ifndef GUARD_MIOPEN_DB_RECORD_HPP
-#define GUARD_MIOPEN_DB_RECORD_HPP
+#ifndef GUARD_MIOPEN_DB_RECORD_HPP_
+#define GUARD_MIOPEN_DB_RECORD_HPP_
 
 #include "miopen/config.h"
+#include "miopen/logger.hpp"
 
 #include <sstream>
 #include <string>
 #include <atomic>
 #include <unordered_map>
 #include <iostream>
-
-#define MIOPEN_DB_RECORD_LOGLEVEL 2 // 0: quiet, 1: errors, 2: +warnings, 3: +misc info.
 
 namespace miopen {
 
@@ -61,25 +60,6 @@ namespace miopen {
 /// Note: If VALUES is used to represent a set of numeric values, then it is recommended to use ","
 /// as a separator.
 
-namespace perfdb {
-
-class Logger
-{
-    const std::string _subtitle;
-    void Do(const char* level, const std::string& m) const
-    {
-        std::cerr << level << " [" << _subtitle << "] " << m << std::endl;
-    }
-
-    public:
-    Logger(const char* subtitle) : _subtitle(subtitle) {}
-    void E(const std::string& m) const { Do("Error", m); }
-    void W(const std::string& m) const { Do("Warning", m); }
-    void I(const std::string& m) const { Do("Info", m); }
-};
-
-} // namespace perfdb
-
 /// Represents a db record associated with specific KEY.
 /// Ctor arguments are path to db file and a KEY (or an object able to provide a KEY).
 /// Upon construction, allows getting and modifying contents of a record (IDs and VALUES).
@@ -98,10 +78,10 @@ class Logger
 class DbRecord
 {
     private:
-    static std::atomic_int _n_cached_records;
+    static std::atomic_int n_cached_records;
     // Positions of the record loaded from the db file:
-    std::streamoff _pos_begin = -1;
-    std::streamoff _pos_end   = -1;
+    std::streamoff pos_begin = -1;
+    std::streamoff pos_end   = -1;
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
 #define MIOPEN_PERFDB_CONV_LEGACY_ID "__LEGACY__"
@@ -125,17 +105,17 @@ class DbRecord
                  //
                  // VALUES are always in legacy format (dot-separated).
     };
-    RecordFormat _record_format = RecordFormat::Current;
+    RecordFormat record_format = RecordFormat::Current;
 #endif
-    bool _is_content_cached = false;
-    bool _is_cache_dirty    = false;
-    const std::string _db_filename;
-    const std::string _key;
+    bool is_content_cached = false;
+    bool is_cache_dirty    = false;
+    const std::string db_filename;
+    const std::string key;
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    const std::string _legacy_key;
-    bool _is_backward_compatible = false; // for clang-tidy
+    const std::string legacy_key;
+    bool is_backward_compatible = false; // for clang-tidy
 #endif
-    std::unordered_map<std::string, std::string> _content;
+    std::unordered_map<std::string, std::string> content;
 
     template <class T>
     static // 'static' is for calling from ctor
@@ -169,17 +149,17 @@ class DbRecord
     void ReadIntoCache();
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    DbRecord(const std::string& db_filename,
-             const std::string& key,
-             const std::string& legacy_key,
-             const bool is_backward_compatible)
-        : _db_filename(db_filename),
-          _key(key),
-          _legacy_key(legacy_key),
-          _is_backward_compatible(is_backward_compatible)
+    DbRecord(const std::string& db_filename_,
+             const std::string& key_,
+             const std::string& legacy_key_,
+             const bool is_backward_compatible_)
+        : db_filename(db_filename_),
+          key(key_),
+          legacy_key(legacy_key_),
+          is_backward_compatible(is_backward_compatible_)
 #else
-    DbRecord(const std::string& db_filename, const std::string& key)
-        : _db_filename(db_filename), _key(key)
+    DbRecord(const std::string& db_filename_, const std::string& key_)
+        : db_filename(db_filename_), key(key_)
 #endif
     {
     }
@@ -190,16 +170,16 @@ class DbRecord
     /// member function.
     template <class T>
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    DbRecord(const std::string& db_filename,
-             const T& problem_config,
-             const bool is_backward_compatible = false)
-        : DbRecord(db_filename,
-                   Serialize(problem_config),
-                   is_backward_compatible ? LegacySerialize(problem_config) : "<NONE LEGACY KEY>",
-                   is_backward_compatible)
+    DbRecord(const std::string& db_filename_,
+             const T& problem_config_,
+             const bool is_backward_compatible_ = false)
+        : DbRecord(db_filename_,
+                   Serialize(problem_config_),
+                   is_backward_compatible_ ? LegacySerialize(problem_config_) : "<NONE LEGACY KEY>",
+                   is_backward_compatible_)
 #else
-    DbRecord(const std::string& db_filename, const T& problem_config)
-        : DbRecord(db_filename, Serialize(problem_config))
+    DbRecord(const std::string& db_filename_, const T& problem_config_)
+        : DbRecord(db_filename_, Serialize(problem_config_))
 #endif
     {
     }
@@ -207,9 +187,9 @@ class DbRecord
     ~DbRecord()
     {
         Flush();
-        _content.clear();
-        if(_is_content_cached)
-            --_n_cached_records;
+        content.clear();
+        if(is_content_cached)
+            --n_cached_records;
     }
 
     /// Obtains values from an object of class T and stores it
@@ -256,15 +236,13 @@ class DbRecord
 #else
         const bool ok = values.Deserialize(s);
 #endif
-#if MIOPEN_DB_RECORD_LOGLEVEL >= 1
         if(!ok)
         {
-            perfdb::Logger("DbRecord::Load").E("deserialize failed: " + s);
+            MIOPEN_LOG(LoggingLevel::Error, "deserialize failed: " << s);
         }
-#endif
         return ok;
     }
 };
 } // namespace miopen
 
-#endif // GUARD_MIOPEN_DB_RECORD_HPP
+#endif // GUARD_MIOPEN_DB_RECORD_HPP_
