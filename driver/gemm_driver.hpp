@@ -213,7 +213,7 @@ int GemmDriver<T>::RunForwardGPU()
                &beta,
                c_dev->GetMem(),
                N,
-               0); // find is off (0)
+               1); // find needs to be on to compile the kernel
 
     if(inflags.GetValueInt("time") == 1)
     {
