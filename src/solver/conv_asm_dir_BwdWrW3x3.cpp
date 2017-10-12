@@ -41,7 +41,7 @@ static bool IsReverseInOutAllowed(const ConvolutionContext& config)
     return config.kernel_stride0 == 1 && config.kernel_stride1 == 1;
 }
 
-class Asm3x3WrwPerformanceConfig : public PerformanceConfig
+class PerfParamsAsmDirect3x3WrW : public PerformanceConfig
 {
     int limit_wave_cnt;   // [0..10]
     int reverse_inout;    // [0..1], 1 is allowed for stride=1x1 only.
@@ -59,7 +59,7 @@ class Asm3x3WrwPerformanceConfig : public PerformanceConfig
     //
     void EuristicInit(const ConvolutionContext& config);
 
-    Asm3x3WrwPerformanceConfig(int limit_wave_cnt_,
+    PerfParamsAsmDirect3x3WrW(int limit_wave_cnt_,
                                int reverse_inout_,
                                int chunk_size_,
                                int k_per_wave_,
@@ -81,14 +81,14 @@ class Asm3x3WrwPerformanceConfig : public PerformanceConfig
     }
 
     public:
-    Asm3x3WrwPerformanceConfig() : Asm3x3WrwPerformanceConfig(-1, -1, -1, -1, -1, -1) {}
+    PerfParamsAsmDirect3x3WrW() : PerfParamsAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
     void Serialize(std::ostream&) const override;
     bool Deserialize(const std::string& str) override;
 
     friend class ConvAsmBwdWrW3x3;
 };
 
-bool Asm3x3WrwPerformanceConfig::IsValidRange() const
+bool PerfParamsAsmDirect3x3WrW::IsValidRange() const
 {
     return (0 <= limit_wave_cnt && limit_wave_cnt <= 10) &&
            (0 <= reverse_inout && reverse_inout <= 1) && (8 == chunk_size || 16 == chunk_size) &&
@@ -97,7 +97,7 @@ bool Asm3x3WrwPerformanceConfig::IsValidRange() const
            (1 <= n_per_group && n_per_group <= 8);
 }
 
-bool Asm3x3WrwPerformanceConfig::IsValid(const ConvolutionContext& config) const
+bool PerfParamsAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
 {
     assert(chunk_size != 0);
     if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
@@ -119,7 +119,7 @@ bool Asm3x3WrwPerformanceConfig::IsValid(const ConvolutionContext& config) const
     return true;
 }
 
-void Asm3x3WrwPerformanceConfig::EuristicInit(const ConvolutionContext& config)
+void PerfParamsAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& config)
 {
     limit_wave_cnt = 0;
 
@@ -201,7 +201,7 @@ static bool DeserializeField(const char separator, std::istream& from, int& to)
     return start != end;
 }
 
-void Asm3x3WrwPerformanceConfig::Serialize(std::ostream& stream) const
+void PerfParamsAsmDirect3x3WrW::Serialize(std::ostream& stream) const
 {
     static const auto sep = ','; // clang-format off
     stream << limit_wave_cnt
@@ -212,9 +212,9 @@ void Asm3x3WrwPerformanceConfig::Serialize(std::ostream& stream) const
         << sep << n_per_group; // clang-format on
 }
 
-bool Asm3x3WrwPerformanceConfig::Deserialize(const std::string& str)
+bool PerfParamsAsmDirect3x3WrW::Deserialize(const std::string& str)
 {
-    Asm3x3WrwPerformanceConfig out;
+    PerfParamsAsmDirect3x3WrW out;
     {
         std::istringstream tmp(str);
         const auto ok = // clang-format off
@@ -232,7 +232,7 @@ bool Asm3x3WrwPerformanceConfig::Deserialize(const std::string& str)
     return true;
 }
 
-std::string Asm3x3WrwPerformanceConfig::ToString() const
+std::string PerfParamsAsmDirect3x3WrW::ToString() const
 {
     std::ostringstream ss;
     Serialize(ss);
@@ -241,7 +241,7 @@ std::string Asm3x3WrwPerformanceConfig::ToString() const
 
 std::unique_ptr<PerformanceConfig> ConvAsmBwdWrW3x3::PerformanceConfigImpl() const
 {
-    return make_unique<Asm3x3WrwPerformanceConfig>();
+    return make_unique<PerfParamsAsmDirect3x3WrW>();
 }
 
 void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& params,
@@ -250,90 +250,90 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
     static const std::unordered_map<std::string, std::string> perf_vals_map({
         // clang-format off
         //            W    H    c    n    k {u  v} dir {CUs}            lwc[2] rio csz[2] kpw pld[2] npg
-        {MakeLutKey(  7,   7, 160, 128, 320, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  7, 1).ToString()},                                    
-        {MakeLutKey(  7,   7, 192, 128, 384, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  7, 1).ToString()},                                    
-        {MakeLutKey(  7,   7, 512,  16, 512, 2, 2, 0),     Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  7, 1).ToString()},                                    
-        {MakeLutKey( 12,  12, 512, 128,1024, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 12,  12,1024, 128,1024, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 192, 128, 384, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 192, 128, 384, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256,  50, 384, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 256, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 256, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 384, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 384, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384,  50, 256, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384,  50, 384, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384,  64, 256, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 256, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 256, 0, 64),       Asm3x3WrwPerformanceConfig(0, 1,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 384, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 384, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0,  8, 8,  2, 1).ToString()},                                    
-        {MakeLutKey( 14,  14,  96, 128, 208, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  7, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 112, 128, 224, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 4,  5, 2).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey( 14,  14, 128,   8, 256, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 128,  32, 192, 2, 2, 0),     Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 128, 128, 256, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 144, 128, 288, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 4,  5, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 160,  32, 160, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4, 11, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 160,  32, 192, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 8,  5, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 160, 128, 320, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 4,  5, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 192,  32, 256, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 256,  16, 256, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 256,  16, 256, 2, 2, 0),     Asm3x3WrwPerformanceConfig(0, 0,  8, 8,  7, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 256,  32, 256, 2, 2, 0),     Asm3x3WrwPerformanceConfig(0, 0,  8, 8,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,   8, 512, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  16, 512, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  16, 512, 0, 64),       Asm3x3WrwPerformanceConfig(0, 1,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  32, 512, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  64, 512, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 16,  16, 256,   8, 512, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 27,  27, 128,   8, 128, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  3, 1).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey( 28,  28,  64,  32,  64, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 2,  2, 2).ToString()},                                    
-        {MakeLutKey( 28,  28,  64,  32,  96, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 2,  5, 2).ToString()},                                    
-        {MakeLutKey( 28,  28,  96,  32,  96, 2, 2, 0),     Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28,  96, 128, 128, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  2, 2).ToString()},                                    
-        {MakeLutKey( 28,  28, 128,  16, 128, 2, 2, 0),     Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 128,  32, 160, 2, 2, 0),     Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 128, 128, 192, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  2, 2).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,   8, 512, 0),           Asm3x3WrwPerformanceConfig(4, 1,  8, 2,  2, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,  16, 512, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 2,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,  32, 512, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,  64, 512, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 512,  32, 512, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 512,  64, 512, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 54,  54,  64,   8,  64, 0),           Asm3x3WrwPerformanceConfig(0, 1, 16, 2,  2, 4).ToString()},                                    
-        {MakeLutKey( 54,  54,  64,   8,  64, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0,  8, 2,  3, 2).ToString()},                                    
-        {MakeLutKey( 56,  56,  64,  16,  64, 2, 2, 0),     Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  3, 2).ToString()},                                    
-        {MakeLutKey( 56,  56,  64,  16, 192, 0),           Asm3x3WrwPerformanceConfig(0, 0,  8, 4,  2, 4).ToString()},                                    
-        {MakeLutKey( 56,  56,  64,  32, 192, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  4, 4).ToString()},                                    
-        {MakeLutKey( 56,  56,  64, 128, 192, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 56,  56, 256,  32, 256, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 2,  4, 1).ToString()},                                    
-        {MakeLutKey( 56,  56, 256,  64, 256, 0),           Asm3x3WrwPerformanceConfig(0, 1,  8, 2,  4, 1).ToString()},                                    
-        {MakeLutKey( 60,   6,  64,  16, 128, 0),           Asm3x3WrwPerformanceConfig(4, 0, 16, 2,  6, 1).ToString()},                                    
-        {MakeLutKey( 60,   6,  64,  16, 128, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0, 16, 2,  2, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,   8, 128, 0),           Asm3x3WrwPerformanceConfig(3, 0, 16, 4,  2, 2).ToString()},                                    
-        {MakeLutKey(112, 112,  64,   8, 128, 0, 64),       Asm3x3WrwPerformanceConfig(0, 1, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  16, 128, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  2, 4).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  16, 128, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  3, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  32, 128, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  2, 4).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  32, 128, 0, 64),       Asm3x3WrwPerformanceConfig(0, 1, 16, 4,  3, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  64, 128, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  2, 4).ToString()},                                    
-        {MakeLutKey(112, 112, 256,   8, 512, 0),           Asm3x3WrwPerformanceConfig(0, 1, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey(120,  12,  32,  16,  64, 0),           Asm3x3WrwPerformanceConfig(3, 1, 16, 2,  1, 4).ToString()},                                    
-        {MakeLutKey(120,  12,  32,  16,  64, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0, 16, 2,  2, 2).ToString()},                                    
-        {MakeLutKey(224, 224,   3,   8,  64, 0, 64),       Asm3x3WrwPerformanceConfig(0, 1, 16, 1,  2, 4).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey(224, 224,   3,  16,  64, 0, 64),       Asm3x3WrwPerformanceConfig(0, 1, 16, 1,  5, 4).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey(240,  24,  16,  16,  32, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  1, 8).ToString()},                                    
-        {MakeLutKey(240,  24,  16,  16,  32, 0, 64),       Asm3x3WrwPerformanceConfig(0, 0, 16, 2,  1, 8).ToString()},                                    
-        {MakeLutKey(256, 128,  96,   1, 128, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  1, 1).ToString()},                                    
-        {MakeLutKey(256, 128, 128,   1, 192, 0),           Asm3x3WrwPerformanceConfig(0, 0, 16, 4,  1, 1).ToString()},                                    
-        {MakeLutKey(512, 256,  64,   1, 192, 0),           Asm3x3WrwPerformanceConfig(0, 1, 16, 4,  1, 1).ToString()},
+        {MakeLutKey(  7,   7, 160, 128, 320, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
+        {MakeLutKey(  7,   7, 192, 128, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
+        {MakeLutKey(  7,   7, 512,  16, 512, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
+        {MakeLutKey( 12,  12, 512, 128,1024, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 12,  12,1024, 128,1024, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 192, 128, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 192, 128, 384, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256,  50, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256, 128, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256, 128, 256, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256, 128, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 256, 128, 384, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384,  50, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384,  50, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384,  64, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384, 128, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384, 128, 256, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384, 128, 384, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 13,  13, 384, 128, 384, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  2, 1).ToString()},                                    
+        {MakeLutKey( 14,  14,  96, 128, 208, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  7, 2).ToString()},                                    
+        {MakeLutKey( 14,  14, 112, 128, 224, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()}, /// \todo Find opt values for 56CUs
+        {MakeLutKey( 14,  14, 128,   8, 256, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 128,  32, 192, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 128, 128, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 144, 128, 288, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()},                                    
+        {MakeLutKey( 14,  14, 160,  32, 160, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4, 11, 2).ToString()},                                    
+        {MakeLutKey( 14,  14, 160,  32, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  5, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 160, 128, 320, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()},                                    
+        {MakeLutKey( 14,  14, 192,  32, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 256,  16, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 256,  16, 256, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  7, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 256,  32, 256, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 8,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,   8, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,  16, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,  16, 512, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,  32, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 14,  14, 512,  64, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 16,  16, 256,   8, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey( 27,  27, 128,   8, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()}, /// \todo Find opt values for 56CUs
+        {MakeLutKey( 28,  28,  64,  32,  64, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 2,  2, 2).ToString()},                                    
+        {MakeLutKey( 28,  28,  64,  32,  96, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 2,  5, 2).ToString()},                                    
+        {MakeLutKey( 28,  28,  96,  32,  96, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 28,  28,  96, 128, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 2).ToString()},                                    
+        {MakeLutKey( 28,  28, 128,  16, 128, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 128,  32, 160, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 128, 128, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 2).ToString()},                                    
+        {MakeLutKey( 28,  28, 256,   8, 512, 0),           PerfParamsAsmDirect3x3WrW(4, 1,  8, 2,  2, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 256,  16, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 2,  3, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 256,  32, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 256,  64, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 512,  32, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 28,  28, 512,  64, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 54,  54,  64,   8,  64, 0),           PerfParamsAsmDirect3x3WrW(0, 1, 16, 2,  2, 4).ToString()},                                    
+        {MakeLutKey( 54,  54,  64,   8,  64, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0,  8, 2,  3, 2).ToString()},                                    
+        {MakeLutKey( 56,  56,  64,  16,  64, 2, 2, 0),     PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 2).ToString()},                                    
+        {MakeLutKey( 56,  56,  64,  16, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0,  8, 4,  2, 4).ToString()},                                    
+        {MakeLutKey( 56,  56,  64,  32, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 4).ToString()},                                    
+        {MakeLutKey( 56,  56,  64, 128, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
+        {MakeLutKey( 56,  56, 256,  32, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 2,  4, 1).ToString()},                                    
+        {MakeLutKey( 56,  56, 256,  64, 256, 0),           PerfParamsAsmDirect3x3WrW(0, 1,  8, 2,  4, 1).ToString()},                                    
+        {MakeLutKey( 60,   6,  64,  16, 128, 0),           PerfParamsAsmDirect3x3WrW(4, 0, 16, 2,  6, 1).ToString()},                                    
+        {MakeLutKey( 60,   6,  64,  16, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 2,  2, 1).ToString()},                                    
+        {MakeLutKey(112, 112,  64,   8, 128, 0),           PerfParamsAsmDirect3x3WrW(3, 0, 16, 4,  2, 2).ToString()},                                    
+        {MakeLutKey(112, 112,  64,   8, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  16, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  16, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  3, 1).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  32, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  32, 128, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  3, 1).ToString()},                                    
+        {MakeLutKey(112, 112,  64,  64, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
+        {MakeLutKey(112, 112, 256,   8, 512, 0),           PerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  2, 1).ToString()},                                    
+        {MakeLutKey(120,  12,  32,  16,  64, 0),           PerfParamsAsmDirect3x3WrW(3, 1, 16, 2,  1, 4).ToString()},                                    
+        {MakeLutKey(120,  12,  32,  16,  64, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 2,  2, 2).ToString()},                                    
+        {MakeLutKey(224, 224,   3,   8,  64, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1, 16, 1,  2, 4).ToString()}, /// \todo Find opt values for 56CUs
+        {MakeLutKey(224, 224,   3,  16,  64, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 1, 16, 1,  5, 4).ToString()}, /// \todo Find opt values for 56CUs
+        {MakeLutKey(240,  24,  16,  16,  32, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  1, 8).ToString()},                                    
+        {MakeLutKey(240,  24,  16,  16,  32, 0, 64),       PerfParamsAsmDirect3x3WrW(0, 0, 16, 2,  1, 8).ToString()},                                    
+        {MakeLutKey(256, 128,  96,   1, 128, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  1, 1).ToString()},                                    
+        {MakeLutKey(256, 128, 128,   1, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 0, 16, 4,  1, 1).ToString()},                                    
+        {MakeLutKey(512, 256,  64,   1, 192, 0),           PerfParamsAsmDirect3x3WrW(0, 1, 16, 4,  1, 1).ToString()},
         // clang-format on
     });
 
     std::string s;
-    Asm3x3WrwPerformanceConfig pp;
+    PerfParamsAsmDirect3x3WrW pp;
     const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
     if(p_asciz)
     {
@@ -404,7 +404,7 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
             pp.EuristicInit(params);
         }
     }
-    dynamic_cast<Asm3x3WrwPerformanceConfig&>(result) = pp;
+    dynamic_cast<PerfParamsAsmDirect3x3WrW&>(result) = pp;
 }
 
 bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
@@ -493,7 +493,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     // Perf tune:
-    const auto& pp = dynamic_cast<const Asm3x3WrwPerformanceConfig&>(config);
+    const auto& pp = dynamic_cast<const PerfParamsAsmDirect3x3WrW&>(config);
     GenerateClangDefsym(options, "limit_wave_cnt", pp.limit_wave_cnt);
     GenerateClangDefsym(options, "chunk_size", pp.chunk_size);
     GenerateClangDefsym(options, "c_per_wave", pp.GetCPerWave());
