@@ -230,8 +230,6 @@ static int MeasureLoop(Handle* profile_h,
 {
     int ret = 0;
     ConvSolution kernel_search_result;
-    auto sub_search_params      = params;
-    sub_search_params.do_search = false;
 
     for(const Solver& traits : GetImplementationsToMeasure())
     {
@@ -258,9 +256,6 @@ static int MeasureLoop(Handle* profile_h,
 
         float padding_value = 0;
 
-        double s = 0, e = 0;
-        int iter = 1;
-
         if(profile_h)
         {
             processing_time = std::numeric_limits<float>::max();
@@ -285,7 +280,8 @@ static int MeasureLoop(Handle* profile_h,
         }
         else
         {
-            iter = (params.n_timer_iter <= 0) ? 1 : params.n_timer_iter;
+            double s = 0, e = 0;
+            int iter = (params.n_timer_iter <= 0) ? 1 : params.n_timer_iter;
 
             auto k = params.GetStream().GetKernel("",
                                                   "",
