@@ -185,26 +185,26 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         alpha, xDesc, x, wDesc, w, convDesc, algo, beta, yDesc, y, workSpace, workSpaceSize);
 
-    if (miopen::IsLoggingCmd()) {
-            std::cerr << MIOPEN_DRIVER_CMD("conv")
-                      << MIOPEN_DRIVER_ARG("-n", miopen::deref(xDesc).GetLengths()[0])
-                      << MIOPEN_DRIVER_ARG("-c", miopen::deref(xDesc).GetLengths()[1])
-                      << MIOPEN_DRIVER_ARG("-H", miopen::deref(xDesc).GetLengths()[2])
-                      << MIOPEN_DRIVER_ARG("-W", miopen::deref(xDesc).GetLengths()[3])
+    if(miopen::IsLoggingCmd())
+    {
+        std::cerr << MIOPEN_DRIVER_CMD("conv")
+                  << MIOPEN_DRIVER_ARG("-n", miopen::deref(xDesc).GetLengths()[0])
+                  << MIOPEN_DRIVER_ARG("-c", miopen::deref(xDesc).GetLengths()[1])
+                  << MIOPEN_DRIVER_ARG("-H", miopen::deref(xDesc).GetLengths()[2])
+                  << MIOPEN_DRIVER_ARG("-W", miopen::deref(xDesc).GetLengths()[3])
 
-                      << MIOPEN_DRIVER_ARG("-k", miopen::deref(wDesc).GetLengths()[0])
-                      << MIOPEN_DRIVER_ARG("-y", miopen::deref(wDesc).GetLengths()[2])
-                      << MIOPEN_DRIVER_ARG("-x", miopen::deref(wDesc).GetLengths()[3])
+                  << MIOPEN_DRIVER_ARG("-k", miopen::deref(wDesc).GetLengths()[0])
+                  << MIOPEN_DRIVER_ARG("-y", miopen::deref(wDesc).GetLengths()[2])
+                  << MIOPEN_DRIVER_ARG("-x", miopen::deref(wDesc).GetLengths()[3])
 
-                      << MIOPEN_DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
-                      << MIOPEN_DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
-                      << MIOPEN_DRIVER_ARG("-u", miopen::deref(convDesc).u)
-                      << MIOPEN_DRIVER_ARG("-v", miopen::deref(convDesc).v)
-                      << MIOPEN_DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
-                      << MIOPEN_DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
+                  << MIOPEN_DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
+                  << MIOPEN_DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
+                  << MIOPEN_DRIVER_ARG("-u", miopen::deref(convDesc).u)
+                  << MIOPEN_DRIVER_ARG("-v", miopen::deref(convDesc).v)
+                  << MIOPEN_DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
+                  << MIOPEN_DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
 
-                      << MIOPEN_DRIVER_ARG("-t", "1")
-                      << "\n";
+                  << MIOPEN_DRIVER_ARG("-t", "1") << "\n";
     }
 
     return miopen::try_([&] {
@@ -315,26 +315,26 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         alpha, dyDesc, dy, wDesc, w, convDesc, algo, beta, dxDesc, dx, workSpace, workSpaceSize);
 
-    if (miopen::IsLoggingCmd()) {
-            std::cerr << MIOPEN_DRIVER_CMD("conv") 
-                      << MIOPEN_DRIVER_ARG("-n", miopen::deref(dxDesc).GetLengths()[0])
-                      << MIOPEN_DRIVER_ARG("-c", miopen::deref(dxDesc).GetLengths()[1])
-                      << MIOPEN_DRIVER_ARG("-H", miopen::deref(dxDesc).GetLengths()[2])
-                      << MIOPEN_DRIVER_ARG("-W", miopen::deref(dxDesc).GetLengths()[3])
+    if(miopen::IsLoggingCmd())
+    {
+        std::cerr << MIOPEN_DRIVER_CMD("conv")
+                  << MIOPEN_DRIVER_ARG("-n", miopen::deref(dxDesc).GetLengths()[0])
+                  << MIOPEN_DRIVER_ARG("-c", miopen::deref(dxDesc).GetLengths()[1])
+                  << MIOPEN_DRIVER_ARG("-H", miopen::deref(dxDesc).GetLengths()[2])
+                  << MIOPEN_DRIVER_ARG("-W", miopen::deref(dxDesc).GetLengths()[3])
 
-                      << MIOPEN_DRIVER_ARG("-k", miopen::deref(wDesc).GetLengths()[0])
-                      << MIOPEN_DRIVER_ARG("-y", miopen::deref(wDesc).GetLengths()[2])
-                      << MIOPEN_DRIVER_ARG("-x", miopen::deref(wDesc).GetLengths()[3])
+                  << MIOPEN_DRIVER_ARG("-k", miopen::deref(wDesc).GetLengths()[0])
+                  << MIOPEN_DRIVER_ARG("-y", miopen::deref(wDesc).GetLengths()[2])
+                  << MIOPEN_DRIVER_ARG("-x", miopen::deref(wDesc).GetLengths()[3])
 
-                      << MIOPEN_DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
-                      << MIOPEN_DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
-                      << MIOPEN_DRIVER_ARG("-u", miopen::deref(convDesc).u)
-                      << MIOPEN_DRIVER_ARG("-v", miopen::deref(convDesc).v)
-                      << MIOPEN_DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
-                      << MIOPEN_DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
+                  << MIOPEN_DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
+                  << MIOPEN_DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
+                  << MIOPEN_DRIVER_ARG("-u", miopen::deref(convDesc).u)
+                  << MIOPEN_DRIVER_ARG("-v", miopen::deref(convDesc).v)
+                  << MIOPEN_DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
+                  << MIOPEN_DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
 
-                      << MIOPEN_DRIVER_ARG("-t", "1")
-                      << "\n";
+                  << MIOPEN_DRIVER_ARG("-t", "1") << "\n";
     }
 
     return miopen::try_([&] {
@@ -392,7 +392,6 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
     });
 }
 
-
 extern "C" miopenStatus_t
 miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t dyDesc,
@@ -424,26 +423,26 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
                         workSpaceSize,
                         exhaustiveSearch);
 
-    if (miopen::IsLoggingCmd()) {
-            std::cerr << MIOPEN_DRIVER_CMD("conv") 
-                      << MIOPEN_DRIVER_ARG("-n", miopen::deref(xDesc).GetLengths()[0])
-                      << MIOPEN_DRIVER_ARG("-c", miopen::deref(xDesc).GetLengths()[1])
-                      << MIOPEN_DRIVER_ARG("-H", miopen::deref(xDesc).GetLengths()[2])
-                      << MIOPEN_DRIVER_ARG("-W", miopen::deref(xDesc).GetLengths()[3])
+    if(miopen::IsLoggingCmd())
+    {
+        std::cerr << MIOPEN_DRIVER_CMD("conv")
+                  << MIOPEN_DRIVER_ARG("-n", miopen::deref(xDesc).GetLengths()[0])
+                  << MIOPEN_DRIVER_ARG("-c", miopen::deref(xDesc).GetLengths()[1])
+                  << MIOPEN_DRIVER_ARG("-H", miopen::deref(xDesc).GetLengths()[2])
+                  << MIOPEN_DRIVER_ARG("-W", miopen::deref(xDesc).GetLengths()[3])
 
-                      << MIOPEN_DRIVER_ARG("-k", miopen::deref(dwDesc).GetLengths()[0])
-                      << MIOPEN_DRIVER_ARG("-y", miopen::deref(dwDesc).GetLengths()[2])
-                      << MIOPEN_DRIVER_ARG("-x", miopen::deref(dwDesc).GetLengths()[3])
+                  << MIOPEN_DRIVER_ARG("-k", miopen::deref(dwDesc).GetLengths()[0])
+                  << MIOPEN_DRIVER_ARG("-y", miopen::deref(dwDesc).GetLengths()[2])
+                  << MIOPEN_DRIVER_ARG("-x", miopen::deref(dwDesc).GetLengths()[3])
 
-                      << MIOPEN_DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
-                      << MIOPEN_DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
-                      << MIOPEN_DRIVER_ARG("-u", miopen::deref(convDesc).u)
-                      << MIOPEN_DRIVER_ARG("-v", miopen::deref(convDesc).v)
-                      << MIOPEN_DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
-                      << MIOPEN_DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
+                  << MIOPEN_DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
+                  << MIOPEN_DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
+                  << MIOPEN_DRIVER_ARG("-u", miopen::deref(convDesc).u)
+                  << MIOPEN_DRIVER_ARG("-v", miopen::deref(convDesc).v)
+                  << MIOPEN_DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
+                  << MIOPEN_DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
 
-                      << MIOPEN_DRIVER_ARG("-t", "1")
-                      << "\n";
+                  << MIOPEN_DRIVER_ARG("-t", "1") << "\n";
     }
 
     return miopen::try_([&] {
