@@ -29,38 +29,11 @@
 #include "network_data.hpp"
 #include "tensor_holder.hpp"
 #include "test.hpp"
+#include "type_name.hpp"
 #include "verify.hpp"
 
 #include <functional>
 #include <miopen/functional.hpp>
-
-template <class Test_Driver_Private_TypeName_>
-const std::string& get_type_name()
-{
-    static std::string name;
-
-    if(name.empty())
-    {
-#ifdef _MSC_VER
-        name = typeid(Test_Driver_Private_TypeName_).name();
-        name = name.substr(7);
-#else
-        const char parameter_name[] = "Test_Driver_Private_TypeName_ =";
-
-        name = __PRETTY_FUNCTION__;
-
-        auto begin  = name.find(parameter_name) + sizeof(parameter_name);
-#if(defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
-        auto length = name.find_last_of(",") - begin;
-#else
-        auto length = name.find_first_of("];", begin) - begin;
-#endif
-        name        = name.substr(begin, length);
-#endif
-    }
-
-    return name;
-}
 
 struct rand_gen
 {
@@ -541,6 +514,15 @@ void test_drive(int argc, const char* argv[])
             {
                 auto&& arg = d.arguments.at(name);
                 arg.write(p.second);
+            }
+            catch(const std::exception& ex)
+            {
+                std::cerr << "Invalid argument: " << name << std::endl;
+                std::cerr << "With parameters: " << std::endl;
+                for(auto&& s : p.second)
+                    std::cerr << "    " << s << std::endl;
+                std::cerr << ex.what() << std::endl;
+                std::abort();
             }
             catch(...)
             {
