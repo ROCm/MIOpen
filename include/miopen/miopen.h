@@ -585,7 +585,6 @@ typedef enum {
     miopenConvolutionFwdAlgoDirect   = 1, /*!< Direct convolutions */
     miopenConvolutionFwdAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionFwdAlgoWinograd = 3, /*!< Winograd indirect convolutions */
-	miopenRNNAlgoGEMM = 4,  /*!< GEMM for RNN */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -1701,6 +1700,13 @@ typedef enum {
 } miopenRNNBiasMode_t;
 
 
+/*! @enum miopenRNNBiasMode_t
+ * Recurrent Neural Network add on bias
+*/
+typedef enum {
+    miopenRNNAlgoGEMM   = 0,
+} miopenRNNGEMMalgoMode_t;
+
 /*! @brief Create a RNN layer Descriptor
  *
  * API for creating an uninitialized RNN layer descriptor.
@@ -1723,7 +1729,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rn
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, miopenRNNAlgo_t * algoMode, miopenRNNInputMode_t *inputMode,
+    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, 
+        miopenRNNAlgo_t * algoMode, miopenRNNInputMode_t *inputMode,
                         miopenRNNDirectionMode_t* bidir, 
         miopenRNNBiasMode_t *bias, int* hiddenSize, int* layer);
 
@@ -1853,7 +1860,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
                                                     const void* w,
                                                     const int layerID,
                                                     miopenTensorDescriptor_t paramDesc,
-                                                    size_t* layerParam);
+                                                    void* layerParam);
 
 /*! @brief Gets a pointer to memory containing a bias tensor for a specific layer in an RNN stack
  *
@@ -1877,7 +1884,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
                                                    const void* w,
                                                    const int layerID,
                                                    miopenTensorDescriptor_t biasDesc,
-                                                   size_t* layerBias);
+                                                   void* layerBias);
 
 
 
@@ -1919,7 +1926,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                        const void* cx,
                                                        miopenTensorDescriptor_t wDesc,
                                                        const void* w,
-                                                       miopenTensorDescriptor_t yDesc,
+                                                       miopenTensorDescriptor_t *yDesc,
                                                        void* y,
                                                        miopenTensorDescriptor_t hyDesc,
                                                        void* hy,
@@ -2073,7 +2080,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
                                                            const void* cx,
                                                            miopenTensorDescriptor_t wDesc,
                                                            const void* w,
-                                                           miopenTensorDescriptor_t yDesc,
+                                                           miopenTensorDescriptor_t *yDesc,
                                                            void* y,
                                                            miopenTensorDescriptor_t hyDesc,
                                                            void* hy,

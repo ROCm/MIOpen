@@ -85,8 +85,8 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
     // mB
 
     // mC
-    Dtype alpha = (Dtype)d_alpha;
-    Dtype beta  = (Dtype)d_beta;
+    Dtype alpha = Dtype(d_alpha);
+    Dtype beta  = Dtype(d_beta);
     if((!(a_flags & ADNN_MM_TRANSPOSE) && !(b_flags & ADNN_MM_TRANSPOSE) &&
         ((a_cols != b_rows) || (a_rows != c_rows) || (b_cols != c_cols))) ||
        ((a_flags & ADNN_MM_TRANSPOSE) && (b_flags & ADNN_MM_TRANSPOSE) &&
@@ -426,7 +426,7 @@ int mloBackwardMMOnHost(int kernel_size_h,
                         weights_height,
                         weights_stride,
                         ADNN_MM_TRANSPOSE,
-                        (const _T*)&top_df_ptr[top_df_batch_stride * b],
+                        &_T(&top_df_ptr[top_df_batch_stride * b]),
                         top_width * top_height,
                         outputs,
                         top_df_channel_stride,

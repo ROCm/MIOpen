@@ -52,7 +52,7 @@
 #include <sstream>
 #include <vector>
 
-//MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
+// MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
 /*
 template <typename T>
@@ -96,32 +96,18 @@ class RNNDriver : public Driver
     public:
     RNNDriver() : Driver()
     {
-        
         miopenCreateTensorDescriptor(&wDesc);
-        miopenCreateTensorDescriptor(&hxDescFwd);
-        miopenCreateTensorDescriptor(&cxDescFwd);
-        miopenCreateTensorDescriptor(&yDescFwd);
-        miopenCreateTensorDescriptor(&hyDescFwd);
-        miopenCreateTensorDescriptor(&cyDescFwd);
-    
-        miopenCreateTensorDescriptor(&dhyDescBackData);
-        miopenCreateTensorDescriptor(&dcyDescBackData);
-        miopenCreateTensorDescriptor(&hxDescBackData);    
-        miopenCreateTensorDescriptor(&dhxDescBackData);
-        miopenCreateTensorDescriptor(&dcxDescBackData);
-
-        miopenCreateTensorDescriptor(&hxDescBwdWeights);
-        miopenCreateTensorDescriptor(&dwDescBwdWeights);
-
-        *xDescFwd = nullptr;
-        *dxDescBackData = nullptr;
-        *yDescBackData = nullptr;
-        *dyDescBackData = nullptr;
-        *yDescBwdWeights = nullptr;
-        *xDescBwdWeights = nullptr;
-        
+        miopenCreateTensorDescriptor(&hxDesc);
+        miopenCreateTensorDescriptor(&cxDesc);
+        miopenCreateTensorDescriptor(&hyDesc);
+        miopenCreateTensorDescriptor(&cyDesc);
+        miopenCreateTensorDescriptor(&dhyDesc);
+        miopenCreateTensorDescriptor(&dcyDesc);
+        miopenCreateTensorDescriptor(&hxDesc);
+        miopenCreateTensorDescriptor(&dhxDesc);
+        miopenCreateTensorDescriptor(&dcxDesc);
+        miopenCreateTensorDescriptor(&dwDesc);
         miopenCreateRNNDescriptor(&rnnDesc);
-
         workspace_dev    = nullptr;
         reservespace_dev = nullptr;
     }
@@ -141,18 +127,8 @@ class RNNDriver : public Driver
 
     int AllocateBuffersAndCopy();
 
-    //    int FindForward(int& ret_algo_count,
-    //                    int request_algo_count,
-    //                    std::vector<miopenConvAlgoPerf_t>& perf_results);
     int RunForwardGPU();
     int RunForwardCPU();
-
-    //    int FindBackwardData(int& ret_algo_count,
-    //                         int request_algo_count,
-    //                         std::vector<miopenConvAlgoPerf_t>& perf_results);
-    //    int FindBackwardWeights(int& ret_algo_count,
-    //                            int request_algo_count,
-    //                            std::vector<miopenConvAlgoPerf_t>& perf_results);
     int RunBackwardGPU();
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
@@ -163,37 +139,30 @@ class RNNDriver : public Driver
 
         // TODO dlowell: destroy all of these descriptors!
         miopenDestroyTensorDescriptor(wDesc);
-        
+
         miopenDestroyRNNDescriptor(rnnDesc);
     }
 
     private:
     InputFlags inflags;
-    
+
     miopenTensorDescriptor_t wDesc;
-    
-    miopenTensorDescriptor_t *xDescFwd;
-    miopenTensorDescriptor_t hxDescFwd;
-    miopenTensorDescriptor_t cxDescFwd;
-    miopenTensorDescriptor_t yDescFwd;
-    miopenTensorDescriptor_t hyDescFwd;
-    miopenTensorDescriptor_t cyDescFwd;
-    
-    miopenTensorDescriptor_t *yDescBackData;
-    miopenTensorDescriptor_t *dyDescBackData;
-    miopenTensorDescriptor_t dhyDescBackData;
-    miopenTensorDescriptor_t dcyDescBackData;
-    miopenTensorDescriptor_t hxDescBackData;
-    miopenTensorDescriptor_t *dxDescBackData;
-    miopenTensorDescriptor_t dhxDescBackData;
-    miopenTensorDescriptor_t dcxDescBackData;
-    
-    miopenTensorDescriptor_t *xDescBwdWeights;
-    miopenTensorDescriptor_t hxDescBwdWeights;
-    miopenTensorDescriptor_t *yDescBwdWeights;
-    miopenTensorDescriptor_t dwDescBwdWeights;
-    
-    
+
+    std::vector<miopenTensorDescriptor_t> xDesc;
+    std::vector<miopenTensorDescriptor_t> dxDesc;
+    std::vector<miopenTensorDescriptor_t> yDesc;
+    std::vector<miopenTensorDescriptor_t> dyDesc;
+
+    miopenTensorDescriptor_t cxDesc;
+    miopenTensorDescriptor_t hyDesc;
+    miopenTensorDescriptor_t cyDesc;
+    miopenTensorDescriptor_t dhxDesc;
+    miopenTensorDescriptor_t dcxDesc;
+    miopenTensorDescriptor_t dhyDesc;
+    miopenTensorDescriptor_t dcyDesc;
+    miopenTensorDescriptor_t hxDesc;
+    miopenTensorDescriptor_t dwDesc;
+
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> wei_dev;
@@ -243,8 +212,9 @@ class RNNDriver : public Driver
     std::vector<T> db_host;
 
     miopenRNNDescriptor_t rnnDesc;
-    
+
     int batchsize;
+    std::vector<int> batchseq;
 
     //    std::string GetVerificationCacheFileName() const;
     //    bool TryReadVerificationCache(const std::string& file_name,
@@ -271,8 +241,6 @@ int RNNDriver<T>::GetandSetData()
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
-
-    
 
     SetRNNDescriptorFromCmdLineArgs();
 
@@ -322,62 +290,40 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     int nseq = inflags.GetValueInt("seq_len");
     int in_h = inflags.GetValueInt("in_h");
     std::vector<int> in_n(nseq, 0);
-    std::vector<miopenTensorDescriptor_t> inDesc(nseq);
-    //	inflags.GetVectorInt("batchsize", in_n, inflags.GetValueInt("seq_len"));
     std::string batchstr = inflags.GetValueStr("batchsize");
-    int cont             = 0;
+    std::stringstream ss(batchstr);
 
-    std::vector<int> tensorDims;
-    
-    //TODO: populate all tensor descriptors here
-    
-    for(int i = 0; i < batchstr.length(); i++)
+    if(batchseq.size() == 0)
     {
-        if(cont >= nseq)
+        int element;
+        while(ss >> element)
         {
-            printf("Too many in_n batch size");
-            break;
-        }
-
-        if(batchstr[i] == ',')
-        {
-            if(cont >= 1)
+            if(ss.peek() == ',' || ss.peek() == ' ')
             {
-                if(in_n[cont] > in_n[cont - 1])
-                {
-                    printf("Incorrect input batch size at time %d\n", cont);
-                    break;
-                }
+                ss.ignore();
             }
-            cont++;
-        }
-        else if(batchstr[i] >= '0' && batchstr[i] <= '9')
-        {
-            
-            int batchseq = stoi(batchstr.substr(i, 1);
-            in_n[cont] = in_n[cont] * 10 + batchseq;
-            tensorDims.clear();
-            tensorDims.push_back(batchseq);
-            tensorDims.push_back(in_h);
-            miopenSetTensorDescriptor(inDesc[cont], miopenFloat, 2, tensorDims.data(), nullptr);
-            
-            if(inflags.GetValueInt("forw") == 0)
-            {
-                
-            }
-        }
-        else
-        {
-            printf("illegal input of in_n batch size");
-            break;
+            batchseq.push_back(element);
         }
     }
 
-    int in_h = inflags.GetValueInt("in_h");
-    in_n.push_back(in_h);
+    //    for(int i = 0; i<batchseq.size();i++){
+    //        std::cout << "element[" << i <<"]:" << batchseq[i] << std::endl;
+    //    }
 
+    for(int i = 0; i < batchseq.size() && i < nseq; i++)
+    {
+        if(i > 0 && batchseq[i] > batchseq[i - 1])
+        {
+            printf("Incorrect input batch size at time %d\n", i);
+            break;
+        }
+        else
+        {
+            in_n[i] = in_n[i] * 10 + batchseq[i];
+        }
+    }
+    in_n.push_back(in_h);
     return in_n;
-    //    return std::vector<int>({in_n, in_h});
 }
 
 template <typename T>
@@ -411,13 +357,14 @@ std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
 template <typename T>
 int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 {
-    int layer     = inflags.GetValueInt("num_layer");
+    int layer  = inflags.GetValueInt("num_layer");
     int wei_hh = inflags.GetValueInt("hid_h"); // hidden state size
-    miopenRNNDirectionMode_t bidir = (inflags.GetValueInt("bidirection") == 0) ? miopenRNNunidirection : miopenRNNbidirection;
-	miopenRNNBiasMode_t bias       = (inflags.GetValueInt("bias") == 0) ? miopenRNNNoBias : miopenRNNwithBias;
-
+    miopenRNNDirectionMode_t bidir =
+        (inflags.GetValueInt("bidirection") == 0) ? miopenRNNunidirection : miopenRNNbidirection;
+    miopenRNNBiasMode_t bias =
+        (inflags.GetValueInt("bias") == 0) ? miopenRNNNoBias : miopenRNNwithBias;
     miopenRNNMode_t mode;
-    
+
     if((inflags.GetValueStr("mode")) == "relu")
     {
         mode = miopenRNNRELU;
@@ -440,7 +387,8 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    return miopenSetRNNDescriptor(rnnDesc, wei_hh, layer, miopenRNNlinear, bidir, mode, bias, miopenRNNdefault, miopenFloat);
+    return miopenSetRNNDescriptor(
+        rnnDesc, wei_hh, layer, miopenRNNlinear, bidir, mode, bias, miopenRNNdefault, miopenFloat);
 }
 
 template <typename T>
@@ -453,39 +401,107 @@ std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine() // need remov
 template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
+
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
-    int seqLength, layer, hiddenSize;
+    batchsize                = inflags.GetValueInt("batchsize");
+    int seqLength            = inflags.GetValueInt("seq_len");
+    int inputSize            = inflags.GetValueInt("in_h");
+    int hiddenSize           = inflags.GetValueInt("hid_h");
+    int numLayers            = inflags.GetValueInt("num_layer");
+
+    if(inputSize > seqLength){
+        printf("Input size (%d) cannot be smaller than sequence length (%d).\n", inputSize, seqLength);
+    }
+    
     miopenRNNMode_t mode;
     miopenRNNDirectionMode_t bidir;
     miopenRNNBiasMode_t bias;
     miopenRNNAlgo_t amode;
     miopenRNNInputMode_t inMode;
     miopenDataType_t dType;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &amode,&inMode, &bidir, &bias, &hiddenSize, &layer);
+    int layer;
+    miopenGetRNNDescriptor(rnnDesc, &mode, &amode, &inMode, &bidir, &bias, &hiddenSize, &layer);
+    int biHiddenSize = (bidir == 0) ? hiddenSize : 2 * hiddenSize;
+    int biNumLayers  = (bidir == 0) ? numLayers : 2 * numLayers;
 
     int batch_n = std::accumulate(in_len.begin(), in_len.end() - 1, 0);
     int in_h    = in_len.back();
     int out_h   = out_len[0];
 
-    size_t in_sz  = batch_n * in_h;  // GetTensorSize(inputTensor);
-    size_t out_sz = batch_n * out_h; // GetTensorSize(outputTensor);
+    size_t in_sz  = batch_n * in_h;
+    size_t out_sz = batch_n * out_h;
     size_t hid_sz = 0;
     size_t wei_sz = 0;
 
+    std::vector<int> tensorDims;
+    tensorDims.clear();
+    tensorDims.push_back(biNumLayers);
+    tensorDims.push_back(batchsize);
+    tensorDims.push_back(hiddenSize);
+
+    miopenSetTensorDescriptor(hxDesc, miopenFloat, 3, tensorDims.data(), nullptr);
+    miopenSetTensorDescriptor(hyDesc, miopenFloat, 3, tensorDims.data(), nullptr);
+
+    miopenSetTensorDescriptor(cxDesc, miopenFloat, 3, tensorDims.data(), nullptr);
+    miopenSetTensorDescriptor(cyDesc, miopenFloat, 3, tensorDims.data(), nullptr);
+    miopenSetTensorDescriptor(dcxDesc, miopenFloat, 3, tensorDims.data(), nullptr);
+    miopenSetTensorDescriptor(dcyDesc, miopenFloat, 3, tensorDims.data(), nullptr);
+
+    miopenSetTensorDescriptor(dhyDesc, miopenFloat, 3, tensorDims.data(), nullptr);
+    miopenSetTensorDescriptor(dhxDesc, miopenFloat, 3, tensorDims.data(), nullptr);
+
+    int dims[2];
+    miopenTensorDescriptor_t temp;
+
+    for(int i = 0; i < batchseq.size() && i < seqLength; i++)
+    {
+        if(i > 0 && batchseq[i] > batchseq[i - 1])
+        {
+            printf("Incorrect input batch size at time %d\n", i);
+            break;
+        }
+        else
+        {
+            printf("Adding element to descriptor array.\n");
+            printf("Batch seq value [%d]: %d\n", i, batchseq[i]);
+
+            dims[0] = batchseq[i];
+            dims[1] = in_h;
+            miopenCreateTensorDescriptor(&temp);
+            miopenSetTensorDescriptor(temp, miopenFloat, 2, dims, nullptr);
+            xDesc.push_back(temp);
+            dxDesc.push_back(temp);
+
+            dims[1] = biHiddenSize;
+            miopenSetTensorDescriptor(temp, miopenFloat, 2, dims, nullptr);
+            yDesc.push_back(temp);
+            dyDesc.push_back(temp);
+        }
+    }
+
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
-    { //TODO: DLOWELL : Move these into the library
-        hid_sz = batch_n * hid_len[0] * hid_len[1]; // GetTensorSize(hiddenTensor);
-        wei_sz = wei_len[3] * wei_len[0] *
-                 (wei_len[2] + wei_len[3] + wei_len[4] +
-                  (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]); // GetTensorSize(weightTensor);
+    { // TODO: DLOWELL : Move these into the library
+        hid_sz = batch_n * hid_len[0] * hid_len[1];
+        wei_sz = wei_len[3] * wei_len[0] * (wei_len[2] + wei_len[3] + wei_len[4] +
+                                            (wei_len[1] - 1) * (wei_len[0] + 1) * wei_len[3]);
         if(inflags.GetValueInt("bias") != 0)
         {
             wei_sz +=
                 (wei_len[0] * 2 + (wei_len[1] - 1) * wei_len[0] * (wei_len[0] + 1)) * hid_len[1] +
                 wei_len[0] * out_h;
+        }
+
+        tensorDims.push_back(biHiddenSize);
+        if(inflags.GetValueInt("bias") != 0)
+        {
+            tensorDims.push_back((inputSize + hiddenSize + 2) * numLayers);
+        }
+        else
+        {
+            tensorDims.push_back((inputSize + hiddenSize) * numLayers);
         }
     }
     else if(mode == miopenLSTM)
@@ -501,6 +517,16 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
             wei_sz += (2 + (wei_len[1] - 1) * (wei_len[0] + 1)) * 4 * wei_len[3] * wei_len[0] +
                       wei_len[0] * out_h;
         }
+
+        tensorDims.push_back(biHiddenSize);
+        if(inflags.GetValueInt("bias") != 0)
+        {
+            tensorDims.push_back(4 * (inputSize + hiddenSize + 2) * numLayers);
+        }
+        else
+        {
+            tensorDims.push_back(4 * (inputSize + hiddenSize) * numLayers);
+        }
     }
     else if(mode == miopenGRU)
     {
@@ -515,11 +541,24 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
             wei_sz += (2 + (wei_len[1] - 1) * (wei_len[0] + 1)) * 3 * wei_len[3] * wei_len[0] +
                       wei_len[0] * out_h;
         }
+
+        tensorDims.push_back(biHiddenSize);
+        if(inflags.GetValueInt("bias") != 0)
+        {
+            tensorDims.push_back(3 * (inputSize + hiddenSize + 2) * numLayers);
+        }
+        else
+        {
+            tensorDims.push_back(3 * (inputSize + hiddenSize) * numLayers);
+        }
     }
+
+    miopenSetTensorDescriptor(wDesc, miopenFloat, 2, tensorDims.data(), nullptr);
+    miopenSetTensorDescriptor(dwDesc, miopenFloat, 2, tensorDims.data(), nullptr);
 
     size_t hy_sz = in_len[0] * hid_len[1] * wei_len[0] * wei_len[1];
 
-    size_t workSpaceSize = hid_sz * sizeof(T);
+    size_t workSpaceSize    = hid_sz * sizeof(T);
     size_t reserveSpaceSize = hid_sz * sizeof(T);
 
 #if MIOPEN_BACKEND_OPENCL
@@ -529,42 +568,41 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 #elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
-    in_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    wei_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
-    dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
-    dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
-    out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
-    hx_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
-    cx_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
-    hy_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
-    cy_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
-    dhx_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
-    dcx_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
-    dhy_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
-    dcy_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
-    workspace_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize / sizeof(T), sizeof(T)));
+    in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
+    din_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
+    wei_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
+    dwei_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
+    dout_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+    out_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+    hx_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+    cx_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+    hy_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+    cy_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+    dhx_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+    dcx_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+    dhy_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+    dcy_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(float)));
+    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize / sizeof(T), sizeof(T)));
     reservespace_dev =
         std::unique_ptr<GPUMem>(new GPUMem(ctx, reserveSpaceSize / sizeof(T), sizeof(T)));
 
-    in   = std::vector<T>(in_sz);
-    din  = std::vector<T>(in_sz, 0);
-    wei  = std::vector<T>(wei_sz);
-    dwei = std::vector<T>(wei_sz, 0);
-    dout = std::vector<T>(out_sz, 0);
-    out  = std::vector<T>(out_sz, 0);
-    hx   = std::vector<T>(hy_sz, 0);
-    cx   = std::vector<T>(hy_sz, 0);
-    hy   = std::vector<T>(hy_sz, 0);
-    cy   = std::vector<T>(hy_sz, 0);
-    dhx  = std::vector<T>(hy_sz, 0);
-    dcx  = std::vector<T>(hy_sz, 0);
-    dhy  = std::vector<T>(hy_sz, 0);
-    dcy  = std::vector<T>(hy_sz, 0);
-    workspace    = std::vector<T>(workSpaceSize / sizeof(T), 0);
-    reservespace = std::vector<T>(reserveSpaceSize / sizeof(T), 0);
-    outhost      = std::vector<T>(out_sz, 0);
+    in                = std::vector<T>(in_sz);
+    din               = std::vector<T>(in_sz, 0);
+    wei               = std::vector<T>(wei_sz);
+    dwei              = std::vector<T>(wei_sz, 0);
+    dout              = std::vector<T>(out_sz, 0);
+    out               = std::vector<T>(out_sz, 0);
+    hx                = std::vector<T>(hy_sz, 0);
+    cx                = std::vector<T>(hy_sz, 0);
+    hy                = std::vector<T>(hy_sz, 0);
+    cy                = std::vector<T>(hy_sz, 0);
+    dhx               = std::vector<T>(hy_sz, 0);
+    dcx               = std::vector<T>(hy_sz, 0);
+    dhy               = std::vector<T>(hy_sz, 0);
+    dcy               = std::vector<T>(hy_sz, 0);
+    workspace         = std::vector<T>(workSpaceSize / sizeof(T), 0);
+    reservespace      = std::vector<T>(reserveSpaceSize / sizeof(T), 0);
+    outhost           = std::vector<T>(out_sz, 0);
     workspace_host    = std::vector<T>(workSpaceSize / sizeof(T), 0);
     reservespace_host = std::vector<T>(reserveSpaceSize / sizeof(T), 0);
     dwei_host         = std::vector<T>(wei_sz, 0);
@@ -577,8 +615,9 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     std::string inFileName  = inflags.GetValueStr("in_data");
     std::string weiFileName = inflags.GetValueStr("weights");
 
-    /* Unless seed is persistent between runs validation using cache stored in file is impossible.
-     */
+    /*
+    Unless seed is persistent between runs validation using cache stored in file is impossible.
+    */
     srand(0);
 
     bool dataRead = false;
@@ -647,30 +686,30 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     }
 
 #if MIOPEN_BACKEND_OPENCL
-cl_int status;
+    cl_int status;
 #elif MIOPEN_BACKEND_HIP
 #define CL_SUCCESS 0
-int status;
+    int status;
 #endif
-status = in_dev->ToGPU(q, in.data());
-status |= din_dev->ToGPU(q, din.data());
-status |= wei_dev->ToGPU(q, wei.data());
-status |= dwei_dev->ToGPU(q, dwei.data());
-status |= dout_dev->ToGPU(q, dout.data());
-status |= out_dev->ToGPU(q, out.data());
-status |= hx_dev->ToGPU(q, hx.data());
-status |= cx_dev->ToGPU(q, cx.data());
-status |= hy_dev->ToGPU(q, hy.data());
-status |= cy_dev->ToGPU(q, cy.data());
-status |= dhx_dev->ToGPU(q, dhx.data());
-status |= dcx_dev->ToGPU(q, dcx.data());
-status |= dhy_dev->ToGPU(q, dhy.data());
-status |= dcy_dev->ToGPU(q, dcy.data());
-status |= workspace_dev->ToGPU(q, workspace.data());
-status |= reservespace_dev->ToGPU(q, reservespace.data());
+    status = in_dev->ToGPU(q, in.data());
+    status |= din_dev->ToGPU(q, din.data());
+    status |= wei_dev->ToGPU(q, wei.data());
+    status |= dwei_dev->ToGPU(q, dwei.data());
+    status |= dout_dev->ToGPU(q, dout.data());
+    status |= out_dev->ToGPU(q, out.data());
+    status |= hx_dev->ToGPU(q, hx.data());
+    status |= cx_dev->ToGPU(q, cx.data());
+    status |= hy_dev->ToGPU(q, hy.data());
+    status |= cy_dev->ToGPU(q, cy.data());
+    status |= dhx_dev->ToGPU(q, dhx.data());
+    status |= dcx_dev->ToGPU(q, dcx.data());
+    status |= dhy_dev->ToGPU(q, dhy.data());
+    status |= dcy_dev->ToGPU(q, dcy.data());
+    status |= workspace_dev->ToGPU(q, workspace.data());
+    status |= reservespace_dev->ToGPU(q, reservespace.data());
 
-if(status != CL_SUCCESS)
-    printf("Error copying data to GPU\n");
+    if(status != CL_SUCCESS)
+        printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;
 }
@@ -678,95 +717,82 @@ if(status != CL_SUCCESS)
 template <typename T>
 int RNNDriver<T>::RunForwardGPU()
 {
-	std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
-	int in_h;
-	in_h = in_n.back();
-	in_n.pop_back();
+    std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+    int in_h;
+    in_h = in_n.back();
+    in_n.pop_back();
 
-	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
-	int out_h = out_len[0];
+    std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+    int out_h                = out_len[0];
 
-	int hy_d, hy_n, hy_h;
-	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
+    int hy_d, hy_n, hy_h;
+    std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
 
-	hy_d = hid_len[0];
-	hy_n = in_n[0];
-	hy_h = hid_len[1];
+    hy_d = hid_len[0];
+    hy_n = in_n[0];
+    hy_h = hid_len[1];
 
-//int ret_algo_count;
-//int request_algo_count = 2;
-//std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
-int seqLength = inflags.GetValueInt("seq_len");
+    int seqLength = inflags.GetValueInt("seq_len");
 
-//FindForward(ret_algo_count, request_algo_count, perf_results);
+    // Timer t;
+    // START_TIME;
 
-//int alpha = 1, beta = 1;
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
 
-//Timer t;
-//START_TIME;
+        std::fill(out.begin(), out.end(), 0);
+        out_dev->ToGPU(GetStream(), out.data());
 
-for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-{
-    // Clearing out the output incase GEMM is chosen as the algo
-    std::fill(out.begin(), out.end(), 0);
-    out_dev->ToGPU(GetStream(), out.data());
+        miopenRNNForwardTraining(GetHandle(),
+                                 rnnDesc,
+                                 seqLength,
+                                 xDesc.data(),
+                                 in_dev->GetMem(),
+                                 hxDesc,
+                                 hx_dev->GetMem(),
+                                 cxDesc,
+                                 cx_dev->GetMem(),
+                                 wDesc,
+                                 wei_dev->GetMem(),
+                                 yDesc.data(),
+                                 out_dev->GetMem(),
+                                 hyDesc,
+                                 hy_dev->GetMem(),
+                                 cyDesc,
+                                 cy_dev->GetMem(),
+                                 workspace_dev->GetMem(),
+                                 workspace_dev->GetSize(),
+                                 reservespace_dev->GetMem(),
+                                 reservespace_dev->GetSize());
+    }
+    /*
+    if(inflags.GetValueInt("time") == 1)
+    {
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
 
-    miopenRNNForwardTraining(GetHandle(),
-		                     rnnDesc,
-		                     seqLength,
-                             inputTensor,  
-                             in_dev->GetMem(),
-		                     hiddenTensor,
-		                     hx_dev->GetMem(),
-		                     hiddenTensor,
-		                     cx_dev->GetMem(),
-                             weightTensor,
-                             wei_dev->GetMem(),
-                             outputTensor,
-                             out_dev->GetMem(),
-		                     hiddenTensor,
-		                     hy_dev->GetMem(),
-		                     hiddenTensor,
-		                     cy_dev->GetMem(),
-                             workspace_dev->GetMem(),
-                             workspace_dev->GetSize(),
-		                     reservespace_dev->GetMem(),
-		                     reservespace_dev->GetSize(),
-		in_n,
-		in_h,
-		hy_d,
-		hy_n,
-		hy_h,
-		out_h);
-}
-/*
-if(inflags.GetValueInt("time") == 1)
-{
-    float time = 0.0;
-    miopenGetKernelTime(GetHandle(), &time);
+        STOP_TIME;
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Forward RNN Elapsed: %f ms\n",
+                   t.gettime_ms() / inflags.GetValueInt("iter"));
 
-    STOP_TIME;
-    if(WALL_CLOCK)
-        printf("Wall-clock Time Forward RNN Elapsed: %f ms\n",
-               t.gettime_ms() / inflags.GetValueInt("iter"));
-
-    printf("MIOpen Forward RNN Algorithm: %d\n", perf_results[0].fwd_algo);
-    printf("GPU Kernel Time Forward RNN Elapsed: %f ms\n", time);
-}
-*/
-
-out_dev->FromGPU(GetStream(), out.data());
-hy_dev->FromGPU(GetStream(), hy.data());
-cy_dev->FromGPU(GetStream(), cy.data());
-reservespace_dev->FromGPU(GetStream(), reservespace.data());
-
-/*
-if(inflags.GetValueInt("dump_output"))
-{
-    dumpBufferToFile("dump_fwd_out_gpu.bin", out.data(), out.size());
-}
-
+        printf("MIOpen Forward RNN Algorithm: %d\n", perf_results[0].fwd_algo);
+        printf("GPU Kernel Time Forward RNN Elapsed: %f ms\n", time);
+    }
     */
+
+    out_dev->FromGPU(GetStream(), out.data());
+    hy_dev->FromGPU(GetStream(), hy.data());
+    cy_dev->FromGPU(GetStream(), cy.data());
+    reservespace_dev->FromGPU(GetStream(), reservespace.data());
+
+    /*
+    if(inflags.GetValueInt("dump_output"))
+    {
+        dumpBufferToFile("dump_fwd_out_gpu.bin", out.data(), out.size());
+    }
+
+        */
 
     return miopenStatusSuccess;
 }
@@ -778,50 +804,9 @@ int RNNDriver<T>::RunForwardCPU()
     int in_h;
     in_h = in_n.back();
     in_n.pop_back();
-
-    //    int in_n, in_c, in_h, in_w;
-    //    int in_nstride, in_cstride, in_hstride, in_wstride;
-    //    miopenDataType_t dt;
-
-    /*
-miopenGet4dTensorDescriptor(inputTensor,
-                            &dt,
-                            &in_n,
-                            &in_c,
-                            &in_h,
-                            &in_w,
-                            &in_nstride,
-                            &in_cstride,
-                            &in_hstride,
-                            &in_wstride);
-    */
-
-    //    int wei_n, wei_c, wei_h, wei_w;
-    //    int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-    //	miopenGet4dTensorDescriptor(weightTensor, &dt,
-    //			&wei_n, &wei_c, &wei_h, &wei_w,
-    //			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
-
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
     int out_h                = out_len[0];
-
-    //    int out_n, out_c, out_h, out_w;
-    //    int out_nstride, out_cstride, out_hstride, out_wstride;
-
-    /*
-    miopenGet4dTensorDescriptor(outputTensor,
-                            &dt,
-                            &out_n,
-                            &out_c,
-                            &out_h,
-                            &out_w,
-                            &out_nstride,
-                            &out_cstride,
-                            &out_hstride,
-                            &out_wstride);
-    */
-
-    int seqLength, layer, hiddenSize;
+    int layer, hiddenSize;
     bool bidirection, biased;
     miopenRNNMode_t mode;
     miopenRNNDirectionMode_t bidir;
@@ -829,10 +814,11 @@ miopenGet4dTensorDescriptor(inputTensor,
     miopenRNNAlgo_t amode;
     miopenRNNInputMode_t inMode;
     miopenDataType_t dType;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &amode,&inMode, &bidir, &bias, &hiddenSize, &layer);
+    miopenGetRNNDescriptor(rnnDesc, &mode, &amode, &inMode, &bidir, &bias, &hiddenSize, &layer);
 
-    bidirection = (bidir != 0);
-    biased = (bias != 0);
+    int seqLength = inflags.GetValueInt("seq_len");
+    bidirection   = (bidir != 0);
+    biased        = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -845,24 +831,23 @@ miopenGet4dTensorDescriptor(inputTensor,
     {
         printf("reach rnn fwd \n");
 
-/*        RunRNNForwardCPUVerify(in,
-                               wei,
-                               hy,
-                               hx,
-                               out,
-                               in_n,
-                               in_h,
-                               seqLength,
-                               bidirection,
-                               biased,
-                               hy_d,
-                               hy_n,
-                               hy_h,
-                               out_h,
-                               mode,
-                               reservespace);
-							   */
-
+        /*        RunRNNForwardCPUVerify(in,
+                                       wei,
+                                       hy,
+                                       hx,
+                                       out,
+                                       in_n,
+                                       in_h,
+                                       seqLength,
+                                       bidirection,
+                                       biased,
+                                       hy_d,
+                                       hy_n,
+                                       hy_h,
+                                       out_h,
+                                       mode,
+                                       reservespace);
+                                                                   */
 
         RunRNNForwardGEMMCPUVerify(in,
                                    wei,
@@ -879,31 +864,31 @@ miopenGet4dTensorDescriptor(inputTensor,
                                    hy_h,
                                    out_h,
                                    mode,
-			workspace_host,
+                                   workspace_host,
                                    reservespace_host);
     }
     else if(mode == miopenLSTM)
     {
         printf("reach lstm fwd \n");
 
- /*       RunLSTMForwardCPUVerify(in,
-                                wei,
-                                hy,
-                                hx,
-                                cy,
-                                cx,
-                                out,
-                                in_n,
-                                in_h,
-                                seqLength,
-                                bidirection,
-                                biased,
-                                hy_d,
-                                hy_n,
-                                hy_h,
-                                out_h,
-                                reservespace);
-								*/
+        /*       RunLSTMForwardCPUVerify(in,
+                                       wei,
+                                       hy,
+                                       hx,
+                                       cy,
+                                       cx,
+                                       out,
+                                       in_n,
+                                       in_h,
+                                       seqLength,
+                                       bidirection,
+                                       biased,
+                                       hy_d,
+                                       hy_n,
+                                       hy_h,
+                                       out_h,
+                                       reservespace);
+                                                                       */
 
         RunLSTMForwardGEMMCPUVerify(in,
                                     wei,
@@ -927,22 +912,22 @@ miopenGet4dTensorDescriptor(inputTensor,
     {
         printf("reach gru fwd \n");
 
-/*        RunGRUForwardCPUVerify(in,
-                               wei,
-                               hy,
-                               hx,
-                               out,
-                               in_n,
-                               in_h,
-                               seqLength,
-                               bidirection,
-                               biased,
-                               hy_d,
-                               hy_n,
-                               hy_h,
-                               out_h,
-                               reservespace);
-							   */
+        /*        RunGRUForwardCPUVerify(in,
+                                       wei,
+                                       hy,
+                                       hx,
+                                       out,
+                                       in_n,
+                                       in_h,
+                                       seqLength,
+                                       bidirection,
+                                       biased,
+                                       hy_d,
+                                       hy_n,
+                                       hy_h,
+                                       out_h,
+                                       reservespace);
+                                                                   */
 
         RunGRUForwardGEMMCPUVerify(in,
                                    wei,
@@ -977,144 +962,121 @@ miopenGet4dTensorDescriptor(inputTensor,
 template <typename T>
 int RNNDriver<T>::RunBackwardGPU()
 {
-	std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
-	int in_h;
-	in_h = in_n.back();
-	in_n.pop_back();
+    std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+    int in_h;
+    in_h = in_n.back();
+    in_n.pop_back();
 
-	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
-	int out_h = out_len[0];
+    std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+    int out_h                = out_len[0];
 
-	int hy_d, hy_n, hy_h;
-	std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
+    int hy_d, hy_n, hy_h;
+    std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
 
-	hy_d = hid_len[0];
-	hy_n = in_n[0];
-	hy_h = hid_len[1];
+    hy_d = hid_len[0];
+    hy_n = in_n[0];
+    hy_h = hid_len[1];
 
-	//int ret_algo_count;
-	//int request_algo_count = 2;
-	//std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
-	int seqLength = inflags.GetValueInt("seq_len");
+    int seqLength = inflags.GetValueInt("seq_len");
 
-	//FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
+    int ret = 0;
 
-	//int alpha = 1, beta = 1;
-	int ret = 0;
+    // Timer t;
+    // START_TIME;
 
-	//Timer t;
-	//START_TIME;
+    workspace_dev->ToGPU(q, workspace.data());
 
-	workspace_dev->ToGPU(q, workspace.data());
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
+        ret = miopenRNNBackwardData(GetHandle(),
+                                    rnnDesc,
+                                    seqLength,
+                                    yDesc.data(),
+                                    out_dev->GetMem(), // why we need this
+                                    dyDesc.data(),
+                                    dout_dev->GetMem(),
+                                    dhyDesc,
+                                    dhy_dev->GetMem(),
+                                    dcyDesc,
+                                    dcy_dev->GetMem(),
+                                    wDesc,
+                                    wei_dev->GetMem(),
+                                    hxDesc,
+                                    hx_dev->GetMem(),
+                                    cxDesc,
+                                    cx_dev->GetMem(),
+                                    dxDesc.data(),
+                                    din_dev->GetMem(),
+                                    dhxDesc,
+                                    dhx_dev->GetMem(),
+                                    dcxDesc,
+                                    dcx_dev->GetMem(),
+                                    workspace_dev->GetMem(),
+                                    workspace_dev->GetSize(),
+                                    reservespace_dev->GetMem(),
+                                    reservespace_dev->GetSize());
+    }
 
-for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-{
-    ret = miopenRNNBackwardData(GetHandle(),
-    	rnnDesc,
-		seqLength,
-		outputTensor,
-		out_dev->GetMem(),  // why we need this
-		outputTensor,
-		dout_dev->GetMem(),
-		hiddenTensor,
-		dhy_dev->GetMem(),
-		hiddenTensor,
-		dcy_dev->GetMem(),
-		weightTensor,
-		wei_dev->GetMem(),
-		hiddenTensor,
-		hx_dev->GetMem(),
-		hiddenTensor,
-		cx_dev->GetMem(),
-		inputTensor,
-		din_dev->GetMem(),
-		hiddenTensor,
-		dhx_dev->GetMem(),
-		hiddenTensor,
-		dcx_dev->GetMem(),
-		workspace_dev->GetMem(),
-		workspace_dev->GetSize(),
-		reservespace_dev->GetMem(),
-		reservespace_dev->GetSize(),
-	in_n,
-		in_h,
-		hy_d,
-		hy_n,
-		hy_h,
-		out_h);
-}
+    /*
+    if(inflags.GetValueInt("time") == 1)
+    {
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
 
-/*
-if(inflags.GetValueInt("time") == 1)
-{
-    float time = 0.0;
-    miopenGetKernelTime(GetHandle(), &time);
+        STOP_TIME;
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Backward Data RNN Elapsed: %f ms\n",
+                   t.gettime_ms() / inflags.GetValueInt("iter"));
 
-    STOP_TIME;
-    if(WALL_CLOCK)
-        printf("Wall-clock Time Backward Data RNN Elapsed: %f ms\n",
-               t.gettime_ms() / inflags.GetValueInt("iter"));
-
-    printf("MIOpen Backward Data RNN Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
-    printf("GPU Kernel Time Backward Data RNN Elapsed: %f ms\n", time);
-}
-*/
-
-din_dev->FromGPU(GetStream(), din.data());
-dhx_dev->FromGPU(GetStream(), dhx.data());
-dcx_dev->FromGPU(GetStream(), dcx.data());
-workspace_dev->FromGPU(GetStream(), workspace.data());
-
-/*
-std::vector<miopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
-
-FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
-*/
-ret = miopenRNNBackwardWeights(GetHandle(),
-	rnnDesc,
-	seqLength,
-	inputTensor,
-	in_dev->GetMem(),
-	hiddenTensor,
-	hx_dev->GetMem(),
-	outputTensor,
-	dout_dev->GetMem(),  //???? out in cudnn
-	workspace_dev->GetMem(),
-	workspace_dev->GetSize(),
-	weightTensor,
-	dwei_dev->GetMem(),
-	reservespace_dev->GetMem(),
-	reservespace_dev->GetSize(),
-	in_n,
-	in_h,
-	hy_d,
-	hy_n,
-	hy_h,
-	out_h);
-
-/*
-if(inflags.GetValueInt("time") == 1)
-{
-    float time = 0.0;
-    miopenGetKernelTime(GetHandle(), &time);
-    printf("MIOpen Backward Weights RNN Algorithm: %d\n",
-           perf_results_weights[0].bwd_weights_algo);
-    printf("GPU Kernel Time Backward Weights RNN Elapsed: %f ms\n", time);
-}
-*/
-dwei_dev->FromGPU(GetStream(), dwei.data());
-/*
-if(perf_results_weights[0].bwd_weights_algo == 0)
-{ // miopenRNNBwdWeightsAlgoGEMM
-    workspace_bwd_dev->FromGPU(GetStream(), workspace_bwd.data());
-}
-
-if(inflags.GetValueInt("dump_output"))
-{
-    dumpBufferToFile("dump_bwd_din_gpu.bin", din.data(), din.size());
-    dumpBufferToFile("dump_bwd_dwei_gpu.bin", dwei.data(), dwei.size());
-}
+        printf("MIOpen Backward Data RNN Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
+        printf("GPU Kernel Time Backward Data RNN Elapsed: %f ms\n", time);
+    }
     */
+
+    din_dev->FromGPU(GetStream(), din.data());
+    dhx_dev->FromGPU(GetStream(), dhx.data());
+    dcx_dev->FromGPU(GetStream(), dcx.data());
+    workspace_dev->FromGPU(GetStream(), workspace.data());
+
+    ret = miopenRNNBackwardWeights(GetHandle(),
+                                   rnnDesc,
+                                   seqLength,
+                                   xDesc.data(),
+                                   in_dev->GetMem(),
+                                   hxDesc,
+                                   hx_dev->GetMem(),
+                                   yDesc.data(),
+                                   dout_dev->GetMem(), //???? out in cudnn
+                                   dwDesc,
+                                   dwei_dev->GetMem(),
+                                   workspace_dev->GetMem(),
+                                   workspace_dev->GetSize(),
+                                   reservespace_dev->GetMem(),
+                                   reservespace_dev->GetSize());
+
+    /*
+    if(inflags.GetValueInt("time") == 1)
+    {
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        printf("MIOpen Backward Weights RNN Algorithm: %d\n",
+               perf_results_weights[0].bwd_weights_algo);
+        printf("GPU Kernel Time Backward Weights RNN Elapsed: %f ms\n", time);
+    }
+    */
+    dwei_dev->FromGPU(GetStream(), dwei.data());
+    /*
+    if(perf_results_weights[0].bwd_weights_algo == 0)
+    { // miopenRNNBwdWeightsAlgoGEMM
+        workspace_bwd_dev->FromGPU(GetStream(), workspace_bwd.data());
+    }
+
+    if(inflags.GetValueInt("dump_output"))
+    {
+        dumpBufferToFile("dump_bwd_din_gpu.bin", din.data(), din.size());
+        dumpBufferToFile("dump_bwd_dwei_gpu.bin", dwei.data(), dwei.size());
+    }
+        */
 
     return ret;
 }
@@ -1127,59 +1089,23 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     int in_h;
     in_h = in_n.back();
     in_n.pop_back();
-
-    /*
-int in_n, in_c, in_h, in_w;
-int in_nstride, in_cstride, in_hstride, in_wstride;
-miopenDataType_t dt;
-
-
-miopenGet4dTensorDescriptor(inputTensor,
-                            &dt,
-                            &in_n,
-                            &in_c,
-                            &in_h,
-                            &in_w,
-                            &in_nstride,
-                            &in_cstride,
-                            &in_hstride,
-                            &in_wstride);
-
-
-int wei_n, wei_c, wei_h, wei_w;
-int wei_nstride, wei_cstride, wei_hstride, wei_wstride;   */
-    //	miopenGet4dTensorDescriptor(weightTensor, &dt,
-    //			&wei_n, &wei_c, &wei_h, &wei_w,
-    //			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
-
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
     int out_h                = out_len[0];
 
-    /*
-int out_n, out_c, out_h, out_w;
-int out_nstride, out_cstride, out_hstride, out_wstride;
-
-
-miopenGet4dTensorDescriptor(outputTensor,
-                            &dt,
-                            &out_n,
-                            &out_c,
-                            &out_h,
-                            &out_w,
-                            &out_nstride,
-                            &out_cstride,
-                            &out_hstride,
-                            &out_wstride);
-    */
-
-    int seqLength, layer, bidir, bias;
     bool bidirection, biased;
+    int layer, hiddenSize;
     miopenRNNMode_t mode;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir, &bias);
+    miopenRNNDirectionMode_t bidir;
+    miopenRNNBiasMode_t bias;
+    miopenRNNAlgo_t amode;
+    miopenRNNInputMode_t inMode;
+    miopenDataType_t dType;
+    miopenGetRNNDescriptor(rnnDesc, &mode, &amode, &inMode, &bidir, &bias, &hiddenSize, &layer);
+
+    int seqLength = inflags.GetValueInt("seq_len");
 
     bidirection = (bidir != 0);
-//    biased      = (inflags.GetValueInt("bias") != 0);
-	  biased = (bias != 0);
+    biased      = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -1192,23 +1118,23 @@ miopenGet4dTensorDescriptor(outputTensor,
     {
         printf("reach rnn bwdwei \n");
 
-/*        RunRNNBackwardWeightCPUVerify(in,
-                                      dwei,
-                                      hx,
-                                      dout,
-                                      in_n,
-                                      in_h,
-                                      seqLength,
-                                      bidirection,
-                                      biased,
-                                      hy_d,
-                                      hy_n,
-                                      hy_h,
-                                      out_h,
-                                      mode,
-                                      reservespace,
-                                      workspace);
-									  */
+        /*        RunRNNBackwardWeightCPUVerify(in,
+                                              dwei,
+                                              hx,
+                                              dout,
+                                              in_n,
+                                              in_h,
+                                              seqLength,
+                                              bidirection,
+                                              biased,
+                                              hy_d,
+                                              hy_n,
+                                              hy_h,
+                                              out_h,
+                                              mode,
+                                              reservespace,
+                                              workspace);
+                                                                                  */
 
         RunRNNBackwardWeightGEMMCPUVerify(in,
                                           dwei_host,
@@ -1231,22 +1157,22 @@ miopenGet4dTensorDescriptor(outputTensor,
     {
         printf("reach lstm bwdwei \n");
 
- /*       RunLSTMBackwardWeightCPUVerify(in,
-                                       dwei,
-                                       hx,
-                                       dout,
-                                       in_n,
-                                       in_h,
-                                       seqLength,
-                                       bidirection,
-                                       biased,
-                                       hy_d,
-                                       hy_n,
-                                       hy_h,
-                                       out_h,
-                                       reservespace,
-                                       workspace);
-									   */
+        /*       RunLSTMBackwardWeightCPUVerify(in,
+                                              dwei,
+                                              hx,
+                                              dout,
+                                              in_n,
+                                              in_h,
+                                              seqLength,
+                                              bidirection,
+                                              biased,
+                                              hy_d,
+                                              hy_n,
+                                              hy_h,
+                                              out_h,
+                                              reservespace,
+                                              workspace);
+                                                                                  */
 
         RunLSTMBackwardWeightGEMMCPUVerify(in,
                                            dwei_host,
@@ -1268,22 +1194,22 @@ miopenGet4dTensorDescriptor(outputTensor,
     {
         printf("reach gru bwdwei \n");
 
- /*       RunGRUBackwardWeightCPUVerify(in,
-                                      dwei,
-                                      hx,
-                                      dout,
-                                      in_n,
-                                      in_h,
-                                      seqLength,
-                                      bidirection,
-                                      biased,
-                                      hy_d,
-                                      hy_n,
-                                      hy_h,
-                                      out_h,
-                                      reservespace,
-                                      workspace);
-									  */
+        /*       RunGRUBackwardWeightCPUVerify(in,
+                                             dwei,
+                                             hx,
+                                             dout,
+                                             in_n,
+                                             in_h,
+                                             seqLength,
+                                             bidirection,
+                                             biased,
+                                             hy_d,
+                                             hy_n,
+                                             hy_h,
+                                             out_h,
+                                             reservespace,
+                                             workspace);
+                                                                                 */
 
         RunGRUBackwardWeightGEMMCPUVerify(in,
                                           dwei_host,
@@ -1323,58 +1249,22 @@ int RNNDriver<T>::RunBackwardDataCPU()
     in_h = in_n.back();
     in_n.pop_back();
 
-    /*
-int in_n, in_c, in_h, in_w;
-int in_nstride, in_cstride, in_hstride, in_wstride;
-miopenDataType_t dt;
-
-
-miopenGet4dTensorDescriptor(inputTensor,
-                            &dt,
-                            &in_n,
-                            &in_c,
-                            &in_h,
-                            &in_w,
-                            &in_nstride,
-                            &in_cstride,
-                            &in_hstride,
-                            &in_wstride);
-
-
-int wei_n, wei_c, wei_h, wei_w;
-int wei_nstride, wei_cstride, wei_hstride, wei_wstride; */
-    //	miopenGet4dTensorDescriptor(weightTensor, &dt,
-    //			&wei_n, &wei_c, &wei_h, &wei_w,
-    //			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
-
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
     int out_h                = out_len[0];
 
-    /*
-int out_n, out_c, out_h, out_w;
-int out_nstride, out_cstride, out_hstride, out_wstride;
-
-
-miopenGet4dTensorDescriptor(outputTensor,
-                            &dt,
-                            &out_n,
-                            &out_c,
-                            &out_h,
-                            &out_w,
-                            &out_nstride,
-                            &out_cstride,
-                            &out_hstride,
-                            &out_wstride);
-    */
-
-    int seqLength, layer, bidir, bias;
+    int layer, hiddenSize;
     bool bidirection, biased;
     miopenRNNMode_t mode;
-    miopenGetRNNDescriptor(rnnDesc, &mode, &seqLength, &layer, &bidir, &bias);
+    miopenRNNDirectionMode_t bidir;
+    miopenRNNBiasMode_t bias;
+    miopenRNNAlgo_t amode;
+    miopenRNNInputMode_t inMode;
+    miopenDataType_t dType;
+    miopenGetRNNDescriptor(rnnDesc, &mode, &amode, &inMode, &bidir, &bias, &hiddenSize, &layer);
 
-    bidirection = (bidir != 0);
-//    biased      = (inflags.GetValueInt("bias") != 0);
-	  biased = (bias != 0);
+    int seqLength = inflags.GetValueInt("seq_len");
+    bidirection   = (bidir != 0);
+    biased        = (bias != 0);
 
     int hy_d, hy_n, hy_h;
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -1387,26 +1277,26 @@ miopenGet4dTensorDescriptor(outputTensor,
     {
         printf("reach rnn bwddata \n");
 
-/*        RunRNNBackwardDataCPUVerify(din,
-                                    wei,
-                                    dhy,
-                                    dhx,
-                                    hx,
-                                    out,
-                                    dout,
-                                    in_n,
-                                    in_h,
-                                    seqLength,
-                                    bidirection,
-                                    biased,
-                                    hy_d,
-                                    hy_n,
-                                    hy_h,
-                                    out_h,
-                                    mode,
-                                    reservespace,
-                                    workspace);
-									*/
+        /*        RunRNNBackwardDataCPUVerify(din,
+                                            wei,
+                                            dhy,
+                                            dhx,
+                                            hx,
+                                            out,
+                                            dout,
+                                            in_n,
+                                            in_h,
+                                            seqLength,
+                                            bidirection,
+                                            biased,
+                                            hy_d,
+                                            hy_n,
+                                            hy_h,
+                                            out_h,
+                                            mode,
+                                            reservespace,
+                                            workspace);
+                                                                                */
 
         RunRNNBackwardDataGEMMCPUVerify(din_host,
                                         wei,
@@ -1432,28 +1322,28 @@ miopenGet4dTensorDescriptor(outputTensor,
     {
         printf("reach lstm bwddata \n");
 
-/*        RunLSTMBackwardDataCPUVerify(din,
-                                     wei,
-                                     dhy,
-                                     dhx,
-                                     hx,
-                                     dcy,
-                                     dcx,
-                                     cx,
-                                     out,
-                                     dout,
-                                     in_n,
-                                     in_h,
-                                     seqLength,
-                                     bidirection,
-                                     biased,
-                                     hy_d,
-                                     hy_n,
-                                     hy_h,
-                                     out_h,
-                                     reservespace,
-                                     workspace);
-									 */
+        /*        RunLSTMBackwardDataCPUVerify(din,
+                                             wei,
+                                             dhy,
+                                             dhx,
+                                             hx,
+                                             dcy,
+                                             dcx,
+                                             cx,
+                                             out,
+                                             dout,
+                                             in_n,
+                                             in_h,
+                                             seqLength,
+                                             bidirection,
+                                             biased,
+                                             hy_d,
+                                             hy_n,
+                                             hy_h,
+                                             out_h,
+                                             reservespace,
+                                             workspace);
+                                                                                 */
 
         RunLSTMBackwardDataGEMMCPUVerify(din_host,
                                          wei,
@@ -1481,25 +1371,25 @@ miopenGet4dTensorDescriptor(outputTensor,
     {
         printf("reach gru bwddata \n");
 
- /*       RunGRUBackwardDataCPUVerify(din,
-                                    wei,
-                                    dhy,
-                                    dhx,
-                                    hx,
-                                    out,
-                                    dout,
-                                    in_n,
-                                    in_h,
-                                    seqLength,
-                                    bidirection,
-                                    biased,
-                                    hy_d,
-                                    hy_n,
-                                    hy_h,
-                                    out_h,
-                                    reservespace,
-                                    workspace);
-									*/
+        /*       RunGRUBackwardDataCPUVerify(din,
+                                           wei,
+                                           dhy,
+                                           dhx,
+                                           hx,
+                                           out,
+                                           dout,
+                                           in_n,
+                                           in_h,
+                                           seqLength,
+                                           bidirection,
+                                           biased,
+                                           hy_d,
+                                           hy_n,
+                                           hy_h,
+                                           out_h,
+                                           reservespace,
+                                           workspace);
+                                                                               */
 
         RunGRUBackwardDataGEMMCPUVerify(din_host,
                                         wei,
@@ -1648,16 +1538,16 @@ int RNNDriver<T>::VerifyForward()
         }
     }
 
-	auto error4 = miopen::rms_range(reservespace_host, reservespace);
+    auto error4 = miopen::rms_range(reservespace_host, reservespace);
 
-	if (!(error4 < tolerance))
-	{
-		std::cout << std::string("reserve space Failed: ") << error4 << "\n";
-	}
-	else
-	{
-		printf("reserve space Verifies on CPU and GPU\n");
-	}
+    if(!(error4 < tolerance))
+    {
+        std::cout << std::string("reserve space Failed: ") << error4 << "\n";
+    }
+    else
+    {
+        printf("reserve space Verifies on CPU and GPU\n");
+    }
 
     return 0;
 }
@@ -1710,17 +1600,17 @@ int RNNDriver<T>::VerifyBackward()
         }
     }
 
-	auto error_data4 = miopen::rms_range(workspace_host, workspace);
+    auto error_data4 = miopen::rms_range(workspace_host, workspace);
 
-	if (!(error_data4 < tolerance))
-	{
-		std::cout << std::string("work space Failed: ") << error_data4 << "\n";
-	}
-	else
-	{
-		printf("work space Verifies on CPU and GPU\n");
-	}
-	
+    if(!(error_data4 < tolerance))
+    {
+        std::cout << std::string("work space Failed: ") << error_data4 << "\n";
+    }
+    else
+    {
+        printf("work space Verifies on CPU and GPU\n");
+    }
+
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
         RunBackwardWeightsCPU();

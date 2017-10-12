@@ -28,8 +28,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/env.hpp>
 
-//MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-//MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
+// MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+// MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 // Disable specific warnings
 #ifdef __clang__
@@ -39,30 +39,17 @@
 
 namespace miopen {
 
-/*
-std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& c)
-{
-    stream << c.pad_h << ", ";
-    stream << c.pad_w << ", ";
-    stream << c.u << ", ";
-    stream << c.v << ", ";
-    stream << c.dilation_h << ", ";
-    stream << c.dilation_w << ", ";
-    return stream;
-}
-*/
-
 RNNDescriptor::RNNDescriptor()
 {
-    nLayers       = 1;
-    hsize         = 0;
-    inputBatchLenSum = 0;
+    nLayers                = 1;
+    hsize                  = 0;
+    inputBatchLenSum       = 0;
     nHiddenTensorsPerLayer = 0;
-    rnnMode   = miopenRNNRELU;
-    dirMode   = miopenRNNunidirection;
-    biasMode  = miopenRNNwithBias;
-    algoMode  = miopenRNNdefault;
-    inputMode = miopenRNNskip;
+    rnnMode                = miopenRNNRELU;
+    dirMode                = miopenRNNunidirection;
+    biasMode               = miopenRNNwithBias;
+    algoMode               = miopenRNNdefault;
+    inputMode              = miopenRNNskip;
 }
 
 RNNDescriptor::RNNDescriptor(int hsz,
@@ -74,28 +61,29 @@ RNNDescriptor::RNNDescriptor(int hsz,
                              miopenRNNAlgo_t amode,
                              miopenDataType_t dType)
 {
-    
+
     if(hsz < 0 || layers < 0)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameter to RNN must be a positive integer.");
     }
-    if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM || rmode == miopenGRU))
+    if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM ||
+         rmode == miopenGRU))
     {
         MIOPEN_THROW(miopenStatusBadParm, "RNN mode not supported");
     }
-	if (bidir != 0 && bidir != 1)
-	{
-		MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
-	}
-	if (bmode != 0 && bmode != 1)
-	{
-		MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
-	}
+    if(bidir != 0 && bidir != 1)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
+    }
+    if(bmode != 0 && bmode != 1)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
+    }
     if(dType != miopenFloat)
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
-    
+
     hsize     = hsz;
     nLayers   = layers;
     inputMode = inMode;
@@ -104,104 +92,110 @@ RNNDescriptor::RNNDescriptor(int hsz,
     algoMode  = amode;
     biasMode  = bmode;
     dataType  = dType;
-    
+
     assert(rmode < 4);
-    switch (rmode)
+    switch(rmode)
     {
-        case 0: 
-        case 1: 
-            nHiddenTensorsPerLayer = 1;
-            workspaceScale = 1;
-            break;
-        case 2:
-            nHiddenTensorsPerLayer = 4;
-            workspaceScale = 6;
-            break;
-        case 3:
-            nHiddenTensorsPerLayer = 3;
-            workspaceScale = 4;            
-            break;
+    case 0:
+    case 1:
+        nHiddenTensorsPerLayer = 1;
+        workspaceScale         = 1;
+        break;
+    case 2:
+        nHiddenTensorsPerLayer = 4;
+        workspaceScale         = 6;
+        break;
+    case 3:
+        nHiddenTensorsPerLayer = 3;
+        workspaceScale         = 4;
+        break;
     }
-    
-    if(bidir == miopenRNNbidirection)
-    {
-        hsize *= 2;
-    }
-    inputBatchLenSum = 0; //init 
-    
+
+    inputBatchLenSum = 0; // init
 }
 
-
-
-size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
-                                const int sLen,
-                                TensorDescriptor* xDesc)  
+size_t RNNDescriptor::GetWorkspaceSize(Handle& handle, const int sLen, TensorDescriptor* xDesc)
 {
     // NOTE dlowell: this calculation WILL change during development.
     // currently this is calculated the same as Workspace size
-    // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType * numberOfHiddenMatricesPerCell + Extra 
+    // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType *
+    // numberOfHiddenMatricesPerCell + Extra
     // GetElemSize will get vector len * batch_size
     if(xDesc[0].GetType() != dataType)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    
-    if(!inputBatchLenSum){
-        for(int i = 0 ; i < sLen ; i++)
+
+    if(!inputBatchLenSum)
+    {
+        for(int i = 0; i < sLen; i++)
         {
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
     }
-    auto x = workspaceScale*sLen*inputBatchLenSum*nLayers*sizeof(xDesc[0].GetType())*nHiddenTensorsPerLayer;
+    auto x = workspaceScale * sLen * inputBatchLenSum * nLayers * sizeof(xDesc[0].GetType()) *
+             nHiddenTensorsPerLayer;
     return size_t(x);
 }
 
-
-
-size_t RNNDescriptor::GetReserveSize(Handle& handle,
-                                const int sLen,
-                                TensorDescriptor* xDesc) 
+size_t RNNDescriptor::GetReserveSize(Handle& handle, const int sLen, TensorDescriptor* xDesc)
 {
     // NOTE dlowell: this calculation WILL change during development.
-    // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType * numberOfHiddenMatricesPerCell + Extra 
+    // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType *
+    // numberOfHiddenMatricesPerCell + Extra
     // GetElemSize will get vector len * batch_size
     if(xDesc[0].GetType() != dataType)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    if(!inputBatchLenSum){
-        for(int i = 0 ; i < sLen ; i++)
+    if(!inputBatchLenSum)
+    {
+        for(int i = 0; i < sLen; i++)
         {
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
     }
-    auto x = workspaceScale*sLen*inputBatchLenSum*nLayers*sizeof(xDesc[0].GetType())*nHiddenTensorsPerLayer;
+    auto x = workspaceScale * sLen * inputBatchLenSum * nLayers * sizeof(xDesc[0].GetType()) *
+             nHiddenTensorsPerLayer;
     return size_t(x);
 }
-
 
 size_t RNNDescriptor::GetParamsSize(Handle& handle,
                                     const TensorDescriptor& xDesc,
                                     miopenDataType_t dtype) const
 {
-    // DLOWELL : The factor of 4 counts the input matrix, hidden matrix, input bias, hidden bias 
+    // DLOWELL : The factor of 4 counts the input matrix, hidden matrix, input bias, hidden bias
     // to each of the activated section of the RNN cell.
     // h_t = sigma(Wx_t + Rh_t-1 + bw + br)
     // for one layer: wDesc <-- (v_hidden x v_input) + (v_hidden x v_hidden) + 2*(1 x v_hidden)
     assert(xDesc.GetLengths().size() > 1);
-    auto inputVecSize =  xDesc.GetLengths()[1];
-    auto x = nLayers * nHiddenTensorsPerLayer * ((hsize * inputVecSize) + (hsize*hsize) + 2*hsize);
-    return size_t(x);
+    auto inputVecSize = xDesc.GetLengths()[1];
+    size_t x = 0;
+    auto biHiddenSize = hsize;
+    if(dirMode) 
+    {
+        biHiddenSize *= 2;
+    }
+    if(biasMode)
+    {
+        x = (biHiddenSize * inputVecSize) + nLayers * nHiddenTensorsPerLayer * ((biHiddenSize * biHiddenSize) + 2 * biHiddenSize);
+    }
+    else
+    {
+        x = (biHiddenSize * inputVecSize) + nLayers * nHiddenTensorsPerLayer * (biHiddenSize * biHiddenSize);
+    }
+    return x;
 }
 
-size_t RNNDescriptor::GetLayerParam(Handle& handle,
-                                  const TensorDescriptor& xDesc,
-                                  const TensorDescriptor& wDesc,
-                                  ConstData_t w,
-                                  const int layerID,
-                                  const TensorDescriptor& paramDesc) const
+void RNNDescriptor::GetLayerParam(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    const TensorDescriptor& wDesc,
+                                    ConstData_t w,
+                                    const int layerID,
+                                    const TensorDescriptor& paramDesc,
+                                    Data_t param) const
 {
-    
+
     /*If mode in rnnDesc was set to CUDNN_RNN_RELU or
 CUDNN_RNN_TANH a value of 0 references the matrix
 multiplication applied to the input from the previous layer, a
@@ -209,26 +203,31 @@ value of 1 references the matrix multiplication applied to the
 recurrent input.*/
     // 0 --> Wx_t
     // 1 --> Rh_t-1
-    
+
     // TODO: FILL
-    
-    
-    
-    
 }
 
-size_t RNNDescriptor::GetLayerBias(Handle& handle,
-                                 const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& wDesc,
-                                 ConstData_t w,
-                                 const int layerID,
-                                 const TensorDescriptor& biasDesc) const
+void RNNDescriptor::GetLayerBias(Handle& handle,
+                                   const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& wDesc,
+                                   ConstData_t w,
+                                   const int layerID,
+                                   const TensorDescriptor& biasDesc,
+                                   Data_t bias) const
 {
     // TODO: FILL
-    
-    
+
 }
 
+std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
+{
+    stream << r.hsize << ", ";
+    stream << r.nLayers << ", ";
+    stream << r.nHiddenTensorsPerLayer << ", ";
+    stream << r.workspaceScale << ", ";
+    stream << r.inputBatchLenSum << ", ";
+    return stream;
+}
 
 } // namespace miopen
 
@@ -236,4 +235,3 @@ size_t RNNDescriptor::GetLayerBias(Handle& handle,
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-
