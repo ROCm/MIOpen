@@ -1,12 +1,14 @@
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <vector>
-#include <cstdlib>
 
 #include "miopen/db_record.hpp"
+#include "test.hpp"
 
 namespace miopen {
 namespace tests {
@@ -16,7 +18,17 @@ struct TestData
     int x;
     int y;
 
-    TestData() : x(rand()), y(rand()) {}
+    TestData()
+    {
+        const int seed = 42;
+
+        static std::mt19937 rng(seed);
+        static std::uniform_int_distribution<std::mt19937::result_type> dist{};
+
+        x = dist(rng);
+        y = dist(rng);
+    }
+
     TestData(int x_, int y_) : x(x_), y(y_) {}
 
     void Serialize(std::ostream& s) const
@@ -24,7 +36,12 @@ struct TestData
         static const auto sep = ',';
         s << x << sep << y;
     }
-    void LegacySerialize(std::ostream&) const {}
+
+    void LegacySerialize(std::ostream& s) const
+    {
+        Serialize(s);
+        s << ",l";
+    }
 
     bool Deserialize(const std::string& s)
     {
@@ -40,9 +57,9 @@ struct TestData
         *this = t;
         return true;
     }
-    bool LegacyDeserialize(const std::string&) { return false; }
 
-    bool operator==(const TestData& other) { return x == other.x && y == other.y; }
+    bool LegacyDeserialize(const std::string& s) { return Deserialize(s); }
+    bool operator==(const TestData& other) const { return x == other.x && y == other.y; }
 
     private:
     inline static bool DeserializeField(std::istream& from, int* ret, char separator)
@@ -64,199 +81,123 @@ struct TestData
     }
 };
 
-class TestBase
+std::ostream& operator<<(std::ostream& s, const TestData& td)
 {
-    public:
-    virtual const char* Name() const = 0;
-    virtual int Total() const        = 0;
-    virtual int Failed() const       = 0;
-    virtual void Run()               = 0;
-    virtual ~TestBase() {}
-    TestBase() noexcept {}
-    TestBase(const TestBase&) {}
+    s << "x: " << td.x << ", y: " << td.y;
+    return s;
+}
+
+struct TestValues
+{
+    TestData key{
+        1, 2,
+    };
+    TestData value0{
+        3, 4,
+    };
+    TestData value1{
+        5, 6,
+    };
+    std::string id0 = "0";
+    std::string id1 = "1";
 };
 
-class Test : public TestBase
+class DbRecordTest
 {
     public:
-    inline int Total() const override { return _total; }
-    inline int Failed() const override { return _failures.size(); }
-    inline const std::vector<std::string>& Failures() const { return _failures; }
+    virtual ~DbRecordTest() { std::remove(TempFilePath()); }
 
     protected:
-    template <class TValue>
-    inline void AssertEqual(const std::string& name, TValue left, TValue right)
-    {
-        AssertTrue(name, left == right);
-    }
-
-    inline void AssertTrue(const std::string& name, bool condition)
-    {
-        if(!condition)
-            _failures.push_back(name);
-
-        _total++;
-    }
-
-    private:
-    int _total = 0;
-    std::vector<std::string> _failures;
+    static const char* TempFilePath() { return "/tmp/dbread.test.temp.pdb"; }
 };
 
-class TestBatch : public TestBase
+class DbRecordReadTest : public DbRecordTest
 {
     public:
-    inline int Total() const override { return _total; }
-    inline int Failed() const override { return _failures.size(); }
-    inline const char* Name() const override { return _name; }
-    inline const char*& Name() { return _name; }
-
-    inline void Run() override
+    inline void Run()
     {
-        auto total = 0;
-
-        for(Test& test : _subtests)
-        {
-            test.Run();
-            std::cout << test.Name() << " tests failed: " << test.Failed() << '/' << test.Total()
-                      << std::endl;
-            total += test.Total();
-
-            for(auto& fail : test.Failures())
-                _failures.push_back(std::string(test.Name()) + "." + fail);
-        }
-
-        std::cout << "Total for " << Name() << ": " << _failures.size() << '/' << total
-                  << std::endl;
-
-        if(_failures.size() > 0)
-        {
-            std::cout << "Failures:" << std::endl;
-
-            for(const auto& fail : _failures)
-                std::cout << fail << std::endl;
-        }
-    }
-
-    inline void Add(Test& test) { _subtests.push_back(test); }
-
-    private:
-    int _total;
-    const char* _name;
-    std::vector<std::reference_wrapper<Test>> _subtests;
-    std::vector<std::string> _failures;
-};
-
-namespace detail {
-class DbRecordReadTest : public Test
-{
-    public:
-    inline const char* Name() const override { return "DbRecord.Read"; }
-
-    inline void Run() override
-    {
-        auto path = "/tmp/dbread.test.temp.pdb";
-
-        TestData key{
-            1, 2,
-        };
-        TestData value0{
-            3, 4,
-        };
-        TestData value1{
-            5, 6,
-        };
-        auto id0 = "0";
-        auto id1 = "1";
+        TestValues v;
 
         std::ostringstream ss_vals;
-        ss_vals << key.x << ',' << key.y << '=' << id1 << ':' << value1.x << ',' << value1.y << ';'
-                << id0 << ':' << value0.x << ',' << value0.y;
+        ss_vals << v.key.x << ',' << v.key.y << '=' << v.id1 << ':' << v.value1.x << ','
+                << v.value1.y << ';' << v.id0 << ':' << v.value0.x << ',' << v.value0.y;
 
-        std::ofstream(path) << ss_vals.str() << std::endl;
+        std::ofstream(TempFilePath()) << ss_vals.str() << std::endl;
 
         TestData read0, read1;
 
         {
-            DbRecord record(path, key);
+            DbRecord record(TempFilePath(), v.key);
 
-            AssertTrue("Read0", record.Load(id0, read0));
-            AssertTrue("Read1", record.Load(id1, read1));
+            EXPECT(record.Load(v.id0, read0));
+            EXPECT(record.Load(v.id1, read1));
         }
 
-        std::remove(path);
-
-        AssertEqual("Equal0", value0, read0);
-        AssertEqual("Equal1", value1, read1);
+        EXPECT_EQUAL(v.value0, read0);
+        EXPECT_EQUAL(v.value1, read1);
     }
 };
 
-class DbRecordWriteTest : public Test
+class DbRecordWriteTest : public DbRecordTest
 {
     public:
-    inline const char* Name() const override { return "DbRecord.Write"; }
-
-    inline void Run() override
+    inline void Run()
     {
-        auto path = "/tmp/dbread.test.temp.pdb";
-
-        TestData key{
-            1, 2,
-        };
-        TestData value0{
-            3, 4,
-        };
-        TestData value1{
-            5, 6,
-        };
-        auto id0 = "0";
-        auto id1 = "1";
+        TestValues v;
 
         std::ostringstream ss_vals;
-        ss_vals << key.x << ',' << key.y << '=' << id1 << ':' << value1.x << ',' << value1.y << ';'
-                << id0 << ':' << value0.x << ',' << value0.y;
+        ss_vals << v.key.x << ',' << v.key.y << '=' << v.id1 << ':' << v.value1.x << ','
+                << v.value1.y << ';' << v.id0 << ':' << v.value0.x << ',' << v.value0.y;
 
-        (void)std::ofstream(path);
+        (void)std::ofstream(TempFilePath());
 
         {
-            DbRecord record(path, key);
+            DbRecord record(TempFilePath(), v.key);
 
-            AssertTrue("Write0", record.Store(id0, value0));
-            AssertTrue("Write1", record.Store(id1, value1));
+            EXPECT(record.Store(v.id0, v.value0));
+            EXPECT(record.Store(v.id1, v.value1));
         }
 
         std::string read;
-        AssertTrue("GetLine", std::getline(std::ifstream(path), read).good());
-        AssertEqual("Equal", read, ss_vals.str());
 
-        std::remove(path);
+        EXPECT(std::getline(std::ifstream(TempFilePath()), read).good());
+        EXPECT_EQUAL(read, ss_vals.str());
     }
 };
-}
 
-TestBase& DbRecordTest()
+class DbRecordLegacyReadTest : public DbRecordTest
 {
-    static auto test = ([]() {
-        TestBatch ret;
-        static detail::DbRecordReadTest read;
-        static detail::DbRecordWriteTest write;
+    public:
+    inline void Run()
+    {
+        TestValues v;
 
-        ret.Name() = "DbRecord";
-        ret.Add(read);
-        ret.Add(write);
+        std::ostringstream ss_vals;
+        ss_vals << v.key.x << ',' << v.key.y << ",l " << v.value0.x << ',' << v.value0.y;
 
-        return ret;
-    })();
+        std::ofstream(TempFilePath()) << ss_vals.str() << std::endl;
 
-    return test;
-}
+        TestData read;
+
+        {
+            DbRecord record(TempFilePath(), v.key, true);
+
+            auto legacy_id = "ConvOclDirectFwd"; // const from db_record.cpp
+            EXPECT(record.Load(legacy_id, read));
+        }
+
+        EXPECT_EQUAL(v.value0, read);
+    }
+};
 
 } // namespace miopen
 } // namespace tests
 
 int main()
 {
-    auto& test = miopen::tests::DbRecordTest();
-    test.Run();
-    return test.Failed();
+    miopen::tests::DbRecordReadTest().Run();
+    miopen::tests::DbRecordWriteTest().Run();
+    miopen::tests::DbRecordLegacyReadTest().Run();
+
+    return 0;
 }
