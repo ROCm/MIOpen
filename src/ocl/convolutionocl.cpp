@@ -28,6 +28,7 @@
 #include <miopen/util.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/check_numerics.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
@@ -517,6 +518,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
     }
 
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, xDesc, x);
+        miopen::checkNumericsInput(handle, wDesc, w);
+    }
+
     if(mode == miopenConvolution)
     {
         if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
@@ -816,6 +823,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
+    }
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, yDesc, y);
     }
 }
 
@@ -1130,6 +1142,16 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, dyDesc, dy);
+        miopen::checkNumericsInput(handle, wDesc, w);
+        if(!float_equal(*(static_cast<const float*>(beta)), 0))
+        {
+            miopen::checkNumericsInput(handle, dxDesc, dx);
+        }
+    }
+
     if(mode == miopenConvolution)
     {
         if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
@@ -1377,6 +1399,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
+    }
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
 }
 
@@ -1708,6 +1734,16 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, dyDesc, dy);
+        miopen::checkNumericsInput(handle, xDesc, x);
+        if(!float_equal(*(static_cast<const float*>(beta)), 0))
+        {
+            miopen::checkNumericsInput(handle, dwDesc, dw);
+        }
+    }
+
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
@@ -1939,6 +1975,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         MIOPEN_THROW("GEMM is not supported");
 #endif
     }
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dwDesc, dw);
+    }
 }
 
 void ConvolutionBackwardBias(Handle& handle,
@@ -1961,6 +2002,10 @@ void ConvolutionBackwardBias(Handle& handle,
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, dyDesc, dy);
     }
 
     int out_n, out_c, out_h, out_w, stride_n, stride_c, stride_h, stride_w;
@@ -1996,6 +2041,11 @@ void ConvolutionBackwardBias(Handle& handle,
 
     handle.GetKernel("miopenConvolutionBwdBias", "", program_name, kernel_name, vld, vgd, params)(
         dy, db);
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dbDesc, db);
+    }
 }
 
 } // namespace miopen
