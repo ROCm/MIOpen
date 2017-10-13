@@ -297,6 +297,14 @@ target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG} 
     debug ${Boost_SYSTEM_LIBRARY_DEBUG}
 )
+if(UNIX)
+    if(NOT BUILD_DEV)
+        set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
+    endif()
+    if(NOT APPLE)
+        target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
+    endif()
+endif()
 endif()
 
 ############################################################
