@@ -205,6 +205,33 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
     return size_t(x); */
 }
 
+size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& handle, const int sLen, TensorDescriptor* xDesc)
+{
+    if(xDesc[0].GetType() != dataType)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
+    }
+    if(!inputBatchLenSum)
+    {
+        for(int i = 0; i < sLen; i++)
+        {
+            inputBatchLenSum += xDesc[i].GetLengths()[0];
+        }
+    }
+	auto x = inputBatchLenSum * xDesc[0].GetLengths()[1];
+	return size_t(x);
+}
+
+size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& handle, TensorDescriptor* xDesc)
+{
+	if (xDesc[0].GetType() != dataType)
+	{
+		MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
+	}
+	auto x = xDesc[0].GetLengths()[0] * hsize * nLayers;
+	return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
+}
+
 /* Get weight super tensor size
 temporary function assuming output matrix exists */
 size_t RNNDescriptor::GetRNNWeightSuperTensorSize(Handle& handle,

@@ -154,6 +154,34 @@ extern "C" miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
     });
 }
 
+extern "C" miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t handle,
+	miopenRNNDescriptor_t rnnDesc,
+	const int seqLen,
+	miopenTensorDescriptor_t* xDesc,
+	size_t* numBytes)
+{
+	MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
+	return miopen::try_([&] {
+		miopen::deref(numBytes) = miopen::deref(rnnDesc).GetRNNInputSuperTensorSize(
+			miopen::deref(handle),
+			seqLen,
+			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+	});
+}
+
+extern "C" miopenStatus_t miopenGetRNNHiddenSuperTensorSize(miopenHandle_t handle,
+	miopenRNNDescriptor_t rnnDesc,
+	miopenTensorDescriptor_t* xDesc,
+	size_t* numBytes)
+{
+	MIOPEN_LOG_FUNCTION(rnnDesc, xDesc, numBytes);
+	return miopen::try_([&] {
+		miopen::deref(numBytes) = miopen::deref(rnnDesc).GetRNNHiddenSuperTensorSize(
+			miopen::deref(handle),
+			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+	});
+}
+
 /* Get weight super tensor size
 temporary function assuming output matrix exists */
 extern "C" miopenStatus_t miopenGetRNNWeightSuperTensorSize(miopenHandle_t handle,
