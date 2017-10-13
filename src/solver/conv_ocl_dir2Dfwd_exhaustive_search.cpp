@@ -165,8 +165,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
     {
 
         // version
-        if(params.forward && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0 &&
-           params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+        if(params.direction.IsForward() && params.n_inputs % 16 == 0 &&
+           params.n_outputs % 16 == 0 && params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
         {
             result.n_in_data_tiles = 128;
 
@@ -185,7 +185,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
 
             if(params.pad0 > 0 || params.kernel_stride0 > 1)
             {
-                if(params.forward)
+                if(params.direction.IsForward())
                 {
                     result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
                 }
@@ -514,8 +514,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
         report_inteval   = 4;
 
         // Add 1x1_stride : no padding support yet
-        if(params.forward && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
-           params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if(params.direction.IsForward() && params.kernel_stride0 == 1 &&
+           params.kernel_stride1 == 1 && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 
             // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -548,7 +548,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
             }
             else
             {
-                if(params.forward)
+                if(params.direction.IsForward())
                 {
                     out_pix_tl_cnt = (params.out_width & 1) ? 1 : 2;
                 }
