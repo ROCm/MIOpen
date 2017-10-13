@@ -185,7 +185,6 @@ class ProblemDescription
     int out_height       = 0;
     int out_width        = 0;
     int batch_sz         = 0;
-    int forward          = 0;
     int pad0             = 0;
     int pad1             = 0;
     int kernel_stride0   = 0;
@@ -193,6 +192,34 @@ class ProblemDescription
     int kernal_dilation0 = 0;
     int kernal_dilation1 = 0;
     int bias             = 0;
+    class Direction
+    {
+        public:
+        enum class Value
+        {
+            Unknown,
+            Forward,
+            Backward,
+            BackwardWrW,
+        };
+
+        private:
+        Value v = Value::Unknown;
+
+        public:
+        bool IsKnown() const { return v != Value::Unknown; }
+        bool IsForward() const { return v == Value::Forward; }
+        bool IsBackwardData() const { return v == Value::Backward; } // Syntax glue.
+        bool IsBackwardWrW() const { return v == Value::BackwardWrW; }
+        void Set(int forward)
+        {
+            assert(0 <= forward && forward <= 1);
+            v = forward ? Value::Forward : Value::Backward;
+        }
+        template <typename T>
+        void Set(T) = delete;
+        void SetBackwardWrW() { v = Value::BackwardWrW; }
+    } direction;
     std::string in_layout;
     std::string in_data_type;
 
@@ -211,8 +238,10 @@ class ProblemDescription
             << sep << kernal_dilation1 << 'x' << kernal_dilation1
             << sep << bias
             << sep << in_layout
-            << sep << in_data_type
-            << sep << (forward ? "F" : "B"); // clang-format on
+            << sep << in_data_type; // clang-format on
+        if(!direction.IsKnown())
+            MIOPEN_THROW("!direction.IsKnown()");
+        stream << sep << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B" : "W");
     }
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -231,8 +260,12 @@ class ProblemDescription
             << sep << out_width
             << sep << batch_sz
             << sep << in_layout
-            << sep << in_data_type
-            << sep << forward; // clang-format on
+            << sep << in_data_type; // clang-format on
+        if(!direction.IsKnown())
+            MIOPEN_THROW("!direction.IsKnown()");
+        stream << sep
+               << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B"
+                                                                            : "WRW_NOT_SUPPORTED");
     }
 #endif
 };
@@ -304,8 +337,7 @@ class mlo_construct_direct2D
 
     mlo_construct_direct2D(int dir, bool do_bias = false)
     {
-        _search_params.forward = dir;
-        _do_backward           = false;
+        _search_params.direction.Set(dir);
 
         //#if !(defined(__APPLE__) || defined(__MACOSX))
         //	_gen_comp_options = std::string(" -cl-std=CL2.0 ");
@@ -442,7 +474,12 @@ class mlo_construct_direct2D
     /*
     * return direction: true - forward, false - backward
     */
-    inline bool isForwardDirection() const { return (_search_params.forward == 1); }
+    inline bool isForwardDirection() const
+    {
+        if(!_search_params.direction.IsKnown())
+            MIOPEN_THROW("!_search_params.direction.IsKnown()");
+        return _search_params.direction.IsForward(); // convolutions: backward data OR wrw otherwise
+    }
 
     /*
     * get workspace size
@@ -529,7 +566,7 @@ class mlo_construct_direct2D
         size_t size             = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-        if(_search_params.forward)
+        if(_search_params.direction.IsForward())
         {
 
             _search_params.out_width          = width;
@@ -578,7 +615,7 @@ class mlo_construct_direct2D
         size_t size             = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-        if(_search_params.forward)
+        if(_search_params.direction.IsForward())
         {
 
             _search_params.in_width          = width;
@@ -836,7 +873,7 @@ class mlo_construct_direct2D
     int _new_in_channel_stride = 0;
     int _new_in_stride         = 0;
     size_t _new_in_sz;
-    bool _do_backward;
+    bool _do_backward = false;
 
     // FIX IT
     //	int _weights_height;
@@ -887,7 +924,10 @@ class mlo_construct_direct2D
 class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
 {
     public:
-    mlo_construct_BwdWrW2D(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
+    mlo_construct_BwdWrW2D(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias)
+    {
+        _search_params.direction.SetBackwardWrW();
+    }
 
     bool mloIsCompilerWorkarounds() const;
     int mloMultiStep();
