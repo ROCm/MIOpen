@@ -27,6 +27,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/batch_norm.hpp>
 
+#define MIOPEN_BN_SYNCH 0
+
 namespace miopen {
 
 void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
@@ -73,7 +75,9 @@ inline void profileSequence(Handle& handle, unsigned char select)
         }
         else
         {
+#if(MIOPEN_BN_SYNCH)
             handle.Finish();
+#endif
         }
         break;
     case 1:
@@ -89,7 +93,9 @@ inline void profileSequence(Handle& handle, unsigned char select)
         }
         else
         {
+#if(MIOPEN_BN_SYNCH)
             handle.Finish();
+#endif
         }
         break;
 
