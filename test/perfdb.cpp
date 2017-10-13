@@ -37,12 +37,6 @@ struct TestData
         s << x << sep << y;
     }
 
-    void LegacySerialize(std::ostream& s) const
-    {
-        Serialize(s);
-        s << ",l";
-    }
-
     bool Deserialize(const std::string& s)
     {
         static const auto sep = ',';
@@ -58,7 +52,15 @@ struct TestData
         return true;
     }
 
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    void LegacySerialize(std::ostream& s) const
+    {
+        Serialize(s);
+        s << ",l";
+    }
+
     bool LegacyDeserialize(const std::string& s) { return Deserialize(s); }
+#endif
     bool operator==(const TestData& other) const { return x == other.x && y == other.y; }
 
     private:
@@ -99,7 +101,9 @@ class DbRecordTest
     static const char* const id0;
     static const char* const id1;
     static const char* const missing_id;
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     static const char* const legacy_id;
+#endif
 
     static const char* TempFilePath() { return "/tmp/dbread.test.temp.pdb"; }
 };
@@ -110,7 +114,9 @@ const TestData DbRecordTest::value1(5, 6);
 const char* const DbRecordTest::id0        = "0";
 const char* const DbRecordTest::id1        = "1";
 const char* const DbRecordTest::missing_id = "2";
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
 const char* const DbRecordTest::legacy_id  = "ConvOclDirectFwd"; // const from db_record.cpp
+#endif
 
 class DbRecordReadTest : public DbRecordTest
 {
