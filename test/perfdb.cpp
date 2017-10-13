@@ -87,54 +87,53 @@ std::ostream& operator<<(std::ostream& s, const TestData& td)
     return s;
 }
 
-struct TestValues
-{
-    TestData key{
-        1, 2,
-    };
-    TestData value0{
-        3, 4,
-    };
-    TestData value1{
-        5, 6,
-    };
-    std::string id0 = "0";
-    std::string id1 = "1";
-};
-
 class DbRecordTest
 {
     public:
     virtual ~DbRecordTest() { std::remove(TempFilePath()); }
 
     protected:
+    static const TestData key;
+    static const TestData value0;
+    static const TestData value1;
+    static const char* const id0;
+    static const char* const id1;
+    static const char* const missing_id;
+    static const char* const legacy_id;
+
     static const char* TempFilePath() { return "/tmp/dbread.test.temp.pdb"; }
 };
+
+const TestData DbRecordTest::key(1, 2);
+const TestData DbRecordTest::value0(3, 4);
+const TestData DbRecordTest::value1(5, 6);
+const char* const DbRecordTest::id0        = "0";
+const char* const DbRecordTest::id1        = "1";
+const char* const DbRecordTest::missing_id = "2";
+const char* const DbRecordTest::legacy_id  = "ConvOclDirectFwd"; // const from db_record.cpp
 
 class DbRecordReadTest : public DbRecordTest
 {
     public:
     inline void Run()
     {
-        TestValues v;
-
         std::ostringstream ss_vals;
-        ss_vals << v.key.x << ',' << v.key.y << '=' << v.id1 << ':' << v.value1.x << ','
-                << v.value1.y << ';' << v.id0 << ':' << v.value0.x << ',' << v.value0.y;
+        ss_vals << key.x << ',' << key.y << '=' << id1 << ':' << value1.x << ',' << value1.y << ';'
+                << id0 << ':' << value0.x << ',' << value0.y;
 
         std::ofstream(TempFilePath()) << ss_vals.str() << std::endl;
 
         TestData read0, read1;
 
         {
-            DbRecord record(TempFilePath(), v.key);
+            DbRecord record(TempFilePath(), key);
 
-            EXPECT(record.Load(v.id0, read0));
-            EXPECT(record.Load(v.id1, read1));
+            EXPECT(record.Load(id0, read0));
+            EXPECT(record.Load(id1, read1));
         }
 
-        EXPECT_EQUAL(v.value0, read0);
-        EXPECT_EQUAL(v.value1, read1);
+        EXPECT_EQUAL(value0, read0);
+        EXPECT_EQUAL(value1, read1);
     }
 };
 
@@ -143,19 +142,17 @@ class DbRecordWriteTest : public DbRecordTest
     public:
     inline void Run()
     {
-        TestValues v;
-
         std::ostringstream ss_vals;
-        ss_vals << v.key.x << ',' << v.key.y << '=' << v.id1 << ':' << v.value1.x << ','
-                << v.value1.y << ';' << v.id0 << ':' << v.value0.x << ',' << v.value0.y;
+        ss_vals << key.x << ',' << key.y << '=' << id1 << ':' << value1.x << ',' << value1.y << ';'
+                << id0 << ':' << value0.x << ',' << value0.y;
 
         (void)std::ofstream(TempFilePath());
 
         {
-            DbRecord record(TempFilePath(), v.key);
+            DbRecord record(TempFilePath(), key);
 
-            EXPECT(record.Store(v.id0, v.value0));
-            EXPECT(record.Store(v.id1, v.value1));
+            EXPECT(record.Store(id0, value0));
+            EXPECT(record.Store(id1, value1));
         }
 
         std::string read;
@@ -170,34 +167,74 @@ class DbRecordLegacyReadTest : public DbRecordTest
     public:
     inline void Run()
     {
-        TestValues v;
-
         std::ostringstream ss_vals;
-        ss_vals << v.key.x << ',' << v.key.y << ",l " << v.value0.x << ',' << v.value0.y;
+        ss_vals << key.x << ',' << key.y << ",l " << value0.x << ',' << value0.y;
 
         std::ofstream(TempFilePath()) << ss_vals.str() << std::endl;
 
         TestData read;
 
         {
-            DbRecord record(TempFilePath(), v.key, true);
+            DbRecord record(TempFilePath(), key, true);
 
-            auto legacy_id = "ConvOclDirectFwd"; // const from db_record.cpp
             EXPECT(record.Load(legacy_id, read));
         }
 
-        EXPECT_EQUAL(v.value0, read);
+        EXPECT_EQUAL(value0, read);
     }
 };
 
-} // namespace miopen
+class DbRecordOperationsTest : public DbRecordTest
+{
+    public:
+    inline void Run()
+    {
+        (void)std::ofstream(TempFilePath()); // To suppress warning in logs.
+
+        {
+            DbRecord record(TempFilePath(), key);
+
+            EXPECT(record.Store(id0, value0));
+            EXPECT(record.Store(id1, value0));
+
+            // Rewritting existing value with other.
+            EXPECT(record.Store(id1, value1));
+
+            // Rewritting existing value with same. In fact no DB manipulation should be performed
+            // inside of store in such case.
+            EXPECT(record.Store(id1, value1));
+        }
+
+        TestData read0, read1, read_missing, read_missing_cmp(read_missing);
+
+        {
+            DbRecord record(TempFilePath(), key);
+
+            // Loading by id not present in record should execute well but return false as nothing
+            // was read.
+            EXPECT(!record.Load(missing_id, read_missing));
+
+            // In such case value should not be changed.
+            EXPECT_EQUAL(read_missing, read_missing_cmp);
+
+            EXPECT(record.Load(id0, read0));
+            EXPECT(record.Load(id1, read1));
+        }
+
+        EXPECT_EQUAL(read0, value0);
+        EXPECT_EQUAL(read1, value1);
+    }
+};
+
 } // namespace tests
+} // namespace miopen
 
 int main()
 {
     miopen::tests::DbRecordReadTest().Run();
     miopen::tests::DbRecordWriteTest().Run();
     miopen::tests::DbRecordLegacyReadTest().Run();
+    miopen::tests::DbRecordOperationsTest().Run();
 
     return 0;
 }
