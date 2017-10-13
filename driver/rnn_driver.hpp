@@ -766,14 +766,13 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 	size_t params_sz = 0;
 	size_t workSpaceSize;
 	size_t reserveSpaceSize;
-	miopenGetRNNInputSuperTensorSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), in_sz);
-	miopenGetRNNInputSuperTensorSize(GetHandle(), rnnDesc, seqLength, outputTensors.data(), out_sz);
-	miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, inputTensors.data(), hy_sz);
-	miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), workSpaceSize);
-	miopenGetRNNTrainingReserveSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), reserveSpaceSize);
-	miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], params_sz, inputTensors[0].GetType());
-	miopenGetRNNWeightSuperTensorSize(GetHandle(), rnnDesc, wei_sz, inputTensors[0], outputTensors[0]);
-
+	miopenGetRNNInputSuperTensorSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &in_sz);
+	miopenGetRNNInputSuperTensorSize(GetHandle(), rnnDesc, seqLength, outputTensors.data(), &out_sz);
+	miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, inputTensors.data(), &hy_sz);
+	miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &workSpaceSize);
+	miopenGetRNNTrainingReserveSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &reserveSpaceSize);
+	miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &params_sz, miopenFloat);
+	miopenGetRNNWeightSuperTensorSize(GetHandle(), rnnDesc, &wei_sz, inputTensors[0], outputTensors[0]);
 
 
 #if MIOPEN_BACKEND_OPENCL
