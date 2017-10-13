@@ -26,24 +26,47 @@
 
 #include "miopen/db_record.hpp"
 #include "miopen/solver.hpp"
+#include "miopen/logger.hpp"
+
+#include <ostream>
+
+#define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
+#define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
+#define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 
 namespace miopen {
 namespace solver {
 
+std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
+{
+    os << k.kernel_file << ',' << k.kernel_name << " { ";
+    for(const auto& i : k.l_wk)
+        os << k.l_wk[i] << ' ';
+    os << "} { ";
+    for(const auto& i : k.g_wk)
+        os << k.g_wk[i] << ' ';
+    return os << "} '" << k.comp_options << '\'';
+}
+
 ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
 {
     std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
+    MIOPEN_LOG_I("Finding solution: " << SolverId());
     if(!IsSearchable())
     {
+        MIOPEN_LOG_I("Not searchable: " << SolverId());
         InitPerformanceConfigImpl(context, *config);
         return GetSolution(context, *config);
     }
     if(dbRecord.Load(SolverId(), *config))
     {
+        MIOPEN_LOG_I("Perf Db load OK: " << SolverId());
         return GetSolution(context, *config);
     }
+    MIOPEN_LOG_I("Perf Db load failed: " << SolverId());
     if(context.do_search)
     {
+        MIOPEN_LOG_I("Starting search: " << SolverId());
         Search(context, *config);
         dbRecord.Store(SolverId(), *config);
     }

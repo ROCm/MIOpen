@@ -33,6 +33,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <ostream>
 
 #include "miopen/db_record.hpp"
 #include "miopen/mlo_internal.hpp"
@@ -61,6 +62,7 @@ struct KernelInfo
     std::vector<size_t> g_wk;
     std::string kernel_file;
     std::string kernel_name;
+    friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
 };
 
 /// Information required to build and run a kernel (or a set of kernels),
@@ -329,21 +331,22 @@ class ConvAsmBwdWrW3x3 : public Solver
     std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const override;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfig& result) const override;
+    bool IsSearchable() const override { return true; }
     void Search(const ConvolutionContext&, PerformanceConfig& config) const override;
-    bool IsSearchable() const override { return false; } // FIXME
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsFast(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const override;
+
     private:
-int Measure(miopen::Handle& profile_h,
-                       Data_t bot_ocl_buf,
-                       Data_t top_ocl_buf,
-                       Data_t wei_ocl_buf,
-                       Data_t bias_ocl_buf,
-                       double& processing_time,
-                       const ConvolutionContext& params,
-                       const PerformanceConfig& result) const;    
+    int Measure(miopen::Handle& profile_h,
+                Data_t bot_ocl_buf,
+                Data_t top_ocl_buf,
+                Data_t wei_ocl_buf,
+                Data_t bias_ocl_buf,
+                double& processing_time,
+                const ConvolutionContext& params,
+                const PerformanceConfig& result) const;
 };
 
 class ConvOclBwdWrW2 : public Solver
