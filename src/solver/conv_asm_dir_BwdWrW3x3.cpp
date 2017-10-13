@@ -607,9 +607,10 @@ static void InitVectorRandomly(std::vector<float>& vec, const double offset, con
         *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
 }
 
-void ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfig& config) const
+bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfig& config) const
 {
-    auto& result = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
+    auto& result   = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
+    bool is_passed = false;
 
     miopen::Handle profile_h;
     double processing_time;
@@ -671,6 +672,10 @@ void ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
                                  processing_time,
                                  params,
                                  config);
+        if(ret == 0)
+        {
+            is_passed = true;
+        }
 
         /*if(ret != 0)
         {
@@ -719,6 +724,7 @@ void ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
     result.n_stacks        = min_n_stacks;*/
 
     profile_h.EnableProfiling(false);
+    return is_passed;
 }
 
 } // namespace solver

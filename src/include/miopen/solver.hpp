@@ -181,8 +181,8 @@ class Solver
 
     /// Solver-specific implementation of exhaustive search procedure.
     /// Returns (hopefully) optimal performance config for a solution.
-    /// Takes long time to finish.
-    virtual void Search(const ConvolutionContext&, PerformanceConfig&) const {}
+    /// May takes long time to finish.
+    virtual bool Search(const ConvolutionContext&, PerformanceConfig&) const { return false; }
 
     /// Should return true if Search() is implemented in a Solver, false otherwise.
     virtual bool IsSearchable() const { return false; }
@@ -287,7 +287,7 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
     std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const override;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfig& result_) const override;
-    void Search(const ConvolutionContext&, PerformanceConfig& result_) const override;
+    bool Search(const ConvolutionContext&, PerformanceConfig& result_) const override;
     bool IsSearchable() const override { return true; }
 };
 
@@ -345,7 +345,7 @@ class ConvAsmBwdWrW3x3 : public Solver
     bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
                                       const PerformanceConfig&) const override;
     bool IsSearchable() const override { return true; }
-    void Search(const ConvolutionContext&, PerformanceConfig& config) const override;
+    bool Search(const ConvolutionContext&, PerformanceConfig& config) const override;
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsFast(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
