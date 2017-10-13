@@ -45,11 +45,12 @@ RNNDescriptor::RNNDescriptor()
     hsize                  = 0;
     inputBatchLenSum       = 0;
     nHiddenTensorsPerLayer = 0;
-    rnnMode                = miopenRNNRELU;
-    dirMode                = miopenRNNunidirection;
-    biasMode               = miopenRNNwithBias;
-    algoMode               = miopenRNNdefault;
-    inputMode              = miopenRNNskip;
+	rnnMode = miopenRNNTANH;
+	dirMode = miopenRNNunidirection;
+	biasMode = miopenRNNNoBias;
+	algoMode = miopenRNNdefault;
+	inputMode = miopenRNNlinear;
+	dataType = miopenFloat;
 }
 
 RNNDescriptor::RNNDescriptor(int hsz,
@@ -133,9 +134,12 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle, const int sLen, TensorDes
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
     }
-    auto x = workspaceScale * sLen * inputBatchLenSum * nLayers * sizeof(xDesc[0].GetType()) *
+/*    auto x = workspaceScale * sLen * inputBatchLenSum * nLayers * sizeof(xDesc[0].GetType()) *
              nHiddenTensorsPerLayer;
-    return size_t(x);
+    return size_t(x);*/
+
+	auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());
+	return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
 }
 
 size_t RNNDescriptor::GetReserveSize(Handle& handle, const int sLen, TensorDescriptor* xDesc)
@@ -155,9 +159,13 @@ size_t RNNDescriptor::GetReserveSize(Handle& handle, const int sLen, TensorDescr
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
     }
-    auto x = workspaceScale * sLen * inputBatchLenSum * nLayers * sizeof(xDesc[0].GetType()) *
+/*    auto x = workspaceScale * sLen * inputBatchLenSum * nLayers * sizeof(xDesc[0].GetType()) *
              nHiddenTensorsPerLayer;
-    return size_t(x);
+    return size_t(x);*/
+
+	auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());
+	//	auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());  // switch to this after offset activ and ops applied
+	return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
 }
 
 size_t RNNDescriptor::GetParamsSize(Handle& handle,
@@ -185,6 +193,33 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
         x = (biHiddenSize * inputVecSize) + nLayers * nHiddenTensorsPerLayer * (biHiddenSize * biHiddenSize);
     }
     return x;
+
+	/* auto ih = xDesc.GetLengths()[1];
+	int bi = dirMode == miopenRNNbidirection ? 2 : 1;
+    auto x = nHiddenTensorsPerLayer * hsize * bi * (ih + hsize + (nLayers - 1) * (bi + 1) * hsize);
+	if (biasMode == miopenRNNwithBias)
+	{
+		x += (2 + (nLayers - 1) * (bi + 1)) * nHiddenTensorsPerLayer * hsize * bi; // bias size need to discuss
+	}
+
+    return size_t(x); */
+}
+
+/* Get weight super tensor size
+temporary function assuming output matrix exists */
+size_t RNNDescriptor::GetRNNWeightSuperTensorSize(Handle& handle,
+	const TensorDescriptor& xDesc,
+	const TensorDescriptor& yDesc) const
+{
+	auto ih = xDesc.GetLengths()[1], oh = yDesc.GetLengths()[1];
+	int bi = dirMode == miopenRNNbidirection ? 2 : 1;
+	auto sz = nHiddenTensorsPerLayer * hsize * bi * (ih + hsize + (nLayers - 1) * (bi + 1) * hsize) + oh * hsize * bi;
+	if (biasMode == miopenRNNwithBias)
+	{
+		sz += (2 + (nLayers - 1) * (bi + 1)) * nHiddenTensorsPerLayer * hsize * bi + bi * oh;
+	}
+
+	return size_t(sz);
 }
 
 void RNNDescriptor::GetLayerParam(Handle& handle,

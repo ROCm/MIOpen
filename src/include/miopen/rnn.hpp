@@ -66,14 +66,14 @@ struct RNNDescriptor : miopenRNNDescriptor
 {
 
     RNNDescriptor();
-    RNNDescriptor(int hsz,
-                  int layers                     = 1,
-                  miopenRNNMode_t rmode          = miopenRNNRELU,
-                  miopenRNNInputMode_t inMode    = miopenRNNskip,
-                  miopenRNNDirectionMode_t bidir = miopenRNNunidirection,
-                  miopenRNNBiasMode_t bias       = miopenRNNwithBias,
-                  miopenRNNAlgo_t amode          = miopenRNNdefault,
-                  miopenDataType_t dType         = miopenFloat);
+	RNNDescriptor(int hsz,
+		int layers,
+		miopenRNNMode_t rmode,
+		miopenRNNInputMode_t inMode,
+		miopenRNNDirectionMode_t bidir,
+		miopenRNNBiasMode_t bias,
+		miopenRNNAlgo_t amode,
+		miopenDataType_t dType);
 
     size_t hsize; // DLOWELL: is this uniform over all layers?
     size_t nLayers;
@@ -111,6 +111,12 @@ struct RNNDescriptor : miopenRNNDescriptor
                                    const int layerID,
                                    const TensorDescriptor& biasDesc,
                                    Data_t bias) const;
+
+	/* Get weight super tensor size
+	temporary function assuming output matrix exists */
+	size_t GetRNNWeightSuperTensorSize(Handle& handle,
+		const TensorDescriptor& xDesc,
+		const TensorDescriptor& yDesc) const;
 
     void RNNForwardTraining(Handle& handle,
                             const int seqLen,
@@ -185,8 +191,8 @@ struct RNNDescriptor : miopenRNNDescriptor
                             ConstData_t x,
                             const TensorDescriptor& hxDesc,
                             ConstData_t hx,
-                            c_array_view<miopenTensorDescriptor_t> yDesc,
-                            ConstData_t y,
+                            c_array_view<miopenTensorDescriptor_t> dyDesc,
+                            ConstData_t dy,
                             const TensorDescriptor& dwDesc,
                             Data_t dw,
                             ConstData_t workSpace,

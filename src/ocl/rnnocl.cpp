@@ -108,12 +108,17 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     // TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
+	int in_h = xDesc[0].GetLengths()[1]; // input vector size
+	int hy_d = hxDesc.GetLengths()[0];   // biNumLayers
+	int hy_n = hxDesc.GetLengths()[1]; // max batch size
+	int hy_h = hxDesc.GetLengths()[2];   // hidden size
+	int out_h = yDesc[0].GetLengths()[1]; // output vector size
 
-    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
+ /*   int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
     int in_h  = xDesc[0].GetLengths()[1]; // input vector size
     int hy_n  = xDesc[0].GetLengths()[0]; // max batch size
     int hy_h  = hxDesc.GetLengths()[2];   // hidden size
-    int out_h = hxDesc.GetLengths()[2];   // hidden size
+    int out_h = hxDesc.GetLengths()[2];   // hidden size*/
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
@@ -151,7 +156,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         for(int li = 0; li < nLayers; li++)
         {
             int hid_shift = li * batch_n * hy_h * bi;
-            int hx_shift  = li * bi * in_n[0] * hy_h;
+            int hx_shift  = li * bi * hy_n * hy_h;
 
             // from input
             if(li == 0)
@@ -505,12 +510,17 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     // TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
+	int in_h = dxDesc[0].GetLengths()[1];
+	int hy_d = dhxDesc.GetLengths()[0];
+	int hy_n = dhxDesc.GetLengths()[1];
+	int hy_h = dhxDesc.GetLengths()[2];
+	int out_h = dyDesc[0].GetLengths()[1];
 
-    int hy_d  = hxDesc.GetLengths()[0];    // biNumLayers
+ /*   int hy_d  = hxDesc.GetLengths()[0];    // biNumLayers
     int in_h  = dxDesc[0].GetLengths()[1]; // input vector size
     int hy_n  = dxDesc[0].GetLengths()[0]; // max batch size
     int hy_h  = hxDesc.GetLengths()[2];    // hidden size
-    int out_h = hxDesc.GetLengths()[2];    // hidden size
+    int out_h = hxDesc.GetLengths()[2];    // hidden size*/
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
@@ -547,7 +557,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         {
             int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
             int hid_shift = li * batch_n * hy_h * bi;
-            int hx_shift  = li * bi * in_n[0] * hy_h;
+            int hx_shift  = li * bi * hy_n * hy_h;
 
             // feedback from output
             if(li == nLayers - 1)
@@ -686,8 +696,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        ConstData_t x,
                                        const TensorDescriptor& hxDesc,
                                        ConstData_t hx,
-                                       c_array_view<miopenTensorDescriptor_t> yDesc,
-                                       ConstData_t y,
+                                       c_array_view<miopenTensorDescriptor_t> dyDesc,
+                                       ConstData_t dy,
                                        const TensorDescriptor& dwDesc,
                                        Data_t dw,
                                        ConstData_t workSpace,
@@ -698,12 +708,17 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     // TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
+	int in_h = xDesc[0].GetLengths()[1];
+	int hy_d = hxDesc.GetLengths()[0];
+	int hy_n = hxDesc.GetLengths()[1];
+	int hy_h = hxDesc.GetLengths()[2];
+	int out_h = dyDesc[0].GetLengths()[1];
 
-    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
+/*    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
     int in_h  = xDesc[0].GetLengths()[1]; // input vector size
     int hy_n  = xDesc[0].GetLengths()[0]; // max batch size
     int hy_h  = hxDesc.GetLengths()[2];   // hidden size
-    int out_h = hxDesc.GetLengths()[2];   // hidden size
+    int out_h = hxDesc.GetLengths()[2];   // hidden size*/
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
@@ -730,8 +745,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     int h_stride   = hy_h * bi;
     int out_stride = out_h;
     int wei_stride = hy_h * bi;
-
-    // cl_command_queue Q = (cl_command_queue)handle.GetStream();
 
     if(rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
     {
@@ -814,8 +827,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            wei_stride,
                                            false,
                                            network_config);
-                gg.FindSolution(.003, handle, y, reserveSpace, dw, false);
-                gg.RunGemm(handle, y, reserveSpace, dw, 0, prelayer_shift, wei_shift);
+                gg.FindSolution(.003, handle, dy, reserveSpace, dw, false);
+                gg.RunGemm(handle, dy, reserveSpace, dw, 0, prelayer_shift, wei_shift);
 
                 if(biasMode)
                 {
@@ -857,7 +870,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 for(int ti = 0; ti < seqLen; ti++)
                 {
                     int hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride;
-                    int hx_shift  = li * bi * in_n[0] * hy_h;
+                    int hx_shift  = li * bi * hy_n * hy_h;
                     int wei_shift;
                     int pretime_shift;
 
