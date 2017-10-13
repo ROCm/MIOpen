@@ -423,6 +423,13 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
     dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(result) = pp;
 }
 
+bool ConvAsmBwdWrW3x3::IsValidPerformanceConfigImpl(const ConvolutionContext& problem,
+                                                    const PerformanceConfig& config) const
+{
+    const auto& c = dynamic_cast<const PerformanceConfigAsmDirect3x3WrW&>(config);
+    return c.IsValidRange() && c.IsValid(problem);
+}
+
 bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.assembler_available)
@@ -481,11 +488,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
          && c_k_r_s < std::pow(2, 29);                                    // clang-format on
-    if(!ok)
-    {
-        return false;
-    }
-    return true;
+    return ok;
 }
 
 bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
