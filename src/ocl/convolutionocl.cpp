@@ -1429,7 +1429,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         miopenConvAlgoPerf_t* perfResults,
                                                         Data_t workSpace,
                                                         size_t workSpaceSize,
-                                                        bool /*exhaustiveSearch*/) const
+                                                        bool exhaustiveSearch) const
 {
 
     if(x == nullptr || dw == nullptr || dy == nullptr)
@@ -1576,7 +1576,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                IsBwdWeightsDirectSupported(dwDesc))
             {
                 mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-                construct_params.doSearch(false);
+                construct_params.doSearch(exhaustiveSearch);
                 construct_params.setStream(&handle);
                 construct_params.setOutputDescFromMLDesc(dyDesc);
                 construct_params.setInputDescFromMLDesc(xDesc);
