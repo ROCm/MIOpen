@@ -60,10 +60,15 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
     }
     if(dbRecord.Load(SolverId(), *config))
     {
-        MIOPEN_LOG_I("Perf Db load OK: " << SolverId());
+        MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
+        if(!IsValidPerformanceConfigImpl(context, *config))
+        {
+            MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId() << ": " << *config);
+            InitPerformanceConfigImpl(context, *config);
+        }
         return GetSolution(context, *config);
     }
-    MIOPEN_LOG_I("Perf Db load failed: " << SolverId());
+    MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
     if(context.do_search)
     {
         MIOPEN_LOG_I("Starting search: " << SolverId());
