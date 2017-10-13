@@ -101,9 +101,11 @@
 #undef __AMDGCN__
 #endif
 
-//#ifdef __AMDGCN__
-//#undef __AMDGCN__
-//#endif
+/*
+#ifdef __AMDGCN__
+#undef __AMDGCN__
+#endif
+*/
 
 // Disable specific warnings
 #ifdef __clang__
@@ -409,7 +411,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             lcl_data[lid] += lcl_data[lid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    dppLDSReduce64(&ds, lcl_data, lid, INHW);
+    dppLDSReduce64(&ds, lcl_data, lid, 1);
 #else
     for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
     {
@@ -417,7 +419,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             lcl_data[lid] += lcl_data[lid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    regLDSreduce(&ds, lcl_data, lid, INHW);
+    regLDSreduce(&ds, lcl_data, lid, 1);
 #endif
 
     if(lid < MIO_BN_SEGMENT)
@@ -649,16 +651,14 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #ifdef __AMDGCN__
 
 #if(MIO_BN_HW > 16)
-    dppRegReduce64(&ds, INHW);
+    dppRegReduce64(&ds, 1);
 #elif(MIO_BN_HW > 1)
-    dppRegReduce16(&ds, INHW);
-#else
-    ds *= INHW;
+    dppRegReduce16(&ds, 1);
 #endif // HW
 #else  // if not GCN
 
 #if(MIO_BN_HW > 16)
-    regLDSreduce(&ds, lcl_data, ylid, INHW);
+    regLDSreduce(&ds, lcl_data, ylid, 1);
 #elif(MIO_BN_HW > 1)
     lcl_data[ylid] = ds;
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -668,9 +668,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         ds += lcl_data[i];
     }
-    ds *= INHW;
-#else
-    ds *= INHW;
 #endif // HW
 #endif // GCN
     //===========================================
@@ -686,7 +683,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         {
             index         = n * MIO_BN_CHW + cidx + ylid;
             tmp1          = mad(NHW, dyvalues[n], -db);
-            tmp2          = -batchvalues[n] * ds;
+            tmp2          = -(batchvalues[n]) * ds;
             tmp3          = (pscale * invVar) * INHW;
             dx_out[index] = tmp3 * (tmp2 + tmp1);
         }
@@ -901,7 +898,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #else // GCN
 
 #if(MIO_BN_N > 16)
-    regLDSreduce(&db, lcl_data, ylid, INHW);
+    regLDSreduce(&db, lcl_data, ylid, 1);
 #elif(MIO_BN_N > 1)
     lcl_data[ylid] = db;
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -917,7 +914,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #ifdef __AMDGCN__
 
 #if(MIO_BN_N > 16)
-    dppRegReduce64(&ds, INHW);
+    dppRegReduce64(&ds, 1);
 #elif(MIO_BN_N > 1)
     lcl_data[ylid] = ds;
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -927,14 +924,11 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         ds += lcl_data[i];
     }
-    ds *= INHW;
-#else
-    ds *= INHW;
 #endif // N
 #else  // if not GCN
 
 #if(MIO_BN_N > 16)
-    regLDSreduce(&ds, lcl_data, ylid, INHW);
+    regLDSreduce(&ds, lcl_data, ylid, 1);
 #elif(MIO_BN_N > 1)
     lcl_data[ylid] = ds;
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -944,9 +938,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         ds += lcl_data[i];
     }
-    ds *= INHW;
-#else
-    ds *= INHW;
 #endif // HW
 #endif // GCN
     //===========================================
@@ -962,7 +953,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         {
             index         = ylid * MIO_BN_CHW + cidx + hw;
             tmp1          = mad(NHW, dyvalues[hw], -db);
-            tmp2          = -batchvalues[hw] * ds;
+            tmp2          = -(batchvalues[hw]) * ds;
             tmp3          = (pscale * invVar) * INHW;
             dx_out[index] = tmp3 * (tmp2 + tmp1);
         }
@@ -1231,7 +1222,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     lcl_data[ylid] = ds;
     barrier(CLK_LOCAL_MEM_FENCE);
-    dppLDSReduce64(&ds, lcl_data, ylid, INHW);
+    dppLDSReduce64(&ds, lcl_data, ylid, 1);
 
 #else
     for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
@@ -1240,7 +1231,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             lcl_data[ylid] += lcl_data[ylid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    regLDSreduce(&ds, lcl_data, ylid, INHW);
+    regLDSreduce(&ds, lcl_data, ylid, 1);
 #endif
     //===========================================
 
@@ -1256,7 +1247,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             index         = n * MIO_BN_CHW + cidx + ylid;
 #if(MIO_BN_N < MIO_BN_MAXN)
             tmp1          = mad(NHW, dyvalues[n], -db);
-            tmp2          = -batchvalues[n] * ds;
+            tmp2          = -(batchvalues[n]) * ds;
 #else
             tmp1 = mad(NHW, dy_in[index], -db);
             tmp2 = -(x_in[index] - mean) * invVar * ds;
@@ -1761,7 +1752,7 @@ BatchNormBwdSpatialDScale(const __global _FLOAT* x_in,
         unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
         lmean                       = buff[meanstashindex]; // load stashed mean
         livar                       = buff[varstashindex];
-#else  // SAVED
+#else  // NO SAVED
         lmean = savedMean[xgid];
         livar = savedInvVariance[xgid];
 #endif // SAVED
@@ -1781,6 +1772,7 @@ BatchNormBwdSpatialDScale(const __global _FLOAT* x_in,
             elemStd = x_in[index] - mean; // (x_i - mean)
             xhat    = elemStd * invVar;
             dscale  = mad(xhat, dy_in[index], dscale);
+            // dscale += 1.;
         } // end for
     }     // end if
 
@@ -1809,7 +1801,6 @@ BatchNormBwdSpatialDScale(const __global _FLOAT* x_in,
     regLDSreduce(&dscale, lcl_data, ylid, 1);
 
 #endif // GCN
-
     if(ylid == 0)
     {
         unsigned int gammaindex = cidx + ygrp_sz * ygrp_id + 4;
@@ -1852,7 +1843,7 @@ BatchNormBwdSpatialFinalDScale(__global _FLOAT* buff, __global _FLOAT* delta_sca
             lcl_data[ylid] += lcl_data[ylid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    dppLDSReduce64(&ds, lcl_data, ylid, INHW);
+    dppLDSReduce64(&ds, lcl_data, ylid, 1);
 #else  // GCN
     for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
     {
@@ -1860,21 +1851,21 @@ BatchNormBwdSpatialFinalDScale(__global _FLOAT* buff, __global _FLOAT* delta_sca
             lcl_data[ylid] += lcl_data[ylid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    regLDSreduce(&ds, lcl_data, ylid, INHW);
+    regLDSreduce(&ds, lcl_data, ylid, 1);
 #endif // GCN
 
 #elif(MIO_BN_NGRPS <= 64)
 
 #ifdef __AMDGCN__
-    dppRegReduce64(&ds, INHW);
+    dppRegReduce64(&ds, 1);
 #else // GCN
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-    regLDSreduce(&ds, lcl_data, ylid, INHW);
+    regLDSreduce(&ds, lcl_data, ylid, 1);
 #endif // GCN
 #else  // else < 16
 
 #ifdef __AMDGCN__
-    dppRegReduce16(&ds, INHW);
+    dppRegReduce16(&ds, 1);
 #else // GCN
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
     lcl_data[ylid] = ds;
@@ -1885,7 +1876,6 @@ BatchNormBwdSpatialFinalDScale(__global _FLOAT* buff, __global _FLOAT* delta_sca
     {
         ds += lcl_data[i];
     }
-    ds *= INHW;
 #endif // end AMDGCN
 #endif // NGRPS
 
