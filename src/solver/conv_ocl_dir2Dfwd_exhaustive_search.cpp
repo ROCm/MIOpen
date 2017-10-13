@@ -330,10 +330,11 @@ static int MeasureLoop(Handle* profile_h,
     return (ret);
 }
 
-void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
+bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
                                                     PerformanceConfig& result_) const
 {
-    auto& result = dynamic_cast<LegacyPerformanceConfig&>(result_);
+    auto& result   = dynamic_cast<LegacyPerformanceConfig&>(result_);
+    bool is_passed = false;
 
     miopen::Handle profile_h;
     double processing_time;
@@ -649,6 +650,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                                       << std::endl;
                         }
 
+                        is_passed = true;
                         run_counter++;
                         runs_left--;
                         runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -882,6 +884,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                                                     << std::endl;
                                             }
 
+                                            is_passed = true;
                                             run_counter++;
                                             runs_left--;
                                             runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -924,6 +927,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
     result.n_stacks        = min_n_stacks;
 
     profile_h.EnableProfiling(false);
+    return is_passed;
 }
 
 } // namespace solver
