@@ -257,7 +257,7 @@ int RNNDriver<T>::GetandSetData()
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 	std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
 
-	for (int i = 0; i < in_len.length() - 1; i++)
+	for (int i = 0; i < in_len.size() - 1; i++)
 	{
 		std::array<int, 2> in_lens = { in_len[i],  in_len.back() };
 		std::array<int, 2> in_strides = { in_len.back(),  1 };
@@ -270,13 +270,13 @@ int RNNDriver<T>::GetandSetData()
 		outputTensors.push_back(outputTensor);
 	}
 
-	std::array<int, 1> hid_lens = { hid_len[0],  in_len[0],  hid_len[1] };
-	std::array<int, 1> hid_strides = { in_len[0] * hid_len[1],  hid_len[1],  1 };
+	std::array<int, 3> hid_lens = { hid_len[0],  in_len[0],  hid_len[1] };
+	std::array<int, 3> hid_strides = { in_len[0] * hid_len[1],  hid_len[1],  1 };
 	miopenSetTensorDescriptor(hiddenTensor, miopenFloat, 3, hid_lens.data(), hid_strides.data());
 
-	std::array<int, 1> wei_lens = { wei_len[0],  wei_len[1],  wei_len[2],  wei_len[3],  wei_len[4] };
-	std::array<int, 1> wei_strides = { 1,1,1,1,1 };
-	miopenSetTensorDescriptor(weightTensor, miopenFloat, 1, wei_lens.data(), wei_strides.data());
+	std::array<int, 5> wei_lens = { wei_len[0],  wei_len[1],  wei_len[2],  wei_len[3],  wei_len[4] };
+//	std::array<int, 5> wei_strides = { 1,1,1,1,1 };
+	miopenSetTensorDescriptor(weightTensor, miopenFloat, 5, wei_lens.data(), nullptr);
 
     SetRNNDescriptorFromCmdLineArgs();
 	
@@ -486,7 +486,7 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 	}
 	else if ((inflags.GetValueInt("bidirection")) == 1)
 	{
-		directionModebiasMode = miopenRNNbidirection;
+		directionMode = miopenRNNbidirection;
 	}
 	else
 	{
@@ -497,11 +497,11 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 	miopenRNNInputMode_t inMode;
 	if ((inflags.GetValueInt("inputmode")) == 0)
 	{
-		directionMode = miopenRNNlinear;
+		inMode = miopenRNNlinear;
 	}
 	else if ((inflags.GetValueInt("inputmode")) == 1)
 	{
-		directionModebiasMode = miopenRNNskip;
+		inMode = miopenRNNskip;
 	}
 	else
 	{
@@ -512,15 +512,15 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 	miopenRNNAlgo_t algo;
 	if ((inflags.GetValueInt("rnnalgo")) == 0)
 	{
-		directionMode = miopenRNNdefault;
+		algo = miopenRNNdefault;
 	}
 	else if ((inflags.GetValueInt("rnnalgo")) == 1)
 	{
-		directionModebiasMode = miopenRNNpersistStatic;
+		algo = miopenRNNpersistStatic;
 	}
 	else if ((inflags.GetValueInt("rnnalgo")) == 2)
 	{
-		directionModebiasMode = miopenRNNpersistDynamic;
+		algo = miopenRNNpersistDynamic;
 	}
 	else
 	{
@@ -726,16 +726,16 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 	*/
 
 
-    int seqLength, layer;
+/*    int seqLength, layer;
     miopenRNNMode_t mode;
 	miopenRNNAlgo_t algoMode;
 	miopenRNNInputMode_t inputMode;
 	miopenRNNDirectionMode_t dirMode;
 	miopenRNNBiasMode_t biasMode;
-	int hiddenSize;
+	int hiddenSize;*/
 
-	seqLength = inflags.GetValueInt("seq_len");
-	miopenGetRNNDescriptor(rnnDesc,
+	int seqLength = inflags.GetValueInt("seq_len");
+/*	miopenGetRNNDescriptor(rnnDesc,
 		&mode,
 		&algoMode,
 		&inputMode,
@@ -757,14 +757,20 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 	out_h = outputTensors[0].GetLengths()[1];
 
     size_t in_sz  = batch_n * in_h;
-    size_t out_sz = batch_n * out_h;
+    size_t out_sz = batch_n * out_h;*/
+	size_t in_sz = 0;
+	size_t out_sz = 0;
     size_t wei_sz = 0;
-	size_t hy_sz = dirMode == miopenRNNbidirection ? 2 * hy_n * hiddenSize * layer : hy_n * hiddenSize * layer;
+//	size_t hy_sz = dirMode == miopenRNNbidirection ? 2 * hy_n * hiddenSize * layer : hy_n * hiddenSize * layer;
+	size_t hy_sz = 0;
 	size_t params_sz = 0;
 	size_t workSpaceSize;
 	size_t reserveSpaceSize;
-	miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, seqLength, inputTensors, workSpaceSize);
-	miopenGetRNNTrainingReserveSize(GetHandle(), rnnDesc, seqLength, inputTensors, reserveSpaceSize);
+	miopenGetRNNInputSuperTensorSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), in_sz);
+	miopenGetRNNInputSuperTensorSize(GetHandle(), rnnDesc, seqLength, outputTensors.data(), out_sz);
+	miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, inputTensors.data(), hy_sz);
+	miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), workSpaceSize);
+	miopenGetRNNTrainingReserveSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), reserveSpaceSize);
 	miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], params_sz, inputTensors[0].GetType());
 	miopenGetRNNWeightSuperTensorSize(GetHandle(), rnnDesc, wei_sz, inputTensors[0], outputTensors[0]);
 
@@ -977,7 +983,7 @@ int RNNDriver<T>::RunForwardGPU()
 		miopenRNNForwardTraining(GetHandle(),
 			rnnDesc,
 			seqLength,
-			inputTensors,
+			inputTensors.data(),
 			in_dev->GetMem(),
 			hiddenTensor,
 			hx_dev->GetMem(),
@@ -985,7 +991,7 @@ int RNNDriver<T>::RunForwardGPU()
 			cx_dev->GetMem(),
 			weightTensor,
 			wei_dev->GetMem(),
-			outputTensors,
+			outputTensors.data(),
 			out_dev->GetMem(),
 			hiddenTensor,
 			hy_dev->GetMem(),
@@ -1280,9 +1286,9 @@ int RNNDriver<T>::RunBackwardGPU()
 		ret = miopenRNNBackwardData(GetHandle(),
 			rnnDesc,
 			seqLength,
-			outputTensor,
+			outputTensors.data(),
 			out_dev->GetMem(),  // why we need this
-			outputTensor,
+			outputTensors.data(),
 			dout_dev->GetMem(),
 			hiddenTensor,
 			dhy_dev->GetMem(),
@@ -1294,7 +1300,7 @@ int RNNDriver<T>::RunBackwardGPU()
 			hx_dev->GetMem(),
 			hiddenTensor,
 			cx_dev->GetMem(),
-			inputTensor,
+			inputTensors.data(),
 			din_dev->GetMem(),
 			hiddenTensor,
 			dhx_dev->GetMem(),
@@ -1346,11 +1352,11 @@ int RNNDriver<T>::RunBackwardGPU()
 	ret = miopenRNNBackwardWeights(GetHandle(),
 		rnnDesc,
 		seqLength,
-		inputTensor,
+		inputTensors.data(),
 		in_dev->GetMem(),
 		hiddenTensor,
 		hx_dev->GetMem(),
-		outputTensor,
+		outputTensors.data(),
 		dout_dev->GetMem(),
 		weightTensor,
 		dwei_dev->GetMem(),

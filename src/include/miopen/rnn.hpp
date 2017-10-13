@@ -112,6 +112,9 @@ struct RNNDescriptor : miopenRNNDescriptor
                                    const TensorDescriptor& biasDesc,
                                    Data_t bias) const;
 
+	size_t GetRNNInputSuperTensorSize(Handle& handle, const int sLen, TensorDescriptor* xDesc);
+	size_t GetRNNHiddenSuperTensorSize(Handle& handle, TensorDescriptor* xDesc);
+
 	/* Get weight super tensor size
 	temporary function assuming output matrix exists */
 	size_t GetRNNWeightSuperTensorSize(Handle& handle,
