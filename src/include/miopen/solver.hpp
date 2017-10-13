@@ -120,17 +120,19 @@ class PerformanceConfig
 {
     public:
     PerformanceConfig() {}
-    PerformanceConfig(const PerformanceConfig&) {} // clang-tidy wants this
-    PerformanceConfig& operator=(const PerformanceConfig&)
-    {
-        return *this;
-    } // clang-tidy wants this
+    PerformanceConfig(const PerformanceConfig&) = default;
+    PerformanceConfig& operator=(const PerformanceConfig&) = default;
     virtual ~PerformanceConfig() {}
     virtual void Serialize(std::ostream&) const {}
     virtual bool Deserialize(const std::string& s) { return s.empty(); }
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     virtual bool LegacyDeserialize(const std::string&) { return false; }
 #endif
+    friend std::ostream& operator<<(std::ostream& os, const PerformanceConfig& c)
+    {
+        c.Serialize(os); // Can be used here as provides text.
+        return os;
+    }
 };
 
 /// Base class for problem solvers.
@@ -160,12 +162,21 @@ class Solver
     /// The function may involve some euristic to guess the best solution
     /// configuration. It is assumed that the function takes constant time
     /// to finish and does not run kernels to measure performance etc.
+    /// The function shall always return valid config.
     ///
     /// Every Solver which overrides PerformanceConfigImpl() shall
     /// override this function as well.
     virtual void InitPerformanceConfigImpl(const ConvolutionContext&, PerformanceConfig& c) const
     {
         c = PerformanceConfig();
+    }
+
+    /// Should return false if performance config is wrong for a problem.
+    /// Main use is validation of values read from the perf db.
+    virtual bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
+                                              const PerformanceConfig&) const
+    {
+        return true; // Do not check by default.
     }
 
     /// Solver-specific implementation of exhaustive search procedure.
@@ -331,6 +342,8 @@ class ConvAsmBwdWrW3x3 : public Solver
     std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const override;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfig& result) const override;
+    bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
+                                      const PerformanceConfig&) const override;
     bool IsSearchable() const override { return true; }
     void Search(const ConvolutionContext&, PerformanceConfig& config) const override;
     bool IsApplicable(const ConvolutionContext& params) const override;
