@@ -52,33 +52,38 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
 {
     std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
     MIOPEN_LOG_I("Finding solution: " << SolverId());
-    if(!IsSearchable())
+    do
     {
-        MIOPEN_LOG_I("Not searchable: " << SolverId());
-        InitPerformanceConfigImpl(context, *config);
-        return GetSolution(context, *config);
-    }
-    if(dbRecord.Load(SolverId(), *config))
-    {
-        MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
-        if(!IsValidPerformanceConfigImpl(context, *config))
+        if(!IsSearchable())
         {
-            MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId() << ": " << *config);
-            InitPerformanceConfigImpl(context, *config);
+            MIOPEN_LOG_I("Not searchable: " << SolverId());
+            break;
         }
-        return GetSolution(context, *config);
-    }
-    MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
-    if(context.do_search)
-    {
-        MIOPEN_LOG_I("Starting search: " << SolverId());
-        Search(context, *config);
-        dbRecord.Store(SolverId(), *config);
-    }
-    else
-    {
-        InitPerformanceConfigImpl(context, *config);
-    }
+        if(dbRecord.Load(SolverId(), *config))
+        {
+            MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
+            if(IsValidPerformanceConfigImpl(context, *config))
+            {
+                return GetSolution(context, *config);
+            }
+            MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId() << ": " << *config);
+            break;
+        }
+        MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
+        if(context.do_search)
+        {
+            MIOPEN_LOG_I("Starting search: " << SolverId());
+            if(Search(context, *config))
+            {
+                dbRecord.Store(SolverId(), *config);
+                return GetSolution(context, *config);
+            }
+            MIOPEN_LOG_E("Search failed: " << SolverId());
+        }
+        break;
+    } while(false);
+
+    InitPerformanceConfigImpl(context, *config);
     return GetSolution(context, *config);
 }
 
