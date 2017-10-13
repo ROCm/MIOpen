@@ -162,6 +162,7 @@ class DbRecordWriteTest : public DbRecordTest
     }
 };
 
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
 class DbRecordLegacyReadTest : public DbRecordTest
 {
     public:
@@ -183,6 +184,7 @@ class DbRecordLegacyReadTest : public DbRecordTest
         EXPECT_EQUAL(value0, read);
     }
 };
+#endif
 
 class DbRecordOperationsTest : public DbRecordTest
 {
@@ -191,11 +193,13 @@ class DbRecordOperationsTest : public DbRecordTest
     {
         (void)std::ofstream(TempFilePath()); // To suppress warning in logs.
 
+        TestData to_be_rewritten(7, 8);
+
         {
             DbRecord record(TempFilePath(), key);
 
-            EXPECT(record.Store(id0, value0));
-            EXPECT(record.Store(id1, value0));
+            EXPECT(record.Store(id0, to_be_rewritten));
+            EXPECT(record.Store(id1, to_be_rewritten));
 
             // Rewritting existing value with other.
             EXPECT(record.Store(id1, value1));
@@ -203,6 +207,13 @@ class DbRecordOperationsTest : public DbRecordTest
             // Rewritting existing value with same. In fact no DB manipulation should be performed
             // inside of store in such case.
             EXPECT(record.Store(id1, value1));
+        }
+
+        {
+            DbRecord record(TempFilePath(), key);
+
+            // Rewriting existing value to store it to file.
+            EXPECT(record.Store(id0, value0));
         }
 
         TestData read0, read1, read_missing, read_missing_cmp(read_missing);
@@ -233,7 +244,9 @@ int main()
 {
     miopen::tests::DbRecordReadTest().Run();
     miopen::tests::DbRecordWriteTest().Run();
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     miopen::tests::DbRecordLegacyReadTest().Run();
+#endif
     miopen::tests::DbRecordOperationsTest().Run();
 
     return 0;
