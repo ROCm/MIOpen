@@ -39,12 +39,12 @@ namespace solver {
 
 std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 {
-    os << k.kernel_file << ',' << k.kernel_name << " { ";
-    for(const auto& i : k.l_wk)
-        os << k.l_wk[i] << ' ';
-    os << "} { ";
-    for(const auto& i : k.g_wk)
-        os << k.g_wk[i] << ' ';
+    os << k.kernel_file << ", " << k.kernel_name << " g_wk={ ";
+    for(const auto& size : k.g_wk)
+        os << size << ' ';
+    os << "}, l_wk={ ";
+    for(const auto& size : k.l_wk)
+        os << size << ' ';
     return os << "} '" << k.comp_options << '\'';
 }
 
@@ -59,7 +59,7 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_I("Not searchable: " << SolverId());
             break;
         }
-        if(dbRecord.Load(SolverId(), *config))
+/*        if(dbRecord.Load(SolverId(), *config))
         {
             MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
             if(IsValidPerformanceConfigImpl(context, *config))
@@ -69,7 +69,7 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId() << ": " << *config);
             break;
         }
-        MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
+        MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());*/
         if(context.do_search)
         {
             MIOPEN_LOG_I("Starting search: " << SolverId());

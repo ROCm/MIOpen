@@ -559,48 +559,75 @@ int ConvAsmBwdWrW3x3::Measure(miopen::Handle& profile_h,
                               Data_t bot_ocl_buf,
                               Data_t top_ocl_buf,
                               Data_t wei_ocl_buf,
-                              Data_t bias_ocl_buf,
                               double& processing_time,
                               const ConvolutionContext& params,
                               const PerformanceConfig& config) const
 {
-
     ConvSolution solution = GetSolution(params, config);
-    if(!solution.Succeeded())
+    if(!solution.Succeeded()) {
         return 1;
+    }
     const KernelInfo k_info = solution.construction_params[0];
+#ifdef NDEBUG
     try
+#endif
     {
-        float padding_value = 0;
-        processing_time     = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels ad thus not applicable
-        // for assembly.
-        MIOPEN_LOG_I("Run: " << k_info);
-        miopen::KernelInvoke /*auto*/ kernel = profile_h.GetKernel("",
-                                                                   "",
-                                                                   k_info.kernel_file,
-                                                                   k_info.kernel_name,
-                                                                   k_info.l_wk,
-                                                                   k_info.g_wk,
-                                                                   k_info.comp_options);
-        kernel(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
+        processing_time = std::numeric_limits<float>::max();
+        // ConvolutionContext::general_compile_options is for OpenCL kernels
+        // and thus not applicable for assembly.
+        auto kernel = profile_h.GetKernel("",
+                                           "",
+                                           k_info.kernel_file,
+                                           k_info.kernel_name,
+                                           k_info.l_wk,
+                                           k_info.g_wk,
+                                           k_info.comp_options);
+
+
+#if 0
+        //kernel(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
+#define LOG(name) #name "=" << name << ", "
+#define LOG2(n,v) #n "=" << (v) << ", "
+
+    MIOPEN_LOG_I("kernel run params: "
+        << LOG2(N,params.batch_sz) 
+        << LOG2(C,params.n_outputs)
+        << LOG2(H,params.in_height)
+        << LOG2(W,params.in_width)
+        << LOG2(K,params.n_inputs)
+        << LOG2(n_groups,params.GetStream().GetMaxComputeUnits())
+        << LOG2(oH,params.out_height)
+        << LOG2(oW,params.out_width));
+#endif
+
+        int unused = 0;
+        int* return_addr = nullptr;
+        int n_groups = static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
+
+        kernel(params.batch_sz, // N
+               params.n_outputs, // C
+               params.in_height, // H FIXME out_?
+               params.in_width, // W FIXME out_?
+               params.n_inputs, // K
+               n_groups, // n_groups
+               unused,
+               unused,
+               bot_ocl_buf,
+               wei_ocl_buf,
+               top_ocl_buf,
+               return_addr);
         processing_time = profile_h.GetKernelTime();
     }
+#ifdef NDEBUG
     catch(miopen::Exception&)
     {
         return -1;
     }
+#endif
     return 0;
 }
 
-static void InitVectorRandomly(std::vector<float>& vec)
-{
-    float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX));
-}
-
-static void InitVectorRandomly(std::vector<float>& vec, const double offset, const double factor)
+static void InitVectorRandomly(std::vector<float>& vec, const double offset = 0.0, const double factor = 1.0)
 {
     float* p = vec.data();
     for(int i = 0; i < vec.size(); ++i)
@@ -609,121 +636,66 @@ static void InitVectorRandomly(std::vector<float>& vec, const double offset, con
 
 bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfig& config) const
 {
-    auto& result   = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
-    bool is_passed = false;
-
     miopen::Handle profile_h;
-    double processing_time;
-    std::string conf_key;
-    std::string conf_val;
-
     profile_h.EnableProfiling(true);
 
-    // Allocate and init I/O buffers
-    size_t bot_sz = params.bot_sz / sizeof(float);
-    std::vector<float> bot_sys_buf(bot_sz);
-    InitVectorRandomly(bot_sys_buf);
-    auto bot_ocl_buf = profile_h.Write(bot_sys_buf);
+    // Allocate & init input buffers.
+    std::vector<float> bot(params.bot_sz / sizeof(float));
+    InitVectorRandomly(bot);
+    auto bot_ocl_buf = profile_h.Write(bot);
 
-    size_t top_sz = params.top_sz / sizeof(float);
-    std::vector<float> top_sys_buf(top_sz);
-    auto top_ocl_buf = profile_h.Write(top_sys_buf);
+    std::vector<float> top(params.top_sz / sizeof(float));
+    InitVectorRandomly(top);
+    auto top_ocl_buf = profile_h.Write(top);
 
-    std::vector<float> random_top_sys_buf(top_sz);
-    InitVectorRandomly(random_top_sys_buf);
+    // Allocate output buffer & prepare random initializer for it.
+    std::vector<float> wei(params.weights_sz / sizeof(float));
+    auto wei_ocl_buf = profile_h.Write(wei);
+    std::vector<float> init_wei(wei.size());
+    InitVectorRandomly(init_wei, -0.5, 0.001);
 
-    size_t weights_sz = params.weights_sz / sizeof(float);
-    std::vector<float> wei_sys_buf(weights_sz);
-    InitVectorRandomly(wei_sys_buf, -0.5, 0.001);
-    auto wei_ocl_buf = profile_h.Write(wei_sys_buf);
-
-    std::vector<float> bias_sys_buf;
-    miopen::Allocator::ManageDataPtr bias_ocl_buf = nullptr;
-
-    // search loop here
-
+    const int n_runs_total = 1;
+    MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
+    auto& best = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
+    best.EuristicInit(params);
+    bool is_passed = false;
     double min_proc_time  = std::numeric_limits<float>::max();
-    size_t run_counter    = 0;
-    size_t report_inteval = 100;
-
-    long long runs_left = 0;
-
-    int n_solutions = 0;
-    MIOPEN_LOG_W("Searching the best solution among " << n_solutions << "...");
-
-    /*for(int g0 = 0; g0 <= XXX_n_grp_tiles0; ++g0)
-        {
-            for(int o_t = KILL_n_out_tiles_rg[0]; o_t <= KILL_n_out_tiles_rg[1]; ++o_t)
-            {
-                for(int l = 0; l < XXX_out_pix_tl_cnt; ++l)
-                {
-                    for(int i_t = KILL_n_in_tiles_rg[0]; i_t <= KILL_n_in_tiles_rg[1]; ++i_t)
-                    */ {
-        // randomize output
-        profile_h.WriteTo(reinterpret_cast<const void*>(random_top_sys_buf.data()),
-                          top_ocl_buf,
-                          random_top_sys_buf.size() * sizeof(float));
+    const size_t n_progress_report_interval = 100; // Report progress after each interval and also after the last run.
+    int n_runs_failed = 0;
+    size_t n_run = 0;
+    do
+    {
+        PerformanceConfigAsmDirect3x3WrW c = best;
+        double processing_time;
+        profile_h.WriteTo(reinterpret_cast<const void*>(init_wei.data()),
+                          wei_ocl_buf,
+                          init_wei.size() * sizeof(decltype(init_wei)::value_type));
 
         const auto ret = Measure(profile_h,
                                  bot_ocl_buf.get(),
                                  top_ocl_buf.get(),
                                  wei_ocl_buf.get(),
-                                 bias_ocl_buf.get(),
                                  processing_time,
                                  params,
-                                 config);
-        if(ret == 0)
-        {
+                                 c);
+        if (ret == 0) {
             is_passed = true;
-        }
-
-        /*if(ret != 0)
-        {
-            MIOPEN_LOG_E("#" << n << "/" << n_solutions << ": " << " Failed (" << ret << ")");
+        } else {
+            MIOPEN_LOG_E("#" << n_run << " (" << n_runs_total << ") " << " Failed rc=" << ret);
             continue;
         }
 
-        if(run_counter != 0 && run_counter % report_inteval == 0)
+        if(processing_time < min_proc_time)
         {
-            MIOPEN_LOG_I("#" << n << "/" << n_solutions << ": " << " Ok (" << ret << ")"
-                      << "min time: " << min_proc_time_interval << "/" << min_proc_time);
+            MIOPEN_LOG_I("#" << n_run << " (" << n_runs_total << ") " << processing_time << " < " << min_proc_time << ", new candidate: " << c);
+            best = c;
+            min_proc_time = processing_time;
         }
 
-        run_counter++;
-        runs_left--;
-        runs_left = (runs_left < 0) ? 0 : runs_left;
-        if(min_proc_time > processing_time)
-        {
-            min_proc_time       = processing_time;
-            min_grp_tile0       = result.grp_tile0;
-            min_grp_tile1       = result.grp_tile1;
-            min_in_tile0        = result.in_tile0;
-            min_in_tile1        = result.in_tile1;
-            min_out_pix_tile0   = result.out_pix_tile0;
-            min_out_pix_tile1   = result.out_pix_tile1;
-            min_n_out_pix_tiles = result.n_out_pix_tiles;
-            min_n_in_data_tiles = result.n_in_data_tiles;
-            min_n_stacks        = result.n_stacks;
-        }*/
-
-    } /* // for (int i_t = KILL_n_in_tiles_rg[0]; i_t <= KILL_n_in_tiles_rg[1]; ++i_t)
- }     // if (result.out_pix_tile0 > result.in_tile0)
-}         // for (int l = 0; l < l_l; ++l)
-}             // for (int g0 = 0; g0 < 2; ++g0)
-*/
-
-    /*std::cout << std::endl << "Score: " << min_proc_time << std::endl;
-    result.grp_tile0       = min_grp_tile0;
-    result.grp_tile1       = min_grp_tile1;
-    result.in_tile0        = min_in_tile0;
-    result.in_tile1        = min_in_tile1;
-    result.out_pix_tile0   = min_out_pix_tile0;
-    result.out_pix_tile1   = min_out_pix_tile1;
-    result.n_out_pix_tiles = min_n_out_pix_tiles;
-    result.n_in_data_tiles = min_n_in_data_tiles;
-    result.n_stacks        = min_n_stacks;*/
-
+    }
+    while (false);
     profile_h.EnableProfiling(false);
+    MIOPEN_LOG_W("Ran configs (total/failed): " << n_runs_total << "/" << n_runs_failed << ", best time: " << min_proc_time << ", best config: " << best);
     return is_passed;
 }
 
