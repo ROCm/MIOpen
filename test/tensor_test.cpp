@@ -615,8 +615,7 @@ struct check_tensor_support
 
 void check_null_tensor()
 {
-    EXPECT(miopenSet4dTensorDescriptor(nullptr, miopenFloat, 100, 32, 8, 8) !=
-           miopenStatusSuccess);
+    EXPECT(miopenSet4dTensorDescriptor(nullptr, miopenFloat, 100, 32, 8, 8) != miopenStatusSuccess);
 }
 
 int main()
