@@ -115,7 +115,8 @@ RNNDescriptor::RNNDescriptor(int hsz,
     inputBatchLenSum = 0; // init
 }
 
-size_t RNNDescriptor::GetWorkspaceSize(Handle& handle, const int sLen, TensorDescriptor* xDesc)
+size_t RNNDescriptor::GetWorkspaceSize(Handle& handle, const int sLen, c_array_view<miopenTensorDescriptor_t> xDesc)
+	//TensorDescriptor* xDesc)
 {
     // NOTE dlowell: this calculation WILL change during development.
     // currently this is calculated the same as Workspace size
@@ -142,7 +143,8 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle, const int sLen, TensorDes
 	return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
 }
 
-size_t RNNDescriptor::GetReserveSize(Handle& handle, const int sLen, TensorDescriptor* xDesc)
+size_t RNNDescriptor::GetReserveSize(Handle& handle, const int sLen, c_array_view<miopenTensorDescriptor_t> xDesc)
+	//TensorDescriptor* xDesc)
 {
     // NOTE dlowell: this calculation WILL change during development.
     // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType *
@@ -205,7 +207,9 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
     return size_t(x); */
 }
 
-size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& handle, const int sLen, TensorDescriptor* xDesc)
+size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& handle, const int seqLength,
+	c_array_view<miopenTensorDescriptor_t> xDesc)
+//	TensorDescriptor* xDesc)
 {
     if(xDesc[0].GetType() != dataType)
     {
@@ -213,7 +217,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& handle, const int sLen,
     }
     if(!inputBatchLenSum)
     {
-        for(int i = 0; i < sLen; i++)
+        for(int i = 0; i < seqLength; i++)
         {
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
@@ -222,7 +226,8 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& handle, const int sLen,
 	return size_t(x);
 }
 
-size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& handle, TensorDescriptor* xDesc)
+size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& handle, c_array_view<miopenTensorDescriptor_t> xDesc)
+	//TensorDescriptor* xDesc)
 {
 	if (xDesc[0].GetType() != dataType)
 	{
