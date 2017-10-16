@@ -54,10 +54,18 @@ struct check_numeric_normal : check_numerics_base
         CHECK(
             !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false));
 
-        CHECK(
-            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw | miopen::CheckNumerics::ComputeStats, desc, buffer.get(), true));
-        CHECK(
-            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw | miopen::CheckNumerics::ComputeStats, desc, buffer.get(), false));
+        CHECK(!miopen::checkNumericsImpl(h,
+                                         miopen::CheckNumerics::Throw |
+                                             miopen::CheckNumerics::ComputeStats,
+                                         desc,
+                                         buffer.get(),
+                                         true));
+        CHECK(!miopen::checkNumericsImpl(h,
+                                         miopen::CheckNumerics::Throw |
+                                             miopen::CheckNumerics::ComputeStats,
+                                         desc,
+                                         buffer.get(),
+                                         false));
     }
 };
 
@@ -77,14 +85,34 @@ struct check_numeric_abnormal : check_numerics_base
             miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false);
         }));
 
-        CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn | miopen::CheckNumerics::ComputeStats, desc, buffer.get(), true));
-        CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn | miopen::CheckNumerics::ComputeStats, desc, buffer.get(), false));
+        CHECK(miopen::checkNumericsImpl(h,
+                                        miopen::CheckNumerics::Warn |
+                                            miopen::CheckNumerics::ComputeStats,
+                                        desc,
+                                        buffer.get(),
+                                        true));
+        CHECK(miopen::checkNumericsImpl(h,
+                                        miopen::CheckNumerics::Warn |
+                                            miopen::CheckNumerics::ComputeStats,
+                                        desc,
+                                        buffer.get(),
+                                        false));
 
         CHECK(throws([&] {
-            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw | miopen::CheckNumerics::ComputeStats, desc, buffer.get(), true);
+            miopen::checkNumericsImpl(h,
+                                      miopen::CheckNumerics::Throw |
+                                          miopen::CheckNumerics::ComputeStats,
+                                      desc,
+                                      buffer.get(),
+                                      true);
         }));
         CHECK(throws([&] {
-            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw | miopen::CheckNumerics::ComputeStats, desc, buffer.get(), false);
+            miopen::checkNumericsImpl(h,
+                                      miopen::CheckNumerics::Throw |
+                                          miopen::CheckNumerics::ComputeStats,
+                                      desc,
+                                      buffer.get(),
+                                      false);
         }));
     }
 };
