@@ -31,19 +31,11 @@
 #include <iostream>
 #include <random>
 #include <sstream>
-#include <unistd.h>
 #include <vector>
 
 #include "miopen/db_record.hpp"
+#include "temp_file_path.hpp"
 #include "test.hpp"
-
-#define SINGLETON_BODY(...)               \
-    \
-{                                  \
-        static auto data = (__VA_ARGS__); \
-        return data;                      \
-    \
-}
 
 namespace miopen {
 namespace tests {
@@ -127,32 +119,39 @@ std::ostream& operator<<(std::ostream& s, const TestData& td)
 class DbRecordTest
 {
     public:
-    DbRecordTest()
-    {
-        auto temp_fd = mkstemp(_temp_file);
-        EXPECT(temp_fd != -1);
-        close(temp_fd);
-    }
-
-    virtual ~DbRecordTest() { std::remove(temp_file_path()); }
+    DbRecordTest() : _temp_file_path("/tmp/miopen.tests.perfdb.XXXXXX") {}
+    virtual ~DbRecordTest() {}
 
     protected:
-    static const TestData& key() SINGLETON_BODY(TestData(1, 2)) static const TestData& value0()
-        SINGLETON_BODY(TestData(3, 4)) static const TestData& value1()
-            SINGLETON_BODY(TestData(5, 6)) static const char* id0()
+    static const TestData& key()
     {
-        return "0";
+        const TestData data(1, 2);
+        return data;
     }
+
+    static const TestData& value0()
+    {
+        const TestData data(3, 4);
+        return data;
+    }
+
+    static const TestData& value1()
+    {
+        const TestData data(5, 6);
+        return data;
+    }
+
+    static const char* id0() { return "0"; }
     static const char* id1() { return "1"; }
     static const char* missing_id() { return "2"; }
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     static const char* legacy_id() { return "ConvOclDirectFwd"; } // const from db_record.cpp
 #endif
 
-    const char* temp_file_path() const { return _temp_file; }
+    const char* temp_file_path() const { return _temp_file_path; }
 
     private:
-    char _temp_file[32] = "/tmp/miopen.tests.perfdb.XXXXXX";
+    TempFilePath _temp_file_path;
 };
 
 class DbRecordReadTest : public DbRecordTest

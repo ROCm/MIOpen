@@ -28,11 +28,11 @@
 #include <functional>
 #include <sstream>
 #include <typeinfo>
-#include <unistd.h>
 
 #include "get_handle.hpp"
 #include "miopen/mlo_internal.hpp"
 #include "miopen/solver.hpp"
+#include "temp_file_path.hpp"
 #include "test.hpp"
 
 namespace miopen {
@@ -157,14 +157,10 @@ int SearchableTestSolver::_serches_done = 0;
 class TrivialConstruct : public mlo_construct_direct2D
 {
     public:
-    TrivialConstruct(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias)
+    TrivialConstruct(const char* db_path, int dir, bool do_bias = false)
+        : mlo_construct_direct2D(dir, do_bias), _db_path(db_path)
     {
-        auto temp_fd = mkstemp(_temp_file);
-        EXPECT(temp_fd != -1);
-        close(temp_fd);
     }
-
-    ~TrivialConstruct() { std::remove(_temp_file); }
 
     const std::vector<std::reference_wrapper<const solver::Solver>>& SolverStore() const override
     {
@@ -178,10 +174,10 @@ class TrivialConstruct : public mlo_construct_direct2D
     }
 
     protected:
-    std::string db_path() override { return _temp_file; }
+    const std::string& db_path() const override { return _db_path; }
 
     private:
-    char _temp_file[32] = "/tmp/miopen.tests.solver.XXXXXX";
+    const char* _db_path;
 };
 
 class SolverTest
@@ -189,18 +185,22 @@ class SolverTest
     public:
     void Run() const
     {
-        TrivialConstruct construct(1);
+        TempFilePath db_path("/tmp/miopen.tests.solver.XXXXXX");
 
-        ConstructTest(construct, TrivialSlowTestSolver::FileName(), [](mlo_construct_direct2D& c) {
+        ConstructTest(db_path, TrivialSlowTestSolver::FileName(), [](mlo_construct_direct2D& c) {
             c.setInputDescr("", "", 0, 0, 1, 1, 0, 0, 0, 0);
         });
-        ConstructTest(construct, TrivialTestSolver::FileName(), [](mlo_construct_direct2D& c) {
+        ConstructTest(db_path, TrivialTestSolver::FileName(), [](mlo_construct_direct2D& c) {
             c.setInputDescr("", "", 0, 0, 0, 1, 0, 0, 0, 0);
         });
-        ConstructTest(construct,
+        ConstructTest(db_path, TrivialTestSolver::FileName(), [](mlo_construct_direct2D& c) {
+            c.setInputDescr("", "", 0, 0, 0, 1, 0, 0, 0, 0);
+            c.doSearch(true);
+        });
+        ConstructTest(db_path,
                       SearchableTestSolver::NoSearchFileName(),
                       [](mlo_construct_direct2D& c) { c.doSearch(false); });
-        ConstructTest(construct, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {
+        ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {
             c.doSearch(true);
         });
 
@@ -208,10 +208,8 @@ class SolverTest
         const auto searches           = searchable_solver.searches_done();
 
         // Should read in both cases: result is already in DB, solver is searchable.
-        ConstructTest(construct, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {
-            c.doSearch(false);
-        });
-        ConstructTest(construct, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {
+        ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {});
+        ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {
             c.doSearch(true);
         });
         // Checking no more searches were done.
@@ -219,12 +217,12 @@ class SolverTest
     }
 
     private:
-    void ConstructTest(mlo_construct_direct2D& construct,
+    void ConstructTest(const char* db_path,
                        const char* expected_kernel,
                        std::function<void(mlo_construct_direct2D&)> context_filler) const
     {
+        TrivialConstruct construct(db_path, 1);
         construct.setStream(&get_handle());
-        construct.setInputDescr("", "", 0, 0, 0, 0, 0, 0, 0, 0);
 
         context_filler(construct);
         construct.mloConstruct();
