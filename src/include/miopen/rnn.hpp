@@ -92,12 +92,10 @@ struct RNNDescriptor : miopenRNNDescriptor
     size_t GetWorkspaceSize(Handle& handle,
                             const int seqLength,
                             c_array_view<miopenTensorDescriptor_t> xDesc);
-    // TensorDescriptor* xDesc);
 
     size_t GetReserveSize(Handle& handle,
                           const int seqLength,
                           c_array_view<miopenTensorDescriptor_t> xDesc);
-    // TensorDescriptor* xDesc);
 
     size_t
     GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
@@ -121,10 +119,9 @@ struct RNNDescriptor : miopenRNNDescriptor
     size_t GetRNNInputSuperTensorSize(Handle& handle,
                                       const int seqLength,
                                       c_array_view<miopenTensorDescriptor_t> xDesc);
-    // TensorDescriptor* xDesc);
+
     size_t GetRNNHiddenSuperTensorSize(Handle& handle,
                                        c_array_view<miopenTensorDescriptor_t> xDesc);
-    // TensorDescriptor* xDesc);
 
     /* Get weight super tensor size
     temporary function assuming output matrix exists */
