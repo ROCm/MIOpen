@@ -602,14 +602,12 @@ struct check_tensor_support
 {
     miopenTensorDescriptor_t tensor;
 
-    check_tensor_support()
-    {
-        miopenCreateTensorDescriptor(&tensor);
-    }
+    check_tensor_support() { miopenCreateTensorDescriptor(&tensor); }
 
     void run()
     {
-        EXPECT(miopenSet4dTensorDescriptor(tensor, miopenHalf, 100, 32, 8, 8) != miopenStatusSuccess);
+        EXPECT(miopenSet4dTensorDescriptor(tensor, miopenHalf, 100, 32, 8, 8) !=
+               miopenStatusSuccess);
     }
 
     ~check_tensor_support() { miopenDestroyTensorDescriptor(tensor); }
