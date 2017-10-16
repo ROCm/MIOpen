@@ -613,6 +613,12 @@ struct check_tensor_support
     ~check_tensor_support() { miopenDestroyTensorDescriptor(tensor); }
 };
 
+void check_null_tensor()
+{
+    EXPECT(miopenSet4dTensorDescriptor(nullptr, miopenFloat, 100, 32, 8, 8) !=
+           miopenStatusSuccess);
+}
+
 int main()
 {
     // printf("Running 1-D.\n");
@@ -642,4 +648,5 @@ int main()
     tensor_test_suit_5d<tensor_fixture_n5d_strides>::run_tests();
 
     run_test<check_tensor_support>();
+    check_null_tensor();
 }
