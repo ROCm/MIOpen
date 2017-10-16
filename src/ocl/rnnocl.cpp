@@ -108,17 +108,17 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     // TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
-	int in_h = xDesc[0].GetLengths()[1]; // input vector size
-	int hy_d = hxDesc.GetLengths()[0];   // biNumLayers
-	int hy_n = hxDesc.GetLengths()[1]; // max batch size
-	int hy_h = hxDesc.GetLengths()[2];   // hidden size
-	int out_h = yDesc[0].GetLengths()[1]; // output vector size
-
- /*   int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
     int in_h  = xDesc[0].GetLengths()[1]; // input vector size
-    int hy_n  = xDesc[0].GetLengths()[0]; // max batch size
+    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
+    int hy_n  = hxDesc.GetLengths()[1];   // max batch size
     int hy_h  = hxDesc.GetLengths()[2];   // hidden size
-    int out_h = hxDesc.GetLengths()[2];   // hidden size*/
+    int out_h = yDesc[0].GetLengths()[1]; // output vector size
+
+    /*   int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
+       int in_h  = xDesc[0].GetLengths()[1]; // input vector size
+       int hy_n  = xDesc[0].GetLengths()[0]; // max batch size
+       int hy_h  = hxDesc.GetLengths()[2];   // hidden size
+       int out_h = hxDesc.GetLengths()[2];   // hidden size*/
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
@@ -510,17 +510,17 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     // TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
-	int in_h = dxDesc[0].GetLengths()[1];
-	int hy_d = dhxDesc.GetLengths()[0];
-	int hy_n = dhxDesc.GetLengths()[1];
-	int hy_h = dhxDesc.GetLengths()[2];
-	int out_h = dyDesc[0].GetLengths()[1];
+    int in_h  = dxDesc[0].GetLengths()[1];
+    int hy_d  = dhxDesc.GetLengths()[0];
+    int hy_n  = dhxDesc.GetLengths()[1];
+    int hy_h  = dhxDesc.GetLengths()[2];
+    int out_h = dyDesc[0].GetLengths()[1];
 
- /*   int hy_d  = hxDesc.GetLengths()[0];    // biNumLayers
-    int in_h  = dxDesc[0].GetLengths()[1]; // input vector size
-    int hy_n  = dxDesc[0].GetLengths()[0]; // max batch size
-    int hy_h  = hxDesc.GetLengths()[2];    // hidden size
-    int out_h = hxDesc.GetLengths()[2];    // hidden size*/
+    /*   int hy_d  = hxDesc.GetLengths()[0];    // biNumLayers
+       int in_h  = dxDesc[0].GetLengths()[1]; // input vector size
+       int hy_n  = dxDesc[0].GetLengths()[0]; // max batch size
+       int hy_h  = hxDesc.GetLengths()[2];    // hidden size
+       int out_h = hxDesc.GetLengths()[2];    // hidden size*/
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
@@ -708,17 +708,17 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     // TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
-	int in_h = xDesc[0].GetLengths()[1];
-	int hy_d = hxDesc.GetLengths()[0];
-	int hy_n = hxDesc.GetLengths()[1];
-	int hy_h = hxDesc.GetLengths()[2];
-	int out_h = dyDesc[0].GetLengths()[1];
+    int in_h  = xDesc[0].GetLengths()[1];
+    int hy_d  = hxDesc.GetLengths()[0];
+    int hy_n  = hxDesc.GetLengths()[1];
+    int hy_h  = hxDesc.GetLengths()[2];
+    int out_h = dyDesc[0].GetLengths()[1];
 
-/*    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
-    int in_h  = xDesc[0].GetLengths()[1]; // input vector size
-    int hy_n  = xDesc[0].GetLengths()[0]; // max batch size
-    int hy_h  = hxDesc.GetLengths()[2];   // hidden size
-    int out_h = hxDesc.GetLengths()[2];   // hidden size*/
+    /*    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
+        int in_h  = xDesc[0].GetLengths()[1]; // input vector size
+        int hy_n  = xDesc[0].GetLengths()[0]; // max batch size
+        int hy_h  = hxDesc.GetLengths()[2];   // hidden size
+        int out_h = hxDesc.GetLengths()[2];   // hidden size*/
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
