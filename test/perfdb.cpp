@@ -125,19 +125,19 @@ class DbRecordTest
     protected:
     static const TestData& key()
     {
-        const TestData data(1, 2);
+        static const TestData data(1, 2);
         return data;
     }
 
     static const TestData& value0()
     {
-        const TestData data(3, 4);
+        static const TestData data(3, 4);
         return data;
     }
 
     static const TestData& value1()
     {
-        const TestData data(5, 6);
+        static const TestData data(5, 6);
         return data;
     }
 
