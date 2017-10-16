@@ -145,7 +145,7 @@ class RNNDriver : public Driver
 		miopenDestroyTensorDescriptor(inputTensor);
 
         // TODO dlowell: destroy all of these descriptors!
-        miopenDestroyTensorDescriptor(wDesc);
+//`        miopenDestroyTensorDescriptor(wDesc);
 
         miopenDestroyRNNDescriptor(rnnDesc);
     }
