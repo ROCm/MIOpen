@@ -36,14 +36,13 @@ void check_cache_file()
 
 void check_cache_str()
 {
-    auto p = miopen::GetCacheFile("gfx", "base", "args", true);
+    auto p    = miopen::GetCacheFile("gfx", "base", "args", true);
     auto name = miopen::md5("base");
     CHECK(p.filename().string() == name + ".o");
 }
 
-int main() 
+int main()
 {
     check_cache_file();
     check_cache_str();
 }
-
