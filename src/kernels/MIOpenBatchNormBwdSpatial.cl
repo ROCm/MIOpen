@@ -1809,7 +1809,7 @@ BatchNormBwdSpatialDScale(const __global _FLOAT* x_in,
 }
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatialFinalDScale(__global _FLOAT* buff, __global _FLOAT* delta_scale, _FLOAT INHW)
+BatchNormBwdSpatialFinalDScale(__global _FLOAT* buff, __global _FLOAT* delta_scale)
 {
 
     __private _FLOAT ds  = 0.;
