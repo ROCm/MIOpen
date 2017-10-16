@@ -45,45 +45,46 @@ extern "C" miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDe
 }
 
 extern "C" miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
-	miopenRNNMode_t* rnnMode,
-	miopenRNNAlgo_t * algoMode,
-	miopenRNNInputMode_t *inputMode,
-	miopenRNNDirectionMode_t* dirMode,
-	miopenRNNBiasMode_t *biasMode,
-	int* hiddenSize,
-	int* layer)
+                                                 miopenRNNMode_t* rnnMode,
+                                                 miopenRNNAlgo_t* algoMode,
+                                                 miopenRNNInputMode_t* inputMode,
+                                                 miopenRNNDirectionMode_t* dirMode,
+                                                 miopenRNNBiasMode_t* biasMode,
+                                                 int* hiddenSize,
+                                                 int* layer)
 {
 
-	MIOPEN_LOG_FUNCTION(rnnDesc, rnnMode, algoMode, inputMode, dirMode, biasMode, hiddenSize, layer);
-	return miopen::try_([&] {
-		if (rnnMode != nullptr)
-		{
-			miopen::deref(rnnMode) = miopen::deref(rnnDesc).rnnMode;
-		}
-		if (algoMode != nullptr)
-		{
-			miopen::deref(algoMode) = miopen::deref(rnnDesc).algoMode;
-		}
-		if (inputMode != nullptr)
-		{
-			miopen::deref(inputMode) = miopen::deref(rnnDesc).inputMode;
-		}
-		if (layer != nullptr)
-		{
-			miopen::deref(layer) = miopen::deref(rnnDesc).nLayers;
-		}
-		if (biasMode != nullptr)
-		{
-			miopen::deref(biasMode) = miopen::deref(rnnDesc).biasMode;
-		}
-		if (dirMode != nullptr)
-		{
-			miopen::deref(dirMode) = miopen::deref(rnnDesc).dirMode;
-		}
-		if (hiddenSize != nullptr)
-		{
-			miopen::deref(hiddenSize) = miopen::deref(rnnDesc).hsize;
-		}
+    MIOPEN_LOG_FUNCTION(
+        rnnDesc, rnnMode, algoMode, inputMode, dirMode, biasMode, hiddenSize, layer);
+    return miopen::try_([&] {
+        if(rnnMode != nullptr)
+        {
+            miopen::deref(rnnMode) = miopen::deref(rnnDesc).rnnMode;
+        }
+        if(algoMode != nullptr)
+        {
+            miopen::deref(algoMode) = miopen::deref(rnnDesc).algoMode;
+        }
+        if(inputMode != nullptr)
+        {
+            miopen::deref(inputMode) = miopen::deref(rnnDesc).inputMode;
+        }
+        if(layer != nullptr)
+        {
+            miopen::deref(layer) = miopen::deref(rnnDesc).nLayers;
+        }
+        if(biasMode != nullptr)
+        {
+            miopen::deref(biasMode) = miopen::deref(rnnDesc).biasMode;
+        }
+        if(dirMode != nullptr)
+        {
+            miopen::deref(dirMode) = miopen::deref(rnnDesc).dirMode;
+        }
+        if(hiddenSize != nullptr)
+        {
+            miopen::deref(hiddenSize) = miopen::deref(rnnDesc).hsize;
+        }
 
     });
 }
@@ -116,13 +117,11 @@ extern "C" miopenStatus_t miopenGetRNNWorkspaceSize(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
-	miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{ xDesc, size_t(seqLen) };
+    miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(seqLen)};
     return miopen::try_([&] {
-        miopen::deref(numBytes) = miopen::deref(rnnDesc).GetWorkspaceSize(
-            miopen::deref(handle),
-            seqLen,
-			xDescArray);
-//            static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+        miopen::deref(numBytes) =
+            miopen::deref(rnnDesc).GetWorkspaceSize(miopen::deref(handle), seqLen, xDescArray);
+        //            static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
     });
 }
 
@@ -134,13 +133,11 @@ extern "C" miopenStatus_t miopenGetRNNTrainingReserveSize(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
-	miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{ xDesc, size_t(seqLen) };
+    miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(seqLen)};
     return miopen::try_([&] {
-        miopen::deref(numBytes) = miopen::deref(rnnDesc).GetReserveSize(
-            miopen::deref(handle),
-            seqLen,
-			xDescArray);
-//			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+        miopen::deref(numBytes) =
+            miopen::deref(rnnDesc).GetReserveSize(miopen::deref(handle), seqLen, xDescArray);
+        //			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
     });
 }
 
@@ -159,51 +156,48 @@ extern "C" miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
 }
 
 extern "C" miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t handle,
-	miopenRNNDescriptor_t rnnDesc,
-	const int seqLen,
-	miopenTensorDescriptor_t* xDesc,
-	size_t* numBytes)
+                                                           miopenRNNDescriptor_t rnnDesc,
+                                                           const int seqLen,
+                                                           miopenTensorDescriptor_t* xDesc,
+                                                           size_t* numBytes)
 {
-	MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
-	miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{ xDesc, size_t(seqLen) };
-	return miopen::try_([&] {
-		miopen::deref(numBytes) = miopen::deref(rnnDesc).GetRNNInputSuperTensorSize(
-			miopen::deref(handle),
-			seqLen,
-			xDescArray);
-//			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
-	});
+    MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
+    miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(seqLen)};
+    return miopen::try_([&] {
+        miopen::deref(numBytes) = miopen::deref(rnnDesc).GetRNNInputSuperTensorSize(
+            miopen::deref(handle), seqLen, xDescArray);
+        //			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+    });
 }
 
 extern "C" miopenStatus_t miopenGetRNNHiddenSuperTensorSize(miopenHandle_t handle,
-	miopenRNNDescriptor_t rnnDesc,
-	const int seqLen,
-	miopenTensorDescriptor_t* xDesc,
-	size_t* numBytes)
+                                                            miopenRNNDescriptor_t rnnDesc,
+                                                            const int seqLen,
+                                                            miopenTensorDescriptor_t* xDesc,
+                                                            size_t* numBytes)
 {
-	MIOPEN_LOG_FUNCTION(rnnDesc, xDesc, numBytes);
-	miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{ xDesc, size_t(seqLen) };
-	return miopen::try_([&] {
-		miopen::deref(numBytes) = miopen::deref(rnnDesc).GetRNNHiddenSuperTensorSize(
-			miopen::deref(handle),
-			xDescArray);
-//			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
-	});
+    MIOPEN_LOG_FUNCTION(rnnDesc, xDesc, numBytes);
+    miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(seqLen)};
+    return miopen::try_([&] {
+        miopen::deref(numBytes) =
+            miopen::deref(rnnDesc).GetRNNHiddenSuperTensorSize(miopen::deref(handle), xDescArray);
+        //			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+    });
 }
 
 /* Get weight super tensor size
 temporary function assuming output matrix exists */
 extern "C" miopenStatus_t miopenGetRNNWeightSuperTensorSize(miopenHandle_t handle,
-	miopenRNNDescriptor_t rnnDesc,
-	size_t* numBytes,
-	miopenTensorDescriptor_t xDesc,
-	miopenTensorDescriptor_t yDesc)
+                                                            miopenRNNDescriptor_t rnnDesc,
+                                                            size_t* numBytes,
+                                                            miopenTensorDescriptor_t xDesc,
+                                                            miopenTensorDescriptor_t yDesc)
 {
-	MIOPEN_LOG_FUNCTION(rnnDesc, numBytes, xDesc, yDesc);
-	return miopen::try_([&] {
-		miopen::deref(numBytes) = miopen::deref(rnnDesc).GetRNNWeightSuperTensorSize(
-			miopen::deref(handle), miopen::deref(xDesc), miopen::deref(yDesc));
-	});
+    MIOPEN_LOG_FUNCTION(rnnDesc, numBytes, xDesc, yDesc);
+    return miopen::try_([&] {
+        miopen::deref(numBytes) = miopen::deref(rnnDesc).GetRNNWeightSuperTensorSize(
+            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(yDesc));
+    });
 }
 
 extern "C" miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
@@ -258,26 +252,26 @@ extern "C" miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
                                                    void* reserveSpace,
                                                    size_t reserveSpaceNumBytes)*/
 extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
-	const miopenRNNDescriptor_t rnnDesc,
-	const int sequenceLen,
-	miopenTensorDescriptor_t* xDesc,
-	const void* x,
-	const miopenTensorDescriptor_t hxDesc,
-	const void* hx,
-	const miopenTensorDescriptor_t cxDesc,
-	const void* cx,
-	const miopenTensorDescriptor_t wDesc,
-	const void* w,
-	miopenTensorDescriptor_t* yDesc,
-	void* y,
-	const miopenTensorDescriptor_t hyDesc,
-	void* hy,
-	const miopenTensorDescriptor_t cyDesc,
-	void* cy,
-	void* workSpace,
-	size_t workSpaceNumBytes,
-	void* reserveSpace,
-	size_t reserveSpaceNumBytes)
+                                                   const miopenRNNDescriptor_t rnnDesc,
+                                                   const int sequenceLen,
+                                                   miopenTensorDescriptor_t* xDesc,
+                                                   const void* x,
+                                                   const miopenTensorDescriptor_t hxDesc,
+                                                   const void* hx,
+                                                   const miopenTensorDescriptor_t cxDesc,
+                                                   const void* cx,
+                                                   const miopenTensorDescriptor_t wDesc,
+                                                   const void* w,
+                                                   miopenTensorDescriptor_t* yDesc,
+                                                   void* y,
+                                                   const miopenTensorDescriptor_t hyDesc,
+                                                   void* hy,
+                                                   const miopenTensorDescriptor_t cyDesc,
+                                                   void* cy,
+                                                   void* workSpace,
+                                                   size_t workSpaceNumBytes,
+                                                   void* reserveSpace,
+                                                   size_t reserveSpaceNumBytes)
 {
 
     MIOPEN_LOG_FUNCTION(rnnDesc,
@@ -355,32 +349,32 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                 const void* reserveSpace,
                                                 size_t reserveSpaceNumBytes)*/
 extern "C" miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
-	const miopenRNNDescriptor_t rnnDesc,
-	const int sequenceLen,
-	miopenTensorDescriptor_t *yDesc,
-	const void* y,
-	miopenTensorDescriptor_t *dyDesc,
-	const void* dy,
-	const miopenTensorDescriptor_t dhyDesc,
-	const void* dhy,
-	const miopenTensorDescriptor_t dcyDesc,
-	const void* dcy,
-	const miopenTensorDescriptor_t wDesc,
-	const void* w,
-	const miopenTensorDescriptor_t hxDesc,
-	const void* hx,
-	const miopenTensorDescriptor_t cxDesc,
-	const void* cx,
-	miopenTensorDescriptor_t *dxDesc,
-	void* dx,
-	const miopenTensorDescriptor_t dhxDesc,
-	void* dhx,
-	const miopenTensorDescriptor_t dcxDesc,
-	void* dcx,
-	void* workSpace,
-	size_t workSpaceNumBytes,
-	const void* reserveSpace,
-	size_t reserveSpaceNumBytes)
+                                                const miopenRNNDescriptor_t rnnDesc,
+                                                const int sequenceLen,
+                                                miopenTensorDescriptor_t* yDesc,
+                                                const void* y,
+                                                miopenTensorDescriptor_t* dyDesc,
+                                                const void* dy,
+                                                const miopenTensorDescriptor_t dhyDesc,
+                                                const void* dhy,
+                                                const miopenTensorDescriptor_t dcyDesc,
+                                                const void* dcy,
+                                                const miopenTensorDescriptor_t wDesc,
+                                                const void* w,
+                                                const miopenTensorDescriptor_t hxDesc,
+                                                const void* hx,
+                                                const miopenTensorDescriptor_t cxDesc,
+                                                const void* cx,
+                                                miopenTensorDescriptor_t* dxDesc,
+                                                void* dx,
+                                                const miopenTensorDescriptor_t dhxDesc,
+                                                void* dhx,
+                                                const miopenTensorDescriptor_t dcxDesc,
+                                                void* dcx,
+                                                void* workSpace,
+                                                size_t workSpaceNumBytes,
+                                                const void* reserveSpace,
+                                                size_t reserveSpaceNumBytes)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc,
                         sequenceLen,
@@ -458,20 +452,20 @@ extern "C" miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
                                         const void* reserveSpace,
                                         size_t reserveSpaceNumBytes)*/
 miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
-		const miopenRNNDescriptor_t rnnDesc,
-		const int sequenceLen,
-		miopenTensorDescriptor_t *xDesc,
-		const void* x,
-		const miopenTensorDescriptor_t hxDesc,
-		const void* hx,
-		miopenTensorDescriptor_t *dyDesc,
-		const void* dy,
-		const miopenTensorDescriptor_t dwDesc,
-		void* dw,
-		const void* workSpace,
-		size_t workSpaceNumBytes,
-		const void* reserveSpace,
-		size_t reserveSpaceNumBytes)
+                                        const miopenRNNDescriptor_t rnnDesc,
+                                        const int sequenceLen,
+                                        miopenTensorDescriptor_t* xDesc,
+                                        const void* x,
+                                        const miopenTensorDescriptor_t hxDesc,
+                                        const void* hx,
+                                        miopenTensorDescriptor_t* dyDesc,
+                                        const void* dy,
+                                        const miopenTensorDescriptor_t dwDesc,
+                                        void* dw,
+                                        const void* workSpace,
+                                        size_t workSpaceNumBytes,
+                                        const void* reserveSpace,
+                                        size_t reserveSpaceNumBytes)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc,
                         sequenceLen,
