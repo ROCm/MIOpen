@@ -37,10 +37,12 @@
 #include "miopen/db_record.hpp"
 #include "test.hpp"
 
-#define SINGLETON_BODY(...)\
-{\
-    static auto data = (__VA_ARGS__);\
-    return data;\
+#define SINGLETON_BODY(...)               \
+    \
+{                                  \
+        static auto data = (__VA_ARGS__); \
+        return data;                      \
+    \
 }
 
 namespace miopen {
@@ -135,10 +137,12 @@ class DbRecordTest
     virtual ~DbRecordTest() { std::remove(temp_file_path()); }
 
     protected:
-    static const TestData& key() SINGLETON_BODY(TestData(1, 2))
-    static const TestData& value0() SINGLETON_BODY(TestData(3, 4))
-    static const TestData& value1() SINGLETON_BODY(TestData(5, 6))
-    static const char* id0() { return "0";}
+    static const TestData& key() SINGLETON_BODY(TestData(1, 2)) static const TestData& value0()
+        SINGLETON_BODY(TestData(3, 4)) static const TestData& value1()
+            SINGLETON_BODY(TestData(5, 6)) static const char* id0()
+    {
+        return "0";
+    }
     static const char* id1() { return "1"; }
     static const char* missing_id() { return "2"; }
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -157,8 +161,8 @@ class DbRecordReadTest : public DbRecordTest
     inline void Run()
     {
         std::ostringstream ss_vals;
-        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ',' << value1().y << ';'
-                << id0() << ':' << value0().x << ',' << value0().y;
+        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
+                << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
 
         std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
 
@@ -182,8 +186,8 @@ class DbRecordWriteTest : public DbRecordTest
     inline void Run()
     {
         std::ostringstream ss_vals;
-        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ',' << value1().y << ';'
-                << id0() << ':' << value0().x << ',' << value0().y;
+        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
+                << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
 
         (void)std::ofstream(temp_file_path());
 
