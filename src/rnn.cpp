@@ -179,7 +179,7 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
     // h_t = sigma(Wx_t + Rh_t-1 + bw + br)
     // for one layer: wDesc <-- (v_hidden x v_input) + (v_hidden x v_hidden) + 2*(1 x v_hidden)
     assert(xDesc.GetLengths().size() > 1);
-    auto inputVecSize = xDesc.GetLengths()[1];
+/*    auto inputVecSize = xDesc.GetLengths()[1];
     size_t x = 0;
     auto biHiddenSize = hsize;
     if(dirMode) 
@@ -195,6 +195,16 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
         x = (biHiddenSize * inputVecSize) + nLayers * nHiddenTensorsPerLayer * (biHiddenSize * biHiddenSize);
     }
     return x;
+*/
+
+auto ih = xDesc.GetLengths()[1];
+	int bi = dirMode == miopenRNNbidirection ? 2 : 1;
+	auto sz = nHiddenTensorsPerLayer * hsize * bi * (ih + hsize + (nLayers - 1) * (bi + 1) * hsize);
+	if (biasMode == miopenRNNwithBias)
+	{
+		sz += (2 + (nLayers - 1) * (bi + 1)) * nHiddenTensorsPerLayer * hsize * bi;
+	}
+	return size_t(sz);
 
 	/* auto ih = xDesc.GetLengths()[1];
 	int bi = dirMode == miopenRNNbidirection ? 2 : 1;
