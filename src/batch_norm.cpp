@@ -388,7 +388,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
 
         kernel_subname = kernel_name + "FinalDScale";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
-            dx, dScale, inhw);
+            dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";
@@ -439,7 +439,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
 
         kernel_subname = kernel_name + "FinalDScale";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
-            dx, dScale, inhw);
+            dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";
