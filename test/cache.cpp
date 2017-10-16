@@ -24,30 +24,26 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MLOPEN_BINARY_CACHE_HPP
-#define GUARD_MLOPEN_BINARY_CACHE_HPP
+#include <miopen/binary_cache.hpp>
+#include <miopen/md5.hpp>
+#include "test.hpp"
 
-#include <string>
-#include <boost/filesystem/path.hpp>
+void check_cache_file()
+{
+    auto p = miopen::GetCacheFile("gfx", "base", "args", false);
+    CHECK(p.filename().string() == "base.o");
+}
 
-namespace miopen {
+void check_cache_str()
+{
+    auto p = miopen::GetCacheFile("gfx", "base", "args", true);
+    auto name = miopen::md5("base");
+    CHECK(p.filename().string() == name + ".o");
+}
 
-boost::filesystem::path GetCacheFile(const std::string& device,
-                                     const std::string& name,
-                                     const std::string& args,
-                                     bool is_kernel_str);
+int main() 
+{
+    check_cache_file();
+    check_cache_str();
+}
 
-boost::filesystem::path GetCachePath();
-std::string LoadBinary(const std::string& device,
-                       const std::string& name,
-                       const std::string& args,
-                       bool is_kernel_str = false);
-void SaveBinary(const boost::filesystem::path& binary_path,
-                const std::string& device,
-                const std::string& name,
-                const std::string& args,
-                bool is_kernel_str = false);
-
-} // namespace miopen
-
-#endif
