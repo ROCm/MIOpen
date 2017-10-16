@@ -372,7 +372,7 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
 template <typename T>
 std::vector<int> RNNDriver<T>::GetHiddenTensorLengthsFromCmdLine()
 {
-	int hid_h = inflags.GetValueInt("hid_h");
+    int hid_h = inflags.GetValueInt("hid_h");
     int hid_l = inflags.GetValueInt("num_layer");
     if((inflags.GetValueInt("bidirection")) == 1)
         hid_l *= 2;
@@ -517,15 +517,19 @@ std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine() // need remov
 template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
-    int seqLength = inflags.GetValueInt("seq_len");
-    size_t in_sz  = 0;
-    size_t out_sz = 0;
-    size_t wei_sz = 0;
+    int seqLength    = inflags.GetValueInt("seq_len");
+    size_t in_sz     = 0;
+    size_t out_sz    = 0;
+    size_t wei_sz    = 0;
     size_t hy_sz     = 0;
     size_t params_sz = 0;
     size_t workSpaceSize;
     size_t reserveSpaceSize;
-    miopenGetRNNInputSuperTensorSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &in_sz);  // use c_array to pass vector for all size function
+    miopenGetRNNInputSuperTensorSize(GetHandle(),
+                                     rnnDesc,
+                                     seqLength,
+                                     inputTensors.data(),
+                                     &in_sz); // use c_array to pass vector for all size function
     miopenGetRNNInputSuperTensorSize(
         GetHandle(), rnnDesc, seqLength, outputTensors.data(), &out_sz);
     miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &hy_sz);
@@ -865,7 +869,7 @@ template <typename T>
 int RNNDriver<T>::RunBackwardGPU()
 {
     int seqLength = inflags.GetValueInt("seq_len");
-    int ret = 0;
+    int ret       = 0;
 
     // Timer t;
     // START_TIME;
