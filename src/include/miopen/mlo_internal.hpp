@@ -800,7 +800,7 @@ class mlo_construct_direct2D
     }
 
     protected:
-    virtual std::string db_path() { return _search_params.GetPerfDbPath(); }
+    virtual const std::string& db_path() const { return _search_params.GetPerfDbPath(); }
 
     bool mloIsAmdOpenclRocm(rocm_meta_version& rmv) const;
 
