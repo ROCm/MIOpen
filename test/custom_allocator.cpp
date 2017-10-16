@@ -52,6 +52,22 @@ struct test_allocator : allocator_fixture
     }
 };
 
+struct test_null_allocator : allocator_fixture
+{
+    void run()
+    {
+        h.SetAllocator(
+            +[](void*, std::size_t n) -> void* {
+                CHECK(n == size);
+                return nullptr;
+            },
+            nullptr,
+            nullptr);
+        miopen::Allocator::ManageDataPtr p = nullptr;
+        CHECK(throws([&] { p = h.Create(size); }));
+    }
+};
+
 struct test_deallocator : allocator_fixture
 {
     void run()
@@ -100,6 +116,7 @@ struct test_deallocator2 : allocator_fixture
 int main()
 {
     run_test<test_allocator>();
+    run_test<test_null_allocator>();
     run_test<test_deallocator>();
     run_test<test_deallocator2>();
 }
