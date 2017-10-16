@@ -241,8 +241,10 @@ int RNNDriver<T>::GetandSetData()
     std::array<int, 3> hid_strides = {in_len[0] * hid_len[1], hid_len[1], 1};
     miopenSetTensorDescriptor(hiddenTensor, miopenFloat, 3, hid_lens.data(), hid_strides.data());
 
-    std::array<int, 5> wei_lens = {wei_len[0], wei_len[1], wei_len[2], wei_len[3], wei_len[4]};
-    miopenSetTensorDescriptor(weightTensor, miopenFloat, 5, wei_lens.data(), nullptr);
+    std::array<int, 2> wei_lens = {wei_len[2] + ((wei_len[1] - 1) * (wei_len[0] + 1) + 1) * wei_len[3], wei_len[0] * wei_len[3] * wei_len[5]};
+	if ((inflags.GetValueInt("bias")) == 1)
+		wei_lens[0] += 2 * wei_len[1];
+    miopenSetTensorDescriptor(weightTensor, miopenFloat, 2, wei_lens.data(), nullptr);
 
     SetRNNDescriptorFromCmdLineArgs();
 
@@ -391,7 +393,13 @@ std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
     if((inflags.GetValueInt("bidirection")) == 1)
         wei_bi = 2;
 
-    return std::vector<int>({wei_bi, wei_l, wei_ih, wei_hh, wei_oh});
+	int wei_sc = 1;
+	if ((inflags.GetValueStr("mode")) == "lstm")
+		wei_sc = 4;
+	else if ((inflags.GetValueStr("mode")) == "gru")
+		wei_sc = 3;
+
+    return std::vector<int>({wei_bi, wei_l, wei_ih, wei_hh, wei_oh, wei_sc});
 }
 
 template <typename T>
@@ -698,8 +706,8 @@ int RNNDriver<T>::RunForwardGPU()
 {
     int seqLength = inflags.GetValueInt("seq_len");
 
-    // Timer t;
-    // START_TIME;
+    Timer t;
+    START_TIME;
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -729,7 +737,7 @@ int RNNDriver<T>::RunForwardGPU()
                                  reservespace_dev->GetMem(),
                                  reservespace_dev->GetSize());
     }
-    /*
+    
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
@@ -740,11 +748,10 @@ int RNNDriver<T>::RunForwardGPU()
             printf("Wall-clock Time Forward RNN Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
 
-        printf("MIOpen Forward RNN Algorithm: %d\n", perf_results[0].fwd_algo);
+        // printf("MIOpen Forward RNN Algorithm: %d\n", perf_results[0].fwd_algo);
         printf("GPU Kernel Time Forward RNN Elapsed: %f ms\n", time);
     }
-    */
-
+    
     out_dev->FromGPU(GetStream(), out.data());
     hy_dev->FromGPU(GetStream(), hy.data());
     cy_dev->FromGPU(GetStream(), cy.data());
@@ -871,8 +878,8 @@ int RNNDriver<T>::RunBackwardGPU()
     int seqLength = inflags.GetValueInt("seq_len");
     int ret       = 0;
 
-    // Timer t;
-    // START_TIME;
+    Timer t;
+    START_TIME;
 
     workspace_dev->ToGPU(q, workspace.data());
 
@@ -907,7 +914,6 @@ int RNNDriver<T>::RunBackwardGPU()
                                     reservespace_dev->GetSize());
     }
 
-    /*
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
@@ -918,11 +924,10 @@ int RNNDriver<T>::RunBackwardGPU()
             printf("Wall-clock Time Backward Data RNN Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
 
-        printf("MIOpen Backward Data RNN Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
+        // printf("MIOpen Backward Data RNN Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
         printf("GPU Kernel Time Backward Data RNN Elapsed: %f ms\n", time);
     }
-    */
-
+    
     din_dev->FromGPU(GetStream(), din.data());
     dhx_dev->FromGPU(GetStream(), dhx.data());
     dcx_dev->FromGPU(GetStream(), dcx.data());
@@ -944,16 +949,15 @@ int RNNDriver<T>::RunBackwardGPU()
                                    reservespace_dev->GetMem(),
                                    reservespace_dev->GetSize());
 
-    /*
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
-        printf("MIOpen Backward Weights RNN Algorithm: %d\n",
-               perf_results_weights[0].bwd_weights_algo);
+        // printf("MIOpen Backward Weights RNN Algorithm: %d\n",
+        //        perf_results_weights[0].bwd_weights_algo);
         printf("GPU Kernel Time Backward Weights RNN Elapsed: %f ms\n", time);
     }
-    */
+    
     dwei_dev->FromGPU(GetStream(), dwei.data());
     /*
     if(perf_results_weights[0].bwd_weights_algo == 0)

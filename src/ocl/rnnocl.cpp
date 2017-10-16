@@ -145,7 +145,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("rnn gpu fwd \n");
-
+		float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
         for(int li = 0; li < nLayers; li++)
         {
@@ -171,9 +171,24 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 gg.FindSolution(.003, handle, x, w, reserveSpace, false);
                 gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
+				if (handle.IsProfilingEnabled())
+					time_gemm = handle.GetKernelTime();
+
                 if(biasMode)
                 {
                 }
+
+				// Update time
+				if (handle.IsProfilingEnabled())
+				{
+					if (biasMode)
+					{
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_gemm + time_0);
+					}
+					else
+						handle.AccumKernelTime(time_gemm);
+				}
             }
             else
             {
@@ -198,9 +213,24 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 gg.RunGemm(
                     handle, workSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
+				if (handle.IsProfilingEnabled())
+					time_gemm = handle.GetKernelTime();
+
                 if(biasMode)
                 {
                 }
+
+				// Update time
+				if (handle.IsProfilingEnabled())
+				{
+					if (biasMode)
+					{
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_gemm + time_0);
+					}
+					else
+						handle.AccumKernelTime(time_gemm);
+				}
             }
 
             // from hidden state
@@ -239,6 +269,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                wei_shift,
                                hid_shift + bacc * hy_stride);
 
+					if (handle.IsProfilingEnabled())
+						time_gemm = handle.GetKernelTime();
+
                     if(dirMode)
                     {
                         gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
@@ -263,6 +296,18 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    wei_shift + hy_h,
                                    hid_shift + baccbi * hy_stride + hy_h);
                     }
+
+					// Update time
+					if (handle.IsProfilingEnabled())
+					{
+						if (dirMode)
+						{
+							time_0 = handle.GetKernelTime();
+							handle.AccumKernelTime(time_gemm + time_0);
+						}
+						else
+							handle.AccumKernelTime(time_gemm);
+					}
                 }
                 else
                 {
@@ -288,6 +333,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                wei_shift,
                                hid_shift + bacc * hy_stride);
 
+					if (handle.IsProfilingEnabled())
+						time_gemm = handle.GetKernelTime();
+
                     if(dirMode)
                     {
                         gg = CreateGemmGeometryRNN(in_n[seqLen - ti],
@@ -312,6 +360,18 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    wei_shift + hy_h,
                                    hid_shift + baccbi * hy_stride + hy_h);
                     }
+
+					// Update time
+					if (handle.IsProfilingEnabled())
+					{
+						if (dirMode)
+						{
+							time_0 = handle.GetKernelTime();
+							handle.AccumKernelTime(time_gemm + time_0);
+						}
+						else
+							handle.AccumKernelTime(time_gemm);
+					}
                 }
 
                 /*				if (!bidirection)
@@ -432,6 +492,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                   &beta,
                                   miopen::deref(rsvTensor),
                                   workSpace);
+				
+				// Update time
+				if (handle.IsProfilingEnabled())
+				{
+					time_0 = handle.GetKernelTime();
+					handle.AccumKernelTime(time_0);
+				}
 
                 bacc += in_n[ti];
             }
@@ -457,9 +524,24 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         gg.FindSolution(.003, handle, workSpace, w, y, false);
         gg.RunGemm(handle, workSpace, w, y, prelayer_shift, wei_shift, 0);
 
+		// Update time
+		if (handle.IsProfilingEnabled())
+			time_gemm = handle.GetKernelTime();
+
         if(biasMode)
         {
         }
+				
+		if (handle.IsProfilingEnabled())
+		{
+			if (biasMode)
+			{
+				time_0 = handle.GetKernelTime();
+				handle.AccumKernelTime(time_gemm + time_0);
+			}
+			else
+				handle.AccumKernelTime(time_gemm);
+		}
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
