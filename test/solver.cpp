@@ -174,7 +174,7 @@ class TrivialConstruct : public mlo_construct_direct2D
     }
 
     protected:
-    const std::string& db_path() const override { return _db_path; }
+    std::string db_path() const override { return _db_path; }
 
     private:
     const char* _db_path;
@@ -208,7 +208,7 @@ class SolverTest
         const auto searches           = searchable_solver.searches_done();
 
         // Should read in both cases: result is already in DB, solver is searchable.
-        ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {});
+        ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D&) {});
         ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {
             c.doSearch(true);
         });
