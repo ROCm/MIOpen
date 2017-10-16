@@ -116,11 +116,13 @@ extern "C" miopenStatus_t miopenGetRNNWorkspaceSize(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
+	miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{ xDesc, size_t(seqLen) };
     return miopen::try_([&] {
         miopen::deref(numBytes) = miopen::deref(rnnDesc).GetWorkspaceSize(
             miopen::deref(handle),
             seqLen,
-            static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+			xDescArray);
+//            static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
     });
 }
 
@@ -132,11 +134,13 @@ extern "C" miopenStatus_t miopenGetRNNTrainingReserveSize(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
+	miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{ xDesc, size_t(seqLen) };
     return miopen::try_([&] {
         miopen::deref(numBytes) = miopen::deref(rnnDesc).GetReserveSize(
             miopen::deref(handle),
             seqLen,
-            static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+			xDescArray);
+//			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
     });
 }
 
@@ -161,24 +165,29 @@ extern "C" miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t handle
 	size_t* numBytes)
 {
 	MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
+	miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{ xDesc, size_t(seqLen) };
 	return miopen::try_([&] {
 		miopen::deref(numBytes) = miopen::deref(rnnDesc).GetRNNInputSuperTensorSize(
 			miopen::deref(handle),
 			seqLen,
-			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+			xDescArray);
+//			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
 	});
 }
 
 extern "C" miopenStatus_t miopenGetRNNHiddenSuperTensorSize(miopenHandle_t handle,
 	miopenRNNDescriptor_t rnnDesc,
+	const int seqLen,
 	miopenTensorDescriptor_t* xDesc,
 	size_t* numBytes)
 {
 	MIOPEN_LOG_FUNCTION(rnnDesc, xDesc, numBytes);
+	miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{ xDesc, size_t(seqLen) };
 	return miopen::try_([&] {
 		miopen::deref(numBytes) = miopen::deref(rnnDesc).GetRNNHiddenSuperTensorSize(
 			miopen::deref(handle),
-			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
+			xDescArray);
+//			static_cast<miopen::TensorDescriptor*>(miopen::deref(xDesc)));
 	});
 }
 

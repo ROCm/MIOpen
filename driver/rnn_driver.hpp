@@ -101,7 +101,7 @@ class RNNDriver : public Driver
 		miopenCreateTensorDescriptor(&hiddenTensor);
 		miopenCreateTensorDescriptor(&weightTensor);
 		miopenCreateTensorDescriptor(&outputTensor);
-        miopenCreateTensorDescriptor(&wDesc);
+/*        miopenCreateTensorDescriptor(&wDesc);
         miopenCreateTensorDescriptor(&hxDesc);
         miopenCreateTensorDescriptor(&cxDesc);
         miopenCreateTensorDescriptor(&hyDesc);
@@ -111,7 +111,7 @@ class RNNDriver : public Driver
         miopenCreateTensorDescriptor(&hxDesc);
         miopenCreateTensorDescriptor(&dhxDesc);
         miopenCreateTensorDescriptor(&dcxDesc);
-        miopenCreateTensorDescriptor(&dwDesc);
+        miopenCreateTensorDescriptor(&dwDesc);*/
         miopenCreateRNNDescriptor(&rnnDesc);
         workspace_dev    = nullptr;
         reservespace_dev = nullptr;
@@ -160,7 +160,7 @@ class RNNDriver : public Driver
 	miopenTensorDescriptor_t weightTensor;
 	miopenTensorDescriptor_t outputTensor;
 
-    miopenTensorDescriptor_t wDesc;
+ /*   miopenTensorDescriptor_t wDesc;
 
     std::vector<miopenTensorDescriptor_t> xDesc;
     std::vector<miopenTensorDescriptor_t> dxDesc;
@@ -175,7 +175,7 @@ class RNNDriver : public Driver
     miopenTensorDescriptor_t dhyDesc;
     miopenTensorDescriptor_t dcyDesc;
     miopenTensorDescriptor_t hxDesc;
-    miopenTensorDescriptor_t dwDesc;
+    miopenTensorDescriptor_t dwDesc;*/
 
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> din_dev;
@@ -261,6 +261,7 @@ int RNNDriver<T>::GetandSetData()
 	{
 		std::array<int, 2> in_lens = { in_len[i],  in_len.back() };
 		std::array<int, 2> in_strides = { in_len.back(),  1 };
+		miopenCreateTensorDescriptor(&inputTensor);
 		miopenSetTensorDescriptor(inputTensor, miopenFloat, 2, in_lens.data(), in_strides.data());
 		inputTensors.push_back(inputTensor);
 
@@ -768,7 +769,7 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 	size_t reserveSpaceSize;
 	miopenGetRNNInputSuperTensorSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &in_sz);
 	miopenGetRNNInputSuperTensorSize(GetHandle(), rnnDesc, seqLength, outputTensors.data(), &out_sz);
-	miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, inputTensors.data(), &hy_sz);
+	miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &hy_sz);
 	miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &workSpaceSize);
 	miopenGetRNNTrainingReserveSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &reserveSpaceSize);
 	miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &params_sz, miopenFloat);

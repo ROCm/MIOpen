@@ -1849,6 +1849,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t han
 
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenSuperTensorSize(miopenHandle_t handle,
 	miopenRNNDescriptor_t rnnDesc,
+	const int seqLen,
 	miopenTensorDescriptor_t* xDesc,
 	size_t* numBytes);
 
