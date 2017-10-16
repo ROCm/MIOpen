@@ -31,6 +31,7 @@
 #include <iostream>
 #include <random>
 #include <sstream>
+#include <unistd.h>
 #include <vector>
 
 #include "miopen/db_record.hpp"
@@ -124,7 +125,14 @@ std::ostream& operator<<(std::ostream& s, const TestData& td)
 class DbRecordTest
 {
     public:
-    virtual ~DbRecordTest() { std::remove(TempFilePath()); }
+    DbRecordTest()
+    {
+        auto temp_fd = mkstemp(_temp_file);
+        EXPECT(temp_fd != -1);
+        close(temp_fd);
+    }
+
+    virtual ~DbRecordTest() { std::remove(temp_file_path()); }
 
     protected:
     static const TestData& key() SINGLETON_BODY(TestData(1, 2))
@@ -137,7 +145,10 @@ class DbRecordTest
     static const char* legacy_id() { return "ConvOclDirectFwd"; } // const from db_record.cpp
 #endif
 
-    static const char* TempFilePath() { return "/tmp/dbread.test.temp.pdb"; }
+    const char* temp_file_path() const { return _temp_file; }
+
+    private:
+    char _temp_file[32] = "/tmp/miopen.tests.perfdb.XXXXXX";
 };
 
 class DbRecordReadTest : public DbRecordTest
@@ -149,12 +160,12 @@ class DbRecordReadTest : public DbRecordTest
         ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ',' << value1().y << ';'
                 << id0() << ':' << value0().x << ',' << value0().y;
 
-        std::ofstream(TempFilePath()) << ss_vals.str() << std::endl;
+        std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
 
         TestData read0, read1;
 
         {
-            DbRecord record(TempFilePath(), key());
+            DbRecord record(temp_file_path(), key());
 
             EXPECT(record.Load(id0(), read0));
             EXPECT(record.Load(id1(), read1));
@@ -174,10 +185,10 @@ class DbRecordWriteTest : public DbRecordTest
         ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ',' << value1().y << ';'
                 << id0() << ':' << value0().x << ',' << value0().y;
 
-        (void)std::ofstream(TempFilePath());
+        (void)std::ofstream(temp_file_path());
 
         {
-            DbRecord record(TempFilePath(), key());
+            DbRecord record(temp_file_path(), key());
 
             EXPECT(record.Store(id0(), value0()));
             EXPECT(record.Store(id1(), value1()));
@@ -185,7 +196,7 @@ class DbRecordWriteTest : public DbRecordTest
 
         std::string read;
 
-        EXPECT(std::getline(std::ifstream(TempFilePath()), read).good());
+        EXPECT(std::getline(std::ifstream(temp_file_path()), read).good());
         EXPECT_EQUAL(read, ss_vals.str());
     }
 };
@@ -199,12 +210,12 @@ class DbRecordLegacyReadTest : public DbRecordTest
         std::ostringstream ss_vals;
         ss_vals << key().x << ',' << key().y << ",l " << value0().x << ',' << value0().y;
 
-        std::ofstream(TempFilePath()) << ss_vals.str() << std::endl;
+        std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
 
         TestData read;
 
         {
-            DbRecord record(TempFilePath(), key(), true);
+            DbRecord record(temp_file_path(), key(), true);
 
             EXPECT(record.Load(legacy_id(), read));
         }
@@ -219,12 +230,12 @@ class DbRecordOperationsTest : public DbRecordTest
     public:
     inline void Run()
     {
-        (void)std::ofstream(TempFilePath()); // To suppress warning in logs.
+        (void)std::ofstream(temp_file_path()); // To suppress warning in logs.
 
         TestData to_be_rewritten(7, 8);
 
         {
-            DbRecord record(TempFilePath(), key());
+            DbRecord record(temp_file_path(), key());
 
             EXPECT(record.Store(id0(), to_be_rewritten));
             EXPECT(record.Store(id1(), to_be_rewritten));
@@ -238,7 +249,7 @@ class DbRecordOperationsTest : public DbRecordTest
         }
 
         {
-            DbRecord record(TempFilePath(), key());
+            DbRecord record(temp_file_path(), key());
 
             // Rewriting existing value to store it to file.
             EXPECT(record.Store(id0(), value0()));
@@ -247,7 +258,7 @@ class DbRecordOperationsTest : public DbRecordTest
         TestData read0, read1, read_missing, read_missing_cmp(read_missing);
 
         {
-            DbRecord record(TempFilePath(), key());
+            DbRecord record(temp_file_path(), key());
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
