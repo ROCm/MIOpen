@@ -118,7 +118,6 @@ RNNDescriptor::RNNDescriptor(int hsz,
 size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                        const int sLen,
                                        c_array_view<miopenTensorDescriptor_t> xDesc)
-// TensorDescriptor* xDesc)
 {
     // NOTE dlowell: this calculation WILL change during development.
     // currently this is calculated the same as Workspace size
@@ -137,9 +136,6 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
     }
-    /*    auto x = workspaceScale * sLen * inputBatchLenSum * nLayers * sizeof(xDesc[0].GetType()) *
-                 nHiddenTensorsPerLayer;
-        return size_t(x);*/
 
     auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());
     return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
@@ -148,7 +144,6 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
 size_t RNNDescriptor::GetReserveSize(Handle& handle,
                                      const int sLen,
                                      c_array_view<miopenTensorDescriptor_t> xDesc)
-// TensorDescriptor* xDesc)
 {
     // NOTE dlowell: this calculation WILL change during development.
     // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType *
@@ -165,9 +160,6 @@ size_t RNNDescriptor::GetReserveSize(Handle& handle,
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
     }
-    /*    auto x = workspaceScale * sLen * inputBatchLenSum * nLayers * sizeof(xDesc[0].GetType()) *
-                 nHiddenTensorsPerLayer;
-        return size_t(x);*/
 
     auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());
     //	auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize *
@@ -184,26 +176,6 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
     // h_t = sigma(Wx_t + Rh_t-1 + bw + br)
     // for one layer: wDesc <-- (v_hidden x v_input) + (v_hidden x v_hidden) + 2*(1 x v_hidden)
     assert(xDesc.GetLengths().size() > 1);
-    /*    auto inputVecSize = xDesc.GetLengths()[1];
-        size_t x = 0;
-        auto biHiddenSize = hsize;
-        if(dirMode)
-        {
-            biHiddenSize *= 2;
-        }
-        if(biasMode)
-        {
-            x = (biHiddenSize * inputVecSize) + nLayers * nHiddenTensorsPerLayer * ((biHiddenSize *
-       biHiddenSize) + 2 * biHiddenSize);
-        }
-        else
-        {
-            x = (biHiddenSize * inputVecSize) + nLayers * nHiddenTensorsPerLayer * (biHiddenSize *
-       biHiddenSize);
-        }
-        return x;
-    */
-
     auto ih = xDesc.GetLengths()[1];
     int bi  = dirMode == miopenRNNbidirection ? 2 : 1;
     auto sz = nHiddenTensorsPerLayer * hsize * bi * (ih + hsize + (nLayers - 1) * (bi + 1) * hsize);
@@ -212,23 +184,11 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
         sz += (2 + (nLayers - 1) * (bi + 1)) * nHiddenTensorsPerLayer * hsize * bi;
     }
     return size_t(sz);
-
-    /* auto ih = xDesc.GetLengths()[1];
-    int bi = dirMode == miopenRNNbidirection ? 2 : 1;
-auto x = nHiddenTensorsPerLayer * hsize * bi * (ih + hsize + (nLayers - 1) * (bi + 1) * hsize);
-    if (biasMode == miopenRNNwithBias)
-    {
-            x += (2 + (nLayers - 1) * (bi + 1)) * nHiddenTensorsPerLayer * hsize * bi; // bias size
-need to discuss
-    }
-
-return size_t(x); */
 }
 
 size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& handle,
                                                  const int seqLength,
                                                  c_array_view<miopenTensorDescriptor_t> xDesc)
-//	TensorDescriptor* xDesc)
 {
     if(xDesc[0].GetType() != dataType)
     {
@@ -247,7 +207,6 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& handle,
 
 size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& handle,
                                                   c_array_view<miopenTensorDescriptor_t> xDesc)
-// TensorDescriptor* xDesc)
 {
     if(xDesc[0].GetType() != dataType)
     {
