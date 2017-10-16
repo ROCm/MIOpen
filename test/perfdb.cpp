@@ -1,3 +1,29 @@
+/*******************************************************************************
+*
+* MIT License
+*
+* Copyright (c) 2017 Advanced Micro Devices, Inc.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*******************************************************************************/
+
 #include <cassert>
 #include <cstdlib>
 #include <fstream>
@@ -9,6 +35,12 @@
 
 #include "miopen/db_record.hpp"
 #include "test.hpp"
+
+#define SINGLETON_BODY(...)\
+{\
+    static auto data = (__VA_ARGS__);\
+    return data;\
+}
 
 namespace miopen {
 namespace tests {
@@ -95,28 +127,18 @@ class DbRecordTest
     virtual ~DbRecordTest() { std::remove(TempFilePath()); }
 
     protected:
-    static const TestData key;
-    static const TestData value0;
-    static const TestData value1;
-    static const char* const id0;
-    static const char* const id1;
-    static const char* const missing_id;
+    static const TestData& key() SINGLETON_BODY(TestData(1, 2))
+    static const TestData& value0() SINGLETON_BODY(TestData(3, 4))
+    static const TestData& value1() SINGLETON_BODY(TestData(5, 6))
+    static const char* id0() { return "0";}
+    static const char* id1() { return "1"; }
+    static const char* missing_id() { return "2"; }
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    static const char* const legacy_id;
+    static const char* legacy_id() { return "ConvOclDirectFwd"; } // const from db_record.cpp
 #endif
 
     static const char* TempFilePath() { return "/tmp/dbread.test.temp.pdb"; }
 };
-
-const TestData DbRecordTest::key(1, 2);
-const TestData DbRecordTest::value0(3, 4);
-const TestData DbRecordTest::value1(5, 6);
-const char* const DbRecordTest::id0        = "0";
-const char* const DbRecordTest::id1        = "1";
-const char* const DbRecordTest::missing_id = "2";
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-const char* const DbRecordTest::legacy_id  = "ConvOclDirectFwd"; // const from db_record.cpp
-#endif
 
 class DbRecordReadTest : public DbRecordTest
 {
@@ -124,22 +146,22 @@ class DbRecordReadTest : public DbRecordTest
     inline void Run()
     {
         std::ostringstream ss_vals;
-        ss_vals << key.x << ',' << key.y << '=' << id1 << ':' << value1.x << ',' << value1.y << ';'
-                << id0 << ':' << value0.x << ',' << value0.y;
+        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ',' << value1().y << ';'
+                << id0() << ':' << value0().x << ',' << value0().y;
 
         std::ofstream(TempFilePath()) << ss_vals.str() << std::endl;
 
         TestData read0, read1;
 
         {
-            DbRecord record(TempFilePath(), key);
+            DbRecord record(TempFilePath(), key());
 
-            EXPECT(record.Load(id0, read0));
-            EXPECT(record.Load(id1, read1));
+            EXPECT(record.Load(id0(), read0));
+            EXPECT(record.Load(id1(), read1));
         }
 
-        EXPECT_EQUAL(value0, read0);
-        EXPECT_EQUAL(value1, read1);
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
     }
 };
 
@@ -149,16 +171,16 @@ class DbRecordWriteTest : public DbRecordTest
     inline void Run()
     {
         std::ostringstream ss_vals;
-        ss_vals << key.x << ',' << key.y << '=' << id1 << ':' << value1.x << ',' << value1.y << ';'
-                << id0 << ':' << value0.x << ',' << value0.y;
+        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ',' << value1().y << ';'
+                << id0() << ':' << value0().x << ',' << value0().y;
 
         (void)std::ofstream(TempFilePath());
 
         {
-            DbRecord record(TempFilePath(), key);
+            DbRecord record(TempFilePath(), key());
 
-            EXPECT(record.Store(id0, value0));
-            EXPECT(record.Store(id1, value1));
+            EXPECT(record.Store(id0(), value0()));
+            EXPECT(record.Store(id1(), value1()));
         }
 
         std::string read;
@@ -175,19 +197,19 @@ class DbRecordLegacyReadTest : public DbRecordTest
     inline void Run()
     {
         std::ostringstream ss_vals;
-        ss_vals << key.x << ',' << key.y << ",l " << value0.x << ',' << value0.y;
+        ss_vals << key().x << ',' << key().y << ",l " << value0().x << ',' << value0().y;
 
         std::ofstream(TempFilePath()) << ss_vals.str() << std::endl;
 
         TestData read;
 
         {
-            DbRecord record(TempFilePath(), key, true);
+            DbRecord record(TempFilePath(), key(), true);
 
-            EXPECT(record.Load(legacy_id, read));
+            EXPECT(record.Load(legacy_id(), read));
         }
 
-        EXPECT_EQUAL(value0, read);
+        EXPECT_EQUAL(value0(), read);
     }
 };
 #endif
@@ -202,44 +224,44 @@ class DbRecordOperationsTest : public DbRecordTest
         TestData to_be_rewritten(7, 8);
 
         {
-            DbRecord record(TempFilePath(), key);
+            DbRecord record(TempFilePath(), key());
 
-            EXPECT(record.Store(id0, to_be_rewritten));
-            EXPECT(record.Store(id1, to_be_rewritten));
+            EXPECT(record.Store(id0(), to_be_rewritten));
+            EXPECT(record.Store(id1(), to_be_rewritten));
 
             // Rewritting existing value with other.
-            EXPECT(record.Store(id1, value1));
+            EXPECT(record.Store(id1(), value1()));
 
             // Rewritting existing value with same. In fact no DB manipulation should be performed
             // inside of store in such case.
-            EXPECT(record.Store(id1, value1));
+            EXPECT(record.Store(id1(), value1()));
         }
 
         {
-            DbRecord record(TempFilePath(), key);
+            DbRecord record(TempFilePath(), key());
 
             // Rewriting existing value to store it to file.
-            EXPECT(record.Store(id0, value0));
+            EXPECT(record.Store(id0(), value0()));
         }
 
         TestData read0, read1, read_missing, read_missing_cmp(read_missing);
 
         {
-            DbRecord record(TempFilePath(), key);
+            DbRecord record(TempFilePath(), key());
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
-            EXPECT(!record.Load(missing_id, read_missing));
+            EXPECT(!record.Load(missing_id(), read_missing));
 
             // In such case value should not be changed.
             EXPECT_EQUAL(read_missing, read_missing_cmp);
 
-            EXPECT(record.Load(id0, read0));
-            EXPECT(record.Load(id1, read1));
+            EXPECT(record.Load(id0(), read0));
+            EXPECT(record.Load(id1(), read1));
         }
 
-        EXPECT_EQUAL(read0, value0);
-        EXPECT_EQUAL(read1, value1);
+        EXPECT_EQUAL(read0, value0());
+        EXPECT_EQUAL(read1, value1());
     }
 };
 
