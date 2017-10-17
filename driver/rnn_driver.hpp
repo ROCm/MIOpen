@@ -232,6 +232,7 @@ int RNNDriver<T>::GetandSetData()
 
         std::array<int, 2> out_lens    = {in_len[i], out_len[0]};
         std::array<int, 2> out_strides = {out_len[0], 1};
+		miopenCreateTensorDescriptor(&outputTensor);
         miopenSetTensorDescriptor(
             outputTensor, miopenFloat, 2, out_lens.data(), out_strides.data());
         outputTensors.push_back(outputTensor);
