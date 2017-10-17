@@ -28,6 +28,7 @@
 #include <unordered_map>
 #include <limits>
 #include <iterator>
+#include <chrono>
 
 #include "miopen/gcn_asm_utils.hpp"
 #include "miopen/env.hpp"
@@ -44,6 +45,24 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 #define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 namespace miopen {
+
+class Timer
+{
+    public:
+    Timer(){};
+    void start() { st = std::chrono::steady_clock::now(); }
+    void stop() { et = std::chrono::steady_clock::now(); }
+    float gettime_ms()
+    {
+        return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et - st)
+            .count();
+    }
+
+    private:
+    std::chrono::time_point<std::chrono::steady_clock> st;
+    std::chrono::time_point<std::chrono::steady_clock> et;
+};
+
 namespace solver {
 
 static bool IsReverseInOutAllowed(const ConvolutionContext& config)
@@ -63,8 +82,6 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
     int n_per_group;      // [1..8] && (n_per_group <= batch_size).
 
     bool IsValidRange() const;
-    bool IsValid(const ConvolutionContext& config) const;
-    //
     void EuristicInit(const ConvolutionContext& config);
 
     std::string ToString() const;
@@ -73,15 +90,6 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
     {
         assert(chunk_size != 0);
         return 64 / chunk_size;
-    }
-
-    bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const {
-        return limit_wave_cnt == other.limit_wave_cnt
-            && reverse_inout == other.reverse_inout
-            && chunk_size == other.chunk_size
-            && k_per_wave == other.k_per_wave
-            && pipe_lines_depth == other.pipe_lines_depth
-            && n_per_group == other.n_per_group;
     }
 
     PerformanceConfigAsmDirect3x3WrW(int limit_wave_cnt_,
@@ -99,123 +107,109 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
     {
     }
 
+    bool IsValid(const ConvolutionContext& config) const;
+
+    bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const {
+        return limit_wave_cnt == other.limit_wave_cnt
+            && reverse_inout == other.reverse_inout
+            && chunk_size == other.chunk_size
+            && k_per_wave == other.k_per_wave
+            && pipe_lines_depth == other.pipe_lines_depth
+            && n_per_group == other.n_per_group;
+    }
+
     public:
     PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
     void Serialize(std::ostream&) const override;
     bool Deserialize(const std::string& str) override;
 
     friend class ConvAsmBwdWrW3x3;
-    friend class VirtualContainer;
+    friend class VirtualIterator;
 };
 
+
+class VirtualIterator;
+
+/// This container (together with corresponding iterator) provies access 
+/// to a set of performance configs which, by definition, must be
+/// suitable for the given problem config.
+///
+/// It does not hold values themselves as these would take too much memory
+/// but can be easily computed (and that is what iterator actually does).
+///
+/// The container holds problem config information instead. This info
+/// is required for advancing the iterator to the next valid configuration.
+/// Also it provides const_iterator, begin() and end().
 class VirtualContainer
 {
-        // Valid iterator shall denote the element of a container.
-        // This container (virtually) contains only those performance configs
-        // which are suitable for the given PerformanceConfig/ConvolutionContext.
-        // That is why we use this member when iterator needs to be validated.
-        // Also this is the reason why valid iterator shall know where it's container resides.
+    // Valid iterator shall denote an element of a container.
     const ConvolutionContext& config;
-
-    public:
-    VirtualContainer(const ConvolutionContext& config_) : config(config_) {}
-
-    static const PerformanceConfigAsmDirect3x3WrW maxValue;
-    static const PerformanceConfigAsmDirect3x3WrW minValue;
-    static const PerformanceConfigAsmDirect3x3WrW outOfRangeValue;
-
-    // Iterator shall advance to the next valid config, i.e. the one which
-    // satisfies PerformanceConfig.IsValid(ProblemConfig)
-    class const_iterator: public std::iterator<std::input_iterator_tag, PerformanceConfigAsmDirect3x3WrW>
-    {
-        PerformanceConfigAsmDirect3x3WrW v; // use value_type
-        const VirtualContainer* container;
-        const_iterator(const PerformanceConfigAsmDirect3x3WrW& v_, const VirtualContainer* container_) : v(v_), container(container_) {}
-        void Next();
-        friend class VirtualContainer;
-    public:
-        const_iterator() : v(VirtualContainer::outOfRangeValue), container(nullptr) {}
-        const_iterator(const const_iterator& it) : v(it.v), container(it.container) {}
-    
-        bool operator!=(const_iterator const& other) const {
-            return !(
-            (v.IsEqual(VirtualContainer::outOfRangeValue) && other.v.IsEqual(VirtualContainer::outOfRangeValue))
-            || (v.IsEqual(other.v) && container == other.container));
-         }
-        const PerformanceConfigAsmDirect3x3WrW& operator*() const { return v; }
-        const PerformanceConfigAsmDirect3x3WrW* operator->() const { return &v; }
-        const_iterator& operator++() { Next(); return *this; }
-    };
-
-private:
-    bool IsValid(const const_iterator& it) const {
-        return (it->IsValid(config));
-    }
-
+    friend class VirtualIterator;
 public:
-    const_iterator begin() const {
-        auto it = const_iterator(minValue, this);
-        if (!it->IsValid(config)) {
-            it.Next();
-        }
-        return it;
-    }
-
-    const_iterator end() const {
-        return const_iterator(outOfRangeValue, this);
-    }
+    typedef VirtualIterator const_iterator;
+    VirtualContainer(const ConvolutionContext& config_) : config(config_) {}
+    VirtualIterator begin() const;
+    VirtualIterator end() const;
 };
 
-const PerformanceConfigAsmDirect3x3WrW VirtualContainer::maxValue = PerformanceConfigAsmDirect3x3WrW(10, 1, 16, 8, 16, 8);
-const PerformanceConfigAsmDirect3x3WrW VirtualContainer::minValue = PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1);
-const PerformanceConfigAsmDirect3x3WrW VirtualContainer::outOfRangeValue = PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1);
-
-/*void VirtualContainer::Next(PerformanceConfigAsmDirect3x3WrW& v) const
+// Iterator shall advance to the next valid config, i.e. the one which
+// satisfies PerformanceConfig.IsValid(ProblemConfig)
+class VirtualIterator : public std::iterator<std::input_iterator_tag, PerformanceConfigAsmDirect3x3WrW>
 {
-    do
-    {
-        // Increment with wrap-around:
-        do
-        {
-            // (0 <= limit_wave_cnt && limit_wave_cnt <= 10)
-            if (++v.limit_wave_cnt <= 10)
-                break;
-            v.limit_wave_cnt = 0;
-            // (0 <= reverse_inout && reverse_inout <= 1)
-            if (++v.reverse_inout <= 1)
-                break;
-            v.reverse_inout = 0;
-            // (8 == chunk_size || 16 == chunk_size)
-            if ((v.chunk_size += 8) <= 16)
-                break;
-            v.chunk_size = 8;
-            // (1 == k_per_wave || 2 == k_per_wave || 4 == k_per_wave || 8 == k_per_wave)
-            if (1 == v.k_per_wave) { v.k_per_wave = 2; break; }
-            if (2 == v.k_per_wave) { v.k_per_wave = 4; break; }
-            if (4 == v.k_per_wave) { v.k_per_wave = 8; break; }
-            v.k_per_wave = 1;
-            // (1 <= pipe_lines_depth && pipe_lines_depth <= 16)
-            if (++v.pipe_lines_depth <= 16)
-                break;
-            v.pipe_lines_depth = 1;
-            // (1 <= n_per_group && n_per_group <= 8);
-            if (++v.n_per_group <= 8)
-                break;
-            v.n_per_group = 1;
-            /// All the fields (components) of performance confic have wrapped around.
-            /// The next one is not the min (in the allowed range) but a one beyond the end:
-            v = outOfRangeValue;
-            return;
-        }
-        while (false);
-    }
-    while (!v.IsValid(config));
-}*/
+    value_type v; // PerformanceConfigAsmDirect3x3WrW
+    const VirtualContainer* container;
 
-void VirtualContainer::const_iterator::Next()
+    static const value_type minValue;
+    static const value_type outOfRangeValue;
+
+    /// Implements begin()
+    VirtualIterator(const VirtualContainer* container_) : v(minValue), container(container_) {
+        if (!IsValid())
+        Next();
+    } 
+    friend class VirtualContainer; // Passes itself to private ctor in order to construct begin().
+    void Next();
+    bool IsValid();
+
+public:
+    /// Implementes end() and also serves as a default ctor.
+    VirtualIterator() : v(outOfRangeValue), container(nullptr) {}
+    VirtualIterator(const VirtualIterator& it) : v(it.v), container(it.container) {}
+
+    bool operator!=(VirtualIterator const& other) const;
+    const value_type& operator*() const { return v; }
+    const value_type* operator->() const { return &v; }
+    VirtualIterator& operator++() { Next(); return *this; }
+};
+
+inline VirtualIterator
+VirtualContainer::begin() const {
+    return VirtualIterator(this);
+}
+
+inline VirtualIterator
+VirtualContainer::end() const {
+    return VirtualIterator();
+}
+
+const VirtualIterator::value_type VirtualIterator::minValue = PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1);
+const VirtualIterator::value_type VirtualIterator::outOfRangeValue = PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1);
+
+inline bool
+VirtualIterator::IsValid() {
+    if (!container) return false;
+    return v.IsValid(container->config);
+}
+
+inline bool
+VirtualIterator::operator!=(VirtualIterator const& other) const {
+    return !(v.IsEqual(other.v) && container == other.container);
+}
+
+void VirtualIterator::Next()
 {
     if (container == nullptr) {
-        v = VirtualContainer::outOfRangeValue;
+        v = outOfRangeValue;
         return;
     }
     do
@@ -248,15 +242,16 @@ void VirtualContainer::const_iterator::Next()
             if (++v.n_per_group <= 8)
                 break;
             v.n_per_group = 1;
-            /// All the fields (components) of performance confic have wrapped around.
-            /// The next one is not the min (in the allowed range) but a one beyond the end:
-            v = VirtualContainer::outOfRangeValue;
+            // All the fields (components) of performance confic have wrapped around.
+            // The next one is not the min (in the allowed range) but a one beyond the end.
+            // Iterator is useless from now.
+            v = outOfRangeValue;
+            container = nullptr;
             return;
         }
         while (false);
     }
-//    while (!v.IsValid(container.GetProblemConfig()));
-    while (!container->IsValid(*this));
+    while (!IsValid());
 }
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValidRange() const
