@@ -105,21 +105,34 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        size_t reserveSpaceSize) const
 {
 
+	if (x == nullptr || w == nullptr || y == nullptr)
+	{
+		MIOPEN_THROW(miopenStatusBadParm);
+	}
+
     // TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
-
-    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
     int in_h  = xDesc[0].GetLengths()[1]; // input vector size
-    int hy_n  = xDesc[0].GetLengths()[0]; // max batch size
+    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
+    int hy_n  = hxDesc.GetLengths()[1];   // max batch size
     int hy_h  = hxDesc.GetLengths()[2];   // hidden size
-    int out_h = hxDesc.GetLengths()[2];   // hidden size
+    int out_h = yDesc[0].GetLengths()[1]; // output vector size
+
+	if (in_h == 0 || hy_h == 0 || hy_n == 0 || hy_d == 0 || out_h == 0)
+	{
+		MIOPEN_THROW(miopenStatusBadParm);
+	}
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
     {
-        int batchval, inputvec;
+        int batchval, inputvec, batchvalout, outputvec;
         std::tie(batchval, inputvec) = miopen::tien<2>(xDesc[i].GetLengths());
+		std::tie(batchvalout, outputvec) = miopen::tien<2>(yDesc[i].GetLengths());
+		if (batchval != batchvalout) {
+			MIOPEN_THROW(miopenStatusBadParm);
+		}
         in_n.push_back(batchval);
         batch_n += xDesc[i].GetLengths()[0];
     }
@@ -146,12 +159,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("rnn gpu fwd \n");
-
+		float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
         for(int li = 0; li < nLayers; li++)
         {
             int hid_shift = li * batch_n * hy_h * bi;
-            int hx_shift  = li * bi * in_n[0] * hy_h;
+            int hx_shift  = li * bi * hy_n * hy_h;
 
             // from input
             if(li == 0)
@@ -172,8 +185,20 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 gg.FindSolution(.003, handle, x, w, reserveSpace, false);
                 gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
+				// Update time
+				if (handle.IsProfilingEnabled()){
+					time_gemm = handle.GetKernelTime();
+					handle.AccumKernelTime(time_gemm);
+				}					
+
                 if(biasMode)
                 {
+
+					// Update time
+					if (handle.IsProfilingEnabled()) {
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
                 }
             }
             else
@@ -199,8 +224,20 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 gg.RunGemm(
                     handle, workSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
+				// Update time
+				if (handle.IsProfilingEnabled()) {
+					time_gemm = handle.GetKernelTime();
+					handle.AccumKernelTime(time_gemm);
+				}
+
                 if(biasMode)
                 {
+
+					// Update time
+					if (handle.IsProfilingEnabled()) {
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
                 }
             }
 
@@ -218,100 +255,137 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 if(ti == 0)
                 {
-                    gg = CreateGemmGeometryRNN(in_n[ti],
-                                               hy_h,
-                                               hy_h,
-                                               1,
-                                               1,
-                                               false,
-                                               false,
-                                               false,
-                                               h_stride,
-                                               wei_stride,
-                                               hy_stride,
-                                               false,
-                                               network_config);
-                    gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
-                    gg.RunGemm(handle,
-                               hx,
-                               w,
-                               reserveSpace,
-                               hx_shift,
-                               wei_shift,
-                               hid_shift + bacc * hy_stride);
+					if (in_n[ti] > 0)
+					{
+						gg = CreateGemmGeometryRNN(in_n[ti],
+							hy_h,
+							hy_h,
+							1,
+							1,
+							false,
+							false,
+							false,
+							h_stride,
+							wei_stride,
+							hy_stride,
+							false,
+							network_config);
+						gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
+						gg.RunGemm(handle,
+							hx,
+							w,
+							reserveSpace,
+							hx_shift,
+							wei_shift,
+							hid_shift + bacc * hy_stride);
 
+						// Update time
+						if (handle.IsProfilingEnabled()) {
+							time_gemm = handle.GetKernelTime();
+							handle.AccumKernelTime(time_gemm);
+						}
+					}
+                    
                     if(dirMode)
                     {
-                        gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   false,
-                                                   false,
-                                                   h_stride,
-                                                   wei_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
-                        gg.RunGemm(handle,
-                                   hx,
-                                   w,
-                                   reserveSpace,
-                                   hx_shift + hy_h,
-                                   wei_shift + hy_h,
-                                   hid_shift + baccbi * hy_stride + hy_h);
+						if (in_n[seqLen - 1 - ti] > 0)
+						{
+							gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
+								hy_h,
+								hy_h,
+								1,
+								1,
+								false,
+								false,
+								false,
+								h_stride,
+								wei_stride,
+								hy_stride,
+								false,
+								network_config);
+							gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
+							gg.RunGemm(handle,
+								hx,
+								w,
+								reserveSpace,
+								hx_shift + hy_h,
+								wei_shift + hy_h,
+								hid_shift + baccbi * hy_stride + hy_h);
+
+							// Update time
+							if (handle.IsProfilingEnabled()) {
+								time_0 = handle.GetKernelTime();
+								handle.AccumKernelTime(time_0);
+							}
+						}
                     }
                 }
                 else
                 {
-                    gg = CreateGemmGeometryRNN(in_n[ti],
-                                               hy_h,
-                                               hy_h,
-                                               1,
-                                               1,
-                                               false,
-                                               false,
-                                               false,
-                                               hy_stride,
-                                               wei_stride,
-                                               hy_stride,
-                                               false,
-                                               network_config);
-                    gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
-                    gg.RunGemm(handle,
-                               workSpace,
-                               w,
-                               reserveSpace,
-                               hid_shift + (bacc - in_n[ti - 1]) * hy_stride,
-                               wei_shift,
-                               hid_shift + bacc * hy_stride);
+					if (in_n[ti] > 0)
+					{
+						gg = CreateGemmGeometryRNN(in_n[ti],
+							hy_h,
+							hy_h,
+							1,
+							1,
+							false,
+							false,
+							false,
+							hy_stride,
+							wei_stride,
+							hy_stride,
+							false,
+							network_config);
+						gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
+						gg.RunGemm(handle,
+							workSpace,
+							w,
+							reserveSpace,
+							hid_shift + (bacc - in_n[ti - 1]) * hy_stride,
+							wei_shift,
+							hid_shift + bacc * hy_stride);
+
+						// Update time
+						if (handle.IsProfilingEnabled()) {
+							time_gemm = handle.GetKernelTime();
+							handle.AccumKernelTime(time_gemm);
+						}
+					}					                    
 
                     if(dirMode)
                     {
-                        gg = CreateGemmGeometryRNN(in_n[seqLen - ti],
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   false,
-                                                   false,
-                                                   hy_stride,
-                                                   wei_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
-                        gg.RunGemm(handle,
-                                   workSpace,
-                                   w,
-                                   reserveSpace,
-                                   hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride + hy_h,
-                                   wei_shift + hy_h,
-                                   hid_shift + baccbi * hy_stride + hy_h);
+						if (in_n[seqLen - ti] > 0)
+						{
+							gg = CreateGemmGeometryRNN(in_n[seqLen - ti],
+								hy_h,
+								hy_h,
+								1,
+								1,
+								false,
+								false,
+								false,
+								hy_stride,
+								wei_stride,
+								hy_stride,
+								false,
+								network_config);
+							gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
+							gg.RunGemm(handle,
+								workSpace,
+								w,
+								reserveSpace,
+								hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride + hy_h,
+								wei_shift + hy_h,
+								hid_shift + baccbi * hy_stride + hy_h);
+
+							// Update time
+							if (handle.IsProfilingEnabled())
+							{
+								time_0 = handle.GetKernelTime();
+								handle.AccumKernelTime(time_0);
+							}
+						}                        
                     }
                 }
 
@@ -433,6 +507,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                   &beta,
                                   miopen::deref(rsvTensor),
                                   workSpace);
+				
+				// Update time
+				if (handle.IsProfilingEnabled())
+				{
+					time_0 = handle.GetKernelTime();
+					handle.AccumKernelTime(time_0);
+				}
 
                 bacc += in_n[ti];
             }
@@ -458,8 +539,20 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         gg.FindSolution(.003, handle, workSpace, w, y, false);
         gg.RunGemm(handle, workSpace, w, y, prelayer_shift, wei_shift, 0);
 
+		// Update time
+		if (handle.IsProfilingEnabled()) {
+			time_gemm = handle.GetKernelTime();
+			handle.AccumKernelTime(time_gemm);
+		}
+
         if(biasMode)
         {
+
+			if (handle.IsProfilingEnabled())
+			{
+				time_0 = handle.GetKernelTime();
+				handle.AccumKernelTime(time_gemm + time_0);
+			}
         }
 #else
         MIOPEN_THROW("GEMM is not supported");
@@ -502,21 +595,35 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     ConstData_t reserveSpace,
                                     size_t reserveSpaceSize) const
 {
-    // TODO: DLOWELL put guards here.
+
+	if (dx == nullptr || w == nullptr || dy == nullptr)
+	{
+		MIOPEN_THROW(miopenStatusBadParm);
+	}
+
+	// TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
+    int in_h  = dxDesc[0].GetLengths()[1];
+    int hy_d  = dhxDesc.GetLengths()[0];
+    int hy_n  = dhxDesc.GetLengths()[1];
+    int hy_h  = dhxDesc.GetLengths()[2];
+    int out_h = dyDesc[0].GetLengths()[1];
 
-    int hy_d  = hxDesc.GetLengths()[0];    // biNumLayers
-    int in_h  = dxDesc[0].GetLengths()[1]; // input vector size
-    int hy_n  = dxDesc[0].GetLengths()[0]; // max batch size
-    int hy_h  = hxDesc.GetLengths()[2];    // hidden size
-    int out_h = hxDesc.GetLengths()[2];    // hidden size
+	if (in_h == 0 || hy_h == 0 || hy_n == 0 || hy_d == 0 || out_h == 0)
+	{
+		MIOPEN_THROW(miopenStatusBadParm);
+	}
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
     {
-        int batchval, inputvec;
-        std::tie(batchval, inputvec) = miopen::tien<2>(dxDesc[i].GetLengths());
+		int batchval, inputvec, batchvalout, outputvec;
+		std::tie(batchval, inputvec) = miopen::tien<2>(dxDesc[i].GetLengths());
+		std::tie(batchvalout, outputvec) = miopen::tien<2>(dyDesc[i].GetLengths());
+		if (batchval != batchvalout) {
+			MIOPEN_THROW(miopenStatusBadParm);
+		}
         in_n.push_back(batchval);
         batch_n += dxDesc[i].GetLengths()[0];
     }
@@ -540,14 +647,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
 #if MIOPEN_USE_MIOPENGEMM
         printf("rnn gpu bwd data \n");
-
+		float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
         for(int li = nLayers - 1; li >= 0; li--)
         {
             int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
             int hid_shift = li * batch_n * hy_h * bi;
-            int hx_shift  = li * bi * in_n[0] * hy_h;
+            int hx_shift  = li * bi * hy_n * hy_h;
 
             // feedback from output
             if(li == nLayers - 1)
@@ -568,6 +675,13 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            network_config);
                 gg.FindSolution(.003, handle, dy, w, workSpace, false);
                 gg.RunGemm(handle, dy, w, workSpace, 0, wei_shift, hid_shift);
+
+				// Update time
+				if (handle.IsProfilingEnabled())
+				{
+					time_gemm = handle.GetKernelTime();
+					handle.AccumKernelTime(time_gemm);
+				}
             }
             else
             {
@@ -588,6 +702,13 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            network_config);
                 gg.FindSolution(.003, handle, workSpace, w, workSpace, false);
                 gg.RunGemm(handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift);
+
+				// Update time
+				if (handle.IsProfilingEnabled())
+				{
+					time_gemm = handle.GetKernelTime();
+					handle.AccumKernelTime(time_gemm);
+				}
             }
 
             // from hidden state
@@ -601,47 +722,65 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             : (bi * (in_h + hy_h) * hy_h +
                                (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
 
-                gg = CreateGemmGeometryRNN(in_n[ti],
-                                           hy_h,
-                                           hy_h,
-                                           1,
-                                           0,
-                                           false,
-                                           true,
-                                           false,
-                                           hy_stride,
-                                           wei_stride,
-                                           hy_stride,
-                                           false,
-                                           network_config);
-                gg.FindSolution(.003, handle, workSpace, w, dhx, false);
-                gg.RunGemm(
-                    handle, workSpace, w, dhx, hid_shift + bacc * hy_stride, wei_shift, hx_shift);
+				if (in_n[ti] > 0)
+				{
+					gg = CreateGemmGeometryRNN(in_n[ti],
+						hy_h,
+						hy_h,
+						1,
+						0,
+						false,
+						true,
+						false,
+						hy_stride,
+						wei_stride,
+						hy_stride,
+						false,
+						network_config);
+					gg.FindSolution(.003, handle, workSpace, w, dhx, false);
+					gg.RunGemm(
+						handle, workSpace, w, dhx, hid_shift + bacc * hy_stride, wei_shift, hx_shift);
 
+					// Update time
+					if (handle.IsProfilingEnabled()) {
+						time_gemm = handle.GetKernelTime();
+						handle.AccumKernelTime(time_gemm);
+					}
+				}
+                
                 if(dirMode)
                 {
 
-                    gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                               hy_h,
-                                               hy_h,
-                                               1,
-                                               0,
-                                               false,
-                                               true,
-                                               false,
-                                               hy_stride,
-                                               wei_stride,
-                                               hy_stride,
-                                               false,
-                                               network_config);
-                    gg.FindSolution(.003, handle, workSpace, w, dhx, false);
-                    gg.RunGemm(handle,
-                               workSpace,
-                               w,
-                               dhx,
-                               hid_shift + baccbi * hy_stride + hy_h,
-                               wei_shift + hy_h,
-                               hx_shift + hy_h);
+					if (in_n[seqLen - 1 - ti] > 0)
+					{
+						gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
+							hy_h,
+							hy_h,
+							1,
+							0,
+							false,
+							true,
+							false,
+							hy_stride,
+							wei_stride,
+							hy_stride,
+							false,
+							network_config);
+						gg.FindSolution(.003, handle, workSpace, w, dhx, false);
+						gg.RunGemm(handle,
+							workSpace,
+							w,
+							dhx,
+							hid_shift + baccbi * hy_stride + hy_h,
+							wei_shift + hy_h,
+							hx_shift + hy_h);
+						
+						// Update time
+						if (handle.IsProfilingEnabled()) {
+							time_0 = handle.GetKernelTime();
+							handle.AccumKernelTime(time_0);
+						}
+					}
                 }
 
                 baccbi += in_n[seqLen - 1 - ti];
@@ -666,6 +805,13 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         gg.FindSolution(.003, handle, workSpace, w, dx, false);
         gg.RunGemm(handle, workSpace, w, dx, 0, 0, 0);
 
+		// Update time
+		if (handle.IsProfilingEnabled())
+		{
+			time_gemm = handle.GetKernelTime();
+			handle.AccumKernelTime(time_gemm);
+		}
+
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -686,8 +832,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        ConstData_t x,
                                        const TensorDescriptor& hxDesc,
                                        ConstData_t hx,
-                                       c_array_view<miopenTensorDescriptor_t> yDesc,
-                                       ConstData_t y,
+                                       c_array_view<miopenTensorDescriptor_t> dyDesc,
+                                       ConstData_t dy,
                                        const TensorDescriptor& dwDesc,
                                        Data_t dw,
                                        ConstData_t workSpace,
@@ -695,21 +841,35 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        ConstData_t reserveSpace,
                                        size_t reserveSpaceSize) const
 {
-    // TODO: DLOWELL put guards here.
+
+	if (x == nullptr || dw == nullptr || dy == nullptr)
+	{
+		MIOPEN_THROW(miopenStatusBadParm);
+	}
+
+	// TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
+    int in_h  = xDesc[0].GetLengths()[1];
+    int hy_d  = hxDesc.GetLengths()[0];
+    int hy_n  = hxDesc.GetLengths()[1];
+    int hy_h  = hxDesc.GetLengths()[2];
+    int out_h = dyDesc[0].GetLengths()[1];
 
-    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
-    int in_h  = xDesc[0].GetLengths()[1]; // input vector size
-    int hy_n  = xDesc[0].GetLengths()[0]; // max batch size
-    int hy_h  = hxDesc.GetLengths()[2];   // hidden size
-    int out_h = hxDesc.GetLengths()[2];   // hidden size
+	if (in_h == 0 || hy_h == 0 || hy_n == 0 || hy_d == 0 || out_h == 0)
+	{
+		MIOPEN_THROW(miopenStatusBadParm);
+	}
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
     {
-        int batchval, inputvec;
-        std::tie(batchval, inputvec) = miopen::tien<2>(xDesc[i].GetLengths());
+		int batchval, inputvec, batchvalout, outputvec;
+		std::tie(batchval, inputvec) = miopen::tien<2>(xDesc[i].GetLengths());
+		std::tie(batchvalout, outputvec) = miopen::tien<2>(dyDesc[i].GetLengths());
+		if (batchval != batchvalout) {
+			MIOPEN_THROW(miopenStatusBadParm);
+		}
         in_n.push_back(batchval);
         batch_n += xDesc[i].GetLengths()[0];
     }
@@ -731,14 +891,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     int out_stride = out_h;
     int wei_stride = hy_h * bi;
 
-    // cl_command_queue Q = (cl_command_queue)handle.GetStream();
-
     if(rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
     {
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("rnn gpu bwd weights \n");
-
+		float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
         int rsv_sz = batch_n * hy_d * hy_h;
@@ -769,6 +927,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                           miopen::deref(rsvTensor),
                           reserveSpace);
 
+		// Update time
+		if (handle.IsProfilingEnabled()){
+			time_0 = handle.GetKernelTime();
+			handle.AccumKernelTime(time_0);
+		}
+
         for(int li = 0; li <= nLayers; li++)
         {
             // between layers
@@ -791,8 +955,20 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 gg.FindSolution(.003, handle, x, workSpace, dw, false);
                 gg.RunGemm(handle, x, workSpace, dw, 0, 0, 0);
 
+				// Update time
+				if (handle.IsProfilingEnabled()) {
+					time_gemm = handle.GetKernelTime();
+					handle.AccumKernelTime(time_gemm);
+				}
+
                 if(biasMode)
                 {
+
+					// Update time
+					if (handle.IsProfilingEnabled()){
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
                 }
             }
             else if(li == nLayers)
@@ -814,12 +990,24 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            wei_stride,
                                            false,
                                            network_config);
-                gg.FindSolution(.003, handle, y, reserveSpace, dw, false);
-                gg.RunGemm(handle, y, reserveSpace, dw, 0, prelayer_shift, wei_shift);
+                gg.FindSolution(.003, handle, dy, reserveSpace, dw, false);
+                gg.RunGemm(handle, dy, reserveSpace, dw, 0, prelayer_shift, wei_shift);
 
-                if(biasMode)
-                {
-                }
+				// Update time
+				if (handle.IsProfilingEnabled()) {
+					time_gemm = handle.GetKernelTime();
+					handle.AccumKernelTime(time_gemm);
+				}
+
+				if (biasMode)
+				{
+
+					// Update time
+					if (handle.IsProfilingEnabled()){
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
+				}
             }
             else
             {
@@ -845,9 +1033,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 gg.RunGemm(
                     handle, reserveSpace, workSpace, dw, prelayer_shift, hid_shift, wei_shift);
 
-                if(biasMode)
-                {
-                }
+				// Update time
+				if (handle.IsProfilingEnabled()) {
+					time_gemm = handle.GetKernelTime();
+					handle.AccumKernelTime(time_gemm);
+				}
+
+				if (biasMode)
+				{
+
+					// Update time
+					if (handle.IsProfilingEnabled()){
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
+				}
             }
 
             // between time
@@ -857,7 +1057,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 for(int ti = 0; ti < seqLen; ti++)
                 {
                     int hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride;
-                    int hx_shift  = li * bi * in_n[0] * hy_h;
+                    int hx_shift  = li * bi * hy_n * hy_h;
                     int wei_shift;
                     int pretime_shift;
 
@@ -868,104 +1068,138 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                     if(ti == 0)
                     {
+						if (in_n[ti] > 0)
+						{
+							gg = CreateGemmGeometryRNN(hy_h,
+								hy_h,
+								in_n[ti],
+								1,
+								1,
+								true,
+								false,
+								false,
+								h_stride,
+								hy_stride,
+								wei_stride,
+								false,
+								network_config);
+							gg.FindSolution(.003, handle, hx, workSpace, dw, false);
+							gg.RunGemm(handle, hx, workSpace, dw, hx_shift, hid_shift, wei_shift);
 
-                        gg = CreateGemmGeometryRNN(hy_h,
-                                                   hy_h,
-                                                   in_n[ti],
-                                                   1,
-                                                   1,
-                                                   true,
-                                                   false,
-                                                   false,
-                                                   h_stride,
-                                                   hy_stride,
-                                                   wei_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, hx, workSpace, dw, false);
-                        gg.RunGemm(handle, hx, workSpace, dw, hx_shift, hid_shift, wei_shift);
+							// Update time
+							if (handle.IsProfilingEnabled()) {
+								time_gemm = handle.GetKernelTime();
+								handle.AccumKernelTime(time_gemm);
+							}
+						}
                     }
                     else
                     {
                         pretime_shift =
                             li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_stride;
 
-                        gg = CreateGemmGeometryRNN(hy_h,
-                                                   hy_h,
-                                                   in_n[ti],
-                                                   1,
-                                                   1,
-                                                   true,
-                                                   false,
-                                                   false,
-                                                   hy_stride,
-                                                   hy_stride,
-                                                   wei_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
-                        gg.RunGemm(handle,
-                                   reserveSpace,
-                                   workSpace,
-                                   dw,
-                                   pretime_shift,
-                                   hid_shift,
-                                   wei_shift);
+						if (in_n[ti] > 0)
+						{
+							gg = CreateGemmGeometryRNN(hy_h,
+								hy_h,
+								in_n[ti],
+								1,
+								1,
+								true,
+								false,
+								false,
+								hy_stride,
+								hy_stride,
+								wei_stride,
+								false,
+								network_config);
+							gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+							gg.RunGemm(handle,
+								reserveSpace,
+								workSpace,
+								dw,
+								pretime_shift,
+								hid_shift,
+								wei_shift);
+
+							// Update time
+							if (handle.IsProfilingEnabled()) {
+								time_gemm = handle.GetKernelTime();
+								handle.AccumKernelTime(time_gemm);
+							}
+						}
                     }
 
                     if(dirMode)
                     {
                         if(ti == seqLen - 1)
                         {
+							if (in_n[ti] > 0)
+							{
+								gg = CreateGemmGeometryRNN(hy_h,
+									hy_h,
+									in_n[ti],
+									1,
+									1,
+									true,
+									false,
+									false,
+									h_stride,
+									hy_stride,
+									wei_stride,
+									false,
+									network_config);
+								gg.FindSolution(.003, handle, hx, workSpace, dw, false);
+								gg.RunGemm(handle,
+									hx,
+									workSpace,
+									dw,
+									hx_shift + hy_h,
+									hid_shift + hy_h,
+									wei_shift + hy_h);
 
-                            gg = CreateGemmGeometryRNN(hy_h,
-                                                       hy_h,
-                                                       in_n[ti],
-                                                       1,
-                                                       1,
-                                                       true,
-                                                       false,
-                                                       false,
-                                                       h_stride,
-                                                       hy_stride,
-                                                       wei_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hx, workSpace, dw, false);
-                            gg.RunGemm(handle,
-                                       hx,
-                                       workSpace,
-                                       dw,
-                                       hx_shift + hy_h,
-                                       hid_shift + hy_h,
-                                       wei_shift + hy_h);
+								// Update time
+								if (handle.IsProfilingEnabled()) {
+									time_0 = handle.GetKernelTime();
+									handle.AccumKernelTime(time_0);
+								}
+							}
                         }
                         else
                         {
                             pretime_shift =
                                 li * bi * batch_n * hy_h + (bacc + in_n[ti]) * hy_stride;
 
-                            gg = CreateGemmGeometryRNN(hy_h,
-                                                       hy_h,
-                                                       in_n[ti + 1],
-                                                       1,
-                                                       1,
-                                                       true,
-                                                       false,
-                                                       false,
-                                                       hy_stride,
-                                                       hy_stride,
-                                                       wei_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
-                            gg.RunGemm(handle,
-                                       reserveSpace,
-                                       workSpace,
-                                       dw,
-                                       pretime_shift + hy_h,
-                                       hid_shift + hy_h,
-                                       wei_shift + hy_h);
+							if (in_n[ti + 1] > 0)
+							{
+								gg = CreateGemmGeometryRNN(hy_h,
+									hy_h,
+									in_n[ti + 1],
+									1,
+									1,
+									true,
+									false,
+									false,
+									hy_stride,
+									hy_stride,
+									wei_stride,
+									false,
+									network_config);
+								gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+								gg.RunGemm(handle,
+									reserveSpace,
+									workSpace,
+									dw,
+									pretime_shift + hy_h,
+									hid_shift + hy_h,
+									wei_shift + hy_h);
+
+								// Update time
+								if (handle.IsProfilingEnabled()) {
+									time_0 = handle.GetKernelTime();
+									handle.AccumKernelTime(time_0);
+								}
+							}
                         }
                     }
 
