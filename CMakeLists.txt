@@ -215,7 +215,6 @@ enable_clang_tidy(
         -misc-misplaced-widening-cast
         -modernize-pass-by-value
         -modernize-use-default-member-init
-        -modernize-use-emplace
         -modernize-use-equals-default
         -modernize-use-transparent-functors
         -performance-unnecessary-value-param
