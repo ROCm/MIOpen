@@ -27,6 +27,7 @@
 #include "bn_driver.hpp"
 #include "conv_driver.hpp"
 #include "driver.hpp"
+#include "gemm_driver.hpp"
 #include "lrn_driver.hpp"
 #include "pool_driver.hpp"
 #include "softmax_driver.hpp"
@@ -64,6 +65,10 @@ int main(int argc, char* argv[])
     {
         drv = new SoftmaxDriver<float>();
     }
+    else if(base_arg == "gemm")
+    {
+        drv = new GemmDriver<float>();
+    }
     else if(base_arg == "bnorm")
     {
         drv = new BatchNormDriver<float>();
@@ -84,7 +89,14 @@ int main(int argc, char* argv[])
 
     if(drv->GetInputFlags().GetValueInt("verify") == 1)
     {
-        drv->VerifyForward();
+        if(base_arg == "gemm")
+        {
+            printf("GEMM verification done in the GEMM library\n");
+        }
+        else
+        {
+            drv->VerifyForward();
+        }
     }
 
     if(drv->GetInputFlags().GetValueInt("forw") == 0)
