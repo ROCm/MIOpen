@@ -227,8 +227,8 @@ int RNNDriver<T>::GetandSetData()
         inputTensors.push_back(inputTensor);
 
         std::array<int, 2> out_lens    = {in_len[i], wei_len[0] * hid_len[1]};
-        std::array<int, 2> out_strides = {out_len[0], 1};
-		miopenCreateTensorDescriptor(&outputTensor);
+        std::array<int, 2> out_strides = {wei_len[0] * hid_len[1], 1};
+        miopenCreateTensorDescriptor(&outputTensor);
         miopenSetTensorDescriptor(
             outputTensor, miopenFloat, 2, out_lens.data(), out_strides.data());
         outputTensors.push_back(outputTensor);
@@ -238,9 +238,11 @@ int RNNDriver<T>::GetandSetData()
     std::array<int, 3> hid_strides = {in_len[0] * hid_len[1], hid_len[1], 1};
     miopenSetTensorDescriptor(hiddenTensor, miopenFloat, 3, hid_lens.data(), hid_strides.data());
 
-    std::array<int, 2> wei_lens = {wei_len[2] + ((wei_len[1] - 1) * (wei_len[0] + 1) + 1) * wei_len[3], wei_len[0] * wei_len[3] * wei_len[5]};
-	if ((inflags.GetValueInt("bias")) == 1)
-		wei_lens[0] += 2 * wei_len[1];
+    std::array<int, 2> wei_lens = {wei_len[2] +
+                                       ((wei_len[1] - 1) * (wei_len[0] + 1) + 1) * wei_len[3],
+                                   wei_len[0] * wei_len[3] * wei_len[5]};
+    if((inflags.GetValueInt("bias")) == 1)
+        wei_lens[0] += 2 * wei_len[1];
     miopenSetTensorDescriptor(weightTensor, miopenFloat, 2, wei_lens.data(), nullptr);
 
     SetRNNDescriptorFromCmdLineArgs();
@@ -351,18 +353,18 @@ std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
 {
     int wei_ih = inflags.GetValueInt("in_h");
     int wei_hh = inflags.GetValueInt("hid_h");
-    
+
     int wei_l  = inflags.GetValueInt("num_layer");
     int wei_bi = 1;
     if((inflags.GetValueInt("bidirection")) == 1)
         wei_bi = 2;
-	int wei_oh = wei_bi == 2 ? wei_hh * 2 : wei_hh;
+    int wei_oh = wei_bi == 2 ? wei_hh * 2 : wei_hh;
 
-	int wei_sc = 1;
-	if ((inflags.GetValueStr("mode")) == "lstm")
-		wei_sc = 4;
-	else if ((inflags.GetValueStr("mode")) == "gru")
-		wei_sc = 3;
+    int wei_sc = 1;
+    if((inflags.GetValueStr("mode")) == "lstm")
+        wei_sc = 4;
+    else if((inflags.GetValueStr("mode")) == "gru")
+        wei_sc = 3;
 
     return std::vector<int>({wei_bi, wei_l, wei_ih, wei_hh, wei_oh, wei_sc});
 }
@@ -483,11 +485,11 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
-    int seqLength    = inflags.GetValueInt("seq_len");
-    size_t in_sz     = 0;
-    size_t out_sz    = 0;
-    size_t wei_sz    = 0;
-    size_t hy_sz     = 0;
+    int seqLength = inflags.GetValueInt("seq_len");
+    size_t in_sz  = 0;
+    size_t out_sz = 0;
+    size_t wei_sz = 0;
+    size_t hy_sz  = 0;
     size_t workSpaceSize;
     size_t reserveSpaceSize;
     miopenGetRNNInputSuperTensorSize(GetHandle(),
@@ -692,7 +694,7 @@ int RNNDriver<T>::RunForwardGPU()
                                  reservespace_dev->GetMem(),
                                  reservespace_dev->GetSize());
     }
-    
+
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
@@ -706,7 +708,7 @@ int RNNDriver<T>::RunForwardGPU()
         // printf("MIOpen Forward RNN Algorithm: %d\n", perf_results[0].fwd_algo);
         printf("GPU Kernel Time Forward RNN Elapsed: %f ms\n", time);
     }
-    
+
     out_dev->FromGPU(GetStream(), out.data());
     hy_dev->FromGPU(GetStream(), hy.data());
     cy_dev->FromGPU(GetStream(), cy.data());
@@ -727,10 +729,9 @@ template <typename T>
 int RNNDriver<T>::RunForwardCPU()
 {
     std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
-    std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
     int in_h                 = in_n.back();
-    int out_h                = out_len[0];
+    int out_h;
     int hy_d = hid_len[0], hy_n = in_n[0], hy_h = hid_len[1];
     in_n.pop_back();
 
@@ -748,28 +749,29 @@ int RNNDriver<T>::RunForwardCPU()
 
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
+    out_h       = bidirection ? hy_h * 2 : hy_h;
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("reach rnn fwd \n");
 
         RunRNNForwardGEMMCPUVerifysimplify(in,
-                                   wei,
-                                   hy_host,
-                                   hx,
-                                   outhost,
-                                   in_n,
-                                   in_h,
-                                   seqLength,
-                                   bidirection,
-                                   biased,
-                                   hy_d,
-                                   hy_n,
-                                   hy_h,
-                                   out_h,
-                                   mode,
-                                   workspace_host,
-                                   reservespace_host);
+                                           wei,
+                                           hy_host,
+                                           hx,
+                                           outhost,
+                                           in_n,
+                                           in_h,
+                                           seqLength,
+                                           bidirection,
+                                           biased,
+                                           hy_d,
+                                           hy_n,
+                                           hy_h,
+                                           out_h,
+                                           mode,
+                                           workspace_host,
+                                           reservespace_host);
     }
     else if(mode == miopenLSTM)
     {
@@ -882,7 +884,7 @@ int RNNDriver<T>::RunBackwardGPU()
         // printf("MIOpen Backward Data RNN Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
         printf("GPU Kernel Time Backward Data RNN Elapsed: %f ms\n", time);
     }
-    
+
     din_dev->FromGPU(GetStream(), din.data());
     dhx_dev->FromGPU(GetStream(), dhx.data());
     dcx_dev->FromGPU(GetStream(), dcx.data());
@@ -912,7 +914,7 @@ int RNNDriver<T>::RunBackwardGPU()
         //        perf_results_weights[0].bwd_weights_algo);
         printf("GPU Kernel Time Backward Weights RNN Elapsed: %f ms\n", time);
     }
-    
+
     dwei_dev->FromGPU(GetStream(), dwei.data());
     /*
     if(perf_results_weights[0].bwd_weights_algo == 0)
@@ -934,10 +936,9 @@ template <typename T>
 int RNNDriver<T>::RunBackwardWeightsCPU()
 {
     std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
-    std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
     int in_h                 = in_n.back();
-    int out_h                = out_len[0];
+    int out_h;
     int hy_d = hid_len[0], hy_n = in_n[0], hy_h = hid_len[1];
     in_n.pop_back();
 
@@ -955,27 +956,28 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
 
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
+    out_h       = bidirection ? hy_h * 2 : hy_h;
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("reach rnn bwdwei \n");
 
         RunRNNBackwardWeightGEMMCPUVerifysimplify(in,
-                                          dwei_host,
-                                          hx,
-                                          dout,
-                                          in_n,
-                                          in_h,
-                                          seqLength,
-                                          bidirection,
-                                          biased,
-                                          hy_d,
-                                          hy_n,
-                                          hy_h,
-                                          out_h,
-                                          mode,
-                                          reservespace_host,
-                                          workspace_host);
+                                                  dwei_host,
+                                                  hx,
+                                                  dout,
+                                                  in_n,
+                                                  in_h,
+                                                  seqLength,
+                                                  bidirection,
+                                                  biased,
+                                                  hy_d,
+                                                  hy_n,
+                                                  hy_h,
+                                                  out_h,
+                                                  mode,
+                                                  reservespace_host,
+                                                  workspace_host);
     }
     else if(mode == miopenLSTM)
     {
@@ -1035,10 +1037,9 @@ template <typename T>
 int RNNDriver<T>::RunBackwardDataCPU()
 {
     std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
-    std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
     int in_h                 = in_n.back();
-    int out_h                = out_len[0];
+    int out_h;
     int hy_d = hid_len[0], hy_n = in_n[0], hy_h = hid_len[1];
     in_n.pop_back();
 
@@ -1056,30 +1057,31 @@ int RNNDriver<T>::RunBackwardDataCPU()
 
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
+    out_h       = bidirection ? hy_h * 2 : hy_h;
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("reach rnn bwddata \n");
 
         RunRNNBackwardDataGEMMCPUVerifysimplify(din_host,
-                                        wei,
-                                        dhy,
-                                        dhx_host,
-                                        hx,
-                                        out,
-                                        dout,
-                                        in_n,
-                                        in_h,
-                                        seqLength,
-                                        bidirection,
-                                        biased,
-                                        hy_d,
-                                        hy_n,
-                                        hy_h,
-                                        out_h,
-                                        mode,
-                                        reservespace_host,
-                                        workspace_host);
+                                                wei,
+                                                dhy,
+                                                dhx_host,
+                                                hx,
+                                                out,
+                                                dout,
+                                                in_n,
+                                                in_h,
+                                                seqLength,
+                                                bidirection,
+                                                biased,
+                                                hy_d,
+                                                hy_n,
+                                                hy_h,
+                                                out_h,
+                                                mode,
+                                                reservespace_host,
+                                                workspace_host);
     }
     else if(mode == miopenLSTM)
     {
