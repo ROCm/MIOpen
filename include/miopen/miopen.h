@@ -1901,7 +1901,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
                                                    miopenTensorDescriptor_t biasDesc,
                                                    void* layerBias);
 
-<<<<<<< HEAD
 
 
 
@@ -1954,9 +1953,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
                                                    void* layerBias);
 
 
-
-=======
->>>>>>> e6c57d91dd3350b0bf21718b7f85d2b5e9775ab8
 /*! @brief Execute forward training for recurrent layer
  *
  * Interface for executing the forward training pass on a RNN.

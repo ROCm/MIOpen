@@ -154,9 +154,7 @@ extern "C" miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
     });
 }
 
-<<<<<<< HEAD
 
-=======
 extern "C" miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t handle,
                                                            miopenRNNDescriptor_t rnnDesc,
                                                            const int seqLen,
@@ -199,7 +197,6 @@ extern "C" miopenStatus_t miopenGetRNNWeightSuperTensorSize(miopenHandle_t handl
             miopen::deref(handle), miopen::deref(xDesc), miopen::deref(yDesc));
     });
 }
->>>>>>> e6c57d91dd3350b0bf21718b7f85d2b5e9775ab8
 
 extern "C" miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
                                                  miopenRNNDescriptor_t rnnDesc,
