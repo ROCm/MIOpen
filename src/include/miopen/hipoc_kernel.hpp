@@ -111,7 +111,7 @@ struct KernelArgs
 {
     KernelArgs(Ts... xs) : pack(xs...)
     {
-        for(auto & x : hidden)
+        for(auto& x : hidden)
             x = 0;
     }
     KernelArgsPack<Ts...> pack;
