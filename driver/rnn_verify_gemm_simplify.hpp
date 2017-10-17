@@ -1,5 +1,5 @@
-#ifndef GUARD_MIOPEN_RNN_VERIFY_GEMM_HPP
-#define GUARD_MIOPEN_RNN_VERIFY_GEMM_HPP
+#ifndef GUARD_MIOPEN_RNN_VERIFY_GEMM_SIMPLIFY_HPP
+#define GUARD_MIOPEN_RNN_VERIFY_GEMM_SIMPLIFY_HPP
 
 #define ADNN_MM_TRANSPOSE 1
 
@@ -8,28 +8,29 @@
 #include <algorithm>
 
 template <typename T>
-void RunRNNForwardGEMMCPUVerifysimplify(std::vector<T>& in,
-                                std::vector<T>& wei,     // [ input_state_weight_trans
-                                                         // hidden_state_weight0_trans input1_trans
-                                                         // hidden1_trans ... output_weight;
-                                                         // bidirectional reversed weights ]
-                                std::vector<T>& hy_host, // current/final hidden state
-                                std::vector<T>& hx,      // initial hidden state
-                                std::vector<T>& out_host,
-                                std::vector<int>& in_n, // input batch size
-                                int in_h,               // input data length
-                                int seqLength,          // Number of iterations to unroll over
-                                bool bidirection,       // whether using bidirectional net
-                                bool biased,            // whether using bias
-                                int hy_d,  // 1 by numlayer (number of stacks of hidden layers) for
-                                           // unidirection, 2 by numlayer for bidirection
-                                int hy_n,  // equal to input batch size in_n[0]
-                                int hy_h,  // hidden state number
-                                int out_h, // 1 by hy_h related function for unidirection, 2 by hy_h
-                                           // related function for bidirection
-                                int squash,
-	std::vector<T>& wkspace,
-                                std::vector<T>& rsvspace)
+void RunRNNForwardGEMMCPUVerifysimplify(
+    std::vector<T>& in,
+    std::vector<T>& wei,     // [ input_state_weight_trans
+                             // hidden_state_weight0_trans input1_trans
+                             // hidden1_trans ... output_weight;
+                             // bidirectional reversed weights ]
+    std::vector<T>& hy_host, // current/final hidden state
+    std::vector<T>& hx,      // initial hidden state
+    std::vector<T>& out_host,
+    std::vector<int>& in_n, // input batch size
+    int in_h,               // input data length
+    int seqLength,          // Number of iterations to unroll over
+    bool bidirection,       // whether using bidirectional net
+    bool biased,            // whether using bias
+    int hy_d,               // 1 by numlayer (number of stacks of hidden layers) for
+                            // unidirection, 2 by numlayer for bidirection
+    int hy_n,               // equal to input batch size in_n[0]
+    int hy_h,               // hidden state number
+    int out_h,              // 1 by hy_h related function for unidirection, 2 by hy_h
+                            // related function for bidirection
+    int squash,
+    std::vector<T>& wkspace,
+    std::vector<T>& rsvspace)
 {
     int batch_n  = sumvc(in_n);
     T* hid_state = new T[hy_d * batch_n * hy_h];
@@ -74,11 +75,10 @@ void RunRNNForwardGEMMCPUVerifysimplify(std::vector<T>& in,
         wei_state[h] = wei[h];
     }
 
-    int wei_shift_bias =
-        ((in_h + hy_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
-    int in_stride  = in_h;
-    int hy_stride  = hy_h * bi;
-    int out_stride = out_h;
+    int wei_shift_bias = ((in_h + hy_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
+    int in_stride      = in_h;
+    int hy_stride      = hy_h * bi;
+    int out_stride     = out_h;
 
     // forward emulator
     for(int li = 0; li < numlayer; li++)
@@ -131,22 +131,20 @@ void RunRNNForwardGEMMCPUVerifysimplify(std::vector<T>& in,
                            1);
         }
 
-		// from bias
-		if (biased)
-		{
-			int wei_shift_bias_temp =
-				wei_shift_bias + li * 2 * hy_h;
+        // from bias
+        if(biased)
+        {
+            int wei_shift_bias_temp = wei_shift_bias + li * 2 * hy_h;
 
-			for (int bs = 0; bs < batch_n; bs++)
-			{
-				for (int h = 0; h < hy_stride; h++)
-				{
-					hid_state[hid_shift + bs * hy_stride + h] +=
-						(wei[wei_shift_bias_temp + h] +
-							wei[wei_shift_bias_temp + hy_stride + h]);
-				}
-			}
-		}
+            for(int bs = 0; bs < batch_n; bs++)
+            {
+                for(int h = 0; h < hy_stride; h++)
+                {
+                    hid_state[hid_shift + bs * hy_stride + h] +=
+                        (wei[wei_shift_bias_temp + h] + wei[wei_shift_bias_temp + hy_stride + h]);
+                }
+            }
+        }
 
         // from hidden state
         bacc   = 0;
@@ -256,8 +254,8 @@ void RunRNNForwardGEMMCPUVerifysimplify(std::vector<T>& in,
                     rsvspace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
                         hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 
-					wkspace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
-						wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
+                    wkspace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
+                        wk_state[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 
                     hy_host[hx_shift + bs * hy_stride + h] =
                         hy_state[hx_shift + bs * hy_stride + h];
@@ -280,8 +278,8 @@ void RunRNNForwardGEMMCPUVerifysimplify(std::vector<T>& in,
                         rsvspace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
                             hid_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
 
-						wkspace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
-							wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
+                        wkspace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
+                            wk_state[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
 
                         hy_host[hx_shift + hy_h + bs * hy_stride + h] =
                             hy_state[hx_shift + hy_h + bs * hy_stride + h];
@@ -313,30 +311,31 @@ void RunRNNForwardGEMMCPUVerifysimplify(std::vector<T>& in,
 }
 
 template <typename T>
-void RunRNNBackwardDataGEMMCPUVerifysimplify(std::vector<T>& din_host,
-                                     std::vector<T>& wei, // [ input_state_weight_trans
-                                                          // hidden_state_weight0_trans input1_trans
-                                                          // hidden1_trans ... output_weight;
-                                                          // bidirectional reversed weights ]
-                                     std::vector<T>& dhy, // current/final hidden state
-                                     std::vector<T>& dhx_host,
-                                     std::vector<T>& hx, // initial hidden state
-                                     std::vector<T>& out,
-                                     std::vector<T>& dout,
-                                     std::vector<int>& in_n, // input batch size
-                                     int in_h,               // input data length
-                                     int seqLength,          // Number of iterations to unroll over
-                                     bool bidirection,       // whether using bidirectional net
-                                     bool biased,            // whether using bias
-                                     int hy_d,  // 1 by numlayer (number of stacks of hidden layers)
-                                                // for unidirection, 2 by numlayer for bidirection
-                                     int hy_n,  // equal to input batch size in_n[0]
-                                     int hy_h,  // hidden state number
-                                     int out_h, // 1 by hy_h related function for unidirection, 2 by
-                                                // hy_h related function for bidirection
-                                     int squash,
-                                     std::vector<T>& rsvspace,
-                                     std::vector<T>& wkspace)
+void RunRNNBackwardDataGEMMCPUVerifysimplify(
+    std::vector<T>& din_host,
+    std::vector<T>& wei, // [ input_state_weight_trans
+                         // hidden_state_weight0_trans input1_trans
+                         // hidden1_trans ... output_weight;
+                         // bidirectional reversed weights ]
+    std::vector<T>& dhy, // current/final hidden state
+    std::vector<T>& dhx_host,
+    std::vector<T>& hx, // initial hidden state
+    std::vector<T>& out,
+    std::vector<T>& dout,
+    std::vector<int>& in_n, // input batch size
+    int in_h,               // input data length
+    int seqLength,          // Number of iterations to unroll over
+    bool bidirection,       // whether using bidirectional net
+    bool biased,            // whether using bias
+    int hy_d,               // 1 by numlayer (number of stacks of hidden layers)
+                            // for unidirection, 2 by numlayer for bidirection
+    int hy_n,               // equal to input batch size in_n[0]
+    int hy_h,               // hidden state number
+    int out_h,              // 1 by hy_h related function for unidirection, 2 by
+                            // hy_h related function for bidirection
+    int squash,
+    std::vector<T>& rsvspace,
+    std::vector<T>& wkspace)
 {
     int batch_n = sumvc(in_n);
     T* dh_state = new T[hy_d * batch_n * hy_h];
@@ -397,13 +396,13 @@ void RunRNNBackwardDataGEMMCPUVerifysimplify(std::vector<T>& din_host,
 
         if(li == numlayer - 1)
         {
-			for (int bs = 0; bs < batch_n; bs++)
-			{
-				for (int h = 0; h < out_h; h++)
-				{
-					dh_state[hid_shift + bs * hy_stride + h] += dout_state[bs * out_stride + h];
-				}
-			}
+            for(int bs = 0; bs < batch_n; bs++)
+            {
+                for(int h = 0; h < out_h; h++)
+                {
+                    dh_state[hid_shift + bs * hy_stride + h] += dout_state[bs * out_stride + h];
+                }
+            }
         }
         else
         {
@@ -580,29 +579,30 @@ void RunRNNBackwardDataGEMMCPUVerifysimplify(std::vector<T>& din_host,
 }
 
 template <typename T>
-void RunRNNBackwardWeightGEMMCPUVerifysimplify(std::vector<T>& in,
-                                       std::vector<T>& dwei_host, // [ input_state_weight_trans
-                                                                  // hidden_state_weight0_trans
-                                                                  // input1_trans hidden1_trans ...
-                                                                  // output_weight; bidirectional
-                                                                  // reversed weights ]
-                                       std::vector<T>& hx,        // initial hidden state
-                                       std::vector<T>& dout,
-                                       std::vector<int>& in_n, // input batch size
-                                       int in_h,               // input data length
-                                       int seqLength,    // Number of iterations to unroll over
-                                       bool bidirection, // whether using bidirectional net
-                                       bool biased,      // whether using bias
-                                       int hy_d,  // 1 by numlayer (number of stacks of hidden
-                                                  // layers) for unidirection, 2 by numlayer for
-                                                  // bidirection
-                                       int hy_n,  // equal to input batch size in_n[0]
-                                       int hy_h,  // hidden state number
-                                       int out_h, // 1 by hy_h related function for unidirection, 2
-                                                  // by hy_h related function for bidirection
-                                       int squash,
-                                       std::vector<T>& rsvspace,
-                                       std::vector<T>& wkspace)
+void RunRNNBackwardWeightGEMMCPUVerifysimplify(
+    std::vector<T>& in,
+    std::vector<T>& dwei_host, // [ input_state_weight_trans
+                               // hidden_state_weight0_trans
+                               // input1_trans hidden1_trans ...
+                               // output_weight; bidirectional
+                               // reversed weights ]
+    std::vector<T>& hx,        // initial hidden state
+    std::vector<T>& dout,
+    std::vector<int>& in_n, // input batch size
+    int in_h,               // input data length
+    int seqLength,          // Number of iterations to unroll over
+    bool bidirection,       // whether using bidirectional net
+    bool biased,            // whether using bias
+    int hy_d,               // 1 by numlayer (number of stacks of hidden
+                            // layers) for unidirection, 2 by numlayer for
+                            // bidirection
+    int hy_n,               // equal to input batch size in_n[0]
+    int hy_h,               // hidden state number
+    int out_h,              // 1 by hy_h related function for unidirection, 2
+                            // by hy_h related function for bidirection
+    int squash,
+    std::vector<T>& rsvspace,
+    std::vector<T>& wkspace)
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
@@ -615,7 +615,7 @@ void RunRNNBackwardWeightGEMMCPUVerifysimplify(std::vector<T>& in,
     int wei_len = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
     if(biased)
     {
-		wei_len += numlayer * 2 * hy_h;
+        wei_len += numlayer * 2 * hy_h;
     }
 
     T* dwei_state = new T[wei_len];
@@ -657,11 +657,10 @@ void RunRNNBackwardWeightGEMMCPUVerifysimplify(std::vector<T>& in,
         hx_state[h] = hx[h];
     }
 
-    int wei_shift_bias =
-        ((in_h + hy_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
-    int in_stride  = in_h;
-    int hy_stride  = hy_h * bi;
-    int out_stride = out_h;
+    int wei_shift_bias = ((in_h + hy_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
+    int in_stride      = in_h;
+    int hy_stride      = hy_h * bi;
+    int out_stride     = out_h;
 
     // bwd weights emulator
     for(int li = 0; li < numlayer; li++)
@@ -732,7 +731,7 @@ void RunRNNBackwardWeightGEMMCPUVerifysimplify(std::vector<T>& in,
                     {
                         dwei_state[wei_shift + h] += dout[w * out_stride + h];
                     }
-                    dwei_state[wei_shift + out_stride + h] = dwei_state[wei_shift + h];                    
+                    dwei_state[wei_shift + out_stride + h] = dwei_state[wei_shift + h];
                 }
             }
         }
@@ -898,4 +897,4 @@ void RunRNNBackwardWeightGEMMCPUVerifysimplify(std::vector<T>& in,
     delete[] hx_state;
 }
 
-#endif // GUARD_MIOPEN_RNN_VERIFY_GEMM_HPP
+#endif // GUARD_MIOPEN_RNN_VERIFY_GEMM_SIMPLIFY_HPP
