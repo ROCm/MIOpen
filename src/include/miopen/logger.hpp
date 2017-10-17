@@ -180,6 +180,7 @@ enum LoggingLevel
     Error,
     Warning,
     Info,
+    Info2,
     Trace // E.g. messages output by MIOPEN_LOG_FUNCTION).
 };
 
@@ -240,7 +241,7 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
             std::cerr << LoggingLevelToCString(level) << " [" << __func__ << "] " << __VA_ARGS__ \
                       << std::endl;                                                              \
         }                                                                                        \
-    } while(false);
+    } while(false)
 
 } // namespace miopen
 

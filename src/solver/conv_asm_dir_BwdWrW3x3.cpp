@@ -27,18 +27,21 @@
 #include <sstream>
 #include <unordered_map>
 #include <limits>
+#include <iterator>
 
 #include "miopen/gcn_asm_utils.hpp"
 #include "miopen/env.hpp"
 #include "miopen/logger.hpp"
 #include "miopen/handle.hpp"
 #include "miopen/solver.hpp"
+//#include "miopen/timer.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
 #define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
 #define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
+#define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 namespace miopen {
 namespace solver {
@@ -59,12 +62,27 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
                           // Higher values increase register pressure.
     int n_per_group;      // [1..8] && (n_per_group <= batch_size).
 
-    // Values are within allowed range.
     bool IsValidRange() const;
-    // Values are valid for specific problem config.
     bool IsValid(const ConvolutionContext& config) const;
     //
     void EuristicInit(const ConvolutionContext& config);
+
+    std::string ToString() const;
+
+    int GetCPerWave() const
+    {
+        assert(chunk_size != 0);
+        return 64 / chunk_size;
+    }
+
+    bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const {
+        return limit_wave_cnt == other.limit_wave_cnt
+            && reverse_inout == other.reverse_inout
+            && chunk_size == other.chunk_size
+            && k_per_wave == other.k_per_wave
+            && pipe_lines_depth == other.pipe_lines_depth
+            && n_per_group == other.n_per_group;
+    }
 
     PerformanceConfigAsmDirect3x3WrW(int limit_wave_cnt_,
                                      int reverse_inout_,
@@ -80,12 +98,6 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
           n_per_group(n_per_group_)
     {
     }
-    std::string ToString() const;
-    int GetCPerWave() const
-    {
-        assert(chunk_size != 0);
-        return 64 / chunk_size;
-    }
 
     public:
     PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
@@ -93,7 +105,159 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
     bool Deserialize(const std::string& str) override;
 
     friend class ConvAsmBwdWrW3x3;
+    friend class VirtualContainer;
 };
+
+class VirtualContainer
+{
+        // Valid iterator shall denote the element of a container.
+        // This container (virtually) contains only those performance configs
+        // which are suitable for the given PerformanceConfig/ConvolutionContext.
+        // That is why we use this member when iterator needs to be validated.
+        // Also this is the reason why valid iterator shall know where it's container resides.
+    const ConvolutionContext& config;
+
+    public:
+    VirtualContainer(const ConvolutionContext& config_) : config(config_) {}
+
+    static const PerformanceConfigAsmDirect3x3WrW maxValue;
+    static const PerformanceConfigAsmDirect3x3WrW minValue;
+    static const PerformanceConfigAsmDirect3x3WrW outOfRangeValue;
+
+    // Iterator shall advance to the next valid config, i.e. the one which
+    // satisfies PerformanceConfig.IsValid(ProblemConfig)
+    class const_iterator: public std::iterator<std::input_iterator_tag, PerformanceConfigAsmDirect3x3WrW>
+    {
+        PerformanceConfigAsmDirect3x3WrW v; // use value_type
+        const VirtualContainer* container;
+        const_iterator(const PerformanceConfigAsmDirect3x3WrW& v_, const VirtualContainer* container_) : v(v_), container(container_) {}
+        void Next();
+        friend class VirtualContainer;
+    public:
+        const_iterator() : v(VirtualContainer::outOfRangeValue), container(nullptr) {}
+        const_iterator(const const_iterator& it) : v(it.v), container(it.container) {}
+    
+        bool operator!=(const_iterator const& other) const {
+            return !(
+            (v.IsEqual(VirtualContainer::outOfRangeValue) && other.v.IsEqual(VirtualContainer::outOfRangeValue))
+            || (v.IsEqual(other.v) && container == other.container));
+         }
+        const PerformanceConfigAsmDirect3x3WrW& operator*() const { return v; }
+        const PerformanceConfigAsmDirect3x3WrW* operator->() const { return &v; }
+        const_iterator& operator++() { Next(); return *this; }
+    };
+
+private:
+    bool IsValid(const const_iterator& it) const {
+        return (it->IsValid(config));
+    }
+
+public:
+    const_iterator begin() const {
+        auto it = const_iterator(minValue, this);
+        if (!it->IsValid(config)) {
+            it.Next();
+        }
+        return it;
+    }
+
+    const_iterator end() const {
+        return const_iterator(outOfRangeValue, this);
+    }
+};
+
+const PerformanceConfigAsmDirect3x3WrW VirtualContainer::maxValue = PerformanceConfigAsmDirect3x3WrW(10, 1, 16, 8, 16, 8);
+const PerformanceConfigAsmDirect3x3WrW VirtualContainer::minValue = PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1);
+const PerformanceConfigAsmDirect3x3WrW VirtualContainer::outOfRangeValue = PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1);
+
+/*void VirtualContainer::Next(PerformanceConfigAsmDirect3x3WrW& v) const
+{
+    do
+    {
+        // Increment with wrap-around:
+        do
+        {
+            // (0 <= limit_wave_cnt && limit_wave_cnt <= 10)
+            if (++v.limit_wave_cnt <= 10)
+                break;
+            v.limit_wave_cnt = 0;
+            // (0 <= reverse_inout && reverse_inout <= 1)
+            if (++v.reverse_inout <= 1)
+                break;
+            v.reverse_inout = 0;
+            // (8 == chunk_size || 16 == chunk_size)
+            if ((v.chunk_size += 8) <= 16)
+                break;
+            v.chunk_size = 8;
+            // (1 == k_per_wave || 2 == k_per_wave || 4 == k_per_wave || 8 == k_per_wave)
+            if (1 == v.k_per_wave) { v.k_per_wave = 2; break; }
+            if (2 == v.k_per_wave) { v.k_per_wave = 4; break; }
+            if (4 == v.k_per_wave) { v.k_per_wave = 8; break; }
+            v.k_per_wave = 1;
+            // (1 <= pipe_lines_depth && pipe_lines_depth <= 16)
+            if (++v.pipe_lines_depth <= 16)
+                break;
+            v.pipe_lines_depth = 1;
+            // (1 <= n_per_group && n_per_group <= 8);
+            if (++v.n_per_group <= 8)
+                break;
+            v.n_per_group = 1;
+            /// All the fields (components) of performance confic have wrapped around.
+            /// The next one is not the min (in the allowed range) but a one beyond the end:
+            v = outOfRangeValue;
+            return;
+        }
+        while (false);
+    }
+    while (!v.IsValid(config));
+}*/
+
+void VirtualContainer::const_iterator::Next()
+{
+    if (container == nullptr) {
+        v = VirtualContainer::outOfRangeValue;
+        return;
+    }
+    do
+    {
+        // Increment with wrap-around:
+        do
+        {
+            // (0 <= limit_wave_cnt && limit_wave_cnt <= 10)
+            if (++v.limit_wave_cnt <= 10)
+                break;
+            v.limit_wave_cnt = 0;
+            // (0 <= reverse_inout && reverse_inout <= 1)
+            if (++v.reverse_inout <= 1)
+                break;
+            v.reverse_inout = 0;
+            // (8 == chunk_size || 16 == chunk_size)
+            if ((v.chunk_size += 8) <= 16)
+                break;
+            v.chunk_size = 8;
+            // (1 == k_per_wave || 2 == k_per_wave || 4 == k_per_wave || 8 == k_per_wave)
+            if (1 == v.k_per_wave) { v.k_per_wave = 2; break; }
+            if (2 == v.k_per_wave) { v.k_per_wave = 4; break; }
+            if (4 == v.k_per_wave) { v.k_per_wave = 8; break; }
+            v.k_per_wave = 1;
+            // (1 <= pipe_lines_depth && pipe_lines_depth <= 16)
+            if (++v.pipe_lines_depth <= 16)
+                break;
+            v.pipe_lines_depth = 1;
+            // (1 <= n_per_group && n_per_group <= 8);
+            if (++v.n_per_group <= 8)
+                break;
+            v.n_per_group = 1;
+            /// All the fields (components) of performance confic have wrapped around.
+            /// The next one is not the min (in the allowed range) but a one beyond the end:
+            v = VirtualContainer::outOfRangeValue;
+            return;
+        }
+        while (false);
+    }
+//    while (!v.IsValid(container.GetProblemConfig()));
+    while (!container->IsValid(*this));
+}
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValidRange() const
 {
@@ -106,23 +270,67 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValidRange() const
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
 {
+    if (!IsValidRange())
+        return false;
     assert(chunk_size != 0);
     if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
         return false;
     if((reverse_inout ? config.n_inputs : config.n_outputs) % GetCPerWave() != 0)
+        return false;
+    if(!(chunk_size * k_per_wave <= 64))
         return false;
     if((reverse_inout ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
         return false;
     if(!(n_per_group <= config.batch_sz))
         return false;
     if(!(1 <= pipe_lines_depth &&
-         pipe_lines_depth <= std::min(config.out_height, 16))) // FIXME out_? What if stride != 1?
+         pipe_lines_depth <= std::min(config.out_height, 16)))
         return false;
     if(reverse_inout && !IsReverseInOutAllowed(config))
         return false;
-    if(config.out_width >= 256 && n_per_group > 4) // when width >= 256, n_per_group should NOT be >
-                                                   // 4. // FIXME out_? What if stride != 1?
-        return false;
+
+    {
+    	const int accums_cnt = (config.kernel_size0 * config.kernel_size1 * GetCPerWave() * k_per_wave * chunk_size) / 64;
+        //MIOPEN_LOG_I2("accums_cnt=" << accums_cnt); // FIXME
+        assert(chunk_size);
+    	int gprs_per_line_in = (config.out_width + chunk_size - 1) / chunk_size;
+    	if (chunk_size != 16) {
+    	    assert(chunk_size - config.pad0);
+    		gprs_per_line_in = (config.out_width + chunk_size - config.pad0 - 1) / (chunk_size - config.pad0);
+        }
+        assert(config.kernel_stride0);
+    	gprs_per_line_in += gprs_per_line_in % config.kernel_stride0;
+        //MIOPEN_LOG_I2("gprs_per_line_in=" << gprs_per_line_in); // FIXME
+    	const int gprs_per_line_out = (gprs_per_line_in > 1) ? gprs_per_line_in / config.kernel_stride0 : 1;
+        //MIOPEN_LOG_I2("gprs_per_line_out=" << gprs_per_line_out); // FIXME
+    		
+    	const int lines_in = pipe_lines_depth + config.kernel_size1 - 1;
+        //MIOPEN_LOG_I2("lines_in=" << lines_in); // FIXME
+        assert(config.kernel_stride1);
+    	const int lines_out = (pipe_lines_depth + config.kernel_stride1 - 1) / config.kernel_stride1;
+        //MIOPEN_LOG_I2("lines_out=" << lines_out); // FIXME
+    	const int vgprs = accums_cnt + lines_in * gprs_per_line_in + lines_out * gprs_per_line_out + 6;
+        //MIOPEN_LOG_I2("vgprs=" << vgprs); // FIXME
+        if (!(vgprs <= 256))
+           return false;
+    	if (n_per_group > 4)
+            if (!(vgprs <= 128))
+               return false;
+        const int max_waves_per_cu = (256 / vgprs) * 4; // FIXME
+        if (!(max_waves_per_cu >= n_per_group)) // FIXME
+            return false; // FIXME
+        //MIOPEN_LOG_I2("max_waves_per_cu=" << max_waves_per_cu << ", n_per_group=" << n_per_group); // FIXME
+    
+    	const int unroll_factor = pipe_lines_depth * (pipe_lines_depth + 2);
+    	const int steps = std::max(0, config.out_height - 1 - pipe_lines_depth);
+    	assert(unroll_factor);
+    	const int loops = pipe_lines_depth + unroll_factor + steps % unroll_factor + 1;
+    	const int m_instr = 3 + (gprs_per_line_in + 3) / 4;
+    	const int v_instr = (k_per_wave * config.kernel_size1 * gprs_per_line_out * config.kernel_size0 * 4) / 3;
+    	const int total = loops * (m_instr + v_instr); // instructions
+    	if (total >= 32000) // Estimation, a bit smaller than 32K.
+    	    return false;
+    }
     return true;
 }
 
@@ -168,7 +376,6 @@ void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& co
         pipe_lines_depth = config.out_height; // Special case.
     }
 
-    assert(IsValidRange());
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
@@ -355,13 +562,9 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
         {
             MIOPEN_THROW(h + "Bad format:" + s);
         }
-        if(!pp.IsValidRange())
-        {
-            MIOPEN_THROW(h + "Out of range:" + s);
-        }
         if(!pp.IsValid(params))
         {
-            MIOPEN_THROW(h + "Incorrect for the problem config:" + s);
+            MIOPEN_THROW(h + "Out of range of invalid for the problem config:" + s);
         }
         MIOPEN_LOG_I("From env: " << pp.ToString());
     }
@@ -404,13 +607,9 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
             {
                 MIOPEN_THROW(h + "Bad format:" + s);
             }
-            if(!pp.IsValidRange())
-            {
-                MIOPEN_THROW(h + "Out of range:" + s);
-            }
             if(!pp.IsValid(params))
             {
-                MIOPEN_THROW(h + "Incorrect for the problem config:" + s);
+                MIOPEN_THROW(h + "Out of range of invalid for the problem config:" + s);
             }
             MIOPEN_LOG_I("From LUT: " << pp.ToString());
         }
@@ -487,7 +686,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
          && k_r_s < std::pow(2, 22)
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
-         && c_k_r_s < std::pow(2, 29);                                    // clang-format on
+         && c_k_r_s < std::pow(2, 29); // clang-format on
     return ok;
 }
 
@@ -654,7 +853,15 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
     std::vector<float> init_wei(wei.size());
     InitVectorRandomly(init_wei, -0.5, 0.001);
 
-    const int n_runs_total = 1;
+    //const 
+    int n_runs_total = 0;
+    VirtualContainer configs(params);
+    {
+        for (const auto c : configs) {
+            ++n_runs_total;
+            (void)c;
+        }
+    }
     MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
     auto& best = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
     best.EuristicInit(params);
@@ -662,15 +869,16 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
     double min_proc_time  = std::numeric_limits<float>::max();
     const size_t n_progress_report_interval = 100; // Report progress after each interval and also after the last run.
     int n_runs_failed = 0;
+
     size_t n_run = 0;
-    do
+    for (const auto c : configs)
     {
-        PerformanceConfigAsmDirect3x3WrW c = best;
         double processing_time;
         profile_h.WriteTo(reinterpret_cast<const void*>(init_wei.data()),
                           wei_ocl_buf,
                           init_wei.size() * sizeof(decltype(init_wei)::value_type));
 
+        MIOPEN_LOG_I2("#" << n_run << " (" << n_runs_total << ") " << c);
         const auto ret = Measure(profile_h,
                                  bot_ocl_buf.get(),
                                  top_ocl_buf.get(),
@@ -682,6 +890,7 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
             is_passed = true;
         } else {
             MIOPEN_LOG_E("#" << n_run << " (" << n_runs_total << ") " << " Failed rc=" << ret);
+            ++n_run;
             continue;
         }
 
@@ -691,9 +900,9 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
             best = c;
             min_proc_time = processing_time;
         }
-
+        ++n_run;
     }
-    while (false);
+
     profile_h.EnableProfiling(false);
     MIOPEN_LOG_W("Ran configs (total/failed): " << n_runs_total << "/" << n_runs_failed << ", best time: " << min_proc_time << ", best config: " << best);
     return is_passed;

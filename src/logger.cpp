@@ -59,6 +59,8 @@ const char* LoggingLevelToCString(const enum LoggingLevel level)
         return "Warning";
     else if(level == LoggingLevel::Info)
         return "Info";
+    else if(level == LoggingLevel::Info2)
+        return "Info2";
     else if(level == LoggingLevel::Trace)
         return "Trace";
     else if(level == LoggingLevel::Default)
