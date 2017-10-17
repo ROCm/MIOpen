@@ -207,6 +207,7 @@ enable_clang_tidy(
         -hicpp-signed-bitwise
         -hicpp-special-member-functions
         -hicpp-use-equals-default
+        -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order
         -misc-macro-parentheses
