@@ -56,6 +56,7 @@ function(add_kernels KERNEL_FILES)
 endfunction()
 
 set( MIOpen_Source
+    check_numerics.cpp
     convolution.cpp
     convolution_api.cpp
     convolution_fft.cpp
@@ -70,6 +71,7 @@ set( MIOpen_Source
     batch_norm.cpp
     batch_norm_api.cpp
     include/miopen/batch_norm.hpp
+    include/miopen/check_numerics.hpp
     include/miopen/common.hpp
     include/miopen/convolution.hpp
     include/miopen/convolution_fft.hpp
@@ -113,6 +115,7 @@ endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNELS
+        kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
         kernels/MIOpenBatchNormFwdTrainPerAct.cl
         kernels/MIOpenBatchNormFwdInferSpatial.cl
@@ -127,7 +130,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
         kernels/MIOpenConvDirUniC.cl        
-        kernels/MIOpenConv1x1.cl
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
@@ -188,6 +190,7 @@ endif()
 if(miopengemm_FOUND)
     list(APPEND MIOpen_Source 
         gemm.cpp
+        gemm_api.cpp
         gemm_geometry.cpp
     )
 endif()

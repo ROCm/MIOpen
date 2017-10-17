@@ -40,6 +40,8 @@ endif()
 
 project ( MIOpen C CXX )
 
+enable_testing()
+
 find_package(ROCM REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)

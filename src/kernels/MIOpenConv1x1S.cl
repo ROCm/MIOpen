@@ -65,8 +65,8 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
     _FLOAT weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];
 
     uint gbl_id0  = get_global_id(0);
-    uint batch_id = iDiv(gbl_id0, MLO_MAP_SZ4); // batch
-    uint pos      = iMod(gbl_id0, batch_id, MLO_MAP_SZ4);
+    uint batch_id = gbl_id0 / MLO_MAP_SZ4; // batch
+    uint pos      = gbl_id0 % MLO_MAP_SZ4;
 
     uint out_grp_block = get_group_id(1); // block of outputs for the entire group
     uint out_id        = out_grp_block * MLO_N_LCL_OUT_MAPS;
@@ -126,6 +126,12 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
                 )
             {
                 weights[o][c] = wei_ptr[wei_off2];
+#if DBG_OUT_OF_RNGE
+                if(wei_off2 >= MLO_N_INPUTS * MLO_N_OUTPUTS)
+                {
+                    printf("K:oor: weights\n");
+                }
+#endif
             }
         }
 
@@ -137,6 +143,12 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
                 dat[j][i] = in_ptr[gbl_in_off1 + i];
+#if DBG_OUT_OF_RNGE
+                if(gbl_in_off1 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+                {
+                    printf("K:oor: inputs\n");
+                }
+#endif
             }
         }
 
@@ -183,10 +195,10 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
 
     uint gbl_id0 = get_global_id(0);
 
-    uint batch_id  = iDiv(gbl_id0, MLO_MAP_SZ4); // batch
-    uint pos       = iMod(gbl_id0, batch_id, MLO_MAP_SZ4);
-    uint pos_out_y = iDiv(pos, MLO_OUT_WIDTH4);
-    uint pos_out_x = iMod(pos, pos_out_y, MLO_OUT_WIDTH4);
+    uint batch_id  = gbl_id0 / MLO_MAP_SZ4; // batch
+    uint pos       = gbl_id0 % MLO_MAP_SZ4;
+    uint pos_out_y = pos / MLO_OUT_WIDTH4;
+    uint pos_out_x = pos % MLO_OUT_WIDTH4;
 
 #if MLO_DIR_FORWARD == 1
     uint pos_in_y = pos_out_y * MLO_FILTER_STRIDE1;
@@ -308,7 +320,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                 {
                     accum[o][i] += dat[c][i] * weights[o][c];
 #if 0
-				if (get_global_id(0) == 4 && get_global_id(1) ==0 && o == 0 && i == 0)
+				if (pos_out_y == 2 && pos_out_x == 0)
 				{
 					printf((__constant char *)"K:c: %f %f %f %f\n",
 					accum[o][i],
