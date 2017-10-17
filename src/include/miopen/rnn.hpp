@@ -89,6 +89,16 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
 
+    size_t biasOffsetCalculation(const TensorDescriptor& xDesc, 
+                                            const TensorDescriptor& wDesc,
+                                            const layer,
+                                            const layerID);
+                                            
+    size_t paramsOffsetCalculation(const TensorDescriptor& xDesc, 
+                                            const TensorDescriptor& wDesc,
+                                            const layer,
+                                            const layerID);   
+    
     size_t GetWorkspaceSize(Handle& handle, const int seqLength, TensorDescriptor* xDesc);
 
     size_t GetReserveSize(Handle& handle, const int seqLength, TensorDescriptor* xDesc);

@@ -39,6 +39,150 @@
 
 namespace miopen {
 
+    
+size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc, 
+                                            const TensorDescriptor& wDesc,
+                                            const layer,
+                                            const layerID)
+{
+    size_t layerJump    = 0;
+    size_t inVectorSize = xDesc.GetLengths()[1];
+    unsigned int direction = (layer % 2);
+    if(dirMode)
+    {
+        if(layer > 1) // NOT the input layer
+        {
+            
+            // jump over input layer's input matrices
+            layerJump = 2*inVectorSize*hsize*nHiddenTensorsPerLayer;
+            
+            // jump over input layer's hidden matrices
+            layerJump += 2*hsize*hsize*nHiddenTensorsPerLayer;
+            
+            // jump over all other layers' matrices
+            layerJump += 4*hsize*hsize*nHiddenTensorsPerLayer*(nLayers - 2);
+            
+            // jump over all other biases
+            layerJump += 2*hsize*nHiddenTensorsPerLayer*layer;
+                    
+            // forward or backward direction bias
+            layerJump += direction*hsize*nHiddenTensorsPerLayer;
+            
+            // jump to either the input bias, or weight bias
+            layerJump += 2*hsize*layerID*nHiddenTensorsPerLayer;
+            
+            return layerJump;
+        }
+        else // IS the input layer
+        {
+            // jump over input layer's input bias
+            layerJump = layerID*2*inVectorSize*hsize*nHiddenTensorsPerLayer;
+            
+            // forward or backward direction bias
+            layerJump += direction*hsize*nHiddenTensorsPerLayer;
+            
+            return layerJump;            
+        }
+    }
+    else
+    {
+        if(layer > 1) // NOT the input layer
+        {
+            // jump over input layer's input matrices
+            layerJump = inVectorSize*hsize*nHiddenTensorsPerLayer;
+            
+            // jump over input layer's hidden matrices
+            layerJump += hsize*hsize*nHiddenTensorsPerLayer;
+            
+            // jump over all other layers' matrices
+            layerJump += 2*hsize*hsize*nHiddenTensorsPerLayer*nLayers;
+            
+            // jump to either the input bias, or weight bias
+            layerJump += hsize*layerID*nHiddenTensorsPerLayer;
+            
+            return layerJump;
+        }
+        else
+        {
+            // jump over input layer's input bias
+            layerJump = layerID*inVectorSize*hsize*nHiddenTensorsPerLayer;
+            
+            return layerJump;            
+        }
+    }
+    return 0;
+}
+                                            
+size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc, 
+                                            const TensorDescriptor& wDesc,
+                                            const layer,
+                                            const layerID)
+{
+    size_t layerJump    = 0;
+    size_t inVectorSize = xDesc.GetLengths()[1];
+    unsigned int direction = (layer % 2);
+    if(dirMode)
+    {
+        if(layer > 1) // NOT the input layer
+        {
+            // jump over input layer's input matrices
+            layerJump = 2*inVectorSize*hsize*nHiddenTensorsPerLayer;
+            
+            // jump over input layer's hidden matrices
+            layerJump += 2*hsize*hsize*nHiddenTensorsPerLayer;
+            
+            // jump over all other layers' matrices
+            layerJump += 4*hsize*hsize*nHiddenTensorsPerLayer*(layer - 2);
+            
+            // forward or backward direction matrix
+            layerJump += direction*hsize*nHiddenTensorsPerLayer;
+            
+            // jump to either the input matrix, or weight matrix
+            layerJump += 2*hsize*hsize*layerID*nHiddenTensorsPerLayer;
+            
+            return layerJump;
+        }
+        else // IS the input layer
+        {
+            // jump over input layer's input matrices
+            layerJump = layerID*2*inVectorSize*hsize*nHiddenTensorsPerLayer;
+            
+            // forward or backward direction matrix
+            layerJump += direction*hsize*nHiddenTensorsPerLayer;
+            
+            return layerJump;            
+        }
+    }
+    else
+    {
+        if(layer > 1) // NOT the input layer
+        {
+            // jump over input layer's input matrices
+            layerJump = inVectorSize*hsize*nHiddenTensorsPerLayer;
+            
+            // jump over input layer's hidden matrices
+            layerJump += hsize*hsize*nHiddenTensorsPerLayer;
+            
+            // jump over all other layers' matrices
+            layerJump += 2*hsize*hsize*nHiddenTensorsPerLayer*(layer - 1);
+            
+            // jump to either the input matrix, or weight matrix
+            layerJump += hsize*hsize*layerID*nHiddenTensorsPerLayer;
+            
+            return layerJump;
+        }
+        else
+        {
+            // jump over input layer's input matrices
+            layerJump = layerID*inVectorSize*hsize*nHiddenTensorsPerLayer;
+            
+            return layerJump;            
+        }
+    }
+    
+    return 0;
+}
+    
 RNNDescriptor::RNNDescriptor()
 {
     nLayers                = 1;
@@ -96,25 +240,28 @@ RNNDescriptor::RNNDescriptor(int hsz,
     assert(rmode < 4);
     switch(rmode)
     {
-    case 0:
-    case 1:
+    case 0: // RNN vanilla
+    case 1: // RNN vanilla
         nHiddenTensorsPerLayer = 1;
         workspaceScale         = 1;
         break;
-    case 2:
+    case 2: // LSTM
         nHiddenTensorsPerLayer = 4;
         workspaceScale         = 6;
         break;
-    case 3:
+    case 3: // GRU
         nHiddenTensorsPerLayer = 3;
         workspaceScale         = 4;
         break;
     }
-
     inputBatchLenSum = 0; // init
 }
 
-size_t RNNDescriptor::GetWorkspaceSize(Handle& handle, const int sLen, TensorDescriptor* xDesc)
+
+
+size_t RNNDescriptor::GetWorkspaceSize(Handle& handle, 
+                                    const int sLen, 
+                                    c_array_view<miopenTensorDescriptor_t> xDesc)
 {
     // NOTE dlowell: this calculation WILL change during development.
     // currently this is calculated the same as Workspace size
@@ -138,7 +285,11 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle, const int sLen, TensorDes
     return size_t(x);
 }
 
-size_t RNNDescriptor::GetReserveSize(Handle& handle, const int sLen, TensorDescriptor* xDesc)
+
+
+size_t RNNDescriptor::GetReserveSize(Handle& handle, 
+                                const int sLen, 
+                                c_array_view<miopenTensorDescriptor_t> xDesc)
 {
     // NOTE dlowell: this calculation WILL change during development.
     // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType *
@@ -159,6 +310,8 @@ size_t RNNDescriptor::GetReserveSize(Handle& handle, const int sLen, TensorDescr
              nHiddenTensorsPerLayer;
     return size_t(x);
 }
+
+
 
 size_t RNNDescriptor::GetParamsSize(Handle& handle,
                                     const TensorDescriptor& xDesc,
@@ -187,24 +340,22 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
     return x;
 }
 
+
+
 void RNNDescriptor::GetLayerParam(Handle& handle,
                                     const TensorDescriptor& xDesc,
                                     const TensorDescriptor& wDesc,
                                     ConstData_t w,
                                     const int layerID,
-                                    const TensorDescriptor& paramDesc,
+                                    TensorDescriptor& paramDesc,
                                     Data_t param) const
 {
-
-    /*If mode in rnnDesc was set to CUDNN_RNN_RELU or
-CUDNN_RNN_TANH a value of 0 references the matrix
-multiplication applied to the input from the previous layer, a
-value of 1 references the matrix multiplication applied to the
-recurrent input.*/
-    // 0 --> Wx_t
-    // 1 --> Rh_t-1
-
-    // TODO: FILL
+    //input is 
+    //1. Calculate the location of the matrix via layerID, bidirection setting, and param
+    //2. Construct descriptor for param matrix
+    //3. Copy over data to previously allocated param tensor
+    
+    
 }
 
 void RNNDescriptor::GetLayerBias(Handle& handle,
@@ -212,12 +363,38 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
                                    const TensorDescriptor& wDesc,
                                    ConstData_t w,
                                    const int layerID,
-                                   const TensorDescriptor& biasDesc,
+                                   TensorDescriptor& biasDesc,
                                    Data_t bias) const
 {
     // TODO: FILL
-
 }
+
+
+
+
+void RNNDescriptor::SetLayerParam(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    const TensorDescriptor& wDesc,
+                                    Data_t w,
+                                    const int layerID,
+                                    const TensorDescriptor& paramDesc,
+                                    ConstData_t param) const
+{
+    //1. Find the location of the matrix via layer and 
+}
+
+void RNNDescriptor::SetLayerBias(Handle& handle,
+                                   const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& wDesc,
+                                   Data_t w,
+                                   const int layerID,
+                                   const TensorDescriptor& biasDesc,
+                                   ConstData_t bias) const
+{
+    // TODO: FILL
+}
+
+
 
 std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
 {
