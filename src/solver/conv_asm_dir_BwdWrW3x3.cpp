@@ -51,14 +51,15 @@ class Timer
     public:
     Timer(){};
     void start() { st = std::chrono::steady_clock::now(); }
-    void stop() { et = std::chrono::steady_clock::now(); }
-    float gettime_ms()
+    float elapsed_ms()
     {
+        capture();
         return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et - st)
             .count();
     }
 
     private:
+    void capture() { et = std::chrono::steady_clock::now(); }
     std::chrono::time_point<std::chrono::steady_clock> st;
     std::chrono::time_point<std::chrono::steady_clock> et;
 };
@@ -72,7 +73,7 @@ static bool IsReverseInOutAllowed(const ConvolutionContext& config)
 
 class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
 {
-    int limit_wave_cnt;   // [0..10]
+    int limit_wave_cnt;   // [0..9]
     int reverse_inout;    // [0..1], 1 is allowed for stride=1x1 only.
     int chunk_size;       // {16,8}, Smaller values increase register pressure.
     int k_per_wave;       // {1,2,4,8} && ((chunk_size * k_per_wave) <= 64).
@@ -109,13 +110,11 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
 
     bool IsValid(const ConvolutionContext& config) const;
 
-    bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const {
-        return limit_wave_cnt == other.limit_wave_cnt
-            && reverse_inout == other.reverse_inout
-            && chunk_size == other.chunk_size
-            && k_per_wave == other.k_per_wave
-            && pipe_lines_depth == other.pipe_lines_depth
-            && n_per_group == other.n_per_group;
+    bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const
+    {
+        return limit_wave_cnt == other.limit_wave_cnt && reverse_inout == other.reverse_inout &&
+               chunk_size == other.chunk_size && k_per_wave == other.k_per_wave &&
+               pipe_lines_depth == other.pipe_lines_depth && n_per_group == other.n_per_group;
     }
 
     public:
@@ -127,10 +126,9 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
     friend class VirtualIterator;
 };
 
-
 class VirtualIterator;
 
-/// This container (together with corresponding iterator) provies access 
+/// This container (together with corresponding iterator) provies access
 /// to a set of performance configs which, by definition, must be
 /// suitable for the given problem config.
 ///
@@ -145,7 +143,8 @@ class VirtualContainer
     // Valid iterator shall denote an element of a container.
     const ConvolutionContext& config;
     friend class VirtualIterator;
-public:
+
+    public:
     typedef VirtualIterator const_iterator;
     VirtualContainer(const ConvolutionContext& config_) : config(config_) {}
     VirtualIterator begin() const;
@@ -154,7 +153,8 @@ public:
 
 // Iterator shall advance to the next valid config, i.e. the one which
 // satisfies PerformanceConfig.IsValid(ProblemConfig)
-class VirtualIterator : public std::iterator<std::input_iterator_tag, PerformanceConfigAsmDirect3x3WrW>
+class VirtualIterator
+    : public std::iterator<std::input_iterator_tag, PerformanceConfigAsmDirect3x3WrW>
 {
     value_type v; // PerformanceConfigAsmDirect3x3WrW
     const VirtualContainer* container;
@@ -163,15 +163,16 @@ class VirtualIterator : public std::iterator<std::input_iterator_tag, Performanc
     static const value_type outOfRangeValue;
 
     /// Implements begin()
-    VirtualIterator(const VirtualContainer* container_) : v(minValue), container(container_) {
-        if (!IsValid())
-        Next();
-    } 
+    VirtualIterator(const VirtualContainer* container_) : v(minValue), container(container_)
+    {
+        if(!IsValid())
+            Next();
+    }
     friend class VirtualContainer; // Passes itself to private ctor in order to construct begin().
     void Next();
     bool IsValid();
 
-public:
+    public:
     /// Implementes end() and also serves as a default ctor.
     VirtualIterator() : v(outOfRangeValue), container(nullptr) {}
     VirtualIterator(const VirtualIterator& it) : v(it.v), container(it.container) {}
@@ -179,36 +180,38 @@ public:
     bool operator!=(VirtualIterator const& other) const;
     const value_type& operator*() const { return v; }
     const value_type* operator->() const { return &v; }
-    VirtualIterator& operator++() { Next(); return *this; }
+    VirtualIterator& operator++()
+    {
+        Next();
+        return *this;
+    }
 };
 
-inline VirtualIterator
-VirtualContainer::begin() const {
-    return VirtualIterator(this);
-}
+inline VirtualIterator VirtualContainer::begin() const { return VirtualIterator(this); }
 
-inline VirtualIterator
-VirtualContainer::end() const {
-    return VirtualIterator();
-}
+inline VirtualIterator VirtualContainer::end() const { return VirtualIterator(); }
 
-const VirtualIterator::value_type VirtualIterator::minValue = PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1);
-const VirtualIterator::value_type VirtualIterator::outOfRangeValue = PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1);
+const VirtualIterator::value_type VirtualIterator::minValue =
+    PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1);
+const VirtualIterator::value_type VirtualIterator::outOfRangeValue =
+    PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1);
 
-inline bool
-VirtualIterator::IsValid() {
-    if (!container) return false;
+inline bool VirtualIterator::IsValid()
+{
+    if(!container)
+        return false;
     return v.IsValid(container->config);
 }
 
-inline bool
-VirtualIterator::operator!=(VirtualIterator const& other) const {
+inline bool VirtualIterator::operator!=(VirtualIterator const& other) const
+{
     return !(v.IsEqual(other.v) && container == other.container);
 }
 
 void VirtualIterator::Next()
 {
-    if (container == nullptr) {
+    if(container == nullptr)
+    {
         v = outOfRangeValue;
         return;
     }
@@ -217,46 +220,56 @@ void VirtualIterator::Next()
         // Increment with wrap-around:
         do
         {
-            // (0 <= limit_wave_cnt && limit_wave_cnt <= 10)
-            if (++v.limit_wave_cnt <= 10)
+            // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
+            if(++v.limit_wave_cnt <= 9)
                 break;
             v.limit_wave_cnt = 0;
             // (0 <= reverse_inout && reverse_inout <= 1)
-            if (++v.reverse_inout <= 1)
+            if(++v.reverse_inout <= 1)
                 break;
             v.reverse_inout = 0;
             // (8 == chunk_size || 16 == chunk_size)
-            if ((v.chunk_size += 8) <= 16)
+            if((v.chunk_size += 8) <= 16)
                 break;
             v.chunk_size = 8;
             // (1 == k_per_wave || 2 == k_per_wave || 4 == k_per_wave || 8 == k_per_wave)
-            if (1 == v.k_per_wave) { v.k_per_wave = 2; break; }
-            if (2 == v.k_per_wave) { v.k_per_wave = 4; break; }
-            if (4 == v.k_per_wave) { v.k_per_wave = 8; break; }
+            if(1 == v.k_per_wave)
+            {
+                v.k_per_wave = 2;
+                break;
+            }
+            if(2 == v.k_per_wave)
+            {
+                v.k_per_wave = 4;
+                break;
+            }
+            if(4 == v.k_per_wave)
+            {
+                v.k_per_wave = 8;
+                break;
+            }
             v.k_per_wave = 1;
             // (1 <= pipe_lines_depth && pipe_lines_depth <= 16)
-            if (++v.pipe_lines_depth <= 16)
+            if(++v.pipe_lines_depth <= 16)
                 break;
             v.pipe_lines_depth = 1;
             // (1 <= n_per_group && n_per_group <= 8);
-            if (++v.n_per_group <= 8)
+            if(++v.n_per_group <= 8)
                 break;
             v.n_per_group = 1;
             // All the fields (components) of performance confic have wrapped around.
             // The next one is not the min (in the allowed range) but a one beyond the end.
             // Iterator is useless from now.
-            v = outOfRangeValue;
+            v         = outOfRangeValue;
             container = nullptr;
             return;
-        }
-        while (false);
-    }
-    while (!IsValid());
+        } while(false);
+    } while(!IsValid());
 }
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValidRange() const
 {
-    return (0 <= limit_wave_cnt && limit_wave_cnt <= 10) &&
+    return (0 <= limit_wave_cnt && limit_wave_cnt <= 9) &&
            (0 <= reverse_inout && reverse_inout <= 1) && (8 == chunk_size || 16 == chunk_size) &&
            (1 == k_per_wave || 2 == k_per_wave || 4 == k_per_wave || 8 == k_per_wave) &&
            (1 <= pipe_lines_depth && pipe_lines_depth <= 16) &&
@@ -265,7 +278,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValidRange() const
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
 {
-    if (!IsValidRange())
+    if(!IsValidRange())
         return false;
     assert(chunk_size != 0);
     if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
@@ -278,53 +291,55 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
         return false;
     if(!(n_per_group <= config.batch_sz))
         return false;
-    if(!(1 <= pipe_lines_depth &&
-         pipe_lines_depth <= std::min(config.out_height, 16)))
+    if(!(1 <= pipe_lines_depth && pipe_lines_depth <= std::min(config.out_height, 16)))
         return false;
     if(reverse_inout && !IsReverseInOutAllowed(config))
         return false;
 
     {
-    	const int accums_cnt = (config.kernel_size0 * config.kernel_size1 * GetCPerWave() * k_per_wave * chunk_size) / 64;
-        //MIOPEN_LOG_I2("accums_cnt=" << accums_cnt); // FIXME
+        const int accums_cnt =
+            (config.kernel_size0 * config.kernel_size1 * GetCPerWave() * k_per_wave * chunk_size) /
+            64;
         assert(chunk_size);
-    	int gprs_per_line_in = (config.out_width + chunk_size - 1) / chunk_size;
-    	if (chunk_size != 16) {
-    	    assert(chunk_size - config.pad0);
-    		gprs_per_line_in = (config.out_width + chunk_size - config.pad0 - 1) / (chunk_size - config.pad0);
+        int gprs_per_line_in = (config.out_width + chunk_size - 1) / chunk_size;
+        if(chunk_size != 16)
+        {
+            assert(chunk_size - config.pad0);
+            gprs_per_line_in =
+                (config.out_width + chunk_size - config.pad0 - 1) / (chunk_size - config.pad0);
         }
         assert(config.kernel_stride0);
-    	gprs_per_line_in += gprs_per_line_in % config.kernel_stride0;
-        //MIOPEN_LOG_I2("gprs_per_line_in=" << gprs_per_line_in); // FIXME
-    	const int gprs_per_line_out = (gprs_per_line_in > 1) ? gprs_per_line_in / config.kernel_stride0 : 1;
-        //MIOPEN_LOG_I2("gprs_per_line_out=" << gprs_per_line_out); // FIXME
-    		
-    	const int lines_in = pipe_lines_depth + config.kernel_size1 - 1;
-        //MIOPEN_LOG_I2("lines_in=" << lines_in); // FIXME
+        gprs_per_line_in += gprs_per_line_in % config.kernel_stride0;
+        const int gprs_per_line_out =
+            (gprs_per_line_in > 1) ? gprs_per_line_in / config.kernel_stride0 : 1;
+
+        const int lines_in = pipe_lines_depth + config.kernel_size1 - 1;
         assert(config.kernel_stride1);
-    	const int lines_out = (pipe_lines_depth + config.kernel_stride1 - 1) / config.kernel_stride1;
-        //MIOPEN_LOG_I2("lines_out=" << lines_out); // FIXME
-    	const int vgprs = accums_cnt + lines_in * gprs_per_line_in + lines_out * gprs_per_line_out + 6;
-        //MIOPEN_LOG_I2("vgprs=" << vgprs); // FIXME
-        if (!(vgprs <= 256))
-           return false;
-    	if (n_per_group > 4)
-            if (!(vgprs <= 128))
-               return false;
-        const int max_waves_per_cu = (256 / vgprs) * 4; // FIXME
-        if (!(max_waves_per_cu >= n_per_group)) // FIXME
-            return false; // FIXME
-        //MIOPEN_LOG_I2("max_waves_per_cu=" << max_waves_per_cu << ", n_per_group=" << n_per_group); // FIXME
-    
-    	const int unroll_factor = pipe_lines_depth * (pipe_lines_depth + 2);
-    	const int steps = std::max(0, config.out_height - 1 - pipe_lines_depth);
-    	assert(unroll_factor);
-    	const int loops = pipe_lines_depth + unroll_factor + steps % unroll_factor + 1;
-    	const int m_instr = 3 + (gprs_per_line_in + 3) / 4;
-    	const int v_instr = (k_per_wave * config.kernel_size1 * gprs_per_line_out * config.kernel_size0 * 4) / 3;
-    	const int total = loops * (m_instr + v_instr); // instructions
-    	if (total >= 32000) // Estimation, a bit smaller than 32K.
-    	    return false;
+        const int lines_out =
+            (pipe_lines_depth + config.kernel_stride1 - 1) / config.kernel_stride1;
+        const int vgprs =
+            accums_cnt + lines_in * gprs_per_line_in + lines_out * gprs_per_line_out + 6;
+        if(!(vgprs <= 256))
+            return false;
+        if(n_per_group > 4)
+            if(!(vgprs <= 128))
+                return false;
+        if(limit_wave_cnt != 0 && limit_wave_cnt * 4 < n_per_group)
+            return false;
+        const int lds_size = (n_per_group - 1) * 64 /*wavesize*/ * sizeof(float) * accums_cnt;
+        if(!(lds_size <= 65536))
+            return false;
+
+        const int unroll_factor = pipe_lines_depth * (pipe_lines_depth + 2);
+        const int steps         = std::max(0, config.out_height - 1 - pipe_lines_depth);
+        assert(unroll_factor);
+        const int loops   = pipe_lines_depth + unroll_factor + steps % unroll_factor + 1;
+        const int m_instr = 3 + (gprs_per_line_in + 3) / 4;
+        const int v_instr =
+            (k_per_wave * config.kernel_size1 * gprs_per_line_out * config.kernel_size0 * 4) / 3;
+        const int total = loops * (m_instr + v_instr); // instructions
+        if(total >= 32000)                             // Estimation, a bit smaller than 32K.
+            return false;
     }
     return true;
 }
@@ -458,91 +473,6 @@ std::unique_ptr<PerformanceConfig> ConvAsmBwdWrW3x3::PerformanceConfigImpl() con
 void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& params,
                                                  PerformanceConfig& result) const
 {
-    static const std::unordered_map<std::string, std::string> perf_vals_map({
-        // clang-format off
-        //            W    H    c    n    k {u  v} dir {CUs}            lwc[2] rio csz[2] kpw pld[2] npg
-        {MakeLutKey(  7,   7, 160, 128, 320, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
-        {MakeLutKey(  7,   7, 192, 128, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
-        {MakeLutKey(  7,   7, 512,  16, 512, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  7, 1).ToString()},                                    
-        {MakeLutKey( 12,  12, 512, 128,1024, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 12,  12,1024, 128,1024, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 192, 128, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 192, 128, 384, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256,  50, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 256, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 256, 128, 384, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384,  50, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384,  50, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384,  64, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 256, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 384, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 13,  13, 384, 128, 384, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8,  2, 1).ToString()},                                    
-        {MakeLutKey( 14,  14,  96, 128, 208, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  7, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 112, 128, 224, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey( 14,  14, 128,   8, 256, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 128,  32, 192, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 128, 128, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 144, 128, 288, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 160,  32, 160, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4, 11, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 160,  32, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8,  5, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 160, 128, 320, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  5, 2).ToString()},                                    
-        {MakeLutKey( 14,  14, 192,  32, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 256,  16, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8, 11, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 256,  16, 256, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8,  7, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 256,  32, 256, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 8,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,   8, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  16, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  16, 512, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  32, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 14,  14, 512,  64, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 16,  16, 256,   8, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey( 27,  27, 128,   8, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey( 28,  28,  64,  32,  64, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 2,  2, 2).ToString()},                                    
-        {MakeLutKey( 28,  28,  64,  32,  96, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 2,  5, 2).ToString()},                                    
-        {MakeLutKey( 28,  28,  96,  32,  96, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28,  96, 128, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 2).ToString()},                                    
-        {MakeLutKey( 28,  28, 128,  16, 128, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 128,  32, 160, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 128, 128, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 2).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,   8, 512, 0),           PerformanceConfigAsmDirect3x3WrW(4, 1,  8, 2,  2, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,  16, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 2,  3, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,  32, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 256,  64, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 512,  32, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 28,  28, 512,  64, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 54,  54,  64,   8,  64, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 2,  2, 4).ToString()},                                    
-        {MakeLutKey( 54,  54,  64,   8,  64, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 2,  3, 2).ToString()},                                    
-        {MakeLutKey( 56,  56,  64,  16,  64, 2, 2, 0),     PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  3, 2).ToString()},                                    
-        {MakeLutKey( 56,  56,  64,  16, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0,  8, 4,  2, 4).ToString()},                                    
-        {MakeLutKey( 56,  56,  64,  32, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  4, 4).ToString()},                                    
-        {MakeLutKey( 56,  56,  64, 128, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  4, 1).ToString()},                                    
-        {MakeLutKey( 56,  56, 256,  32, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 2,  4, 1).ToString()},                                    
-        {MakeLutKey( 56,  56, 256,  64, 256, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1,  8, 2,  4, 1).ToString()},                                    
-        {MakeLutKey( 60,   6,  64,  16, 128, 0),           PerformanceConfigAsmDirect3x3WrW(4, 0, 16, 2,  6, 1).ToString()},                                    
-        {MakeLutKey( 60,   6,  64,  16, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 2,  2, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,   8, 128, 0),           PerformanceConfigAsmDirect3x3WrW(3, 0, 16, 4,  2, 2).ToString()},                                    
-        {MakeLutKey(112, 112,  64,   8, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  16, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  16, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  3, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  32, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  32, 128, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 4,  3, 1).ToString()},                                    
-        {MakeLutKey(112, 112,  64,  64, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  2, 4).ToString()},                                    
-        {MakeLutKey(112, 112, 256,   8, 512, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 4,  2, 1).ToString()},                                    
-        {MakeLutKey(120,  12,  32,  16,  64, 0),           PerformanceConfigAsmDirect3x3WrW(3, 1, 16, 2,  1, 4).ToString()},                                    
-        {MakeLutKey(120,  12,  32,  16,  64, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 2,  2, 2).ToString()},                                    
-        {MakeLutKey(224, 224,   3,   8,  64, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 1,  2, 4).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey(224, 224,   3,  16,  64, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 1,  5, 4).ToString()}, /// \todo Find opt values for 56CUs
-        {MakeLutKey(240,  24,  16,  16,  32, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  1, 8).ToString()},                                    
-        {MakeLutKey(240,  24,  16,  16,  32, 0, 64),       PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 2,  1, 8).ToString()},                                    
-        {MakeLutKey(256, 128,  96,   1, 128, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  1, 1).ToString()},                                    
-        {MakeLutKey(256, 128, 128,   1, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 0, 16, 4,  1, 1).ToString()},                                    
-        {MakeLutKey(512, 256,  64,   1, 192, 0),           PerformanceConfigAsmDirect3x3WrW(0, 1, 16, 4,  1, 1).ToString()},
-        // clang-format on
-    });
-
     std::string s;
     PerformanceConfigAsmDirect3x3WrW pp;
     const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
@@ -565,53 +495,7 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
     }
     else
     {
-        // Try to get values from LUT. If not found, use heuristic algorithm.
-        // At first, try to find numCUs-specific values.
-        const auto numCUs = static_cast<int>(params.GetStream().GetMaxComputeUnits());
-        auto key          = MakeLutKey(params.out_width,
-                              params.out_height,
-                              params.n_outputs,
-                              params.batch_sz,
-                              params.n_inputs,
-                              params.kernel_stride0,
-                              params.kernel_stride1,
-                              0,
-                              numCUs);
-        auto found = perf_vals_map.find(key);
-        MIOPEN_LOG_I("Key '" << key << "' " << (found == perf_vals_map.end() ? "not " : "")
-                             << "found in LUT");
-        if(found == perf_vals_map.end())
-        { // numCUs-specific values not found, try to find "universal" ones.
-            key = MakeLutKey(params.out_width,
-                             params.out_height,
-                             params.n_outputs,
-                             params.batch_sz,
-                             params.n_inputs,
-                             params.kernel_stride0,
-                             params.kernel_stride1,
-                             0);
-            found = perf_vals_map.find(key);
-            MIOPEN_LOG_I("Key '" << key << "' " << (found == perf_vals_map.end() ? "not " : "")
-                                 << "found in LUT");
-        }
-        if(found != perf_vals_map.end())
-        {
-            static const std::string h("ConvAsmBwdWrW3x3: LUT entry: ");
-            s = found->second;
-            if(!pp.Deserialize(s))
-            {
-                MIOPEN_THROW(h + "Bad format:" + s);
-            }
-            if(!pp.IsValid(params))
-            {
-                MIOPEN_THROW(h + "Out of range of invalid for the problem config:" + s);
-            }
-            MIOPEN_LOG_I("From LUT: " << pp.ToString());
-        }
-        else
-        {
-            pp.EuristicInit(params);
-        }
+        pp.EuristicInit(params);
     }
     MIOPEN_LOG_I(pp.ToString());
     dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(result) = pp;
@@ -681,7 +565,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
          && k_r_s < std::pow(2, 22)
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
-         && c_k_r_s < std::pow(2, 29); // clang-format on
+         && c_k_r_s < std::pow(2, 29);                                    // clang-format on
     return ok;
 }
 
@@ -758,7 +642,8 @@ int ConvAsmBwdWrW3x3::Measure(miopen::Handle& profile_h,
                               const PerformanceConfig& config) const
 {
     ConvSolution solution = GetSolution(params, config);
-    if(!solution.Succeeded()) {
+    if(!solution.Succeeded())
+    {
         return 1;
     }
     const KernelInfo k_info = solution.construction_params[0];
@@ -770,40 +655,23 @@ int ConvAsmBwdWrW3x3::Measure(miopen::Handle& profile_h,
         // ConvolutionContext::general_compile_options is for OpenCL kernels
         // and thus not applicable for assembly.
         auto kernel = profile_h.GetKernel("",
-                                           "",
-                                           k_info.kernel_file,
-                                           k_info.kernel_name,
-                                           k_info.l_wk,
-                                           k_info.g_wk,
-                                           k_info.comp_options);
-
-
-#if 0
-        //kernel(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-#define LOG(name) #name "=" << name << ", "
-#define LOG2(n,v) #n "=" << (v) << ", "
-
-    MIOPEN_LOG_I("kernel run params: "
-        << LOG2(N,params.batch_sz) 
-        << LOG2(C,params.n_outputs)
-        << LOG2(H,params.in_height)
-        << LOG2(W,params.in_width)
-        << LOG2(K,params.n_inputs)
-        << LOG2(n_groups,params.GetStream().GetMaxComputeUnits())
-        << LOG2(oH,params.out_height)
-        << LOG2(oW,params.out_width));
-#endif
-
-        int unused = 0;
+                                          "",
+                                          k_info.kernel_file,
+                                          k_info.kernel_name,
+                                          k_info.l_wk,
+                                          k_info.g_wk,
+                                          k_info.comp_options);
+        int unused       = 0;
         int* return_addr = nullptr;
-        int n_groups = static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
+        int n_groups =
+            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
 
-        kernel(params.batch_sz, // N
-               params.n_outputs, // C
-               params.in_height, // H FIXME out_?
-               params.in_width, // W FIXME out_?
-               params.n_inputs, // K
-               n_groups, // n_groups
+        kernel(params.batch_sz,   // N
+               params.n_outputs,  // C
+               params.out_height, // H
+               params.out_width,  // W
+               params.n_inputs,   // K
+               n_groups,          // n_groups
                unused,
                unused,
                bot_ocl_buf,
@@ -821,12 +689,63 @@ int ConvAsmBwdWrW3x3::Measure(miopen::Handle& profile_h,
     return 0;
 }
 
-static void InitVectorRandomly(std::vector<float>& vec, const double offset = 0.0, const double factor = 1.0)
+static void
+InitVectorRandomly(std::vector<float>& vec, const double offset = 0.0, const double factor = 1.0)
 {
     float* p = vec.data();
     for(int i = 0; i < vec.size(); ++i)
         *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
 }
+
+class HeartBeat
+{
+    size_t n_within_beat;
+    size_t n_best;
+    double best_time;
+    miopen::Timer timer;
+
+    public:
+    HeartBeat() : n_within_beat(0), n_best(0), best_time(0.0) {}
+
+    void Start()
+    {
+        best_time     = std::numeric_limits<float>::max();
+        n_within_beat = 0;
+        timer.start();
+    }
+
+    void Monitor(const double recent_time,
+                 const size_t n_recent,
+                 const double total_best,
+                 size_t n_failed,
+                 size_t n_total)
+    {
+        ++n_within_beat;
+        if(recent_time < best_time)
+        {
+            best_time = recent_time;
+            n_best    = n_recent;
+        }
+        const float passed = timer.elapsed_ms();
+        if(passed > 3000)
+        {
+            const float eta_sec = n_within_beat
+                                      ? ((n_total - n_recent) * (passed / n_within_beat) / 1000)
+                                      : 0; // paraniod
+            MIOPEN_LOG_W("..." << n_recent << '/' << n_failed << '/' << n_total << " done, best: "
+                               << total_best
+                               << ", best within recent "
+                               << n_within_beat
+                               << ": "
+                               << best_time
+                               << " #"
+                               << n_best
+                               << ", ETA:"
+                               << eta_sec);
+            Start();
+        }
+    }
+};
 
 bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfig& config) const
 {
@@ -845,14 +764,17 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
     // Allocate output buffer & prepare random initializer for it.
     std::vector<float> wei(params.weights_sz / sizeof(float));
     auto wei_ocl_buf = profile_h.Write(wei);
+#if 0 // FIXME delete
     std::vector<float> init_wei(wei.size());
     InitVectorRandomly(init_wei, -0.5, 0.001);
+#endif
 
-    //const 
+    // const
     int n_runs_total = 0;
     VirtualContainer configs(params);
     {
-        for (const auto c : configs) {
+        for(const auto c : configs)
+        {
             ++n_runs_total;
             (void)c;
         }
@@ -860,18 +782,20 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
     MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
     auto& best = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
     best.EuristicInit(params);
-    bool is_passed = false;
-    double min_proc_time  = std::numeric_limits<float>::max();
-    const size_t n_progress_report_interval = 100; // Report progress after each interval and also after the last run.
-    int n_runs_failed = 0;
-
-    size_t n_run = 0;
-    for (const auto c : configs)
+    bool is_passed   = false;
+    double best_time = std::numeric_limits<float>::max();
+    size_t n_failed  = 0;
+    size_t n_run     = 0;
+    HeartBeat heartBeat;
+    heartBeat.Start();
+    for(const auto c : configs)
     {
         double processing_time;
+#if 0 // FIXME delete
         profile_h.WriteTo(reinterpret_cast<const void*>(init_wei.data()),
                           wei_ocl_buf,
                           init_wei.size() * sizeof(decltype(init_wei)::value_type));
+#endif
 
         MIOPEN_LOG_I2("#" << n_run << " (" << n_runs_total << ") " << c);
         const auto ret = Measure(profile_h,
@@ -881,25 +805,37 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
                                  processing_time,
                                  params,
                                  c);
-        if (ret == 0) {
-            is_passed = true;
-        } else {
-            MIOPEN_LOG_E("#" << n_run << " (" << n_runs_total << ") " << " Failed rc=" << ret);
-            ++n_run;
-            continue;
-        }
-
-        if(processing_time < min_proc_time)
+        if(ret == 0)
         {
-            MIOPEN_LOG_I("#" << n_run << " (" << n_runs_total << ") " << processing_time << " < " << min_proc_time << ", new candidate: " << c);
-            best = c;
-            min_proc_time = processing_time;
+            is_passed = true;
+            if(processing_time < best_time)
+            {
+                MIOPEN_LOG_I("#" << n_run << " (" << n_runs_total << ") " << processing_time
+                                 << " < "
+                                 << best_time
+                                 << ", new candidate: "
+                                 << c);
+                best      = c;
+                best_time = processing_time;
+            }
         }
+        else
+        {
+            MIOPEN_LOG_E("#" << n_run << " (" << n_runs_total << ") "
+                             << " Failed rc="
+                             << ret);
+            ++n_failed;
+        }
+        heartBeat.Monitor(processing_time, n_run, best_time, n_failed, n_runs_total);
         ++n_run;
     }
 
     profile_h.EnableProfiling(false);
-    MIOPEN_LOG_W("Ran configs (total/failed): " << n_runs_total << "/" << n_runs_failed << ", best time: " << min_proc_time << ", best config: " << best);
+    MIOPEN_LOG_W("Ran configs (total/failed): " << n_runs_total << "/" << n_failed
+                                                << ", best time: "
+                                                << best_time
+                                                << ", best config: "
+                                                << best);
     return is_passed;
 }
 

@@ -59,7 +59,7 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_I("Not searchable: " << SolverId());
             break;
         }
-/*        if(dbRecord.Load(SolverId(), *config))
+        if(dbRecord.Load(SolverId(), *config))
         {
             MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
             if(IsValidPerformanceConfigImpl(context, *config))
@@ -69,7 +69,7 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId() << ": " << *config);
             break;
         }
-        MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());*/
+        MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
         if(context.do_search)
         {
             MIOPEN_LOG_I("Starting search: " << SolverId());
