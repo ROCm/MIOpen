@@ -43,7 +43,7 @@ int IsLogging(const int level)
     if(enabled_level != LoggingLevel::Default)
         return enabled_level >= level;
 #ifdef NDEBUG // Simplest way.
-    return LoggingLevel::Error >= level;
+    return LoggingLevel::Warning >= level;
 #else
     return LoggingLevel::Info >= level;
 #endif
