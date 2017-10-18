@@ -61,69 +61,50 @@ struct verify_lrn_foward
         {
             auto alphaoverarea = alpha / lrn_n;
 
-            for(auto b = 0; b < n_batch; b++)
-            {
-                for(auto h = 0; h < height; h++)
-                {
-                    for(auto w = 0; w < width; w++)
+            par_ford(n_batch, height, width)([&](int b, int h, int w) {
+                double scale = 0;
+                ford(channels)([&](int c) {
+                    auto start = (c - radius) < 0 ? 0 : (c - radius);
+                    auto end   = (c + radius) > channels ? channels : (c + radius);
+
+                    for(auto k = start; k < end; k++)
                     {
-                        double scale = 0;
-
-                        for(auto c = 0; c < channels; c++)
-                        {
-                            auto start = (c - radius) < 0 ? 0 : (c - radius);
-                            auto end   = (c + radius) > channels ? channels : (c + radius);
-
-                            for(auto k = start; k < end; k++)
-                            {
-                                scale += pow(input(b, k, h, w), 2);
-                            }
-
-                            scale *= alphaoverarea;
-                            scale += K;
-                            scale = pow(scale, -beta);
-
-                            output(b, c, h, w) = input(b, c, h, w) * scale;
-                        }
+                        scale += std::pow(input(b, k, h, w), 2);
                     }
-                }
-            }
+
+                    scale *= alphaoverarea;
+                    scale += K;
+                    scale = std::pow(scale, -beta);
+
+                    output(b, c, h, w) = input(b, c, h, w) * scale;
+                });
+            });
         }
         else
         {
-            for(auto b = 0; b < n_batch; b++)
-            {
-                for(auto c = 0; c < channels; c++)
-                {
-                    double scale = 0;
-                    for(auto h = 0; h < height; h++)
+
+            par_ford(n_batch, channels)([&](int b, int c) {
+                double scale = 0;
+                ford(height, width)([&](int h, int w) {
+                    auto left          = (w - radius) < 0 ? 0 : (w - radius);
+                    auto right         = (w + radius) > width ? width : (w + radius);
+                    auto top           = (h - radius) < 0 ? 0 : (h - radius);
+                    auto bottom        = (h + radius) > height ? height : (h + radius);
+                    auto alphaoverarea = alpha / ((right - left) * (bottom - top));
+
+                    for(auto i = left; i < right; i++)
                     {
-                        for(auto w = 0; w < width; w++)
+                        for(auto j = top; j < bottom; j++)
                         {
-
-                            auto left   = (w - radius) < 0 ? 0 : (w - radius);
-                            auto right  = (w + radius) > width ? width : (w + radius);
-                            auto top    = (h - radius) < 0 ? 0 : (h - radius);
-                            auto bottom = (h + radius) > height ? height : (h + radius);
-
-                            auto alphaoverarea = alpha / ((right - left) * (bottom - top));
-
-                            for(auto i = left; i < right; i++)
-                            {
-                                for(auto j = top; j < bottom; j++)
-                                {
-                                    scale += pow(input(b, c, h, w), 2);
-                                }
-                            }
-
-                            scale *= alphaoverarea;
-                            scale += K;
-                            scale = pow(scale, -beta);
-                            output(b, c, h, w) = input(b, c, h, w) * scale;
+                            scale += std::pow(input(b, c, h, w), 2);
                         }
                     }
-                }
-            }
+                    scale *= alphaoverarea;
+                    scale += K;
+                    scale = std::pow(scale, -beta);
+                    output(b, c, h, w) = input(b, c, h, w) * scale;
+                });
+            });
         }
 
         return output;
@@ -230,8 +211,8 @@ struct verify_lrn_bwd
                             }
 
                             outputDX(b, c, h, w) =
-                                    pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                    cache_ratio_value * inputX(b, c, h, w) * ydy;
+                                pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
+                                cache_ratio_value * inputX(b, c, h, w) * ydy;
                         }
                     }
                 }
@@ -281,17 +262,17 @@ struct verify_lrn_bwd
         auto alpha = lrn.GetAlpha(), beta = lrn.GetBeta();
         lrn.Backward(handle,
                      &alpha,
-                // y
+                     // y
                      inputY.desc,
                      in_dev.get(),
-                // dy
+                     // dy
                      inputDY.desc,
                      dout_dev.get(),
-                // x
+                     // x
                      inputX.desc,
                      out_dev.get(),
                      &beta,
-                // dx
+                     // dx
                      dinput.desc,
                      din_dev.get(),
 
@@ -325,12 +306,12 @@ struct lrn_driver : test_driver
     std::string mode;
 
     std::unordered_map<std::string, miopenLRNMode_t> mode_lookup = {
-            {"WITHIN_CHANNEL", miopenLRNWithinChannel}, {"ACROSS_CHANNEL", miopenLRNCrossChannel}};
+        {"WITHIN_CHANNEL", miopenLRNWithinChannel}, {"ACROSS_CHANNEL", miopenLRNCrossChannel}};
 
     lrn_driver()
     {
         add(input, "input", get_input_tensor());
-        add(n, "N", generate_data({1,  3,  5}));
+        add(n, "N", generate_data({1, 3, 5}));
         add(alpha, "alpha", generate_data({1.0}));
         add(beta, "beta", generate_data({0}));
         add(k, "K", generate_data({1}));
@@ -354,7 +335,7 @@ struct lrn_driver : test_driver
             return ((x * y) / 1301.0);
         });
 
-        //auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, dout, fwd_output.first});
+        // auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, dout, fwd_output.first});
     };
 };
 
