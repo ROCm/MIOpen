@@ -35,7 +35,9 @@
 #include "miopen/logger.hpp"
 #include "miopen/handle.hpp"
 #include "miopen/solver.hpp"
-//#include "miopen/timer.hpp"
+
+#define MIOPEN_GCNASM3X3WRW_SEARCH_LWC_FIXED 1
+#define MIOPEN_GCNASM3X3WRW_INIT_OUTPUT_BUFFER 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 
@@ -220,9 +222,11 @@ void VirtualIterator::Next()
         // Increment with wrap-around:
         do
         {
+#if MIOPEN_GCNASM3X3WRW_SEARCH_LWC_FIXED == 0
             // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
             if(++v.limit_wave_cnt <= 9)
                 break;
+#endif
             v.limit_wave_cnt = 0;
             // (0 <= reverse_inout && reverse_inout <= 1)
             if(++v.reverse_inout <= 1)
@@ -674,9 +678,9 @@ int ConvAsmBwdWrW3x3::Measure(miopen::Handle& profile_h,
                n_groups,          // n_groups
                unused,
                unused,
-               bot_ocl_buf,
-               wei_ocl_buf,
                top_ocl_buf,
+               wei_ocl_buf,
+               bot_ocl_buf,
                return_addr);
         processing_time = profile_h.GetKernelTime();
     }
@@ -701,48 +705,62 @@ class HeartBeat
 {
     size_t n_within_beat;
     size_t n_best;
-    double best_time;
+    double best_time; // within beat
+    double elapsed_cumulative;
     miopen::Timer timer;
+    PerformanceConfigAsmDirect3x3WrW best_config;
 
-    public:
-    HeartBeat() : n_within_beat(0), n_best(0), best_time(0.0) {}
-
-    void Start()
+    void Continue()
     {
         best_time     = std::numeric_limits<float>::max();
         n_within_beat = 0;
         timer.start();
     }
 
+    public:
+    HeartBeat() : n_within_beat(0), n_best(0), best_time(0.0) {}
+
+    void Start()
+    {
+        elapsed_cumulative = 0;
+        best_config        = PerformanceConfigAsmDirect3x3WrW();
+        Continue();
+    }
+
     void Monitor(const double recent_time,
                  const size_t n_recent,
                  const double total_best,
                  size_t n_failed,
-                 size_t n_total)
+                 size_t n_total,
+                 const PerformanceConfigAsmDirect3x3WrW& recent_config)
     {
         ++n_within_beat;
         if(recent_time < best_time)
         {
-            best_time = recent_time;
-            n_best    = n_recent;
+            best_time   = recent_time;
+            n_best      = n_recent;
+            best_config = recent_config;
         }
-        const float passed = timer.elapsed_ms();
-        if(passed > 3000)
+        const float elapsed = timer.elapsed_ms();
+        if(elapsed > 3000)
         {
-            const float eta_sec = n_within_beat
-                                      ? ((n_total - n_recent) * (passed / n_within_beat) / 1000)
-                                      : 0; // paraniod
-            MIOPEN_LOG_W("..." << n_recent << '/' << n_failed << '/' << n_total << " done, best: "
-                               << total_best
-                               << ", best within recent "
-                               << n_within_beat
-                               << ": "
-                               << best_time
-                               << " #"
-                               << n_best
-                               << ", ETA:"
-                               << eta_sec);
-            Start();
+            elapsed_cumulative += elapsed;
+            const float eta_sec =
+                n_recent ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
+                         : 0; // paraniod
+            MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << " " << total_best
+                                  << ",  best within recent "
+                                  << n_within_beat
+                                  << ": "
+                                  << best_time
+                                  << " #"
+                                  << n_best
+                                  << " "
+                                  << best_config
+                                  << ", ETA:"
+                                  << eta_sec
+                                  << " sec.");
+            Continue();
         }
     }
 };
@@ -764,7 +782,7 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
     // Allocate output buffer & prepare random initializer for it.
     std::vector<float> wei(params.weights_sz / sizeof(float));
     auto wei_ocl_buf = profile_h.Write(wei);
-#if 0 // FIXME delete
+#if MIOPEN_GCNASM3X3WRW_INIT_OUTPUT_BUFFER // FIXME delete?
     std::vector<float> init_wei(wei.size());
     InitVectorRandomly(init_wei, -0.5, 0.001);
 #endif
@@ -786,12 +804,13 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
     double best_time = std::numeric_limits<float>::max();
     size_t n_failed  = 0;
     size_t n_run     = 0;
+    size_t n_best    = 0;
     HeartBeat heartBeat;
     heartBeat.Start();
     for(const auto c : configs)
     {
         double processing_time;
-#if 0 // FIXME delete
+#if MIOPEN_GCNASM3X3WRW_INIT_OUTPUT_BUFFER // FIXME delete?
         profile_h.WriteTo(reinterpret_cast<const void*>(init_wei.data()),
                           wei_ocl_buf,
                           init_wei.size() * sizeof(decltype(init_wei)::value_type));
@@ -810,13 +829,15 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
             is_passed = true;
             if(processing_time < best_time)
             {
-                MIOPEN_LOG_I("#" << n_run << " (" << n_runs_total << ") " << processing_time
+                MIOPEN_LOG_I("#" << n_run << "/" << n_failed << "/" << n_runs_total << " "
+                                 << processing_time
                                  << " < "
                                  << best_time
                                  << ", new candidate: "
                                  << c);
                 best      = c;
                 best_time = processing_time;
+                n_best    = n_run;
             }
         }
         else
@@ -826,16 +847,17 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
                              << ret);
             ++n_failed;
         }
-        heartBeat.Monitor(processing_time, n_run, best_time, n_failed, n_runs_total);
+        heartBeat.Monitor(processing_time, n_run, best_time, n_failed, n_runs_total, c);
         ++n_run;
     }
 
     profile_h.EnableProfiling(false);
-    MIOPEN_LOG_W("Ran configs (total/failed): " << n_runs_total << "/" << n_failed
-                                                << ", best time: "
-                                                << best_time
-                                                << ", best config: "
-                                                << best);
+    MIOPEN_LOG_W("Done: " << n_runs_total << "/" << n_failed << "/" << n_runs_total << ", best #"
+                          << n_best
+                          << " "
+                          << best_time
+                          << " "
+                          << best);
     return is_passed;
 }
 
