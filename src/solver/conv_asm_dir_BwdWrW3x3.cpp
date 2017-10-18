@@ -36,8 +36,7 @@
 #include "miopen/handle.hpp"
 #include "miopen/solver.hpp"
 
-#define MIOPEN_GCNASM3X3WRW_SEARCH_LWC_FIXED 1
-#define MIOPEN_GCNASM3X3WRW_INIT_OUTPUT_BUFFER 0
+#define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 
@@ -223,7 +222,7 @@ void VirtualIterator::Next()
         // Increment with wrap-around:
         do
         {
-#if MIOPEN_GCNASM3X3WRW_SEARCH_LWC_FIXED == 0
+#if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
             // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
             if(++v.limit_wave_cnt <= 9)
                 break;
