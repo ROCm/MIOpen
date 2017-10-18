@@ -250,10 +250,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                        f_activ_power,
                                        f_activ_beta,
                                        f_activ_alpha,
-                                       long(yOffset),
+                                       long(dxOffset),
                                        long(dyOffset),
                                        long(xOffset),
-                                       long(dxOffset));
+						               long(yOffset));
 
     return (status);
 }
