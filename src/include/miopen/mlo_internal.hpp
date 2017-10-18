@@ -225,6 +225,8 @@ class ProblemDescription
 
     void Serialize(std::ostream& stream) const
     {
+        if(!direction.IsKnown())
+            MIOPEN_THROW("!direction.IsKnown()");
         const auto sep = '-';
         // clang-format off
         // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
@@ -238,18 +240,23 @@ class ProblemDescription
             << sep << kernal_dilation1 << 'x' << kernal_dilation1
             << sep << bias
             << sep << in_layout
-            << sep << in_data_type; // clang-format on
-        if(!direction.IsKnown())
-            MIOPEN_THROW("!direction.IsKnown()");
-        stream << sep << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B" : "W");
+            << sep << in_data_type // clang-format on
+               << sep << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B" : "W");
     }
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     void LegacySerialize(std::ostream& stream) const
     {
+        if(!direction.IsKnown())
+            MIOPEN_THROW("!direction.IsKnown()");
+        if(!(direction.IsForward() || direction.IsBackwardData()))
+        {
+            stream << "<NOT_SUPPORTED>";
+            return;
+        }
         const auto sep = 'x';
         // clang-format off
-        // 576x4x4x1x1x192x4x4x8xNCHWxFP32xF
+        // 576x4x4x1x1x192x4x4x8xNCHWxFP32x1
         stream << n_inputs
             << sep << in_height
             << sep << in_width
@@ -260,12 +267,8 @@ class ProblemDescription
             << sep << out_width
             << sep << batch_sz
             << sep << in_layout
-            << sep << in_data_type; // clang-format on
-        if(!direction.IsKnown())
-            MIOPEN_THROW("!direction.IsKnown()");
-        stream << sep
-               << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B"
-                                                                            : "WRW_NOT_SUPPORTED");
+            << sep << in_data_type // clang-format on
+               << sep << (direction.IsForward() ? "1" : "0");
     }
 #endif
 };
