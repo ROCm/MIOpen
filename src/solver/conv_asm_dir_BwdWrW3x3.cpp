@@ -95,12 +95,13 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
         return 64 / chunk_size;
     }
 
-    PerformanceConfigAsmDirect3x3WrW(int limit_wave_cnt_,
-                                     int reverse_inout_,
-                                     int chunk_size_,
-                                     int k_per_wave_,
-                                     int pipe_lines_depth_,
-                                     int n_per_group_)
+    PerformanceConfigAsmDirect3x3WrW(
+        int limit_wave_cnt_,
+        int reverse_inout_,
+        int chunk_size_,
+        int k_per_wave_,
+        int pipe_lines_depth_,
+        int n_per_group_) noexcept // For tidy: contsruction of static objects does not throw.
         : limit_wave_cnt(limit_wave_cnt_),
           reverse_inout(reverse_inout_),
           chunk_size(chunk_size_),
@@ -147,7 +148,7 @@ class VirtualContainer
     friend class VirtualIterator;
 
     public:
-    typedef VirtualIterator const_iterator;
+    using const_iterator = VirtualIterator;
     VirtualContainer(const ConvolutionContext& config_) : config(config_) {}
     VirtualIterator begin() const;
     VirtualIterator end() const;
@@ -637,71 +638,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-int ConvAsmBwdWrW3x3::Measure(miopen::Handle& profile_h,
-                              Data_t bot_ocl_buf,
-                              Data_t top_ocl_buf,
-                              Data_t wei_ocl_buf,
-                              double& processing_time,
-                              const ConvolutionContext& params,
-                              const PerformanceConfig& config) const
-{
-    ConvSolution solution = GetSolution(params, config);
-    if(!solution.Succeeded())
-    {
-        return 1;
-    }
-    const KernelInfo k_info = solution.construction_params[0];
-#ifdef NDEBUG
-    try
-#endif
-    {
-        processing_time = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.GetKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-        int unused       = 0;
-        int* return_addr = nullptr;
-        int n_groups =
-            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
-
-        kernel(params.batch_sz,   // N
-               params.n_outputs,  // C
-               params.out_height, // H
-               params.out_width,  // W
-               params.n_inputs,   // K
-               n_groups,          // n_groups
-               unused,
-               unused,
-               top_ocl_buf,
-               wei_ocl_buf,
-               bot_ocl_buf,
-               return_addr);
-        processing_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception&)
-    {
-        return -1;
-    }
-#endif
-    return 0;
-}
-
-static void
-InitVectorRandomly(std::vector<float>& vec, const double offset = 0.0, const double factor = 1.0)
-{
-    float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
-}
-
-class HeartBeat
+class Heartbeat
 {
     size_t n_within_beat;
     size_t n_best;
@@ -718,7 +655,7 @@ class HeartBeat
     }
 
     public:
-    HeartBeat() : n_within_beat(0), n_best(0), best_time(0.0) {}
+    Heartbeat() : n_within_beat(0), n_best(0), best_time(0.0) {}
 
     void Start()
     {
@@ -748,14 +685,14 @@ class HeartBeat
             const float eta_sec =
                 n_recent ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
                          : 0; // paraniod
-            MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << " " << total_best
+            MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
                                   << ", best within recent "
                                   << n_within_beat
                                   << ": "
                                   << best_time
                                   << " #"
                                   << n_best
-                                  << " "
+                                  << ' '
                                   << best_config
                                   << ", ETA:"
                                   << eta_sec
@@ -765,99 +702,145 @@ class HeartBeat
     }
 };
 
+static int RunSolution(miopen::Handle& profile_h,
+                       Data_t bot_ocl_buf,
+                       Data_t top_ocl_buf,
+                       Data_t wei_ocl_buf,
+                       const ConvolutionContext& params,
+                       const ConvSolution& solution,
+                       double& elapsed_time)
+{
+    const KernelInfo k_info = solution.construction_params[0];
+#ifdef NDEBUG
+    try
+#endif
+    {
+        elapsed_time = std::numeric_limits<float>::max();
+        // ConvolutionContext::general_compile_options is for OpenCL kernels
+        // and thus not applicable for assembly.
+        auto kernel = profile_h.GetKernel("",
+                                          "",
+                                          k_info.kernel_file,
+                                          k_info.kernel_name,
+                                          k_info.l_wk,
+                                          k_info.g_wk,
+                                          k_info.comp_options);
+        int unused       = 0;
+        int* return_addr = nullptr;
+        auto n_groups =
+            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
+
+        kernel(params.batch_sz,   // N
+               params.n_outputs,  // C
+               params.out_height, // H
+               params.out_width,  // W
+               params.n_inputs,   // K
+               n_groups,          // n_groups
+               unused,
+               unused,
+               top_ocl_buf,
+               wei_ocl_buf,
+               bot_ocl_buf,
+               return_addr);
+        elapsed_time = profile_h.GetKernelTime();
+    }
+#ifdef NDEBUG
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
+#endif
+    return 0;
+}
+
+static void
+InitRandomly(std::vector<float>& vec, const double offset = 0.0, const double factor = 1.0)
+{
+    float* p = vec.data();
+    for(int i = 0; i < vec.size(); ++i)
+        *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
+}
+
 bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfig& config) const
 {
     miopen::Handle profile_h;
     profile_h.EnableProfiling(true);
 
-    // Allocate & init input buffers.
+    // Allocate buffers, init input buffers.
     std::vector<float> bot(params.bot_sz / sizeof(float));
-    InitVectorRandomly(bot);
-    auto bot_ocl_buf = profile_h.Write(bot);
-
     std::vector<float> top(params.top_sz / sizeof(float));
-    InitVectorRandomly(top);
-    auto top_ocl_buf = profile_h.Write(top);
-
-    // Allocate output buffer & prepare random initializer for it.
     std::vector<float> wei(params.weights_sz / sizeof(float));
+    InitRandomly(bot);
+    InitRandomly(top);
+    auto bot_ocl_buf = profile_h.Write(bot);
+    auto top_ocl_buf = profile_h.Write(top);
     auto wei_ocl_buf = profile_h.Write(wei);
-#if MIOPEN_GCNASM3X3WRW_INIT_OUTPUT_BUFFER // FIXME delete?
-    std::vector<float> init_wei(wei.size());
-    InitVectorRandomly(init_wei, -0.5, 0.001);
-#endif
 
-    // const
     int n_runs_total = 0;
-    VirtualContainer configs(params);
+    const VirtualContainer all_configs(params);
     {
-        for(const auto c : configs)
+        for(const auto& dummy : all_configs)
         {
             ++n_runs_total;
-            (void)c;
+            (void)dummy;
         }
     }
     MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
-    auto& best = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
-    best.EuristicInit(params);
-    bool is_passed   = false;
-    double best_time = std::numeric_limits<float>::max();
-    size_t n_failed  = 0;
-    size_t n_run     = 0;
-    size_t n_best    = 0;
-    HeartBeat heartBeat;
-    heartBeat.Start();
-    for(const auto c : configs)
+    auto& best_config = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
+    bool is_passed    = false;
+    double best_time  = std::numeric_limits<float>::max();
+    size_t n_failed   = 0;
+    size_t n_current  = 0;
+    size_t n_best     = 0;
+    Heartbeat heartbeat;
+    heartbeat.Start();
+    for(const auto& current_config : all_configs)
     {
-        double processing_time;
-#if MIOPEN_GCNASM3X3WRW_INIT_OUTPUT_BUFFER // FIXME delete?
-        profile_h.WriteTo(reinterpret_cast<const void*>(init_wei.data()),
-                          wei_ocl_buf,
-                          init_wei.size() * sizeof(decltype(init_wei)::value_type));
-#endif
-
-        MIOPEN_LOG_I2("#" << n_run << " (" << n_runs_total << ") " << c);
-        const auto ret = Measure(profile_h,
-                                 bot_ocl_buf.get(),
-                                 top_ocl_buf.get(),
-                                 wei_ocl_buf.get(),
-                                 processing_time,
-                                 params,
-                                 c);
+        double elapsed_time;
+        MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
+                          << current_config);
+        const auto ret = RunSolution(profile_h,
+                                     bot_ocl_buf.get(),
+                                     top_ocl_buf.get(),
+                                     wei_ocl_buf.get(),
+                                     params,
+                                     GetSolution(params, current_config),
+                                     elapsed_time);
         if(ret == 0)
         {
             is_passed = true;
-            if(processing_time < best_time)
+            if(elapsed_time < best_time)
             {
-                MIOPEN_LOG_I("#" << n_run << "/" << n_failed << "/" << n_runs_total << " "
-                                 << processing_time
+                MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
+                                 << elapsed_time
                                  << " < "
                                  << best_time
-                                 << ", new candidate: "
-                                 << c);
-                best      = c;
-                best_time = processing_time;
-                n_best    = n_run;
+                                 << ' '
+                                 << current_config);
+                best_config = current_config;
+                best_time   = elapsed_time;
+                n_best      = n_current;
             }
         }
         else
         {
-            MIOPEN_LOG_E("#" << n_run << " (" << n_runs_total << ") "
+            MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
                              << " Failed rc="
                              << ret);
             ++n_failed;
         }
-        heartBeat.Monitor(processing_time, n_run, best_time, n_failed, n_runs_total, c);
-        ++n_run;
+        heartbeat.Monitor(
+            elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
+        ++n_current;
     }
 
     profile_h.EnableProfiling(false);
-    MIOPEN_LOG_W("Done: " << n_runs_total << "/" << n_failed << "/" << n_runs_total << ", best #"
+    MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best
-                          << " "
+                          << ' '
                           << best_time
-                          << " "
-                          << best);
+                          << ' '
+                          << best_config);
     return is_passed;
 }
 
