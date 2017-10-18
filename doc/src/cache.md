@@ -7,3 +7,9 @@ Clear the cache
 ---------------
 
 The cache can be cleared by simply deleting the cache directory(ie `$HOME/.cache/miopen`). This should only be needed for development purposes or to free disk space. The cache does not need to be cleared when upgrading MIOpen.
+
+Disabling the cache
+-------------------
+
+The are several ways to disable the cache. This is generally useful for development purposes. The cache can be disabled during build by either setting `MIOPEN_CACHE_DIR` to an empty string, or setting `BUILD_DEV=ON` when configuring cmake. The cache can also be disabled at runtime by setting the `MIOPEN_DISABLE_CACHE` environment variable to true.
+

@@ -133,7 +133,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
         kernels/MIOpenConvDirUniC.cl        
-        kernels/MIOpenConv1x1.cl
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
@@ -195,6 +194,7 @@ endif()
 if(miopengemm_FOUND)
     list(APPEND MIOpen_Source 
         gemm.cpp
+        gemm_api.cpp
         gemm_geometry.cpp
     )
 endif()

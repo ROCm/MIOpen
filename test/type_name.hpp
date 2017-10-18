@@ -24,27 +24,37 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_GET_HANDLE_HPP
-#define GUARD_GET_HANDLE_HPP
+#ifndef GUARD_TYPE_NAME_HPP
+#define GUARD_TYPE_NAME_HPP
 
-#include <miopen/handle.hpp>
+#include <string>
 
-#ifndef MIOPEN_TEST_USE_GLOBAL_HANDLE
-#define MIOPEN_TEST_USE_GLOBAL_HANDLE 1
-#endif
-
-#if MIOPEN_TEST_USE_GLOBAL_HANDLE
-
-static inline miopen::Handle& get_handle()
+template <class Test_Driver_Private_TypeName_>
+const std::string& get_type_name()
 {
-    static miopen::Handle h{};
-    return h;
-}
+    static std::string name;
 
+    if(name.empty())
+    {
+#ifdef _MSC_VER
+        name = typeid(Test_Driver_Private_TypeName_).name();
+        name = name.substr(7);
 #else
+        const char parameter_name[] = "Test_Driver_Private_TypeName_ =";
 
-static inline miopen::Handle get_handle() { return miopen::Handle{}; }
+        name = __PRETTY_FUNCTION__;
 
+        auto begin  = name.find(parameter_name) + sizeof(parameter_name);
+#if(defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
+        auto length = name.find_last_of(",") - begin;
+#else
+        auto length = name.find_first_of("];", begin) - begin;
 #endif
+        name        = name.substr(begin, length);
+#endif
+    }
+
+    return name;
+}
 
 #endif
