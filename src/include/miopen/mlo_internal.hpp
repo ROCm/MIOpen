@@ -240,8 +240,9 @@ class ProblemDescription
             << sep << kernal_dilation1 << 'x' << kernal_dilation1
             << sep << bias
             << sep << in_layout
-            << sep << in_data_type // clang-format on
-               << sep << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B" : "W");
+            << sep << in_data_type
+            << sep << (direction.IsForward() ? "F"
+                     : direction.IsBackwardData() ? "B" : "W"); // clang-format on
     }
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -267,8 +268,8 @@ class ProblemDescription
             << sep << out_width
             << sep << batch_sz
             << sep << in_layout
-            << sep << in_data_type // clang-format on
-               << sep << (direction.IsForward() ? "1" : "0");
+            << sep << in_data_type
+            << sep << (direction.IsForward() ? "1" : "0"); // clang-format on
     }
 #endif
 };
