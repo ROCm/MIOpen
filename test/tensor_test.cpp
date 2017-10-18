@@ -811,6 +811,26 @@ struct tensor_test_suit_5d_bytes
 };
 //-END 5-d -----------------------------
 
+struct check_tensor_support
+{
+    miopenTensorDescriptor_t tensor;
+
+    check_tensor_support() { miopenCreateTensorDescriptor(&tensor); }
+
+    void run()
+    {
+        EXPECT(miopenSet4dTensorDescriptor(tensor, miopenHalf, 100, 32, 8, 8) !=
+               miopenStatusSuccess);
+    }
+
+    ~check_tensor_support() { miopenDestroyTensorDescriptor(tensor); }
+};
+
+void check_null_tensor()
+{
+    EXPECT(miopenSet4dTensorDescriptor(nullptr, miopenFloat, 100, 32, 8, 8) != miopenStatusSuccess);
+}
+
 int main()
 {
     // printf("Running 1-D.\n");
@@ -842,4 +862,7 @@ int main()
     tensor_test_suit_5d<tensor_fixture_n5d>::run_tests();
     tensor_test_suit_5d<tensor_fixture_n5d_strides>::run_tests();
     tensor_test_suit_5d_bytes<tensor_fixture_n5d_numBytes>::run_tests();
+
+    run_test<check_tensor_support>();
+    check_null_tensor();
 }
