@@ -749,7 +749,7 @@ class HeartBeat
                 n_recent ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
                          : 0; // paraniod
             MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << " " << total_best
-                                  << ",  best within recent "
+                                  << ", best within recent "
                                   << n_within_beat
                                   << ": "
                                   << best_time
