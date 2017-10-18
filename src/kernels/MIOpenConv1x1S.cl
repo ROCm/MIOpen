@@ -320,7 +320,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                 {
                     accum[o][i] += dat[c][i] * weights[o][c];
 #if 0
-				if (get_global_id(0) == 4 && get_global_id(1) ==0 && o == 0 && i == 0)
+				if (pos_out_y == 2 && pos_out_x == 0)
 				{
 					printf((__constant char *)"K:c: %f %f %f %f\n",
 					accum[o][i],

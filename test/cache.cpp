@@ -24,27 +24,25 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_GET_HANDLE_HPP
-#define GUARD_GET_HANDLE_HPP
+#include <miopen/binary_cache.hpp>
+#include <miopen/md5.hpp>
+#include "test.hpp"
 
-#include <miopen/handle.hpp>
-
-#ifndef MIOPEN_TEST_USE_GLOBAL_HANDLE
-#define MIOPEN_TEST_USE_GLOBAL_HANDLE 1
-#endif
-
-#if MIOPEN_TEST_USE_GLOBAL_HANDLE
-
-static inline miopen::Handle& get_handle()
+void check_cache_file()
 {
-    static miopen::Handle h{};
-    return h;
+    auto p = miopen::GetCacheFile("gfx", "base", "args", false);
+    CHECK(p.filename().string() == "base.o");
 }
 
-#else
+void check_cache_str()
+{
+    auto p    = miopen::GetCacheFile("gfx", "base", "args", true);
+    auto name = miopen::md5("base");
+    CHECK(p.filename().string() == name + ".o");
+}
 
-static inline miopen::Handle get_handle() { return miopen::Handle{}; }
-
-#endif
-
-#endif
+int main()
+{
+    check_cache_file();
+    check_cache_str();
+}
