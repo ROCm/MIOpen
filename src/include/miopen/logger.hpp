@@ -174,7 +174,7 @@ std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
 
 enum LoggingLevel
 {
-    Default = 0, // ERROR for Release builds, INFO for Debug builds.
+    Default = 0, // WARNING for Release builds, INFO for Debug builds.
     Quiet,
     Fatal,
     Error,
