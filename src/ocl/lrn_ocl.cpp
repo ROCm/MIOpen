@@ -40,8 +40,8 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
                                       Data_t workSpace)
 {
 
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0))
+    if(!float_equal(GetAlpha(), 1.0) ||
+       !float_equal(GetBeta(), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
