@@ -40,10 +40,10 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
                                       Data_t workSpace)
 {
 
-    if(!float_equal(GetAlpha(), 1.0) ||
-       !float_equal(GetBeta(), 0))
+    if (!float_equal(*(static_cast<const float *>(alpha)), 1.0) ||
+        !float_equal(*(static_cast<const float *>(beta)), 0))
     {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+        //MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_norm construct_params(1); // forward
@@ -85,6 +85,10 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     double lrn_beta  = GetBeta();
     double lrn_K     = GetK();
 
+    if (!float_equal(lrn_alpha, 1.0) ||
+        !float_equal(lrn_beta, 0)) {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
     construct_params.doBackward(do_backward);
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
@@ -144,10 +148,10 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
                                        Data_t dx,
                                        ConstData_t workSpace)
 {
-    if(!float_equal(GetAlpha(), 1.0) ||
-       !float_equal(GetBeta(), 0))
+    if (!float_equal(*(static_cast<const float *>(alpha)), 1.0) ||
+        !float_equal(*(static_cast<const float *>(beta)), 0))
     {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+        //MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
     miopenStatus_t status = miopenStatusSuccess;
@@ -229,6 +233,11 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     double lrn_alpha = GetAlpha();
     double lrn_beta  = GetBeta();
     double lrn_K     = GetK();
+
+    if (!float_equal(lrn_alpha, 1.0) ||
+        !float_equal(lrn_beta, 0)) {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
 
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
