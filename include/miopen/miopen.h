@@ -271,16 +271,9 @@ typedef enum {
 typedef enum {
     miopenConvolution = 0, /*!< Convolutions */
     miopenTranspose   = 1, /*!< Transpose convolutions */
+    miopenTensorflowSame = 2, /*!< Tensorflow SAME Padding */
+    miopenTensorflowValid = 3, /*!< Tensorflow VALID Padding */
 } miopenConvolutionMode_t;
-
-/*! @ingroup convolutions
- * @enum miopenPaddingMode_t
- * Tensor Padding Mode
-*/
-typedef enum {
-    miopenTfSame = 0, /*!< Tensor Flow Padding "Same" */
-    miopenTfValid = 1, /*!< Tensor Flow Padding "Valid" */
-} miopenPaddingMode_t;
 
 /*! @ingroup pooling
  * @enum miopenPoolingMode_t
