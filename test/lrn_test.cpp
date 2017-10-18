@@ -57,6 +57,7 @@ struct verify_lrn_foward
         auto radius = (lrn.GetN() - 1) / 2;
         auto mode   = lrn.GetMode();
 
+        CHECK((lrn_n & 1) == 1);
         if(mode == miopenLRNCrossChannel)
         {
             auto alphaoverarea = alpha / lrn_n;
