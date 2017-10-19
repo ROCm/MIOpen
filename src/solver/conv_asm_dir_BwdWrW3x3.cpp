@@ -105,8 +105,8 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
 
     friend class VirtualIterator; // Modifies private data when advancing.
     // VirtualIterator needs constant objects. Constexpr is not applicable due to virtual
-    // inheritance,
-    // so static const to be used. Static const objects need global ctor and dtor.
+    // inheritance, so static const to be used. Static const objects need global
+    // constructoror and destructor.
     PerformanceConfigAsmDirect3x3WrW(
         int lwc,
         int rio,
@@ -115,6 +115,9 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
         int pld,
         int npg) noexcept; // For tidy: contsruction of static objects does not throw.
     ~PerformanceConfigAsmDirect3x3WrW() override {}
+    // User-defined dtor blocks implicit copy ctor and implicit assigment.
+    PerformanceConfigAsmDirect3x3WrW(const PerformanceConfigAsmDirect3x3WrW&) = default;
+    PerformanceConfigAsmDirect3x3WrW& operator=(const PerformanceConfigAsmDirect3x3WrW&) = default;
 };
 
 class VirtualIterator;
