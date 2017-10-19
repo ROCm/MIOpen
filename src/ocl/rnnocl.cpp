@@ -153,6 +153,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     int h_stride   = hy_h * bi;
     int out_stride = out_h;
     int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+	size_t rsv_h = reserveSpaceSize / hy_stride / sizeof(miopenFloat);
+	size_t rsv_w = hy_stride;
 
     if(rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
     {
@@ -481,13 +483,19 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                         }
                                                 }*/
 
-                int rsv_sz = batch_n * hy_d * hy_h;
-                std::vector<int> rsv_size(3, 1);
-                rsv_size.push_back(rsv_sz);
+                std::vector<int> rsv_size(2, 1);
+                rsv_size.push_back(in_n[ti]);
+				rsv_size.push_back(hy_h);
+
+				std::vector<int> rsv_stride;
+				rsv_stride.push_back(rsv_h*rsv_w);
+				rsv_stride.push_back(rsv_h*rsv_w);
+				rsv_stride.push_back(rsv_w);
+				rsv_stride.push_back(1);
 
                 miopenTensorDescriptor_t rsvTensor;
                 miopenCreateTensorDescriptor(&rsvTensor);
-                SetTensor4d(rsvTensor, rsv_size);
+				miopenSetTensorDescriptor(rsvTensor, miopenFloat, 4, rsv_size, rsv_stride);
 
                 float alpha = 1, beta = 0;
                 ActivationDescriptor activDesc;
@@ -501,14 +509,38 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     activDesc = {miopenActivationTANH, 1, 1, 1};
                 }
 
+				size_t offset = hid_shift + bacc * hy_stride;
+
                 activDesc.Forward(handle,
                                   &alpha,
                                   miopen::deref(rsvTensor),
                                   reserveSpace,
                                   &beta,
                                   miopen::deref(rsvTensor),
-                                  workSpace);
+                                  workSpace,
+					offset,
+					offset);
 				
+				if (bidirection)
+				{
+					rsv_size[2] = in_n[seqLength - 1 - ti];
+					
+					miopenCreateTensorDescriptor(&rsvTensor);
+					miopenSetTensorDescriptor(rsvTensor, miopenFloat, 4, rsv_size, rsv_stride);
+					
+					offset = hid_shift + baccbi * hy_stride + hy_h;
+
+					activDesc.Forward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset,
+						offset);
+				}
+
 				// Update time
 				if (handle.IsProfilingEnabled())
 				{
@@ -1161,6 +1193,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 		MIOPEN_THROW("GEMM is not supported");
 #endif
     }
+
+	// Suppress warning
+	(void)cxDesc;
+	(void)cyDesc;
+	(void)hyDesc;
+	(void)wDesc;
+	(void)workSpaceSize;
 };
 
 void RNNDescriptor::RNNBackwardData(Handle& handle,
@@ -2105,6 +2144,18 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 		MIOPEN_THROW("GEMM is not supported");
 #endif
     }
+	
+	// Suppress warning
+	(void)y;
+	(void)yDesc;
+	(void)hxDesc;
+	(void)cxDesc;
+	(void)dcxDesc;
+	(void)dcyDesc;
+	(void)dhyDesc;
+	(void)wDesc;
+	(void)workSpaceSize;
+	(void)reserveSpaceSize;
 };
 
 void RNNDescriptor::RNNBackwardWeights(Handle& handle,
@@ -3053,6 +3104,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 		MIOPEN_THROW("GEMM is not supported");
 #endif
     }
+
+	// Suppress warning
+	(void)dwDesc;
+	(void)workSpaceSize;
+	(void)reserveSpaceSize;
 };
 
 // TODO: LATER
