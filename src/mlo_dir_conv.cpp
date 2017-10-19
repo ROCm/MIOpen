@@ -345,7 +345,7 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string& conf_key) const
         _search_params.in_layout + std::string("x") + _search_params.in_data_type +
         std::string("x") + (_search_params.direction.IsForward()
                                 ? "1"
-                                : "0"); // Shall we separate keys for WrW convolutions?
+                                : "0"); /// \todo Shall we separate keys for WrW convolutions?
     return (0);
 }
 
