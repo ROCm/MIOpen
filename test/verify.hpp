@@ -49,8 +49,11 @@ static constexpr sum_fn sum{};
 
 struct max_fn
 {
-    template<class T>
-    static T id(T x) { return x; }
+    template <class T>
+    static T id(T x)
+    {
+        return x;
+    }
 
     template <class T, class U>
     auto operator()(T x, U y) const MIOPEN_RETURNS(max_fn::id(x > y ? x : y));
