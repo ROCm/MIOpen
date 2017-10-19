@@ -34,6 +34,7 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 
+#define TF_VALID
 // #include "network_data.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
@@ -438,6 +439,11 @@ struct conv_driver : test_driver
             miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, std::ignore, input_h, input_w) =
             miopen::tien<4>(input.desc.GetLengths());
+
+#ifdef TF_SAME
+        filter.pad_h = (input_h%filter.u == 0)?(std::max(static_cast<int>(wei_h-filter.u), 0)):(std::max(static_cast<int>(wei_h-(input_h%filter.u)), 0));
+        filter.pad_w = (input_w%filter.v == 0)?(std::max(static_cast<int>(wei_w-filter.v), 0)):(std::max(static_cast<int>(wei_w-(input_w%filter.v)), 0));
+#endif
 
         if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
            wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
