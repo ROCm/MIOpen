@@ -444,9 +444,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 if(dirMode)
                 {
-					for (int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
+					for (int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
 					{
-						offset = hid_shift + baccbi * hy_stride + hy_h;
+						size_t offset = hid_shift + baccbi * hy_stride + bs * hy_stride + hy_h;
 
 						activDesc.Forward(handle,
 							&alpha,
