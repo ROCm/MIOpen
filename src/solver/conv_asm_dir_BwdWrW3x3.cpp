@@ -84,6 +84,7 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
     int n_per_group;      // [1..8] && (n_per_group <= batch_size).
 
     public:
+    PerformanceConfigAsmDirect3x3WrW(int lwc, int rio, int csz, int kpw, int pld, int npg);
     PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
     void Serialize(std::ostream&) const override;
     bool Deserialize(const std::string& str) override;
@@ -104,20 +105,6 @@ class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
     std::string ToString() const;
 
     friend class VirtualIterator; // Modifies private data when advancing.
-    // VirtualIterator needs constant objects. Constexpr is not applicable due to virtual
-    // inheritance, so static const to be used. Static const objects need global
-    // constructoror and destructor.
-    PerformanceConfigAsmDirect3x3WrW(
-        int lwc,
-        int rio,
-        int csz,
-        int kpw,
-        int pld,
-        int npg) noexcept; // For tidy: contsruction of static objects does not throw.
-    ~PerformanceConfigAsmDirect3x3WrW() override {}
-    // User-defined dtor blocks implicit copy ctor and implicit assigment.
-    PerformanceConfigAsmDirect3x3WrW(const PerformanceConfigAsmDirect3x3WrW&) = default;
-    PerformanceConfigAsmDirect3x3WrW& operator=(const PerformanceConfigAsmDirect3x3WrW&) = default;
 };
 
 class VirtualIterator;
@@ -153,11 +140,11 @@ class VirtualIterator
     value_type v; // PerformanceConfigAsmDirect3x3WrW
     const VirtualContainer* container;
 
-    static const value_type minValue;
-    static const value_type outOfRangeValue;
+    static const value_type& GetMinValue();
+    static const value_type& GetOutOfRangeValue();
 
     /// Implements begin()
-    VirtualIterator(const VirtualContainer* container_) : v(minValue), container(container_)
+    VirtualIterator(const VirtualContainer* container_) : v(GetMinValue()), container(container_)
     {
         if(!IsValid())
             Next();
@@ -168,7 +155,7 @@ class VirtualIterator
 
     public:
     /// Implementes end() and also serves as a default ctor.
-    VirtualIterator() : v(outOfRangeValue), container(nullptr) {}
+    VirtualIterator() : v(GetOutOfRangeValue()), container(nullptr) {}
     VirtualIterator(const VirtualIterator& it) : v(it.v), container(it.container) {}
 
     bool operator!=(VirtualIterator const& other) const;
@@ -185,10 +172,17 @@ inline VirtualIterator VirtualContainer::begin() const { return VirtualIterator(
 
 inline VirtualIterator VirtualContainer::end() const { return VirtualIterator(); }
 
-const VirtualIterator::value_type VirtualIterator::minValue =
-    PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1);
-const VirtualIterator::value_type VirtualIterator::outOfRangeValue =
-    PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1);
+const VirtualIterator::value_type& VirtualIterator::GetMinValue()
+{
+    static const value_type val(0, 0, 8, 1, 1, 1);
+    return val;
+}
+
+const VirtualIterator::value_type& VirtualIterator::GetOutOfRangeValue()
+{
+    static const value_type val(-1, -1, -1, -1, -1, -1);
+    return val;
+}
 
 inline bool VirtualIterator::IsValid()
 {
@@ -206,7 +200,7 @@ void VirtualIterator::Next()
 {
     if(container == nullptr)
     {
-        v = outOfRangeValue;
+        v = GetOutOfRangeValue();
         return;
     }
     do
@@ -256,7 +250,7 @@ void VirtualIterator::Next()
             // All the fields (components) of performance confic have wrapped around.
             // The next one is not the min (in the allowed range) but a one beyond the end.
             // Iterator is useless from now.
-            v         = outOfRangeValue;
+            v         = GetOutOfRangeValue();
             container = nullptr;
             return;
         } while(false);
@@ -264,12 +258,13 @@ void VirtualIterator::Next()
 }
 
 PerformanceConfigAsmDirect3x3WrW::PerformanceConfigAsmDirect3x3WrW(
-    int lwc, int rio, int csz, int kpw, int pld, int npg) noexcept : limit_wave_cnt(lwc),
-                                                                     reverse_inout(rio),
-                                                                     chunk_size(csz),
-                                                                     k_per_wave(kpw),
-                                                                     pipe_lines_depth(pld),
-                                                                     n_per_group(npg)
+    int lwc, int rio, int csz, int kpw, int pld, int npg)
+    : limit_wave_cnt(lwc),
+      reverse_inout(rio),
+      chunk_size(csz),
+      k_per_wave(kpw),
+      pipe_lines_depth(pld),
+      n_per_group(npg)
 {
 }
 
