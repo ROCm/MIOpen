@@ -38,6 +38,11 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params,
                                           const PerformanceConfig&) const
 {
     ConvSolution result;
+
+	if (params.kernel_stride1 > 1 || params.kernel_stride0 > 1)
+	{
+		return ConvSolution(static_cast<miopenStatus_t>(-1));
+	}
     size_t localMemSize = 64 * 1024;
 
     const auto hw_wave_sz       = 64;
