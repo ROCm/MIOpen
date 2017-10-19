@@ -659,11 +659,11 @@ class Heartbeat
     }
 
     public:
-    Heartbeat() : n_within_beat(0), n_best(0), best_time(0.0) {}
+    Heartbeat() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
 
     void Start()
     {
-        elapsed_cumulative = 0;
+        elapsed_cumulative = 0.0f;
         best_config        = PerformanceConfigAsmDirect3x3WrW();
         Continue();
     }
