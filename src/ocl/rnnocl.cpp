@@ -114,9 +114,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     std::string network_config;
     std::vector<int> in_n;
     int in_h  = xDesc[0].GetLengths()[1]; // input vector size
-    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
-    int hy_n  = hxDesc.GetLengths()[1];   // max batch size
-    int hy_h  = hxDesc.GetLengths()[2];   // hidden size
+    int hy_d  = hyDesc.GetLengths()[0];   // biNumLayers
+    int hy_n  = hyDesc.GetLengths()[1];   // max batch size
+    int hy_h  = hyDesc.GetLengths()[2];   // hidden size
     int out_h = yDesc[0].GetLengths()[1]; // output vector size
 
     if(in_h == 0 || hy_h == 0 || hy_n == 0 || hy_d == 0 || out_h == 0)
@@ -124,17 +124,17 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    for(int i = 0; i < seqLen; i++)
-    {
-        printf("xDesc[%d].GetLengths()[0][1]: %d, %d\n",
-               i,
-               xDesc[i].GetLengths()[0],
-               xDesc[i].GetLengths()[1]);
-        printf("yDesc[%d].GetLengths()[0][1]: %d, %d\n",
-               i,
-               yDesc[i].GetLengths()[0],
-               yDesc[i].GetLengths()[1]);
-    }
+//    for(int i = 0; i < seqLen; i++)
+//    {
+//        printf("xDesc[%d].GetLengths()[0][1]: %d, %d\n",
+//               i,
+//               xDesc[i].GetLengths()[0],
+//               xDesc[i].GetLengths()[1]);
+//        printf("yDesc[%d].GetLengths()[0][1]: %d, %d\n",
+//               i,
+//               yDesc[i].GetLengths()[0],
+//               yDesc[i].GetLengths()[1]);
+//    }
 
     int batch_n = 0;
     for(int i = 0; i < seqLen; i++)
@@ -149,7 +149,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
         in_n.push_back(batchval);
-        batch_n += xDesc[i].GetLengths()[0];
+        batch_n += batchval;
     }
 
     int bacc, baccbi;
@@ -650,7 +650,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
         in_n.push_back(batchval);
-        batch_n += dxDesc[i].GetLengths()[0];
+        batch_n += batchval;
     }
 
     int bacc, baccbi;

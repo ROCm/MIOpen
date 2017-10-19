@@ -384,22 +384,20 @@ void RNNDescriptor::GetParamsDescriptor(Handle& handle,
     int bi          = (dirMode == miopenRNNbidirection) ? 2 : 1;
     std::array<int, 2> weight_lens;
 
-    if(biasMode == miopenRNNNoBias)
-    {
-        weight_lens[0] = inputVecLen + (2 * nLayers - 1) * hsize;
-    }
-    else
-    {
-        weight_lens[0] = inputVecLen + (2 * nLayers - 1) * hsize + 2 * nLayers;
-    }
+// NOTE dlowell: This is my calc, instead using Jing's
+//    if(biasMode == miopenRNNNoBias)
+//    {
+//        weight_lens[0] = inputVecLen + (2 * nLayers - 1) * hsize;
+//    }
+//    else
+//    {
+//        weight_lens[0] = inputVecLen + (2 * nLayers - 1) * hsize + 2 * nLayers;
+//    }
 
+    //Jing's calculations
+    weight_lens[0] = inputVecLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
     weight_lens[1] = bi * hsize * nHiddenTensorsPerLayer;
 
-    // Jing Zhou, this was your calc in the driver. It looks like there is an extra bi = 2 in the
-    // first dimension
-    //    std::array<int, 2> wei_lens = {inputVecLen + ((nLayers - 1) * (bi + 1) + 1) * hsize,
-    //                               bi*hsize*nHiddenTensorsPerLayer};////wei_len[0] * wei_len[3] *
-    //                               wei_len[5]};
 
     miopenSetTensorDescriptor(&wDesc, miopenFloat, 2, weight_lens.data(), nullptr);
 }
@@ -414,7 +412,8 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
                                   Data_t param) const
 {
     // input is
-    // 1. Calculate the location of the matrix via layerID, bidirection setting, and param
+    // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
+    
     // 2. Construct descriptor for param matrix
     // 3. Copy over data to previously allocated param tensor
 }
