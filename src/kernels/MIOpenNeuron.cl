@@ -290,8 +290,8 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
                 _FLOAT power,
                 _FLOAT scale,
                 _FLOAT shift,
-                UNUSED const long xOffset,
-                UNUSED const long yOffset)
+                const long xOffset,
+                const long yOffset)
 {
     int x = get_global_id(0); // channel x
 
@@ -349,10 +349,10 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                 _FLOAT power,
                 _FLOAT scale,
                 _FLOAT shift,
-                UNUSED const long dxOffset
-                UNUSED const long dyOffset,
-                UNUSED const long xOffset,
-                UNUSED const long yOffset)
+                const long dxOffset,
+                const long dyOffset,
+                const long xOffset,
+                const long yOffset)
 {
 
     (void)diff_scale;
