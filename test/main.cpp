@@ -212,11 +212,12 @@ struct conv_forward : output_tensor_fixture
         cl_mem fwd_workspace_dev =
             clCreateBuffer(ctx, CL_MEM_READ_WRITE, sz_fwd_workspace, nullptr, nullptr);
 
-        status = clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4 * sz_in, in.data(), 0, nullptr, nullptr);
-        status |=
-            clEnqueueWriteBuffer(q, wei_dev, CL_TRUE, 0, 4 * sz_wei, wei.data(), 0, nullptr, nullptr);
-        status |=
-            clEnqueueWriteBuffer(q, out_dev, CL_TRUE, 0, 4 * sz_out, out.data(), 0, nullptr, nullptr);
+        status =
+            clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4 * sz_in, in.data(), 0, nullptr, nullptr);
+        status |= clEnqueueWriteBuffer(
+            q, wei_dev, CL_TRUE, 0, 4 * sz_wei, wei.data(), 0, nullptr, nullptr);
+        status |= clEnqueueWriteBuffer(
+            q, out_dev, CL_TRUE, 0, 4 * sz_out, out.data(), 0, nullptr, nullptr);
         status |= clEnqueueWriteBuffer(q,
                                        fwd_workspace_dev,
                                        CL_TRUE,
