@@ -445,6 +445,11 @@ struct conv_driver : test_driver
         filter.pad_w = (input_w%filter.v == 0)?(std::max(static_cast<int>(wei_w-filter.v), 0)):(std::max(static_cast<int>(wei_w-(input_w%filter.v)), 0));
 #endif
 
+#ifdef TF_VALID
+        filter.pad_h = 0;
+        filter.pad_w = 0;
+#endif
+
         if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
            wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
            input_h >= (2 * filter.pad_h + wei_h) && input_w >= (2 * filter.pad_w + wei_w))
