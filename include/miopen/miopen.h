@@ -1725,11 +1725,11 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rn
 /*! @brief Retrieves a RNN layer descriptor's details
 *
 * @param rnnDesc    RNN layer descriptor
-* @param mode       RNN mode
+* @param rnnMode       RNN mode
 * @param algoMode   RNN algorithm mode
 * @param inputMode  RNN data input mode
-* @param bidir      Uni or bi direction mode
-* @param bias       Bias used
+* @param dirMode      Uni or bi direction mode
+* @param biasMode       Bias used
 * @param hiddenSize size of hidden state
 * @param layer      number of stacked layers
 * @return           miopenStatus_t
@@ -1841,6 +1841,24 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
                                                     size_t* numBytes,
                                                     miopenDataType_t dtype);
 
+/*! @brief Obtain a weight tensor descriptor for RNNs
+ *
+ * This function populates a weight descriptor that describes the memory layout of the
+ * weight matrix.
+ *
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param xDesc           A previously populated tensor descriptor (input)
+ * @param wDesc           A previously allocated tensor descriptor (output)
+ * @param dtype           MIOpen data type enum (input)
+ * @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
+                                                          miopenRNNDescriptor_t rnnDesc,
+                                                          miopenTensorDescriptor_t xDesc,
+                                                          miopenTensorDescriptor_t wDesc,
+                                                          miopenDataType_t dtype);
+
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t handle,
                                                               miopenRNNDescriptor_t rnnDesc,
                                                               const int seqLen,
@@ -1910,9 +1928,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
                                                    miopenTensorDescriptor_t biasDesc,
                                                    void* layerBias);
 
-
-
-
 /*! @brief Gets a pointer to memory containing parameter tensor for a specific layer in an RNN stack
  *
  *
@@ -1960,7 +1975,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
                                                    const int layerID,
                                                    miopenTensorDescriptor_t biasDesc,
                                                    void* layerBias);
-
 
 /*! @brief Execute forward training for recurrent layer
  *
