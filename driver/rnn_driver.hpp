@@ -193,7 +193,7 @@ class RNNDriver : public Driver
     miopenRNNDescriptor_t rnnDesc;
 
     int batchsize;
-    int actualseq;
+    int adjustedSeqLen;
     std::vector<int> batchseq;
 
     //    std::string GetVerificationCacheFileName() const;
@@ -237,7 +237,6 @@ int RNNDriver<T>::GetandSetData()
     }
 
     std::array<int, 3> hid_lens    = {hid_len[0], in_len[0], hid_len[1]};
-    std::array<int, 3> hid_strides = {in_len[0] * hid_len[1], hid_len[1], 1};
     miopenSetTensorDescriptor(hiddenTensor, miopenFloat, 3, hid_lens.data(), nullptr);
 
     SetRNNDescriptorFromCmdLineArgs();
@@ -293,24 +292,23 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     int in_h = inflags.GetValueInt("in_h");
     std::vector<int> in_n(nseq, 0);
     std::string batchstr = inflags.GetValueStr("batchsize");
-    printf("batchstr: %s\n", batchstr.c_str());
     std::stringstream ss(batchstr);
     int count = 0;
-    // batchseq.clear();
+    
     int element;
     if(!batchseq.size())
     {
         while(ss >> element)
         {
+            batchseq.push_back(element);
             if(batchseq.size() > nseq)
             {
                 printf("Length of data sequence is longer than required unrolled time sequence "
-                       "provided. "
+                       "provided.\n"
                        "The data sequence will be truncated to match unrolled time sequence.\n");
                 break;
             }
             // assert(isdigit(ss.peek()));
-            batchseq.push_back(element);
             count++;
 
             if(ss.peek() == ',' || ss.peek() == ' ')
@@ -320,14 +318,15 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
             // std::cout << "element: " << element <<std::endl;
             // printf("count: %d, nseq: %d\n", count, nseq);
         }
-        actualseq = nseq;
+        adjustedSeqLen = nseq;
         if(count < nseq)
         {
             printf(
-                "Length of data sequence is shorter than required unrolled time sequence provided. "
+                "Length of data sequence is shorter than required unrolled time sequence provided.\n"
                 "Unrolled time sequence will be truncated to match the data sequence.\n");
-            actualseq = count;
+            adjustedSeqLen = count;
         }
+        
         //    for(int i = 0; i<batchseq.size();i++)
         //    {
         //        std::cout << "element[" << i <<"]:" << batchseq[i] << std::endl;
@@ -507,7 +506,7 @@ std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine() // need remov
 template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
-    int seqLength    = inflags.GetValueInt("seq_len");
+    //int seqLength    = inflags.GetValueInt("seq_len");
     size_t in_sz     = 0;
     size_t out_sz    = 0;
     size_t wei_sz    = 0;
@@ -518,15 +517,15 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 
     miopenGetRNNInputSuperTensorSize(GetHandle(),
                                      rnnDesc,
-                                     seqLength,
+                                     adjustedSeqLen,
                                      inputTensors.data(),
                                      &in_sz); // use c_array to pass vector for all size function
     miopenGetRNNInputSuperTensorSize(
-        GetHandle(), rnnDesc, seqLength, outputTensors.data(), &out_sz);
-    miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &hy_sz);
-    miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &workSpaceSize);
+        GetHandle(), rnnDesc, adjustedSeqLen, outputTensors.data(), &out_sz);
+    miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &hy_sz);
+    miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &workSpaceSize);
     miopenGetRNNTrainingReserveSize(
-        GetHandle(), rnnDesc, seqLength, inputTensors.data(), &reserveSpaceSize);
+        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &reserveSpaceSize);
     miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &params_sz, miopenFloat);
     miopenGetRNNWeightSuperTensorSize(
         GetHandle(), rnnDesc, &wei_sz, inputTensors[0], outputTensors[0]);
@@ -694,7 +693,6 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 template <typename T>
 int RNNDriver<T>::RunForwardGPU()
 {
-    int seqLength = inflags.GetValueInt("seq_len");
 
     Timer t;
     START_TIME;
@@ -706,7 +704,7 @@ int RNNDriver<T>::RunForwardGPU()
 
         miopenRNNForwardTraining(GetHandle(),
                                  rnnDesc,
-                                 seqLength,
+                                 adjustedSeqLen,
                                  inputTensors.data(),
                                  in_dev->GetMem(),
                                  hiddenTensor,
@@ -768,7 +766,8 @@ int RNNDriver<T>::RunForwardCPU()
     in_n.pop_back();
 
     bool bidirection, biased;
-    int seqLength = inflags.GetValueInt("seq_len"), layer;
+    int layer;
+    
     miopenRNNMode_t mode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
@@ -793,7 +792,7 @@ int RNNDriver<T>::RunForwardCPU()
                                    outhost,
                                    in_n,
                                    in_h,
-                                   seqLength,
+                                   adjustedSeqLen,
                                    bidirection,
                                    biased,
                                    hy_d,
@@ -817,7 +816,7 @@ int RNNDriver<T>::RunForwardCPU()
                                     outhost,
                                     in_n,
                                     in_h,
-                                    seqLength,
+                                    adjustedSeqLen,
                                     bidirection,
                                     biased,
                                     hy_d,
@@ -837,7 +836,7 @@ int RNNDriver<T>::RunForwardCPU()
                                    outhost,
                                    in_n,
                                    in_h,
-                                   seqLength,
+                                   adjustedSeqLen,
                                    bidirection,
                                    biased,
                                    hy_d,
@@ -863,7 +862,6 @@ int RNNDriver<T>::RunForwardCPU()
 template <typename T>
 int RNNDriver<T>::RunBackwardGPU()
 {
-    int seqLength = inflags.GetValueInt("seq_len");
     int ret       = 0;
 
     Timer t;
@@ -875,7 +873,7 @@ int RNNDriver<T>::RunBackwardGPU()
     {
         ret = miopenRNNBackwardData(GetHandle(),
                                     rnnDesc,
-                                    seqLength,
+                                    adjustedSeqLen,
                                     outputTensors.data(),
                                     out_dev->GetMem(), // why we need this
                                     outputTensors.data(),
@@ -923,7 +921,7 @@ int RNNDriver<T>::RunBackwardGPU()
 
     ret = miopenRNNBackwardWeights(GetHandle(),
                                    rnnDesc,
-                                   seqLength,
+                                   adjustedSeqLen,
                                    inputTensors.data(),
                                    in_dev->GetMem(),
                                    hiddenTensor,
@@ -975,7 +973,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     in_n.pop_back();
 
     bool bidirection, biased;
-    int seqLength = inflags.GetValueInt("seq_len"), layer;
+    int layer;
     miopenRNNMode_t mode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
@@ -999,7 +997,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                           dout,
                                           in_n,
                                           in_h,
-                                          seqLength,
+                                          adjustedSeqLen,
                                           bidirection,
                                           biased,
                                           hy_d,
@@ -1020,7 +1018,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                            dout,
                                            in_n,
                                            in_h,
-                                           seqLength,
+                                           adjustedSeqLen,
                                            bidirection,
                                            biased,
                                            hy_d,
@@ -1040,7 +1038,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                           dout,
                                           in_n,
                                           in_h,
-                                          seqLength,
+                                          adjustedSeqLen,
                                           bidirection,
                                           biased,
                                           hy_d,
@@ -1076,7 +1074,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
     in_n.pop_back();
 
     bool bidirection, biased;
-    int seqLength = inflags.GetValueInt("seq_len"), layer;
+    int layer;
     miopenRNNMode_t mode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
@@ -1103,7 +1101,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                         dout,
                                         in_n,
                                         in_h,
-                                        seqLength,
+                                        adjustedSeqLen,
                                         bidirection,
                                         biased,
                                         hy_d,
@@ -1130,7 +1128,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                          dout,
                                          in_n,
                                          in_h,
-                                         seqLength,
+                                         adjustedSeqLen,
                                          bidirection,
                                          biased,
                                          hy_d,
@@ -1154,7 +1152,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                         dout,
                                         in_n,
                                         in_h,
-                                        seqLength,
+                                        adjustedSeqLen,
                                         bidirection,
                                         biased,
                                         hy_d,
