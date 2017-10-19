@@ -401,111 +401,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     }
                 }
 
-                /*				if (!dirMode)
-                                                {
-                                                                int rsv_sz = in_n[ti] * hy_h;
-                                                                std::vector<int> rsv_size(3, 1);
-                                                                rsv_size.push_back(rsv_sz);
-
-                                                                miopenTensorDescriptor_t rsvTensor;
-                                                                miopenCreateTensorDescriptor(&rsvTensor);
-                                                                SetTensor4d(rsvTensor, rsv_size);
-
-                                                                float alpha = 1, beta = 0;
-                                                                ActivationDescriptor activDesc;
-
-                                                                if (rnnMode == miopenRNNRELU)
-                                                                {
-                                                                        activDesc = {
-                 miopenActivationRELU, 1, 0, 1 };
-                                                                }
-                 else if (rnnMode == miopenRNNTANH)
-                                                                {
-                                                                        activDesc = {
-                 miopenActivationTANH, 1, 1, 1 };
-                                                                }
-
-                                                                shared<Data_t> mem1 =
-                 handle.CreateSubBuffer(reserveSpace, hid_shift + bacc * hy_stride, in_n[ti] *
-                 hy_h);
-                                                                shared<Data_t> mem2 =
-                 handle.CreateSubBuffer(workSpace, hid_shift + bacc * hy_stride, in_n[ti] * hy_h);
-
-                                                                activDesc.Forward(handle,
-                                                                        &alpha,
-                                                                        miopen::deref(rsvTensor),
-                                                                mem1.get(),
-                                                                        &beta,
-                                                                        miopen::deref(rsvTensor),
-                                                                        mem2.get());
-
-                                                }
-                                                else
-                                                {
-                                                        int rsv_sz = hy_h;
-                                                        std::vector<int> rsv_size(3, 1);
-                                                        rsv_size.push_back(rsv_sz);
-
-                                                        miopenTensorDescriptor_t rsvTensor;
-                                                        miopenCreateTensorDescriptor(&rsvTensor);
-                                                        SetTensor4d(rsvTensor, rsv_size);
-
-                                                        float alpha = 1, beta = 0;
-                                                        ActivationDescriptor activDesc;
-
-                                                        if (rnnMode == miopenRNNRELU)
-                                                        {
-                                                                activDesc = { miopenActivationRELU,
-                 1, 0, 1 };
-                                                        }
-                                                        else if (rnnMode == miopenRNNTANH)
-                                                        {
-                                                                activDesc = { miopenActivationTANH,
-                 1, 1, 1 };
-                                                        }
-
-                                                        for (int bs = 0; bs < in_n[ti]; bs++)
-                                                        {
-                                                                activDesc.Forward(handle,
-                                                                        &alpha,
-                                                                        miopen::deref(rsvTensor),
-                                                                        handle.CreateSubBuffer(reserveSpace,
-                 hid_shift + (bacc + bs) * hy_stride, hy_h),
-                                                                        &beta,
-                                                                        miopen::deref(rsvTensor),
-                                                                        handle.CreateSubBuffer(workSpace,
-                 hid_shift + (bacc + bs) * hy_stride, hy_h));
-                                                        }
-
-                                                        for (int bs = 0; bs < in_n[seqLen - 1 -
-                 ti]; bs++)
-                                                        {
-                                                                activDesc.Forward(handle,
-                                                                        &alpha,
-                                                                        miopen::deref(rsvTensor),
-                                                                        handle.CreateSubBuffer(reserveSpace,
-                 hid_shift + (baccbi + bs) * hy_stride + hy_h, hy_h),
-                                                                        &beta,
-                                                                        miopen::deref(rsvTensor),
-                                                                        handle.CreateSubBuffer(workSpace,
-                 hid_shift + (baccbi + bs) * hy_stride + hy_h, hy_h));
-                                                        }
-                                                }*/
-
-                std::vector<int> rsv_size(2, 1);
-                rsv_size.push_back(in_n[ti]);
+                std::vector<int> rsv_size(3, 1);
                 rsv_size.push_back(hy_h);
-
-                std::vector<int> rsv_stride;
-                rsv_stride.push_back(rsv_h * rsv_w);
-                rsv_stride.push_back(rsv_h * rsv_w);
-                rsv_stride.push_back(rsv_w);
-                rsv_stride.push_back(1);
 
                 miopenTensorDescriptor_t rsvTensor;
                 miopenCreateTensorDescriptor(&rsvTensor);
-                miopenSetTensorDescriptor(
-                    rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+				SetTensor4d(rsvTensor, rsv_size);
 
                 float alpha = 1, beta = 0;
                 ActivationDescriptor activDesc;
@@ -519,51 +420,51 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     activDesc = {miopenActivationTANH, 1, 1, 1};
                 }
 
-                size_t offset = hid_shift + bacc * hy_stride;
+				for (int bs = 0; bs < in_n[ti]; bs++)
+				{
+					size_t offset = hid_shift + bacc * hy_stride + bs * hy_stride;
 
-                activDesc.Forward(handle,
-                                  &alpha,
-                                  miopen::deref(rsvTensor),
-                                  reserveSpace,
-                                  &beta,
-                                  miopen::deref(rsvTensor),
-                                  workSpace,
-                                  offset,
-                                  offset);
+					activDesc.Forward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset,
+						offset);
 
-                // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_0 = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_0);
-                }
+					// Update time
+					if (handle.IsProfilingEnabled())
+					{
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
+				}
 
                 if(dirMode)
                 {
-                    rsv_size[2] = in_n[seqLen - 1 - ti];
+					for (int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
+					{
+						offset = hid_shift + baccbi * hy_stride + hy_h;
 
-                    miopenCreateTensorDescriptor(&rsvTensor);
-                    miopenSetTensorDescriptor(
-                        rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+						activDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset,
+							offset);
 
-                    offset = hid_shift + baccbi * hy_stride + hy_h;
-
-                    activDesc.Forward(handle,
-                                      &alpha,
-                                      miopen::deref(rsvTensor),
-                                      reserveSpace,
-                                      &beta,
-                                      miopen::deref(rsvTensor),
-                                      workSpace,
-                                      offset,
-                                      offset);
-
-                    // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+						// Update time
+						if (handle.IsProfilingEnabled())
+						{
+							time_0 = handle.GetKernelTime();
+							handle.AccumKernelTime(time_0);
+						}
+					}
                 }
 
                 bacc += in_n[ti];
