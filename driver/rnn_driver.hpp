@@ -193,6 +193,7 @@ class RNNDriver : public Driver
     miopenRNNDescriptor_t rnnDesc;
 
     int batchsize;
+    int adjustedSeqLen;
     std::vector<int> batchseq;
 
     //    std::string GetVerificationCacheFileName() const;
@@ -211,7 +212,7 @@ int RNNDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename T>
@@ -224,32 +225,24 @@ int RNNDriver<T>::GetandSetData()
 
     for(int i = 0; i < in_len.size() - 1; i++)
     {
-        std::array<int, 2> in_lens    = {in_len[i], in_len.back()};
-        std::array<int, 2> in_strides = {in_len.back(), 1};
+        std::array<int, 2> in_lens = {in_len[i], in_len.back()};
         miopenCreateTensorDescriptor(&inputTensor);
-        miopenSetTensorDescriptor(inputTensor, miopenFloat, 2, in_lens.data(), in_strides.data());
+        miopenSetTensorDescriptor(inputTensor, miopenFloat, 2, in_lens.data(), nullptr);
         inputTensors.push_back(inputTensor);
 
-        std::array<int, 2> out_lens    = {in_len[i], out_len[0]};
-        std::array<int, 2> out_strides = {out_len[0], 1};
-		miopenCreateTensorDescriptor(&outputTensor);
-        miopenSetTensorDescriptor(
-            outputTensor, miopenFloat, 2, out_lens.data(), out_strides.data());
+        std::array<int, 2> out_lens = {in_len[i], out_len[0]};
+        miopenCreateTensorDescriptor(&outputTensor);
+        miopenSetTensorDescriptor(outputTensor, miopenFloat, 2, out_lens.data(), nullptr);
         outputTensors.push_back(outputTensor);
     }
 
     std::array<int, 3> hid_lens    = {hid_len[0], in_len[0], hid_len[1]};
-    std::array<int, 3> hid_strides = {in_len[0] * hid_len[1], hid_len[1], 1};
-    miopenSetTensorDescriptor(hiddenTensor, miopenFloat, 3, hid_lens.data(), hid_strides.data());
-
-    std::array<int, 2> wei_lens = {wei_len[2] + ((wei_len[1] - 1) * (wei_len[0] + 1) + 1) * wei_len[3], wei_len[0] * wei_len[3] * wei_len[5]};
-	if ((inflags.GetValueInt("bias")) == 1)
-		wei_lens[0] += 2 * wei_len[1];
-    miopenSetTensorDescriptor(weightTensor, miopenFloat, 2, wei_lens.data(), nullptr);
+    miopenSetTensorDescriptor(hiddenTensor, miopenFloat, 3, hid_lens.data(), nullptr);
 
     SetRNNDescriptorFromCmdLineArgs();
+    miopenGetRNNParamsDescriptor(handle, rnnDesc, inputTensor, weightTensor, miopenFloat);
 
-    return (0);
+    return miopenStatusSuccess;
 }
 
 template <typename T>
@@ -299,25 +292,45 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     int in_h = inflags.GetValueInt("in_h");
     std::vector<int> in_n(nseq, 0);
     std::string batchstr = inflags.GetValueStr("batchsize");
-    /*    std::stringstream ss(batchstr);
-
-        if(batchseq.size() == 0)
+    std::stringstream ss(batchstr);
+    int count = 0;
+    
+    int element;
+    if(!batchseq.size())
+    {
+        while(ss >> element)
         {
-            int element;
-            while(ss >> element)
+            batchseq.push_back(element);
+            if(batchseq.size() > nseq)
             {
-                if(ss.peek() == ',' || ss.peek() == ' ')
-                {
-                    ss.ignore();
-                }
-                batchseq.push_back(element);
+                printf("Length of data sequence is longer than required unrolled time sequence "
+                       "provided.\n"
+                       "The data sequence will be truncated to match unrolled time sequence.\n");
+                break;
             }
-        }
+            // assert(isdigit(ss.peek()));
+            count++;
 
-        //    for(int i = 0; i<batchseq.size();i++){
+            if(ss.peek() == ',' || ss.peek() == ' ')
+            {
+                ss.ignore();
+            }
+            // std::cout << "element: " << element <<std::endl;
+            // printf("count: %d, nseq: %d\n", count, nseq);
+        }
+        adjustedSeqLen = nseq;
+        if(count < nseq)
+        {
+            printf(
+                "Length of data sequence is shorter than required unrolled time sequence provided.\n"
+                "Unrolled time sequence will be truncated to match the data sequence.\n");
+            adjustedSeqLen = count;
+        }
+        
+        //    for(int i = 0; i<batchseq.size();i++)
+        //    {
         //        std::cout << "element[" << i <<"]:" << batchseq[i] << std::endl;
         //    }
-
         for(int i = 0; i < batchseq.size() && i < nseq; i++)
         {
             if(i > 0 && batchseq[i] > batchseq[i - 1])
@@ -330,45 +343,9 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
                 in_n[i] = in_n[i] * 10 + batchseq[i];
             }
         }
-            */
-
-    int cont = 0;
-
-    for(int i = 0; i < batchstr.length(); i++)
-    {
-        if(cont >= nseq)
-        {
-            printf("Length of data sequence is longer than required unrolled time sequence. Data "
-                   "sequence will be truncated to match unrolled time sequence");
-            break;
-        }
-
-        if(batchstr[i] == ',')
-        {
-            if(cont >= 1)
-            {
-                if(in_n[cont] > in_n[cont - 1])
-                {
-                    printf("Error: Incorrect input batch size at time %d. Batch size must decrease "
-                           "by time.\n",
-                           cont);
-                    break;
-                }
-            }
-            cont++;
-        }
-        else if(batchstr[i] >= '0' && batchstr[i] <= '9')
-        {
-            in_n[cont] = in_n[cont] * 10 + stoi(batchstr.substr(i, 1));
-        }
-        else
-        {
-            printf("illegal input of in_n batch size");
-            break;
-        }
+        in_n.push_back(in_h);
     }
 
-    in_n.push_back(in_h);
     return in_n;
 }
 
@@ -394,11 +371,11 @@ std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
     if((inflags.GetValueInt("bidirection")) == 1)
         wei_bi = 2;
 
-	int wei_sc = 1;
-	if ((inflags.GetValueStr("mode")) == "lstm")
-		wei_sc = 4;
-	else if ((inflags.GetValueStr("mode")) == "gru")
-		wei_sc = 3;
+    int wei_sc = 1;
+    if((inflags.GetValueStr("mode")) == "lstm")
+        wei_sc = 4;
+    else if((inflags.GetValueStr("mode")) == "gru")
+        wei_sc = 3;
 
     return std::vector<int>({wei_bi, wei_l, wei_ih, wei_hh, wei_oh, wei_sc});
 }
@@ -406,6 +383,7 @@ std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
 template <typename T>
 int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 {
+
     int layer  = inflags.GetValueInt("num_layer");
     int wei_hh = inflags.GetValueInt("hid_h"); // hidden state size
 
@@ -512,8 +490,10 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    return miopenSetRNNDescriptor(
+    miopenSetRNNDescriptor(
         rnnDesc, wei_hh, layer, inMode, directionMode, mode, biasMode, algo, dataType);
+
+    return miopenStatusSuccess;
 }
 
 template <typename T>
@@ -526,7 +506,7 @@ std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine() // need remov
 template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
-    int seqLength    = inflags.GetValueInt("seq_len");
+    //int seqLength    = inflags.GetValueInt("seq_len");
     size_t in_sz     = 0;
     size_t out_sz    = 0;
     size_t wei_sz    = 0;
@@ -534,17 +514,18 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     size_t params_sz = 0;
     size_t workSpaceSize;
     size_t reserveSpaceSize;
+
     miopenGetRNNInputSuperTensorSize(GetHandle(),
                                      rnnDesc,
-                                     seqLength,
+                                     adjustedSeqLen,
                                      inputTensors.data(),
                                      &in_sz); // use c_array to pass vector for all size function
     miopenGetRNNInputSuperTensorSize(
-        GetHandle(), rnnDesc, seqLength, outputTensors.data(), &out_sz);
-    miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &hy_sz);
-    miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, seqLength, inputTensors.data(), &workSpaceSize);
+        GetHandle(), rnnDesc, adjustedSeqLen, outputTensors.data(), &out_sz);
+    miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &hy_sz);
+    miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &workSpaceSize);
     miopenGetRNNTrainingReserveSize(
-        GetHandle(), rnnDesc, seqLength, inputTensors.data(), &reserveSpaceSize);
+        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &reserveSpaceSize);
     miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &params_sz, miopenFloat);
     miopenGetRNNWeightSuperTensorSize(
         GetHandle(), rnnDesc, &wei_sz, inputTensors[0], outputTensors[0]);
@@ -702,23 +683,28 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
+#include <array>
+#include <initializer_list>
+#include <miopen/errors.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_ops.hpp>
+
 template <typename T>
 int RNNDriver<T>::RunForwardGPU()
 {
-    int seqLength = inflags.GetValueInt("seq_len");
 
     Timer t;
     START_TIME;
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-
         std::fill(out.begin(), out.end(), 0);
         out_dev->ToGPU(GetStream(), out.data());
 
         miopenRNNForwardTraining(GetHandle(),
                                  rnnDesc,
-                                 seqLength,
+                                 adjustedSeqLen,
                                  inputTensors.data(),
                                  in_dev->GetMem(),
                                  hiddenTensor,
@@ -738,7 +724,7 @@ int RNNDriver<T>::RunForwardGPU()
                                  reservespace_dev->GetMem(),
                                  reservespace_dev->GetSize());
     }
-    
+
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
@@ -752,7 +738,7 @@ int RNNDriver<T>::RunForwardGPU()
         // printf("MIOpen Forward RNN Algorithm: %d\n", perf_results[0].fwd_algo);
         printf("GPU Kernel Time Forward RNN Elapsed: %f ms\n", time);
     }
-    
+
     out_dev->FromGPU(GetStream(), out.data());
     hy_dev->FromGPU(GetStream(), hy.data());
     cy_dev->FromGPU(GetStream(), cy.data());
@@ -763,8 +749,7 @@ int RNNDriver<T>::RunForwardGPU()
     {
         dumpBufferToFile("dump_fwd_out_gpu.bin", out.data(), out.size());
     }
-
-        */
+    */
 
     return miopenStatusSuccess;
 }
@@ -781,7 +766,8 @@ int RNNDriver<T>::RunForwardCPU()
     in_n.pop_back();
 
     bool bidirection, biased;
-    int seqLength = inflags.GetValueInt("seq_len"), layer;
+    int layer;
+    
     miopenRNNMode_t mode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
@@ -806,7 +792,7 @@ int RNNDriver<T>::RunForwardCPU()
                                    outhost,
                                    in_n,
                                    in_h,
-                                   seqLength,
+                                   adjustedSeqLen,
                                    bidirection,
                                    biased,
                                    hy_d,
@@ -830,7 +816,7 @@ int RNNDriver<T>::RunForwardCPU()
                                     outhost,
                                     in_n,
                                     in_h,
-                                    seqLength,
+                                    adjustedSeqLen,
                                     bidirection,
                                     biased,
                                     hy_d,
@@ -850,7 +836,7 @@ int RNNDriver<T>::RunForwardCPU()
                                    outhost,
                                    in_n,
                                    in_h,
-                                   seqLength,
+                                   adjustedSeqLen,
                                    bidirection,
                                    biased,
                                    hy_d,
@@ -870,13 +856,12 @@ int RNNDriver<T>::RunForwardCPU()
     }
 
     //    TrySaveVerificationCache("fwd_out", outhost);
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename T>
 int RNNDriver<T>::RunBackwardGPU()
 {
-    int seqLength = inflags.GetValueInt("seq_len");
     int ret       = 0;
 
     Timer t;
@@ -888,7 +873,7 @@ int RNNDriver<T>::RunBackwardGPU()
     {
         ret = miopenRNNBackwardData(GetHandle(),
                                     rnnDesc,
-                                    seqLength,
+                                    adjustedSeqLen,
                                     outputTensors.data(),
                                     out_dev->GetMem(), // why we need this
                                     outputTensors.data(),
@@ -928,7 +913,7 @@ int RNNDriver<T>::RunBackwardGPU()
         // printf("MIOpen Backward Data RNN Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
         printf("GPU Kernel Time Backward Data RNN Elapsed: %f ms\n", time);
     }
-    
+
     din_dev->FromGPU(GetStream(), din.data());
     dhx_dev->FromGPU(GetStream(), dhx.data());
     dcx_dev->FromGPU(GetStream(), dcx.data());
@@ -936,7 +921,7 @@ int RNNDriver<T>::RunBackwardGPU()
 
     ret = miopenRNNBackwardWeights(GetHandle(),
                                    rnnDesc,
-                                   seqLength,
+                                   adjustedSeqLen,
                                    inputTensors.data(),
                                    in_dev->GetMem(),
                                    hiddenTensor,
@@ -958,7 +943,7 @@ int RNNDriver<T>::RunBackwardGPU()
         //        perf_results_weights[0].bwd_weights_algo);
         printf("GPU Kernel Time Backward Weights RNN Elapsed: %f ms\n", time);
     }
-    
+
     dwei_dev->FromGPU(GetStream(), dwei.data());
     /*
     if(perf_results_weights[0].bwd_weights_algo == 0)
@@ -988,7 +973,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     in_n.pop_back();
 
     bool bidirection, biased;
-    int seqLength = inflags.GetValueInt("seq_len"), layer;
+    int layer;
     miopenRNNMode_t mode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
@@ -1012,7 +997,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                           dout,
                                           in_n,
                                           in_h,
-                                          seqLength,
+                                          adjustedSeqLen,
                                           bidirection,
                                           biased,
                                           hy_d,
@@ -1033,7 +1018,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                            dout,
                                            in_n,
                                            in_h,
-                                           seqLength,
+                                           adjustedSeqLen,
                                            bidirection,
                                            biased,
                                            hy_d,
@@ -1053,7 +1038,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                           dout,
                                           in_n,
                                           in_h,
-                                          seqLength,
+                                          adjustedSeqLen,
                                           bidirection,
                                           biased,
                                           hy_d,
@@ -1074,7 +1059,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     }
 
     //    TrySaveVerificationCache("bwd_wei", dwei_host);
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename T>
@@ -1089,7 +1074,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
     in_n.pop_back();
 
     bool bidirection, biased;
-    int seqLength = inflags.GetValueInt("seq_len"), layer;
+    int layer;
     miopenRNNMode_t mode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
@@ -1116,7 +1101,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                         dout,
                                         in_n,
                                         in_h,
-                                        seqLength,
+                                        adjustedSeqLen,
                                         bidirection,
                                         biased,
                                         hy_d,
@@ -1143,7 +1128,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                          dout,
                                          in_n,
                                          in_h,
-                                         seqLength,
+                                         adjustedSeqLen,
                                          bidirection,
                                          biased,
                                          hy_d,
@@ -1167,7 +1152,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                         dout,
                                         in_n,
                                         in_h,
-                                        seqLength,
+                                        adjustedSeqLen,
                                         bidirection,
                                         biased,
                                         hy_d,
@@ -1188,7 +1173,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
     }
 
     //    TrySaveVerificationCache("bwd_dat", din_host);
-    return 0;
+    return miopenStatusSuccess;
 }
 
 /*
@@ -1315,7 +1300,7 @@ int RNNDriver<T>::VerifyForward()
         printf("reserve space Verifies on CPU and GPU\n");
     }
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename T>
@@ -1393,7 +1378,7 @@ int RNNDriver<T>::VerifyBackward()
         printf("Backward RNN Weights Verifies on CPU and GPU\n");
     }
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
 #endif // GUARD_MIOPEN_RNN_DRIVER_HPP

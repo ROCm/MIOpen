@@ -481,6 +481,15 @@ MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
                                                void* y,
                                                const void* alpha);
 
+/*! @brief Returns number of bytes associated with tensor descriptor
+ *
+ * @param tensorDesc Tensor descriptor (input)
+ * @param numBytes   Number of bytes associated with tensor descriptor (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
+                                                     size_t* numBytes);
+
 /** @} */
 // CLOSEOUT TENSOR DOXYGEN GROUP
 
@@ -1716,11 +1725,11 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rn
 /*! @brief Retrieves a RNN layer descriptor's details
 *
 * @param rnnDesc    RNN layer descriptor
-* @param mode       RNN mode
+* @param rnnMode       RNN mode
 * @param algoMode   RNN algorithm mode
 * @param inputMode  RNN data input mode
-* @param bidir      Uni or bi direction mode
-* @param bias       Bias used
+* @param dirMode      Uni or bi direction mode
+* @param biasMode       Bias used
 * @param hiddenSize size of hidden state
 * @param layer      number of stacked layers
 * @return           miopenStatus_t
@@ -1801,11 +1810,11 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNWorkspaceSize(miopenHandle_t handle,
  * space, however it can safely be backed up and restored between calls if reuse of the memory
  * is desired."
  *
- * @param handle          MIOpen handle
- * @param rnnDesc         RNN layer descriptor type
- * @param sequenceLen     Number of iteration unrolls
- * @param xDesc           An array of tensor descriptors
- * @param numBytes        Number of bytes required for RNN layer execution
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param sequenceLen     Number of iteration unrolls (input)
+ * @param xDesc           An array of tensor descriptors (input)
+ * @param numBytes        Number of bytes required for RNN layer execution (output)
  * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNTrainingReserveSize(miopenHandle_t handle,
@@ -1819,11 +1828,11 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNTrainingReserveSize(miopenHandle_t hand
  * This function calculates the amount of parameter memory required to train the RNN layer given an
  * RNN descriptor and a tensor descriptor.
  *
- * @param handle          MIOpen handle
- * @param rnnDesc         RNN layer descriptor type
- * @param xDesc           A tensor descriptor
- * @param numBytes        Number of bytes required for RNN layer execution
- * @param dtype           MIOpen data type enum
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param xDesc           A tensor descriptor (input)
+ * @param numBytes        Number of bytes required for RNN layer execution (output)
+ * @param dtype           MIOpen data type enum (input)
  * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
@@ -1831,6 +1840,24 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
                                                     miopenTensorDescriptor_t xDesc,
                                                     size_t* numBytes,
                                                     miopenDataType_t dtype);
+
+/*! @brief Obtain a weight tensor descriptor for RNNs
+ *
+ * This function populates a weight descriptor that describes the memory layout of the
+ * weight matrix.
+ *
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param xDesc           A previously populated tensor descriptor (input)
+ * @param wDesc           A previously allocated tensor descriptor (output)
+ * @param dtype           MIOpen data type enum (input)
+ * @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
+                                                          miopenRNNDescriptor_t rnnDesc,
+                                                          miopenTensorDescriptor_t xDesc,
+                                                          miopenTensorDescriptor_t wDesc,
+                                                          miopenDataType_t dtype);
 
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t handle,
                                                               miopenRNNDescriptor_t rnnDesc,
@@ -1856,15 +1883,15 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNWeightSuperTensorSize(miopenHandle_t ha
 /*! @brief Gets a pointer to memory containing parameter tensor for a specific layer in an RNN stack
  *
  *
- * @param handle          MIOpen handle
- * @param rnnDesc         RNN layer descriptor type
- * @param layer           The layer number in the RNN stack
- * @param xDesc           A tensor descriptor to input
- * @param wDesc           A tensor descriptor to the parameter tensor
- * @param w               Pointer to memory containing parameter tensor
- * @param layerID         ID of the internal parameter tensor
- * @param paramDesc       Descriptor of the parameter tensor
- * @param layerParam      Pointer to the memory location of the parameter tensor
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param layer           The layer number in the RNN stack (input)
+ * @param xDesc           A tensor descriptor to input (input)
+ * @param wDesc           A tensor descriptor to the parameter tensor (input)
+ * @param w               Pointer to memory containing parameter tensor (input)
+ * @param layerID         ID of the internal parameter tensor (input)
+ * @param paramDesc       Descriptor of the parameter tensor (output)
+ * @param layerParam      Pointer to the memory location of the parameter tensor (output)
  * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
@@ -1880,15 +1907,15 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
 /*! @brief Gets a pointer to memory containing a bias tensor for a specific layer in an RNN stack
  *
  *
- * @param handle          MIOpen handle
- * @param rnnDesc         RNN layer descriptor type
- * @param layer           The layer number in the RNN stack
- * @param xDesc           A tensor descriptor to input
- * @param wDesc           A tensor descriptor to the parameter tensor
- * @param w               Pointer to memory containing parameter tensor
- * @param layerID         ID of the internal parameter tensor
- * @param biasDesc        Descriptor of the parameter tensor
- * @param layerBias       Pointer to the memory location of the bias tensor
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param layer           The layer number in the RNN stack (input)
+ * @param xDesc           A tensor descriptor to input (input)
+ * @param wDesc           A tensor descriptor to the parameter tensor (input)
+ * @param w               Pointer to memory containing parameter tensor (input)
+ * @param layerID         ID of the internal parameter tensor (input)
+ * @param biasDesc        Descriptor of the parameter tensor (output)
+ * @param layerBias       Pointer to the memory location of the bias tensor (output)
  * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
@@ -1897,6 +1924,54 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
                                                    miopenTensorDescriptor_t xDesc,
                                                    miopenTensorDescriptor_t wDesc,
                                                    const void* w,
+                                                   const int layerID,
+                                                   miopenTensorDescriptor_t biasDesc,
+                                                   void* layerBias);
+
+/*! @brief Gets a pointer to memory containing parameter tensor for a specific layer in an RNN stack
+ *
+ *
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param layer           The layer number in the RNN stack (input)
+ * @param xDesc           A tensor descriptor to input (input)
+ * @param wDesc           A tensor descriptor to the parameter tensor (input)
+ * @param w               Pointer to memory containing parameter tensor (input)
+ * @param layerID         ID of the internal parameter tensor (input)
+ * @param paramDesc       Descriptor of the parameter tensor (input)
+ * @param layerParam      Pointer to the memory location of the parameter tensor (input)
+ * @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerParam(miopenHandle_t handle,
+                                                    miopenRNNDescriptor_t rnnDesc,
+                                                    const int layer,
+                                                    miopenTensorDescriptor_t xDesc,
+                                                    miopenTensorDescriptor_t wDesc,
+                                                    void* w,
+                                                    const int layerID,
+                                                    miopenTensorDescriptor_t paramDesc,
+                                                    void* layerParam);
+
+/*! @brief Gets a pointer to memory containing a bias tensor for a specific layer in an RNN stack
+ *
+ *
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param layer           The layer number in the RNN stack (input)
+ * @param xDesc           A tensor descriptor to input (input)
+ * @param wDesc           A tensor descriptor to the parameter tensor (input)
+ * @param w               Pointer to memory containing parameter tensor (input)
+ * @param layerID         ID of the internal parameter tensor (input)
+ * @param biasDesc        Descriptor of the parameter tensor (input)
+ * @param layerBias       Pointer to the memory location of the bias tensor (input)
+ * @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
+                                                   miopenRNNDescriptor_t rnnDesc,
+                                                   const int layer,
+                                                   miopenTensorDescriptor_t xDesc,
+                                                   miopenTensorDescriptor_t wDesc,
+                                                   void* w,
                                                    const int layerID,
                                                    miopenTensorDescriptor_t biasDesc,
                                                    void* layerBias);
