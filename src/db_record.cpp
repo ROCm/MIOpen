@@ -117,12 +117,8 @@ static bool isLegacySolver(const std::string& id)
 #endif
 
 bool DbRecord::StoreValues(const std::string& id,
-                           const std::string& values,
-                           RecordPositions* const pos)
+                           const std::string& values)
 {
-    // If there is a record with the same key, we need to load its content
-    // (otherwise existing content will be lost) and find out its positions.
-    ReadFile(pos);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     assert(record_format != RecordFormat::CurrentOrMixed);
     if((record_format == RecordFormat::Legacy || record_format == RecordFormat::Mixed) &&
@@ -181,8 +177,6 @@ bool DbRecord::LoadValues(const std::string& id,
 bool DbRecord::LoadValues(const std::string& id, std::string& values)
 #endif
 {
-    ReadFile(nullptr);
-
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     assert(record_format != RecordFormat::CurrentOrMixed);
     if(record_format == RecordFormat::Legacy)

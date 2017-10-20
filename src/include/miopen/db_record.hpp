@@ -129,8 +129,7 @@ class DbRecord
 
     bool ParseContents(const std::string& contents);
     bool StoreValues(const std::string& id,
-                     const std::string& values,
-                     RecordPositions* const pos = nullptr);
+                     const std::string& values);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     bool ParseLegacyContents(const std::string& contents);
     bool LoadValues(const std::string& id, std::string& values, ContentFormat& content_format);
@@ -186,7 +185,10 @@ class DbRecord
     bool Store(const std::string& id, const T& values)
     {
         RecordPositions pos;
-        if(StoreValues(id, Serialize(values), &pos))
+        // If there is a record with the same key, we need to load its content
+        // (otherwise existing content will be lost) and find out its positions.
+        ReadFile(&pos);
+        if(StoreValues(id, Serialize(values)))
             return Flush(&pos);
         return true;
     }
@@ -204,6 +206,7 @@ class DbRecord
     bool Load(const std::string& id, T& values)
     {
         std::string s;
+        ReadFile(nullptr);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
         ContentFormat s_format = ContentFormat::Current;
         if(!LoadValues(id, s, s_format))
