@@ -236,7 +236,7 @@ int RNNDriver<T>::GetandSetData()
         outputTensors.push_back(outputTensor);
     }
 
-    std::array<int, 3> hid_lens    = {hid_len[0], in_len[0], hid_len[1]};
+    std::array<int, 3> hid_lens = {hid_len[0], in_len[0], hid_len[1]};
     miopenSetTensorDescriptor(hiddenTensor, miopenFloat, 3, hid_lens.data(), nullptr);
 
     SetRNNDescriptorFromCmdLineArgs();
@@ -292,60 +292,42 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     int in_h = inflags.GetValueInt("in_h");
     std::vector<int> in_n(nseq, 0);
     std::string batchstr = inflags.GetValueStr("batchsize");
-    std::stringstream ss(batchstr);
-    int count = 0;
-    
-    int element;
-    if(!batchseq.size())
+    int cont             = 0;
+
+    for(int i = 0; i < batchstr.length(); i++)
     {
-        while(ss >> element)
+        if(cont >= nseq)
         {
-            batchseq.push_back(element);
-            if(batchseq.size() > nseq)
-            {
-                printf("Length of data sequence is longer than required unrolled time sequence "
-                       "provided.\n"
-                       "The data sequence will be truncated to match unrolled time sequence.\n");
-                break;
-            }
-            // assert(isdigit(ss.peek()));
-            count++;
+            printf("Length of data sequence is longer than required unrolled time sequence "
+                   "provided.\n"
+                   "The data sequence will be truncated to match unrolled time sequence.\n");
+            break;
+        }
 
-            if(ss.peek() == ',' || ss.peek() == ' ')
-            {
-                ss.ignore();
-            }
-            // std::cout << "element: " << element <<std::endl;
-            // printf("count: %d, nseq: %d\n", count, nseq);
-        }
-        adjustedSeqLen = nseq;
-        if(count < nseq)
+        if(batchstr[i] == ',')
         {
-            printf(
-                "Length of data sequence is shorter than required unrolled time sequence provided.\n"
-                "Unrolled time sequence will be truncated to match the data sequence.\n");
-            adjustedSeqLen = count;
+            if(cont >= 1)
+            {
+                if(in_n[cont] > in_n[cont - 1])
+                {
+                    printf("Incorrect input batch size at time %d\n", cont);
+                    break;
+                }
+            }
+            cont++;
         }
-        
-        //    for(int i = 0; i<batchseq.size();i++)
-        //    {
-        //        std::cout << "element[" << i <<"]:" << batchseq[i] << std::endl;
-        //    }
-        for(int i = 0; i < batchseq.size() && i < nseq; i++)
+        else if(batchstr[i] >= '0' && batchstr[i] <= '9')
         {
-            if(i > 0 && batchseq[i] > batchseq[i - 1])
-            {
-                printf("Incorrect input batch size at time %d\n", i);
-                break;
-            }
-            else
-            {
-                in_n[i] = in_n[i] * 10 + batchseq[i];
-            }
+            in_n[cont] = in_n[cont] * 10 + stoi(batchstr.substr(i, 1));
         }
-        in_n.push_back(in_h);
+        else
+        {
+            printf("illegal input of in_n batch size");
+            break;
+        }
     }
-
+    adjustedSeqLen = nseq;
+    in_n.push_back(in_h);
     return in_n;
 }
 
@@ -506,7 +488,7 @@ std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine() // need remov
 template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
-    //int seqLength    = inflags.GetValueInt("seq_len");
+    // int seqLength    = inflags.GetValueInt("seq_len");
     size_t in_sz     = 0;
     size_t out_sz    = 0;
     size_t wei_sz    = 0;
@@ -522,8 +504,10 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
                                      &in_sz); // use c_array to pass vector for all size function
     miopenGetRNNInputSuperTensorSize(
         GetHandle(), rnnDesc, adjustedSeqLen, outputTensors.data(), &out_sz);
-    miopenGetRNNHiddenSuperTensorSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &hy_sz);
-    miopenGetRNNWorkspaceSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &workSpaceSize);
+    miopenGetRNNHiddenSuperTensorSize(
+        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &hy_sz);
+    miopenGetRNNWorkspaceSize(
+        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &workSpaceSize);
     miopenGetRNNTrainingReserveSize(
         GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &reserveSpaceSize);
     miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &params_sz, miopenFloat);
@@ -767,7 +751,7 @@ int RNNDriver<T>::RunForwardCPU()
 
     bool bidirection, biased;
     int layer;
-    
+
     miopenRNNMode_t mode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
@@ -862,7 +846,7 @@ int RNNDriver<T>::RunForwardCPU()
 template <typename T>
 int RNNDriver<T>::RunBackwardGPU()
 {
-    int ret       = 0;
+    int ret = 0;
 
     Timer t;
     START_TIME;
