@@ -39,18 +39,15 @@
 
 namespace miopen {
 
-bool DbRecord::ParseContents(const std::string& contents)
-{
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+bool DbRecord::ParseContents(const std::string& contents, const bool do_update_map)
+{
     assert(record_format == RecordFormat::CurrentOrMixed || record_format == RecordFormat::Current);
-#endif
     std::istringstream ss(contents);
     std::string id_and_values;
     int found = 0;
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     bool is_legacy_content_found         = false;
     const bool is_legacy_content_allowed = (record_format == RecordFormat::CurrentOrMixed);
-#endif
 
     while(std::getline(ss, id_and_values, ';'))
     {
@@ -64,7 +61,6 @@ bool DbRecord::ParseContents(const std::string& contents)
         }
 
         const auto id = id_and_values.substr(0, id_size);
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
         if(is_legacy_content_allowed)
         {
             // Here we detect actual format of a record.
@@ -74,20 +70,20 @@ bool DbRecord::ParseContents(const std::string& contents)
                 MIOPEN_LOG_I("Legacy content found under key: " << key << " Record is Mixed.");
             }
         }
-#endif
         const auto values = id_and_values.substr(id_size + 1);
 
-        if(content.find(id) != content.end())
-        {
-            MIOPEN_LOG_E("Duplicate ID (ignored): " << id << "; key: " << key);
-            continue;
-        }
+        if (do_update_map) {
+            if(map.find(id) != map.end())
+            {
+                MIOPEN_LOG_E("Duplicate ID (ignored): " << id << "; key: " << key);
+                continue;
+            }
 
-        content.emplace(id, values);
+            map.emplace(id, values);
+        }
         ++found;
     }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     if(!is_legacy_content_found)
     {
         record_format = RecordFormat::Current;
@@ -96,16 +92,16 @@ bool DbRecord::ParseContents(const std::string& contents)
     {
         record_format = RecordFormat::Mixed;
     }
-#endif
     return (found > 0);
 }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-bool DbRecord::ParseLegacyContents(const std::string& contents)
+bool DbRecord::ParseLegacyContents(const std::string& contents, const bool do_update_map)
 {
     assert(record_format == RecordFormat::Legacy);
-    const auto id = MIOPEN_PERFDB_CONV_LEGACY_ID;
-    content.emplace(id, contents);
+    if (do_update_map) {
+        const auto id = MIOPEN_PERFDB_CONV_LEGACY_ID;
+        map.emplace(id, contents);
+    }
     return true;
 }
 
@@ -114,17 +110,43 @@ static bool isLegacySolver(const std::string& id)
     /// \todo Hard-coded for now, quick and dirty.
     return (id == "ConvOclDirectFwd" || id == "ConvOclDirectFwd1x1" || id == "ConvOclDirectFwdC");
 }
+
+#else
+bool DbRecord::ParseContents(const std::string& contents)
+{
+    std::istringstream ss(contents);
+    std::string id_and_values;
+    int found = 0;
+
+    while(std::getline(ss, id_and_values, ';'))
+    {
+        const auto id_size = id_and_values.find(':');
+        // Empty VALUES is ok, empty ID is not:
+        if(id_size == std::string::npos)
+        {
+            MIOPEN_LOG_E("Ill-formed file: ID not found; skipped; key: " << key);
+            continue;
+        }
+
+        const auto id = id_and_values.substr(0, id_size);
+        const auto values = id_and_values.substr(id_size + 1);
+
+        if(map.find(id) != map.end())
+        {
+            MIOPEN_LOG_E("Duplicate ID (ignored): " << id << "; key: " << key);
+            continue;
+        }
+        map.emplace(id, values);
+        ++found;
+    }
+    return (found > 0);
+}
 #endif
 
-bool DbRecord::StoreValues(const std::string& id, const std::string& values)
+bool DbRecord::StoreValues(const std::string& id, const std::string& values, RecordPositions* const pos)
 {
-    if(!is_content_cached)
-    {
-        // If there is a record with the same key, we need to find its position
-        // in the db file. Otherwise the new record with the same key will NOT
-        // replace the existing record and db file become ill-formed.
-        ReadIntoCache();
-    }
+    // If there is a record with the same key, we need to find its position.
+    FindRecord(false, pos);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     assert(record_format != RecordFormat::CurrentOrMixed);
     if((record_format == RecordFormat::Legacy || record_format == RecordFormat::Mixed) &&
@@ -135,11 +157,10 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
         // comparison of legacy values with values in the current format).
         // That is, the whole map entry shall be replaced.
         // Record format becomes Current after that.
-        const auto it = content.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
-        assert(it != content.end());
-        content.erase(it);
-        content.emplace(id, values);
-        is_cache_dirty = true;
+        const auto it = map.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
+        assert(it != map.end());
+        map.erase(it);
+        map.emplace(id, values);
         record_format  = RecordFormat::Current;
         MIOPEN_LOG_I("Legacy content under key: " << key << " replaced by " << id << ":" << values);
         return true;
@@ -148,9 +169,8 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
     {
         // Non-legacy SolverId cannot reside in the legacy record by definition.
         // Just add a content to the map and mark record as Mixed.
-        assert(content.find(id) == content.end());
-        content.emplace(id, values);
-        is_cache_dirty = true;
+        assert(map.find(id) == map.end());
+        map.emplace(id, values);
         record_format  = RecordFormat::Mixed;
         MIOPEN_LOG_I("Legacy record under key: " << key << " appended by " << id << ":" << values
                                                  << " and becomes Mixed");
@@ -160,24 +180,20 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
            record_format == RecordFormat::Current);
 #endif
     // No need to update the file if values are the same:
-    const auto it = content.find(id);
-    if(it == content.end() || it->second != values)
+    const auto it = map.find(id);
+    if(it == map.end() || it->second != values)
     {
         MIOPEN_LOG_I("Record under key: " << key << ", content "
-                                          << (it == content.end() ? "inserted" : "overwritten")
+                                          << (it == map.end() ? "inserted" : "overwritten")
                                           << ": "
                                           << id
                                           << ":"
                                           << values);
-        content[id]    = values;
-        is_cache_dirty = true;
+        map[id] = values;
+        return true;
     }
-    else
-    {
-        MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not saved:" << id << ":"
-                                          << values);
-    }
-    return true;
+    MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not saved:" << id << ":" << values);
+    return false;
 }
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -188,8 +204,7 @@ bool DbRecord::LoadValues(const std::string& id,
 bool DbRecord::LoadValues(const std::string& id, std::string& values)
 #endif
 {
-    if(!is_content_cached)
-        ReadIntoCache();
+    FindRecord(true, nullptr);
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     assert(record_format != RecordFormat::CurrentOrMixed);
@@ -197,8 +212,8 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
     {
         if(!isLegacySolver(id))
             return false;
-        const auto it = content.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
-        if(it == content.end())
+        const auto it = map.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
+        if(it == map.end())
             return false;
 
         values         = it->second;
@@ -211,8 +226,8 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
         if(isLegacySolver(id))
         {
             // contents for legacy solvers may be in either legacy of current format.
-            const auto it = content.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
-            if(it != content.end())
+            const auto it = map.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
+            if(it != map.end())
             {
                 values         = it->second;
                 content_format = ContentFormat::Legacy;
@@ -232,9 +247,9 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
         // Fall down.
     }
 #endif
-    const auto it = content.find(id);
+    const auto it = map.find(id);
 
-    if(it == content.end())
+    if(it == map.end())
         return false;
 
     values = it->second;
@@ -255,7 +270,7 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
 
 static void Write(std::ostream& stream,
                   const std::string& key,
-                  std::unordered_map<std::string, std::string>& content)
+                  std::unordered_map<std::string, std::string>& map)
 {
     stream << key << '=';
 
@@ -265,7 +280,7 @@ static void Write(std::ostream& stream,
         return sum.empty() ? pair_str : sum + ";" + pair_str;
     };
 
-    stream << std::accumulate(content.begin(), content.end(), std::string(), pairsJoiner)
+    stream << std::accumulate(map.begin(), map.end(), std::string(), pairsJoiner)
            << std::endl;
 }
 
@@ -285,31 +300,22 @@ static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
     }
 }
 
-std::atomic_int DbRecord::n_cached_records(0);
-
-void DbRecord::Flush()
+bool DbRecord::Flush(const RecordPositions* const pos)
 {
-    if(!is_cache_dirty)
-        return;
-    if(n_cached_records > 1)
-    {
-        MIOPEN_LOG_E("File update canceled to avoid db corruption. Key: " << key);
-        return;
-    }
-
-    if(pos_begin < 0 || pos_end < 0)
+    assert(pos);
+    if(pos->begin < 0 || pos->end < 0)
     {
         std::ofstream file(db_filename, std::ios::app);
 
         if(!file)
         {
             MIOPEN_LOG_E("File is unwritable.");
-            return;
+            return false;
         }
 
-        pos_begin = file.tellp();
-        Write(file, key, content);
-        pos_end = file.tellp();
+        (void)file.tellp();
+        Write(file, key, map);
+        file.close();
     }
     else
     {
@@ -319,7 +325,7 @@ void DbRecord::Flush()
         if(!from)
         {
             MIOPEN_LOG_E("File is unreadable.");
-            return;
+            return false;
         }
 
         std::ofstream to(temp_name);
@@ -327,17 +333,17 @@ void DbRecord::Flush()
         if(!to)
         {
             MIOPEN_LOG_E("Temp file is unwritable.");
-            return;
+            from.close();
+            return false;
         }
 
         const auto from_size = from.tellg();
         from.seekg(std::ios::beg);
 
-        Copy(from, to, pos_begin);
-        Write(to, key, content);
-        const auto new_end = to.tellp();
-        from.seekg(pos_end);
-        Copy(from, to, from_size - pos_end);
+        Copy(from, to, pos->begin);
+        Write(to, key, map);
+        from.seekg(pos->end);
+        Copy(from, to, from_size - pos->end);
 
         from.close();
         to.close();
@@ -345,21 +351,19 @@ void DbRecord::Flush()
         std::remove(db_filename.c_str());
         std::rename(temp_name.c_str(), db_filename.c_str());
         /// \todo What if rename fails? Thou shalt not loose the original file.
-
-        // After successful write, position of the record's end needs to be updated.
-        // Position of the beginning remains the same.
-        pos_end = new_end;
     }
-    is_cache_dirty = false;
+    return true;
 }
 
-void DbRecord::ReadIntoCache()
+void DbRecord::FindRecord(const bool do_update_map, RecordPositions* const pos)
 {
-    ++n_cached_records;
-    content.clear();
-    is_cache_dirty = false;
-    is_content_cached =
-        true; // This is true even if no record found in the db: nothing read <-> nothing cached.
+    if (pos) {
+        pos->begin  = -1;
+        pos->end    = -1;
+    }
+    if (do_update_map) {
+        map.clear();
+    }
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     MIOPEN_LOG_I("Looking for key: " << key << ", legacy_key: " << legacy_key);
@@ -378,8 +382,6 @@ void DbRecord::ReadIntoCache()
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     record_format = RecordFormat::Current; // Used if none record found.
 #endif
-    pos_begin  = -1;
-    pos_end    = -1;
     int n_line = 0;
     while(true)
     {
@@ -468,11 +470,14 @@ void DbRecord::ReadIntoCache()
         MIOPEN_LOG_I("Contents found: " << contents);
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+        // Even if we do not need to update the map (from a file), the record
+        // shall be parsed to find out actual reacrd format (Current or Mixed).
+        // This is required for subsequent Store().
         const bool is_parse_ok = (record_format == RecordFormat::Legacy)
-                                     ? ParseLegacyContents(contents)
-                                     : ParseContents(contents);
+                                     ? ParseLegacyContents(contents, do_update_map)
+                                     : ParseContents(contents, do_update_map);
 #else
-        const bool is_parse_ok = ParseContents(contents);
+        const bool is_parse_ok = do_update_map ? true : ParseContents(contents);
 #endif
 
         if(!is_parse_ok)
@@ -482,9 +487,12 @@ void DbRecord::ReadIntoCache()
             MIOPEN_LOG_E(contents);
         }
         // A record with matching key have been found.
-        pos_begin = line_begin;
-        pos_end   = next_line_begin;
+        if (pos) {
+            pos->begin = line_begin;
+            pos->end   = next_line_begin;
+        }
         break;
     }
+    file.close();
 }
 } // namespace miopen
