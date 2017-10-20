@@ -95,7 +95,8 @@ macro(enable_clang_tidy)
     endif()
 
     set(CLANG_TIDY_COMMAND 
-        ${CLANG_TIDY_EXE} 
+        ${CLANG_TIDY_EXE}
+        -quiet 
         -p ${CMAKE_BINARY_DIR} 
         -checks='${CLANG_TIDY_CHECKS}'
         ${CLANG_TIDY_ERRORS_ARG}
@@ -108,14 +109,20 @@ endmacro()
 
 function(clang_tidy_check TARGET)
     get_target_property(SOURCES ${TARGET} SOURCES)
-    add_custom_target(tidy-${TARGET}
-        COMMAND ${CLANG_TIDY_COMMAND} ${SOURCES}
-        # TODO: Use generator expressions instead
-        # COMMAND ${CLANG_TIDY_COMMAND} $<TARGET_PROPERTY:${TARGET},SOURCES>
-        # COMMAND ${CLANG_TIDY_COMMAND} $<JOIN:$<TARGET_PROPERTY:${TARGET},SOURCES>, >
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "clang-tidy: Running clang-tidy on target ${TARGET}..."
-    )
-    add_dependencies(tidy tidy-${TARGET})
+    # TODO: Use generator expressions instead
+    # COMMAND ${CLANG_TIDY_COMMAND} $<TARGET_PROPERTY:${TARGET},SOURCES>
+    # COMMAND ${CLANG_TIDY_COMMAND} $<JOIN:$<TARGET_PROPERTY:${TARGET},SOURCES>, >
+    foreach(SOURCE ${SOURCES})
+        if(NOT "${SOURCE}" MATCHES "(h|hpp|hxx)$")
+            string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)        
+            add_custom_target(tidy-${TARGET}-${tidy_file}
+                COMMAND ${CLANG_TIDY_COMMAND} ${SOURCE}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                COMMENT "clang-tidy: Running clang-tidy on target ${SOURCE}..."
+            )
+            add_dependencies(tidy-${TARGET}-${tidy_file} ${TARGET})
+            add_dependencies(tidy tidy-${TARGET}-${tidy_file})
+        endif()
+    endforeach()
 endfunction()
 
