@@ -111,8 +111,8 @@ struct KernelArgs
 {
     KernelArgs(Ts... xs) : pack(xs...)
     {
-        for(int i     = 0; i < 6; i++)
-            hidden[i] = 0;
+        for(auto& x : hidden)
+            x = 0;
     }
     KernelArgsPack<Ts...> pack;
     uint64_t hidden[6] = {};
