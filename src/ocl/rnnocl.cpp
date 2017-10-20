@@ -114,9 +114,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     std::string network_config;
     std::vector<int> in_n;
     int in_h  = xDesc[0].GetLengths()[1]; // input vector size
-    int hy_d  = hxDesc.GetLengths()[0];   // biNumLayers
-    int hy_n  = hxDesc.GetLengths()[1];   // max batch size
-    int hy_h  = hxDesc.GetLengths()[2];   // hidden size
+    int hy_d  = hyDesc.GetLengths()[0];   // biNumLayers
+    int hy_n  = hyDesc.GetLengths()[1];   // max batch size
+    int hy_h  = hyDesc.GetLengths()[2];   // hidden size
     int out_h = yDesc[0].GetLengths()[1]; // output vector size
 
     if(in_h == 0 || hy_h == 0 || hy_n == 0 || hy_d == 0 || out_h == 0)
@@ -132,10 +132,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         std::tie(batchvalout, outputvec) = miopen::tien<2>(yDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
+            printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
             MIOPEN_THROW(miopenStatusBadParm);
         }
         in_n.push_back(batchval);
-        batch_n += xDesc[i].GetLengths()[0];
+        batch_n += batchval;
     }
 
     int bacc, baccbi;
@@ -3181,6 +3182,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     {
 
 #if MIOPEN_USE_MIOPENGEMM
+
         printf("gru gpu bwd weights \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;

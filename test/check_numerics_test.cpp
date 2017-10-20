@@ -43,9 +43,9 @@ struct check_numerics_base
     }
 };
 
-struct numeric_0 : check_numerics_base
+struct check_numeric_normal : check_numerics_base
 {
-    numeric_0() : check_numerics_base(0.0) {}
+    check_numeric_normal(float val) : check_numerics_base(val) {}
 
     void run()
     {
@@ -53,25 +53,25 @@ struct numeric_0 : check_numerics_base
             !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true));
         CHECK(
             !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false));
+
+        CHECK(!miopen::checkNumericsImpl(h,
+                                         miopen::CheckNumerics::Throw |
+                                             miopen::CheckNumerics::ComputeStats,
+                                         desc,
+                                         buffer.get(),
+                                         true));
+        CHECK(!miopen::checkNumericsImpl(h,
+                                         miopen::CheckNumerics::Throw |
+                                             miopen::CheckNumerics::ComputeStats,
+                                         desc,
+                                         buffer.get(),
+                                         false));
     }
 };
 
-struct numeric_1 : check_numerics_base
+struct check_numeric_abnormal : check_numerics_base
 {
-    numeric_1() : check_numerics_base(1.0) {}
-
-    void run()
-    {
-        CHECK(
-            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true));
-        CHECK(
-            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false));
-    }
-};
-
-struct numeric_nan : check_numerics_base
-{
-    numeric_nan() : check_numerics_base(std::numeric_limits<float>::quiet_NaN()) {}
+    check_numeric_abnormal(float val) : check_numerics_base(val) {}
 
     void run()
     {
@@ -84,25 +84,57 @@ struct numeric_nan : check_numerics_base
         CHECK(throws([&] {
             miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false);
         }));
+
+        CHECK(miopen::checkNumericsImpl(h,
+                                        miopen::CheckNumerics::Warn |
+                                            miopen::CheckNumerics::ComputeStats,
+                                        desc,
+                                        buffer.get(),
+                                        true));
+        CHECK(miopen::checkNumericsImpl(h,
+                                        miopen::CheckNumerics::Warn |
+                                            miopen::CheckNumerics::ComputeStats,
+                                        desc,
+                                        buffer.get(),
+                                        false));
+
+        CHECK(throws([&] {
+            miopen::checkNumericsImpl(h,
+                                      miopen::CheckNumerics::Throw |
+                                          miopen::CheckNumerics::ComputeStats,
+                                      desc,
+                                      buffer.get(),
+                                      true);
+        }));
+        CHECK(throws([&] {
+            miopen::checkNumericsImpl(h,
+                                      miopen::CheckNumerics::Throw |
+                                          miopen::CheckNumerics::ComputeStats,
+                                      desc,
+                                      buffer.get(),
+                                      false);
+        }));
     }
 };
 
-struct numeric_inf : check_numerics_base
+struct numeric_0 : check_numeric_normal
 {
-    numeric_inf() : check_numerics_base(std::numeric_limits<float>::infinity()) {}
+    numeric_0() : check_numeric_normal(0.0) {}
+};
 
-    void run()
-    {
-        CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn, desc, buffer.get(), true));
-        CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn, desc, buffer.get(), false));
+struct numeric_1 : check_numeric_normal
+{
+    numeric_1() : check_numeric_normal(1.0) {}
+};
 
-        CHECK(throws([&] {
-            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true);
-        }));
-        CHECK(throws([&] {
-            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false);
-        }));
-    }
+struct numeric_nan : check_numeric_abnormal
+{
+    numeric_nan() : check_numeric_abnormal(std::numeric_limits<float>::quiet_NaN()) {}
+};
+
+struct numeric_inf : check_numeric_abnormal
+{
+    numeric_inf() : check_numeric_abnormal(std::numeric_limits<float>::infinity()) {}
 };
 
 int main()

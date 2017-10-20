@@ -115,7 +115,6 @@ extern "C" miopenStatus_t miopenGetRNNWorkspaceSize(miopenHandle_t handle,
                                                     miopenTensorDescriptor_t* xDesc,
                                                     size_t* numBytes)
 {
-
     MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
     miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(seqLen)};
     return miopen::try_([&] {
@@ -130,12 +129,24 @@ extern "C" miopenStatus_t miopenGetRNNTrainingReserveSize(miopenHandle_t handle,
                                                           miopenTensorDescriptor_t* xDesc,
                                                           size_t* numBytes)
 {
-
     MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
     miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(seqLen)};
     return miopen::try_([&] {
         miopen::deref(numBytes) =
             miopen::deref(rnnDesc).GetReserveSize(miopen::deref(handle), seqLen, xDescArray);
+    });
+}
+
+extern "C" miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
+                                                       miopenRNNDescriptor_t rnnDesc,
+                                                       miopenTensorDescriptor_t xDesc,
+                                                       miopenTensorDescriptor_t wDesc,
+                                                       miopenDataType_t dtype)
+{
+    MIOPEN_LOG_FUNCTION(rnnDesc, xDesc, wDesc, dtype);
+    return miopen::try_([&] {
+        miopen::deref(rnnDesc).GetParamsDescriptor(
+            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(wDesc), dtype);
     });
 }
 
@@ -145,7 +156,6 @@ extern "C" miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
                                                  size_t* numBytes,
                                                  miopenDataType_t dtype)
 {
-
     MIOPEN_LOG_FUNCTION(rnnDesc, xDesc, numBytes, dtype);
     return miopen::try_([&] {
         miopen::deref(numBytes) = miopen::deref(rnnDesc).GetParamsSize(
@@ -206,8 +216,17 @@ extern "C" miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
                                                  miopenTensorDescriptor_t paramDesc,
                                                  void* layerParam)
 {
-
-    // TODO (dlowell) implement this
+    MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, wDesc, w, layerID, paramDesc, layerParam);
+    return miopen::try_([&] {
+        miopen::deref(rnnDesc).GetLayerParam(miopen::deref(handle),
+                                             layer,
+                                             miopen::deref(xDesc),
+                                             miopen::deref(wDesc),
+                                             DataCast(w),
+                                             layerID,
+                                             miopen::deref(paramDesc),
+                                             DataCast(layerParam));
+    });
     return miopenStatusSuccess;
 }
 
@@ -221,8 +240,65 @@ extern "C" miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
                                                 miopenTensorDescriptor_t biasDesc,
                                                 void* layerBias)
 {
+    MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, wDesc, w, layerID, biasDesc, layerBias);
+    return miopen::try_([&] {
+        miopen::deref(rnnDesc).GetLayerBias(miopen::deref(handle),
+                                            layer,
+                                            miopen::deref(xDesc),
+                                            miopen::deref(wDesc),
+                                            DataCast(w),
+                                            layerID,
+                                            miopen::deref(biasDesc),
+                                            DataCast(layerBias));
+    });
+    return miopenStatusSuccess;
+}
 
-    // TODO (dlowell) implement this
+extern "C" miopenStatus_t miopenSetRNNLayerParam(miopenHandle_t handle,
+                                                 miopenRNNDescriptor_t rnnDesc,
+                                                 const int layer,
+                                                 miopenTensorDescriptor_t xDesc,
+                                                 miopenTensorDescriptor_t wDesc,
+                                                 void* w,
+                                                 const int layerID,
+                                                 miopenTensorDescriptor_t paramDesc,
+                                                 void* layerParam)
+{
+    MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, wDesc, w, layerID, paramDesc, layerParam);
+    return miopen::try_([&] {
+        miopen::deref(rnnDesc).SetLayerParam(miopen::deref(handle),
+                                             layer,
+                                             miopen::deref(xDesc),
+                                             miopen::deref(wDesc),
+                                             DataCast(w),
+                                             layerID,
+                                             miopen::deref(paramDesc),
+                                             DataCast(layerParam));
+    });
+    return miopenStatusSuccess;
+}
+
+extern "C" miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
+                                                miopenRNNDescriptor_t rnnDesc,
+                                                const int layer,
+                                                miopenTensorDescriptor_t xDesc,
+                                                miopenTensorDescriptor_t wDesc,
+                                                void* w,
+                                                const int layerID,
+                                                miopenTensorDescriptor_t biasDesc,
+                                                void* layerBias)
+{
+    MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, wDesc, w, layerID, biasDesc, layerBias);
+    return miopen::try_([&] {
+        miopen::deref(rnnDesc).SetLayerBias(miopen::deref(handle),
+                                            layer,
+                                            miopen::deref(xDesc),
+                                            miopen::deref(wDesc),
+                                            DataCast(w),
+                                            layerID,
+                                            miopen::deref(biasDesc),
+                                            DataCast(layerBias));
+    });
     return miopenStatusSuccess;
 }
 
