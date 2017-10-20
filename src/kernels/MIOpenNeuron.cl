@@ -285,8 +285,13 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(int n,
 
 __attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NRN_GROUP_SZ2)))
 __kernel void
-MIOpenNeuronFwd(
-    const __global _FLOAT* bot, __global _FLOAT* top, _FLOAT power, _FLOAT scale, _FLOAT shift)
+MIOpenNeuronFwd(const __global _FLOAT* bot,
+                __global _FLOAT* top,
+                _FLOAT power,
+                _FLOAT scale,
+                _FLOAT shift,
+                const long xOffset,
+                const long yOffset)
 {
     int x = get_global_id(0); // channel x
 
@@ -298,7 +303,7 @@ MIOpenNeuronFwd(
         int i = 0;
         for(; i < MLO_N_PIXS_OFF; ++i)
         {
-            data[i] = bot[x * MLO_READ_UNIT + i];
+            data[i] = bot[xOffset + x * MLO_READ_UNIT + i];
         }
         for(; i < MLO_READ_UNIT; ++i)
         {
@@ -310,7 +315,7 @@ MIOpenNeuronFwd(
     {
         for(int i = 0; i < MLO_READ_UNIT; ++i)
         {
-            data[i] = bot[x * MLO_READ_UNIT + i];
+            data[i] = bot[xOffset + x * MLO_READ_UNIT + i];
         }
     }
     ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, power, scale, shift);
@@ -321,7 +326,7 @@ MIOpenNeuronFwd(
         int i = 0;
         for(; i < MLO_N_PIXS_OFF; ++i)
         {
-            top[x * MLO_READ_UNIT + i] = response[i];
+            top[yOffset + x * MLO_READ_UNIT + i] = response[i];
         }
     }
     else
@@ -329,7 +334,7 @@ MIOpenNeuronFwd(
     {
         for(int i = 0; i < MLO_READ_UNIT; ++i)
         {
-            top[x * MLO_READ_UNIT + i] = response[i];
+            top[yOffset + x * MLO_READ_UNIT + i] = response[i];
         }
     }
 }
@@ -343,7 +348,11 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                 _FLOAT diff_scale,
                 _FLOAT power,
                 _FLOAT scale,
-                _FLOAT shift)
+                _FLOAT shift,
+                const long dxOffset,
+                const long dyOffset,
+                const long xOffset,
+                const long yOffset)
 {
 
     (void)diff_scale;
@@ -363,9 +372,9 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
         int i = 0;
         for(; i < MLO_N_PIXS_OFF; ++i)
         {
-            top_diff_dat[i] = top_diff[x * MLO_READ_UNIT + i];
-            bot_dat[i]      = bot_data[x * MLO_READ_UNIT + i];
-            top_dat[i]      = top_data[x * MLO_READ_UNIT + i];
+            top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
+            bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
+            top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
         }
         for(; i < MLO_READ_UNIT; ++i)
         {
@@ -379,9 +388,9 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     {
         for(int i = 0; i < MLO_READ_UNIT; ++i)
         {
-            top_diff_dat[i] = top_diff[x * MLO_READ_UNIT + i];
-            bot_dat[i]      = bot_data[x * MLO_READ_UNIT + i];
-            top_dat[i]      = top_data[x * MLO_READ_UNIT + i];
+            top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
+            bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
+            top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
         }
     }
 
@@ -432,7 +441,7 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
         int i = 0;
         for(; i < MLO_N_PIXS_OFF; ++i)
         {
-            bot_diff[x * MLO_READ_UNIT + i] = bot_diff_dat[i];
+            bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
         }
     }
     else
@@ -440,7 +449,7 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     {
         for(int i = 0; i < MLO_READ_UNIT; ++i)
         {
-            bot_diff[x * MLO_READ_UNIT + i] = bot_diff_dat[i];
+            bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
         }
     }
 }

@@ -36,7 +36,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                              ConstData_t x,
                                              const void* beta,
                                              const TensorDescriptor& yDesc,
-                                             Data_t y)
+                                             Data_t y,
+                                             const size_t xOffset,
+                                             const size_t yOffset)
 {
 
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
@@ -109,7 +111,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                      kernel_name,
                      vld,
                      vgd,
-                     compiler_options)(x, y, f_activ_power, f_activ_beta, f_activ_alpha);
+                     compiler_options)(
+        x, y, f_activ_power, f_activ_beta, f_activ_alpha, long(xOffset), long(yOffset));
 
     return (status);
 }
@@ -124,7 +127,11 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                               ConstData_t x,
                                               const void* beta,
                                               const TensorDescriptor& dxDesc,
-                                              Data_t dx)
+                                              Data_t dx,
+                                              const size_t yOffset,
+                                              const size_t dyOffset,
+                                              const size_t xOffset,
+                                              const size_t dxOffset)
 {
 
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
@@ -235,8 +242,18 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                      kernel_name,
                      vld,
                      vgd,
-                     compiler_options)(
-        dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha);
+                     compiler_options)(dx,
+                                       dy,
+                                       x,
+                                       y,
+                                       f_diff_scale,
+                                       f_activ_power,
+                                       f_activ_beta,
+                                       f_activ_alpha,
+                                       long(dxOffset),
+                                       long(dyOffset),
+                                       long(xOffset),
+						               long(yOffset));
 
     return (status);
 }
