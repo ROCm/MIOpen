@@ -300,9 +300,8 @@ size_t RNNDescriptor::GetReserveSize(Handle& handle,
         }
     }
 
-    auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());
-    //	auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize *
-    // sizeof(xDesc[0].GetType());  // switch to this after offset activ and ops applied
+    // auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());
+    auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());  // switch to this after offset activ and ops applied
     return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
 }
 
