@@ -116,7 +116,9 @@ static bool isLegacySolver(const std::string& id)
 }
 #endif
 
-bool DbRecord::StoreValues(const std::string& id, const std::string& values, RecordPositions* const pos)
+bool DbRecord::StoreValues(const std::string& id,
+                           const std::string& values,
+                           RecordPositions* const pos)
 {
     // If there is a record with the same key, we need to load its content
     // (otherwise existing content will be lost) and find out its positions.
@@ -135,7 +137,7 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values, Rec
         assert(it != map.end());
         map.erase(it);
         map.emplace(id, values);
-        record_format  = RecordFormat::Current;
+        record_format = RecordFormat::Current;
         MIOPEN_LOG_I("Legacy content under key: " << key << " replaced by " << id << ":" << values);
         return true;
     }
@@ -145,7 +147,7 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values, Rec
         // Just add a content to the map and mark record as Mixed.
         assert(map.find(id) == map.end());
         map.emplace(id, values);
-        record_format  = RecordFormat::Mixed;
+        record_format = RecordFormat::Mixed;
         MIOPEN_LOG_I("Legacy record under key: " << key << " appended by " << id << ":" << values
                                                  << " and becomes Mixed");
         return true;
@@ -166,7 +168,8 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values, Rec
         map[id] = values;
         return true;
     }
-    MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not saved:" << id << ":" << values);
+    MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not saved:" << id << ":"
+                                      << values);
     return false;
 }
 
@@ -178,7 +181,7 @@ bool DbRecord::LoadValues(const std::string& id,
 bool DbRecord::LoadValues(const std::string& id, std::string& values)
 #endif
 {
-     ReadFile(nullptr);
+    ReadFile(nullptr);
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     assert(record_format != RecordFormat::CurrentOrMixed);
@@ -254,8 +257,7 @@ static void Write(std::ostream& stream,
         return sum.empty() ? pair_str : sum + ";" + pair_str;
     };
 
-    stream << std::accumulate(map.begin(), map.end(), std::string(), pairsJoiner)
-           << std::endl;
+    stream << std::accumulate(map.begin(), map.end(), std::string(), pairsJoiner) << std::endl;
 }
 
 static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
@@ -329,9 +331,10 @@ bool DbRecord::Flush(const RecordPositions* const pos)
 
 void DbRecord::ReadFile(RecordPositions* const pos)
 {
-    if (pos) {
-        pos->begin  = -1;
-        pos->end    = -1;
+    if(pos)
+    {
+        pos->begin = -1;
+        pos->end   = -1;
     }
     map.clear();
 
@@ -454,7 +457,8 @@ void DbRecord::ReadFile(RecordPositions* const pos)
             MIOPEN_LOG_E(contents);
         }
         // A record with matching key have been found.
-        if (pos) {
+        if(pos)
+        {
             pos->begin = line_begin;
             pos->end   = next_line_begin;
         }
