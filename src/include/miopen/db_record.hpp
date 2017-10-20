@@ -127,17 +127,16 @@ class DbRecord
         return ss.str();
     }
 
+    bool ParseContents(const std::string& contents);
+    bool StoreValues(const std::string& id, const std::string& values, RecordPositions* const pos = nullptr);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    bool ParseLegacyContents(const std::string& contents, bool do_update_map);
-    bool ParseContents(const std::string& contents, bool do_update_map);
+    bool ParseLegacyContents(const std::string& contents);
     bool LoadValues(const std::string& id, std::string& values, ContentFormat& content_format);
 #else
-    bool ParseContents(const std::string& contents);
     bool LoadValues(const std::string& id, std::string& values);
 #endif
-    bool StoreValues(const std::string& id, const std::string& values, RecordPositions* const pos = nullptr);
     bool Flush(const RecordPositions* pos);
-    void FindRecord(bool do_update_map, RecordPositions* pos);
+    void ReadFile(RecordPositions* pos);
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     DbRecord(const std::string& db_filename_,
@@ -179,8 +178,8 @@ class DbRecord
     {
     }
 
-    /// Obtains values from an object of class T and stores it
-    /// in db (in association with id, under the current key).
+    /// Obtains VALUES from an object of class T and stores it
+    /// in db (in association with ID, under the current KEY).
     /// T shall have the "void Serialize(std::ostream&) const"
     /// member function available.
     template <class T>
@@ -192,8 +191,8 @@ class DbRecord
         return true;
     }
 
-    /// Loads values associated with id under the current key
-    /// (KEY:ID:VALUES) and delivers those to a member function
+    /// Loads VALUES associated with ID under the current KEY
+    /// and delivers those to a member function
     /// of a class T object. T shall have the
     /// "bool Deserialize(const std::string& str)"
     /// member function available.
