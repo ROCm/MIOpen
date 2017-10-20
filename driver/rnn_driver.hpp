@@ -292,60 +292,42 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     int in_h = inflags.GetValueInt("in_h");
     std::vector<int> in_n(nseq, 0);
     std::string batchstr = inflags.GetValueStr("batchsize");
-    std::stringstream ss(batchstr);
-    int count = 0;
-    
-    int element;
-    if(!batchseq.size())
-    {
-        while(ss >> element)
-        {
-            batchseq.push_back(element);
-            if(batchseq.size() > nseq)
-            {
-                printf("Length of data sequence is longer than required unrolled time sequence "
-                       "provided.\n"
-                       "The data sequence will be truncated to match unrolled time sequence.\n");
-                break;
-            }
-            // assert(isdigit(ss.peek()));
-            count++;
+	int cont = 0;
 
-            if(ss.peek() == ',' || ss.peek() == ' ')
-            {
-                ss.ignore();
-            }
-            // std::cout << "element: " << element <<std::endl;
-            // printf("count: %d, nseq: %d\n", count, nseq);
-        }
-        adjustedSeqLen = nseq;
-        if(count < nseq)
-        {
-            printf(
-                "Length of data sequence is shorter than required unrolled time sequence provided.\n"
-                "Unrolled time sequence will be truncated to match the data sequence.\n");
-            adjustedSeqLen = count;
-        }
-        
-        //    for(int i = 0; i<batchseq.size();i++)
-        //    {
-        //        std::cout << "element[" << i <<"]:" << batchseq[i] << std::endl;
-        //    }
-        for(int i = 0; i < batchseq.size() && i < nseq; i++)
-        {
-            if(i > 0 && batchseq[i] > batchseq[i - 1])
-            {
-                printf("Incorrect input batch size at time %d\n", i);
-                break;
-            }
-            else
-            {
-                in_n[i] = in_n[i] * 10 + batchseq[i];
-            }
-        }
-        in_n.push_back(in_h);
-    }
+	for (int i = 0; i < batchstr.length(); i++)
+	{
+		if (cont >= nseq)
+		{
+			printf("Length of data sequence is longer than required unrolled time sequence "
+				"provided.\n"
+				"The data sequence will be truncated to match unrolled time sequence.\n");
+			break;
+		}
 
+		if (batchstr[i] == ',')
+		{
+			if (cont >= 1)
+			{
+				if (in_n[cont] > in_n[cont - 1])
+				{
+					printf("Incorrect input batch size at time %d\n", cont);
+					break;
+				}
+			}
+			cont++;
+		}
+		else if (batchstr[i] >= '0' && batchstr[i] <= '9')
+		{
+			in_n[cont] = in_n[cont] * 10 + stoi(batchstr.substr(i, 1));
+		}
+		else
+		{
+			printf("illegal input of in_n batch size");
+			break;
+		}
+	}
+	adjustedSeqLen = nseq;
+	in_n.push_back(in_h);
     return in_n;
 }
 
