@@ -406,11 +406,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 miopenTensorDescriptor_t rsvTensor;
                 miopenCreateTensorDescriptor(&rsvTensor);
-				SetTensor4d(rsvTensor, rsv_size);
+                SetTensor4d(rsvTensor, rsv_size);
 
                 float alpha = 1, beta = 0;
                 ActivationDescriptor activDesc;
-				size_t offset;
+                size_t offset;
 
                 if(rnnMode == miopenRNNRELU)
                 {
@@ -421,51 +421,51 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     activDesc = {miopenActivationTANH, 1, 1, 1};
                 }
 
-				for (int bs = 0; bs < in_n[ti]; bs++)
-				{
-					offset = hid_shift + bacc * hy_stride + bs * hy_stride;
+                for(int bs = 0; bs < in_n[ti]; bs++)
+                {
+                    offset = hid_shift + bacc * hy_stride + bs * hy_stride;
 
-					activDesc.Forward(handle,
-						&alpha,
-						miopen::deref(rsvTensor),
-						reserveSpace,
-						&beta,
-						miopen::deref(rsvTensor),
-						workSpace,
-						offset,
-						offset);
+                    activDesc.Forward(handle,
+                                      &alpha,
+                                      miopen::deref(rsvTensor),
+                                      reserveSpace,
+                                      &beta,
+                                      miopen::deref(rsvTensor),
+                                      workSpace,
+                                      offset,
+                                      offset);
 
-					// Update time
-					if (handle.IsProfilingEnabled())
-					{
-						time_0 = handle.GetKernelTime();
-						handle.AccumKernelTime(time_0);
-					}
-				}
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+                }
 
                 if(dirMode)
                 {
-					for (int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
-					{
-						offset = hid_shift + baccbi * hy_stride + bs * hy_stride + hy_h;
+                    for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
+                    {
+                        offset = hid_shift + baccbi * hy_stride + bs * hy_stride + hy_h;
 
-						activDesc.Forward(handle,
-							&alpha,
-							miopen::deref(rsvTensor),
-							reserveSpace,
-							&beta,
-							miopen::deref(rsvTensor),
-							workSpace,
-							offset,
-							offset);
+                        activDesc.Forward(handle,
+                                          &alpha,
+                                          miopen::deref(rsvTensor),
+                                          reserveSpace,
+                                          &beta,
+                                          miopen::deref(rsvTensor),
+                                          workSpace,
+                                          offset,
+                                          offset);
 
-						// Update time
-						if (handle.IsProfilingEnabled())
-						{
-							time_0 = handle.GetKernelTime();
-							handle.AccumKernelTime(time_0);
-						}
-					}
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+                    }
                 }
 
                 bacc += in_n[ti];
@@ -594,8 +594,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 if(biasMode)
                 {
-					int wei_shift_bias_temp =
-						wei_shift_bias + 2 * wei_stride + (li - 1) * (bi + 1) * wei_stride;
+                    int wei_shift_bias_temp =
+                        wei_shift_bias + 2 * wei_stride + (li - 1) * (bi + 1) * wei_stride;
 
                     // Update time
                     if(handle.IsProfilingEnabled())
@@ -754,136 +754,131 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 }
 
                 // update hidden status
-				std::vector<int> rsv_size(3, 1);
-				rsv_size.push_back(hy_h);
+                std::vector<int> rsv_size(3, 1);
+                rsv_size.push_back(hy_h);
 
-				miopenTensorDescriptor_t rsvTensor;
-				miopenCreateTensorDescriptor(&rsvTensor);
-				SetTensor4d(rsvTensor, rsv_size);
+                miopenTensorDescriptor_t rsvTensor;
+                miopenCreateTensorDescriptor(&rsvTensor);
+                SetTensor4d(rsvTensor, rsv_size);
 
-				float alpha = 1, beta = 0;
-				ActivationDescriptor tanhDesc,sigDesc;
-				size_t offset;
-				
-				sigDesc = { miopenActivationLOGISTIC, 1, 0, 1 };
-				tanhDesc = { miopenActivationTANH, 1, 1, 1 };
-				
+                float alpha = 1, beta = 0;
+                ActivationDescriptor tanhDesc, sigDesc;
+                size_t offset;
 
-                for (int bs = 0; bs < in_n[ti]; bs++)
+                sigDesc  = {miopenActivationLOGISTIC, 1, 0, 1};
+                tanhDesc = {miopenActivationTANH, 1, 1, 1};
+
+                for(int bs = 0; bs < in_n[ti]; bs++)
                 {
-					offset = hid_shift + (bacc + bs) * hy_stride;
+                    offset = hid_shift + (bacc + bs) * hy_stride;
 
-					for (int gi = 0; gi <= bi * 4; gi++)
-					{
-						if (gi < 4 || gi == bi * 4)
-						{
-							if (gi != 3 && gi != bi * 4)
-							{
-								sigDesc.Forward(handle,
-									&alpha,
-									miopen::deref(rsvTensor),
-									reserveSpace,
-									&beta,
-									miopen::deref(rsvTensor),
-									workSpace,
-									offset + gi * hy_h,
-									offset + gi * hy_h);
-							}
-							else
-							{
-								tanhDesc.Forward(handle,
-									&alpha,
-									miopen::deref(rsvTensor),
-									reserveSpace,
-									&beta,
-									miopen::deref(rsvTensor),
-									workSpace,
-									offset + gi * hy_h,
-									offset + gi * hy_h);
-							}
-
-							// Update time
-							if (handle.IsProfilingEnabled())
-							{
-								time_0 = handle.GetKernelTime();
-								handle.AccumKernelTime(time_0);
-							}
-						}
-					}
-
-					if (ti == 0)
-					{
-
-					}
-					else
-					{
-						int prec_shift = li * batch_n * hy_stride +
-							(bacc - in_n[ti - 1]) * hy_stride + bi * 4 * hy_h;
-
-					}
-                }
-
-                if (dirMode)
-                {
-                    for (int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
+                    for(int gi = 0; gi <= bi * 4; gi++)
                     {
-						offset = hid_shift + (baccbi + bs) * hy_stride;
+                        if(gi < 4 || gi == bi * 4)
+                        {
+                            if(gi != 3 && gi != bi * 4)
+                            {
+                                sigDesc.Forward(handle,
+                                                &alpha,
+                                                miopen::deref(rsvTensor),
+                                                reserveSpace,
+                                                &beta,
+                                                miopen::deref(rsvTensor),
+                                                workSpace,
+                                                offset + gi * hy_h,
+                                                offset + gi * hy_h);
+                            }
+                            else
+                            {
+                                tanhDesc.Forward(handle,
+                                                 &alpha,
+                                                 miopen::deref(rsvTensor),
+                                                 reserveSpace,
+                                                 &beta,
+                                                 miopen::deref(rsvTensor),
+                                                 workSpace,
+                                                 offset + gi * hy_h,
+                                                 offset + gi * hy_h);
+                            }
 
-						for (int gi = 4; gi <= (bi * 4 + 1); gi++)
-						{
-							if (gi <=7 || gi == (bi * 4 + 1))
-							{
-								if (gi != 7 && gi != (bi * 4 + 1))
-								{
-									sigDesc.Forward(handle,
-										&alpha,
-										miopen::deref(rsvTensor),
-										reserveSpace,
-										&beta,
-										miopen::deref(rsvTensor),
-										workSpace,
-										offset + gi * hy_h,
-										offset + gi * hy_h);
-								}
-								else
-								{
-									tanhDesc.Forward(handle,
-										&alpha,
-										miopen::deref(rsvTensor),
-										reserveSpace,
-										&beta,
-										miopen::deref(rsvTensor),
-										workSpace,
-										offset + gi * hy_h,
-										offset + gi * hy_h);
-								}
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
+                        }
+                    }
 
-								// Update time
-								if (handle.IsProfilingEnabled())
-								{
-									time_0 = handle.GetKernelTime();
-									handle.AccumKernelTime(time_0);
-								}
-							}
-						}
-
-						if (ti == 0)
-						{
-
-						}
-						else
-						{
-							if (bs < in_n[seqLength - ti])
-							{
-								int prec_shift = li * batch_n * hy_stride +
-									(baccbi + in_n[seqLength - 1 - ti]) * hy_stride +
-									bi * 4 * hy_h + hy_h;
-
-							}
-					    }
+                    if(ti == 0)
+                    {
+                    }
+                    else
+                    {
+                        int prec_shift = li * batch_n * hy_stride +
+                                         (bacc - in_n[ti - 1]) * hy_stride + bi * 4 * hy_h;
                     }
                 }
-                                                
+
+                if(dirMode)
+                {
+                    for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
+                    {
+                        offset = hid_shift + (baccbi + bs) * hy_stride;
+
+                        for(int gi = 4; gi <= (bi * 4 + 1); gi++)
+                        {
+                            if(gi <= 7 || gi == (bi * 4 + 1))
+                            {
+                                if(gi != 7 && gi != (bi * 4 + 1))
+                                {
+                                    sigDesc.Forward(handle,
+                                                    &alpha,
+                                                    miopen::deref(rsvTensor),
+                                                    reserveSpace,
+                                                    &beta,
+                                                    miopen::deref(rsvTensor),
+                                                    workSpace,
+                                                    offset + gi * hy_h,
+                                                    offset + gi * hy_h);
+                                }
+                                else
+                                {
+                                    tanhDesc.Forward(handle,
+                                                     &alpha,
+                                                     miopen::deref(rsvTensor),
+                                                     reserveSpace,
+                                                     &beta,
+                                                     miopen::deref(rsvTensor),
+                                                     workSpace,
+                                                     offset + gi * hy_h,
+                                                     offset + gi * hy_h);
+                                }
+
+                                // Update time
+                                if(handle.IsProfilingEnabled())
+                                {
+                                    time_0 = handle.GetKernelTime();
+                                    handle.AccumKernelTime(time_0);
+                                }
+                            }
+                        }
+
+                        if(ti == 0)
+                        {
+                        }
+                        else
+                        {
+                            if(bs < in_n[seqLen - ti])
+                            {
+                                int prec_shift = li * batch_n * hy_stride +
+                                                 (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
+                                                 bi * 4 * hy_h + hy_h;
+                            }
+                        }
+                    }
+                }
+
                 bacc += in_n[ti];
             }
         }
@@ -1492,63 +1487,61 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             {
                 bacc -= in_n[ti];
 
-				std::vector<int> rsv_size(3, 1);
-				rsv_size.push_back(hy_h);
+                std::vector<int> rsv_size(3, 1);
+                rsv_size.push_back(hy_h);
 
-				miopenTensorDescriptor_t rsvTensor;
-				miopenCreateTensorDescriptor(&rsvTensor);
-				SetTensor4d(rsvTensor, rsv_size);
+                miopenTensorDescriptor_t rsvTensor;
+                miopenCreateTensorDescriptor(&rsvTensor);
+                SetTensor4d(rsvTensor, rsv_size);
 
-				float alpha = 1, beta = 0;
-				ActivationDescriptor activDesc;
-				size_t offset;
+                float alpha = 1, beta = 0;
+                ActivationDescriptor activDesc;
+                size_t offset;
 
-				if (rnnMode == miopenRNNRELU)
-				{
-					activDesc = { miopenActivationRELU, 1, 0, 1 };
-				}
-				else if (rnnMode == miopenRNNTANH)
-				{
-					activDesc = { miopenActivationTANH, 1, 1, 1 };
-				}
+                if(rnnMode == miopenRNNRELU)
+                {
+                    activDesc = {miopenActivationRELU, 1, 0, 1};
+                }
+                else if(rnnMode == miopenRNNTANH)
+                {
+                    activDesc = {miopenActivationTANH, 1, 1, 1};
+                }
 
-				for (int bs = 0; bs < in_n[ti]; bs++)
-				{
-					// from post state
-					if (ti == seqLen - 1)
-					{
+                for(int bs = 0; bs < in_n[ti]; bs++)
+                {
+                    // from post state
+                    if(ti == seqLen - 1)
+                    {
+                    }
+                    else
+                    {
+                    }
 
-					}
-					else
-					{
+                    offset = hid_shift + bacc * hy_stride + bs * hy_stride;
 
-					}
+                    activDesc.Backward(handle,
+                                       &alpha,
+                                       miopen::deref(rsvTensor),
+                                       reserveSpace,
+                                       miopen::deref(rsvTensor),
+                                       workSpace,
+                                       miopen::deref(rsvTensor),
+                                       reserveSpace,
+                                       &beta,
+                                       miopen::deref(rsvTensor),
+                                       workSpace,
+                                       offset + nLayers * batch_n * hy_h * bi,
+                                       offset,
+                                       offset,
+                                       offset);
 
-					offset = hid_shift + bacc * hy_stride + bs * hy_stride;
-
-					activDesc.Backward(handle,
-						&alpha,
-						miopen::deref(rsvTensor),
-						reserveSpace,
-						miopen::deref(rsvTensor),
-						workSpace,
-						miopen::deref(rsvTensor),
-						reserveSpace,
-						&beta,
-						miopen::deref(rsvTensor),
-						workSpace,
-						offset + nLayers * batch_n * hy_h * bi,
-						offset,
-						offset,
-						offset);
-
-					// Update time
-					if (handle.IsProfilingEnabled())
-					{
-						time_0 = handle.GetKernelTime();
-						handle.AccumKernelTime(time_0);
-					}
-				}
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+                }
 
                 wei_shift =
                     li == 0 ? (in_h * hy_stride)
@@ -1589,43 +1582,41 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                 if(dirMode)
                 {
-					for (int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
-					{
-						// from post state
-						if (ti == seqLen - 1)
-						{
+                    for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
+                    {
+                        // from post state
+                        if(ti == seqLen - 1)
+                        {
+                        }
+                        else
+                        {
+                        }
 
-						}
-						else
-						{
+                        offset = hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride;
 
-						}
+                        activDesc.Backward(handle,
+                                           &alpha,
+                                           miopen::deref(rsvTensor),
+                                           reserveSpace,
+                                           miopen::deref(rsvTensor),
+                                           workSpace,
+                                           miopen::deref(rsvTensor),
+                                           reserveSpace,
+                                           &beta,
+                                           miopen::deref(rsvTensor),
+                                           workSpace,
+                                           offset + nLayers * batch_n * hy_h * bi,
+                                           offset,
+                                           offset,
+                                           offset);
 
-						offset = hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride;
-
-						activDesc.Backward(handle,
-							&alpha,
-							miopen::deref(rsvTensor),
-							reserveSpace,
-							miopen::deref(rsvTensor),
-							workSpace,
-							miopen::deref(rsvTensor),
-							reserveSpace,
-							&beta,
-							miopen::deref(rsvTensor),
-							workSpace,
-							offset + nLayers * batch_n * hy_h * bi,
-							offset,
-							offset,
-							offset);
-
-						// Update time
-						if (handle.IsProfilingEnabled())
-						{
-							time_0 = handle.GetKernelTime();
-							handle.AccumKernelTime(time_0);
-						}
-					}
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+                    }
 
                     if(in_n[seqLen - 1 - ti] > 0)
                     {
@@ -1855,34 +1846,31 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                 }
 
                 // update hidden status
-                for (int bs = 0; bs < in_n[ti]; bs++)
+                for(int bs = 0; bs < in_n[ti]; bs++)
                 {
-					if(ti < seqLength - 1)
-					{
-						if (bs < in_n[ti + 1])
-						{
-							int pretime_shift =
-								li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
-						}
-					}
+                    if(ti < seqLen - 1)
+                    {
+                        if(bs < in_n[ti + 1])
+                        {
+                            int pretime_shift =
+                                li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
+                        }
+                    }
 
-					if (ti == 0)
-					{
-
-					}
-					else
-					{
-						int prec_shift = li * batch_n * hy_stride +
-							(bacc - in_n[ti - 1]) * hy_stride + bi * 4 * hy_h;
-
-					}
+                    if(ti == 0)
+                    {
+                    }
+                    else
+                    {
+                        int prec_shift = li * batch_n * hy_stride +
+                                         (bacc - in_n[ti - 1]) * hy_stride + bi * 4 * hy_h;
+                    }
                 }
 
-                if (dirMode)
+                if(dirMode)
                 {
-                    for (int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
+                    for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
                     {
-
                     }
                 }
 
