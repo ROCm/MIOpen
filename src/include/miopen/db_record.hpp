@@ -128,7 +128,9 @@ class DbRecord
     }
 
     bool ParseContents(const std::string& contents);
-    bool StoreValues(const std::string& id, const std::string& values, RecordPositions* const pos = nullptr);
+    bool StoreValues(const std::string& id,
+                     const std::string& values,
+                     RecordPositions* const pos = nullptr);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     bool ParseLegacyContents(const std::string& contents);
     bool LoadValues(const std::string& id, std::string& values, ContentFormat& content_format);
@@ -174,9 +176,7 @@ class DbRecord
     {
     }
 
-    ~DbRecord()
-    {
-    }
+    ~DbRecord() {}
 
     /// Obtains VALUES from an object of class T and stores it
     /// in db (in association with ID, under the current KEY).
@@ -186,7 +186,7 @@ class DbRecord
     bool Store(const std::string& id, const T& values)
     {
         RecordPositions pos;
-        if (StoreValues(id, Serialize(values), &pos))
+        if(StoreValues(id, Serialize(values), &pos))
             return Flush(&pos);
         return true;
     }
