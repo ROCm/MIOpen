@@ -116,8 +116,7 @@ static bool isLegacySolver(const std::string& id)
 }
 #endif
 
-bool DbRecord::StoreValues(const std::string& id,
-                           const std::string& values)
+bool DbRecord::StoreValues(const std::string& id, const std::string& values)
 {
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     assert(record_format != RecordFormat::CurrentOrMixed);
