@@ -60,6 +60,7 @@ set( MIOpen_Source
     convolution.cpp
     convolution_api.cpp
     convolution_fft.cpp
+    db_record.cpp
     load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
@@ -70,6 +71,7 @@ set( MIOpen_Source
     softmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
+    include/miopen/db_record.hpp
     include/miopen/batch_norm.hpp
     include/miopen/check_numerics.hpp
     include/miopen/common.hpp
@@ -90,6 +92,7 @@ set( MIOpen_Source
     include/miopen/softmax.hpp
     tensor.cpp
     tensor_api.cpp
+    solver.cpp
     solver/conv_asm_3x3u.cpp
     solver/conv_asm_5x10u2v2f1.cpp
     solver/conv_asm_5x10u2v2b1.cpp
