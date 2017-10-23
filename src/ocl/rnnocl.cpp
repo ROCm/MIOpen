@@ -450,6 +450,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 if(dirMode)
                 {
+					rsv_size[2] = in_n[seqLength - 1 - ti];
+					rsv_stride[0] = in_n[seqLength - 1 - ti] * hy_stride;
+					rsv_stride[1] = in_n[seqLength - 1 - ti] * hy_stride;
+					miopenCreateTensorDescriptor(&rsvTensor);
+					miopenSetTensorDescriptor(rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+
                         offset = hid_shift + baccbi * hy_stride + hy_h;
 
                         activDesc.Forward(handle,
