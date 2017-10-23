@@ -150,7 +150,7 @@ struct verify_lrn_bwd
     miopen::LRNDescriptor lrn;
     tensor<T> inputY;
     tensor<T> inputDY;
-    tensor<T> inputX; // scale
+    tensor<T> scale;
     tensor<T> inputDX;
 
     tensor<T> cpu()
@@ -213,7 +213,7 @@ struct verify_lrn_bwd
 
                             outputDX(b, c, h, w) =
                                 pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                cache_ratio_value * inputX(b, c, h, w) * ydy;
+                                cache_ratio_value * scale(b, c, h, w) * ydy;
                         }
                     }
                 }
@@ -221,7 +221,6 @@ struct verify_lrn_bwd
         }
         else
         {
-
             auto cache_ratio_value = 2 * alpha * beta / lrn_n;
 
             for(auto b = 0; b < n_batch; b++)
@@ -230,18 +229,20 @@ struct verify_lrn_bwd
                 {
                     for(auto w = 0; w < width; w++)
                     {
-                        double scale_x = 0;
-                        double ydy     = 0;
-
                         for(auto c = 0; c < channels; c++)
                         {
-                            auto intensityX = inputX(b, c, h, w);
-                            ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) / scale_x;
-                        }
+                            double ydy = 0;
+                            auto start = (c - radius) < 0 ? 0 : (c - radius);
+                            auto end = (c + radius) > channels ? channels : (c + radius);
 
-                        for(auto c = 0; c < channels; c++)
-                            outputDX(b, c, h, w) = pow(scale_x, -beta) * inputDY(b, c, h, w) -
-                                                   cache_ratio_value * inputX(b, c, h, w) * ydy;
+                            for (auto k = start; k < end; k++) {
+                                ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) / scale(b, c, h, w);
+                            }
+
+                            outputDX(b, c, h, w) =
+                                    pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
+                                    cache_ratio_value * scale(b, c, h, w) * ydy;
+                        }
                     }
                 }
             }
@@ -256,7 +257,7 @@ struct verify_lrn_bwd
         auto dinput        = inputY;
         auto in_dev        = handle.Write(inputY.data);
         auto dout_dev      = handle.Write(inputDY.data);
-        auto out_dev       = handle.Write(inputX.data);
+        auto out_dev = handle.Write(scale.data);
         auto din_dev       = handle.Create<T>(dinput.data.size());
         auto workspace_dev = handle.Create<T>(inputY.data.size());
 
@@ -270,7 +271,7 @@ struct verify_lrn_bwd
                      inputDY.desc,
                      dout_dev.get(),
                      // x
-                     inputX.desc,
+                     scale.desc,
                      out_dev.get(),
                      &beta,
                      // dx
@@ -291,7 +292,7 @@ struct verify_lrn_bwd
         std::cout << "Input Tensor DY"
                   << " " << inputDY.desc.ToString() << std::endl;
         std::cout << "Input Tensor X"
-                  << " " << inputX.desc.ToString() << std::endl;
+                  << " " << scale.desc.ToString() << std::endl;
     }
 };
 
