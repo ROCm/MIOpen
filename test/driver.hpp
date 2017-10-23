@@ -131,7 +131,7 @@ struct test_driver
                           fs...);
     }
 
-    template<class X>
+    template <class X>
     struct generate_tensor_t
     {
         std::function<std::set<X>()> get_data;
@@ -143,7 +143,7 @@ struct test_driver
         }
     };
 
-    template<class X>
+    template <class X>
     generate_tensor_t<X> generate_tensor(std::set<X> dims, X single)
     {
         return {[=]() -> std::set<X> {
@@ -154,8 +154,9 @@ struct test_driver
         }};
     }
 
-    template<class X>
-    generate_tensor_t<std::vector<X>> generate_tensor(std::set<std::vector<X>> dims, std::initializer_list<X> single)
+    template <class X>
+    generate_tensor_t<std::vector<X>> generate_tensor(std::set<std::vector<X>> dims,
+                                                      std::initializer_list<X> single)
     {
         return generate_tensor<std::vector<X>>(dims, single);
     }
@@ -171,7 +172,7 @@ struct test_driver
         }};
     }
 
-    template<class F, class X>
+    template <class F, class X>
     generate_tensor_t<std::vector<X>> lazy_generate_tensor(F f, std::initializer_list<X> single)
     {
         return lazy_generate_tensor<F, std::vector<X>>(f, single);

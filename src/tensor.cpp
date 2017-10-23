@@ -114,9 +114,9 @@ std::size_t TensorDescriptor::GetElementSpace() const
                    std::vector<std::size_t>(lens.size(), 1).begin(),
                    maxIndices.begin(),
                    std::minus<size_t>());
-    return
-        std::inner_product(maxIndices.begin(), maxIndices.end(), strides.begin(), std::size_t{0}) +
-        1;
+    return std::inner_product(
+               maxIndices.begin(), maxIndices.end(), strides.begin(), std::size_t{0}) +
+           1;
 }
 
 std::size_t TensorDescriptor::GetNumBytes() const
