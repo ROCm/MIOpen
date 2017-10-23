@@ -37,5 +37,6 @@
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 
 #cmakedefine01 MIOPEN_USE_CACHE
+#define MIOPEN_PERFDB_CONV_LEGACY_SUPPORT 1
 
 #endif

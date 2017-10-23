@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <sstream>
 #include <unordered_map>
 
 #include "miopen/solver.hpp"
@@ -35,7 +36,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 namespace miopen {
 namespace solver {
 
-struct PerfParamsAsmDirect3x3WrW
+struct BwdAsm3x3PerformanceConfig : public PerformanceConfig
 {
     int limit_wave_cnt;
     int chunk_size; // 16 or 8. Lower values increase register pressure
@@ -46,17 +47,60 @@ struct PerfParamsAsmDirect3x3WrW
     int pipe_lines_depth; // 1..8 and pipe_lines_depth <= img_h. Higher values increase register
                           // pressure
     int reverse_inout;    // 0 or 1
-    PerfParamsAsmDirect3x3WrW()
-        : limit_wave_cnt(0),
-          chunk_size(16),
-          c_per_wave(4),
-          k_per_wave(4),
-          n_per_group(1),
-          pipe_lines_depth(2),
-          reverse_inout(0)
-    {
-    }
+
+    BwdAsm3x3PerformanceConfig();
+    void Serialize(std::ostream&) const override;
+    bool Deserialize(const std::string& str) override;
 };
+
+static bool DeserializeField(char separator, std::istream& from, int& to)
+{
+    std::string part;
+
+    if(!std::getline(from, part, separator))
+        return false;
+
+    char* end;
+    to = std::strtol(part.c_str(), &end, 10);
+    return part.c_str() == end;
+}
+
+BwdAsm3x3PerformanceConfig::BwdAsm3x3PerformanceConfig()
+    : limit_wave_cnt(0),
+      chunk_size(16),
+      c_per_wave(4),
+      k_per_wave(4),
+      n_per_group(1),
+      pipe_lines_depth(2),
+      reverse_inout(0)
+{
+}
+
+void BwdAsm3x3PerformanceConfig::Serialize(std::ostream&) const { std::abort(); }
+
+bool BwdAsm3x3PerformanceConfig::Deserialize(const std::string& str)
+{
+    std::istringstream ss(str);
+    BwdAsm3x3PerformanceConfig temp;
+
+    const auto succeded =
+        // clang-format off
+        DeserializeField(',', ss, temp.limit_wave_cnt) &&
+        DeserializeField(',', ss, temp.chunk_size) &&
+        DeserializeField(',', ss, temp.c_per_wave) &&
+        DeserializeField(',', ss, temp.k_per_wave) &&
+        DeserializeField(',', ss, temp.n_per_group) &&
+        DeserializeField(',', ss, temp.pipe_lines_depth) &&
+        DeserializeField(',', ss, temp.reverse_inout);
+    // clang-format on
+
+    if(!succeded)
+        return false;
+
+    *this = temp;
+    return true;
+}
+
 inline int PopIntFromString(std::string& s, size_t digits)
 {
     const auto val = std::stoi(s.substr(0, digits));
@@ -64,7 +108,7 @@ inline int PopIntFromString(std::string& s, size_t digits)
     return val;
 }
 
-static void ParsePerfParamsAsmDirect3x3WrW(const std::string& s, PerfParamsAsmDirect3x3WrW& pp)
+static void ParsePerfParamsAsmDirect3x3WrW(const std::string& s, BwdAsm3x3PerformanceConfig& pp)
 {
     if(s.size() != 9)
     {
@@ -112,8 +156,13 @@ static bool IsReverseInOutAllowed(const ConvolutionContext& params)
     return params.kernel_stride0 == 1 && params.kernel_stride1 == 1;
 }
 
-static PerfParamsAsmDirect3x3WrW
-mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
+std::unique_ptr<PerformanceConfig> ConvAsmBwdWrW3x3::PerformanceConfigImpl() const
+{
+    return make_unique<BwdAsm3x3PerformanceConfig>();
+}
+
+void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& params,
+                                                 PerformanceConfig& result) const
 {
     /// LUT entry/env.var format: 8 decimal ASCII digits, left to right:
     /// limit_wave_cnt   [00..10]
@@ -210,7 +259,7 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
     });
 
     std::string s;
-    PerfParamsAsmDirect3x3WrW pp;
+    BwdAsm3x3PerformanceConfig pp;
     const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
     if(p_asciz)
     {
@@ -358,8 +407,8 @@ mloComputePerfParamsAsmDirect3x3WrW(const ConvolutionContext& params)
             }
         }
     }
-    pp.c_per_wave = 64 / pp.chunk_size;
-    return pp;
+    pp.c_per_wave                                     = 64 / pp.chunk_size;
+    dynamic_cast<BwdAsm3x3PerformanceConfig&>(result) = pp;
 }
 
 bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
@@ -416,7 +465,9 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
     // Check other constraints:
-    const PerfParamsAsmDirect3x3WrW pp = mloComputePerfParamsAsmDirect3x3WrW(params);
+    BwdAsm3x3PerformanceConfig pp;
+    InitPerformanceConfigImpl(params, pp);
+
     if(pp.reverse_inout == 0)
     {
         ok = (params.n_outputs % pp.c_per_wave) == 0 && (params.n_inputs % pp.k_per_wave) == 0;
@@ -431,7 +482,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
 
 ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfig&) const
+                                           const PerformanceConfig& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -450,7 +501,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     // Perf tune:
-    const PerfParamsAsmDirect3x3WrW pp = mloComputePerfParamsAsmDirect3x3WrW(params);
+    const auto& pp = dynamic_cast<const BwdAsm3x3PerformanceConfig&>(config);
     GenerateClangDefsym(options, "limit_wave_cnt", pp.limit_wave_cnt);
     GenerateClangDefsym(options, "chunk_size", pp.chunk_size);
     GenerateClangDefsym(options, "c_per_wave", pp.c_per_wave);
