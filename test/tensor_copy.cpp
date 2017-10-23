@@ -40,68 +40,67 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 
-#define MIO_OPS_DEBUG 0
+#define MIO_OPS_DEBUG 1
 
 template <class T>
-struct tensor_ops_base
+struct tensor_copy_base
 {
     tensor<T> a;
-    tensor<T> b;
     tensor<T> c;
+    int aoffset;
+    int coffset;
 
     void fail(float = 0)
     {
         std::cout << "A tensor: " << a.desc.ToString() << std::endl;
-        std::cout << "B tensor: " << b.desc.ToString() << std::endl;
-        std::cout << "C tensor: " << a.desc.ToString() << std::endl;
+        std::cout << "C tensor: " << c.desc.ToString() << std::endl;
     }
 };
 
 template <class T>
-struct verify_tensor_ops : tensor_ops_base<T>
+struct verify_tensor_copy : tensor_copy_base<T>
 {
-    using tensor_ops_base<T>::a;
-    using tensor_ops_base<T>::b;
-    using tensor_ops_base<T>::c;
+    using tensor_copy_base<T>::a;
+    using tensor_copy_base<T>::c;
+    using tensor_copy_base<T>::aoffset;
+    using tensor_copy_base<T>::coffset;
+    
 
-    verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb)
+    verify_tensor_copy(const tensor<T>& pa, const tensor<T>& pc)
     {
         a = pa;
-        b = pb;
+        c = pc;
     }
 
-    verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const std::vector<T>& dims)
+    verify_tensor_copy(const tensor<T>& pa, const tensor<T>& pc, const std::vector<T>& dims)
     {
         a = pa(dims);
-        b = pb(dims);
+        c = pc(dims);
     }
 
-    T add_elem(T aelem, T belem) { return aelem + belem; }
-
     void tensor_for_loop(const tensor<T>& aten,
-                         const tensor<T>& bten,
                          tensor<T>& cten,
                          const std::vector<size_t>& a_dims,
-                         const std::vector<size_t>& b_dims,
-                         int coffset,
-                         int boffset,
+                         const std::vector<size_t>& c_dims,
+                         int aoffsetIndex,
+                         int coffsetIndex,
                          int dim)
     {
 
+        int astride = aten.desc.GetStrides()[dim];
         int cstride = cten.desc.GetStrides()[dim];
-        int bstride = bten.desc.GetStrides()[dim];
 
         for(int idx = 0; idx < a_dims[dim]; idx++)
         {
-            size_t acindex = coffset + cstride * idx;
-            size_t bindex  = (b_dims[dim] == a_dims[dim]) ? boffset + bstride * idx : boffset;
-
-            if(bindex < bten.desc.GetElementSize())
-                cten[acindex] = add_elem(aten[acindex], bten[bindex]);
+            size_t aindex = aoffsetIndex + astride * idx;
+            size_t cindex = coffsetIndex + cstride * idx;
+            
+            if(cindex < cten.desc.GetElementSize() && aindex < aten.desc.GetElementSize())
+                cten[aindex] = aten[aindex];
+            
             if(dim < (a_dims.size() - 1))
             {
-
-                tensor_for_loop(aten, bten, cten, a_dims, b_dims, acindex, bindex, dim + 1);
+                tensor_for_loop(aten, cten, a_dims, c_dims, aindex, cindex, dim + 1);
             }
         }
         return;
@@ -109,20 +108,27 @@ struct verify_tensor_ops : tensor_ops_base<T>
 
     tensor<T> cpu()
     {
+        
         c = a;
         std::fill(c.begin(), c.end(), 0);
+        for(int i = 0; i < a.desc.GetElementSize(); i++)
+        {
+            a[i] = i;
+        }
+        
+        auto alens    = a.desc.GetLengths();
         auto clens    = c.desc.GetLengths();
-        auto blens    = b.desc.GetLengths();
-        auto bstrides = b.desc.GetStrides();
+        
+        auto astrides = a.desc.GetStrides();
         auto cstrides = c.desc.GetStrides();
 
-        tensor_for_loop(a, b, c, clens, blens, 0, 0, 0);
+        tensor_for_loop(a, c, alens, clens, 0, 0, 0);
 
 #if(MIO_OPS_DEBUG)
-        for(int i = 0; i < c.desc.GetElementSize(); i++)
-        {
-            std::cout << "C_CPU[" << i << "]: " << c[i] << std::endl;
-        }
+//        for(int i = 0; i < c.desc.GetElementSize(); i++)
+//        {
+//            std::cout << "C_CPU[" << i << "]: " << c[i] << std::endl;
+//        }
 #endif
         return c;
     }
@@ -134,24 +140,22 @@ struct verify_tensor_ops : tensor_ops_base<T>
         c = a;
         // return c;
         std::fill(c.begin(), c.end(), 0);
+        for(int i = 0; i < a.desc.GetElementSize(); i++)
+        {
+            a[i] = i;
+        }
 
         auto c_dev = handle.Write(c.data);
         auto a_dev = handle.Write(a.data);
-        auto b_dev = handle.Write(b.data);
-
-        int alpha1 = 1, alpha2 = 1, beta = 0;
-
-        miopen::OpTensor(handle,
-                         miopenTensorOpAdd,
-                         &alpha1,
-                         a.desc,
-                         a_dev.get(),
-                         &alpha2,
-                         b.desc,
-                         b_dev.get(),
-                         &beta,
-                         c.desc,
-                         c_dev.get());
+        
+        
+        miopen::CopyTensor(handle,
+                        a.desc,
+                        a_dev.get(),
+                        c.desc,
+                        c_dev.get(),
+                        aoffset,
+                        coffset);
 
         c.data = handle.Read<T>(c_dev, c.data.size());
 
@@ -167,22 +171,26 @@ struct verify_tensor_ops : tensor_ops_base<T>
 
     void fail(float = 0)
     {
-        std::cout << "TensorOp: " << std::endl;
-        this->tensor_ops_base<T>::fail();
+        std::cout << "Tensor Copy: " << std::endl;
+        this->tensor_copy_base<T>::fail();
     }
 };
 
 template <class T>
-struct tensor_ops_driver : test_driver
+struct tensor_copy_driver : test_driver
 {
     tensor<T> a;
-    tensor<T> b;
+    tensor<T> c;
 
-    tensor_ops_driver()
+    tensor_copy_driver()
     {
-        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));
-        add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 1}));
+        add(a, "a", generate_tensor(get_tensor_a(), {4, 3, 2, 2, 3}));
+        add(c, "c", generate_tensor(get_tensor_c(), {4, 3, 2, 2, 3}));
+//        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));
+//        add(c, "c", generate_tensor(get_tensor_c(), {11, 7, 13, 13}));
     }
+    
+    
 
     std::set<std::vector<int>> get_tensor_a()
     {
@@ -192,9 +200,9 @@ struct tensor_ops_driver : test_driver
         return (std::set<std::vector<int>>(a_dims.begin(), a_dims.end()));
     }
 
-    std::set<std::vector<int>> get_tensor_b()
+    std::set<std::vector<int>> get_tensor_c()
     {
-        std::vector<std::vector<int>> b_dims{
+        std::vector<std::vector<int>> c_dims{     //TODO: enumerate this list with descriptors
             {1, 8, 1, 1, 8},
             {1, 1, 1, 16, 8},
             {1, 1, 16, 1, 1},
@@ -230,16 +238,16 @@ struct tensor_ops_driver : test_driver
             {32, 8},
             {8},
         };
-        return (std::set<std::vector<int>>(b_dims.begin(), b_dims.end()));
+        return (std::set<std::vector<int>>(c_dims.begin(), c_dims.end()));
     }
 
     // void run() { verify(verify_tensor_ops<T, 2>{a, b}); }
     // void run() { verify(verify_tensor_ops<T, 4>{a, b}); }
     void run()
     {
-        if(a.desc.GetSize() == b.desc.GetSize())
-            verify(verify_tensor_ops<T>{a, b});
+        if(a.desc.GetSize() == c.desc.GetSize())
+            verify(verify_tensor_copy<T>{a, c});
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<tensor_ops_driver<float>>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<tensor_copy_driver<float>>(argc, argv); }
