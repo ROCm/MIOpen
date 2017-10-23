@@ -63,25 +63,17 @@ namespace miopen {
 /// Represents a db record associated with specific KEY.
 /// Ctor arguments are path to db file and a KEY (or an object able to provide a KEY).
 /// Upon construction, allows getting and modifying contents of a record (IDs and VALUES).
-/// A record in db file is updated when an instance is destroyed.
-///
-/// Note: An instance of this class caches position of the found (read) record within db file.
-/// This allows to optimize record update (i.e. write to db file).
-/// The drawback is: there are implicit dependencies among class instances.
-/// An update of db file made by one instance may invalidate cached position
-/// stored in another instance. That is why write to db file is disabled when
-/// more than 1 instance if this class exist.
 ///
 /// \todo Separate "db file" and "db record" abstractions.
-/// \todo Redesign db access and remove the limitation.
-/// \todo Check if implementation is MT- and MP-safe.
+/// \todo The Store() operation is neither MP- nor MT-safe.
 class DbRecord
 {
     private:
-    static std::atomic_int n_cached_records;
-    // Positions of the record loaded from the db file:
-    std::streamoff pos_begin = -1;
-    std::streamoff pos_end   = -1;
+    struct RecordPositions
+    {
+        std::streamoff begin = -1;
+        std::streamoff end   = -1;
+    };
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
 #define MIOPEN_PERFDB_CONV_LEGACY_ID "__LEGACY__"
@@ -107,15 +99,13 @@ class DbRecord
     };
     RecordFormat record_format = RecordFormat::Current;
 #endif
-    bool is_content_cached = false;
-    bool is_cache_dirty    = false;
     const std::string db_filename;
     const std::string key;
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     const std::string legacy_key;
-    bool is_backward_compatible = false; // for clang-tidy
+    bool is_backward_compatible = false;
 #endif
-    std::unordered_map<std::string, std::string> content;
+    std::unordered_map<std::string, std::string> map;
 
     template <class T>
     static // 'static' is for calling from ctor
@@ -137,16 +127,16 @@ class DbRecord
         return ss.str();
     }
 
-    bool ParseLegacyContents(const std::string& contents);
     bool ParseContents(const std::string& contents);
     bool StoreValues(const std::string& id, const std::string& values);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    bool ParseLegacyContents(const std::string& contents);
     bool LoadValues(const std::string& id, std::string& values, ContentFormat& content_format);
 #else
     bool LoadValues(const std::string& id, std::string& values);
 #endif
-    void Flush();
-    void ReadIntoCache();
+    bool Flush(const RecordPositions* pos);
+    void ReadFile(RecordPositions* pos);
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     DbRecord(const std::string& db_filename_,
@@ -184,26 +174,26 @@ class DbRecord
     {
     }
 
-    ~DbRecord()
-    {
-        Flush();
-        content.clear();
-        if(is_content_cached)
-            --n_cached_records;
-    }
+    ~DbRecord() {}
 
-    /// Obtains values from an object of class T and stores it
-    /// in db (in association with id, under the current key).
+    /// Obtains VALUES from an object of class T and stores it
+    /// in db (in association with ID, under the current KEY).
     /// T shall have the "void Serialize(std::ostream&) const"
     /// member function available.
     template <class T>
     bool Store(const std::string& id, const T& values)
     {
-        return StoreValues(id, Serialize(values));
+        RecordPositions pos;
+        // If there is a record with the same key, we need to load its content
+        // (otherwise existing content will be lost) and find out its positions.
+        ReadFile(&pos);
+        if(StoreValues(id, Serialize(values)))
+            return Flush(&pos);
+        return true;
     }
 
-    /// Loads values associated with id under the current key
-    /// (KEY:ID:VALUES) and delivers those to a member function
+    /// Loads VALUES associated with ID under the current KEY
+    /// and delivers those to a member function
     /// of a class T object. T shall have the
     /// "bool Deserialize(const std::string& str)"
     /// member function available.
@@ -215,6 +205,7 @@ class DbRecord
     bool Load(const std::string& id, T& values)
     {
         std::string s;
+        ReadFile(nullptr);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
         ContentFormat s_format = ContentFormat::Current;
         if(!LoadValues(id, s, s_format))
