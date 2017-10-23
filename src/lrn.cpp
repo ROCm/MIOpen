@@ -36,6 +36,10 @@ LRNDescriptor::LRNDescriptor(miopenLRNMode_t m, const unsigned int pn, const dou
 {
 }
 
+LRNDescriptor::LRNDescriptor(miopenLRNMode_t m, unsigned int pn, std::vector<double> pparms)
+    : lrnN(pn), parms(std::move(pparms)), mode(m)
+{
+}
 miopenLRNMode_t LRNDescriptor::GetMode() const { return this->mode; }
 
 unsigned int LRNDescriptor::GetN() const { return this->lrnN; }
