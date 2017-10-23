@@ -402,12 +402,18 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     }
                 }
 
-                std::vector<int> rsv_size(3, 1);
+                std::vector<int> rsv_size(2, 1);
+				rsv_size.push_back(in_n[ti]);
                 rsv_size.push_back(hy_h);
+				std::vector<int> rsv_stride;
+				rsv_stride.push_back(in_n[ti] * hy_stride);
+				rsv_stride.push_back(in_n[ti] * hy_stride);
+				rsv_stride.push_back(hy_stride);
+				rsv_stride.push_back(1);
 
                 miopenTensorDescriptor_t rsvTensor;
                 miopenCreateTensorDescriptor(&rsvTensor);
-                SetTensor4d(rsvTensor, rsv_size);
+				miopenSetTensorDescriptor(rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
 
                 float alpha = 1, beta = 0;
                 ActivationDescriptor activDesc;
@@ -422,9 +428,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     activDesc = {miopenActivationTANH, 1, 1, 1};
                 }
 
-                for(int bs = 0; bs < in_n[ti]; bs++)
-                {
-                    offset = hid_shift + bacc * hy_stride + bs * hy_stride;
+                    offset = hid_shift + bacc * hy_stride;
 
                     activDesc.Forward(handle,
                                       &alpha,
@@ -442,13 +446,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         time_0 = handle.GetKernelTime();
                         handle.AccumKernelTime(time_0);
                     }
-                }
+                
 
                 if(dirMode)
                 {
-                    for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
-                    {
-                        offset = hid_shift + baccbi * hy_stride + bs * hy_stride + hy_h;
+                        offset = hid_shift + baccbi * hy_stride + hy_h;
 
                         activDesc.Forward(handle,
                                           &alpha,
@@ -466,7 +468,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                             time_0 = handle.GetKernelTime();
                             handle.AccumKernelTime(time_0);
                         }
-                    }
+                    
                 }
 
                 bacc += in_n[ti];
