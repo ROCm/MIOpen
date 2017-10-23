@@ -78,7 +78,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     template <class... Ts>
     std::size_t GetIndex(Ts... is) const
     {
-        return this->GetIndex({is...});
+        return this->GetIndex({static_cast<int>(is)...});
     }
 
     bool operator==(const TensorDescriptor& rhs) const;
