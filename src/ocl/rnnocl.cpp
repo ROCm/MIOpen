@@ -402,19 +402,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     }
                 }
 
-                std::vector<int> rsv_size(2, 1);
-				rsv_size.push_back(in_n[ti]);
-                rsv_size.push_back(hy_h);
-				std::vector<int> rsv_stride;
-				rsv_stride.push_back(in_n[ti] * hy_stride);
-				rsv_stride.push_back(in_n[ti] * hy_stride);
-				rsv_stride.push_back(hy_stride);
-				rsv_stride.push_back(1);
-
-                miopenTensorDescriptor_t rsvTensor;
-                miopenCreateTensorDescriptor(&rsvTensor);
-				miopenSetTensorDescriptor(rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
-
                 float alpha = 1, beta = 0;
                 ActivationDescriptor activDesc;
                 size_t offset;
@@ -427,6 +414,21 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 {
                     activDesc = {miopenActivationTANH, 1, 1, 1};
                 }
+
+                std::vector<int> rsv_size(4, 1), rsv_stride(4, 1);
+                miopenTensorDescriptor_t rsvTensor;
+
+                if(in_n[ti] > 0)
+                {
+                    rsv_size[2]   = in_n[ti];
+                    rsv_size[3]   = hy_h;
+                    rsv_stride[0] = in_n[ti] * hy_stride;
+                    rsv_stride[1] = in_n[ti] * hy_stride;
+                    rsv_stride[2] = hy_stride;
+
+                    miopenCreateTensorDescriptor(&rsvTensor);
+                    miopenSetTensorDescriptor(
+                        rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
 
                     offset = hid_shift + bacc * hy_stride;
 
@@ -446,15 +448,21 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         time_0 = handle.GetKernelTime();
                         handle.AccumKernelTime(time_0);
                     }
-                
+                }
 
                 if(dirMode)
                 {
-					rsv_size[2] = in_n[seqLength - 1 - ti];
-					rsv_stride[0] = in_n[seqLength - 1 - ti] * hy_stride;
-					rsv_stride[1] = in_n[seqLength - 1 - ti] * hy_stride;
-					miopenCreateTensorDescriptor(&rsvTensor);
-					miopenSetTensorDescriptor(rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+                    if(in_n[seqLen - 1 - ti] > 0)
+                    {
+                        rsv_size[2]   = in_n[seqLen - 1 - ti];
+                        rsv_size[3]   = hy_h;
+                        rsv_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+                        rsv_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+                        rsv_stride[2] = hy_stride;
+
+                        miopenCreateTensorDescriptor(&rsvTensor);
+                        miopenSetTensorDescriptor(
+                            rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
 
                         offset = hid_shift + baccbi * hy_stride + hy_h;
 
@@ -474,7 +482,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                             time_0 = handle.GetKernelTime();
                             handle.AccumKernelTime(time_0);
                         }
-                    
+                    }
                 }
 
                 bacc += in_n[ti];
