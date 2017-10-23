@@ -173,40 +173,27 @@ struct verify_lrn_bwd
 
         if(mode == miopenLRNWithinChannel)
         {
-            for(auto b = 0; b < n_batch; b++)
-            {
-                for(auto c = 0; c < channels; c++)
-                {
-                    for(auto h = 0; h < height; h++)
-                    {
-                        for(auto w = 0; w < width; w++)
-                        {
-                            double ydy = 0;
+            par_ford(n_batch, channels)([&](int b, int c) {
+                ford(height, width)([&](int h, int w) {
+                    double ydy = 0;
+                    auto left = (w - radius) < 0 ? 0 : (w - radius);
+                    auto right = (left + lrn_n) > width ? width : (left + lrn_n);
+                    auto top = (h - radius) < 0 ? 0 : (h - radius);
+                    auto bottom = (top + lrn_n) > height ? height : (top + lrn_n);
+                    auto adjust_area = (right - left) * (bottom - top);
+                    auto cache_ratio_value = 2 * alpha * beta / adjust_area;
+                    auto alpha_over_area = alpha / adjust_area;
 
-                            auto left        = (w - radius) < 0 ? 0 : (w - radius);
-                            auto right       = (left + lrn_n) > width ? width : (left + lrn_n);
-                            auto top         = (h - radius) < 0 ? 0 : (h - radius);
-                            auto bottom      = (top + lrn_n) > height ? height : (top + lrn_n);
-                            auto adjust_area = (right - left) * (bottom - top);
-                            auto cache_ratio_value = 2 * alpha * beta / adjust_area;
-                            auto alpha_over_area   = alpha / adjust_area;
-
-                            for(auto i = left; i < right; i++)
-                            {
-                                for(auto j = top; j < bottom; j++)
-                                {
-                                    ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) /
-                                           scale(b, c, h, w);
-                                }
-                            }
-
-                            outputDX(b, c, h, w) =
-                                pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                cache_ratio_value * scale(b, c, h, w) * ydy;
+                    for (auto i = left; i < right; i++) {
+                        for (auto j = top; j < bottom; j++) {
+                            ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) / scale(b, c, h, w);
                         }
                     }
-                }
-            }
+
+                    outputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
+                                           cache_ratio_value * scale(b, c, h, w) * ydy;
+                });
+            });
         }
         else
         {
