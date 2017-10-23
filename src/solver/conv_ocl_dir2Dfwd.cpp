@@ -24,18 +24,18 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
+#include "miopen/legacy_exhaustive_search.hpp"
+#include "miopen/solver.hpp"
 
 namespace miopen {
 namespace solver {
 
 ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfig& exhaustive_search_result) const
+                                           const PerformanceConfig& config) const
 {
     ConvSolution result;
-    const auto& searched_params =
-        dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
+    const auto& searched_params = dynamic_cast<const LegacyPerformanceConfig&>(config);
 
     // std::size_t localMemSize = params.stream.GetLocalMemorySize();
 
