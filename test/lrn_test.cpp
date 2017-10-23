@@ -183,7 +183,6 @@ struct verify_lrn_bwd
                         {
                             double ydy = 0;
 
-                            // change to zero padding
                             auto left        = (w - radius) < 0 ? 0 : (w - radius);
                             auto right       = (left + lrn_n) > width ? width : (left + lrn_n);
                             auto top         = (h - radius) < 0 ? 0 : (h - radius);
@@ -196,18 +195,8 @@ struct verify_lrn_bwd
                             {
                                 for(auto j = top; j < bottom; j++)
                                 {
-                                    scale(b, c, j, i) += inputY(b, c, j, i) * inputY(b, c, j, i);
-                                    scale(b, c, j, i) += K;
-                                    scale(b, c, j, i) *= alpha_over_area;
-                                }
-                            }
-
-                            for(auto i = left; i < right; i++)
-                            {
-                                for(auto j = top; j < bottom; j++)
-                                {
-                                    ydy += inputY(b, c, j, i) * inputDY(b, c, j, i) /
-                                           scale(b, c, j, i);
+                                    ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) /
+                                           scale(b, c, h, w);
                                 }
                             }
 
