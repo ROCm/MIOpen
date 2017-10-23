@@ -128,7 +128,8 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 # miopengemm
 find_package(miopengemm PATHS /opt/rocm)
-if(miopengemm_FOUND)
+#if(miopengemm_FOUND)
+if(0)
     message(STATUS "Build with miopengemm")
     set(MIOPEN_USE_MIOPENGEMM 1)
 else()

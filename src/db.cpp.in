@@ -30,7 +30,7 @@ namespace miopen {
 
 std::string GetDbPath()
 {
-    auto p = std::getenv("MIOPEN_DB_PATH");
+    auto p = std::getenv("MIOPEN_DB_PATH"); /// \todo Read env once - use GetStringEnv().
     if(p == nullptr)
         return "${MIOPEN_DB_PATH}";
     else
