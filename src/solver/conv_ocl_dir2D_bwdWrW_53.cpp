@@ -31,7 +31,7 @@ namespace solver {
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
-    return (params.kernel_size0 >= 2) || (params.kernel_size1 >= 2);
+    return ((params.kernel_size0 >= 2 || params.kernel_size1 >= 2) && (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
 }
 
 ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params,
@@ -39,10 +39,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params,
 {
     ConvSolution result;
 
-    if(params.kernel_stride1 > 1 || params.kernel_stride0 > 1)
-    {
-        return ConvSolution(static_cast<miopenStatus_t>(-1));
-    }
     size_t localMemSize = 64 * 1024;
 
     const auto hw_wave_sz       = 64;
