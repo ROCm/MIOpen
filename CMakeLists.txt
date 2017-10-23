@@ -50,7 +50,7 @@ include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 
-rocm_setup_version(VERSION 1.1.4)
+rocm_setup_version(VERSION 1.1.5)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
