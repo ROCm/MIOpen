@@ -23,18 +23,36 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstdlib>
-#include <miopen/db.hpp>
+
+#include "miopen/db_record.hpp"
+#include "miopen/solver.hpp"
 
 namespace miopen {
+namespace solver {
 
-std::string GetDbPath()
+ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
 {
-    auto p = std::getenv("MIOPEN_DB_PATH"); /// \todo Read env once - use GetStringEnv().
-    if(p == nullptr)
-        return "${MIOPEN_DB_PATH}";
+    std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
+    if(!IsSearchable())
+    {
+        InitPerformanceConfigImpl(context, *config);
+        return GetSolution(context, *config);
+    }
+    if(dbRecord.Load(SolverId(), *config))
+    {
+        return GetSolution(context, *config);
+    }
+    if(context.do_search)
+    {
+        Search(context, *config);
+        dbRecord.Store(SolverId(), *config);
+    }
     else
-        return p;
+    {
+        InitPerformanceConfigImpl(context, *config);
+    }
+    return GetSolution(context, *config);
 }
 
+} // namespace solver
 } // namespace miopen
