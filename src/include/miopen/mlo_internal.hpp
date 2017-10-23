@@ -139,6 +139,7 @@ using mlo_kernel_info = std::tuple<const std::string,
 #endif
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
+#include "miopen/db.hpp"
 
 inline int mloLg2(int v)
 {
@@ -161,82 +162,130 @@ enum rocm_meta_version
 
 namespace miopen {
 
+template <class TInstance>
+class StaticContainer
+{
+    public:
+    inline static TInstance& Instance()
+    {
+        static TInstance data{};
+        return data;
+    }
+};
+
+class ProblemDescription
+{
+    public:
+    int n_inputs         = 0;
+    int in_height        = 0;
+    int in_width         = 0;
+    int kernel_size1     = 0;
+    int kernel_size0     = 0;
+    int n_outputs        = 0;
+    int out_height       = 0;
+    int out_width        = 0;
+    int batch_sz         = 0;
+    int forward          = 0;
+    int pad0             = 0;
+    int pad1             = 0;
+    int kernel_stride0   = 0;
+    int kernel_stride1   = 0;
+    int kernal_dilation0 = 0;
+    int kernal_dilation1 = 0;
+    int bias             = 0;
+    std::string in_layout;
+    std::string in_data_type;
+
+    void Serialize(std::ostream& stream) const
+    {
+        const auto sep = '-';
+        // clang-format off
+        // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
+        stream
+            << n_inputs << sep << in_height << sep << in_width
+            << sep << kernel_size1 << 'x' << kernel_size0
+            << sep << n_outputs << sep << out_height << sep << out_width
+            << sep << batch_sz
+            << sep << pad1 << 'x' << pad0
+            << sep << kernel_stride1 << 'x' << kernel_stride0
+            << sep << kernal_dilation1 << 'x' << kernal_dilation1
+            << sep << bias
+            << sep << in_layout
+            << sep << in_data_type
+            << sep << (forward ? "F" : "B"); // clang-format on
+    }
+
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    void LegacySerialize(std::ostream& stream) const
+    {
+        const auto sep = 'x';
+        // clang-format off
+        // 576x4x4x1x1x192x4x4x8xNCHWxFP32xF
+        stream << n_inputs
+            << sep << in_height
+            << sep << in_width
+            << sep << kernel_size1
+            << sep << kernel_size0
+            << sep << n_outputs
+            << sep << out_height
+            << sep << out_width
+            << sep << batch_sz
+            << sep << in_layout
+            << sep << in_data_type
+            << sep << forward; // clang-format on
+    }
+#endif
+};
+
 /// A leftover of the legacy design, houses problem config,
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
 /// TODO: These three entities should be made separate.
-class ConvolutionContext
+class ConvolutionContext : public ProblemDescription
 {
     public:
     bool n_passes = false;
 
-    bool forward;
     bool do_search           = false;
     bool save_srch_req       = false;
     bool assembler_available = false;
     bool use_binaries        = true;
     std::string weights_layout;
-    std::string in_layout;
-    std::string in_data_type;
     std::string out_data_type;
     std::string out_layout;
-    size_t bot_sz, top_sz, weights_sz, bias_sz;
-    int pad0, pad1;
-    int kernel_stride0, kernel_stride1;
-    int kernel_size0, kernel_size1;
-    int kernal_dilation0, kernal_dilation1;
-    int deconvolution;
-    int n_inputs, n_outputs;
-    int in_width, in_height;
-    int out_width, out_height;
-    int in_stride, out_stride;
-    int in_channel_stride, in_batch_stride;
-    int out_channel_stride, out_batch_stride;
-    int batch_sz;
-    int bias;
-    int n_timer_iter = 0;
-    rocm_meta_version rmv;
+    size_t bot_sz          = 0;
+    size_t top_sz          = 0;
+    size_t weights_sz      = 0;
+    size_t bias_sz         = 0;
+    int deconvolution      = 0;
+    int in_stride          = 0;
+    int out_stride         = 0;
+    int in_channel_stride  = 0;
+    int in_batch_stride    = 0;
+    int out_channel_stride = 0;
+    int out_batch_stride   = 0;
+    int n_timer_iter       = 0;
+    rocm_meta_version rmv  = V3;
     std::string general_compile_options;
-
-    ConvolutionContext()
-        : forward(),
-          bot_sz(),
-          top_sz(),
-          weights_sz(),
-          bias_sz(),
-          pad0(),
-          pad1(),
-          kernel_stride0(),
-          kernel_stride1(),
-          kernel_size0(),
-          kernel_size1(),
-          kernal_dilation0(),
-          kernal_dilation1(),
-          deconvolution(),
-          n_inputs(),
-          n_outputs(),
-          in_width(),
-          in_height(),
-          out_width(),
-          out_height(),
-          in_stride(),
-          out_stride(),
-          in_channel_stride(),
-          in_batch_stride(),
-          out_channel_stride(),
-          out_batch_stride(),
-          batch_sz(),
-          bias(),
-          rmv(),
-          _stream()
-    {
-    }
 
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }
 
+    std::string GetPerfDbPath() const
+    {
+        // clang-format off
+        return GetDbPath()
+             + std::string("/")
+             + GetStream().GetDeviceName()
+             + "_"
+             + std::to_string(GetStream().GetMaxComputeUnits())
+             + "."
+             + std::string("cd.pdb.txt");
+        // clang-format on
+    }
+
     private:
-    Handle* _stream;
+    Handle* _stream = nullptr;
 };
 
 namespace solver {
@@ -751,6 +800,8 @@ class mlo_construct_direct2D
     }
 
     protected:
+    virtual std::string db_path() const { return _search_params.GetPerfDbPath(); }
+
     bool mloIsAmdOpenclRocm(rocm_meta_version& rmv) const;
 
     int mloConstructBwd() { return (0); }
