@@ -40,6 +40,8 @@ endif()
 
 project ( MIOpen C CXX )
 
+enable_testing()
+
 find_package(ROCM REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)
@@ -48,7 +50,7 @@ include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 
-rocm_setup_version(VERSION 1.1.3)
+rocm_setup_version(VERSION 1.1.5)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -178,7 +180,6 @@ enable_clang_tidy(
     CHECKS 
         *
         -android-cloexec-fopen
-        -cert-err60-cpp
         # Yea we shouldn't be using rand()
         -cert-msc30-c
         -cert-msc50-cpp
@@ -212,10 +213,8 @@ enable_clang_tidy(
         -misc-macro-parentheses
         -misc-misplaced-const
         -misc-misplaced-widening-cast
-        -modernize-loop-convert
         -modernize-pass-by-value
         -modernize-use-default-member-init
-        -modernize-use-emplace
         -modernize-use-equals-default
         -modernize-use-transparent-functors
         -performance-unnecessary-value-param
