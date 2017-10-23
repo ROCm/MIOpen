@@ -223,29 +223,20 @@ struct verify_lrn_bwd
         {
             auto cache_ratio_value = 2 * alpha * beta / lrn_n;
 
-            for(auto b = 0; b < n_batch; b++)
-            {
-                for(auto h = 0; h < height; h++)
-                {
-                    for(auto w = 0; w < width; w++)
-                    {
-                        for(auto c = 0; c < channels; c++)
-                        {
-                            double ydy = 0;
-                            auto start = (c - radius) < 0 ? 0 : (c - radius);
-                            auto end = (c + radius) > channels ? channels : (c + radius);
+            par_ford(n_batch, height, width)([&](int b, int h, int w) {
+                ford(channels)([&](int c) {
+                    double ydy = 0;
+                    auto start = (c - radius) < 0 ? 0 : (c - radius);
+                    auto end = (c + radius) > channels ? channels : (c + radius);
 
-                            for (auto k = start; k < end; k++) {
-                                ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) / scale(b, c, h, w);
-                            }
-
-                            outputDX(b, c, h, w) =
-                                    pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                    cache_ratio_value * scale(b, c, h, w) * ydy;
-                        }
+                    for (auto k = start; k < end; k++) {
+                        ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) / scale(b, c, h, w);
                     }
-                }
-            }
+
+                    outputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
+                                           cache_ratio_value * scale(b, c, h, w) * ydy;
+                });
+            });
         }
 
         return outputDX;
