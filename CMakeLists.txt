@@ -238,9 +238,14 @@ enable_clang_tidy(
 include(CppCheck)
 enable_cppcheck(CHECKS all 
     SUPPRESS 
+        constStatement
         noExplicitConstructor
         passedByValue
-        preprocessorErrorDirective
+        # preprocessorErrorDirective
+        *:*.cl
+    SOURCES
+        include/
+        src/
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
