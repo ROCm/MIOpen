@@ -63,18 +63,18 @@ macro(enable_cppcheck)
     set(CPPCHECK_COMMAND 
         ${CPPCHECK_EXE}
         -q
-        # --check-config
+        --force
         # --report-progress
         --platform=native
         --template '{file}:{line}: {severity} ({id}): {message}'
-        -i /usr/local/include
+        # -i /usr/local/include
         -j ${CPPCHECK_JOBS}
         ${CPPCHECK_DEFINES}
         ${CPPCHECK_UNDEFINES}
         ${CPPCHECK_INCLUDES}
         "--enable=${CPPCHECK_CHECKS}"
         "--suppressions-list=${CMAKE_BINARY_DIR}/cppcheck-supressions"
-        "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
+        # "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
         ${PARSE_SOURCES}
     )
 
