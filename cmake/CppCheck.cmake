@@ -39,15 +39,20 @@ ProcessorCount(CPPCHECK_JOBS)
 macro(enable_cppcheck)
     set(options)
     set(oneValueArgs)
-    set(multiValueArgs CHECKS SUPPRESS DEFINE INCLUDE SOURCES)
+    set(multiValueArgs CHECKS SUPPRESS DEFINE UNDEFINE INCLUDE SOURCES)
 
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
     string(REPLACE ";" "," CPPCHECK_CHECKS "${PARSE_CHECKS}")
-    string(REPLACE ";" "\n" CPPCHECK_SUPPRESS "${PARSE_SUPPRESS}")
+    string(REPLACE ";" "\n" CPPCHECK_SUPPRESS "${PARSE_SUPPRESS};*:/usr/*")
     file(WRITE ${CMAKE_BINARY_DIR}/cppcheck-supressions "${CPPCHECK_SUPPRESS}")
     set(CPPCHECK_DEFINES)
     foreach(DEF ${PARSE_DEFINE})
         list(APPEND CPPCHECK_DEFINES -D ${DEF})
+    endforeach()
+
+    set(CPPCHECK_UNDEFINES)
+    foreach(DEF ${PARSE_UNDEFINE})
+        list(APPEND CPPCHECK_UNDEFINES -U ${DEF})
     endforeach()
 
     set(CPPCHECK_INCLUDES)
@@ -55,21 +60,20 @@ macro(enable_cppcheck)
         list(APPEND CPPCHECK_INCLUDES -I ${INC})
     endforeach()
 
-    if(PARSE_SUPPRESS)
-        set(CPPCHECK_SUPPRESS_FLAG "--suppressions-list=${CMAKE_BINARY_DIR}/cppcheck-supressions")
-    else()
-        set(CPPCHECK_SUPPRESS_FLAG)
-    endif()
-
     set(CPPCHECK_COMMAND 
         ${CPPCHECK_EXE}
         -q
+        # --check-config
+        # --report-progress
+        --platform=native
         --template '{file}:{line}: {severity} ({id}): {message}'
+        -i /usr/local/include
         -j ${CPPCHECK_JOBS}
         ${CPPCHECK_DEFINES}
+        ${CPPCHECK_UNDEFINES}
         ${CPPCHECK_INCLUDES}
         "--enable=${CPPCHECK_CHECKS}"
-        "${CPPCHECK_SUPPRESS_FLAG}"
+        "--suppressions-list=${CMAKE_BINARY_DIR}/cppcheck-supressions"
         "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
         ${PARSE_SOURCES}
     )
