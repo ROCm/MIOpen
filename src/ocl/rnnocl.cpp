@@ -227,9 +227,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                            hy_stride,
                                            false,
                                            network_config);
-                gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
-                gg.RunGemm(
-                    handle, workSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
+                gg.FindSolution(.003, handle, reserveSpace, w, reserveSpace, false);
+                gg.RunGemm(handle,
+                           reserveSpace,
+                           w,
+                           reserveSpace,
+                           prelayer_shift + nLayers * batch_n * hy_h * bi,
+                           wei_shift,
+                           hid_shift);
 
                 // Update time
                 if(handle.IsProfilingEnabled())
@@ -348,12 +353,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    hy_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
+                        gg.FindSolution(.003, handle, reserveSpace, w, reserveSpace, false);
                         gg.RunGemm(handle,
-                                   workSpace,
+                                   reserveSpace,
                                    w,
                                    reserveSpace,
-                                   hid_shift + (bacc - in_n[ti - 1]) * hy_stride,
+                                   hid_shift + (bacc - in_n[ti - 1]) * hy_stride +
+                                       nLayers * batch_n * hy_h * bi,
                                    wei_shift,
                                    hid_shift + bacc * hy_stride);
 
@@ -382,13 +388,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                        hy_stride,
                                                        false,
                                                        network_config);
-                            gg.FindSolution(.003, handle, workSpace, w, reserveSpace, false);
+                            gg.FindSolution(.003, handle, reserveSpace, w, reserveSpace, false);
                             gg.RunGemm(handle,
-                                       workSpace,
+                                       reserveSpace,
                                        w,
                                        reserveSpace,
                                        hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
-                                           hy_h,
+                                           hy_h + nLayers * batch_n * hy_h * bi,
                                        wei_shift + hy_h,
                                        hid_shift + baccbi * hy_stride + hy_h);
 
@@ -438,9 +444,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                       reserveSpace,
                                       &beta,
                                       miopen::deref(rsvTensor),
-                                      workSpace,
+                                      reserveSpace,
                                       offset,
-                                      offset);
+                                      offset + nLayers * batch_n * hy_h * bi);
 
                     // Update time
                     if(handle.IsProfilingEnabled())
@@ -472,9 +478,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                           reserveSpace,
                                           &beta,
                                           miopen::deref(rsvTensor),
-                                          workSpace,
+                                          reserveSpace,
                                           offset,
-                                          offset);
+                                          offset + nLayers * batch_n * hy_h * bi);
 
                         // Update time
                         if(handle.IsProfilingEnabled())
@@ -506,8 +512,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    out_stride,
                                    false,
                                    network_config);
-        gg.FindSolution(.003, handle, workSpace, w, y, false);
-        gg.RunGemm(handle, workSpace, w, y, prelayer_shift, wei_shift, 0);
+        gg.FindSolution(.003, handle, reserveSpace, w, y, false);
+        gg.RunGemm(handle,
+                   reserveSpace,
+                   w,
+                   y,
+                   prelayer_shift + nLayers * batch_n * hy_h * bi,
+                   wei_shift,
+                   0);
 
         // Update time
         if(handle.IsProfilingEnabled())
@@ -1503,10 +1515,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             for(int ti = seqLen - 1; ti >= 0; ti--)
             {
                 bacc -= in_n[ti];
-				wei_shift =
-					li == 0 ? (in_h * hy_stride)
-					: (bi * (in_h + hy_h) * hy_h +
-					(li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
+                wei_shift =
+                    li == 0 ? (in_h * hy_stride)
+                            : (bi * (in_h + hy_h) * hy_h +
+                               (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
 
                 float alpha = 1, beta = 0;
                 ActivationDescriptor activDesc;
@@ -1521,11 +1533,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                     activDesc = {miopenActivationTANH, 1, 1, 1};
                 }
 
-				std::vector<int> rsv_size(4, 1), rsv_stride(4, 1);
-				miopenTensorDescriptor_t rsvTensor;
+                std::vector<int> rsv_size(4, 1), rsv_stride(4, 1);
+                miopenTensorDescriptor_t rsvTensor;
 
-				if (in_n[ti] > 0)
-				{
+                if(in_n[ti] > 0)
+                {
                     // from post state
                     if(ti == seqLen - 1)
                     {
@@ -1534,16 +1546,16 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                     {
                     }
 
-                    offset = hid_shift + bacc * hy_stride;
-					rsv_size[2] = in_n[ti];
-					rsv_size[3] = hy_h;
-					rsv_stride[0] = in_n[ti] * hy_stride;
-					rsv_stride[1] = in_n[ti] * hy_stride;
-					rsv_stride[2] = hy_stride;
+                    offset        = hid_shift + bacc * hy_stride;
+                    rsv_size[2]   = in_n[ti];
+                    rsv_size[3]   = hy_h;
+                    rsv_stride[0] = in_n[ti] * hy_stride;
+                    rsv_stride[1] = in_n[ti] * hy_stride;
+                    rsv_stride[2] = hy_stride;
 
-					miopenCreateTensorDescriptor(&rsvTensor);
-					miopenSetTensorDescriptor(
-						rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+                    miopenCreateTensorDescriptor(&rsvTensor);
+                    miopenSetTensorDescriptor(
+                        rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
 
                     activDesc.Backward(handle,
                                        &alpha,
@@ -1567,7 +1579,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         time_0 = handle.GetKernelTime();
                         handle.AccumKernelTime(time_0);
                     }
-                
+
                     gg = CreateGemmGeometryRNN(in_n[ti],
                                                hy_h,
                                                hy_h,
@@ -1600,8 +1612,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                 if(dirMode)
                 {
-					if (in_n[seqLen - 1 - ti] > 0)
-					{
+                    if(in_n[seqLen - 1 - ti] > 0)
+                    {
                         // from post state
                         if(ti == seqLen - 1)
                         {
@@ -1610,16 +1622,16 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         {
                         }
 
-                        offset = hid_shift + baccbi * hy_stride + hy_h;
-						rsv_size[2] = in_n[seqLen - 1 - ti];
-						rsv_size[3] = hy_h;
-						rsv_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
-						rsv_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
-						rsv_stride[2] = hy_stride;
+                        offset        = hid_shift + baccbi * hy_stride + hy_h;
+                        rsv_size[2]   = in_n[seqLen - 1 - ti];
+                        rsv_size[3]   = hy_h;
+                        rsv_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+                        rsv_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+                        rsv_stride[2] = hy_stride;
 
-						miopenCreateTensorDescriptor(&rsvTensor);
-						miopenSetTensorDescriptor(
-							rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+                        miopenCreateTensorDescriptor(&rsvTensor);
+                        miopenSetTensorDescriptor(
+                            rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
 
                         activDesc.Backward(handle,
                                            &alpha,
@@ -1643,7 +1655,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             time_0 = handle.GetKernelTime();
                             handle.AccumKernelTime(time_0);
                         }
-                    
+
                         gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
                                                    hy_h,
                                                    hy_h,
