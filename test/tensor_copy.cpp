@@ -202,7 +202,28 @@ struct tensor_copy_driver : test_driver
 
     std::set<std::vector<int>> get_tensor_c()
     {
-        std::vector<std::vector<int>> c_dims{     //TODO: enumerate this list with descriptors
+        
+        miopenTensorDescriptor_t tensor;
+        miopenCreateTensorDescriptor(&tensor);
+        std::vector<miopenTensorDescriptor_t> c_dims;
+        
+        std::vector<int> strides;
+        miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), strides.data());
+        
+                std::array<int, 4> dimOffsets = {{5, 10, 0, 6}};
+        std::array<int, 4> adjLens    = {{0, 0, 0, 0}};
+
+        std::transform(
+            lens.begin(), lens.end(), dimOffsets.begin(), adjLens.begin(), std::plus<size_t>());
+        // adjLens should be: { 105, 42, 8, 14 }
+        std::array<int, 4> strides;
+        strides.back() = 1;
+        std::partial_sum(
+            adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
+        miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), strides.data());
+        
+        std::vector<
+        {     //TODO: enumerate this list with descriptors
             {1, 8, 1, 1, 8},
             {1, 1, 1, 16, 8},
             {1, 1, 16, 1, 1},
