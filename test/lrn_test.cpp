@@ -218,34 +218,29 @@ struct verify_lrn_bwd
     tensor<T> gpu()
     {
         auto&& handle      = get_handle();
-        auto dinput        = inputY;
-        auto in_dev        = handle.Write(inputY.data);
-        auto dout_dev      = handle.Write(inputDY.data);
-        auto out_dev = handle.Write(scale.data);
-        auto din_dev       = handle.Create<T>(dinput.data.size());
+        auto dxOutput = inputY;
+        auto inputY_dev = handle.Write(inputY.data);
+        auto inputDY_dev = handle.Write(inputDY.data);
+        auto scale_dev = handle.Write(scale.data);
+        auto dxOutput_dev = handle.Create<T>(dxOutput.data.size());
         auto workspace_dev = handle.Create<T>(inputY.data.size());
 
         auto alpha = lrn.GetAlpha(), beta = lrn.GetBeta();
         lrn.Backward(handle,
                      &alpha,
-                     // y
-                     inputY.desc,
-                     in_dev.get(),
-                     // dy
-                     inputDY.desc,
-                     dout_dev.get(),
-                     // x
-                     scale.desc,
-                     out_dev.get(),
+                     inputY.desc, // Y
+                     inputY_dev.get(),
+                     inputDY.desc, // DY
+                     inputDY_dev.get(),
+                     scale.desc, // X
+                     scale_dev.get(),
                      &beta,
-                     // dx
-                     dinput.desc,
-                     din_dev.get(),
-
+                     dxOutput.desc, // DX
+                     dxOutput_dev.get(),
                      workspace_dev.get());
 
-        dinput.data = handle.Read<T>(din_dev, dinput.data.size());
-        return dinput;
+        dxOutput.data = handle.Read<T>(dxOutput_dev, dxOutput.data.size());
+        return dxOutput;
     }
 
     void fail(int)
