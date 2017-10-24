@@ -236,8 +236,11 @@ enable_clang_tidy(
 
 )
 include(CppCheck)
-enable_cppcheck(CHECKS all 
+enable_cppcheck(
+    CHECKS 
+        all
     SUPPRESS 
+        ConfigurationNotChecked
         constStatement
         noExplicitConstructor
         passedByValue
@@ -246,6 +249,10 @@ enable_cppcheck(CHECKS all
     SOURCES
         include/
         src/
+    # INCLUDE
+    #     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    #     ${CMAKE_CURRENT_BINARY_DIR}/include
+    #     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
