@@ -151,20 +151,16 @@ struct verify_lrn_bwd
     tensor<T> inputY;
     tensor<T> inputDY;
     tensor<T> scale;
-    tensor<T> inputDX;
+    tensor<T> outputDX;
 
     tensor<T> cpu()
     {
-
-        auto outputDX = inputDY;
-
         int n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(inputY.desc.GetLengths());
 
         auto alpha  = lrn.GetAlpha();
         auto beta   = lrn.GetBeta();
         auto lrn_n  = lrn.GetN();
-        auto K      = lrn.GetK();
         auto mode   = lrn.GetMode();
         auto radius = (lrn_n - 1) / 2;
 
@@ -179,7 +175,6 @@ struct verify_lrn_bwd
                     auto bottom = (top + lrn_n) > height ? height : (top + lrn_n);
                     auto adjust_area = (right - left) * (bottom - top);
                     auto cache_ratio_value = 2 * alpha * beta / adjust_area;
-                    auto alpha_over_area = alpha / adjust_area;
 
                     for (auto i = left; i < right; i++) {
                         for (auto j = top; j < bottom; j++) {
@@ -218,11 +213,10 @@ struct verify_lrn_bwd
     tensor<T> gpu()
     {
         auto&& handle      = get_handle();
-        auto dxOutput = inputY;
         auto inputY_dev = handle.Write(inputY.data);
         auto inputDY_dev = handle.Write(inputDY.data);
         auto scale_dev = handle.Write(scale.data);
-        auto dxOutput_dev = handle.Create<T>(dxOutput.data.size());
+        auto outputDX_dev = handle.Create<T>(outputDX.data.size());
         auto workspace_dev = handle.Create<T>(inputY.data.size());
 
         auto alpha = lrn.GetAlpha(), beta = lrn.GetBeta();
@@ -235,12 +229,12 @@ struct verify_lrn_bwd
                      scale.desc, // X
                      scale_dev.get(),
                      &beta,
-                     dxOutput.desc, // DX
-                     dxOutput_dev.get(),
+                     outputDX.desc, // DX
+                     outputDX_dev.get(),
                      workspace_dev.get());
 
-        dxOutput.data = handle.Read<T>(dxOutput_dev, dxOutput.data.size());
-        return dxOutput;
+        outputDX.data = handle.Read<T>(outputDX_dev, outputDX.data.size());
+        return outputDX;
     }
 
     void fail(int)
@@ -283,14 +277,19 @@ struct lrn_driver : test_driver
     {
         miopen::LRNDescriptor lrn{mode_lookup.at(miopen::ToUpper(mode)), n, {alpha, beta, k}};
 
+        auto dxOutput = input;
+        std::fill(dxOutput.begin(), dxOutput.end(), 0.0);
         auto fwd_output = verify(verify_lrn_foward<T>{lrn, input});
 
-        auto dout = fwd_output.first;
+        auto out = fwd_output.first;
+        auto dout = out;
         dout.generate([&](int b, int c, int h, int w) {
-            T x      = fwd_output.first(b, c, h, w);
+            T x = out(b, c, h, w);
             double y = (877 * b + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
             return ((x * y) / 1301.0);
         });
+
+        auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, dout, out, dxOutput});
     };
 };
 
