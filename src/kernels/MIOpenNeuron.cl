@@ -295,6 +295,15 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
 {
     int x = get_global_id(0); // channel x
 
+int n_out_stride = MLO_N_OUT_STRIDE;
+int c_out = MLO_C_OUT;
+int h_out = MLO_H_OUT;
+int w_out = MLO_W_OUT;
+int n_in_stride = MLO_N_IN_STRIDE;
+int c_in = MLO_C_IN;
+int h_in = MLO_H_IN;
+int w_in = MLO_W_IN;
+
     _FLOAT data[MLO_READ_UNIT];
     _FLOAT response[MLO_READ_UNIT];
 #if MLO_N_PIXS_OFF > 0
@@ -303,7 +312,7 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
         int i = 0;
         for(; i < MLO_N_PIXS_OFF; ++i)
         {
-		    if(MLO_N_IN_STRIDE > MLO_C_IN * MLO_H_IN * MLO_W_IN)
+		    if(n_in_stride > c_in * h_in * w_in && c_in != 0 && h_in != 0 && w_in != 0)
 			{
 			    int loc, n_loc, c_loc, h_loc, w_loc;
 				loc = x * MLO_READ_UNIT + i;
@@ -329,7 +338,7 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
     {
         for(int i = 0; i < MLO_READ_UNIT; ++i)
         {
-		    if(MLO_N_IN_STRIDE > MLO_C_IN * MLO_H_IN * MLO_W_IN)
+		    if(n_in_stride > c_in * h_in * w_in && c_in != 0 && h_in != 0 && w_in != 0)
 			{
 			    int loc, n_loc, c_loc, h_loc, w_loc;
 				loc = x * MLO_READ_UNIT + i;
@@ -354,7 +363,7 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
         int i = 0;
         for(; i < MLO_N_PIXS_OFF; ++i)
         {
-		    if(MLO_N_OUT_STRIDE > MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)
+		    if(n_out_stride > c_out * h_out * w_out && c_out != 0 && h_out != 0 && w_out != 0)
 			{
 			    int loc, n_loc, c_loc, h_loc, w_loc;
 				loc = x * MLO_READ_UNIT + i;
@@ -376,7 +385,7 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
     {
         for(int i = 0; i < MLO_READ_UNIT; ++i)
         {
-		    if(MLO_N_OUT_STRIDE > MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)
+		    if(n_out_stride > c_out * h_out * w_out && c_out != 0 && h_out != 0 && w_out != 0)
 			{
 			    int loc, n_loc, c_loc, h_loc, w_loc;
 				loc = x * MLO_READ_UNIT + i;
