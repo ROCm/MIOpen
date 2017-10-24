@@ -121,22 +121,22 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 		" -DMLO_C_OUT_STRIDE=" + std::to_string(cOutStride) +
 		" -DMLO_H_OUT_STRIDE=" + std::to_string(hOutStride) +
 		" -DMLO_W_OUT_STRIDE=" + std::to_string(wOutStride) +
-		" -DMLO_N_DIN=" + std::to_string(0) +
-		" -DMLO_C_DIN=" + std::to_string(0) +
-		" -DMLO_H_DIN=" + std::to_string(0) +
-		" -DMLO_W_DIN=" + std::to_string(0) +
-		" -DMLO_N_DIN_STRIDE=" + std::to_string(0) +
-		" -DMLO_C_DIN_STRIDE=" + std::to_string(0) +
-		" -DMLO_H_DIN_STRIDE=" + std::to_string(0) +
-		" -DMLO_W_DIN_STRIDE=" + std::to_string(0) +
-		" -DMLO_N_DOUT=" + std::to_string(0) +
-		" -DMLO_C_DOUT=" + std::to_string(0) +
-		" -DMLO_H_DOUT=" + std::to_string(0) +
-		" -DMLO_W_DOUT=" + std::to_string(0) +
-		" -DMLO_N_DOUT_STRIDE=" + std::to_string(0) +
-		" -DMLO_C_DOUT_STRIDE=" + std::to_string(0) +
-		" -DMLO_H_DOUT_STRIDE=" + std::to_string(0) +
-		" -DMLO_W_DOUT_STRIDE=" + std::to_string(0);
+		" -DMLO_N_DIN=" + std::to_string(1) +
+		" -DMLO_C_DIN=" + std::to_string(1) +
+		" -DMLO_H_DIN=" + std::to_string(1) +
+		" -DMLO_W_DIN=" + std::to_string(1) +
+		" -DMLO_N_DIN_STRIDE=" + std::to_string(1) +
+		" -DMLO_C_DIN_STRIDE=" + std::to_string(1) +
+		" -DMLO_H_DIN_STRIDE=" + std::to_string(1) +
+		" -DMLO_W_DIN_STRIDE=" + std::to_string(1) +
+		" -DMLO_N_DOUT=" + std::to_string(1) +
+		" -DMLO_C_DOUT=" + std::to_string(1) +
+		" -DMLO_H_DOUT=" + std::to_string(1) +
+		" -DMLO_W_DOUT=" + std::to_string(1) +
+		" -DMLO_N_DOUT_STRIDE=" + std::to_string(1) +
+		" -DMLO_C_DOUT_STRIDE=" + std::to_string(1) +
+		" -DMLO_H_DOUT_STRIDE=" + std::to_string(1) +
+		" -DMLO_W_DOUT_STRIDE=" + std::to_string(1);
 
     handle.GetKernel("miopenActivationForward",
                      network_config,
