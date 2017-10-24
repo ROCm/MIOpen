@@ -252,6 +252,39 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     auto f_activ_beta  = static_cast<float>(GetBeta());
     auto f_activ_power = static_cast<float>(GetPower());
     float f_diff_scale = f_activ_beta * f_activ_power;
+	
+	compiler_options += " -DMLO_N_IN=" + std::to_string(nIn) +
+		" -DMLO_C_IN=" + std::to_string(cIn) +
+		" -DMLO_H_IN=" + std::to_string(hIn) +
+		" -DMLO_W_IN=" + std::to_string(wIn) +
+		" -DMLO_N_IN_STRIDE=" + std::to_string(nInStride) +
+		" -DMLO_C_IN_STRIDE=" + std::to_string(cInStride) +
+		" -DMLO_H_IN_STRIDE=" + std::to_string(hInStride) +
+		" -DMLO_W_IN_STRIDE=" + std::to_string(wInStride) +
+		" -DMLO_N_OUT=" + std::to_string(nOut) +
+		" -DMLO_C_OUT=" + std::to_string(cOut) +
+		" -DMLO_H_OUT=" + std::to_string(hOut) +
+		" -DMLO_W_OUT=" + std::to_string(wOut) +
+		" -DMLO_N_OUT_STRIDE=" + std::to_string(nOutStride) +
+		" -DMLO_C_OUT_STRIDE=" + std::to_string(cOutStride) +
+		" -DMLO_H_OUT_STRIDE=" + std::to_string(hOutStride) +
+		" -DMLO_W_OUT_STRIDE=" + std::to_string(wOutStride) +
+	" -DMLO_N_DIN=" + std::to_string(ndIn) +
+		" -DMLO_C_DIN=" + std::to_string(cdIn) +
+		" -DMLO_H_DIN=" + std::to_string(hdIn) +
+		" -DMLO_W_DIN=" + std::to_string(wdIn) +
+		" -DMLO_N_DIN_STRIDE=" + std::to_string(ndInStride) +
+		" -DMLO_C_DIN_STRIDE=" + std::to_string(cdInStride) +
+		" -DMLO_H_DIN_STRIDE=" + std::to_string(hdInStride) +
+		" -DMLO_W_DIN_STRIDE=" + std::to_string(wdInStride) +
+		" -DMLO_N_DOUT=" + std::to_string(ndOut) +
+		" -DMLO_C_DOUT=" + std::to_string(cdOut) +
+		" -DMLO_H_DOUT=" + std::to_string(hdOut) +
+		" -DMLO_W_DOUT=" + std::to_string(wdOut) +
+		" -DMLO_N_DOUT_STRIDE=" + std::to_string(ndOutStride) +
+		" -DMLO_C_DOUT_STRIDE=" + std::to_string(cdOutStride) +
+		" -DMLO_H_DOUT_STRIDE=" + std::to_string(hdOutStride) +
+		" -DMLO_W_DOUT_STRIDE=" + std::to_string(wdOutStride);
 
     handle.GetKernel("miopenActivationBackward",
                      network_config,

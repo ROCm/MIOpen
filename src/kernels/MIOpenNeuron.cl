@@ -428,9 +428,36 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
         int i = 0;
         for(; i < MLO_N_PIXS_OFF; ++i)
         {
-            top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
-            bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
-            top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
+            if(MLO_N_OUT_STRIDE > MLO_C_OUT * MLO_H_OUT * MLO_W_OUT || MLO_N_DOUT_STRIDE > MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT || MLO_N_IN_STRIDE > MLO_C_IN * MLO_H_IN * MLO_W_IN)
+			{
+			    int loc, n_loc_top_diff, c_loc_top_diff, h_loc_top_diff, w_loc_top_diff, n_loc_top, c_loc_top, h_loc_top, w_loc_top, n_loc_bot, c_loc_bot, h_loc_bot, w_loc_bot;
+				loc = x * MLO_READ_UNIT + i;
+				
+				n_loc_top_diff = loc / (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT);
+                c_loc_top_diff = (loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) / (MLO_H_DOUT * MLO_W_DOUT);
+                h_loc_top_diff = ((loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) % (MLO_H_DOUT * MLO_W_DOUT)) / MLO_W_DOUT;
+                w_loc_top_diff = ((loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) % (MLO_H_DOUT * MLO_W_DOUT)) % MLO_W_DOUT;
+
+				n_loc_top = loc / (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT);
+                c_loc_top = (loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) / (MLO_H_OUT * MLO_W_OUT);
+                h_loc_top = ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) / MLO_W_OUT;
+                w_loc_top = ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) % MLO_W_OUT;
+
+				n_loc_bot = loc / (MLO_C_IN * MLO_H_IN * MLO_W_IN);
+                c_loc_bot = (loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) / (MLO_H_IN * MLO_W_IN);
+                h_loc_bot = ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) / MLO_W_IN;
+                w_loc_bot = ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) % MLO_W_IN;
+
+				top_diff_dat[i] = top_diff[dyOffset + n_loc_top_diff * MLO_N_DOUT_STRIDE + c_loc_top_diff * MLO_C_DOUT_STRIDE + h_loc_top_diff * MLO_H_DOUT_STRIDE + w_loc_top_diff * MLO_W_DOUT_STRIDE];
+                bot_dat[i]      = bot_data[xOffset + n_loc_bot * MLO_N_IN_STRIDE + c_loc_bot * MLO_C_IN_STRIDE + h_loc_bot * MLO_H_IN_STRIDE + w_loc_bot * MLO_W_IN_STRIDE];
+                top_dat[i]      = top_data[yOffset + n_loc_top * MLO_N_OUT_STRIDE + c_loc_top * MLO_C_OUT_STRIDE + h_loc_top * MLO_H_OUT_STRIDE + w_loc_top * MLO_W_OUT_STRIDE];
+			}
+			else
+			{
+                top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
+                bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
+                top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
+			}
         }
         for(; i < MLO_READ_UNIT; ++i)
         {
@@ -444,9 +471,36 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     {
         for(int i = 0; i < MLO_READ_UNIT; ++i)
         {
-            top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
-            bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
-            top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
+            if(MLO_N_OUT_STRIDE > MLO_C_OUT * MLO_H_OUT * MLO_W_OUT || MLO_N_DOUT_STRIDE > MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT || MLO_N_IN_STRIDE > MLO_C_IN * MLO_H_IN * MLO_W_IN)
+			{
+			    int loc, n_loc_top_diff, c_loc_top_diff, h_loc_top_diff, w_loc_top_diff, n_loc_top, c_loc_top, h_loc_top, w_loc_top, n_loc_bot, c_loc_bot, h_loc_bot, w_loc_bot;
+				loc = x * MLO_READ_UNIT + i;
+				
+				n_loc_top_diff = loc / (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT);
+                c_loc_top_diff = (loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) / (MLO_H_DOUT * MLO_W_DOUT);
+                h_loc_top_diff = ((loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) % (MLO_H_DOUT * MLO_W_DOUT)) / MLO_W_DOUT;
+                w_loc_top_diff = ((loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) % (MLO_H_DOUT * MLO_W_DOUT)) % MLO_W_DOUT;
+
+				n_loc_top = loc / (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT);
+                c_loc_top = (loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) / (MLO_H_OUT * MLO_W_OUT);
+                h_loc_top = ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) / MLO_W_OUT;
+                w_loc_top = ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) % MLO_W_OUT;
+
+				n_loc_bot = loc / (MLO_C_IN * MLO_H_IN * MLO_W_IN);
+                c_loc_bot = (loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) / (MLO_H_IN * MLO_W_IN);
+                h_loc_bot = ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) / MLO_W_IN;
+                w_loc_bot = ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) % MLO_W_IN;
+
+				top_diff_dat[i] = top_diff[dyOffset + n_loc_top_diff * MLO_N_DOUT_STRIDE + c_loc_top_diff * MLO_C_DOUT_STRIDE + h_loc_top_diff * MLO_H_DOUT_STRIDE + w_loc_top_diff * MLO_W_DOUT_STRIDE];
+                bot_dat[i]      = bot_data[xOffset + n_loc_bot * MLO_N_IN_STRIDE + c_loc_bot * MLO_C_IN_STRIDE + h_loc_bot * MLO_H_IN_STRIDE + w_loc_bot * MLO_W_IN_STRIDE];
+                top_dat[i]      = top_data[yOffset + n_loc_top * MLO_N_OUT_STRIDE + c_loc_top * MLO_C_OUT_STRIDE + h_loc_top * MLO_H_OUT_STRIDE + w_loc_top * MLO_W_OUT_STRIDE];
+			}
+			else
+			{
+			    top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
+                bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
+                top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
+			}
         }
     }
 
@@ -497,7 +551,22 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
         int i = 0;
         for(; i < MLO_N_PIXS_OFF; ++i)
         {
-            bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
+            if(MLO_N_DIN_STRIDE > MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)
+			{
+			    int loc, n_loc_bot_diff, c_loc_bot_diff, h_loc_bot_diff, w_loc_bot_diff;
+				loc = x * MLO_READ_UNIT + i;
+				
+				n_loc_bot_diff = loc / (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN);
+                c_loc_bot_diff = (loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) / (MLO_H_DIN * MLO_W_DIN);
+                h_loc_bot_diff = ((loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) % (MLO_H_DIN * MLO_W_DIN)) / MLO_W_DIN;
+                w_loc_bot_diff = ((loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) % (MLO_H_DIN * MLO_W_DIN)) % MLO_W_DIN;
+
+				bot_diff[dxOffset + n_loc_bot_diff * MLO_N_DIN_STRIDE + c_loc_bot_diff * MLO_C_DIN_STRIDE + h_loc_bot_diff * MLO_H_DIN_STRIDE + w_loc_bot_diff * MLO_W_DIN_STRIDE] = bot_diff_dat[i];
+			}
+			else
+			{
+                bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
+			}
         }
     }
     else
@@ -505,7 +574,22 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     {
         for(int i = 0; i < MLO_READ_UNIT; ++i)
         {
-            bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
+            if(MLO_N_DIN_STRIDE > MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)
+			{
+			    int loc, n_loc_bot_diff, c_loc_bot_diff, h_loc_bot_diff, w_loc_bot_diff;
+				loc = x * MLO_READ_UNIT + i;
+				
+				n_loc_bot_diff = loc / (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN);
+                c_loc_bot_diff = (loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) / (MLO_H_DIN * MLO_W_DIN);
+                h_loc_bot_diff = ((loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) % (MLO_H_DIN * MLO_W_DIN)) / MLO_W_DIN;
+                w_loc_bot_diff = ((loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) % (MLO_H_DIN * MLO_W_DIN)) % MLO_W_DIN;
+
+				bot_diff[dxOffset + n_loc_bot_diff * MLO_N_DIN_STRIDE + c_loc_bot_diff * MLO_C_DIN_STRIDE + h_loc_bot_diff * MLO_H_DIN_STRIDE + w_loc_bot_diff * MLO_W_DIN_STRIDE] = bot_diff_dat[i];
+			}
+			else
+			{
+                bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
+			}
         }
     }
 }
