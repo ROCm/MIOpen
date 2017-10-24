@@ -235,6 +235,13 @@ enable_clang_tidy(
     ANALYZE_TEMPORARY_DTORS ON
 
 )
+include(CppCheck)
+enable_cppcheck(CHECKS all 
+    SUPPRESS 
+        noExplicitConstructor
+        passedByValue
+        preprocessorErrorDirective
+)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
