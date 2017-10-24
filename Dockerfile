@@ -70,6 +70,9 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 # Build using hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
+# Install cppcheck
+RUN cget -p $PREFIX install danmar/cppcheck
+
 # Install hip
 RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@roc-1.6.x
 
