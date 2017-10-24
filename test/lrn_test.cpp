@@ -157,9 +157,6 @@ struct verify_lrn_bwd
     {
 
         auto outputDX = inputDY;
-        auto scale    = inputY;
-
-        std::fill(scale.begin(), scale.end(), 0);
 
         int n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(inputY.desc.GetLengths());
