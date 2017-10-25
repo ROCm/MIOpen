@@ -203,20 +203,21 @@ struct conv_forward : output_tensor_fixture
 #if MIOPEN_BACKEND_OPENCL
 
         cl_context ctx;
-        clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+        clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 
         cl_int status  = CL_SUCCESS;
-        cl_mem in_dev  = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_in, NULL, &status);
-        cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_wei, NULL, NULL);
-        cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sz_out, NULL, NULL);
+        cl_mem in_dev  = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_in, nullptr, &status);
+        cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_wei, nullptr, nullptr);
+        cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sz_out, nullptr, nullptr);
         cl_mem fwd_workspace_dev =
-            clCreateBuffer(ctx, CL_MEM_READ_WRITE, sz_fwd_workspace, NULL, NULL);
+            clCreateBuffer(ctx, CL_MEM_READ_WRITE, sz_fwd_workspace, nullptr, nullptr);
 
-        status = clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4 * sz_in, in.data(), 0, NULL, NULL);
-        status |=
-            clEnqueueWriteBuffer(q, wei_dev, CL_TRUE, 0, 4 * sz_wei, wei.data(), 0, NULL, NULL);
-        status |=
-            clEnqueueWriteBuffer(q, out_dev, CL_TRUE, 0, 4 * sz_out, out.data(), 0, NULL, NULL);
+        status =
+            clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4 * sz_in, in.data(), 0, nullptr, nullptr);
+        status |= clEnqueueWriteBuffer(
+            q, wei_dev, CL_TRUE, 0, 4 * sz_wei, wei.data(), 0, nullptr, nullptr);
+        status |= clEnqueueWriteBuffer(
+            q, out_dev, CL_TRUE, 0, 4 * sz_out, out.data(), 0, nullptr, nullptr);
         status |= clEnqueueWriteBuffer(q,
                                        fwd_workspace_dev,
                                        CL_TRUE,
@@ -224,8 +225,8 @@ struct conv_forward : output_tensor_fixture
                                        sz_fwd_workspace,
                                        fwd_workspace.data(),
                                        0,
-                                       NULL,
-                                       NULL);
+                                       nullptr,
+                                       nullptr);
         EXPECT(status == CL_SUCCESS);
 
 #elif MIOPEN_BACKEND_HIP

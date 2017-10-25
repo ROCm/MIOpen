@@ -23,7 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include <miopen/convolution.hpp>
+#include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
 #include <miopen/solver.hpp>
@@ -557,13 +559,19 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
+                /// \todo Something unusual is happening here, why? Shall we rework this?
                 ConvolutionContext context;
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
-                solver::ConvOclDirectFwd11x11 solver;
-                auto config                   = solver.Find(context);
-                solver::ConvSolution solution = solver.GetSolution(context, *config);
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+                DbRecord dbRecord(context.GetPerfDbPath(), context, true);
+#else
+                DbRecord dbRecord(context.GetPerfDbPath(), context);
+#endif
+                const solver::Solver& solver =
+                    StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
+                solver::ConvSolution solution = solver.FindSolution(context, dbRecord);
 
                 if(solution.passes == 1)
                 {
