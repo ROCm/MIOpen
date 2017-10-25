@@ -150,8 +150,9 @@ struct verify_lrn_bwd
     miopen::LRNDescriptor lrn;
     tensor<T> inputY;
     tensor<T> inputDY;
-    tensor<T> scale;
+    tensor<T> inputX;
     tensor<T> outputDX;
+    tensor<T> scale;
 
     tensor<T> cpu()
     {
@@ -178,12 +179,12 @@ struct verify_lrn_bwd
 
                     for (auto i = left; i < right; i++) {
                         for (auto j = top; j < bottom; j++) {
-                            ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) / scale(b, c, h, w);
+                            ydy += (inputY(b, c, j, i) * inputDY(b, c, j, i) / scale(b, c, j, i));
                         }
                     }
 
                     outputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                           cache_ratio_value * scale(b, c, h, w) * ydy;
+                                           cache_ratio_value * inputX(b, c, h, w) * ydy;
                 });
             });
         }
@@ -198,11 +199,11 @@ struct verify_lrn_bwd
                     auto end = (c + radius) > channels ? channels : (c + radius);
 
                     for (auto k = start; k < end; k++) {
-                        ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) / scale(b, c, h, w);
+                        ydy += (inputY(b, k, h, w) * inputDY(b, k, h, w) / scale(b, k, h, w));
                     }
 
                     outputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                           cache_ratio_value * scale(b, c, h, w) * ydy;
+                                           cache_ratio_value * inputX(b, c, h, w) * ydy;
                 });
             });
         }
@@ -215,6 +216,7 @@ struct verify_lrn_bwd
         auto&& handle      = get_handle();
         auto inputY_dev = handle.Write(inputY.data);
         auto inputDY_dev = handle.Write(inputDY.data);
+        auto inputX_dev = handle.Write(inputX.data);
         auto scale_dev = handle.Write(scale.data);
         auto outputDX_dev = handle.Create<T>(outputDX.data.size());
         auto workspace_dev = handle.Create<T>(inputY.data.size());
@@ -226,12 +228,12 @@ struct verify_lrn_bwd
                      inputY_dev.get(),
                      inputDY.desc, // DY
                      inputDY_dev.get(),
-                     scale.desc, // X
-                     scale_dev.get(),
+                     inputX.desc, // X
+                     inputX_dev.get(),
                      &beta,
                      outputDX.desc, // DX
                      outputDX_dev.get(),
-                     workspace_dev.get());
+                     scale_dev.get());
 
         outputDX.data = handle.Read<T>(outputDX_dev, outputDX.data.size());
         return outputDX;
@@ -282,14 +284,13 @@ struct lrn_driver : test_driver
         auto fwd_output = verify(verify_lrn_foward<T>{lrn, input});
 
         auto out = fwd_output.first;
-        auto dout = out;
-        dout.generate([&](int b, int c, int h, int w) {
-            T x = out(b, c, h, w);
-            double y = (877 * b + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
-            return ((x * y) / 1301.0);
-        });
 
-        auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, dout, out, dxOutput});
+        std::size_t n_batch, channels, height, width;
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
+        auto scale = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
+        auto inputX = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
+
+        auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, out, inputX, dxOutput, scale});
     };
 };
 
