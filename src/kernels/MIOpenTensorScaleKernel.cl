@@ -24,8 +24,6 @@
  *
  *******************************************************************************/
 
-
-
 __kernel void
 ScaleTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_elems)
 {
@@ -45,92 +43,103 @@ __kernel void SetTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE al
     }
 }
 
-
-
-typedef struct {
-  long dims;
-  long lens[5];
-  long strides[5];
-  long offset;
-  long size;
-}tensorDesc_t;
-
-
-__kernel void CopyTensor(global MIOPEN_TYPE* __restrict src, 
-                         global MIOPEN_TYPE* __restrict dst, tensorDesc_t srcDesc, tensorDesc_t dstDesc)
+typedef struct
 {
-             
+    long dims;
+    long lens[5];
+    long strides[5];
+    long offset;
+    long realsize;
+} tensorDesc_t;
+
+__kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
+                         global MIOPEN_TYPE* __restrict dst,
+                         tensorDesc_t srcDesc,
+                         tensorDesc_t dstDesc)
+{
+
     uint sindex = 0;
     uint dindex = 0;
-    uint dims   = srcDesc.dims;
-    
+    uint stmp, stmp2;
+    uint dtmp, dtmp2;
+    uint dims = srcDesc.dims;
+
     uint gidx = get_global_id(0);
     uint gidy = get_global_id(1);
     uint gidz = get_global_id(2);
-    
+
     switch(dims)
     {
-        case 1:
-            if(gidx < dstDesc.size && gidx < srcDesc.size)
-            {   
-                dst[gidx] = src[gidx];
+    case 1:
+        if(gidx < dstDesc.realsize && gidx < srcDesc.realsize)
+        {
+            dst[gidx + dstDesc.offset] = src[gidx + srcDesc.offset];
+        }
+        break;
+    case 2:
+        if(gidx < dstDesc.lens[0] && gidy < dstDesc.lens[1])
+        {
+            dindex = dstDesc.strides[0] * gidx + gidy;
+            sindex = srcDesc.strides[0] * gidx + gidy;
+            if(dindex < dstDesc.realsize && sindex < srcDesc.realsize)
+            {
+                dst[dindex + dstDesc.offset] = src[sindex + srcDesc.offset];
             }
-            break;
-        case 2:
-            dindex = dstDesc.strides[0]*gidx + gidy;
-            sindex = srcDesc.strides[0]*gidx + gidy;
-            if(dindex < dstDesc.size && sindex < srcDesc.size)
-            {   
-                dst[dindex] = src[sindex];
+        }
+        break;
+    case 3:
+        if(gidx < dstDesc.lens[0] && gidy < dstDesc.lens[1] && gidz < dstDesc.lens[2])
+        {
+            dindex = dstDesc.strides[0] * gidx + dstDesc.strides[1] * gidy + gidz;
+            sindex = srcDesc.strides[0] * gidx + srcDesc.strides[1] * gidy + gidz;
+            if(dindex < dstDesc.realsize && sindex < srcDesc.realsize)
+            {
+                dst[dindex + dstDesc.offset] = src[sindex + srcDesc.offset];
             }
-            break;
-        case 3:
-            dindex = dstDesc.strides[0]*gidx + dstDesc.strides[1]*gidy + gidz;
-            sindex = srcDesc.strides[0]*gidx + srcDesc.strides[1]*gidy + gidz;
-            if(dindex < dstDesc.size && sindex < srcDesc.size)
-            {   
-                dst[dindex] = src[sindex];
-            }
-            break;
-        case 4:
-            sindex = srcDesc.strides[1]*gidx + srcDesc.strides[2]*gidy + srcDesc.strides[3]*gidz;
-            dindex = dstDesc.strides[1]*gidx + dstDesc.strides[2]*gidy + dstDesc.strides[3]*gidz;
+        }
+        break;
+    case 4:
+        if(gidx < dstDesc.lens[1] && gidy < dstDesc.lens[2] && gidz < dstDesc.lens[3])
+        {
+            stmp =
+                srcDesc.strides[1] * gidx + srcDesc.strides[2] * gidy + srcDesc.strides[3] * gidz;
+            dtmp =
+                dstDesc.strides[1] * gidx + dstDesc.strides[2] * gidy + dstDesc.strides[3] * gidz;
             for(uint i = 0; i < srcDesc.lens[0]; i++)
             {
-                sindex += srcDesc.strides[0]*i;
-                dindex += dstDesc.strides[0]*i;
+                sindex = stmp + srcDesc.strides[0] * i;
+                dindex = dtmp + dstDesc.strides[0] * i;
 
-                if(dindex < dstDesc.size && sindex < srcDesc.size)
-                {  
-                   dst[dindex] = src[sindex];
+                if(dindex < dstDesc.realsize && sindex < srcDesc.realsize)
+                {
+                    dst[dindex + dstDesc.offset] = src[sindex + srcDesc.offset];
                 }
-
             }
-            break;
-        case 5:
-            sindex = srcDesc.strides[2]*gidx + srcDesc.strides[3]*gidy + gidz;
-            dindex = dstDesc.strides[2]*gidx + dstDesc.strides[3]*gidy + gidz;
+        }
+        break;
+    case 5:
+        if(gidx < dstDesc.lens[2] && gidy < dstDesc.lens[3] && gidz < dstDesc.lens[4])
+        {
+            stmp = srcDesc.strides[2] * gidx + srcDesc.strides[3] * gidy + gidz;
+            dtmp = dstDesc.strides[2] * gidx + dstDesc.strides[3] * gidy + gidz;
             for(uint i = 0; i < srcDesc.lens[0]; i++)
             {
-                sindex += srcDesc.strides[0]*i;
-                dindex += dstDesc.strides[0]*i; 
-                
+                stmp2 = stmp + srcDesc.strides[0] * i;
+                dtmp2 = dtmp + dstDesc.strides[0] * i;
+
                 for(uint j = 0; j < srcDesc.lens[1]; j++)
                 {
-                    sindex += srcDesc.strides[1]*j;
-                    dindex += dstDesc.strides[1]*j; 
+                    sindex = stmp2 + srcDesc.strides[1] * j;
+                    dindex = dtmp2 + dstDesc.strides[1] * j;
 
-                    if(dindex < dstDesc.size && sindex < srcDesc.size)
-                    {  
-                       dst[dindex] = src[sindex];
+                    if(dindex < dstDesc.realsize && sindex < srcDesc.realsize)
+                    {
+                        dst[dindex + dstDesc.offset] = src[sindex + srcDesc.offset];
                     }
                 }
             }
-            break;
-        default:
-            break;
+        }
+        break;
+    default: break;
     }
 }
-
-    
-
