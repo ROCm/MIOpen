@@ -477,6 +477,15 @@ MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
                                                void* y,
                                                const void* alpha);
 
+/*! @brief Returns number of bytes associated with tensor descriptor
+ *
+ * @param tensorDesc Tensor descriptor (input)
+ * @param numBytes   Number of bytes associated with tensor descriptor (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
+                                                     size_t* numBytes);
+
 /** @} */
 // CLOSEOUT TENSOR DOXYGEN GROUP
 

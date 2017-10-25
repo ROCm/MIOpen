@@ -30,21 +30,16 @@
 namespace miopen {
 
 miopenStatus_t LRNDescriptor::Forward(Handle& handle,
-                                      const void* alpha,
+                                      const void* /*alpha*/,
                                       const TensorDescriptor& xDesc,
                                       ConstData_t x,
-                                      const void* beta,
+                                      const void* /*beta*/,
                                       const TensorDescriptor& yDesc,
                                       Data_t y,
                                       bool do_backward,
                                       Data_t workSpace)
 {
 
-    if (!float_equal(*(static_cast<const float *>(alpha)), 1.0) ||
-        !float_equal(*(static_cast<const float *>(beta)), 0))
-    {
-        // MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
-    }
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_norm construct_params(1); // forward
 
@@ -85,7 +80,8 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     double lrn_beta  = GetBeta();
     double lrn_K     = GetK();
 
-    if (!float_equal(lrn_alpha, 1.0) || !float_equal(lrn_beta, 0)) {
+    if(!float_equal(lrn_alpha, 1.0) || !float_equal(lrn_beta, 0))
+    {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
     construct_params.doBackward(do_backward);
@@ -135,24 +131,18 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
 }
 
 miopenStatus_t LRNDescriptor::Backward(Handle& handle,
-                                       const void* alpha,
+                                       const void* /*alpha*/,
                                        const TensorDescriptor& yDesc,
                                        ConstData_t y,
                                        const TensorDescriptor& dyDesc,
                                        ConstData_t dy,
                                        const TensorDescriptor& xDesc,
                                        ConstData_t x,
-                                       const void* beta,
+                                       const void* /*beta*/,
                                        const TensorDescriptor& dxDesc,
                                        Data_t dx,
                                        ConstData_t workSpace)
 {
-    if (!float_equal(*(static_cast<const float *>(alpha)), 1.0) ||
-        !float_equal(*(static_cast<const float *>(beta)), 0))
-    {
-        // MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
-    }
-
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_norm construct_params(0); // backward
 
@@ -233,7 +223,8 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     double lrn_beta  = GetBeta();
     double lrn_K     = GetK();
 
-    if (!float_equal(lrn_alpha, 1.0) || !float_equal(lrn_beta, 0)) {
+    if(!float_equal(lrn_alpha, 1.0) || !float_equal(lrn_beta, 0))
+    {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 

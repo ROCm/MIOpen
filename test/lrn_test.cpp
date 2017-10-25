@@ -319,15 +319,11 @@ struct lrn_driver : test_driver
         add(mode, "mode", generate_data({"Within_Channel", "Across_Channel"}));
     }
 
-    ~lrn_driver() {}
-
     void run()
     {
         miopen::LRNDescriptor lrn{mode_lookup.at(miopen::ToUpper(mode)), n, {alpha, beta, k}};
 
         auto fwd_output = verify(verify_lrn_foward<T>{lrn, input});
-
-        std::cout << "fwd_output = " << fwd_output.first.desc.ToString() << std::endl;
 
         auto dout = fwd_output.first;
         dout.generate([&](int b, int c, int h, int w) {
@@ -335,8 +331,6 @@ struct lrn_driver : test_driver
             double y = (877 * b + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
             return ((x * y) / 1301.0);
         });
-
-        // auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, dout, fwd_output.first});
     };
 };
 
