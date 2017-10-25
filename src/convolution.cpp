@@ -27,8 +27,6 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 
-#define TF_VALID
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 
 namespace miopen {
@@ -134,17 +132,6 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
             1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
         output_w = std::max<std::ptrdiff_t>(
             1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
-
-#ifdef TF_SAME
-        output_h = std::ceil(static_cast<double>(input_h) / u);
-        output_w = std::ceil(static_cast<double>(input_w) / v);
-#endif
-
-#ifdef TF_VALID
-        output_h = std::ceil(static_cast<double>(input_h - filter_h + 1) / u);
-        output_w = std::ceil(static_cast<double>(input_w - filter_w + 1) / v);
-#endif
-
     } else if (mode == miopenTensorflowSame) {
         output_c = filter_k;
         output_h = std::ceil(static_cast<double>(input_h) / u);
