@@ -132,6 +132,18 @@ bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
 
 bool TensorDescriptor::operator!=(const TensorDescriptor& rhs) const { return !(*this == rhs); }
 
+bool TensorDescriptor::operator<(const TensorDescriptor& rhs) const
+{
+    return (std::tie(this->GetLengths(), this->GetStrides()) <
+            std::tie(rhs.GetLengths(), rhs.GetStrides()));
+}
+
+bool TensorDescriptor::operator>(const TensorDescriptor& rhs) const
+{
+    return (std::tie(this->GetLengths(), this->GetStrides()) >
+            std::tie(rhs.GetLengths(), rhs.GetStrides()));
+}
+
 std::string TensorDescriptor::ToString() const
 {
     std::string result;

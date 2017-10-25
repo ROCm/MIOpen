@@ -40,7 +40,7 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 
-#define MIO_OPS_DEBUG 1
+#define MIO_OPS_DEBUG 0
 
 template <class T>
 struct tensor_copy_base
@@ -62,9 +62,8 @@ struct verify_tensor_copy : tensor_copy_base<T>
 {
     using tensor_copy_base<T>::a;
     using tensor_copy_base<T>::c;
-    using tensor_copy_base<T>::aoffset;
-    using tensor_copy_base<T>::coffset;
-    
+    int aoffset;
+    int coffset;
 
     verify_tensor_copy(const tensor<T>& pa, const tensor<T>& pc)
     {
@@ -86,21 +85,22 @@ struct verify_tensor_copy : tensor_copy_base<T>
                          int coffsetIndex,
                          int dim)
     {
-
-        int astride = aten.desc.GetStrides()[dim];
-        int cstride = cten.desc.GetStrides()[dim];
-
+        aoffset = coffset = 0;
+        int astride       = aten.desc.GetStrides()[dim];
+        int cstride       = cten.desc.GetStrides()[dim];
         for(int idx = 0; idx < a_dims[dim]; idx++)
         {
             size_t aindex = aoffsetIndex + astride * idx;
             size_t cindex = coffsetIndex + cstride * idx;
-            
-            if(cindex < cten.desc.GetElementSize() && aindex < aten.desc.GetElementSize())
-                cten[aindex] = aten[aindex];
-            
+
             if(dim < (a_dims.size() - 1))
             {
                 tensor_for_loop(aten, cten, a_dims, c_dims, aindex, cindex, dim + 1);
+            }
+
+            if(cindex < cten.desc.GetElementSpace() && aindex < aten.desc.GetElementSpace())
+            {
+                cten[cindex + coffset] = aten[aindex + aoffset];
             }
         }
         return;
@@ -108,62 +108,62 @@ struct verify_tensor_copy : tensor_copy_base<T>
 
     tensor<T> cpu()
     {
-        
-        c = a;
+
+        // printf("In CopyTensor CPU test.\n");
         std::fill(c.begin(), c.end(), 0);
-        for(int i = 0; i < a.desc.GetElementSize(); i++)
-        {
-            a[i] = i;
-        }
-        
-        auto alens    = a.desc.GetLengths();
-        auto clens    = c.desc.GetLengths();
-        
+
+        auto alens = a.desc.GetLengths();
+        auto clens = c.desc.GetLengths();
+
         auto astrides = a.desc.GetStrides();
         auto cstrides = c.desc.GetStrides();
 
+        // printf("Running CopyTensor CPU.\n");
         tensor_for_loop(a, c, alens, clens, 0, 0, 0);
 
 #if(MIO_OPS_DEBUG)
-//        for(int i = 0; i < c.desc.GetElementSize(); i++)
-//        {
-//            std::cout << "C_CPU[" << i << "]: " << c[i] << std::endl;
-//        }
+        realid = 0;
+        for(int i = 0; i < c.desc.GetLengths()[0]; i++)
+        {
+            for(int j = 0; j < c.desc.GetLengths()[1]; j++)
+            {
+                id = i * c.desc.GetStrides()[0] + j;
+                if(realid < elemSize)
+                    std::cout << "C_CPU[" << realid++ << "]: " << c[id] << std::endl;
+            }
+        }
 #endif
         return c;
     }
 
     tensor<T> gpu()
     {
+        // printf("In CopyTensor GPU test.\n");
         auto&& handle = get_handle();
 
-        c = a;
-        // return c;
         std::fill(c.begin(), c.end(), 0);
-        for(int i = 0; i < a.desc.GetElementSize(); i++)
-        {
-            a[i] = i;
-        }
 
         auto c_dev = handle.Write(c.data);
         auto a_dev = handle.Write(a.data);
-        
-        
-        miopen::CopyTensor(handle,
-                        a.desc,
-                        a_dev.get(),
-                        c.desc,
-                        c_dev.get(),
-                        aoffset,
-                        coffset);
+        aoffset = coffset = 0;
 
+        // printf("Running CopyTensor GPU.\n");
+        miopen::CopyTensor(handle, a.desc, a_dev.get(), c.desc, c_dev.get(), aoffset, coffset);
+
+        // handle.Finish();
         c.data = handle.Read<T>(c_dev, c.data.size());
 
 #if(MIO_OPS_DEBUG)
         handle.Finish();
-        for(int i = 0; i < c.desc.GetElementSize(); i++)
+        realid = 0;
+        for(int i = 0; i < c.desc.GetLengths()[0]; i++)
         {
-            std::cout << "C_GPU[" << i << "]: " << c[i] << std::endl;
+            for(int j = 0; j < c.desc.GetLengths()[1]; j++)
+            {
+                id = i * c.desc.GetStrides()[0] + j;
+                if(realid < elemSize)
+                    std::cout << "C_GPU[" << realid++ << "]: " << c[id] << std::endl;
+            }
         }
 #endif
         return c;
@@ -184,89 +184,194 @@ struct tensor_copy_driver : test_driver
 
     tensor_copy_driver()
     {
-        add(a, "a", generate_tensor(get_tensor_a(), {4, 3, 2, 2, 3}));
-        add(c, "c", generate_tensor(get_tensor_c(), {4, 3, 2, 2, 3}));
-//        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));
-//        add(c, "c", generate_tensor(get_tensor_c(), {11, 7, 13, 13}));
-    }
-    
-    
+        std::array<int, 5> alens = {{4, 3, 2, 2, 3}};
+        std::array<int, 5> clens = {{4, 3, 2, 2, 3}};
 
-    std::set<std::vector<int>> get_tensor_a()
+        add(a,
+            "a",
+            generate_tensor(get_descs_a(),
+                            miopen::TensorDescriptor(miopenFloat, alens.data(), alens.size())));
+        add(c,
+            "c",
+            generate_tensor(get_descs_c(),
+                            miopen::TensorDescriptor(miopenFloat, clens.data(), clens.size())));
+    }
+
+    std::set<miopen::TensorDescriptor> get_descs_a()
     {
-        std::vector<std::vector<int>> a_dims{
+        std::vector<miopen::TensorDescriptor> aDescList;
+
+        std::vector<std::vector<int>> lens{
             {32, 8, 16, 16, 8}, {32, 8, 16, 16}, {32, 8, 16}, {32, 8}, {8},
         };
-        return (std::set<std::vector<int>>(a_dims.begin(), a_dims.end()));
-    }
 
-    std::set<std::vector<int>> get_tensor_c()
-    {
-        
-        miopenTensorDescriptor_t tensor;
-        miopenCreateTensorDescriptor(&tensor);
-        std::vector<miopenTensorDescriptor_t> c_dims;
-        
-        std::vector<int> strides;
-        miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), strides.data());
-        
-                std::array<int, 4> dimOffsets = {{5, 10, 0, 6}};
-        std::array<int, 4> adjLens    = {{0, 0, 0, 0}};
-
-        std::transform(
-            lens.begin(), lens.end(), dimOffsets.begin(), adjLens.begin(), std::plus<size_t>());
-        // adjLens should be: { 105, 42, 8, 14 }
-        std::array<int, 4> strides;
-        strides.back() = 1;
-        std::partial_sum(
-            adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
-        miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), strides.data());
-        
-        std::vector<
-        {     //TODO: enumerate this list with descriptors
-            {1, 8, 1, 1, 8},
-            {1, 1, 1, 16, 8},
-            {1, 1, 16, 1, 1},
-            {1, 1, 16, 16, 8},
-            {1, 8, 1, 16, 1},
-            {1, 8, 16, 1, 8},
-            {1, 8, 16, 16, 1},
-            {32, 8, 1, 1, 8},
-            {32, 8, 1, 16, 1},
-            {32, 8, 16, 1, 8},
-            {32, 8, 16, 16, 1},
+        std::vector<std::vector<int>> dimOffsets{
+            {0, 0, 0, 0, 0},
+            //{0, 0, 0, 0, 8},
+            //{32, 8, 0, 0, 8},
+            {32, 8, 0, 16, 0},
+            //{32, 8, 16, 0, 8},
+            {32, 8, 16, 16, 0},
+            //{0, 0, 0, 16, 8},
+            {0, 0, 16, 0, 0},
+            //{0, 0, 16, 16, 8},
+            {0, 8, 0, 16, 0},
+            //{0, 8, 16, 0, 8},
+            {0, 8, 16, 16, 0},
             {32, 8, 16, 16, 8},
-            {1, 8, 1, 1},
-            {1, 1, 1, 16},
-            {1, 1, 16, 1},
-            {1, 1, 16, 16},
-            {1, 8, 1, 16},
-            {1, 8, 16, 1},
-            {1, 8, 16, 16},
-            {32, 8, 1, 1},
-            {32, 8, 1, 16},
-            {32, 8, 16, 1},
+            {0, 0, 0, 0},
+            //{0, 8, 0, 0},
+            //{0, 0, 0, 16},
+            //{0, 8, 16, 16},
+            //{32, 8, 0, 0},
+            {32, 8, 0, 16},
+            {0, 0, 16, 0},
+            {0, 0, 16, 16},
+            {0, 8, 0, 16},
+            {0, 8, 16, 0},
+            {32, 8, 16, 0},
             {32, 8, 16, 16},
-            {1, 8, 1},
-            {1, 1, 16},
-            {32, 1, 1},
-            {1, 8, 16},
-            {32, 8, 1},
-            {32, 1, 16},
+            {0, 0, 0},
+            //{0, 8, 0},
+            //{32, 0, 16},
+            //{0, 0, 16},
+            {32, 0, 0},
+            {0, 8, 16},
+            {32, 8, 0},
             {32, 8, 16},
-            {1, 8},
-            {32, 1},
+            {0, 0},
+            {0, 8},
+            {32, 0},
             {32, 8},
-            {8},
+            {0},
         };
-        return (std::set<std::vector<int>>(c_dims.begin(), c_dims.end()));
+
+        for(int i = 0; i < lens.size(); i++)
+        {
+            int tensorLen = lens[i].size();
+            std::vector<int> adjLens(tensorLen, 0);
+            std::vector<int> strides(tensorLen, 0);
+            for(int j = 0; j < dimOffsets.size(); j++)
+            {
+                std::fill(adjLens.begin(), adjLens.end(), 0);
+                std::fill(strides.begin(), strides.end(), 0);
+                strides.back() = 1;
+                bool zeros     = std::all_of(
+                    dimOffsets[j].begin(), dimOffsets[j].end(), [](int z) { return z == 0; });
+                if(tensorLen > 1 && !zeros)
+                {
+                    std::transform(lens[i].begin(),
+                                   lens[i].end(),
+                                   dimOffsets[j].begin(),
+                                   adjLens.begin(),
+                                   std::plus<size_t>());
+                    std::partial_sum(adjLens.rbegin(),
+                                     adjLens.rend() - 1,
+                                     strides.rbegin() + 1,
+                                     std::multiplies<int>());
+                    aDescList.push_back(miopen::TensorDescriptor(
+                        miopenFloat, lens[i].data(), strides.data(), tensorLen));
+                }
+                else
+                {
+                    aDescList.push_back(
+                        miopen::TensorDescriptor(miopenFloat, lens[i].data(), tensorLen));
+                }
+            }
+        }
+
+        return (std::set<miopen::TensorDescriptor>(aDescList.begin(), aDescList.end()));
     }
 
-    // void run() { verify(verify_tensor_ops<T, 2>{a, b}); }
-    // void run() { verify(verify_tensor_ops<T, 4>{a, b}); }
+    std::set<miopen::TensorDescriptor> get_descs_c()
+    {
+        std::vector<miopen::TensorDescriptor> cDescList;
+
+        std::vector<std::vector<int>> lens{
+            {32, 8, 16, 16, 8}, {32, 8, 16, 16}, {32, 8, 16}, {32, 8}, {8},
+        };
+
+        std::vector<std::vector<int>> dimOffsets{
+            {0, 0, 0, 0, 0},
+            //{0, 0, 0, 0, 8},
+            {0, 0, 0, 16, 8},
+            //{0, 0, 16, 0, 0},
+            //{0, 0, 16, 16, 8},
+            //{0, 8, 0, 16, 0},
+            {0, 8, 16, 0, 8},
+            //{0, 8, 16, 16, 0},
+            {32, 8, 0, 0, 8},
+            {32, 8, 0, 16, 0},
+            {32, 8, 16, 0, 8},
+            //{32, 8, 16, 16, 0},
+            {32, 8, 16, 16, 8},
+            {0, 0, 0, 0},
+            {0, 8, 0, 0},
+            {0, 0, 0, 16},
+            //{0, 0, 16, 0},
+            //{0, 0, 16, 16},
+            {0, 8, 0, 16},
+            {0, 8, 16, 0},
+            //{0, 8, 16, 16},
+            {32, 8, 0, 0},
+            {32, 8, 0, 16},
+            {32, 8, 16, 0},
+            //{32, 8, 16, 16},
+            {0, 0, 0},
+            {0, 8, 0},
+            //{0, 0, 16},
+            {32, 0, 0},
+            {0, 8, 16},
+            //{32, 8, 0},
+            //{32, 0, 16},
+            {32, 8, 16},
+            {0, 0},
+            {32, 0},
+            {0, 8},
+            {32, 8},
+            {0},
+        };
+
+        for(int i = 0; i < lens.size(); i++)
+        {
+            int tensorLen = lens[i].size();
+            std::vector<int> adjLens(tensorLen, 0);
+            std::vector<int> strides(tensorLen, 0);
+            for(int j = 0; j < dimOffsets.size(); j++)
+            {
+
+                std::fill(adjLens.begin(), adjLens.end(), 0);
+                std::fill(strides.begin(), strides.end(), 0);
+                strides.back() = 1;
+                bool zeros     = std::all_of(
+                    dimOffsets[j].begin(), dimOffsets[j].end(), [](int z) { return z == 0; });
+                if(tensorLen > 1 && !zeros)
+                {
+                    std::transform(lens[i].begin(),
+                                   lens[i].end(),
+                                   dimOffsets[j].begin(),
+                                   adjLens.begin(),
+                                   std::plus<size_t>());
+                    std::partial_sum(adjLens.rbegin(),
+                                     adjLens.rend() - 1,
+                                     strides.rbegin() + 1,
+                                     std::multiplies<int>());
+                    cDescList.push_back(miopen::TensorDescriptor(
+                        miopenFloat, lens[i].data(), strides.data(), tensorLen));
+                }
+                else
+                {
+                    cDescList.push_back(
+                        miopen::TensorDescriptor(miopenFloat, lens[i].data(), tensorLen));
+                }
+            }
+        }
+        return (std::set<miopen::TensorDescriptor>(cDescList.begin(), cDescList.end()));
+    }
+
     void run()
     {
-        if(a.desc.GetSize() == c.desc.GetSize())
+        if(a.desc.GetSize() == c.desc.GetSize() && a.desc.GetLengths() == c.desc.GetLengths())
             verify(verify_tensor_copy<T>{a, c});
     }
 };

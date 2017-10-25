@@ -362,52 +362,54 @@ void OpTensor(Handle& handle,
     }
 }
 
-
-typedef struct {
-  long dims;
-  long lens[5];
-  long strides[5];
-  long offset;
-  long size;
-}tensorDesc_t;
-
+typedef struct
+{
+    long dims;
+    long lens[5];
+    long strides[5];
+    long offset;
+    long realsize;
+} tensorDesc_t;
 
 void CopyTensor(Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& destDesc,
-                Data_t dest, int srcOffset, int destOffset)
+                Data_t dest,
+                int srcOffset,
+                int destOffset)
 {
 
     if(src == nullptr || dest == nullptr || srcDesc.GetElementSize() != destDesc.GetElementSize() ||
-       srcDesc.GetType() != destDesc.GetType() || srcDesc.GetLengths().size() != destDesc.GetLengths().size() ||
+       srcDesc.GetType() != destDesc.GetType() ||
+       srcDesc.GetLengths().size() != destDesc.GetLengths().size() ||
        srcDesc.GetLengths().size() > 5 || destDesc.GetLengths().size() > 5)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-//    size_t srcSize = srcDesc.GetElementSize();
-        std::string parms = " -DMIOPEN_TYPE=" +  GetDataType(srcDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
-    
-//    if(srcDesc.GetNumBytes() != destDesc.GetNumBytes() && srcDesc.GetStrides() != destDesc.GetStrides())
-//    {
+    size_t srcSize = srcDesc.GetElementSize();
+    std::string parms =
+        " -DMIOPEN_TYPE=" + GetDataType(srcDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
+
+    if(srcOffset > 0 || destOffset > 0 || srcDesc != destDesc ||
+       (srcDesc.GetElementSpace() != srcDesc.GetElementSize() ||
+        destDesc.GetElementSpace() != destDesc.GetElementSize()))
+    {
         tensorDesc_t sKernDesc;
         tensorDesc_t dKernDesc;
 
-        printf("host dims: %ld\n", srcDesc.GetLengths().size());
         sKernDesc.dims = dKernDesc.dims = srcDesc.GetLengths().size();
-        sKernDesc.offset = srcOffset;
-        sKernDesc.size = srcDesc.GetElementSize();
-        dKernDesc.offset = destOffset;
-        dKernDesc.size = destDesc.GetElementSize();
-
-        printf("sSize: %d, dSize:%d\n", sKernDesc.size, dKernDesc.size);
-      	for(int i = 0; i < 5; i++)
-        { 
+        sKernDesc.offset                = srcOffset;
+        sKernDesc.realsize              = srcDesc.GetElementSpace();
+        dKernDesc.offset                = destOffset;
+        dKernDesc.realsize              = destDesc.GetElementSpace();
+        for(int i = 0; i < 5; i++)
+        {
             if(i < sKernDesc.dims)
             {
-                sKernDesc.lens[i] = srcDesc.GetLengths()[i];
+                sKernDesc.lens[i]    = srcDesc.GetLengths()[i];
                 sKernDesc.strides[i] = srcDesc.GetStrides()[i];
-                dKernDesc.lens[i] = destDesc.GetLengths()[i];
+                dKernDesc.lens[i]    = destDesc.GetLengths()[i];
                 dKernDesc.strides[i] = destDesc.GetStrides()[i];
             }
             else
@@ -415,73 +417,70 @@ void CopyTensor(Handle& handle,
                 sKernDesc.lens[i] = dKernDesc.lens[i] = 1;
                 sKernDesc.strides[i] = dKernDesc.strides[i] = 0;
             }
-            printf("i: %d, sL: %d, sS:%d, dL: %d, dS: %d\n",
-                        i, sKernDesc.lens[i], sKernDesc.strides[i], 
-                        dKernDesc.lens[i], dKernDesc.strides[i]);
         }
-        
-        //Run data copy kernel
+
+        // Run data copy kernel
         std::vector<size_t> vld;
         std::vector<size_t> vgd;
-        
-        switch(sKernDesc.dims)       
+
+        switch(sKernDesc.dims)
         {
-            case 1: 
-                vld.push_back(256);
-                vld.push_back(1);
-                vld.push_back(1);
-                vgd.push_back(srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
-                vgd.push_back(1);
-                vgd.push_back(1);
-                break;
-            case 2:
-                vld.push_back(16);
-                vld.push_back(16);
-                vld.push_back(1);
-                vgd.push_back(srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
-                vgd.push_back(srcDesc.GetLengths()[1] > vld[1] ? srcDesc.GetLengths()[1] : vld[1]);
-                vgd.push_back(1);
-                break;
-            case 3:
-                vld.push_back(4);
-                vld.push_back(4);
-                vld.push_back(16);
-                vgd.push_back(srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
-                vgd.push_back(srcDesc.GetLengths()[1] > vld[1] ? srcDesc.GetLengths()[1] : vld[1]);
-                vgd.push_back(srcDesc.GetLengths()[2] > vld[2] ? srcDesc.GetLengths()[2] : vld[2]);
-                break;
-            case 4:
-                vld.push_back(4);
-                vld.push_back(4);
-                vld.push_back(16);
-                vgd.push_back(srcDesc.GetLengths()[1] > vld[0] ? srcDesc.GetLengths()[1] : vld[0]);
-                vgd.push_back(srcDesc.GetLengths()[2] > vld[1] ? srcDesc.GetLengths()[2] : vld[1]);
-                vgd.push_back(srcDesc.GetLengths()[3] > vld[2] ? srcDesc.GetLengths()[3] : vld[2]);
-                break;
-            case 5:
-                vld.push_back(4);
-                vld.push_back(4);
-                vld.push_back(16);
-                vgd.push_back(srcDesc.GetLengths()[2] > vld[0] ? srcDesc.GetLengths()[2] : vld[0]);
-                vgd.push_back(srcDesc.GetLengths()[3] > vld[1] ? srcDesc.GetLengths()[3] : vld[1]);
-                vgd.push_back(srcDesc.GetLengths()[4] > vld[2] ? srcDesc.GetLengths()[4] : vld[2]);
-                break;
-            default:
-                break;
+        case 1:
+            vld.push_back(256);
+            vld.push_back(1);
+            vld.push_back(1);
+            vgd.push_back(srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
+            vgd.push_back(1);
+            vgd.push_back(1);
+            break;
+        case 2:
+            vld.push_back(16);
+            vld.push_back(16);
+            vld.push_back(1);
+            vgd.push_back(srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
+            vgd.push_back(srcDesc.GetLengths()[1] > vld[1] ? srcDesc.GetLengths()[1] : vld[1]);
+            vgd.push_back(1);
+            break;
+        case 3:
+            vld.push_back(4);
+            vld.push_back(4);
+            vld.push_back(16);
+            vgd.push_back(srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
+            vgd.push_back(srcDesc.GetLengths()[1] > vld[1] ? srcDesc.GetLengths()[1] : vld[1]);
+            vgd.push_back(srcDesc.GetLengths()[2] > vld[2] ? srcDesc.GetLengths()[2] : vld[2]);
+            break;
+        case 4:
+            vld.push_back(4);
+            vld.push_back(4);
+            vld.push_back(16);
+            vgd.push_back(srcDesc.GetLengths()[1] > vld[0] ? srcDesc.GetLengths()[1] : vld[0]);
+            vgd.push_back(srcDesc.GetLengths()[2] > vld[1] ? srcDesc.GetLengths()[2] : vld[1]);
+            vgd.push_back(srcDesc.GetLengths()[3] > vld[2] ? srcDesc.GetLengths()[3] : vld[2]);
+            break;
+        case 5:
+            vld.push_back(4);
+            vld.push_back(4);
+            vld.push_back(16);
+            vgd.push_back(srcDesc.GetLengths()[2] > vld[0] ? srcDesc.GetLengths()[2] : vld[0]);
+            vgd.push_back(srcDesc.GetLengths()[3] > vld[1] ? srcDesc.GetLengths()[3] : vld[1]);
+            vgd.push_back(srcDesc.GetLengths()[4] > vld[2] ? srcDesc.GetLengths()[4] : vld[2]);
+            break;
+        default: break;
         };
-        
-        
-   
 
         std::string program_name = "MIOpenTensorScaleKernel.cl";
         handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
             src, dest, sKernDesc, dKernDesc);
-    
-//    }
-//    else
-//    {
-//        handle.Copy(src, dest, srcSize * sizeof(srcDesc.GetType()));
-//    }
+    }
+    else
+    {
+        //        printf("Using handle copy.\n");
+        //        for(int i=0;i<srcDesc.GetStrides().size();i++){
+        //            printf("srcStrides[%d]: %d\n",i,srcDesc.GetStrides()[i]);
+        //            printf("destStrides[%d]: %d\n",i,destDesc.GetStrides()[i]);
+        //        }
+        handle.Copy(src, dest, srcSize * sizeof(srcDesc.GetType()));
+    }
 }
 
 } // namespace miopen
