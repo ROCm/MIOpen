@@ -322,8 +322,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
 #endif
-    }
-    else if(mode == miopenConvolution)
+    } else if (mode == miopenConvolution || mode == miopenTensorflowSame || mode == miopenTensorflowValid)
     {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
@@ -526,7 +525,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         miopen::checkNumericsInput(handle, wDesc, w);
     }
 
-    if(mode == miopenConvolution)
+    if (mode == miopenConvolution || mode == miopenTensorflowSame || mode == miopenTensorflowValid)
     {
         if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
         {
@@ -943,8 +942,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
 #endif
-    }
-    else if(mode == miopenConvolution)
+    } else if (mode == miopenConvolution || mode == miopenTensorflowSame || mode == miopenTensorflowValid)
     {
         if(dilation_h == 1 && dilation_w == 1)
         {
@@ -1160,7 +1158,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         }
     }
 
-    if(mode == miopenConvolution)
+    if (mode == miopenConvolution || mode == miopenTensorflowSame || mode == miopenTensorflowValid)
     {
         if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
         {
@@ -1515,8 +1513,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
 #endif
-    }
-    else if(mode == miopenConvolution)
+    } else if (mode == miopenConvolution || mode == miopenTensorflowSame || mode == miopenTensorflowValid)
     {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
@@ -1760,7 +1757,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
-    if(mode == miopenConvolution)
+    if (mode == miopenConvolution || mode == miopenTensorflowSame || mode == miopenTensorflowValid)
     {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
