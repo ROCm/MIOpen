@@ -106,19 +106,28 @@ std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
     return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{0});
 }
 
-std::size_t TensorDescriptor::GetNumBytes() const
+std::size_t TensorDescriptor::GetElementSpace() const
 {
-    std::size_t retval = 0;
     std::vector<std::size_t> maxIndices(lens.size());
     std::transform(lens.begin(),
                    lens.end(),
                    std::vector<std::size_t>(lens.size(), 1).begin(),
                    maxIndices.begin(),
                    std::minus<size_t>());
-    retval =
-        std::inner_product(maxIndices.begin(), maxIndices.end(), strides.begin(), std::size_t{0}) +
-        1;
-    return sizeof(this->type) * retval;
+    return std::inner_product(
+               maxIndices.begin(), maxIndices.end(), strides.begin(), std::size_t{0}) +
+           1;
+}
+
+std::size_t TensorDescriptor::GetNumBytes() const
+{
+    std::size_t typesize = 0;
+    switch(this->type)
+    {
+    case miopenHalf: typesize  = 2; break;
+    case miopenFloat: typesize = 4; break;
+    }
+    return typesize * this->GetElementSpace();
 }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
