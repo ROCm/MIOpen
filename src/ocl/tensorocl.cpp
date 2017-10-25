@@ -362,14 +362,14 @@ void OpTensor(Handle& handle,
     }
 }
 
-typedef struct
+struct copyTensorDesc
 {
     long dims;
     long lens[5];
     long strides[5];
     long offset;
     long realsize;
-} tensorDesc_t;
+};
 
 void CopyTensor(Handle& handle,
                 const TensorDescriptor& srcDesc,
@@ -380,6 +380,7 @@ void CopyTensor(Handle& handle,
                 int destOffset)
 {
 
+    using tensorDesc_t = copyTensorDesc;
     if(src == nullptr || dest == nullptr || srcDesc.GetElementSize() != destDesc.GetElementSize() ||
        srcDesc.GetType() != destDesc.GetType() ||
        srcDesc.GetLengths().size() != destDesc.GetLengths().size() ||
