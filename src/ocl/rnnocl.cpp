@@ -783,13 +783,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 }
 
                 // update hidden status
-                std::vector<int> rsv_size(3, 1);
-                rsv_size.push_back(hy_h);
-
-                miopenTensorDescriptor_t rsvTensor;
-                miopenCreateTensorDescriptor(&rsvTensor);
-                SetTensor4d(rsvTensor, rsv_size);
-
                 float alpha = 1, beta = 0;
                 ActivationDescriptor tanhDesc, sigDesc;
                 size_t offset;
@@ -797,48 +790,67 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 sigDesc  = {miopenActivationLOGISTIC, 1, 0, 1};
                 tanhDesc = {miopenActivationTANH, 1, 1, 1};
 
-                for(int bs = 0; bs < in_n[ti]; bs++)
+				std::vector<int> rsv_size(4, 1), rsv_stride(4, 1);
+				miopenTensorDescriptor_t rsvTensor;
+				
+				if (in_n[ti] > 0)
                 {
-                    offset = hid_shift + (bacc + bs) * hy_stride;
+					rsv_size[2] = in_n[ti];
+					rsv_stride[0] = in_n[ti] * hy_stride;
+					rsv_stride[1] = in_n[ti] * hy_stride;
+					rsv_stride[2] = hy_stride;
 
-                    for(int gi = 0; gi <= bi * 4; gi++)
-                    {
-                        if(gi < 4 || gi == bi * 4)
-                        {
-                            if(gi != 3 && gi != bi * 4)
-                            {
-                                sigDesc.Forward(handle,
-                                                &alpha,
-                                                miopen::deref(rsvTensor),
-                                                reserveSpace,
-                                                &beta,
-                                                miopen::deref(rsvTensor),
-                                                workSpace,
-                                                offset + gi * hy_h,
-                                                offset + gi * hy_h);
-                            }
-                            else
-                            {
-                                tanhDesc.Forward(handle,
-                                                 &alpha,
-                                                 miopen::deref(rsvTensor),
-                                                 reserveSpace,
-                                                 &beta,
-                                                 miopen::deref(rsvTensor),
-                                                 workSpace,
-                                                 offset + gi * hy_h,
-                                                 offset + gi * hy_h);
-                            }
+					// active gate i, f, o
+					rsv_size[3] = hy_h * 3;
+					miopenCreateTensorDescriptor(&rsvTensor);
+					miopenSetTensorDescriptor(
+						rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
 
-                            // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
-                        }
-                    }
+					offset = hid_shift + bacc * hy_stride;
 
+					sigDesc.Forward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						offset,
+						offset + nLayers * batch_n * hy_h * bi);
+
+					// Update time
+					if (handle.IsProfilingEnabled())
+					{
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
+
+					// active gate c
+					rsv_size[3] = hy_h;
+					miopenCreateTensorDescriptor(&rsvTensor);
+					miopenSetTensorDescriptor(
+						rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+
+					offset = hid_shift + bacc * hy_stride + 3 * hy_h;
+
+					tanhDesc.Forward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						offset,
+						offset + nLayers * batch_n * hy_h * bi);
+
+					// Update time
+					if (handle.IsProfilingEnabled())
+					{
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
+
+					// update cell state
                     if(ti == 0)
                     {
                     }
@@ -847,65 +859,137 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         int prec_shift = li * batch_n * hy_stride +
                                          (bacc - in_n[ti - 1]) * hy_stride + bi * 4 * hy_h;
                     }
+
+					// active cell state
+					rsv_size[3] = hy_h;
+					miopenCreateTensorDescriptor(&rsvTensor);
+					miopenSetTensorDescriptor(
+						rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+
+					offset = hid_shift + bacc * hy_stride + bi * 4 * hy_h;
+
+					tanhDesc.Forward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						offset,
+						offset + nLayers * batch_n * hy_h * bi);
+
+					// Update time
+					if (handle.IsProfilingEnabled())
+					{
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
+
+					// update hidden state
+
                 }
 
                 if(dirMode)
                 {
-                    for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
-                    {
-                        offset = hid_shift + (baccbi + bs) * hy_stride;
+					if (in_n[seqLen - 1 - ti] > 0)
+					{
+						rsv_size[2] = in_n[seqLen - 1 - ti];
+						rsv_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+						rsv_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+						rsv_stride[2] = hy_stride;
 
-                        for(int gi = 4; gi <= (bi * 4 + 1); gi++)
-                        {
-                            if(gi <= 7 || gi == (bi * 4 + 1))
-                            {
-                                if(gi != 7 && gi != (bi * 4 + 1))
-                                {
-                                    sigDesc.Forward(handle,
-                                                    &alpha,
-                                                    miopen::deref(rsvTensor),
-                                                    reserveSpace,
-                                                    &beta,
-                                                    miopen::deref(rsvTensor),
-                                                    workSpace,
-                                                    offset + gi * hy_h,
-                                                    offset + gi * hy_h);
-                                }
-                                else
-                                {
-                                    tanhDesc.Forward(handle,
-                                                     &alpha,
-                                                     miopen::deref(rsvTensor),
-                                                     reserveSpace,
-                                                     &beta,
-                                                     miopen::deref(rsvTensor),
-                                                     workSpace,
-                                                     offset + gi * hy_h,
-                                                     offset + gi * hy_h);
-                                }
+						// active gate i, f, o
+						rsv_size[3] = hy_h * 3;
+						miopenCreateTensorDescriptor(&rsvTensor);
+						miopenSetTensorDescriptor(
+							rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
 
-                                // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
-                            }
-                        }
+						offset = hid_shift + baccbi * hy_stride + 4 * hy_h;
 
-                        if(ti == 0)
-                        {
-                        }
-                        else
-                        {
-                            if(bs < in_n[seqLen - ti])
-                            {
-                                int prec_shift = li * batch_n * hy_stride +
-                                                 (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
-                                                 bi * 4 * hy_h + hy_h;
-                            }
-                        }
-                    }
+						sigDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							offset,
+							offset + nLayers * batch_n * hy_h * bi);
+
+						// Update time
+						if (handle.IsProfilingEnabled())
+						{
+							time_0 = handle.GetKernelTime();
+							handle.AccumKernelTime(time_0);
+						}
+
+						// active gate c
+						rsv_size[3] = hy_h;
+						miopenCreateTensorDescriptor(&rsvTensor);
+						miopenSetTensorDescriptor(
+							rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+
+						offset = hid_shift + baccbi * hy_stride + 7 * hy_h;
+
+						tanhDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							offset,
+							offset + nLayers * batch_n * hy_h * bi);
+
+						// Update time
+						if (handle.IsProfilingEnabled())
+						{
+							time_0 = handle.GetKernelTime();
+							handle.AccumKernelTime(time_0);
+						}
+
+						// update cell state
+						if (ti == 0)
+						{
+						}
+						else
+						{
+							if (bs < in_n[seqLen - ti])
+							{
+								int prec_shift = li * batch_n * hy_stride +
+									(baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
+									bi * 4 * hy_h + hy_h;
+							}
+						}
+
+						// active cell state
+						rsv_size[3] = hy_h;
+						miopenCreateTensorDescriptor(&rsvTensor);
+						miopenSetTensorDescriptor(
+							rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+
+						offset = hid_shift + baccbi * hy_stride + (bi * 4 + 1) * hy_h;
+
+						tanhDesc.Forward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							offset,
+							offset + nLayers * batch_n * hy_h * bi);
+
+						// Update time
+						if (handle.IsProfilingEnabled())
+						{
+							time_0 = handle.GetKernelTime();
+							handle.AccumKernelTime(time_0);
+						}
+
+						// update hidden state
+
+					}
                 }
 
                 bacc += in_n[ti];
@@ -1692,7 +1776,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         }
 
         // dinput
-
         gg = CreateGemmGeometryRNN(batch_n,
                                    in_h,
                                    hy_h * bi,
