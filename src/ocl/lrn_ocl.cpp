@@ -80,7 +80,6 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     double lrn_beta  = GetBeta();
     double lrn_K     = GetK();
 
-
     construct_params.doBackward(do_backward);
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
@@ -219,7 +218,6 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     double lrn_alpha = GetAlpha();
     double lrn_beta  = GetBeta();
     double lrn_K     = GetK();
-
 
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
