@@ -37,8 +37,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                              const void* beta,
                                              const TensorDescriptor& yDesc,
                                              Data_t y,
-                                             const size_t xOffset,
-                                             const size_t yOffset)
+                                             size_t xOffset,
+                                             size_t yOffset)
 {
 
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
@@ -148,10 +148,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                               const void* beta,
                                               const TensorDescriptor& dxDesc,
                                               Data_t dx,
-                                              const size_t yOffset,
-                                              const size_t dyOffset,
-                                              const size_t xOffset,
-                                              const size_t dxOffset)
+                                              size_t yOffset,
+                                              size_t dyOffset,
+                                              size_t xOffset,
+                                              size_t dxOffset)
 {
 
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
