@@ -68,7 +68,8 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
     }
-    if(!(mode == miopenConvolution || mode == miopenTranspose))
+    if (!(mode == miopenConvolution || mode == miopenTranspose || mode == miopenTensorflowSame ||
+          mode == miopenTensorflowValid))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
     }
@@ -101,7 +102,7 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
 
     std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tien<4>(filterDesc.GetLengths());
 
-    if(mode == miopenConvolution)
+    if (mode == miopenConvolution || mode == miopenTensorflowValid || mode == miopenTensorflowSame)
     {
         if(input_c != filter_c)
         {
