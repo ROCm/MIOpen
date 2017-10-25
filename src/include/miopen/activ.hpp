@@ -53,8 +53,8 @@ struct ActivationDescriptor : miopenActivationDescriptor
                            const void* beta,
                            const TensorDescriptor& yDesc,
                            Data_t y,
-                           const size_t xOffset = 0,
-                           const size_t yOffset = 0);
+                           size_t xOffset = 0,
+                           size_t yOffset = 0);
 
     miopenStatus_t Backward(Handle& handle,
                             const void* alpha,
@@ -67,10 +67,10 @@ struct ActivationDescriptor : miopenActivationDescriptor
                             const void* beta,
                             const TensorDescriptor& dxDesc,
                             Data_t dx,
-                            const size_t yOffset  = 0,
-                            const size_t dyOffset = 0,
-                            const size_t xOffset  = 0,
-                            const size_t dxOffset = 0);
+                            size_t yOffset  = 0,
+                            size_t dyOffset = 0,
+                            size_t xOffset  = 0,
+                            size_t dxOffset = 0);
 
     friend std::ostream& operator<<(std::ostream& stream, const ActivationDescriptor& x);
 
