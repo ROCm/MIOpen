@@ -95,7 +95,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'
         '''
     }
-}, opencl: rocmnode('fiji') { cmake_build ->
+}, opencl: rocmnode('vega') { cmake_build ->
     stage('Clang Debug') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
@@ -108,12 +108,9 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
     stage('GCC Release') {
         cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, vega: rocmnode('vega') { cmake_build ->
-    stage('Vega Clang Debug') {
-        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
-    }
-    stage('Vega Clang Release') {
-        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+}, fiji: rocmnode('fiji') { cmake_build ->
+    stage('Fiji GCC Debug') {
+        cmake_build('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
 }, hip_tidy: rocmnode('rocm') { cmake_build ->
     stage('Hip Tidy') {
@@ -125,7 +122,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             make tidy
         '''
     }
-}, hip: rocmnode('fiji') { cmake_build ->
+}, hip: rocmnode('vega') { cmake_build ->
     // stage('Hip Debug') {
     //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     // }
