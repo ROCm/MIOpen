@@ -213,13 +213,12 @@ struct verify_lrn_bwd
 
     tensor<T> gpu()
     {
-        auto&& handle      = get_handle();
+        auto &&handle = get_handle();
         auto inputY_dev = handle.Write(inputY.data);
         auto inputDY_dev = handle.Write(inputDY.data);
         auto inputX_dev = handle.Write(inputX.data);
-        auto scale_dev = handle.Write(scale.data);
         auto outputDX_dev = handle.Create<T>(outputDX.data.size());
-        auto workspace_dev = handle.Create<T>(inputY.data.size());
+        auto scale_dev = handle.Write(scale.data);
 
         auto alpha = lrn.GetAlpha(), beta = lrn.GetBeta();
         lrn.Backward(handle,
@@ -279,8 +278,7 @@ struct lrn_driver : test_driver
     {
         miopen::LRNDescriptor lrn{mode_lookup.at(miopen::ToUpper(mode)), n, {alpha, beta, k}};
 
-        auto dxOutput = input;
-        std::fill(dxOutput.begin(), dxOutput.end(), 0.0);
+        auto OutputDX = input;
         auto fwd_output = verify(verify_lrn_foward<T>{lrn, input});
 
         auto out = fwd_output.first;
@@ -290,7 +288,7 @@ struct lrn_driver : test_driver
         auto scale = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
         auto inputX = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
 
-        auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, out, inputX, dxOutput, scale});
+        auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, out, inputX, OutputDX, scale});
     };
 };
 
