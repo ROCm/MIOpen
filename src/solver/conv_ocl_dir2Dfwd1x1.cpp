@@ -24,8 +24,9 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
+#include "miopen/legacy_exhaustive_search.hpp"
+#include "miopen/solver.hpp"
 
 namespace miopen {
 namespace solver {
@@ -36,13 +37,11 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
     return (params.kernel_size0 == 1 && params.kernel_size1 == 1);
 }
 
-ConvSolution
-ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
-                                 const PerformanceConfig& exhaustive_search_result) const
+ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
+                                              const PerformanceConfig& config) const
 {
     ConvSolution result;
-    const auto& searched_params =
-        dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
+    const auto& searched_params = dynamic_cast<const LegacyPerformanceConfig&>(config);
     searched_params.CopyTo(result);
 
     //   if(params.n_outputs % 4 == 0 && params.n_inputs % 4 == 0)
