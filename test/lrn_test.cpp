@@ -287,8 +287,6 @@ struct lrn_driver : test_driver
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
         auto scale = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
         auto inputX = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
-
-        auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, out, inputX, OutputDX, scale});
     };
 };
 
