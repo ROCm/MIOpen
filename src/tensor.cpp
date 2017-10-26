@@ -63,6 +63,8 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int siz
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
+    if (!std::all_of(plens, plens+size, [](int x) { return x >= 0; }))
+        MIOPEN_THROW("Invalid length. Length must be greater than 0.");
     this->CalculateStrides();
 }
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
@@ -75,6 +77,10 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
+    if (!std::all_of(plens, plens+size, [](int x) { return x >= 0; }))
+        MIOPEN_THROW("Invalid length. Length must be greater than 0.");
+    if (!std::all_of(pstrides, pstrides+size, [](int x) { return x >= 0; }))
+        MIOPEN_THROW("Invalid strides. Strides must be greater than 0.");
 }
 
 void TensorDescriptor::CalculateStrides()

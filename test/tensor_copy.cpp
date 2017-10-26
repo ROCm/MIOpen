@@ -268,7 +268,7 @@ struct tensor_copy_driver : test_driver
                     std::partial_sum(adjLens.rbegin(),
                                      adjLens.rend() - 1,
                                      strides.rbegin() + 1,
-                                     std::multiplies<int>());
+                                     std::multiplies<std::size_t>());
                     aDescList.push_back(miopen::TensorDescriptor(
                         miopenFloat, lens[i].data(), strides.data(), tensorLen));
                 }
@@ -355,7 +355,7 @@ struct tensor_copy_driver : test_driver
                     std::partial_sum(adjLens.rbegin(),
                                      adjLens.rend() - 1,
                                      strides.rbegin() + 1,
-                                     std::multiplies<int>());
+                                     std::multiplies<size_t>());
                     cDescList.push_back(miopen::TensorDescriptor(
                         miopenFloat, lens[i].data(), strides.data(), tensorLen));
                 }
