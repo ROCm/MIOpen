@@ -841,7 +841,7 @@ int RNNDriver<T>::RunForwardCPU()
                                    hy_h,
                                    out_h,
                                    mode,
-                                   workspace_host,
+			inputMode,
                                    reservespace_host);
     }
     else if(mode == miopenLSTM)
@@ -864,6 +864,7 @@ int RNNDriver<T>::RunForwardCPU()
                                     hy_n,
                                     hy_h,
                                     out_h,
+			inputMode,
                                     reservespace_host);
     }
     else if(mode == miopenGRU)
@@ -884,6 +885,7 @@ int RNNDriver<T>::RunForwardCPU()
                                    hy_n,
                                    hy_h,
                                    out_h,
+			inputMode,
                                    reservespace_host);
     }
     else
