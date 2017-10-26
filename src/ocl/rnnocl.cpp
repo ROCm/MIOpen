@@ -1005,12 +1005,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						}
 						else
 						{
-							if (bs < in_n[seqLen - ti])
-							{
-								int prec_shift = li * batch_n * hy_stride +
+							int prec_shift = li * batch_n * hy_stride +
 									(baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
 									bi * 4 * hy_h + hy_h;
-							}
 						}
 
 						// active cell state
