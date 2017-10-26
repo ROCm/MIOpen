@@ -66,8 +66,8 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
     }
-    if (!(mode == miopenConvolution || mode == miopenTranspose || mode == miopenTensorflowSame ||
-          mode == miopenTensorflowValid))
+    if(!(mode == miopenConvolution || mode == miopenTranspose || mode == miopenTensorflowSame ||
+         mode == miopenTensorflowValid))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
     }
@@ -100,7 +100,7 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
 
     std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tien<4>(filterDesc.GetLengths());
 
-    if (mode == miopenConvolution || mode == miopenTensorflowValid || mode == miopenTensorflowSame)
+    if(mode == miopenConvolution || mode == miopenTensorflowValid || mode == miopenTensorflowSame)
     {
         if(input_c != filter_c)
         {
@@ -125,22 +125,28 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
             1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h);
         output_w = std::max<std::ptrdiff_t>(
             1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
-    } else if (mode == miopenConvolution)
+    }
+    else if(mode == miopenConvolution)
     {
         output_c = filter_k;
         output_h = std::max<std::ptrdiff_t>(
             1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
         output_w = std::max<std::ptrdiff_t>(
             1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
-    } else if (mode == miopenTensorflowSame) {
+    }
+    else if(mode == miopenTensorflowSame)
+    {
         output_c = filter_k;
         output_h = std::ceil(static_cast<double>(input_h) / u);
         output_w = std::ceil(static_cast<double>(input_w) / v);
-    } else if (mode == miopenTensorflowValid) {
+    }
+    else if(mode == miopenTensorflowValid)
+    {
         output_c = filter_k;
         output_h = std::ceil(static_cast<double>(input_h - filter_h + 1) / u);
         output_w = std::ceil(static_cast<double>(input_w - filter_w + 1) / v);
-    } else
+    }
+    else
         MIOPEN_THROW(miopenStatusInvalidValue, "Invalid convolution mode!");
 
     return std::make_tuple(input_n, output_c, output_h, output_w);
