@@ -193,6 +193,7 @@ enable_clang_tidy(
         -clang-analyzer-optin.performance.Padding
         -clang-diagnostic-deprecated-declarations
         -clang-diagnostic-extern-c-compat
+        -clang-diagnostic-unused-command-line-argument
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay
         -cppcoreguidelines-pro-bounds-constant-array-index
         -cppcoreguidelines-pro-bounds-pointer-arithmetic
