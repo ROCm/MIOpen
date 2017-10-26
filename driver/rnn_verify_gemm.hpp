@@ -440,6 +440,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                                      int out_h, // 1 by hy_h related function for unidirection, 2 by
                                                 // hy_h related function for bidirection
                                      int squash,
+	int inputMode,
                                      std::vector<T>& rsvspace,
                                      std::vector<T>& wkspace)
 {
@@ -453,6 +454,10 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     int numlayer = bidirection ? hy_d / 2 : hy_d;
     int bacc, baccbi; // accumulation of batch
     int bi = bidirection ? 2 : 1;
+
+	int in_stride = in_h;
+	int hy_stride = hy_h * bi;
+	int out_stride = out_h;
 
     (void)hx;
     (void)out;
@@ -476,6 +481,16 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
         dhy_state[h] = dhy[h];
     }
 
+	if (inputMode == 1)
+	{
+		if (in_h != hy_h)
+		{
+			printf("Verification cannot be completed: The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!\n");
+			return;
+		}
+		in_h = 0;
+	}
+
     // initial weights
     int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
     if(biased)
@@ -488,10 +503,6 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     {
         wei_state[h] = wei[h];
     }
-
-    int in_stride  = in_h;
-    int hy_stride  = hy_h * bi;
-    int out_stride = out_h;
 
     // bwd data emulator
     for(int li = numlayer - 1; li >= 0; li--)
@@ -655,23 +666,40 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     }
 
     // dinput
-    ADNN_mm_cpu<T>((const T*)&dh_state[0],
-                   hy_h * bi,
-                   batch_n,
-                   hy_stride,
-                   0,
-                   (const T*)&wei_state[0],
-                   hy_h * bi,
-                   in_h,
-                   hy_stride,
-                   ADNN_MM_TRANSPOSE,
-                   &din_state[0],
-                   in_h,
-                   batch_n,
-                   in_stride,
-                   0,
-                   1,
-                   1);
+	if (inputMode == 1)
+	{
+		for (int bs = 0; bs < batch_n; bs++)
+		{
+			for (int h = 0; h < hy_h; h++)
+			{
+				din_state[bs * in_stride + h] += dh_state[bs * hy_stride + h];
+				if (bidirection)
+				{
+					din_state[bs * in_stride + h] += dh_state[bs * hy_stride + hy_h + h];
+				}
+			}
+		}
+	}
+	else
+	{
+		ADNN_mm_cpu<T>((const T*)&dh_state[0],
+			hy_h * bi,
+			batch_n,
+			hy_stride,
+			0,
+			(const T*)&wei_state[0],
+			hy_h * bi,
+			in_h,
+			hy_stride,
+			ADNN_MM_TRANSPOSE,
+			&din_state[0],
+			in_h,
+			batch_n,
+			in_stride,
+			0,
+			1,
+			1);
+	}
 
     for(int bs = 0; bs < batch_n; bs++)
     {
