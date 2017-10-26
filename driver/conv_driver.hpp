@@ -323,6 +323,10 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
 {
 
     miopenConvolutionMode_t mode;
+    int in_h = inflags.GetValueInt("in_h");
+    int in_w = inflags.GetValueInt("in_w");
+    int wei_h = inflags.GetValueInt("fil_h");
+    int wei_w = inflags.GetValueInt("fil_w");
     int pad_h      = inflags.GetValueInt("pad_h");
     int pad_w      = inflags.GetValueInt("pad_w");
     int u          = inflags.GetValueInt("conv_stride_0");
@@ -338,7 +342,12 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
         mode = miopenTranspose;
     } else if ((inflags.GetValueStr("mode")) == "same") {
         mode = miopenTensorflowSame;
+
+        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
     } else if ((inflags.GetValueStr("mode")) == "valid") {
+        pad_h = 0;
+        pad_w = 0;
         mode = miopenTensorflowValid;
     } else {
         printf("Incorrect Convolution Mode\n");
