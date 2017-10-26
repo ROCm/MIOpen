@@ -23,21 +23,24 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-__kernel void
-ScaleTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_elems)
+__kernel void ScaleTensor(global MIOPEN_TYPE* __restrict dst,
+                          MIOPEN_ALPHA_TYPE alpha,
+                          long num_elems,
+                          long offset)
 {
     uint gid = get_global_id(0);
     if(gid < num_elems)
     {
-        dst[gid] *= alpha;
+        dst[gid + offset] *= alpha;
     }
 }
 
-__kernel void SetTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_elems)
+__kernel void
+SetTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_elems, long offset)
 {
     uint gid = get_global_id(0);
     if(gid < num_elems)
     {
-        dst[gid] = alpha;
+        dst[gid + offset] = alpha;
     }
 }

@@ -64,28 +64,48 @@ struct verify_tensor_ops : tensor_ops_base<T>
     using tensor_ops_base<T>::b;
     using tensor_ops_base<T>::c;
 
-    verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb)
+    int Aoffset;
+    int Boffset;
+    int Coffset;
+
+
+    verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const tensor<T>& pc,
+            int pAoffset, int pBoffset, int pCoffset
+            )
     {
         a = pa;
         b = pb;
+        c = pc;
+
+        Aoffset = pAoffset;
+        Boffset = pBoffset;
+        Coffset = pCoffset;
     }
 
-    verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const std::vector<T>& dims)
-    {
-        a = pa(dims);
-        b = pb(dims);
-    }
+    //verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const tensor<T>& pc, const std::vector<T>& dims)
+    //{
+        //a = pa(dims);
+        //b = pb(dims);
+        //c = pc(dims);
+    //}
 
     T add_elem(T aelem, T belem) { return aelem + belem; }
+    T mul_elem(T aelem, T belem) { return aelem * belem; }
 
     void tensor_for_loop(const tensor<T>& aten,
                          const tensor<T>& bten,
                          tensor<T>& cten,
                          const std::vector<size_t>& a_dims,
                          const std::vector<size_t>& b_dims,
-                         int coffset,
-                         int boffset,
-                         int dim)
+                         float alpha,
+                         float beta,
+                         int recurr_coffset,
+                         int recurr_boffset,
+                         int dim,
+                         int AtenOffset,
+                         int BtenOffset,
+                         int CtenOffset
+                         )
     {
 
         int cstride = cten.desc.GetStrides()[dim];
@@ -93,15 +113,17 @@ struct verify_tensor_ops : tensor_ops_base<T>
 
         for(int idx = 0; idx < a_dims[dim]; idx++)
         {
-            size_t acindex = coffset + cstride * idx;
-            size_t bindex  = (b_dims[dim] == a_dims[dim]) ? boffset + bstride * idx : boffset;
+            size_t acindex = recurr_coffset + cstride * idx ;
+            size_t bindex  = (b_dims[dim] == a_dims[dim]) ? recurr_boffset + bstride * idx : recurr_boffset;
 
-            if(bindex < bten.desc.GetElementSize())
-                cten[acindex] = add_elem(aten[acindex], bten[bindex]);
+            if((bindex < bten.desc.GetElementSize()) && (dim == a_dims.size() - 1))
+            {
+                cten[acindex + CtenOffset] = mul_elem(aten[acindex + AtenOffset], bten[bindex + BtenOffset]) * alpha + beta * cten[acindex + Coffset];
+            }
             if(dim < (a_dims.size() - 1))
             {
 
-                tensor_for_loop(aten, bten, cten, a_dims, b_dims, acindex, bindex, dim + 1);
+                tensor_for_loop(aten, bten, cten, a_dims, b_dims, alpha, beta, acindex, bindex, dim + 1, AtenOffset, BtenOffset, CtenOffset);
             }
         }
         return;
@@ -109,15 +131,14 @@ struct verify_tensor_ops : tensor_ops_base<T>
 
     tensor<T> cpu()
     {
-        c = a;
-        std::fill(c.begin(), c.end(), 0);
-        std::fill(c.begin(), c.end(), 0);
+        std::fill(c.begin(), c.end(), 1);
         auto clens    = c.desc.GetLengths();
         auto blens    = b.desc.GetLengths();
         auto bstrides = b.desc.GetStrides();
         auto cstrides = c.desc.GetStrides();
 
-        tensor_for_loop(a, b, c, clens, blens, 0, 0, 0);
+        float alpha = 1, beta = 1;
+        tensor_for_loop(a, b, c, clens, blens, alpha, beta, 0, 0, 0, Aoffset, Boffset, Coffset);
 
 #if(MIO_OPS_DEBUG)
         for(int i = 0; i < c.desc.GetElementSize(); i++)
@@ -132,18 +153,18 @@ struct verify_tensor_ops : tensor_ops_base<T>
     {
         auto&& handle = get_handle();
 
-        c = a;
         // return c;
-        std::fill(c.begin(), c.end(), 0);
+        std::fill(c.begin(), c.end(), 1);
 
         auto c_dev = handle.Write(c.data);
         auto a_dev = handle.Write(a.data);
         auto b_dev = handle.Write(b.data);
 
-        int alpha1 = 1, alpha2 = 1, beta = 0;
+        float alpha1 = 1, alpha2 = 1, beta = 1;
 
         miopen::OpTensor(handle,
-                         miopenTensorOpAdd,
+                //miopenTensorOpAdd,
+                         miopenTensorOpMul,
                          &alpha1,
                          a.desc,
                          a_dev.get(),
@@ -152,12 +173,22 @@ struct verify_tensor_ops : tensor_ops_base<T>
                          b_dev.get(),
                          &beta,
                          c.desc,
-                         c_dev.get());
+                         c_dev.get(),
+                         Aoffset, Boffset, Coffset
+                         );
 
         c.data = handle.Read<T>(c_dev, c.data.size());
 
 #if(MIO_OPS_DEBUG)
         handle.Finish();
+        for(int i = 0; i < a.desc.GetElementSize(); i++)
+        {
+            std::cout << "A[" << i << "]: " << a[i] << std::endl;
+        }
+        for(int i = 0; i < b.desc.GetElementSize(); i++)
+        {
+            std::cout << "B[" << i << "]: " << b[i] << std::endl;
+        }
         for(int i = 0; i < c.desc.GetElementSize(); i++)
         {
             std::cout << "C_GPU[" << i << "]: " << c[i] << std::endl;
@@ -176,70 +207,48 @@ struct verify_tensor_ops : tensor_ops_base<T>
 template <class T>
 struct tensor_ops_driver : test_driver
 {
+
+    tensor<T> super_a;
+    tensor<T> super_b;
+    tensor<T> super_c;
+
     tensor<T> a;
     tensor<T> b;
+    tensor<T> c;
 
+    
     tensor_ops_driver()
     {
-        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));
-        add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 1}));
+        add(super_a, "super_a", generate_tensor(get_super_tensor(), {32, 16, 8}));
+        add(super_b, "super_b", generate_tensor(get_super_tensor(), {32, 16, 8}));
+        add(super_c, "super_c", generate_tensor(get_super_tensor(), {32, 16, 8}));
+
+        //add(super_a, "super_a", generate_tensor(get_super_tensor(), {8, 4}));
+        //add(super_b, "super_b", generate_tensor(get_super_tensor(), {8, 4}));
+        //add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 4}));
     }
 
-    std::set<std::vector<int>> get_tensor_a()
+    std::set<std::vector<int>> get_super_tensor()
     {
         std::vector<std::vector<int>> a_dims{
-            {32, 8, 16, 16, 8}, {32, 8, 16, 16}, {32, 8, 16}, {32, 8}, {8},
+            {32, 16, 8},
         };
+
         return (std::set<std::vector<int>>(a_dims.begin(), a_dims.end()));
     }
 
-    std::set<std::vector<int>> get_tensor_b()
-    {
-        std::vector<std::vector<int>> b_dims{
-            {1, 8, 1, 1, 8},
-            {1, 1, 1, 16, 8},
-            {1, 1, 16, 1, 1},
-            {1, 1, 16, 16, 8},
-            {1, 8, 1, 16, 1},
-            {1, 8, 16, 1, 8},
-            {1, 8, 16, 16, 1},
-            {32, 8, 1, 1, 8},
-            {32, 8, 1, 16, 1},
-            {32, 8, 16, 1, 8},
-            {32, 8, 16, 16, 1},
-            {32, 8, 16, 16, 8},
-            {1, 8, 1, 1},
-            {1, 1, 1, 16},
-            {1, 1, 16, 1},
-            {1, 1, 16, 16},
-            {1, 8, 1, 16},
-            {1, 8, 16, 1},
-            {1, 8, 16, 16},
-            {32, 8, 1, 1},
-            {32, 8, 1, 16},
-            {32, 8, 16, 1},
-            {32, 8, 16, 16},
-            {1, 8, 1},
-            {1, 1, 16},
-            {32, 1, 1},
-            {1, 8, 16},
-            {32, 8, 1},
-            {32, 1, 16},
-            {32, 8, 16},
-            {1, 8},
-            {32, 1},
-            {32, 8},
-            {8},
-        };
-        return (std::set<std::vector<int>>(b_dims.begin(), b_dims.end()));
-    }
 
-    // void run() { verify(verify_tensor_ops<T, 2>{a, b}); }
-    // void run() { verify(verify_tensor_ops<T, 4>{a, b}); }
     void run()
     {
+
+        a = make_tensor<T, int>(super_a, {16, 8, 4}, {32, 4, 1});
+        b = make_tensor<T, int>(super_b, {16, 8, 4}, {32, 4, 1});
+        c = make_tensor<T, int>(super_b, {16, 8, 4}, {32, 4, 1});
+        //a = make_tensor<T, int>(super_a, {8, 4}, {4, 1});
+        //b = make_tensor<T, int>(super_b, {8, 4}, {4, 1});
+        //c = make_tensor<T, int>(super_b, {8, 4}, {4, 1});
         if(a.desc.GetSize() == b.desc.GetSize())
-            verify(verify_tensor_ops<T>{a, b});
+            verify(verify_tensor_ops<T>{a, b, c, 4 * 32, 4 * 32, 4 * 32});
     }
 };
 
