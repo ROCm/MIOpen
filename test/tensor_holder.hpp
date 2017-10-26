@@ -91,7 +91,7 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        data.resize(desc.GetElementSize());
+        data.resize(desc.GetElementSpace());
     }
 
     template <class G>
