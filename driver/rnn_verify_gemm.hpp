@@ -744,6 +744,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                        int out_h, // 1 by hy_h related function for unidirection, 2
                                                   // by hy_h related function for bidirection
                                        int squash,
+	int inputMode,
                                        std::vector<T>& rsvspace,
                                        std::vector<T>& wkspace)
 {
@@ -752,17 +753,11 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
+	int in_stride = in_h;
+	int hy_stride = hy_h * bi;
+	int out_stride = out_h;
+
     (void)hy_n;
-
-    // weights
-    int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
-    if(biased)
-    {
-        wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
-    }
-
-    T* dwei_state = new T[wei_len];
-    memset(dwei_state, 0, wei_len * sizeof(T));
 
     // initial input
     T* in_state = new T[batch_n * in_h];
@@ -799,48 +794,80 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     {
         hx_state[h] = hx[h];
     }
+	
+	if (inputMode == 1)
+	{
+		if (in_h != hy_h)
+		{
+			printf("Verification cannot be completed: The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!\n");
+			return;
+		}
+		in_h = 0;
+	}
 
-    int wei_shift_bias =
-        ((in_h + hy_h + out_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
-    int in_stride  = in_h;
-    int hy_stride  = hy_h * bi;
-    int out_stride = out_h;
+	int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
+	int wei_shift_bias = wei_len;
+	if (biased)
+	{
+		int in_bias = inputMode == 1 ? 1 : 2;
+		wei_len += (bi * in_bias + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+	}
 
+	// initial dwei
+	T* dwei_state = new T[wei_len];
+	memset(dwei_state, 0, wei_len * sizeof(T));
+	
     // bwd weights emulator
     for(int li = 0; li <= numlayer; li++)
     {
         // between layers
         if(li == 0)
         {
-            ADNN_mm_cpu<T>((const T*)&in_state[0],
-                           in_h,
-                           batch_n,
-                           in_stride,
-                           ADNN_MM_TRANSPOSE,
-                           (const T*)&wkspace_state[0],
-                           hy_h * bi,
-                           batch_n,
-                           hy_stride,
-                           0,
-                           &dwei_state[0],
-                           hy_h * bi,
-                           in_h,
-                           hy_stride,
-                           0,
-                           1,
-                           1);
+			if (inputMode == 1)
+			{
+				if (biased)
+				{
+					for (int h = 0; h < hy_stride; h++)
+					{
+						for (int w = 0; w < batch_n; w++)
+						{
+							dwei_state[wei_shift_bias + h] += wkspace[w * hy_stride + h];
+						}
+					}
+				}
+			}
+			else
+			{
+				ADNN_mm_cpu<T>((const T*)&in_state[0],
+					in_h,
+					batch_n,
+					in_stride,
+					ADNN_MM_TRANSPOSE,
+					(const T*)&wkspace_state[0],
+					hy_h * bi,
+					batch_n,
+					hy_stride,
+					0,
+					&dwei_state[0],
+					hy_h * bi,
+					in_h,
+					hy_stride,
+					0,
+					1,
+					1);
 
-            if(biased)
-            {
-                for(int h = 0; h < hy_stride; h++)
-                {
-                    for(int w = 0; w < batch_n; w++)
-                    {
-                        dwei_state[wei_shift_bias + h] += wkspace[w * hy_stride + h];
-                    }
-                    dwei_state[wei_shift_bias + hy_stride + h] = dwei_state[wei_shift_bias + h];
-                }
-            }
+				if (biased)
+				{
+					for (int h = 0; h < hy_stride; h++)
+					{
+						for (int w = 0; w < batch_n; w++)
+						{
+							dwei_state[wei_shift_bias + h] += wkspace[w * hy_stride + h];
+						}
+						dwei_state[wei_shift_bias + hy_stride + h] = dwei_state[wei_shift_bias + h];
+					}
+				}
+			}
         }
         else if(li == numlayer)
         {
@@ -867,7 +894,8 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
             if(biased)
             {
-                wei_shift = wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h;
+                wei_shift = (inputMode == 1) ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * (bi + 1) * hy_h) :
+					(wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h);
 
                 for(int h = 0; h < out_h; h++)
                 {
@@ -909,7 +937,8 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
             if(biased)
             {
-                wei_shift = wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h;
+				wei_shift = (inputMode == 1) ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * (bi + 1) * hy_h) :
+					(wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h);
 
                 for(int h = 0; h < hy_stride; h++)
                 {
