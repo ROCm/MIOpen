@@ -68,10 +68,12 @@ struct verify_tensor_ops : tensor_ops_base<T>
     int Boffset;
     int Coffset;
 
-
-    verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const tensor<T>& pc,
-            int pAoffset, int pBoffset, int pCoffset
-            )
+    verify_tensor_ops(const tensor<T>& pa,
+                      const tensor<T>& pb,
+                      const tensor<T>& pc,
+                      int pAoffset,
+                      int pBoffset,
+                      int pCoffset)
     {
         a = pa;
         b = pb;
@@ -82,11 +84,12 @@ struct verify_tensor_ops : tensor_ops_base<T>
         Coffset = pCoffset;
     }
 
-    //verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const tensor<T>& pc, const std::vector<T>& dims)
+    // verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const tensor<T>& pc, const
+    // std::vector<T>& dims)
     //{
-        //a = pa(dims);
-        //b = pb(dims);
-        //c = pc(dims);
+    // a = pa(dims);
+    // b = pb(dims);
+    // c = pc(dims);
     //}
 
     T add_elem(T aelem, T belem) { return aelem + belem; }
@@ -104,8 +107,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
                          int dim,
                          int AtenOffset,
                          int BtenOffset,
-                         int CtenOffset
-                         )
+                         int CtenOffset)
     {
 
         int cstride = cten.desc.GetStrides()[dim];
@@ -113,17 +115,32 @@ struct verify_tensor_ops : tensor_ops_base<T>
 
         for(int idx = 0; idx < a_dims[dim]; idx++)
         {
-            size_t acindex = recurr_coffset + cstride * idx ;
-            size_t bindex  = (b_dims[dim] == a_dims[dim]) ? recurr_boffset + bstride * idx : recurr_boffset;
+            size_t acindex = recurr_coffset + cstride * idx;
+            size_t bindex =
+                (b_dims[dim] == a_dims[dim]) ? recurr_boffset + bstride * idx : recurr_boffset;
 
             if((bindex < bten.desc.GetElementSize()) && (dim == a_dims.size() - 1))
             {
-                cten[acindex + CtenOffset] = mul_elem(aten[acindex + AtenOffset], bten[bindex + BtenOffset]) * alpha + beta * cten[acindex + Coffset];
+                cten[acindex + CtenOffset] =
+                    mul_elem(aten[acindex + AtenOffset], bten[bindex + BtenOffset]) * alpha +
+                    beta * cten[acindex + Coffset];
             }
             if(dim < (a_dims.size() - 1))
             {
 
-                tensor_for_loop(aten, bten, cten, a_dims, b_dims, alpha, beta, acindex, bindex, dim + 1, AtenOffset, BtenOffset, CtenOffset);
+                tensor_for_loop(aten,
+                                bten,
+                                cten,
+                                a_dims,
+                                b_dims,
+                                alpha,
+                                beta,
+                                acindex,
+                                bindex,
+                                dim + 1,
+                                AtenOffset,
+                                BtenOffset,
+                                CtenOffset);
             }
         }
         return;
@@ -163,7 +180,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
         float alpha1 = 1, alpha2 = 1, beta = 1;
 
         miopen::OpTensor(handle,
-                //miopenTensorOpAdd,
+                         // miopenTensorOpAdd,
                          miopenTensorOpMul,
                          &alpha1,
                          a.desc,
@@ -174,8 +191,9 @@ struct verify_tensor_ops : tensor_ops_base<T>
                          &beta,
                          c.desc,
                          c_dev.get(),
-                         Aoffset, Boffset, Coffset
-                         );
+                         Aoffset,
+                         Boffset,
+                         Coffset);
 
         c.data = handle.Read<T>(c_dev, c.data.size());
 
@@ -216,16 +234,15 @@ struct tensor_ops_driver : test_driver
     tensor<T> b;
     tensor<T> c;
 
-    
     tensor_ops_driver()
     {
         add(super_a, "super_a", generate_tensor(get_super_tensor(), {32, 16, 8}));
         add(super_b, "super_b", generate_tensor(get_super_tensor(), {32, 16, 8}));
         add(super_c, "super_c", generate_tensor(get_super_tensor(), {32, 16, 8}));
 
-        //add(super_a, "super_a", generate_tensor(get_super_tensor(), {8, 4}));
-        //add(super_b, "super_b", generate_tensor(get_super_tensor(), {8, 4}));
-        //add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 4}));
+        // add(super_a, "super_a", generate_tensor(get_super_tensor(), {8, 4}));
+        // add(super_b, "super_b", generate_tensor(get_super_tensor(), {8, 4}));
+        // add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 4}));
     }
 
     std::set<std::vector<int>> get_super_tensor()
@@ -237,16 +254,15 @@ struct tensor_ops_driver : test_driver
         return (std::set<std::vector<int>>(a_dims.begin(), a_dims.end()));
     }
 
-
     void run()
     {
 
         a = make_tensor<T, int>(super_a, {16, 8, 4}, {32, 4, 1});
         b = make_tensor<T, int>(super_b, {16, 8, 4}, {32, 4, 1});
         c = make_tensor<T, int>(super_b, {16, 8, 4}, {32, 4, 1});
-        //a = make_tensor<T, int>(super_a, {8, 4}, {4, 1});
-        //b = make_tensor<T, int>(super_b, {8, 4}, {4, 1});
-        //c = make_tensor<T, int>(super_b, {8, 4}, {4, 1});
+        // a = make_tensor<T, int>(super_a, {8, 4}, {4, 1});
+        // b = make_tensor<T, int>(super_b, {8, 4}, {4, 1});
+        // c = make_tensor<T, int>(super_b, {8, 4}, {4, 1});
         if(a.desc.GetSize() == b.desc.GetSize())
             verify(verify_tensor_ops<T>{a, b, c, 4 * 32, 4 * 32, 4 * 32});
     }
