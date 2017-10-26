@@ -30,6 +30,7 @@ void RunLSTMForwardGEMMCPUVerify(
     int hy_h,               // hidden state number
     int out_h,              // 1 by hy_h related function for unidirection, 2 by hy_h
                             // related function for bidirection
+	int inputMode,
     std::vector<T>& rsvspace)
 {
     int batch_n = sumvc(in_n);
@@ -43,14 +44,6 @@ void RunLSTMForwardGEMMCPUVerify(
     int wei_stride = bi * 4 * hy_h;
     int hy_stride  = bi * 6 * hy_h;
     int h_stride   = bi * hy_h;
-
-    int wei_shift_bias =
-        (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride + out_h * h_stride;
-    int wei_len = wei_shift_bias;
-    if(biased)
-    {
-        wei_len += (2 + (numlayer - 1) * (bi + 1)) * wei_stride + bi * out_h;
-    }
 
     T* hid_state = new T[numlayer * batch_n * hy_stride];
     memset(hid_state, 0, numlayer * batch_n * hy_stride * sizeof(T));
@@ -84,6 +77,25 @@ void RunLSTMForwardGEMMCPUVerify(
         cx_state[h] = cx[h];
     }
 
+	if (inputMode == 1)
+	{
+		if (in_h != hy_h)
+		{
+			printf("Verification cannot be completed: The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!\n");
+			return;
+		}
+		in_h = 0;
+	}
+
+	int wei_shift_bias =
+		(in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride + out_h * h_stride;
+	int wei_len = wei_shift_bias;
+	if (biased)
+	{
+		int in_bias = inputMode == 1 ? 1 : 2;
+		wei_len += (in_bias + (numlayer - 1) * (bi + 1)) * wei_stride + bi * out_h;
+	}
+
     // initial weights
     T* wei_state = new T[wei_len];
     for(int h = 0; h < wei_len; h++)
@@ -100,36 +112,68 @@ void RunLSTMForwardGEMMCPUVerify(
         // from input
         if(li == 0)
         {
-            ADNN_mm_cpu<T>((const T*)&in_state[0],
-                           in_h,
-                           batch_n,
-                           in_stride,
-                           0,
-                           (const T*)&wei_state[0],
-                           hy_h * bi * 4,
-                           in_h,
-                           wei_stride,
-                           0,
-                           &hid_state[hid_shift],
-                           hy_h * bi * 4,
-                           batch_n,
-                           hy_stride,
-                           0,
-                           1,
-                           1);
+			if (inputMode == 1)
+			{
+				for (int bs = 0; bs < batch_n; bs++)
+				{
+					for (int h = 0; h < hy_h; h++)
+					{
+						for (int gi = 0; gi < 4; gi++)
+						{
+							hid_state[hid_shift + bs * hy_stride + gi * hy_h + h] += in_state[bs * in_stride + h];
+							if (bidirection)
+							{
+								hid_state[hid_shift + bs * hy_stride + (gi + 4) * hy_h + h] += in_state[bs * in_stride + h];
+							}
+						}
+					}
+				}
 
-            // from bias
-            if(biased)
-            {
-                for(int bs = 0; bs < batch_n; bs++)
-                {
-                    for(int h = 0; h < wei_stride; h++)
-                    {
-                        hid_state[hid_shift + bs * hy_stride + h] +=
-                            (wei[wei_shift_bias + h] + wei[wei_shift_bias + wei_stride + h]);
-                    }
-                }
-            }
+				// from bias
+				if (biased)
+				{
+					for (int bs = 0; bs < batch_n; bs++)
+					{
+						for (int h = 0; h < hy_stride; h++)
+						{
+							hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift_bias + h];
+						}
+					}
+				}
+			}
+			else
+			{
+				ADNN_mm_cpu<T>((const T*)&in_state[0],
+					in_h,
+					batch_n,
+					in_stride,
+					0,
+					(const T*)&wei_state[0],
+					hy_h * bi * 4,
+					in_h,
+					wei_stride,
+					0,
+					&hid_state[hid_shift],
+					hy_h * bi * 4,
+					batch_n,
+					hy_stride,
+					0,
+					1,
+					1);
+
+				// from bias
+				if (biased)
+				{
+					for (int bs = 0; bs < batch_n; bs++)
+					{
+						for (int h = 0; h < wei_stride; h++)
+						{
+							hid_state[hid_shift + bs * hy_stride + h] +=
+								(wei[wei_shift_bias + h] + wei[wei_shift_bias + wei_stride + h]);
+						}
+					}
+				}
+			}
         }
         else
         {
@@ -157,8 +201,8 @@ void RunLSTMForwardGEMMCPUVerify(
             // from bias
             if(biased)
             {
-                int wei_shift_bias_temp =
-                    wei_shift_bias + 2 * wei_stride + (li - 1) * (bi + 1) * wei_stride;
+                int wei_shift_bias_temp = (inputMode == 1) ? (wei_shift_bias + wei_stride + (li - 1) * (bi + 1) * wei_stride) :
+                    (wei_shift_bias + 2 * wei_stride + (li - 1) * (bi + 1) * wei_stride);
 
                 for(int bs = 0; bs < batch_n; bs++)
                 {
@@ -394,8 +438,8 @@ void RunLSTMForwardGEMMCPUVerify(
     // from bias
     if(biased)
     {
-        int wei_shift_bias_temp =
-            wei_shift_bias + 2 * wei_stride + (bi + 1) * (numlayer - 1) * wei_stride;
+        int wei_shift_bias_temp = (inputMode == 1) ? (wei_shift_bias + wei_stride + (bi + 1) * (numlayer - 1) * wei_stride) :
+            (wei_shift_bias + 2 * wei_stride + (bi + 1) * (numlayer - 1) * wei_stride);
 
         for(int bs = 0; bs < batch_n; bs++)
         {
