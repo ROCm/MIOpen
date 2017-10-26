@@ -138,13 +138,13 @@ static bool IsBitmapLeadingOnes(unsigned int& bitmap, int n_size, int first_not_
 
 void OpTensor(Handle& handle,
               miopenTensorOp_t tensorOp,
-              const void *alpha1,
+              const void* alpha1,
               const TensorDescriptor& aTensorDesc,
               ConstData_t ATensor,
               const void* /*alpha2*/,
               const TensorDescriptor& bTensorDesc,
               ConstData_t BTensor,
-              const void *beta,
+              const void* beta,
               const TensorDescriptor& cTensorDesc,
               Data_t CTensor,
               const size_t Aoffset,
@@ -273,7 +273,7 @@ void OpTensor(Handle& handle,
     case miopenHalf:
     {
         miopen_alpha = *(static_cast<const float*>(alpha1));
-        miopen_beta = *(static_cast<const float*>(beta));
+        miopen_beta  = *(static_cast<const float*>(beta));
     }
     break;
     }
