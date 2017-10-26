@@ -96,7 +96,6 @@ macro(enable_clang_tidy)
 
     set(CLANG_TIDY_COMMAND 
         ${CLANG_TIDY_EXE}
-        -quiet 
         -p ${CMAKE_BINARY_DIR} 
         -checks='${CLANG_TIDY_CHECKS}'
         ${CLANG_TIDY_ERRORS_ARG}
