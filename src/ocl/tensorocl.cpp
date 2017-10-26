@@ -34,7 +34,11 @@
 
 namespace miopen {
 
-void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha)
+void SetTensor(Handle& handle,
+               const TensorDescriptor& yDesc,
+               Data_t y,
+               const void* alpha,
+               const size_t yOffset)
 {
 
     if(y == nullptr || alpha == nullptr)
@@ -58,13 +62,17 @@ void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const vo
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
         handle.GetKernel("SetTensor", "", program_name, "SetTensor", vld, vgd, parms)(
-            y, miopen_alpha, global_threads);
+            y, miopen_alpha, global_threads, long(yOffset));
     }
     break;
     }
 }
 
-void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha)
+void ScaleTensor(Handle& handle,
+                 const TensorDescriptor& yDesc,
+                 Data_t y,
+                 const void* alpha,
+                 const size_t yOffset)
 {
 
     if(y == nullptr || alpha == nullptr)
@@ -88,7 +96,7 @@ void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const 
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
         handle.GetKernel("ScaleTensor", "", program_name, "ScaleTensor", vld, vgd, parms)(
-            y, miopen_alpha, global_threads);
+            y, miopen_alpha, global_threads, long(yOffset));
     }
     break;
     }
@@ -130,15 +138,18 @@ static bool IsBitmapLeadingOnes(unsigned int& bitmap, int n_size, int first_not_
 
 void OpTensor(Handle& handle,
               miopenTensorOp_t tensorOp,
-              const void* /*alpha1*/,
+              const void *alpha1,
               const TensorDescriptor& aTensorDesc,
               ConstData_t ATensor,
               const void* /*alpha2*/,
               const TensorDescriptor& bTensorDesc,
               ConstData_t BTensor,
-              const void* /*beta*/,
+              const void *beta,
               const TensorDescriptor& cTensorDesc,
-              Data_t CTensor)
+              Data_t CTensor,
+              const size_t Aoffset,
+              const size_t Boffset,
+              const size_t Coffset)
 {
 
     if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
@@ -255,6 +266,18 @@ void OpTensor(Handle& handle,
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
+    float miopen_alpha, miopen_beta;
+    switch(bTensorDesc.GetType())
+    {
+    case miopenFloat:
+    case miopenHalf:
+    {
+        miopen_alpha = *(static_cast<const float*>(alpha1));
+        miopen_beta = *(static_cast<const float*>(beta));
+    }
+    break;
+    }
+
     if(bsize == 5)
     {
         handle.GetKernel(
@@ -276,8 +299,13 @@ void OpTensor(Handle& handle,
             int(cstrides[0]), // c_nstride,
             int(cstrides[1]), // c_cstride,
             int(cstrides[2]), // c_dstride,
+            miopen_alpha,
+            miopen_beta,
             bitmap,
-            work_per_wg);
+            work_per_wg,
+            long(Aoffset),
+            long(Boffset),
+            long(Coffset));
     }
     else if(bsize == 3)
     {
@@ -292,8 +320,13 @@ void OpTensor(Handle& handle,
             int(clens[1]),    // c_c,
             int(clens[2]),    // c_h,
             int(cstrides[0]), // c_nstride,
+            miopen_alpha,
+            miopen_beta,
             bitmap,
-            work_per_wg);
+            work_per_wg,
+            long(Aoffset),
+            long(Boffset),
+            long(Coffset));
     }
     else if(bsize == 2)
     {
@@ -306,14 +339,30 @@ void OpTensor(Handle& handle,
             CTensor,
             int(clens[1]),
             int(cstrides[0]),
+            miopen_alpha,
+            miopen_beta,
             bitmap,
-            work_per_wg);
+            work_per_wg,
+            long(Aoffset),
+            long(Boffset),
+            long(Coffset));
     }
     else if(bsize == 1)
     {
         handle.GetKernel(
             "Op1dTensorGeneric", "", program_name, "Op1dTensorGeneric", vld, vgd, parms)(
-            ATensor, BTensor, int(blens[0]), CTensor, int(clens[0]), bitmap, work_per_wg);
+            ATensor,
+            BTensor,
+            int(blens[0]),
+            CTensor,
+            int(clens[0]),
+            miopen_alpha,
+            miopen_beta,
+            bitmap,
+            work_per_wg,
+            long(Aoffset),
+            long(Boffset),
+            long(Coffset));
     }
     else if(fwd_conv_bias)
     {
@@ -325,7 +374,12 @@ void OpTensor(Handle& handle,
             int(clens[0]),
             int(cstrides[0]),
             int(cstrides[1]),
-            work_per_wg);
+            miopen_alpha,
+            miopen_beta,
+            work_per_wg,
+            long(Aoffset),
+            long(Boffset),
+            long(Coffset));
     }
     else if(leading_ones)
     {
@@ -339,7 +393,12 @@ void OpTensor(Handle& handle,
             int(clens[3]),
             int(cstrides[0]),
             int(cstrides[1]),
-            work_per_wg);
+            miopen_alpha,
+            miopen_beta,
+            work_per_wg,
+            long(Aoffset),
+            long(Boffset),
+            long(Coffset));
     }
     else
     {
@@ -357,8 +416,13 @@ void OpTensor(Handle& handle,
             int(clens[3]),    // c_w,
             int(cstrides[0]), // c_nstride,
             int(cstrides[1]), // c_cstride,
+            miopen_alpha,
+            miopen_beta,
             bitmap,
-            work_per_wg);
+            work_per_wg,
+            long(Aoffset),
+            long(Boffset),
+            long(Coffset));
     }
 }
 
