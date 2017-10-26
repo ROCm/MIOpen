@@ -1048,6 +1048,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                           hy_h,
                                           out_h,
                                           mode,
+			inputMode,
                                           reservespace_host,
                                           workspace_host);
     }
@@ -1068,6 +1069,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                            hy_n,
                                            hy_h,
                                            out_h,
+			inputMode,
                                            reservespace_host,
                                            workspace_host);
     }
@@ -1088,6 +1090,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                           hy_n,
                                           hy_h,
                                           out_h,
+			inputMode,
                                           reservespace_host,
                                           workspace_host);
     }
