@@ -39,13 +39,15 @@ struct PoolingDescriptor : miopenPoolingDescriptor
 {
     PoolingDescriptor();
     PoolingDescriptor(miopenPoolingMode_t m,
+                      miopenPaddingMode_t pm,
                       std::vector<int> plens,
                       std::vector<int> pstrides,
                       std::vector<int> ppads);
     PoolingDescriptor(
-        miopenPoolingMode_t m, const int* plens, const int* ppads, const int* pstrides, int size);
+        miopenPoolingMode_t m, miopenPaddingMode_t pm,const int* plens, const int* ppads, const int* pstrides, int size);
 
     miopenPoolingMode_t GetMode() const;
+    miopenPaddingMode_t GetPaddingMode() const;
     const std::vector<int>& GetLengths() const;
     const std::vector<int>& GetStrides() const;
     const std::vector<int>& GetPads() const;
@@ -89,6 +91,7 @@ struct PoolingDescriptor : miopenPoolingDescriptor
     std::vector<int> pads;
 
     miopenPoolingMode_t mode = miopenPoolingMax;
+    miopenPaddingMode_t pmode = miopenPaddingDefault;
 };
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenPoolingDescriptor, miopen::PoolingDescriptor);

@@ -39,6 +39,7 @@ extern "C" miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_
 
 extern "C" miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                        miopenPoolingMode_t mode,
+                                                       miopenPaddingMode_t pmode,
                                                        int windowHeight,
                                                        int windowWidth,
                                                        int pad_h,
@@ -47,18 +48,19 @@ extern "C" miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t
                                                        int v)
 {
 
-    MIOPEN_LOG_FUNCTION(poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, u, v);
+    MIOPEN_LOG_FUNCTION(poolDesc, mode, pmode, windowHeight, windowWidth, pad_h, pad_w, u, v);
     return miopen::try_([&] {
         std::initializer_list<int> lens    = {windowHeight, windowWidth};
         std::initializer_list<int> pads    = {pad_h, pad_w};
         std::initializer_list<int> strides = {u, v};
         miopen::deref(poolDesc) =
-            miopen::PoolingDescriptor(mode, lens.begin(), pads.begin(), strides.begin(), 2);
+            miopen::PoolingDescriptor(mode, pmode, lens.begin(), pads.begin(), strides.begin(), 2);
     });
 }
 
 extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescriptor_t poolDesc,
                                                        miopenPoolingMode_t* mode,
+                                                       miopenPaddingMode_t* pmode,
                                                        int* windowHeight,
                                                        int* windowWidth,
                                                        int* pad_h,
@@ -67,9 +69,10 @@ extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescri
                                                        int* v)
 {
 
-    MIOPEN_LOG_FUNCTION(poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, u, v);
+    MIOPEN_LOG_FUNCTION(poolDesc, mode, pmode, windowHeight, windowWidth, pad_h, pad_w, u, v);
     return miopen::try_([&] {
         miopen::deref(mode) = miopen::deref(poolDesc).mode;
+        miopen::deref(pmode) = miopen::deref(poolDesc).pmode;
         std::tie(miopen::deref(windowHeight), miopen::deref(windowWidth)) =
             miopen::tien<2>(miopen::deref(poolDesc).GetLengths());
         std::tie(miopen::deref(u), miopen::deref(v)) =
@@ -81,6 +84,7 @@ extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescri
 
 extern "C" miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                        miopenPoolingMode_t mode,
+                                                       miopenPaddingMode_t pmode,
                                                        int nbDims,
                                                        int* windowDimA,
                                                        int* padA,
@@ -89,12 +93,13 @@ extern "C" miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t
 
     return miopen::try_([&] {
         miopen::deref(poolDesc) =
-            miopen::PoolingDescriptor(mode, windowDimA, padA, stridesA, nbDims);
+            miopen::PoolingDescriptor(mode, pmode, windowDimA, padA, stridesA, nbDims);
     });
 }
 
 extern "C" miopenStatus_t miopenGetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                        miopenPoolingMode_t* mode,
+                                                       miopenPaddingMode_t* pmode,
                                                        int* nbDims,
                                                        int* windowDimA,
                                                        int* padA,
@@ -106,6 +111,11 @@ extern "C" miopenStatus_t miopenGetNdPoolingDescriptor(miopenPoolingDescriptor_t
         {
             *mode = miopen::deref(poolDesc).mode;
         }
+        if(pmode != nullptr)
+        {
+            *pmode = miopen::deref(poolDesc).pmode;
+        }
+
         if(nbDims != nullptr)
         {
             *nbDims = miopen::deref(poolDesc).GetSize();

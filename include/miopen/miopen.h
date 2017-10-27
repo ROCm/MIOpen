@@ -1054,6 +1054,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescript
  */
 MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                           miopenPoolingMode_t mode,
+                                                          miopenPaddingMode_t pmode,
                                                           int windowHeight,
                                                           int windowWidth,
                                                           int pad_h,
@@ -1077,6 +1078,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescripto
  */
 MIOPEN_EXPORT miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescriptor_t poolDesc,
                                                           miopenPoolingMode_t* mode,
+                                                          miopenPaddingMode_t* pmode,
                                                           int* windowHeight,
                                                           int* windowWidth,
                                                           int* pad_h,
