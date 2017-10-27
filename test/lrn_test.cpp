@@ -283,16 +283,17 @@ struct lrn_driver : test_driver
 
         auto OutputDX   = input;
         auto fwd_output = verify(verify_lrn_foward<T>{lrn, input});
-        auto out = fwd_output.first;
+        auto out        = fwd_output.first;
 
         std::size_t n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
         auto scale  = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
         auto inputX = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
-        par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) { scale(b, c, h, w) += 1; });
+        par_ford(n_batch, channels, height, width)(
+            [&](int b, int c, int h, int w) { scale(b, c, h, w) += 1; });
 
         auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, out, inputX, OutputDX, scale});
     };
 };
 
-int main(int argc, const char *argv[]) { test_drive<lrn_driver<float>>(argc, argv); };
+int main(int argc, const char* argv[]) { test_drive<lrn_driver<float>>(argc, argv); };
