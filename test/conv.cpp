@@ -405,16 +405,21 @@ struct conv_driver : test_driver
     tensor<T> input;
     tensor<T> weights;
     miopen::ConvolutionDescriptor filter;
-    std::string mode;
+    std::string conv_mode;
+    std::string pad_mode;
     bool enable_backward_weights = false;
     bool do_backward_data        = true;
     int search                   = 0;
 
-    std::unordered_map <std::string, miopenConvolutionMode_t> mode_lookup = {
+    std::unordered_map <std::string, miopenConvolutionMode_t> cmode_lookup = {
             {"CONV",  miopenConvolution},
-            {"TRANS", miopenTranspose},
-            {"SAME",  miopenTensorflowSame},
-            {"VALID", miopenTensorflowValid}};
+            {"TRANS", miopenTranspose}
+    };
+
+    std::unordered_map <std::string, miopenPaddingMode_t> pmode_lookup = {
+            {"SAME",  miopenPaddingSame},
+            {"VALID", miopenPaddingValid},
+            {"DEFAULT", miopenPaddingDefault}};
 
     conv_driver()
     {
@@ -424,18 +429,19 @@ struct conv_driver : test_driver
         add(enable_backward_weights, "enable-backward-weights", flag());
         add(do_backward_data, "disable-backward-data", set_value(false));
         add(search, "search", set_value(1));
-        add(mode, "mode", generate_data({"conv", "trans", "same", "valid"}));
+        add(conv_mode, "cmode", generate_data({"conv", "trans"}));
+        add(pad_mode, "pmode", generate_data({"same", "valid","default"}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
     {
-        return {miopen::ConvolutionDescriptor{mode_lookup[miopen::ToUpper(mode)], 0, 0, 1, 1},
-                miopen::ConvolutionDescriptor{mode_lookup[miopen::ToUpper(mode)], 0, 0, 2, 2},
+        return {miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)], pmode_lookup[miopen::ToUpper(pad_mode)],0, 0, 1, 1},
+                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)], pmode_lookup[miopen::ToUpper(pad_mode)],0, 0, 2, 2},
                 // miopen::ConvolutionDescriptor{ 0, 0, 3, 3 },
-                miopen::ConvolutionDescriptor{mode_lookup[miopen::ToUpper(mode)], 1, 1, 1, 1},
-                miopen::ConvolutionDescriptor{mode_lookup[miopen::ToUpper(mode)], 1, 1, 2, 2},
-                miopen::ConvolutionDescriptor{mode_lookup[miopen::ToUpper(mode)], 2, 2, 1, 1},
-                miopen::ConvolutionDescriptor{mode_lookup[miopen::ToUpper(mode)], 3, 3, 2, 2}};
+                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)], pmode_lookup[miopen::ToUpper(pad_mode)],1, 1, 1, 1},
+                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)], pmode_lookup[miopen::ToUpper(pad_mode)],1, 1, 2, 2},
+                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)], pmode_lookup[miopen::ToUpper(pad_mode)],2, 2, 1, 1},
+                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)], pmode_lookup[miopen::ToUpper(pad_mode)],3, 3, 2, 2}};
     }
 
     void run()
@@ -447,14 +453,14 @@ struct conv_driver : test_driver
         std::tie(std::ignore, std::ignore, input_h, input_w) =
             miopen::tien<4>(input.desc.GetLengths());
 
-        if (filter.mode == miopenTensorflowSame) {
+        if (filter.paddingMode == miopenPaddingSame) {
             filter.pad_h = (input_h % filter.u == 0)
                            ? (std::max(static_cast<int>(wei_h - filter.u), 0))
                            : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
             filter.pad_w = (input_w % filter.v == 0)
                            ? (std::max(static_cast<int>(wei_w - filter.v), 0))
                            : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
-        } else if (filter.mode == miopenTensorflowValid) {
+        } else if (filter.paddingMode == miopenPaddingValid) {
             filter.pad_h = 0;
             filter.pad_w = 0;
         }
