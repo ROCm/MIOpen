@@ -81,6 +81,24 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         size_t workSpaceSize) const
 {
     std::cout << "RNNForwardInference. Nothing to do here!\n" << std::endl;
+	(void)handle;
+	(void)seqLen;
+	(void)xDesc;
+	(void)x;
+	(void)hxDesc;
+	(void)hx;
+	(void)cxDesc;
+	(void)cx;
+	(void)wDesc;
+	(void)w;
+	(void)yDesc;
+	(void)y;
+	(void)hyDesc;
+	(void)hy;
+	(void)cyDesc;
+	(void)cy;
+	(void)workSpace;
+	(void)workSpaceSize;
 }
 
 void RNNDescriptor::RNNForwardTraining(Handle& handle,
@@ -255,7 +273,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                            reserveSpace,
                            w,
                            reserveSpace,
-                           prelayer_shift + nLayers * batch_n * hy_h * bi,
+                           prelayer_shift + nLayers * batch_n * hy_stride,
                            wei_shift,
                            hid_shift);
 
@@ -382,7 +400,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    w,
                                    reserveSpace,
                                    hid_shift + (bacc - in_n[ti - 1]) * hy_stride +
-                                       nLayers * batch_n * hy_h * bi,
+                                       nLayers * batch_n * hy_stride,
                                    wei_shift,
                                    hid_shift + bacc * hy_stride);
 
@@ -417,7 +435,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        w,
                                        reserveSpace,
                                        hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
-                                           hy_h + nLayers * batch_n * hy_h * bi,
+                                           hy_h + nLayers * batch_n * hy_stride,
                                        wei_shift + hy_h,
                                        hid_shift + baccbi * hy_stride + hy_h);
 
@@ -469,7 +487,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                       miopen::deref(rsvTensor),
                                       reserveSpace,
                                       offset,
-                                      offset + nLayers * batch_n * hy_h * bi);
+                                      offset + nLayers * batch_n * hy_stride);
 
                     // Update time
                     if(handle.IsProfilingEnabled())
@@ -503,7 +521,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                           miopen::deref(rsvTensor),
                                           reserveSpace,
                                           offset,
-                                          offset + nLayers * batch_n * hy_h * bi);
+                                          offset + nLayers * batch_n * hy_stride);
 
                         // Update time
                         if(handle.IsProfilingEnabled())
@@ -540,7 +558,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                    reserveSpace,
                    w,
                    y,
-                   prelayer_shift + nLayers * batch_n * hy_h * bi,
+                   prelayer_shift + nLayers * batch_n * hy_stride,
                    wei_shift,
                    0);
 
@@ -862,7 +880,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                     miopen::deref(rsvTensor),
                                     reserveSpace,
                                     offset,
-                                    offset + nLayers * batch_n * hy_h * bi);
+                                    offset + nLayers * batch_n * hy_stride);
 
                     // Update time
                     if(handle.IsProfilingEnabled())
@@ -887,7 +905,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      miopen::deref(rsvTensor),
                                      reserveSpace,
                                      offset,
-                                     offset + nLayers * batch_n * hy_h * bi);
+                                     offset + nLayers * batch_n * hy_stride);
 
                     // Update time
                     if(handle.IsProfilingEnabled())
@@ -922,7 +940,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      miopen::deref(rsvTensor),
                                      reserveSpace,
                                      offset,
-                                     offset + nLayers * batch_n * hy_h * bi);
+                                     offset + nLayers * batch_n * hy_stride);
 
                     // Update time
                     if(handle.IsProfilingEnabled())
@@ -959,7 +977,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                         miopen::deref(rsvTensor),
                                         reserveSpace,
                                         offset,
-                                        offset + nLayers * batch_n * hy_h * bi);
+                                        offset + nLayers * batch_n * hy_stride);
 
                         // Update time
                         if(handle.IsProfilingEnabled())
@@ -984,7 +1002,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          miopen::deref(rsvTensor),
                                          reserveSpace,
                                          offset,
-                                         offset + nLayers * batch_n * hy_h * bi);
+                                         offset + nLayers * batch_n * hy_stride);
 
                         // Update time
                         if(handle.IsProfilingEnabled())
@@ -1020,7 +1038,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          miopen::deref(rsvTensor),
                                          reserveSpace,
                                          offset,
-                                         offset + nLayers * batch_n * hy_h * bi);
+                                         offset + nLayers * batch_n * hy_stride);
 
                         // Update time
                         if(handle.IsProfilingEnabled())
@@ -1732,7 +1750,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        &beta,
                                        miopen::deref(rsvTensor),
                                        workSpace,
-                                       offset + nLayers * batch_n * hy_h * bi,
+                                       offset + nLayers * batch_n * hy_stride,
                                        offset,
                                        offset,
                                        offset);
@@ -1808,7 +1826,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            &beta,
                                            miopen::deref(rsvTensor),
                                            workSpace,
-                                           offset + nLayers * batch_n * hy_h * bi,
+                                           offset + nLayers * batch_n * hy_stride,
                                            offset,
                                            offset,
                                            offset);
@@ -2803,34 +2821,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
-        int rsv_sz = batch_n * hy_d * hy_h;
-        std::vector<int> rsv_size(3, 1);
-        rsv_size.push_back(rsv_sz);
-
-        miopenTensorDescriptor_t rsvTensor;
-        miopenCreateTensorDescriptor(&rsvTensor);
-        SetTensor4d(rsvTensor, rsv_size);
-
-        float alpha = 1, beta = 0;
-        ActivationDescriptor activDesc;
-
-        if(rnnMode == miopenRNNRELU)
-        {
-            activDesc = {miopenActivationRELU, 1, 0, 1};
-        }
-        else if(rnnMode == miopenRNNTANH)
-        {
-            activDesc = {miopenActivationTANH, 1, 1, 1};
-        }
-
-        activDesc.Forward(handle,
-                          &alpha,
-                          miopen::deref(rsvTensor),
-                          reserveSpace,
-                          &beta,
-                          miopen::deref(rsvTensor),
-                          reserveSpace);
-
         // Update time
         if(handle.IsProfilingEnabled())
         {
@@ -2913,7 +2903,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            false,
                                            network_config);
                 gg.FindSolution(.003, handle, dy, reserveSpace, dw, false);
-                gg.RunGemm(handle, dy, reserveSpace, dw, 0, prelayer_shift, wei_shift);
+                gg.RunGemm(handle, dy, reserveSpace, dw, 0, prelayer_shift + nLayers * batch_n * hy_stride, wei_shift);
 
                 // Update time
                 if(handle.IsProfilingEnabled())
@@ -2955,7 +2945,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            network_config);
                 gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
                 gg.RunGemm(
-                    handle, reserveSpace, workSpace, dw, prelayer_shift, hid_shift, wei_shift);
+                    handle, reserveSpace, workSpace, dw, prelayer_shift + nLayers * batch_n * hy_stride, hid_shift, wei_shift);
 
                 // Update time
                 if(handle.IsProfilingEnabled())
@@ -3045,7 +3035,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        reserveSpace,
                                        workSpace,
                                        dw,
-                                       pretime_shift,
+                                       pretime_shift + nLayers * batch_n * hy_stride,
                                        hid_shift,
                                        wei_shift);
 
@@ -3119,7 +3109,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            reserveSpace,
                                            workSpace,
                                            dw,
-                                           pretime_shift + hy_h,
+                                           pretime_shift + hy_h + nLayers * batch_n * hy_stride,
                                            hid_shift + hy_h,
                                            wei_shift + hy_h);
 
