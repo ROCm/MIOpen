@@ -271,9 +271,17 @@ typedef enum {
 typedef enum {
     miopenConvolution = 0, /*!< Convolutions */
     miopenTranspose   = 1, /*!< Transpose convolutions */
-    miopenTensorflowSame = 2, /*!< Tensorflow SAME Padding */
-    miopenTensorflowValid = 3, /*!< Tensorflow VALID Padding */
 } miopenConvolutionMode_t;
+
+/*! @ingroup padding
+ *  @enum miopenPaddingMode_t
+ * Padding mode selection for convolution/Pooling layer preference
+*/
+typedef enum {
+    miopenPaddingDefault = 0,/*!< MIOPEN Default Padding */
+    miopenPaddingSame = 1, /*!< Tensorflow SAME Padding */
+    miopenPaddingValid = 2, /*!< Tensorflow VALID Padding */
+} miopenPaddingMode_t;
 
 /*! @ingroup pooling
  * @enum miopenPoolingMode_t
@@ -518,6 +526,7 @@ miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
  */
 MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
                                                              miopenConvolutionMode_t mode,
+                                                             miopenPaddingMode_t pmode,
                                                              int pad_h,
                                                              int pad_w,
                                                              int u,
@@ -541,6 +550,7 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
                                                             miopenConvolutionMode_t* mode,
+                                                            miopenPaddingMode_t* pmode,
                                                             int* pad_h,
                                                             int* pad_w,
                                                             int* u,
