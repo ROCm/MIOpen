@@ -692,38 +692,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 if(biasMode)
                 {
-                    if(in_n[ti] > 0)
-                    {
-                        gg = CreateGemmGeometryRNN(in_n[ti],
-                                                   hy_h * 4,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   false,
-                                                   false,
-                                                   h_stride,
-                                                   wei_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
-                        gg.RunGemm(handle,
-                                   hy,
-                                   w,
-                                   reserveSpace,
-                                   hx_shift,
-                                   wei_shift,
-                                   hid_shift + bacc * hy_stride);
-
-                        // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_gemm = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_gemm);
-                        }
-                    }
-
                     // Update time
                     if(handle.IsProfilingEnabled())
                     {
