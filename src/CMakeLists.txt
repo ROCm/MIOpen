@@ -71,12 +71,9 @@ set( MIOpen_Source
     softmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
-<<<<<<< HEAD
     rnn.cpp
     rnn_api.cpp
-=======
     include/miopen/db_record.hpp
->>>>>>> stridedTensorCopy
     include/miopen/batch_norm.hpp
     include/miopen/check_numerics.hpp
     include/miopen/common.hpp

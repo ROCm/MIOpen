@@ -23,16 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-<<<<<<< HEAD
 __kernel void ScaleTensor(global MIOPEN_TYPE* __restrict dst,
                           MIOPEN_ALPHA_TYPE alpha,
                           long num_elems,
                           long offset)
-=======
-
-__kernel void
-ScaleTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_elems)
->>>>>>> stridedTensorCopy
 {
     uint gid = get_global_id(0);
     if(gid < num_elems)
