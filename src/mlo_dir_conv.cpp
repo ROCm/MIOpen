@@ -180,7 +180,7 @@ void mlo_construct_direct2D::mloUseSolution(const miopen::solver::ConvSolution& 
 
     for(const auto& params : s.construction_params)
     {
-        _mlo_kernels_info.push_back(std::make_tuple(
+        _mlo_kernels_info.emplace_back(std::make_tuple(
             params.kernel_name, params.kernel_file, params.comp_options, params.g_wk, params.l_wk));
     }
 }
