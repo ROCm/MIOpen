@@ -388,9 +388,9 @@ void CopyTensor(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    size_t srcSize = srcDesc.GetElementSize();
-    std::string parms =
-        " -DMIOPEN_TYPE=" + GetDataType(srcDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
+    size_t srcSize    = srcDesc.GetElementSize();
+    std::string parms = " -DMIOPEN_TYPE=" + GetDataType(srcDesc.GetType()) +
+                        " -DMIOPEN_ALPHA_TYPE=float" + " -DMIO_TC_USE_COPYKERNEL=1";
 
     if(srcOffset > 0 || destOffset > 0 || srcDesc != destDesc ||
        (srcDesc.GetElementSpace() != srcDesc.GetElementSize() ||
@@ -423,6 +423,29 @@ void CopyTensor(Handle& handle,
         // Run data copy kernel
         std::vector<size_t> vld;
         std::vector<size_t> vgd;
+
+        parms +=
+            " -DMIO_TC_DIMS=" + std::to_string(sKernDesc.dims) + " -DsrcOffset=" +
+            std::to_string(sKernDesc.offset) + " -DsrcLen0=" + std::to_string(sKernDesc.lens[0]) +
+            " -DsrcLen1=" + std::to_string(sKernDesc.lens[1]) + " -DsrcLen2=" +
+            std::to_string(sKernDesc.lens[2]) + " -DsrcLen3=" + std::to_string(sKernDesc.lens[3]) +
+            " -DsrcLen4=" + std::to_string(sKernDesc.lens[4]) + " -DsrcStride0=" +
+            std::to_string(sKernDesc.strides[0]) + " -DsrcStride1=" +
+            std::to_string(sKernDesc.strides[1]) + " -DsrcStride2=" +
+            std::to_string(sKernDesc.strides[2]) + " -DsrcStride3=" +
+            std::to_string(sKernDesc.strides[3]) + " -DsrcStride4=" +
+            std::to_string(sKernDesc.strides[4]) + " -DsrcRealsize=" +
+            std::to_string(sKernDesc.realsize) + " -DdstOffset=" +
+            std::to_string(dKernDesc.offset) + " -DdstLen0=" + std::to_string(dKernDesc.lens[0]) +
+            " -DdstLen1=" + std::to_string(dKernDesc.lens[1]) + " -DdstLen2=" +
+            std::to_string(dKernDesc.lens[2]) + " -DdstLen3=" + std::to_string(dKernDesc.lens[3]) +
+            " -DdstLen4=" + std::to_string(dKernDesc.lens[4]) + " -DdstStride0=" +
+            std::to_string(dKernDesc.strides[0]) + " -DdstStride1=" +
+            std::to_string(dKernDesc.strides[1]) + " -DdstStride2=" +
+            std::to_string(dKernDesc.strides[2]) + " -DdstStride3=" +
+            std::to_string(dKernDesc.strides[3]) + " -DdstStride4=" +
+            std::to_string(dKernDesc.strides[4]) + " -DdstRealsize=" +
+            std::to_string(dKernDesc.realsize);
 
         switch(sKernDesc.dims)
         {
@@ -470,8 +493,10 @@ void CopyTensor(Handle& handle,
         };
 
         std::string program_name = "MIOpenTensorScaleKernel.cl";
-        handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
-            src, dest, sKernDesc, dKernDesc);
+        handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(src, dest);
+
+        //        handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
+        //            src, dest, sKernDesc, dKernDesc);
     }
     else
     {

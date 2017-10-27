@@ -34,7 +34,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <utility>
-
+#include <cstdlib>
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
@@ -47,8 +47,8 @@ struct tensor_copy_base
 {
     tensor<T> a;
     tensor<T> c;
-    int aoffset;
-    int coffset;
+    tensor<T> asuper;
+    tensor<T> csuper;
 
     void fail(float = 0)
     {
@@ -62,19 +62,34 @@ struct verify_tensor_copy : tensor_copy_base<T>
 {
     using tensor_copy_base<T>::a;
     using tensor_copy_base<T>::c;
+    using tensor_copy_base<T>::asuper;
+    using tensor_copy_base<T>::csuper;
     int aoffset;
     int coffset;
 
     verify_tensor_copy(const tensor<T>& pa, const tensor<T>& pc)
     {
-        a = pa;
-        c = pc;
+        a       = pa;
+        c       = pc;
+        aoffset = coffset = 0;
     }
 
     verify_tensor_copy(const tensor<T>& pa, const tensor<T>& pc, const std::vector<T>& dims)
     {
-        a = pa(dims);
-        c = pc(dims);
+        a       = pa(dims);
+        c       = pc(dims);
+        aoffset = coffset = 0;
+    }
+
+    verify_tensor_copy(const tensor<T>& pasuper, const tensor<T>& pcsuper, const tensor<T>& pc)
+    {
+        c         = pc;
+        asuper    = pasuper;
+        csuper    = pcsuper;
+        int adiff = asuper.desc.GetElementSize() - c.desc.GetElementSize();
+        int cdiff = csuper.desc.GetElementSize() - c.desc.GetElementSize();
+        aoffset   = rand() % ((adiff <= 0) ? 1 : adiff);
+        coffset   = rand() % ((cdiff <= 0) ? 1 : cdiff);
     }
 
     void tensor_for_loop(const tensor<T>& aten,
@@ -85,22 +100,36 @@ struct verify_tensor_copy : tensor_copy_base<T>
                          int coffsetIndex,
                          int dim)
     {
-        aoffset = coffset = 0;
-        int astride       = aten.desc.GetStrides()[dim];
-        int cstride       = cten.desc.GetStrides()[dim];
+
+        int astride = 0;
+        int cstride = 0;
+        if(aoffset > 0 || coffset > 0)
+        {
+            astride = c.desc.GetStrides()[dim];
+            cstride = c.desc.GetStrides()[dim];
+        }
+        else
+        {
+            astride = aten.desc.GetStrides()[dim];
+            cstride = cten.desc.GetStrides()[dim];
+        }
         for(int idx = 0; idx < a_dims[dim]; idx++)
         {
-            size_t aindex = aoffsetIndex + astride * idx;
-            size_t cindex = coffsetIndex + cstride * idx;
+            size_t aindex = ((dim == 0) ? aoffset : 0) + aoffsetIndex + astride * idx;
+            size_t cindex = ((dim == 0) ? coffset : 0) + coffsetIndex + cstride * idx;
 
             if(dim < (a_dims.size() - 1))
             {
                 tensor_for_loop(aten, cten, a_dims, c_dims, aindex, cindex, dim + 1);
             }
 
+            // printf("dim: %d, idx: %d, cindex, %d, cffidx: %d, elems: %d\n", dim, idx, cindex,
+            // coffsetIndex, cten.desc.GetElementSpace());
+            // printf("dim: %d, idx: %d, aindex, %d, affidx: %d, elems: %d\n", dim, idx, aindex,
+            // aoffsetIndex, aten.desc.GetElementSpace());
             if(cindex < cten.desc.GetElementSpace() && aindex < aten.desc.GetElementSpace())
             {
-                cten[cindex + coffset] = aten[aindex + aoffset];
+                cten[cindex] = aten[aindex];
             }
         }
         return;
@@ -109,63 +138,54 @@ struct verify_tensor_copy : tensor_copy_base<T>
     tensor<T> cpu()
     {
 
-        // printf("In CopyTensor CPU test.\n");
-        std::fill(c.begin(), c.end(), 0);
-
         auto alens = a.desc.GetLengths();
         auto clens = c.desc.GetLengths();
 
-        auto astrides = a.desc.GetStrides();
-        auto cstrides = c.desc.GetStrides();
-
-        // printf("Running CopyTensor CPU.\n");
-        tensor_for_loop(a, c, alens, clens, 0, 0, 0);
-
-#if(MIO_OPS_DEBUG)
-        realid = 0;
-        for(int i = 0; i < c.desc.GetLengths()[0]; i++)
+        if(aoffset > 0 || coffset > 0)
         {
-            for(int j = 0; j < c.desc.GetLengths()[1]; j++)
+            std::fill(csuper.begin(), csuper.end(), 0);
+            tensor_for_loop(asuper, csuper, clens, clens, 0, 0, 0);
+#if(MIO_OPS_DEBUG)
+            for(int i = 0; i < csuper.desc.GetElementSize(); i++)
             {
-                id = i * c.desc.GetStrides()[0] + j;
-                if(realid < elemSize)
-                    std::cout << "C_CPU[" << realid++ << "]: " << c[id] << std::endl;
+                if(csuper[i] > 0)
+                    std::cout << "C_CPU[" << i << "]: " << csuper[i] << std::endl;
             }
-        }
 #endif
+            return csuper;
+        }
+        std::fill(c.begin(), c.end(), 0);
+        tensor_for_loop(a, c, alens, clens, 0, 0, 0);
         return c;
     }
 
     tensor<T> gpu()
     {
-        // printf("In CopyTensor GPU test.\n");
         auto&& handle = get_handle();
+        if(aoffset > 0 || coffset > 0)
+        {
+            std::fill(csuper.begin(), csuper.end(), 0);
+            auto csuper_dev = handle.Write(csuper.data);
+            auto asuper_dev = handle.Write(asuper.data);
+            miopen::CopyTensor(
+                handle, c.desc, asuper_dev.get(), c.desc, csuper_dev.get(), aoffset, coffset);
+            csuper.data = handle.Read<T>(csuper_dev, csuper.data.size());
+#if(MIO_OPS_DEBUG)
+            for(int i = 0; i < csuper.desc.GetElementSize(); i++)
+            {
+                if(csuper[i] > 0)
+                    std::cout << "C_GPU[" << i << "]: " << csuper[i] << std::endl;
+            }
+#endif
+            return csuper;
+        }
 
+        aoffset = coffset = 0;
         std::fill(c.begin(), c.end(), 0);
-
         auto c_dev = handle.Write(c.data);
         auto a_dev = handle.Write(a.data);
-        aoffset = coffset = 0;
-
-        // printf("Running CopyTensor GPU.\n");
         miopen::CopyTensor(handle, a.desc, a_dev.get(), c.desc, c_dev.get(), aoffset, coffset);
-
-        // handle.Finish();
         c.data = handle.Read<T>(c_dev, c.data.size());
-
-#if(MIO_OPS_DEBUG)
-        handle.Finish();
-        realid = 0;
-        for(int i = 0; i < c.desc.GetLengths()[0]; i++)
-        {
-            for(int j = 0; j < c.desc.GetLengths()[1]; j++)
-            {
-                id = i * c.desc.GetStrides()[0] + j;
-                if(realid < elemSize)
-                    std::cout << "C_GPU[" << realid++ << "]: " << c[id] << std::endl;
-            }
-        }
-#endif
         return c;
     }
 
@@ -207,23 +227,23 @@ struct tensor_copy_driver : test_driver
 
         std::vector<std::vector<int>> dimOffsets{
             {0, 0, 0, 0, 0},
-            //{0, 0, 0, 0, 8},
-            //{32, 8, 0, 0, 8},
+            {0, 0, 0, 0, 8},
+            {32, 8, 0, 0, 8},
             {32, 8, 0, 16, 0},
-            //{32, 8, 16, 0, 8},
+            {32, 8, 16, 0, 8},
             {32, 8, 16, 16, 0},
-            //{0, 0, 0, 16, 8},
+            {0, 0, 0, 16, 8},
             {0, 0, 16, 0, 0},
-            //{0, 0, 16, 16, 8},
+            {0, 0, 16, 16, 8},
             {0, 8, 0, 16, 0},
-            //{0, 8, 16, 0, 8},
+            {0, 8, 16, 0, 8},
             {0, 8, 16, 16, 0},
             {32, 8, 16, 16, 8},
             {0, 0, 0, 0},
-            //{0, 8, 0, 0},
-            //{0, 0, 0, 16},
-            //{0, 8, 16, 16},
-            //{32, 8, 0, 0},
+            {0, 8, 0, 0},
+            {0, 0, 0, 16},
+            {0, 8, 16, 16},
+            {32, 8, 0, 0},
             {32, 8, 0, 16},
             {0, 0, 16, 0},
             {0, 0, 16, 16},
@@ -232,9 +252,9 @@ struct tensor_copy_driver : test_driver
             {32, 8, 16, 0},
             {32, 8, 16, 16},
             {0, 0, 0},
-            //{0, 8, 0},
-            //{32, 0, 16},
-            //{0, 0, 16},
+            {0, 8, 0},
+            {32, 0, 16},
+            {0, 0, 16},
             {32, 0, 0},
             {0, 8, 16},
             {32, 8, 0},
@@ -295,37 +315,37 @@ struct tensor_copy_driver : test_driver
 
         std::vector<std::vector<int>> dimOffsets{
             {0, 0, 0, 0, 0},
-            //{0, 0, 0, 0, 8},
+            {0, 0, 0, 0, 8},
             {0, 0, 0, 16, 8},
-            //{0, 0, 16, 0, 0},
-            //{0, 0, 16, 16, 8},
-            //{0, 8, 0, 16, 0},
+            {0, 0, 16, 0, 0},
+            {0, 0, 16, 16, 8},
+            {0, 8, 0, 16, 0},
             {0, 8, 16, 0, 8},
-            //{0, 8, 16, 16, 0},
+            {0, 8, 16, 16, 0},
             {32, 8, 0, 0, 8},
             {32, 8, 0, 16, 0},
             {32, 8, 16, 0, 8},
-            //{32, 8, 16, 16, 0},
+            {32, 8, 16, 16, 0},
             {32, 8, 16, 16, 8},
             {0, 0, 0, 0},
             {0, 8, 0, 0},
             {0, 0, 0, 16},
-            //{0, 0, 16, 0},
-            //{0, 0, 16, 16},
+            {0, 0, 16, 0},
+            {0, 0, 16, 16},
             {0, 8, 0, 16},
             {0, 8, 16, 0},
-            //{0, 8, 16, 16},
+            {0, 8, 16, 16},
             {32, 8, 0, 0},
             {32, 8, 0, 16},
             {32, 8, 16, 0},
-            //{32, 8, 16, 16},
+            {32, 8, 16, 16},
             {0, 0, 0},
             {0, 8, 0},
-            //{0, 0, 16},
+            {0, 0, 16},
             {32, 0, 0},
             {0, 8, 16},
-            //{32, 8, 0},
-            //{32, 0, 16},
+            {32, 8, 0},
+            {32, 0, 16},
             {32, 8, 16},
             {0, 0},
             {32, 0},
@@ -380,4 +400,99 @@ struct tensor_copy_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<tensor_copy_driver<float>>(argc, argv); }
+// OFFSETS TESTS
+
+template <class T>
+struct tensor_copy_offset_driver : test_driver
+{
+    tensor<T> aSuper;
+    tensor<T> cSuper;
+    tensor<T> copyDesc;
+    int aoffset;
+    int coffset;
+
+    tensor_copy_offset_driver()
+    {
+        std::array<int, 5> asuperlens = {{40, 30, 2, 20, 3}};
+        std::array<int, 5> csuperlens = {{40, 30, 2, 20, 3}};
+        std::array<int, 5> copylens   = {{4, 3, 2, 2, 3}};
+
+        add(aSuper,
+            "aSuper",
+            generate_tensor(
+                get_descs_asuper(),
+                miopen::TensorDescriptor(miopenFloat, asuperlens.data(), asuperlens.size())));
+
+        add(cSuper,
+            "cSuper",
+            generate_tensor(
+                get_descs_csuper(),
+                miopen::TensorDescriptor(miopenFloat, csuperlens.data(), csuperlens.size())));
+
+        add(copyDesc,
+            "copyDesc",
+            generate_tensor(
+                get_descs_a(),
+                miopen::TensorDescriptor(miopenFloat, copylens.data(), copylens.size())));
+    }
+
+    std::set<miopen::TensorDescriptor> get_descs_a()
+    {
+        std::vector<miopen::TensorDescriptor> aDescList;
+
+        std::vector<std::vector<int>> lens{
+            {16, 4, 8, 8, 4}, {16, 4, 8, 8}, {16, 4, 8}, {16, 4}, {4},
+        };
+
+        for(int i = 0; i < lens.size(); i++)
+        {
+            int tensorLen = lens[i].size();
+            aDescList.push_back(miopen::TensorDescriptor(miopenFloat, lens[i].data(), tensorLen));
+        }
+        return (std::set<miopen::TensorDescriptor>(aDescList.begin(), aDescList.end()));
+    }
+
+    std::set<miopen::TensorDescriptor> get_descs_asuper()
+    {
+        std::vector<miopen::TensorDescriptor> aDescList;
+
+        std::vector<std::vector<int>> lens{
+            {320, 80, 16, 16, 8}, {32, 80, 160, 16}, {320, 80, 16}, {320, 8}, {80},
+        };
+
+        for(int i = 0; i < lens.size(); i++)
+        {
+            int tensorLen = lens[i].size();
+            aDescList.push_back(miopen::TensorDescriptor(miopenFloat, lens[i].data(), tensorLen));
+        }
+        return (std::set<miopen::TensorDescriptor>(aDescList.begin(), aDescList.end()));
+    }
+
+    std::set<miopen::TensorDescriptor> get_descs_csuper()
+    {
+        std::vector<miopen::TensorDescriptor> cDescList;
+
+        std::vector<std::vector<int>> lens{
+            {32, 8, 16, 160, 8}, {320, 80, 16, 160}, {320, 80, 16}, {320, 8}, {80},
+        };
+        for(int i = 0; i < lens.size(); i++)
+        {
+            int tensorLen = lens[i].size();
+            cDescList.push_back(miopen::TensorDescriptor(miopenFloat, lens[i].data(), tensorLen));
+        }
+        return (std::set<miopen::TensorDescriptor>(cDescList.begin(), cDescList.end()));
+    }
+
+    void run()
+    {
+        if(aSuper.desc.GetLengths().size() == cSuper.desc.GetLengths().size() &&
+           aSuper.desc.GetLengths().size() == copyDesc.desc.GetLengths().size())
+            verify(verify_tensor_copy<T>{aSuper, cSuper, copyDesc});
+    }
+};
+
+int main(int argc, const char* argv[])
+{
+    test_drive<tensor_copy_driver<float>>(argc, argv);
+    test_drive<tensor_copy_offset_driver<float>>(argc, argv);
+}
