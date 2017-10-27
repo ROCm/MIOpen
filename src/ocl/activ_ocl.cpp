@@ -123,7 +123,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         std::to_string(1) + " -DMLO_H_DOUT=" + std::to_string(1) + " -DMLO_W_DOUT=" +
         std::to_string(1) + " -DMLO_N_DOUT_STRIDE=" + std::to_string(1) + " -DMLO_C_DOUT_STRIDE=" +
         std::to_string(1) + " -DMLO_H_DOUT_STRIDE=" + std::to_string(1) + " -DMLO_W_DOUT_STRIDE=" +
-        std::to_string(1);
+        std::to_string(1) + " -DMLO_IN_BLOCK_SZ=" + std::to_string(cIn*hIn*wIn) + 
+		" -DMLO_OUT_BLOCK_SZ=" + std::to_string(cOut*hOut*wOut) + " -DMLO_DIN_BLOCK_SZ=" +
+		std::to_string(1) + " -DMLO_DOUT_BLOCK_SZ=" + std::to_string(1);
 
     handle.GetKernel("miopenActivationForward",
                      network_config,
@@ -275,7 +277,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         " -DMLO_H_DOUT=" + std::to_string(hdOut) + " -DMLO_W_DOUT=" + std::to_string(wdOut) +
         " -DMLO_N_DOUT_STRIDE=" + std::to_string(ndOutStride) + " -DMLO_C_DOUT_STRIDE=" +
         std::to_string(cdOutStride) + " -DMLO_H_DOUT_STRIDE=" + std::to_string(hdOutStride) +
-        " -DMLO_W_DOUT_STRIDE=" + std::to_string(wdOutStride);
+        " -DMLO_W_DOUT_STRIDE=" + std::to_string(wdOutStride) + " -DMLO_IN_BLOCK_SZ=" + 
+		std::to_string(cIn*hIn*wIn) + " -DMLO_OUT_BLOCK_SZ=" + std::to_string(cOut*hOut*wOut) + 
+		" -DMLO_DIN_BLOCK_SZ=" +	std::to_string(cdIn*hdIn*wdIn) + " -DMLO_DOUT_BLOCK_SZ=" + 
+		std::to_string(cdOut*hdOut*wdOut);
 
     handle.GetKernel("miopenActivationBackward",
                      network_config,
