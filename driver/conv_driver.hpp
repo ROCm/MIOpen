@@ -268,7 +268,11 @@ int ConvDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("weights", 'e', "", "Input weights filename (Default=)", "string");
     inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
     inflags.AddInputFlag(
-            "mode", 'm', "conv", "Convolution Mode (conv, trans, same, valid) (Default=conv)", "str");
+            "mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
+
+    inflags.AddInputFlag(
+            "pad_mode", 'z', "conv", "Padding Mode (same, valid, default) (Default=default)", "str");
+
     inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)", "int");
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
     inflags.AddInputFlag("in_bias", 'a', "", "Input bias filename (Default=)", "string");
@@ -303,10 +307,6 @@ std::vector<int> ConvDriver<T>::GetWeightTensorLengthsFromCmdLine()
     else if((inflags.GetValueStr("mode")) == "trans")
     {
         mode = miopenTranspose;
-    } else if ((inflags.GetValueStr("mode")) == "same") {
-        mode = miopenTensorflowSame;
-    } else if ((inflags.GetValueStr("mode")) == "valid") {
-        mode = miopenTensorflowValid;
     } else {
         printf("Incorrect Convolution Mode\n");
         exit(0);
@@ -323,6 +323,7 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
 {
 
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t pmode;
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
     int wei_h = inflags.GetValueInt("fil_h");
@@ -335,27 +336,31 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
     int dilation_w = inflags.GetValueInt("dilation_w");
     if((inflags.GetValueStr("mode")) == "conv")
     {
+        pmode = miopenPaddingDefault;
         mode = miopenConvolution;
     }
     else if((inflags.GetValueStr("mode")) == "trans")
     {
+        pmode = miopenPaddingDefault;
         mode = miopenTranspose;
-    } else if ((inflags.GetValueStr("mode")) == "same") {
-        mode = miopenTensorflowSame;
-
-        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
-    } else if ((inflags.GetValueStr("mode")) == "valid") {
-        pad_h = 0;
-        pad_w = 0;
-        mode = miopenTensorflowValid;
     } else {
         printf("Incorrect Convolution Mode\n");
         exit(0);
     }
 
+    if ((inflags.GetValueStr("pad_mode")) == "same") {
+            mode = miopenConvolution;
+            pmode = miopenPaddingSame;
+            pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+            pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+    } else if ((inflags.GetValueStr("pad_mode")) == "valid") {
+            pmode = miopenPaddingValid;
+            mode = miopenConvolution;
+            pad_h = 0;
+            pad_w = 0;
+    }
     return miopenInitConvolutionDescriptor(
-        convDesc, mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+        convDesc, mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
 }
 
 template <typename T>
@@ -697,20 +702,21 @@ int ConvDriver<T>::RunForwardCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t pmode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pmode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
-    if (mode == miopenTensorflowSame) {
-        pad_h = (in_h % u == 0) ? (std::max(static_cast<int>(wei_h - u), 0))
-                                : (std::max(static_cast<int>(wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max(static_cast<int>(wei_w - v), 0))
-                                : (std::max(static_cast<int>(wei_w - (in_w % v)), 0));
-    } else if (mode == miopenTensorflowValid) {
+    if (pmode == miopenPaddingSame) {
+        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0))
+                                : (std::max((wei_h - (in_h % u)), 0));
+        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0))
+                                : (std::max((wei_w - (in_w % v)), 0));
+    } else if (pmode == miopenPaddingValid) {
         pad_h = 0;
         pad_w = 0;
     }
 
-    if (mode == miopenConvolution || mode == miopenTensorflowSame || mode == miopenTensorflowValid)
+    if (mode == miopenConvolution)
     {
         miopenGet4dTensorDescriptor(weightTensor,
                                     &dt,
@@ -1046,20 +1052,21 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t pmode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pmode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
-    if (mode == miopenTensorflowSame) {
-        pad_h = (in_h % u == 0) ? (std::max(static_cast<int>(wei_h - u), 0))
-                                : (std::max(static_cast<int>(wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max(static_cast<int>(wei_w - v), 0))
-                                : (std::max(static_cast<int>(wei_w - (in_w % v)), 0));
-    } else if (mode == miopenTensorflowValid) {
+    if (pmode == miopenPaddingSame) {
+        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0))
+                                : (std::max((wei_h - (in_h % u)), 0));
+        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0))
+                                : (std::max((wei_w - (in_w % v)), 0));
+    } else if (pmode == miopenPaddingValid) {
         pad_h = 0;
         pad_w = 0;
     }
 
-    if (mode == miopenConvolution || mode == miopenTensorflowSame || mode == miopenTensorflowValid)
+    if (mode == miopenConvolution)
     {
         miopenGet4dTensorDescriptor(weightTensor,
                                     &dt,
@@ -1290,20 +1297,21 @@ int ConvDriver<T>::RunBackwardDataCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t pmode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pmode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
-    if (mode == miopenTensorflowSame) {
-        pad_h = (in_h % u == 0) ? (std::max(static_cast<int>(wei_h - u), 0))
-                                : (std::max(static_cast<int>(wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max(static_cast<int>(wei_w - v), 0))
-                                : (std::max(static_cast<int>(wei_w - (in_w % v)), 0));
-    } else if (mode == miopenTensorflowValid) {
+    if (pmode == miopenPaddingSame) {
+        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0))
+                                : (std::max((wei_h - (in_h % u)), 0));
+        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0))
+                                : (std::max((wei_w - (in_w % v)), 0));
+    } else if (pmode == miopenPaddingValid) {
         pad_h = 0;
         pad_w = 0;
     }
 
-    if (mode == miopenConvolution || mode == miopenTensorflowSame || mode == miopenTensorflowValid)
+    if (mode == miopenConvolution )
     {
         miopenGet4dTensorDescriptor(weightTensor,
                                     &dt,
@@ -1474,8 +1482,9 @@ std::string ConvDriver<T>::GetVerificationCacheFileName() const
     std::ostringstream ss;
 
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t pmode;
     int pad_h, pad_w, u, v, sx, sy;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &sx, &sy);
+    miopenGetConvolutionDescriptor(convDesc, &mode, &pmode,&pad_h, &pad_w, &u, &v, &sx, &sy);
 
     const auto inputDesc = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(inputTensor));
     const auto weiDesc   = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(weightTensor));
