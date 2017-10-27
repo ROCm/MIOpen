@@ -36,7 +36,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                              ConstData_t x,
                                              const void* beta,
                                              const TensorDescriptor& yDesc,
-                                             Data_t y)
+                                             Data_t y,
+                                             size_t xOffset,
+                                             size_t yOffset)
 {
 
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
@@ -103,13 +105,34 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     auto f_activ_beta  = static_cast<float>(activ_beta);
     auto f_activ_power = static_cast<float>(activ_power);
 
+    compiler_options +=
+        " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
+        " -DMLO_H_IN=" + std::to_string(hIn) + " -DMLO_W_IN=" + std::to_string(wIn) +
+        " -DMLO_N_IN_STRIDE=" + std::to_string(nInStride) + " -DMLO_C_IN_STRIDE=" +
+        std::to_string(cInStride) + " -DMLO_H_IN_STRIDE=" + std::to_string(hInStride) +
+        " -DMLO_W_IN_STRIDE=" + std::to_string(wInStride) + " -DMLO_N_OUT=" + std::to_string(nOut) +
+        " -DMLO_C_OUT=" + std::to_string(cOut) + " -DMLO_H_OUT=" + std::to_string(hOut) +
+        " -DMLO_W_OUT=" + std::to_string(wOut) + " -DMLO_N_OUT_STRIDE=" +
+        std::to_string(nOutStride) + " -DMLO_C_OUT_STRIDE=" + std::to_string(cOutStride) +
+        " -DMLO_H_OUT_STRIDE=" + std::to_string(hOutStride) + " -DMLO_W_OUT_STRIDE=" +
+        std::to_string(wOutStride) + " -DMLO_N_DIN=" + std::to_string(1) + " -DMLO_C_DIN=" +
+        std::to_string(1) + " -DMLO_H_DIN=" + std::to_string(1) + " -DMLO_W_DIN=" +
+        std::to_string(1) + " -DMLO_N_DIN_STRIDE=" + std::to_string(1) + " -DMLO_C_DIN_STRIDE=" +
+        std::to_string(1) + " -DMLO_H_DIN_STRIDE=" + std::to_string(1) + " -DMLO_W_DIN_STRIDE=" +
+        std::to_string(1) + " -DMLO_N_DOUT=" + std::to_string(1) + " -DMLO_C_DOUT=" +
+        std::to_string(1) + " -DMLO_H_DOUT=" + std::to_string(1) + " -DMLO_W_DOUT=" +
+        std::to_string(1) + " -DMLO_N_DOUT_STRIDE=" + std::to_string(1) + " -DMLO_C_DOUT_STRIDE=" +
+        std::to_string(1) + " -DMLO_H_DOUT_STRIDE=" + std::to_string(1) + " -DMLO_W_DOUT_STRIDE=" +
+        std::to_string(1);
+
     handle.GetKernel("miopenActivationForward",
                      network_config,
                      program_name,
                      kernel_name,
                      vld,
                      vgd,
-                     compiler_options)(x, y, f_activ_power, f_activ_beta, f_activ_alpha);
+                     compiler_options)(
+        x, y, f_activ_power, f_activ_beta, f_activ_alpha, long(xOffset), long(yOffset));
 
     return (status);
 }
@@ -124,7 +147,11 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                               ConstData_t x,
                                               const void* beta,
                                               const TensorDescriptor& dxDesc,
-                                              Data_t dx)
+                                              Data_t dx,
+                                              size_t yOffset,
+                                              size_t dyOffset,
+                                              size_t xOffset,
+                                              size_t dxOffset)
 {
 
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
@@ -229,14 +256,45 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     auto f_activ_power = static_cast<float>(GetPower());
     float f_diff_scale = f_activ_beta * f_activ_power;
 
+    compiler_options +=
+        " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
+        " -DMLO_H_IN=" + std::to_string(hIn) + " -DMLO_W_IN=" + std::to_string(wIn) +
+        " -DMLO_N_IN_STRIDE=" + std::to_string(nInStride) + " -DMLO_C_IN_STRIDE=" +
+        std::to_string(cInStride) + " -DMLO_H_IN_STRIDE=" + std::to_string(hInStride) +
+        " -DMLO_W_IN_STRIDE=" + std::to_string(wInStride) + " -DMLO_N_OUT=" + std::to_string(nOut) +
+        " -DMLO_C_OUT=" + std::to_string(cOut) + " -DMLO_H_OUT=" + std::to_string(hOut) +
+        " -DMLO_W_OUT=" + std::to_string(wOut) + " -DMLO_N_OUT_STRIDE=" +
+        std::to_string(nOutStride) + " -DMLO_C_OUT_STRIDE=" + std::to_string(cOutStride) +
+        " -DMLO_H_OUT_STRIDE=" + std::to_string(hOutStride) + " -DMLO_W_OUT_STRIDE=" +
+        std::to_string(wOutStride) + " -DMLO_N_DIN=" + std::to_string(ndIn) + " -DMLO_C_DIN=" +
+        std::to_string(cdIn) + " -DMLO_H_DIN=" + std::to_string(hdIn) + " -DMLO_W_DIN=" +
+        std::to_string(wdIn) + " -DMLO_N_DIN_STRIDE=" + std::to_string(ndInStride) +
+        " -DMLO_C_DIN_STRIDE=" + std::to_string(cdInStride) + " -DMLO_H_DIN_STRIDE=" +
+        std::to_string(hdInStride) + " -DMLO_W_DIN_STRIDE=" + std::to_string(wdInStride) +
+        " -DMLO_N_DOUT=" + std::to_string(ndOut) + " -DMLO_C_DOUT=" + std::to_string(cdOut) +
+        " -DMLO_H_DOUT=" + std::to_string(hdOut) + " -DMLO_W_DOUT=" + std::to_string(wdOut) +
+        " -DMLO_N_DOUT_STRIDE=" + std::to_string(ndOutStride) + " -DMLO_C_DOUT_STRIDE=" +
+        std::to_string(cdOutStride) + " -DMLO_H_DOUT_STRIDE=" + std::to_string(hdOutStride) +
+        " -DMLO_W_DOUT_STRIDE=" + std::to_string(wdOutStride);
+
     handle.GetKernel("miopenActivationBackward",
                      network_config,
                      program_name,
                      kernel_name,
                      vld,
                      vgd,
-                     compiler_options)(
-        dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha);
+                     compiler_options)(dx,
+                                       dy,
+                                       x,
+                                       y,
+                                       f_diff_scale,
+                                       f_activ_power,
+                                       f_activ_beta,
+                                       f_activ_alpha,
+                                       long(dxOffset),
+                                       long(dyOffset),
+                                       long(xOffset),
+                                       long(yOffset));
 
     return (status);
 }
