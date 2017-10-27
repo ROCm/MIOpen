@@ -329,61 +329,66 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     adjustedSeqLen = nseq;
     in_n.push_back(in_h);
 
-	/*
-	std::stringstream ss(batchstr);
-	int count = 0;
-	
-		int element;
-	if (!batchseq.size())
-		 {
-		while (ss >> element)
-			 {
-			batchseq.push_back(element);
-			if (batchseq.size() > nseq)
-				 {
-				printf("Length of data sequence is longer than required unrolled time sequence "
-					 "provided.\n"
-					 "The data sequence will be truncated to match unrolled time sequence.\n");
-				break;
-				}
-			            // assert(isdigit(ss.peek()));
-				count++;
-			
-				if (ss.peek() == ',' || ss.peek() == ' ')
-				 {
-				ss.ignore();
-				}
-			            // std::cout << "element: " << element <<std::endl;
-				            // printf("count: %d, nseq: %d\n", count, nseq);
-				}
-		adjustedSeqLen = nseq;
-		if (count < nseq)
-			 {
-			printf(
-				"Length of data sequence is shorter than required unrolled time sequence provided.\n"
-				 "Unrolled time sequence will be truncated to match the data sequence.\n");
-			adjustedSeqLen = count;
-			}
-		
-			        //    for(int i = 0; i<batchseq.size();i++)
-			        //    {
-			        //        std::cout << "element[" << i <<"]:" << batchseq[i] << std::endl;
-			        //    }
-			for (int i = 0; i < batchseq.size() && i < nseq; i++)
-			 {
-			if (i > 0 && batchseq[i] > batchseq[i - 1])
-				 {
-				printf("Incorrect input batch size at time %d\n", i);
-				break;
-				}
-			else
-				 {
-				in_n[i] = in_n[i] * 10 + batchseq[i];
-				}
-			}
-		in_n.push_back(in_h);
-		}
-	*/
+    /*
+    std::stringstream ss(batchstr);
+    int count = 0;
+
+            int element;
+    if (!batchseq.size())
+             {
+            while (ss >> element)
+                     {
+                    batchseq.push_back(element);
+                    if (batchseq.size() > nseq)
+                             {
+                            printf("Length of data sequence is longer than required unrolled time
+    sequence "
+                                     "provided.\n"
+                                     "The data sequence will be truncated to match unrolled time
+    sequence.\n");
+                            break;
+                            }
+                                // assert(isdigit(ss.peek()));
+                            count++;
+
+                            if (ss.peek() == ',' || ss.peek() == ' ')
+                             {
+                            ss.ignore();
+                            }
+                                // std::cout << "element: " << element <<std::endl;
+                                        // printf("count: %d, nseq: %d\n", count, nseq);
+                            }
+            adjustedSeqLen = nseq;
+            if (count < nseq)
+                     {
+                    printf(
+                            "Length of data sequence is shorter than required unrolled time sequence
+    provided.\n"
+                             "Unrolled time sequence will be truncated to match the data
+    sequence.\n");
+                    adjustedSeqLen = count;
+                    }
+
+                            //    for(int i = 0; i<batchseq.size();i++)
+                            //    {
+                            //        std::cout << "element[" << i <<"]:" << batchseq[i] <<
+    std::endl;
+                            //    }
+                    for (int i = 0; i < batchseq.size() && i < nseq; i++)
+                     {
+                    if (i > 0 && batchseq[i] > batchseq[i - 1])
+                             {
+                            printf("Incorrect input batch size at time %d\n", i);
+                            break;
+                            }
+                    else
+                             {
+                            in_n[i] = in_n[i] * 10 + batchseq[i];
+                            }
+                    }
+            in_n.push_back(in_h);
+            }
+    */
 
     return in_n;
 }
@@ -841,7 +846,7 @@ int RNNDriver<T>::RunForwardCPU()
                                    hy_h,
                                    out_h,
                                    mode,
-			inputMode,
+                                   inputMode,
                                    reservespace_host);
     }
     else if(mode == miopenLSTM)
@@ -864,7 +869,7 @@ int RNNDriver<T>::RunForwardCPU()
                                     hy_n,
                                     hy_h,
                                     out_h,
-			inputMode,
+                                    inputMode,
                                     reservespace_host);
     }
     else if(mode == miopenGRU)
@@ -885,7 +890,7 @@ int RNNDriver<T>::RunForwardCPU()
                                    hy_n,
                                    hy_h,
                                    out_h,
-			inputMode,
+                                   inputMode,
                                    reservespace_host);
     }
     else
@@ -1048,6 +1053,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                           hy_h,
                                           out_h,
                                           mode,
+                                          inputMode,
                                           reservespace_host,
                                           workspace_host);
     }
@@ -1068,6 +1074,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                            hy_n,
                                            hy_h,
                                            out_h,
+                                           inputMode,
                                            reservespace_host,
                                            workspace_host);
     }
@@ -1088,6 +1095,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
                                           hy_n,
                                           hy_h,
                                           out_h,
+                                          inputMode,
                                           reservespace_host,
                                           workspace_host);
     }
@@ -1152,6 +1160,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                         hy_h,
                                         out_h,
                                         mode,
+                                        inputMode,
                                         reservespace_host,
                                         workspace_host);
     }
@@ -1178,6 +1187,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                          hy_n,
                                          hy_h,
                                          out_h,
+                                         inputMode,
                                          reservespace_host,
                                          workspace_host);
     }
@@ -1202,6 +1212,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                         hy_n,
                                         hy_h,
                                         out_h,
+                                        inputMode,
                                         reservespace_host,
                                         workspace_host);
     }
