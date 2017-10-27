@@ -88,7 +88,8 @@ void TensorDescriptor::CalculateStrides()
     strides.clear();
     strides.resize(lens.size(), 0);
     strides.back() = 1;
-    std::partial_sum(lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
+    std::partial_sum(
+        lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
 }
 
 const std::vector<std::size_t>& TensorDescriptor::GetLengths() const { return lens; }
