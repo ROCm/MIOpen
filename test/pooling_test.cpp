@@ -311,11 +311,18 @@ struct pooling_driver : test_driver
     std::vector<int> pads;
     std::vector<int> strides;
     std::string mode;
+    std::string pmode;
     std::unordered_map<std::string, miopenPoolingMode_t> mode_lookup = {
         {"MAX", miopenPoolingMax},
         {"MIOPENPOOLINGMAX", miopenPoolingMax},
         {"AVERAGE", miopenPoolingAverage},
         {"MIOPENPOOLINGAVERAGE", miopenPoolingAverage},
+    };
+
+    std::unordered_map<std::string, miopenPaddingMode_t> pmode_lookup = {
+            {"DEFAULT", miopenPaddingDefault},
+            {"SAME", miopenPaddingSame},
+            {"VALID", miopenPaddingValid},
     };
 
     pooling_driver()
@@ -325,15 +332,29 @@ struct pooling_driver : test_driver
         add(strides, "strides", generate_data({{2, 2}, {1, 1}}));
         add(pads, "pads", generate_data({{0, 0}, {1, 1}}));
         add(mode, "mode", generate_data({"miopenPoolingMax", "miopenPoolingAverage"}));
+        add(pmode, "pmode", generate_data({"default", "same","valid"}));
     }
 
     void run()
     {
-        int in_h, in_w;
+        int in_h, in_w, window_h, window_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         miopen::PoolingDescriptor filter{
-            mode_lookup.at(miopen::ToUpper(mode)), lens, strides, pads};
+            mode_lookup.at(miopen::ToUpper(mode)), pmode_lookup.at(miopen::ToUpper(pmode)), lens, strides, pads};
+
+        std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
+        if (filter.pmode == miopenPaddingSame) {
+            filter.pads[0] = (in_h % filter.strides[0] == 0)
+                           ? (std::max((window_h - filter.strides[0]), 0))
+                           : (std::max((window_h - (in_h % filter.strides[0])), 0));
+            filter.pads[1] = (in_w % filter.strides[1]== 0)
+                           ? (std::max((window_w - filter.strides[1]), 0))
+                           : (std::max((window_w - (in_w % filter.strides[1])), 0));
+        } else if (filter.pmode == miopenPaddingValid) {
+            filter.pads[0] = 0;
+            filter.pads[1] = 0;
+        }
 
         std::vector<uint8_t> indices{};
         auto out  = verify(verify_forward_pooling{}, input, filter, indices);
