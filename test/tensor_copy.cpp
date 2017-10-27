@@ -253,6 +253,7 @@ struct tensor_copy_driver : test_driver
             std::vector<int> strides(tensorLen, 0);
             for(int j = 0; j < dimOffsets.size(); j++)
             {
+                if(dimOffsets[j].size() != lens[i].size()) continue;
                 std::fill(adjLens.begin(), adjLens.end(), 0);
                 std::fill(strides.begin(), strides.end(), 0);
                 strides.back() = 1;
@@ -340,6 +341,7 @@ struct tensor_copy_driver : test_driver
             for(int j = 0; j < dimOffsets.size(); j++)
             {
 
+                if(dimOffsets[j].size() != lens[i].size()) continue;
                 std::fill(adjLens.begin(), adjLens.end(), 0);
                 std::fill(strides.begin(), strides.end(), 0);
                 strides.back() = 1;
