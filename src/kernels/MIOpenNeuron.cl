@@ -295,14 +295,18 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
 {
     int x = get_global_id(0); // channel x
 
+#if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ
     int n_out_stride = MLO_N_OUT_STRIDE;
     int c_out        = MLO_C_OUT;
     int h_out        = MLO_H_OUT;
     int w_out        = MLO_W_OUT;
+#endif
+#if MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
     int n_in_stride  = MLO_N_IN_STRIDE;
     int c_in         = MLO_C_IN;
     int h_in         = MLO_H_IN;
     int w_in         = MLO_W_IN;
+#endif
 
     _FLOAT data[MLO_READ_UNIT];
     _FLOAT response[MLO_READ_UNIT];
@@ -451,6 +455,7 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
 
     int x = get_global_id(0); // channel x
 
+#if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ || MLO_N_DOUT_STRIDE > MLO_DOUT_BLOCK_SZ || MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
     int n_out_stride  = MLO_N_OUT_STRIDE;
     int c_out         = MLO_C_OUT;
     int h_out         = MLO_H_OUT;
@@ -463,10 +468,14 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     int c_in          = MLO_C_IN;
     int h_in          = MLO_H_IN;
     int w_in          = MLO_W_IN;
+#endif
+
+#if MLO_N_DIN_STRIDE > MLO_DIN_BLOCK_SZ
     int n_din_stride  = MLO_N_DIN_STRIDE;
     int c_din         = MLO_C_DIN;
     int h_din         = MLO_H_DIN;
     int w_din         = MLO_W_DIN;
+#endif
 
     _FLOAT bot_diff_dat[MLO_READ_UNIT];
     _FLOAT top_diff_dat[MLO_READ_UNIT];
