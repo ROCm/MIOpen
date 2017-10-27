@@ -332,11 +332,10 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
                               h_loc * MLO_H_IN_STRIDE + w_loc * MLO_W_IN_STRIDE];
             }
             else
-#else
+#endif
             {
                 data[i] = bot[xOffset + x * MLO_READ_UNIT + i];
             }
-#endif
         }
         for(; i < MLO_READ_UNIT; ++i)
         {
@@ -364,11 +363,10 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
                               h_loc * MLO_H_IN_STRIDE + w_loc * MLO_W_IN_STRIDE];
             }
             else
-#else
+#endif
             {
                 data[i] = bot[xOffset + x * MLO_READ_UNIT + i];
             }
-#endif
         }
     }
     ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, power, scale, shift);
@@ -395,11 +393,10 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
                     h_loc * MLO_H_OUT_STRIDE + w_loc * MLO_W_OUT_STRIDE] = response[i];
             }
             else
-#else
+#endif
             {
                 top[yOffset + x * MLO_READ_UNIT + i] = response[i];
             }
-#endif
         }
     }
     else
@@ -423,11 +420,10 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
                     h_loc * MLO_H_OUT_STRIDE + w_loc * MLO_W_OUT_STRIDE] = response[i];
             }
             else
-#else
+#endif
             {
                 top[yOffset + x * MLO_READ_UNIT + i] = response[i];
             }
-#endif
         }
     }
 }
@@ -535,13 +531,12 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                              h_loc_top * MLO_H_OUT_STRIDE + w_loc_top * MLO_W_OUT_STRIDE];
             }
             else
-#else
+#endif
             {
                 top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
                 bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
                 top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
             }
-#endif
         }
         for(; i < MLO_READ_UNIT; ++i)
         {
@@ -603,13 +598,12 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                              h_loc_top * MLO_H_OUT_STRIDE + w_loc_top * MLO_W_OUT_STRIDE];
             }
             else
-#else
+#endif
             {
                 top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
                 bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
                 top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
             }
-#endif
         }
     }
 
@@ -681,11 +675,10 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                          w_loc_bot_diff * MLO_W_DIN_STRIDE] = bot_diff_dat[i];
             }
             else
-#else
+#endif
             {
                 bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
             }
-#endif
         }
     }
     else
@@ -714,11 +707,10 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                          w_loc_bot_diff * MLO_W_DIN_STRIDE] = bot_diff_dat[i];
             }
             else
-#else
+#endif
             {
                 bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
             }
-#endif
         }
     }
 }
