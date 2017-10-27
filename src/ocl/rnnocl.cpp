@@ -200,6 +200,33 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             {
                 if(inputMode == miopenRNNskip)
                 {
+					std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1), dest_stride(4, 1);
+					miopenTensorDescriptor_t srcTensor, destTensor;
+
+					src_size[2] = batch_n;
+					src_size[3] = in_stride;
+					src_stride[0] = batch_n * in_stride;
+					src_stride[1] = batch_n * in_stride;
+					src_stride[2] = in_stride;
+					dest_size[2] = batch_n;
+					dest_size[3] = hy_stride;
+					dest_stride[0] = batch_n * hy_stride;
+					dest_stride[1] = batch_n * hy_stride;
+					dest_stride[2] = hy_stride;
+
+					miopenCreateTensorDescriptor(&srcTensor);
+					miopenCreateTensorDescriptor(&destTensor);
+					miopenSetTensorDescriptor(
+						srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+					miopenSetTensorDescriptor(
+						destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+
+					miopen::CopyTensor(handle, srcTensor, x, destTensor, reserveSpace, 0, 0);
+
+					if (dirMode)
+					{
+						miopen::CopyTensor(handle, srcTensor, x, destTensor, reserveSpace, 0, hy_h);
+					}
 
                     if(biasMode)
                     {
