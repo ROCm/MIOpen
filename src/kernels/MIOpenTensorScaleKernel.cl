@@ -43,6 +43,12 @@ __kernel void SetTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE al
     }
 }
 
+#ifndef MIO_TC_USE_COPYKERNEL
+#define MIO_TC_USE_COPYKERNEL 0
+#endif
+
+#if(MIO_TC_USE_COPYKERNEL == 1)
+
 typedef struct
 {
     long dims;
@@ -52,94 +58,196 @@ typedef struct
     long realsize;
 } tensorDesc_t;
 
-__kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
-                         global MIOPEN_TYPE* __restrict dst,
-                         tensorDesc_t srcDesc,
-                         tensorDesc_t dstDesc)
-{
+#ifndef MIO_TC_DIMS
+#define MIO_TC_DIMS 3
+#endif
 
+// SOURCE
+#ifndef srcOffset
+#define srcOffset 0
+#endif
+
+#ifndef srcLen0
+#define srcLen0 1
+#endif
+
+#ifndef srcLen1
+#define srcLen1 1
+#endif
+
+#ifndef srcLen2
+#define srcLen2 1
+#endif
+
+#ifndef srcLen3
+#define srcLen3 1
+#endif
+
+#ifndef srcLen4
+#define srcLen4 1
+#endif
+
+#ifndef srcStride0
+#define srcStride0 1
+#endif
+
+#ifndef srcStride1
+#define srcStride1 1
+#endif
+
+#ifndef srcStride2
+#define srcStride2 1
+#endif
+
+#ifndef srcStride3
+#define srcStride3 1
+#endif
+
+#ifndef srcStride4
+#define srcStride4 1
+#endif
+
+#ifndef srcRealsize
+#define srcRealsize 1
+#endif
+
+// DESTINATION
+#ifndef dstOffset
+#define dstOffset 0
+#endif
+
+#ifndef dstLen0
+#define dstLen0 1
+#endif
+
+#ifndef dstLen1
+#define dstLen1 1
+#endif
+
+#ifndef dstLen3
+#define dstLen3 1
+#endif
+
+#ifndef dstLen3
+#define dstLen3 1
+#endif
+
+#ifndef dstLen4
+#define dstLen4 1
+#endif
+
+#ifndef dstStride0
+#define dstStride0 1
+#endif
+
+#ifndef dstStride1
+#define dstStride1 1
+#endif
+
+#ifndef dstStride2
+#define dstStride2 1
+#endif
+
+#ifndef dstStride3
+#define dstStride3 1
+#endif
+
+#ifndef dstStride4
+#define dstStride4 1
+#endif
+
+#ifndef dstRealsize
+#define dstRealsize 1
+#endif
+
+__kernel void CopyTensor(global MIOPEN_TYPE* __restrict src, global MIOPEN_TYPE* __restrict dst)
+{
+#if(MIO_TC_DIMS > 1)
     uint sindex = 0;
     uint dindex = 0;
-    uint stmp, stmp2;
-    uint dtmp, dtmp2;
-    uint dims = srcDesc.dims;
+#endif
 
+#if(MIO_TC_DIMS == 1)
+    uint gidx = get_global_id(0);
+    if(gidx < dstRealsize && gidx < srcRealsize)
+    {
+        dst[gidx + dstOffset] = src[gidx + srcOffset];
+    }
+#elif(MIO_TC_DIMS == 2)
+    uint gidx = get_global_id(0);
+    uint gidy = get_global_id(1);
+    if(gidx < dstLen0 && gidy < dstLen1)
+    {
+        dindex = dstStride0 * gidx + gidy;
+        sindex = srcStride0 * gidx + gidy;
+        if(dindex < dstRealsize && sindex < srcRealsize)
+        {
+            dst[dindex + dstOffset] = src[sindex + srcOffset];
+        }
+    }
+#elif(MIO_TC_DIMS == 3)
     uint gidx = get_global_id(0);
     uint gidy = get_global_id(1);
     uint gidz = get_global_id(2);
-
-    switch(dims)
+    if(gidx < dstLen0 && gidy < dstLen1 && gidz < dstLen2)
     {
-    case 1:
-        if(gidx < dstDesc.realsize && gidx < srcDesc.realsize)
+        dindex = dstStride0 * gidx + dstStride1 * gidy + gidz;
+        sindex = srcStride0 * gidx + srcStride1 * gidy + gidz;
+        if(dindex < dstRealsize && sindex < srcRealsize)
         {
-            dst[gidx + dstDesc.offset] = src[gidx + srcDesc.offset];
+            dst[dindex + dstOffset] = src[sindex + srcOffset];
         }
-        break;
-    case 2:
-        if(gidx < dstDesc.lens[0] && gidy < dstDesc.lens[1])
-        {
-            dindex = dstDesc.strides[0] * gidx + gidy;
-            sindex = srcDesc.strides[0] * gidx + gidy;
-            if(dindex < dstDesc.realsize && sindex < srcDesc.realsize)
-            {
-                dst[dindex + dstDesc.offset] = src[sindex + srcDesc.offset];
-            }
-        }
-        break;
-    case 3:
-        if(gidx < dstDesc.lens[0] && gidy < dstDesc.lens[1] && gidz < dstDesc.lens[2])
-        {
-            dindex = dstDesc.strides[0] * gidx + dstDesc.strides[1] * gidy + gidz;
-            sindex = srcDesc.strides[0] * gidx + srcDesc.strides[1] * gidy + gidz;
-            if(dindex < dstDesc.realsize && sindex < srcDesc.realsize)
-            {
-                dst[dindex + dstDesc.offset] = src[sindex + srcDesc.offset];
-            }
-        }
-        break;
-    case 4:
-        if(gidx < dstDesc.lens[1] && gidy < dstDesc.lens[2] && gidz < dstDesc.lens[3])
-        {
-            stmp =
-                srcDesc.strides[1] * gidx + srcDesc.strides[2] * gidy + srcDesc.strides[3] * gidz;
-            dtmp =
-                dstDesc.strides[1] * gidx + dstDesc.strides[2] * gidy + dstDesc.strides[3] * gidz;
-            for(uint i = 0; i < srcDesc.lens[0]; i++)
-            {
-                sindex = stmp + srcDesc.strides[0] * i;
-                dindex = dtmp + dstDesc.strides[0] * i;
-
-                if(dindex < dstDesc.realsize && sindex < srcDesc.realsize)
-                {
-                    dst[dindex + dstDesc.offset] = src[sindex + srcDesc.offset];
-                }
-            }
-        }
-        break;
-    case 5:
-        if(gidx < dstDesc.lens[2] && gidy < dstDesc.lens[3] && gidz < dstDesc.lens[4])
-        {
-            stmp = srcDesc.strides[2] * gidx + srcDesc.strides[3] * gidy + gidz;
-            dtmp = dstDesc.strides[2] * gidx + dstDesc.strides[3] * gidy + gidz;
-            for(uint i = 0; i < srcDesc.lens[0]; i++)
-            {
-                stmp2 = stmp + srcDesc.strides[0] * i;
-                dtmp2 = dtmp + dstDesc.strides[0] * i;
-
-                for(uint j = 0; j < srcDesc.lens[1]; j++)
-                {
-                    sindex = stmp2 + srcDesc.strides[1] * j;
-                    dindex = dtmp2 + dstDesc.strides[1] * j;
-
-                    if(dindex < dstDesc.realsize && sindex < srcDesc.realsize)
-                    {
-                        dst[dindex + dstDesc.offset] = src[sindex + srcDesc.offset];
-                    }
-                }
-            }
-        }
-        break;
-    default: break;
     }
+#elif(MIO_TC_DIMS == 4)
+    uint stmp;
+    uint dtmp;
+    uint gidx = get_global_id(0);
+    uint gidy = get_global_id(1);
+    uint gidz = get_global_id(2);
+    if(gidx < dstLen1 && gidy < dstLen2 && gidz < dstLen3)
+    {
+        stmp = srcStride1 * gidx + srcStride2 * gidy + srcStride3 * gidz;
+        dtmp = dstStride1 * gidx + dstStride2 * gidy + dstStride3 * gidz;
+#pragma unroll
+        for(uint i = 0; i < srcLen0; i++)
+        {
+            sindex = stmp + srcStride0 * i;
+            dindex = dtmp + dstStride0 * i;
+
+            if(dindex < dstRealsize && sindex < srcRealsize)
+            {
+                dst[dindex + dstOffset] = src[sindex + srcOffset];
+            }
+        }
+    }
+#elif(MIO_TC_DIMS == 5)
+    uint gidx = get_global_id(0);
+    uint gidy = get_global_id(1);
+    uint gidz = get_global_id(2);
+    uint stmp, stmp2;
+    uint dtmp, dtmp2;
+    if(gidx < dstLen2 && gidy < dstLen3 && gidz < dstLen4)
+    {
+        stmp = srcStride2 * gidx + srcStride3 * gidy + gidz;
+        dtmp = dstStride2 * gidx + dstStride3 * gidy + gidz;
+#pragma unroll
+        for(uint i = 0; i < srcLen0; i++)
+        {
+            stmp2 = stmp + srcStride0 * i;
+            dtmp2 = dtmp + dstStride0 * i;
+#pragma unroll
+            for(uint j = 0; j < srcLen1; j++)
+            {
+                sindex = stmp2 + srcStride1 * j;
+                dindex = dtmp2 + dstStride1 * j;
+                if(dindex < dstRealsize && sindex < srcRealsize)
+                {
+                    dst[dindex + dstOffset] = src[sindex + srcOffset];
+                }
+            }
+        }
+    }
+#endif
 }
+
+#endif
