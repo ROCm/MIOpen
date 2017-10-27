@@ -81,24 +81,24 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         size_t workSpaceSize) const
 {
     std::cout << "RNNForwardInference. Nothing to do here!\n" << std::endl;
-	(void)handle;
-	(void)seqLen;
-	(void)xDesc;
-	(void)x;
-	(void)hxDesc;
-	(void)hx;
-	(void)cxDesc;
-	(void)cx;
-	(void)wDesc;
-	(void)w;
-	(void)yDesc;
-	(void)y;
-	(void)hyDesc;
-	(void)hy;
-	(void)cyDesc;
-	(void)cy;
-	(void)workSpace;
-	(void)workSpaceSize;
+    (void)handle;
+    (void)seqLen;
+    (void)xDesc;
+    (void)x;
+    (void)hxDesc;
+    (void)hx;
+    (void)cxDesc;
+    (void)cx;
+    (void)wDesc;
+    (void)w;
+    (void)yDesc;
+    (void)y;
+    (void)hyDesc;
+    (void)hy;
+    (void)cyDesc;
+    (void)cy;
+    (void)workSpace;
+    (void)workSpaceSize;
 }
 
 void RNNDescriptor::RNNForwardTraining(Handle& handle,
@@ -2903,7 +2903,13 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            false,
                                            network_config);
                 gg.FindSolution(.003, handle, dy, reserveSpace, dw, false);
-                gg.RunGemm(handle, dy, reserveSpace, dw, 0, prelayer_shift + nLayers * batch_n * hy_stride, wei_shift);
+                gg.RunGemm(handle,
+                           dy,
+                           reserveSpace,
+                           dw,
+                           0,
+                           prelayer_shift + nLayers * batch_n * hy_stride,
+                           wei_shift);
 
                 // Update time
                 if(handle.IsProfilingEnabled())
@@ -2944,8 +2950,13 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            false,
                                            network_config);
                 gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
-                gg.RunGemm(
-                    handle, reserveSpace, workSpace, dw, prelayer_shift + nLayers * batch_n * hy_stride, hid_shift, wei_shift);
+                gg.RunGemm(handle,
+                           reserveSpace,
+                           workSpace,
+                           dw,
+                           prelayer_shift + nLayers * batch_n * hy_stride,
+                           hid_shift,
+                           wei_shift);
 
                 // Update time
                 if(handle.IsProfilingEnabled())
