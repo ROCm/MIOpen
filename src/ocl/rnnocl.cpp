@@ -209,7 +209,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					src_stride[1] = batch_n * in_stride;
 					src_stride[2] = in_stride;
 					dest_size[2] = batch_n;
-					dest_size[3] = hy_stride;
+					dest_size[3] = hy_h;
 					dest_stride[0] = batch_n * hy_stride;
 					dest_stride[1] = batch_n * hy_stride;
 					dest_stride[2] = hy_stride;
@@ -221,11 +221,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					miopenSetTensorDescriptor(
 						destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
-					miopen::CopyTensor(handle, srcTensor, x, destTensor, reserveSpace, 0, 0);
+					CopyTensor(handle, miopen::deref(srcTensor), x, miopen::deref(destTensor), reserveSpace, 0, 0);
 
 					if (dirMode)
 					{
-						miopen::CopyTensor(handle, srcTensor, x, destTensor, reserveSpace, 0, hy_h);
+						CopyTensor(handle, miopen::deref(srcTensor), x, miopen::deref(destTensor), reserveSpace, 0, hy_h);
 					}
 
                     if(biasMode)
