@@ -78,7 +78,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             mkdir build
             cd build
             CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
-            make -j32 analyze
+            make -j32 -k analyze
         '''
     }
 }, format: rocmnode('rocm') { cmake_build ->
@@ -119,7 +119,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             mkdir build
             cd build
             CXX='hcc' cmake -DBUILD_DEV=On .. 
-            make -j32 analyze
+            make -j32 -k analyze
         '''
     }
 }, hip: rocmnode('vega') { cmake_build ->
