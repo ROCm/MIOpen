@@ -252,10 +252,12 @@ enable_cppcheck(
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
+        unusedVariable
         *:*.cl
     SOURCES
         include/
         src/
+        # test/
     # INCLUDE
     #     ${CMAKE_CURRENT_SOURCE_DIR}/include
     #     ${CMAKE_CURRENT_BINARY_DIR}/include
