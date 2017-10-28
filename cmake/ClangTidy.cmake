@@ -24,6 +24,7 @@
 # 
 ################################################################################
 include(CMakeParseArguments)
+include(Analyzers)
 
 find_program(CLANG_TIDY_EXE 
     NAMES 
@@ -105,6 +106,7 @@ macro(enable_clang_tidy)
         -header-filter='${CLANG_TIDY_HEADER_FILTER}'
     )
     add_custom_target(tidy)
+    mark_as_analyzer(tidy)
 endmacro()
 
 function(clang_tidy_check TARGET)
