@@ -26,6 +26,7 @@
 
 include(CMakeParseArguments)
 include(ProcessorCount)
+include(Analyzers)
 
 find_program(CPPCHECK_EXE 
     NAMES 
@@ -83,6 +84,7 @@ macro(enable_cppcheck)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "cppcheck: Running cppcheck..."
     )
+    mark_as_analyzer(cppcheck)
 endmacro()
 
 
