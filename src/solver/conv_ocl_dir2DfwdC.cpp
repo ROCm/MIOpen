@@ -33,12 +33,14 @@ namespace solver {
 
 bool ConvOclDirectFwdC::IsApplicable(const ConvolutionContext& params) const
 {
-    bool unaligned = (params.out_height < 8 || params.out_width < 8 ||
+	bool unaligned = false;
+	/*
+						(params.out_height < 8 || params.out_width < 8 ||
                       (params.out_height > 8 && params.out_height < 16) ||
                       (params.out_width > 8 && params.out_width < 16) ||
                       (params.out_height > 16 && params.out_height < 32) ||
                       (params.out_width > 16 && params.out_width < 32));
-
+	*/
     return unaligned && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
            params.kernel_stride0 <= 1 && params.kernel_stride1 <= 1;
 }
