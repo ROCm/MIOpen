@@ -115,7 +115,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
         int bstride = bten.desc.GetStrides()[dim];
         int cstride = cten.desc.GetStrides()[dim];
 
-        //printf("cstride: %d\n", cstride);
+        // printf("cstride: %d\n", cstride);
 
         for(int idx = 0; idx < a_dims[dim]; idx++)
         {
@@ -124,11 +124,17 @@ struct verify_tensor_ops : tensor_ops_base<T>
             size_t bindex =
                 (b_dims[dim] == a_dims[dim]) ? recurr_boffset + bstride * idx : recurr_boffset;
 
-            //if((bindex < bten.desc.GetElementSize()) && (dim == a_dims.size() - 1))
-            if((dim == a_dims.size() - 1))
+            // if((bindex < bten.desc.GetElementSize()) && (dim == a_dims.size() - 1))
+            if(dim == (a_dims.size() - 1))
             {
 #if(MIO_OPS_DEBUG)
-                printf("c[%lu](%f) = a[%lu](%f) + b[%lu](%f)\n", cindex + CtenOffset, cten[cindex + CtenOffset], aindex + AtenOffset, aten[aindex + AtenOffset], bindex + Boffset, bten[bindex + Boffset]);
+                printf("c[%lu](%f) = a[%lu](%f) + b[%lu](%f)\n",
+                       cindex + CtenOffset,
+                       cten[cindex + CtenOffset],
+                       aindex + AtenOffset,
+                       aten[aindex + AtenOffset],
+                       bindex + Boffset,
+                       bten[bindex + Boffset]);
 #endif
                 cten[cindex + CtenOffset] =
                     mul_elem(aten[aindex + AtenOffset], bten[bindex + BtenOffset]) * alpha +
@@ -188,8 +194,8 @@ struct verify_tensor_ops : tensor_ops_base<T>
         float alpha1 = 1, alpha2 = 1, beta = 1;
 
         miopen::OpTensor(handle,
-                //miopenTensorOpAdd,
-                miopenTensorOpMul,
+                         // miopenTensorOpAdd,
+                         miopenTensorOpMul,
                          &alpha1,
                          a.desc,
                          a_dev.get(),
@@ -207,7 +213,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
 
 #if(MIO_OPS_DEBUG)
         handle.Finish();
-        auto clens = c.desc.GetLengths();
+        auto clens    = c.desc.GetLengths();
         auto cstrides = c.desc.GetStrides();
         for(int i = 0; i < c.desc.GetElementSize(); i++)
             printf("GPU_C[%d]: %f\n", i, c.data[i]);
@@ -237,25 +243,25 @@ struct tensor_ops_driver : test_driver
     tensor_ops_driver()
     {
 
-        //add(super_a, "super_a", generate_tensor(get_super_tensor(), {8, 8, 4, 4, 4}));
-        //add(super_b, "super_b", generate_tensor(get_super_tensor(), {8, 8, 4, 4, 4}));
-        //add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 8, 4, 4, 4}));
+        // add(super_a, "super_a", generate_tensor(get_super_tensor(), {8, 8, 4, 4, 4}));
+        // add(super_b, "super_b", generate_tensor(get_super_tensor(), {8, 8, 4, 4, 4}));
+        // add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 8, 4, 4, 4}));
 
         add(super_a, "super_a", generate_tensor(get_super_tensor(), {8, 8, 4, 4}));
         add(super_b, "super_b", generate_tensor(get_super_tensor(), {8, 8, 4, 4}));
         add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 8, 4, 4}));
 
-        //add(super_a, "super_a", generate_tensor(get_super_tensor(), {8, 8, 4}));
-        //add(super_b, "super_b", generate_tensor(get_super_tensor(), {8, 8, 4}));
-        //add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 8, 4}));
+        // add(super_a, "super_a", generate_tensor(get_super_tensor(), {8, 8, 4}));
+        // add(super_b, "super_b", generate_tensor(get_super_tensor(), {8, 8, 4}));
+        // add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 8, 4}));
 
-        //add(super_a, "super_a", generate_tensor(get_super_tensor(), {16, 16}));
-        //add(super_b, "super_b", generate_tensor(get_super_tensor(), {16, 8}));
-        //add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 16}));
-        
-        //add(super_a, "super_a", generate_tensor(get_super_tensor(), {16}));
-        //add(super_b, "super_b", generate_tensor(get_super_tensor(), {16}));
-        //add(super_c, "super_c", generate_tensor(get_super_tensor(), {16}));
+        // add(super_a, "super_a", generate_tensor(get_super_tensor(), {16, 16}));
+        // add(super_b, "super_b", generate_tensor(get_super_tensor(), {16, 8}));
+        // add(super_c, "super_c", generate_tensor(get_super_tensor(), {8, 16}));
+
+        // add(super_a, "super_a", generate_tensor(get_super_tensor(), {16}));
+        // add(super_b, "super_b", generate_tensor(get_super_tensor(), {16}));
+        // add(super_c, "super_c", generate_tensor(get_super_tensor(), {16}));
     }
 
     std::set<std::vector<int>> get_super_tensor()
@@ -270,26 +276,26 @@ struct tensor_ops_driver : test_driver
     void run()
     {
 
-        //a = make_tensor<T, int>(super_a, {4, 8, 2, 2, 4}, {512, 64, 16, 4, 1});
-        //b = make_tensor<T, int>(super_b, {4, 8, 2, 2, 4}, {512, 64, 16, 4, 1});
-        //c = make_tensor<T, int>(super_c, {4, 8, 2, 2, 4}, {512, 64, 16, 4, 1});
+        // a = make_tensor<T, int>(super_a, {4, 8, 2, 2, 4}, {512, 64, 16, 4, 1});
+        // b = make_tensor<T, int>(super_b, {4, 8, 2, 2, 4}, {512, 64, 16, 4, 1});
+        // c = make_tensor<T, int>(super_c, {4, 8, 2, 2, 4}, {512, 64, 16, 4, 1});
 
         a = make_tensor<T, int>(super_a, {4, 8, 2, 2}, {128, 16, 4, 1});
         b = make_tensor<T, int>(super_b, {4, 8, 2, 2}, {128, 16, 4, 1});
         c = make_tensor<T, int>(super_c, {4, 8, 2, 2}, {128, 16, 4, 1});
 
-        //a = make_tensor<T, int>(super_a, {4, 8, 3}, {32, 4, 1});
-        //b = make_tensor<T, int>(super_b, {4, 8, 3}, {32, 4, 1});
-        //c = make_tensor<T, int>(super_c, {4, 8, 3}, {32, 4, 1});
+        // a = make_tensor<T, int>(super_a, {4, 8, 3}, {32, 4, 1});
+        // b = make_tensor<T, int>(super_b, {4, 8, 3}, {32, 4, 1});
+        // c = make_tensor<T, int>(super_c, {4, 8, 3}, {32, 4, 1});
 
-        //a = make_tensor<T, int>(super_a, {8, 4}, {16, 1});
-        //b = make_tensor<T, int>(super_b, {8, 4}, {8, 1});
-        //c = make_tensor<T, int>(super_c, {8, 4}, {16, 1});
-        
-        //a = make_tensor<T, int>(super_a, {8}, {1});
-        //b = make_tensor<T, int>(super_b, {8}, {1});
-        //c = make_tensor<T, int>(super_c, {8}, {1});
-        
+        // a = make_tensor<T, int>(super_a, {8, 4}, {16, 1});
+        // b = make_tensor<T, int>(super_b, {8, 4}, {8, 1});
+        // c = make_tensor<T, int>(super_c, {8, 4}, {16, 1});
+
+        // a = make_tensor<T, int>(super_a, {8}, {1});
+        // b = make_tensor<T, int>(super_b, {8}, {1});
+        // c = make_tensor<T, int>(super_c, {8}, {1});
+
         if(a.desc.GetSize() == b.desc.GetSize())
             verify(verify_tensor_ops<T>{a, b, c, 8, 8, 4});
     }
