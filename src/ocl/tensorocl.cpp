@@ -410,8 +410,12 @@ void OpTensor(Handle& handle,
     {
         handle.GetKernel("OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
             ATensor,
+            int(astrides[0]),
+            int(astrides[1]),
             BTensor,
             int(blens[1]),
+            int(bstrides[0]),
+            int(bstrides[1]),
             CTensor,
             int(clens[0]),
             int(cstrides[0]),
@@ -444,22 +448,26 @@ void OpTensor(Handle& handle,
     }
     else
     {
-        handle.GetKernel("OpTensorGeneric", "", program_name, "OpTensorGeneric", vld, vgd, parms)(
+        handle.GetKernel(
+            "Op4dTensorGeneric", "", program_name, "Op4dTensorGeneric", vld, vgd, parms)(
             ATensor,
-            int(astrides[0]), // b_nstride,
-            int(astrides[1]), // b_cstride,
+            int(astrides[0]), // a_nstride,
+            int(astrides[1]), // a_cstride,
+            int(astrides[2]), // a_hstride,
             BTensor,
             int(blens[1]),    // b_c,
             int(blens[2]),    // b_h,
             int(blens[3]),    // b_w,
             int(bstrides[0]), // b_nstride,
             int(bstrides[1]), // b_cstride,
+            int(bstrides[2]), // b_hstride,
             CTensor,
             int(clens[1]),    // c_c,
             int(clens[2]),    // c_h,
             int(clens[3]),    // c_w,
             int(cstrides[0]), // c_nstride,
             int(cstrides[1]), // c_cstride,
+            int(cstrides[2]), // c_hstride,
             miopen_alpha,
             miopen_beta,
             bitmap,
