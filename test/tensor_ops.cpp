@@ -324,8 +324,7 @@ struct tensor_ops_driver : test_driver
         std::vector<tensor<T>> cTensorList = get_subtensors();
 
         std::vector<std::vector<size_t>> offsetList   = {{32, 16, 1}, {16, 32, 1}};
-        std::vector<std::vector<float>> alphaBetaList = {
-            {1, 1}, {-1, 1}, {0, 0}, {-1.5, 0.5}};
+        std::vector<std::vector<float>> alphaBetaList = {{1, 1}, {-1, 1}, {0, 0}, {-1.5, 0.5}};
 
         for(int i = 0; i < aTensorList.size(); i++)
             if(aTensorList[i].desc.GetSize() == bTensorList[i].desc.GetSize())
