@@ -573,7 +573,6 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
 
                         if(ret != 0)
                         {
-                            //          std::cout << "Failed run." << std::endl;
                             continue;
                         }
 
@@ -584,13 +583,11 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                             std::cout << "Runs left : " << runs_left << ", "
                                       << "min time so far : " << min_proc_time << ", "
                                       << "curr time : " << processing_time
-#if 1
                                       << ", " << result.grp_tile1 << ", " << result.grp_tile0
                                       << ", " << result.in_tile1 << ", " << result.in_tile0 << ", "
                                       << result.out_pix_tile1 << ", " << result.out_pix_tile0
                                       << ", " << result.n_out_pix_tiles << ", "
                                       << result.n_in_data_tiles << ", " << result.n_stacks
-#endif
                                       << std::endl;
                         }
 
@@ -748,7 +745,6 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
 													<< "Runs left : " << runs_left << ", "
 													<< "min time so far : " << min_proc_time << ", "
 													<< "curr time : " << processing_time
-#if 1
 													<< ", " << result.grp_tile1 << ", "
 													<< result.grp_tile0 << ", " << result.in_tile1
 													<< ", " << result.in_tile0 << ", "
@@ -757,7 +753,6 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
 													<< result.n_out_pix_tiles << ", "
 													<< result.n_in_data_tiles << ", "
 													<< result.n_stacks
-#endif
 													<< std::endl;
 										}
 
@@ -777,8 +772,6 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
 
                                             if(ret != 0)
                                             {
-                                                //				std::cout << "Failed run."
-                                                //<< std::endl;
                                                 continue;
                                             }
 
@@ -792,7 +785,6 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                                                     << "Runs left : " << runs_left << ", "
                                                     << "min time so far : " << min_proc_time << ", "
                                                     << "curr time : " << processing_time
-#if 1
                                                     << ", " << result.grp_tile1 << ", "
                                                     << result.grp_tile0 << ", " << result.in_tile1
                                                     << ", " << result.in_tile0 << ", "
@@ -801,7 +793,6 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                                                     << result.n_out_pix_tiles << ", "
                                                     << result.n_in_data_tiles << ", "
                                                     << result.n_stacks
-#endif
                                                     << std::endl;
                                             }
 
