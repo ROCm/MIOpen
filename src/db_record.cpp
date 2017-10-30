@@ -28,6 +28,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <numeric>
 
 #include "miopen/errors.hpp"
 #include "miopen/db_record.hpp"
