@@ -274,8 +274,9 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
-    return miopen::StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance().IsFast(
-        _search_params);
+    return (_search_params.n_outputs >= 16 && _search_params.n_outputs % 2 == 0);
+    // miopen::StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance().IsFast(
+    // _search_params);
 }
 
 int mlo_construct_BwdWrW2D::mloMultiStep()
