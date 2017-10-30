@@ -30,7 +30,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <numeric>
 
-#define MIO_TENSOROCL_DEBUG 1
+#define MIO_TENSOROCL_DEBUG 0
 
 namespace miopen {
 
