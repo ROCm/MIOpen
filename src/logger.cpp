@@ -43,7 +43,7 @@ int IsLogging(const int level)
     if(enabled_level != LoggingLevel::Default)
         return enabled_level >= level;
 #ifdef NDEBUG // Simplest way.
-    return LoggingLevel::Error >= level;
+    return LoggingLevel::Warning >= level;
 #else
     return LoggingLevel::Info >= level;
 #endif
@@ -59,6 +59,8 @@ const char* LoggingLevelToCString(const enum LoggingLevel level)
         return "Warning";
     else if(level == LoggingLevel::Info)
         return "Info";
+    else if(level == LoggingLevel::Info2)
+        return "Info2";
     else if(level == LoggingLevel::Trace)
         return "Trace";
     else if(level == LoggingLevel::Default)

@@ -41,11 +41,11 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <utility>
-
+#include <cfloat>
 // Run CPU emulations in hierarchical reduction mode.
 #define MIO_HEIRARCH_SEL 1
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
-#define MIO_BN_TEST_EPSILON 1e-6
+#define MIO_BN_TEST_EPSILON 1e-5 // FLT_EPSILON
 #define MIO_BN_SP_TEST_DEBUG 0
 
 //****************************************************
@@ -717,6 +717,8 @@ struct verify_backward_bn_spatial_recalc
                         dyelem              = dy_input(bidx,cidx,row,column);
                         dshift_accum_arr[row] += dyelem;
                         dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
+                        //dscale_accum_arr[row] += x_input(bidx,cidx,row,column);;//dscale_accum_arr[row] += xhat[xhat_index];
+                        //dscale_accum_arr[row] += 1.0;//DEBUG
                     }	
                 }// for (column)
             }// for (row)  
@@ -725,7 +727,6 @@ struct verify_backward_bn_spatial_recalc
                 dscale(0,cidx,0,0) += dscale_accum_arr[i];    
             }
 #endif
-            dscale(0, cidx, 0, 0) /= nhw;
 
             for(int row = 0; row < height; row++)
             { // via rows
@@ -925,9 +926,11 @@ struct verify_backward_bn_spatial_use_saved
                         //per (x-dims) channel load a block of data into LDS
                         elemStd             = x_input(bidx,cidx,row,column) - mean;// (x_i - mean)
                         xhat[xhat_index]    = elemStd*invVar;
+                        //printf("xhat[%d]: %lf\n",xhat_index,xhat[xhat_index]);
                         dyelem              = dy_input(bidx,cidx,row,column);
                         dshift_accum_arr[row] += dyelem;
                         dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
+                        //dscale_accum_arr[row] += 1.0;//DEBUG
                     }	
                 }// for (column)
             }// for (row)  
@@ -936,7 +939,6 @@ struct verify_backward_bn_spatial_use_saved
                 dscale(0,cidx,0,0) += dscale_accum_arr[i];    
             }
 #endif
-            dscale(0, cidx, 0, 0) /= nhw;
 
             for(int row = 0; row < height; row++)
             { // via rows
@@ -1066,6 +1068,7 @@ struct batch_norm_spatial_driver : test_driver
     batch_norm_spatial_driver()
     {
         this->batch_factor = 4;
+
         // this->verbose=true;
         add(input, "input", get_bn_spatial_input_tensor());
     }
@@ -1101,7 +1104,7 @@ struct batch_norm_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running forward inference spatial recalc." << std::endl;
 #endif
-
+        // this->tolerance = 80;
         // Debug values
         // std::fill(input.begin(), input.end(), 1);
         // std::fill(scale.begin(), scale.end(), 1);
@@ -1118,7 +1121,19 @@ struct batch_norm_spatial_driver : test_driver
 
         // backprop recalc
         auto dy_input = std::get<0>(outpair.second);
-
+        for(int bidx = 0; bidx < n; bidx++)
+        { // via mini_batch
+            for(int cidx = 0; cidx < c; cidx++)
+            { // via mini_batch
+                for(int row = 0; row < h; row++)
+                { // via rows
+                    for(int column = 0; column < w; column++)
+                    {
+                        dy_input(bidx, cidx, row, column) *= 0.1;
+                    }
+                }
+            }
+        }
 #if(MIO_BN_SP_TEST_DEBUG == 2)
         auto debugvals = verify(verify_backward_bn_spatial_recalc<T>{input, dy_input, scale});
         auto gpuout    = std::get<0>(debugvals.second);
@@ -1148,16 +1163,14 @@ struct batch_norm_spatial_driver : test_driver
                             mh      = row;
                             mw      = column;
                         }
-                        if(diff > 1.)
-                        {
-                            std::cout << "gpu[" << bidx << ", " << cidx << ", " << row << ", "
-                                      << column << "]: " << gpuout(bidx, cidx, row, column)
-                                      << " :: ";
-                            std::cout << "cpu[" << bidx << ", " << cidx << ", " << row << ", "
-                                      << column << "]: " << cpuout(bidx, cidx, row, column)
-                                      << " :: ";
-                            std::cout << "diff: " << diff << std::endl;
-                        }
+                        // if(diff > 1.)
+                        // {
+                        std::cout << "gpu[" << bidx << ", " << cidx << ", " << row << ", " << column
+                                  << "]: " << gpuout(bidx, cidx, row, column) << " :: ";
+                        std::cout << "cpu[" << bidx << ", " << cidx << ", " << row << ", " << column
+                                  << "]: " << cpuout(bidx, cidx, row, column) << " :: ";
+                        std::cout << "diff: " << diff << std::endl;
+                        //    }
                     }
                 }
             }
@@ -1174,17 +1187,72 @@ struct batch_norm_spatial_driver : test_driver
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running back propagation spatial recalc." << std::endl;
 #endif
+        this->tolerance = 80 * input.desc.GetElementSize();
         verify(verify_backward_bn_spatial_recalc<T>{input, dy_input, scale});
 #endif
 
         // backprop use saved values
         auto savedMean   = std::get<3>(outpair.second);
         auto savedInvVar = std::get<4>(outpair.second);
+
+#if(MIO_BN_SP_TEST_DEBUG == 3)
+
+        auto debugvals = verify(verify_backward_bn_spatial_use_saved<T>{
+            input, dy_input, scale, savedMean, savedInvVar});
+        auto gpuout = std::get<0>(debugvals.second);
+        auto cpuout = std::get<0>(debugvals.first);
+
+        double maxdiff = 0.;
+        int mn         = 0;
+        int mc         = 0;
+        int mh         = 0;
+        int mw         = 0;
+
+        for(int bidx = 0; bidx < n; bidx++)
+        { // via mini_batch
+            for(int cidx = 0; cidx < c; cidx++)
+            { // via mini_batch
+                for(int row = 0; row < h; row++)
+                { // via rows
+                    for(int column = 0; column < w; column++)
+                    { // via columns
+                        double diff =
+                            fabs(gpuout(bidx, cidx, row, column) - cpuout(bidx, cidx, row, column));
+                        if(diff > maxdiff)
+                        {
+                            maxdiff = diff;
+                            mn      = bidx;
+                            mc      = cidx;
+                            mh      = row;
+                            mw      = column;
+                        }
+                        // if(diff > 1.)
+                        //{
+                        std::cout << "gpu[" << bidx << ", " << cidx << ", " << row << ", " << column
+                                  << "]: " << gpuout(bidx, cidx, row, column) << " :: ";
+                        std::cout << "cpu[" << bidx << ", " << cidx << ", " << row << ", " << column
+                                  << "]: " << cpuout(bidx, cidx, row, column) << " :: ";
+                        std::cout << "diff: " << diff << std::endl;
+                        //}
+                    }
+                }
+            }
+        }
+        if(maxdiff > 0)
+        {
+            std::cout << "Max diff: " << maxdiff << std::endl;
+            std::cout << "gpu[" << mn << ", " << mc << ", " << mh << ", " << mw
+                      << "]: " << gpuout(mn, mc, mh, mw) << " :: ";
+            std::cout << "cpu[" << mn << ", " << mc << ", " << mh << ", " << mw
+                      << "]: " << cpuout(mn, mc, mh, mw) << std::endl;
+        }
+#else
 #if(MIO_BN_SP_TEST_DEBUG == 1)
         std::cout << "Running back propagation spatial with S set." << std::endl;
 #endif
         verify(verify_backward_bn_spatial_use_saved<T>{
             input, dy_input, scale, savedMean, savedInvVar});
+#endif
     }
 };
 
