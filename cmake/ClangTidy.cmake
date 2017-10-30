@@ -88,6 +88,12 @@ macro(enable_clang_tidy)
         set(CLANG_TIDY_ERRORS_ARG "-warnings-as-errors='${CLANG_TIDY_ERRORS}'")
     endif()
 
+    if (${CLANG_TIDY_VERSION} VERSION_LESS "3.9.0")
+        set(CLANG_TIDY_QUIET_ARG "")
+    else()
+        set(CLANG_TIDY_QUIET_ARG "-quiet")
+    endif()
+
     if(PARSE_HEADER_FILTER)
         string(REPLACE "$" "$$" CLANG_TIDY_HEADER_FILTER "${PARSE_HEADER_FILTER}")
     else()
@@ -96,6 +102,7 @@ macro(enable_clang_tidy)
 
     set(CLANG_TIDY_COMMAND 
         ${CLANG_TIDY_EXE}
+        ${CLANG_TIDY_QUIET_ARG} 
         -p ${CMAKE_BINARY_DIR} 
         -checks='${CLANG_TIDY_CHECKS}'
         ${CLANG_TIDY_ERRORS_ARG}

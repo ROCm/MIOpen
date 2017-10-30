@@ -92,7 +92,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
     result.n_out_pix_tiles = 2;
     int read_unit          = 6;
 
-    int N_ALIGNED_OUT_SCAN_BLK = (params.out_width > 512) ? 1 : 2;
+    int N_ALIGNED_OUT_SCAN_BLK = 2;
 
     if(found)
     {
