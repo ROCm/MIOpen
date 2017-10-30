@@ -425,7 +425,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescripto
 
 /*! @brief Execute element-wise tensor operations
  *
- * This function implements the equation \f$ C = op ( alpha1[0] * A, alpha2[0] * B * ) + beta[0] *
+ * This function implements the equation \f$ C = op ( alpha1[0] * A, alpha2[0] * B ) + beta[0] *
  * C \f$
  *
  * For Forward Bias one can also use, miopenConvolutionForwardBias()
