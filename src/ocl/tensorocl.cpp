@@ -259,11 +259,11 @@ void OpTensor(Handle& handle,
 
     // Special case for adding tensors in place
     size_t global_threads;
-    //if(dims == 4)
-    //global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
-    //else
+    // if(dims == 4)
+    // global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
+    // else
     global_threads = (leading_ones == 1 && (d - 1) == dims) ? num_wg : num_wg * local_threads;
-    global_threads     = (global_threads < local_threads) ? local_threads : global_threads;
+    global_threads = (global_threads < local_threads) ? local_threads : global_threads;
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
