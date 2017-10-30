@@ -277,31 +277,31 @@ struct tensor_ops_driver : test_driver
             {8, 2, 8, 4, 4},
             {8, 8, 8, 4, 4},
             {4, 2, 4, 8, 2},
-            {4, 2, 4, 8, 2}, // 5d
-            {8, 8, 16, 4},
-            {4, 4, 8, 2},
+            {1, 8, 4, 8, 2}, // 5d
+            {8, 1, 16, 4},
+            {4, 2, 8, 2},
             {8, 4, 16, 2},
             {2, 8, 4, 4},
-            {2, 8, 4, 4},
+            {2, 2, 8, 4},
             {8, 8, 4, 4},
-            {2, 4, 8, 2},
-            {2, 4, 8, 2}, // 4d
+            {1, 4, 8, 2},
+            {1, 1, 8, 2}, // 4d
             {8, 16, 4},
             {4, 8, 2},
             {4, 16, 2},
-            {8, 4, 4},
-            {8, 4, 4},
+            {8, 1, 4},
+            {8, 2, 4},
             {8, 4, 4},
             {4, 8, 2},
-            {4, 8, 2}, // 3d
+            {1, 8, 2}, // 3d
             {16, 4},
             {8, 2},
             {16, 2},
             {4, 4},
-            {4, 4},
-            {4, 4},
+            {2, 4},
+            {4, 1},
             {8, 2},
-            {8, 2}, // 2d
+            {1, 4}, // 2d
         };
 
         std::vector<std::vector<int>> strides{
@@ -323,9 +323,9 @@ struct tensor_ops_driver : test_driver
         std::vector<tensor<T>> bTensorList = get_subtensors();
         std::vector<tensor<T>> cTensorList = get_subtensors();
 
-        std::vector<std::vector<size_t>> offsetList   = {{8, 8, 4}, {32, 16, 1}, {16, 32, 1}};
+        std::vector<std::vector<size_t>> offsetList   = {{32, 16, 1}, {16, 32, 1}};
         std::vector<std::vector<float>> alphaBetaList = {
-            {1, 1}, {1, -1}, {-1, 1}, {0, 0}, {1.5, 0.5}, {-1.5, 0}};
+            {1, 1}, {-1, 1}, {0, 0}, {-1.5, 0.5}};
 
         for(int i = 0; i < aTensorList.size(); i++)
             if(aTensorList[i].desc.GetSize() == bTensorList[i].desc.GetSize())
