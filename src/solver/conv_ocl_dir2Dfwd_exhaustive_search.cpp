@@ -410,7 +410,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
     }
 
     // search loop here
-    int grp_tl_ln[4]       = {8, 16};
+    int grp_tl_ln[2]       = {8, 16};
     int tile_sz[3]         = {8, 16, 32};
     int tile_sz1[3]        = {8, 16, 32};
     int tile_sz0[3]        = {8, 16, 32};
@@ -434,6 +434,21 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
     int stack_cnt      = std::min(params.batch_sz, 2);
     int n_tile0_sz     = 3;
     int n_tile1_sz     = 3;
+
+
+	if (params.out_width >= 16)
+	{
+		tile_sz0[0] = 16;
+		tile_sz0[1] = 32;
+		n_tile0_sz = 2;
+	}
+
+	if (params.out_height >= 16)
+	{
+		tile_sz1[0] = 16;
+		tile_sz1[1] = 32;
+		n_tile1_sz = 2;
+	}
 
     int n_grp_tiles = (n_grp_tiles1 - 1) * n_grp_tiles0;
 
