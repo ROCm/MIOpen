@@ -122,7 +122,6 @@ struct verify_tensor_copy : tensor_copy_base<T>
             {
                 tensor_for_loop(aten, cten, a_dims, c_dims, aindex, cindex, dim + 1);
             }
-
             // printf("dim: %d, idx: %d, cindex, %d, cffidx: %d, elems: %d\n", dim, idx, cindex,
             // coffsetIndex, cten.desc.GetElementSpace());
             // printf("dim: %d, idx: %d, aindex, %d, affidx: %d, elems: %d\n", dim, idx, aindex,
@@ -418,19 +417,19 @@ struct tensor_copy_offset_driver : test_driver
         std::array<int, 5> copylens   = {{4, 3, 2, 2, 3}};
 
         add(aSuper,
-            "aSuper",
+            "a-Super",
             generate_tensor(
                 get_descs_asuper(),
                 miopen::TensorDescriptor(miopenFloat, asuperlens.data(), asuperlens.size())));
 
         add(cSuper,
-            "cSuper",
+            "c-Super",
             generate_tensor(
                 get_descs_csuper(),
                 miopen::TensorDescriptor(miopenFloat, csuperlens.data(), csuperlens.size())));
 
         add(copyDesc,
-            "copyDesc",
+            "copy-Desc",
             generate_tensor(
                 get_descs_a(),
                 miopen::TensorDescriptor(miopenFloat, copylens.data(), copylens.size())));
