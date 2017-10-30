@@ -777,7 +777,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
 
                                             if(ret != 0)
                                             {
-                                                //				std::cout << "Failed run."
+                                                //				std::cout << "Failed
+                                                //run."
                                                 //<< std::endl;
                                                 continue;
                                             }
