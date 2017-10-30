@@ -197,7 +197,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
         auto a_dev = handle.Write(a.data);
         auto b_dev = handle.Write(b.data);
 
-        // float alpha1 = -1, alpha2 = 1, beta = 1;
+        float alpha2 = 1;
 
         miopen::OpTensor(handle,
                          miopenTensorOpAdd,
@@ -205,7 +205,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
                          &alpha,
                          a.desc,
                          a_dev.get(),
-                         NULL,
+                         &alpha2,
                          b.desc,
                          b_dev.get(),
                          &beta,
