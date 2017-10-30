@@ -227,7 +227,6 @@ extern "C" miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
                                              miopen::deref(paramDesc),
                                              DataCast(layerParam));
     });
-    return miopenStatusSuccess;
 }
 
 extern "C" miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
@@ -251,7 +250,6 @@ extern "C" miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
                                             miopen::deref(biasDesc),
                                             DataCast(layerBias));
     });
-    return miopenStatusSuccess;
 }
 
 extern "C" miopenStatus_t miopenSetRNNLayerParam(miopenHandle_t handle,
@@ -275,7 +273,6 @@ extern "C" miopenStatus_t miopenSetRNNLayerParam(miopenHandle_t handle,
                                              miopen::deref(paramDesc),
                                              DataCast(layerParam));
     });
-    return miopenStatusSuccess;
 }
 
 extern "C" miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
@@ -299,7 +296,6 @@ extern "C" miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
                                             miopen::deref(biasDesc),
                                             DataCast(layerBias));
     });
-    return miopenStatusSuccess;
 }
 
 extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,

@@ -57,21 +57,19 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
                                        bool isDataColMajor,
                                        std::string& network_config);
 
-
-GemmGeometry CreateGemmGeometryRNN(const int M,
-	const int N,
-	const int K,
-	const float alpha,
-	const float beta,
-	bool tA,
-	bool tB,
-	bool tC,
-	const int lda,
-	const int ldb,
-	const int ldc,
-	bool isDataColMajor,
-	std::string& network_config);
-
+GemmGeometry CreateGemmGeometryRNN(int M,
+                                   int N,
+                                   int K,
+                                   float alpha,
+                                   float beta,
+                                   bool tA,
+                                   bool tB,
+                                   bool tC,
+                                   int lda,
+                                   int ldb,
+                                   int ldc,
+                                   bool isDataColMajor,
+                                   std::string& network_config);
 
 GemmGeometry CreateMIOpenGemmGeometry(int M,
                                       int N,
@@ -84,8 +82,6 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
                                       bool isDataColMajor,
                                       float alpha,
                                       float beta);
-
-
 
 } // namespace miopen
 
