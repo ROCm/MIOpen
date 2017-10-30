@@ -121,13 +121,19 @@ std::size_t TensorDescriptor::GetElementSpace() const
 
 std::size_t TensorDescriptor::GetNumBytes() const
 {
-    return sizeof(this->type) * this->GetElementSpace();
+    std::size_t typesize = 0;
+    switch(this->type)
+    {
+    case miopenHalf: typesize  = 2; break;
+    case miopenFloat: typesize = 4; break;
+    }
+    return typesize * this->GetElementSpace();
 }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
 {
     assert(this->lens.size() == rhs.strides.size());
-    return this->type == rhs.type && this->lens == rhs.lens && this->strides == rhs.strides;
+    return this->type == rhs.type && this->lens == rhs.lens;
 }
 
 bool TensorDescriptor::operator!=(const TensorDescriptor& rhs) const { return !(*this == rhs); }
