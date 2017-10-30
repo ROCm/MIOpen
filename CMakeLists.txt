@@ -50,6 +50,13 @@ include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 
+
+# Strip symbols for release
+if(NOT WIN32 AND NOT APPLE)
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
+endif()
+
 rocm_setup_version(VERSION 1.1.5)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
@@ -128,7 +135,8 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 # miopengemm
 find_package(miopengemm PATHS /opt/rocm)
-if(miopengemm_FOUND)
+#if(miopengemm_FOUND)
+if(0)
     message(STATUS "Build with miopengemm")
     set(MIOPEN_USE_MIOPENGEMM 1)
 else()
@@ -187,6 +195,7 @@ enable_clang_tidy(
         -clang-analyzer-optin.performance.Padding
         -clang-diagnostic-deprecated-declarations
         -clang-diagnostic-extern-c-compat
+        -clang-diagnostic-unused-command-line-argument
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay
         -cppcoreguidelines-pro-bounds-constant-array-index
         -cppcoreguidelines-pro-bounds-pointer-arithmetic

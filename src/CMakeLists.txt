@@ -305,13 +305,23 @@ target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG} 
     debug ${Boost_SYSTEM_LIBRARY_DEBUG}
 )
-if(UNIX)
-    if(NOT BUILD_DEV)
-        set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
-        if(NOT APPLE)
-            target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
-        endif()
-    endif()
+if(NOT WIN32 AND NOT APPLE)
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
+MIOPEN_${MIOPEN_BACKEND}_1
+{
+global:
+    *;
+local:
+    *;
+};
+")
+    target_link_libraries(MIOpen PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/lib.def")
+    # if(NOT BUILD_DEV)
+    #     set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
+    #     if(NOT APPLE)
+    #         target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
+    #     endif()
+    # endif()
 endif()
 endif()
 
