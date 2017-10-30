@@ -64,44 +64,105 @@ struct verify_tensor_ops : tensor_ops_base<T>
     using tensor_ops_base<T>::b;
     using tensor_ops_base<T>::c;
 
-    verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb)
+    int Aoffset;
+    int Boffset;
+    int Coffset;
+
+    float alpha;
+    float beta;
+
+    verify_tensor_ops(const tensor<T>& pa,
+                      const tensor<T>& pb,
+                      const tensor<T>& pc,
+                      std::vector<size_t>& offsets,
+                      float palpha = 1,
+                      float pbeta  = 1)
     {
         a = pa;
         b = pb;
+        c = pc;
+
+        Aoffset = offsets[0];
+        Boffset = offsets[1];
+        Coffset = offsets[2];
+
+        alpha = palpha;
+        beta  = pbeta;
     }
 
-    verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const std::vector<T>& dims)
-    {
-        a = pa(dims);
-        b = pb(dims);
-    }
+    // verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const tensor<T>& pc, const
+    // std::vector<T>& dims)
+    //{
+    // a = pa(dims);
+    // b = pb(dims);
+    // c = pc(dims);
+    //}
 
     T add_elem(T aelem, T belem) { return aelem + belem; }
+    T mul_elem(T aelem, T belem) { return aelem * belem; }
 
     void tensor_for_loop(const tensor<T>& aten,
                          const tensor<T>& bten,
                          tensor<T>& cten,
                          const std::vector<size_t>& a_dims,
                          const std::vector<size_t>& b_dims,
-                         int coffset,
-                         int boffset,
-                         int dim)
+                         float palpha,
+                         float pbeta,
+                         int recurr_aoffset,
+                         int recurr_boffset,
+                         int recurr_coffset,
+                         int dim,
+                         int AtenOffset,
+                         int BtenOffset,
+                         int CtenOffset)
     {
 
-        int cstride = cten.desc.GetStrides()[dim];
+        int astride = aten.desc.GetStrides()[dim];
         int bstride = bten.desc.GetStrides()[dim];
+        int cstride = cten.desc.GetStrides()[dim];
+
+        // printf("cstride: %d\n", cstride);
 
         for(int idx = 0; idx < a_dims[dim]; idx++)
         {
-            size_t acindex = coffset + cstride * idx;
-            size_t bindex  = (b_dims[dim] == a_dims[dim]) ? boffset + bstride * idx : boffset;
+            size_t aindex = recurr_aoffset + astride * idx;
+            size_t cindex = recurr_coffset + cstride * idx;
+            size_t bindex =
+                (b_dims[dim] == a_dims[dim]) ? recurr_boffset + bstride * idx : recurr_boffset;
 
-            if(bindex < bten.desc.GetElementSize())
-                cten[acindex] = add_elem(aten[acindex], bten[bindex]);
+            // if((bindex < bten.desc.GetElementSize()) && (dim == a_dims.size() - 1))
+            if(dim == (a_dims.size() - 1))
+            {
+#if(MIO_OPS_DEBUG)
+                printf("c[%lu](%f) = a[%lu](%f) + b[%lu](%f)\n",
+                       cindex + CtenOffset,
+                       cten[cindex + CtenOffset],
+                       aindex + AtenOffset,
+                       aten[aindex + AtenOffset],
+                       bindex + Boffset,
+                       bten[bindex + Boffset]);
+#endif
+                cten[cindex + CtenOffset] =
+                    add_elem(aten[aindex + AtenOffset], bten[bindex + BtenOffset]) * palpha +
+                    pbeta * cten[cindex + Coffset];
+            }
             if(dim < (a_dims.size() - 1))
             {
 
-                tensor_for_loop(aten, bten, cten, a_dims, b_dims, acindex, bindex, dim + 1);
+                tensor_for_loop(aten,
+                                bten,
+                                cten,
+                                a_dims,
+                                b_dims,
+                                palpha,
+                                pbeta,
+                                aindex,
+                                bindex,
+                                cindex,
+                                dim + 1,
+                                AtenOffset,
+                                BtenOffset,
+                                CtenOffset);
             }
         }
         return;
@@ -109,20 +170,18 @@ struct verify_tensor_ops : tensor_ops_base<T>
 
     tensor<T> cpu()
     {
-        c = a;
-        std::fill(c.begin(), c.end(), 0);
+        std::fill(c.begin(), c.end(), 1);
         auto clens    = c.desc.GetLengths();
         auto blens    = b.desc.GetLengths();
         auto bstrides = b.desc.GetStrides();
         auto cstrides = c.desc.GetStrides();
 
-        tensor_for_loop(a, b, c, clens, blens, 0, 0, 0);
+        // float alpha = -1, beta = 1;
+        tensor_for_loop(a, b, c, clens, blens, alpha, beta, 0, 0, 0, 0, Aoffset, Boffset, Coffset);
 
 #if(MIO_OPS_DEBUG)
         for(int i = 0; i < c.desc.GetElementSize(); i++)
-        {
-            std::cout << "C_CPU[" << i << "]: " << c[i] << std::endl;
-        }
+            printf("CPU_C[%d]: %f\n", i, c.data[i]);
 #endif
         return c;
     }
@@ -131,19 +190,19 @@ struct verify_tensor_ops : tensor_ops_base<T>
     {
         auto&& handle = get_handle();
 
-        c = a;
         // return c;
-        std::fill(c.begin(), c.end(), 0);
+        std::fill(c.begin(), c.end(), 1);
 
         auto c_dev = handle.Write(c.data);
         auto a_dev = handle.Write(a.data);
         auto b_dev = handle.Write(b.data);
 
-        int alpha1 = 1, alpha2 = 1, beta = 0;
+        float alpha2 = 1;
 
         miopen::OpTensor(handle,
                          miopenTensorOpAdd,
-                         &alpha1,
+                         // miopenTensorOpMul,
+                         &alpha,
                          a.desc,
                          a_dev.get(),
                          &alpha2,
@@ -151,16 +210,19 @@ struct verify_tensor_ops : tensor_ops_base<T>
                          b_dev.get(),
                          &beta,
                          c.desc,
-                         c_dev.get());
+                         c_dev.get(),
+                         Aoffset,
+                         Boffset,
+                         Coffset);
 
         c.data = handle.Read<T>(c_dev, c.data.size());
 
 #if(MIO_OPS_DEBUG)
         handle.Finish();
+        auto clens    = c.desc.GetLengths();
+        auto cstrides = c.desc.GetStrides();
         for(int i = 0; i < c.desc.GetElementSize(); i++)
-        {
-            std::cout << "C_GPU[" << i << "]: " << c[i] << std::endl;
-        }
+            printf("GPU_C[%d]: %f\n", i, c.data[i]);
 #endif
         return c;
     }
@@ -175,70 +237,109 @@ struct verify_tensor_ops : tensor_ops_base<T>
 template <class T>
 struct tensor_ops_driver : test_driver
 {
-    tensor<T> a;
-    tensor<T> b;
+
+    tensor<T> super_a;
+    tensor<T> super_b;
+    tensor<T> super_c;
+
+    // tensor<T> a;
+    // tensor<T> b;
+    // tensor<T> c;
 
     tensor_ops_driver()
     {
-        add(a, "a", generate_tensor(get_tensor_a(), {11, 7, 13, 13}));
-        add(b, "b", generate_tensor(get_tensor_b(), {1, 7, 1, 1}));
+
+        add(super_a, "super_a", generate_tensor(get_super_tensor(), {40, 10, 8, 20, 4}));
+        add(super_b, "super_b", generate_tensor(get_super_tensor(), {40, 10, 8, 20, 4}));
+        add(super_c, "super_c", generate_tensor(get_super_tensor(), {40, 10, 8, 20, 4}));
     }
 
-    std::set<std::vector<int>> get_tensor_a()
+    std::set<std::vector<int>> get_super_tensor()
     {
         std::vector<std::vector<int>> a_dims{
-            {32, 8, 16, 16, 8}, {32, 8, 16, 16}, {32, 8, 16}, {32, 8}, {8},
+            {40, 10, 8, 20, 4},
         };
+
         return (std::set<std::vector<int>>(a_dims.begin(), a_dims.end()));
     }
 
-    std::set<std::vector<int>> get_tensor_b()
+    std::vector<tensor<T>> get_subtensors()
     {
-        std::vector<std::vector<int>> b_dims{
-            {1, 8, 1, 1, 8},
-            {1, 1, 1, 16, 8},
-            {1, 1, 16, 1, 1},
-            {1, 1, 16, 16, 8},
-            {1, 8, 1, 16, 1},
-            {1, 8, 16, 1, 8},
-            {1, 8, 16, 16, 1},
-            {32, 8, 1, 1, 8},
-            {32, 8, 1, 16, 1},
-            {32, 8, 16, 1, 8},
-            {32, 8, 16, 16, 1},
-            {32, 8, 16, 16, 8},
-            {1, 8, 1, 1},
-            {1, 1, 1, 16},
-            {1, 1, 16, 1},
-            {1, 1, 16, 16},
-            {1, 8, 1, 16},
-            {1, 8, 16, 1},
-            {1, 8, 16, 16},
-            {32, 8, 1, 1},
-            {32, 8, 1, 16},
-            {32, 8, 16, 1},
-            {32, 8, 16, 16},
-            {1, 8, 1},
-            {1, 1, 16},
-            {32, 1, 1},
-            {1, 8, 16},
-            {32, 8, 1},
-            {32, 1, 16},
-            {32, 8, 16},
-            {1, 8},
-            {32, 1},
-            {32, 8},
-            {8},
+        std::vector<tensor<T>> tensorList;
+
+        unsigned int num_tensor_per_dims_size = 8;
+
+        std::vector<std::vector<int>> lens{
+            {32, 8, 8, 16, 4},
+            {32, 4, 4, 8, 2},
+            {16, 8, 4, 16, 2},
+            {16, 2, 8, 4, 4},
+            {8, 2, 8, 4, 4},
+            {8, 8, 8, 4, 4},
+            {4, 2, 4, 8, 2},
+            {1, 8, 4, 8, 2}, // 5d
+            {8, 1, 16, 4},
+            {4, 2, 8, 2},
+            {8, 4, 16, 2},
+            {2, 8, 4, 4},
+            {2, 2, 8, 4},
+            {8, 8, 4, 4},
+            {1, 4, 8, 2},
+            {1, 1, 8, 2}, // 4d
+            {8, 16, 4},
+            {4, 8, 2},
+            {4, 16, 2},
+            {8, 1, 4},
+            {8, 2, 4},
+            {8, 4, 4},
+            {4, 8, 2},
+            {1, 8, 2}, // 3d
+            {16, 4},
+            {8, 2},
+            {16, 2},
+            {4, 4},
+            {2, 4},
+            {4, 1},
+            {8, 2},
+            {1, 4}, // 2d
         };
-        return (std::set<std::vector<int>>(b_dims.begin(), b_dims.end()));
+
+        std::vector<std::vector<int>> strides{
+            {6400, 640, 80, 4, 1}, {640, 80, 4, 1}, {80, 4, 1}, {4, 1},
+        };
+
+        for(int i = 0; i < lens.size(); i++)
+        {
+            tensorList.push_back(
+                make_tensor<T, int>(super_a, lens[i], strides[i / num_tensor_per_dims_size]));
+        }
+
+        return tensorList;
     }
 
-    // void run() { verify(verify_tensor_ops<T, 2>{a, b}); }
-    // void run() { verify(verify_tensor_ops<T, 4>{a, b}); }
     void run()
     {
-        if(a.desc.GetSize() == b.desc.GetSize())
-            verify(verify_tensor_ops<T>{a, b});
+        std::vector<tensor<T>> aTensorList = get_subtensors();
+        std::vector<tensor<T>> bTensorList = get_subtensors();
+        std::vector<tensor<T>> cTensorList = get_subtensors();
+
+        std::vector<std::vector<size_t>> offsetList   = {{32, 16, 1}, {16, 32, 1}};
+        std::vector<std::vector<float>> alphaBetaList = {{1, 1}, {-1, 1}, {0, 0}, {-1.5, 0.5}};
+
+        for(int i = 0; i < aTensorList.size(); i++)
+            if(aTensorList[i].desc.GetSize() == bTensorList[i].desc.GetSize())
+            {
+                for(int j = 0; j < offsetList.size(); j++)
+                {
+                    for(int k = 0; k < alphaBetaList.size(); k++)
+                        verify(verify_tensor_ops<T>{aTensorList[i],
+                                                    bTensorList[i],
+                                                    cTensorList[i],
+                                                    offsetList[j],
+                                                    alphaBetaList[k][0],
+                                                    alphaBetaList[k][1]});
+                }
+            }
     }
 };
 
