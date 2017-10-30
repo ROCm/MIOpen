@@ -580,15 +580,14 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                         if(run_counter % report_inteval == 0)
                         {
                             min_proc_time = (run_counter == 0) ? processing_time : min_proc_time;
-                            std::cout << "Runs left : " << runs_left << ", "
-                                      << "min time so far : " << min_proc_time << ", "
-                                      << "curr time : " << processing_time
-                                      << ", " << result.grp_tile1 << ", " << result.grp_tile0
-                                      << ", " << result.in_tile1 << ", " << result.in_tile0 << ", "
-                                      << result.out_pix_tile1 << ", " << result.out_pix_tile0
-                                      << ", " << result.n_out_pix_tiles << ", "
-                                      << result.n_in_data_tiles << ", " << result.n_stacks
-                                      << std::endl;
+                            std::cout
+                                << "Runs left : " << runs_left << ", "
+                                << "min time so far : " << min_proc_time << ", "
+                                << "curr time : " << processing_time << ", " << result.grp_tile1
+                                << ", " << result.grp_tile0 << ", " << result.in_tile1 << ", "
+                                << result.in_tile0 << ", " << result.out_pix_tile1 << ", "
+                                << result.out_pix_tile0 << ", " << result.n_out_pix_tiles << ", "
+                                << result.n_in_data_tiles << ", " << result.n_stacks << std::endl;
                         }
 
 #endif
@@ -784,16 +783,15 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                                                 std::cout
                                                     << "Runs left : " << runs_left << ", "
                                                     << "min time so far : " << min_proc_time << ", "
-                                                    << "curr time : " << processing_time
-                                                    << ", " << result.grp_tile1 << ", "
-                                                    << result.grp_tile0 << ", " << result.in_tile1
-                                                    << ", " << result.in_tile0 << ", "
+                                                    << "curr time : " << processing_time << ", "
+                                                    << result.grp_tile1 << ", " << result.grp_tile0
+                                                    << ", " << result.in_tile1 << ", "
+                                                    << result.in_tile0 << ", "
                                                     << result.out_pix_tile1 << ", "
                                                     << result.out_pix_tile0 << ", "
                                                     << result.n_out_pix_tiles << ", "
                                                     << result.n_in_data_tiles << ", "
-                                                    << result.n_stacks
-                                                    << std::endl;
+                                                    << result.n_stacks << std::endl;
                                             }
 
 #endif
