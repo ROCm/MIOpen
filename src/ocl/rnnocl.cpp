@@ -715,47 +715,47 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             {
                 if(inputMode == miopenRNNskip)
                 {
-					std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-						dest_stride(4, 1);
-					miopenTensorDescriptor_t srcTensor, destTensor;
+                    std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
+                        dest_stride(4, 1);
+                    miopenTensorDescriptor_t srcTensor, destTensor;
 
-					src_size[2] = batch_n;
-					src_size[3] = hy_h;
-					src_stride[0] = batch_n * in_stride;
-					src_stride[1] = batch_n * in_stride;
-					src_stride[2] = in_stride;
-					dest_size[2] = batch_n;
-					dest_size[3] = hy_h;
-					dest_stride[0] = batch_n * hy_stride;
-					dest_stride[1] = batch_n * hy_stride;
-					dest_stride[2] = hy_stride;
-					miopenCreateTensorDescriptor(&srcTensor);
-					miopenCreateTensorDescriptor(&destTensor);
-					miopenSetTensorDescriptor(
-						srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-					miopenSetTensorDescriptor(
-						destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+                    src_size[2]    = batch_n;
+                    src_size[3]    = hy_h;
+                    src_stride[0]  = batch_n * in_stride;
+                    src_stride[1]  = batch_n * in_stride;
+                    src_stride[2]  = in_stride;
+                    dest_size[2]   = batch_n;
+                    dest_size[3]   = hy_h;
+                    dest_stride[0] = batch_n * hy_stride;
+                    dest_stride[1] = batch_n * hy_stride;
+                    dest_stride[2] = hy_stride;
+                    miopenCreateTensorDescriptor(&srcTensor);
+                    miopenCreateTensorDescriptor(&destTensor);
+                    miopenSetTensorDescriptor(
+                        srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+                    miopenSetTensorDescriptor(
+                        destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
                     for(int gi = 0; gi < 4; gi++)
                     {
-						CopyTensor(handle,
-							miopen::deref(srcTensor),
-							x,
-							miopen::deref(destTensor),
-							reserveSpace,
-							0,
-							gi * hy_h);
+                        CopyTensor(handle,
+                                   miopen::deref(srcTensor),
+                                   x,
+                                   miopen::deref(destTensor),
+                                   reserveSpace,
+                                   0,
+                                   gi * hy_h);
 
-						if (dirMode)
-						{
-							CopyTensor(handle,
-								miopen::deref(srcTensor),
-								x,
-								miopen::deref(destTensor),
-								reserveSpace,
-								0,
-								(gi + 4) * hy_h);
-						}
+                        if(dirMode)
+                        {
+                            CopyTensor(handle,
+                                       miopen::deref(srcTensor),
+                                       x,
+                                       miopen::deref(destTensor),
+                                       reserveSpace,
+                                       0,
+                                       (gi + 4) * hy_h);
+                        }
                     }
 
                     if(biasMode)
@@ -1202,92 +1202,92 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 bacc += in_n[ti];
             }
 
-			// hy
-			if (in_n[seqLen - 1] > 0)
-			{
-				std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-					dest_stride(4, 1);
-				miopenTensorDescriptor_t srcTensor, destTensor;
+            // hy
+            if(in_n[seqLen - 1] > 0)
+            {
+                std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
+                    dest_stride(4, 1);
+                miopenTensorDescriptor_t srcTensor, destTensor;
 
-				src_size[2] = in_n[seqLen - 1];
-				src_size[3] = hy_h;
-				src_stride[0] = in_n[seqLen - 1] * hy_stride;
-				src_stride[1] = in_n[seqLen - 1] * hy_stride;
-				src_stride[2] = hy_stride;
+                src_size[2]   = in_n[seqLen - 1];
+                src_size[3]   = hy_h;
+                src_stride[0] = in_n[seqLen - 1] * hy_stride;
+                src_stride[1] = in_n[seqLen - 1] * hy_stride;
+                src_stride[2] = hy_stride;
 
-				dest_size[2] = in_n[seqLen - 1];
-				dest_size[3] = hy_h;
-				dest_stride[0] = in_n[seqLen - 1] * h_stride;
-				dest_stride[1] = in_n[seqLen - 1] * h_stride;
-				dest_stride[2] = h_stride;
+                dest_size[2]   = in_n[seqLen - 1];
+                dest_size[3]   = hy_h;
+                dest_stride[0] = in_n[seqLen - 1] * h_stride;
+                dest_stride[1] = in_n[seqLen - 1] * h_stride;
+                dest_stride[2] = h_stride;
 
-				miopenCreateTensorDescriptor(&srcTensor);
-				miopenCreateTensorDescriptor(&destTensor);
-				miopenSetTensorDescriptor(
-					srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-				miopenSetTensorDescriptor(
-					destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+                miopenCreateTensorDescriptor(&srcTensor);
+                miopenCreateTensorDescriptor(&destTensor);
+                miopenSetTensorDescriptor(
+                    srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+                miopenSetTensorDescriptor(
+                    destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
-				CopyTensor(handle,
-					miopen::deref(srcTensor),
-					reserveSpace,
-					miopen::deref(destTensor),
-					cy,
-					hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride + bi * 4 * hy_h,
-					hx_shift);
+                CopyTensor(handle,
+                           miopen::deref(srcTensor),
+                           reserveSpace,
+                           miopen::deref(destTensor),
+                           cy,
+                           hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride + bi * 4 * hy_h,
+                           hx_shift);
 
-				CopyTensor(handle,
-					miopen::deref(srcTensor),
-					reserveSpace,
-					miopen::deref(destTensor),
-					hy,
-					hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride + bi * 5 * hy_h,
-					hx_shift);
-			}
-			if (dirMode)
-			{
-				if (in_n[0] > 0)
-				{
-					std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-						dest_stride(4, 1);
-					miopenTensorDescriptor_t srcTensor, destTensor;
+                CopyTensor(handle,
+                           miopen::deref(srcTensor),
+                           reserveSpace,
+                           miopen::deref(destTensor),
+                           hy,
+                           hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride + bi * 5 * hy_h,
+                           hx_shift);
+            }
+            if(dirMode)
+            {
+                if(in_n[0] > 0)
+                {
+                    std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
+                        dest_stride(4, 1);
+                    miopenTensorDescriptor_t srcTensor, destTensor;
 
-					src_size[2] = in_n[0];
-					src_size[3] = hy_h;
-					src_stride[0] = in_n[0] * hy_stride;
-					src_stride[1] = in_n[0] * hy_stride;
-					src_stride[2] = hy_stride;
+                    src_size[2]   = in_n[0];
+                    src_size[3]   = hy_h;
+                    src_stride[0] = in_n[0] * hy_stride;
+                    src_stride[1] = in_n[0] * hy_stride;
+                    src_stride[2] = hy_stride;
 
-					dest_size[2] = in_n[0];
-					dest_size[3] = hy_h;
-					dest_stride[0] = in_n[0] * h_stride;
-					dest_stride[1] = in_n[0] * h_stride;
-					dest_stride[2] = h_stride;
+                    dest_size[2]   = in_n[0];
+                    dest_size[3]   = hy_h;
+                    dest_stride[0] = in_n[0] * h_stride;
+                    dest_stride[1] = in_n[0] * h_stride;
+                    dest_stride[2] = h_stride;
 
-					miopenCreateTensorDescriptor(&srcTensor);
-					miopenCreateTensorDescriptor(&destTensor);
-					miopenSetTensorDescriptor(
-						srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-					miopenSetTensorDescriptor(
-						destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+                    miopenCreateTensorDescriptor(&srcTensor);
+                    miopenCreateTensorDescriptor(&destTensor);
+                    miopenSetTensorDescriptor(
+                        srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+                    miopenSetTensorDescriptor(
+                        destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
-					CopyTensor(handle,
-						miopen::deref(srcTensor),
-						reserveSpace,
-						miopen::deref(destTensor),
-						cy,
-						hid_shift + bi * 4 * hy_h + hy_h,
-						hx_shift + hy_h);
+                    CopyTensor(handle,
+                               miopen::deref(srcTensor),
+                               reserveSpace,
+                               miopen::deref(destTensor),
+                               cy,
+                               hid_shift + bi * 4 * hy_h + hy_h,
+                               hx_shift + hy_h);
 
-					CopyTensor(handle,
-						miopen::deref(srcTensor),
-						reserveSpace,
-						miopen::deref(destTensor),
-						hy,
-						hid_shift + bi * 5 * hy_h + hy_h,
-						hx_shift + hy_h);
-				}
-			}
+                    CopyTensor(handle,
+                               miopen::deref(srcTensor),
+                               reserveSpace,
+                               miopen::deref(destTensor),
+                               hy,
+                               hid_shift + bi * 5 * hy_h + hy_h,
+                               hx_shift + hy_h);
+                }
+            }
         }
 
         // output
@@ -1354,48 +1354,48 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             {
                 if(inputMode == miopenRNNskip)
                 {
-					std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-						dest_stride(4, 1);
-					miopenTensorDescriptor_t srcTensor, destTensor;
+                    std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
+                        dest_stride(4, 1);
+                    miopenTensorDescriptor_t srcTensor, destTensor;
 
-					src_size[2] = batch_n;
-					src_size[3] = hy_h;
-					src_stride[0] = batch_n * in_stride;
-					src_stride[1] = batch_n * in_stride;
-					src_stride[2] = in_stride;
-					dest_size[2] = batch_n;
-					dest_size[3] = hy_h;
-					dest_stride[0] = batch_n * hy_stride;
-					dest_stride[1] = batch_n * hy_stride;
-					dest_stride[2] = hy_stride;
-					miopenCreateTensorDescriptor(&srcTensor);
-					miopenCreateTensorDescriptor(&destTensor);
-					miopenSetTensorDescriptor(
-						srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-					miopenSetTensorDescriptor(
-						destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+                    src_size[2]    = batch_n;
+                    src_size[3]    = hy_h;
+                    src_stride[0]  = batch_n * in_stride;
+                    src_stride[1]  = batch_n * in_stride;
+                    src_stride[2]  = in_stride;
+                    dest_size[2]   = batch_n;
+                    dest_size[3]   = hy_h;
+                    dest_stride[0] = batch_n * hy_stride;
+                    dest_stride[1] = batch_n * hy_stride;
+                    dest_stride[2] = hy_stride;
+                    miopenCreateTensorDescriptor(&srcTensor);
+                    miopenCreateTensorDescriptor(&destTensor);
+                    miopenSetTensorDescriptor(
+                        srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+                    miopenSetTensorDescriptor(
+                        destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
-					for (int gi = 0; gi < 3; gi++)
-					{
-						CopyTensor(handle,
-							miopen::deref(srcTensor),
-							x,
-							miopen::deref(destTensor),
-							reserveSpace,
-							0,
-							gi * hy_h);
+                    for(int gi = 0; gi < 3; gi++)
+                    {
+                        CopyTensor(handle,
+                                   miopen::deref(srcTensor),
+                                   x,
+                                   miopen::deref(destTensor),
+                                   reserveSpace,
+                                   0,
+                                   gi * hy_h);
 
-						if (dirMode)
-						{
-							CopyTensor(handle,
-								miopen::deref(srcTensor),
-								x,
-								miopen::deref(destTensor),
-								reserveSpace,
-								0,
-								(gi + 3) * hy_h);
-						}
-					}
+                        if(dirMode)
+                        {
+                            CopyTensor(handle,
+                                       miopen::deref(srcTensor),
+                                       x,
+                                       miopen::deref(destTensor),
+                                       reserveSpace,
+                                       0,
+                                       (gi + 3) * hy_h);
+                        }
+                    }
                 }
                 else
                 {
@@ -1760,76 +1760,76 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 bacc += in_n[ti];
             }
 
-			// hy
-			if (in_n[seqLen - 1] > 0)
-			{
-				std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-					dest_stride(4, 1);
-				miopenTensorDescriptor_t srcTensor, destTensor;
+            // hy
+            if(in_n[seqLen - 1] > 0)
+            {
+                std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
+                    dest_stride(4, 1);
+                miopenTensorDescriptor_t srcTensor, destTensor;
 
-				src_size[2] = in_n[seqLen - 1];
-				src_size[3] = hy_h;
-				src_stride[0] = in_n[seqLen - 1] * hy_stride;
-				src_stride[1] = in_n[seqLen - 1] * hy_stride;
-				src_stride[2] = hy_stride;
+                src_size[2]   = in_n[seqLen - 1];
+                src_size[3]   = hy_h;
+                src_stride[0] = in_n[seqLen - 1] * hy_stride;
+                src_stride[1] = in_n[seqLen - 1] * hy_stride;
+                src_stride[2] = hy_stride;
 
-				dest_size[2] = in_n[seqLen - 1];
-				dest_size[3] = hy_h;
-				dest_stride[0] = in_n[seqLen - 1] * h_stride;
-				dest_stride[1] = in_n[seqLen - 1] * h_stride;
-				dest_stride[2] = h_stride;
+                dest_size[2]   = in_n[seqLen - 1];
+                dest_size[3]   = hy_h;
+                dest_stride[0] = in_n[seqLen - 1] * h_stride;
+                dest_stride[1] = in_n[seqLen - 1] * h_stride;
+                dest_stride[2] = h_stride;
 
-				miopenCreateTensorDescriptor(&srcTensor);
-				miopenCreateTensorDescriptor(&destTensor);
-				miopenSetTensorDescriptor(
-					srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-				miopenSetTensorDescriptor(
-					destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+                miopenCreateTensorDescriptor(&srcTensor);
+                miopenCreateTensorDescriptor(&destTensor);
+                miopenSetTensorDescriptor(
+                    srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+                miopenSetTensorDescriptor(
+                    destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
-				CopyTensor(handle,
-					miopen::deref(srcTensor),
-					reserveSpace,
-					miopen::deref(destTensor),
-					hy,
-					hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride + bi * 3 * hy_h,
-					hx_shift);
-			}
-			if (dirMode)
-			{
-				if (in_n[0] > 0)
-				{
-					std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-						dest_stride(4, 1);
-					miopenTensorDescriptor_t srcTensor, destTensor;
+                CopyTensor(handle,
+                           miopen::deref(srcTensor),
+                           reserveSpace,
+                           miopen::deref(destTensor),
+                           hy,
+                           hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride + bi * 3 * hy_h,
+                           hx_shift);
+            }
+            if(dirMode)
+            {
+                if(in_n[0] > 0)
+                {
+                    std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
+                        dest_stride(4, 1);
+                    miopenTensorDescriptor_t srcTensor, destTensor;
 
-					src_size[2] = in_n[0];
-					src_size[3] = hy_h;
-					src_stride[0] = in_n[0] * hy_stride;
-					src_stride[1] = in_n[0] * hy_stride;
-					src_stride[2] = hy_stride;
+                    src_size[2]   = in_n[0];
+                    src_size[3]   = hy_h;
+                    src_stride[0] = in_n[0] * hy_stride;
+                    src_stride[1] = in_n[0] * hy_stride;
+                    src_stride[2] = hy_stride;
 
-					dest_size[2] = in_n[0];
-					dest_size[3] = hy_h;
-					dest_stride[0] = in_n[0] * h_stride;
-					dest_stride[1] = in_n[0] * h_stride;
-					dest_stride[2] = h_stride;
+                    dest_size[2]   = in_n[0];
+                    dest_size[3]   = hy_h;
+                    dest_stride[0] = in_n[0] * h_stride;
+                    dest_stride[1] = in_n[0] * h_stride;
+                    dest_stride[2] = h_stride;
 
-					miopenCreateTensorDescriptor(&srcTensor);
-					miopenCreateTensorDescriptor(&destTensor);
-					miopenSetTensorDescriptor(
-						srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-					miopenSetTensorDescriptor(
-						destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+                    miopenCreateTensorDescriptor(&srcTensor);
+                    miopenCreateTensorDescriptor(&destTensor);
+                    miopenSetTensorDescriptor(
+                        srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+                    miopenSetTensorDescriptor(
+                        destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
-					CopyTensor(handle,
-						miopen::deref(srcTensor),
-						reserveSpace,
-						miopen::deref(destTensor),
-						hy,
-						hid_shift + bi * 3 * hy_h + hy_h,
-						hx_shift + hy_h);
-				}
-			}
+                    CopyTensor(handle,
+                               miopen::deref(srcTensor),
+                               reserveSpace,
+                               miopen::deref(destTensor),
+                               hy,
+                               hid_shift + bi * 3 * hy_h + hy_h,
+                               hx_shift + hy_h);
+                }
+            }
         }
 
         // output
@@ -2217,40 +2217,33 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         // dinput
         if(inputMode == miopenRNNskip)
         {
-			std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-				dest_stride(4, 1);
-			miopenTensorDescriptor_t srcTensor, destTensor;
+            std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1), dest_stride(4, 1);
+            miopenTensorDescriptor_t srcTensor, destTensor;
 
-			src_size[2] = batch_n;
-			src_size[3] = hy_h;
-			src_stride[0] = batch_n * hy_stride;
-			src_stride[1] = batch_n * hy_stride;
-			src_stride[2] = hy_stride;
-			dest_size[2] = batch_n;
-			dest_size[3] = hy_h;
-			dest_stride[0] = batch_n * in_stride;
-			dest_stride[1] = batch_n * in_stride;
-			dest_stride[2] = in_stride;
+            src_size[2]    = batch_n;
+            src_size[3]    = hy_h;
+            src_stride[0]  = batch_n * hy_stride;
+            src_stride[1]  = batch_n * hy_stride;
+            src_stride[2]  = hy_stride;
+            dest_size[2]   = batch_n;
+            dest_size[3]   = hy_h;
+            dest_stride[0] = batch_n * in_stride;
+            dest_stride[1] = batch_n * in_stride;
+            dest_stride[2] = in_stride;
 
-			miopenCreateTensorDescriptor(&srcTensor);
-			miopenCreateTensorDescriptor(&destTensor);
-			miopenSetTensorDescriptor(
-				srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-			miopenSetTensorDescriptor(
-				destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+            miopenCreateTensorDescriptor(&srcTensor);
+            miopenCreateTensorDescriptor(&destTensor);
+            miopenSetTensorDescriptor(
+                srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+            miopenSetTensorDescriptor(
+                destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
-			CopyTensor(handle,
-				miopen::deref(srcTensor),
-				reserveSpace,
-				miopen::deref(destTensor),
-				x,
-				0,
-				0);
+            // TensorAdd();
 
-			if (dirMode)
-			{
-				// TensorAdd();
-			}
+            if(dirMode)
+            {
+                // TensorAdd();
+            }
         }
         else
         {
@@ -2546,41 +2539,34 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         // dinput
         if(inputMode == miopenRNNskip)
         {
-			std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-				dest_stride(4, 1);
-			miopenTensorDescriptor_t srcTensor, destTensor;
+            std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1), dest_stride(4, 1);
+            miopenTensorDescriptor_t srcTensor, destTensor;
 
-			src_size[2] = batch_n;
-			src_size[3] = hy_h;
-			src_stride[0] = batch_n * hy_stride;
-			src_stride[1] = batch_n * hy_stride;
-			src_stride[2] = hy_stride;
-			dest_size[2] = batch_n;
-			dest_size[3] = hy_h;
-			dest_stride[0] = batch_n * in_stride;
-			dest_stride[1] = batch_n * in_stride;
-			dest_stride[2] = in_stride;
-			miopenCreateTensorDescriptor(&srcTensor);
-			miopenCreateTensorDescriptor(&destTensor);
-			miopenSetTensorDescriptor(
-				srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-			miopenSetTensorDescriptor(
-				destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+            src_size[2]    = batch_n;
+            src_size[3]    = hy_h;
+            src_stride[0]  = batch_n * hy_stride;
+            src_stride[1]  = batch_n * hy_stride;
+            src_stride[2]  = hy_stride;
+            dest_size[2]   = batch_n;
+            dest_size[3]   = hy_h;
+            dest_stride[0] = batch_n * in_stride;
+            dest_stride[1] = batch_n * in_stride;
+            dest_stride[2] = in_stride;
+            miopenCreateTensorDescriptor(&srcTensor);
+            miopenCreateTensorDescriptor(&destTensor);
+            miopenSetTensorDescriptor(
+                srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+            miopenSetTensorDescriptor(
+                destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
             for(int gi = 0; gi < 4; gi++)
             {
-				CopyTensor(handle,
-					miopen::deref(srcTensor),
-					reserveSpace,
-					miopen::deref(destTensor),
-					x,
-					gi * hy_h,
-					0);
+                // TensorAdd();
 
-				if (dirMode)
-				{
-					// TensorAdd();
-				}
+                if(dirMode)
+                {
+                    // TensorAdd();
+                }
             }
         }
         else
@@ -3090,42 +3076,35 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         // dinput
         if(inputMode == miopenRNNskip)
         {
-			std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-				dest_stride(4, 1);
-			miopenTensorDescriptor_t srcTensor, destTensor;
+            std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1), dest_stride(4, 1);
+            miopenTensorDescriptor_t srcTensor, destTensor;
 
-			src_size[2] = batch_n;
-			src_size[3] = hy_h;
-			src_stride[0] = batch_n * hy_stride;
-			src_stride[1] = batch_n * hy_stride;
-			src_stride[2] = hy_stride;
-			dest_size[2] = batch_n;
-			dest_size[3] = hy_h;
-			dest_stride[0] = batch_n * in_stride;
-			dest_stride[1] = batch_n * in_stride;
-			dest_stride[2] = in_stride;
-			miopenCreateTensorDescriptor(&srcTensor);
-			miopenCreateTensorDescriptor(&destTensor);
-			miopenSetTensorDescriptor(
-				srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-			miopenSetTensorDescriptor(
-				destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+            src_size[2]    = batch_n;
+            src_size[3]    = hy_h;
+            src_stride[0]  = batch_n * hy_stride;
+            src_stride[1]  = batch_n * hy_stride;
+            src_stride[2]  = hy_stride;
+            dest_size[2]   = batch_n;
+            dest_size[3]   = hy_h;
+            dest_stride[0] = batch_n * in_stride;
+            dest_stride[1] = batch_n * in_stride;
+            dest_stride[2] = in_stride;
+            miopenCreateTensorDescriptor(&srcTensor);
+            miopenCreateTensorDescriptor(&destTensor);
+            miopenSetTensorDescriptor(
+                srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+            miopenSetTensorDescriptor(
+                destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
-			for (int gi = 0; gi < 3; gi++)
-			{
-				CopyTensor(handle,
-					miopen::deref(srcTensor),
-					reserveSpace,
-					miopen::deref(destTensor),
-					x,
-					gi * hy_h,
-					0);
+            for(int gi = 0; gi < 3; gi++)
+            {
+                // TensorAdd();
 
-				if (dirMode)
-				{
-					// TensorAdd();
-				}
-			}
+                if(dirMode)
+                {
+                    // TensorAdd();
+                }
+            }
         }
         else
         {
