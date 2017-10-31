@@ -50,8 +50,8 @@ extern "C" miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescr
 
     MIOPEN_LOG_FUNCTION(convDesc, c_mode, p_mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
     return miopen::try_([&] {
-        miopen::deref(convDesc) =
-            miopen::ConvolutionDescriptor(c_mode,p_mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+        miopen::deref(convDesc) = miopen::ConvolutionDescriptor(
+            c_mode, p_mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
     });
 }
 
@@ -68,8 +68,8 @@ extern "C" miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescri
 
     MIOPEN_LOG_FUNCTION(convDesc, c_mode, p_mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
     return miopen::try_([&] {
-        miopen::deref(c_mode)       = miopen::deref(convDesc).mode;
-        miopen::deref(p_mode)       = miopen::deref(convDesc).paddingMode;
+        miopen::deref(c_mode)     = miopen::deref(convDesc).mode;
+        miopen::deref(p_mode)     = miopen::deref(convDesc).paddingMode;
         miopen::deref(pad_h)      = miopen::deref(convDesc).pad_h;
         miopen::deref(pad_w)      = miopen::deref(convDesc).pad_w;
         miopen::deref(u)          = miopen::deref(convDesc).u;
