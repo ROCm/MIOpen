@@ -363,6 +363,15 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 
             bacc += in_n[ti];
         }
+
+        // hy clean
+        for(int bs = in_n[seqLength - 1]; bs < in_n[0]; bs++)
+        {
+            for(int h = 0; h < hy_h; h++)
+            {
+                hy_host[hx_shift + bs * hy_stride + h] = 0;
+            }
+        }
     }
 
     // output
