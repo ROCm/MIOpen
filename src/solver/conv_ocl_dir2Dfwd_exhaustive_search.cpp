@@ -605,7 +605,7 @@ bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
 
                         is_passed = true;
 
-						run_counter++;
+                        run_counter++;
 
                         if(min_proc_time > processing_time)
                         {
@@ -810,7 +810,7 @@ bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
 
                                             is_passed = true;
 
-											run_counter++;
+                                            run_counter++;
 
                                             if(min_proc_time > processing_time)
                                             {
