@@ -243,41 +243,41 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                     if(biasMode)
                     {
-						src_size[2] = 1;
-						src_size[3] = wei_stride;
-						src_stride[0] = wei_stride;
-						src_stride[1] = wei_stride;
-						src_stride[2] = wei_stride;
-						dest_size[2] = 1;
-						dest_size[3] = wei_stride;
-						dest_stride[0] = hy_stride;
-						dest_stride[1] = hy_stride;
-						dest_stride[2] = hy_stride;
-						miopenCreateTensorDescriptor(&srcTensor);
-						miopenSetTensorDescriptor(
-							srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-						miopenSetTensorDescriptor(
-							destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
-    float alpha0=1;
-    float alpha1=1;
-    float beta=0;
-						for (int bs = 0; bs < batch_n; bs++)
-						{
-							OpTensor(handle,
-								miopenTensorOpAdd,
-								&alpha0,
-								miopen::deref(srcTensor),
-								w,
-								&alpha1,
-								miopen::deref(destTensor),
-								reserveSpace,
-								&beta,
-								miopen::deref(destTensor),
-								reserveSpace,
-								wei_shift_bias,
-								hid_shift + bs * hy_stride,
-								hid_shift + bs * hy_stride);
-						}
+                        src_size[2]    = 1;
+                        src_size[3]    = wei_stride;
+                        src_stride[0]  = wei_stride;
+                        src_stride[1]  = wei_stride;
+                        src_stride[2]  = wei_stride;
+                        dest_size[2]   = 1;
+                        dest_size[3]   = wei_stride;
+                        dest_stride[0] = hy_stride;
+                        dest_stride[1] = hy_stride;
+                        dest_stride[2] = hy_stride;
+                        miopenCreateTensorDescriptor(&srcTensor);
+                        miopenSetTensorDescriptor(
+                            srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
+                        miopenSetTensorDescriptor(
+                            destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+                        float alpha0 = 1;
+                        float alpha1 = 0;
+                        float beta   = 1;
+                        for(int bs = 0; bs < batch_n; bs++)
+                        {
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     miopen::deref(srcTensor),
+                                     w,
+                                     &alpha1,
+                                     miopen::deref(srcTensor),
+                                     w,
+                                     &beta,
+                                     miopen::deref(destTensor),
+                                     reserveSpace,
+                                     wei_shift_bias,
+                                     wei_shift_bias,
+                                     hid_shift + bs * hy_stride);
+                        }
 
                         // Update time
                         if(handle.IsProfilingEnabled())
@@ -314,48 +314,48 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                     if(biasMode)
                     {
-						std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
-						miopenTensorDescriptor_t Adesc, Cdesc;
+                        std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                        miopenTensorDescriptor_t Adesc, Cdesc;
 
-						a_size[2] = 1;
-						a_size[3] = wei_stride;
-						a_stride[0] = wei_stride;
-						a_stride[1] = wei_stride;
-						a_stride[2] = wei_stride;
-						c_size[2] = 1;
-						c_size[3] = wei_stride;
-						c_stride[0] = hy_stride;
-						c_stride[1] = hy_stride;
-						c_stride[2] = hy_stride;
+                        a_size[2]   = 1;
+                        a_size[3]   = wei_stride;
+                        a_stride[0] = wei_stride;
+                        a_stride[1] = wei_stride;
+                        a_stride[2] = wei_stride;
+                        c_size[2]   = 1;
+                        c_size[3]   = wei_stride;
+                        c_stride[0] = hy_stride;
+                        c_stride[1] = hy_stride;
+                        c_stride[2] = hy_stride;
 
-						miopenCreateTensorDescriptor(&Adesc);
-						miopenCreateTensorDescriptor(&Cdesc);
-						miopenSetTensorDescriptor(
-							Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
-						miopenSetTensorDescriptor(
-							Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+                        miopenCreateTensorDescriptor(&Adesc);
+                        miopenCreateTensorDescriptor(&Cdesc);
+                        miopenSetTensorDescriptor(
+                            Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                        miopenSetTensorDescriptor(
+                            Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
 
-float alpha0=1;
-    float alpha1=1;
-    float beta=1;
+                        float alpha0 = 1;
+                        float alpha1 = 1;
+                        float beta   = 1;
 
-						for (int bs = 0; bs < batch_n; bs++)
-						{
-							OpTensor(handle,
-								miopenTensorOpAdd,
-								&alpha0,
-								miopen::deref(Adesc),
-								w,
-								&alpha1,
-								miopen::deref(Adesc),
-								w,
-								&beta,
-								miopen::deref(Cdesc),
-								reserveSpace,
-								wei_shift_bias,
-								wei_shift_bias + wei_stride,
-								hid_shift + bs * hy_stride);
-						}
+                        for(int bs = 0; bs < batch_n; bs++)
+                        {
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &alpha1,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &beta,
+                                     miopen::deref(Cdesc),
+                                     reserveSpace,
+                                     wei_shift_bias,
+                                     wei_shift_bias + wei_stride,
+                                     hid_shift + bs * hy_stride);
+                        }
 
                         // Update time
                         if(handle.IsProfilingEnabled())
@@ -403,73 +403,73 @@ float alpha0=1;
 
                 if(biasMode)
                 {
-					int wei_shift_bias_temp =
-						(inputMode == 1)
-						? (wei_shift_bias + bi * hy_h + bi * (li - 1) * (bi + 1) * hy_h)
-						: (wei_shift_bias + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h);
+                    int wei_shift_bias_temp =
+                        (inputMode == 1)
+                            ? (wei_shift_bias + bi * hy_h + bi * (li - 1) * (bi + 1) * hy_h)
+                            : (wei_shift_bias + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h);
 
-					std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
-					miopenTensorDescriptor_t Adesc, Cdesc;
+                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                    miopenTensorDescriptor_t Adesc, Cdesc;
 
-					a_size[2] = 1;
-					a_size[3] = wei_stride;
-					a_stride[0] = wei_stride;
-					a_stride[1] = wei_stride;
-					a_stride[2] = wei_stride;
-					c_size[2] = 1;
-					c_size[3] = wei_stride;
-					c_stride[0] = hy_stride;
-					c_stride[1] = hy_stride;
-					c_stride[2] = hy_stride;
+                    a_size[2]   = 1;
+                    a_size[3]   = wei_stride;
+                    a_stride[0] = wei_stride;
+                    a_stride[1] = wei_stride;
+                    a_stride[2] = wei_stride;
+                    c_size[2]   = 1;
+                    c_size[3]   = wei_stride;
+                    c_stride[0] = hy_stride;
+                    c_stride[1] = hy_stride;
+                    c_stride[2] = hy_stride;
 
-					miopenCreateTensorDescriptor(&Adesc);
-					miopenCreateTensorDescriptor(&Cdesc);
-					miopenSetTensorDescriptor(
-						Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
-					miopenSetTensorDescriptor(
-						Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
-float alpha0=1;
-    float alpha1;
-    float beta=1;
+                    miopenCreateTensorDescriptor(&Adesc);
+                    miopenCreateTensorDescriptor(&Cdesc);
+                    miopenSetTensorDescriptor(
+                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                    miopenSetTensorDescriptor(
+                        Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+                    float alpha0 = 1;
+                    float alpha1;
+                    float beta = 1;
 
-					for (int bs = 0; bs < batch_n; bs++)
-					{
-alpha1=1;
-						OpTensor(handle,
-							miopenTensorOpAdd,
-							&alpha0,
-							miopen::deref(Adesc),
-							w,
-							&alpha1,
-							miopen::deref(Adesc),
-							w,
-							&beta,
-							miopen::deref(Cdesc),
-							reserveSpace,
-							wei_shift_bias_temp,
-							wei_shift_bias_temp + bi * wei_stride,
-							hid_shift + bs * hy_stride);
+                    for(int bs = 0; bs < batch_n; bs++)
+                    {
+                        alpha1 = 1;
+                        OpTensor(handle,
+                                 miopenTensorOpAdd,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 w,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 w,
+                                 &beta,
+                                 miopen::deref(Cdesc),
+                                 reserveSpace,
+                                 wei_shift_bias_temp,
+                                 wei_shift_bias_temp + bi * wei_stride,
+                                 hid_shift + bs * hy_stride);
 
-						if (dirMode)
-						{
-alpha1 = 0;
+                        if(dirMode)
+                        {
+                            alpha1 = 0;
 
-OpTensor(handle,
-                                                        miopenTensorOpAdd,
-                                                        &alpha0,
-                                                        miopen::deref(Adesc),
-                                                        w,
-                                                        &alpha1,
-                                                        miopen::deref(Adesc),
-                                                        w,
-                                                        &beta,
-                                                        miopen::deref(Cdesc),
-                                                        reserveSpace,
-								wei_shift_bias_temp + wei_stride,
-wei_shift_bias_temp + wei_stride,								
-hid_shift + bs * hy_stride);
-						}
-					}
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &alpha1,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &beta,
+                                     miopen::deref(Cdesc),
+                                     reserveSpace,
+                                     wei_shift_bias_temp + wei_stride,
+                                     wei_shift_bias_temp + wei_stride,
+                                     hid_shift + bs * hy_stride);
+                        }
+                    }
 
                     // Update time
                     if(handle.IsProfilingEnabled())
@@ -829,71 +829,69 @@ hid_shift + bs * hy_stride);
 
         if(biasMode)
         {
-			int wei_shift_bias_temp =
-				(inputMode == 1)
-				? (wei_shift_bias + bi * hy_h + bi * (nLayers - 1) * (bi + 1) * hy_h)
-				: (wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (nLayers - 1) * hy_h);
-			
-			std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
-			miopenTensorDescriptor_t Adesc, Cdesc;
+            int wei_shift_bias_temp =
+                (inputMode == 1)
+                    ? (wei_shift_bias + bi * hy_h + bi * (nLayers - 1) * (bi + 1) * hy_h)
+                    : (wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (nLayers - 1) * hy_h);
 
-			a_size[2] = 1;
-			a_size[3] = out_stride;
-			a_stride[0] = out_stride;
-			a_stride[1] = out_stride;
-			a_stride[2] = out_stride;
-			c_size[2] = 1;
-			c_size[3] = out_stride;
-			c_stride[0] = out_stride;
-			c_stride[1] = out_stride;
-			c_stride[2] = out_stride;
+            std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+            miopenTensorDescriptor_t Adesc, Cdesc;
 
-			miopenCreateTensorDescriptor(&Adesc);
-			miopenCreateTensorDescriptor(&Cdesc);
-			miopenSetTensorDescriptor(
-				Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
-			miopenSetTensorDescriptor(
-				Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+            a_size[2]   = 1;
+            a_size[3]   = out_stride;
+            a_stride[0] = out_stride;
+            a_stride[1] = out_stride;
+            a_stride[2] = out_stride;
+            c_size[2]   = 1;
+            c_size[3]   = out_stride;
+            c_stride[0] = out_stride;
+            c_stride[1] = out_stride;
+            c_stride[2] = out_stride;
 
-float alpha0=1;
-    float alpha1=1;
-    float beta=0;
+            miopenCreateTensorDescriptor(&Adesc);
+            miopenCreateTensorDescriptor(&Cdesc);
+            miopenSetTensorDescriptor(Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+            miopenSetTensorDescriptor(Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
 
-			for (int bs = 0; bs < batch_n; bs++)
-			{
-				OpTensor(handle,
-					miopenTensorOpAdd,
-					&alpha0,
-					miopen::deref(Adesc),
-					w,
-					&alpha1,
-					miopen::deref(Cdesc),
-					y,
-					&beta,
-					miopen::deref(Cdesc),
-					y,
-					wei_shift_bias_temp,
-					bs * out_stride,
-					bs * out_stride);
+            float alpha0 = 1;
+            float alpha1 = 0;
+            float beta   = 1;
 
-				if (dirMode)
-				{
-					OpTensor(handle,
-						miopenTensorOpAdd,
-						&alpha0,
-						miopen::deref(Adesc),
-						w,
-						&alpha1,
-						miopen::deref(Cdesc),
-						y,
-						&beta,
-						miopen::deref(Cdesc),
-						y,
-						wei_shift_bias_temp + out_stride,
-						bs * out_stride,
-						bs * out_stride);
-				}
-			}
+            for(int bs = 0; bs < batch_n; bs++)
+            {
+                OpTensor(handle,
+                         miopenTensorOpAdd,
+                         &alpha0,
+                         miopen::deref(Adesc),
+                         w,
+                         &alpha1,
+                         miopen::deref(Adesc),
+                         w,
+                         &beta,
+                         miopen::deref(Cdesc),
+                         y,
+                         wei_shift_bias_temp,
+                         wei_shift_bias_temp,
+                         bs * out_stride);
+
+                if(dirMode)
+                {
+                    OpTensor(handle,
+                             miopenTensorOpAdd,
+                             &alpha0,
+                             miopen::deref(Adesc),
+                             w,
+                             &alpha1,
+                             miopen::deref(Adesc),
+                             w,
+                             &beta,
+                             miopen::deref(Cdesc),
+                             y,
+                             wei_shift_bias_temp + out_stride,
+                             wei_shift_bias_temp + out_stride,
+                             bs * out_stride);
+                }
+            }
 
             // Update time
             if(handle.IsProfilingEnabled())
