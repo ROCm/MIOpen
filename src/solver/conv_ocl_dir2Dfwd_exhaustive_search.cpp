@@ -165,8 +165,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
     {
 
         // version
-        if(params.forward && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0 &&
-           params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+        if(params.direction.IsForward() && params.n_inputs % 16 == 0 &&
+           params.n_outputs % 16 == 0 && params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
         {
             result.n_in_data_tiles = 128;
 
@@ -185,7 +185,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
 
             if(params.pad0 > 0 || params.kernel_stride0 > 1)
             {
-                if(params.forward)
+                if(params.direction.IsForward())
                 {
                     result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
                 }
@@ -230,8 +230,6 @@ static int MeasureLoop(Handle* profile_h,
 {
     int ret = 0;
     ConvSolution kernel_search_result;
-    auto sub_search_params      = params;
-    sub_search_params.do_search = false;
 
     for(const Solver& traits : GetImplementationsToMeasure())
     {
@@ -258,9 +256,6 @@ static int MeasureLoop(Handle* profile_h,
 
         float padding_value = 0;
 
-        double s = 0, e = 0;
-        int iter = 1;
-
         if(profile_h)
         {
             processing_time = std::numeric_limits<float>::max();
@@ -285,7 +280,8 @@ static int MeasureLoop(Handle* profile_h,
         }
         else
         {
-            iter = (params.n_timer_iter <= 0) ? 1 : params.n_timer_iter;
+            double s = 0, e = 0;
+            int iter = (params.n_timer_iter <= 0) ? 1 : params.n_timer_iter;
 
             auto k = params.GetStream().GetKernel("",
                                                   "",
@@ -334,10 +330,11 @@ static int MeasureLoop(Handle* profile_h,
     return (ret);
 }
 
-void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
+bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
                                                     PerformanceConfig& result_) const
 {
-    auto& result = dynamic_cast<LegacyPerformanceConfig&>(result_);
+    auto& result   = dynamic_cast<LegacyPerformanceConfig&>(result_);
+    bool is_passed = false;
 
     miopen::Handle profile_h;
     double processing_time;
@@ -470,8 +467,8 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(params.forward && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
-           params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if(params.direction.IsForward() && params.kernel_stride0 == 1 &&
+           params.kernel_stride1 == 1 && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 
             // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -504,7 +501,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
             }
             else
             {
-                if(params.forward)
+                if(params.direction.IsForward())
                 {
                     out_pix_tl_cnt = (params.out_width & 1) ? 1 : 2;
                 }
@@ -606,7 +603,9 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
 
 #endif
 
-                        run_counter++;
+                        is_passed = true;
+
+						run_counter++;
 
                         if(min_proc_time > processing_time)
                         {
@@ -807,10 +806,11 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                                                     << result.n_in_data_tiles << ", "
                                                     << result.n_stacks << std::endl;
                                             }
-
 #endif
 
-                                            run_counter++;
+                                            is_passed = true;
+
+											run_counter++;
 
                                             if(min_proc_time > processing_time)
                                             {
@@ -851,6 +851,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
     result.n_stacks        = min_n_stacks;
 
     profile_h.EnableProfiling(false);
+    return is_passed;
 }
 
 } // namespace solver

@@ -146,7 +146,6 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
                 dxhat += tmp1;
                 dxhathat = mad(tmp1, xhat, dxhathat);
             } // end for(n)
-            pvt_dscale /= (_FLOAT)N;
 
             for(int n = 0; n < N; n++)
             {
@@ -246,7 +245,6 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
                 dxhat += tmp1;
                 dxhathat = mad(tmp1, xhat, dxhathat);
             } // end for(n)
-            pvt_dscale /= (_FLOAT)N;
 
             for(int n = 0; n < N; n++)
             {
