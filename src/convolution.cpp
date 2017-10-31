@@ -73,7 +73,8 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
     }
-    if(!(paddingMode == miopenPaddingSame || paddingMode==miopenPaddingValid || paddingMode==miopenPaddingDefault))
+    if(!(paddingMode == miopenPaddingSame || paddingMode == miopenPaddingValid ||
+         paddingMode == miopenPaddingDefault))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Padding mode not supported");
     }
@@ -131,17 +132,17 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
         {
             output_c = filter_c;
             output_h = std::max<std::ptrdiff_t>(
-                    1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h);
+                1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h);
             output_w = std::max<std::ptrdiff_t>(
-                    1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
+                1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
         }
         else if(mode == miopenConvolution)
         {
             output_c = filter_k;
             output_h = std::max<std::ptrdiff_t>(
-                    1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
+                1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
             output_w = std::max<std::ptrdiff_t>(
-                    1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
+                1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
         }
     }
     else if(paddingMode == miopenPaddingSame)
