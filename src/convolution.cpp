@@ -34,7 +34,7 @@ namespace miopen {
 ConvolutionDescriptor::ConvolutionDescriptor(
     int p_pad_h, int p_pad_w, int p_u, int p_v, int p_dilation_h, int p_dilation_w)
     : mode(miopenConvolution),
-      paddingMode(miopenPaddingSame),
+      paddingMode(miopenPaddingDefault),
       pad_h(p_pad_h),
       pad_w(p_pad_w),
       u(p_u),
