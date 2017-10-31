@@ -51,118 +51,36 @@ SetTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_
 
 #if(MIO_TC_USE_COPYKERNEL == 1)
 
-typedef struct
-{
-    long dims;
-    long lens[5];
-    long strides[5];
-    long offset;
-    long realsize;
-} tensorDesc_t;
-
 #ifndef MIO_TC_DIMS
 #define MIO_TC_DIMS 3
 #endif
 
-// SOURCE
-#ifndef srcOffset
-#define srcOffset 0
-#endif
-
-#ifndef srcLen0
-#define srcLen0 1
-#endif
-
-#ifndef srcLen1
-#define srcLen1 1
-#endif
-
-#ifndef srcLen2
-#define srcLen2 1
-#endif
-
-#ifndef srcLen3
-#define srcLen3 1
-#endif
-
-#ifndef srcLen4
-#define srcLen4 1
-#endif
-
-#ifndef srcStride0
-#define srcStride0 1
-#endif
-
-#ifndef srcStride1
-#define srcStride1 1
-#endif
-
-#ifndef srcStride2
-#define srcStride2 1
-#endif
-
-#ifndef srcStride3
-#define srcStride3 1
-#endif
-
-#ifndef srcStride4
-#define srcStride4 1
-#endif
-
-#ifndef srcRealsize
-#define srcRealsize 1
-#endif
-
-// DESTINATION
-#ifndef dstOffset
-#define dstOffset 0
-#endif
-
-#ifndef dstLen0
-#define dstLen0 1
-#endif
-
-#ifndef dstLen1
-#define dstLen1 1
-#endif
-
-#ifndef dstLen3
-#define dstLen3 1
-#endif
-
-#ifndef dstLen3
-#define dstLen3 1
-#endif
-
-#ifndef dstLen4
-#define dstLen4 1
-#endif
-
-#ifndef dstStride0
-#define dstStride0 1
-#endif
-
-#ifndef dstStride1
-#define dstStride1 1
-#endif
-
-#ifndef dstStride2
-#define dstStride2 1
-#endif
-
-#ifndef dstStride3
-#define dstStride3 1
-#endif
-
-#ifndef dstStride4
-#define dstStride4 1
-#endif
-
-#ifndef dstRealsize
-#define dstRealsize 1
-#endif
-
-__kernel void CopyTensor(global MIOPEN_TYPE* __restrict src, global MIOPEN_TYPE* __restrict dst)
+__kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
+                         global MIOPEN_TYPE* __restrict dst,
+                         const int srcOffset,
+                         const int srcStride0,
+                         const int srcStride1,
+                         const int srcStride2,
+                         const int srcStride3,
+                         const int srcStride4,
+                         const int srcLen0,
+                         const int srcLen1,
+                         const int srcLen2,
+                         const int srcLen3,
+                         const int srcLen4,
+                         const long srcRealsize,
+                         const int dstOffset,
+                         const int dstStride0,
+                         const int dstStride1,
+                         const int dstStride2,
+                         const int dstStride3,
+                         const int dstStride4,
+                         const int dstLen0,
+                         const int dstLen1,
+                         const int dstLen2,
+                         const int dstLen3,
+                         const int dstLen4,
+                         const long dstRealsize)
 {
 #if(MIO_TC_DIMS > 1)
     uint sindex = 0;
