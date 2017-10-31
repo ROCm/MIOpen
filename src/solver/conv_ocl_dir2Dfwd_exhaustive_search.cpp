@@ -407,7 +407,7 @@ bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
     }
 
     // search loop here
-    int grp_tl_ln[2]       = {8, 16};
+    int grp_tl_ln[4]       = {8, 16};
     int tile_sz[3]         = {8, 16, 32};
     int tile_sz1[3]        = {8, 16, 32};
     int tile_sz0[3]        = {8, 16, 32};
