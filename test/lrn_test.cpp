@@ -169,16 +169,18 @@ struct verify_lrn_bwd
         {
             par_ford(n_batch, channels)([&](int b, int c) {
                 ford(height, width)([&](int h, int w) {
-                    double ydy = 0;
-                    auto left = (w - radius) < 0 ? 0 : (w - radius);
-                    auto right = (left + lrn_n) > width ? width : (left + lrn_n);
-                    auto top = (h - radius) < 0 ? 0 : (h - radius);
-                    auto bottom = (top + lrn_n) > height ? height : (top + lrn_n);
-                    auto adjust_area = (right - left) * (bottom - top);
+                    double ydy             = 0;
+                    auto left              = (w - radius) < 0 ? 0 : (w - radius);
+                    auto right             = (left + lrn_n) > width ? width : (left + lrn_n);
+                    auto top               = (h - radius) < 0 ? 0 : (h - radius);
+                    auto bottom            = (top + lrn_n) > height ? height : (top + lrn_n);
+                    auto adjust_area       = (right - left) * (bottom - top);
                     auto cache_ratio_value = 2 * alpha * beta / adjust_area;
 
-                    for (auto i = left; i < right; i++) {
-                        for (auto j = top; j < bottom; j++) {
+                    for(auto i = left; i < right; i++)
+                    {
+                        for(auto j = top; j < bottom; j++)
+                        {
                             ydy += (inputY(b, c, j, i) * inputDY(b, c, j, i) / scale(b, c, j, i));
                         }
                     }
@@ -196,9 +198,10 @@ struct verify_lrn_bwd
                 ford(channels)([&](int c) {
                     double ydy = 0;
                     auto start = (c - radius) < 0 ? 0 : (c - radius);
-                    auto end = (c + radius) > channels ? channels : (c + radius);
+                    auto end   = (c + radius) > channels ? channels : (c + radius);
 
-                    for (auto k = start; k < end; k++) {
+                    for(auto k = start; k < end; k++)
+                    {
                         ydy += (inputY(b, k, h, w) * inputDY(b, k, h, w) / scale(b, k, h, w));
                     }
 
@@ -213,12 +216,12 @@ struct verify_lrn_bwd
 
     tensor<T> gpu()
     {
-        auto &&handle = get_handle();
-        auto inputY_dev = handle.Write(inputY.data);
-        auto inputDY_dev = handle.Write(inputDY.data);
-        auto inputX_dev = handle.Write(inputX.data);
+        auto&& handle     = get_handle();
+        auto inputY_dev   = handle.Write(inputY.data);
+        auto inputDY_dev  = handle.Write(inputDY.data);
+        auto inputX_dev   = handle.Write(inputX.data);
         auto outputDX_dev = handle.Create<T>(outputDX.data.size());
-        auto scale_dev = handle.Write(scale.data);
+        auto scale_dev    = handle.Write(scale.data);
 
         auto alpha = lrn.GetAlpha(), beta = lrn.GetBeta();
         lrn.Backward(handle,
@@ -278,16 +281,19 @@ struct lrn_driver : test_driver
     {
         miopen::LRNDescriptor lrn{mode_lookup.at(miopen::ToUpper(mode)), n, {alpha, beta, k}};
 
-        auto OutputDX = input;
+        auto OutputDX   = input;
         auto fwd_output = verify(verify_lrn_foward<T>{lrn, input});
-
-        auto out = fwd_output.first;
+        auto out        = fwd_output.first;
 
         std::size_t n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
-        auto scale = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
+        auto scale  = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
         auto inputX = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
+        par_ford(n_batch, channels, height, width)(
+            [&](int b, int c, int h, int w) { scale(b, c, h, w) += 1; });
+
+        auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, out, inputX, OutputDX, scale});
     };
 };
 
-int main(int argc, const char* argv[]) { test_drive<lrn_driver<double>>(argc, argv); };
+int main(int argc, const char* argv[]) { test_drive<lrn_driver<float>>(argc, argv); };
