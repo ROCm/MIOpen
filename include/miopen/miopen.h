@@ -278,9 +278,9 @@ typedef enum {
  * Padding mode selection for convolution/Pooling layer preference
 */
 typedef enum {
-    miopenPaddingDefault = 0,/*!< MIOPEN Default Padding */
-    miopenPaddingSame = 1, /*!< Tensorflow SAME Padding */
-    miopenPaddingValid = 2, /*!< Tensorflow VALID Padding */
+    miopenPaddingDefault = 0, /*!< MIOPEN Default Padding */
+    miopenPaddingSame    = 1, /*!< Tensorflow SAME Padding */
+    miopenPaddingValid   = 2, /*!< Tensorflow VALID Padding */
 } miopenPaddingMode_t;
 
 /*! @ingroup pooling
