@@ -32,9 +32,10 @@ namespace solver {
 
 bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& params) const
 {
-    return params.forward && (params.kernel_size0 > 11 || params.kernel_size1 > 11 ||
-                              ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
-                               !(params.kernel_size0 == 1 && params.kernel_size1 == 1)));
+    return params.direction.IsForward() &&
+           (params.kernel_size0 > 11 || params.kernel_size1 > 11 ||
+            ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
+             !(params.kernel_size0 == 1 && params.kernel_size1 == 1)));
 }
 
 ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params,
