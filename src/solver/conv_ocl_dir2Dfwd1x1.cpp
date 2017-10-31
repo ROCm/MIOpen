@@ -24,8 +24,9 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
+#include "miopen/legacy_exhaustive_search.hpp"
+#include "miopen/solver.hpp"
 
 namespace miopen {
 namespace solver {
@@ -36,13 +37,11 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
     return (params.kernel_size0 == 1 && params.kernel_size1 == 1);
 }
 
-ConvSolution
-ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
-                                 const PerformanceConfig& exhaustive_search_result) const
+ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
+                                              const PerformanceConfig& config) const
 {
     ConvSolution result;
-    const auto& searched_params =
-        dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
+    const auto& searched_params = dynamic_cast<const LegacyPerformanceConfig&>(config);
     searched_params.CopyTo(result);
 
     //   if(params.n_outputs % 4 == 0 && params.n_inputs % 4 == 0)
@@ -234,7 +233,8 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 
             int wei_cstride = params.kernel_size0 * params.kernel_size1;
             // backward: inputs are forward outputs
-            int wei_bstride = (params.forward ? params.n_inputs : params.n_outputs) * wei_cstride;
+            const bool is_forward = params.direction.IsForward();
+            int wei_bstride       = (is_forward ? params.n_inputs : params.n_outputs) * wei_cstride;
 
             std::string READ_TYPE =
                 (read_unit == 1) ? "_FLOAT"
@@ -246,18 +246,17 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             if(params.pad0 > 0 || params.kernel_stride0 > 1 || params.pad1 > 0 ||
                params.kernel_stride1 > 1)
             {
-                int step   = (params.forward) ? read_unit : read_unit * params.kernel_stride0;
-                OUT_WIDTH4 = (params.out_width + step - 1) / (step);
-                int OUT_HEIGHT4 =
-                    (params.forward)
-                        ? params.out_height
-                        : (params.out_height + params.kernel_stride1 - 1) / params.kernel_stride1;
+                int step        = is_forward ? read_unit : read_unit * params.kernel_stride0;
+                OUT_WIDTH4      = (params.out_width + step - 1) / (step);
+                int OUT_HEIGHT4 = is_forward ? params.out_height
+                                             : (params.out_height + params.kernel_stride1 - 1) /
+                                                   params.kernel_stride1;
                 MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
             }
 
             int VERT_ALIGNED  = 1;
             int HORIZ_ALIGNED = 1;
-            if(!params.forward)
+            if(!is_forward)
             {
                 VERT_ALIGNED =
                     (params.out_height / params.kernel_stride1 == params.in_height) ? 1 : 0;
@@ -286,7 +285,7 @@ ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             KernelInfo kernel;
 
             kernel.comp_options =
-                std::string(" -DMLO_DIR_FORWARD=") + std::to_string(params.forward) +
+                std::string(" -DMLO_DIR_FORWARD=") + (is_forward ? "1" : "0") +
                 std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size0) +
                 std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size1) +
                 std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.kernel_stride0) +

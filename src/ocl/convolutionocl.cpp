@@ -23,7 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include <miopen/convolution.hpp>
+#include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
 #include <miopen/solver.hpp>
@@ -557,13 +559,19 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
+                /// \todo Something unusual is happening here, why? Shall we rework this?
                 ConvolutionContext context;
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
-                solver::ConvOclDirectFwd11x11 solver;
-                auto config                   = solver.Find(context);
-                solver::ConvSolution solution = solver.GetSolution(context, *config);
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+                DbRecord dbRecord(context.GetPerfDbPath(), context, true);
+#else
+                DbRecord dbRecord(context.GetPerfDbPath(), context);
+#endif
+                const solver::Solver& solver =
+                    StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
+                solver::ConvSolution solution = solver.FindSolution(context, dbRecord);
 
                 if(solution.passes == 1)
                 {
@@ -1421,7 +1429,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         miopenConvAlgoPerf_t* perfResults,
                                                         Data_t workSpace,
                                                         size_t workSpaceSize,
-                                                        bool /*exhaustiveSearch*/) const
+                                                        bool exhaustiveSearch) const
 {
 
     if(x == nullptr || dw == nullptr || dy == nullptr)
@@ -1568,7 +1576,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                IsBwdWeightsDirectSupported(dwDesc))
             {
                 mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-                construct_params.doSearch(false);
+                construct_params.doSearch(exhaustiveSearch);
                 construct_params.setStream(&handle);
                 construct_params.setOutputDescFromMLDesc(dyDesc);
                 construct_params.setInputDescFromMLDesc(xDesc);
