@@ -42,8 +42,12 @@ T iciel_div(T x, U y)
 
 PoolingDescriptor::PoolingDescriptor() {}
 
-PoolingDescriptor::PoolingDescriptor(
-    miopenPoolingMode_t m, miopenPaddingMode_t pm, const int* plens, const int* ppads, const int* pstrides, int size)
+PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
+                                     miopenPaddingMode_t pm,
+                                     const int* plens,
+                                     const int* ppads,
+                                     const int* pstrides,
+                                     int size)
     : lens(plens, plens + size),
       strides(pstrides, pstrides + size),
       pads(ppads, ppads + size),
@@ -97,25 +101,22 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& tensorDesc) const
     miopenPaddingMode_t _pMode = GetPaddingMode();
 
     auto output_h = std::max<std::ptrdiff_t>(
-            1, std::ceil((input_h - window_h + 2 * pad_h) / static_cast<float>(u)) + 1);
+        1, std::ceil((input_h - window_h + 2 * pad_h) / static_cast<float>(u)) + 1);
     auto output_w = std::max<std::ptrdiff_t>(
-    1, std::ceil((input_w - window_w + 2 * pad_w) / static_cast<float>(v)) + 1);
+        1, std::ceil((input_w - window_w + 2 * pad_w) / static_cast<float>(v)) + 1);
 
-    if(_pMode == miopenPaddingSame){
+    if(_pMode == miopenPaddingSame)
+    {
         output_h = std::ceil(static_cast<double>(input_h) / u);
         output_w = std::ceil(static_cast<double>(input_w) / v);
     }
-    else if (_pMode == miopenPaddingValid)
+    else if(_pMode == miopenPaddingValid)
     {
         output_h = std::ceil(static_cast<double>(input_h - window_h + 1) / u);
         output_w = std::ceil(static_cast<double>(input_w - window_w + 1) / v);
     }
 
-    return std::make_tuple(
-        input_n,
-        input_c,
-        output_h,
-        output_w);
+    return std::make_tuple(input_n, input_c, output_h, output_w);
 }
 
 TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescriptor& tensorDesc) const
