@@ -489,10 +489,9 @@ void OpTensor(Handle& handle,
 
 struct copyTensorDesc
 {
-    long dims;
-    long lens[5];
-    long strides[5];
-    long offset;
+    int dims;
+    int lens[5];
+    int strides[5];
     long realsize;
 };
 
@@ -506,13 +505,30 @@ void CopyTensor(Handle& handle,
 {
 
     using tensorDesc_t = copyTensorDesc;
-    if(src == nullptr || dest == nullptr || srcDesc.GetElementSize() != destDesc.GetElementSize() ||
-       srcDesc.GetType() != destDesc.GetType() ||
-       srcDesc.GetLengths().size() != destDesc.GetLengths().size() ||
-       srcDesc.GetLengths().size() > 5 || destDesc.GetLengths().size() > 5)
+    if(src == nullptr || dest == nullptr)
     {
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
     }
+    if(srcDesc.GetElementSize() != destDesc.GetElementSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor data sizes do not match.");
+    }
+
+    if(srcDesc.GetType() != destDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+    }
+
+    if(srcDesc.GetLengths().size() != destDesc.GetLengths().size())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
+    if(srcDesc.GetLengths().size() > 5 || destDesc.GetLengths().size() > 5)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
+    }
+
     size_t srcSize    = srcDesc.GetElementSize();
     std::string parms = " -DMIOPEN_TYPE=" + GetDataType(srcDesc.GetType()) +
                         " -DMIOPEN_ALPHA_TYPE=float" + " -DMIO_TC_USE_COPYKERNEL=1";
@@ -524,11 +540,7 @@ void CopyTensor(Handle& handle,
         tensorDesc_t sKernDesc;
         tensorDesc_t dKernDesc;
 
-        sKernDesc.dims = dKernDesc.dims = srcDesc.GetLengths().size();
-        sKernDesc.offset                = srcOffset;
-        sKernDesc.realsize              = srcDesc.GetElementSpace();
-        dKernDesc.offset                = destOffset;
-        dKernDesc.realsize              = destDesc.GetElementSpace();
+        sKernDesc.dims = srcDesc.GetLengths().size();
         for(int i = 0; i < 5; i++)
         {
             if(i < sKernDesc.dims)
@@ -545,32 +557,11 @@ void CopyTensor(Handle& handle,
             }
         }
 
+        parms += " -DMIO_TC_DIMS=" + std::to_string(sKernDesc.dims);
+
         // Run data copy kernel
         std::vector<size_t> vld;
         std::vector<size_t> vgd;
-
-        parms +=
-            " -DMIO_TC_DIMS=" + std::to_string(sKernDesc.dims) + " -DsrcOffset=" +
-            std::to_string(sKernDesc.offset) + " -DsrcLen0=" + std::to_string(sKernDesc.lens[0]) +
-            " -DsrcLen1=" + std::to_string(sKernDesc.lens[1]) + " -DsrcLen2=" +
-            std::to_string(sKernDesc.lens[2]) + " -DsrcLen3=" + std::to_string(sKernDesc.lens[3]) +
-            " -DsrcLen4=" + std::to_string(sKernDesc.lens[4]) + " -DsrcStride0=" +
-            std::to_string(sKernDesc.strides[0]) + " -DsrcStride1=" +
-            std::to_string(sKernDesc.strides[1]) + " -DsrcStride2=" +
-            std::to_string(sKernDesc.strides[2]) + " -DsrcStride3=" +
-            std::to_string(sKernDesc.strides[3]) + " -DsrcStride4=" +
-            std::to_string(sKernDesc.strides[4]) + " -DsrcRealsize=" +
-            std::to_string(sKernDesc.realsize) + " -DdstOffset=" +
-            std::to_string(dKernDesc.offset) + " -DdstLen0=" + std::to_string(dKernDesc.lens[0]) +
-            " -DdstLen1=" + std::to_string(dKernDesc.lens[1]) + " -DdstLen2=" +
-            std::to_string(dKernDesc.lens[2]) + " -DdstLen3=" + std::to_string(dKernDesc.lens[3]) +
-            " -DdstLen4=" + std::to_string(dKernDesc.lens[4]) + " -DdstStride0=" +
-            std::to_string(dKernDesc.strides[0]) + " -DdstStride1=" +
-            std::to_string(dKernDesc.strides[1]) + " -DdstStride2=" +
-            std::to_string(dKernDesc.strides[2]) + " -DdstStride3=" +
-            std::to_string(dKernDesc.strides[3]) + " -DdstStride4=" +
-            std::to_string(dKernDesc.strides[4]) + " -DdstRealsize=" +
-            std::to_string(dKernDesc.realsize);
 
         switch(sKernDesc.dims)
         {
@@ -616,12 +607,34 @@ void CopyTensor(Handle& handle,
             break;
         default: break;
         };
-
         std::string program_name = "MIOpenTensorScaleKernel.cl";
-        handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(src, dest);
-
-        //        handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
-        //            src, dest, sKernDesc, dKernDesc);
+        handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
+            src,
+            dest,
+            srcOffset,
+            sKernDesc.strides[0],
+            sKernDesc.strides[1],
+            sKernDesc.strides[2],
+            sKernDesc.strides[3],
+            sKernDesc.strides[4],
+            sKernDesc.lens[0],
+            sKernDesc.lens[1],
+            sKernDesc.lens[2],
+            sKernDesc.lens[3],
+            sKernDesc.lens[4],
+            srcDesc.GetElementSpace(),
+            destOffset,
+            dKernDesc.strides[0],
+            dKernDesc.strides[1],
+            dKernDesc.strides[2],
+            dKernDesc.strides[3],
+            dKernDesc.strides[4],
+            dKernDesc.lens[0],
+            dKernDesc.lens[1],
+            dKernDesc.lens[2],
+            dKernDesc.lens[3],
+            dKernDesc.lens[4],
+            destDesc.GetElementSpace());
     }
     else
     {
