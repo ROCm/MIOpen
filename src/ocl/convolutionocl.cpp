@@ -67,7 +67,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                               KernelInvoke& kernel,
                                               int direction) const
 {
-    try 
+    try
     {
         mlo_construct_winograd construct_params(direction);
         construct_params.setStream(&handle);
@@ -98,7 +98,9 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
         k_p = std::make_tuple(N, C, H, W, K, n_groups, R, S, kernel_name == "sp3AsmConvRxSF");
         return 0;
-    } catch(miopen::Exception&) {
+    }
+    catch(miopen::Exception&)
+    {
         return -1;
     }
 }

@@ -956,7 +956,6 @@ class mlo_construct_winograd : public mlo_construct_direct2D
     mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
 
     void mloConstruct();
-
 };
 
 #define MLO_POOLING_OP_AVE 0
