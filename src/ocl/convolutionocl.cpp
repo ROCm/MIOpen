@@ -67,7 +67,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                               KernelInvoke& kernel,
                                               int direction) const
 {
-    try
+    try 
     {
         mlo_construct_winograd construct_params(direction);
         construct_params.setStream(&handle);
@@ -98,9 +98,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
         k_p = std::make_tuple(N, C, H, W, K, n_groups, R, S, kernel_name == "sp3AsmConvRxSF");
         return 0;
-    }
-    catch(miopen::Exception&)
-    {
+    } catch(miopen::Exception&) {
         return -1;
     }
 }
@@ -1585,10 +1583,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setWeightDescFromMLDesc(dwDesc);
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-                if(!construct_params.mloIsCompilerWorkarounds())
+                if(!construct_params.mloIsCompilerWorkarounds() && try_([&] { construct_params.mloConstruct(); }) != miopenStatusSuccess)
                 {
-                    // TODO: This can throw
-                    construct_params.mloConstruct();
                     construct_params.mloBuildConf_Key(network_config);
 
                     const std::vector<mlo_kernel_info>& bwd_wrw_info =
