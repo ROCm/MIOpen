@@ -27,7 +27,7 @@
 #ifndef GUARD_MIOPEN_SOLVER_HPP_
 #define GUARD_MIOPEN_SOLVER_HPP_
 
-#include "miopen/config.h"
+#include <miopen/config.h>
 
 #include <functional>
 #include <memory>
@@ -35,21 +35,15 @@
 #include <vector>
 #include <ostream>
 
-#include "miopen/db_record.hpp"
-#include "miopen/mlo_internal.hpp"
-#include "miopen/miopen.h"
+#include <miopen/db_record.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/make_unique.hpp>
+#include <miopen/env.hpp>
+#include <miopen/miopen.h>
 
 namespace miopen {
 
-#if __cplusplus < 201402L // For ex. hip is not C++14 yet.
-template <typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args)
-{
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...)); // NOLINT
-}
-#else
-using std::make_unique; // re-use as miopen::make_unique
-#endif
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace solver {
 
@@ -107,6 +101,30 @@ class ConvSolution
 
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
+
+template<class... Solvers, class Context>
+miopen::solver::ConvSolution FindSolution(miopen::DbRecord dbRecord, const Context& search_params)
+{
+    miopen::solver::ConvSolution solution{miopenStatusUnknownError};
+
+    const auto no_perf_filtering =
+        miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
+
+    MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, 
+    {
+        if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
+           (no_perf_filtering || solver.IsFast(search_params)))
+        {
+            solution = solver.FindSolution(search_params, dbRecord);
+            if(solution.Succeeded() && solution.construction_params.empty())
+            {
+                MIOPEN_THROW(std::string("Internal error in solver: ") + typeid(solver).name());
+            }
+        }
+    });
+
+    return solution;
+}
 
 /// The descendants of this class comprise an solution-specific
 /// set of optimization parameters, i.e. those which expected to be used by
@@ -245,7 +263,7 @@ class ConvAsm5x10u2v2b1 : public Solver
 
 class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public Solver
 {
-    protected:
+    public:
     const char* SolverId() const override { return "ConvAsm7x7c3h224w224k64u2v2p3q3f1"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,

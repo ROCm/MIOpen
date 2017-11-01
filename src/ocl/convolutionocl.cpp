@@ -67,18 +67,18 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                               KernelInvoke& kernel,
                                               int direction) const
 {
+    try 
+    {
+        mlo_construct_winograd construct_params(direction);
+        construct_params.setStream(&handle);
 
-    mlo_construct_winograd construct_params(direction);
-    construct_params.setStream(&handle);
+        construct_params.setOutputDescFromMLDesc(yDesc);
+        construct_params.setInputDescFromMLDesc(xDesc);
+        construct_params.setWeightDescFromMLDesc(wDesc);
 
-    construct_params.setOutputDescFromMLDesc(yDesc);
-    construct_params.setInputDescFromMLDesc(xDesc);
-    construct_params.setWeightDescFromMLDesc(wDesc);
+        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-
-    if(construct_params.mloConstruct() != -1)
-    { // TODO: be more graceful with the check for whether a config is supported by winograd
+        construct_params.mloConstruct();
         std::string program_name = construct_params.getKernelFile();
         std::string kernel_name  = construct_params.getKernelName();
         std::string parms        = construct_params.getCompilerOptions();
@@ -98,9 +98,9 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
         k_p = std::make_tuple(N, C, H, W, K, n_groups, R, S, kernel_name == "sp3AsmConvRxSF");
         return 0;
-    }
-    else
+    } catch(miopen::Exception&) {
         return -1;
+    }
 }
 
 int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
@@ -1583,8 +1583,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setWeightDescFromMLDesc(dwDesc);
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-                if(!construct_params.mloIsCompilerWorkarounds() && !construct_params.mloConstruct())
+                if(!construct_params.mloIsCompilerWorkarounds())
                 {
+                    // TODO: This can throw
+                    construct_params.mloConstruct();
                     construct_params.mloBuildConf_Key(network_config);
 
                     const std::vector<mlo_kernel_info>& bwd_wrw_info =

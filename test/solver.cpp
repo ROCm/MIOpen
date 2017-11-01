@@ -159,26 +159,24 @@ class TrivialConstruct : public mlo_construct_direct2D
 {
     public:
     TrivialConstruct(const char* db_path, int dir, bool do_bias = false)
-        : mlo_construct_direct2D(dir, do_bias), _db_path(db_path)
+        : mlo_construct_direct2D(dir, do_bias)
     {
+        _db_path = db_path;
     }
 
-    const std::vector<std::reference_wrapper<const solver::Solver>>& SolverStore() const override
+    void mloConstruct()
     {
-        static const std::vector<std::reference_wrapper<const solver::Solver>> data{
-            StaticContainer<const TrivialSlowTestSolver>::Instance(),
-            StaticContainer<const TrivialTestSolver>::Instance(),
-            StaticContainer<const SearchableTestSolver>::Instance(),
-        };
-
-        return data;
+        // clang-format off
+        mloUseSolution(miopen::solver::FindSolution<
+            TrivialSlowTestSolver,
+            TrivialTestSolver,
+            SearchableTestSolver
+        >(this->GetDbRecord(), _search_params));
+        // clang-format on
     }
 
     protected:
-    std::string db_path() const override { return _db_path; }
-
-    private:
-    const char* _db_path;
+    std::string db_path() const { return _db_path; }
 };
 
 class SolverTest

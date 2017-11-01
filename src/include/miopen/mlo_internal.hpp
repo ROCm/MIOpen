@@ -139,7 +139,8 @@ using mlo_kernel_info = std::tuple<const std::string,
 #endif
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
-#include "miopen/db.hpp"
+#include <miopen/db.hpp>
+#include <miopen/db_record.hpp>
 
 inline int mloLg2(int v)
 {
@@ -327,7 +328,7 @@ class ConvolutionContext : public ProblemDescription
 
 namespace solver {
 class ConvSolution;
-class Solver;
+
 } // namespace solver
 
 } // namespace miopen
@@ -335,8 +336,6 @@ class Solver;
 class mlo_construct_direct2D
 {
     public:
-    virtual const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
-    SolverStore() const;
     void mloUseSolution(const miopen::solver::ConvSolution& s);
 
     mlo_construct_direct2D(int dir, bool do_bias = false)
@@ -389,7 +388,9 @@ class mlo_construct_direct2D
         _new_in_sz     = 0;
     }
 
-    virtual ~mlo_construct_direct2D() = default;
+    // Only called from construtor
+    void setupRocm();
+
     /*
     * major interface
     * it has to be called only after
@@ -402,9 +403,10 @@ class mlo_construct_direct2D
     * arbitrary combination of kerenl sizes, strides
     */
 
-    /// \todo The function is never called through the vtable. Remove "virtual". Consider moving
-    /// into ctor, if possible.
-    virtual int mloConstruct();
+    /// \todo Consider moving into ctor, if possible.
+    void mloConstruct();
+
+    miopen::DbRecord GetDbRecord() const;
 
     /*
     * returns parameter values that are compiled in legacy kernels for kernels using them as
@@ -840,8 +842,7 @@ class mlo_construct_direct2D
         params = _search_params;
     }
 
-    protected:
-    virtual std::string db_path() const { return _search_params.GetPerfDbPath(); }
+    std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
 
     bool mloIsAmdOpenclRocm(rocm_meta_version& rmv) const;
 
@@ -921,6 +922,8 @@ class mlo_construct_direct2D
     size_t _workspce_sz;
 
     unsigned int _n_groups{};
+    // For testing
+    const char* _db_path = nullptr;
 };
 
 /*
@@ -935,10 +938,12 @@ class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
         _search_params.direction.SetBackwardWrW();
     }
 
+    miopen::solver::ConvSolution FindSolution();
+
+    void mloConstruct();
+
     bool mloIsCompilerWorkarounds() const;
     int mloMultiStep();
-    const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
-    SolverStore() const override;
 };
 
 /*
@@ -950,8 +955,8 @@ class mlo_construct_winograd : public mlo_construct_direct2D
     public:
     mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
 
-    const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
-    SolverStore() const override;
+    void mloConstruct();
+
 };
 
 #define MLO_POOLING_OP_AVE 0
@@ -1005,7 +1010,7 @@ class mlo_construct_pooling2D : public mlo_construct_direct2D
     }
 
     inline int getPoolingMethod() const { return (_pooling_method); }
-    int mloConstruct() override;
+    void mloConstruct();
 
     protected:
     int _pooling_method;
@@ -1049,7 +1054,7 @@ class mlo_construct_norm : public mlo_construct_direct2D
                             : _normAlpha / (_norm_area * _norm_area);
     }
 
-    int mloConstruct() override;
+    void mloConstruct();
 
     protected:
     int mloConstructFwd();
@@ -1102,7 +1107,7 @@ class mlo_construct_neuron : public mlo_construct_direct2D
         shift       = _shift;
     }
 
-    int mloConstruct() override;
+    void mloConstruct();
 
     protected:
     int mloConstructFwd();
