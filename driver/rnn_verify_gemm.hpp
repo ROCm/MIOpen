@@ -722,7 +722,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 
     for(int bs = 0; bs < batch_n; bs++)
     {
-        for(int w = 0; w < in_h; w++)
+        for(int w = 0; w < in_stride; w++)
         {
             din_host[bs * in_stride + w] = din_state[bs * in_stride + w];
         }
