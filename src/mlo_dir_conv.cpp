@@ -143,7 +143,8 @@ void mlo_construct_BwdWrW2D::mloConstruct()
 //         // clang-format off
 //         miopen::StaticContainer<const miopen::solver::ConvAsm3x3U>::Instance(),
 //         miopen::StaticContainer<const miopen::solver::ConvAsm5x10u2v2f1>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
+//         miopen::StaticContainer<const
+//         miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
 //         miopen::StaticContainer<const miopen::solver::ConvAsm5x10u2v2b1>::Instance(),
 //         miopen::StaticContainer<const miopen::solver::ConvOclDirectFwd11x11>::Instance(),
 //         miopen::StaticContainer<const miopen::solver::ConvOclDirectFwdGen>::Instance(),

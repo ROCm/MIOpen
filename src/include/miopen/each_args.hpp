@@ -105,7 +105,8 @@ void unpack(F f, T&& x)
 }
 
 #ifdef __clang__
-#define MIOPEN_STATIC_FOR_EACH(var, pack, ...) (void)std::initializer_list<int>{([&](decltype(pack) var) __VA_ARGS__ (pack), 0)...}
+#define MIOPEN_STATIC_FOR_EACH(var, pack, ...) \
+    (void)std::initializer_list<int> { ([&](decltype(pack) var) __VA_ARGS__(pack), 0)... }
 #else
 #define MIOPEN_STATIC_FOR_EACH(var, pack, ...) miopen::each_args([&](auto var) __VA_ARGS__, pack...)
 #endif
