@@ -394,8 +394,7 @@ struct test_driver
             throw;
         }
     }
-    
-    
+
     template <class V, class... Ts>
     auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
@@ -422,13 +421,13 @@ struct test_driver
             else
             {
                 auto cpu = v.cpu(xs...);
-                
+
                 if(miopen::range_zero(cpu))
                 {
                     std::cout << "Cpu data is all zeros" << std::endl;
                     v.fail(-1, xs...);
                 }
-                
+
                 if(miopen::range_zero(gpu))
                 {
                     std::cout << "Gpu data is all zeros" << std::endl;
@@ -439,10 +438,10 @@ struct test_driver
                 if(idx < miopen::range_distance(cpu))
                 {
                     std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
-                          << std::endl;
+                              << std::endl;
                     v.fail(-1, xs...);
                 }
-                
+
                 return std::make_pair(cpu, gpu);
             }
         }
