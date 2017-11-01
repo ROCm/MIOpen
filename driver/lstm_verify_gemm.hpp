@@ -137,7 +137,7 @@ void RunLSTMForwardGEMMCPUVerify(
                 {
                     for(int bs = 0; bs < batch_n; bs++)
                     {
-                        for(int h = 0; h < hy_stride; h++)
+                        for(int h = 0; h < wei_stride; h++)
                         {
                             hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift_bias + h];
                         }
