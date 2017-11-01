@@ -25,41 +25,15 @@
  *******************************************************************************/
 
 #include "args.hpp"
+#include "get_handle.hpp"
 #include "network_data.hpp"
 #include "tensor_holder.hpp"
 #include "test.hpp"
+#include "type_name.hpp"
 #include "verify.hpp"
 
 #include <functional>
 #include <miopen/functional.hpp>
-
-template <class Test_Driver_Private_TypeName_>
-const std::string& get_type_name()
-{
-    static std::string name;
-
-    if(name.empty())
-    {
-#ifdef _MSC_VER
-        name = typeid(Test_Driver_Private_TypeName_).name();
-        name = name.substr(7);
-#else
-        const char parameter_name[] = "Test_Driver_Private_TypeName_ =";
-
-        name = __PRETTY_FUNCTION__;
-
-        auto begin  = name.find(parameter_name) + sizeof(parameter_name);
-#if(defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
-        auto length = name.find_last_of(",") - begin;
-#else
-        auto length = name.find_first_of("];", begin) - begin;
-#endif
-        name        = name.substr(begin, length);
-#endif
-    }
-
-    return name;
-}
 
 struct rand_gen
 {
@@ -119,6 +93,7 @@ struct test_driver
     bool full_set    = false;
     bool verbose     = false;
     double tolerance = 80;
+    bool time        = false;
     int batch_factor = 0;
     bool no_validate = false;
 
@@ -128,6 +103,7 @@ struct test_driver
         v(full_set, {"--all"}, "Run all tests");
         v(verbose, {"--verbose", "-v"}, "Run verbose mode");
         v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
+        v(time, {"--time"}, "Time the kernel on GPU");
         v(batch_factor, {"--batch-factor", "-n"}, "Set batch factor");
         v(no_validate,
           {"--disable-validation"},
@@ -155,9 +131,10 @@ struct test_driver
                           fs...);
     }
 
+    template <class X>
     struct generate_tensor_t
     {
-        std::function<std::set<std::vector<int>>()> get_data;
+        std::function<std::set<X>()> get_data;
         template <class T>
         void operator()(T& x, argument& arg) const
         {
@@ -166,9 +143,10 @@ struct test_driver
         }
     };
 
-    generate_tensor_t generate_tensor(std::set<std::vector<int>> dims, std::vector<int> single)
+    template <class X>
+    generate_tensor_t<X> generate_tensor(std::set<X> dims, X single)
     {
-        return {[=]() -> std::set<std::vector<int>> {
+        return {[=]() -> std::set<X> {
             if(full_set)
                 return dims;
             else
@@ -176,10 +154,17 @@ struct test_driver
         }};
     }
 
-    template <class F>
-    generate_tensor_t lazy_generate_tensor(F f, std::vector<int> single)
+    template <class X>
+    generate_tensor_t<std::vector<X>> generate_tensor(std::set<std::vector<X>> dims,
+                                                      std::initializer_list<X> single)
     {
-        return {[=]() -> std::set<std::vector<int>> {
+        return generate_tensor<std::vector<X>>(dims, single);
+    }
+
+    template <class F, class X>
+    generate_tensor_t<X> lazy_generate_tensor(F f, X single)
+    {
+        return {[=]() -> std::set<X> {
             if(full_set)
                 return f();
             else
@@ -187,24 +172,30 @@ struct test_driver
         }};
     }
 
-    generate_tensor_t get_bn_spatial_input_tensor()
+    template <class F, class X>
+    generate_tensor_t<std::vector<X>> lazy_generate_tensor(F f, std::initializer_list<X> single)
+    {
+        return lazy_generate_tensor<F, std::vector<X>>(f, single);
+    }
+
+    generate_tensor_t<std::vector<int>> get_bn_spatial_input_tensor()
     {
         return lazy_generate_tensor([=] { return get_bn_spatial_inputs(batch_factor); },
                                     {4, 64, 28, 28});
     }
 
-    generate_tensor_t get_bn_peract_input_tensor()
+    generate_tensor_t<std::vector<int>> get_bn_peract_input_tensor()
     {
         return lazy_generate_tensor([=] { return get_bn_peract_inputs(batch_factor); },
                                     {16, 32, 8, 8});
     }
 
-    generate_tensor_t get_input_tensor()
+    generate_tensor_t<std::vector<int>> get_input_tensor()
     {
         return lazy_generate_tensor([=] { return get_inputs(batch_factor); }, {16, 32, 8, 8});
     }
 
-    generate_tensor_t get_weights_tensor()
+    generate_tensor_t<std::vector<int>> get_weights_tensor()
     {
         return lazy_generate_tensor([=] { return get_weights(batch_factor); }, {64, 32, 5, 5});
     }
@@ -365,18 +356,30 @@ struct test_driver
     template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        if(verbose)
+        if(verbose or time)
             v.fail(std::integral_constant<int, -1>{}, xs...);
         try
         {
+            auto&& h = get_handle();
+            if(time)
+            {
+                h.EnableProfiling();
+                h.ResetKernelTime();
+            }
+            auto gpu = v.gpu(xs...);
+            if(time)
+            {
+                std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
+                h.EnableProfiling(false);
+            }
             if(no_validate)
             {
-                auto gpu = v.gpu(xs...);
                 return std::make_pair(gpu, gpu);
             }
             else
-                return verify_check(
-                    v.cpu(xs...), v.gpu(xs...), [&](int mode) { v.fail(mode, xs...); });
+            {
+                return verify_check(v.cpu(xs...), gpu, [&](int mode) { v.fail(mode, xs...); });
+            }
         }
         catch(const std::exception& ex)
         {
@@ -526,6 +529,15 @@ void test_drive(int argc, const char* argv[])
             {
                 auto&& arg = d.arguments.at(name);
                 arg.write(p.second);
+            }
+            catch(const std::exception& ex)
+            {
+                std::cerr << "Invalid argument: " << name << std::endl;
+                std::cerr << "With parameters: " << std::endl;
+                for(auto&& s : p.second)
+                    std::cerr << "    " << s << std::endl;
+                std::cerr << ex.what() << std::endl;
+                std::abort();
             }
             catch(...)
             {

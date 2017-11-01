@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#include "type_name.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <functional>
@@ -160,7 +162,7 @@ auto any_construct_impl(rank<1>, miopen::detail::seq<Ns...>, const Data& d)
 template <class T, std::size_t... Ns, class Data>
 T any_construct_impl(rank<0>, miopen::detail::seq<Ns...>, const Data&)
 {
-    throw std::runtime_error("Cannot construct type");
+    throw std::runtime_error("Cannot construct: " + get_type_name<T>());
 }
 
 template <class T, std::size_t N, class Data>
@@ -239,7 +241,7 @@ struct write_value
             result = any_construct<T, 7>(params);
             break;
         }
-        default: throw std::runtime_error("Cannot construct type");
+        default: throw std::runtime_error("Cannot construct: " + get_type_name<T>());
         }
     }
 };

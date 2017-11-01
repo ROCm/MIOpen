@@ -23,37 +23,36 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cassert>
-#include <miopen/logger.hpp>
-#include <miopen/lrn.hpp>
+
+#include "miopen/db_record.hpp"
+#include "miopen/solver.hpp"
 
 namespace miopen {
+namespace solver {
 
-LRNDescriptor::LRNDescriptor() {}
-
-LRNDescriptor::LRNDescriptor(miopenLRNMode_t m, const unsigned int pn, const double* pparms)
-    : lrnN(pn), parms(pparms, pparms + 3), mode(m)
+ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
 {
+    std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
+    if(!IsSearchable())
+    {
+        InitPerformanceConfigImpl(context, *config);
+        return GetSolution(context, *config);
+    }
+    if(dbRecord.Load(SolverId(), *config))
+    {
+        return GetSolution(context, *config);
+    }
+    if(context.do_search)
+    {
+        Search(context, *config);
+        dbRecord.Store(SolverId(), *config);
+    }
+    else
+    {
+        InitPerformanceConfigImpl(context, *config);
+    }
+    return GetSolution(context, *config);
 }
 
-LRNDescriptor::LRNDescriptor(miopenLRNMode_t m, unsigned int pn, std::vector<double> pparms)
-    : lrnN(pn), parms(std::move(pparms)), mode(m)
-{
-}
-miopenLRNMode_t LRNDescriptor::GetMode() const { return this->mode; }
-
-unsigned int LRNDescriptor::GetN() const { return this->lrnN; }
-
-double LRNDescriptor::GetAlpha() const { return this->parms[0]; }
-
-double LRNDescriptor::GetBeta() const { return this->parms[1]; }
-
-double LRNDescriptor::GetK() const { return this->parms[2]; }
-std::ostream& operator<<(std::ostream& stream, const LRNDescriptor& x)
-{
-    MIOPEN_LOG_ENUM(stream, x.mode, miopenLRNWithinChannel, miopenLRNCrossChannel) << ", ";
-    stream << x.lrnN << ", ";
-    LogRange(stream, x.parms, ", ") << ", ";
-    return stream;
-}
+} // namespace solver
 } // namespace miopen

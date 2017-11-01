@@ -1,9 +1,12 @@
 #ifndef GUARD_MLOPEN_ALLOCATOR_HPP
 #define GUARD_MLOPEN_ALLOCATOR_HPP
 
-#include <miopen/miopen.h>
+#include <cassert>
+
 #include <miopen/common.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/manage_ptr.hpp>
+#include <miopen/miopen.h>
 
 namespace miopen {
 

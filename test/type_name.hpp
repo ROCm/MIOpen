@@ -23,37 +23,38 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cassert>
-#include <miopen/logger.hpp>
-#include <miopen/lrn.hpp>
 
-namespace miopen {
+#ifndef GUARD_TYPE_NAME_HPP
+#define GUARD_TYPE_NAME_HPP
 
-LRNDescriptor::LRNDescriptor() {}
+#include <string>
 
-LRNDescriptor::LRNDescriptor(miopenLRNMode_t m, const unsigned int pn, const double* pparms)
-    : lrnN(pn), parms(pparms, pparms + 3), mode(m)
+template <class Test_Driver_Private_TypeName_>
+const std::string& get_type_name()
 {
+    static std::string name;
+
+    if(name.empty())
+    {
+#ifdef _MSC_VER
+        name = typeid(Test_Driver_Private_TypeName_).name();
+        name = name.substr(7);
+#else
+        const char parameter_name[] = "Test_Driver_Private_TypeName_ =";
+
+        name = __PRETTY_FUNCTION__;
+
+        auto begin  = name.find(parameter_name) + sizeof(parameter_name);
+#if(defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
+        auto length = name.find_last_of(",") - begin;
+#else
+        auto length = name.find_first_of("];", begin) - begin;
+#endif
+        name        = name.substr(begin, length);
+#endif
+    }
+
+    return name;
 }
 
-LRNDescriptor::LRNDescriptor(miopenLRNMode_t m, unsigned int pn, std::vector<double> pparms)
-    : lrnN(pn), parms(std::move(pparms)), mode(m)
-{
-}
-miopenLRNMode_t LRNDescriptor::GetMode() const { return this->mode; }
-
-unsigned int LRNDescriptor::GetN() const { return this->lrnN; }
-
-double LRNDescriptor::GetAlpha() const { return this->parms[0]; }
-
-double LRNDescriptor::GetBeta() const { return this->parms[1]; }
-
-double LRNDescriptor::GetK() const { return this->parms[2]; }
-std::ostream& operator<<(std::ostream& stream, const LRNDescriptor& x)
-{
-    MIOPEN_LOG_ENUM(stream, x.mode, miopenLRNWithinChannel, miopenLRNCrossChannel) << ", ";
-    stream << x.lrnN << ", ";
-    LogRange(stream, x.parms, ", ") << ", ";
-    return stream;
-}
-} // namespace miopen
+#endif
