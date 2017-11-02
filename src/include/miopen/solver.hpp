@@ -326,10 +326,10 @@ class ConvBinWinograd3x3U : public Solver
                              const PerformanceConfig& config) const override;
 };
 
-class ConvBinWinogradRxSFwd : public Solver
+class ConvBinWinogradRxS : public Solver
 {
     public:
-    const char* SolverId() const override { return "ConvBinWinogradRxSFwd"; }
+    const char* SolverId() const override { return "ConvBinWinogradRxS"; }
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const override;

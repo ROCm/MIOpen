@@ -44,7 +44,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
 namespace miopen {
 namespace solver {
 
-bool ConvBinWinogradRxSFwd::IsApplicable(const ConvolutionContext& params) const
+bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.use_binaries)
     {
@@ -155,8 +155,8 @@ bool ConvBinWinogradRxSFwd::IsApplicable(const ConvolutionContext& params) const
     // "CKHW" )
 }
 
-ConvSolution ConvBinWinogradRxSFwd::GetSolution(const ConvolutionContext& params,
-                                                const PerformanceConfig&) const
+ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params,
+                                             const PerformanceConfig&) const
 {
     ConvSolution result;
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
@@ -171,7 +171,7 @@ ConvSolution ConvBinWinogradRxSFwd::GetSolution(const ConvolutionContext& params
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.kernel_name = "sp3AsmConvRxSF";
+    kernel.kernel_name = "sp3AsmConvRxSU";
     kernel.kernel_file = "conv_";
     if(params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
     {
