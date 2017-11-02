@@ -348,7 +348,7 @@ struct tensor_ops_driver : test_driver
         std::vector<std::vector<float>> alphaBetaList = {
             {1, 1, 1}, {-1, 1, -1}, {0, 0, 0}, {-1.5, 0.5, 2}};
 
-        for(int i = aTensorList.size() - 1; i < aTensorList.size(); i++)
+        for(int i = 0; i < aTensorList.size(); i++)
         {
             if(aTensorList[i].desc.GetSize() == bTensorList[i].desc.GetSize())
             {
