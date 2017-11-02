@@ -38,7 +38,7 @@
 #endif
 
 #define MIOPEN_RNN_SYNCH 0
-#define MIO_RNN_CPP_PROF 1
+#define MIO_RNN_CPP_PROF 0
 
 namespace miopen {
     
@@ -94,72 +94,14 @@ void profileSequence(Handle& handle, unsigned char select)
         {
             ktime = handle.GetKernelTime();
             handle.AccumKernelTime(ctime);
+#if(MIO_RNN_CPP_PROF == 1)
             printf("Final time: %f\n", ktime+ctime);
+#endif
         } 
         break;
     }
 }
-    
-    
-void profileSequence(Handle& handle, float& ctime, const int start, const int finish, const bool init)
-{
-    // Select the profile mode
-    // Finish in this function needs to be 1 larger than the max value start.
-    unsigned char select = (!start && !finish)? 1 : ((start==0) ? 0 : (start==(finish-1)) ? 2 : 1);
-    printf("Init select: %d\n",select);
-    // Start of loop and not the first kernel call, 
-    // or if at the last loop, but we ARE the first call
-    // then do intermediate time update
-    select = ((!select && !init) || (select==2 && init)) ? 1 : select;
-    printf("Post select: %d\n",select);
-    float ktime        = 0.;
-    switch(select)
-    {
 
-    case 0: // Initial call
-        if(handle.IsProfilingEnabled())
-        {
-            ktime = handle.GetKernelTime();
-            ctime = ktime;
-
-#if(MIO_RNN_CPP_PROF == 1)
-            printf("ktime: %f\n", ktime);
-       //     printf("ctime: %f\n", ctime);
-#endif
-        }
-#if(MIOPEN_RNN_SYNCH == 1)
-        else // explicit barrier, but OCL spec compliance not enforced...
-        {
-            handle.Finish();
-        }
-#endif
-        break;
-        
-    case 1: // Intermediate call
-        if(handle.IsProfilingEnabled())
-        {
-            ktime = handle.GetKernelTime();
-            ctime += ktime;
-#if(MIO_RNN_CPP_PROF == 1)
-            printf("ktime: %f\n", ktime);
-         //   printf("intermediate ctime: %f\n", ctime);
-#endif
-        }
-        break;
-
-    case 2: // Final call
-        if(handle.IsProfilingEnabled())
-        {
-            ktime = handle.GetKernelTime();
-            #if(MIO_RNN_CPP_PROF == 1)
-         //   printf("ktime: %f\n", ktime);
-            printf("final time: %f\n", ctime+ktime);
-#endif
-            handle.AccumKernelTime(ctime);
-        }
-        break;
-    }
-}
 
 size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
