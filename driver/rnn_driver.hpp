@@ -824,7 +824,7 @@ int RNNDriver<T>::RunForwardCPU()
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
-        printf("reach rnn fwd \n");
+        printf("verify rnn fwd \n");
 
         RunRNNForwardGEMMCPUVerify(in,
                                    wei,
@@ -846,7 +846,7 @@ int RNNDriver<T>::RunForwardCPU()
     }
     else if(mode == miopenLSTM)
     {
-        printf("reach lstm fwd \n");
+        printf("verify lstm fwd \n");
 
         RunLSTMForwardGEMMCPUVerify(in,
                                     wei,
@@ -869,7 +869,7 @@ int RNNDriver<T>::RunForwardCPU()
     }
     else if(mode == miopenGRU)
     {
-        printf("reach gru fwd \n");
+        printf("verify gru fwd \n");
 
         RunGRUForwardGEMMCPUVerify(in,
                                    wei,
@@ -1032,7 +1032,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
-        printf("reach rnn bwdwei \n");
+        printf("verify rnn bwdwei \n");
 
         RunRNNBackwardWeightGEMMCPUVerify(in,
                                           dwei_host,
@@ -1054,7 +1054,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     }
     else if(mode == miopenLSTM)
     {
-        printf("reach lstm bwdwei \n");
+        printf("verify lstm bwdwei \n");
 
         RunLSTMBackwardWeightGEMMCPUVerify(in,
                                            dwei_host,
@@ -1075,7 +1075,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     }
     else if(mode == miopenGRU)
     {
-        printf("reach gru bwdwei \n");
+        printf("verify gru bwdwei \n");
 
         RunGRUBackwardWeightGEMMCPUVerify(in,
                                           dwei_host,
@@ -1136,7 +1136,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
-        printf("reach rnn bwddata \n");
+        printf("verify rnn bwddata \n");
 
         RunRNNBackwardDataGEMMCPUVerify(din_host,
                                         wei,
@@ -1161,7 +1161,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
     }
     else if(mode == miopenLSTM)
     {
-        printf("reach lstm bwddata \n");
+        printf("verify lstm bwddata \n");
 
         RunLSTMBackwardDataGEMMCPUVerify(din_host,
                                          wei,
@@ -1188,7 +1188,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
     }
     else if(mode == miopenGRU)
     {
-        printf("reach gru bwddata \n");
+        printf("verify gru bwddata \n");
 
         RunGRUBackwardDataGEMMCPUVerify(din_host,
                                         wei,
