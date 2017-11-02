@@ -167,11 +167,11 @@ class TrivialConstruct : public mlo_construct_direct2D
     void mloConstruct()
     {
         // clang-format off
-        mloUseSolution(miopen::solver::FindSolution<
+        mloUseSolution(miopen::solver::SearchForSolution<
             TrivialSlowTestSolver,
             TrivialTestSolver,
             SearchableTestSolver
-        >(this->GetDbRecord(), _search_params));
+        >(_search_params, this->GetDbRecord()));
         // clang-format on
     }
 
