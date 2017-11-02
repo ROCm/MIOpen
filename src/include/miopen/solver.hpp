@@ -102,8 +102,10 @@ class ConvSolution
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
 
+
+// Search for a solution among many solvers
 template <class... Solvers, class Context>
-miopen::solver::ConvSolution FindSolution(miopen::DbRecord dbRecord, const Context& search_params)
+miopen::solver::ConvSolution SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord)
 {
     miopen::solver::ConvSolution solution{miopenStatusUnknownError};
 
@@ -115,7 +117,7 @@ miopen::solver::ConvSolution FindSolution(miopen::DbRecord dbRecord, const Conte
         if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
            (no_perf_filtering || solver.IsFast(search_params)))
         {
-            solution = solver.FindSolution(search_params, dbRecord);
+            solution = FindSolution(solver, search_params, dbRecord);
             if(solution.Succeeded() && solution.construction_params.empty())
             {
                 MIOPEN_THROW(std::string("Internal error in solver: ") + typeid(solver).name());
@@ -125,6 +127,52 @@ miopen::solver::ConvSolution FindSolution(miopen::DbRecord dbRecord, const Conte
     // clang-format on
 
     return solution;
+}
+
+/// Finds optimized Solution. Generic method.
+///
+/// Given the specific problem config, finds (hopefully) optimal
+/// solution-specific parameters and returns the Solution object.
+/// Could take long if an exhaustive search is requested/performed.
+/// May read/write perfDb.
+template<class Solver, class Context>
+ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
+{
+    auto config = s.PerformanceConfigImpl();
+    MIOPEN_LOG_I("Finding solution: " << s.SolverId());
+    do
+    {
+        if(!s.IsSearchable())
+        {
+            MIOPEN_LOG_I("Not searchable: " << s.SolverId());
+            break;
+        }
+        if(dbRecord.Load(s.SolverId(), *config))
+        {
+            MIOPEN_LOG_I("Perf Db: record loaded: " << s.SolverId());
+            if(s.IsValidPerformanceConfigImpl(context, *config))
+            {
+                return s.GetSolution(context, *config);
+            }
+            MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << s.SolverId() << ": " << *config);
+            break;
+        }
+        MIOPEN_LOG_I("Perf Db: record NOT found: " << s.SolverId());
+        if(context.do_search)
+        {
+            MIOPEN_LOG_I("Starting search: " << s.SolverId());
+            if(s.Search(context, *config))
+            {
+                dbRecord.Store(s.SolverId(), *config);
+                return s.GetSolution(context, *config);
+            }
+            MIOPEN_LOG_E("Search failed: " << s.SolverId());
+        }
+        break;
+    } while(false);
+
+    s.InitPerformanceConfigImpl(context, *config);
+    return s.GetSolution(context, *config);
 }
 
 /// The descendants of this class comprise an solution-specific
@@ -229,14 +277,6 @@ class Solver
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     virtual ConvSolution GetSolution(const ConvolutionContext&, const PerformanceConfig&) const = 0;
-
-    /// Finds optimized Solution. Generic method.
-    ///
-    /// Given the specific problem config, finds (hopefully) optimal
-    /// solution-specific parameters and returns the Solution object.
-    /// Could take long if an exhaustive search is requested/performed.
-    /// May read/write perfDb.
-    ConvSolution FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const;
 };
 
 class ConvAsm3x3U : public Solver

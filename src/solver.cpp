@@ -47,44 +47,5 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
-ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
-{
-    std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
-    MIOPEN_LOG_I("Finding solution: " << SolverId());
-    do
-    {
-        if(!IsSearchable())
-        {
-            MIOPEN_LOG_I("Not searchable: " << SolverId());
-            break;
-        }
-        if(dbRecord.Load(SolverId(), *config))
-        {
-            MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
-            if(IsValidPerformanceConfigImpl(context, *config))
-            {
-                return GetSolution(context, *config);
-            }
-            MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId() << ": " << *config);
-            break;
-        }
-        MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
-        if(context.do_search)
-        {
-            MIOPEN_LOG_I("Starting search: " << SolverId());
-            if(Search(context, *config))
-            {
-                dbRecord.Store(SolverId(), *config);
-                return GetSolution(context, *config);
-            }
-            MIOPEN_LOG_E("Search failed: " << SolverId());
-        }
-        break;
-    } while(false);
-
-    InitPerformanceConfigImpl(context, *config);
-    return GetSolution(context, *config);
-}
-
 } // namespace solver
 } // namespace miopen

@@ -88,11 +88,12 @@ miopen::DbRecord mlo_construct_direct2D::GetDbRecord() const
    generic convlution forward
    non-generic stride = 1, forward and backward
    */
+// TODO: Make mloConstruct a free function
 void mlo_construct_direct2D::mloConstruct()
 {
     this->setupRocm();
     // clang-format off
-    mloUseSolution(miopen::solver::FindSolution<
+    mloUseSolution(miopen::solver::SearchForSolution<
         miopen::solver::ConvAsm3x3U,
         miopen::solver::ConvAsm5x10u2v2f1,
         miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
@@ -103,7 +104,7 @@ void mlo_construct_direct2D::mloConstruct()
         miopen::solver::ConvOclDirectFwd1x1,
         miopen::solver::ConvOclDirectFwdC,
         miopen::solver::ConvOclDirectFwd
-    >(this->GetDbRecord(), _search_params));
+    >(_search_params, this->GetDbRecord()));
     // clang-format on
 }
 
@@ -111,22 +112,22 @@ void mlo_construct_winograd::mloConstruct()
 {
     this->setupRocm();
     // clang-format off
-    mloUseSolution(miopen::solver::FindSolution<
+    mloUseSolution(miopen::solver::SearchForSolution<
         miopen::solver::ConvBinWinograd3x3U,
         miopen::solver::ConvBinWinogradRxSFwd
-    >(this->GetDbRecord(), _search_params));
+    >(_search_params, this->GetDbRecord()));
     // clang-format on
 }
 
 miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
 {
     // clang-format off
-    return miopen::solver::FindSolution<
+    return miopen::solver::SearchForSolution<
         miopen::solver::ConvAsmBwdWrW3x3,
         miopen::solver::ConvOclBwdWrW2,
         miopen::solver::ConvOclBwdWrW53,
         miopen::solver::ConvOclBwdWrW1x1
-    >(this->GetDbRecord(), _search_params);
+    >(_search_params, this->GetDbRecord());
     // clang-format on
 }
 
