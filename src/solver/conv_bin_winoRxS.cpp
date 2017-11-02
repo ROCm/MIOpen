@@ -132,27 +132,34 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         }
     }
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    assert(params.weights_layout.length() == 0);    // FIXME _weights_layout is not supported yet.
-                                                    // Opt. Param   Restrictions in source
-    return params.pad0 < std::pow(2, 16)            // -q   pad_w   uint16
-           && params.pad1 < std::pow(2, 16)         // -p   pad_h   uint16
-           && params.kernel_size0 < std::pow(2, 16) // -x   wei_w   S uint16
-           && params.kernel_size1 < std::pow(2, 16) // -y   wei_h   R uint16
-           && params.kernel_stride0 <= 2            // -u   inp_u   1 or 2
-           && params.kernel_stride1 <= 2            // -v   inp_v   1 or 2
-           && params.kernel_stride0 == params.kernel_stride1 // Only u1v1 or u2v2 for now.
-           && params.batch_sz < std::pow(2, 16) && params.n_inputs < std::pow(2, 16) // -c   wei_c
-           && params.n_outputs < std::pow(2, 16)                                     // -k   wei_k
-           && params.in_height < std::pow(2, 16)                                     // -H   inp_h
-           && params.in_width < std::pow(2, 16)                                      // -W   inp_w
-           && grid_workgroup_count_x < std::pow(2, 16) &&
-           (params.n_inputs * params.in_height * params.in_width) <= std::pow(2, 28) &&
-           (params.n_outputs * params.in_height * params.in_width) <= std::pow(2, 28) &&
-           (params.n_inputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28) &&
-           (params.n_outputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28) &&
-           params.in_layout == "NCHW";
-    // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout ==
-    // "CKHW" )
+    assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+    // clang-format off
+    return params.pad0 < std::pow(2, 16)                     // -q   pad_w   uint16
+           && params.pad1 < std::pow(2, 16)                  // -p   pad_h   uint16
+           && params.kernel_size0 < std::pow(2, 16)          // -x   wei_w   S uint16
+           && params.kernel_size1 < std::pow(2, 16)          // -y   wei_h   R uint16
+           && params.kernel_stride0 <= 2                     // -u   inp_u   1 or 2
+           && params.kernel_stride1 <= 2                     // -v   inp_v   1 or 2
+           && params.kernel_stride0 == params.kernel_stride1 // Stride 1x1 or 2x2.
+           && params.kernal_dilation0 <= 2
+           && params.kernal_dilation1 <= 2
+           && params.kernal_dilation0 == params.kernal_dilation1 // Dilation 1x1 or 2x2.
+           && (params.kernel_stride0 == 1 ||
+               params.kernal_dilation0 == 1) // Either stride or dilation can be 2x2 at once.
+           && params.bias == 0
+           && params.batch_sz < std::pow(2, 16)
+           && params.n_inputs < std::pow(2, 16)  // -c   wei_c
+           && params.n_outputs < std::pow(2, 16) // -k   wei_k
+           && params.in_height < std::pow(2, 16) // -H   inp_h
+           && params.in_width < std::pow(2, 16)  // -W   inp_w
+           && grid_workgroup_count_x < std::pow(2, 16)
+           && (params.n_inputs * params.in_height * params.in_width) <= std::pow(2, 28)
+           && (params.n_outputs * params.in_height * params.in_width) <= std::pow(2, 28)
+           && (params.n_inputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28)
+           && (params.n_outputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28)
+           && params.in_layout == "NCHW";
+    // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
+    // clang-format on
 }
 
 ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params,
@@ -172,31 +179,31 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params,
     kernel.l_wk.push_back(1);
 
     kernel.kernel_name = "sp3AsmConvRxSU";
-    kernel.kernel_file = "conv_";
-    if(params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+    kernel.kernel_file = "conv";
+    if(params.kernel_stride0 == 2)
     {
-        kernel.kernel_file += "u1v1";
-    }
-    else if(params.kernel_stride0 == 1 && params.kernel_stride1 == 2)
-    {
-        kernel.kernel_file += "u1v2";
-    }
-    else if(params.kernel_stride0 == 2 && params.kernel_stride1 == 1)
-    {
-        kernel.kernel_file += "u2v1";
+        kernel.kernel_file += "_u2v2";
     }
     else
     {
-        kernel.kernel_file += "u2v2";
+        kernel.kernel_file += "_u1v1";
     }
-    kernel.kernel_file += "_wheel_alpha_v8_4_4_";
+    if(params.kernal_dilation0 == 2)
+    {
+        kernel.kernel_file += "_l2j2";
+    }
+    else
+    {
+        kernel.kernel_file += "_l1j1";
+    }
+    kernel.kernel_file += "_wheel_alpha_v9_0_14";
     if(name.find("gfx8") != std::string::npos)
     {
-        kernel.kernel_file += "gfx803";
+        kernel.kernel_file += "_gfx803";
     }
     else
     {
-        kernel.kernel_file += "gfx900";
+        kernel.kernel_file += "_gfx900";
     }
     kernel.kernel_file += ".so";
 
