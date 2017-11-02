@@ -571,9 +571,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 #else
                 DbRecord dbRecord(context.GetPerfDbPath(), context);
 #endif
-                const solver::Solver& solver =
-                    StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
-                solver::ConvSolution solution = solver.FindSolution(context, dbRecord);
+                solver::ConvSolution solution = FindSolution(solver::ConvOclDirectFwd11x11{}, context, dbRecord);
 
                 if(solution.passes == 1)
                 {
