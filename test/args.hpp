@@ -39,6 +39,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <miopen/rank.hpp>
+
 namespace args {
 
 using string_map = std::unordered_map<std::string, std::vector<std::string>>;
@@ -64,30 +66,20 @@ string_map parse(std::vector<std::string> as, IsKeyword is_keyword)
     return result;
 }
 
-template <int N>
-struct rank : rank<N - 1>
-{
-};
-
-template <>
-struct rank<0>
-{
-};
-
 namespace detail {
 
 template <class T>
-auto is_container(args::rank<1>, T&& x)
+auto is_container(miopen::rank<1>, T&& x)
     -> decltype(x.insert(x.end(), *x.begin()), std::true_type{});
 
 template <class T>
-std::false_type is_container(args::rank<0>, T&&);
+std::false_type is_container(miopen::rank<0>, T&&);
 
 template <class T, class U>
-auto is_streamable(args::rank<1>, T&& x, U&& y) -> decltype((x >> y), std::true_type{});
+auto is_streamable(miopen::rank<1>, T&& x, U&& y) -> decltype((x >> y), std::true_type{});
 
 template <class T, class U>
-std::false_type is_streamable(args::rank<0>, T&&, U&&);
+std::false_type is_streamable(miopen::rank<0>, T&&, U&&);
 
 template <bool B>
 struct requires_bool
@@ -102,13 +94,13 @@ struct requires_unwrap : T
 }
 
 template <class T>
-struct is_container : decltype(detail::is_container(args::rank<1>{}, std::declval<T>()))
+struct is_container : decltype(detail::is_container(miopen::rank<1>{}, std::declval<T>()))
 {
 };
 
 template <class T>
 struct is_streamable
-    : decltype(detail::is_streamable(args::rank<1>{},
+    : decltype(detail::is_streamable(miopen::rank<1>{},
                                      std::declval<std::istream>(),
                                      std::declval<typename std::add_lvalue_reference<T>::type>()))
 {
@@ -153,14 +145,14 @@ struct any_value
 };
 
 template <class T, std::size_t... Ns, class Data>
-auto any_construct_impl(rank<1>, miopen::detail::seq<Ns...>, const Data& d)
+auto any_construct_impl(miopen::rank<1>, miopen::detail::seq<Ns...>, const Data& d)
     -> decltype(T(any_value{d[Ns]}...))
 {
     return T(any_value{d[Ns]}...);
 }
 
 template <class T, std::size_t... Ns, class Data>
-T any_construct_impl(rank<0>, miopen::detail::seq<Ns...>, const Data&)
+T any_construct_impl(miopen::rank<0>, miopen::detail::seq<Ns...>, const Data&)
 {
     throw std::runtime_error("Cannot construct: " + get_type_name<T>());
 }
@@ -168,7 +160,7 @@ T any_construct_impl(rank<0>, miopen::detail::seq<Ns...>, const Data&)
 template <class T, std::size_t N, class Data>
 T any_construct(const Data& d)
 {
-    return any_construct_impl<T>(rank<1>{}, typename miopen::detail::gens<N>::type{}, d);
+    return any_construct_impl<T>(miopen::rank<1>{}, typename miopen::detail::gens<N>::type{}, d);
 }
 
 struct write_value
