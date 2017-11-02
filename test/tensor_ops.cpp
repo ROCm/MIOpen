@@ -75,7 +75,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
     verify_tensor_ops(const tensor<T>& pa,
                       const tensor<T>& pb,
                       const tensor<T>& pc,
-                      std::vector<size_t>& offsets,
+                      std::vector<int>& offsets,
                       float palpha0 = 1,
                       float palpha1 = 1,
                       float pbeta   = 0)
@@ -256,117 +256,66 @@ struct tensor_ops_driver : test_driver
     tensor<T> super_b;
     tensor<T> super_c;
 
+    std::vector<int> tensorlens;
+    std::vector<int> offsets;
+    std::vector<float> alphabeta;
+
     // tensor<T> a;
     // tensor<T> b;
     // tensor<T> c;
 
+    std::vector<std::vector<int>> get_sub_tensor()
+    {
+        return {{32, 8, 16, 1, 8},
+                {2, 8, 16, 16, 8},
+                {16, 8, 16, 4},
+                {13, 16, 8, 16},
+                {3, 16, 7},
+                {13, 8, 10},
+                {3, 16},
+                {14, 8},
+                {1}};
+    }
+
     tensor_ops_driver()
     {
 
-        add(super_a, "super_a", generate_tensor(get_super_tensor(), {40, 10, 8, 20, 4}));
-        add(super_b, "super_b", generate_tensor(get_super_tensor(), {40, 10, 8, 20, 4}));
-        add(super_c, "super_c", generate_tensor(get_super_tensor(), {40, 10, 8, 20, 4}));
+        std::vector<int> alens = {{32, 16, 16, 16, 16}};
+        std::vector<int> blens = {{32, 10, 16, 16, 16}};
+        std::vector<int> clens = {{40, 18, 16, 16, 16}};
+
+        super_a = tensor<T>{alens}.generate(rand_gen{});
+        super_b = tensor<T>{blens}.generate(rand_gen{});
+        super_c = tensor<T>{clens}.generate(rand_gen{});
+
+        std::vector<std::vector<float>> get_scalars = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
+        std::vector<std::vector<int>> get_alphabeta = {{8, 10, 1}, {1, 10, 2}, {1, 5, 32}};
+
+        add(tensorlens, "tensorlens", generate_data(get_sub_tensor()));
+        add(offsets, "offsets", generate_data(get_alphabeta));
+        add(alphabeta, "alphabeta", generate_data(get_scalars));
     }
 
-    std::set<std::vector<int>> get_super_tensor()
+    tensor<T> get_subtensors(tensor<T>& super_tensor, std::vector<int>& lens)
     {
-        std::vector<std::vector<int>> a_dims{
-            {40, 10, 8, 20, 4},
-        };
+        std::vector<size_t> superStrides = super_tensor.desc.GetStrides();
+        std::vector<int> strides(superStrides.begin() + (5 - lens.size()), superStrides.end());
+        auto tDesc =
+            miopen::TensorDescriptor{miopenFloat, lens.data(), strides.data(), (int)lens.size()};
+        tensor<T> t = tensor<T>{tDesc};
+        t.data      = super_tensor.data;
 
-        return (std::set<std::vector<int>>(a_dims.begin(), a_dims.end()));
-    }
-
-    std::vector<tensor<T>> get_subtensors()
-    {
-        std::vector<tensor<T>> tensorList;
-
-        unsigned int num_tensor_per_dims_size = 8;
-
-        std::vector<std::vector<int>> lens{
-            {32, 8, 8, 16, 4},
-            {32, 4, 4, 8, 2},
-            {16, 8, 4, 1, 2},
-            {16, 2, 8, 4, 4},
-            {8, 2, 1, 4, 4},
-            {8, 8, 8, 4, 4},
-            {4, 2, 4, 8, 2},
-            {1, 8, 1, 8, 2}, // 5d
-            {8, 1, 16, 4},
-            {4, 2, 8, 2},
-            {8, 4, 16, 2},
-            {2, 8, 4, 4},
-            {2, 2, 1, 4},
-            {8, 8, 4, 4},
-            {1, 4, 8, 2},
-            {1, 1, 8, 2}, // 4d
-            {8, 16, 4},
-            {4, 8, 2},
-            {4, 16, 2},
-            {8, 1, 4},
-            {8, 2, 4},
-            {8, 4, 4},
-            {4, 8, 2},
-            {1, 8, 2}, // 3d
-            {16, 4},
-            {8, 2},
-            {16, 2},
-            {4, 4},
-            {2, 4},
-            {4, 1},
-            {8, 2},
-            {1, 4}, // 2d
-            {32},
-            {10},
-            {16},
-            {8},
-            {6},
-            {4},
-            {3},
-            {1}, // 1d
-        };
-
-        std::vector<std::vector<int>> strides{
-            {6400, 640, 80, 4, 1}, {640, 80, 4, 1}, {80, 4, 1}, {4, 1}, {1}};
-
-        for(int i = 0; i < lens.size(); i++)
-        {
-            tensorList.push_back(
-                make_tensor<T, int>(super_a, lens[i], strides[i / num_tensor_per_dims_size]));
-        }
-
-        return tensorList;
+        return t;
     }
 
     void run()
     {
-        std::vector<tensor<T>> aTensorList = get_subtensors();
-        std::vector<tensor<T>> bTensorList = get_subtensors();
-        std::vector<tensor<T>> cTensorList = get_subtensors();
+        tensor<T> aTensor = get_subtensors(super_a, tensorlens);
+        tensor<T> bTensor = get_subtensors(super_b, tensorlens);
+        tensor<T> cTensor = get_subtensors(super_c, tensorlens);
 
-        std::vector<std::vector<size_t>> offsetList   = {{32, 16, 32}, {16, 32, 16}};
-        std::vector<std::vector<float>> alphaBetaList = {
-            {1, 1, 1}, {-1, 1, -1}, {0, 0, 0}, {-1.5, 0.5, 2}};
-
-        for(int i = 0; i < aTensorList.size(); i++)
-        {
-            if(aTensorList[i].desc.GetSize() == bTensorList[i].desc.GetSize())
-            {
-                for(int j = 0; j < offsetList.size(); j++)
-                {
-                    for(int k = 0; k < alphaBetaList.size(); k++)
-                    {
-                        verify(verify_tensor_ops<T>{aTensorList[i],
-                                                    bTensorList[i],
-                                                    cTensorList[i],
-                                                    offsetList[j],
-                                                    alphaBetaList[k][0],
-                                                    alphaBetaList[k][1],
-                                                    alphaBetaList[k][2]});
-                    }
-                }
-            }
-        }
+        verify(verify_tensor_ops<T>{
+            aTensor, bTensor, cTensor, offsets, alphabeta[0], alphabeta[1], alphabeta[2]});
     }
 };
 
