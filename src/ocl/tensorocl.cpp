@@ -37,8 +37,7 @@ namespace miopen {
 void SetTensor(Handle& handle,
                const TensorDescriptor& yDesc,
                Data_t y,
-               const void* alpha,
-               const size_t yOffset)
+               const void* alpha)
 {
 
     if(y == nullptr || alpha == nullptr)
@@ -62,7 +61,7 @@ void SetTensor(Handle& handle,
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
         handle.GetKernel("SetTensor", "", program_name, "SetTensor", vld, vgd, parms)(
-            y, miopen_alpha, global_threads, long(yOffset));
+            y, miopen_alpha, global_threads);
     }
     break;
     }
@@ -71,8 +70,7 @@ void SetTensor(Handle& handle,
 void ScaleTensor(Handle& handle,
                  const TensorDescriptor& yDesc,
                  Data_t y,
-                 const void* alpha,
-                 const size_t yOffset)
+                 const void* alpha)
 {
 
     if(y == nullptr || alpha == nullptr)
@@ -96,7 +94,7 @@ void ScaleTensor(Handle& handle,
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
         handle.GetKernel("ScaleTensor", "", program_name, "ScaleTensor", vld, vgd, parms)(
-            y, miopen_alpha, global_threads, long(yOffset));
+            y, miopen_alpha, global_threads);
     }
     break;
     }
