@@ -197,13 +197,13 @@ void OpTensor(Handle& handle,
 
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
-    //quick fix
+    // quick fix
     if(blens.size() == 1)
     {
         first_not_one = blens.rbegin();
     }
 
-    auto d             = std::distance(blens.begin(), first_not_one.base());
+    auto d = std::distance(blens.begin(), first_not_one.base());
 
     int num_wg      = 1;
     num_wg          = *first_not_one == 0 ? 1 : *first_not_one;
