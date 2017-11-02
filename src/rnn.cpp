@@ -37,7 +37,129 @@
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #endif
 
+#define MIOPEN_RNN_SYNCH 0
+#define MIO_RNN_CPP_PROF 1
+
 namespace miopen {
+    
+    
+void profileSequence(Handle& handle, unsigned char select)
+{
+
+    float ktime        = 0.;
+    static float ctime = 0.;
+    assert((select < 3 && select >= 0) && "profileSequence case incorrect");
+    switch(select)
+    {
+
+    case 0:
+        if(handle.IsProfilingEnabled())
+        {
+            ktime = handle.GetKernelTime();
+            ctime = ktime;
+
+#if(MIO_RNN_CPP_PROF == 1)
+            printf("init ktime: %f\n", ktime);
+            printf("init ctime: %f\n", ctime);
+#endif
+        }
+#if(MIOPEN_RNN_SYNCH == 1)
+        else
+        {
+            handle.Finish();
+        }
+#endif
+        break;
+    case 1:
+        if(handle.IsProfilingEnabled())
+        {
+            ktime = handle.GetKernelTime();
+            ctime += ktime;
+
+#if(MIO_RNN_CPP_PROF == 1)
+            printf("intermediate ktime: %f\n", ktime);
+            printf("intermediate ctime: %f\n", ctime);
+#endif
+        }
+#if(MIOPEN_RNN_SYNCH == 1)
+        else
+        {
+            handle.Finish();
+        }
+#endif
+        break;
+
+    case 2:
+        if(handle.IsProfilingEnabled())
+        {
+            ktime = handle.GetKernelTime();
+            handle.AccumKernelTime(ctime);
+            printf("Final time: %f\n", ktime+ctime);
+        } 
+        break;
+    }
+}
+    
+    
+void profileSequence(Handle& handle, float& ctime, const int start, const int finish, const bool init)
+{
+    // Select the profile mode
+    // Finish in this function needs to be 1 larger than the max value start.
+    unsigned char select = (!start && !finish)? 1 : ((start==0) ? 0 : (start==(finish-1)) ? 2 : 1);
+    printf("Init select: %d\n",select);
+    // Start of loop and not the first kernel call, 
+    // or if at the last loop, but we ARE the first call
+    // then do intermediate time update
+    select = ((!select && !init) || (select==2 && init)) ? 1 : select;
+    printf("Post select: %d\n",select);
+    float ktime        = 0.;
+    switch(select)
+    {
+
+    case 0: // Initial call
+        if(handle.IsProfilingEnabled())
+        {
+            ktime = handle.GetKernelTime();
+            ctime = ktime;
+
+#if(MIO_RNN_CPP_PROF == 1)
+            printf("ktime: %f\n", ktime);
+       //     printf("ctime: %f\n", ctime);
+#endif
+        }
+#if(MIOPEN_RNN_SYNCH == 1)
+        else // explicit barrier, but OCL spec compliance not enforced...
+        {
+            handle.Finish();
+        }
+#endif
+        break;
+        
+    case 1: // Intermediate call
+        if(handle.IsProfilingEnabled())
+        {
+            ktime = handle.GetKernelTime();
+            ctime += ktime;
+#if(MIO_RNN_CPP_PROF == 1)
+            printf("ktime: %f\n", ktime);
+         //   printf("intermediate ctime: %f\n", ctime);
+#endif
+        }
+        break;
+
+    case 2: // Final call
+        if(handle.IsProfilingEnabled())
+        {
+            ktime = handle.GetKernelTime();
+            #if(MIO_RNN_CPP_PROF == 1)
+         //   printf("ktime: %f\n", ktime);
+            printf("final time: %f\n", ctime+ktime);
+#endif
+            handle.AccumKernelTime(ctime);
+        }
+        break;
+    }
+}
 
 size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
@@ -236,7 +358,6 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
     else
     {
         std::vector<int> tdim(2,0);
-        size_t layerJump       = 0;
         if(dirMode)
         {
             if(layer > 2) // NOT the input layer
