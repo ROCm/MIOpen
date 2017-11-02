@@ -286,17 +286,17 @@ struct tensor_ops_driver : test_driver
         std::vector<std::vector<int>> lens{
             {32, 8, 8, 16, 4},
             {32, 4, 4, 8, 2},
-            {16, 8, 4, 16, 2},
+            {16, 8, 4, 1, 2},
             {16, 2, 8, 4, 4},
-            {8, 2, 8, 4, 4},
+            {8, 2, 1, 4, 4},
             {8, 8, 8, 4, 4},
             {4, 2, 4, 8, 2},
-            {1, 8, 4, 8, 2}, // 5d
+            {1, 8, 1, 8, 2}, // 5d
             {8, 1, 16, 4},
             {4, 2, 8, 2},
             {8, 4, 16, 2},
             {2, 8, 4, 4},
-            {2, 2, 8, 4},
+            {2, 2, 1, 4},
             {8, 8, 4, 4},
             {1, 4, 8, 2},
             {1, 1, 8, 2}, // 4d
@@ -356,7 +356,6 @@ struct tensor_ops_driver : test_driver
                 {
                     for(int k = 0; k < alphaBetaList.size(); k++)
                     {
-                        printf("%d %d %d\n", i, j, k);
                         verify(verify_tensor_ops<T>{aTensorList[i],
                                                     bTensorList[i],
                                                     cTensorList[i],
