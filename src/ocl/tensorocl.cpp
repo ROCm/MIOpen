@@ -34,10 +34,7 @@
 
 namespace miopen {
 
-void SetTensor(Handle& handle,
-               const TensorDescriptor& yDesc,
-               Data_t y,
-               const void* alpha)
+void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha)
 {
 
     if(y == nullptr || alpha == nullptr)
@@ -67,10 +64,7 @@ void SetTensor(Handle& handle,
     }
 }
 
-void ScaleTensor(Handle& handle,
-                 const TensorDescriptor& yDesc,
-                 Data_t y,
-                 const void* alpha)
+void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha)
 {
 
     if(y == nullptr || alpha == nullptr)
