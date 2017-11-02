@@ -1472,8 +1472,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                     a_size[2]   = in_n[ti];
                     a_size[3]   = hy_h;
-                    a_stride[0] = hy_stride;
-                    a_stride[1] = hy_stride;
+                    a_stride[0] = in_n[ti] * hy_stride;
+                    a_stride[1] = in_n[ti] * hy_stride;
                     a_stride[2] = hy_stride;
 
                     miopenCreateTensorDescriptor(&Adesc);
@@ -1513,8 +1513,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         b_size[2]   = in_n[ti];
                         b_size[3]   = hy_h;
-                        b_stride[0] = h_stride;
-                        b_stride[1] = h_stride;
+                        b_stride[0] = in_n[ti] * h_stride;
+                        b_stride[1] = in_n[ti] * h_stride;
                         b_stride[2] = h_stride;
 
                         miopenCreateTensorDescriptor(&Bdesc);
@@ -1625,8 +1625,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                     b_size[2]   = in_n[ti];
                     b_size[3]   = hy_h;
-                    b_stride[0] = h_stride;
-                    b_stride[1] = h_stride;
+                    b_stride[0] = in_n[ti] * h_stride;
+                    b_stride[1] = in_n[ti] * h_stride;
                     b_stride[2] = h_stride;
 
                     miopenCreateTensorDescriptor(&Bdesc);
@@ -1725,8 +1725,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         a_size[2]   = in_n[seqLen - 1 - ti];
                         a_size[3]   = hy_h;
-                        a_stride[0] = hy_stride;
-                        a_stride[1] = hy_stride;
+                        a_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+                        a_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
                         a_stride[2] = hy_stride;
 
                         miopenCreateTensorDescriptor(&Adesc);
@@ -1767,8 +1767,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                             b_size[2]   = in_n[seqLen - 1 - ti];
                             b_size[3]   = hy_h;
-                            b_stride[0] = h_stride;
-                            b_stride[1] = h_stride;
+                            b_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+                            b_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
                             b_stride[2] = h_stride;
 
                             miopenCreateTensorDescriptor(&Bdesc);
@@ -1810,8 +1810,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                                 b_size[2]   = in_n[seqLen - ti];
                                 b_size[3]   = hy_h;
-                                b_stride[0] = hy_stride;
-                                b_stride[1] = hy_stride;
+                                b_stride[0] = in_n[seqLen - ti] * hy_stride;
+                                b_stride[1] = in_n[seqLen - ti] * hy_stride;
                                 b_stride[2] = hy_stride;
 
                                 miopenCreateTensorDescriptor(&Bdesc);
@@ -1896,8 +1896,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         b_size[2]   = in_n[seqLen - 1 - ti];
                         b_size[3]   = hy_h;
-                        b_stride[0] = h_stride;
-                        b_stride[1] = h_stride;
+                        b_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+                        b_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
                         b_stride[2] = h_stride;
 
                         miopenCreateTensorDescriptor(&Bdesc);
@@ -3254,8 +3254,106 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             {
                 bacc -= in_n[ti];
 
+				float alpha = 1, beta = 0;
+				ActivationDescriptor tanhDesc, sigDesc;
+				size_t offset;
+
+				sigDesc = { miopenActivationLOGISTIC, 1, 0, 1 };
+				tanhDesc = { miopenActivationTANH, 1, 1, 1 };
+
+				std::vector<int> rsv_size(4, 1), rsv_stride(4, 1);
+				miopenTensorDescriptor_t rsvTensor;
+
+				float alpha0;
+				float alpha1;
+				float beta_t;
+
+				// from post state
                 if(ti == seqLen - 1)
                 {
+					std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+					miopenTensorDescriptor_t Adesc, Cdesc;
+
+					alpha0 = 1;
+					alpha1 = 0;
+					beta_t = 1;
+
+					if (in_n[ti] > 0)
+					{
+						a_size[2] = in_n[ti];
+						a_size[3] = hy_h;
+						a_stride[0] = in_n[ti] * h_stride;
+						a_stride[1] = in_n[ti] * h_stride;
+						a_stride[2] = h_stride;
+						c_size[2] = in_n[ti];
+						c_size[3] = hy_h;
+						c_stride[0] = in_n[ti] * hy_stride;
+						c_stride[1] = in_n[ti] * hy_stride;
+						c_stride[2] = hy_stride;
+
+						miopenCreateTensorDescriptor(&Adesc);
+						miopenCreateTensorDescriptor(&Cdesc);
+						miopenSetTensorDescriptor(
+							Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+						miopenSetTensorDescriptor(
+							Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+						OpTensor(handle,
+							miopenTensorOpAdd,
+							&alpha0,
+							miopen::deref(Adesc),
+							dhy,
+							&alpha1,
+							miopen::deref(Adesc),
+							dhy,
+							&beta_t,
+							miopen::deref(Cdesc),
+							workSpace,
+							hx_shift,
+							hx_shift,
+							hid_shift + bacc * hy_stride + bi * 5 * hy_h);
+
+					}
+
+					if (dirMode)
+					{
+						if (in_n[seqLen - 1 - ti] > 0)
+						{
+							a_size[2] = in_n[seqLen - 1 - ti];
+							a_size[3] = hy_h;
+							a_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+							a_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
+							a_stride[2] = h_stride;
+							c_size[2] = in_n[seqLen - 1 - ti];
+							c_size[3] = hy_h;
+							c_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+							c_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+							c_stride[2] = hy_stride;
+
+							miopenCreateTensorDescriptor(&Adesc);
+							miopenCreateTensorDescriptor(&Cdesc);
+							miopenSetTensorDescriptor(
+								Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+							miopenSetTensorDescriptor(
+								Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+							OpTensor(handle,
+								miopenTensorOpAdd,
+								&alpha0,
+								miopen::deref(Adesc),
+								dhy,
+								&alpha1,
+								miopen::deref(Adesc),
+								dhy,
+								&beta_t,
+								miopen::deref(Cdesc),
+								workSpace,
+								hx_shift + hy_h,
+								hx_shift + hy_h,
+								hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h);
+
+						}
+					}
                 }
                 else
                 {
@@ -3336,32 +3434,653 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                 }
 
                 // update hidden status
-                for(int bs = 0; bs < in_n[ti]; bs++)
-                {
-                    if(ti < seqLen - 1)
-                    {
-                        if(bs < in_n[ti + 1])
-                        {
-                            int pretime_shift =
-                                li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
-                        }
-                    }
+				if (in_n[ti] > 0)
+				{
+					offset = hid_shift + bacc * hy_stride;
+					rsv_size[2] = in_n[ti];
+					rsv_size[3] = hy_h;
+					rsv_stride[0] = in_n[ti] * hy_stride;
+					rsv_stride[1] = in_n[ti] * hy_stride;
+					rsv_stride[2] = hy_stride;
 
-                    if(ti == 0)
-                    {
-                    }
-                    else
-                    {
-                        int prec_shift = li * batch_n * hy_stride +
-                                         (bacc - in_n[ti - 1]) * hy_stride + bi * 4 * hy_h;
-                    }
-                }
+					miopenCreateTensorDescriptor(&rsvTensor);
+					miopenSetTensorDescriptor(
+						rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+					
+					// update cell state
+					tanhDesc.Backward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						miopen::deref(rsvTensor),
+						workSpace,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset + bi * 4 * hy_h + nLayers * batch_n * hy_stride,
+						offset + bi * 5 * hy_h,
+						offset + bi * 4 * hy_h,
+						offset + bi * 4 * hy_h);
+
+					alpha0 = 1;
+					alpha1 = 1;
+					beta_t = 0;
+
+					OpTensor(handle,
+						miopenTensorOpMul,
+						&alpha0,
+						miopen::deref(rsvTensor),
+						workSpace,
+						&alpha1,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta_t,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset + bi * 4 * hy_h,
+						offset + 2 * hy_h + nLayers * batch_n * hy_stride,
+						offset + bi * 4 * hy_h);
+
+
+					if (ti == seqLen - 1)
+					{
+						std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+						miopenTensorDescriptor_t Adesc, Cdesc;
+
+						alpha0 = 1;
+						alpha1 = 0;
+						beta_t = 1;
+
+						a_size[2] = in_n[ti];
+						a_size[3] = hy_h;
+						a_stride[0] = in_n[ti] * h_stride;
+						a_stride[1] = in_n[ti] * h_stride;
+						a_stride[2] = h_stride;
+						c_size[2] = in_n[ti];
+						c_size[3] = hy_h;
+						c_stride[0] = in_n[ti] * hy_stride;
+						c_stride[1] = in_n[ti] * hy_stride;
+						c_stride[2] = hy_stride;
+
+						miopenCreateTensorDescriptor(&Adesc);
+						miopenCreateTensorDescriptor(&Cdesc);
+						miopenSetTensorDescriptor(
+							Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+						miopenSetTensorDescriptor(
+							Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+						OpTensor(handle,
+							miopenTensorOpAdd,
+							&alpha0,
+							miopen::deref(Adesc),
+							dcy,
+							&alpha1,
+							miopen::deref(Adesc),
+							dcy,
+							&beta_t,
+							miopen::deref(Cdesc),
+							workSpace,
+							hx_shift,
+							hx_shift,
+							offset + bi * 4 * hy_h);
+					}
+					else
+					{
+						int pretime_shift =
+							li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
+
+						std::vector<int> b_size(4, 1), b_stride(4, 1);
+						miopenTensorDescriptor_t Bdesc;
+
+						b_size[2] = in_n[ti + 1];
+						b_size[3] = hy_h;
+						b_stride[0] = in_n[ti + 1] * hy_stride;
+						b_stride[1] = in_n[ti + 1] * hy_stride;
+						b_stride[2] = hy_stride;
+
+						miopenCreateTensorDescriptor(&Bdesc);
+						miopenSetTensorDescriptor(
+							Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 1;
+
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(Bdesc),
+							workSpace,
+							&alpha1,
+							miopen::deref(Bdesc),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(Bdesc),
+							workSpace,
+							pretime_shift + bi * 4 * hy_h,
+							pretime_shift + hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 4 * hy_h);
+					}
+
+					// update forget gate
+					sigDesc.Backward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						miopen::deref(rsvTensor),
+						workSpace,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset + hy_h + nLayers * batch_n * hy_stride,
+						offset + bi * 4 * hy_h,
+						offset + hy_h,
+						offset + hy_h);
+
+					if (ti == 0)
+					{
+						std::vector<int> b_size(4, 1), b_stride(4, 1);
+						miopenTensorDescriptor_t Bdesc;
+
+						b_size[2] = in_n[ti];
+						b_size[3] = hy_h;
+						b_stride[0] = in_n[ti] * h_stride;
+						b_stride[1] = in_n[ti] * h_stride;
+						b_stride[2] = h_stride;
+
+						miopenCreateTensorDescriptor(&Bdesc);
+						miopenSetTensorDescriptor(
+							Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 0;
+
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(rsvTensor),
+							workSpace,
+							&alpha1,
+							miopen::deref(Bdesc),
+							cx,
+							&beta_t,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + hy_h,
+							hx_shift,
+							offset + hy_h);
+					}
+					else
+					{
+						int pretime_shift =
+							li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride;
+
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 0;
+
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(rsvTensor),
+							workSpace,
+							&alpha1,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + hy_h,
+							pretime_shift + bi * 4 * hy_h,
+							offset + hy_h);
+					}
+
+					// update input gate
+					sigDesc.Backward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						miopen::deref(rsvTensor),
+						workSpace,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset + nLayers * batch_n * hy_stride,
+						offset + bi * 4 * hy_h,
+						offset,
+						offset);
+
+					alpha0 = 1;
+					alpha1 = 1;
+					beta_t = 0;
+
+					OpTensor(handle,
+						miopenTensorOpMul,
+						&alpha0,
+						miopen::deref(rsvTensor),
+						workSpace,
+						&alpha1,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta_t,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset,
+						offset + 3 * hy_h + nLayers * batch_n * hy_stride,
+						offset);
+
+					// update output gate
+					sigDesc.Backward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						miopen::deref(rsvTensor),
+						workSpace,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset + 2 * hy_h + nLayers * batch_n * hy_stride,
+						offset + bi * 5 * hy_h,
+						offset + 2 * hy_h,
+						offset + 2 * hy_h);
+
+					alpha0 = 1;
+					alpha1 = 1;
+					beta_t = 0;
+
+					OpTensor(handle,
+						miopenTensorOpMul,
+						&alpha0,
+						miopen::deref(rsvTensor),
+						workSpace,
+						&alpha1,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta_t,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset + 2 * hy_h,
+						offset + bi * 4 * hy_h + nLayers * batch_n * hy_stride,
+						offset + 2 * hy_h);
+
+					// update c gate
+					tanhDesc.Backward(handle,
+						&alpha,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						miopen::deref(rsvTensor),
+						workSpace,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset + 3 * hy_h + nLayers * batch_n * hy_stride,
+						offset + bi * 4 * hy_h,
+						offset + 3 * hy_h,
+						offset + 3 * hy_h);
+
+					alpha0 = 1;
+					alpha1 = 1;
+					beta_t = 0;
+
+					OpTensor(handle,
+						miopenTensorOpMul,
+						&alpha0,
+						miopen::deref(rsvTensor),
+						workSpace,
+						&alpha1,
+						miopen::deref(rsvTensor),
+						reserveSpace,
+						&beta_t,
+						miopen::deref(rsvTensor),
+						workSpace,
+						offset + 3 * hy_h,
+						offset + nLayers * batch_n * hy_stride,
+						offset + 3 * hy_h);
+				}
 
                 if(dirMode)
                 {
-                    for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
-                    {
-                    }
+					if (in_n[seqLen - 1 - ti] > 0)
+					{
+						offset = hid_shift + baccbi * hy_stride;
+						rsv_size[2] = in_n[seqLen - 1 - ti];
+						rsv_size[3] = hy_h;
+						rsv_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+						rsv_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+						rsv_stride[2] = hy_stride;
+
+						miopenCreateTensorDescriptor(&rsvTensor);
+						miopenSetTensorDescriptor(
+							rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+
+						// update cell state
+						tanhDesc.Backward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							miopen::deref(rsvTensor),
+							workSpace,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + bi * 4 * hy_h + hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 5 * hy_h + hy_h,
+							offset + bi * 4 * hy_h + hy_h,
+							offset + bi * 4 * hy_h + hy_h);
+
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 0;
+
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(rsvTensor),
+							workSpace,
+							&alpha1,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + bi * 4 * hy_h + hy_h,
+							offset + 6 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 4 * hy_h + hy_h);
+
+
+						if (ti == seqLen - 1)
+						{
+							std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+							miopenTensorDescriptor_t Adesc, Cdesc;
+
+							alpha0 = 1;
+							alpha1 = 0;
+							beta_t = 1;
+
+							a_size[2] = in_n[seqLen - 1 - ti];
+							a_size[3] = hy_h;
+							a_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+							a_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
+							a_stride[2] = h_stride;
+							c_size[2] = in_n[seqLen - 1 - ti];
+							c_size[3] = hy_h;
+							c_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+							c_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+							c_stride[2] = hy_stride;
+
+							miopenCreateTensorDescriptor(&Adesc);
+							miopenCreateTensorDescriptor(&Cdesc);
+							miopenSetTensorDescriptor(
+								Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+							miopenSetTensorDescriptor(
+								Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+							OpTensor(handle,
+								miopenTensorOpAdd,
+								&alpha0,
+								miopen::deref(Adesc),
+								dcy,
+								&alpha1,
+								miopen::deref(Adesc),
+								dcy,
+								&beta_t,
+								miopen::deref(Cdesc),
+								workSpace,
+								hx_shift + hy_h,
+								hx_shift + hy_h,
+								hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+						}
+						else
+						{
+							int pretime_shift = li * batch_n * hy_stride +
+								(baccbi - in_n[seqLength - 2 - ti]) * hy_stride;
+
+							std::vector<int> b_size(4, 1), b_stride(4, 1);
+							miopenTensorDescriptor_t Bdesc;
+
+							b_size[2] = in_n[seqLen - 1 - ti];
+							b_size[3] = hy_h;
+							b_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+							b_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+							b_stride[2] = hy_stride;
+
+							miopenCreateTensorDescriptor(&Bdesc);
+							miopenSetTensorDescriptor(
+								Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+							alpha0 = 1;
+							alpha1 = 1;
+							beta_t = 1;
+
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(Bdesc),
+								workSpace,
+								&alpha1,
+								miopen::deref(Bdesc),
+								reserveSpace,
+								&beta_t,
+								miopen::deref(Bdesc),
+								workSpace,
+								pretime_shift + bi * 4 * hy_h + hy_h,
+								pretime_shift + 5 * hy_h + nLayers * batch_n * hy_stride,
+								offset + bi * 4 * hy_h + hy_h);
+						}
+
+						// update forget gate
+						sigDesc.Backward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							miopen::deref(rsvTensor),
+							workSpace,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + 5 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 4 * hy_h + hy_h,
+							offset + 5 * hy_h,
+							offset + 5 * hy_h);
+
+						if (ti == 0)
+						{
+							std::vector<int> b_size(4, 1), b_stride(4, 1);
+							miopenTensorDescriptor_t Bdesc;
+
+							b_size[2] = in_n[seqLen - 1 - ti];
+							b_size[3] = hy_h;
+							b_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+							b_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
+							b_stride[2] = h_stride;
+
+							miopenCreateTensorDescriptor(&Bdesc);
+							miopenSetTensorDescriptor(
+								Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+							alpha0 = 1;
+							alpha1 = 1;
+							beta_t = 0;
+
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(rsvTensor),
+								workSpace,
+								&alpha1,
+								miopen::deref(Bdesc),
+								cx,
+								&beta_t,
+								miopen::deref(rsvTensor),
+								workSpace,
+								offset + 5 * hy_h,
+								hx_shift + hy_h,
+								offset + 5 * hy_h);
+						}
+						else
+						{
+							if (in_n[seqLength - ti] > 0)
+							{
+								int pretime_shift = li * batch_n * hy_stride +
+									(baccbi + in_n[seqLength - 1 - ti]) * hy_stride;
+
+								std::vector<int> b_size(4, 1), b_stride(4, 1);
+								miopenTensorDescriptor_t Bdesc;
+
+								b_size[2] = in_n[seqLen - ti];
+								b_size[3] = hy_h;
+								b_stride[0] = in_n[seqLen - ti] * hy_stride;
+								b_stride[1] = in_n[seqLen - ti] * hy_stride;
+								b_stride[2] = hy_stride;
+
+								miopenCreateTensorDescriptor(&Bdesc);
+								miopenSetTensorDescriptor(
+									Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+								alpha0 = 1;
+								alpha1 = 1;
+								beta_t = 0;
+
+								OpTensor(handle,
+									miopenTensorOpMul,
+									&alpha0,
+									miopen::deref(Bdesc),
+									workSpace,
+									&alpha1,
+									miopen::deref(Bdesc),
+									reserveSpace,
+									&beta_t,
+									miopen::deref(Bdesc),
+									workSpace,
+									offset + 5 * hy_h,
+									pretime_shift + bi * 4 * hy_h + hy_h,
+									offset + 5 * hy_h);
+							}
+						}
+
+						// update input gate
+						sigDesc.Backward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							miopen::deref(rsvTensor),
+							workSpace,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + 4 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 4 * hy_h + hy_h,
+							offset + 4 * hy_h,
+							offset + 4 * hy_h);
+
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 0;
+
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(rsvTensor),
+							workSpace,
+							&alpha1,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + 4 * hy_h,
+							offset + 7 * hy_h + nLayers * batch_n * hy_stride,
+							offset + 4 * hy_h);
+
+						// update output gate
+						sigDesc.Backward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							miopen::deref(rsvTensor),
+							workSpace,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + 6 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 5 * hy_h + hy_h,
+							offset + 6 * hy_h,
+							offset + 6 * hy_h);
+
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 0;
+
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(rsvTensor),
+							workSpace,
+							&alpha1,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + 6 * hy_h,
+							offset + bi * 4 * hy_h + hy_h + nLayers * batch_n * hy_stride,
+							offset + 6 * hy_h);
+
+						// update c gate
+						tanhDesc.Backward(handle,
+							&alpha,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							miopen::deref(rsvTensor),
+							workSpace,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + 7 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 4 * hy_h + hy_h,
+							offset + 7 * hy_h,
+							offset + 7 * hy_h);
+
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 0;
+
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(rsvTensor),
+							workSpace,
+							&alpha1,
+							miopen::deref(rsvTensor),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(rsvTensor),
+							workSpace,
+							offset + 7 * hy_h,
+							offset + 4 * hy_h + nLayers * batch_n * hy_stride,
+							offset + 7 * hy_h);
+				    }
                 }
 
                 baccbi += in_n[seqLen - 1 - ti];
@@ -3395,6 +4114,50 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                     time_gemm = handle.GetKernelTime();
                     handle.AccumKernelTime(time_gemm);
                 }
+
+				std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+				miopenTensorDescriptor_t Adesc, Cdesc;
+
+				a_size[2] = in_n[0];
+				a_size[3] = hy_h;
+				a_stride[0] = in_n[0] * hy_stride;
+				a_stride[1] = in_n[0] * hy_stride;
+				a_stride[2] = hy_stride;
+				c_size[2] = in_n[0];
+				c_size[3] = hy_h;
+				c_stride[0] = in_n[0] * h_stride;
+				c_stride[1] = in_n[0] * h_stride;
+				c_stride[2] = h_stride;
+
+				miopenCreateTensorDescriptor(&Adesc);
+				miopenCreateTensorDescriptor(&Cdesc);
+				miopenSetTensorDescriptor(Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+				miopenSetTensorDescriptor(Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+				alpha0 = 1;
+				alpha1 = 1;
+				beta_t = 1;
+
+				OpTensor(handle,
+					miopenTensorOpMul,
+					&alpha0,
+					miopen::deref(Adesc),
+					workSpace,
+					&alpha1,
+					miopen::deref(Adesc),
+					reserveSpace,
+					&beta_t,
+					miopen::deref(Cdesc),
+					dcx,
+					pretime_shift + bi * 4 * hy_h,
+					pretime_shift + hy_h + nLayers * batch_n * hy_stride,
+					hx_shift);
+				// Update time
+				if (handle.IsProfilingEnabled())
+				{
+					time_0 = handle.GetKernelTime();
+					handle.AccumKernelTime(time_0);
+				}
             }
 
             if(dirMode)
@@ -3431,6 +4194,50 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         time_gemm = handle.GetKernelTime();
                         handle.AccumKernelTime(time_gemm);
                     }
+					
+					std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+					miopenTensorDescriptor_t Adesc, Cdesc;
+
+					a_size[2] = in_n[seqLen - 1];
+					a_size[3] = hy_h;
+					a_stride[0] = in_n[seqLen - 1] * hy_stride;
+					a_stride[1] = in_n[seqLen - 1] * hy_stride;
+					a_stride[2] = hy_stride;
+					c_size[2] = in_n[seqLen - 1];
+					c_size[3] = hy_h;
+					c_stride[0] = in_n[seqLen - 1] * h_stride;
+					c_stride[1] = in_n[seqLen - 1] * h_stride;
+					c_stride[2] = h_stride;
+
+					miopenCreateTensorDescriptor(&Adesc);
+					miopenCreateTensorDescriptor(&Cdesc);
+					miopenSetTensorDescriptor(Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+					miopenSetTensorDescriptor(Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+					alpha0 = 1;
+					alpha1 = 1;
+					beta_t = 1;
+
+					OpTensor(handle,
+						miopenTensorOpMul,
+						&alpha0,
+						miopen::deref(Adesc),
+						workSpace,
+						&alpha1,
+						miopen::deref(Adesc),
+						reserveSpace,
+						&beta_t,
+						miopen::deref(Cdesc),
+						dcx,
+						pretime_shift + bi * 4 * hy_h + hy_h,
+						pretime_shift + 5 * hy_h + nLayers * batch_n * hy_stride,
+						hx_shift + hy_h);
+					// Update time
+					if (handle.IsProfilingEnabled())
+					{
+						time_0 = handle.GetKernelTime();
+						handle.AccumKernelTime(time_0);
+					}
                 }
             }
         }
@@ -3458,13 +4265,43 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             miopenSetTensorDescriptor(
                 destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
+			float alpha0 = 1;
+			float alpha1 = 0;
+			float beta_t = 1;
+
             for(int gi = 0; gi < 4; gi++)
             {
-                // TensorAdd();
+				OpTensor(handle,
+					miopenTensorOpAdd,
+					&alpha0,
+					miopen::deref(srcTensor),
+					workSpace,
+					&alpha1,
+					miopen::deref(srcTensor),
+					workSpace,
+					&beta_t,
+					miopen::deref(destTensor),
+					dx,
+					gi * hy_h,
+					gi * hy_h,
+					0);
 
                 if(dirMode)
                 {
-                    // TensorAdd();
+                    OpTensor(handle,
+						miopenTensorOpAdd,
+						&alpha0,
+						miopen::deref(srcTensor),
+						workSpace,
+						&alpha1,
+						miopen::deref(srcTensor),
+						workSpace,
+						&beta_t,
+						miopen::deref(destTensor),
+						dx,
+						(gi + 4) * hy_h,
+						(gi + 4) * hy_h,
+						0);
                 }
             }
         }
