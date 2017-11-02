@@ -140,7 +140,7 @@ mlo_construct_winograd::SolverStore() const
 {
     static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
         miopen::StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance(),
-        miopen::StaticContainer<const miopen::solver::ConvBinWinogradRxSFwd>::Instance(),
+        miopen::StaticContainer<const miopen::solver::ConvBinWinogradRxS>::Instance(),
     });
 
     return store;
