@@ -35,11 +35,9 @@
 
 namespace miopen {
 
-void ScaleTensor(
-    Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha);
+void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha);
 
-void SetTensor(
-    Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha);
+void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha);
 
 void OpTensor(Handle& handle,
               miopenTensorOp_t tensorOp,
