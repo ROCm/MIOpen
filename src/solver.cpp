@@ -24,14 +24,11 @@
  *
  *******************************************************************************/
 
-#include "miopen/db_record.hpp"
-#include "miopen/solver.hpp"
-#include "miopen/logger.hpp"
+#include <miopen/db_record.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/logger.hpp>
 
 #include <ostream>
-
-#define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
-#define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 
 namespace miopen {
 namespace solver {
