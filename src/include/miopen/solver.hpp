@@ -169,9 +169,8 @@ class Solver
     public:
     virtual ~Solver() {}
 
-
     // TODO: Make solvers regular
-    Solver() = default;
+    Solver()              = default;
     Solver(const Solver&) = default;
     Solver& operator=(const Solver&) = default;
 
