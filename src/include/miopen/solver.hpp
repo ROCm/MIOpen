@@ -169,6 +169,12 @@ class Solver
     public:
     virtual ~Solver() {}
 
+
+    // TODO: Make solvers regular
+    Solver() = default;
+    Solver(const Solver&) = default;
+    Solver& operator=(const Solver&) = default;
+
     /// Each non-abstract descendant shall have unique id.
     virtual const char* SolverId() const = 0;
 
