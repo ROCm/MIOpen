@@ -64,6 +64,9 @@ struct c_array_view
     value_type& operator[](size_t i) { return deref(data[i]); }
 };
 
+void profileSequence(Handle& handle, float& ctime, const int start, const int finish, const bool init);
+void profileSequence(Handle& handle, unsigned char select);
+
 struct RNNDescriptor : miopenRNNDescriptor
 {
 
