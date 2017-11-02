@@ -96,7 +96,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 
         int N, C, H, W, K, n_groups, R, S;
         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
-        k_p = std::make_tuple(N, C, H, W, K, n_groups, R, S, kernel_name == "sp3AsmConvRxSF");
+        k_p = std::make_tuple(N, C, H, W, K, n_groups, R, S, kernel_name == "sp3AsmConvRxSU");
         return 0;
     }
     else
@@ -615,7 +615,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int* return_addr = nullptr;
             int N, C, H, W, K, n_groups, R, S;
             construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
-            if(kernel.GetName() == "sp3AsmConvRxSF")
+            if(kernel.GetName() == "sp3AsmConvRxSU")
             {
                 kernel(N,
                        C,
