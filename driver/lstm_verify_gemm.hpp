@@ -1047,7 +1047,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
 
     for(int bs = 0; bs < batch_n; bs++)
     {
-        for(int h = 0; h < in_h; h++)
+        for(int h = 0; h < in_stride; h++)
         {
             din_host[bs * in_stride + h] = din_state[bs * in_stride + h];
         }
