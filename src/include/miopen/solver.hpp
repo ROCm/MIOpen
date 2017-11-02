@@ -102,10 +102,10 @@ class ConvSolution
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
 
-
 // Search for a solution among many solvers
 template <class... Solvers, class Context>
-miopen::solver::ConvSolution SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord)
+miopen::solver::ConvSolution SearchForSolution(const Context& search_params,
+                                               miopen::DbRecord dbRecord)
 {
     miopen::solver::ConvSolution solution{miopenStatusUnknownError};
 
@@ -135,7 +135,7 @@ miopen::solver::ConvSolution SearchForSolution(const Context& search_params, mio
 /// solution-specific parameters and returns the Solution object.
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
-template<class Solver, class Context>
+template <class Solver, class Context>
 ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
 {
     auto config = s.PerformanceConfigImpl();
