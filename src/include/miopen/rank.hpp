@@ -37,7 +37,6 @@ template <>
 struct rank<0>
 {
 };
-
 }
 
 #endif
