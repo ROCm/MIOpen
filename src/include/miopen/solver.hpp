@@ -110,20 +110,19 @@ miopen::solver::ConvSolution FindSolution(miopen::DbRecord dbRecord, const Conte
     const auto no_perf_filtering =
         miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 
-    MIOPEN_STATIC_FOR_EACH(solver,
-                           Solvers{},
-                           {
-                               if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
-                                  (no_perf_filtering || solver.IsFast(search_params)))
-                               {
-                                   solution = solver.FindSolution(search_params, dbRecord);
-                                   if(solution.Succeeded() && solution.construction_params.empty())
-                                   {
-                                       MIOPEN_THROW(std::string("Internal error in solver: ") +
-                                                    typeid(solver).name());
-                                   }
-                               }
-                           });
+    // clang-format off
+    MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
+        if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
+           (no_perf_filtering || solver.IsFast(search_params)))
+        {
+            solution = solver.FindSolution(search_params, dbRecord);
+            if(solution.Succeeded() && solution.construction_params.empty())
+            {
+                MIOPEN_THROW(std::string("Internal error in solver: ") + typeid(solver).name());
+            }
+        }
+    });
+    // clang-format on
 
     return solution;
 }
