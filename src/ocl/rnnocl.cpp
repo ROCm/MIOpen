@@ -186,7 +186,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
 
 #if MIOPEN_USE_MIOPENGEMM
-        printf("rnn gpu fwd \n");
+        printf("run rnn gpu fwd \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
@@ -229,6 +229,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                reserveSpace,
                                0,
                                0);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
 
                     if(dirMode)
                     {
@@ -239,6 +245,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    reserveSpace,
                                    0,
                                    hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
 
                     if(biasMode)
@@ -277,13 +289,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      wei_shift_bias,
                                      wei_shift_bias,
                                      hid_shift + bs * hy_stride);
-                        }
-
-                        // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
                         }
                     }
                 }
@@ -355,13 +366,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      wei_shift_bias,
                                      wei_shift_bias + wei_stride,
                                      hid_shift + bs * hy_stride);
-                        }
-
-                        // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
                         }
                     }
                 }
@@ -404,7 +414,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 if(biasMode)
                 {
                     int wei_shift_bias_temp =
-                        (inputMode == 1)
+                        (inputMode == miopenRNNskip)
                             ? (wei_shift_bias + bi * hy_h + bi * (li - 1) * (bi + 1) * hy_h)
                             : (wei_shift_bias + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h);
 
@@ -449,6 +459,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  wei_shift_bias_temp,
                                  wei_shift_bias_temp + bi * wei_stride,
                                  hid_shift + bs * hy_stride);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
 
                         if(dirMode)
                         {
@@ -468,14 +484,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      wei_shift_bias_temp + wei_stride,
                                      wei_shift_bias_temp + wei_stride,
                                      hid_shift + bs * hy_stride);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
                         }
-                    }
-
-                    // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
                     }
                 }
             }
@@ -755,6 +770,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                            hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride +
                                nLayers * batch_n * hy_stride,
                            hx_shift);
+                // Update time
+                if(handle.IsProfilingEnabled())
+                {
+                    time_0 = handle.GetKernelTime();
+                    handle.AccumKernelTime(time_0);
+                }
             }
             if(dirMode)
             {
@@ -790,6 +811,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                hy,
                                hid_shift + hy_h + nLayers * batch_n * hy_stride,
                                hx_shift + hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
                 }
             }
         }
@@ -830,7 +857,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         if(biasMode)
         {
             int wei_shift_bias_temp =
-                (inputMode == 1)
+                (inputMode == miopenRNNskip)
                     ? (wei_shift_bias + bi * hy_h + bi * (nLayers - 1) * (bi + 1) * hy_h)
                     : (wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (nLayers - 1) * hy_h);
 
@@ -873,6 +900,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                          wei_shift_bias_temp,
                          wei_shift_bias_temp,
                          bs * out_stride);
+                // Update time
+                if(handle.IsProfilingEnabled())
+                {
+                    time_0 = handle.GetKernelTime();
+                    handle.AccumKernelTime(time_0);
+                }
 
                 if(dirMode)
                 {
@@ -890,14 +923,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                              wei_shift_bias_temp + out_stride,
                              wei_shift_bias_temp + out_stride,
                              bs * out_stride);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
                 }
-            }
-
-            // Update time
-            if(handle.IsProfilingEnabled())
-            {
-                time_0 = handle.GetKernelTime();
-                handle.AccumKernelTime(time_gemm + time_0);
             }
         }
 #else
@@ -908,7 +940,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
 
 #if MIOPEN_USE_MIOPENGEMM
-        printf("lstm gpu fwd \n");
+        printf("run lstm gpu fwd \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
@@ -952,6 +984,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    reserveSpace,
                                    0,
                                    gi * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
 
                         if(dirMode)
                         {
@@ -962,17 +1000,64 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        reserveSpace,
                                        0,
                                        (gi + 4) * hy_h);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
                         }
                     }
 
                     if(biasMode)
                     {
+                        std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                        miopenTensorDescriptor_t Adesc, Cdesc;
 
-                        // Update time
-                        if(handle.IsProfilingEnabled())
+                        a_size[2]   = 1;
+                        a_size[3]   = wei_stride;
+                        a_stride[0] = wei_stride;
+                        a_stride[1] = wei_stride;
+                        a_stride[2] = wei_stride;
+                        c_size[2]   = 1;
+                        c_size[3]   = wei_stride;
+                        c_stride[0] = hy_stride;
+                        c_stride[1] = hy_stride;
+                        c_stride[2] = hy_stride;
+
+                        miopenCreateTensorDescriptor(&Adesc);
+                        miopenCreateTensorDescriptor(&Cdesc);
+                        miopenSetTensorDescriptor(
+                            Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                        miopenSetTensorDescriptor(
+                            Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                        float alpha0 = 1;
+                        float alpha1 = 0;
+                        float beta_t = 1;
+
+                        for(int bs = 0; bs < batch_n; bs++)
                         {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &alpha1,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &beta_t,
+                                     miopen::deref(Cdesc),
+                                     reserveSpace,
+                                     wei_shift_bias,
+                                     wei_shift_bias,
+                                     hid_shift + bs * hy_stride);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
                         }
                     }
                 }
@@ -1003,12 +1088,53 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                     if(biasMode)
                     {
+                        std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                        miopenTensorDescriptor_t Adesc, Cdesc;
 
-                        // Update time
-                        if(handle.IsProfilingEnabled())
+                        a_size[2]   = 1;
+                        a_size[3]   = wei_stride;
+                        a_stride[0] = wei_stride;
+                        a_stride[1] = wei_stride;
+                        a_stride[2] = wei_stride;
+                        c_size[2]   = 1;
+                        c_size[3]   = wei_stride;
+                        c_stride[0] = hy_stride;
+                        c_stride[1] = hy_stride;
+                        c_stride[2] = hy_stride;
+
+                        miopenCreateTensorDescriptor(&Adesc);
+                        miopenCreateTensorDescriptor(&Cdesc);
+                        miopenSetTensorDescriptor(
+                            Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                        miopenSetTensorDescriptor(
+                            Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                        float alpha0 = 1;
+                        float alpha1 = 1;
+                        float beta_t = 1;
+
+                        for(int bs = 0; bs < batch_n; bs++)
                         {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &alpha1,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &beta_t,
+                                     miopen::deref(Cdesc),
+                                     reserveSpace,
+                                     wei_shift_bias,
+                                     wei_shift_bias + wei_stride,
+                                     hid_shift + bs * hy_stride);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
                         }
                     }
                 }
@@ -1045,11 +1171,84 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 if(biasMode)
                 {
-                    // Update time
-                    if(handle.IsProfilingEnabled())
+                    int wei_shift_bias_temp =
+                        (inputMode == miopenRNNskip)
+                            ? (wei_shift_bias + wei_stride + (li - 1) * (bi + 1) * wei_stride)
+                            : (wei_shift_bias + 2 * wei_stride + (li - 1) * (bi + 1) * wei_stride);
+
+                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                    miopenTensorDescriptor_t Adesc, Cdesc;
+
+                    a_size[2]   = 1;
+                    a_size[3]   = wei_stride;
+                    a_stride[0] = wei_stride;
+                    a_stride[1] = wei_stride;
+                    a_stride[2] = wei_stride;
+                    c_size[2]   = 1;
+                    c_size[3]   = wei_stride;
+                    c_stride[0] = hy_stride;
+                    c_stride[1] = hy_stride;
+                    c_stride[2] = hy_stride;
+
+                    miopenCreateTensorDescriptor(&Adesc);
+                    miopenCreateTensorDescriptor(&Cdesc);
+                    miopenSetTensorDescriptor(
+                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                    miopenSetTensorDescriptor(
+                        Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+                    float alpha0 = 1;
+                    float alpha1;
+                    float beta_t = 1;
+
+                    for(int bs = 0; bs < batch_n; bs++)
                     {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
+                        alpha1 = 1;
+                        OpTensor(handle,
+                                 miopenTensorOpAdd,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 w,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 w,
+                                 &beta_t,
+                                 miopen::deref(Cdesc),
+                                 reserveSpace,
+                                 wei_shift_bias_temp,
+                                 wei_shift_bias_temp + bi * wei_stride,
+                                 hid_shift + bs * hy_stride);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        if(dirMode)
+                        {
+                            alpha1 = 0;
+
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &alpha1,
+                                     miopen::deref(Adesc),
+                                     w,
+                                     &beta_t,
+                                     miopen::deref(Cdesc),
+                                     reserveSpace,
+                                     wei_shift_bias_temp + wei_stride,
+                                     wei_shift_bias_temp + wei_stride,
+                                     hid_shift + bs * hy_stride);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
+                        }
                     }
                 }
             }
@@ -1236,7 +1435,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                     reserveSpace,
                                     offset,
                                     offset + nLayers * batch_n * hy_stride);
-
                     // Update time
                     if(handle.IsProfilingEnabled())
                     {
@@ -1261,7 +1459,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      reserveSpace,
                                      offset,
                                      offset + nLayers * batch_n * hy_stride);
-
                     // Update time
                     if(handle.IsProfilingEnabled())
                     {
@@ -1270,13 +1467,108 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     }
 
                     // update cell state
+                    std::vector<int> a_size(4, 1), a_stride(4, 1);
+                    miopenTensorDescriptor_t Adesc;
+
+                    a_size[2]   = in_n[ti];
+                    a_size[3]   = hy_h;
+                    a_stride[0] = in_n[ti] * hy_stride;
+                    a_stride[1] = in_n[ti] * hy_stride;
+                    a_stride[2] = hy_stride;
+
+                    miopenCreateTensorDescriptor(&Adesc);
+                    miopenSetTensorDescriptor(
+                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+
+                    float alpha0 = 1;
+                    float alpha1 = 1;
+                    float beta_t = 1;
+
+                    OpTensor(handle,
+                             miopenTensorOpMul,
+                             &alpha0,
+                             miopen::deref(Adesc),
+                             reserveSpace,
+                             &alpha1,
+                             miopen::deref(Adesc),
+                             reserveSpace,
+                             &beta_t,
+                             miopen::deref(Adesc),
+                             reserveSpace,
+                             hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
+                             hid_shift + bacc * hy_stride + 3 * hy_h +
+                                 nLayers * batch_n * hy_stride,
+                             hid_shift + bacc * hy_stride + bi * 4 * hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
                     if(ti == 0)
                     {
+                        std::vector<int> b_size(4, 1), b_stride(4, 1);
+                        miopenTensorDescriptor_t Bdesc;
+
+                        b_size[2]   = in_n[ti];
+                        b_size[3]   = hy_h;
+                        b_stride[0] = in_n[ti] * h_stride;
+                        b_stride[1] = in_n[ti] * h_stride;
+                        b_stride[2] = h_stride;
+
+                        miopenCreateTensorDescriptor(&Bdesc);
+                        miopenSetTensorDescriptor(
+                            Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 &alpha1,
+                                 miopen::deref(Bdesc),
+                                 cx,
+                                 &beta_t,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 hid_shift + bacc * hy_stride + hy_h +
+                                     nLayers * batch_n * hy_stride,
+                                 hx_shift,
+                                 hid_shift + bacc * hy_stride + bi * 4 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
                     else
                     {
                         int prec_shift = li * batch_n * hy_stride +
                                          (bacc - in_n[ti - 1]) * hy_stride + bi * 4 * hy_h;
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 &beta_t,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 hid_shift + bacc * hy_stride + hy_h +
+                                     nLayers * batch_n * hy_stride,
+                                 prec_shift,
+                                 hid_shift + bacc * hy_stride + bi * 4 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
 
                     // active cell state
@@ -1296,7 +1588,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      reserveSpace,
                                      offset,
                                      offset + nLayers * batch_n * hy_stride);
-
                     // Update time
                     if(handle.IsProfilingEnabled())
                     {
@@ -1305,6 +1596,70 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     }
 
                     // update hidden state
+                    OpTensor(handle,
+                             miopenTensorOpMul,
+                             &alpha0,
+                             miopen::deref(Adesc),
+                             reserveSpace,
+                             &alpha1,
+                             miopen::deref(Adesc),
+                             reserveSpace,
+                             &beta_t,
+                             miopen::deref(Adesc),
+                             reserveSpace,
+                             hid_shift + bacc * hy_stride + 2 * hy_h +
+                                 nLayers * batch_n * hy_stride,
+                             hid_shift + bacc * hy_stride + bi * 4 * hy_h +
+                                 nLayers * batch_n * hy_stride,
+                             hid_shift + bacc * hy_stride + bi * 5 * hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
+                    // update cy, hy
+                    std::vector<int> b_size(4, 1), b_stride(4, 1);
+                    miopenTensorDescriptor_t Bdesc;
+
+                    b_size[2]   = in_n[ti];
+                    b_size[3]   = hy_h;
+                    b_stride[0] = in_n[ti] * h_stride;
+                    b_stride[1] = in_n[ti] * h_stride;
+                    b_stride[2] = h_stride;
+
+                    miopenCreateTensorDescriptor(&Bdesc);
+                    miopenSetTensorDescriptor(
+                        Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                    CopyTensor(handle,
+                               miopen::deref(Adesc),
+                               reserveSpace,
+                               miopen::deref(Bdesc),
+                               cy,
+                               hid_shift + bacc * hy_stride + bi * 4 * hy_h,
+                               hx_shift);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
+                    CopyTensor(handle,
+                               miopen::deref(Adesc),
+                               reserveSpace,
+                               miopen::deref(Bdesc),
+                               hy,
+                               hid_shift + bacc * hy_stride + bi * 5 * hy_h,
+                               hx_shift);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
                 }
 
                 if(dirMode)
@@ -1333,7 +1688,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                         reserveSpace,
                                         offset,
                                         offset + nLayers * batch_n * hy_stride);
-
                         // Update time
                         if(handle.IsProfilingEnabled())
                         {
@@ -1358,7 +1712,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          reserveSpace,
                                          offset,
                                          offset + nLayers * batch_n * hy_stride);
-
                         // Update time
                         if(handle.IsProfilingEnabled())
                         {
@@ -1367,14 +1720,126 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         }
 
                         // update cell state
+                        std::vector<int> a_size(4, 1), a_stride(4, 1);
+                        miopenTensorDescriptor_t Adesc;
+
+                        a_size[2]   = in_n[seqLen - 1 - ti];
+                        a_size[3]   = hy_h;
+                        a_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+                        a_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+                        a_stride[2] = hy_stride;
+
+                        miopenCreateTensorDescriptor(&Adesc);
+                        miopenSetTensorDescriptor(
+                            Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+
+                        float alpha0 = 1;
+                        float alpha1 = 1;
+                        float beta_t = 1;
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 &beta_t,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 hid_shift + baccbi * hy_stride + 4 * hy_h +
+                                     nLayers * batch_n * hy_stride,
+                                 hid_shift + baccbi * hy_stride + 7 * hy_h +
+                                     nLayers * batch_n * hy_stride,
+                                 hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
                         if(ti == 0)
                         {
+                            std::vector<int> b_size(4, 1), b_stride(4, 1);
+                            miopenTensorDescriptor_t Bdesc;
+
+                            b_size[2]   = in_n[seqLen - 1 - ti];
+                            b_size[3]   = hy_h;
+                            b_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+                            b_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
+                            b_stride[2] = h_stride;
+
+                            miopenCreateTensorDescriptor(&Bdesc);
+                            miopenSetTensorDescriptor(
+                                Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                            OpTensor(handle,
+                                     miopenTensorOpMul,
+                                     &alpha0,
+                                     miopen::deref(Adesc),
+                                     reserveSpace,
+                                     &alpha1,
+                                     miopen::deref(Bdesc),
+                                     cx,
+                                     &beta_t,
+                                     miopen::deref(Adesc),
+                                     reserveSpace,
+                                     hid_shift + baccbi * hy_stride + 5 * hy_h +
+                                         nLayers * batch_n * hy_stride,
+                                     hx_shift + hy_h,
+                                     hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
                         }
                         else
                         {
-                            int prec_shift = li * batch_n * hy_stride +
-                                             (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
-                                             bi * 4 * hy_h + hy_h;
+                            if(in_n[seqLen - ti] > 0)
+                            {
+                                int prec_shift = li * batch_n * hy_stride +
+                                                 (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
+                                                 bi * 4 * hy_h + hy_h;
+
+                                std::vector<int> b_size(4, 1), b_stride(4, 1);
+                                miopenTensorDescriptor_t Bdesc;
+
+                                b_size[2]   = in_n[seqLen - ti];
+                                b_size[3]   = hy_h;
+                                b_stride[0] = in_n[seqLen - ti] * hy_stride;
+                                b_stride[1] = in_n[seqLen - ti] * hy_stride;
+                                b_stride[2] = hy_stride;
+
+                                miopenCreateTensorDescriptor(&Bdesc);
+                                miopenSetTensorDescriptor(
+                                    Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                                OpTensor(handle,
+                                         miopenTensorOpMul,
+                                         &alpha0,
+                                         miopen::deref(Bdesc),
+                                         reserveSpace,
+                                         &alpha1,
+                                         miopen::deref(Bdesc),
+                                         reserveSpace,
+                                         &beta_t,
+                                         miopen::deref(Bdesc),
+                                         reserveSpace,
+                                         hid_shift + baccbi * hy_stride + 5 * hy_h +
+                                             nLayers * batch_n * hy_stride,
+                                         prec_shift,
+                                         hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+                                // Update time
+                                if(handle.IsProfilingEnabled())
+                                {
+                                    time_0 = handle.GetKernelTime();
+                                    handle.AccumKernelTime(time_0);
+                                }
+                            }
                         }
 
                         // active cell state
@@ -1394,7 +1859,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          reserveSpace,
                                          offset,
                                          offset + nLayers * batch_n * hy_stride);
-
                         // Update time
                         if(handle.IsProfilingEnabled())
                         {
@@ -1403,96 +1867,135 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         }
 
                         // update hidden state
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 &beta_t,
+                                 miopen::deref(Adesc),
+                                 reserveSpace,
+                                 hid_shift + baccbi * hy_stride + 6 * hy_h +
+                                     nLayers * batch_n * hy_stride,
+                                 hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h +
+                                     nLayers * batch_n * hy_stride,
+                                 hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        // update cy, hy
+                        std::vector<int> b_size(4, 1), b_stride(4, 1);
+                        miopenTensorDescriptor_t Bdesc;
+
+                        b_size[2]   = in_n[seqLen - 1 - ti];
+                        b_size[3]   = hy_h;
+                        b_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+                        b_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
+                        b_stride[2] = h_stride;
+
+                        miopenCreateTensorDescriptor(&Bdesc);
+                        miopenSetTensorDescriptor(
+                            Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                        CopyTensor(handle,
+                                   miopen::deref(Adesc),
+                                   reserveSpace,
+                                   miopen::deref(Bdesc),
+                                   cy,
+                                   hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h,
+                                   hx_shift + hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        CopyTensor(handle,
+                                   miopen::deref(Adesc),
+                                   reserveSpace,
+                                   miopen::deref(Bdesc),
+                                   hy,
+                                   hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h,
+                                   hx_shift + hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
                 }
 
                 bacc += in_n[ti];
             }
 
-            // hy
-            if(in_n[seqLen - 1] > 0)
+            // hy, cy clean
+            if(in_n[0] - in_n[seqLen - 1] > 0)
             {
-                std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-                    dest_stride(4, 1);
-                miopenTensorDescriptor_t srcTensor, destTensor;
+                std::vector<int> a_size(4, 1), a_stride(4, 1);
+                miopenTensorDescriptor_t Adesc;
 
-                src_size[2]   = in_n[seqLen - 1];
-                src_size[3]   = hy_h;
-                src_stride[0] = in_n[seqLen - 1] * hy_stride;
-                src_stride[1] = in_n[seqLen - 1] * hy_stride;
-                src_stride[2] = hy_stride;
+                a_size[2]   = in_n[0] - in_n[seqLen - 1];
+                a_size[3]   = hy_h;
+                a_stride[0] = in_n[seqLen - 1] * h_stride;
+                a_stride[1] = in_n[seqLen - 1] * h_stride;
+                a_stride[2] = h_stride;
 
-                dest_size[2]   = in_n[seqLen - 1];
-                dest_size[3]   = hy_h;
-                dest_stride[0] = in_n[seqLen - 1] * h_stride;
-                dest_stride[1] = in_n[seqLen - 1] * h_stride;
-                dest_stride[2] = h_stride;
+                miopenCreateTensorDescriptor(&Adesc);
+                miopenSetTensorDescriptor(Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
 
-                miopenCreateTensorDescriptor(&srcTensor);
-                miopenCreateTensorDescriptor(&destTensor);
-                miopenSetTensorDescriptor(
-                    srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-                miopenSetTensorDescriptor(
-                    destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
+                float alpha0 = 0;
+                float alpha1 = 0;
+                float beta_t = 0;
 
-                CopyTensor(handle,
-                           miopen::deref(srcTensor),
-                           reserveSpace,
-                           miopen::deref(destTensor),
-                           cy,
-                           hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride + bi * 4 * hy_h,
-                           hx_shift);
-
-                CopyTensor(handle,
-                           miopen::deref(srcTensor),
-                           reserveSpace,
-                           miopen::deref(destTensor),
-                           hy,
-                           hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride + bi * 5 * hy_h,
-                           hx_shift);
-            }
-            if(dirMode)
-            {
-                if(in_n[0] > 0)
+                OpTensor(handle,
+                         miopenTensorOpMul,
+                         &alpha0,
+                         miopen::deref(Adesc),
+                         hy,
+                         &alpha1,
+                         miopen::deref(Adesc),
+                         hy,
+                         &beta_t,
+                         miopen::deref(Adesc),
+                         hy,
+                         hx_shift + in_n[seqLen - 1] * h_stride,
+                         hx_shift + in_n[seqLen - 1] * h_stride,
+                         hx_shift + in_n[seqLen - 1] * h_stride);
+                // Update time
+                if(handle.IsProfilingEnabled())
                 {
-                    std::vector<int> src_size(4, 1), src_stride(4, 1), dest_size(4, 1),
-                        dest_stride(4, 1);
-                    miopenTensorDescriptor_t srcTensor, destTensor;
+                    time_0 = handle.GetKernelTime();
+                    handle.AccumKernelTime(time_0);
+                }
 
-                    src_size[2]   = in_n[0];
-                    src_size[3]   = hy_h;
-                    src_stride[0] = in_n[0] * hy_stride;
-                    src_stride[1] = in_n[0] * hy_stride;
-                    src_stride[2] = hy_stride;
-
-                    dest_size[2]   = in_n[0];
-                    dest_size[3]   = hy_h;
-                    dest_stride[0] = in_n[0] * h_stride;
-                    dest_stride[1] = in_n[0] * h_stride;
-                    dest_stride[2] = h_stride;
-
-                    miopenCreateTensorDescriptor(&srcTensor);
-                    miopenCreateTensorDescriptor(&destTensor);
-                    miopenSetTensorDescriptor(
-                        srcTensor, miopenFloat, 4, src_size.data(), src_stride.data());
-                    miopenSetTensorDescriptor(
-                        destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
-
-                    CopyTensor(handle,
-                               miopen::deref(srcTensor),
-                               reserveSpace,
-                               miopen::deref(destTensor),
-                               cy,
-                               hid_shift + bi * 4 * hy_h + hy_h,
-                               hx_shift + hy_h);
-
-                    CopyTensor(handle,
-                               miopen::deref(srcTensor),
-                               reserveSpace,
-                               miopen::deref(destTensor),
-                               hy,
-                               hid_shift + bi * 5 * hy_h + hy_h,
-                               hx_shift + hy_h);
+                OpTensor(handle,
+                         miopenTensorOpMul,
+                         &alpha0,
+                         miopen::deref(Adesc),
+                         cy,
+                         &alpha1,
+                         miopen::deref(Adesc),
+                         cy,
+                         &beta_t,
+                         miopen::deref(Adesc),
+                         cy,
+                         hx_shift + in_n[seqLen - 1] * h_stride,
+                         hx_shift + in_n[seqLen - 1] * h_stride,
+                         hx_shift + in_n[seqLen - 1] * h_stride);
+                // Update time
+                if(handle.IsProfilingEnabled())
+                {
+                    time_0 = handle.GetKernelTime();
+                    handle.AccumKernelTime(time_0);
                 }
             }
         }
@@ -1527,12 +2030,80 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
         if(biasMode)
         {
+            int wei_shift_bias_temp =
+                (inputMode == miopenRNNskip)
+                    ? (wei_shift_bias + wei_stride + (bi + 1) * (nLayers - 1) * wei_stride)
+                    : (wei_shift_bias + 2 * wei_stride + (bi + 1) * (nLayers - 1) * wei_stride);
 
-            // Update time
-            if(handle.IsProfilingEnabled())
+            std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+            miopenTensorDescriptor_t Adesc, Cdesc;
+
+            a_size[2]   = 1;
+            a_size[3]   = out_stride;
+            a_stride[0] = out_stride;
+            a_stride[1] = out_stride;
+            a_stride[2] = out_stride;
+            c_size[2]   = 1;
+            c_size[3]   = out_stride;
+            c_stride[0] = out_stride;
+            c_stride[1] = out_stride;
+            c_stride[2] = out_stride;
+
+            miopenCreateTensorDescriptor(&Adesc);
+            miopenCreateTensorDescriptor(&Cdesc);
+            miopenSetTensorDescriptor(Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+            miopenSetTensorDescriptor(Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+            float alpha0 = 1;
+            float alpha1 = 0;
+            float beta_t = 1;
+
+            for(int bs = 0; bs < batch_n; bs++)
             {
-                time_0 = handle.GetKernelTime();
-                handle.AccumKernelTime(time_gemm + time_0);
+                OpTensor(handle,
+                         miopenTensorOpAdd,
+                         &alpha0,
+                         miopen::deref(Adesc),
+                         w,
+                         &alpha1,
+                         miopen::deref(Adesc),
+                         w,
+                         &beta_t,
+                         miopen::deref(Cdesc),
+                         y,
+                         wei_shift_bias_temp,
+                         wei_shift_bias_temp,
+                         bs * out_stride);
+                // Update time
+                if(handle.IsProfilingEnabled())
+                {
+                    time_0 = handle.GetKernelTime();
+                    handle.AccumKernelTime(time_0);
+                }
+
+                if(dirMode)
+                {
+                    OpTensor(handle,
+                             miopenTensorOpAdd,
+                             &alpha0,
+                             miopen::deref(Adesc),
+                             w,
+                             &alpha1,
+                             miopen::deref(Adesc),
+                             w,
+                             &beta_t,
+                             miopen::deref(Cdesc),
+                             y,
+                             wei_shift_bias_temp + out_stride,
+                             wei_shift_bias_temp + out_stride,
+                             bs * out_stride);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+                }
             }
         }
 #else
@@ -1543,7 +2114,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
 
 #if MIOPEN_USE_MIOPENGEMM
-        printf("gru gpu fwd \n");
+        printf("run gru gpu fwd \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
@@ -2174,7 +2745,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     if(rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
     {
 #if MIOPEN_USE_MIOPENGEMM
-        printf("rnn gpu bwd data \n");
+        printf("run rnn gpu bwd data \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
@@ -2607,7 +3178,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
 
 #if MIOPEN_USE_MIOPENGEMM
-        printf("lstm gpu bwd data \n");
+        printf("run lstm gpu bwd data \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
@@ -2628,7 +3199,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            false,
                                            false,
                                            out_stride,
-                                           wei_stride,
+                                           h_stride,
                                            hy_stride,
                                            false,
                                            network_config);
@@ -2683,8 +3254,116 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             {
                 bacc -= in_n[ti];
 
+                float alpha = 1, beta = 0;
+                ActivationDescriptor tanhDesc, sigDesc;
+                size_t offset;
+
+                sigDesc  = {miopenActivationLOGISTIC, 1, 0, 1};
+                tanhDesc = {miopenActivationTANH, 1, 1, 1};
+
+                std::vector<int> rsv_size(4, 1), rsv_stride(4, 1);
+                miopenTensorDescriptor_t rsvTensor;
+
+                float alpha0;
+                float alpha1;
+                float beta_t;
+
+                // from post state
                 if(ti == seqLen - 1)
                 {
+                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                    miopenTensorDescriptor_t Adesc, Cdesc;
+
+                    alpha0 = 1;
+                    alpha1 = 0;
+                    beta_t = 1;
+
+                    if(in_n[ti] > 0)
+                    {
+                        a_size[2]   = in_n[ti];
+                        a_size[3]   = hy_h;
+                        a_stride[0] = in_n[ti] * h_stride;
+                        a_stride[1] = in_n[ti] * h_stride;
+                        a_stride[2] = h_stride;
+                        c_size[2]   = in_n[ti];
+                        c_size[3]   = hy_h;
+                        c_stride[0] = in_n[ti] * hy_stride;
+                        c_stride[1] = in_n[ti] * hy_stride;
+                        c_stride[2] = hy_stride;
+
+                        miopenCreateTensorDescriptor(&Adesc);
+                        miopenCreateTensorDescriptor(&Cdesc);
+                        miopenSetTensorDescriptor(
+                            Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                        miopenSetTensorDescriptor(
+                            Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                        OpTensor(handle,
+                                 miopenTensorOpAdd,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 dhy,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 dhy,
+                                 &beta_t,
+                                 miopen::deref(Cdesc),
+                                 workSpace,
+                                 hx_shift,
+                                 hx_shift,
+                                 hid_shift + bacc * hy_stride + bi * 5 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+                    }
+
+                    if(dirMode)
+                    {
+                        if(in_n[seqLen - 1 - ti] > 0)
+                        {
+                            a_size[2]   = in_n[seqLen - 1 - ti];
+                            a_size[3]   = hy_h;
+                            a_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+                            a_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
+                            a_stride[2] = h_stride;
+                            c_size[2]   = in_n[seqLen - 1 - ti];
+                            c_size[3]   = hy_h;
+                            c_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+                            c_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+                            c_stride[2] = hy_stride;
+
+                            miopenCreateTensorDescriptor(&Adesc);
+                            miopenCreateTensorDescriptor(&Cdesc);
+                            miopenSetTensorDescriptor(
+                                Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                            miopenSetTensorDescriptor(
+                                Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     miopen::deref(Adesc),
+                                     dhy,
+                                     &alpha1,
+                                     miopen::deref(Adesc),
+                                     dhy,
+                                     &beta_t,
+                                     miopen::deref(Cdesc),
+                                     workSpace,
+                                     hx_shift + hy_h,
+                                     hx_shift + hy_h,
+                                     hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -2765,31 +3444,830 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                 }
 
                 // update hidden status
-                for(int bs = 0; bs < in_n[ti]; bs++)
+                if(in_n[ti] > 0)
                 {
-                    if(ti < seqLen - 1)
+                    offset        = hid_shift + bacc * hy_stride;
+                    rsv_size[2]   = in_n[ti];
+                    rsv_size[3]   = hy_h;
+                    rsv_stride[0] = in_n[ti] * hy_stride;
+                    rsv_stride[1] = in_n[ti] * hy_stride;
+                    rsv_stride[2] = hy_stride;
+
+                    miopenCreateTensorDescriptor(&rsvTensor);
+                    miopenSetTensorDescriptor(
+                        rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+
+                    // update cell state
+                    tanhDesc.Backward(handle,
+                                      &alpha,
+                                      miopen::deref(rsvTensor),
+                                      reserveSpace,
+                                      miopen::deref(rsvTensor),
+                                      workSpace,
+                                      miopen::deref(rsvTensor),
+                                      reserveSpace,
+                                      &beta,
+                                      miopen::deref(rsvTensor),
+                                      workSpace,
+                                      offset + bi * 4 * hy_h + nLayers * batch_n * hy_stride,
+                                      offset + bi * 5 * hy_h,
+                                      offset + bi * 4 * hy_h,
+                                      offset + bi * 4 * hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
                     {
-                        if(bs < in_n[ti + 1])
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
+                    alpha0 = 1;
+                    alpha1 = 1;
+                    beta_t = 0;
+
+                    OpTensor(handle,
+                             miopenTensorOpMul,
+                             &alpha0,
+                             miopen::deref(rsvTensor),
+                             workSpace,
+                             &alpha1,
+                             miopen::deref(rsvTensor),
+                             reserveSpace,
+                             &beta_t,
+                             miopen::deref(rsvTensor),
+                             workSpace,
+                             offset + bi * 4 * hy_h,
+                             offset + 2 * hy_h + nLayers * batch_n * hy_stride,
+                             offset + bi * 4 * hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
+                    if(ti == seqLen - 1)
+                    {
+                        std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                        miopenTensorDescriptor_t Adesc, Cdesc;
+
+                        alpha0 = 1;
+                        alpha1 = 0;
+                        beta_t = 1;
+
+                        a_size[2]   = in_n[ti];
+                        a_size[3]   = hy_h;
+                        a_stride[0] = in_n[ti] * h_stride;
+                        a_stride[1] = in_n[ti] * h_stride;
+                        a_stride[2] = h_stride;
+                        c_size[2]   = in_n[ti];
+                        c_size[3]   = hy_h;
+                        c_stride[0] = in_n[ti] * hy_stride;
+                        c_stride[1] = in_n[ti] * hy_stride;
+                        c_stride[2] = hy_stride;
+
+                        miopenCreateTensorDescriptor(&Adesc);
+                        miopenCreateTensorDescriptor(&Cdesc);
+                        miopenSetTensorDescriptor(
+                            Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                        miopenSetTensorDescriptor(
+                            Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                        OpTensor(handle,
+                                 miopenTensorOpAdd,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 dcy,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 dcy,
+                                 &beta_t,
+                                 miopen::deref(Cdesc),
+                                 workSpace,
+                                 hx_shift,
+                                 hx_shift,
+                                 offset + bi * 4 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
                         {
-                            int pretime_shift =
-                                li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
                         }
+                    }
+                    else
+                    {
+                        int pretime_shift =
+                            li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
+
+                        std::vector<int> b_size(4, 1), b_stride(4, 1);
+                        miopenTensorDescriptor_t Bdesc;
+
+                        b_size[2]   = in_n[ti + 1];
+                        b_size[3]   = hy_h;
+                        b_stride[0] = in_n[ti + 1] * hy_stride;
+                        b_stride[1] = in_n[ti + 1] * hy_stride;
+                        b_stride[2] = hy_stride;
+
+                        miopenCreateTensorDescriptor(&Bdesc);
+                        miopenSetTensorDescriptor(
+                            Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                        alpha0 = 1;
+                        alpha1 = 1;
+                        beta_t = 1;
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(Bdesc),
+                                 workSpace,
+                                 &alpha1,
+                                 miopen::deref(Bdesc),
+                                 reserveSpace,
+                                 &beta_t,
+                                 miopen::deref(Bdesc),
+                                 workSpace,
+                                 pretime_shift + bi * 4 * hy_h,
+                                 pretime_shift + hy_h + nLayers * batch_n * hy_stride,
+                                 offset + bi * 4 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+                    }
+
+                    // update forget gate
+                    sigDesc.Backward(handle,
+                                     &alpha,
+                                     miopen::deref(rsvTensor),
+                                     reserveSpace,
+                                     miopen::deref(rsvTensor),
+                                     workSpace,
+                                     miopen::deref(rsvTensor),
+                                     reserveSpace,
+                                     &beta,
+                                     miopen::deref(rsvTensor),
+                                     workSpace,
+                                     offset + hy_h + nLayers * batch_n * hy_stride,
+                                     offset + bi * 4 * hy_h,
+                                     offset + hy_h,
+                                     offset + hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
                     }
 
                     if(ti == 0)
                     {
+                        std::vector<int> b_size(4, 1), b_stride(4, 1);
+                        miopenTensorDescriptor_t Bdesc;
+
+                        b_size[2]   = in_n[ti];
+                        b_size[3]   = hy_h;
+                        b_stride[0] = in_n[ti] * h_stride;
+                        b_stride[1] = in_n[ti] * h_stride;
+                        b_stride[2] = h_stride;
+
+                        miopenCreateTensorDescriptor(&Bdesc);
+                        miopenSetTensorDescriptor(
+                            Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                        alpha0 = 1;
+                        alpha1 = 1;
+                        beta_t = 0;
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 &alpha1,
+                                 miopen::deref(Bdesc),
+                                 cx,
+                                 &beta_t,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 offset + hy_h,
+                                 hx_shift,
+                                 offset + hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
                     else
                     {
-                        int prec_shift = li * batch_n * hy_stride +
-                                         (bacc - in_n[ti - 1]) * hy_stride + bi * 4 * hy_h;
+                        int pretime_shift =
+                            li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride;
+
+                        alpha0 = 1;
+                        alpha1 = 1;
+                        beta_t = 0;
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 &alpha1,
+                                 miopen::deref(rsvTensor),
+                                 reserveSpace,
+                                 &beta_t,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 offset + hy_h,
+                                 pretime_shift + bi * 4 * hy_h,
+                                 offset + hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+                    }
+
+                    // update input gate
+                    sigDesc.Backward(handle,
+                                     &alpha,
+                                     miopen::deref(rsvTensor),
+                                     reserveSpace,
+                                     miopen::deref(rsvTensor),
+                                     workSpace,
+                                     miopen::deref(rsvTensor),
+                                     reserveSpace,
+                                     &beta,
+                                     miopen::deref(rsvTensor),
+                                     workSpace,
+                                     offset + nLayers * batch_n * hy_stride,
+                                     offset + bi * 4 * hy_h,
+                                     offset,
+                                     offset);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
+                    alpha0 = 1;
+                    alpha1 = 1;
+                    beta_t = 0;
+
+                    OpTensor(handle,
+                             miopenTensorOpMul,
+                             &alpha0,
+                             miopen::deref(rsvTensor),
+                             workSpace,
+                             &alpha1,
+                             miopen::deref(rsvTensor),
+                             reserveSpace,
+                             &beta_t,
+                             miopen::deref(rsvTensor),
+                             workSpace,
+                             offset,
+                             offset + 3 * hy_h + nLayers * batch_n * hy_stride,
+                             offset);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
+                    // update output gate
+                    sigDesc.Backward(handle,
+                                     &alpha,
+                                     miopen::deref(rsvTensor),
+                                     reserveSpace,
+                                     miopen::deref(rsvTensor),
+                                     workSpace,
+                                     miopen::deref(rsvTensor),
+                                     reserveSpace,
+                                     &beta,
+                                     miopen::deref(rsvTensor),
+                                     workSpace,
+                                     offset + 2 * hy_h + nLayers * batch_n * hy_stride,
+                                     offset + bi * 5 * hy_h,
+                                     offset + 2 * hy_h,
+                                     offset + 2 * hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
+                    alpha0 = 1;
+                    alpha1 = 1;
+                    beta_t = 0;
+
+                    OpTensor(handle,
+                             miopenTensorOpMul,
+                             &alpha0,
+                             miopen::deref(rsvTensor),
+                             workSpace,
+                             &alpha1,
+                             miopen::deref(rsvTensor),
+                             reserveSpace,
+                             &beta_t,
+                             miopen::deref(rsvTensor),
+                             workSpace,
+                             offset + 2 * hy_h,
+                             offset + bi * 4 * hy_h + nLayers * batch_n * hy_stride,
+                             offset + 2 * hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
+                    // update c gate
+                    tanhDesc.Backward(handle,
+                                      &alpha,
+                                      miopen::deref(rsvTensor),
+                                      reserveSpace,
+                                      miopen::deref(rsvTensor),
+                                      workSpace,
+                                      miopen::deref(rsvTensor),
+                                      reserveSpace,
+                                      &beta,
+                                      miopen::deref(rsvTensor),
+                                      workSpace,
+                                      offset + 3 * hy_h + nLayers * batch_n * hy_stride,
+                                      offset + bi * 4 * hy_h,
+                                      offset + 3 * hy_h,
+                                      offset + 3 * hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
+
+                    alpha0 = 1;
+                    alpha1 = 1;
+                    beta_t = 0;
+
+                    OpTensor(handle,
+                             miopenTensorOpMul,
+                             &alpha0,
+                             miopen::deref(rsvTensor),
+                             workSpace,
+                             &alpha1,
+                             miopen::deref(rsvTensor),
+                             reserveSpace,
+                             &beta_t,
+                             miopen::deref(rsvTensor),
+                             workSpace,
+                             offset + 3 * hy_h,
+                             offset + nLayers * batch_n * hy_stride,
+                             offset + 3 * hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
                     }
                 }
 
                 if(dirMode)
                 {
-                    for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
+                    if(in_n[seqLen - 1 - ti] > 0)
                     {
+                        offset        = hid_shift + baccbi * hy_stride;
+                        rsv_size[2]   = in_n[seqLen - 1 - ti];
+                        rsv_size[3]   = hy_h;
+                        rsv_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+                        rsv_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+                        rsv_stride[2] = hy_stride;
+
+                        miopenCreateTensorDescriptor(&rsvTensor);
+                        miopenSetTensorDescriptor(
+                            rsvTensor, miopenFloat, 4, rsv_size.data(), rsv_stride.data());
+
+                        // update cell state
+                        tanhDesc.Backward(handle,
+                                          &alpha,
+                                          miopen::deref(rsvTensor),
+                                          reserveSpace,
+                                          miopen::deref(rsvTensor),
+                                          workSpace,
+                                          miopen::deref(rsvTensor),
+                                          reserveSpace,
+                                          &beta,
+                                          miopen::deref(rsvTensor),
+                                          workSpace,
+                                          offset + bi * 4 * hy_h + hy_h +
+                                              nLayers * batch_n * hy_stride,
+                                          offset + bi * 5 * hy_h + hy_h,
+                                          offset + bi * 4 * hy_h + hy_h,
+                                          offset + bi * 4 * hy_h + hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        alpha0 = 1;
+                        alpha1 = 1;
+                        beta_t = 0;
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 &alpha1,
+                                 miopen::deref(rsvTensor),
+                                 reserveSpace,
+                                 &beta_t,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 offset + bi * 4 * hy_h + hy_h,
+                                 offset + 6 * hy_h + nLayers * batch_n * hy_stride,
+                                 offset + bi * 4 * hy_h + hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        if(ti == seqLen - 1)
+                        {
+                            std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1),
+                                c_stride(4, 1);
+                            miopenTensorDescriptor_t Adesc, Cdesc;
+
+                            alpha0 = 1;
+                            alpha1 = 0;
+                            beta_t = 1;
+
+                            a_size[2]   = in_n[seqLen - 1 - ti];
+                            a_size[3]   = hy_h;
+                            a_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+                            a_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
+                            a_stride[2] = h_stride;
+                            c_size[2]   = in_n[seqLen - 1 - ti];
+                            c_size[3]   = hy_h;
+                            c_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+                            c_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+                            c_stride[2] = hy_stride;
+
+                            miopenCreateTensorDescriptor(&Adesc);
+                            miopenCreateTensorDescriptor(&Cdesc);
+                            miopenSetTensorDescriptor(
+                                Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                            miopenSetTensorDescriptor(
+                                Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     miopen::deref(Adesc),
+                                     dcy,
+                                     &alpha1,
+                                     miopen::deref(Adesc),
+                                     dcy,
+                                     &beta_t,
+                                     miopen::deref(Cdesc),
+                                     workSpace,
+                                     hx_shift + hy_h,
+                                     hx_shift + hy_h,
+                                     hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
+                        }
+                        else
+                        {
+                            int pretime_shift = li * batch_n * hy_stride +
+                                                (baccbi - in_n[seqLen - 2 - ti]) * hy_stride;
+
+                            std::vector<int> b_size(4, 1), b_stride(4, 1);
+                            miopenTensorDescriptor_t Bdesc;
+
+                            b_size[2]   = in_n[seqLen - 1 - ti];
+                            b_size[3]   = hy_h;
+                            b_stride[0] = in_n[seqLen - 1 - ti] * hy_stride;
+                            b_stride[1] = in_n[seqLen - 1 - ti] * hy_stride;
+                            b_stride[2] = hy_stride;
+
+                            miopenCreateTensorDescriptor(&Bdesc);
+                            miopenSetTensorDescriptor(
+                                Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                            alpha0 = 1;
+                            alpha1 = 1;
+                            beta_t = 1;
+
+                            OpTensor(handle,
+                                     miopenTensorOpMul,
+                                     &alpha0,
+                                     miopen::deref(Bdesc),
+                                     workSpace,
+                                     &alpha1,
+                                     miopen::deref(Bdesc),
+                                     reserveSpace,
+                                     &beta_t,
+                                     miopen::deref(Bdesc),
+                                     workSpace,
+                                     pretime_shift + bi * 4 * hy_h + hy_h,
+                                     pretime_shift + 5 * hy_h + nLayers * batch_n * hy_stride,
+                                     offset + bi * 4 * hy_h + hy_h);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
+                        }
+
+                        // update forget gate
+                        if(ti == 0)
+                        {
+                            sigDesc.Backward(handle,
+                                             &alpha,
+                                             miopen::deref(rsvTensor),
+                                             reserveSpace,
+                                             miopen::deref(rsvTensor),
+                                             workSpace,
+                                             miopen::deref(rsvTensor),
+                                             reserveSpace,
+                                             &beta,
+                                             miopen::deref(rsvTensor),
+                                             workSpace,
+                                             offset + 5 * hy_h + nLayers * batch_n * hy_stride,
+                                             offset + bi * 4 * hy_h + hy_h,
+                                             offset + 5 * hy_h,
+                                             offset + 5 * hy_h);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
+
+                            std::vector<int> b_size(4, 1), b_stride(4, 1);
+                            miopenTensorDescriptor_t Bdesc;
+
+                            b_size[2]   = in_n[seqLen - 1 - ti];
+                            b_size[3]   = hy_h;
+                            b_stride[0] = in_n[seqLen - 1 - ti] * h_stride;
+                            b_stride[1] = in_n[seqLen - 1 - ti] * h_stride;
+                            b_stride[2] = h_stride;
+
+                            miopenCreateTensorDescriptor(&Bdesc);
+                            miopenSetTensorDescriptor(
+                                Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                            alpha0 = 1;
+                            alpha1 = 1;
+                            beta_t = 0;
+
+                            OpTensor(handle,
+                                     miopenTensorOpMul,
+                                     &alpha0,
+                                     miopen::deref(rsvTensor),
+                                     workSpace,
+                                     &alpha1,
+                                     miopen::deref(Bdesc),
+                                     cx,
+                                     &beta_t,
+                                     miopen::deref(rsvTensor),
+                                     workSpace,
+                                     offset + 5 * hy_h,
+                                     hx_shift + hy_h,
+                                     offset + 5 * hy_h);
+                            // Update time
+                            if(handle.IsProfilingEnabled())
+                            {
+                                time_0 = handle.GetKernelTime();
+                                handle.AccumKernelTime(time_0);
+                            }
+                        }
+                        else
+                        {
+                            if(in_n[seqLen - ti] > 0)
+                            {
+                                int pretime_shift = li * batch_n * hy_stride +
+                                                    (baccbi + in_n[seqLen - 1 - ti]) * hy_stride;
+
+                                std::vector<int> b_size(4, 1), b_stride(4, 1);
+                                miopenTensorDescriptor_t Bdesc;
+
+                                b_size[2]   = in_n[seqLen - ti];
+                                b_size[3]   = hy_h;
+                                b_stride[0] = in_n[seqLen - ti] * hy_stride;
+                                b_stride[1] = in_n[seqLen - ti] * hy_stride;
+                                b_stride[2] = hy_stride;
+
+                                miopenCreateTensorDescriptor(&Bdesc);
+                                miopenSetTensorDescriptor(
+                                    Bdesc, miopenFloat, 4, b_size.data(), b_stride.data());
+
+                                alpha0 = 1;
+                                alpha1 = 1;
+                                beta_t = 0;
+
+                                sigDesc.Backward(handle,
+                                                 &alpha,
+                                                 miopen::deref(Bdesc),
+                                                 reserveSpace,
+                                                 miopen::deref(Bdesc),
+                                                 workSpace,
+                                                 miopen::deref(Bdesc),
+                                                 reserveSpace,
+                                                 &beta,
+                                                 miopen::deref(Bdesc),
+                                                 workSpace,
+                                                 offset + 5 * hy_h + nLayers * batch_n * hy_stride,
+                                                 offset + bi * 4 * hy_h + hy_h,
+                                                 offset + 5 * hy_h,
+                                                 offset + 5 * hy_h);
+                                // Update time
+                                if(handle.IsProfilingEnabled())
+                                {
+                                    time_0 = handle.GetKernelTime();
+                                    handle.AccumKernelTime(time_0);
+                                }
+
+                                OpTensor(handle,
+                                         miopenTensorOpMul,
+                                         &alpha0,
+                                         miopen::deref(Bdesc),
+                                         workSpace,
+                                         &alpha1,
+                                         miopen::deref(Bdesc),
+                                         reserveSpace,
+                                         &beta_t,
+                                         miopen::deref(Bdesc),
+                                         workSpace,
+                                         offset + 5 * hy_h,
+                                         pretime_shift + bi * 4 * hy_h + hy_h,
+                                         offset + 5 * hy_h);
+                                // Update time
+                                if(handle.IsProfilingEnabled())
+                                {
+                                    time_0 = handle.GetKernelTime();
+                                    handle.AccumKernelTime(time_0);
+                                }
+                            }
+                        }
+
+                        // update input gate
+                        sigDesc.Backward(handle,
+                                         &alpha,
+                                         miopen::deref(rsvTensor),
+                                         reserveSpace,
+                                         miopen::deref(rsvTensor),
+                                         workSpace,
+                                         miopen::deref(rsvTensor),
+                                         reserveSpace,
+                                         &beta,
+                                         miopen::deref(rsvTensor),
+                                         workSpace,
+                                         offset + 4 * hy_h + nLayers * batch_n * hy_stride,
+                                         offset + bi * 4 * hy_h + hy_h,
+                                         offset + 4 * hy_h,
+                                         offset + 4 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        alpha0 = 1;
+                        alpha1 = 1;
+                        beta_t = 0;
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 &alpha1,
+                                 miopen::deref(rsvTensor),
+                                 reserveSpace,
+                                 &beta_t,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 offset + 4 * hy_h,
+                                 offset + 7 * hy_h + nLayers * batch_n * hy_stride,
+                                 offset + 4 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        // update output gate
+                        sigDesc.Backward(handle,
+                                         &alpha,
+                                         miopen::deref(rsvTensor),
+                                         reserveSpace,
+                                         miopen::deref(rsvTensor),
+                                         workSpace,
+                                         miopen::deref(rsvTensor),
+                                         reserveSpace,
+                                         &beta,
+                                         miopen::deref(rsvTensor),
+                                         workSpace,
+                                         offset + 6 * hy_h + nLayers * batch_n * hy_stride,
+                                         offset + bi * 5 * hy_h + hy_h,
+                                         offset + 6 * hy_h,
+                                         offset + 6 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        alpha0 = 1;
+                        alpha1 = 1;
+                        beta_t = 0;
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 &alpha1,
+                                 miopen::deref(rsvTensor),
+                                 reserveSpace,
+                                 &beta_t,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 offset + 6 * hy_h,
+                                 offset + bi * 4 * hy_h + hy_h + nLayers * batch_n * hy_stride,
+                                 offset + 6 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        // update c gate
+                        tanhDesc.Backward(handle,
+                                          &alpha,
+                                          miopen::deref(rsvTensor),
+                                          reserveSpace,
+                                          miopen::deref(rsvTensor),
+                                          workSpace,
+                                          miopen::deref(rsvTensor),
+                                          reserveSpace,
+                                          &beta,
+                                          miopen::deref(rsvTensor),
+                                          workSpace,
+                                          offset + 7 * hy_h + nLayers * batch_n * hy_stride,
+                                          offset + bi * 4 * hy_h + hy_h,
+                                          offset + 7 * hy_h,
+                                          offset + 7 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+
+                        alpha0 = 1;
+                        alpha1 = 1;
+                        beta_t = 0;
+
+                        OpTensor(handle,
+                                 miopenTensorOpMul,
+                                 &alpha0,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 &alpha1,
+                                 miopen::deref(rsvTensor),
+                                 reserveSpace,
+                                 &beta_t,
+                                 miopen::deref(rsvTensor),
+                                 workSpace,
+                                 offset + 7 * hy_h,
+                                 offset + 4 * hy_h + nLayers * batch_n * hy_stride,
+                                 offset + 7 * hy_h);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
                 }
 
@@ -2823,6 +4301,50 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                 {
                     time_gemm = handle.GetKernelTime();
                     handle.AccumKernelTime(time_gemm);
+                }
+
+                std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                miopenTensorDescriptor_t Adesc, Cdesc;
+
+                a_size[2]   = in_n[0];
+                a_size[3]   = hy_h;
+                a_stride[0] = in_n[0] * hy_stride;
+                a_stride[1] = in_n[0] * hy_stride;
+                a_stride[2] = hy_stride;
+                c_size[2]   = in_n[0];
+                c_size[3]   = hy_h;
+                c_stride[0] = in_n[0] * h_stride;
+                c_stride[1] = in_n[0] * h_stride;
+                c_stride[2] = h_stride;
+
+                miopenCreateTensorDescriptor(&Adesc);
+                miopenCreateTensorDescriptor(&Cdesc);
+                miopenSetTensorDescriptor(Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                miopenSetTensorDescriptor(Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                float alpha0 = 1;
+                float alpha1 = 1;
+                float beta_t = 1;
+
+                OpTensor(handle,
+                         miopenTensorOpMul,
+                         &alpha0,
+                         miopen::deref(Adesc),
+                         workSpace,
+                         &alpha1,
+                         miopen::deref(Adesc),
+                         reserveSpace,
+                         &beta_t,
+                         miopen::deref(Cdesc),
+                         dcx,
+                         pretime_shift + bi * 4 * hy_h,
+                         pretime_shift + hy_h + nLayers * batch_n * hy_stride,
+                         hx_shift);
+                // Update time
+                if(handle.IsProfilingEnabled())
+                {
+                    time_0 = handle.GetKernelTime();
+                    handle.AccumKernelTime(time_0);
                 }
             }
 
@@ -2860,6 +4382,52 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         time_gemm = handle.GetKernelTime();
                         handle.AccumKernelTime(time_gemm);
                     }
+
+                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                    miopenTensorDescriptor_t Adesc, Cdesc;
+
+                    a_size[2]   = in_n[seqLen - 1];
+                    a_size[3]   = hy_h;
+                    a_stride[0] = in_n[seqLen - 1] * hy_stride;
+                    a_stride[1] = in_n[seqLen - 1] * hy_stride;
+                    a_stride[2] = hy_stride;
+                    c_size[2]   = in_n[seqLen - 1];
+                    c_size[3]   = hy_h;
+                    c_stride[0] = in_n[seqLen - 1] * h_stride;
+                    c_stride[1] = in_n[seqLen - 1] * h_stride;
+                    c_stride[2] = h_stride;
+
+                    miopenCreateTensorDescriptor(&Adesc);
+                    miopenCreateTensorDescriptor(&Cdesc);
+                    miopenSetTensorDescriptor(
+                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                    miopenSetTensorDescriptor(
+                        Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                    float alpha0 = 1;
+                    float alpha1 = 1;
+                    float beta_t = 1;
+
+                    OpTensor(handle,
+                             miopenTensorOpMul,
+                             &alpha0,
+                             miopen::deref(Adesc),
+                             workSpace,
+                             &alpha1,
+                             miopen::deref(Adesc),
+                             reserveSpace,
+                             &beta_t,
+                             miopen::deref(Cdesc),
+                             dcx,
+                             pretime_shift + bi * 4 * hy_h + hy_h,
+                             pretime_shift + 5 * hy_h + nLayers * batch_n * hy_stride,
+                             hx_shift + hy_h);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
                 }
             }
         }
@@ -2887,13 +4455,55 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             miopenSetTensorDescriptor(
                 destTensor, miopenFloat, 4, dest_size.data(), dest_stride.data());
 
+            float alpha0 = 1;
+            float alpha1 = 0;
+            float beta_t = 1;
+
             for(int gi = 0; gi < 4; gi++)
             {
-                // TensorAdd();
+                OpTensor(handle,
+                         miopenTensorOpAdd,
+                         &alpha0,
+                         miopen::deref(srcTensor),
+                         workSpace,
+                         &alpha1,
+                         miopen::deref(srcTensor),
+                         workSpace,
+                         &beta_t,
+                         miopen::deref(destTensor),
+                         dx,
+                         gi * hy_h,
+                         gi * hy_h,
+                         0);
+                // Update time
+                if(handle.IsProfilingEnabled())
+                {
+                    time_0 = handle.GetKernelTime();
+                    handle.AccumKernelTime(time_0);
+                }
 
                 if(dirMode)
                 {
-                    // TensorAdd();
+                    OpTensor(handle,
+                             miopenTensorOpAdd,
+                             &alpha0,
+                             miopen::deref(srcTensor),
+                             workSpace,
+                             &alpha1,
+                             miopen::deref(srcTensor),
+                             workSpace,
+                             &beta_t,
+                             miopen::deref(destTensor),
+                             dx,
+                             (gi + 4) * hy_h,
+                             (gi + 4) * hy_h,
+                             0);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
                 }
             }
         }
@@ -2930,7 +4540,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
 
 #if MIOPEN_USE_MIOPENGEMM
-        printf("gru gpu bwd data \n");
+        printf("run gru gpu bwd data \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
@@ -3553,16 +5163,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     {
 
 #if MIOPEN_USE_MIOPENGEMM
-        printf("rnn gpu bwd weights \n");
+        printf("run rnn gpu bwd weights \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
-
-        // Update time
-        if(handle.IsProfilingEnabled())
-        {
-            time_0 = handle.GetKernelTime();
-            handle.AccumKernelTime(time_0);
-        }
 
         for(int li = 0; li <= nLayers; li++)
         {
@@ -3592,17 +5195,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     {
                         time_gemm = handle.GetKernelTime();
                         handle.AccumKernelTime(time_gemm);
-                    }
-
-                    if(biasMode)
-                    {
-
-                        // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
                     }
                 }
 
@@ -3667,13 +5259,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    dw,
                                    wei_shift_bias,
                                    wei_shift_bias + wei_stride);
-                    }
-
-                    // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
                 }
             }
@@ -3715,7 +5306,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 if(biasMode)
                 {
                     wei_shift =
-                        (inputMode == 1)
+                        (inputMode == miopenRNNskip)
                             ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * (bi + 1) * hy_h)
                             : (wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h);
 
@@ -3778,13 +5369,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    dw,
                                    wei_shift,
                                    wei_shift + out_stride);
-                    }
-
-                    // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
                 }
             }
@@ -3827,7 +5417,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 if(biasMode)
                 {
                     wei_shift =
-                        (inputMode == 1)
+                        (inputMode == miopenRNNskip)
                             ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * (bi + 1) * hy_h)
                             : (wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h);
 
@@ -3888,6 +5478,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                dw,
                                wei_shift,
                                wei_shift + bi * wei_stride);
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
+                    }
 
                     if(dirMode)
                     {
@@ -3898,13 +5494,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    dw,
                                    wei_shift,
                                    wei_shift + wei_stride);
-                    }
-
-                    // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
                 }
             }
@@ -4078,7 +5673,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     {
 
 #if MIOPEN_USE_MIOPENGEMM
-        printf("lstm gpu bwd weights \n");
+        printf("run lstm gpu bwd weights \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
@@ -4087,20 +5682,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             // between layers
             if(li == 0)
             {
-                if(inputMode == miopenRNNskip)
-                {
-                    if(biasMode)
-                    {
-
-                        // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
-                    }
-                }
-                else
+                if(inputMode == miopenRNNlinear)
                 {
                     gg = CreateGemmGeometryRNN(in_h,
                                                hy_h * bi * 4,
@@ -4124,15 +5706,76 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         time_gemm = handle.GetKernelTime();
                         handle.AccumKernelTime(time_gemm);
                     }
+                }
 
-                    if(biasMode)
+                if(biasMode)
+                {
+                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                    miopenTensorDescriptor_t Adesc, Cdesc;
+
+                    a_size[2]   = 1;
+                    a_size[3]   = wei_stride;
+                    a_stride[0] = hy_stride;
+                    a_stride[1] = hy_stride;
+                    a_stride[2] = hy_stride;
+                    c_size[2]   = 1;
+                    c_size[3]   = wei_stride;
+                    c_stride[0] = wei_stride;
+                    c_stride[1] = wei_stride;
+                    c_stride[2] = wei_stride;
+
+                    miopenCreateTensorDescriptor(&Adesc);
+                    miopenCreateTensorDescriptor(&Cdesc);
+                    miopenSetTensorDescriptor(
+                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                    miopenSetTensorDescriptor(
+                        Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                    float alpha0 = 1;
+                    float alpha1 = 0;
+                    float beta_t = 1;
+
+                    for(int bs = 0; bs < batch_n; bs++)
                     {
+                        OpTensor(handle,
+                                 miopenTensorOpAdd,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 workSpace,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 workSpace,
+                                 &beta_t,
+                                 miopen::deref(Cdesc),
+                                 dw,
+                                 bs * hy_stride,
+                                 bs * hy_stride,
+                                 wei_shift_bias);
+
                         // Update time
                         if(handle.IsProfilingEnabled())
                         {
                             time_0 = handle.GetKernelTime();
                             handle.AccumKernelTime(time_0);
                         }
+                    }
+
+                    if(inputMode == miopenRNNlinear)
+                    {
+                        CopyTensor(handle,
+                                   miopen::deref(Cdesc),
+                                   dw,
+                                   miopen::deref(Cdesc),
+                                   dw,
+                                   wei_shift_bias,
+                                   wei_shift_bias + wei_stride);
+                    }
+
+                    // Update time
+                    if(handle.IsProfilingEnabled())
+                    {
+                        time_0 = handle.GetKernelTime();
+                        handle.AccumKernelTime(time_0);
                     }
                 }
             }
@@ -4167,12 +5810,76 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                 if(biasMode)
                 {
+                    wei_shift =
+                        (inputMode == miopenRNNskip)
+                            ? (wei_shift_bias + wei_stride + (li - 1) * (bi + 1) * wei_stride)
+                            : (wei_shift_bias + 2 * wei_stride + (li - 1) * (bi + 1) * wei_stride);
 
-                    // Update time
-                    if(handle.IsProfilingEnabled())
+                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                    miopenTensorDescriptor_t Adesc, Cdesc;
+
+                    a_size[2]   = 1;
+                    a_size[3]   = out_h;
+                    a_stride[0] = out_stride;
+                    a_stride[1] = out_stride;
+                    a_stride[2] = out_stride;
+                    c_size[2]   = 1;
+                    c_size[3]   = out_h;
+                    c_stride[0] = out_stride;
+                    c_stride[1] = out_stride;
+                    c_stride[2] = out_stride;
+
+                    miopenCreateTensorDescriptor(&Adesc);
+                    miopenCreateTensorDescriptor(&Cdesc);
+                    miopenSetTensorDescriptor(
+                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                    miopenSetTensorDescriptor(
+                        Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                    float alpha0 = 1;
+                    float alpha1 = 0;
+                    float beta_t = 1;
+
+                    for(int bs = 0; bs < batch_n; bs++)
                     {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
+                        OpTensor(handle,
+                                 miopenTensorOpAdd,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 dy,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 dy,
+                                 &beta_t,
+                                 miopen::deref(Cdesc),
+                                 dw,
+                                 bs * out_stride,
+                                 bs * out_stride,
+                                 wei_shift);
+
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+                    }
+
+                    if(dirMode)
+                    {
+                        CopyTensor(handle,
+                                   miopen::deref(Cdesc),
+                                   dw,
+                                   miopen::deref(Cdesc),
+                                   dw,
+                                   wei_shift,
+                                   wei_shift + out_stride);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
                 }
             }
@@ -4209,12 +5916,90 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                 if(biasMode)
                 {
+                    wei_shift =
+                        (inputMode == miopenRNNskip)
+                            ? (wei_shift_bias + wei_stride + (li - 1) * (bi + 1) * wei_stride)
+                            : (wei_shift_bias + 2 * wei_stride + (li - 1) * (bi + 1) * wei_stride);
 
+                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
+                    miopenTensorDescriptor_t Adesc, Cdesc;
+
+                    a_size[2]   = 1;
+                    a_size[3]   = wei_stride;
+                    a_stride[0] = hy_stride;
+                    a_stride[1] = hy_stride;
+                    a_stride[2] = hy_stride;
+                    c_size[2]   = 1;
+                    c_size[3]   = wei_stride;
+                    c_stride[0] = wei_stride;
+                    c_stride[1] = wei_stride;
+                    c_stride[2] = wei_stride;
+
+                    miopenCreateTensorDescriptor(&Adesc);
+                    miopenCreateTensorDescriptor(&Cdesc);
+                    miopenSetTensorDescriptor(
+                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                    miopenSetTensorDescriptor(
+                        Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+
+                    float alpha0 = 1;
+                    float alpha1 = 0;
+                    float beta_t = 1;
+
+                    for(int bs = 0; bs < batch_n; bs++)
+                    {
+                        OpTensor(handle,
+                                 miopenTensorOpAdd,
+                                 &alpha0,
+                                 miopen::deref(Adesc),
+                                 workSpace,
+                                 &alpha1,
+                                 miopen::deref(Adesc),
+                                 workSpace,
+                                 &beta_t,
+                                 miopen::deref(Cdesc),
+                                 dw,
+                                 hid_shift + bs * hy_stride,
+                                 hid_shift + bs * hy_stride,
+                                 wei_shift);
+
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
+                    }
+
+                    CopyTensor(handle,
+                               miopen::deref(Cdesc),
+                               dw,
+                               miopen::deref(Cdesc),
+                               dw,
+                               wei_shift,
+                               wei_shift + bi * wei_stride);
                     // Update time
                     if(handle.IsProfilingEnabled())
                     {
                         time_0 = handle.GetKernelTime();
                         handle.AccumKernelTime(time_0);
+                    }
+
+                    if(dirMode)
+                    {
+                        CopyTensor(handle,
+                                   miopen::deref(Cdesc),
+                                   dw,
+                                   miopen::deref(Cdesc),
+                                   dw,
+                                   wei_shift,
+                                   wei_shift + wei_stride);
+                        // Update time
+                        if(handle.IsProfilingEnabled())
+                        {
+                            time_0 = handle.GetKernelTime();
+                            handle.AccumKernelTime(time_0);
+                        }
                     }
                 }
             }
@@ -4385,7 +6170,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
 
-        printf("gru gpu bwd weights \n");
+        printf("run gru gpu bwd weights \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
