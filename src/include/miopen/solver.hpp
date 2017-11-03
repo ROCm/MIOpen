@@ -109,9 +109,12 @@ miopen::solver::ConvSolution SearchForSolution(const Context& search_params,
 {
     miopen::solver::ConvSolution solution{miopenStatusUnknownError};
 
-    const auto no_perf_filtering =
+// Using const here causes gcc to ICE
+#if (!defined(__GNUC__) || defined (__clang__))
+    const
+#endif
+    auto no_perf_filtering =
         miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
-    (void)no_perf_filtering; // fix warnings on gcc
 
     // clang-format off
     MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
