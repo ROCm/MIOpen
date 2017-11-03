@@ -454,6 +454,9 @@ int PoolDriver<T>::VerifyForward()
         pad_w = 0;
     }
 
+    if(hOut <= 0 || wOut <= 0)
+        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+
     int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
     bool match = mloPoolingForwardRunHostAndVerify<float>(pooling_method,
@@ -519,6 +522,9 @@ int PoolDriver<T>::VerifyBackward()
     miopenGet2dPoolingDescriptor(
         poolDesc, &mode, &pmode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
 
+    if(hOut <= 0 || wOut <= 0)
+        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+    
     if(pmode == miopenPaddingSame)
     {
         pad_h = (hIn % u == 0) ? (std::max((windowHeight - u), 0))
