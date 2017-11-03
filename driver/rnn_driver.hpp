@@ -1200,7 +1200,6 @@ int RNNDriver<T>::RunBackwardDataCPU()
                                         dhy,
                                         dhx_host,
                                         hx,
-                                        dcx_host,
                                         out,
                                         dout,
                                         in_n,
