@@ -156,8 +156,8 @@ struct tensor_copy_driver : test_driver
         printf("Generating super tensors...");
         fflush(nullptr);
 #endif
-        std::vector<int> alens = {{128, 32, 64, 32, 32}};
-        std::vector<int> clens = {{64, 128, 32, 32, 32}};
+        std::vector<int> alens = {{64, 32, 64, 32, 32}};
+        std::vector<int> clens = {{64, 64, 32, 32, 32}};
         aSuper                 = tensor<T>{alens}.generate(rand_gen{});
         cSuper                 = tensor<T>{clens}.generate(rand_gen{});
 
@@ -183,6 +183,7 @@ struct tensor_copy_driver : test_driver
         std::vector<size_t> cSuperStrides = cSuper.desc.GetStrides();
         std::vector<int> astrides(aSuperStrides.begin() + (5 - copylens.size()), aSuperStrides.end());
         std::vector<int> cstrides(cSuperStrides.begin() + (5 - copylens.size()), cSuperStrides.end());
+
         srcDesc = miopen::TensorDescriptor(
             miopenFloat, copylens.data(), astrides.data(), copylens.size());
         dstDesc = miopen::TensorDescriptor(
@@ -193,7 +194,7 @@ struct tensor_copy_driver : test_driver
 #if(MIO_TENSORCOPY_DEBUG == 1)
             printf("offsets {src, dst}: %d, %d\n", offsets[0], offsets[1]);
 #endif
-            verify(verify_tensor_copy<T>{aSuper, cSuper, srcDesc, dstDesc, offsets});
+            verify_equals(verify_tensor_copy<T>{aSuper, cSuper, srcDesc, dstDesc, offsets});
         }
     }
 };

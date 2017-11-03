@@ -174,12 +174,13 @@ std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
 
 enum LoggingLevel
 {
-    Default = 0, // ERROR for Release builds, INFO for Debug builds.
+    Default = 0, // WARNING for Release builds, INFO for Debug builds.
     Quiet,
     Fatal,
     Error,
     Warning,
     Info,
+    Info2,
     Trace // E.g. messages output by MIOPEN_LOG_FUNCTION).
 };
 
@@ -240,7 +241,7 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
             std::cerr << LoggingLevelToCString(level) << " [" << __func__ << "] " << __VA_ARGS__ \
                       << std::endl;                                                              \
         }                                                                                        \
-    } while(false);
+    } while(false)
 
 } // namespace miopen
 
