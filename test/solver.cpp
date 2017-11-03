@@ -41,15 +41,15 @@ class TrivialSlowTestSolver : public solver::Solver
 {
     public:
     static const char* FileName() { return "TrivialSlowTestSolver"; }
-    const char* SolverId() const override { return FileName(); }
-    bool IsFast(const ConvolutionContext& context) const override { return context.in_height == 1; }
-    bool IsApplicable(const ConvolutionContext& context) const override
+    const char* SolverId() const { return FileName(); }
+    bool IsFast(const ConvolutionContext& context) const { return context.in_height == 1; }
+    bool IsApplicable(const ConvolutionContext& context) const
     {
         return context.in_width == 1;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const solver::PerformanceConfig&) const override
+                                     const solver::PerformanceConfig&) const
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
@@ -66,14 +66,14 @@ class TrivialTestSolver : public solver::Solver
 {
     public:
     static const char* FileName() { return "TrivialTestSolver"; }
-    const char* SolverId() const override { return FileName(); }
-    bool IsApplicable(const ConvolutionContext& context) const override
+    const char* SolverId() const { return FileName(); }
+    bool IsApplicable(const ConvolutionContext& context) const
     {
         return context.in_width == 1;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const solver::PerformanceConfig&) const override
+                                     const solver::PerformanceConfig&) const
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
@@ -86,14 +86,14 @@ class TrivialTestSolver : public solver::Solver
     }
 };
 
-class TestConfig : public solver::PerformanceConfig
+class TestConfig
 {
     public:
     std::string str;
 
-    void Serialize(std::ostream& s) const override { s << str; }
+    void Serialize(std::ostream& s) const { s << str; }
 
-    bool Deserialize(const std::string& s) override
+    bool Deserialize(const std::string& s)
     {
         std::istringstream ss(s);
         std::string temp;
@@ -104,6 +104,16 @@ class TestConfig : public solver::PerformanceConfig
         str = temp;
         return true;
     }
+
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    bool LegacyDeserialize(const std::string&) { return false; }
+#endif
+
+    friend std::ostream& operator<<(std::ostream& os, const TestConfig& c)
+    {
+        c.Serialize(os); // Can be used here as provides text.
+        return os;
+    }
 };
 
 class SearchableTestSolver : public solver::Solver
@@ -112,32 +122,34 @@ class SearchableTestSolver : public solver::Solver
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
-    const char* SolverId() const override { return FileName(); }
-    bool IsSearchable() const override { return true; }
-    std::unique_ptr<solver::PerformanceConfig> PerformanceConfigImpl() const override
+    const char* SolverId() const { return FileName(); }
+    TestConfig PerformanceConfigImpl() const
     {
-        return miopen::make_unique<TestConfig>();
+        return {};
     }
 
     void InitPerformanceConfigImpl(const ConvolutionContext&,
-                                   solver::PerformanceConfig& config_) const override
+                                   TestConfig& config) const
     {
-        auto& config = dynamic_cast<TestConfig&>(config_);
         config.str   = NoSearchFileName();
     }
 
-    bool Search(const ConvolutionContext&, solver::PerformanceConfig& config_) const override
+    bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
+                                              const TestConfig&) const
     {
-        auto& config = dynamic_cast<TestConfig&>(config_);
+        return true;
+    }
+
+    bool Search(const ConvolutionContext&, TestConfig& config) const
+    {
         config.str   = SolverId();
         _serches_done++;
         return true;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const solver::PerformanceConfig& config_) const override
+                                     const TestConfig& config) const
     {
-        const auto& config = dynamic_cast<const TestConfig&>(config_);
 
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
