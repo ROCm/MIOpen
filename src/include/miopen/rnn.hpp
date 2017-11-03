@@ -31,9 +31,11 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/common.hpp>
+#include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <functional>
 #include <numeric>
+#include <map>
 
 namespace miopen {
 
@@ -62,6 +64,9 @@ struct c_array_view
     value_type& operator[](size_t i) { return deref(data[i]); }
 };
 
+
+void profileSequence(Handle& handle, unsigned char select);
+
 struct RNNDescriptor : miopenRNNDescriptor
 {
 
@@ -83,6 +88,7 @@ struct RNNDescriptor : miopenRNNDescriptor
     size_t workspaceScale;
 
     size_t inputBatchLenSum;
+    size_t inputVectorLen;
 
     miopenRNNMode_t rnnMode;
     miopenRNNDirectionMode_t dirMode;
@@ -90,7 +96,11 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNInputMode_t inputMode;
     miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
-
+    
+    std::map<std::pair<int,int>, std::vector<int>> pTensorDims;
+    std::map<std::pair<int,int>, std::size_t> biasOffset;
+    std::map<std::pair<int,int>, std::size_t> paramOffset;
+    
     size_t biasOffsetCalculation(const TensorDescriptor& xDesc,
                                  const TensorDescriptor& wDesc,
                                  const int layer,
@@ -100,6 +110,10 @@ struct RNNDescriptor : miopenRNNDescriptor
                                    const TensorDescriptor& wDesc,
                                    const int layer,
                                    const int layerID);
+    
+    std::vector<int> pTensorLengthsCalculation(const TensorDescriptor& xDesc,
+                                              const int layer,
+                                              const int layerID);
 
     size_t GetWorkspaceSize(Handle& handle,
                             const int seqLength,
@@ -110,12 +124,12 @@ struct RNNDescriptor : miopenRNNDescriptor
                           c_array_view<miopenTensorDescriptor_t> xDesc);
 
     size_t
-    GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
+    GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype);
 
     void GetParamsDescriptor(Handle& handle,
                              const TensorDescriptor& xDesc,
                              TensorDescriptor& wDesc,
-                             miopenDataType_t dtype) const;
+                             miopenDataType_t dtype);
 
     void GetLayerParam(Handle& handle,
                        const int layer,
@@ -124,7 +138,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                        ConstData_t w,
                        const int layerID,
                        TensorDescriptor& paramDesc,
-                       Data_t param) const;
+                       Data_t param);
 
     void GetLayerBias(Handle& handle,
                       const int layer,
@@ -133,13 +147,13 @@ struct RNNDescriptor : miopenRNNDescriptor
                       ConstData_t w,
                       const int layerID,
                       TensorDescriptor& biasDesc,
-                      Data_t bias) const;
+                      Data_t bias);
 
     void SetLayerParam(Handle& handle,
                        const int layer,
                        const TensorDescriptor& xDesc,
                        const TensorDescriptor& wDesc,
-                       ConstData_t w,
+                       Data_t w,
                        const int layerID,
                        const TensorDescriptor& paramDesc,
                        ConstData_t param);
@@ -148,7 +162,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                       const int layer,
                       const TensorDescriptor& xDesc,
                       const TensorDescriptor& wDesc,
-                      ConstData_t w,
+                      Data_t w,
                       const int layerID,
                       const TensorDescriptor& biasDesc,
                       ConstData_t bias);
@@ -164,7 +178,7 @@ struct RNNDescriptor : miopenRNNDescriptor
     temporary function assuming output matrix exists */
     size_t GetRNNWeightSuperTensorSize(Handle& handle,
                                        const TensorDescriptor& xDesc,
-                                       const TensorDescriptor& yDesc) const;
+                                       const TensorDescriptor& yDesc);
 
     void RNNForwardTraining(Handle& handle,
                             const int seqLen,
