@@ -138,39 +138,43 @@ miopen::solver::ConvSolution SearchForSolution(const Context& search_params,
 template <class Solver, class Context>
 ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
 {
-    auto config = s.PerformanceConfigImpl();
-    MIOPEN_LOG_I("Finding solution: " << s.SolverId());
-    do
-    {
-        if(!s.IsSearchable())
-        {
-            MIOPEN_LOG_I("Not searchable: " << s.SolverId());
-            break;
-        }
-        if(dbRecord.Load(s.SolverId(), *config))
-        {
-            MIOPEN_LOG_I("Perf Db: record loaded: " << s.SolverId());
-            if(s.IsValidPerformanceConfigImpl(context, *config))
-            {
-                return s.GetSolution(context, *config);
-            }
-            MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << s.SolverId() << ": " << *config);
-            break;
-        }
-        MIOPEN_LOG_I("Perf Db: record NOT found: " << s.SolverId());
-        if(context.do_search)
-        {
-            MIOPEN_LOG_I("Starting search: " << s.SolverId());
-            if(s.Search(context, *config))
-            {
-                dbRecord.Store(s.SolverId(), *config);
-                return s.GetSolution(context, *config);
-            }
-            MIOPEN_LOG_E("Search failed: " << s.SolverId());
-        }
-        break;
-    } while(false);
+    // TODO: This assumes all solutions are ConvSolution
+    return SearchSolution(rank<1>{}, s, context, dbRecord, s.PerformanceConfigImpl());
+}
 
+
+template <class Solver, class Context, class Config>
+auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecord, Config config) -> decltype(s.Search(context, *config), s.GetSolution(context, *config))
+{
+    MIOPEN_LOG_I("Finding solution: " << s.SolverId());
+    if(dbRecord.Load(s.SolverId(), *config))
+    {
+        MIOPEN_LOG_I("Perf Db: record loaded: " << s.SolverId());
+        if(s.IsValidPerformanceConfigImpl(context, *config))
+        {
+            return s.GetSolution(context, *config);
+        }
+        MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << s.SolverId() << ": " << *config);
+    }
+    else if(context.do_search)
+    {
+        MIOPEN_LOG_I("Starting search: " << s.SolverId());
+        if(s.Search(context, *config))
+        {
+            dbRecord.Store(s.SolverId(), *config);
+            return s.GetSolution(context, *config);
+        }
+        MIOPEN_LOG_E("Search failed: " << s.SolverId());
+    }
+
+    s.InitPerformanceConfigImpl(context, *config);
+    return s.GetSolution(context, *config);
+}
+
+template <class Solver, class Context, class Config>
+auto SearchSolution(rank<0>, Solver s, const Context& context, DbRecord&, Config config) -> decltype(s.GetSolution(context, *config))
+{
+    MIOPEN_LOG_I("Not searchable: " << s.SolverId());
     s.InitPerformanceConfigImpl(context, *config);
     return s.GetSolution(context, *config);
 }
