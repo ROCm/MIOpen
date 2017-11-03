@@ -165,8 +165,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     int h_stride   = hy_h * bi;
     int out_stride = out_h;
     int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
-    size_t rsv_h   = reserveSpaceSize / hy_stride / sizeof(miopenFloat);
-    size_t rsv_w   = hy_stride;
+//    size_t rsv_h   = reserveSpaceSize / hy_stride / sizeof(miopenFloat);
+//    size_t rsv_w   = hy_stride;
 
     if(inputMode == miopenRNNskip)
     {
@@ -188,10 +188,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run rnn gpu fwd \n");
-        float time_gemm = 0, time_0 = 0;
         
         GemmGeometry gg;
-
         for(int li = 0; li < nLayers; li++)
         {
             int hid_shift = li * batch_n * hy_h * bi;
@@ -883,7 +881,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run lstm gpu fwd \n");
-        float time_gemm = 0, time_0 = 0;
+        
         GemmGeometry gg;
 
         for(int li = 0; li < nLayers; li++)
@@ -1943,7 +1941,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run gru gpu fwd \n");
-        float time_gemm = 0, time_0 = 0;
+        
         GemmGeometry gg;
 
         for(int li = 0; li < nLayers; li++)
@@ -2429,9 +2427,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     // Suppress warning
     (void)cxDesc;
     (void)cyDesc;
+    (void)hxDesc;
     (void)hyDesc;
     (void)wDesc;
+    (void)workSpace;
     (void)workSpaceSize;
+    (void)reserveSpaceSize;
 };
 
 void RNNDescriptor::RNNBackwardData(Handle& handle,
@@ -2519,7 +2520,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
 #if MIOPEN_USE_MIOPENGEMM
         printf("run rnn gpu bwd data \n");
-        float time_gemm = 0, time_0 = 0;
+        
         GemmGeometry gg;
 
         for(int li = nLayers - 1; li >= 0; li--)
@@ -2932,7 +2933,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run lstm gpu bwd data \n");
-        float time_gemm = 0, time_0 = 0;
+
         GemmGeometry gg;
 
         for(int li = nLayers - 1; li >= 0; li--)
@@ -4141,7 +4142,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run gru gpu bwd data \n");
-        float time_gemm = 0, time_0 = 0;
+
         GemmGeometry gg;
 
         for(int li = nLayers - 1; li >= 0; li--)
@@ -4709,7 +4710,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run rnn gpu bwd weights \n");
-        float time_gemm = 0, time_0 = 0;
+
         GemmGeometry gg;
 
         for(int li = 0; li <= nLayers; li++)
@@ -5169,7 +5170,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run lstm gpu bwd weights \n");
-        float time_gemm = 0, time_0 = 0;
+
         GemmGeometry gg;
 
         for(int li = 0; li <= nLayers; li++)
@@ -5622,7 +5623,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
 
         printf("run gru gpu bwd weights \n");
-        float time_gemm = 0, time_0 = 0;
+
         GemmGeometry gg;
 
         for(int li = 0; li <= nLayers; li++)
@@ -5885,7 +5886,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 };
 
 // TODO: LATER
-
+/*
 void RNNDescriptor::ForwardRNNInferCell(Handle& handle,
                                         const TensorDescriptor& xDesc,
                                         ConstData_t x,
@@ -5957,5 +5958,6 @@ void RNNDescriptor::BackwardRNNWeightsCell(Handle& handle,
                                            size_t reserveSpaceSize) const
 {
 }
+ */
 
 } // namespace miopen

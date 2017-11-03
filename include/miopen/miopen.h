@@ -1996,7 +1996,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
  * @param hy                    Pointer to the hidden layer output tensor
  * @param cyDesc                An output cell layer tensor descriptor
  * @param cy                    Pointer to the cell layer output tensor
- * @param workspace             Pointer to memory allocated for forward training
+ * @param workSpace             Pointer to memory allocated for forward training
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @param reserveSpace          Pointer to memory allocated for random states
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
@@ -2019,7 +2019,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                       void* hy,
                                                       const miopenTensorDescriptor_t cyDesc,
                                                       void* cy,
-                                                      void* workspace,
+                                                      void* workSpace,
                                                       size_t workSpaceNumBytes,
                                                       void* reserveSpace,
                                                       size_t reserveSpaceNumBytes);
@@ -2051,7 +2051,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
  * @param dhx                    Pointer to the cell layer output tensor
  * @param dcxDesc                An output cell layer tensor descriptor
  * @param dcx                    Pointer to the cell layer output tensor
- * @param workspace             Pointer to memory allocated for forward training
+ * @param workSpace             Pointer to memory allocated for forward training
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @param reserveSpace          Pointer to memory allocated for random states
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
@@ -2080,7 +2080,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
                                                    void* dhx,
                                                    const miopenTensorDescriptor_t dcxDesc,
                                                    void* dcx,
-                                                   void* workspace,
+                                                   void* workSpace,
                                                    size_t workSpaceNumBytes,
                                                    const void* reserveSpace,
                                                    size_t reserveSpaceNumBytes);
@@ -2100,7 +2100,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
  * @param y                    Pointer to the cell layer input tensor
  * @param dwDesc                 A weights tensor descriptor
  * @param dw                     Pointer to input weights tensor
- * @param workspace             Pointer to memory allocated for forward training
+ * @param workSpace             Pointer to memory allocated for forward training
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @param reserveSpace          Pointer to memory allocated for random states
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
@@ -2117,7 +2117,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
                                                       const void* y,
                                                       const miopenTensorDescriptor_t dwDesc,
                                                       void* dw,
-                                                      const void* workspace,
+                                                      const void* workSpace,
                                                       size_t workSpaceNumBytes,
                                                       const void* reserveSpace,
                                                       size_t reserveSpaceNumBytes);
@@ -2143,7 +2143,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
  * @param hy                    Pointer to the hidden layer output tensor
  * @param cyDesc                An output cell layer tensor descriptor
  * @param cy                    Pointer to the cell layer output tensor
- * @param workspace             Pointer to memory allocated for forward training
+ * @param workSpace             Pointer to memory allocated for forward training
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @return                      miopenStatus_t
 */
@@ -2164,7 +2164,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
                                                        void* hy,
                                                        miopenTensorDescriptor_t cyDesc,
                                                        void* cy,
-                                                       void* workspace,
+                                                       void* workSpace,
                                                        size_t workSpaceNumBytes);
 
 /*! @brief Execute forward training for RNN layer
@@ -2189,22 +2189,22 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrainCell(miopenHandle_t handle,
-                                                       miopenRNNDescriptor_t rnnDesc,
-                                                       miopenTensorDescriptor_t xDesc,
-                                                       const void* x,
-                                                       miopenTensorDescriptor_t hxDesc,
-                                                       const void* hx,
-                                                       miopenTensorDescriptor_t wDesc,
-                                                       const void* w,
-                                                       miopenTensorDescriptor_t yDesc,
-                                                       void* y,
-                                                       miopenTensorDescriptor_t hyDesc,
-                                                       void* hy,
-                                                       void* workspace,
-                                                       size_t workSpaceNumBytes,
-                                                       void* reserveSpace,
-                                                       size_t reserveSpaceNumBytes);
+//MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrainCell(miopenHandle_t handle,
+//                                                       miopenRNNDescriptor_t rnnDesc,
+//                                                       miopenTensorDescriptor_t xDesc,
+//                                                       const void* x,
+//                                                       miopenTensorDescriptor_t hxDesc,
+//                                                       const void* hx,
+//                                                       miopenTensorDescriptor_t wDesc,
+//                                                       const void* w,
+//                                                       miopenTensorDescriptor_t yDesc,
+//                                                       void* y,
+//                                                       miopenTensorDescriptor_t hyDesc,
+//                                                       void* hy,
+//                                                       void* workspace,
+//                                                       size_t workSpaceNumBytes,
+//                                                       void* reserveSpace,
+//                                                       size_t reserveSpaceNumBytes);
 
 /*! @brief Execute backwards data training for RNN layer
  *
@@ -2232,26 +2232,26 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrainCell(miopenHandle_t handle,
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardDataCell(miopenHandle_t handle,
-                                                       miopenRNNDescriptor_t rnnDesc,
-                                                       miopenTensorDescriptor_t yDesc,
-                                                       const void* y,
-                                                       miopenTensorDescriptor_t dyDesc,
-                                                       const void* dy,
-                                                       miopenTensorDescriptor_t dhyDesc,
-                                                       const void* dhy,
-                                                       miopenTensorDescriptor_t wDesc,
-                                                       const void* w,
-                                                       miopenTensorDescriptor_t hxDesc,
-                                                       const void* hx,
-                                                       miopenTensorDescriptor_t dxDesc,
-                                                       void* dx,
-                                                       miopenTensorDescriptor_t dhxDesc,
-                                                       void* dhx,
-                                                       void* workspace,
-                                                       size_t workSpaceNumBytes,
-                                                       const void* reserveSpace,
-                                                       size_t reserveSpaceNumBytes);
+//MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardDataCell(miopenHandle_t handle,
+//                                                       miopenRNNDescriptor_t rnnDesc,
+//                                                       miopenTensorDescriptor_t yDesc,
+//                                                       const void* y,
+//                                                       miopenTensorDescriptor_t dyDesc,
+//                                                       const void* dy,
+//                                                       miopenTensorDescriptor_t dhyDesc,
+//                                                       const void* dhy,
+//                                                       miopenTensorDescriptor_t wDesc,
+//                                                       const void* w,
+//                                                       miopenTensorDescriptor_t hxDesc,
+//                                                       const void* hx,
+//                                                       miopenTensorDescriptor_t dxDesc,
+//                                                       void* dx,
+//                                                       miopenTensorDescriptor_t dhxDesc,
+//                                                       void* dhx,
+//                                                       void* workspace,
+//                                                       size_t workSpaceNumBytes,
+//                                                       const void* reserveSpace,
+//                                                       size_t reserveSpaceNumBytes);
 
 /*! @brief Execute backwards weights training for RNN layer
  *
@@ -2273,20 +2273,20 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardDataCell(miopenHandle_t handle,
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeightsCell(miopenHandle_t handle,
-                                                          miopenRNNDescriptor_t rnnDesc,
-                                                          miopenTensorDescriptor_t xDesc,
-                                                          const void* x,
-                                                          miopenTensorDescriptor_t hxDesc,
-                                                          const void* hx,
-                                                          miopenTensorDescriptor_t yDesc,
-                                                          const void* y,
-                                                          miopenTensorDescriptor_t dwDesc,
-                                                          void* dw,
-                                                          const void* workspace,
-                                                          size_t workSpaceNumBytes,
-                                                          const void* reserveSpace,
-                                                          size_t reserveSpaceNumBytes);
+//MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeightsCell(miopenHandle_t handle,
+//                                                          miopenRNNDescriptor_t rnnDesc,
+//                                                          miopenTensorDescriptor_t xDesc,
+//                                                          const void* x,
+//                                                          miopenTensorDescriptor_t hxDesc,
+//                                                          const void* hx,
+//                                                          miopenTensorDescriptor_t yDesc,
+//                                                          const void* y,
+//                                                          miopenTensorDescriptor_t dwDesc,
+//                                                          void* dw,
+//                                                          const void* workspace,
+//                                                          size_t workSpaceNumBytes,
+//                                                          const void* reserveSpace,
+//                                                          size_t reserveSpaceNumBytes);
 
 /*! @brief Execute forward inference for RNN layer
  *
@@ -2308,20 +2308,20 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeightsCell(miopenHandle_t handle,
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @return                      miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInferenceCell(miopenHandle_t handle,
-                                                           miopenRNNDescriptor_t rnnDesc,
-                                                           miopenTensorDescriptor_t xDesc,
-                                                           const void* x,
-                                                           miopenTensorDescriptor_t hxDesc,
-                                                           const void* hx,
-                                                           miopenTensorDescriptor_t wDesc,
-                                                           const void* w,
-                                                           miopenTensorDescriptor_t yDesc,
-                                                           void* y,
-                                                           miopenTensorDescriptor_t hyDesc,
-                                                           void* hy,
-                                                           void* workspace,
-                                                           size_t workSpaceNumBytes);
+//MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInferenceCell(miopenHandle_t handle,
+//                                                           miopenRNNDescriptor_t rnnDesc,
+//                                                           miopenTensorDescriptor_t xDesc,
+//                                                           const void* x,
+//                                                           miopenTensorDescriptor_t hxDesc,
+//                                                           const void* hx,
+//                                                           miopenTensorDescriptor_t wDesc,
+//                                                           const void* w,
+//                                                           miopenTensorDescriptor_t yDesc,
+//                                                           void* y,
+//                                                           miopenTensorDescriptor_t hyDesc,
+//                                                           void* hy,
+//                                                           void* workspace,
+//                                                           size_t workSpaceNumBytes);
 
 /** @} */
 // CLOSEOUT RNN DOXYGEN GROUP
