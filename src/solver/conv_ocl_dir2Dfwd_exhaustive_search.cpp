@@ -36,8 +36,7 @@
 namespace miopen {
 namespace solver {
 
-LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl() const
+LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl() const
 {
     return {};
 }
@@ -204,7 +203,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
 /*
 * Measure the current configuration performance.
 */
-template<class... Solvers>
+template <class... Solvers>
 static int MeasureLoop(Handle* profile_h,
                        Data_t bot_ocl_buf,
                        Data_t top_ocl_buf,
@@ -217,12 +216,14 @@ static int MeasureLoop(Handle* profile_h,
     int ret = 0;
     ConvSolution kernel_search_result{miopenStatusNotInitialized};
 
-    MIOPEN_STATIC_FOR_EACH(traits, Solvers{}, {
-        if(kernel_search_result.Succeeded() || traits.IsApplicable(params))
-        {
-            kernel_search_result = traits.GetSolution(params, result);
-        }
-    });
+    MIOPEN_STATIC_FOR_EACH(traits,
+                           Solvers{},
+                           {
+                               if(kernel_search_result.Succeeded() || traits.IsApplicable(params))
+                               {
+                                   kernel_search_result = traits.GetSolution(params, result);
+                               }
+                           });
 
     if(!kernel_search_result.Succeeded())
     {
@@ -551,14 +552,16 @@ bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                                           top_ocl_buf,
                                           random_top_sys_buf.size() * sizeof(float));
 
-                        const auto ret = MeasureLoop<ConvOclDirectFwd1x1, ConvOclDirectFwdC, ConvOclDirectFwd>(&profile_h,
-                                                     bot_ocl_buf.get(),
-                                                     top_ocl_buf.get(),
-                                                     wei_ocl_buf.get(),
-                                                     bias_ocl_buf.get(),
-                                                     processing_time,
-                                                     params,
-                                                     result);
+                        const auto ret =
+                            MeasureLoop<ConvOclDirectFwd1x1, ConvOclDirectFwdC, ConvOclDirectFwd>(
+                                &profile_h,
+                                bot_ocl_buf.get(),
+                                top_ocl_buf.get(),
+                                wei_ocl_buf.get(),
+                                bias_ocl_buf.get(),
+                                processing_time,
+                                params,
+                                result);
 
                         runs_left--;
                         runs_left = (runs_left < 0) ? 0 : runs_left;
