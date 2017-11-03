@@ -24,14 +24,15 @@
 *
 *******************************************************************************/
 
+#include <miopen/solver.hpp>
+
 #include <stdlib.h>
 #include <functional>
 #include <sstream>
 #include <typeinfo>
 
 #include "get_handle.hpp"
-#include "miopen/mlo_internal.hpp"
-#include "miopen/solver.hpp"
+#include <miopen/mlo_internal.hpp>
 #include "temp_file_path.hpp"
 #include "test.hpp"
 
