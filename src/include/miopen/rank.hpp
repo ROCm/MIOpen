@@ -37,6 +37,6 @@ template <>
 struct rank<0>
 {
 };
-}
+} // namespace miopen
 
 #endif
