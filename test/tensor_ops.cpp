@@ -288,20 +288,20 @@ struct tensor_ops_driver : test_driver
         super_b = tensor<T>{blens}.generate(rand_gen{});
         super_c = tensor<T>{clens}.generate(rand_gen{});
 
-        std::vector<std::vector<float>> get_scalars = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
-        std::vector<std::vector<int>> get_alphabeta = {{8, 10, 1}, {1, 10, 2}, {1, 5, 32}};
+        std::vector<std::vector<int>> get_offsets     = {{8, 10, 1}, {1, 10, 2}, {1, 5, 32}};
+        std::vector<std::vector<float>> get_alphabeta = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
 
         add(tensorlens, "tensorlens", generate_data(get_sub_tensor()));
-        add(offsets, "offsets", generate_data(get_alphabeta));
-        add(alphabeta, "alphabeta", generate_data(get_scalars));
+        add(offsets, "offsets", generate_data(get_offsets));
+        add(alphabeta, "alphabeta", generate_data(get_alphabeta));
     }
 
     tensor<T> get_subtensors(tensor<T>& super_tensor, std::vector<int>& lens)
     {
         std::vector<size_t> superStrides = super_tensor.desc.GetStrides();
         std::vector<int> strides(superStrides.begin() + (5 - lens.size()), superStrides.end());
-        auto tDesc =
-            miopen::TensorDescriptor{miopenFloat, lens.data(), strides.data(), (int)lens.size()};
+        auto tDesc = miopen::TensorDescriptor{
+            miopenFloat, lens.data(), strides.data(), static_cast<int>(lens.size())};
         tensor<T> t = tensor<T>{tDesc};
         t.data      = super_tensor.data;
 
