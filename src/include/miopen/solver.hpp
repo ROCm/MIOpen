@@ -33,6 +33,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <ostream>
 
 #include "miopen/db_record.hpp"
 #include "miopen/mlo_internal.hpp"
@@ -61,6 +62,7 @@ struct KernelInfo
     std::vector<size_t> g_wk;
     std::string kernel_file;
     std::string kernel_name;
+    friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
 };
 
 /// Information required to build and run a kernel (or a set of kernels),
@@ -118,17 +120,19 @@ class PerformanceConfig
 {
     public:
     PerformanceConfig() {}
-    PerformanceConfig(const PerformanceConfig&) {} // clang-tidy wants this
-    PerformanceConfig& operator=(const PerformanceConfig&)
-    {
-        return *this;
-    } // clang-tidy wants this
+    PerformanceConfig(const PerformanceConfig&) = default;
+    PerformanceConfig& operator=(const PerformanceConfig&) = default;
     virtual ~PerformanceConfig() {}
     virtual void Serialize(std::ostream&) const {}
     virtual bool Deserialize(const std::string& s) { return s.empty(); }
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     virtual bool LegacyDeserialize(const std::string&) { return false; }
 #endif
+    friend std::ostream& operator<<(std::ostream& os, const PerformanceConfig& c)
+    {
+        c.Serialize(os); // Can be used here as provides text.
+        return os;
+    }
 };
 
 /// Base class for problem solvers.
@@ -158,6 +162,7 @@ class Solver
     /// The function may involve some euristic to guess the best solution
     /// configuration. It is assumed that the function takes constant time
     /// to finish and does not run kernels to measure performance etc.
+    /// The function shall always return valid config.
     ///
     /// Every Solver which overrides PerformanceConfigImpl() shall
     /// override this function as well.
@@ -166,16 +171,29 @@ class Solver
         c = PerformanceConfig();
     }
 
+    /// Should return false if performance config is wrong for a problem.
+    /// Main use is validation of values read from the perf db.
+    virtual bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
+                                              const PerformanceConfig&) const
+    {
+        return true; // Do not check by default.
+    }
+
     /// Solver-specific implementation of exhaustive search procedure.
     /// Returns (hopefully) optimal performance config for a solution.
-    /// Takes long time to finish.
-    virtual void Search(const ConvolutionContext&, PerformanceConfig&) const {}
+    /// May takes long time to finish.
+    virtual bool Search(const ConvolutionContext&, PerformanceConfig&) const { return false; }
 
     /// Should return true if Search() is implemented in a Solver, false otherwise.
     virtual bool IsSearchable() const { return false; }
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
+    ///
+    /// Every Solver which IsApplicable() for some problem config, must be able to
+    /// InitPerformanceConfigImpl() in a way that GetSolution() would return valid
+    /// solution for a problem (i.e. convolution). In other words, if a Solution
+    /// says "i'am suitable" for a problem, it agrees to solve the problem correctly.
     virtual bool IsApplicable(const ConvolutionContext&) const { return true; }
 
     /// Legacy euristic method which shall return false when a solution
@@ -269,7 +287,7 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
     std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const override;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfig& result_) const override;
-    void Search(const ConvolutionContext&, PerformanceConfig& result_) const override;
+    bool Search(const ConvolutionContext&, PerformanceConfig& result_) const override;
     bool IsSearchable() const override { return true; }
 };
 
@@ -324,10 +342,23 @@ class ConvAsmBwdWrW3x3 : public Solver
     std::unique_ptr<PerformanceConfig> PerformanceConfigImpl() const override;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfig& result) const override;
+    bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
+                                      const PerformanceConfig&) const override;
+    bool IsSearchable() const override { return true; }
+    bool Search(const ConvolutionContext&, PerformanceConfig& config) const override;
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsFast(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const override;
+
+    private:
+    int Measure(miopen::Handle& profile_h,
+                Data_t bot_ocl_buf,
+                Data_t top_ocl_buf,
+                Data_t wei_ocl_buf,
+                double& processing_time,
+                const ConvolutionContext& params,
+                const PerformanceConfig& result) const;
 };
 
 class ConvOclBwdWrW2 : public Solver
