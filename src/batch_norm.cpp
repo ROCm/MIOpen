@@ -30,6 +30,8 @@
 
 #define MIOPEN_BN_SYNCH 0
 
+#define MIOPEN_BN_SYNCH 0
+
 namespace miopen {
 
 void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
@@ -80,7 +82,9 @@ inline void profileSequence(Handle& handle, unsigned char select)
 #if(MIOPEN_BN_SYNCH == 1)
         else
         {
+#if(MIOPEN_BN_SYNCH)
             handle.Finish();
+#endif
         }
 #endif
         break;
@@ -98,7 +102,9 @@ inline void profileSequence(Handle& handle, unsigned char select)
 #if(MIOPEN_BN_SYNCH == 1)
         else
         {
+#if(MIOPEN_BN_SYNCH)
             handle.Finish();
+#endif
         }
 #endif
         break;
@@ -393,7 +399,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
 
         kernel_subname = kernel_name + "FinalDScale";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
-            dx, dScale, inhw);
+            dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";
@@ -444,7 +450,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
 
         kernel_subname = kernel_name + "FinalDScale";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
-            dx, dScale, inhw);
+            dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";
