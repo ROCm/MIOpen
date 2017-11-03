@@ -26,33 +26,20 @@
 
 #define MIOPEN
 
-#include "miopen/allocator.hpp"
-#include "miopen/db.hpp"
-#include "miopen/handle.hpp"
-#include "miopen/legacy_exhaustive_search.hpp"
-#include "miopen/mlo_utils.hpp"
-#include "miopen/solver.hpp"
+#include <miopen/allocator.hpp>
+#include <miopen/db.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
+#include <miopen/mlo_utils.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 namespace solver {
 
-std::unique_ptr<PerformanceConfig>
+LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl() const
 {
-    return make_unique<LegacyPerformanceConfig>();
-}
-
-void LegacyPerformanceConfig::CopyTo(ConvSolution& iud) const
-{
-    iud.grp_tile0       = grp_tile0;
-    iud.grp_tile1       = grp_tile1;
-    iud.in_tile0        = in_tile0;
-    iud.in_tile1        = in_tile1;
-    iud.out_pix_tile0   = out_pix_tile0;
-    iud.out_pix_tile1   = out_pix_tile1;
-    iud.n_out_pix_tiles = n_out_pix_tiles;
-    iud.n_in_data_tiles = n_in_data_tiles;
-    iud.n_stacks        = n_stacks;
+    return {};
 }
 
 void LegacyPerformanceConfig::Serialize(std::ostream& stream) const
@@ -138,10 +125,8 @@ bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
 * select defult configuration if a known configuration has not been found.
 */
 void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
-    const ConvolutionContext& params, PerformanceConfig& result_) const
+    const ConvolutionContext& params, LegacyPerformanceConfig& result) const
 {
-    auto& result = dynamic_cast<LegacyPerformanceConfig&>(result_);
-
     //
     result.in_tile0 = (params.in_width <= 8) ? 8 : (params.in_width <= 16)
                                                        ? 16
@@ -205,20 +190,21 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
     }
 }
 
-static const std::vector<std::reference_wrapper<const Solver>>& GetImplementationsToMeasure()
-{
-    static const std::vector<std::reference_wrapper<const Solver>> implementations = {
-        StaticContainer<ConvOclDirectFwd1x1>::Instance(),
-        StaticContainer<ConvOclDirectFwdC>::Instance(),
-        StaticContainer<ConvOclDirectFwd>::Instance(),
-    };
+// static const std::vector<std::reference_wrapper<const Solver>>& GetImplementationsToMeasure()
+// {
+//     static const std::vector<std::reference_wrapper<const Solver>> implementations = {
+//         StaticContainer<ConvOclDirectFwd1x1>::Instance(),
+//         StaticContainer<ConvOclDirectFwdC>::Instance(),
+//         StaticContainer<ConvOclDirectFwd>::Instance(),
+//     };
 
-    return implementations;
-}
+//     return implementations;
+// }
 
 /*
 * Measure the current configuration performance.
 */
+template<class... Solvers>
 static int MeasureLoop(Handle* profile_h,
                        Data_t bot_ocl_buf,
                        Data_t top_ocl_buf,
@@ -229,18 +215,14 @@ static int MeasureLoop(Handle* profile_h,
                        const LegacyPerformanceConfig& result)
 {
     int ret = 0;
-    ConvSolution kernel_search_result;
+    ConvSolution kernel_search_result{miopenStatusNotInitialized};
 
-    for(const Solver& traits : GetImplementationsToMeasure())
-    {
-        if(traits.IsApplicable(params))
+    MIOPEN_STATIC_FOR_EACH(traits, Solvers{}, {
+        if(kernel_search_result.Succeeded() || traits.IsApplicable(params))
         {
             kernel_search_result = traits.GetSolution(params, result);
-
-            if(kernel_search_result.Succeeded())
-                break;
         }
-    }
+    });
 
     if(!kernel_search_result.Succeeded())
     {
@@ -331,9 +313,8 @@ static int MeasureLoop(Handle* profile_h,
 }
 
 bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
-                                                    PerformanceConfig& result_) const
+                                                    LegacyPerformanceConfig& result) const
 {
-    auto& result   = dynamic_cast<LegacyPerformanceConfig&>(result_);
     bool is_passed = false;
 
     miopen::Handle profile_h;
@@ -570,7 +551,7 @@ bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                                           top_ocl_buf,
                                           random_top_sys_buf.size() * sizeof(float));
 
-                        const auto ret = MeasureLoop(&profile_h,
+                        const auto ret = MeasureLoop<ConvOclDirectFwd1x1, ConvOclDirectFwdC, ConvOclDirectFwd>(&profile_h,
                                                      bot_ocl_buf.get(),
                                                      top_ocl_buf.get(),
                                                      wei_ocl_buf.get(),
