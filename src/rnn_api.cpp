@@ -111,29 +111,29 @@ extern "C" miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
 
 extern "C" miopenStatus_t miopenGetRNNWorkspaceSize(miopenHandle_t handle,
                                                     miopenRNNDescriptor_t rnnDesc,
-                                                    const int seqLen,
+                                                    const int sequenceLen,
                                                     miopenTensorDescriptor_t* xDesc,
                                                     size_t* numBytes)
 {
-    MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
-    miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(seqLen)};
+    MIOPEN_LOG_FUNCTION(rnnDesc, sequenceLen, xDesc, numBytes);
+    miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(sequenceLen)};
     return miopen::try_([&] {
         miopen::deref(numBytes) =
-            miopen::deref(rnnDesc).GetWorkspaceSize(miopen::deref(handle), seqLen, xDescArray);
+            miopen::deref(rnnDesc).GetWorkspaceSize(miopen::deref(handle), sequenceLen, xDescArray);
     });
 }
 
 extern "C" miopenStatus_t miopenGetRNNTrainingReserveSize(miopenHandle_t handle,
                                                           miopenRNNDescriptor_t rnnDesc,
-                                                          int seqLen,
+                                                          int sequenceLen,
                                                           miopenTensorDescriptor_t* xDesc,
                                                           size_t* numBytes)
 {
-    MIOPEN_LOG_FUNCTION(rnnDesc, seqLen, xDesc, numBytes);
-    miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(seqLen)};
+    MIOPEN_LOG_FUNCTION(rnnDesc, sequenceLen, xDesc, numBytes);
+    miopen::c_array_view<miopenTensorDescriptor_t> xDescArray{xDesc, size_t(sequenceLen)};
     return miopen::try_([&] {
         miopen::deref(numBytes) =
-            miopen::deref(rnnDesc).GetReserveSize(miopen::deref(handle), seqLen, xDescArray);
+            miopen::deref(rnnDesc).GetReserveSize(miopen::deref(handle), sequenceLen, xDescArray);
     });
 }
 
@@ -571,7 +571,7 @@ extern "C" miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
 }
 
 // CELL APIs below ---------------------------------
-
+/*
 extern "C" miopenStatus_t miopenRNNForwardTrainCell(miopenHandle_t handle,
                                                     miopenRNNDescriptor_t rnnDesc,
                                                     miopenTensorDescriptor_t xDesc,
@@ -777,6 +777,8 @@ extern "C" miopenStatus_t miopenRNNForwardInferenceCell(miopenHandle_t handle,
                                                    DataCast(hy),
                                                    DataCast(workSpace),
                                                    workSpaceNumBytes);
-        //>>>>>>> rnn
+        
     });
 }
+ 
+ */ 
