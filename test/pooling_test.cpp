@@ -337,7 +337,7 @@ struct pooling_driver : test_driver
 
     void run()
     {
-        int in_h, in_w, window_h, window_w;
+        int in_h, in_w, window_h, window_w, out_h, out_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         miopen::PoolingDescriptor filter{mode_lookup.at(miopen::ToUpper(mode)),
@@ -349,19 +349,31 @@ struct pooling_driver : test_driver
         std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
         if(filter.pmode == miopenPaddingSame)
         {
+            if(filter.strides[0] == 0 || filter.strides[1] == 0)
+                return;
             filter.pads[0] = (in_h % filter.strides[0] == 0)
                                  ? (std::max((window_h - filter.strides[0]), 0))
                                  : (std::max((window_h - (in_h % filter.strides[0])), 0));
             filter.pads[1] = (in_w % filter.strides[1] == 0)
                                  ? (std::max((window_w - filter.strides[1]), 0))
                                  : (std::max((window_w - (in_w % filter.strides[1])), 0));
+
+            out_h = std::ceil(static_cast<double>(in_h) / filter.strides[0]);
+            out_w = std::ceil(static_cast<double>(in_w) / filter.strides[1]);
         }
         else if(filter.pmode == miopenPaddingValid)
         {
+            if(filter.strides[0] == 0 || filter.strides[1] == 0)
+                return;
             filter.pads[0] = 0;
             filter.pads[1] = 0;
+
+            out_h = std::ceil(static_cast<double>(in_h - filter.lens[0] + 1) / filter.strides[0]);
+            out_w = std::ceil(static_cast<double>(in_w - filter.lens[1] + 1) / filter.strides[1]);
         }
 
+        if(out_h <= 0 || out_w <= 0)
+            return;
         std::vector<uint8_t> indices{};
         auto out  = verify(verify_forward_pooling{}, input, filter, indices);
         auto dout = out.first;
