@@ -142,9 +142,9 @@ ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
     return SearchSolution(rank<1>{}, s, context, dbRecord, s.PerformanceConfigImpl());
 }
 
-
 template <class Solver, class Context, class Config>
-auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecord, Config config) -> decltype(s.Search(context, *config), s.GetSolution(context, *config))
+auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecord, Config config)
+    -> decltype(s.Search(context, *config), s.GetSolution(context, *config))
 {
     MIOPEN_LOG_I("Finding solution: " << s.SolverId());
     if(dbRecord.Load(s.SolverId(), *config))
@@ -172,7 +172,8 @@ auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecor
 }
 
 template <class Solver, class Context, class Config>
-auto SearchSolution(rank<0>, Solver s, const Context& context, DbRecord&, Config config) -> decltype(s.GetSolution(context, *config))
+auto SearchSolution(rank<0>, Solver s, const Context& context, DbRecord&, Config config)
+    -> decltype(s.GetSolution(context, *config))
 {
     MIOPEN_LOG_I("Not searchable: " << s.SolverId());
     s.InitPerformanceConfigImpl(context, *config);
