@@ -31,6 +31,11 @@
 #include <miopen/each_args.hpp>
 #include <type_traits>
 
+
+// Helper macros to output a cmdline argument for the driver
+#define DRIVER_NAME "./bin/MIOpenDriver "
+#define DRIVER_ARG(flag,value) " " << (flag) << " " << (value)
+
 // See https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
 #define MIOPEN_PP_CAT(x, y) MIOPEN_PP_PRIMITIVE_CAT(x, y)
 #define MIOPEN_PP_PRIMITIVE_CAT(x, y) x##y
@@ -189,6 +194,7 @@ const char* LoggingLevelToCString(enum LoggingLevel level);
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
 int IsLogging(int level = LoggingLevel::Error);
+bool IsLoggingCmd();
 
 template <class T>
 auto LogObjImpl(T* x) -> decltype(get_object(*x))

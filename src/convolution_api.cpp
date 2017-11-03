@@ -346,6 +346,7 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
     });
 }
 
+
 extern "C" miopenStatus_t
 miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t dyDesc,
@@ -362,6 +363,25 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
                                               size_t workSpaceSize,
                                               bool exhaustiveSearch)
 {
+    if (miopen::IsLoggingCmd()) {
+            std::cerr << DRIVER_NAME << "conv"
+                      << DRIVER_ARG("-n", miopen::deref(xDesc).GetLengths()[0])
+                      << DRIVER_ARG("-c", miopen::deref(xDesc).GetLengths()[1])
+                      << DRIVER_ARG("-H", miopen::deref(xDesc).GetLengths()[2])
+                      << DRIVER_ARG("-W", miopen::deref(xDesc).GetLengths()[3])
+
+                      << DRIVER_ARG("-k", miopen::deref(dwDesc).GetLengths()[0])
+                      << DRIVER_ARG("-x", miopen::deref(dwDesc).GetLengths()[2])
+                      << DRIVER_ARG("-y", miopen::deref(dwDesc).GetLengths()[3])
+
+                      << DRIVER_ARG("-p", miopen::deref(convDesc).pad_h)
+                      << DRIVER_ARG("-q", miopen::deref(convDesc).pad_w)
+                      << DRIVER_ARG("-u", miopen::deref(convDesc).u)
+                      << DRIVER_ARG("-v", miopen::deref(convDesc).v)
+                      << DRIVER_ARG("-l", miopen::deref(convDesc).dilation_h)
+                      << DRIVER_ARG("-j", miopen::deref(convDesc).dilation_w)
+                      << "\n";
+    }
 
     MIOPEN_LOG_FUNCTION(dyDesc,
                         dy,
