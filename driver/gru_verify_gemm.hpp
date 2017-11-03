@@ -666,7 +666,6 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                                      std::vector<T>& dhy, // current/final hidden state
                                      std::vector<T>& dhx_host,
                                      std::vector<T>& hx, // initial hidden state
-                                     std::vector<T>& dcx_host,
                                      std::vector<T>& out,
                                      std::vector<T>& dout,
                                      std::vector<int>& in_n, // input batch size
@@ -1301,7 +1300,6 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     for(int i = 0; i < hy_d * hy_n * hy_h; i++)
     {
         dhx_host[i] = dhx_state[i];
-        dcx_host[i] = dcx_state[i];
     }
 
     for(int bs = 0; bs < batch_n; bs++)
