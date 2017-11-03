@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 int mlo_construct_norm::mloConstruct()
 {
     int ret = 0;
-    if(_search_params.forward == 1)
+    if(_search_params.direction.IsForward())
     {
         ret = mloConstructFwd();
     }

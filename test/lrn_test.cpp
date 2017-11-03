@@ -150,101 +150,65 @@ struct verify_lrn_bwd
     miopen::LRNDescriptor lrn;
     tensor<T> inputY;
     tensor<T> inputDY;
-    tensor<T> inputX; // scale
-    tensor<T> inputDX;
+    tensor<T> inputX;
+    tensor<T> outputDX;
+    tensor<T> scale;
 
     tensor<T> cpu()
     {
-
-        auto outputDX = inputDY;
-        auto scale    = inputY;
-
-        std::fill(scale.begin(), scale.end(), 0);
-
         int n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(inputY.desc.GetLengths());
 
         auto alpha  = lrn.GetAlpha();
         auto beta   = lrn.GetBeta();
         auto lrn_n  = lrn.GetN();
-        auto K      = lrn.GetK();
         auto mode   = lrn.GetMode();
         auto radius = (lrn_n - 1) / 2;
 
         if(mode == miopenLRNWithinChannel)
         {
-            for(auto b = 0; b < n_batch; b++)
-            {
-                for(auto c = 0; c < channels; c++)
-                {
-                    for(auto h = 0; h < height; h++)
+            par_ford(n_batch, channels)([&](int b, int c) {
+                ford(height, width)([&](int h, int w) {
+                    double ydy             = 0;
+                    auto left              = (w - radius) < 0 ? 0 : (w - radius);
+                    auto right             = (left + lrn_n) > width ? width : (left + lrn_n);
+                    auto top               = (h - radius) < 0 ? 0 : (h - radius);
+                    auto bottom            = (top + lrn_n) > height ? height : (top + lrn_n);
+                    auto adjust_area       = (right - left) * (bottom - top);
+                    auto cache_ratio_value = 2 * alpha * beta / adjust_area;
+
+                    for(auto i = left; i < right; i++)
                     {
-                        for(auto w = 0; w < width; w++)
+                        for(auto j = top; j < bottom; j++)
                         {
-                            double ydy = 0;
-
-                            // change to zero padding
-                            auto left        = (w - radius) < 0 ? 0 : (w - radius);
-                            auto right       = (left + lrn_n) > width ? width : (left + lrn_n);
-                            auto top         = (h - radius) < 0 ? 0 : (h - radius);
-                            auto bottom      = (top + lrn_n) > height ? height : (top + lrn_n);
-                            auto adjust_area = (right - left) * (bottom - top);
-                            auto cache_ratio_value = 2 * alpha * beta / adjust_area;
-                            auto alpha_over_area   = alpha / adjust_area;
-
-                            for(auto i = left; i < right; i++)
-                            {
-                                for(auto j = top; j < bottom; j++)
-                                {
-                                    scale(b, c, j, i) += inputY(b, c, j, i) * inputY(b, c, j, i);
-                                    scale(b, c, j, i) += K;
-                                    scale(b, c, j, i) *= alpha_over_area;
-                                }
-                            }
-
-                            for(auto i = left; i < right; i++)
-                            {
-                                for(auto j = top; j < bottom; j++)
-                                {
-                                    ydy += inputY(b, c, j, i) * inputDY(b, c, j, i) /
-                                           scale(b, c, j, i);
-                                }
-                            }
-
-                            outputDX(b, c, h, w) =
-                                pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                cache_ratio_value * inputX(b, c, h, w) * ydy;
+                            ydy += (inputY(b, c, j, i) * inputDY(b, c, j, i) / scale(b, c, j, i));
                         }
                     }
-                }
-            }
+
+                    outputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
+                                           cache_ratio_value * inputX(b, c, h, w) * ydy;
+                });
+            });
         }
         else
         {
-
             auto cache_ratio_value = 2 * alpha * beta / lrn_n;
 
-            for(auto b = 0; b < n_batch; b++)
-            {
-                for(auto h = 0; h < height; h++)
-                {
-                    for(auto w = 0; w < width; w++)
+            par_ford(n_batch, height, width)([&](int b, int h, int w) {
+                ford(channels)([&](int c) {
+                    double ydy = 0;
+                    auto start = (c - radius) < 0 ? 0 : (c - radius);
+                    auto end   = (c + radius) > channels ? channels : (c + radius);
+
+                    for(auto k = start; k < end; k++)
                     {
-                        double scale_x = 0;
-                        double ydy     = 0;
-
-                        for(auto c = 0; c < channels; c++)
-                        {
-                            auto intensityX = inputX(b, c, h, w);
-                            ydy += inputY(b, c, h, w) * inputDY(b, c, h, w) / scale_x;
-                        }
-
-                        for(auto c = 0; c < channels; c++)
-                            outputDX(b, c, h, w) = pow(scale_x, -beta) * inputDY(b, c, h, w) -
-                                                   cache_ratio_value * inputX(b, c, h, w) * ydy;
+                        ydy += (inputY(b, k, h, w) * inputDY(b, k, h, w) / scale(b, k, h, w));
                     }
-                }
-            }
+
+                    outputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
+                                           cache_ratio_value * inputX(b, c, h, w) * ydy;
+                });
+            });
         }
 
         return outputDX;
@@ -252,35 +216,29 @@ struct verify_lrn_bwd
 
     tensor<T> gpu()
     {
-        auto&& handle      = get_handle();
-        auto dinput        = inputY;
-        auto in_dev        = handle.Write(inputY.data);
-        auto dout_dev      = handle.Write(inputDY.data);
-        auto out_dev       = handle.Write(inputX.data);
-        auto din_dev       = handle.Create<T>(dinput.data.size());
-        auto workspace_dev = handle.Create<T>(inputY.data.size());
+        auto&& handle     = get_handle();
+        auto inputY_dev   = handle.Write(inputY.data);
+        auto inputDY_dev  = handle.Write(inputDY.data);
+        auto inputX_dev   = handle.Write(inputX.data);
+        auto outputDX_dev = handle.Create<T>(outputDX.data.size());
+        auto scale_dev    = handle.Write(scale.data);
 
         auto alpha = lrn.GetAlpha(), beta = lrn.GetBeta();
         lrn.Backward(handle,
                      &alpha,
-                     // y
-                     inputY.desc,
-                     in_dev.get(),
-                     // dy
-                     inputDY.desc,
-                     dout_dev.get(),
-                     // x
-                     inputX.desc,
-                     out_dev.get(),
+                     inputY.desc, // Y
+                     inputY_dev.get(),
+                     inputDY.desc, // DY
+                     inputDY_dev.get(),
+                     inputX.desc, // X
+                     inputX_dev.get(),
                      &beta,
-                     // dx
-                     dinput.desc,
-                     din_dev.get(),
+                     outputDX.desc, // DX
+                     outputDX_dev.get(),
+                     scale_dev.get());
 
-                     workspace_dev.get());
-
-        dinput.data = handle.Read<T>(din_dev, dinput.data.size());
-        return dinput;
+        outputDX.data = handle.Read<T>(outputDX_dev, outputDX.data.size());
+        return outputDX;
     }
 
     void fail(int)
@@ -291,7 +249,7 @@ struct verify_lrn_bwd
         std::cout << "Input Tensor DY"
                   << " " << inputDY.desc.ToString() << std::endl;
         std::cout << "Input Tensor X"
-                  << " " << inputX.desc.ToString() << std::endl;
+                  << " " << scale.desc.ToString() << std::endl;
     }
 };
 
@@ -323,15 +281,19 @@ struct lrn_driver : test_driver
     {
         miopen::LRNDescriptor lrn{mode_lookup.at(miopen::ToUpper(mode)), n, {alpha, beta, k}};
 
+        auto OutputDX   = input;
         auto fwd_output = verify(verify_lrn_foward<T>{lrn, input});
+        auto out        = fwd_output.first;
 
-        auto dout = fwd_output.first;
-        dout.generate([&](int b, int c, int h, int w) {
-            T x      = fwd_output.first(b, c, h, w);
-            double y = (877 * b + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
-            return ((x * y) / 1301.0);
-        });
+        std::size_t n_batch, channels, height, width;
+        std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
+        auto scale  = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
+        auto inputX = tensor<T>{n_batch, channels, height, width}.generate(rand_gen{});
+        par_ford(n_batch, channels, height, width)(
+            [&](int b, int c, int h, int w) { scale(b, c, h, w) += 1; });
+
+        auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, out, inputX, OutputDX, scale});
     };
 };
 
-int main(int argc, const char* argv[]) { test_drive<lrn_driver<double>>(argc, argv); };
+int main(int argc, const char* argv[]) { test_drive<lrn_driver<float>>(argc, argv); };

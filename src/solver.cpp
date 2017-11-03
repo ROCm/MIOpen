@@ -26,31 +26,63 @@
 
 #include "miopen/db_record.hpp"
 #include "miopen/solver.hpp"
+#include "miopen/logger.hpp"
+
+#include <ostream>
+
+#define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
+#define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 
 namespace miopen {
 namespace solver {
 
+std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
+{
+    os << k.kernel_file << ", " << k.kernel_name << " g_wk={ ";
+    for(const auto& size : k.g_wk)
+        os << size << ' ';
+    os << "}, l_wk={ ";
+    for(const auto& size : k.l_wk)
+        os << size << ' ';
+    return os << "} '" << k.comp_options << '\'';
+}
+
 ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
 {
     std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
-    if(!IsSearchable())
+    MIOPEN_LOG_I("Finding solution: " << SolverId());
+    do
     {
-        InitPerformanceConfigImpl(context, *config);
-        return GetSolution(context, *config);
-    }
-    if(dbRecord.Load(SolverId(), *config))
-    {
-        return GetSolution(context, *config);
-    }
-    if(context.do_search)
-    {
-        Search(context, *config);
-        dbRecord.Store(SolverId(), *config);
-    }
-    else
-    {
-        InitPerformanceConfigImpl(context, *config);
-    }
+        if(!IsSearchable())
+        {
+            MIOPEN_LOG_I("Not searchable: " << SolverId());
+            break;
+        }
+        if(dbRecord.Load(SolverId(), *config))
+        {
+            MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
+            if(IsValidPerformanceConfigImpl(context, *config))
+            {
+                return GetSolution(context, *config);
+            }
+            MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId() << ": " << *config);
+            break;
+        }
+        MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
+        if(context.do_search)
+        {
+            MIOPEN_LOG_I("Starting search: " << SolverId());
+            if(Search(context, *config))
+            {
+                dbRecord.Store(SolverId(), *config);
+                return GetSolution(context, *config);
+            }
+            MIOPEN_LOG_E("Search failed: " << SolverId());
+        }
+        break;
+    } while(false);
+
+    InitPerformanceConfigImpl(context, *config);
     return GetSolution(context, *config);
 }
 

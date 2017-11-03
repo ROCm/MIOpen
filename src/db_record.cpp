@@ -28,6 +28,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <numeric>
 
 #include "miopen/errors.hpp"
 #include "miopen/db_record.hpp"
@@ -424,7 +425,7 @@ void DbRecord::ReadFile(RecordPositions* const pos)
         {
             continue;
         }
-        MIOPEN_LOG_I(std::string("Key match: " << current_key);
+        MIOPEN_LOG_I("Key match: " << current_key);
         const auto contents    = line.substr(key_size + 1);
 #endif
 
