@@ -45,7 +45,7 @@ struct LegacyPerformanceConfig
     int n_in_data_tiles = 0;
     int n_stacks        = 0;
 
-    template<class Solution>
+    template <class Solution>
     void CopyTo(Solution& iud) const
     {
         iud.grp_tile0       = grp_tile0;

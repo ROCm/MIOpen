@@ -234,10 +234,7 @@ class Solver
     // virtual const char* SolverId() const = 0;
 
     /// Constructs performance config instance used by a Solver.
-    PerformanceConfig PerformanceConfigImpl() const
-    {
-        return {};
-    }
+    PerformanceConfig PerformanceConfigImpl() const { return {}; }
 
     /// Initializes performance config to the default values.
     /// The function may involve some euristic to guess the best solution
@@ -254,8 +251,7 @@ class Solver
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
-    bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
-                                              const PerformanceConfig&) const
+    bool IsValidPerformanceConfigImpl(const ConvolutionContext&, const PerformanceConfig&) const
     {
         return true; // Do not check by default.
     }
@@ -277,7 +273,8 @@ class Solver
 
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
-    // virtual ConvSolution GetSolution(const ConvolutionContext&, const PerformanceConfig&) const = 0;
+    // virtual ConvSolution GetSolution(const ConvolutionContext&, const PerformanceConfig&) const =
+    // 0;
 };
 
 class ConvAsm3x3U : public Solver
@@ -353,7 +350,7 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    LegacyPerformanceConfig& result_) const;
     bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
-                                              const LegacyPerformanceConfig&) const
+                                      const LegacyPerformanceConfig&) const
     {
         return true; // Do not check by default.
     }

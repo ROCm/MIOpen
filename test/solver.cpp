@@ -43,10 +43,7 @@ class TrivialSlowTestSolver : public solver::Solver
     static const char* FileName() { return "TrivialSlowTestSolver"; }
     const char* SolverId() const { return FileName(); }
     bool IsFast(const ConvolutionContext& context) const { return context.in_height == 1; }
-    bool IsApplicable(const ConvolutionContext& context) const
-    {
-        return context.in_width == 1;
-    }
+    bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
                                      const solver::PerformanceConfig&) const
@@ -67,10 +64,7 @@ class TrivialTestSolver : public solver::Solver
     public:
     static const char* FileName() { return "TrivialTestSolver"; }
     const char* SolverId() const { return FileName(); }
-    bool IsApplicable(const ConvolutionContext& context) const
-    {
-        return context.in_width == 1;
-    }
+    bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
                                      const solver::PerformanceConfig&) const
@@ -123,32 +117,26 @@ class SearchableTestSolver : public solver::Solver
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
     const char* SolverId() const { return FileName(); }
-    TestConfig PerformanceConfigImpl() const
+    TestConfig PerformanceConfigImpl() const { return {}; }
+
+    void InitPerformanceConfigImpl(const ConvolutionContext&, TestConfig& config) const
     {
-        return {};
+        config.str = NoSearchFileName();
     }
 
-    void InitPerformanceConfigImpl(const ConvolutionContext&,
-                                   TestConfig& config) const
-    {
-        config.str   = NoSearchFileName();
-    }
-
-    bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
-                                              const TestConfig&) const
+    bool IsValidPerformanceConfigImpl(const ConvolutionContext&, const TestConfig&) const
     {
         return true;
     }
 
     bool Search(const ConvolutionContext&, TestConfig& config) const
     {
-        config.str   = SolverId();
+        config.str = SolverId();
         _serches_done++;
         return true;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const TestConfig& config) const
+    solver::ConvSolution GetSolution(const ConvolutionContext&, const TestConfig& config) const
     {
 
         solver::ConvSolution ret;

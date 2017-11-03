@@ -439,10 +439,7 @@ std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
     return ss.str();
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::PerformanceConfigImpl() const
-{
-    return {};
-}
+PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::PerformanceConfigImpl() const { return {}; }
 
 void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& params,
                                                  PerformanceConfigAsmDirect3x3WrW& result) const
@@ -728,7 +725,8 @@ InitRandomly(std::vector<float>& vec, const double offset = 0.0, const double fa
         *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
 }
 
-bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfigAsmDirect3x3WrW& best_config) const
+bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params,
+                              PerformanceConfigAsmDirect3x3WrW& best_config) const
 {
     miopen::Handle profile_h;
     profile_h.EnableProfiling(true);
@@ -753,11 +751,11 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
         }
     }
     MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
-    bool is_passed    = false;
-    float best_time   = std::numeric_limits<float>::max();
-    size_t n_failed   = 0;
-    size_t n_current  = 0;
-    size_t n_best     = 0;
+    bool is_passed   = false;
+    float best_time  = std::numeric_limits<float>::max();
+    size_t n_failed  = 0;
+    size_t n_current = 0;
+    size_t n_best    = 0;
     Heartbeat heartbeat;
     heartbeat.Start();
     for(const auto& current_config : all_configs)
