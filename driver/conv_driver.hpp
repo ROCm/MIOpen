@@ -724,6 +724,9 @@ int ConvDriver<T>::RunForwardCPU()
         pad_w = 0;
     }
 
+    if(out_h <= 0 || out_w <= 0)
+        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+
     if(mode == miopenConvolution)
     {
         miopenGet4dTensorDescriptor(weightTensor,
@@ -1075,6 +1078,9 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
         pad_w = 0;
     }
 
+    if(out_h <= 0 || out_w <= 0)
+        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+
     if(mode == miopenConvolution)
     {
         miopenGet4dTensorDescriptor(weightTensor,
@@ -1309,6 +1315,9 @@ int ConvDriver<T>::RunBackwardDataCPU()
     miopenPaddingMode_t pmode;
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pmode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+
+    if(out_h <= 0 || out_w <= 0)
+        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
 
     if(pmode == miopenPaddingSame)
     {
