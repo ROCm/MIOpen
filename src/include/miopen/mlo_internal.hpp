@@ -95,7 +95,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <tuple>
 
-
 using mlo_kernel_info = std::tuple<const std::string,
                                    const std::string,
                                    const std::string,
