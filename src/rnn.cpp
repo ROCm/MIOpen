@@ -55,6 +55,7 @@ void profileSequence(Handle& handle, unsigned char select)
     case 0:
         if(handle.IsProfilingEnabled())
         {
+            ctime = 0.;
             ktime = handle.GetKernelTime();
             ctime = ktime;
 
