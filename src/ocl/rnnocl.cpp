@@ -33,7 +33,7 @@
 #include <vector>
 #include <numeric>
 
-#if MIOPEN_USE_MIOPENGEMM
+#if 1 //MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
 #endif
 
@@ -6354,8 +6354,8 @@ profileSequence(handle, 1);
                                      offset,
                                      offset);
                     // Update time
-                    if(gi==3) profileSequence(handle, 2);
-                    else profileSequence(handle, 1);
+//                    if(gi==3) profileSequence(handle, 2);
+//                    else profileSequence(handle, 1);
                 }
 
                 if(dirMode)
