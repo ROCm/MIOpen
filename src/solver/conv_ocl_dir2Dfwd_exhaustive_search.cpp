@@ -313,7 +313,8 @@ static int MeasureLoop(Handle* profile_h,
     return (ret);
 }
 
-LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params) const
+LegacyPerformanceConfig
+ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params) const
 {
     LegacyPerformanceConfig result;
     bool is_passed = false;
@@ -835,7 +836,8 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::Search(const Con
     result.n_stacks        = min_n_stacks;
 
     profile_h.EnableProfiling(false);
-    if(!is_passed) MIOPEN_THROW("Search failed for ConvOclDirectFwdLegacyExhaustiveSearch");
+    if(!is_passed)
+        MIOPEN_THROW("Search failed for ConvOclDirectFwdLegacyExhaustiveSearch");
     return result;
 }
 
