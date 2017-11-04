@@ -6354,8 +6354,8 @@ profileSequence(handle, 1);
                                      offset,
                                      offset);
                     // Update time
-                    if(gi==3) profileSequence(handle, 2);
-                    else profileSequence(handle, 1);
+//                    if(gi==3) profileSequence(handle, 2);
+//                    else profileSequence(handle, 1);
                 }
 
                 if(dirMode)
