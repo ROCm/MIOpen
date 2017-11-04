@@ -473,7 +473,7 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
 }
 
 bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                    const PerformanceConfigAsmDirect3x3WrW& c) const
+                                                const PerformanceConfigAsmDirect3x3WrW& c) const
 {
     return c.IsValidRange() && c.IsValid(problem);
 }

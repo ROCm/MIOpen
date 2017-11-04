@@ -325,8 +325,7 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
     LegacyPerformanceConfig GetPerformanceConfig() const;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    LegacyPerformanceConfig& result_) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                      const LegacyPerformanceConfig&) const
+    bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const
     {
         return true; // Do not check by default.
     }
@@ -423,7 +422,7 @@ struct ConvAsmBwdWrW3x3 : public Solver
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfigAsmDirect3x3WrW& result) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                      const PerformanceConfigAsmDirect3x3WrW&) const;
+                                  const PerformanceConfigAsmDirect3x3WrW&) const;
     bool Search(const ConvolutionContext&, PerformanceConfigAsmDirect3x3WrW& config) const;
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
