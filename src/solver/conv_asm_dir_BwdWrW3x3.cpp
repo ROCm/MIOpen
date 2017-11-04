@@ -805,7 +805,8 @@ PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionConte
                           << best_time
                           << ' '
                           << best_config);
-    if(!is_passed) MIOPEN_THROW("Search failed for PerformanceConfigAsmDirect3x3WrW");
+    if(!is_passed)
+        MIOPEN_THROW("Search failed for PerformanceConfigAsmDirect3x3WrW");
     return best_config;
 }
 
