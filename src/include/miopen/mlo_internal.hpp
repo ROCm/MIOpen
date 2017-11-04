@@ -143,9 +143,8 @@ class StaticContainer
     }
 };
 
-class ProblemDescription
+struct ProblemDescription
 {
-    public:
     int n_inputs         = 0;
     int in_height        = 0;
     int in_width         = 0;
@@ -162,9 +161,8 @@ class ProblemDescription
     int kernal_dilation0 = 0;
     int kernal_dilation1 = 0;
     int bias             = 0;
-    class Direction
+    struct Direction
     {
-        public:
         enum class Value
         {
             Unknown,
@@ -248,9 +246,8 @@ class ProblemDescription
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
 /// TODO: These three entities should be made separate.
-class ConvolutionContext : public ProblemDescription
+struct ConvolutionContext : ProblemDescription
 {
-    public:
     bool n_passes = false;
 
     bool do_search           = false;
@@ -296,15 +293,14 @@ class ConvolutionContext : public ProblemDescription
 };
 
 namespace solver {
-class ConvSolution;
+struct ConvSolution;
 
 } // namespace solver
 
 } // namespace miopen
 
-class mlo_construct_direct2D
+struct mlo_construct_direct2D
 {
-    public:
     void mloUseSolution(const miopen::solver::ConvSolution& s);
 
     mlo_construct_direct2D(int dir, bool do_bias = false)
@@ -899,9 +895,8 @@ class mlo_construct_direct2D
 * backward with regard to weights construction
 */
 
-class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
+struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
 {
-    public:
     mlo_construct_BwdWrW2D(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias)
     {
         _search_params.direction.SetBackwardWrW();
@@ -919,9 +914,8 @@ class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
 * winograd algorithm
 */
 
-class mlo_construct_winograd : public mlo_construct_direct2D
+struct mlo_construct_winograd : mlo_construct_direct2D
 {
-    public:
     mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
 
     void mloConstruct();
@@ -931,9 +925,8 @@ class mlo_construct_winograd : public mlo_construct_direct2D
 #define MLO_POOLING_OP_MAX 1
 #define MLO_POOLING_OP_STC 2
 
-class mlo_construct_pooling2D : public mlo_construct_direct2D
+struct mlo_construct_pooling2D : mlo_construct_direct2D
 {
-    public:
     mlo_construct_pooling2D(int dir) : mlo_construct_direct2D(dir)
     {
         _pooling_method = MLO_POOLING_OP_MAX;
@@ -990,9 +983,8 @@ class mlo_construct_pooling2D : public mlo_construct_direct2D
 #define MLO_LRN_WITHIN_CHANNEL 0
 #define MLO_LRN_ACROSS_CHANNELS 1
 
-class mlo_construct_norm : public mlo_construct_direct2D
+struct mlo_construct_norm : mlo_construct_direct2D
 {
-    public:
     mlo_construct_norm(int dir) : mlo_construct_direct2D(dir) {}
 
     inline void setNormDescr(
@@ -1048,9 +1040,8 @@ class mlo_construct_norm : public mlo_construct_direct2D
 #define MLO_NEURON_POWER MLO_NEURON_LINEAR + 1 // (a + b * x ) ^power
 #define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
 
-class mlo_construct_neuron : public mlo_construct_direct2D
+struct mlo_construct_neuron : mlo_construct_direct2D
 {
-    public:
     mlo_construct_neuron(int dir) : mlo_construct_direct2D(dir)
     {
         _neuron_type = 0;

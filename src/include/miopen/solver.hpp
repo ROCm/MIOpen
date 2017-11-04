@@ -66,9 +66,8 @@ struct KernelInfo
 /// TODO: Currently best suits a subset of existing solvers,
 /// namely some OpenCL-written forward direct convolutions.
 /// Shall be refactored (possibly, to a class hierarchy).
-class ConvSolution
+struct ConvSolution
 {
-    public:
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
     int passes;
@@ -150,6 +149,7 @@ template <class Solver, class Context, class Config>
 auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecord, Config config)
     -> decltype(s.Search(context, config), s.GetSolution(context, config))
 {
+    static_assert(std::is_empty<Solver>{}, "Solver must be stateless");
     MIOPEN_LOG_I("Finding solution: " << s.SolverId());
     if(dbRecord.Load(s.SolverId(), config))
     {
@@ -192,17 +192,16 @@ auto SearchSolution(rank<0>, Solver s, const Context& context, DbRecord&, Config
 /// glue at the source text level. Also serves as en "empty set of parameters"
 /// for solutions which do not have parameters that affect performance
 /// (e.g. for 3x3 Wingrad convolutions).
-class PerformanceConfig
+struct PerformanceConfig
 {
-    public:
     PerformanceConfig() {}
     PerformanceConfig(const PerformanceConfig&) = default;
     PerformanceConfig& operator=(const PerformanceConfig&) = default;
-    virtual ~PerformanceConfig() {}
-    virtual void Serialize(std::ostream&) const {}
-    virtual bool Deserialize(const std::string& s) { return s.empty(); }
+    ~PerformanceConfig() {}
+    void Serialize(std::ostream&) const {}
+    bool Deserialize(const std::string& s) { return s.empty(); }
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    virtual bool LegacyDeserialize(const std::string&) { return false; }
+    bool LegacyDeserialize(const std::string&) { return false; }
 #endif
     friend std::ostream& operator<<(std::ostream& os, const PerformanceConfig& c)
     {
@@ -220,9 +219,8 @@ class PerformanceConfig
 /// There could be multiple solvers of the same algorithm for a problem config.
 /// For example, ConvAsm3x3U and ConvOclDirectFwd3x3
 /// are able to solve overlapping sets of 3x3 Direct convolution problems.
-class Solver
+struct Solver
 {
-    public:
     // virtual ~Solver() {}
 
     // TODO: Make solvers regular
@@ -277,9 +275,8 @@ class Solver
     // 0;
 };
 
-class ConvAsm3x3U : public Solver
+struct ConvAsm3x3U : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvAsm3x3U"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
@@ -287,54 +284,48 @@ class ConvAsm3x3U : public Solver
                              const PerformanceConfig& config) const;
 };
 
-class ConvAsm5x10u2v2f1 : public Solver
+struct ConvAsm5x10u2v2f1 : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvAsm5x10u2v2f1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const;
 };
 
-class ConvAsm5x10u2v2b1 : public Solver
+struct ConvAsm5x10u2v2b1 : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvAsm5x10u2v2b1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const;
 };
 
-class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public Solver
+struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvAsm7x7c3h224w224k64u2v2p3q3f1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const;
 };
 
-class ConvOclDirectFwd11x11 : public Solver
+struct ConvOclDirectFwd11x11 : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvOclDirectFwd11x11"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const;
 };
 
-class ConvOclDirectFwdGen : public Solver
+struct ConvOclDirectFwdGen : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvOclDirectFwdGen"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const;
 };
 
-class ConvOclDirectFwd3x3 : public Solver
+struct ConvOclDirectFwd3x3 : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvOclDirectFwd3x3"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
@@ -343,9 +334,8 @@ class ConvOclDirectFwd3x3 : public Solver
 
 /// Holds common member functions for the Solvers which share the same
 /// "legacy exhaustive search" machinery.
-class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
+struct ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
 {
-    public:
     LegacyPerformanceConfig PerformanceConfigImpl() const;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    LegacyPerformanceConfig& result_) const;
@@ -357,51 +347,46 @@ class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
     bool Search(const ConvolutionContext&, LegacyPerformanceConfig& result_) const;
 };
 
-class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
+struct ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    public:
     const char* SolverId() const { return "ConvOclDirectFwd"; }
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& config) const;
 };
 
-class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
+struct ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    public:
     const char* SolverId() const { return "ConvOclDirectFwd1x1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& config) const;
 };
 
-class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
+struct ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    public:
     const char* SolverId() const { return "ConvOclDirectFwdC"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& config) const;
 };
 
-class ConvBinWinograd3x3U : public Solver
+struct ConvBinWinograd3x3U : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvBinWinograd3x3U"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const;
 };
 
-class ConvBinWinogradRxSFwd : public Solver
+struct ConvBinWinogradRxSFwd : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvBinWinogradRxSFwd"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const;
 };
 
-class PerformanceConfigAsmDirect3x3WrW
+struct PerformanceConfigAsmDirect3x3WrW
 {
     int limit_wave_cnt;   // [0..9]
     int reverse_inout;    // [0..1], 1 is allowed for stride=1x1 only.
@@ -412,7 +397,6 @@ class PerformanceConfigAsmDirect3x3WrW
                           // Higher values increase register pressure.
     int n_per_group;      // [1..8] && (n_per_group <= batch_size).
 
-    public:
     PerformanceConfigAsmDirect3x3WrW(int lwc, int rio, int csz, int kpw, int pld, int npg);
     PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
     void Serialize(std::ostream&) const;
@@ -446,9 +430,8 @@ class PerformanceConfigAsmDirect3x3WrW
     }
 };
 
-class ConvAsmBwdWrW3x3 : public Solver
+struct ConvAsmBwdWrW3x3 : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvAsmBwdWrW3x3"; }
     PerformanceConfigAsmDirect3x3WrW PerformanceConfigImpl() const;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
@@ -471,27 +454,24 @@ class ConvAsmBwdWrW3x3 : public Solver
                 const PerformanceConfig& result) const;
 };
 
-class ConvOclBwdWrW2 : public Solver
+struct ConvOclBwdWrW2 : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvOclBwdWrW2"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const;
 };
 
-class ConvOclBwdWrW53 : public Solver
+struct ConvOclBwdWrW53 : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvOclBwdWrW53"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfig& config) const;
 };
 
-class ConvOclBwdWrW1x1 : public Solver
+struct ConvOclBwdWrW1x1 : public Solver
 {
-    public:
     const char* SolverId() const { return "ConvOclBwdWrW1x1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
