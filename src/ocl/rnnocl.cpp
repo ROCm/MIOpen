@@ -33,7 +33,7 @@
 #include <vector>
 #include <numeric>
 
-#if 1 //MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
 #endif
 
