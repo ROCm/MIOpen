@@ -154,7 +154,7 @@ auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecor
     if(dbRecord.Load(s.SolverId(), config))
     {
         MIOPEN_LOG_I("Perf Db: record loaded: " << s.SolverId());
-        if(s.IsValidPerformanceConfigImpl(context, config))
+        if(s.IsValidPerformanceConfig(context, config))
         {
             return s.GetSolution(context, config);
         }
@@ -235,7 +235,7 @@ struct Solver
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
-    bool IsValidPerformanceConfigImpl(const ConvolutionContext&, const PerformanceConfig&) const
+    bool IsValidPerformanceConfig(const ConvolutionContext&, const PerformanceConfig&) const
     {
         return true; // Do not check by default.
     }
@@ -325,7 +325,7 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
     LegacyPerformanceConfig GetPerformanceConfig() const;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    LegacyPerformanceConfig& result_) const;
-    bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
                                       const LegacyPerformanceConfig&) const
     {
         return true; // Do not check by default.
@@ -422,7 +422,7 @@ struct ConvAsmBwdWrW3x3 : public Solver
     PerformanceConfigAsmDirect3x3WrW GetPerformanceConfig() const;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfigAsmDirect3x3WrW& result) const;
-    bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
                                       const PerformanceConfigAsmDirect3x3WrW&) const;
     bool Search(const ConvolutionContext&, PerformanceConfigAsmDirect3x3WrW& config) const;
     bool IsApplicable(const ConvolutionContext& params) const;

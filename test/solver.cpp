@@ -125,7 +125,7 @@ class SearchableTestSolver : public solver::Solver
         config.str = NoSearchFileName();
     }
 
-    bool IsValidPerformanceConfigImpl(const ConvolutionContext&, const TestConfig&) const
+    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const
     {
         return true;
     }
