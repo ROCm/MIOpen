@@ -439,7 +439,7 @@ std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
     return ss.str();
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::PerformanceConfigImpl() const { return {}; }
+PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::GetPerformanceConfig() const { return {}; }
 
 void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& params,
                                                  PerformanceConfigAsmDirect3x3WrW& result) const

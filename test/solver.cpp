@@ -118,7 +118,7 @@ class SearchableTestSolver : public solver::Solver
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
     const char* SolverId() const { return FileName(); }
-    TestConfig PerformanceConfigImpl() const { return {}; }
+    TestConfig GetPerformanceConfig() const { return {}; }
 
     void InitPerformanceConfigImpl(const ConvolutionContext&, TestConfig& config) const
     {
