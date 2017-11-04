@@ -141,15 +141,16 @@ miopen::solver::ConvSolution SearchForSolution(const Context& search_params,
 template <class Solver, class Context>
 ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
 {
+    static_assert(std::is_empty<Solver>{}, "Solver must be stateless");
     // TODO: This assumes all solutions are ConvSolution
-    return SearchSolution(rank<1>{}, s, context, dbRecord, s.GetPerformanceConfig());
+    return SearchSolution(rank<1>{}, s, context, dbRecord);
 }
 
-template <class Solver, class Context, class Config>
-auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecord, Config config)
-    -> decltype(s.Search(context, config), s.GetSolution(context, config))
+template <class Solver, class Context>
+auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
+    -> decltype(s.GetSolution(context, s.Search(context)))
 {
-    static_assert(std::is_empty<Solver>{}, "Solver must be stateless");
+    auto config = s.GetPerformanceConfig();
     MIOPEN_LOG_I("Finding solution: " << s.SolverId());
     if(dbRecord.Load(s.SolverId(), config))
     {
@@ -163,23 +164,21 @@ auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecor
     else if(context.do_search)
     {
         MIOPEN_LOG_I("Starting search: " << s.SolverId());
-        if(s.Search(context, config))
-        {
-            dbRecord.Store(s.SolverId(), config);
-            return s.GetSolution(context, config);
-        }
-        MIOPEN_LOG_E("Search failed: " << s.SolverId());
+        auto c = s.Search(context);
+        dbRecord.Store(s.SolverId(), c);
+        return s.GetSolution(context, c);
     }
 
     s.InitPerformanceConfigImpl(context, config);
     return s.GetSolution(context, config);
 }
 
-template <class Solver, class Context, class Config>
-auto SearchSolution(rank<0>, Solver s, const Context& context, DbRecord&, Config config)
-    -> decltype(s.GetSolution(context, config))
+template <class Solver, class Context>
+auto SearchSolution(rank<0>, Solver s, const Context& context, DbRecord&)
+    -> decltype(s.GetSolution(context, s.GetPerformanceConfig()))
 {
     MIOPEN_LOG_I("Not searchable: " << s.SolverId());
+    auto config = s.GetPerformanceConfig();
     s.InitPerformanceConfigImpl(context, config);
     return s.GetSolution(context, config);
 }
@@ -329,7 +328,7 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
     {
         return true; // Do not check by default.
     }
-    bool Search(const ConvolutionContext&, LegacyPerformanceConfig& result_) const;
+    LegacyPerformanceConfig Search(const ConvolutionContext&) const;
 };
 
 struct ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
@@ -423,7 +422,7 @@ struct ConvAsmBwdWrW3x3 : public Solver
                                    PerformanceConfigAsmDirect3x3WrW& result) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConfigAsmDirect3x3WrW&) const;
-    bool Search(const ConvolutionContext&, PerformanceConfigAsmDirect3x3WrW& config) const;
+    PerformanceConfigAsmDirect3x3WrW Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,

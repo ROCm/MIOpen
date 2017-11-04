@@ -725,9 +725,9 @@ InitRandomly(std::vector<float>& vec, const double offset = 0.0, const double fa
         *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
 }
 
-bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params,
-                              PerformanceConfigAsmDirect3x3WrW& best_config) const
+PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params) const
 {
+    PerformanceConfigAsmDirect3x3WrW best_config;
     miopen::Handle profile_h;
     profile_h.EnableProfiling(true);
 
@@ -805,7 +805,8 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params,
                           << best_time
                           << ' '
                           << best_config);
-    return is_passed;
+    if(!is_passed) MIOPEN_THROW("Search failed for PerformanceConfigAsmDirect3x3WrW");
+    return best_config;
 }
 
 } // namespace solver
