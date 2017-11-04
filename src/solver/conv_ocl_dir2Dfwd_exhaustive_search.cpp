@@ -36,7 +36,7 @@
 namespace miopen {
 namespace solver {
 
-LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl() const
+LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig() const
 {
     return {};
 }
