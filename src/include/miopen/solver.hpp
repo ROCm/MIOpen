@@ -194,10 +194,6 @@ auto SearchSolution(rank<0>, Solver s, const Context& context, DbRecord&, Config
 /// (e.g. for 3x3 Wingrad convolutions).
 struct PerformanceConfig
 {
-    PerformanceConfig() {}
-    PerformanceConfig(const PerformanceConfig&) = default;
-    PerformanceConfig& operator=(const PerformanceConfig&) = default;
-    ~PerformanceConfig() {}
     void Serialize(std::ostream&) const {}
     bool Deserialize(const std::string& s) { return s.empty(); }
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -221,16 +217,6 @@ struct PerformanceConfig
 /// are able to solve overlapping sets of 3x3 Direct convolution problems.
 struct Solver
 {
-    // virtual ~Solver() {}
-
-    // TODO: Make solvers regular
-    Solver()              = default;
-    Solver(const Solver&) = default;
-    Solver& operator=(const Solver&) = default;
-
-    /// Each non-abstract descendant shall have unique id.
-    // virtual const char* SolverId() const = 0;
-
     /// Constructs performance config instance used by a Solver.
     PerformanceConfig PerformanceConfigImpl() const { return {}; }
 
