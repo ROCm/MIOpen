@@ -130,11 +130,12 @@ class SearchableTestSolver : public solver::Solver
         return true;
     }
 
-    bool Search(const ConvolutionContext&, TestConfig& config) const
+    TestConfig Search(const ConvolutionContext&) const
     {
+        TestConfig config;
         config.str = SolverId();
         _serches_done++;
-        return true;
+        return config;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&, const TestConfig& config) const
