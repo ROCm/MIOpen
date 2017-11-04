@@ -142,7 +142,7 @@ template <class Solver, class Context>
 ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
 {
     // TODO: This assumes all solutions are ConvSolution
-    return SearchSolution(rank<1>{}, s, context, dbRecord, s.PerformanceConfigImpl());
+    return SearchSolution(rank<1>{}, s, context, dbRecord, s.GetPerformanceConfig());
 }
 
 template <class Solver, class Context, class Config>
@@ -218,7 +218,7 @@ struct PerformanceConfig
 struct Solver
 {
     /// Constructs performance config instance used by a Solver.
-    PerformanceConfig PerformanceConfigImpl() const { return {}; }
+    PerformanceConfig GetPerformanceConfig() const { return {}; }
 
     /// Initializes performance config to the default values.
     /// The function may involve some euristic to guess the best solution
@@ -226,7 +226,7 @@ struct Solver
     /// to finish and does not run kernels to measure performance etc.
     /// The function shall always return valid config.
     ///
-    /// Every Solver which overrides PerformanceConfigImpl() shall
+    /// Every Solver which overrides GetPerformanceConfig() shall
     /// override this function as well.
     void InitPerformanceConfigImpl(const ConvolutionContext&, PerformanceConfig& c) const
     {
@@ -322,7 +322,7 @@ struct ConvOclDirectFwd3x3 : public Solver
 /// "legacy exhaustive search" machinery.
 struct ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
 {
-    LegacyPerformanceConfig PerformanceConfigImpl() const;
+    LegacyPerformanceConfig GetPerformanceConfig() const;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    LegacyPerformanceConfig& result_) const;
     bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
@@ -419,7 +419,7 @@ struct PerformanceConfigAsmDirect3x3WrW
 struct ConvAsmBwdWrW3x3 : public Solver
 {
     const char* SolverId() const { return "ConvAsmBwdWrW3x3"; }
-    PerformanceConfigAsmDirect3x3WrW PerformanceConfigImpl() const;
+    PerformanceConfigAsmDirect3x3WrW GetPerformanceConfig() const;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
                                    PerformanceConfigAsmDirect3x3WrW& result) const;
     bool IsValidPerformanceConfigImpl(const ConvolutionContext&,
