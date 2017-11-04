@@ -394,6 +394,70 @@ struct test_driver
             throw;
         }
     }
+
+    template <class V, class... Ts>
+    auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    {
+        if(verbose or time)
+            v.fail(std::integral_constant<int, -1>{}, xs...);
+        try
+        {
+            auto&& h = get_handle();
+            if(time)
+            {
+                h.EnableProfiling();
+                h.ResetKernelTime();
+            }
+            auto gpu = v.gpu(xs...);
+            if(time)
+            {
+                std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
+                h.EnableProfiling(false);
+            }
+            if(no_validate)
+            {
+                return std::make_pair(gpu, gpu);
+            }
+            else
+            {
+                auto cpu = v.cpu(xs...);
+
+                if(miopen::range_zero(cpu))
+                {
+                    std::cout << "Cpu data is all zeros" << std::endl;
+                    v.fail(-1, xs...);
+                }
+
+                if(miopen::range_zero(gpu))
+                {
+                    std::cout << "Gpu data is all zeros" << std::endl;
+                    v.fail(-1, xs...);
+                }
+
+                auto idx = miopen::mismatch_idx(cpu, gpu, miopen::float_equal);
+                if(idx < miopen::range_distance(cpu))
+                {
+                    std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
+                              << std::endl;
+                    v.fail(-1, xs...);
+                }
+
+                return std::make_pair(cpu, gpu);
+            }
+        }
+        catch(const std::exception& ex)
+        {
+            std::cout << "FAILED: " << ex.what() << std::endl;
+            v.fail(-1, xs...);
+            throw;
+        }
+        catch(...)
+        {
+            std::cout << "FAILED with unknown exception" << std::endl;
+            v.fail(-1, xs...);
+            throw;
+        }
+    }
 };
 
 template <class Iterator, class Action>

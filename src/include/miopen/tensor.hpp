@@ -85,6 +85,8 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     bool operator==(const TensorDescriptor& rhs) const;
     bool operator!=(const TensorDescriptor& rhs) const;
+    bool operator<(const TensorDescriptor& rhs) const;
+    bool operator>(const TensorDescriptor& rhs) const;
 
     std::string ToString() const;
 
