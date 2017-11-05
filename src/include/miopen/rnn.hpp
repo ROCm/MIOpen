@@ -174,12 +174,6 @@ struct RNNDescriptor : miopenRNNDescriptor
     size_t GetRNNHiddenSuperTensorSize(Handle& handle,
                                        c_array_view<miopenTensorDescriptor_t> xDesc);
 
-    /* Get weight super tensor size
-    temporary function assuming output matrix exists */
-    size_t GetRNNWeightSuperTensorSize(Handle& handle,
-                                       const TensorDescriptor& xDesc,
-                                       const TensorDescriptor& yDesc);
-
     void RNNForwardTraining(Handle& handle,
                             const int seqLen,
                             c_array_view<miopenTensorDescriptor_t> xDesc,
