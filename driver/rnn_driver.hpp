@@ -254,7 +254,6 @@ int RNNDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("batchsize", 'n', "4", "Mini-batch size (Default=4)", "vector");
     inflags.AddInputFlag("hid_h", 'H', "32", "Hidden State Length (Default=32)", "int");
     inflags.AddInputFlag("in_h", 'W', "32", "Input Length (Default=32)", "int");
-    inflags.AddInputFlag("out_h", 'O', "32", "Output Length (Default=32)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("verification_cache",
@@ -291,10 +290,10 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     std::string batchstr = inflags.GetValueStr("batchsize");
 
     std::stringstream ss(batchstr);
-    int cont             = 0;
+    int cont = 0;
 
     int element;
-    while (ss >> element)
+    while(ss >> element)
     {
         if(cont >= nseq)
         {
@@ -304,11 +303,11 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
             break;
         }
 
-        if (ss.peek() == ',' || ss.peek() == ' ')
+        if(ss.peek() == ',' || ss.peek() == ' ')
         {
             ss.ignore();
         }
-        
+
         if(in_n[cont] > in_n[cont - 1])
         {
             printf("Incorrect input batch size at time %d\n", cont);
@@ -322,7 +321,7 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     }
     adjustedSeqLen = nseq;
     in_n.push_back(in_h);
-    
+
     /*
     int cont             = 0;
     for(int i = 0; i < batchstr.length(); i++)
@@ -360,59 +359,61 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     adjustedSeqLen = nseq;
     in_n.push_back(in_h);
     */
-    
-   
-//    std::stringstream ss(batchstr);
-//    int count = 0;
-//    int element;
-//    if (!batchseq.size())
-//    {
-//        while (ss >> element)
-//        {
-//            batchseq.push_back(element);
-//            if (batchseq.size() > nseq)
-//            {
-//                printf("Length of data sequence is longer than required unrolled time sequence "
-//                         "provided.\n"
-//                         "The data sequence will be truncated to match unrolled time sequence.\n");
-//                break;
-//            }
-//          // assert(isdigit(ss.peek()));
-//            count++;
-//
-//            if (ss.peek() == ',' || ss.peek() == ' ')
-//            {
-//                ss.ignore();
-//            }
-//            // std::cout << "element: " << element <<std::endl;
-//                  // printf("count: %d, nseq: %d\n", count, nseq);
-//        }
-//        adjustedSeqLen = nseq;
-//        if (count < nseq)
-//        {
-//            printf("Length of data sequence is shorter than required unrolled time sequence provided.\n"
-//                   "Unrolled time sequence will be truncated to match the data sequence.\n");
-//            adjustedSeqLen = count;
-//        }
-//
-//                //    for(int i = 0; i<batchseq.size();i++)
-//                //    {
-//                //        std::cout << "element[" << i <<"]:" << batchseq[i] << std::endl;
-//                //    }
-//        for (int i = 0; i < batchseq.size() && i < nseq; i++)
-//        {
-//            if(i > 0 && batchseq[i] > batchseq[i - 1])
-//            {
-//                printf("Incorrect input batch size at time %d\n", i);
-//                break;
-//            }
-//            else
-//            {
-//                in_n[i] = in_n[i] * 10 + batchseq[i];
-//            }
-//        }
-//        in_n.push_back(in_h);
-//    }
+
+    //    std::stringstream ss(batchstr);
+    //    int count = 0;
+    //    int element;
+    //    if (!batchseq.size())
+    //    {
+    //        while (ss >> element)
+    //        {
+    //            batchseq.push_back(element);
+    //            if (batchseq.size() > nseq)
+    //            {
+    //                printf("Length of data sequence is longer than required unrolled time sequence
+    //                "
+    //                         "provided.\n"
+    //                         "The data sequence will be truncated to match unrolled time
+    //                         sequence.\n");
+    //                break;
+    //            }
+    //          // assert(isdigit(ss.peek()));
+    //            count++;
+    //
+    //            if (ss.peek() == ',' || ss.peek() == ' ')
+    //            {
+    //                ss.ignore();
+    //            }
+    //            // std::cout << "element: " << element <<std::endl;
+    //                  // printf("count: %d, nseq: %d\n", count, nseq);
+    //        }
+    //        adjustedSeqLen = nseq;
+    //        if (count < nseq)
+    //        {
+    //            printf("Length of data sequence is shorter than required unrolled time sequence
+    //            provided.\n"
+    //                   "Unrolled time sequence will be truncated to match the data sequence.\n");
+    //            adjustedSeqLen = count;
+    //        }
+    //
+    //                //    for(int i = 0; i<batchseq.size();i++)
+    //                //    {
+    //                //        std::cout << "element[" << i <<"]:" << batchseq[i] << std::endl;
+    //                //    }
+    //        for (int i = 0; i < batchseq.size() && i < nseq; i++)
+    //        {
+    //            if(i > 0 && batchseq[i] > batchseq[i - 1])
+    //            {
+    //                printf("Incorrect input batch size at time %d\n", i);
+    //                break;
+    //            }
+    //            else
+    //            {
+    //                in_n[i] = in_n[i] * 10 + batchseq[i];
+    //            }
+    //        }
+    //        in_n.push_back(in_h);
+    //    }
 
     return in_n;
 }
@@ -433,11 +434,12 @@ std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
 {
     int wei_ih = inflags.GetValueInt("in_h");
     int wei_hh = inflags.GetValueInt("hid_h");
-    int wei_oh = inflags.GetValueInt("out_h");
+    int wei_oh;
     int wei_l  = inflags.GetValueInt("num_layer");
     int wei_bi = 1;
     if((inflags.GetValueInt("bidirection")) == 1)
         wei_bi = 2;
+    wei_oh     = wei_hh * wei_bi;
 
     int wei_sc = 1;
     if((inflags.GetValueStr("mode")) == "lstm")
@@ -565,9 +567,12 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
 }
 
 template <typename T>
-std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine() // need removed
+std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine()
 {
-    int out_h = inflags.GetValueInt("out_h");
+    int hid_h = inflags.GetValueInt("hid_h");
+    int bi    = (inflags.GetValueInt("bidirection") == 1) ? 2 : 1;
+
+    int out_h = hid_h * bi;
     return std::vector<int>({out_h});
 }
 
@@ -575,11 +580,11 @@ template <typename T>
 int RNNDriver<T>::AllocateBuffersAndCopy()
 {
     // int seqLength    = inflags.GetValueInt("seq_len");
-    size_t in_sz     = 0;
-    size_t out_sz    = 0;
-    size_t wei_sz    = 0;
-    size_t hy_sz     = 0;
-    size_t params_sz = 0;
+    size_t in_sz  = 0;
+    size_t out_sz = 0;
+    size_t wei_sz = 0;
+    size_t hy_sz  = 0;
+    //    size_t params_sz = 0;
     size_t workSpaceSize;
     size_t reserveSpaceSize;
 
@@ -596,9 +601,9 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &workSpaceSize);
     miopenGetRNNTrainingReserveSize(
         GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &reserveSpaceSize);
-    miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &params_sz, miopenFloat);
-    miopenGetRNNWeightSuperTensorSize(
-        GetHandle(), rnnDesc, &wei_sz, inputTensors[0], outputTensors[0]);
+    miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &wei_sz, miopenFloat);
+//    miopenGetRNNWeightSuperTensorSize(
+//        GetHandle(), rnnDesc, &wei_sz, inputTensors[0], outputTensors[0]);
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
