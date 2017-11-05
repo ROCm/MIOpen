@@ -41,8 +41,7 @@
 #define MIO_RNN_CPP_PROF 0
 
 namespace miopen {
-    
-    
+
 void profileSequence(Handle& handle, unsigned char select)
 {
 
@@ -96,13 +95,12 @@ void profileSequence(Handle& handle, unsigned char select)
             ktime = handle.GetKernelTime();
             handle.AccumKernelTime(ctime);
 #if(MIO_RNN_CPP_PROF == 1)
-            printf("Final time: %f\n", ktime+ctime);
+            printf("Final time: %f\n", ktime + ctime);
 #endif
-        } 
+        }
         break;
     }
 }
-
 
 size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
@@ -113,26 +111,26 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
     {
         return 0;
     }
-    
+
     auto ih = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
         ih = 0;
-    
+
     if(ih != inputVectorLen)
     {
-        //Reset these in case of xDesc changing.
+        // Reset these in case of xDesc changing.
         pTensorDims.clear();
         biasOffset.clear();
-        paramOffset.clear();    
+        paramOffset.clear();
         inputVectorLen = ih;
     }
-    
+
     auto boIt = biasOffset.find(std::make_pair(layer, layerID));
     if(boIt != biasOffset.end())
         return boIt->second;
     else
     {
-        size_t layerJump       = 0;    
+        size_t layerJump       = 0;
         unsigned int direction = (layer % 2);
         if(dirMode)
         {
@@ -202,13 +200,13 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
     auto ih = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
         ih = 0;
-    
+
     if(ih != inputVectorLen)
     {
-        //Reset these in case of xDesc changing.
+        // Reset these in case of xDesc changing.
         pTensorDims.clear();
         biasOffset.clear();
-        paramOffset.clear();  
+        paramOffset.clear();
         inputVectorLen = ih;
     }
 
@@ -274,33 +272,29 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
     }
 }
 
-
-
-
-
 std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor& xDesc,
-                                              const int layer,
-                                              const int layerID)
+                                                          const int layer,
+                                                          const int layerID)
 {
     auto ih = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
         ih = 0;
-    
+
     if(ih != inputVectorLen)
     {
-        //Reset these in case of xDesc changing.
+        // Reset these in case of xDesc changing.
         pTensorDims.clear();
         biasOffset.clear();
-        paramOffset.clear();  
+        paramOffset.clear();
         inputVectorLen = ih;
     }
-    
+
     auto ptIt = pTensorDims.find(std::make_pair(layer, layerID));
     if(ptIt != pTensorDims.end())
         return ptIt->second;
     else
     {
-        std::vector<int> tdim(2,0);
+        std::vector<int> tdim(2, 0);
         if(dirMode)
         {
             if(layer > 2) // NOT the input layer
@@ -329,8 +323,6 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         return tdim;
     }
 }
-
-
 
 RNNDescriptor::RNNDescriptor()
 {
@@ -387,7 +379,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
     algoMode  = amode;
     biasMode  = bmode;
     dataType  = dType;
-    
+
     inputVectorLen = 0;
 
     assert(rmode < 4);
@@ -408,7 +400,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
         break;
     }
     inputBatchLenSum = 0; // init
-    
+
     pTensorDims.clear();
     biasOffset.clear();
     paramOffset.clear();
@@ -466,9 +458,8 @@ size_t RNNDescriptor::GetReserveSize(Handle& handle,
     return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
 }
 
-size_t RNNDescriptor::GetParamsSize(Handle& handle,
-                                    const TensorDescriptor& xDesc,
-                                    miopenDataType_t dtype) 
+size_t
+RNNDescriptor::GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype)
 {
     // DLOWELL : The factor of 4 counts the input matrix, hidden matrix, input bias, hidden bias
     // to each of the activated section of the RNN cell.
@@ -478,22 +469,22 @@ size_t RNNDescriptor::GetParamsSize(Handle& handle,
     auto ih = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
         ih = 0;
-    
+
     if(ih != inputVectorLen)
     {
-        //Reset these in case of xDesc changing.
+        // Reset these in case of xDesc changing.
         pTensorDims.clear();
         biasOffset.clear();
-        paramOffset.clear();   
+        paramOffset.clear();
         inputVectorLen = ih;
     }
-    
+
     int bi  = dirMode == miopenRNNbidirection ? 2 : 1;
     auto sz = nHiddenTensorsPerLayer * hsize * bi * (ih + hsize + (nLayers - 1) * (bi + 1) * hsize);
     if(biasMode == miopenRNNwithBias)
     {
         auto in_bias = inputMode == miopenRNNskip ? 1 : 2;
-        sz += (in_bias + (nLayers - 1) * (bi + 1)) * nHiddenTensorsPerLayer * hsize * bi;
+        sz += (in_bias + (nLayers - 1) * 2) * nHiddenTensorsPerLayer * hsize * bi;
     }
     return size_t(sz);
 }
@@ -532,21 +523,21 @@ size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& handle,
 temporary function assuming output matrix exists */
 size_t RNNDescriptor::GetRNNWeightSuperTensorSize(Handle& handle,
                                                   const TensorDescriptor& xDesc,
-                                                  const TensorDescriptor& yDesc) 
+                                                  const TensorDescriptor& yDesc)
 {
     auto ih = xDesc.GetLengths()[1], oh = yDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
         ih = 0;
-    
+
     if(ih != inputVectorLen)
     {
-        //Reset these in case of xDesc changing.
+        // Reset these in case of xDesc changing.
         pTensorDims.clear();
         biasOffset.clear();
-        paramOffset.clear();    
+        paramOffset.clear();
         inputVectorLen = ih;
     }
-    
+
     int bi = (dirMode == miopenRNNbidirection) ? 2 : 1;
     auto sz =
         nHiddenTensorsPerLayer * hsize * bi * (ih + hsize + (nLayers - 1) * (bi + 1) * hsize) +
@@ -563,7 +554,7 @@ size_t RNNDescriptor::GetRNNWeightSuperTensorSize(Handle& handle,
 void RNNDescriptor::GetParamsDescriptor(Handle& handle,
                                         const TensorDescriptor& xDesc,
                                         TensorDescriptor& wDesc,
-                                        miopenDataType_t dtype) 
+                                        miopenDataType_t dtype)
 {
 
     auto ih = xDesc.GetLengths()[1]; // input vector size
@@ -571,13 +562,13 @@ void RNNDescriptor::GetParamsDescriptor(Handle& handle,
         ih = 0;
     if(ih != inputVectorLen)
     {
-        //Reset these in case of xDesc changing.
+        // Reset these in case of xDesc changing.
         pTensorDims.clear();
         biasOffset.clear();
-        paramOffset.clear();  
+        paramOffset.clear();
         inputVectorLen = ih;
     }
-    int bi          = (dirMode == miopenRNNbidirection) ? 2 : 1;
+    int bi = (dirMode == miopenRNNbidirection) ? 2 : 1;
     std::array<int, 2> weight_lens;
 
     weight_lens[0] = inputVectorLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
@@ -597,13 +588,13 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
 {
     // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
     auto poffset = paramsOffsetCalculation(xDesc, wDesc, layer, layerID);
-    
+
     // 2. Get the dimensions of the parameter matrix
     auto pDims = pTensorLengthsCalculation(xDesc, layer, layerID);
-    
+
     // 3. Construct descriptor for param matrix
     paramDesc = miopen::TensorDescriptor(dataType, pDims.data(), 2);
-    
+
     // 4. Copy over data to previously allocated param tensor
     miopen::CopyTensor(handle, paramDesc, w, paramDesc, paramTensor, poffset, 0);
 }
@@ -624,19 +615,15 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
     }
     // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
     auto boffset = biasOffsetCalculation(xDesc, wDesc, layer, layerID);
-    
+
     // 2. Get the dimensions of the parameter matrix
     int bdim = int(hsize);
     // 3. Construct descriptor for param matrix
     biasDesc = miopen::TensorDescriptor(dataType, &bdim, 1);
-    
+
     // 4. Copy over data to previously allocated param tensor
     miopen::CopyTensor(handle, biasDesc, w, biasDesc, biasTensor, boffset, 0);
 }
-
-
-
-
 
 void RNNDescriptor::SetLayerParam(Handle& handle,
                                   const int layer,
@@ -648,26 +635,22 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
                                   ConstData_t param)
 {
     // TODO dlowell: Need guard checks here, or have them caught at the copy call?
-    
+
     // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
     auto poffset = paramsOffsetCalculation(xDesc, wDesc, layer, layerID);
-    
+
     // 2. Calculate the strides for the matrix
-    std::vector<int> pstride(2,1);
+    std::vector<int> pstride(2, 1);
     pstride[0] = ((dirMode == miopenRNNbidirection) ? 2 : 1) * nHiddenTensorsPerLayer;
-    
+
     std::vector<int> intLens(paramDesc.GetLengths().begin(), paramDesc.GetLengths().end());
-    
+
     // 3. Construct descriptor to access into w
     auto pDesc = miopen::TensorDescriptor(dataType, intLens.data(), pstride.data(), 2);
-    
+
     // 4. Copy over data to previously allocated param tensor
-    miopen::CopyTensor(handle, paramDesc, param, pDesc, w, 0, poffset);    
+    miopen::CopyTensor(handle, paramDesc, param, pDesc, w, 0, poffset);
 }
-
-
-
-
 
 void RNNDescriptor::SetLayerBias(Handle& handle,
                                  const int layer,
@@ -683,27 +666,22 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
         return;
     }
     // TODO dlowell: Need guard checks here, or have them caught at the copy call?
-    
+
     // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
     auto boffset = biasOffsetCalculation(xDesc, wDesc, layer, layerID);
-    
+
     // 2. Calculate the strides for the matrix
-    std::vector<int> bstride(2,1);
+    std::vector<int> bstride(2, 1);
     bstride[0] = nHiddenTensorsPerLayer;
-    
+
     std::vector<int> intLens(biasDesc.GetLengths().begin(), biasDesc.GetLengths().end());
-    
+
     // 3. Construct descriptor to access into w
     auto bDesc = miopen::TensorDescriptor(dataType, intLens.data(), bstride.data(), 2);
-    
+
     // 4. Copy over data to previously allocated param tensor
-    miopen::CopyTensor(handle, biasDesc, bias, bDesc, w, 0, boffset);    
+    miopen::CopyTensor(handle, biasDesc, bias, bDesc, w, 0, boffset);
 }
-
-
-
-
-
 
 std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
 {
