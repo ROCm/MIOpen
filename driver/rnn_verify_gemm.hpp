@@ -7,6 +7,48 @@
 #include <cassert>
 #include <algorithm>
 
+int sumvc(std::vector<int>& x)
+{
+    int sum = 0;
+    for(int i = 0; i < x.size(); i++)
+    {
+        sum += x[i];
+    }
+    return sum;
+}
+
+float activfunc(float x, int actvf)
+{
+	float alpha = 1, beta0 = 0, beta1 = 1;
+    if(actvf == 0)
+    {
+//        float y = 0;
+//        return std::max(x, y);
+		return (x > 0) ? x : x * beta0;
+    }
+    else if(actvf == 2)
+    {
+        return 1 / (1 + exp(-x));
+    }
+
+//    return tanh(x);
+	return alpha * tanh(beta1 * x);
+}
+
+float dervactivfunc(float x, int actvf)
+{
+    if(actvf == 0)
+    {
+        return (x > 0 ? 1 : 0);
+    }
+    else if(actvf == 2)
+    {
+        return exp(-x) / (1 + exp(-x)) / (1 + exp(-x));
+    }
+
+    return 1 / cosh(x) / cosh(x);
+}
+
 template <typename T>
 void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                                 std::vector<T>& wei,     // [ input_state_weight_trans
@@ -84,7 +126,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
     if(biased)
     {
         int in_bias = inputMode == 1 ? 1 : 2;
-        wei_len += (bi * in_bias + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+        wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h + out_h;
     }
 
     T* wei_state = new T[wei_len];
@@ -194,8 +236,8 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
             {
                 int wei_shift_bias_temp =
                     (inputMode == 1)
-                        ? (wei_shift_bias + bi * hy_h + bi * (li - 1) * (bi + 1) * hy_h)
-                        : (wei_shift_bias + bi * 2 * hy_h + bi * (li - 1) * (bi + 1) * hy_h);
+                        ? (wei_shift_bias + bi * hy_h + bi * (li - 1) * 2 * hy_h)
+                        : (wei_shift_bias + bi * li * 2 * hy_h);
 
                 for(int bs = 0; bs < batch_n; bs++)
                 {
@@ -203,13 +245,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                     {
                         hid_state[hid_shift + bs * hy_stride + h] +=
                             (wei[wei_shift_bias_temp + h] +
-                             wei[wei_shift_bias_temp + bi * hy_stride + h]);
-
-                        if(bidirection)
-                        {
-                            hid_state[hid_shift + bs * hy_stride + h] +=
-                                wei[wei_shift_bias_temp + hy_stride + h];
-                        }
+                             wei[wei_shift_bias_temp + hy_stride + h]);
                     }
                 }
             }
@@ -401,19 +437,14 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
     {
         int wei_shift_bias_temp =
             (inputMode == 1)
-                ? (wei_shift_bias + bi * hy_h + bi * (numlayer - 1) * (bi + 1) * hy_h)
-                : (wei_shift_bias + bi * 2 * hy_h + bi * (bi + 1) * (numlayer - 1) * hy_h);
+                ? (wei_shift_bias + bi * hy_h + bi * (numlayer - 1) * 2 * hy_h)
+                : (wei_shift_bias + bi * 2 * numlayer * hy_h);
 
         for(int bs = 0; bs < batch_n; bs++)
         {
             for(int h = 0; h < out_h; h++)
             {
                 out_state[bs * out_stride + h] += wei[wei_shift_bias_temp + h];
-
-                if(bidirection)
-                {
-                    out_state[bs * out_stride + h] += wei[wei_shift_bias_temp + out_stride + h];
-                }
             }
         }
     }
@@ -514,7 +545,8 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     int wei_len = (bi * (in_h + hy_h + out_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
     if(biased)
     {
-        wei_len += (bi * 2 + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+        int in_bias = inputMode == 1 ? 1 : 2;
+        wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h + out_h;
     }
 
     T* wei_state = new T[wei_len];
@@ -830,7 +862,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     if(biased)
     {
         int in_bias = inputMode == 1 ? 1 : 2;
-        wei_len += (bi * in_bias + (numlayer - 1) * bi * (bi + 1)) * hy_h + bi * out_h;
+        wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h + out_h;
     }
 
     // initial dwei
@@ -916,19 +948,14 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
             {
                 wei_shift =
                     (inputMode == 1)
-                        ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * (bi + 1) * hy_h)
-                        : (wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h);
+                        ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * 2 * hy_h)
+                        : (wei_shift_bias + li * bi * 2 * hy_h);
 
                 for(int h = 0; h < out_h; h++)
                 {
                     for(int w = 0; w < batch_n; w++)
                     {
                         dwei_state[wei_shift + h] += dout[w * out_stride + h];
-                    }
-
-                    if(bidirection)
-                    {
-                        dwei_state[wei_shift + out_stride + h] = dwei_state[wei_shift + h];
                     }
                 }
             }
@@ -961,8 +988,8 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
             {
                 wei_shift =
                     (inputMode == 1)
-                        ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * (bi + 1) * hy_h)
-                        : (wei_shift_bias + bi * 2 * hy_h + (li - 1) * bi * (bi + 1) * hy_h);
+                        ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * 2 * hy_h)
+                        : (wei_shift_bias + li * bi * 2 * hy_h);
 
                 for(int h = 0; h < hy_stride; h++)
                 {
@@ -970,12 +997,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                     {
                         dwei_state[wei_shift + h] += wkspace[hid_shift + w * hy_stride + h];
                     }
-                    dwei_state[wei_shift + bi * hy_stride + h] = dwei_state[wei_shift + h];
-
-                    if(bidirection)
-                    {
-                        dwei_state[wei_shift + hy_stride + h] = dwei_state[wei_shift + h];
-                    }
+                    dwei_state[wei_shift + hy_stride + h] = dwei_state[wei_shift + h];
                 }
             }
         }

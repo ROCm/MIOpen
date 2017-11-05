@@ -27,11 +27,8 @@
 #define GUARD_MIOPEN_RNN_DRIVER_HPP
 
 #include "InputFlags.hpp"
-#include "rnn_verify.hpp"
 #include "rnn_verify_gemm.hpp"
-#include "lstm_verify.hpp"
 #include "lstm_verify_gemm.hpp"
-#include "gru_verify.hpp"
 #include "gru_verify_gemm.hpp"
 #include "driver.hpp"
 #include "mloConvHost.hpp"
