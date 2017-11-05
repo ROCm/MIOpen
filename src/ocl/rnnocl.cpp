@@ -1515,7 +1515,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 hx_size[2]   = in_n[0] - in_n[seqLen - 1];
                 hx_size[3]   = hy_h;
                 miopenCreateTensorDescriptor(&hx_desc);
-                miopenSetTensorDescriptor(Adesc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+                miopenSetTensorDescriptor(hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
                 alpha0 = 0;
                 alpha1 = 0;
