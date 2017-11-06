@@ -118,7 +118,8 @@ bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
 /*
 * select defult configuration if a known configuration has not been found.
 */
-LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionContext& params) const
+LegacyPerformanceConfig
+ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     //
     LegacyPerformanceConfig result{};
