@@ -6273,7 +6273,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 		int hid_shift, hx_shift, wei_shift, prelayer_shift, pretime_shift;
-
+		
         for(int li = 0; li < nLayers; li++)
         {
             // between layers
@@ -6308,7 +6308,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     w_size[2]   = 1;
                     w_size[3]   = wei_stride;
                     miopenCreateTensorDescriptor(&sp_desc);
-                    miopenCreateTensorDescriptor(&w_desc;
+                    miopenCreateTensorDescriptor(&w_desc);
                     miopenSetTensorDescriptor(
 						sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
                     miopenSetTensorDescriptor(
@@ -6593,6 +6593,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         printf("run gru gpu bwd weights \n");
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
+		int hid_shift, hx_shift, wei_shift, prelayer_shift, pretime_shift;
+		int in_bias_val = inputMode == miopenRNNskip ? 0 : wei_stride;
 
         for(int li = 0; li < nLayers; li++)
         {
@@ -6622,26 +6624,16 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                     if(biasMode)
                     {
-                        std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
-                        miopenTensorDescriptor_t Adesc, Cdesc;
-
-                        a_size[2]   = 1;
-                        a_size[3]   = wei_stride;
-                        a_stride[0] = hy_stride;
-                        a_stride[1] = hy_stride;
-                        a_stride[2] = hy_stride;
-                        c_size[2]   = 1;
-                        c_size[3]   = wei_stride;
-                        c_stride[0] = wei_stride;
-                        c_stride[1] = wei_stride;
-                        c_stride[2] = wei_stride;
-
-                        miopenCreateTensorDescriptor(&Adesc);
-                        miopenCreateTensorDescriptor(&Cdesc);
+                        sp_size[2]   = 1;
+                        sp_size[3]   = wei_stride;
+                        w_size[2]   = 1;
+                        w_size[3]   = wei_stride;
+                        miopenCreateTensorDescriptor(&sp_desc);
+                        miopenCreateTensorDescriptor(&w_desc);
                         miopenSetTensorDescriptor(
-                            Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
                         miopenSetTensorDescriptor(
-                            Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+                            w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 
                         alpha0 = 1;
                         alpha1 = 0;
@@ -6652,13 +6644,13 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                             OpTensor(handle,
                                      miopenTensorOpAdd,
                                      &alpha0,
-                                     miopen::deref(Adesc),
+                                     miopen::deref(sp_desc),
                                      workSpace,
                                      &alpha1,
-                                     miopen::deref(Adesc),
+                                     miopen::deref(sp_desc),
                                      workSpace,
                                      &beta_t,
-                                     miopen::deref(Cdesc),
+                                     miopen::deref(w_desc),
                                      dw,
                                      bs * hy_stride,
                                      bs * hy_stride,
@@ -6676,9 +6668,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             }
             else
             {
-                int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * hy_h * 3;
-                int hid_shift      = li * batch_n * hy_stride;
-                int wei_shift =
+                prelayer_shift = (li - 1) * batch_n * hy_stride + bi * hy_h * 3;
+                hid_shift      = li * batch_n * hy_stride;
+                wei_shift =
                     (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
                 gg = CreateGemmGeometryRNN(hy_h * bi,
@@ -6707,26 +6699,17 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                     ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
                                     : (wei_shift_bias + li * 2 * wei_stride);
 
-                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
-                    miopenTensorDescriptor_t Adesc, Cdesc;
+                    sp_size[2]   = 1;
+                    sp_size[3]   = wei_stride;
+                    w_size[2]   = 1;
+                    w_size[3]   = wei_stride;
 
-                    a_size[2]   = 1;
-                    a_size[3]   = wei_stride;
-                    a_stride[0] = hy_stride;
-                    a_stride[1] = hy_stride;
-                    a_stride[2] = hy_stride;
-                    c_size[2]   = 1;
-                    c_size[3]   = wei_stride;
-                    c_stride[0] = wei_stride;
-                    c_stride[1] = wei_stride;
-                    c_stride[2] = wei_stride;
-
-                    miopenCreateTensorDescriptor(&Adesc);
-                    miopenCreateTensorDescriptor(&Cdesc);
+                    miopenCreateTensorDescriptor(&sp_desc);
+                    miopenCreateTensorDescriptor(&w_desc);
                     miopenSetTensorDescriptor(
-                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+						sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
                     miopenSetTensorDescriptor(
-                        Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+                        w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 
                     alpha0 = 1;
                     alpha1 = 0;
@@ -6737,13 +6720,13 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         OpTensor(handle,
                                  miopenTensorOpAdd,
                                  &alpha0,
-                                 miopen::deref(Adesc),
+                                 miopen::deref(sp_desc),
                                  workSpace,
                                  &alpha1,
-                                 miopen::deref(Adesc),
+                                 miopen::deref(sp_desc),
                                  workSpace,
                                  &beta_t,
-                                 miopen::deref(Cdesc),
+                                 miopen::deref(w_desc),
                                  dw,
                                  hid_shift + bs * hy_stride,
                                  hid_shift + bs * hy_stride,
@@ -6763,22 +6746,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             bacc = 0;
             for(int ti = 0; ti < seqLen; ti++)
             {
-                int hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
-                int hx_shift  = li * hy_n * h_stride;
-                int wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
-                int pretime_shift;
+                hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
+                hx_shift  = li * hy_n * h_stride;
+                wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
-                std::vector<int> a_size(4, 1), a_stride(4, 1);
-                miopenTensorDescriptor_t Adesc;
-
-                a_size[2]   = in_n[ti];
-                a_size[3]   = hy_h;
-                a_stride[0] = in_n[ti] * hy_stride;
-                a_stride[1] = in_n[ti] * hy_stride;
-                a_stride[2] = hy_stride;
-
-                miopenCreateTensorDescriptor(&Adesc);
-                miopenSetTensorDescriptor(Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+                sp_size[2]   = in_n[ti];
+                sp_size[3]   = hy_h;
+                miopenCreateTensorDescriptor(&sp_desc);
+                miopenSetTensorDescriptor(sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
                 alpha0 = 1;
                 alpha1 = 1;
@@ -6789,13 +6764,13 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     OpTensor(handle,
                              miopenTensorOpMul,
                              &alpha0,
-                             miopen::deref(Adesc),
+                             miopen::deref(sp_desc),
                              reserveSpace,
                              &alpha1,
-                             miopen::deref(Adesc),
+                             miopen::deref(sp_desc),
                              workSpace,
                              &beta_t,
-                             miopen::deref(Adesc),
+                             miopen::deref(sp_desc),
                              workSpace,
                              hid_shift + hy_h + nLayers * batch_n * hy_stride,
                              hid_shift + 2 * hy_h,
@@ -6873,13 +6848,13 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         OpTensor(handle,
                                  miopenTensorOpMul,
                                  &alpha0,
-                                 miopen::deref(Adesc),
+                                 miopen::deref(sp_desc),
                                  reserveSpace,
                                  &alpha1,
-                                 miopen::deref(Adesc),
+                                 miopen::deref(sp_desc),
                                  workSpace,
                                  &beta_t,
-                                 miopen::deref(Adesc),
+                                 miopen::deref(sp_desc),
                                  workSpace,
                                  hid_shift + 4 * hy_h + nLayers * batch_n * hy_stride,
                                  hid_shift + 5 * hy_h,
@@ -6962,31 +6937,18 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
             if(biasMode)
             {
-                int wei_shift;
-                int hid_shift   = li * batch_n * hy_stride;
-                int in_bias_val = inputMode == miopenRNNskip ? 0 : wei_stride;
-
+                hid_shift   = li * batch_n * hy_stride;
                 wei_shift = (li == 0) ? (wei_shift_bias + in_bias_val)
                                       : (wei_shift_bias + in_bias_val + li * 2 * wei_stride);
 
-                std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
-                miopenTensorDescriptor_t Adesc, Cdesc;
-
-                a_size[2]   = 1;
-                a_size[3]   = wei_stride;
-                a_stride[0] = hy_stride;
-                a_stride[1] = hy_stride;
-                a_stride[2] = hy_stride;
-                c_size[2]   = 1;
-                c_size[3]   = wei_stride;
-                c_stride[0] = wei_stride;
-                c_stride[1] = wei_stride;
-                c_stride[2] = wei_stride;
-
-                miopenCreateTensorDescriptor(&Adesc);
-                miopenCreateTensorDescriptor(&Cdesc);
-                miopenSetTensorDescriptor(Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
-                miopenSetTensorDescriptor(Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+                sp_size[2]   = 1;
+                sp_size[3]   = wei_stride;
+                w_size[2]   = 1;
+                w_size[3]   = wei_stride;
+                miopenCreateTensorDescriptor(&sp_desc);
+                miopenCreateTensorDescriptor(&w_desc);
+                miopenSetTensorDescriptor(sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+                miopenSetTensorDescriptor(w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 
                 alpha0 = 1;
                 alpha1 = 0;
@@ -6997,13 +6959,13 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     OpTensor(handle,
                              miopenTensorOpAdd,
                              &alpha0,
-                             miopen::deref(Adesc),
+                             miopen::deref(sp_desc),
                              workSpace,
                              &alpha1,
-                             miopen::deref(Adesc),
+                             miopen::deref(sp_desc),
                              workSpace,
                              &beta_t,
-                             miopen::deref(Cdesc),
+                             miopen::deref(w_desc),
                              dw,
                              hid_shift + bs * hy_stride,
                              hid_shift + bs * hy_stride,
