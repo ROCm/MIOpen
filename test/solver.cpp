@@ -46,8 +46,7 @@ class TrivialSlowTestSolver : public solver::Solver
     bool IsFast(const ConvolutionContext& context) const { return context.in_height == 1; }
     bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const solver::PerformanceConfig&) const
+    solver::ConvSolution GetSolution(const ConvolutionContext&) const
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
@@ -67,8 +66,7 @@ class TrivialTestSolver : public solver::Solver
     const char* SolverId() const { return FileName(); }
     bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const solver::PerformanceConfig&) const
+    solver::ConvSolution GetSolution(const ConvolutionContext&) const
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;

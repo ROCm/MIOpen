@@ -175,12 +175,10 @@ auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecor
 
 template <class Solver, class Context>
 auto SearchSolution(rank<0>, Solver s, const Context& context, DbRecord&)
-    -> decltype(s.GetSolution(context, s.GetPerformanceConfig()))
+    -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I("Not searchable: " << s.SolverId());
-    auto config = s.GetPerformanceConfig();
-    s.InitPerformanceConfigImpl(context, config);
-    return s.GetSolution(context, config);
+    return s.GetSolution(context);
 }
 
 /// The descendants of this class comprise an solution-specific
@@ -217,7 +215,7 @@ struct PerformanceConfig
 struct Solver
 {
     /// Constructs performance config instance used by a Solver.
-    PerformanceConfig GetPerformanceConfig() const { return {}; }
+    // PerformanceConfig GetPerformanceConfig() const { return {}; }
 
     /// Initializes performance config to the default values.
     /// The function may involve some euristic to guess the best solution
@@ -227,23 +225,23 @@ struct Solver
     ///
     /// Every Solver which overrides GetPerformanceConfig() shall
     /// override this function as well.
-    void InitPerformanceConfigImpl(const ConvolutionContext&, PerformanceConfig& c) const
-    {
-        c = PerformanceConfig();
-    }
+    // void InitPerformanceConfigImpl(const ConvolutionContext&, PerformanceConfig& c) const
+    // {
+    //     c = PerformanceConfig();
+    // }
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
-    bool IsValidPerformanceConfig(const ConvolutionContext&, const PerformanceConfig&) const
-    {
-        return true; // Do not check by default.
-    }
+    // bool IsValidPerformanceConfig(const ConvolutionContext&, const PerformanceConfig&) const
+    // {
+    //     return true; // Do not check by default.
+    // }
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
     ///
     /// Every Solver which IsApplicable() for some problem config, must be able to
-    /// InitPerformanceConfigImpl() in a way that GetSolution() would return valid
+    /// GetPerformanceConfig() in a way that GetSolution() would return valid
     /// solution for a problem (i.e. convolution). In other words, if a Solution
     /// says "i'am suitable" for a problem, it agrees to solve the problem correctly.
     bool IsApplicable(const ConvolutionContext&) const { return true; }
@@ -260,66 +258,59 @@ struct Solver
     // 0;
 };
 
-struct ConvAsm3x3U : public Solver
+struct ConvAsm3x3U : Solver
 {
     const char* SolverId() const { return "ConvAsm3x3U"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvAsm5x10u2v2f1 : public Solver
+struct ConvAsm5x10u2v2f1 : Solver
 {
     const char* SolverId() const { return "ConvAsm5x10u2v2f1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvAsm5x10u2v2b1 : public Solver
+struct ConvAsm5x10u2v2b1 : Solver
 {
     const char* SolverId() const { return "ConvAsm5x10u2v2b1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public Solver
+struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 : Solver
 {
     const char* SolverId() const { return "ConvAsm7x7c3h224w224k64u2v2p3q3f1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvOclDirectFwd11x11 : public Solver
+struct ConvOclDirectFwd11x11 : Solver
 {
     const char* SolverId() const { return "ConvOclDirectFwd11x11"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvOclDirectFwdGen : public Solver
+struct ConvOclDirectFwdGen : Solver
 {
     const char* SolverId() const { return "ConvOclDirectFwdGen"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvOclDirectFwd3x3 : public Solver
+struct ConvOclDirectFwd3x3 : Solver
 {
     const char* SolverId() const { return "ConvOclDirectFwd3x3"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 /// Holds common member functions for the Solvers which share the same
 /// "legacy exhaustive search" machinery.
-struct ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
+struct ConvOclDirectFwdLegacyExhaustiveSearch : Solver
 {
     LegacyPerformanceConfig GetPerformanceConfig() const;
     void InitPerformanceConfigImpl(const ConvolutionContext&,
@@ -354,20 +345,18 @@ struct ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
                              const LegacyPerformanceConfig& config) const;
 };
 
-struct ConvBinWinograd3x3U : public Solver
+struct ConvBinWinograd3x3U : Solver
 {
     const char* SolverId() const { return "ConvBinWinograd3x3U"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvBinWinogradRxSFwd : public Solver
+struct ConvBinWinogradRxSFwd : Solver
 {
     const char* SolverId() const { return "ConvBinWinogradRxSFwd"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct PerformanceConfigAsmDirect3x3WrW
@@ -414,7 +403,7 @@ struct PerformanceConfigAsmDirect3x3WrW
     }
 };
 
-struct ConvAsmBwdWrW3x3 : public Solver
+struct ConvAsmBwdWrW3x3 : Solver
 {
     const char* SolverId() const { return "ConvAsmBwdWrW3x3"; }
     PerformanceConfigAsmDirect3x3WrW GetPerformanceConfig() const;
@@ -438,28 +427,25 @@ struct ConvAsmBwdWrW3x3 : public Solver
                 const PerformanceConfig& result) const;
 };
 
-struct ConvOclBwdWrW2 : public Solver
+struct ConvOclBwdWrW2 : Solver
 {
     const char* SolverId() const { return "ConvOclBwdWrW2"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvOclBwdWrW53 : public Solver
+struct ConvOclBwdWrW53 : Solver
 {
     const char* SolverId() const { return "ConvOclBwdWrW53"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvOclBwdWrW1x1 : public Solver
+struct ConvOclBwdWrW1x1 : Solver
 {
     const char* SolverId() const { return "ConvOclBwdWrW1x1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& config) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 } // namespace solver
