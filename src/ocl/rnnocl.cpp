@@ -213,6 +213,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 		
+		int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift;
+
 		ActivationDescriptor activDesc;
 		if (rnnMode == miopenRNNRELU)
 		{
@@ -225,8 +227,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
         for(int li = 0; li < nLayers; li++)
         {
-            int hid_shift = li * batch_n * hy_h * bi;
-            int hx_shift  = li * bi * hy_n * hy_h;
+            hid_shift = li * batch_n * hy_h * bi;
+            hx_shift  = li * bi * hy_n * hy_h;
 
             // from input
             if(li == 0)
@@ -373,9 +375,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
             else
             {
-                int wei_shift =
+                wei_shift =
                     bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
-                int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
+                prelayer_shift = (li - 1) * batch_n * hy_h * bi;
 
                 gg = CreateGemmGeometryRNN(batch_n,
                                            hy_h * bi,
@@ -407,7 +409,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 if(biasMode)
                 {
-                    int wei_shift_bias_temp =
+                    wei_shift_bias_temp =
                         (inputMode == miopenRNNskip)
                             ? (wei_shift_bias + bi * hy_h + bi * (li - 1) * 2 * hy_h)
                             : (wei_shift_bias + bi * li * 2 * hy_h);
@@ -457,7 +459,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             {
                 baccbi -= in_n[seqLen - 1 - ti];
 
-                int wei_shift =
+                wei_shift =
                     li == 0 ? (in_h * hy_h * bi)
                             : (bi * (in_h + hy_h) * hy_h +
                                (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
@@ -701,7 +703,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         }
 
         // output
-        int prelayer_shift = (nLayers - 1) * batch_n * hy_stride;
+        prelayer_shift = (nLayers - 1) * batch_n * hy_stride;
 
         sp_size[2]   = batch_n;
         sp_size[3]   = hy_h * bi;
@@ -735,14 +737,16 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
+		int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift, prec_shift;
+
 		ActivationDescriptor tanhDesc, sigDesc;
 		sigDesc = { miopenActivationLOGISTIC, 1, 0, 1 };
 		tanhDesc = { miopenActivationTANH, 1, 1, 1 };
-
+		
         for(int li = 0; li < nLayers; li++)
         {
-            int hid_shift = li * batch_n * hy_stride;
-            int hx_shift  = li * hy_n * h_stride;
+            hid_shift = li * batch_n * hy_stride;
+            hx_shift  = li * hy_n * h_stride;
 
             // from input
             if(li == 0)
@@ -895,9 +899,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
             else
             {
-                int wei_shift =
+                wei_shift =
                     (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
-                int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 5 * hy_h;
+                prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 5 * hy_h;
 
                 gg = CreateGemmGeometryRNN(batch_n,
                                            hy_h * bi * 4,
@@ -921,7 +925,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 if(biasMode)
                 {
-                    int wei_shift_bias_temp =
+                    wei_shift_bias_temp =
                         (inputMode == miopenRNNskip)
                             ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
                             : (wei_shift_bias + li * 2 * wei_stride);
@@ -969,7 +973,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             for(int ti = 0; ti < seqLen; ti++)
             {
                 baccbi -= in_n[seqLen - 1 - ti];
-                int wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+                wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
                 if(ti == 0)
                 {
@@ -1191,7 +1195,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     }
                     else
                     {
-                        int prec_shift = li * batch_n * hy_stride +
+                        prec_shift = li * batch_n * hy_stride +
                                          (bacc - in_n[ti - 1]) * hy_stride + bi * 4 * hy_h;
 
                         OpTensor(handle,
@@ -1379,7 +1383,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         {
                             if(in_n[seqLen - ti] > 0)
                             {
-                                int prec_shift = li * batch_n * hy_stride +
+                                prec_shift = li * batch_n * hy_stride +
                                                  (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
                                                  bi * 4 * hy_h + hy_h;
 
@@ -1532,7 +1536,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         } // end for nLayers
 
         // output
-        int prelayer_shift = (nLayers - 1) * batch_n * hy_stride + bi * 5 * hy_h;
+        prelayer_shift = (nLayers - 1) * batch_n * hy_stride + bi * 5 * hy_h;
 
         sp_size[2]   = batch_n;
         sp_size[3]   = hy_h * bi;
@@ -1564,15 +1568,17 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
+		int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift, pretime_shift;
+
 		ActivationDescriptor tanhDesc, sigDesc;
 		sigDesc = { miopenActivationLOGISTIC, 1, 0, 1 };
 		tanhDesc = { miopenActivationTANH, 1, 1, 1 };
 
         for(int li = 0; li < nLayers; li++)
         {
-            int hid_shift = li * batch_n * hy_stride;
-            int hx_shift  = li * hy_n * h_stride;
-            int wei_shift_bias_temp =
+            hid_shift = li * batch_n * hy_stride;
+            hx_shift  = li * hy_n * h_stride;
+            wei_shift_bias_temp =
                 inputMode == miopenRNNskip
                     ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
                     : (wei_shift_bias + li * 2 * wei_stride);
@@ -1651,9 +1657,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
             else
             {
-                int wei_shift =
+                wei_shift =
                     (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
-                int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 3 * hy_h;
+                prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 3 * hy_h;
 
                 gg = CreateGemmGeometryRNN(batch_n,
                                            hy_h * bi * 3,
@@ -1682,8 +1688,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             for(int ti = 0; ti < seqLen; ti++)
             {
                 baccbi -= in_n[seqLen - 1 - ti];
-                int wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
-                int pretime_shift;
+                wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+
                 if(ti > 0)
                 {
                     pretime_shift = li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride +
@@ -2734,7 +2740,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         }
 
         // output
-        int prelayer_shift = (nLayers - 1) * batch_n * hy_stride + bi * 3 * hy_h;
+        prelayer_shift = (nLayers - 1) * batch_n * hy_stride + bi * 3 * hy_h;
 
         sp_size[2]   = batch_n;
         sp_size[3]   = hy_h * bi;
@@ -2875,6 +2881,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
+		int hid_shifti, hx_shift, wei_shift, prelayer_shift;
+
 		ActivationDescriptor activDesc;
 		if (rnnMode == miopenRNNRELU)
 		{
@@ -2887,9 +2895,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
         for(int li = nLayers - 1; li >= 0; li--)
         {
-            int wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
-            int hid_shift = li * batch_n * hy_h * bi;
-            int hx_shift  = li * bi * hy_n * hy_h;
+            wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
+            hid_shift = li * batch_n * hy_h * bi;
+            hx_shift  = li * bi * hy_n * hy_h;
 
             // feedback from output
             if(li == nLayers - 1)
@@ -2926,7 +2934,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             }
             else
             {
-                int prelayer_shift = (li + 1) * batch_n * hy_h * bi;
+                prelayer_shift = (li + 1) * batch_n * hy_h * bi;
 
                 gg = CreateGemmGeometryRNN(batch_n,
                                            hy_h * bi,
@@ -3248,15 +3256,17 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
+		int hid_shift, hx_shift, prelayer_shift, pretime_shift, weitime_shift, wei_shift;
+
 		ActivationDescriptor tanhDesc, sigDesc;
 		sigDesc = { miopenActivationLOGISTIC, 1, 0, 1 };
 		tanhDesc = { miopenActivationTANH, 1, 1, 1 };
 
         for(int li = nLayers - 1; li >= 0; li--)
         {
-            int wei_shift = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
-            int hid_shift = li * batch_n * hy_stride;
-            int hx_shift  = li * hy_n * h_stride;
+            wei_shift = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            hid_shift = li * batch_n * hy_stride;
+            hx_shift  = li * hy_n * h_stride;
 
             if(li == nLayers - 1)
             {
@@ -3293,7 +3303,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             }
             else
             {
-                int prelayer_shift = (li + 1) * batch_n * hy_stride;
+                prelayer_shift = (li + 1) * batch_n * hy_stride;
 
                 gg = CreateGemmGeometryRNN(batch_n,
                                            hy_h * bi,
@@ -3414,8 +3424,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                 }
                 else
                 {
-                    int pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
-                    int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+                    pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
+                    weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
                     if(in_n[ti + 1] > 0)
                     {
@@ -3588,7 +3598,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                     }
                     else
                     {
-                        int pretime_shift =
+                        pretime_shift =
                             li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
 
                         sp_size[2]   = in_n[ti + 1];
@@ -3687,7 +3697,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                     }
                     else
                     {
-                        int pretime_shift =
+                        pretime_shift =
                             li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride;
 
                         alpha0 = 1;
@@ -3956,7 +3966,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         }
                         else
                         {
-                            int pretime_shift = li * batch_n * hy_stride +
+                            pretime_shift = li * batch_n * hy_stride +
                                                 (baccbi - in_n[seqLen - 2 - ti]) * hy_stride;
 
                             alpha0 = 1;
@@ -4045,7 +4055,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         {
                             if(in_n[seqLen - ti] > 0)
                             {
-                                int pretime_shift = li * batch_n * hy_stride +
+                                pretime_shift = li * batch_n * hy_stride +
                                                     (baccbi + in_n[seqLen - 1 - ti]) * hy_stride;
 
                                 sp_size[2]   = in_n[seqLen - ti];
@@ -4259,8 +4269,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             }
 
             // dcx, dhx
-            int pretime_shift = li * batch_n * hy_stride;
-            int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            pretime_shift = li * batch_n * hy_stride;
+            weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
             if(in_n[0] > 0)
             {
@@ -4499,16 +4509,18 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
+		int hid_shift, hx_shift, weitime_shift, wei_shift, prelayer_shift, pretime_shift;
+
 		ActivationDescriptor tanhDesc, sigDesc;
 		sigDesc = { miopenActivationLOGISTIC, 1, 0, 1 };
 		tanhDesc = { miopenActivationTANH, 1, 1, 1 };
 
         for(int li = nLayers - 1; li >= 0; li--)
         {
-            int wei_shift     = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
-            int hid_shift     = li * batch_n * hy_stride;
-            int hx_shift      = li * hy_n * h_stride;
-            int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            wei_shift     = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            hid_shift     = li * batch_n * hy_stride;
+            hx_shift      = li * hy_n * h_stride;
+            weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
             if(li == nLayers - 1)
             {
@@ -4545,7 +4557,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             }
             else
             {
-                int prelayer_shift = (li + 1) * batch_n * hy_stride;
+                prelayer_shift = (li + 1) * batch_n * hy_stride;
 
                 gg = CreateGemmGeometryRNN(batch_n,
                                            hy_h * bi,
@@ -4670,7 +4682,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                 }
                 else
                 {
-                    int pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
+                    pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
 
                     if(in_n[ti + 1] > 0)
                     {
@@ -5518,8 +5530,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             }
 
             // dhx
-            int pretime_shift;
-
             if(in_n[0] > 0)
             {
                 pretime_shift = li * batch_n * hy_stride;
@@ -5924,8 +5934,18 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     }
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (nLayers - 1)) * wei_stride;
+	size_t offset;
+	float alpha0, alpha1, beta_t;
+	float alpha = 1, beta = 0;
 
-    float alpha0, alpha1, beta_t;
+	std::vector<int> sp_size(4, 1), sp_stride(4, 1), w_size(4, 1), w_stride(4, 1);
+	miopenTensorDescriptor_t sp_desc, w_desc;
+	sp_stride[0] = batch_n * hy_stride;
+	sp_stride[1] = batch_n * hy_stride;
+	sp_stride[2] = hy_stride;
+	w_stride[0] = wei_stride;
+	w_stride[1] = wei_stride;
+	w_stride[2] = wei_stride;
 
     if(rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
     {
@@ -5964,26 +5984,16 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                 if(biasMode)
                 {
-                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
-                    miopenTensorDescriptor_t Adesc, Cdesc;
-
-                    a_size[2]   = 1;
-                    a_size[3]   = wei_stride;
-                    a_stride[0] = hy_stride;
-                    a_stride[1] = hy_stride;
-                    a_stride[2] = hy_stride;
-                    c_size[2]   = 1;
-                    c_size[3]   = wei_stride;
-                    c_stride[0] = wei_stride;
-                    c_stride[1] = wei_stride;
-                    c_stride[2] = wei_stride;
-
-                    miopenCreateTensorDescriptor(&Adesc);
-                    miopenCreateTensorDescriptor(&Cdesc);
+                    sp_size[2]   = 1;
+                    sp_size[3]   = wei_stride;
+                    w_size[2]   = 1;
+                    w_size[3]   = wei_stride;
+                    miopenCreateTensorDescriptor(&sp_desc);
+                    miopenCreateTensorDescriptor(&w_desc);
                     miopenSetTensorDescriptor(
-                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+						sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
                     miopenSetTensorDescriptor(
-                        Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+						w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 
                     alpha0 = 1;
                     alpha1 = 0;
@@ -5994,13 +6004,13 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         OpTensor(handle,
                                  miopenTensorOpAdd,
                                  &alpha0,
-                                 miopen::deref(Adesc),
+                                 miopen::deref(sp_desc),
                                  workSpace,
                                  &alpha1,
-                                 miopen::deref(Adesc),
+                                 miopen::deref(sp_desc),
                                  workSpace,
                                  &beta_t,
-                                 miopen::deref(Cdesc),
+                                 miopen::deref(w_desc),
                                  dw,
                                  bs * hy_stride,
                                  bs * hy_stride,
@@ -6016,9 +6026,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     if(inputMode == miopenRNNlinear)
                     {
                         CopyTensor(handle,
-                                   miopen::deref(Cdesc),
+                                   miopen::deref(w_desc),
                                    dw,
-                                   miopen::deref(Cdesc),
+                                   miopen::deref(w_desc),
                                    dw,
                                    wei_shift_bias,
                                    wei_shift_bias + wei_stride);
@@ -6065,26 +6075,16 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                     ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * 2 * hy_h)
                                     : (wei_shift_bias + li * bi * 2 * hy_h);
 
-                    std::vector<int> a_size(4, 1), a_stride(4, 1), c_size(4, 1), c_stride(4, 1);
-                    miopenTensorDescriptor_t Adesc, Cdesc;
-
-                    a_size[2]   = 1;
-                    a_size[3]   = wei_stride;
-                    a_stride[0] = hy_stride;
-                    a_stride[1] = hy_stride;
-                    a_stride[2] = hy_stride;
-                    c_size[2]   = 1;
-                    c_size[3]   = wei_stride;
-                    c_stride[0] = wei_stride;
-                    c_stride[1] = wei_stride;
-                    c_stride[2] = wei_stride;
-
-                    miopenCreateTensorDescriptor(&Adesc);
-                    miopenCreateTensorDescriptor(&Cdesc);
+                    sp_size[2]   = 1;
+                    sp_size[3]   = wei_stride;
+                    w_size[2]   = 1;
+                    w_size[3]   = wei_stride;
+                    miopenCreateTensorDescriptor(&sp_desc);
+                    miopenCreateTensorDescriptor(&w_desc);
                     miopenSetTensorDescriptor(
-                        Adesc, miopenFloat, 4, a_size.data(), a_stride.data());
+						sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
                     miopenSetTensorDescriptor(
-                        Cdesc, miopenFloat, 4, c_size.data(), c_stride.data());
+						w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 
                     alpha0 = 1;
                     alpha1 = 0;
@@ -6095,13 +6095,13 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         OpTensor(handle,
                                  miopenTensorOpAdd,
                                  &alpha0,
-                                 miopen::deref(Adesc),
+                                 miopen::deref(sp_desc),
                                  workSpace,
                                  &alpha1,
-                                 miopen::deref(Adesc),
+                                 miopen::deref(sp_desc),
                                  workSpace,
                                  &beta_t,
-                                 miopen::deref(Cdesc),
+                                 miopen::deref(w_desc),
                                  dw,
                                  hid_shift + bs * hy_stride,
                                  hid_shift + bs * hy_stride,
@@ -6112,13 +6112,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     }
 
                     CopyTensor(handle,
-                               miopen::deref(Cdesc),
+                               miopen::deref(w_desc),
                                dw,
-                               miopen::deref(Cdesc),
+                               miopen::deref(w_desc),
                                dw,
                                wei_shift,
                                wei_shift + wei_stride);
-
                     // Update time
                     profileSequence(handle, 1);
                 }
