@@ -8090,6 +8090,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     int hy_stride  = hy_h * bi * workspaceScale;
     int h_stride   = hy_h * bi;
     int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+    int uni_stride = hy_h;
+	int bi_stride = hy_h * bi;
 
     if(inputMode == miopenRNNskip)
     {
