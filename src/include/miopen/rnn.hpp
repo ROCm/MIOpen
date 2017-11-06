@@ -64,7 +64,6 @@ struct c_array_view
     value_type& operator[](size_t i) { return deref(data[i]); }
 };
 
-
 void profileSequence(Handle& handle, unsigned char select);
 
 struct RNNDescriptor : miopenRNNDescriptor
@@ -96,33 +95,24 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNInputMode_t inputMode;
     miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
-    
-    std::map<std::pair<int,int>, std::vector<int>> pTensorDims;
-    std::map<std::pair<int,int>, std::size_t> biasOffset;
-    std::map<std::pair<int,int>, std::size_t> paramOffset;
-    
-    size_t biasOffsetCalculation(const TensorDescriptor& xDesc,
-                                 int layer,
-                                 int layerID);
 
-    size_t paramsOffsetCalculation(const TensorDescriptor& xDesc,
-                                   int layer,
-                                   int layerID);
-    
-    std::vector<int> pTensorLengthsCalculation(const TensorDescriptor& xDesc,
-                                              int layer,
-                                              int layerID);
+    std::map<std::pair<int, int>, std::vector<int>> pTensorDims;
+    std::map<std::pair<int, int>, std::size_t> biasOffset;
+    std::map<std::pair<int, int>, std::size_t> paramOffset;
 
-    size_t GetWorkspaceSize(Handle& handle,
-                            int seqLength,
-                            c_array_view<miopenTensorDescriptor_t> xDesc);
+    size_t biasOffsetCalculation(const TensorDescriptor& xDesc, int layer, int layerID);
 
-    size_t GetReserveSize(Handle& handle,
-                          int sLen,
-                          c_array_view<miopenTensorDescriptor_t> xDesc);
+    size_t paramsOffsetCalculation(const TensorDescriptor& xDesc, int layer, int layerID);
+
+    std::vector<int>
+    pTensorLengthsCalculation(const TensorDescriptor& xDesc, int layer, int layerID);
 
     size_t
-    GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype);
+    GetWorkspaceSize(Handle& handle, int seqLength, c_array_view<miopenTensorDescriptor_t> xDesc);
+
+    size_t GetReserveSize(Handle& handle, int sLen, c_array_view<miopenTensorDescriptor_t> xDesc);
+
+    size_t GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype);
 
     void GetParamsDescriptor(Handle& handle,
                              const TensorDescriptor& xDesc,
@@ -171,12 +161,6 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     size_t GetRNNHiddenSuperTensorSize(Handle& handle,
                                        c_array_view<miopenTensorDescriptor_t> xDesc);
-
-    /* Get weight super tensor size
-    temporary function assuming output matrix exists */
-    size_t GetRNNWeightSuperTensorSize(Handle& handle,
-                                       const TensorDescriptor& xDesc,
-                                       const TensorDescriptor& yDesc);
 
     void RNNForwardTraining(Handle& handle,
                             int seqLen,
@@ -261,71 +245,71 @@ struct RNNDescriptor : miopenRNNDescriptor
                             size_t reserveSpaceSize) const;
 
     // DLOWELL : These will be implemented once all the other elements are in place
-/*
-    void ForwardRNNInferCell(Handle& handle,
-                             const TensorDescriptor& xDesc,
-                             ConstData_t x,
-                             const TensorDescriptor& hxDesc,
-                             ConstData_t hx,
-                             const TensorDescriptor& wDesc,
-                             ConstData_t w,
-                             const TensorDescriptor& yDesc,
-                             Data_t y,
-                             const TensorDescriptor& hyDesc,
-                             Data_t hy,
-                             Data_t workSpace,
-                             size_t workSpaceSize) const;
+    /*
+        void ForwardRNNInferCell(Handle& handle,
+                                 const TensorDescriptor& xDesc,
+                                 ConstData_t x,
+                                 const TensorDescriptor& hxDesc,
+                                 ConstData_t hx,
+                                 const TensorDescriptor& wDesc,
+                                 ConstData_t w,
+                                 const TensorDescriptor& yDesc,
+                                 Data_t y,
+                                 const TensorDescriptor& hyDesc,
+                                 Data_t hy,
+                                 Data_t workSpace,
+                                 size_t workSpaceSize) const;
 
-    void ForwardRNNTrainCell(Handle& handle,
-                             const TensorDescriptor& xDesc,
-                             ConstData_t x,
-                             const TensorDescriptor& hxDesc,
-                             ConstData_t hx,
-                             const TensorDescriptor& wDesc,
-                             ConstData_t w,
-                             const TensorDescriptor& yDesc,
-                             Data_t y,
-                             const TensorDescriptor& hyDesc,
-                             Data_t hy,
-                             Data_t workSpace,
-                             size_t workSpaceSize,
-                             Data_t reserveSpace,
-                             size_t reserveSpaceSize) const;
+        void ForwardRNNTrainCell(Handle& handle,
+                                 const TensorDescriptor& xDesc,
+                                 ConstData_t x,
+                                 const TensorDescriptor& hxDesc,
+                                 ConstData_t hx,
+                                 const TensorDescriptor& wDesc,
+                                 ConstData_t w,
+                                 const TensorDescriptor& yDesc,
+                                 Data_t y,
+                                 const TensorDescriptor& hyDesc,
+                                 Data_t hy,
+                                 Data_t workSpace,
+                                 size_t workSpaceSize,
+                                 Data_t reserveSpace,
+                                 size_t reserveSpaceSize) const;
 
-    void BackwardRNNDataCell(Handle& handle,
-                             const TensorDescriptor& yDesc,
-                             ConstData_t y,
-                             const TensorDescriptor& dyDesc,
-                             ConstData_t dy,
-                             const TensorDescriptor& dhyDesc,
-                             ConstData_t dhy,
-                             const TensorDescriptor& wDesc,
-                             ConstData_t w,
-                             const TensorDescriptor& hxDesc,
-                             ConstData_t hx,
-                             const TensorDescriptor& dxDesc,
-                             Data_t dx,
-                             const TensorDescriptor& dhxDesc,
-                             Data_t dhx,
-                             Data_t workSpace,
-                             size_t workSpaceSize,
-                             ConstData_t reserveSpace,
-                             size_t reserveSpaceSize) const;
+        void BackwardRNNDataCell(Handle& handle,
+                                 const TensorDescriptor& yDesc,
+                                 ConstData_t y,
+                                 const TensorDescriptor& dyDesc,
+                                 ConstData_t dy,
+                                 const TensorDescriptor& dhyDesc,
+                                 ConstData_t dhy,
+                                 const TensorDescriptor& wDesc,
+                                 ConstData_t w,
+                                 const TensorDescriptor& hxDesc,
+                                 ConstData_t hx,
+                                 const TensorDescriptor& dxDesc,
+                                 Data_t dx,
+                                 const TensorDescriptor& dhxDesc,
+                                 Data_t dhx,
+                                 Data_t workSpace,
+                                 size_t workSpaceSize,
+                                 ConstData_t reserveSpace,
+                                 size_t reserveSpaceSize) const;
 
-    void BackwardRNNWeightsCell(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& hxDesc,
-                                ConstData_t hx,
-                                const TensorDescriptor& yDesc,
-                                ConstData_t y,
-                                const TensorDescriptor& dwDesc,
-                                Data_t dw,
-                                ConstData_t workSpace,
-                                size_t workSpaceSize,
-                                ConstData_t reserveSpace,
-                                size_t reserveSpaceSize) const;
- */ 
+        void BackwardRNNWeightsCell(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    ConstData_t x,
+                                    const TensorDescriptor& hxDesc,
+                                    ConstData_t hx,
+                                    const TensorDescriptor& yDesc,
+                                    ConstData_t y,
+                                    const TensorDescriptor& dwDesc,
+                                    Data_t dw,
+                                    ConstData_t workSpace,
+                                    size_t workSpaceSize,
+                                    ConstData_t reserveSpace,
+                                    size_t reserveSpaceSize) const;
+     */
 };
 
 std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& c);
