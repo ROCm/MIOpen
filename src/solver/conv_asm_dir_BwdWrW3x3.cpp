@@ -439,10 +439,7 @@ std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
     return ss.str();
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::GetPerformanceConfig() const { return {}; }
-
-void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& params,
-                                                 PerformanceConfigAsmDirect3x3WrW& result) const
+PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     std::string s;
     PerformanceConfigAsmDirect3x3WrW pp;
@@ -469,7 +466,7 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
         pp.EuristicInit(params);
     }
     MIOPEN_LOG_I(pp.ToString());
-    result = pp;
+    return pp;
 }
 
 bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& problem,

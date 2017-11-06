@@ -36,11 +36,6 @@
 namespace miopen {
 namespace solver {
 
-LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig() const
-{
-    return {};
-}
-
 void LegacyPerformanceConfig::Serialize(std::ostream& stream) const
 {
     static const auto sep = ',';
@@ -123,10 +118,10 @@ bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
 /*
 * select defult configuration if a known configuration has not been found.
 */
-void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
-    const ConvolutionContext& params, LegacyPerformanceConfig& result) const
+LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     //
+    LegacyPerformanceConfig result{};
     result.in_tile0 = (params.in_width <= 8) ? 8 : (params.in_width <= 16)
                                                        ? 16
                                                        : 32; // size of input data per ALU plane
@@ -187,6 +182,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
             result.out_pix_tile1 = 0;
         }
     }
+    return result;
 }
 
 // static const std::vector<std::reference_wrapper<const Solver>>& GetImplementationsToMeasure()
