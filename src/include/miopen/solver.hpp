@@ -132,22 +132,8 @@ miopen::solver::ConvSolution SearchForSolution(const Context& search_params,
     return solution;
 }
 
-/// Finds optimized Solution. Generic method.
-///
-/// Given the specific problem config, finds (hopefully) optimal
-/// solution-specific parameters and returns the Solution object.
-/// Could take long if an exhaustive search is requested/performed.
-/// May read/write perfDb.
 template <class Solver, class Context>
-ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
-{
-    static_assert(std::is_empty<Solver>{}, "Solver must be stateless");
-    // TODO: This assumes all solutions are ConvSolution
-    return SearchSolution(rank<1>{}, s, context, dbRecord);
-}
-
-template <class Solver, class Context>
-auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
+auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
     MIOPEN_LOG_I("Finding solution: " << s.SolverId());
@@ -173,34 +159,26 @@ auto SearchSolution(rank<1>, Solver s, const Context& context, DbRecord& dbRecor
 }
 
 template <class Solver, class Context>
-auto SearchSolution(rank<0>, Solver s, const Context& context, DbRecord&)
+auto FindSolutionImpl(rank<0>, Solver s, const Context& context, DbRecord&)
     -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I("Not searchable: " << s.SolverId());
     return s.GetSolution(context);
 }
 
-/// The descendants of this class comprise an solution-specific
-/// set of optimization parameters, i.e. those which expected to be used by
-/// the solution to optimize its kernel(s) for the best performance.
+/// Finds optimized Solution. Generic method.
 ///
-/// This class provides its descendants with polymorphism and supplies syntax
-/// glue at the source text level. Also serves as en "empty set of parameters"
-/// for solutions which do not have parameters that affect performance
-/// (e.g. for 3x3 Wingrad convolutions).
-// struct PerformanceConfig
-// {
-//     void Serialize(std::ostream&) const {}
-//     bool Deserialize(const std::string& s) { return s.empty(); }
-// #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-//     bool LegacyDeserialize(const std::string&) { return false; }
-// #endif
-//     friend std::ostream& operator<<(std::ostream& os, const PerformanceConfig& c)
-//     {
-//         c.Serialize(os); // Can be used here as provides text.
-//         return os;
-//     }
-// };
+/// Given the specific problem config, finds (hopefully) optimal
+/// solution-specific parameters and returns the Solution object.
+/// Could take long if an exhaustive search is requested/performed.
+/// May read/write perfDb.
+template <class Solver, class Context>
+ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
+{
+    static_assert(std::is_empty<Solver>{}, "Solver must be stateless");
+    // TODO: This assumes all solutions are ConvSolution
+    return FindSolutionImpl(rank<1>{}, s, context, dbRecord);
+}
 
 /// Base class for problem solvers.
 ///
@@ -312,8 +290,6 @@ struct ConvOclDirectFwd3x3 : Solver
 struct ConvOclDirectFwdLegacyExhaustiveSearch : Solver
 {
     LegacyPerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const;
-    // void InitPerformanceConfigImpl(const ConvolutionContext&,
-    //                                LegacyPerformanceConfig& result_) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const
     {
         return true; // Do not check by default.
@@ -358,7 +334,7 @@ struct ConvBinWinogradRxSFwd : Solver
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct PerformanceConfigAsmDirect3x3WrW
+struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirect3x3WrW>
 {
     int limit_wave_cnt;   // [0..9]
     int reverse_inout;    // [0..1], 1 is allowed for stride=1x1 only.
@@ -371,11 +347,17 @@ struct PerformanceConfigAsmDirect3x3WrW
 
     PerformanceConfigAsmDirect3x3WrW(int lwc, int rio, int csz, int kpw, int pld, int npg);
     PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
-    void Serialize(std::ostream&) const;
-    bool Deserialize(const std::string& str);
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    bool LegacyDeserialize(const std::string&) { return false; }
-#endif
+
+    template<class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.limit_wave_cnt, "limit_wave_cnt");
+        f(self.reverse_inout, "reverse_inout");
+        f(self.chunk_size, "chunk_size");
+        f(self.k_per_wave, "k_per_wave");
+        f(self.pipe_lines_depth, "pipe_lines_depth");
+        f(self.n_per_group, "n_per_group");
+    }
 
     // clang-format off
     int GetLimitWaveCnt() const { return limit_wave_cnt; }
@@ -394,20 +376,12 @@ struct PerformanceConfigAsmDirect3x3WrW
     std::string ToString() const;
 
     friend class VirtualIterator; // Modifies private data when advancing.
-
-    friend std::ostream& operator<<(std::ostream& os, const PerformanceConfigAsmDirect3x3WrW& c)
-    {
-        c.Serialize(os); // Can be used here as provides text.
-        return os;
-    }
 };
 
 struct ConvAsmBwdWrW3x3 : Solver
 {
     const char* SolverId() const { return "ConvAsmBwdWrW3x3"; }
     PerformanceConfigAsmDirect3x3WrW GetPerformanceConfig(const ConvolutionContext&) const;
-    // void InitPerformanceConfigImpl(const ConvolutionContext&,
-    //                                PerformanceConfigAsmDirect3x3WrW& result) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConfigAsmDirect3x3WrW&) const;
     PerformanceConfigAsmDirect3x3WrW Search(const ConvolutionContext&) const;

@@ -36,23 +36,7 @@
 namespace miopen {
 namespace solver {
 
-void LegacyPerformanceConfig::Serialize(std::ostream& stream) const
-{
-    static const auto sep = ',';
-
-    // clang-format off
-    stream     << grp_tile1
-        << sep << grp_tile0
-        << sep << in_tile1
-        << sep << in_tile0
-        << sep << out_pix_tile1
-        << sep << out_pix_tile0
-        << sep << n_out_pix_tiles
-        << sep << n_in_data_tiles
-        << sep << n_stacks; // clang-format on
-}
-
-static bool DeserializeField(const char separator, std::istream& from, int& to)
+static bool LegacyDeserializeField(const char separator, std::istream& from, int& to)
 {
     std::string part;
 
@@ -65,30 +49,6 @@ static bool DeserializeField(const char separator, std::istream& from, int& to)
     return start != end;
 }
 
-bool LegacyPerformanceConfig::Deserialize(const std::string& from)
-{
-    std::istringstream ss(from);
-    LegacyPerformanceConfig temp;
-    const char sep = ',';
-
-    const auto succeded = // clang-format off
-        DeserializeField(sep, ss, temp.grp_tile1) &&
-        DeserializeField(sep, ss, temp.grp_tile0) &&
-        DeserializeField(sep, ss, temp.in_tile1) &&
-        DeserializeField(sep, ss, temp.in_tile0) &&
-        DeserializeField(sep, ss, temp.out_pix_tile1) &&
-        DeserializeField(sep, ss, temp.out_pix_tile0) &&
-        DeserializeField(sep, ss, temp.n_out_pix_tiles) &&
-        DeserializeField(sep, ss, temp.n_in_data_tiles) &&
-        DeserializeField(sep, ss, temp.n_stacks); // clang-format on
-
-    if(!succeded)
-        return false;
-
-    *this = temp;
-    return true;
-}
-
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
 bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
 {
@@ -97,15 +57,15 @@ bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
     const char sep = '.';
 
     const auto succeded = // clang-format off
-        DeserializeField(sep, ss, temp.grp_tile1) &&
-        DeserializeField(sep, ss, temp.grp_tile0) &&
-        DeserializeField(sep, ss, temp.in_tile1) &&
-        DeserializeField(sep, ss, temp.in_tile0) &&
-        DeserializeField(sep, ss, temp.out_pix_tile1) &&
-        DeserializeField(sep, ss, temp.out_pix_tile0) &&
-        DeserializeField(sep, ss, temp.n_out_pix_tiles) &&
-        DeserializeField(sep, ss, temp.n_in_data_tiles) &&
-        DeserializeField(sep, ss, temp.n_stacks); // clang-format on
+        LegacyDeserializeField(sep, ss, temp.grp_tile1) &&
+        LegacyDeserializeField(sep, ss, temp.grp_tile0) &&
+        LegacyDeserializeField(sep, ss, temp.in_tile1) &&
+        LegacyDeserializeField(sep, ss, temp.in_tile0) &&
+        LegacyDeserializeField(sep, ss, temp.out_pix_tile1) &&
+        LegacyDeserializeField(sep, ss, temp.out_pix_tile0) &&
+        LegacyDeserializeField(sep, ss, temp.n_out_pix_tiles) &&
+        LegacyDeserializeField(sep, ss, temp.n_in_data_tiles) &&
+        LegacyDeserializeField(sep, ss, temp.n_stacks); // clang-format on
 
     if(!succeded)
         return false;
@@ -185,17 +145,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
     }
     return result;
 }
-
-// static const std::vector<std::reference_wrapper<const Solver>>& GetImplementationsToMeasure()
-// {
-//     static const std::vector<std::reference_wrapper<const Solver>> implementations = {
-//         StaticContainer<ConvOclDirectFwd1x1>::Instance(),
-//         StaticContainer<ConvOclDirectFwdC>::Instance(),
-//         StaticContainer<ConvOclDirectFwd>::Instance(),
-//     };
-
-//     return implementations;
-// }
 
 /*
 * Measure the current configuration performance.
