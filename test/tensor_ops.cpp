@@ -104,22 +104,17 @@ struct verify_tensor_ops : tensor_ops_base<T>
         beta   = pbeta;
     }
 
-
     T add_elem(T aelem, T belem) { return aelem + belem; }
     T mul_elem(T aelem, T belem) { return aelem * belem; }
     T max_elem(T aelem, T belem) { return ((aelem > belem) ? aelem : belem); }
     T min_elem(T aelem, T belem) { return ((aelem < belem) ? aelem : belem); }
 
-    void tensor_for_loop(
-                         int recurr_aoffset,
-                         int recurr_boffset,
-                         int recurr_coffset,
-                         int dim)
+    void tensor_for_loop(int recurr_aoffset, int recurr_boffset, int recurr_coffset, int dim)
     {
 
-        int astride = aDesc.GetStrides()[dim];
-        int bstride = bDesc.GetStrides()[dim];
-        int cstride = cDesc.GetStrides()[dim];
+        int astride                = aDesc.GetStrides()[dim];
+        int bstride                = bDesc.GetStrides()[dim];
+        int cstride                = cDesc.GetStrides()[dim];
         std::vector<size_t> a_dims = cDesc.GetLengths();
         std::vector<size_t> b_dims = bDesc.GetLengths();
 
@@ -136,18 +131,13 @@ struct verify_tensor_ops : tensor_ops_base<T>
             if(dim == (a_dims.size() - 1))
             {
                 cSuper[cindex + cOffset] =
-                    add_elem(aSuper[aindex + aOffset] * alpha0,
-                             bSuper[bindex + bOffset] * alpha1) +
+                    add_elem(aSuper[aindex + aOffset] * alpha0, bSuper[bindex + bOffset] * alpha1) +
                     beta * cSuper[cindex + cOffset];
             }
             if(dim < (a_dims.size() - 1))
             {
 
-                tensor_for_loop(
-                                aindex,
-                                bindex,
-                                cindex,
-                                dim + 1);
+                tensor_for_loop(aindex, bindex, cindex, dim + 1);
             }
         }
         return;
@@ -156,8 +146,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
     tensor<T> cpu()
     {
         std::fill(cSuper.begin(), cSuper.end(), 1);
-        tensor_for_loop(
-            0, 0, 0, 0);
+        tensor_for_loop(0, 0, 0, 0);
 
         return cSuper;
     }
@@ -176,7 +165,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
                          miopenTensorOpAdd,
                          // miopenTensorOpMax,
                          // miopenTensorOpMin,
-                         //miopenTensorOpMul,
+                         // miopenTensorOpMul,
                          &alpha0,
                          aDesc,
                          aSuper_dev.get(),
@@ -230,9 +219,9 @@ struct tensor_ops_driver : test_driver
         std::vector<int> blens = {{32, 16, 16, 16, 16}};
         std::vector<int> clens = {{32, 16, 16, 16, 16}};
 
-        aSuper                 = tensor<T>{alens}.generate(rand_gen{});
-        bSuper                 = tensor<T>{blens}.generate(rand_gen{});
-        cSuper                 = tensor<T>{clens}.generate(rand_gen{});
+        aSuper = tensor<T>{alens}.generate(rand_gen{});
+        bSuper = tensor<T>{blens}.generate(rand_gen{});
+        cSuper = tensor<T>{clens}.generate(rand_gen{});
 
 #if(MIO_TENSOROP_DEBUG == 1)
         printf("done.\n");
@@ -242,7 +231,7 @@ struct tensor_ops_driver : test_driver
 #endif
 
         std::vector<std::vector<float>> get_scalars = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
-        std::vector<std::vector<int>> get_offsets = {{1, 11, 1}, {2, 12, 1}, {3, 13, 1}};
+        std::vector<std::vector<int>> get_offsets   = {{1, 11, 1}, {2, 12, 1}, {3, 13, 1}};
 
         add(tensorlens, "tensorlens", generate_data(get_sub_tensor()));
         add(offsets, "offsets", generate_data(get_offsets));
@@ -259,9 +248,12 @@ struct tensor_ops_driver : test_driver
         std::vector<size_t> aSuperStrides = aSuper.desc.GetStrides();
         std::vector<size_t> bSuperStrides = bSuper.desc.GetStrides();
         std::vector<size_t> cSuperStrides = cSuper.desc.GetStrides();
-        std::vector<int> astrides(aSuperStrides.begin() + (5 - tensorlens.size()), aSuperStrides.end());
-        std::vector<int> bstrides(bSuperStrides.begin() + (5 - tensorlens.size()), bSuperStrides.end());
-        std::vector<int> cstrides(cSuperStrides.begin() + (5 - tensorlens.size()), cSuperStrides.end());
+        std::vector<int> astrides(aSuperStrides.begin() + (5 - tensorlens.size()),
+                                  aSuperStrides.end());
+        std::vector<int> bstrides(bSuperStrides.begin() + (5 - tensorlens.size()),
+                                  bSuperStrides.end());
+        std::vector<int> cstrides(cSuperStrides.begin() + (5 - tensorlens.size()),
+                                  cSuperStrides.end());
 
         aDesc = miopen::TensorDescriptor(
             miopenFloat, tensorlens.data(), astrides.data(), tensorlens.size());
@@ -277,10 +269,10 @@ struct tensor_ops_driver : test_driver
         if(aDesc.GetLengths().size() == cDesc.GetLengths().size())
         {
             printf("offsets {src, dst}: %d, %d\n", offsets[0], offsets[1]);
-            verify(verify_tensor_ops<T>{aSuper, bSuper, cSuper, aDesc, bDesc, cDesc, offsets, alpha0, alpha1, beta});
+            verify(verify_tensor_ops<T>{
+                aSuper, bSuper, cSuper, aDesc, bDesc, cDesc, offsets, alpha0, alpha1, beta});
         }
     }
-    
 };
 
 int main(int argc, const char* argv[]) { test_drive<tensor_ops_driver<float>>(argc, argv); }

@@ -395,7 +395,6 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
     int gid = get_group_id(0);
     int lid = get_local_id(0);
 
-
     // MIOPEN_TYPE operand = b[gid + Boffset];
     int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
     int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
@@ -448,8 +447,7 @@ __kernel void Op2dTensorGeneric(global MIOPEN_TYPE* a,
     int gid = get_group_id(0);
     int lid = get_local_id(0);
 
-
-    int o_n_div = bitmap & (1 << 0) ? 1 : c_c;
+    int o_n_div     = bitmap & (1 << 0) ? 1 : c_c;
     int o_c_gid_off = gid % b_c;
     int o_n_gid_off = gid / b_c;
 
