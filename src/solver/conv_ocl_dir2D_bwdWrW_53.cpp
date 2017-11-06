@@ -35,8 +35,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
             (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
 }
 
-ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params,
-                                          const PerformanceConfig&) const
+ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
 
