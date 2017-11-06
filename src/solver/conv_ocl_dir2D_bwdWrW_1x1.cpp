@@ -406,7 +406,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             uint wei_channel_stride = params.n_outputs * params.kernel_size0 * params.kernel_size1;
             uint max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
 
-            if(3 && (out_channel_stride % 3) == 1)
+            // test result shows that read_uint == 3 will be faster
+            // it will be changed to 4 after Lightning compiler support SGPR offset
+            if((out_channel_stride % 3) == 1)
             {
                 read_unit              = 3;
                 max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
