@@ -403,7 +403,7 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
 
 size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
                                     const TensorDescriptor& xDesc,
-                                    miopenDataType_t dtype)
+                                    miopenDataType_t /* dtype */)
 {
     // DLOWELL : The factor of 4 counts the input matrix, hidden matrix, input bias, hidden bias
     // to each of the activated section of the RNN cell.
