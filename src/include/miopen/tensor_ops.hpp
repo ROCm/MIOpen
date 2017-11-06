@@ -35,7 +35,6 @@
 
 namespace miopen {
 
-
 void ScaleTensor(
     Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, size_t yOffset = 0);
 
