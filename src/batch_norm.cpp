@@ -61,7 +61,7 @@ inline void profileSequence(Handle& handle, unsigned char select)
 
     float ktime        = 0.;
     static float ctime = 0.;
-    assert((select < 3 && select >= 0) && "profileSequence case incorrect");
+    assert((select < 3) && "profileSequence case incorrect");
     switch(select)
     {
 
@@ -393,7 +393,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
 
         kernel_subname = kernel_name + "FinalDScale";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
-            dx, dScale, inhw);
+            dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";
@@ -444,7 +444,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
 
         kernel_subname = kernel_name + "FinalDScale";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
-            dx, dScale, inhw);
+            dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";

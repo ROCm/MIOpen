@@ -144,39 +144,41 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params,
     std::string UT_READ_TYPE =
         (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
 
+    if(!params.direction.IsBackwardWrW())
+        MIOPEN_THROW("!params.direction.IsBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
     const auto comp_options =
-        std::string(" -DMLO_DIR_FORWARD=") + std::to_string(params.forward) +
-        std::string(" -DMLO_GRP_SZ=") + std::to_string(GRP_SZ) + std::string(" -DMLO_GRP_SZ0=") +
-        std::to_string(result.grp_tile0) + std::string(" -DMLO_GRP_SZ1=") +
-        std::to_string(result.grp_tile1) + std::string(" -DMLO_GRP_SZ2=") +
-        std::to_string(grp_tile2) + std::string(" -DMLO_FILTER_SIZE0=") +
-        std::to_string(params.kernel_size0) + std::string(" -DMLO_FILTER_SIZE1=") +
-        std::to_string(params.kernel_size1) + std::string(" -DMLO_FILTER_PAD0=") +
-        std::to_string(params.pad0) + std::string(" -DMLO_FILTER_PAD1=") +
-        std::to_string(params.pad1) + std::string(" -DMLO_FILTER_STRIDE0=") +
-        std::to_string(params.kernel_stride0) + std::string(" -DMLO_FILTER_STRIDE1=") +
-        std::to_string(params.kernel_stride1) + std::string(" -DSTRIDE_W=") +
-        std::to_string(params.kernel_stride0) + std::string(" -DSTRIDE_H=") +
-        std::to_string(params.kernel_stride1) + std::string(" -DMLO_N_OUTPUTS=") +
-        std::to_string(params.n_inputs) + std::string(" -DMLO_N_INPUTS=") +
-        std::to_string(params.n_outputs) + std::string(" -DMLO_BATCH_SZ=") +
-        std::to_string(params.batch_sz) + std::string(" -DMLO_N_BATCH_LOOPS=") +
-        std::to_string(N_BATCH_LOOPS) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-        std::to_string(params.in_batch_stride) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-        std::to_string(params.in_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
-        std::to_string(params.in_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-        std::to_string(params.out_batch_stride) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-        std::to_string(params.out_channel_stride) + std::string(" -DMLO_IN_STRIDE=") +
-        std::to_string(params.out_stride) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
-        std::to_string(wei_bstride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
-        std::to_string(wei_cstride) + std::string(" -DMLO_IN_WIDTH=") +
-        std::to_string(params.out_width) + std::string(" -DMLO_IN_HEIGHT=") +
-        std::to_string(params.out_height) + std::string(" -DMLO_OUT_WIDTH=") +
-        std::to_string(params.in_width) + std::string(" -DMLO_OUT_HEIGHT=") +
-        std::to_string(params.in_height) + std::string(" -DMLO_IN_TILE1=") +
-        std::to_string(result.in_tile1) + std::string(" -DMLO_IN_TILE0=") +
-        std::to_string(result.in_tile0) + std::string(" -DMLO_N_LCL_BATCHS=") +
+        std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +
+        std::to_string(GRP_SZ) + std::string(" -DMLO_GRP_SZ0=") + std::to_string(result.grp_tile0) +
+        std::string(" -DMLO_GRP_SZ1=") + std::to_string(result.grp_tile1) +
+        std::string(" -DMLO_GRP_SZ2=") + std::to_string(grp_tile2) +
+        std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size0) +
+        std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size1) +
+        std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad0) +
+        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad1) +
+        std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.kernel_stride0) +
+        std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(params.kernel_stride1) +
+        std::string(" -DSTRIDE_W=") + std::to_string(params.kernel_stride0) +
+        std::string(" -DSTRIDE_H=") + std::to_string(params.kernel_stride1) +
+        std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_inputs) +
+        std::string(" -DMLO_N_INPUTS=") + std::to_string(params.n_outputs) +
+        std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.batch_sz) +
+        std::string(" -DMLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS) +
+        std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(params.in_batch_stride) +
+        std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.in_channel_stride) +
+        std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.in_stride) +
+        std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(params.out_batch_stride) +
+        std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(params.out_channel_stride) +
+        std::string(" -DMLO_IN_STRIDE=") + std::to_string(params.out_stride) +
+        std::string(" -DMLO_WEI_BATCH_STRIDE=") + std::to_string(wei_bstride) +
+        std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride) +
+        std::string(" -DMLO_IN_WIDTH=") + std::to_string(params.out_width) +
+        std::string(" -DMLO_IN_HEIGHT=") + std::to_string(params.out_height) +
+        std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.in_width) +
+        std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(params.in_height) +
+        std::string(" -DMLO_IN_TILE1=") + std::to_string(result.in_tile1) +
+        std::string(" -DMLO_IN_TILE0=") + std::to_string(result.in_tile0) +
+        std::string(" -DMLO_N_LCL_BATCHS=") +
         std::to_string(result.n_stacks) // # of diff stacks (part of batch).
         + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
         std::to_string(result.n_out_pix_tiles) // # output pixel tiles per wk-item (ALU)
