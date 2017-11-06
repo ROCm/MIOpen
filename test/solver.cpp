@@ -79,33 +79,14 @@ class TrivialTestSolver : public solver::Solver
     }
 };
 
-class TestConfig
+struct TestConfig : solver::Serializable<TestConfig>
 {
-    public:
     std::string str;
 
-    void Serialize(std::ostream& s) const { s << str; }
-
-    bool Deserialize(const std::string& s)
+    template<class Self, class F>
+    static void Visit(Self&& self, F f)
     {
-        std::istringstream ss(s);
-        std::string temp;
-
-        if(!std::getline(ss, temp))
-            return false;
-
-        str = temp;
-        return true;
-    }
-
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    bool LegacyDeserialize(const std::string&) { return false; }
-#endif
-
-    friend std::ostream& operator<<(std::ostream& os, const TestConfig& c)
-    {
-        c.Serialize(os); // Can be used here as provides text.
-        return os;
+        f(self.str, "str");
     }
 };
 

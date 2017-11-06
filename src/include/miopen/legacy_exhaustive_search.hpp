@@ -28,12 +28,13 @@
 #define GUARD_MIOPEN_LEGACY_EXHAUSTIVE_SEARCH_HPP
 
 #include <miopen/config.h>
+#include <miopen/serializable.hpp>
 #include <iostream>
 
 namespace miopen {
 namespace solver {
 
-struct LegacyPerformanceConfig
+struct LegacyPerformanceConfig : Serializable<LegacyPerformanceConfig>
 {
     int grp_tile1       = 0;
     int grp_tile0       = 0;
@@ -58,17 +59,24 @@ struct LegacyPerformanceConfig
         iud.n_in_data_tiles = n_in_data_tiles;
         iud.n_stacks        = n_stacks;
     }
-    void Serialize(std::ostream& stream) const;
-    bool Deserialize(const std::string& from);
+
+    template<class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.grp_tile1, "temp.grp_tile1");
+        f(self.grp_tile0, "temp.grp_tile0");
+        f(self.in_tile1, "temp.in_tile1");
+        f(self.in_tile0, "temp.in_tile0");
+        f(self.out_pix_tile1, "temp.out_pix_tile1");
+        f(self.out_pix_tile0, "temp.out_pix_tile0");
+        f(self.n_out_pix_tiles, "temp.n_out_pix_tiles");
+        f(self.n_in_data_tiles, "temp.n_in_data_tiles");
+        f(self.n_stacks, "temp.n_stacks");
+    }
+
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     bool LegacyDeserialize(const std::string& from);
 #endif
-
-    friend std::ostream& operator<<(std::ostream& os, const LegacyPerformanceConfig& c)
-    {
-        c.Serialize(os); // Can be used here as provides text.
-        return os;
-    }
 };
 } // namespace solver
 } // namespace miopen
