@@ -54,8 +54,6 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
     derivedBnDesc = TensorDescriptor(xDesc.GetType(), newlens.data(), xDesc.GetSize());
 }
 
-
-
 inline void profileSequence(Handle& handle, unsigned char select)
 {
 
@@ -108,11 +106,10 @@ inline void profileSequence(Handle& handle, unsigned char select)
         {
             handle.GetKernelTime();
             handle.AccumKernelTime(ctime);
-        } 
+        }
         break;
     }
 }
-
 
 void bnFwdTrainSelectMulti(Handle& handle,
                            std::string& program_name,
