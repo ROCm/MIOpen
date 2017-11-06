@@ -57,7 +57,7 @@
 //#define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
 //#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
 #define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
-#endif 
+#endif
 
 const float kBNLL_THRESHOLD = 50.;
 
