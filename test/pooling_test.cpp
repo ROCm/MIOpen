@@ -337,7 +337,8 @@ struct pooling_driver : test_driver
 
     void run()
     {
-        int in_h, in_w, window_h, window_w, out_h, out_w;
+        int in_h, in_w, window_h, window_w;
+        int out_h = 0, out_w = 0;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         miopen::PoolingDescriptor filter{mode_lookup.at(miopen::ToUpper(mode)),
