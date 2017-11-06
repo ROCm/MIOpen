@@ -494,11 +494,8 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     size_t workSpaceSize;
     size_t reserveSpaceSize;
 
-    miopenGetRNNInputSuperTensorSize(GetHandle(),
-                                     rnnDesc,
-                                     adjustedSeqLen,
-                                     inputTensors.data(),
-                                     &in_sz);
+    miopenGetRNNInputSuperTensorSize(
+        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &in_sz);
     miopenGetRNNInputSuperTensorSize(
         GetHandle(), rnnDesc, adjustedSeqLen, outputTensors.data(), &out_sz);
     miopenGetRNNHiddenSuperTensorSize(
