@@ -475,8 +475,7 @@ struct conv_driver : test_driver
     void run()
     {
 
-        int input_h, input_w, wei_h, wei_w;
-        int out_h = 0, out_w = 0;
+        int input_h, input_w, wei_h, wei_w, out_h, out_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) =
             miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, std::ignore, input_h, input_w) =
@@ -495,6 +494,9 @@ struct conv_driver : test_driver
 
             out_h = std::ceil(static_cast<double>(input_h) / filter.u);
             out_w = std::ceil(static_cast<double>(input_w) / filter.v);
+
+            if(out_h <= 0 || out_w <= 0)
+                return;
         }
         else if(filter.paddingMode == miopenPaddingValid)
         {
@@ -505,10 +507,10 @@ struct conv_driver : test_driver
 
             out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
             out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
-        }
 
-        if(out_h <= 0 || out_w <= 0)
-            return;
+            if(out_h <= 0 || out_w <= 0)
+                return;
+        }
 
         if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
            wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
