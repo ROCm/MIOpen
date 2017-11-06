@@ -83,7 +83,7 @@ struct TestConfig : solver::Serializable<TestConfig>
 {
     std::string str;
 
-    template<class Self, class F>
+    template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
         f(self.str, "str");

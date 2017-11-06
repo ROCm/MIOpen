@@ -348,7 +348,7 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
     PerformanceConfigAsmDirect3x3WrW(int lwc, int rio, int csz, int kpw, int pld, int npg);
     PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
 
-    template<class Self, class F>
+    template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
         f(self.limit_wave_cnt, "limit_wave_cnt");
