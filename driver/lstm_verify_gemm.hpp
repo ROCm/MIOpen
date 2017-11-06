@@ -591,7 +591,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
     if(biased)
     {
         int in_bias = inputMode == 1 ? 1 : 2;
-        wei_len += (in_bias + (numlayer - 1) * (bi + 1)) * wei_stride;
+        wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
 
     // initial weights
