@@ -183,10 +183,12 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
     std::string UT_READ_TYPE =
         (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
 
+    if(!params.direction.IsBackwardWrW())
+        MIOPEN_THROW("!params.direction.IsBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
     const auto comp_options =
-        std::string(" -DMLO_DIR_FORWARD=") + std::to_string((params.forward)) +
-        std::string(" -DMLO_GRP_SZ=") + std::to_string((GRP_SZ)) + std::string(" -DMLO_GRP_SZ0=") +
+        std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +
+        std::to_string((GRP_SZ)) + std::string(" -DMLO_GRP_SZ0=") +
         std::to_string((result.grp_tile0)) + std::string(" -DMLO_GRP_SZ1=") +
         std::to_string((result.grp_tile1)) + std::string(" -DMLO_GRP_SZ2=") +
         std::to_string((grp_tile2)) + std::string(" -DMLO_FILTER_SIZE0=") +

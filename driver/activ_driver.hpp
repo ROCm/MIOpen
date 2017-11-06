@@ -32,7 +32,7 @@
 #include "tensor_driver.hpp"
 #include <algorithm>
 #include <cstdlib>
-#include <float.h>
+#include <cfloat>
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
