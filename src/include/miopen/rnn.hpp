@@ -64,7 +64,7 @@ struct c_array_view
     value_type& operator[](size_t i) { return deref(data[i]); }
 };
 
-void profileSequence(Handle& handle, unsigned char select);
+void profileRNNkernels(Handle& handle, unsigned char select);
 
 struct RNNDescriptor : miopenRNNDescriptor
 {
@@ -87,18 +87,13 @@ struct RNNDescriptor : miopenRNNDescriptor
     size_t workspaceScale;
 
     size_t inputBatchLenSum;
-    size_t inputVectorLen;
-
+    
     miopenRNNMode_t rnnMode;
     miopenRNNDirectionMode_t dirMode;
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
     miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
-
-    std::map<std::pair<int, int>, std::vector<int>> pTensorDims;
-    std::map<std::pair<int, int>, std::size_t> biasOffset;
-    std::map<std::pair<int, int>, std::size_t> paramOffset;
 
     size_t biasOffsetCalculation(const TensorDescriptor& xDesc, int layer, int layerID);
 
@@ -226,7 +221,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                          Data_t dcx,
                          Data_t workSpace,
                          size_t workSpaceSize,
-                         ConstData_t reserveSpace,
+                         Data_t reserveSpace,
                          size_t reserveSpaceSize) const;
 
     void RNNBackwardWeights(Handle& handle,
@@ -239,7 +234,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                             ConstData_t dy,
                             const TensorDescriptor& dwDesc,
                             Data_t dw,
-                            ConstData_t workSpace,
+                            Data_t workSpace,
                             size_t workSpaceSize,
                             ConstData_t reserveSpace,
                             size_t reserveSpaceSize) const;
