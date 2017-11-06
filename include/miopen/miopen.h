@@ -1858,11 +1858,10 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
                                                           miopenTensorDescriptor_t wDesc,
                                                           miopenDataType_t dtype);
 
-
 /*! @brief Obtain a the size in bytes of the RNN input tensor
  *
  * This function determines the size in bytes of the allocation needed for the input data
- * tensor for an RNN layer. The number of bytes is derived from the array of 
+ * tensor for an RNN layer. The number of bytes is derived from the array of
  * tensor descriptors.
  *
  * @param handle          MIOpen handle (input)
@@ -1873,15 +1872,14 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
  * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNInputTensorSize(miopenHandle_t handle,
-                                                              miopenRNNDescriptor_t rnnDesc,
-                                                              const int seqLen,
-                                                              miopenTensorDescriptor_t* xDesc,
-                                                              size_t* numBytes);
-
+                                                         miopenRNNDescriptor_t rnnDesc,
+                                                         const int seqLen,
+                                                         miopenTensorDescriptor_t* xDesc,
+                                                         size_t* numBytes);
 
 /*! @brief Obtain a the size in bytes of the RNN hidden tensor
  *
- * This function determines the size in bytes of the allocation needed for the 
+ * This function determines the size in bytes of the allocation needed for the
  * hidden tensor over all layers
  *
  * @param handle          MIOpen handle (input)
@@ -1892,10 +1890,10 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNInputTensorSize(miopenHandle_t handle,
  * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenTensorSize(miopenHandle_t handle,
-                                                               miopenRNNDescriptor_t rnnDesc,
-                                                               const int seqLen,
-                                                               miopenTensorDescriptor_t* xDesc,
-                                                               size_t* numBytes);
+                                                          miopenRNNDescriptor_t rnnDesc,
+                                                          const int seqLen,
+                                                          miopenTensorDescriptor_t* xDesc,
+                                                          size_t* numBytes);
 
 /*! @brief Gets a pointer to memory containing parameter tensor for a specific layer in an RNN stack
  *
@@ -2207,7 +2205,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */
-//MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrainCell(miopenHandle_t handle,
+// MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTrainCell(miopenHandle_t handle,
 //                                                       miopenRNNDescriptor_t rnnDesc,
 //                                                       miopenTensorDescriptor_t xDesc,
 //                                                       const void* x,
@@ -2250,7 +2248,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */
-//MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardDataCell(miopenHandle_t handle,
+// MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardDataCell(miopenHandle_t handle,
 //                                                       miopenRNNDescriptor_t rnnDesc,
 //                                                       miopenTensorDescriptor_t yDesc,
 //                                                       const void* y,
@@ -2291,7 +2289,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
  * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward
  * @return                      miopenStatus_t
 */
-//MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeightsCell(miopenHandle_t handle,
+// MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeightsCell(miopenHandle_t handle,
 //                                                          miopenRNNDescriptor_t rnnDesc,
 //                                                          miopenTensorDescriptor_t xDesc,
 //                                                          const void* x,
@@ -2326,7 +2324,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace
  * @return                      miopenStatus_t
 */
-//MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInferenceCell(miopenHandle_t handle,
+// MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInferenceCell(miopenHandle_t handle,
 //                                                           miopenRNNDescriptor_t rnnDesc,
 //                                                           miopenTensorDescriptor_t xDesc,
 //                                                           const void* x,

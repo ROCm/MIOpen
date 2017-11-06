@@ -87,7 +87,7 @@ struct RNNDescriptor : miopenRNNDescriptor
     size_t workspaceScale;
 
     size_t inputBatchLenSum;
-    
+
     miopenRNNMode_t rnnMode;
     miopenRNNDirectionMode_t dirMode;
     miopenRNNAlgo_t algoMode;
@@ -99,8 +99,7 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     size_t paramsOffsetCalculation(const TensorDescriptor& xDesc, int layer, int layerID);
 
-    std::vector<int>
-    pTensorLengthsCalculation(const TensorDescriptor& xDesc, int layer, int layerID);
+    std::vector<int> pTensorLengthsCalculation(const TensorDescriptor& xDesc, int layer);
 
     size_t
     GetWorkspaceSize(Handle& handle, int seqLength, c_array_view<miopenTensorDescriptor_t> xDesc);
