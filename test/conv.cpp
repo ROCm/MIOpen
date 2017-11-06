@@ -475,7 +475,8 @@ struct conv_driver : test_driver
     void run()
     {
 
-        int input_h, input_w, wei_h, wei_w, out_h, out_w;
+        int input_h, input_w, wei_h, wei_w;
+        int out_h = 0, out_w = 0;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) =
             miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, std::ignore, input_h, input_w) =
