@@ -126,11 +126,12 @@ class SearchableTestSolver : public solver::Solver
         config.str   = NoSearchFileName();
     }
 
-    void Search(const ConvolutionContext&, solver::PerformanceConfig& config_) const override
+    bool Search(const ConvolutionContext&, solver::PerformanceConfig& config_) const override
     {
         auto& config = dynamic_cast<TestConfig&>(config_);
         config.str   = SolverId();
         _serches_done++;
+        return true;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,

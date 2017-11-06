@@ -30,7 +30,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <float.h>
+#include <cfloat>
 #include <memory>
 #include <miopen/miopen.h>
 #include <numeric>

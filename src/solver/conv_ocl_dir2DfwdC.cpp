@@ -33,12 +33,14 @@ namespace solver {
 
 bool ConvOclDirectFwdC::IsApplicable(const ConvolutionContext& params) const
 {
-    bool unaligned = (params.out_height < 8 || params.out_width < 8 ||
-                      (params.out_height > 8 && params.out_height < 16) ||
-                      (params.out_width > 8 && params.out_width < 16) ||
-                      (params.out_height > 16 && params.out_height < 32) ||
-                      (params.out_width > 16 && params.out_width < 32));
-
+    bool unaligned = false;
+    /*
+                                            (params.out_height < 8 || params.out_width < 8 ||
+                  (params.out_height > 8 && params.out_height < 16) ||
+                  (params.out_width > 8 && params.out_width < 16) ||
+                  (params.out_height > 16 && params.out_height < 32) ||
+                  (params.out_width > 16 && params.out_width < 32));
+    */
     return unaligned && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
            params.kernel_stride0 <= 1 && params.kernel_stride1 <= 1;
 }
@@ -63,7 +65,7 @@ ConvSolution ConvOclDirectFwdC::GetSolution(const ConvolutionContext& params,
     auto pad0 = params.pad0;
     auto pad1 = params.pad1;
 
-    if(!params.forward)
+    if(!params.direction.IsForward())
     {
         // backward
         pad0 = params.kernel_size0 - 1 - pad0;
@@ -127,8 +129,7 @@ ConvSolution ConvOclDirectFwdC::GetSolution(const ConvolutionContext& params,
 
     kernel_params.comp_options =
         std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(static_cast<long long>(hw_wave_sz)) +
-        std::string(" -DMLO_DIR_FORWARD=") +
-        std::to_string(static_cast<long long>(params.forward)) +
+        std::string(" -DMLO_DIR_FORWARD=") + (params.direction.IsForward() ? "1" : "0") +
         std::string(" -DMLO_FILTER_SIZE0=") +
         std::to_string(static_cast<long long>(params.kernel_size0)) +
         std::string(" -DMLO_FILTER_SIZE1=") +

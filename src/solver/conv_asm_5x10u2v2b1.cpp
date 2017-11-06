@@ -46,7 +46,7 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    if(params.forward)
+    if(!params.direction.IsBackwardData())
     {
         return false;
     }
