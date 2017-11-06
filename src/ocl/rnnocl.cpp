@@ -39,26 +39,26 @@
 
 namespace miopen {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
+//MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 
-struct AutoEnableProfiling
-{
-    AutoEnableProfiling(Handle& x) : h(x)
-    {
-        prev_state = h.IsProfilingEnabled();
-        h.EnableProfiling();
-    }
-
-    ~AutoEnableProfiling()
-    {
-        h.EnableProfiling(prev_state);
-        h.ResetKernelTime();
-    }
-
-    private:
-    Handle& h;
-    bool prev_state;
-};
+//struct AutoEnableProfiling
+//{
+//    AutoEnableProfiling(Handle& x) : h(x)
+//    {
+//        prev_state = h.IsProfilingEnabled();
+//        h.EnableProfiling();
+//    }
+//
+//    ~AutoEnableProfiling()
+//    {
+//        h.EnableProfiling(prev_state);
+//        h.ResetKernelTime();
+//    }
+//
+//    private:
+//    Handle& h;
+//    bool prev_state;
+//};
 
 // Assuming sequence length is set to > 0 otherwise throw exception.
 void RNNDescriptor::RNNForwardInference(Handle& handle,
@@ -209,7 +209,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     CopyTensor(
                         handle, miopen::deref(x_desc), x, miopen::deref(sp_desc), workSpace, 0, 0);
                     // Update time
-                    profileSequence(handle, 0);
+                    profileRNNkernels(handle, 0);
 
                     if(dirMode)
                     {
@@ -222,7 +222,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(biasMode)
@@ -258,7 +258,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      hid_shift + bs * hy_stride);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -281,10 +281,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     gg.RunGemm(handle, x, w, workSpace, 0, 0, hid_shift);
 
                     // Update time
-                    if(li == 0)
-                        profileSequence(handle, 0);
-                    else
-                        profileSequence(handle, 1);
+                    profileRNNkernels(handle, 0);
 
                     if(biasMode)
                     {
@@ -322,7 +319,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      hid_shift + bs * hy_stride);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -349,10 +346,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 gg.RunGemm(handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift);
 
                 // Update time
-                if(li == 0)
-                    profileSequence(handle, 0);
-                else
-                    profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 if(biasMode)
                 {
@@ -394,7 +388,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  hid_shift + bs * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
             }
@@ -438,7 +432,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -468,7 +462,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hid_shift + baccbi * hy_stride + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -499,7 +493,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -531,7 +525,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hid_shift + baccbi * hy_stride + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -558,7 +552,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                       offset);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(dirMode)
@@ -585,7 +579,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                           offset);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -615,7 +609,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                            hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride,
                            hx_shift);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
             }
 
             if(dirMode)
@@ -642,7 +636,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                hid_shift + hy_h,
                                hx_shift + hy_h);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
             }
         }
@@ -663,7 +657,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         CopyTensor(
             handle, miopen::deref(sp_desc), workSpace, miopen::deref(y_desc), y, prelayer_shift, 0);
         // Update time
-        profileSequence(handle, 1);
+        profileRNNkernels(handle, 2);
 
 #else
         MIOPEN_THROW("GEMM is not supported");
@@ -715,10 +709,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    gi * hy_h);
 
                         // Update time
-                        if((gi + li) == 0)
-                            profileSequence(handle, 0);
-                        else
-                            profileSequence(handle, 1);
+                        profileRNNkernels(handle, (gi==0)?0:1);
 
                         if(dirMode)
                         {
@@ -731,7 +722,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        (gi + 4) * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
 
@@ -769,7 +760,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      wei_shift_bias,
                                      hid_shift + bs * hy_stride);
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -792,11 +783,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     gg.RunGemm(handle, x, w, workSpace, 0, 0, hid_shift);
 
                     // Update time
-                    if(li == 0)
-                        profileSequence(handle, 0);
-                    else
-                        profileSequence(handle, 1);
-
+                    profileRNNkernels(handle, 0);
+                    
                     if(biasMode)
                     {
                         w_size[2]  = 1;
@@ -832,7 +820,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      hid_shift + bs * hy_stride);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -859,7 +847,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 gg.RunGemm(handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 if(biasMode)
                 {
@@ -900,7 +888,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  wei_shift_bias_temp + wei_stride,
                                  hid_shift + bs * hy_stride);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
             }
@@ -940,7 +928,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -970,7 +958,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -1001,7 +989,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -1031,7 +1019,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -1059,7 +1047,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                     offset,
                                     offset);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // active gate c
                     sp_size[3] = hy_h;
@@ -1079,7 +1067,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      offset,
                                      offset);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // update cell state
                     alpha0 = 1;
@@ -1102,7 +1090,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                              hid_shift + bacc * hy_stride + bi * 4 * hy_h);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     if(ti == 0)
                     {
@@ -1127,7 +1115,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  hx_shift,
                                  hid_shift + bacc * hy_stride + bi * 4 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                     else
                     {
@@ -1149,7 +1137,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  prec_shift,
                                  hid_shift + bacc * hy_stride + bi * 4 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     // active cell state
@@ -1165,7 +1153,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      offset,
                                      offset);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // update hidden state
                     OpTensor(handle,
@@ -1183,7 +1171,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                              hid_shift + bacc * hy_stride + bi * 4 * hy_h,
                              hid_shift + bacc * hy_stride + bi * 5 * hy_h);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // update cy, hy
                     hx_size[2] = in_n[ti];
@@ -1201,7 +1189,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                hx_shift);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     CopyTensor(handle,
                                miopen::deref(sp_desc),
@@ -1211,7 +1199,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                hid_shift + bacc * hy_stride + bi * 5 * hy_h,
                                hx_shift);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(dirMode)
@@ -1238,7 +1226,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         offset,
                                         offset);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // active gate c
                         sp_size[3] = hy_h;
@@ -1258,7 +1246,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          offset,
                                          offset);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // update cell state
                         alpha0 = 1;
@@ -1281,7 +1269,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         if(ti == 0)
                         {
@@ -1307,7 +1295,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                         else
                         {
@@ -1339,7 +1327,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
 
                                 // Update time
-                                profileSequence(handle, 1);
+                                profileRNNkernels(handle, 1);
                             }
                         }
 
@@ -1362,7 +1350,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          offset,
                                          offset);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // update hidden state
                         OpTensor(handle,
@@ -1380,7 +1368,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h,
                                  hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // update cy, hy
                         hx_size[2] = in_n[seqLen - 1 - ti];
@@ -1397,7 +1385,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h,
                                    hx_shift + hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         CopyTensor(handle,
                                    miopen::deref(sp_desc),
@@ -1407,7 +1395,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h,
                                    hx_shift + hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -1442,7 +1430,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                          hx_shift + in_n[seqLen - 1] * h_stride,
                          hx_shift + in_n[seqLen - 1] * h_stride);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 OpTensor(handle,
                          miopenTensorOpMul,
@@ -1459,7 +1447,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                          hx_shift + in_n[seqLen - 1] * h_stride,
                          hx_shift + in_n[seqLen - 1] * h_stride);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
             }
         } // end for nLayers
 
@@ -1478,7 +1466,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         CopyTensor(
             handle, miopen::deref(sp_desc), workSpace, miopen::deref(y_desc), y, prelayer_shift, 0);
         // Update time
-        profileSequence(handle, 1);
+        profileRNNkernels(handle, 2);
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -1531,11 +1519,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    0,
                                    gi * hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, (gi==0)?0:1);
 
                         if(dirMode)
                         {
@@ -1547,11 +1531,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        0,
                                        (gi + 3) * hy_h);
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -1574,7 +1554,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     gg.RunGemm(handle, x, w, workSpace, 0, 0, hid_shift);
 
                     // Update time
-                    profileSequence(handle, 0);
+                    profileRNNkernels(handle, 0);
                 }
             }
             else
@@ -1599,7 +1579,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 gg.RunGemm(handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
             }
 
             // from hidden state
@@ -1643,7 +1623,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         gg = CreateGemmGeometryRNN(in_n[ti],
                                                    hy_h,
@@ -1668,7 +1648,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + bacc * hy_stride + bi * 3 * hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -1698,7 +1678,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hid_shift + baccbi * hy_stride + 3 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
 
                             gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
                                                        hy_h,
@@ -1723,7 +1703,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -1754,7 +1734,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         gg = CreateGemmGeometryRNN(in_n[ti],
                                                    hy_h,
@@ -1779,7 +1759,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hid_shift + bacc * hy_stride + bi * 3 * hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -1809,7 +1789,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hid_shift + baccbi * hy_stride + 3 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
 
                             gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
                                                        hy_h,
@@ -1834,7 +1814,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -1878,12 +1858,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          wei_shift_bias,
                                          wei_shift_bias,
                                          hid_shift + (bacc + bs) * hy_stride);
+                                
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
 
                             //
@@ -1915,11 +1892,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          wei_shift_bias + 2 * hy_h,
                                          hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
                         }
                         else
@@ -1957,7 +1930,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          hid_shift + (bacc + bs) * hy_stride);
 
                                 // Update time
-                                profileSequence(handle, 1);
+                                profileRNNkernels(handle, 1);
                             }
 
                             //
@@ -1989,11 +1962,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          wei_shift_bias_temp + wei_stride,
                                          hid_shift + (bacc + bs) * hy_stride);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
 
                             //
@@ -2025,11 +1994,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          wei_shift_bias_temp + wei_stride + 2 * hy_h,
                                          hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
                         }
                     }
@@ -2053,11 +2018,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                     offset,
                                     offset);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     // calculate c gate
                     sp_size[2] = in_n[ti];
@@ -2085,7 +2046,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                              hid_shift + bacc * hy_stride + bi * 3 * hy_h,
                              hid_shift + bacc * hy_stride + 2 * hy_h);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // active c gate
                     sp_size[2] = in_n[ti];
@@ -2104,11 +2065,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      offset + 2 * hy_h,
                                      offset + 2 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     // calculate hidden state
                     alpha0 = -1;
@@ -2129,11 +2086,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                              hid_shift + bacc * hy_stride + 2 * hy_h,
                              hid_shift + bacc * hy_stride + bi * 3 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 0;
@@ -2154,7 +2107,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                              hid_shift + bacc * hy_stride + bi * 3 * hy_h,
                              hid_shift + bacc * hy_stride + bi * 3 * hy_h);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 1;
@@ -2200,7 +2153,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  hid_shift + bacc * hy_stride + bi * 3 * hy_h);
                     }
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // update hy
                     hx_size[2] = in_n[ti];
@@ -2217,11 +2170,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                hid_shift + bacc * hy_stride + bi * 3 * hy_h,
                                hx_shift);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(dirMode)
@@ -2269,11 +2218,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                              wei_shift_bias + 3 * hy_h,
                                              hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h);
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
 
                                 //
@@ -2306,11 +2251,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                              hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h +
                                                  hy_h);
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
                             }
                             else
@@ -2346,12 +2287,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                              wei_shift_bias_temp + 3 * hy_h,
                                              wei_shift_bias_temp + 3 * hy_h,
                                              hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h);
+                                    
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
 
                                 //
@@ -2382,12 +2320,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                              wei_shift_bias_temp + wei_stride + 3 * hy_h,
                                              wei_shift_bias_temp + wei_stride + 3 * hy_h,
                                              hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h);
+                                    
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
 
                                 //
@@ -2419,12 +2354,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                              wei_shift_bias_temp + wei_stride + 5 * hy_h,
                                              hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h +
                                                  hy_h);
+                                    
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
                             }
                         }
@@ -2448,7 +2380,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         offset + 3 * hy_h,
                                         offset + 3 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // calculate c gate
                         sp_size[3] = hy_h;
@@ -2475,7 +2407,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
                                  hid_shift + baccbi * hy_stride + 5 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // active c gate
                         tanhDesc.Forward(handle,
@@ -2487,12 +2419,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          workSpace,
                                          offset + 5 * hy_h,
                                          offset + 5 * hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         // calculate hidden state
                         alpha0 = -1;
@@ -2512,12 +2441,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  hid_shift + baccbi * hy_stride + 3 * hy_h,
                                  hid_shift + baccbi * hy_stride + 5 * hy_h,
                                  hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 0;
@@ -2537,12 +2463,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  hid_shift + baccbi * hy_stride + 5 * hy_h,
                                  hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
                                  hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -2588,11 +2511,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
                         }
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         // update hy
                         hx_size[2] = in_n[seqLen - 1 - ti];
@@ -2608,12 +2527,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    hy,
                                    hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
                                    hx_shift + hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -2648,7 +2564,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                          hx_shift + in_n[seqLen - 1] * h_stride,
                          hx_shift + in_n[seqLen - 1] * h_stride);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
             }
         }
 
@@ -2667,7 +2583,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         CopyTensor(
             handle, miopen::deref(sp_desc), workSpace, miopen::deref(y_desc), y, prelayer_shift, 0);
         // Update time
-        profileSequence(handle, 1);
+        profileRNNkernels(handle, 2);
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -2791,7 +2707,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run rnn gpu fwd \n");
-        float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
         int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift;
@@ -2836,7 +2751,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                0,
                                0);
                     // Update time
-                    profileSequence(handle, 0);
+                    profileRNNkernels(handle, 0);
 
                     if(dirMode)
                     {
@@ -2849,7 +2764,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(biasMode)
@@ -2885,7 +2800,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      hid_shift + bs * hy_stride);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -2908,10 +2823,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
                     // Update time
-                    if(li == 0)
-                        profileSequence(handle, 0);
-                    else
-                        profileSequence(handle, 1);
+                    profileRNNkernels(handle, 0);
 
                     if(biasMode)
                     {
@@ -2949,7 +2861,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      hid_shift + bs * hy_stride);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -2982,10 +2894,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                            hid_shift);
 
                 // Update time
-                if(li == 0)
-                    profileSequence(handle, 0);
-                else
-                    profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 if(biasMode)
                 {
@@ -3027,7 +2936,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  hid_shift + bs * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
             }
@@ -3071,7 +2980,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -3101,7 +3010,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        hid_shift + baccbi * hy_stride + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -3133,7 +3042,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -3165,7 +3074,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        hid_shift + baccbi * hy_stride + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -3192,7 +3101,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                       offset + nLayers * batch_n * hy_stride);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(dirMode)
@@ -3219,7 +3128,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                           offset + nLayers * batch_n * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -3250,7 +3159,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                nLayers * batch_n * hy_stride,
                            hx_shift);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
             }
 
             if(dirMode)
@@ -3277,7 +3186,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                hid_shift + hy_h + nLayers * batch_n * hy_stride,
                                hx_shift + hy_h);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
             }
         }
@@ -3303,7 +3212,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                    prelayer_shift + nLayers * batch_n * hy_stride,
                    0);
         // Update time
-        profileSequence(handle, 1);
+        profileRNNkernels(handle, 2);
 
 #else
         MIOPEN_THROW("GEMM is not supported");
@@ -3314,7 +3223,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run lstm gpu fwd \n");
-        float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
         int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift, prec_shift;
@@ -3355,11 +3263,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    gi * hy_h);
 
                         // Update time
-                        if((gi + li) == 0)
-                            profileSequence(handle, 0);
-                        else
-                            profileSequence(handle, 1);
-
+                        profileRNNkernels(handle, (gi==0)?0:1);
+                        
                         if(dirMode)
                         {
                             CopyTensor(handle,
@@ -3371,7 +3276,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        (gi + 4) * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
 
@@ -3409,7 +3314,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      wei_shift_bias,
                                      hid_shift + bs * hy_stride);
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -3432,10 +3337,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
                     // Update time
-                    if(li == 0)
-                        profileSequence(handle, 0);
-                    else
-                        profileSequence(handle, 1);
+                    profileRNNkernels(handle, 0);
 
                     if(biasMode)
                     {
@@ -3472,7 +3374,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      hid_shift + bs * hy_stride);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -3500,7 +3402,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     handle, reserveSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 if(biasMode)
                 {
@@ -3541,7 +3443,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  wei_shift_bias_temp + wei_stride,
                                  hid_shift + bs * hy_stride);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
             }
@@ -3581,7 +3483,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -3611,7 +3513,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -3642,7 +3544,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -3672,7 +3574,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -3700,7 +3602,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                     offset,
                                     offset + nLayers * batch_n * hy_stride);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // active gate c
                     sp_size[3] = hy_h;
@@ -3720,7 +3622,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      offset,
                                      offset + nLayers * batch_n * hy_stride);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // update cell state
                     alpha0 = 1;
@@ -3744,7 +3646,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                              hid_shift + bacc * hy_stride + bi * 4 * hy_h);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     if(ti == 0)
                     {
@@ -3770,7 +3672,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  hx_shift,
                                  hid_shift + bacc * hy_stride + bi * 4 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                     else
                     {
@@ -3793,7 +3695,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  prec_shift,
                                  hid_shift + bacc * hy_stride + bi * 4 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     // active cell state
@@ -3809,7 +3711,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      offset,
                                      offset + nLayers * batch_n * hy_stride);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // update hidden state
                     OpTensor(handle,
@@ -3829,7 +3731,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  nLayers * batch_n * hy_stride,
                              hid_shift + bacc * hy_stride + bi * 5 * hy_h);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // update cy, hy
                     hx_size[2] = in_n[ti];
@@ -3847,7 +3749,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                hx_shift);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     CopyTensor(handle,
                                miopen::deref(sp_desc),
@@ -3857,7 +3759,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                hid_shift + bacc * hy_stride + bi * 5 * hy_h,
                                hx_shift);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(dirMode)
@@ -3884,7 +3786,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                         offset,
                                         offset + nLayers * batch_n * hy_stride);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // active gate c
                         sp_size[3] = hy_h;
@@ -3904,7 +3806,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          offset,
                                          offset + nLayers * batch_n * hy_stride);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // update cell state
                         alpha0 = 1;
@@ -3929,7 +3831,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         if(ti == 0)
                         {
@@ -3956,7 +3858,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                         else
                         {
@@ -3989,7 +3891,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
 
                                 // Update time
-                                profileSequence(handle, 1);
+                                profileRNNkernels(handle, 1);
                             }
                         }
 
@@ -4012,7 +3914,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          offset,
                                          offset + nLayers * batch_n * hy_stride);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // update hidden state
                         OpTensor(handle,
@@ -4032,7 +3934,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      nLayers * batch_n * hy_stride,
                                  hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // update cy, hy
                         hx_size[2] = in_n[seqLen - 1 - ti];
@@ -4049,7 +3951,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h,
                                    hx_shift + hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         CopyTensor(handle,
                                    miopen::deref(sp_desc),
@@ -4059,7 +3961,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h,
                                    hx_shift + hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -4094,7 +3996,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                          hx_shift + in_n[seqLen - 1] * h_stride,
                          hx_shift + in_n[seqLen - 1] * h_stride);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 OpTensor(handle,
                          miopenTensorOpMul,
@@ -4111,7 +4013,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                          hx_shift + in_n[seqLen - 1] * h_stride,
                          hx_shift + in_n[seqLen - 1] * h_stride);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
             }
         } // end for nLayers
 
@@ -4135,7 +4037,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                    prelayer_shift,
                    0);
         // Update time
-        profileSequence(handle, 1);
+        profileRNNkernels(handle, 2);
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -4145,7 +4047,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run gru gpu fwd \n");
-        float time_gemm = 0, time_0 = 0;
         GemmGeometry gg;
 
         int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift, pretime_shift;
@@ -4188,11 +4089,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    0,
                                    gi * hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, (gi==0)?0:1);
 
                         if(dirMode)
                         {
@@ -4204,11 +4101,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        0,
                                        (gi + 3) * hy_h);
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -4231,7 +4124,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
                     // Update time
-                    profileSequence(handle, 0);
+                    profileRNNkernels(handle, 0);
                 }
             }
             else
@@ -4257,7 +4150,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     handle, reserveSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
             }
 
             // from hidden state
@@ -4301,7 +4194,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         gg = CreateGemmGeometryRNN(in_n[ti],
                                                    hy_h,
@@ -4326,7 +4219,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + bacc * hy_stride + bi * 3 * hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -4356,7 +4249,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        hid_shift + baccbi * hy_stride + 3 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
 
                             gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
                                                        hy_h,
@@ -4381,7 +4274,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -4412,7 +4305,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         gg = CreateGemmGeometryRNN(in_n[ti],
                                                    hy_h,
@@ -4437,7 +4330,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + bacc * hy_stride + bi * 3 * hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -4467,7 +4360,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        hid_shift + baccbi * hy_stride + 3 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
 
                             gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
                                                        hy_h,
@@ -4492,7 +4385,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -4537,11 +4430,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          wei_shift_bias,
                                          hid_shift + (bacc + bs) * hy_stride);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
 
                             //
@@ -4573,11 +4462,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          wei_shift_bias + 2 * hy_h,
                                          hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
                         }
                         else
@@ -4615,7 +4500,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          hid_shift + (bacc + bs) * hy_stride);
 
                                 // Update time
-                                profileSequence(handle, 1);
+                                profileRNNkernels(handle, 1);
                             }
 
                             //
@@ -4647,11 +4532,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          wei_shift_bias_temp + wei_stride,
                                          hid_shift + (bacc + bs) * hy_stride);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
 
                             //
@@ -4683,11 +4564,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          wei_shift_bias_temp + wei_stride + 2 * hy_h,
                                          hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
                         }
                     }
@@ -4711,11 +4588,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                     offset,
                                     offset + nLayers * batch_n * hy_stride);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     // calculate c gate
                     sp_size[2] = in_n[ti];
@@ -4743,7 +4616,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                              hid_shift + bacc * hy_stride + bi * 3 * hy_h,
                              hid_shift + bacc * hy_stride + 2 * hy_h);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // active c gate
                     sp_size[2] = in_n[ti];
@@ -4762,11 +4635,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      offset + 2 * hy_h,
                                      offset + 2 * hy_h + nLayers * batch_n * hy_stride);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     // calculate hidden state
                     alpha0 = -1;
@@ -4788,11 +4657,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  nLayers * batch_n * hy_stride,
                              hid_shift + bacc * hy_stride + bi * 3 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 0;
@@ -4814,7 +4679,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                              hid_shift + bacc * hy_stride + bi * 3 * hy_h,
                              hid_shift + bacc * hy_stride + bi * 3 * hy_h);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 1;
@@ -4860,7 +4725,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  hid_shift + bacc * hy_stride + bi * 3 * hy_h);
                     }
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     // update hy
                     hx_size[2] = in_n[ti];
@@ -4876,12 +4741,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                hy,
                                hid_shift + bacc * hy_stride + bi * 3 * hy_h,
                                hx_shift);
+                    
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(dirMode)
@@ -4929,11 +4791,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                              wei_shift_bias + 3 * hy_h,
                                              hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h);
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
 
                                 //
@@ -4966,11 +4824,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                              hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h +
                                                  hy_h);
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
                             }
                             else
@@ -5007,11 +4861,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                              wei_shift_bias_temp + 3 * hy_h,
                                              hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h);
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
 
                                 //
@@ -5043,11 +4893,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                              wei_shift_bias_temp + wei_stride + 3 * hy_h,
                                              hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h);
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
 
                                 //
@@ -5080,11 +4926,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                              hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h +
                                                  hy_h);
                                     // Update time
-                                    if(handle.IsProfilingEnabled())
-                                    {
-                                        time_0 = handle.GetKernelTime();
-                                        handle.AccumKernelTime(time_0);
-                                    }
+                                    profileRNNkernels(handle, 1);
                                 }
                             }
                         }
@@ -5108,7 +4950,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                         offset + 3 * hy_h,
                                         offset + 3 * hy_h + nLayers * batch_n * hy_stride);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // calculate c gate
                         sp_size[3] = hy_h;
@@ -5136,7 +4978,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
                                  hid_shift + baccbi * hy_stride + 5 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // active c gate
                         tanhDesc.Forward(handle,
@@ -5149,11 +4991,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          offset + 5 * hy_h,
                                          offset + 5 * hy_h + nLayers * batch_n * hy_stride);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         // calculate hidden state
                         alpha0 = -1;
@@ -5176,11 +5014,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      nLayers * batch_n * hy_stride,
                                  hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 0;
@@ -5202,11 +5036,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
                                  hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -5254,11 +5084,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
                         }
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         // update hy
                         hx_size[2] = in_n[seqLen - 1 - ti];
@@ -5275,11 +5101,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
                                    hx_shift + hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -5314,7 +5136,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                          hx_shift + in_n[seqLen - 1] * h_stride,
                          hx_shift + in_n[seqLen - 1] * h_stride);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
             }
         }
 
@@ -5338,7 +5160,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                    prelayer_shift,
                    0);
         // Update time
-        profileSequence(handle, 1);
+        profileRNNkernels(handle, 2); // done timing
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -5379,7 +5201,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     Data_t dcx,
                                     Data_t workSpace,
                                     size_t workSpaceSize,
-                                    ConstData_t reserveSpace,
+                                    Data_t reserveSpace,
                                     size_t reserveSpaceSize) const
 {
 
@@ -5513,7 +5335,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                          0,
                          hid_shift);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 0); // start timing
             }
             else
             {
@@ -5536,11 +5358,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                 gg.RunGemm(handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift);
 
                 // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_gemm = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_gemm);
-                }
+                profileRNNkernels(handle, 1);
             }
 
             // from hidden state
@@ -5605,6 +5423,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  hx_shift,
                                  hid_shift + bacc * hy_stride);
                     }
+                    
+                    // Update time
+                    profileRNNkernels(handle, 1);
 
                     // activation
                     offset = hid_shift + bacc * hy_stride;
@@ -5625,11 +5446,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        offset);
 
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     gg = CreateGemmGeometryRNN(in_n[ti],
                                                hy_h,
@@ -5654,7 +5471,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                hx_shift);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(dirMode)
@@ -5706,6 +5523,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      hx_shift + hy_h,
                                      hid_shift + baccbi * hy_stride + hy_h);
                         }
+                        
+                        // Update time
+                        profileRNNkernels(handle, 1);
 
                         // activation
                         offset = hid_shift + baccbi * hy_stride + hy_h;
@@ -5730,7 +5550,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            offset);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
                                                    hy_h,
@@ -5755,7 +5575,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    hx_shift + hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -5776,6 +5596,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             miopenSetTensorDescriptor(x_desc, miopenFloat, 4, x_size.data(), x_stride.data());
 
             CopyTensor(handle, miopen::deref(sp_desc), workSpace, miopen::deref(x_desc), dx, 0, 0);
+            
+            // Update time
+            profileRNNkernels(handle, 1);
 
             if(dirMode)
             {
@@ -5797,6 +5620,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                          hy_h,
                          hy_h,
                          0);
+                
+                // Update time
+                profileRNNkernels(handle, 1);
             }
         }
         else
@@ -5818,11 +5644,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             gg.RunGemm(handle, workSpace, w, dx, 0, 0, 0);
 
             // Update time
-            if(handle.IsProfilingEnabled())
-            {
-                time_gemm = handle.GetKernelTime();
-                handle.AccumKernelTime(time_gemm);
-            }
+            profileRNNkernels(handle, 1);
         }
 #else
         MIOPEN_THROW("GEMM is not supported");
@@ -5880,7 +5702,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                          hid_shift + bi * 5 * hy_h);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 0);
             }
             else
             {
@@ -5909,11 +5731,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                            hid_shift + bi * 5 * hy_h);
 
                 // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_gemm = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_gemm);
-                }
+                profileRNNkernels(handle, 1);
             }
 
             // from hidden state
@@ -5957,12 +5775,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  hx_shift,
                                  hx_shift,
                                  hid_shift + bacc * hy_stride + bi * 5 * hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -5994,12 +5809,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      hx_shift + hy_h,
                                      hx_shift + hy_h,
                                      hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h);
+                            
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -6033,11 +5845,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    hid_shift + bacc * hy_stride + bi * 5 * hy_h);
 
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_gemm = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_gemm);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -6072,11 +5880,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h);
 
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_gemm = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_gemm);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -6108,11 +5912,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                       offset + bi * 4 * hy_h,
                                       offset + bi * 4 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 1;
@@ -6132,12 +5932,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              offset + bi * 4 * hy_h,
                              offset + 2 * hy_h + nLayers * batch_n * hy_stride,
                              offset + bi * 4 * hy_h);
+                    
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     if(ti == seqLen - 1)
                     {
@@ -6170,12 +5967,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  hx_shift,
                                  hx_shift,
                                  offset + bi * 4 * hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
                     else
                     {
@@ -6205,12 +5999,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  pretime_shift + bi * 4 * hy_h,
                                  pretime_shift + hy_h + nLayers * batch_n * hy_stride,
                                  offset + bi * 4 * hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
 
                     // update forget gate
@@ -6235,12 +6026,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      offset + bi * 4 * hy_h,
                                      offset + hy_h,
                                      offset + hy_h);
+                    
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     if(ti == 0)
                     {
@@ -6268,12 +6056,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  offset + hy_h,
                                  hx_shift,
                                  offset + hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
                     else
                     {
@@ -6298,12 +6083,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  offset + hy_h,
                                  pretime_shift + bi * 4 * hy_h,
                                  offset + hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
 
                     // update input gate
@@ -6323,11 +6105,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      offset,
                                      offset);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 1;
@@ -6348,11 +6126,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              offset + 3 * hy_h + nLayers * batch_n * hy_stride,
                              offset);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     // update output gate
                     sigDesc.Backward(handle,
@@ -6371,11 +6145,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      offset + 2 * hy_h,
                                      offset + 2 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 1;
@@ -6396,11 +6166,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              offset + bi * 4 * hy_h + nLayers * batch_n * hy_stride,
                              offset + 2 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     // update c gate
                     tanhDesc.Backward(handle,
@@ -6419,11 +6185,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                       offset + 3 * hy_h,
                                       offset + 3 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 1;
@@ -6443,12 +6205,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              offset + 3 * hy_h,
                              offset + nLayers * batch_n * hy_stride,
                              offset + 3 * hy_h);
+                    
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(dirMode)
@@ -6480,11 +6239,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                           offset + bi * 4 * hy_h + hy_h,
                                           offset + bi * 4 * hy_h + hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -6505,11 +6260,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  offset + 6 * hy_h + nLayers * batch_n * hy_stride,
                                  offset + bi * 4 * hy_h + hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         if(ti == seqLen - 1)
                         {
@@ -6538,11 +6289,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      hx_shift + hy_h,
                                      hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
                         else
                         {
@@ -6568,11 +6315,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      pretime_shift + 5 * hy_h + nLayers * batch_n * hy_stride,
                                      offset + bi * 4 * hy_h + hy_h);
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
 
                         // update forget gate
@@ -6594,11 +6337,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                              offset + 5 * hy_h,
                                              offset + 5 * hy_h);
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
 
                             hx_size[2] = in_n[seqLen - 1 - ti];
                             hx_size[3] = hy_h;
@@ -6625,11 +6364,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      hx_shift + hy_h,
                                      offset + 5 * hy_h);
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
                         else
                         {
@@ -6664,11 +6399,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                  offset + 5 * hy_h,
                                                  offset + 5 * hy_h);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -6685,11 +6416,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          pretime_shift + bi * 4 * hy_h + hy_h,
                                          offset + 5 * hy_h);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
                         }
 
@@ -6716,11 +6443,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          offset + 4 * hy_h,
                                          offset + 4 * hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -6741,11 +6464,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  offset + 7 * hy_h + nLayers * batch_n * hy_stride,
                                  offset + 4 * hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         // update output gate
                         sigDesc.Backward(handle,
@@ -6764,11 +6483,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          offset + 6 * hy_h,
                                          offset + 6 * hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -6789,11 +6504,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  offset + bi * 4 * hy_h + hy_h + nLayers * batch_n * hy_stride,
                                  offset + 6 * hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         // update c gate
                         tanhDesc.Backward(handle,
@@ -6812,11 +6523,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                           offset + 7 * hy_h,
                                           offset + 7 * hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -6837,11 +6544,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  offset + 4 * hy_h + nLayers * batch_n * hy_stride,
                                  offset + 7 * hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -6871,11 +6574,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                 gg.RunGemm(handle, workSpace, w, dhx, pretime_shift, weitime_shift, hx_shift);
 
                 // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_gemm = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_gemm);
-                }
+                profileRNNkernels(handle, 1);
 
                 sp_size[2] = in_n[0];
                 sp_size[3] = hy_h;
@@ -6907,11 +6606,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                          pretime_shift + hy_h + nLayers * batch_n * hy_stride,
                          hx_shift);
                 // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_0 = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_0);
-                }
+                profileRNNkernels(handle, 1);
             }
 
             if(dirMode)
@@ -6943,11 +6638,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                hx_shift + hy_h);
 
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_gemm = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_gemm);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     sp_size[2] = in_n[seqLen - 1];
                     sp_size[3] = hy_h;
@@ -6979,11 +6670,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              pretime_shift + 5 * hy_h + nLayers * batch_n * hy_stride,
                              hx_shift + hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
                 }
             }
         }
@@ -7021,11 +6708,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                          gi * hy_h,
                          0);
                 // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_0 = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_0);
-                }
+                if(!dirMode && gi==3)profileRNNkernels(handle, 2);
+                else profileRNNkernels(handle, 1);
 
                 if(dirMode)
                 {
@@ -7044,11 +6728,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              (gi + 4) * hy_h,
                              0);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, (gi==3)?2:1);
                 }
             }
         }
@@ -7071,11 +6751,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             gg.RunGemm(handle, workSpace, w, dx, 0, 0, 0);
 
             // Update time
-            if(handle.IsProfilingEnabled())
-            {
-                time_gemm = handle.GetKernelTime();
-                handle.AccumKernelTime(time_gemm);
-            }
+            profileRNNkernels(handle, 2);
         }
 #else
         MIOPEN_THROW("GEMM is not supported");
@@ -7134,7 +6810,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                          hid_shift + bi * 3 * hy_h);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 0);
             }
             else
             {
@@ -7163,11 +6839,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                            hid_shift + bi * 3 * hy_h);
 
                 // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_gemm = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_gemm);
-                }
+                profileRNNkernels(handle, 1);
             }
 
             // from hidden state
@@ -7211,12 +6883,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  hx_shift,
                                  hx_shift,
                                  hid_shift + bacc * hy_stride + bi * 3 * hy_h);
+                        
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -7252,12 +6921,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      hx_shift + hy_h,
                                      hx_shift + hy_h,
                                      hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+                            
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -7290,11 +6956,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    hid_shift + bacc * hy_stride + bi * 3 * hy_h);
 
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_gemm = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_gemm);
-                        }
+                        profileRNNkernels(handle, 1);
 
                         sp_size[2] = in_n[ti + 1];
                         sp_size[3] = hy_h;
@@ -7321,7 +6983,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  pretime_shift + nLayers * batch_n * hy_stride,
                                  hid_shift + bacc * hy_stride + bi * 3 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -7342,7 +7004,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  pretime_shift + hy_h + nLayers * batch_n * hy_stride,
                                  hid_shift + bacc * hy_stride + 2 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         gg = CreateGemmGeometryRNN(in_n[ti + 1],
                                                    hy_h,
@@ -7367,11 +7029,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    hid_shift + bacc * hy_stride + bi * 3 * hy_h);
 
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_gemm = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_gemm);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(dirMode)
@@ -7404,11 +7062,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_gemm = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_gemm);
-                            }
+                            profileRNNkernels(handle, 1);}
 
                             sp_size[2] = in_n[seqLen - 1 - ti];
                             sp_size[3] = hy_h;
@@ -7435,7 +7089,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      pretime_shift + nLayers * batch_n * hy_stride,
                                      hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
 
                             alpha0 = 1;
                             alpha1 = 1;
@@ -7457,7 +7111,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      hid_shift + baccbi * hy_stride + 5 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
 
                             gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
                                                        hy_h,
@@ -7482,9 +7136,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
-                    }
                 }
 
                 // update z, r, c gate
@@ -7517,11 +7170,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
                              hid_shift + bacc * hy_stride + 2 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 0;
@@ -7542,11 +7191,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              hid_shift + bacc * hy_stride + bi * 3 * hy_h,
                              hid_shift + bacc * hy_stride + 2 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     tanhDesc.Backward(handle,
                                       &alpha,
@@ -7564,11 +7209,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                       offset + 2 * hy_h,
                                       offset + 2 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     // r gate
                     if(ti == 0)
@@ -7596,7 +7237,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    hid_shift + bacc * hy_stride + hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                     else
                     {
@@ -7623,7 +7264,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    hid_shift + bacc * hy_stride + hy_h);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     alpha0 = 1;
@@ -7645,11 +7286,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              hid_shift + bacc * hy_stride + hy_h,
                              hid_shift + bacc * hy_stride + hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     sigDesc.Backward(handle,
                                      &alpha,
@@ -7667,11 +7304,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      offset + hy_h,
                                      offset + hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     // z gate
                     alpha0 = 1;
@@ -7721,11 +7354,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  hid_shift + bacc * hy_stride);
                     }
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 1;
@@ -7746,7 +7375,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              hid_shift + bacc * hy_stride,
                              hid_shift + bacc * hy_stride);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     sigDesc.Backward(handle,
                                      &alpha,
@@ -7764,8 +7393,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      offset,
                                      offset);
                     // Update time
-                    //                    if(gi==3) profileSequence(handle, 2);
-                    //                    else profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(dirMode)
@@ -7800,7 +7428,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      nLayers * batch_n * hy_stride,
                                  hid_shift + baccbi * hy_stride + 5 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         alpha0 = 1;
                         alpha1 = 0;
@@ -7821,7 +7449,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
                                  hid_shift + baccbi * hy_stride + 5 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         tanhDesc.Backward(handle,
                                           &alpha,
@@ -7839,7 +7467,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                           offset + 5 * hy_h,
                                           offset + 5 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // r gate
                         if(ti == 0)
@@ -7867,7 +7495,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                         else
                         {
@@ -7898,11 +7526,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_gemm = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_gemm);
-                                }
+                                profileRNNkernels(handle, 1);
                             }
                         }
 
@@ -7925,7 +7549,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  hid_shift + baccbi * hy_stride + 4 * hy_h,
                                  hid_shift + baccbi * hy_stride + 4 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         sigDesc.Backward(handle,
                                          &alpha,
@@ -7943,7 +7567,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          offset + 4 * hy_h,
                                          offset + 4 * hy_h);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
 
                         // z gate
                         if(ti == 0)
@@ -7974,11 +7598,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          nLayers * batch_n * hy_stride,
                                      hid_shift + baccbi * hy_stride + 3 * hy_h);
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
 
                             alpha0 = 1;
                             alpha1 = 1;
@@ -7999,7 +7619,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      hid_shift + baccbi * hy_stride + 3 * hy_h,
                                      hid_shift + baccbi * hy_stride + 3 * hy_h);
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
 
                             sigDesc.Backward(handle,
                                              &alpha,
@@ -8017,11 +7637,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                              offset + 3 * hy_h,
                                              offset + 3 * hy_h);
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
                         else
                         {
@@ -8054,11 +7670,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                              nLayers * batch_n * hy_stride,
                                          hid_shift + baccbi * hy_stride + 3 * hy_h);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
 
                                 alpha0 = 1;
                                 alpha1 = 1;
@@ -8079,11 +7691,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          hid_shift + baccbi * hy_stride + 3 * hy_h,
                                          hid_shift + baccbi * hy_stride + 3 * hy_h);
                                 // Update time
-                                if(handle.IsProfilingEnabled())
-                                {
-                                    time_0 = handle.GetKernelTime();
-                                    handle.AccumKernelTime(time_0);
-                                }
+                                profileRNNkernels(handle, 1);
 
                                 sigDesc.Backward(handle,
                                                  &alpha,
@@ -8101,7 +7709,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                  offset + 3 * hy_h,
                                                  offset + 3 * hy_h);
                                 // Update time
-                                profileSequence(handle, 1);
+                                profileRNNkernels(handle, 1);
                             }
                         }
                     }
@@ -8145,11 +7753,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                          pretime_shift + hy_h + nLayers * batch_n * hy_stride,
                          pretime_shift + bi * 3 * hy_h + nLayers * batch_n * hy_stride);
                 // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_0 = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_0);
-                }
+                profileRNNkernels(handle, 1);
 
                 gg = CreateGemmGeometryRNN(in_n[0],
                                            hy_h,
@@ -8174,11 +7778,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                            hx_shift);
 
                 // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_gemm = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_gemm);
-                }
+                profileRNNkernels(handle, 1);
 
                 alpha0 = 1;
                 alpha1 = 1;
@@ -8199,7 +7799,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                          pretime_shift + nLayers * batch_n * hy_stride,
                          hx_shift);
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 gg = CreateGemmGeometryRNN(in_n[0],
                                            hy_h,
@@ -8218,7 +7818,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                 gg.RunGemm(handle, workSpace, w, dhx, pretime_shift, weitime_shift, hx_shift);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
             }
 
             if(dirMode)
@@ -8258,11 +7858,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              pretime_shift + 4 * hy_h + nLayers * batch_n * hy_stride,
                              pretime_shift + bi * 3 * hy_h + hy_h + nLayers * batch_n * hy_stride);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     gg = CreateGemmGeometryRNN(in_n[seqLen - 1],
                                                hy_h,
@@ -8287,7 +7883,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                hx_shift + hy_h);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
 
                     alpha0 = 1;
                     alpha1 = 1;
@@ -8308,11 +7904,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              pretime_shift + 3 * hy_h + nLayers * batch_n * hy_stride,
                              hx_shift + hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
 
                     gg = CreateGemmGeometryRNN(in_n[seqLen - 1],
                                                hy_h,
@@ -8337,7 +7929,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                hx_shift + hy_h);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
             }
         }
@@ -8375,11 +7967,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                          gi * hy_h,
                          0);
                 // Update time
-                if(handle.IsProfilingEnabled())
-                {
-                    time_0 = handle.GetKernelTime();
-                    handle.AccumKernelTime(time_0);
-                }
+                if(!dirMode && gi==2) profileRNNkernels(handle, 2);
+                else profileRNNkernels(handle, 1);
 
                 if(dirMode)
                 {
@@ -8398,11 +7987,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                              (gi + 3) * hy_h,
                              0);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, (gi==2)?2:1);
                 }
             }
         }
@@ -8425,7 +8010,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             gg.RunGemm(handle, workSpace, w, dx, 0, 0, 0);
 
             // Update time
-            profileSequence(handle, 2);
+            profileRNNkernels(handle, 2);
         }
 #else
         MIOPEN_THROW("GEMM is not supported");
@@ -8455,7 +8040,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        ConstData_t dy,
                                        const TensorDescriptor& dwDesc,
                                        Data_t dw,
-                                       ConstData_t workSpace,
+                                       Data_t workSpace,
                                        size_t workSpaceSize,
                                        ConstData_t reserveSpace,
                                        size_t reserveSpaceSize) const
@@ -8500,7 +8085,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * workspaceScale;
     int h_stride   = hy_h * bi;
-    int out_stride = out_h;
     int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
 
     if(inputMode == miopenRNNskip)
@@ -8515,7 +8099,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     }
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (nLayers - 1)) * wei_stride;
-    size_t offset;
+    
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
 
@@ -8561,7 +8145,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     gg.RunGemm(handle, x, workSpace, dw, 0, 0, 0);
 
                     // Update time
-                    profileSequence(handle, 0);
+                    profileRNNkernels(handle, 0);
                 }
 
                 if(biasMode)
@@ -8600,9 +8184,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         // Update time
                         if((inputMode != miopenRNNlinear) && bs == 0)
-                            profileSequence(handle, 0);
+                            profileRNNkernels(handle, 0);
                         else
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                     }
 
                     if(inputMode == miopenRNNlinear)
@@ -8615,7 +8199,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    wei_shift_bias,
                                    wei_shift_bias + wei_stride);
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
             }
@@ -8648,7 +8232,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                            wei_shift);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 if(biasMode)
                 {
@@ -8689,7 +8273,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                  wei_shift);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     CopyTensor(handle,
@@ -8700,7 +8284,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                wei_shift,
                                wei_shift + wei_stride);
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
             }
 
@@ -8736,7 +8320,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         gg.RunGemm(handle, hx, workSpace, dw, hx_shift, hid_shift, wei_shift);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
                 else
@@ -8768,7 +8352,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    wei_shift);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        if(!dirMode && ti==seqLen-1) profileRNNkernels(handle, 2);
+                        else profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -8801,7 +8386,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        wei_shift + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 2);
                         }
                     }
                     else
@@ -8833,7 +8418,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        wei_shift + hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -8878,7 +8463,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     gg.RunGemm(handle, x, workSpace, dw, 0, 0, 0);
 
                     // Update time
-                    profileSequence(handle, 0);
+                    profileRNNkernels(handle, 0);
                 }
 
                 if(biasMode)
@@ -8917,9 +8502,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         // Update time
                         if((inputMode != miopenRNNlinear) && bs == 0)
-                            profileSequence(handle, 0);
+                            profileRNNkernels(handle, 0);
                         else
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                     }
 
                     if(inputMode == miopenRNNlinear)
@@ -8933,7 +8518,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    wei_shift_bias + wei_stride);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
             }
@@ -8961,7 +8546,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     handle, reserveSpace, workSpace, dw, prelayer_shift, hid_shift, wei_shift);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 if(biasMode)
                 {
@@ -9002,7 +8587,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                  wei_shift);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
 
                     CopyTensor(handle,
@@ -9014,7 +8599,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                wei_shift + wei_stride);
 
                     // Update time
-                    profileSequence(handle, 1);
+                    profileRNNkernels(handle, 1);
                 }
             }
 
@@ -9048,7 +8633,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         gg.RunGemm(handle, hx, workSpace, dw, hx_shift, hid_shift, wei_shift);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
                 else
@@ -9082,11 +8667,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         // Update time
                         if(dirMode)
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         else if((li == nLayers) && (ti == seqLen - 1))
-                            profileSequence(handle, 2);
+                            profileRNNkernels(handle, 2);
                         else
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -9119,7 +8704,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        wei_shift + 4 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 2);
+                            profileRNNkernels(handle, 2);
                         }
                     }
                     else
@@ -9152,7 +8737,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        wei_shift + 4 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -9199,7 +8784,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     gg.RunGemm(handle, x, workSpace, dw, 0, 0, 0);
 
                     // Update time
-                    profileSequence(handle, 0);
+                    profileRNNkernels(handle, 0);
 
                     if(biasMode)
                     {
@@ -9236,11 +8821,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                      wei_shift_bias);
 
                             // Update time
-                            if(handle.IsProfilingEnabled())
-                            {
-                                time_0 = handle.GetKernelTime();
-                                handle.AccumKernelTime(time_0);
-                            }
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -9269,7 +8850,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     handle, reserveSpace, workSpace, dw, prelayer_shift, hid_shift, wei_shift);
 
                 // Update time
-                profileSequence(handle, 1);
+                profileRNNkernels(handle, 1);
 
                 if(biasMode)
                 {
@@ -9311,11 +8892,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                  wei_shift);
 
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
                 }
             }
@@ -9355,11 +8932,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                              hid_shift + 2 * hy_h,
                              hid_shift + 2 * hy_h);
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, 1);
                 }
 
                 if(ti == 0)
@@ -9383,7 +8956,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         gg.RunGemm(handle, hx, workSpace, dw, hx_shift, hid_shift, wei_shift);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
                 else
@@ -9416,7 +8989,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    wei_shift);
 
                         // Update time
-                        profileSequence(handle, 1);
+                        profileRNNkernels(handle, 1);
                     }
                 }
 
@@ -9439,11 +9012,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                  hid_shift + 5 * hy_h,
                                  hid_shift + 5 * hy_h);
                         // Update time
-                        if(handle.IsProfilingEnabled())
-                        {
-                            time_0 = handle.GetKernelTime();
-                            handle.AccumKernelTime(time_0);
-                        }
+                        profileRNNkernels(handle, 1);
                     }
 
                     if(ti == seqLen - 1)
@@ -9473,7 +9042,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        wei_shift + 3 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            if(!biasMode)profileRNNkernels(handle, 2);
+                            else profileRNNkernels(handle, 1);
                         }
                     }
                     else
@@ -9506,7 +9076,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        wei_shift + 3 * hy_h);
 
                             // Update time
-                            profileSequence(handle, 1);
+                            profileRNNkernels(handle, 1);
                         }
                     }
                 }
@@ -9552,11 +9122,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                              wei_shift);
 
                     // Update time
-                    if(handle.IsProfilingEnabled())
-                    {
-                        time_0 = handle.GetKernelTime();
-                        handle.AccumKernelTime(time_0);
-                    }
+                    profileRNNkernels(handle, (bs==batch_n-1)?2:1);
                 }
             }
         }

@@ -1846,7 +1846,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
  * weight matrix.
  *
  * @param handle          MIOpen handle (input)
- * @param rnnDesc         RNN layer descriptor type (input)
+ * @param rnnDesc         Fully populated RNN layer descriptor type (input)
  * @param xDesc           A previously populated tensor descriptor (input)
  * @param wDesc           A previously allocated tensor descriptor (output)
  * @param dtype           MIOpen data type enum (input)
@@ -1858,13 +1858,40 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
                                                           miopenTensorDescriptor_t wDesc,
                                                           miopenDataType_t dtype);
 
-MIOPEN_EXPORT miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t handle,
+
+/*! @brief Obtain a the size in bytes of the RNN input tensor
+ *
+ * This function determines the size in bytes of the allocation needed for the input data
+ * tensor for an RNN layer. The number of bytes is derived from the array of 
+ * tensor descriptors.
+ *
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         Fully populated RNN layer descriptor (input)
+ * @param seqLen          Number of iteration unrolls (input)
+ * @param xDesc           An array of previously populated tensor descriptors (input)
+ * @param numBytes        Number of bytes required for input tensor (output)
+ * @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNInputTensorSize(miopenHandle_t handle,
                                                               miopenRNNDescriptor_t rnnDesc,
                                                               const int seqLen,
                                                               miopenTensorDescriptor_t* xDesc,
                                                               size_t* numBytes);
 
-MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenSuperTensorSize(miopenHandle_t handle,
+
+/*! @brief Obtain a the size in bytes of the RNN hidden tensor
+ *
+ * This function determines the size in bytes of the allocation needed for the 
+ * hidden tensor over all layers
+ *
+ * @param handle          MIOpen handle (input)
+ * @param rnnDesc         Fully populated RNN layer descriptor type (input)
+ * @param seqLen          Number of iteration unrolls (input)
+ * @param xDesc           An array of previously populated tensor descriptors (input)
+ * @param numBytes        Number of bytes required for input tensor (output)
+ * @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenTensorSize(miopenHandle_t handle,
                                                                miopenRNNDescriptor_t rnnDesc,
                                                                const int seqLen,
                                                                miopenTensorDescriptor_t* xDesc,
@@ -2073,7 +2100,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
                                                    void* dcx,
                                                    void* workSpace,
                                                    size_t workSpaceNumBytes,
-                                                   const void* reserveSpace,
+                                                   void* reserveSpace,
                                                    size_t reserveSpaceNumBytes);
 
 /*! @brief Execute forward training for recurrent layer
@@ -2108,7 +2135,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
                                                       const void* y,
                                                       const miopenTensorDescriptor_t dwDesc,
                                                       void* dw,
-                                                      const void* workSpace,
+                                                      void* workSpace,
                                                       size_t workSpaceNumBytes,
                                                       const void* reserveSpace,
                                                       size_t reserveSpaceNumBytes);
