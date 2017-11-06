@@ -524,7 +524,7 @@ int PoolDriver<T>::VerifyBackward()
 
     if(hOut <= 0 || wOut <= 0)
         MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
-    
+
     if(pmode == miopenPaddingSame)
     {
         pad_h = (hIn % u == 0) ? (std::max((windowHeight - u), 0))
