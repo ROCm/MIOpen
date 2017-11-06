@@ -60,7 +60,7 @@ struct LegacyPerformanceConfig : Serializable<LegacyPerformanceConfig>
         iud.n_stacks        = n_stacks;
     }
 
-    template<class Self, class F>
+    template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
         f(self.grp_tile1, "temp.grp_tile1");
