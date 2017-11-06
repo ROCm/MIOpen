@@ -519,38 +519,6 @@ size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& handle,
     return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
 }
 
-/* Get weight super tensor size
-temporary function assuming output matrix exists */
-size_t RNNDescriptor::GetRNNWeightSuperTensorSize(Handle& handle,
-                                                  const TensorDescriptor& xDesc,
-                                                  const TensorDescriptor& yDesc)
-{
-    auto ih = xDesc.GetLengths()[1], oh = yDesc.GetLengths()[1];
-    if(inputMode == miopenRNNskip)
-        ih = 0;
-
-    if(ih != inputVectorLen)
-    {
-        // Reset these in case of xDesc changing.
-        pTensorDims.clear();
-        biasOffset.clear();
-        paramOffset.clear();
-        inputVectorLen = ih;
-    }
-
-    int bi = (dirMode == miopenRNNbidirection) ? 2 : 1;
-    auto sz =
-        nHiddenTensorsPerLayer * hsize * bi * (ih + hsize + (nLayers - 1) * (bi + 1) * hsize) +
-        oh * hsize * bi;
-    if(biasMode == miopenRNNwithBias)
-    {
-        auto in_bias = inputMode == miopenRNNskip ? 1 : 2;
-        sz += (in_bias + (nLayers - 1) * (bi + 1)) * nHiddenTensorsPerLayer * hsize * bi + bi * oh;
-    }
-
-    return size_t(sz);
-}
-
 void RNNDescriptor::GetParamsDescriptor(Handle& handle,
                                         const TensorDescriptor& xDesc,
                                         TensorDescriptor& wDesc,
