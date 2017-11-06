@@ -1871,15 +1871,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenSuperTensorSize(miopenHandle_t ha
                                                                miopenTensorDescriptor_t* xDesc,
                                                                size_t* numBytes);
 
-/* Get weight super tensor size
-* temporary function assuming output matrix exists.
-*/
-MIOPEN_EXPORT miopenStatus_t miopenGetRNNWeightSuperTensorSize(miopenHandle_t handle,
-                                                               miopenRNNDescriptor_t rnnDesc,
-                                                               size_t* numBytes,
-                                                               miopenTensorDescriptor_t xDesc,
-                                                               miopenTensorDescriptor_t yDesc);
-
 /*! @brief Gets a pointer to memory containing parameter tensor for a specific layer in an RNN stack
  *
  *
