@@ -163,7 +163,7 @@ extern "C" miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
     });
 }
 
-extern "C" miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t handle,
+extern "C" miopenStatus_t miopenGetRNNInputTensorSize(miopenHandle_t handle,
                                                            miopenRNNDescriptor_t rnnDesc,
                                                            const int seqLen,
                                                            miopenTensorDescriptor_t* xDesc,
@@ -177,7 +177,7 @@ extern "C" miopenStatus_t miopenGetRNNInputSuperTensorSize(miopenHandle_t handle
     });
 }
 
-extern "C" miopenStatus_t miopenGetRNNHiddenSuperTensorSize(miopenHandle_t handle,
+extern "C" miopenStatus_t miopenGetRNNHiddenTensorSize(miopenHandle_t handle,
                                                             miopenRNNDescriptor_t rnnDesc,
                                                             const int seqLen,
                                                             miopenTensorDescriptor_t* xDesc,
@@ -378,7 +378,7 @@ extern "C" miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
                                                 void* dcx,
                                                 void* workSpace,
                                                 size_t workSpaceNumBytes,
-                                                const void* reserveSpace,
+                                                void* reserveSpace,
                                                 size_t reserveSpaceNumBytes)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc,
@@ -452,7 +452,7 @@ miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
                                         const void* dy,
                                         const miopenTensorDescriptor_t dwDesc,
                                         void* dw,
-                                        const void* workSpace,
+                                        void* workSpace,
                                         size_t workSpaceNumBytes,
                                         const void* reserveSpace,
                                         size_t reserveSpaceNumBytes)
