@@ -388,50 +388,6 @@ void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& co
     MIOPEN_LOG_I(ToString());
 }
 
-static bool DeserializeField(const char separator, std::istream& from, int& to)
-{
-    std::string part;
-
-    if(!std::getline(from, part, separator))
-        return false;
-
-    const auto start = part.c_str();
-    char* end;
-    to = std::strtol(start, &end, 10);
-    return start != end;
-}
-
-void PerformanceConfigAsmDirect3x3WrW::Serialize(std::ostream& stream) const
-{
-    static const auto sep = ','; // clang-format off
-    stream << limit_wave_cnt
-        << sep << reverse_inout
-        << sep << chunk_size
-        << sep << k_per_wave
-        << sep << pipe_lines_depth
-        << sep << n_per_group; // clang-format on
-}
-
-bool PerformanceConfigAsmDirect3x3WrW::Deserialize(const std::string& str)
-{
-    PerformanceConfigAsmDirect3x3WrW out;
-    {
-        std::istringstream tmp(str);
-        const auto ok = // clang-format off
-            DeserializeField(',', tmp, out.limit_wave_cnt) &&
-            DeserializeField(',', tmp, out.reverse_inout) &&
-            DeserializeField(',', tmp, out.chunk_size) &&
-            DeserializeField(',', tmp, out.k_per_wave) &&
-            DeserializeField(',', tmp, out.pipe_lines_depth) &&
-            DeserializeField(',', tmp, out.n_per_group); // clang-format on
-
-        if(!ok)
-            return false;
-    }
-    *this = out;
-    return true;
-}
-
 std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
 {
     std::ostringstream ss;
