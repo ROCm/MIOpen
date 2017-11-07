@@ -133,7 +133,7 @@ std::size_t TensorDescriptor::GetNumBytes() const
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
 {
     assert(this->lens.size() == rhs.strides.size());
-    return this->type == rhs.type && this->lens == rhs.lens;
+    return this->type == rhs.type && this->lens == rhs.lens && this->strides == rhs.strides;
 }
 
 bool TensorDescriptor::operator!=(const TensorDescriptor& rhs) const { return !(*this == rhs); }
