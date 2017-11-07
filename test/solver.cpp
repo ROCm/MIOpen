@@ -38,7 +38,7 @@
 
 namespace miopen {
 namespace tests {
-class TrivialSlowTestSolver : public solver::Solver
+class TrivialSlowTestSolver : public solver::SolverBase
 {
     public:
     static const char* FileName() { return "TrivialSlowTestSolver"; }
@@ -59,7 +59,7 @@ class TrivialSlowTestSolver : public solver::Solver
     }
 };
 
-class TrivialTestSolver : public solver::Solver
+class TrivialTestSolver : public solver::SolverBase
 {
     public:
     static const char* FileName() { return "TrivialTestSolver"; }
@@ -90,7 +90,7 @@ struct TestConfig : solver::Serializable<TestConfig>
     }
 };
 
-class SearchableTestSolver : public solver::Solver
+class SearchableTestSolver : public solver::SolverBase
 {
     public:
     static int searches_done() { return _serches_done; }
