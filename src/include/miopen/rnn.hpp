@@ -94,6 +94,7 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNInputMode_t inputMode;
     miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
+    std::size_t typeSize;
 
     size_t biasOffsetCalculation(const TensorDescriptor& xDesc, int layer, int layerID);
 
@@ -113,12 +114,21 @@ struct RNNDescriptor : miopenRNNDescriptor
                              TensorDescriptor& wDesc,
                              miopenDataType_t dtype);
 
+    std::size_t GetLayerParamSize(Handle& handle,
+                       int layer,
+                       const TensorDescriptor& xDesc,
+                       int paramID);
+    
+    std::size_t GetLayerBiasSize(Handle& handle,
+                       int layer,
+                       int biasID);
+    
     void GetLayerParam(Handle& handle,
                        int layer,
                        const TensorDescriptor& xDesc,
                        const TensorDescriptor& wDesc,
                        ConstData_t w,
-                       int layerID,
+                       int paramID,
                        TensorDescriptor& paramDesc,
                        Data_t param);
 
@@ -127,7 +137,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                       const TensorDescriptor& xDesc,
                       const TensorDescriptor& wDesc,
                       ConstData_t w,
-                      int layerID,
+                      int biasID,
                       TensorDescriptor& biasDesc,
                       Data_t bias);
 
@@ -136,7 +146,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                        const TensorDescriptor& xDesc,
                        const TensorDescriptor& wDesc,
                        Data_t w,
-                       int layerID,
+                       int paramID,
                        const TensorDescriptor& paramDesc,
                        ConstData_t param);
 
@@ -145,7 +155,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                       const TensorDescriptor& xDesc,
                       const TensorDescriptor& wDesc,
                       Data_t w,
-                      int layerID,
+                      int biasID,
                       const TensorDescriptor& biasDesc,
                       ConstData_t bias);
 

@@ -3,7 +3,7 @@
 
 #define ADNN_MM_TRANSPOSE 1
 
-#include <math.h>
+#include <cmath>
 #include <cassert>
 #include <algorithm>
 
@@ -175,12 +175,12 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
             }
             else
             {
-                ADNN_mm_cpu<T>(const_cast<T*>(in_state), //(const T*)&in_state[0],
+                ADNN_mm_cpu<T>(const_cast<T*>(in_state), 
                                in_h,
                                batch_n,
                                in_stride,
                                0,
-                               const_cast<T*>(wei_state), //(const T*)&wei_state[0],
+                               const_cast<T*>(wei_state),
                                hy_h * bi,
                                in_h,
                                hy_stride,
