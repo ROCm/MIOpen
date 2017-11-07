@@ -29,6 +29,7 @@
 
 #include <miopen/config.h>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 namespace miopen {
