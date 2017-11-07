@@ -134,12 +134,19 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
         }
         MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId(s) << ": " << config);
     }
-    else if(context.do_search) // TODO: Make it a customization point
+    if(context.do_search) // TODO: Make it a customization point
     {
         MIOPEN_LOG_I("Starting search: " << SolverId(s));
-        auto c = s.Search(context);
-        dbRecord.Store(SolverId(s), c);
-        return s.GetSolution(context, c);
+        try 
+        {
+            auto c = s.Search(context);
+            dbRecord.Store(SolverId(s), c);
+            return s.GetSolution(context, c);
+        } 
+        catch(const miopen::Exception& ex) 
+        {
+            MIOPEN_LOG_I("Search failed for: " << SolverId(s) << ": " << ex.what());
+        }
     }
     return s.GetSolution(context, s.GetPerformanceConfig(context));
 }
