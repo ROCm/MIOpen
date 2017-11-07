@@ -362,21 +362,137 @@ void OpTensor(Handle& handle,
     }
 }
 
+struct copyTensorDesc
+{
+    int dims;
+    int lens[5];
+    int strides[5];
+    long realsize;
+};
+
 void CopyTensor(Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& destDesc,
-                Data_t dest)
+                Data_t dest,
+                int srcOffset,
+                int destOffset)
 {
 
-    if(srcDesc.GetElementSize() != destDesc.GetElementSize() ||
-       srcDesc.GetType() != destDesc.GetType())
+    using tensorDesc_t = copyTensorDesc;
+    if(src == nullptr || dest == nullptr)
     {
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
     }
-    size_t srcSize = srcDesc.GetElementSize();
+    if(srcDesc.GetElementSize() != destDesc.GetElementSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor data sizes do not match.");
+    }
 
-    handle.Copy(src, dest, srcSize * sizeof(srcDesc.GetType()));
+    if(srcDesc.GetType() != destDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+    }
+
+    if(srcDesc.GetLengths().size() != destDesc.GetLengths().size())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
+    if(srcDesc.GetLengths().size() > 5 || destDesc.GetLengths().size() > 5)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
+    }
+
+    size_t srcSize = srcDesc.GetElementSize();
+    std::string parms{};
+
+    if(srcOffset > 0 || destOffset > 0 || srcDesc != destDesc ||
+       (srcDesc.GetElementSpace() != srcDesc.GetElementSize() ||
+        destDesc.GetElementSpace() != destDesc.GetElementSize()))
+    {
+        tensorDesc_t sKernDesc;
+        tensorDesc_t dKernDesc;
+
+        sKernDesc.dims = srcDesc.GetLengths().size();
+        for(int i = 0; i < 5; i++)
+        {
+            if(i < sKernDesc.dims)
+            {
+                sKernDesc.lens[i]    = srcDesc.GetLengths()[i];
+                sKernDesc.strides[i] = srcDesc.GetStrides()[i];
+                dKernDesc.lens[i]    = destDesc.GetLengths()[i];
+                dKernDesc.strides[i] = destDesc.GetStrides()[i];
+            }
+            else
+            {
+                sKernDesc.lens[i] = dKernDesc.lens[i] = 1;
+                sKernDesc.strides[i] = dKernDesc.strides[i] = 0;
+            }
+        }
+
+        std::vector<size_t> vld = {1, 1, 1};
+        std::vector<size_t> vgd = {1, 1, 1};
+
+        if(sKernDesc.dims > 2)
+        {
+            vld[0] = vld[1] = 4;
+            vld[2]          = 16;
+            vgd[0]          = (srcDesc.GetLengths()[sKernDesc.dims - 3] > vld[0]
+                          ? srcDesc.GetLengths()[sKernDesc.dims - 3]
+                          : vld[0]);
+            vgd[1] = (srcDesc.GetLengths()[sKernDesc.dims - 2] > vld[1]
+                          ? srcDesc.GetLengths()[sKernDesc.dims - 2]
+                          : vld[1]);
+            vgd[2] = (srcDesc.GetLengths()[sKernDesc.dims - 1] > vld[2]
+                          ? srcDesc.GetLengths()[sKernDesc.dims - 1]
+                          : vld[2]);
+        }
+        else if(sKernDesc.dims == 1)
+        {
+            vld[0] = 256;
+            vgd[0] = (srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
+        }
+        else if(sKernDesc.dims == 2)
+        {
+            vld[0] = vld[1] = 16;
+            vgd[0]          = (srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
+            vgd[1]          = (srcDesc.GetLengths()[1] > vld[1] ? srcDesc.GetLengths()[1] : vld[1]);
+        }
+        std::string program_name = "MIOpenTensorScaleKernel.cl";
+        handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
+            src,
+            dest,
+            srcOffset,
+            sKernDesc.strides[0],
+            sKernDesc.strides[1],
+            sKernDesc.strides[2],
+            sKernDesc.strides[3],
+            sKernDesc.lens[0],
+            sKernDesc.lens[1],
+            srcDesc.GetElementSpace(),
+            destOffset,
+            dKernDesc.strides[0],
+            dKernDesc.strides[1],
+            dKernDesc.strides[2],
+            dKernDesc.strides[3],
+            dKernDesc.lens[0],
+            dKernDesc.lens[1],
+            dKernDesc.lens[2],
+            dKernDesc.lens[3],
+            dKernDesc.lens[4],
+            destDesc.GetElementSpace(),
+            sKernDesc.dims);
+    }
+    else
+    {
+        //        printf("Using handle copy.\n");
+        //        for(int i=0;i<srcDesc.GetStrides().size();i++){
+        //            printf("srcStrides[%d]: %d\n",i,srcDesc.GetStrides()[i]);
+        //            printf("destStrides[%d]: %d\n",i,destDesc.GetStrides()[i]);
+        //        }
+        handle.Copy(src, dest, srcSize * sizeof(srcDesc.GetType()));
+    }
 }
 
 } // namespace miopen
