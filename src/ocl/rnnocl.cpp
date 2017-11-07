@@ -7910,7 +7910,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                dhx,
                                pretime_shift + 3 * hy_h,
                                weitime_shift + 3 * hy_h,
-                               hx_shift + hy_h);
+                               hx_shift + hy_n * hy_h);
 
                     // Update time
                     profileRNNkernels(handle, 1);
