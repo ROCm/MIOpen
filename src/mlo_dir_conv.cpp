@@ -81,7 +81,6 @@ int mlo_construct_direct2D::mloConstruct()
 #endif
     }
 
-    miopen::solver::ConvSolution result(static_cast<miopenStatus_t>(-1));
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     miopen::DbRecord dbRecord(db_path(), _search_params, true);
 #else
@@ -274,8 +273,9 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
-    return miopen::StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance().IsFast(
-        _search_params);
+    return (_search_params.n_outputs >= 16 && _search_params.n_outputs % 2 == 0);
+    // miopen::StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance().IsFast(
+    // _search_params);
 }
 
 int mlo_construct_BwdWrW2D::mloMultiStep()
@@ -343,7 +343,9 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string& conf_key) const
         std::to_string(static_cast<long long>(_search_params.out_width)) + std::string("x") +
         std::to_string(static_cast<long long>(_search_params.batch_sz)) + std::string("x") +
         _search_params.in_layout + std::string("x") + _search_params.in_data_type +
-        std::string("x") + std::to_string(static_cast<long long>(_search_params.forward));
+        std::string("x") + (_search_params.direction.IsForward()
+                                ? "1"
+                                : "0"); /// \todo Shall we separate keys for WrW convolutions?
     return (0);
 }
 
