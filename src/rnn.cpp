@@ -288,6 +288,7 @@ RNNDescriptor::RNNDescriptor()
     algoMode               = miopenRNNdefault;
     inputMode              = miopenRNNlinear;
     dataType               = miopenFloat;
+    typeSize               = 4;
 }
 
 RNNDescriptor::RNNDescriptor(int hsz,
@@ -321,6 +322,10 @@ RNNDescriptor::RNNDescriptor(int hsz,
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
+    else
+    {
+        typeSize  = 4;  
+    }
 
     hsize     = hsz;
     nLayers   = layers;
@@ -330,7 +335,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
     algoMode  = amode;
     biasMode  = bmode;
     dataType  = dType;
-
+    
     switch(rmode)
     {
     case 0: // RNN vanilla
@@ -348,6 +353,9 @@ RNNDescriptor::RNNDescriptor(int hsz,
         break;
     }
     inputBatchLenSum = 0; // init
+    
+    
+    
 }
 
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
@@ -476,6 +484,34 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
     weight_lens[0] = inputVectorLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
     weight_lens[1] = bi * hsize * nHiddenTensorsPerLayer;
     wDesc          = miopen::TensorDescriptor(dtype, weight_lens.data(), 2);
+}
+
+
+std::size_t RNNDescriptor::GetLayerParamSize(Handle& handle,
+                       int layer,
+                       const TensorDescriptor& xDesc,
+                       int /* paramID */)
+{
+    auto inputVectorLen = xDesc.GetLengths()[1]; // input vector size
+    inputVectorLen = (inputMode == miopenRNNskip)? hsize : inputVectorLen;
+    
+    //Assuming Djikstra counting
+    if((dirMode && layer <= 1) || (!dirMode && layer < 1))
+    {
+        return typeSize*inputVectorLen*hsize;
+    }
+    else
+    {
+        return typeSize*hsize*hsize;
+    }
+}
+    
+std::size_t RNNDescriptor::GetLayerBiasSize(Handle& handle,
+                       int layer,
+                       int /* biasID */)
+{
+    return typeSize*hsize; //is ther more needed here?
+    
 }
 
 void RNNDescriptor::GetLayerParam(Handle& handle,
