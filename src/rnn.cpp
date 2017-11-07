@@ -118,7 +118,6 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
     if(inputMode == miopenRNNskip)
         inputVectorLen = 0;
 
-
     size_t layerJump       = 0;
     unsigned int direction = (layer % 2);
     if(dirMode)
@@ -177,7 +176,6 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
         }
     }
     return layerJump;
-
 }
 
 size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
@@ -187,7 +185,7 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
     auto inputVectorLen = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
         inputVectorLen = 0;
-    
+
     size_t layerJump       = 0;
     unsigned int direction = (layer % 2);
     if(dirMode)
@@ -244,8 +242,7 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
 }
 
 std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor& xDesc,
-                                                          const int layer,
-                                                          const int layerID)
+                                                          const int layer)
 {
     auto inputVectorLen = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
@@ -277,7 +274,6 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         }
     }
     return tdim;
-
 }
 
 RNNDescriptor::RNNDescriptor()
@@ -352,10 +348,9 @@ RNNDescriptor::RNNDescriptor(int hsz,
         break;
     }
     inputBatchLenSum = 0; // init
-
 }
 
-size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
+size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
                                        const int sLen,
                                        c_array_view<miopenTensorDescriptor_t> xDesc)
 {
@@ -380,7 +375,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
     return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
 }
 
-size_t RNNDescriptor::GetReserveSize(Handle& handle,
+size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
                                      const int sLen,
                                      c_array_view<miopenTensorDescriptor_t> xDesc)
 {
@@ -406,8 +401,9 @@ size_t RNNDescriptor::GetReserveSize(Handle& handle,
     return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
 }
 
-size_t
-RNNDescriptor::GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype)
+size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
+                                    const TensorDescriptor& xDesc,
+                                    miopenDataType_t /* dtype */)
 {
     // DLOWELL : The factor of 4 counts the input matrix, hidden matrix, input bias, hidden bias
     // to each of the activated section of the RNN cell.
@@ -417,9 +413,10 @@ RNNDescriptor::GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miop
     auto inputVectorLen = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
         inputVectorLen = 0;
-    
+
     int bi  = dirMode == miopenRNNbidirection ? 2 : 1;
-    auto sz = nHiddenTensorsPerLayer * hsize * bi * (inputVectorLen + hsize + (nLayers - 1) * (bi + 1) * hsize);
+    auto sz = nHiddenTensorsPerLayer * hsize * bi *
+              (inputVectorLen + hsize + (nLayers - 1) * (bi + 1) * hsize);
     if(biasMode == miopenRNNwithBias)
     {
         auto in_bias = inputMode == miopenRNNskip ? 1 : 2;
@@ -428,7 +425,7 @@ RNNDescriptor::GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miop
     return size_t(sz);
 }
 
-size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& handle,
+size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
                                                  const int seqLength,
                                                  c_array_view<miopenTensorDescriptor_t> xDesc)
 {
@@ -447,7 +444,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& handle,
     return size_t(x);
 }
 
-size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& handle,
+size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& /* handle */,
                                                   c_array_view<miopenTensorDescriptor_t> xDesc)
 {
     if(xDesc[0].GetType() != dataType)
@@ -458,7 +455,7 @@ size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& handle,
     return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
 }
 
-void RNNDescriptor::GetParamsDescriptor(Handle& handle,
+void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
                                         const TensorDescriptor& xDesc,
                                         TensorDescriptor& wDesc,
                                         miopenDataType_t dtype)
@@ -484,7 +481,7 @@ void RNNDescriptor::GetParamsDescriptor(Handle& handle,
 void RNNDescriptor::GetLayerParam(Handle& handle,
                                   const int layer,
                                   const TensorDescriptor& xDesc,
-                                  const TensorDescriptor& wDesc,
+                                  const TensorDescriptor& /* wDesc */,
                                   ConstData_t w,
                                   const int layerID,
                                   TensorDescriptor& paramDesc,
@@ -494,7 +491,7 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
     auto poffset = paramsOffsetCalculation(xDesc, layer, layerID);
 
     // 2. Get the dimensions of the parameter matrix
-    auto pDims = pTensorLengthsCalculation(xDesc, layer, layerID);
+    auto pDims = pTensorLengthsCalculation(xDesc, layer);
 
     // 3. Construct descriptor for param matrix
     paramDesc = miopen::TensorDescriptor(dataType, pDims.data(), 2);
@@ -506,7 +503,7 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
 void RNNDescriptor::GetLayerBias(Handle& handle,
                                  const int layer,
                                  const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& /* wDesc */,
                                  ConstData_t w,
                                  const int layerID,
                                  TensorDescriptor& biasDesc,
@@ -532,7 +529,7 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
 void RNNDescriptor::SetLayerParam(Handle& handle,
                                   const int layer,
                                   const TensorDescriptor& xDesc,
-                                  const TensorDescriptor& wDesc,
+                                  const TensorDescriptor& /* wDesc */,
                                   Data_t w,
                                   const int layerID,
                                   const TensorDescriptor& paramDesc,
@@ -559,7 +556,7 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
 void RNNDescriptor::SetLayerBias(Handle& handle,
                                  const int layer,
                                  const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& /* wDesc */,
                                  Data_t w,
                                  const int layerID,
                                  const TensorDescriptor& biasDesc,

@@ -81,7 +81,6 @@ int mlo_construct_direct2D::mloConstruct()
 #endif
     }
 
-    miopen::solver::ConvSolution result(static_cast<miopenStatus_t>(-1));
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     miopen::DbRecord dbRecord(db_path(), _search_params, true);
 #else
