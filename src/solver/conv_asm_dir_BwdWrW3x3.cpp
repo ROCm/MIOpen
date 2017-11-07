@@ -39,6 +39,7 @@
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_QUICK)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
 #define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
@@ -209,9 +210,12 @@ void VirtualIterator::Next()
         do
         {
 #if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
-            // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
-            if(++v.limit_wave_cnt <= 9)
-                break;
+            if(!miopen::IsEnabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_QUICK{}))
+            {
+                // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
+                if(++v.limit_wave_cnt <= 9)
+                    break;
+            }
 #endif
             v.limit_wave_cnt = 0;
             // (0 <= reverse_inout && reverse_inout <= 1)

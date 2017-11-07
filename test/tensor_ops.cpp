@@ -111,7 +111,6 @@ struct verify_tensor_ops : tensor_ops_base<T>
     {
         c = a;
         std::fill(c.begin(), c.end(), 0);
-        std::fill(c.begin(), c.end(), 0);
         auto clens    = c.desc.GetLengths();
         auto blens    = b.desc.GetLengths();
         auto bstrides = b.desc.GetStrides();
