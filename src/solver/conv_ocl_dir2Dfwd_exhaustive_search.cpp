@@ -467,8 +467,7 @@ bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(params.direction.IsForward() && params.kernel_stride0 == 1 &&
-           params.kernel_stride1 == 1 && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if(params.direction.IsForward() && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 
             // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
