@@ -53,11 +53,10 @@ template <class T>
 struct verify_forward_train_rnn
 {
 
+    const std::vector<miopen::TensorDescriptor> inputDescs;
+    const std::vector<miopen::TensorDescriptor> outputDescs;
     const tensor<T> input;
     const tensor<T> initHidden;
-    tensor<T> weights;
-    tensor<T> workSpace;
-    tensor<T> reserveSpace;
     std::vector<int> batch_seq;
     int hiddenSize;
     int seqLength;
@@ -72,9 +71,8 @@ struct verify_forward_train_rnn
     miopenRNNDescriptor_t rnnDesc;
     
     verify_forward_train_rnn(miopenRNNDescriptor_t pRD,
-                         const tensor<T>& px,
+                         const std::vector<tensor<T>>& px,
                          const tensor<T>& phx,
-                         tensor<T>& pw,
                          tensor<T>& pWS,
                          tensor<T>& pRS,
                          const std::vector<int> pBS,
@@ -91,9 +89,6 @@ struct verify_forward_train_rnn
         rnnDesc      = pRD;
         input        = px;
         initHidden   = phx;
-        weigths      = pw;
-        workSpace    = pWS;
-        reserveSpace = pRS;
         batch_seq    = pBS;
         seqLength    = pS;
         nLayers      = pNL;
@@ -113,6 +108,8 @@ struct verify_forward_train_rnn
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
         
+        auto&& handle = get_handle();
+        
         tensor<T> hiddenState = initHidden;
         tensor<T> output = input;
         std::fill(output.begin(), output.end(), 0.);
@@ -126,6 +123,24 @@ struct verify_forward_train_rnn
 
         int in_h = (inputMode)?0:inputVecLen;
         int hy_h = hiddenSize;
+        int uni_stride = hy_h;
+
+        size_t in_sz  = 0;
+        size_t out_sz = 0;
+        size_t wei_sz = 0;
+        size_t hy_sz  = 0;
+        size_t workSpaceSize;
+        size_t reserveSpaceSize;
+
+        miopenStatus_t errcode = miopenStatusSuccess;
+        errcode |= miopenGetRNNInputTensorSize(handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
+        errcode |= miopenGetRNNInputTensorSize(handle, rnnDesc, seqLength, output.data(), &out_sz);
+        errcode |= miopenGetRNNHiddenTensorSize(handle, rnnDesc, seqLength, inputDescs.data(), &hy_sz);
+        errcode |= miopenGetRNNWorkspaceSize(handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
+        errcode |= miopenGetRNNTrainingReserveSize(handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        errcode |= miopenGetRNNParamsSize(handle, rnnDesc, inputs[0], &wei_sz, miopenFloat);
+
+
         
         // initial weights
         int wei_len = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
@@ -253,7 +268,7 @@ struct verify_forward_train_rnn
             baccbi = batch_n;
             for(int ti = 0; ti < seqLength; ti++)
             {
-                baccbi -= in_n[seqLength - 1 - ti];
+                baccbi -= batch_seq[seqLength - 1 - ti];
 
                 int wei_shift =
                     li == 0 ? (in_h * hy_h * bi)
@@ -265,7 +280,7 @@ struct verify_forward_train_rnn
                     RNN_mm_cpu<T>(const_cast<T*>(&initHidden[hx_shift]),
                                    hy_h,
                                    batch_seq[ti],
-                                   hy_stride,
+                                   uni_stride,
                                    0,
                                    const_cast<T*>(&weights[wei_shift]),
                                    hy_h,
@@ -285,7 +300,7 @@ struct verify_forward_train_rnn
                         RNN_mm_cpu<T>(const_cast<T*>(&initHidden[hx_shift + hy_h]),
                                        hy_h,
                                        batch_seq[seqLength - 1 - ti],
-                                       hy_stride,
+                                       uni_stride,
                                        0,
                                        const_cast<T*>(&weights[wei_shift + hy_h]),
                                        hy_h,
@@ -306,7 +321,7 @@ struct verify_forward_train_rnn
                     RNN_mm_cpu<T>(const_cast<T*>(&hiddenState[hx_shift]),
                                    hy_h,
                                    batch_seq[ti],
-                                   hy_stride,
+                                   uni_stride,
                                    0,
                                    const_cast<T*>(&weights[wei_shift]),
                                    hy_h,
@@ -326,7 +341,7 @@ struct verify_forward_train_rnn
                         RNN_mm_cpu<T>(const_cast<T*>(&hiddenState[hx_shift + hy_h]),
                                        hy_h,
                                        batch_seq[seqLength - 1 - ti],
-                                       hy_stride,
+                                       uni_stride,
                                        0,
                                        const_cast<T*>(&weights[wei_shift + hy_h]),
                                        hy_h,
@@ -348,9 +363,9 @@ struct verify_forward_train_rnn
                     for(int h = 0; h < hy_h; h++)
                     {
                         workSpace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
-                            activfunc(hid_state[hid_shift + bacc * hy_stride + bs * hy_stride + h],
+                            activfunc(hiddenState[hid_shift + bacc * hy_stride + bs * hy_stride + h],
                                       rnnMode); // squash_func
-                        hiddenState[hx_shift + bs * hy_stride + h] =
+                        hiddenState[hx_shift + bs * uni_stride + h] =
                             workSpace[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 
                         reserveSpace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
@@ -370,10 +385,10 @@ struct verify_forward_train_rnn
                         for(int h = 0; h < hy_h; h++)
                         {
                             workSpace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
-                                activfunc(hid_state[hid_shift + baccbi * hy_stride + hy_h +
+                                activfunc(hiddenState[hid_shift + baccbi * hy_stride + hy_h +
                                                     bs * hy_stride + h],
                                           rnnMode); // squash_func
-                            hiddenState[hx_shift + hy_h + bs * hy_stride + h] =
+                            hiddenState[hx_shift + hy_h + bs * uni_stride + h] =
                                 workSpace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
 
                             reserveSpace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
@@ -381,7 +396,7 @@ struct verify_forward_train_rnn
 
                             reserveSpace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h +
                                      nLayers * batch_n * hy_h * bi] =
-                                activfunc(hid_state[hid_shift + baccbi * hy_stride + hy_h +
+                                activfunc(hiddenState[hid_shift + baccbi * hy_stride + hy_h +
                                                     bs * hy_stride + h],
                                           rnnMode);
                         }
@@ -396,7 +411,7 @@ struct verify_forward_train_rnn
             {
                 for(int h = 0; h < hy_h; h++)
                 {
-                    hiddenState[hx_shift + bs * hy_stride + h] = 0;
+                    hiddenState[hx_shift + bs * uni_stride + h] = 0;
                 }
             }
         }
@@ -411,9 +426,7 @@ struct verify_forward_train_rnn
                 output[bs * out_stride + h] = workSpace[prelayer_shift + bs * hy_stride + h];
             }
         }
-
-
-        
+ 
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -447,6 +460,42 @@ struct verify_forward_train_rnn
 
         int in_h = (inputMode)?0:inputVecLen;
         int hy_h = hiddenSize;
+        
+        /*    
+            const tensor<T> input;
+            const tensor<T> initHidden;
+            tensor<T> weights;
+            tensor<T> workSpace;
+            tensor<T> reserveSpace;
+            std::vector<int> batch_seq;
+            int hiddenSize;
+            int seqLength;
+            int nLayers;
+            int biasMode;
+            int dirMode; 
+            int inputMode;
+            int rnnMode;
+            int batch_n;
+            tensor<T> hiddenState;
+            tensor<T> output;
+            miopenRNNDescriptor_t rnnDesc;
+        */ 
+        
+        auto input_dev    = handle.Write(input.data);
+        auto input_dev    = handle.Write(weights.data);
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         miopenRNNForwardTraining(handle,
                          rnnDesc,
