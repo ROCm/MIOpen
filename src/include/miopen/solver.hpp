@@ -107,7 +107,7 @@ template <class Solver>
 std::string CompulteSolverId(Solver)
 {
     const auto& name = get_type_name<Solver>();
-    auto idx  = name.find_last_of(':');
+    auto idx         = name.find_last_of(':');
     return name.substr(idx + 1);
 }
 
