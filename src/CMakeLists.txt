@@ -112,9 +112,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd1x1.cpp
     )
 
-if(MIOPEN_USE_CACHE)
-    list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
-endif()
+list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNELS
@@ -143,6 +141,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdWrWS2.cl
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
         kernels/MIOpenConvBwdWrW_LxG_5x5.cl
+        kernels/MIOpenConvBwdWrW1x1_PAD_read4.cl
         kernels/MIOpenConvBwdWrW1x1.cl
         kernels/MIOpenConvBwdWrW1x1Mmap.cl
         kernels/MIOpenConvFwd_LxL_11.cl
@@ -286,7 +285,6 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
-if(MIOPEN_USE_CACHE)
 target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
 target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 set(MIOPEN_MAKE_BOOST_PUBLIC Off CACHE BOOL "")
@@ -318,7 +316,6 @@ local:
     #         target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
     #     endif()
     # endif()
-endif()
 endif()
 
 ############################################################

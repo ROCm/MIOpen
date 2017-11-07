@@ -150,6 +150,7 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
     *value = data[0] * scale;
 }
 
+#ifdef __AMDGCN__
 static inline void dppRegReduce64(_FLOAT* value, _FLOAT scale)
 {
     _FLOAT tmp = 0.;
@@ -208,6 +209,7 @@ dppLDSReduce16(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT
     barrier(CLK_LOCAL_MEM_FENCE);
     *value = data[0];
 }
+#endif
 
 #if(MIO_BN_VARIANT == 0)
 
@@ -912,7 +914,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 //==========================================
 //===dScale reduction=======================
 #ifdef __AMDGCN__
-
 #if(MIO_BN_N > 16)
     dppRegReduce64(&ds, 1);
 #elif(MIO_BN_N > 1)
