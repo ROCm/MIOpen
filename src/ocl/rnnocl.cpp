@@ -8451,21 +8451,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             {
                 if(inputMode == miopenRNNlinear)
                 {
-                    gg = CreateGemmGeometryRNN(in_h,
-                                               hy_h * bi * 4,
+                    gg = CreateGemmGeometryRNN(hy_h * bi * 4,
+						in_h,
                                                batch_n,
                                                1,
                                                1,
                                                true,
                                                false,
-                                               true,
-                                               in_stride,
+                                               false,
                                                hy_stride,
+						in_stride,
                                                in_stride,
                                                false,
                                                network_config);
-                    gg.FindSolution(.003, handle, x, workSpace, dw, false);
-                    gg.RunGemm(handle, x, workSpace, dw, 0, 0, 0);
+                    gg.FindSolution(.003, handle, workSpace, x, dw, false);
+                    gg.RunGemm(handle, workSpace, x, dw, 0, 0, 0);
 
                     // Update time
                     profileRNNkernels(handle, 0);
@@ -8533,22 +8533,22 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 hid_shift      = li * batch_n * hy_stride;
                 wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
-                gg = CreateGemmGeometryRNN(hy_h * bi,
-                                           hy_h * bi * 4,
+                gg = CreateGemmGeometryRNN(hy_h * bi * 4,
+                                           hy_h * bi,
                                            batch_n,
                                            1,
                                            1,
                                            true,
                                            false,
-                                           true,
+                                           false,
                                            hy_stride,
                                            hy_stride,
                                            bi_stride,
                                            false,
                                            network_config);
-                gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+                gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
                 gg.RunGemm(
-                    handle, reserveSpace, workSpace, dw, prelayer_shift, hid_shift, wei_shift);
+                    handle, workSpace, reserveSpace, dw, hid_shift, prelayer_shift, wei_shift);
 
                 // Update time
                 profileRNNkernels(handle, 1);
@@ -8621,21 +8621,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 {
                     if(in_n[ti] > 0)
                     {
-                        gg = CreateGemmGeometryRNN(hy_h,
-                                                   hy_h * 4,
+                        gg = CreateGemmGeometryRNN(hy_h * 4,
+							hy_h,
                                                    in_n[ti],
                                                    1,
                                                    1,
                                                    true,
                                                    false,
-                                                   true,
-                                                   h_stride,
+                                                   false,
                                                    hy_stride,
+							h_stride,
                                                    uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(.003, handle, hx, workSpace, dw, false);
-                        gg.RunGemm(handle, hx, workSpace, dw, hx_shift, hid_shift, wei_shift);
+                        gg.FindSolution(.003, handle, workSpace, hx, dw, false);
+                        gg.RunGemm(handle, workSpace, hx, dw, hid_shift, hx_shift, wei_shift);
 
                         // Update time
                         profileRNNkernels(handle, 1);
@@ -8648,26 +8648,26 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                     if(in_n[ti] > 0)
                     {
-                        gg = CreateGemmGeometryRNN(hy_h,
-                                                   hy_h * 4,
+                        gg = CreateGemmGeometryRNN(hy_h * 4,
+							hy_h,
                                                    in_n[ti],
                                                    1,
                                                    1,
                                                    true,
                                                    false,
-                                                   true,
+                                                   false,
                                                    hy_stride,
                                                    hy_stride,
                                                    uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+                        gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
                         gg.RunGemm(handle,
-                                   reserveSpace,
                                    workSpace,
+							reserveSpace,
                                    dw,
-                                   pretime_shift,
                                    hid_shift,
+							pretime_shift,
                                    wei_shift);
 
                         // Update time
@@ -8686,26 +8686,26 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     {
                         if(in_n[ti] > 0)
                         {
-                            gg = CreateGemmGeometryRNN(hy_h,
-                                                       hy_h * 4,
+                            gg = CreateGemmGeometryRNN(hy_h * 4,
+								hy_h,
                                                        in_n[ti],
                                                        1,
                                                        1,
                                                        true,
                                                        false,
-                                                       true,
-                                                       h_stride,
+                                                       false,
                                                        hy_stride,
+								h_stride,
                                                        uni_stride,
                                                        false,
                                                        network_config);
-                            gg.FindSolution(.003, handle, hx, workSpace, dw, false);
+                            gg.FindSolution(.003, handle, workSpace, hx, dw, false);
                             gg.RunGemm(handle,
-                                       hx,
                                        workSpace,
-                                       dw,
-                                       hx_shift + hy_h,
+								hx,
+                                       dw,                                       
                                        hid_shift + 4 * hy_h,
+								hx_shift + hy_h,
                                        wei_shift + 4 * hy_h * uni_stride);
 
                             // Update time
@@ -8719,26 +8719,26 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         if(in_n[ti + 1] > 0)
                         {
-                            gg = CreateGemmGeometryRNN(hy_h,
-                                                       hy_h * 4,
+                            gg = CreateGemmGeometryRNN(hy_h * 4,
+								hy_h,
                                                        in_n[ti + 1],
                                                        1,
                                                        1,
                                                        true,
                                                        false,
-                                                       true,
+                                                       false,
                                                        hy_stride,
                                                        hy_stride,
                                                        uni_stride,
                                                        false,
                                                        network_config);
-                            gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+                            gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
                             gg.RunGemm(handle,
-                                       reserveSpace,
                                        workSpace,
+								reserveSpace,
                                        dw,
-                                       pretime_shift + hy_h,
                                        hid_shift + 4 * hy_h,
+								pretime_shift + hy_h,
                                        wei_shift + 4 * hy_h * uni_stride);
 
                             // Update time
