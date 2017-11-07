@@ -31,7 +31,6 @@
 #include "lstm_verify_gemm.hpp"
 #include "gru_verify_gemm.hpp"
 #include "driver.hpp"
-#include "mloConvHost.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
@@ -39,7 +38,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include <float.h>
+#include <cfloat>
 #include <fstream>
 #include <memory>
 #include <miopen/miopen.h>
@@ -49,44 +48,6 @@
 #include <sstream>
 #include <vector>
 #include <array>
-
-// MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
-
-/*
-template <typename T>
-void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
-{
-    std::ofstream outFile(fileName, std::ios::binary);
-    if(outFile)
-    {
-        outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        outFile.close();
-        printf("Wrote output to file %s\n", fileName);
-    }
-    else
-    {
-        printf("Could not open file %s for writing\n", fileName);
-    }
-}
-
-template <typename T>
-bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
-{
-    std::ifstream infile(fileName, std::ios::binary);
-    if(infile)
-    {
-        infile.read(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        infile.close();
-        printf("Read data from input file %s\n", fileName);
-        return true;
-    }
-    else
-    {
-        printf("Could not open file %s for reading\n", fileName);
-        return false;
-    }
-}
-*/
 
 template <typename T>
 class RNNDriver : public Driver
@@ -222,18 +183,18 @@ int RNNDriver<T>::GetandSetData()
 
     for(int i = 0; i < in_len.size() - 1; i++)
     {
-        std::array<int, 2> in_lens = {in_len[i], in_len.back()};
+        std::array<int, 2> in_lens = {{in_len[i], in_len.back()}};
         miopenCreateTensorDescriptor(&inputTensor);
         miopenSetTensorDescriptor(inputTensor, miopenFloat, 2, in_lens.data(), nullptr);
         inputTensors.push_back(inputTensor);
 
-        std::array<int, 2> out_lens = {in_len[i], out_len[0]};
+        std::array<int, 2> out_lens = {{in_len[i], out_len[0]}};
         miopenCreateTensorDescriptor(&outputTensor);
         miopenSetTensorDescriptor(outputTensor, miopenFloat, 2, out_lens.data(), nullptr);
         outputTensors.push_back(outputTensor);
     }
 
-    std::array<int, 3> hid_lens = {hid_len[0], in_len[0], hid_len[1]};
+    std::array<int, 3> hid_lens = {{hid_len[0], in_len[0], hid_len[1]}};
     miopenSetTensorDescriptor(hiddenTensor, miopenFloat, 3, hid_lens.data(), nullptr);
 
     SetRNNDescriptorFromCmdLineArgs();
@@ -494,12 +455,10 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     size_t workSpaceSize;
     size_t reserveSpaceSize;
 
-    miopenGetRNNInputTensorSize(
-        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &in_sz);
+    miopenGetRNNInputTensorSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &in_sz);
     miopenGetRNNInputTensorSize(
         GetHandle(), rnnDesc, adjustedSeqLen, outputTensors.data(), &out_sz);
-    miopenGetRNNHiddenTensorSize(
-        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &hy_sz);
+    miopenGetRNNHiddenTensorSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &hy_sz);
     miopenGetRNNWorkspaceSize(
         GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &workSpaceSize);
     miopenGetRNNTrainingReserveSize(
@@ -677,6 +636,15 @@ int RNNDriver<T>::RunForwardGPU()
     {
         std::fill(out.begin(), out.end(), 0);
         out_dev->ToGPU(GetStream(), out.data());
+
+        if(i > 0)
+        {
+            std::fill(reservespace.begin(), reservespace.end(), 0.);
+            std::fill(workspace.begin(), workspace.end(), 0.);
+
+            workspace_dev->ToGPU(q, workspace.data());
+            reservespace_dev->ToGPU(q, reservespace.data());
+        }
 
         miopenRNNForwardTraining(GetHandle(),
                                  rnnDesc,
