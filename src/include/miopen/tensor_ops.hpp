@@ -58,7 +58,9 @@ void CopyTensor(Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& destDesc,
-                Data_t dest); // TODO: Add in handle tensor copy with offsets
+                Data_t dest,
+                int srcOffset  = 0,
+                int destOffset = 0);
 
 } // namespace miopen
 #endif // GUARD_MIOPEN_TENSOR_OPPS_HPP_
