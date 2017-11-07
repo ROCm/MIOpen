@@ -299,20 +299,20 @@ struct ConvSolution;
 
 } // namespace miopen
 
-template<class T>
+template <class T>
 void mloConstructImpl(miopen::rank<0>, T& x)
 {
     x.setupRocm();
     x.mloUseSolution(x.FindSolution());
 }
 
-template<class T>
+template <class T>
 auto mloConstructImpl(miopen::rank<1>, T& x) -> decltype(x.mloConstruct(), void())
 {
     x.mloConstruct();
 }
 
-template<class T>
+template <class T>
 void mloConstruct(T& x)
 {
     mloConstructImpl(miopen::rank<1>{}, x);
