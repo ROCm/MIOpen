@@ -172,7 +172,7 @@ std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
     return os;
 }
 
-enum LoggingLevel
+enum class LoggingLevel
 {
     Default = 0, // WARNING for Release builds, INFO for Debug builds.
     Quiet,
@@ -184,11 +184,11 @@ enum LoggingLevel
     Trace // E.g. messages output by MIOPEN_LOG_FUNCTION).
 };
 
-const char* LoggingLevelToCString(enum LoggingLevel level);
+const char* LoggingLevelToCString(LoggingLevel level);
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-int IsLogging(int level = LoggingLevel::Error);
+int IsLogging(LoggingLevel level = LoggingLevel::Error);
 
 template <class T>
 auto LogObjImpl(T* x) -> decltype(get_object(*x))
