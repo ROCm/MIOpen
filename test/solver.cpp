@@ -42,7 +42,6 @@ class TrivialSlowTestSolver : public solver::SolverBase
 {
     public:
     static const char* FileName() { return "TrivialSlowTestSolver"; }
-    const char* SolverId() const { return FileName(); }
     bool IsFast(const ConvolutionContext& context) const { return context.in_height == 1; }
     bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
 
@@ -51,7 +50,7 @@ class TrivialSlowTestSolver : public solver::SolverBase
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
 
-        kernel.kernel_file  = SolverId();
+        kernel.kernel_file  = FileName();
         kernel.comp_options = " ";
         ret.construction_params.push_back(kernel);
 
@@ -63,7 +62,6 @@ class TrivialTestSolver : public solver::SolverBase
 {
     public:
     static const char* FileName() { return "TrivialTestSolver"; }
-    const char* SolverId() const { return FileName(); }
     bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&) const
@@ -71,7 +69,7 @@ class TrivialTestSolver : public solver::SolverBase
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
 
-        kernel.kernel_file  = SolverId();
+        kernel.kernel_file  = FileName();
         kernel.comp_options = " ";
         ret.construction_params.push_back(kernel);
 
@@ -96,7 +94,6 @@ class SearchableTestSolver : public solver::SolverBase
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
-    const char* SolverId() const { return FileName(); }
 
     TestConfig GetPerformanceConfig(const ConvolutionContext&) const
     {
@@ -113,7 +110,7 @@ class SearchableTestSolver : public solver::SolverBase
     TestConfig Search(const ConvolutionContext&) const
     {
         TestConfig config;
-        config.str = SolverId();
+        config.str = FileName();
         _serches_done++;
         return config;
     }
