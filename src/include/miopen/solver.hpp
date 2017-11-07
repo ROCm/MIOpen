@@ -40,6 +40,7 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/make_unique.hpp>
 #include <miopen/env.hpp>
+#include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
 
 namespace miopen {
@@ -102,6 +103,21 @@ struct ConvSolution
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
 
+template<class Solver>
+std::string CompulteSolverId(Solver)
+{
+    auto name = get_type_name<Solver>();
+    auto idx = name.find_last_of(":");
+    return name.substr(idx+1);
+}
+
+template<class Solver>
+const std::string& SolverId(Solver solver)
+{
+    static const auto result = CompulteSolverId(solver);
+    return result;
+}
+
 // Search for a solution among many solvers
 template <class... Solvers, class Context>
 miopen::solver::ConvSolution SearchForSolution(const Context& search_params,
@@ -136,23 +152,23 @@ template <class Solver, class Context>
 auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
-    MIOPEN_LOG_I("Finding solution: " << s.SolverId());
+    MIOPEN_LOG_I("Finding solution: " << SolverId(s));
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig config{};
-    if(dbRecord.Load(s.SolverId(), config))
+    if(dbRecord.Load(SolverId(s), config))
     {
-        MIOPEN_LOG_I("Perf Db: record loaded: " << s.SolverId());
+        MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId(s));
         if(s.IsValidPerformanceConfig(context, config))
         {
             return s.GetSolution(context, config);
         }
-        MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << s.SolverId() << ": " << config);
+        MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId(s) << ": " << config);
     }
     else if(context.do_search) // TODO: Make it a customization point
     {
-        MIOPEN_LOG_I("Starting search: " << s.SolverId());
+        MIOPEN_LOG_I("Starting search: " << SolverId(s));
         auto c = s.Search(context);
-        dbRecord.Store(s.SolverId(), c);
+        dbRecord.Store(SolverId(s), c);
         return s.GetSolution(context, c);
     }
     return s.GetSolution(context, s.GetPerformanceConfig(context));
@@ -162,7 +178,7 @@ template <class Solver, class Context>
 auto FindSolutionImpl(rank<0>, Solver s, const Context& context, DbRecord&)
     -> decltype(s.GetSolution(context))
 {
-    MIOPEN_LOG_I("Not searchable: " << s.SolverId());
+    MIOPEN_LOG_I("Not searchable: " << SolverId(s));
     return s.GetSolution(context);
 }
 
@@ -237,7 +253,6 @@ struct SolverBase
 
 struct ConvAsm3x3U : SolverBase
 {
-    const char* SolverId() const { return "ConvAsm3x3U"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -245,42 +260,36 @@ struct ConvAsm3x3U : SolverBase
 
 struct ConvAsm5x10u2v2f1 : SolverBase
 {
-    const char* SolverId() const { return "ConvAsm5x10u2v2f1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvAsm5x10u2v2b1 : SolverBase
 {
-    const char* SolverId() const { return "ConvAsm5x10u2v2b1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 : SolverBase
 {
-    const char* SolverId() const { return "ConvAsm7x7c3h224w224k64u2v2p3q3f1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvOclDirectFwd11x11 : SolverBase
 {
-    const char* SolverId() const { return "ConvOclDirectFwd11x11"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvOclDirectFwdGen : SolverBase
 {
-    const char* SolverId() const { return "ConvOclDirectFwdGen"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvOclDirectFwd3x3 : SolverBase
 {
-    const char* SolverId() const { return "ConvOclDirectFwd3x3"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
@@ -299,14 +308,12 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase
 
 struct ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    const char* SolverId() const { return "ConvOclDirectFwd"; }
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& config) const;
 };
 
 struct ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    const char* SolverId() const { return "ConvOclDirectFwd1x1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& config) const;
@@ -314,7 +321,6 @@ struct ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
 
 struct ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    const char* SolverId() const { return "ConvOclDirectFwdC"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& config) const;
@@ -322,14 +328,12 @@ struct ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
 
 struct ConvBinWinograd3x3U : SolverBase
 {
-    const char* SolverId() const { return "ConvBinWinograd3x3U"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvBinWinogradRxSFwd : SolverBase
 {
-    const char* SolverId() const { return "ConvBinWinogradRxSFwd"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
@@ -380,7 +384,6 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
 
 struct ConvAsmBwdWrW3x3 : SolverBase
 {
-    const char* SolverId() const { return "ConvAsmBwdWrW3x3"; }
     PerformanceConfigAsmDirect3x3WrW GetPerformanceConfig(const ConvolutionContext&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConfigAsmDirect3x3WrW&) const;
@@ -393,21 +396,18 @@ struct ConvAsmBwdWrW3x3 : SolverBase
 
 struct ConvOclBwdWrW2 : SolverBase
 {
-    const char* SolverId() const { return "ConvOclBwdWrW2"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvOclBwdWrW53 : SolverBase
 {
-    const char* SolverId() const { return "ConvOclBwdWrW53"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
 struct ConvOclBwdWrW1x1 : SolverBase
 {
-    const char* SolverId() const { return "ConvOclBwdWrW1x1"; }
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };

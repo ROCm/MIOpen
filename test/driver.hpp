@@ -29,11 +29,11 @@
 #include "network_data.hpp"
 #include "tensor_holder.hpp"
 #include "test.hpp"
-#include "type_name.hpp"
 #include "verify.hpp"
 
 #include <functional>
 #include <miopen/functional.hpp>
+#include <miopen/type_name.hpp>
 
 struct rand_gen
 {
@@ -125,7 +125,7 @@ struct test_driver
         arguments.insert(std::make_pair(name, argument{}));
 
         argument& arg   = arguments[name];
-        arg.type        = get_type_name<T>();
+        arg.type        = miopen::get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params) { args::write_value{}(x, params); };
         miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1),
                           fs...);
@@ -480,7 +480,7 @@ struct show_help
             prefix = ", ";
         }
         if(not std::is_same<T, bool>{})
-            std::cout << " [" << get_type_name<T>() << "]";
+            std::cout << " [" << miopen::get_type_name<T>() << "]";
         std::cout << std::endl;
         std::cout << "        " << help << std::endl;
     }

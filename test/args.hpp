@@ -24,8 +24,6 @@
  *
  *******************************************************************************/
 
-#include "type_name.hpp"
-
 #include <algorithm>
 #include <cassert>
 #include <functional>
@@ -40,6 +38,7 @@
 #include <vector>
 
 #include <miopen/rank.hpp>
+#include <miopen/type_name.hpp>
 
 namespace args {
 
@@ -154,7 +153,7 @@ auto any_construct_impl(miopen::rank<1>, miopen::detail::seq<Ns...>, const Data&
 template <class T, std::size_t... Ns, class Data>
 T any_construct_impl(miopen::rank<0>, miopen::detail::seq<Ns...>, const Data&)
 {
-    throw std::runtime_error("Cannot construct: " + get_type_name<T>());
+    throw std::runtime_error("Cannot construct: " + miopen::get_type_name<T>());
 }
 
 template <class T, std::size_t N, class Data>
@@ -233,7 +232,7 @@ struct write_value
             result = any_construct<T, 7>(params);
             break;
         }
-        default: throw std::runtime_error("Cannot construct: " + get_type_name<T>());
+        default: throw std::runtime_error("Cannot construct: " + miopen::get_type_name<T>());
         }
     }
 };

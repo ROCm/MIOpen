@@ -29,7 +29,9 @@
 
 #include <string>
 
-template <class Test_Driver_Private_TypeName_>
+namespace miopen {
+
+template <class MIOpen_Private_TypeName_>
 const std::string& get_type_name()
 {
     static std::string name;
@@ -37,10 +39,10 @@ const std::string& get_type_name()
     if(name.empty())
     {
 #ifdef _MSC_VER
-        name = typeid(Test_Driver_Private_TypeName_).name();
+        name = typeid(MIOpen_Private_TypeName_).name();
         name = name.substr(7);
 #else
-        const char parameter_name[] = "Test_Driver_Private_TypeName_ =";
+        const char parameter_name[] = "MIOpen_Private_TypeName_ =";
 
         name = __PRETTY_FUNCTION__;
 
@@ -56,5 +58,7 @@ const std::string& get_type_name()
 
     return name;
 }
+
+} // namespace miopen
 
 #endif
