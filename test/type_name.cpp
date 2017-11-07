@@ -5,7 +5,8 @@
 struct global_class
 {
     struct inner_class
-    {};
+    {
+    };
 };
 
 namespace foo {
@@ -13,13 +14,13 @@ namespace foo {
 struct ns_class
 {
     struct inner_class
-    {};
+    {
+    };
 };
-
 }
 
-
-int main() {
+int main()
+{
     EXPECT_EQUAL(miopen::get_type_name<global_class>(), "global_class");
     EXPECT_EQUAL(miopen::get_type_name<global_class::inner_class>(), "global_class::inner_class");
     EXPECT_EQUAL(miopen::get_type_name<foo::ns_class>(), "foo::ns_class");
