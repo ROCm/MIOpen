@@ -2644,6 +2644,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     int h_stride   = hy_h * bi;
     int out_stride = out_h;
     int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+	int uni_stride = hy_h;
+	int bi_stride = hy_h * bi;
 
     if(inputMode == miopenRNNskip)
     {
@@ -2701,8 +2703,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
         for(int li = 0; li < nLayers; li++)
         {
-            hid_shift = li * batch_n * hy_h * bi;
-            hx_shift  = li * bi * hy_n * hy_h;
+            hid_shift = li * batch_n * hy_stride;
+            hx_shift  = li * hy_n * h_stride;
 
             // from input
             if(li == 0)
@@ -2790,10 +2792,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                1,
                                                1,
                                                false,
-                                               false,
+                                               true,
                                                false,
                                                in_stride,
-                                               wei_stride,
+                                               in_stride,
                                                hy_stride,
                                                false,
                                                network_config);
@@ -2846,8 +2848,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
             else
             {
-                wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
-                prelayer_shift = (li - 1) * batch_n * hy_h * bi;
+                wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
+                prelayer_shift = (li - 1) * batch_n * hy_stride;
 
                 gg = CreateGemmGeometryRNN(batch_n,
                                            hy_h * bi,
@@ -2855,10 +2857,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                            1,
                                            1,
                                            false,
-                                           false,
+                                           true,
                                            false,
                                            hy_stride,
-                                           wei_stride,
+                                           bi_stride,
                                            hy_stride,
                                            false,
                                            network_config);
@@ -2878,8 +2880,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 {
                     wei_shift_bias_temp =
                         (inputMode == miopenRNNskip)
-                            ? (wei_shift_bias + bi * hy_h + bi * (li - 1) * 2 * hy_h)
-                            : (wei_shift_bias + bi * li * 2 * hy_h);
+                            ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
+                            : (wei_shift_bias + li * 2 * wei_stride);
 
                     w_size[2]  = 1;
                     w_size[3]  = wei_stride;
@@ -2927,9 +2929,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 baccbi -= in_n[seqLen - 1 - ti];
 
                 wei_shift =
-                    li == 0 ? (in_h * hy_h * bi)
-                            : (bi * (in_h + hy_h) * hy_h +
-                               (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
+                    li == 0 ? (in_h * wei_stride)
+                            : ((in_h + hy_h) * wei_stride +
+                               (li - 1) * (bi * hy_h + hy_h) * wei_stride + bi * hy_h * wei_stride);
 
                 if(ti == 0)
                 {
@@ -2941,10 +2943,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    h_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -2971,10 +2973,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       false,
+                                                       true,
                                                        false,
                                                        h_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -2984,7 +2986,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        w,
                                        reserveSpace,
                                        hx_shift + hy_h,
-                                       wei_shift + hy_h,
+                                       wei_shift + hy_h * uni_stride,
                                        hid_shift + baccbi * hy_stride + hy_h);
 
                             // Update time
@@ -3002,10 +3004,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -3033,10 +3035,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       false,
+                                                       true,
                                                        false,
                                                        hy_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -3048,7 +3050,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        reserveSpace,
                                        hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
                                            hy_h + nLayers * batch_n * hy_stride,
-                                       wei_shift + hy_h,
+                                       wei_shift + hy_h * uni_stride,
                                        hid_shift + baccbi * hy_stride + hy_h);
 
                             // Update time
@@ -3304,10 +3306,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                1,
                                                1,
                                                false,
-                                               false,
+                                               true,
                                                false,
                                                in_stride,
-                                               wei_stride,
+                                               in_stride,
                                                hy_stride,
                                                false,
                                                network_config);
@@ -3368,10 +3370,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                            1,
                                            1,
                                            false,
-                                           false,
+                                           true,
                                            false,
                                            hy_stride,
-                                           wei_stride,
+                                           bi_stride,
                                            hy_stride,
                                            false,
                                            network_config);
@@ -3444,10 +3446,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    h_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -3474,10 +3476,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       false,
+                                                       true,
                                                        false,
                                                        h_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -3487,7 +3489,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        w,
                                        reserveSpace,
                                        hx_shift + hy_h,
-                                       wei_shift + 4 * hy_h,
+                                       wei_shift + 4 * hy_h * uni_stride,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                             // Update time
@@ -3505,10 +3507,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    h_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -3535,10 +3537,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       false,
+                                                       true,
                                                        false,
                                                        h_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -3548,7 +3550,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        w,
                                        reserveSpace,
                                        hx_shift + hy_h,
-                                       wei_shift + 4 * hy_h,
+                                       wei_shift + 4 * hy_h * uni_stride,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                             // Update time
@@ -4091,10 +4093,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                1,
                                                1,
                                                false,
-                                               false,
+                                               true,
                                                false,
                                                in_stride,
-                                               wei_stride,
+                                               in_stride,
                                                hy_stride,
                                                false,
                                                network_config);
@@ -4116,10 +4118,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                            1,
                                            1,
                                            false,
-                                           false,
+                                           true,
                                            false,
                                            hy_stride,
-                                           wei_stride,
+                                           bi_stride,
                                            hy_stride,
                                            false,
                                            network_config);
@@ -4149,10 +4151,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    h_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -4174,10 +4176,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    h_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -4187,7 +4189,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    w,
                                    reserveSpace,
                                    hx_shift,
-                                   wei_shift + 2 * hy_h,
+                                   wei_shift + 2 * hy_h * uni_stride,
                                    hid_shift + bacc * hy_stride + bi * 3 * hy_h);
 
                         // Update time
@@ -4204,10 +4206,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       false,
+                                                       true,
                                                        false,
                                                        h_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -4217,7 +4219,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        w,
                                        reserveSpace,
                                        hx_shift + hy_h,
-                                       wei_shift + 3 * hy_h,
+                                       wei_shift + 3 * hy_h * uni_stride,
                                        hid_shift + baccbi * hy_stride + 3 * hy_h);
 
                             // Update time
@@ -4229,10 +4231,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       false,
+                                                       true,
                                                        false,
                                                        h_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -4242,7 +4244,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        w,
                                        reserveSpace,
                                        hx_shift + hy_h,
-                                       wei_shift + 5 * hy_h,
+                                       wei_shift + 5 * hy_h * uni_stride,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                             // Update time
@@ -4260,10 +4262,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    h_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -4285,10 +4287,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    h_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -4298,7 +4300,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    w,
                                    reserveSpace,
                                    hx_shift,
-                                   wei_shift + 2 * hy_h,
+                                   wei_shift + 2 * hy_h * uni_stride,
                                    hid_shift + bacc * hy_stride + bi * 3 * hy_h);
 
                         // Update time
@@ -4315,10 +4317,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       false,
+                                                       true,
                                                        false,
                                                        h_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -4328,7 +4330,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        w,
                                        reserveSpace,
                                        hx_shift + hy_h,
-                                       wei_shift + 3 * hy_h,
+                                       wei_shift + 3 * hy_h * uni_stride,
                                        hid_shift + baccbi * hy_stride + 3 * hy_h);
 
                             // Update time
@@ -4340,10 +4342,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       false,
+                                                       true,
                                                        false,
                                                        h_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -4353,7 +4355,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        w,
                                        reserveSpace,
                                        hx_shift + hy_h,
-                                       wei_shift + 5 * hy_h,
+                                       wei_shift + 5 * hy_h * uni_stride,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                             // Update time
@@ -5224,6 +5226,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     int h_stride   = hy_h * bi;
     int out_stride = out_h;
     int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+	int uni_stride = hy_h;
+	int bi_stride = hy_h * bi;
 
     if(inputMode == miopenRNNskip)
     {
@@ -5277,9 +5281,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
         for(int li = nLayers - 1; li >= 0; li--)
         {
-            wei_shift = bi * (in_h + hy_h) * hy_h + li * bi * (bi * hy_h + hy_h) * hy_h;
-            hid_shift = li * batch_n * hy_h * bi;
-            hx_shift  = li * bi * hy_n * hy_h;
+            wei_shift = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            hid_shift = li * batch_n * hy_stride;
+            hx_shift  = li * hy_n * h_stride;
 
             // feedback from output
             if(li == nLayers - 1)
@@ -5317,7 +5321,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             }
             else
             {
-                prelayer_shift = (li + 1) * batch_n * hy_h * bi;
+                prelayer_shift = (li + 1) * batch_n * hy_stride;
 
                 gg = CreateGemmGeometryRNN(batch_n,
                                            hy_h * bi,
@@ -5325,10 +5329,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            1,
                                            1,
                                            false,
-                                           true,
+                                           false,
                                            false,
                                            hy_stride,
-                                           wei_stride,
+                                           bi_stride,
                                            hy_stride,
                                            false,
                                            network_config);
@@ -5346,9 +5350,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             {
                 bacc -= in_n[ti];
                 wei_shift =
-                    li == 0 ? (in_h * hy_stride)
-                            : (bi * (in_h + hy_h) * hy_h +
-                               (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
+                    li == 0 ? (in_h * wei_stride)
+                            : ((in_h + hy_h) * wei_stride +
+                               (li - 1) * (bi * hy_h + hy_h) * wei_stride + bi * hy_h * wei_stride);
 
                 alpha0 = 1;
                 alpha1 = 0;
@@ -5432,10 +5436,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                1,
                                                0,
                                                false,
-                                               true,
+                                               false,
                                                false,
                                                hy_stride,
-                                               wei_stride,
+                                               uni_stride,
                                                h_stride,
                                                false,
                                                network_config);
@@ -5536,10 +5540,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    1,
                                                    0,
                                                    false,
-                                                   true,
+							                       false,
                                                    false,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    h_stride,
                                                    false,
                                                    network_config);
@@ -5549,7 +5553,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    w,
                                    dhx,
                                    hid_shift + baccbi * hy_stride + hy_h,
-                                   wei_shift + hy_h,
+                                   wei_shift + hy_h * uni_stride,
                                    hx_shift + hy_h);
 
                         // Update time
@@ -5611,10 +5615,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        1,
                                        1,
                                        false,
-                                       true,
+				                       false,
                                        false,
                                        hy_stride,
-                                       wei_stride,
+                                       in_stride,
                                        in_stride,
                                        false,
                                        network_config);
@@ -5633,7 +5637,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         printf("run lstm gpu bwd data \n");
-
         GemmGeometry gg;
 
         int hid_shift, hx_shift, prelayer_shift, pretime_shift, weitime_shift, wei_shift;
@@ -5692,10 +5695,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            1,
                                            1,
                                            false,
-                                           true,
+                                           false,
                                            false,
                                            hy_stride,
-                                           wei_stride,
+                                           bi_stride,
                                            hy_stride,
                                            false,
                                            network_config);
@@ -5806,10 +5809,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   true,
+                                                   false,
                                                    false,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -5831,7 +5834,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         pretime_shift = li * batch_n * hy_stride +
                                         (baccbi - in_n[seqLen - 2 - ti]) * hy_stride + hy_h * 4;
                         weitime_shift =
-                            in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride + hy_h * 4;
+                            in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride + hy_h * 4 * uni_stride;
 
                         if(in_n[seqLen - 1 - ti] > 0)
                         {
@@ -5841,10 +5844,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       true,
+                                                       false,
                                                        false,
                                                        hy_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -6541,10 +6544,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            1,
                                            1,
                                            false,
-                                           true,
+                                           false,
                                            false,
                                            hy_stride,
-                                           wei_stride,
+                                           uni_stride,
                                            h_stride,
                                            false,
                                            network_config);
@@ -6599,10 +6602,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                1,
                                                1,
                                                false,
-                                               true,
+                                               false,
                                                false,
                                                hy_stride,
-                                               wei_stride,
+                                               uni_stride,
                                                h_stride,
                                                false,
                                                network_config);
@@ -6612,7 +6615,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                w,
                                dhx,
                                pretime_shift + 4 * hy_h,
-                               weitime_shift + 4 * hy_h,
+                               weitime_shift + 4 * hy_h * uni_stride,
                                hx_shift + hy_h);
 
                     // Update time
@@ -6720,10 +6723,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        1,
                                        1,
                                        false,
-                                       true,
+                                       false,
                                        false,
                                        hy_stride,
-                                       wei_stride,
+                                       in_stride,
                                        in_stride,
                                        false,
                                        network_config);
@@ -6802,10 +6805,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            1,
                                            1,
                                            false,
-                                           true,
+                                           false,
                                            false,
                                            hy_stride,
-                                           wei_stride,
+                                           bi_stride,
                                            hy_stride,
                                            false,
                                            network_config);
@@ -6919,10 +6922,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   true,
+                                                   false,
                                                    false,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -6992,10 +6995,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   true,
+                                                   false,
                                                    false,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -7005,7 +7008,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    w,
                                    workSpace,
                                    hid_shift + bacc * hy_stride + 2 * hy_h,
-                                   weitime_shift + 2 * hy_h,
+                                   weitime_shift + 2 * hy_h * uni_stride,
                                    hid_shift + bacc * hy_stride + bi * 3 * hy_h);
 
                         // Update time
@@ -7025,10 +7028,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       true,
+                                                       false,
                                                        false,
                                                        hy_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -7038,7 +7041,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        w,
                                        workSpace,
                                        pretime_shift,
-                                       weitime_shift + hy_h * 3,
+                                       weitime_shift + hy_h * 3 * uni_stride,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                             // Update time
@@ -7094,27 +7097,27 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1);
 
-                        gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   hy_stride,
-                                                   wei_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, workSpace, w, workSpace, false);
-                        gg.RunGemm(handle,
-                                   workSpace,
-                                   w,
-                                   workSpace,
-                                   hid_shift + baccbi * hy_stride + 5 * hy_h,
-                                   weitime_shift + 5 * hy_h,
-                                   hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+                            gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
+                                                       hy_h,
+                                                       hy_h,
+                                                       1,
+                                                       1,
+                                                       false,
+                                                       false,
+                                                       false,
+                                                       hy_stride,
+                                                       uni_stride,
+                                                       hy_stride,
+                                                       false,
+                                                       network_config);
+                            gg.FindSolution(.003, handle, workSpace, w, workSpace, false);
+                            gg.RunGemm(handle,
+                                       workSpace,
+                                       w,
+                                       workSpace,
+                                       hid_shift + baccbi * hy_stride + 5 * hy_h,
+                                       weitime_shift + 5 * hy_h * uni_stride,
+                                       hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
                         // Update time
                         profileRNNkernels(handle, 1);
@@ -7201,10 +7204,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    h_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -7214,7 +7217,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    w,
                                    workSpace,
                                    hx_shift,
-                                   weitime_shift + 2 * hy_h,
+                                   weitime_shift + 2 * hy_h * uni_stride,
                                    hid_shift + bacc * hy_stride + hy_h);
 
                         // Update time
@@ -7228,10 +7231,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    1,
                                                    1,
                                                    false,
-                                                   false,
+                                                   true,
                                                    false,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
@@ -7241,7 +7244,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    w,
                                    workSpace,
                                    hid_shift + (bacc - in_n[ti - 1]) * hy_stride + bi * 3 * hy_h,
-                                   weitime_shift + 2 * hy_h,
+                                   weitime_shift + 2 * hy_h * uni_stride,
                                    hid_shift + bacc * hy_stride + hy_h);
 
                         // Update time
@@ -7459,10 +7462,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                        1,
                                                        1,
                                                        false,
-                                                       false,
+                                                       true,
                                                        false,
                                                        h_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
@@ -7472,7 +7475,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        w,
                                        workSpace,
                                        hx_shift + hy_h,
-                                       weitime_shift + 5 * hy_h,
+                                       weitime_shift + 5 * hy_h * uni_stride,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                             // Update time
@@ -7488,10 +7491,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                            1,
                                                            1,
                                                            false,
-                                                           false,
+                                                           true,
                                                            false,
                                                            hy_stride,
-                                                           wei_stride,
+                                                           uni_stride,
                                                            hy_stride,
                                                            false,
                                                            network_config);
@@ -7503,7 +7506,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            hid_shift +
                                                (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
                                                bi * 3 * hy_h + hy_h,
-                                           weitime_shift + 5 * hy_h,
+                                           weitime_shift + 5 * hy_h * uni_stride,
                                            hid_shift + baccbi * hy_stride + 4 * hy_h);
 
                                 // Update time
@@ -7742,10 +7745,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            1,
                                            0,
                                            false,
-                                           true,
+                                           false,
                                            false,
                                            hy_stride,
-                                           wei_stride,
+                                           uni_stride,
                                            h_stride,
                                            false,
                                            network_config);
@@ -7755,7 +7758,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                            w,
                            dhx,
                            pretime_shift + bi * 3 * hy_h + nLayers * batch_n * hy_stride,
-                           weitime_shift + 2 * hy_h,
+                           weitime_shift + 2 * hy_h * uni_stride,
                            hx_shift);
 
                 // Update time
@@ -7788,10 +7791,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            1,
                                            1,
                                            false,
-                                           true,
+                                           false,
                                            false,
                                            hy_stride,
-                                           wei_stride,
+                                           uni_stride,
                                            h_stride,
                                            false,
                                            network_config);
@@ -7847,10 +7850,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                1,
                                                0,
                                                false,
-                                               true,
+                                               false,
                                                false,
                                                hy_stride,
-                                               wei_stride,
+                                               uni_stride,
                                                h_stride,
                                                false,
                                                network_config);
@@ -7860,7 +7863,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                w,
                                dhx,
                                pretime_shift + bi * 3 * hy_h + hy_h + nLayers * batch_n * hy_stride,
-                               weitime_shift + 5 * hy_h,
+                               weitime_shift + 5 * hy_h * uni_stride,
                                hx_shift + hy_h);
 
                     // Update time
@@ -7893,10 +7896,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                1,
                                                1,
                                                false,
-                                               true,
+                                               false,
                                                false,
                                                hy_stride,
-                                               wei_stride,
+                                               uni_stride,
                                                h_stride,
                                                false,
                                                network_config);
@@ -7906,7 +7909,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                w,
                                dhx,
                                pretime_shift + 3 * hy_h,
-                               weitime_shift + 3 * hy_h,
+                               weitime_shift + 3 * hy_h * uni_stride,
                                hx_shift + hy_h);
 
                     // Update time
@@ -7982,10 +7985,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        1,
                                        1,
                                        false,
-                                       true,
+                                       false,
                                        false,
                                        hy_stride,
-                                       wei_stride,
+                                       in_stride,
                                        in_stride,
                                        false,
                                        network_config);
@@ -8069,6 +8072,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     int hy_stride  = hy_h * bi * workspaceScale;
     int h_stride   = hy_h * bi;
     int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+    int uni_stride = hy_h;
+	int bi_stride = hy_h * bi;
 
     if(inputMode == miopenRNNskip)
     {
@@ -8117,10 +8122,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                1,
                                                true,
                                                false,
-                                               false,
+						                       true,
                                                in_stride,
                                                hy_stride,
-                                               wei_stride,
+                                               in_stride,
                                                false,
                                                network_config);
                     gg.FindSolution(.003, handle, x, workSpace, dw, false);
@@ -8187,9 +8192,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             }
             else
             {
-                prelayer_shift = (li - 1) * bi * batch_n * hy_h;
-                hid_shift      = li * bi * batch_n * hy_h;
-                wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
+                prelayer_shift = (li - 1) * batch_n * hy_stride;
+                hid_shift      = li * batch_n * hy_stride;
+                wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
                 gg = CreateGemmGeometryRNN(hy_h * bi,
                                            hy_h * bi,
@@ -8198,10 +8203,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            1,
                                            true,
                                            false,
-                                           false,
+					                       true,
                                            hy_stride,
                                            hy_stride,
-                                           wei_stride,
+                                           bi_stride,
                                            false,
                                            network_config);
                 gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
@@ -8219,8 +8224,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 if(biasMode)
                 {
                     wei_shift = (inputMode == miopenRNNskip)
-                                    ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * 2 * hy_h)
-                                    : (wei_shift_bias + li * bi * 2 * hy_h);
+                                    ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
+                                    : (wei_shift_bias + li * 2 * wei_stride);
 
                     sp_size[2] = 1;
                     sp_size[3] = wei_stride;
@@ -8274,12 +8279,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             bacc = 0;
             for(int ti = 0; ti < seqLen; ti++)
             {
-                hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride;
-                hx_shift  = li * bi * hy_n * hy_h;
+                hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
+                hx_shift  = li * hy_n * h_stride;
                 wei_shift =
-                    li == 0 ? (in_h * hy_stride)
-                            : (bi * (in_h + hy_h) * hy_h +
-                               (li - 1) * bi * (bi * hy_h + hy_h) * hy_h + bi * hy_h * hy_stride);
+                    li == 0 ? (in_h * wei_stride)
+                            : ((in_h + hy_h) * wei_stride +
+                               (li - 1) * (bi * hy_h + hy_h) * wei_stride + bi * hy_h * wei_stride);
 
                 if(ti == 0)
                 {
@@ -8292,10 +8297,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    1,
                                                    true,
                                                    false,
-                                                   false,
+                                                   true,
                                                    h_stride,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    false,
                                                    network_config);
                         gg.FindSolution(.003, handle, hx, workSpace, dw, false);
@@ -8307,7 +8312,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 }
                 else
                 {
-                    pretime_shift = li * bi * batch_n * hy_h + (bacc - in_n[ti - 1]) * hy_stride;
+                    pretime_shift = li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride;
 
                     if(in_n[ti] > 0)
                     {
@@ -8318,10 +8323,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    1,
                                                    true,
                                                    false,
-                                                   false,
+                                                   true,
                                                    hy_stride,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    false,
                                                    network_config);
                         gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
@@ -8354,10 +8359,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                        1,
                                                        true,
                                                        false,
-                                                       false,
+                                                       true,
                                                        h_stride,
                                                        hy_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        false,
                                                        network_config);
                             gg.FindSolution(.003, handle, hx, workSpace, dw, false);
@@ -8367,7 +8372,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        dw,
                                        hx_shift + hy_h,
                                        hid_shift + hy_h,
-                                       wei_shift + hy_h);
+                                       wei_shift + hy_h * uni_stride);
 
                             // Update time
                             profileRNNkernels(handle, 2);
@@ -8375,7 +8380,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     }
                     else
                     {
-                        pretime_shift = li * bi * batch_n * hy_h + (bacc + in_n[ti]) * hy_stride;
+                        pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
 
                         if(in_n[ti + 1] > 0)
                         {
@@ -8386,10 +8391,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                        1,
                                                        true,
                                                        false,
-                                                       false,
+                                                       true,
                                                        hy_stride,
                                                        hy_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        false,
                                                        network_config);
                             gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
@@ -8399,7 +8404,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        dw,
                                        pretime_shift + hy_h + nLayers * batch_n * hy_stride,
                                        hid_shift + hy_h,
-                                       wei_shift + hy_h);
+                                       wei_shift + hy_h * uni_stride);
 
                             // Update time
                             profileRNNkernels(handle, 1);
@@ -8430,21 +8435,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             {
                 if(inputMode == miopenRNNlinear)
                 {
-                    gg = CreateGemmGeometryRNN(in_h,
-                                               hy_h * bi * 4,
+                    gg = CreateGemmGeometryRNN(hy_h * bi * 4,
+						in_h,
                                                batch_n,
                                                1,
                                                1,
                                                true,
                                                false,
                                                false,
-                                               in_stride,
                                                hy_stride,
-                                               wei_stride,
+						in_stride,
+                                               in_stride,
                                                false,
                                                network_config);
-                    gg.FindSolution(.003, handle, x, workSpace, dw, false);
-                    gg.RunGemm(handle, x, workSpace, dw, 0, 0, 0);
+                    gg.FindSolution(.003, handle, workSpace, x, dw, false);
+                    gg.RunGemm(handle, workSpace, x, dw, 0, 0, 0);
 
                     // Update time
                     profileRNNkernels(handle, 0);
@@ -8512,8 +8517,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 hid_shift      = li * batch_n * hy_stride;
                 wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
-                gg = CreateGemmGeometryRNN(hy_h * bi,
-                                           hy_h * bi * 4,
+                gg = CreateGemmGeometryRNN(hy_h * bi * 4,
+                                           hy_h * bi,
                                            batch_n,
                                            1,
                                            1,
@@ -8522,12 +8527,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            false,
                                            hy_stride,
                                            hy_stride,
-                                           wei_stride,
+                                           bi_stride,
                                            false,
                                            network_config);
-                gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+                gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
                 gg.RunGemm(
-                    handle, reserveSpace, workSpace, dw, prelayer_shift, hid_shift, wei_shift);
+                    handle, workSpace, reserveSpace, dw, hid_shift, prelayer_shift, wei_shift);
 
                 // Update time
                 profileRNNkernels(handle, 1);
@@ -8600,21 +8605,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 {
                     if(in_n[ti] > 0)
                     {
-                        gg = CreateGemmGeometryRNN(hy_h,
-                                                   hy_h * 4,
+                        gg = CreateGemmGeometryRNN(hy_h * 4,
+							hy_h,
                                                    in_n[ti],
                                                    1,
                                                    1,
                                                    true,
                                                    false,
                                                    false,
-                                                   h_stride,
                                                    hy_stride,
-                                                   wei_stride,
+							h_stride,
+                                                   uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(.003, handle, hx, workSpace, dw, false);
-                        gg.RunGemm(handle, hx, workSpace, dw, hx_shift, hid_shift, wei_shift);
+                        gg.FindSolution(.003, handle, workSpace, hx, dw, false);
+                        gg.RunGemm(handle, workSpace, hx, dw, hid_shift, hx_shift, wei_shift);
 
                         // Update time
                         profileRNNkernels(handle, 1);
@@ -8627,8 +8632,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                     if(in_n[ti] > 0)
                     {
-                        gg = CreateGemmGeometryRNN(hy_h,
-                                                   hy_h * 4,
+                        gg = CreateGemmGeometryRNN(hy_h * 4,
+							hy_h,
                                                    in_n[ti],
                                                    1,
                                                    1,
@@ -8637,16 +8642,16 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    false,
                                                    hy_stride,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+                        gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
                         gg.RunGemm(handle,
-                                   reserveSpace,
                                    workSpace,
+							reserveSpace,
                                    dw,
-                                   pretime_shift,
                                    hid_shift,
+							pretime_shift,
                                    wei_shift);
 
                         // Update time
@@ -8665,27 +8670,27 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     {
                         if(in_n[ti] > 0)
                         {
-                            gg = CreateGemmGeometryRNN(hy_h,
-                                                       hy_h * 4,
+                            gg = CreateGemmGeometryRNN(hy_h * 4,
+								hy_h,
                                                        in_n[ti],
                                                        1,
                                                        1,
                                                        true,
                                                        false,
                                                        false,
-                                                       h_stride,
                                                        hy_stride,
-                                                       wei_stride,
+								h_stride,
+                                                       uni_stride,
                                                        false,
                                                        network_config);
-                            gg.FindSolution(.003, handle, hx, workSpace, dw, false);
+                            gg.FindSolution(.003, handle, workSpace, hx, dw, false);
                             gg.RunGemm(handle,
-                                       hx,
                                        workSpace,
-                                       dw,
-                                       hx_shift + hy_h,
+								hx,
+                                       dw,                                       
                                        hid_shift + 4 * hy_h,
-                                       wei_shift + 4 * hy_h);
+								hx_shift + hy_h,
+                                       wei_shift + 4 * hy_h * uni_stride);
 
                             // Update time
                             profileRNNkernels(handle, 2);
@@ -8698,8 +8703,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         if(in_n[ti + 1] > 0)
                         {
-                            gg = CreateGemmGeometryRNN(hy_h,
-                                                       hy_h * 4,
+                            gg = CreateGemmGeometryRNN(hy_h * 4,
+								hy_h,
                                                        in_n[ti + 1],
                                                        1,
                                                        1,
@@ -8708,17 +8713,17 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                        false,
                                                        hy_stride,
                                                        hy_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        false,
                                                        network_config);
-                            gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+                            gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
                             gg.RunGemm(handle,
-                                       reserveSpace,
                                        workSpace,
+								reserveSpace,
                                        dw,
-                                       pretime_shift + hy_h,
                                        hid_shift + 4 * hy_h,
-                                       wei_shift + 4 * hy_h);
+								pretime_shift + hy_h,
+                                       wei_shift + 4 * hy_h * uni_stride);
 
                             // Update time
                             profileRNNkernels(handle, 1);
@@ -8751,21 +8756,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             {
                 if(inputMode == miopenRNNlinear)
                 {
-                    gg = CreateGemmGeometryRNN(in_h,
-                                               hy_h * bi * 3,
+                    gg = CreateGemmGeometryRNN(hy_h * bi * 3,
+						in_h,
                                                batch_n,
                                                1,
                                                1,
                                                true,
                                                false,
                                                false,
-                                               in_stride,
                                                hy_stride,
-                                               wei_stride,
+						in_stride,
+						in_stride,
                                                false,
                                                network_config);
-                    gg.FindSolution(.003, handle, x, workSpace, dw, false);
-                    gg.RunGemm(handle, x, workSpace, dw, 0, 0, 0);
+                    gg.FindSolution(.003, handle, workSpace, x, dw, false);
+                    gg.RunGemm(handle, workSpace, x, dw, 0, 0, 0);
 
                     // Update time
                     profileRNNkernels(handle, 0);
@@ -8816,8 +8821,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 hid_shift      = li * batch_n * hy_stride;
                 wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
-                gg = CreateGemmGeometryRNN(hy_h * bi,
-                                           hy_h * bi * 3,
+                gg = CreateGemmGeometryRNN(hy_h * bi * 3,
+					hy_h * bi,
                                            batch_n,
                                            1,
                                            1,
@@ -8826,12 +8831,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            false,
                                            hy_stride,
                                            hy_stride,
-                                           wei_stride,
+                                           bi_stride,
                                            false,
                                            network_config);
-                gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+                gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
                 gg.RunGemm(
-                    handle, reserveSpace, workSpace, dw, prelayer_shift, hid_shift, wei_shift);
+                    handle, workSpace, reserveSpace, dw, hid_shift, prelayer_shift, wei_shift);
 
                 // Update time
                 profileRNNkernels(handle, 1);
@@ -8923,21 +8928,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 {
                     if(in_n[ti] > 0)
                     {
-                        gg = CreateGemmGeometryRNN(hy_h,
-                                                   hy_h * 3,
+                        gg = CreateGemmGeometryRNN(hy_h * 3,
+							hy_h,
                                                    in_n[ti],
                                                    1,
                                                    1,
                                                    true,
                                                    false,
                                                    false,
-                                                   h_stride,
                                                    hy_stride,
-                                                   wei_stride,
+							h_stride,
+                                                   uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(.003, handle, hx, workSpace, dw, false);
-                        gg.RunGemm(handle, hx, workSpace, dw, hx_shift, hid_shift, wei_shift);
+                        gg.FindSolution(.003, handle, workSpace, hx, dw, false);
+                        gg.RunGemm(handle, workSpace, hx, dw, hid_shift, hx_shift, wei_shift);
 
                         // Update time
                         profileRNNkernels(handle, 1);
@@ -8950,8 +8955,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                     if(in_n[ti] > 0)
                     {
-                        gg = CreateGemmGeometryRNN(hy_h,
-                                                   hy_h * 3,
+                        gg = CreateGemmGeometryRNN(hy_h * 3,
+							hy_h,
                                                    in_n[ti],
                                                    1,
                                                    1,
@@ -8960,16 +8965,16 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    false,
                                                    hy_stride,
                                                    hy_stride,
-                                                   wei_stride,
+                                                   uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+                        gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
                         gg.RunGemm(handle,
-                                   reserveSpace,
                                    workSpace,
+							reserveSpace,
                                    dw,
-                                   pretime_shift,
                                    hid_shift,
+							pretime_shift,
                                    wei_shift);
 
                         // Update time
@@ -9003,27 +9008,27 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     {
                         if(in_n[ti] > 0)
                         {
-                            gg = CreateGemmGeometryRNN(hy_h,
-                                                       hy_h * 3,
+                            gg = CreateGemmGeometryRNN(hy_h * 3,
+								hy_h,
                                                        in_n[ti],
                                                        1,
                                                        1,
                                                        true,
                                                        false,
                                                        false,
-                                                       h_stride,
                                                        hy_stride,
-                                                       wei_stride,
+								h_stride,
+                                                       uni_stride,
                                                        false,
                                                        network_config);
-                            gg.FindSolution(.003, handle, hx, workSpace, dw, false);
+                            gg.FindSolution(.003, handle, workSpace, hx, dw, false);
                             gg.RunGemm(handle,
-                                       hx,
                                        workSpace,
+								hx,
                                        dw,
-                                       hx_shift + hy_h,
                                        hid_shift + 3 * hy_h,
-                                       wei_shift + 3 * hy_h);
+								hx_shift + hy_h,
+                                       wei_shift + 3 * hy_h * uni_stride);
 
                             // Update time
                             if(!biasMode)
@@ -9039,8 +9044,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         if(in_n[ti + 1] > 0)
                         {
-                            gg = CreateGemmGeometryRNN(hy_h,
-                                                       hy_h * 3,
+                            gg = CreateGemmGeometryRNN(hy_h * 3,
+								hy_h,
                                                        in_n[ti + 1],
                                                        1,
                                                        1,
@@ -9049,17 +9054,17 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                        false,
                                                        hy_stride,
                                                        hy_stride,
-                                                       wei_stride,
+                                                       uni_stride,
                                                        false,
                                                        network_config);
-                            gg.FindSolution(.003, handle, reserveSpace, workSpace, dw, false);
+                            gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
                             gg.RunGemm(handle,
-                                       reserveSpace,
                                        workSpace,
+								reserveSpace,
                                        dw,
-                                       pretime_shift + hy_h,
                                        hid_shift + 3 * hy_h,
-                                       wei_shift + 3 * hy_h);
+								pretime_shift + hy_h,
+                                       wei_shift + 3 * hy_h * uni_stride);
 
                             // Update time
                             profileRNNkernels(handle, 1);
