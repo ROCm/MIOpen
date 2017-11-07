@@ -103,15 +103,15 @@ struct ConvSolution
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
 
-template<class Solver>
+template <class Solver>
 std::string CompulteSolverId(Solver)
 {
     auto name = get_type_name<Solver>();
-    auto idx = name.find_last_of(":");
-    return name.substr(idx+1);
+    auto idx  = name.find_last_of(":");
+    return name.substr(idx + 1);
 }
 
-template<class Solver>
+template <class Solver>
 const std::string& SolverId(Solver solver)
 {
     static const auto result = CompulteSolverId(solver);
