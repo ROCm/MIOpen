@@ -137,13 +137,13 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
     if(context.do_search) // TODO: Make it a customization point
     {
         MIOPEN_LOG_I("Starting search: " << SolverId(s));
-        try 
+        try
         {
             auto c = s.Search(context);
             dbRecord.Store(SolverId(s), c);
             return s.GetSolution(context, c);
-        } 
-        catch(const miopen::Exception& ex) 
+        }
+        catch(const miopen::Exception& ex)
         {
             MIOPEN_LOG_I("Search failed for: " << SolverId(s) << ": " << ex.what());
         }
