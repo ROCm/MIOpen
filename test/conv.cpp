@@ -433,53 +433,27 @@ struct conv_driver : test_driver
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
     {
-        return {miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)],
-                                              pmode_lookup[miopen::ToUpper(pad_mode)],
-                                              0,
-                                              0,
-                                              1,
-                                              1},
-                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)],
-                                              pmode_lookup[miopen::ToUpper(pad_mode)],
-                                              0,
-                                              0,
-                                              2,
-                                              2},
-                // miopen::ConvolutionDescriptor{ 0, 0, 3, 3 },
-                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)],
-                                              pmode_lookup[miopen::ToUpper(pad_mode)],
-                                              1,
-                                              1,
-                                              1,
-                                              1},
-                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)],
-                                              pmode_lookup[miopen::ToUpper(pad_mode)],
-                                              1,
-                                              1,
-                                              2,
-                                              2},
-                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)],
-                                              pmode_lookup[miopen::ToUpper(pad_mode)],
-                                              2,
-                                              2,
-                                              1,
-                                              1},
-                miopen::ConvolutionDescriptor{cmode_lookup[miopen::ToUpper(conv_mode)],
-                                              pmode_lookup[miopen::ToUpper(pad_mode)],
-                                              3,
-                                              3,
-                                              2,
-                                              2}};
+        return {miopen::ConvolutionDescriptor{0, 0, 1, 1},
+                miopen::ConvolutionDescriptor{0, 0, 2, 2},
+                miopen::ConvolutionDescriptor{1, 1, 1, 1},
+                miopen::ConvolutionDescriptor{1, 1, 2, 2},
+                miopen::ConvolutionDescriptor{2, 2, 1, 1},
+                miopen::ConvolutionDescriptor{3, 3, 2, 2}};
     }
 
     void run()
     {
 
-        int input_h, input_w, wei_h, wei_w, out_h, out_w;
-        std::tie(std::ignore, std::ignore, wei_h, wei_w) =
-            miopen::tien<4>(weights.desc.GetLengths());
-        std::tie(std::ignore, std::ignore, input_h, input_w) =
-            miopen::tien<4>(input.desc.GetLengths());
+        int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w, out_h, out_w;
+        std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+        std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
+
+        filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
+        filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
+
+        if(((filter.mode == miopenTranspose) && (input_c != wei_k)) ||
+           ((filter.mode == miopenConvolution) && (input_c != wei_c)))
+            return;
 
         if(filter.paddingMode == miopenPaddingSame)
         {
