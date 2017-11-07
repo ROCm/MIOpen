@@ -149,8 +149,7 @@ void OpTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-
-    //if(aTensorDesc != cTensorDesc)
+    // if(aTensorDesc != cTensorDesc)
     if(aTensorDesc.GetElementSize() != cTensorDesc.GetElementSize())
     {
         MIOPEN_THROW("A and C Tensors do not match");
