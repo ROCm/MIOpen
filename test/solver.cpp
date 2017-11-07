@@ -146,14 +146,14 @@ class TrivialConstruct : public mlo_construct_direct2D
         _db_path = db_path;
     }
 
-    void mloConstruct()
+    solver::ConvSolution FindSolution()
     {
         // clang-format off
-        mloUseSolution(miopen::solver::SearchForSolution<
+        return miopen::solver::SearchForSolution<
             TrivialSlowTestSolver,
             TrivialTestSolver,
             SearchableTestSolver
-        >(_search_params, this->GetDbRecord()));
+        >(_search_params, this->GetDbRecord());
         // clang-format on
     }
 
@@ -206,7 +206,7 @@ class SolverTest
         construct.setStream(&get_handle());
 
         context_filler(construct);
-        construct.mloConstruct();
+        mloConstruct(construct);
 
         EXPECT_EQUAL(construct.getKernelFile(), expected_kernel);
     }
