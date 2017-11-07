@@ -109,6 +109,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     int h_stride   = hy_h * bi;
     int out_stride = out_h;
     int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+	int uni_stride = hy_h;
 
     if(inputMode == miopenRNNskip)
     {
@@ -141,9 +142,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     y_stride[0]  = batch_n * out_stride;
     y_stride[1]  = batch_n * out_stride;
     y_stride[2]  = out_stride;
-    hx_stride[0] = in_n[0] * h_stride;
-    hx_stride[1] = in_n[0] * h_stride;
-    hx_stride[2] = h_stride;
+	hx_stride[0] = in_n[0] * uni_stride;
+	hx_stride[1] = in_n[0] * uni_stride;
+	hx_stride[2] = uni_stride;
 
     if(rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
     {
@@ -397,7 +398,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    false,
                                                    false,
                                                    false,
-                                                   h_stride,
+							uni_stride,
                                                    wei_stride,
                                                    hy_stride,
                                                    false,
@@ -427,7 +428,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                        false,
                                                        false,
                                                        false,
-                                                       h_stride,
+								uni_stride,
                                                        wei_stride,
                                                        hy_stride,
                                                        false,
@@ -437,7 +438,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hx,
                                        w,
                                        workSpace,
-                                       hx_shift + hy_h,
+                                       hx_shift + hy_n * hy_h,
                                        wei_shift + hy_h,
                                        hid_shift + baccbi * hy_stride + hy_h);
 
@@ -614,7 +615,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                miopen::deref(hx_desc),
                                hy,
                                hid_shift + hy_h,
-                               hx_shift + hy_h);
+                               hx_shift + hy_n * hy_h);
                     // Update time
                     profileRNNkernels(handle, 1);
                 }
@@ -893,7 +894,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    false,
                                                    false,
                                                    false,
-                                                   h_stride,
+                                                   uni_stride,
                                                    wei_stride,
                                                    hy_stride,
                                                    false,
@@ -923,7 +924,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                        false,
                                                        false,
                                                        false,
-                                                       h_stride,
+                                                       uni_stride,
                                                        wei_stride,
                                                        hy_stride,
                                                        false,
@@ -933,7 +934,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hx,
                                        w,
                                        workSpace,
-                                       hx_shift + hy_h,
+                                       hx_shift + hy_n * hy_h,
                                        wei_shift + 4 * hy_h,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
@@ -954,7 +955,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    false,
                                                    false,
                                                    false,
-                                                   h_stride,
+                                                   uni_stride,
                                                    wei_stride,
                                                    hy_stride,
                                                    false,
@@ -984,7 +985,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                        false,
                                                        false,
                                                        false,
-                                                       h_stride,
+                                                       uni_stride,
                                                        wei_stride,
                                                        hy_stride,
                                                        false,
@@ -994,7 +995,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hy,
                                        w,
                                        workSpace,
-                                       hx_shift + hy_h,
+                                       hx_shift + hy_n * hy_h,
                                        wei_shift + 4 * hy_h,
                                        hid_shift + baccbi * hy_stride + 4 * hy_h);
 
@@ -1271,7 +1272,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      miopen::deref(sp_desc),
                                      workSpace,
                                      hid_shift + baccbi * hy_stride + 5 * hy_h,
-                                     hx_shift + hy_h,
+                                     hx_shift + hy_n * hy_h,
                                      hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
 
                             // Update time
@@ -1363,7 +1364,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    miopen::deref(hx_desc),
                                    cy,
                                    hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h,
-                                   hx_shift + hy_h);
+                                   hx_shift + hy_n * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1);
 
@@ -1373,7 +1374,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    miopen::deref(hx_desc),
                                    hy,
                                    hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h,
-                                   hx_shift + hy_h);
+                                   hx_shift + hy_n * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1);
                     }
@@ -1406,9 +1407,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                          &beta_t,
                          miopen::deref(hx_desc),
                          hy,
-                         hx_shift + in_n[seqLen - 1] * h_stride,
-                         hx_shift + in_n[seqLen - 1] * h_stride,
-                         hx_shift + in_n[seqLen - 1] * h_stride);
+                         hx_shift + in_n[seqLen - 1] * uni_stride,
+                         hx_shift + in_n[seqLen - 1] * uni_stride,
+                         hx_shift + in_n[seqLen - 1] * uni_stride);
                 // Update time
                 profileRNNkernels(handle, 1);
 
@@ -1423,9 +1424,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                          &beta_t,
                          miopen::deref(hx_desc),
                          cy,
-                         hx_shift + in_n[seqLen - 1] * h_stride,
-                         hx_shift + in_n[seqLen - 1] * h_stride,
-                         hx_shift + in_n[seqLen - 1] * h_stride);
+                         hx_shift + in_n[seqLen - 1] * uni_stride,
+                         hx_shift + in_n[seqLen - 1] * uni_stride,
+                         hx_shift + in_n[seqLen - 1] * uni_stride);
                 // Update time
                 profileRNNkernels(handle, 1);
             }
@@ -1582,7 +1583,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    false,
                                                    false,
                                                    false,
-                                                   h_stride,
+                                                   uni_stride,
                                                    wei_stride,
                                                    hy_stride,
                                                    false,
@@ -1607,7 +1608,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    false,
                                                    false,
                                                    false,
-                                                   h_stride,
+                                                   uni_stride,
                                                    wei_stride,
                                                    hy_stride,
                                                    false,
@@ -1637,7 +1638,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                        false,
                                                        false,
                                                        false,
-                                                       h_stride,
+                                                       uni_stride,
                                                        wei_stride,
                                                        hy_stride,
                                                        false,
@@ -1647,7 +1648,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hx,
                                        w,
                                        workSpace,
-                                       hx_shift + hy_h,
+                                       hx_shift + hy_n * hy_h,
                                        wei_shift + 3 * hy_h,
                                        hid_shift + baccbi * hy_stride + 3 * hy_h);
 
@@ -1662,7 +1663,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                        false,
                                                        false,
                                                        false,
-                                                       h_stride,
+                                                       uni_stride,
                                                        wei_stride,
                                                        hy_stride,
                                                        false,
@@ -1672,7 +1673,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hx,
                                        w,
                                        workSpace,
-                                       hx_shift + hy_h,
+                                       hx_shift + hy_n * hy_h,
                                        wei_shift + 5 * hy_h,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
@@ -1693,7 +1694,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    false,
                                                    false,
                                                    false,
-                                                   h_stride,
+                                                   uni_stride,
                                                    wei_stride,
                                                    hy_stride,
                                                    false,
@@ -1718,7 +1719,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    false,
                                                    false,
                                                    false,
-                                                   h_stride,
+                                                   uni_stride,
                                                    wei_stride,
                                                    hy_stride,
                                                    false,
@@ -1748,7 +1749,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                        false,
                                                        false,
                                                        false,
-                                                       h_stride,
+                                                       uni_stride,
                                                        wei_stride,
                                                        hy_stride,
                                                        false,
@@ -1758,7 +1759,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hy,
                                        w,
                                        workSpace,
-                                       hx_shift + hy_h,
+                                       hx_shift + hy_n * hy_h,
                                        wei_shift + 3 * hy_h,
                                        hid_shift + baccbi * hy_stride + 3 * hy_h);
 
@@ -1773,7 +1774,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                        false,
                                                        false,
                                                        false,
-                                                       h_stride,
+                                                       uni_stride,
                                                        wei_stride,
                                                        hy_stride,
                                                        false,
@@ -1783,7 +1784,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hy,
                                        w,
                                        workSpace,
-                                       hx_shift + hy_h,
+                                       hx_shift + hy_n * hy_h,
                                        wei_shift + 5 * hy_h,
                                        hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
 
@@ -2463,7 +2464,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                      miopen::deref(sp_desc),
                                      workSpace,
                                      hid_shift + baccbi * hy_stride + 3 * hy_h,
-                                     hx_shift + hy_h,
+                                     hx_shift + hy_n * hy_h,
                                      hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
                         }
                         else
@@ -2503,7 +2504,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    miopen::deref(hx_desc),
                                    hy,
                                    hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
-                                   hx_shift + hy_h);
+                                   hx_shift + hy_n * hy_h);
 
                         // Update time
                         profileRNNkernels(handle, 1);
@@ -2537,9 +2538,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                          &beta_t,
                          miopen::deref(hx_desc),
                          hy,
-                         hx_shift + in_n[seqLen - 1] * h_stride,
-                         hx_shift + in_n[seqLen - 1] * h_stride,
-                         hx_shift + in_n[seqLen - 1] * h_stride);
+                         hx_shift + in_n[seqLen - 1] * uni_stride,
+                         hx_shift + in_n[seqLen - 1] * uni_stride,
+                         hx_shift + in_n[seqLen - 1] * uni_stride);
                 // Update time
                 profileRNNkernels(handle, 1);
             }
