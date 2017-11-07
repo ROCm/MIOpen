@@ -299,6 +299,25 @@ struct ConvSolution;
 
 } // namespace miopen
 
+template<class T>
+void mloConstructImpl(miopen::rank<0>, T& x)
+{
+    x.setupRocm();
+    x.mloUseSolution(x.FindSolution());
+}
+
+template<class T>
+auto mloConstructImpl(miopen::rank<1>, T& x) -> decltype(x.mloConstruct(), void())
+{
+    x.mloConstruct();
+}
+
+template<class T>
+void mloConstruct(T& x)
+{
+    mloConstructImpl(miopen::rank<1>{}, x);
+}
+
 struct mlo_construct_direct2D
 {
     void mloUseSolution(const miopen::solver::ConvSolution& s);
@@ -353,7 +372,6 @@ struct mlo_construct_direct2D
         _new_in_sz     = 0;
     }
 
-    // Only called from construtor
     void setupRocm();
 
     /*
@@ -368,8 +386,7 @@ struct mlo_construct_direct2D
     * arbitrary combination of kerenl sizes, strides
     */
 
-    /// \todo Consider moving into ctor, if possible.
-    void mloConstruct();
+    miopen::solver::ConvSolution FindSolution();
 
     miopen::DbRecord GetDbRecord() const;
 
@@ -904,8 +921,6 @@ struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
 
     miopen::solver::ConvSolution FindSolution();
 
-    void mloConstruct();
-
     bool mloIsCompilerWorkarounds() const;
     int mloMultiStep();
 };
@@ -918,7 +933,7 @@ struct mlo_construct_winograd : mlo_construct_direct2D
 {
     mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
 
-    void mloConstruct();
+    miopen::solver::ConvSolution FindSolution();
 };
 
 #define MLO_POOLING_OP_AVE 0

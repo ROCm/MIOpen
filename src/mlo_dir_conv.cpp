@@ -88,12 +88,10 @@ miopen::DbRecord mlo_construct_direct2D::GetDbRecord() const
    generic convlution forward
    non-generic stride = 1, forward and backward
    */
-// TODO: Make mloConstruct a free function
-void mlo_construct_direct2D::mloConstruct()
+miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
 {
-    this->setupRocm();
     // clang-format off
-    mloUseSolution(miopen::solver::SearchForSolution<
+    return miopen::solver::SearchForSolution<
         miopen::solver::ConvAsm3x3U,
         miopen::solver::ConvAsm5x10u2v2f1,
         miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
@@ -104,18 +102,17 @@ void mlo_construct_direct2D::mloConstruct()
         miopen::solver::ConvOclDirectFwd1x1,
         miopen::solver::ConvOclDirectFwdC,
         miopen::solver::ConvOclDirectFwd
-    >(_search_params, this->GetDbRecord()));
+    >(_search_params, this->GetDbRecord());
     // clang-format on
 }
 
-void mlo_construct_winograd::mloConstruct()
+miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
 {
-    this->setupRocm();
     // clang-format off
-    mloUseSolution(miopen::solver::SearchForSolution<
+    return miopen::solver::SearchForSolution<
         miopen::solver::ConvBinWinograd3x3U,
         miopen::solver::ConvBinWinogradRxSFwd
-    >(_search_params, this->GetDbRecord()));
+    >(_search_params, this->GetDbRecord());
     // clang-format on
 }
 
@@ -130,58 +127,6 @@ miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
     >(_search_params, this->GetDbRecord());
     // clang-format on
 }
-
-void mlo_construct_BwdWrW2D::mloConstruct()
-{
-    this->setupRocm();
-    mloUseSolution(this->FindSolution());
-}
-
-// const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
-// mlo_construct_direct2D::SolverStore() const
-// {
-//     static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
-//         // clang-format off
-//         miopen::StaticContainer<const miopen::solver::ConvAsm3x3U>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvAsm5x10u2v2f1>::Instance(),
-//         miopen::StaticContainer<const
-//         miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvAsm5x10u2v2b1>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvOclDirectFwd11x11>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvOclDirectFwdGen>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvOclDirectFwd3x3>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvOclDirectFwd1x1>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvOclDirectFwdC>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvOclDirectFwd>::Instance(),
-//         // clang-format on
-//     });
-
-//     return store;
-// }
-
-// const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
-// mlo_construct_winograd::SolverStore() const
-// {
-//     static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
-//         miopen::StaticContainer<const miopen::solver::ConvBinWinograd3x3U>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvBinWinogradRxSFwd>::Instance(),
-//     });
-
-//     return store;
-// }
-
-// const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
-// mlo_construct_BwdWrW2D::SolverStore() const
-// {
-//     static const std::vector<std::reference_wrapper<const miopen::solver::Solver>> store({
-//         miopen::StaticContainer<const miopen::solver::ConvAsmBwdWrW3x3>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvOclBwdWrW2>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvOclBwdWrW53>::Instance(),
-//         miopen::StaticContainer<const miopen::solver::ConvOclBwdWrW1x1>::Instance(),
-//     });
-
-//     return store;
-// }
 
 void mlo_construct_direct2D::mloUseSolution(const miopen::solver::ConvSolution& s)
 {
