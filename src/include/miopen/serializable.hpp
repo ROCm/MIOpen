@@ -35,7 +35,7 @@ namespace miopen {
 namespace solver {
 
 // TODO: Provide specialization to use stro* functions
-template<class T>
+template <class T>
 struct Parse
 {
     static bool apply(const std::string& s, T& result)
@@ -47,15 +47,16 @@ struct Parse
     }
 };
 
-template<class Derived, char Seperator=','>
+template <class Derived, char Seperator = ','>
 struct Serializable
 {
     struct SerializeField
     {
-        template<class T>
+        template <class T>
         void operator()(std::ostream& stream, char& sep, const T& x) const
         {
-            if (sep != 0) stream << sep;
+            if(sep != 0)
+                stream << sep;
             stream << x;
             sep = Seperator;
         }
@@ -63,10 +64,11 @@ struct Serializable
 
     struct DeserializeField
     {
-        template<class T>
+        template <class T>
         void operator()(bool& ok, std::istream& stream, char sep, T& x) const
         {
-            if (not ok) return;
+            if(not ok)
+                return;
             std::string part;
 
             if(!std::getline(stream, part, sep))
@@ -78,20 +80,26 @@ struct Serializable
             ok = Parse<T>::apply(part, x);
         }
     };
-    void Serialize(std::ostream& stream) const 
+    void Serialize(std::ostream& stream) const
     {
         char sep = 0;
-        Derived::Visit(static_cast<const Derived&>(*this), std::bind(SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
+        Derived::Visit(
+            static_cast<const Derived&>(*this),
+            std::bind(SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
     }
 
-    bool Deserialize(const std::string& s) 
+    bool Deserialize(const std::string& s)
     {
         auto out = static_cast<const Derived&>(*this);
-        bool ok = true;
+        bool ok  = true;
         std::istringstream ss(s);
-        Derived::Visit(out, std::bind(DeserializeField{}, std::ref(ok), std::ref(ss), Seperator, std::placeholders::_1));
+        Derived::Visit(
+            out,
+            std::bind(
+                DeserializeField{}, std::ref(ok), std::ref(ss), Seperator, std::placeholders::_1));
 
-        if(!ok) return false;
+        if(!ok)
+            return false;
 
         static_cast<Derived&>(*this) = out;
         return true;
