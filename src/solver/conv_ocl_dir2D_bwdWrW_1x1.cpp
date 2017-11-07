@@ -270,7 +270,7 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     bool result = (params.kernel_size0 == 1) && (params.kernel_size1 == 1);
 
     // Does not support C, K != 16X yet  Still in to-do-list
-    if((params.kernel_stride0 > 1 || params.kernel_stride0 > 1) &&
+    if((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
        ((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0))
         result = false;
 
