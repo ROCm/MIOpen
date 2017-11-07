@@ -78,7 +78,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-        construct_params.mloConstruct();
+        mloConstruct(construct_params);
         std::string program_name = construct_params.getKernelFile();
         std::string kernel_name  = construct_params.getKernelName();
         std::string parms        = construct_params.getCompilerOptions();
@@ -138,7 +138,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         return -1;
     }
 
-    construct_params.mloConstruct();
+    mloConstruct(construct_params);
 
     std::string program_name = construct_params.getKernelFile();
     std::string kernel_name  = construct_params.getKernelName();
@@ -1585,7 +1585,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
                 if(!construct_params.mloIsCompilerWorkarounds() &&
-                   try_([&] { construct_params.mloConstruct(); }) != miopenStatusSuccess)
+                   try_([&] { mloConstruct(construct_params); }) != miopenStatusSuccess)
                 {
                     construct_params.mloBuildConf_Key(network_config);
 
