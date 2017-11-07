@@ -168,11 +168,11 @@ ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
 
 // Search for a solution among many solvers
 template <class... Solvers, class Context>
-auto SearchForSolution(const Context& search_params,
-                                               miopen::DbRecord dbRecord) 
-    -> typename std::common_type<decltype(FindSolution(Solvers{}, search_params, dbRecord))...>::type
+auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) ->
+    typename std::common_type<decltype(FindSolution(Solvers{}, search_params, dbRecord))...>::type
 {
-    using Solution = typename std::common_type<decltype(FindSolution(Solvers{}, search_params, dbRecord))...>::type;
+    using Solution = typename std::common_type<decltype(
+        FindSolution(Solvers{}, search_params, dbRecord))...>::type;
     Solution solution{miopenStatusUnknownError};
 
 // Using const here causes gcc to ICE
@@ -207,7 +207,7 @@ auto SearchForSolution(const Context& search_params,
 /// There could be multiple solvers of the same algorithm for a problem config.
 /// For example, ConvAsm3x3U and ConvOclDirectFwd3x3
 /// are able to solve overlapping sets of 3x3 Direct convolution problems.
-template<class Context>
+template <class Context>
 struct SolverBase
 {
 
@@ -218,7 +218,6 @@ struct SolverBase
     /// The function shall always return valid config.
     /// Only implemented by SearchableSolvers
     /// PerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const;
-
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
