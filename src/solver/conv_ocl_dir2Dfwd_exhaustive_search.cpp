@@ -165,8 +165,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
     {
 
         // version
-        if(params.direction.IsForward() && params.n_inputs % 16 == 0 &&
-           params.n_outputs % 16 == 0)
+        if(params.direction.IsForward() && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
             result.n_in_data_tiles = 128;
 
