@@ -106,8 +106,8 @@ struct ConvSolution
 template <class Solver>
 std::string CompulteSolverId(Solver)
 {
-    auto name = get_type_name<Solver>();
-    auto idx  = name.find_last_of(":");
+    const auto& name = get_type_name<Solver>();
+    auto idx  = name.find_last_of(':');
     return name.substr(idx + 1);
 }
 
