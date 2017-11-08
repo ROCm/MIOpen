@@ -34,11 +34,7 @@
 
 namespace miopen {
 
-void SetTensor(Handle& handle,
-               const TensorDescriptor& yDesc,
-               Data_t y,
-               const void* alpha,
-               const size_t yOffset)
+void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha)
 {
 
     if(y == nullptr || alpha == nullptr)
@@ -62,17 +58,13 @@ void SetTensor(Handle& handle,
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
         handle.GetKernel("SetTensor", "", program_name, "SetTensor", vld, vgd, parms)(
-            y, miopen_alpha, global_threads, long(yOffset));
+            y, miopen_alpha, global_threads);
     }
     break;
     }
 }
 
-void ScaleTensor(Handle& handle,
-                 const TensorDescriptor& yDesc,
-                 Data_t y,
-                 const void* alpha,
-                 const size_t yOffset)
+void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha)
 {
 
     if(y == nullptr || alpha == nullptr)
@@ -96,7 +88,7 @@ void ScaleTensor(Handle& handle,
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
         handle.GetKernel("ScaleTensor", "", program_name, "ScaleTensor", vld, vgd, parms)(
-            y, miopen_alpha, global_threads, long(yOffset));
+            y, miopen_alpha, global_threads);
     }
     break;
     }
@@ -157,7 +149,8 @@ void OpTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    if(aTensorDesc != cTensorDesc)
+    // if(aTensorDesc != cTensorDesc)
+    if(aTensorDesc.GetElementSize() != cTensorDesc.GetElementSize())
     {
         MIOPEN_THROW("A and C Tensors do not match");
     }
@@ -195,15 +188,14 @@ void OpTensor(Handle& handle,
     auto bsize    = blens.size();
     auto cstrides = cTensorDesc.GetStrides();
 
+    // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
-    if(blens.size() == 1)
-    {
-        first_not_one = blens.rbegin();
-    }
-    auto d             = std::distance(blens.begin(), first_not_one.base());
 
-    int num_wg      = 1;
-    num_wg          = *first_not_one == 0 ? 1 : *first_not_one;
+    auto d = std::distance(blens.begin(), first_not_one.base());
+
+    int num_wg = 1;
+    // quick fix
+    num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -216,6 +208,7 @@ void OpTensor(Handle& handle,
     CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, (d - 2));
 
 #if(MIO_TENSOROCL_DEBUG == 1)
+    printf("d: %d\n", d);
     printf("bitmap: %u\n", bitmap);
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
 #endif
