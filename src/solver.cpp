@@ -60,8 +60,15 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_I("Not searchable: " << SolverId());
             break;
         }
-        if((context.do_search && enforce == PerfDbEnforce::Update) ||
-           enforce == PerfDbEnforce::SearchUpdate)
+        if(enforce == PerfDbEnforce::Clean)
+        {
+            if(dbRecord.Remove(SolverId()))
+            {
+                MIOPEN_LOG_I("Perf Db: record removed: " << SolverId() << ", enforce=" << enforce);
+            }
+        }
+        else if((context.do_search && enforce == PerfDbEnforce::Update) ||
+                enforce == PerfDbEnforce::SearchUpdate)
         {
             MIOPEN_LOG_I("Perf Db: load skipped: " << SolverId() << ", enforce=" << enforce);
         }

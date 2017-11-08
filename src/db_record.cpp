@@ -47,7 +47,6 @@ bool DbRecord::ParseContents(const std::string& contents)
 #endif
     std::istringstream ss(contents);
     std::string id_and_values;
-    int found = 0;
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     bool is_legacy_content_found         = false;
     const bool is_legacy_content_allowed = (record_format == RecordFormat::CurrentOrMixed);
@@ -85,7 +84,6 @@ bool DbRecord::ParseContents(const std::string& contents)
         }
 
         map.emplace(id, values);
-        ++found;
     }
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -98,7 +96,7 @@ bool DbRecord::ParseContents(const std::string& contents)
         record_format = RecordFormat::Mixed;
     }
 #endif
-    return (found > 0);
+    return true;
 }
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -166,6 +164,42 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
     }
     MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not saved:" << id << ":"
                                       << values);
+    return false;
+}
+
+bool DbRecord::Erase(const std::string& id)
+{
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    assert(record_format != RecordFormat::CurrentOrMixed);
+    if((record_format == RecordFormat::Legacy || record_format == RecordFormat::Mixed) &&
+       isLegacySolver(id))
+    {
+        const auto it = map.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
+        assert(it != map.end());
+        MIOPEN_LOG_I(
+            "Legacy content under key: " << key << " removed:" << it->second << ", id: " << id);
+        map.erase(it);
+        record_format = RecordFormat::Current;
+        return true;
+    }
+    else if(record_format == RecordFormat::Legacy && !isLegacySolver(id))
+    {
+        // Non-legacy SolverId cannot reside in the legacy record by definition.
+        assert(map.find(id) == map.end());
+        MIOPEN_LOG_W("Legacy record under key: " << key << ", not found: " << id);
+        return false;
+    }
+    assert((record_format == RecordFormat::Mixed && !isLegacySolver(id)) ||
+           record_format == RecordFormat::Current);
+#endif
+    const auto it = map.find(id);
+    if(it != map.end())
+    {
+        MIOPEN_LOG_I("Record under key: " << key << ", removed: " << id << ':' << it->second);
+        map.erase(it);
+        return true;
+    }
+    MIOPEN_LOG_W("Record under key: " << key << ", not found:" << id);
     return false;
 }
 
@@ -428,13 +462,7 @@ void DbRecord::ReadFile(RecordPositions* const pos)
         MIOPEN_LOG_I("Key match: " << current_key);
         const auto contents    = line.substr(key_size + 1);
 #endif
-
-        if(contents.empty())
-        {
-            MIOPEN_LOG_E("None contents under the key: " << current_key);
-            continue;
-        }
-        MIOPEN_LOG_I("Contents found: " << contents);
+        MIOPEN_LOG_I("Contents: " << contents);
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
         const bool is_parse_ok = (record_format == RecordFormat::Legacy)
