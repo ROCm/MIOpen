@@ -207,10 +207,8 @@ struct tensor_ops_driver : test_driver
     std::vector<int> offsets;
     std::vector<float> alphabeta;
 
-    std::vector<std::vector<int>> get_sub_tensor_a()
+    tensor_ops_driver()
     {
-        return {{32, 16, 8, 4, 4}, {16, 8, 16, 4}, {8, 16, 7}, {8, 16}, {8}};
-    }
 
 #if(MIO_TENSOROP_DEBUG == 1)
         printf("Generating super tensors...");
@@ -273,7 +271,6 @@ struct tensor_ops_driver : test_driver
             printf("offsets {src, dst}: %d, %d\n", offsets[0], offsets[1]);
             verify(verify_tensor_ops<T>{
                 aSuper, bSuper, cSuper, aDesc, bDesc, cDesc, offsets, alpha0, alpha1, beta});
-
         }
     }
 };
