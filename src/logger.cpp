@@ -37,8 +37,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
 
 namespace {
 
-inline bool operator!=(const int& lhs, const LoggingLevel& rhs){ return lhs != static_cast<int>(rhs); }
-inline bool operator>=(const int& lhs, const LoggingLevel& rhs){ return lhs >= static_cast<int>(rhs); }
+inline bool operator!=(const int& lhs, const LoggingLevel& rhs)
+{
+    return lhs != static_cast<int>(rhs);
+}
+inline bool operator>=(const int& lhs, const LoggingLevel& rhs)
+{
+    return lhs >= static_cast<int>(rhs);
+}
 
 } // namespace
 
