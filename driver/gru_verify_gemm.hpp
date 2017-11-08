@@ -185,7 +185,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                 ADNN_mm_cpu<T>(const_cast<T*>(&hx_state[hx_shift]),
                                hy_h,
                                in_n[ti],
-					uni_stride,
+                               uni_stride,
                                0,
                                const_cast<T*>(&wei_state[wei_shift]),
                                hy_h,
@@ -203,7 +203,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                 ADNN_mm_cpu<T>(const_cast<T*>(&hx_state[hx_shift]),
                                hy_h,
                                in_n[ti],
-					uni_stride,
+                               uni_stride,
                                0,
                                const_cast<T*>(&wei_state[wei_shift + 2 * hy_h * uni_stride]),
                                hy_h,
@@ -223,7 +223,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                     ADNN_mm_cpu<T>(const_cast<T*>(&hx_state[hx_shift + hy_n * hy_h]),
                                    hy_h,
                                    in_n[seqLength - 1 - ti],
-						uni_stride,
+                                   uni_stride,
                                    0,
                                    const_cast<T*>(&wei_state[wei_shift + 3 * hy_h * uni_stride]),
                                    hy_h,
@@ -263,7 +263,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                 ADNN_mm_cpu<T>(const_cast<T*>(&hy_state[hx_shift]),
                                hy_h,
                                in_n[ti],
-					uni_stride,
+                               uni_stride,
                                0,
                                const_cast<T*>(&wei_state[wei_shift]),
                                hy_h,
@@ -281,7 +281,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                 ADNN_mm_cpu<T>(const_cast<T*>(&hy_state[hx_shift]),
                                hy_h,
                                in_n[ti],
-					uni_stride,
+                               uni_stride,
                                0,
                                const_cast<T*>(&wei_state[wei_shift + 2 * hy_h * uni_stride]),
                                hy_h,
@@ -301,7 +301,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                     ADNN_mm_cpu<T>(const_cast<T*>(&hy_state[hx_shift + hy_n * hy_h]),
                                    hy_h,
                                    in_n[seqLength - 1 - ti],
-						uni_stride,
+                                   uni_stride,
                                    0,
                                    const_cast<T*>(&wei_state[wei_shift + 3 * hy_h * uni_stride]),
                                    hy_h,
@@ -317,10 +317,10 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                                    1);
 
                     ADNN_mm_cpu<T>(
-						const_cast<T*>(&hy_state[hx_shift + hy_n * hy_h]),
+                        const_cast<T*>(&hy_state[hx_shift + hy_n * hy_h]),
                         hy_h,
                         in_n[seqLength - 1 - ti],
-						uni_stride,
+                        uni_stride,
                         0,
                         const_cast<T*>(&wei_state[wei_shift + 5 * hy_h * uni_stride]),
                         hy_h,
@@ -385,7 +385,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                                      hid_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h],
                                      1) +
                              activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + h], 2) *
-								hx[hx_shift + bs * uni_stride + h]);
+                                 hx[hx_shift + bs * uni_stride + h]);
                     }
                     else
                     {
@@ -413,7 +413,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                               numlayer * batch_n * hy_stride] =
                         activfunc(hid_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h], 1);
 
-					hy_state[hx_shift + bs * uni_stride + h] =
+                    hy_state[hx_shift + bs * uni_stride + h] =
                         hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h];
                 }
             }
@@ -484,7 +484,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                                  activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride +
                                                      3 * hy_h + h],
                                            2) *
-									hx[hx_shift + bs * uni_stride + hy_n * hy_h + h]);
+                                     hx[hx_shift + bs * uni_stride + hy_n * hy_h + h]);
                         }
                         else
                         {
@@ -515,7 +515,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                             activfunc(
                                 hid_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 1);
 
-						hy_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] =
+                        hy_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] =
                             hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h +
                                       h];
                     }
@@ -530,7 +530,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
         {
             for(int h = 0; h < hy_h; h++)
             {
-				hy_state[hx_shift + bs * uni_stride + h] = 0;
+                hy_state[hx_shift + bs * uni_stride + h] = 0;
             }
         }
     }
@@ -718,7 +718,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                     for(int h = 0; h < hy_h; h++)
                     {
                         dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] +=
-							dhy[hx_shift + bs * uni_stride + h];
+                            dhy[hx_shift + bs * uni_stride + h];
                     }
                 }
 
@@ -866,7 +866,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                 ADNN_mm_cpu<T>(const_cast<T*>(&hx_state[hx_shift]),
                                hy_h,
                                in_n[ti],
-					uni_stride,
+                               uni_stride,
                                0,
                                const_cast<T*>(&wei_state[weitime_shift + 2 * hy_h * uni_stride]),
                                hy_h,
@@ -948,7 +948,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                     ADNN_mm_cpu<T>(const_cast<T*>(&hx_state[hx_shift + hy_n * hy_h]),
                                    hy_h,
                                    in_n[seqLength - 1 - ti],
-						uni_stride,
+                                   uni_stride,
                                    0,
                                    const_cast<T*>(&wei_state[weitime_shift + 5 * hy_h * uni_stride]),
                                    hy_h,
@@ -1060,7 +1060,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                        &dhx_state[hx_shift],
                        hy_h,
                        in_n[0],
-			uni_stride,
+                       uni_stride,
                        0,
                        1,
                        1);
@@ -1069,11 +1069,11 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
         {
             for(int h = 0; h < hy_h; h++)
             {
-				dhx_state[hx_shift + bs * uni_stride + h] +=
+                dhx_state[hx_shift + bs * uni_stride + h] +=
                     dh_state[pretime_shift + bs * hy_stride + bi * 3 * hy_h + h] *
                     activfunc(rsvspace[pretime_shift + bs * hy_stride + h], 2);
 
-				dcx_state[hx_shift + bs * uni_stride + h] =
+                dcx_state[hx_shift + bs * uni_stride + h] =
                     dh_state[pretime_shift + bs * hy_stride + 2 * hy_h + h] *
                     activfunc(rsvspace[pretime_shift + bs * hy_stride + hy_h + h], 2);
             }
@@ -1082,7 +1082,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
         ADNN_mm_cpu<T>(const_cast<T*>(&dcx_state[hx_shift]),
                        hy_h,
                        in_n[0],
-			uni_stride,
+                       uni_stride,
                        0,
                        const_cast<T*>(&wei_state[weitime_shift + 2 * hy_h * uni_stride]),
                        hy_h,
@@ -1092,7 +1092,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                        &dhx_state[hx_shift],
                        hy_h,
                        in_n[0],
-			uni_stride,
+                       uni_stride,
                        0,
                        1,
                        1);
@@ -1123,20 +1123,20 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
             {
                 for(int h = 0; h < hy_h; h++)
                 {
-					dhx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] +=
+                    dhx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] +=
                         dh_state[pretime_shift + bs * hy_stride + bi * 3 * hy_h + hy_h + h] *
                         activfunc(rsvspace[pretime_shift + bs * hy_stride + 3 * hy_h + h], 2);
 
-					dcx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] =
+                    dcx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] =
                         dh_state[pretime_shift + bs * hy_stride + 5 * hy_h + h] *
                         activfunc(rsvspace[pretime_shift + bs * hy_stride + 4 * hy_h + h], 2);
                 }
             }
 
-			ADNN_mm_cpu<T>(const_cast<T*>(&dcx_state[hx_shift + hy_n * hy_h]),
+            ADNN_mm_cpu<T>(const_cast<T*>(&dcx_state[hx_shift + hy_n * hy_h]),
                            hy_h,
                            in_n[seqLength - 1],
-				uni_stride,
+                           uni_stride,
                            0,
                            const_cast<T*>(&wei_state[weitime_shift + 5 * hy_h * uni_stride]),
                            hy_h,
