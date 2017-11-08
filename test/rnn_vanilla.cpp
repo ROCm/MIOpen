@@ -500,13 +500,26 @@ struct verify_forward_train_rnn
         size_t workSpaceSize;
         size_t reserveSpaceSize;
 
+
+        // TODO: Implement this here!
+        std::vector<miopen::TensorDescriptor> inputDescs;
+        std::vector<int> lens(2,0);
+        lens[1] = inputVecLen;
+        // -----------------------
+        for(int i = 0; i < batch_seq.size(); i++)
+        {
+            lens[0] = batch_seq[i];
+            inputDescs.push_back(miopen::TensorDescriptor(miopenFloat, lens.data(), 2));
+        }
+        auto outputDescs = inputDescs;
+
         miopenStatus_t errcode = miopenStatusSuccess;
         errcode |= miopenGetRNNInputTensorSize(handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
         errcode |= miopenGetRNNInputTensorSize(handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         errcode |= miopenGetRNNHiddenTensorSize(handle, rnnDesc, seqLength, inputDescs.data(), &hy_sz);
         errcode |= miopenGetRNNWorkspaceSize(handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
         errcode |= miopenGetRNNTrainingReserveSize(handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-        errcode |= miopenGetRNNParamsSize(handle, rnnDesc, inputs[0], &wei_sz, miopenFloat);
+        errcode |= miopenGetRNNParamsSize(handle, rnnDesc, inputDescs[0], &wei_sz, miopenFloat);
         assert(errcode != miopenStatusSuccess);
         
         std::vector<T> workSpace(workSpaceSize, 0.);
@@ -514,19 +527,6 @@ struct verify_forward_train_rnn
         std::vector<T> output(out_sz, 0.);
         std::vector<T> hiddenState(initHidden.size(), 0.);
         std::vector<T> weights(initHidden.size(), 0.); 
-
-        // TODO: Implement this here!
-        std::vector<miopen::TensorDescriptor> inputDescs;
-        std::vector<int> lens(2,0);
-        // -----------------------
-        for(int i = 0; i < batch_seq.size(); i++)
-        {
-            lens[0] = batch_seq[i];
-            lens[1] = inputVecLen;
-            inputDescs.push_back(miopen::TensorDescriptor(miopenFloat, lens.data(), 2));
-        }
-        auto outputDescs = inputDescs;
-        
         
         auto input_dev    = handle.Write(input.data);
         auto output = input;
@@ -534,8 +534,11 @@ struct verify_forward_train_rnn
         auto output_dev  = handle.Write(output.data);
         
         auto weights_dev  = handle.Write(weights.data);
-        auto hiddenState_dev  = handle.Write(initHidden.data);
-
+        auto hx_dev  = handle.Write(initHidden.data);
+		auto hy = initHidden;
+		std::fill(hy.begin(), hy.end(), 0.);
+		auto hy_dev  = handle.Write(hy);
+		
         
         auto runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
         auto runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
