@@ -195,7 +195,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
 
 #if(MIO_OPS_DEBUG)
         for(int i = 0; i < c.desc.GetElementSize(); i++)
-            printf("CPU_C[%d]: %f\n", i, c.data[i]);
+            printf("CPU_C[%d]: %f\n", i, c.data[i + Coffset]);
 #endif
         return c;
     }
@@ -236,7 +236,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
         auto clens    = c.desc.GetLengths();
         auto cstrides = c.desc.GetStrides();
         for(int i = 0; i < c.desc.GetElementSize(); i++)
-            printf("GPU_C[%d]: %f\n", i, c.data[i]);
+            printf("GPU_C[%d]: %f\n", i, c.data[i + Coffset]);
 #endif
         return c;
     }
@@ -256,42 +256,53 @@ struct tensor_ops_driver : test_driver
     tensor<T> super_b;
     tensor<T> super_c;
 
-    std::vector<int> tensorlens;
+    std::vector<int> tensorlens_ac;
+    std::vector<int> tensorlens_b;
     std::vector<int> offsets;
     std::vector<float> alphabeta;
 
-    // tensor<T> a;
-    // tensor<T> b;
-    // tensor<T> c;
-
-    std::vector<std::vector<int>> get_sub_tensor()
+    std::vector<std::vector<int>> get_sub_tensor_a()
     {
-        return {{32, 8, 16, 1, 8},
-                {2, 8, 16, 16, 8},
+        return {{32, 16, 8, 4, 4}, {16, 8, 16, 4}, {8, 16, 7}, {8, 16}, {8}};
+    }
+
+    std::vector<std::vector<int>> get_sub_tensor_b()
+    {
+        return {{32, 16, 8, 4, 4},
+                {32, 16, 1, 1, 1},
+                {1, 16, 8, 1, 1},
+                {1, 1, 8, 4, 1},
                 {16, 8, 16, 4},
-                {13, 16, 8, 16},
-                {3, 16, 7},
-                {13, 8, 10},
-                {3, 16},
-                {14, 8},
+                {16, 8, 1, 1},
+                {1, 8, 16, 1},
+                {1, 1, 16, 4},
+                {8, 16, 7},
+                {8, 16, 1},
+                {1, 16, 7},
+                {8, 1, 1},
+                {8, 16},
+                {8, 1},
+                {1, 16},
+                {8},
                 {1}};
     }
 
     tensor_ops_driver()
     {
 
-        std::vector<int> alens = {{32, 16, 16, 16, 16}};
-        std::vector<int> blens = {{32, 10, 16, 16, 16}};
-        std::vector<int> clens = {{40, 18, 16, 16, 16}};
+        std::vector<int> alens = {{32, 20, 16, 24, 20}};
+        std::vector<int> blens = {{32, 24, 20, 16, 16}};
+        std::vector<int> clens = {{32, 18, 18, 20, 18}};
 
         super_a = tensor<T>{alens}.generate(rand_gen{});
         super_b = tensor<T>{blens}.generate(rand_gen{});
         super_c = tensor<T>{clens}.generate(rand_gen{});
 
-        std::vector<std::vector<int>> get_offsets     = {{8, 10, 1}, {1, 10, 2}, {1, 5, 32}};
+        std::vector<std::vector<int>> get_offsets     = {{64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
         std::vector<std::vector<float>> get_alphabeta = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
 
-        add(tensorlens, "tensorlens", generate_data(get_sub_tensor()));
+        add(tensorlens_ac, "tensorlens_ac", generate_data(get_sub_tensor_a()));
+        add(tensorlens_b, "tensorlens_b", generate_data(get_sub_tensor_b()));
         add(offsets, "offsets", generate_data(get_offsets));
         add(alphabeta, "alphabeta", generate_data(get_alphabeta));
     }
@@ -304,18 +315,20 @@ struct tensor_ops_driver : test_driver
             miopenFloat, lens.data(), strides.data(), static_cast<int>(lens.size())};
         tensor<T> t = tensor<T>{tDesc};
         t.data      = super_tensor.data;
-
         return t;
     }
 
     void run()
     {
-        tensor<T> aTensor = get_subtensors(super_a, tensorlens);
-        tensor<T> bTensor = get_subtensors(super_b, tensorlens);
-        tensor<T> cTensor = get_subtensors(super_c, tensorlens);
+        if(tensorlens_ac.size() == tensorlens_b.size())
+        {
+            tensor<T> aTensor = get_subtensors(super_a, tensorlens_ac);
+            tensor<T> bTensor = get_subtensors(super_b, tensorlens_b);
+            tensor<T> cTensor = get_subtensors(super_c, tensorlens_ac);
 
-        verify(verify_tensor_ops<T>{
-            aTensor, bTensor, cTensor, offsets, alphabeta[0], alphabeta[1], alphabeta[2]});
+            verify(verify_tensor_ops<T>{
+                aTensor, bTensor, cTensor, offsets, alphabeta[0], alphabeta[1], alphabeta[2]});
+        }
     }
 };
 
