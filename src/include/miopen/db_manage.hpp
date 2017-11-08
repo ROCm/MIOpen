@@ -30,20 +30,20 @@
 
 namespace miopen {
 
-enum class PerfDbMode
+enum class PerfDbEnforce
 {
-    Begin            = 0,
-    SearchIfNotFound = Begin,
-    SearchAlways,
-    EnforceSearchIfEntryNotFound,
-    EnforceSearchAlways,
-    CleanAllEntries,
+    Begin = 0,
+    None  = Begin,
+    Update,
+    Search,
+    SearchUpdate,
+    Clean,
     End,
-    Default = SearchIfNotFound,
+    Default = None,
 };
 
-PerfDbMode GetSearchMode();
-std::ostream& operator<<(std::ostream& os, PerfDbMode sm);
+PerfDbEnforce GetPerfDbEnforce();
+std::ostream& operator<<(std::ostream&, PerfDbEnforce);
 
 } // namespace miopen
 

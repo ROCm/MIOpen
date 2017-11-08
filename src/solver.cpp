@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "miopen/db_record.hpp"
+#include "miopen/db_manage.hpp"
 #include "miopen/solver.hpp"
 #include "miopen/logger.hpp"
 
@@ -50,6 +51,7 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
 {
     std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
+    const PerfDbEnforce enforce               = GetPerfDbEnforce();
     MIOPEN_LOG_I("Finding solution: " << SolverId());
     do
     {
@@ -58,20 +60,30 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_I("Not searchable: " << SolverId());
             break;
         }
-        if(dbRecord.Load(SolverId(), *config))
+        if((context.do_search && enforce == PerfDbEnforce::Update) ||
+           enforce == PerfDbEnforce::SearchUpdate)
         {
-            MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
-            if(IsValidPerformanceConfigImpl(context, *config))
-            {
-                return GetSolution(context, *config);
-            }
-            MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId() << ": " << *config);
-            break;
+            MIOPEN_LOG_I("Perf Db: load skipped: " << SolverId() << ", enforce=" << enforce);
         }
-        MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
-        if(context.do_search)
+        else
         {
-            MIOPEN_LOG_I("Starting search: " << SolverId());
+            if(dbRecord.Load(SolverId(), *config))
+            {
+                MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
+                if(IsValidPerformanceConfigImpl(context, *config))
+                {
+                    return GetSolution(context, *config);
+                }
+                MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId() << ": "
+                                                                    << *config);
+                break;
+            }
+            MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
+        }
+        if(context.do_search || enforce == PerfDbEnforce::Search ||
+           enforce == PerfDbEnforce::SearchUpdate)
+        {
+            MIOPEN_LOG_I("Starting search: " << SolverId() << ", enforce=" << enforce);
             if(Search(context, *config))
             {
                 dbRecord.Store(SolverId(), *config);
