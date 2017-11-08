@@ -8189,8 +8189,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 				// Update time
 				profileRNNkernels(handle, 0);
-
-
 			}
 
 			if (biasMode)
@@ -8237,7 +8235,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 							profileRNNkernels(handle, 1);
 					}
 
-					if (inputMode == miopenRNNlinear && (!rnnMode == miopenGRU))
+					if (inputMode == miopenRNNlinear && rnnMode != miopenGRU)
 					{
 						CopyTensor(handle,
 							miopen::deref(w_desc),
@@ -8320,7 +8318,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 					profileRNNkernels(handle, 1);
 				}
 
-				if (!rnnMode == miopenGRU)
+				if (rnnMode != miopenGRU)
 				{
 					CopyTensor(handle,
 						miopen::deref(w_desc),
@@ -8460,7 +8458,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 							hid_shift + 5 * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
-}
+					}
 				}
 
 				if (ti == seqLen - 1)
@@ -8576,7 +8574,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 			}
 		}
 	}
-
 #else
 	MIOPEN_THROW("GEMM is not supported");
 #endif
