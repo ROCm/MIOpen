@@ -30,7 +30,7 @@
 
 #include <iostream>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PERF_DB_MODE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_PERF_DB_ENFORCE)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
 
@@ -38,41 +38,46 @@ namespace miopen {
 
 namespace {
 
-inline bool operator<=(const PerfDbMode& lhs, const int& rhs)
+inline bool operator<=(const PerfDbEnforce& lhs, const int& rhs)
 {
     return static_cast<int>(lhs) <= rhs;
 }
-inline bool operator<(const int& lhs, const PerfDbMode& rhs) { return lhs < static_cast<int>(rhs); }
 
-const char* SearchModeToCString(const PerfDbMode mode)
+inline bool operator<(const int& lhs, const PerfDbEnforce& rhs)
+{
+    return lhs < static_cast<int>(rhs);
+}
+
+const char* PerfDbEnforce2CString(const PerfDbEnforce mode)
 {
     switch(mode)
     {
-    case PerfDbMode::SearchIfNotFound: return "SearchIfNotFound";
-    case PerfDbMode::EnforceSearchIfEntryNotFound: return "EnforceSearchIfEntryNotFound";
-    case PerfDbMode::EnforceSearchAlways: return "EnforceSearchAlways";
-    case PerfDbMode::CleanAllEntries: return "CleanAllEntries";
+    case PerfDbEnforce::None: return "None";
+    case PerfDbEnforce::Update: return "Update";
+    case PerfDbEnforce::Search: return "Search";
+    case PerfDbEnforce::SearchUpdate: return "SearchUpdate";
+    case PerfDbEnforce::Clean: return "Clean";
     default: return "<Unknown>";
     }
 }
 
 } // namespace
 
-PerfDbMode GetSearchMode()
+PerfDbEnforce GetPerfDbEnforce()
 {
-    static const int val        = miopen::Value(MIOPEN_DEBUG_PERF_DB_MODE{});
-    static const bool ok        = (PerfDbMode::Begin <= val && val < PerfDbMode::End);
-    static const PerfDbMode ret = ok ? static_cast<PerfDbMode>(val) : PerfDbMode::Default;
+    static const int val           = miopen::Value(MIOPEN_PERF_DB_ENFORCE{});
+    static const bool ok           = (PerfDbEnforce::Begin <= val && val < PerfDbEnforce::End);
+    static const PerfDbEnforce ret = ok ? static_cast<PerfDbEnforce>(val) : PerfDbEnforce::Default;
     if(!ok)
     {
-        MIOPEN_LOG_E("Wrong MIOPEN_DEBUG_PERF_DB_MODE, resetting to default: " << ret);
+        MIOPEN_LOG_E("Wrong MIOPEN_PERF_DB_ENFORCE, resetting to default: " << ret);
     }
     return ret;
 }
 
-std::ostream& operator<<(std::ostream& os, const PerfDbMode sm)
+std::ostream& operator<<(std::ostream& os, const PerfDbEnforce sm)
 {
-    return os << SearchModeToCString(sm);
+    return os << PerfDbEnforce2CString(sm);
 }
 
 } // namespace miopen
