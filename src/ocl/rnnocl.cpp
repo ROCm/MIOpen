@@ -2794,7 +2794,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     {
                         w_size[2]  = 1;
                         w_size[3]  = wei_stride;
-                        sp_size[2] = 1;
+                        sp_size[2] = batch_n;
                         sp_size[3] = wei_stride;
                         miopenCreateTensorDescriptor(&w_desc);
                         miopenCreateTensorDescriptor(&sp_desc);
@@ -2803,28 +2803,26 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         miopenSetTensorDescriptor(
                             sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
                         alpha0 = 1;
-                        alpha1 = 0;
-                        beta_t = 1;
-                        for(int bs = 0; bs < batch_n; bs++)
-                        {
+                        alpha1 = 1;
+                        beta_t = 0;
+                        
                             OpTensor(handle,
                                      miopenTensorOpAdd,
                                      &alpha0,
-                                     miopen::deref(w_desc),
-                                     w,
+                                     miopen::deref(sp_desc),
+                                     reserveSpace,
                                      &alpha1,
                                      miopen::deref(w_desc),
                                      w,
                                      &beta_t,
                                      miopen::deref(sp_desc),
                                      reserveSpace,
+                                     hid_shift,
                                      wei_shift_bias,
-                                     wei_shift_bias,
-                                     hid_shift + bs * hy_stride);
+                                     hid_shift);
 
                             // Update time
                             profileRNNkernels(handle, 1);
-                        }
                     }
                 }
                 else
@@ -2852,7 +2850,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     {
                         w_size[2]  = 1;
                         w_size[3]  = wei_stride;
-                        sp_size[2] = 1;
+                        sp_size[2] = batch_n;
                         sp_size[3] = wei_stride;
 
                         miopenCreateTensorDescriptor(&w_desc);
@@ -2864,28 +2862,43 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         alpha0 = 1;
                         alpha1 = 1;
-                        beta_t = 1;
+                        beta_t = 0;
 
-                        for(int bs = 0; bs < batch_n; bs++)
-                        {
                             OpTensor(handle,
                                      miopenTensorOpAdd,
                                      &alpha0,
-                                     miopen::deref(w_desc),
-                                     w,
+                                     miopen::deref(sp_desc),
+                                     reserveSpace,
                                      &alpha1,
                                      miopen::deref(w_desc),
                                      w,
                                      &beta_t,
                                      miopen::deref(sp_desc),
                                      reserveSpace,
+                                     hid_shift,
                                      wei_shift_bias,
-                                     wei_shift_bias + wei_stride,
-                                     hid_shift + bs * hy_stride);
+                                     hid_shift);
 
                             // Update time
                             profileRNNkernels(handle, 1);
-                        }
+                        
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     miopen::deref(sp_desc),
+                                     reserveSpace,
+                                     &alpha1,
+                                     miopen::deref(w_desc),
+                                     w,
+                                     &beta_t,
+                                     miopen::deref(sp_desc),
+                                     reserveSpace,
+                                     hid_shift,
+                                     wei_shift_bias + wei_stride,
+                                     hid_shift);
+
+                            // Update time
+                            profileRNNkernels(handle, 1);
                     }
                 }
             }
@@ -2928,7 +2941,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                     w_size[2]  = 1;
                     w_size[3]  = wei_stride;
-                    sp_size[2] = 1;
+                    sp_size[2] = batch_n;
                     sp_size[3] = wei_stride;
 
                     miopenCreateTensorDescriptor(&w_desc);
@@ -2939,28 +2952,41 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
                     alpha0 = 1;
                     alpha1 = 1;
-                    beta_t = 1;
+                    beta_t = 0;
 
-                    for(int bs = 0; bs < batch_n; bs++)
-                    {
                         OpTensor(handle,
                                  miopenTensorOpAdd,
                                  &alpha0,
-                                 miopen::deref(w_desc),
-                                 w,
+                                 miopen::deref(sp_desc),
+                                 reserveSpace,
                                  &alpha1,
                                  miopen::deref(w_desc),
                                  w,
                                  &beta_t,
                                  miopen::deref(sp_desc),
                                  reserveSpace,
+                                 hid_shift,
                                  wei_shift_bias_temp,
-                                 wei_shift_bias_temp + wei_stride,
-                                 hid_shift + bs * hy_stride);
-
+                                 hid_shift);
                         // Update time
                         profileRNNkernels(handle, 1);
-                    }
+                    
+                        OpTensor(handle,
+                                 miopenTensorOpAdd,
+                                 &alpha0,
+                                 miopen::deref(sp_desc),
+                                 reserveSpace,
+                                 &alpha1,
+                                 miopen::deref(w_desc),
+                                 w,
+                                 &beta_t,
+                                 miopen::deref(sp_desc),
+                                 reserveSpace,
+                                 hid_shift,
+                                 wei_shift_bias_temp + wei_stride,
+                                 hid_shift);
+                        // Update time
+                        profileRNNkernels(handle, 1);
                 }
             }
 
