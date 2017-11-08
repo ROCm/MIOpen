@@ -190,16 +190,12 @@ void OpTensor(Handle& handle,
 
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
-    // quick fix
-    if(blens.size() == 1)
-    {
-        first_not_one = blens.rbegin();
-    }
 
     auto d = std::distance(blens.begin(), first_not_one.base());
 
-    int num_wg      = 1;
-    num_wg          = *first_not_one == 0 ? 1 : *first_not_one;
+    int num_wg = 1;
+    // quick fix
+    num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -212,6 +208,7 @@ void OpTensor(Handle& handle,
     CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, (d - 2));
 
 #if(MIO_TENSOROCL_DEBUG == 1)
+    printf("d: %d\n", d);
     printf("bitmap: %u\n", bitmap);
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
 #endif
