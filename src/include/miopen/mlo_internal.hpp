@@ -303,10 +303,7 @@ template <class T>
 void mloConstructImpl(miopen::rank<0>, T& x)
 {
     x.setupRocm();
-    auto sol = x.FindSolution();
-    if(!sol.Succeeded()) MIOPEN_THROW("No solution found");
-    x.mloUseSolution(sol);
-    // x.mloUseSolution(x.FindSolution());
+    x.mloUseSolution(x.FindSolution());
 }
 
 template <class T>

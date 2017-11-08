@@ -482,20 +482,22 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
                                                              const TensorDescriptor& xDesc,
                                                              const TensorDescriptor& dwDesc) const
 {
-    try {
-    mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-    construct_params.doSearch(false);
-    construct_params.setStream(&handle);
-    construct_params.setOutputDescFromMLDesc(dyDesc);
-    construct_params.setInputDescFromMLDesc(xDesc);
-    construct_params.setWeightDescFromMLDesc(dwDesc);
-    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-    mloConstruct(construct_params);
-    return construct_params.getWorkSpaceSzBytes();
-    } catch(const miopen::Exception&) {
-      return 0;
+    try
+    {
+        mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+        construct_params.doSearch(false);
+        construct_params.setStream(&handle);
+        construct_params.setOutputDescFromMLDesc(dyDesc);
+        construct_params.setInputDescFromMLDesc(xDesc);
+        construct_params.setWeightDescFromMLDesc(dwDesc);
+        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+        mloConstruct(construct_params);
+        return construct_params.getWorkSpaceSzBytes();
     }
-
+    catch(const miopen::Exception&)
+    {
+        return 0;
+    }
 }
 
 size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
