@@ -2709,6 +2709,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     std::vector<int> sp_size(4, 1), sp_stride(4, 1), w_size(4, 1), w_stride(4, 1), x_size(4, 1),
         x_stride(4, 1), y_size(4, 1), y_stride(4, 1), hx_size(4, 1), hx_stride(4, 1);
     miopenTensorDescriptor_t sp_desc, w_desc, x_desc, y_desc, hx_desc;
+miopenCreateTensorDescriptor(&sp_desc);
+                    miopenCreateTensorDescriptor(&w_desc);
+miopenCreateTensorDescriptor(&x_desc);
+                    miopenCreateTensorDescriptor(&y_desc);
+miopenCreateTensorDescriptor(&hx_desc);
+
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = batch_n * hy_stride;
     sp_stride[2] = hy_stride;
@@ -2782,8 +2788,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     x_size[3]  = hy_h;
                     sp_size[2] = batch_n;
                     sp_size[3] = hy_h;
-                    miopenCreateTensorDescriptor(&x_desc);
-                    miopenCreateTensorDescriptor(&sp_desc);
                     miopenSetTensorDescriptor(
                         x_desc, miopenFloat, 4, x_size.data(), x_stride.data());
                     miopenSetTensorDescriptor(
@@ -2877,8 +2881,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 				w_size[3] = wei_stride;
 				sp_size[2] = batch_n;
 				sp_size[3] = wei_stride;
-				miopenCreateTensorDescriptor(&w_desc);
-				miopenCreateTensorDescriptor(&sp_desc);
 				miopenSetTensorDescriptor(
 					w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 				miopenSetTensorDescriptor(
@@ -3171,8 +3173,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 									w_size[3] = 3 * hy_h;
 									sp_size[2] = in_n[ti];
 									sp_size[3] = 3 * hy_h;
-									miopenCreateTensorDescriptor(&w_desc);
-									miopenCreateTensorDescriptor(&sp_desc);
 									miopenSetTensorDescriptor(
 										w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 									miopenSetTensorDescriptor(
@@ -3201,8 +3201,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 								w_size[3] = 2 * hy_h;
 								sp_size[2] = in_n[ti];
 								sp_size[3] = 2 * hy_h;
-								miopenCreateTensorDescriptor(&w_desc);
-								miopenCreateTensorDescriptor(&sp_desc);
 								miopenSetTensorDescriptor(
 									w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 								miopenSetTensorDescriptor(
@@ -3230,8 +3228,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 								w_size[3] = hy_h;
 								sp_size[2] = in_n[ti];
 								sp_size[3] = hy_h;
-								miopenCreateTensorDescriptor(&w_desc);
-								miopenCreateTensorDescriptor(&sp_desc);
 								miopenSetTensorDescriptor(
 									w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 								miopenSetTensorDescriptor(
@@ -3259,7 +3255,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
 					{						
 						sp_size[3] = hy_h;
-						miopenCreateTensorDescriptor(&sp_desc);
 						miopenSetTensorDescriptor(
 							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3282,7 +3277,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					{
 						// active gate i, f, o
 						sp_size[3] = hy_h * 3;
-						miopenCreateTensorDescriptor(&sp_desc);
 						miopenSetTensorDescriptor(
 							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3302,7 +3296,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 						// active gate c
 						sp_size[3] = hy_h;
-						miopenCreateTensorDescriptor(&sp_desc);
 						miopenSetTensorDescriptor(
 							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3347,7 +3340,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						{
 							hx_size[2] = in_n[ti];
 							hx_size[3] = hy_h;
-							miopenCreateTensorDescriptor(&hx_desc);
 							miopenSetTensorDescriptor(
 								hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
@@ -3432,7 +3424,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					{
 						// active z, r gate
 						sp_size[3] = 2 * hy_h;
-						miopenCreateTensorDescriptor(&sp_desc);
 						miopenSetTensorDescriptor(
 							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3452,7 +3443,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 						// calculate c gate
 						sp_size[3] = hy_h;
-						miopenCreateTensorDescriptor(&sp_desc);
 						miopenSetTensorDescriptor(
 							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3541,7 +3531,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						{
 							hx_size[2] = in_n[ti];
 							hx_size[3] = hy_h;
-							miopenCreateTensorDescriptor(&hx_desc);
 							miopenSetTensorDescriptor(
 								hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
@@ -3587,7 +3576,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					// update cy, hy
 					hx_size[2] = in_n[ti];
 					hx_size[3] = hy_h;
-					miopenCreateTensorDescriptor(&hx_desc);
 					miopenSetTensorDescriptor(
 						hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
@@ -3635,8 +3623,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 								w_size[3] = 3 * hy_h;
 								sp_size[2] = in_n[seqLen - 1 - ti];
 								sp_size[3] = 3 * hy_h;
-								miopenCreateTensorDescriptor(&w_desc);
-								miopenCreateTensorDescriptor(&sp_desc);
 								miopenSetTensorDescriptor(
 									w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 								miopenSetTensorDescriptor(
@@ -3665,8 +3651,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							w_size[3] = 2 * hy_h;
 							sp_size[2] = in_n[seqLen - 1 - ti];
 							sp_size[3] = 2 * hy_h;
-							miopenCreateTensorDescriptor(&w_desc);
-							miopenCreateTensorDescriptor(&sp_desc);
 							miopenSetTensorDescriptor(
 								w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 							miopenSetTensorDescriptor(
@@ -3694,8 +3678,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							w_size[3] = hy_h;
 							sp_size[2] = in_n[seqLen - 1 - ti];
 							sp_size[3] = hy_h;
-							miopenCreateTensorDescriptor(&w_desc);
-							miopenCreateTensorDescriptor(&sp_desc);
 							miopenSetTensorDescriptor(
 								w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
 							miopenSetTensorDescriptor(
@@ -3723,7 +3705,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
 						{
 							sp_size[3] = hy_h;
-							miopenCreateTensorDescriptor(&sp_desc);
 							miopenSetTensorDescriptor(
 								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3745,7 +3726,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						{
 							// active gate i, f, o
 							sp_size[3] = hy_h * 3;
-							miopenCreateTensorDescriptor(&sp_desc);
 							miopenSetTensorDescriptor(
 								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3765,7 +3745,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 							// active gate c
 							sp_size[3] = hy_h;
-							miopenCreateTensorDescriptor(&sp_desc);
 							miopenSetTensorDescriptor(
 								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3811,7 +3790,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							{
 								hx_size[2] = in_n[seqLen - 1 - ti];
 								hx_size[3] = hy_h;
-								miopenCreateTensorDescriptor(&hx_desc);
 								miopenSetTensorDescriptor(
 									hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
@@ -3843,7 +3821,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 									sp_size[2] = in_n[seqLen - ti];
 									sp_size[3] = hy_h;
-									miopenCreateTensorDescriptor(&sp_desc);
 									miopenSetTensorDescriptor(
 										sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3870,7 +3847,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							// active cell state
 							sp_size[2] = in_n[seqLen - 1 - ti];
 							sp_size[3] = hy_h;
-							miopenCreateTensorDescriptor(&sp_desc);
 							miopenSetTensorDescriptor(
 								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3912,7 +3888,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						{
 							// active z, r gate
 							sp_size[3] = 2 * hy_h;
-							miopenCreateTensorDescriptor(&sp_desc);
 							miopenSetTensorDescriptor(
 								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -3932,7 +3907,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 							// calculate c gate
 							sp_size[3] = hy_h;
-							miopenCreateTensorDescriptor(&sp_desc);
 							miopenSetTensorDescriptor(
 								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -4023,7 +3997,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							{
 								hx_size[2] = in_n[seqLen - 1 - ti];
 								hx_size[3] = hy_h;
-								miopenCreateTensorDescriptor(&hx_desc);
 								miopenSetTensorDescriptor(
 									hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
@@ -4072,7 +4045,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						// update cy, hy
 						hx_size[2] = in_n[seqLen - 1 - ti];
 						hx_size[3] = hy_h;
-						miopenCreateTensorDescriptor(&hx_desc);
 						miopenSetTensorDescriptor(
 							hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 						
@@ -4109,7 +4081,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			{
 				hx_size[2] = in_n[0] - in_n[seqLen - 1];
 				hx_size[3] = hy_h;
-				miopenCreateTensorDescriptor(&hx_desc);
 				miopenSetTensorDescriptor(
 					hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
@@ -4163,8 +4134,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         sp_size[3] = hy_h * bi;
         y_size[2]  = batch_n;
         y_size[3]  = out_h;
-        miopenCreateTensorDescriptor(&sp_desc);
-        miopenCreateTensorDescriptor(&y_desc);
         miopenSetTensorDescriptor(sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
         miopenSetTensorDescriptor(y_desc, miopenFloat, 4, y_size.data(), y_stride.data());
 
@@ -7126,6 +7095,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 	std::vector<int> sp_size(4, 1), sp_stride(4, 1), w_size(4, 1), w_stride(4, 1);
 	miopenTensorDescriptor_t sp_desc, w_desc;
+					miopenCreateTensorDescriptor(&sp_desc);
+					miopenCreateTensorDescriptor(&w_desc);
 	sp_stride[0] = batch_n * hy_stride;
 	sp_stride[1] = batch_n * hy_stride;
 	sp_stride[2] = hy_stride;
@@ -7194,8 +7165,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 					sp_size[3] = wei_stride;
 					w_size[2] = 1;
 					w_size[3] = wei_stride;
-					miopenCreateTensorDescriptor(&sp_desc);
-					miopenCreateTensorDescriptor(&w_desc);
 					miopenSetTensorDescriptor(
 						sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 					miopenSetTensorDescriptor(
@@ -7280,8 +7249,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 				sp_size[3] = wei_stride;
 				w_size[2] = 1;
 				w_size[3] = wei_stride;
-				miopenCreateTensorDescriptor(&sp_desc);
-				miopenCreateTensorDescriptor(&w_desc);
 				miopenSetTensorDescriptor(
 					sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 				miopenSetTensorDescriptor(
@@ -7339,7 +7306,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 			{
 				sp_size[2] = in_n[ti];
 				sp_size[3] = hy_h;
-				miopenCreateTensorDescriptor(&sp_desc);
 				miopenSetTensorDescriptor(
 					sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
@@ -7536,8 +7502,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 			sp_size[3] = wei_stride;
 			w_size[2] = 1;
 			w_size[3] = wei_stride;
-			miopenCreateTensorDescriptor(&sp_desc);
-			miopenCreateTensorDescriptor(&w_desc);
 			miopenSetTensorDescriptor(
 				sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 			miopenSetTensorDescriptor(w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
