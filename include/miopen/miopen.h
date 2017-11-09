@@ -526,7 +526,6 @@ miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
  */
 MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
                                                              miopenConvolutionMode_t mode,
-                                                             miopenPaddingMode_t pmode,
                                                              int pad_h,
                                                              int pad_w,
                                                              int u,
@@ -550,7 +549,6 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
                                                             miopenConvolutionMode_t* mode,
-                                                            miopenPaddingMode_t* pmode,
                                                             int* pad_h,
                                                             int* pad_w,
                                                             int* u,
@@ -1054,7 +1052,6 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescript
  */
 MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                           miopenPoolingMode_t mode,
-                                                          miopenPaddingMode_t pmode,
                                                           int windowHeight,
                                                           int windowWidth,
                                                           int pad_h,
@@ -1078,7 +1075,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescripto
  */
 MIOPEN_EXPORT miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescriptor_t poolDesc,
                                                           miopenPoolingMode_t* mode,
-                                                          miopenPaddingMode_t* pmode,
                                                           int* windowHeight,
                                                           int* windowWidth,
                                                           int* pad_h,
