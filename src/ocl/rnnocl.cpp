@@ -2725,16 +2725,37 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 	hx_stride[1] = in_n[0] * uni_stride;
 	hx_stride[2] = uni_stride;
 
-    if(rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
-    {
-
 #if MIOPEN_USE_MIOPENGEMM
-        printf("run rnn gpu fwd \n");
         GemmGeometry gg;
+        int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift, prec_shift, pretime_shift;
+		int wei_len, wei_len_t, hid_off;
 
-        int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift;
+		switch (rnnMode)
+		{
+		case miopenRNNRELU:
+		case miopenRNNTANH:
+			printf("run rnn gpu fwd \n");
+			wei_len = hy_h;
+			wei_len_t = hy_h;
+			hid_off = nLayers * batch_n * hy_stride;
+			break;
+		case miopenLSTM:
+			printf("run lstm gpu fwd \n");
+			wei_len = hy_h * 4;
+			wei_len_t = hy_h * 4;
+			hid_off = bi * hy_h * 5;
+			break;
+		case miopenGRU:
+			printf("run gru gpu fwd \n");
+			wei_len = hy_h * 3;
+			wei_len_t = hy_h * 2;
+			hid_off = bi * hy_h * 3;
+			break;
+		}
 
-        ActivationDescriptor activDesc;
+		ActivationDescriptor tanhDesc, sigDesc, activDesc;
+		sigDesc = { miopenActivationLOGISTIC, 1, 0, 1 };
+		tanhDesc = { miopenActivationTANH, 1, 1, 1 };
         if(rnnMode == miopenRNNRELU)
         {
             activDesc = {miopenActivationRELU, 1, 0, 1};
@@ -2748,6 +2769,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         {
             hid_shift = li * batch_n * hy_stride;
             hx_shift  = li * hy_n * bi_stride;
+			wei_shift_bias_temp = inputMode == miopenRNNskip
+				? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
+				: (wei_shift_bias + li * 2 * wei_stride);
 
             // from input
             if(li == 0)
@@ -2758,7 +2782,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     x_size[3]  = hy_h;
                     sp_size[2] = batch_n;
                     sp_size[3] = hy_h;
-
                     miopenCreateTensorDescriptor(&x_desc);
                     miopenCreateTensorDescriptor(&sp_desc);
                     miopenSetTensorDescriptor(
@@ -2766,71 +2789,36 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     miopenSetTensorDescriptor(
                         sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                    CopyTensor(handle,
-                               miopen::deref(x_desc),
-                               x,
-                               miopen::deref(sp_desc),
-                               reserveSpace,
-                               0,
-                               0);
-                    // Update time
-                    profileRNNkernels(handle, 0);
+					for (int gi = 0; gi < nHiddenTensorsPerLayer; gi++)
+					{
+						CopyTensor(handle,
+							miopen::deref(x_desc),
+							x,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							0,
+							gi * hy_h);
+						// Update time
+						profileRNNkernels(handle, (gi == 0) ? 0 : 1);
 
-                    if(dirMode)
-                    {
-                        CopyTensor(handle,
-                                   miopen::deref(x_desc),
-                                   x,
-                                   miopen::deref(sp_desc),
-                                   reserveSpace,
-                                   0,
-                                   hy_h);
-
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-
-                    if(biasMode)
-                    {
-                        w_size[2]  = 1;
-                        w_size[3]  = wei_stride;
-                        sp_size[2] = 1;
-                        sp_size[3] = wei_stride;
-                        miopenCreateTensorDescriptor(&w_desc);
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-                        alpha0 = 1;
-                        alpha1 = 0;
-                        beta_t = 1;
-                        for(int bs = 0; bs < batch_n; bs++)
-                        {
-                            OpTensor(handle,
-                                     miopenTensorOpAdd,
-                                     &alpha0,
-                                     miopen::deref(w_desc),
-                                     w,
-                                     &alpha1,
-                                     miopen::deref(w_desc),
-                                     w,
-                                     &beta_t,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     wei_shift_bias,
-                                     wei_shift_bias,
-                                     hid_shift + bs * hy_stride);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
+						if (dirMode)
+						{
+							CopyTensor(handle,
+								miopen::deref(x_desc),
+								x,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								0,
+								(gi + nHiddenTensorsPerLayer) * hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
+					}
                 }
                 else
                 {
                     gg = CreateGemmGeometryRNN(batch_n,
-                                               hy_h * bi,
+                                               wei_len * bi,
                                                in_h,
                                                1,
                                                1,
@@ -2847,55 +2835,15 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                     // Update time
                     profileRNNkernels(handle, 0);
-
-                    if(biasMode)
-                    {
-                        w_size[2]  = 1;
-                        w_size[3]  = wei_stride;
-                        sp_size[2] = 1;
-                        sp_size[3] = wei_stride;
-
-                        miopenCreateTensorDescriptor(&w_desc);
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                        alpha0 = 1;
-                        alpha1 = 1;
-                        beta_t = 1;
-
-                        for(int bs = 0; bs < batch_n; bs++)
-                        {
-                            OpTensor(handle,
-                                     miopenTensorOpAdd,
-                                     &alpha0,
-                                     miopen::deref(w_desc),
-                                     w,
-                                     &alpha1,
-                                     miopen::deref(w_desc),
-                                     w,
-                                     &beta_t,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     wei_shift_bias,
-                                     wei_shift_bias + wei_stride,
-                                     hid_shift + bs * hy_stride);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
                 }
             }
             else
             {
                 wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
-                prelayer_shift = (li - 1) * batch_n * hy_stride;
+                prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
                 gg = CreateGemmGeometryRNN(batch_n,
-                                           hy_h * bi,
+                                           wei_len * bi,
                                            hy_h * bi,
                                            1,
                                            1,
@@ -2912,57 +2860,53 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                            reserveSpace,
                            w,
                            reserveSpace,
-                           prelayer_shift + nLayers * batch_n * hy_stride,
+                           prelayer_shift,
                            wei_shift,
                            hid_shift);
 
                 // Update time
                 profileRNNkernels(handle, 1);
-
-                if(biasMode)
-                {
-                    wei_shift_bias_temp =
-                        (inputMode == miopenRNNskip)
-                            ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
-                            : (wei_shift_bias + li * 2 * wei_stride);
-
-                    w_size[2]  = 1;
-                    w_size[3]  = wei_stride;
-                    sp_size[2] = 1;
-                    sp_size[3] = wei_stride;
-
-                    miopenCreateTensorDescriptor(&w_desc);
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-                    alpha0 = 1;
-                    alpha1 = 1;
-                    beta_t = 1;
-
-                    for(int bs = 0; bs < batch_n; bs++)
-                    {
-                        OpTensor(handle,
-                                 miopenTensorOpAdd,
-                                 &alpha0,
-                                 miopen::deref(w_desc),
-                                 w,
-                                 &alpha1,
-                                 miopen::deref(w_desc),
-                                 w,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 wei_shift_bias_temp,
-                                 wei_shift_bias_temp + wei_stride,
-                                 hid_shift + bs * hy_stride);
-
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-                }
             }
+
+			if (biasMode && rnnMode != miopenGRU)
+			{
+				int wn =  2;
+				if (inputMode == miopenRNNskip && li == 0) { wei_shift_bias_temp = wei_shift_bias; wn = 1; }
+
+				w_size[2] = 1;
+				w_size[3] = wei_stride;
+				sp_size[2] = batch_n;
+				sp_size[3] = wei_stride;
+				miopenCreateTensorDescriptor(&w_desc);
+				miopenCreateTensorDescriptor(&sp_desc);
+				miopenSetTensorDescriptor(
+					w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
+				miopenSetTensorDescriptor(
+					sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+				alpha0 = 1;
+				alpha1 = 1;
+				beta_t = 0;
+
+				for (int bs = 0; bs < wn; bs++)
+				{
+					OpTensor(handle,
+						miopenTensorOpAdd,
+						&alpha0,
+						miopen::deref(sp_desc),
+						reserveSpace,
+						&alpha1,
+						miopen::deref(w_desc),
+						w,
+						&beta_t,
+						miopen::deref(sp_desc),
+						reserveSpace,
+						hid_shift,
+						wei_shift_bias_temp + bs * wei_stride,
+						hid_shift);
+					// Update time
+					profileRNNkernels(handle, 1);
+				}
+			}
 
             // from hidden state
             bacc   = 0;
@@ -2970,18 +2914,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             for(int ti = 0; ti < seqLen; ti++)
             {
                 baccbi -= in_n[seqLen - 1 - ti];
-
-                wei_shift =
-                    li == 0 ? (in_h * wei_stride)
-                            : ((in_h + hy_h) * wei_stride +
-                               (li - 1) * (bi * hy_h + hy_h) * wei_stride + bi * hy_h * wei_stride);
+				wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
                 if(ti == 0)
                 {
                     if(in_n[ti] > 0)
                     {
                         gg = CreateGemmGeometryRNN(in_n[ti],
-                                                   hy_h,
+                                                   wei_len_t,
                                                    hy_h,
                                                    1,
                                                    1,
@@ -3004,6 +2944,34 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         // Update time
                         profileRNNkernels(handle, 1);
+
+						if (rnnMode == miopenGRU)
+						{
+							gg = CreateGemmGeometryRNN(in_n[ti],
+								hy_h,
+								hy_h,
+								1,
+								1,
+								false,
+								true,
+								false,
+								uni_stride,
+								uni_stride,
+								hy_stride,
+								false,
+								network_config);
+							gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
+							gg.RunGemm(handle,
+								hx,
+								w,
+								reserveSpace,
+								hx_shift,
+								wei_shift + 2 * hy_h * uni_stride,
+								hid_shift + bacc * hy_stride + bi * 3 * hy_h);
+
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
                     }
 
                     if(dirMode)
@@ -3011,7 +2979,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         if(in_n[seqLen - 1 - ti] > 0)
                         {
                             gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                                       hy_h,
+								                       wei_len_t,
                                                        hy_h,
                                                        1,
                                                        1,
@@ -3029,11 +2997,39 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        w,
                                        reserveSpace,
                                        hx_shift + hy_n * hy_h,
-                                       wei_shift + hy_h * uni_stride,
-                                       hid_shift + baccbi * hy_stride + hy_h);
+                                       wei_shift + wei_len * uni_stride,
+                                       hid_shift + baccbi * hy_stride + wei_len);
 
                             // Update time
                             profileRNNkernels(handle, 1);
+
+							if (rnnMode == miopenGRU)
+							{
+								gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
+									hy_h,
+									hy_h,
+									1,
+									1,
+									false,
+									true,
+									false,
+									uni_stride,
+									uni_stride,
+									hy_stride,
+									false,
+									network_config);
+								gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
+								gg.RunGemm(handle,
+									hx,
+									w,
+									reserveSpace,
+									hx_shift + hy_n * hy_h,
+									wei_shift + 5 * hy_h * uni_stride,
+									hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+
+								// Update time
+								profileRNNkernels(handle, 1);
+							}
                         }
                     }
                 }
@@ -3042,532 +3038,57 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     if(in_n[ti] > 0)
                     {
                         gg = CreateGemmGeometryRNN(in_n[ti],
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   hy_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, reserveSpace, w, reserveSpace, false);
-                        gg.RunGemm(handle,
-                                   reserveSpace,
-                                   w,
-                                   reserveSpace,
-                                   hid_shift + (bacc - in_n[ti - 1]) * hy_stride +
-                                       nLayers * batch_n * hy_stride,
-                                   wei_shift,
-                                   hid_shift + bacc * hy_stride);
-
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-
-                    if(dirMode)
-                    {
-                        if(in_n[seqLen - ti] > 0)
-                        {
-                            gg = CreateGemmGeometryRNN(in_n[seqLen - ti],
-                                                       hy_h,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       hy_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-
-                            gg.FindSolution(.003, handle, reserveSpace, w, reserveSpace, false);
-                            gg.RunGemm(handle,
-                                       reserveSpace,
-                                       w,
-                                       reserveSpace,
-                                       hid_shift + (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
-                                           hy_h + nLayers * batch_n * hy_stride,
-                                       wei_shift + hy_h * uni_stride,
-                                       hid_shift + baccbi * hy_stride + hy_h);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
-                }
-
-                if(in_n[ti] > 0)
-                {
-                    sp_size[2] = in_n[ti];
-                    sp_size[3] = hy_h;
-
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                    offset = hid_shift + bacc * hy_stride;
-
-                    activDesc.Forward(handle,
-                                      &alpha,
-                                      miopen::deref(sp_desc),
-                                      reserveSpace,
-                                      &beta,
-                                      miopen::deref(sp_desc),
-                                      reserveSpace,
-                                      offset,
-                                      offset + nLayers * batch_n * hy_stride);
-
-                    // Update time
-                    profileRNNkernels(handle, 1);
-                }
-
-                if(dirMode)
-                {
-                    if(in_n[seqLen - 1 - ti] > 0)
-                    {
-                        sp_size[2] = in_n[seqLen - 1 - ti];
-                        sp_size[3] = hy_h;
-
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                        offset = hid_shift + baccbi * hy_stride + hy_h;
-
-                        activDesc.Forward(handle,
-                                          &alpha,
-                                          miopen::deref(sp_desc),
-                                          reserveSpace,
-                                          &beta,
-                                          miopen::deref(sp_desc),
-                                          reserveSpace,
-                                          offset,
-                                          offset + nLayers * batch_n * hy_stride);
-
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-                }
-
-                bacc += in_n[ti];
-            }
-
-            // hy
-            if(in_n[seqLen - 1] > 0)
-            {
-                sp_size[2] = in_n[seqLen - 1];
-                sp_size[3] = hy_h;
-                hx_size[2] = in_n[seqLen - 1];
-                hx_size[3] = hy_h;
-
-                miopenCreateTensorDescriptor(&sp_desc);
-                miopenCreateTensorDescriptor(&hx_desc);
-                miopenSetTensorDescriptor(
-                    sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-                miopenSetTensorDescriptor(
-                    hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
-
-                CopyTensor(handle,
-                           miopen::deref(sp_desc),
-                           reserveSpace,
-                           miopen::deref(hx_desc),
-                           hy,
-                           hid_shift + (batch_n - in_n[seqLen - 1]) * hy_stride +
-                               nLayers * batch_n * hy_stride,
-                           hx_shift);
-                // Update time
-                profileRNNkernels(handle, 1);
-            }
-
-            if(dirMode)
-            {
-                if(in_n[0] > 0)
-                {
-                    sp_size[2] = in_n[0];
-                    sp_size[3] = hy_h;
-                    hx_size[2] = in_n[0];
-                    hx_size[3] = hy_h;
-
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenCreateTensorDescriptor(&hx_desc);
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-                    miopenSetTensorDescriptor(
-                        hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
-
-                    CopyTensor(handle,
-                               miopen::deref(sp_desc),
-                               reserveSpace,
-                               miopen::deref(hx_desc),
-                               hy,
-                               hid_shift + hy_h + nLayers * batch_n * hy_stride,
-                               hx_shift + hy_n * hy_h);
-                    // Update time
-                    profileRNNkernels(handle, 1);
-                }
-            }
-        }
-
-        // output
-        prelayer_shift = (nLayers - 1) * batch_n * hy_stride;
-
-        sp_size[2] = batch_n;
-        sp_size[3] = hy_h * bi;
-        y_size[2]  = batch_n;
-        y_size[3]  = out_h;
-
-        miopenCreateTensorDescriptor(&sp_desc);
-        miopenCreateTensorDescriptor(&y_desc);
-        miopenSetTensorDescriptor(sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-        miopenSetTensorDescriptor(y_desc, miopenFloat, 4, y_size.data(), y_stride.data());
-
-        CopyTensor(handle,
-                   miopen::deref(sp_desc),
-                   reserveSpace,
-                   miopen::deref(y_desc),
-                   y,
-                   prelayer_shift + nLayers * batch_n * hy_stride,
-                   0);
-        // Update time
-        profileRNNkernels(handle, 2);
-
-#else
-        MIOPEN_THROW("GEMM is not supported");
-#endif
-    }
-    else if(rnnMode == miopenLSTM)
-    {
-
-#if MIOPEN_USE_MIOPENGEMM
-        printf("run lstm gpu fwd \n");
-        GemmGeometry gg;
-
-        int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift, prec_shift;
-
-        ActivationDescriptor tanhDesc, sigDesc;
-        sigDesc  = {miopenActivationLOGISTIC, 1, 0, 1};
-        tanhDesc = {miopenActivationTANH, 1, 1, 1};
-
-        for(int li = 0; li < nLayers; li++)
-        {
-            hid_shift = li * batch_n * hy_stride;
-            hx_shift  = li * hy_n * bi_stride;
-
-            // from input
-            if(li == 0)
-            {
-                if(inputMode == miopenRNNskip)
-                {
-                    x_size[2]  = batch_n;
-                    x_size[3]  = hy_h;
-                    sp_size[2] = batch_n;
-                    sp_size[3] = hy_h;
-                    miopenCreateTensorDescriptor(&x_desc);
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        x_desc, miopenFloat, 4, x_size.data(), x_stride.data());
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                    for(int gi = 0; gi < 4; gi++)
-                    {
-                        CopyTensor(handle,
-                                   miopen::deref(x_desc),
-                                   x,
-                                   miopen::deref(sp_desc),
-                                   reserveSpace,
-                                   0,
-                                   gi * hy_h);
-
-                        // Update time
-                        profileRNNkernels(handle, (gi == 0) ? 0 : 1);
-
-                        if(dirMode)
-                        {
-                            CopyTensor(handle,
-                                       miopen::deref(x_desc),
-                                       x,
-                                       miopen::deref(sp_desc),
-                                       reserveSpace,
-                                       0,
-                                       (gi + 4) * hy_h);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
-
-                    if(biasMode)
-                    {
-                        w_size[2]  = 1;
-                        w_size[3]  = wei_stride;
-                        sp_size[2] = 1;
-                        sp_size[3] = wei_stride;
-                        miopenCreateTensorDescriptor(&w_desc);
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                        alpha0 = 1;
-                        alpha1 = 0;
-                        beta_t = 1;
-
-                        for(int bs = 0; bs < batch_n; bs++)
-                        {
-                            OpTensor(handle,
-                                     miopenTensorOpAdd,
-                                     &alpha0,
-                                     miopen::deref(w_desc),
-                                     w,
-                                     &alpha1,
-                                     miopen::deref(w_desc),
-                                     w,
-                                     &beta_t,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     wei_shift_bias,
-                                     wei_shift_bias,
-                                     hid_shift + bs * hy_stride);
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
-                }
-                else
-                {
-                    gg = CreateGemmGeometryRNN(batch_n,
-                                               hy_h * bi * 4,
-                                               in_h,
-                                               1,
-                                               1,
-                                               false,
-                                               true,
-                                               false,
-                                               in_stride,
-                                               in_stride,
-                                               hy_stride,
-                                               false,
-                                               network_config);
-                    gg.FindSolution(.003, handle, x, w, reserveSpace, false);
-                    gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
-
-                    // Update time
-                    profileRNNkernels(handle, 0);
-
-                    if(biasMode)
-                    {
-                        w_size[2]  = 1;
-                        w_size[3]  = wei_stride;
-                        sp_size[2] = 1;
-                        sp_size[3] = wei_stride;
-                        miopenCreateTensorDescriptor(&w_desc);
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                        alpha0 = 1;
-                        alpha1 = 1;
-                        beta_t = 1;
-
-                        for(int bs = 0; bs < batch_n; bs++)
-                        {
-                            OpTensor(handle,
-                                     miopenTensorOpAdd,
-                                     &alpha0,
-                                     miopen::deref(w_desc),
-                                     w,
-                                     &alpha1,
-                                     miopen::deref(w_desc),
-                                     w,
-                                     &beta_t,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     wei_shift_bias,
-                                     wei_shift_bias + wei_stride,
-                                     hid_shift + bs * hy_stride);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
-                prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 5 * hy_h;
-
-                gg = CreateGemmGeometryRNN(batch_n,
-                                           hy_h * bi * 4,
-                                           hy_h * bi,
-                                           1,
-                                           1,
-                                           false,
-                                           true,
-                                           false,
-                                           hy_stride,
-                                           bi_stride,
-                                           hy_stride,
-                                           false,
-                                           network_config);
-                gg.FindSolution(.003, handle, reserveSpace, w, reserveSpace, false);
-                gg.RunGemm(
-                    handle, reserveSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
-
-                // Update time
-                profileRNNkernels(handle, 1);
-
-                if(biasMode)
-                {
-                    wei_shift_bias_temp =
-                        (inputMode == miopenRNNskip)
-                            ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
-                            : (wei_shift_bias + li * 2 * wei_stride);
-
-                    w_size[2]  = 1;
-                    w_size[3]  = wei_stride;
-                    sp_size[2] = 1;
-                    sp_size[3] = wei_stride;
-                    miopenCreateTensorDescriptor(&w_desc);
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                    alpha0 = 1;
-                    alpha1 = 1;
-                    beta_t = 1;
-
-                    for(int bs = 0; bs < batch_n; bs++)
-                    {
-                        OpTensor(handle,
-                                 miopenTensorOpAdd,
-                                 &alpha0,
-                                 miopen::deref(w_desc),
-                                 w,
-                                 &alpha1,
-                                 miopen::deref(w_desc),
-                                 w,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 wei_shift_bias_temp,
-                                 wei_shift_bias_temp + wei_stride,
-                                 hid_shift + bs * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-                }
-            }
-
-            // from hidden state
-            bacc   = 0;
-            baccbi = batch_n;
-            for(int ti = 0; ti < seqLen; ti++)
-            {
-                baccbi -= in_n[seqLen - 1 - ti];
-                wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
-
-                if(ti == 0)
-                {
-                    if(in_n[ti] > 0)
-                    {
-                        gg = CreateGemmGeometryRNN(in_n[ti],
-                                                   hy_h * 4,
+                                                   wei_len_t,
                                                    hy_h,
                                                    1,
                                                    1,
                                                    false,
                                                    true,
                                                    false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
-                        gg.RunGemm(handle,
-                                   hx,
-                                   w,
-                                   reserveSpace,
-                                   hx_shift,
-                                   wei_shift,
-                                   hid_shift + bacc * hy_stride);
-
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-
-                    if(dirMode)
-                    {
-                        if(in_n[seqLen - 1 - ti] > 0)
-                        {
-                            gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                                       hy_h * 4,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
-                            gg.RunGemm(handle,
-                                       hx,
-                                       w,
-                                       reserveSpace,
-                                       hx_shift + hy_n * hy_h,
-                                       wei_shift + 4 * hy_h * uni_stride,
-                                       hid_shift + baccbi * hy_stride + 4 * hy_h);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
-                }
-                else
-                {
-                    if(in_n[ti] > 0)
-                    {
-                        gg = CreateGemmGeometryRNN(in_n[ti],
-                                                   hy_h * 4,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
+							                       uni_stride,
                                                    uni_stride,
                                                    hy_stride,
                                                    false,
                                                    network_config);
                         gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
                         gg.RunGemm(handle,
-                                   hy,
+							       hy,
                                    w,
                                    reserveSpace,
-                                   hx_shift,
+							       hx_shift,
                                    wei_shift,
                                    hid_shift + bacc * hy_stride);
 
                         // Update time
                         profileRNNkernels(handle, 1);
+
+						if (rnnMode == miopenGRU)
+						{
+							gg = CreateGemmGeometryRNN(in_n[ti],
+								hy_h,
+								hy_h,
+								1,
+								1,
+								false,
+								true,
+								false,
+								uni_stride,
+								uni_stride,
+								hy_stride,
+								false,
+								network_config);
+							gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
+							gg.RunGemm(handle,
+								hy,
+								w,
+								reserveSpace,
+								hx_shift,
+								wei_shift + 2 * hy_h * uni_stride,
+								hid_shift + bacc * hy_stride + bi * 3 * hy_h);
+
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
                     }
 
                     if(dirMode)
@@ -3575,473 +3096,1068 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         if(in_n[seqLen - 1 - ti] > 0)
                         {
                             gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                                       hy_h * 4,
+                                                       wei_len_t,
                                                        hy_h,
                                                        1,
                                                        1,
                                                        false,
                                                        true,
                                                        false,
-                                                       uni_stride,
+								                       uni_stride,
                                                        uni_stride,
                                                        hy_stride,
                                                        false,
                                                        network_config);
+
                             gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
                             gg.RunGemm(handle,
                                        hy,
                                        w,
                                        reserveSpace,
-                                       hx_shift + hy_n * hy_h,
-                                       wei_shift + 4 * hy_h * uni_stride,
-                                       hid_shift + baccbi * hy_stride + 4 * hy_h);
+								       hx_shift + hy_n * hy_h,
+                                       wei_shift + wei_len * uni_stride,
+                                       hid_shift + baccbi * hy_stride + wei_len);
 
                             // Update time
                             profileRNNkernels(handle, 1);
+
+							if (rnnMode == miopenGRU)
+							{
+								gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
+									hy_h,
+									hy_h,
+									1,
+									1,
+									false,
+									true,
+									false,
+									uni_stride,
+									uni_stride,
+									hy_stride,
+									false,
+									network_config);
+								gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
+								gg.RunGemm(handle,
+									hy,
+									w,
+									reserveSpace,
+									hx_shift + hy_n * hy_h,
+									wei_shift + 5 * hy_h * uni_stride,
+									hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+
+								// Update time
+								profileRNNkernels(handle, 1);
+							}
                         }
                     }
                 }
 
-                // update hidden status
+				// update hidden status
                 if(in_n[ti] > 0)
                 {
-                    sp_size[2] = in_n[ti];
+					if (rnnMode == miopenGRU && biasMode)
+					{
+						// apply bias
+								int wn = 1;
+								if (inputMode == miopenRNNskip && li == 0) { wei_shift_bias_temp = wei_shift_bias; wn = 0; }
 
-                    // active gate i, f, o
-                    sp_size[3] = hy_h * 3;
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+								alpha0 = 1;
+								alpha1 = 1;
+								beta_t = 0;
 
-                    offset = hid_shift + bacc * hy_stride;
+								if (!(li == 0 && inputMode == miopenRNNskip))
+								{
+									w_size[2] = 1;
+									w_size[3] = 3 * hy_h;
+									sp_size[2] = in_n[ti];
+									sp_size[3] = 3 * hy_h;
+									miopenCreateTensorDescriptor(&w_desc);
+									miopenCreateTensorDescriptor(&sp_desc);
+									miopenSetTensorDescriptor(
+										w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
+									miopenSetTensorDescriptor(
+										sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                    sigDesc.Forward(handle,
-                                    &alpha,
-                                    miopen::deref(sp_desc),
-                                    reserveSpace,
-                                    &beta,
-                                    miopen::deref(sp_desc),
-                                    reserveSpace,
-                                    offset,
-                                    offset + nLayers * batch_n * hy_stride);
-                    // Update time
-                    profileRNNkernels(handle, 1);
+									OpTensor(handle,
+										miopenTensorOpAdd,
+										&alpha0,
+										miopen::deref(sp_desc),
+										reserveSpace,
+										&alpha1,
+										miopen::deref(w_desc),
+										w,
+										&beta_t,
+										miopen::deref(sp_desc),
+										reserveSpace,
+										hid_shift + bacc * hy_stride,
+										wei_shift_bias_temp,
+										hid_shift + bacc * hy_stride);
+									// Update time
+									profileRNNkernels(handle, 1);
+								}																
 
-                    // active gate c
-                    sp_size[3] = hy_h;
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+								//
+								w_size[2] = 1;
+								w_size[3] = 2 * hy_h;
+								sp_size[2] = in_n[ti];
+								sp_size[3] = 2 * hy_h;
+								miopenCreateTensorDescriptor(&w_desc);
+								miopenCreateTensorDescriptor(&sp_desc);
+								miopenSetTensorDescriptor(
+									w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
+								miopenSetTensorDescriptor(
+									sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+								
+									OpTensor(handle,
+										miopenTensorOpAdd,
+										&alpha0,
+										miopen::deref(sp_desc),
+										reserveSpace,
+										&alpha1,
+										miopen::deref(w_desc),
+										w,
+										&beta_t,
+										miopen::deref(sp_desc),
+										reserveSpace,
+										hid_shift + bacc * hy_stride,
+										wei_shift_bias_temp + wn * wei_stride,
+										hid_shift + bacc * hy_stride);
+									// Update time
+									profileRNNkernels(handle, 1);
+								
+								//
+								w_size[2] = 1;
+								w_size[3] = hy_h;
+								sp_size[2] = in_n[ti];
+								sp_size[3] = hy_h;
+								miopenCreateTensorDescriptor(&w_desc);
+								miopenCreateTensorDescriptor(&sp_desc);
+								miopenSetTensorDescriptor(
+									w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
+								miopenSetTensorDescriptor(
+									sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                    offset = hid_shift + bacc * hy_stride + 3 * hy_h;
+									OpTensor(handle,
+										miopenTensorOpAdd,
+										&alpha0,
+										miopen::deref(sp_desc),
+										reserveSpace,
+										&alpha1,
+										miopen::deref(w_desc),
+										w,
+										&beta_t,
+										miopen::deref(sp_desc),
+										reserveSpace,
+										hid_shift + bacc * hy_stride + bi * 3 * hy_h,
+										wei_shift_bias_temp + wn * wei_stride + 2 * hy_h,
+										hid_shift + bacc * hy_stride + bi * 3 * hy_h);
+									// Update time
+									profileRNNkernels(handle, 1);
+					}
 
-                    tanhDesc.Forward(handle,
-                                     &alpha,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     &beta,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     offset,
-                                     offset + nLayers * batch_n * hy_stride);
-                    // Update time
-                    profileRNNkernels(handle, 1);
+					sp_size[2] = in_n[ti];
+					if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
+					{						
+						sp_size[3] = hy_h;
+						miopenCreateTensorDescriptor(&sp_desc);
+						miopenSetTensorDescriptor(
+							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                    // update cell state
-                    alpha0 = 1;
-                    alpha1 = 1;
-                    beta_t = 1;
+						offset = hid_shift + bacc * hy_stride;
 
-                    OpTensor(handle,
-                             miopenTensorOpMul,
-                             &alpha0,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &alpha1,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &beta_t,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
-                             hid_shift + bacc * hy_stride + 3 * hy_h +
-                                 nLayers * batch_n * hy_stride,
-                             hid_shift + bacc * hy_stride + bi * 4 * hy_h);
+						activDesc.Forward(handle,
+							&alpha,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							offset,
+							offset + nLayers * batch_n * hy_stride);
 
-                    // Update time
-                    profileRNNkernels(handle, 1);
+						// Update time
+						profileRNNkernels(handle, 1);
+					}
+					else if (rnnMode == miopenLSTM)
+					{
+						// active gate i, f, o
+						sp_size[3] = hy_h * 3;
+						miopenCreateTensorDescriptor(&sp_desc);
+						miopenSetTensorDescriptor(
+							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                    if(ti == 0)
-                    {
-                        hx_size[2] = in_n[ti];
-                        hx_size[3] = hy_h;
-                        miopenCreateTensorDescriptor(&hx_desc);
-                        miopenSetTensorDescriptor(
-                            hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+						offset = hid_shift + bacc * hy_stride;
 
-                        OpTensor(handle,
-                                 miopenTensorOpMul,
-                                 &alpha0,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &alpha1,
-                                 miopen::deref(hx_desc),
-                                 cx,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 hid_shift + bacc * hy_stride + hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 hx_shift,
-                                 hid_shift + bacc * hy_stride + bi * 4 * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-                    else
-                    {
-                        prec_shift = li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride +
-                                     bi * 4 * hy_h;
+						sigDesc.Forward(handle,
+							&alpha,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							offset,
+							offset + nLayers * batch_n * hy_stride);
+						// Update time
+						profileRNNkernels(handle, 1);
 
-                        OpTensor(handle,
-                                 miopenTensorOpMul,
-                                 &alpha0,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &alpha1,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 hid_shift + bacc * hy_stride + hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 prec_shift,
-                                 hid_shift + bacc * hy_stride + bi * 4 * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
+						// active gate c
+						sp_size[3] = hy_h;
+						miopenCreateTensorDescriptor(&sp_desc);
+						miopenSetTensorDescriptor(
+							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                    // active cell state
-                    offset = hid_shift + bacc * hy_stride + bi * 4 * hy_h;
+						offset = hid_shift + bacc * hy_stride + 3 * hy_h;
 
-                    tanhDesc.Forward(handle,
-                                     &alpha,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     &beta,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     offset,
-                                     offset + nLayers * batch_n * hy_stride);
-                    // Update time
-                    profileRNNkernels(handle, 1);
+						tanhDesc.Forward(handle,
+							&alpha,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							offset,
+							offset + nLayers * batch_n * hy_stride);
+						// Update time
+						profileRNNkernels(handle, 1);
 
-                    // update hidden state
-                    OpTensor(handle,
-                             miopenTensorOpMul,
-                             &alpha0,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &alpha1,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &beta_t,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             hid_shift + bacc * hy_stride + 2 * hy_h +
-                                 nLayers * batch_n * hy_stride,
-                             hid_shift + bacc * hy_stride + bi * 4 * hy_h +
-                                 nLayers * batch_n * hy_stride,
-                             hid_shift + bacc * hy_stride + bi * 5 * hy_h);
-                    // Update time
-                    profileRNNkernels(handle, 1);
+						// update cell state
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 1;
 
-                    // update cy, hy
-                    hx_size[2] = in_n[ti];
-                    hx_size[3] = hy_h;
-                    miopenCreateTensorDescriptor(&hx_desc);
-                    miopenSetTensorDescriptor(
-                        hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&alpha1,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
+							hid_shift + bacc * hy_stride + 3 * hy_h +
+							nLayers * batch_n * hy_stride,
+							hid_shift + bacc * hy_stride + bi * 4 * hy_h);
+						// Update time
+						profileRNNkernels(handle, 1);
 
-                    CopyTensor(handle,
-                               miopen::deref(sp_desc),
-                               reserveSpace,
-                               miopen::deref(hx_desc),
-                               cy,
-                               hid_shift + bacc * hy_stride + bi * 4 * hy_h,
-                               hx_shift);
+						if (ti == 0)
+						{
+							hx_size[2] = in_n[ti];
+							hx_size[3] = hy_h;
+							miopenCreateTensorDescriptor(&hx_desc);
+							miopenSetTensorDescriptor(
+								hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
-                    // Update time
-                    profileRNNkernels(handle, 1);
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(hx_desc),
+								cx,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + bacc * hy_stride + hy_h +
+								nLayers * batch_n * hy_stride,
+								hx_shift,
+								hid_shift + bacc * hy_stride + bi * 4 * hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
+						else
+						{
+							prec_shift = li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride +
+								bi * 4 * hy_h;
 
-                    CopyTensor(handle,
-                               miopen::deref(sp_desc),
-                               reserveSpace,
-                               miopen::deref(hx_desc),
-                               hy,
-                               hid_shift + bacc * hy_stride + bi * 5 * hy_h,
-                               hx_shift);
-                    // Update time
-                    profileRNNkernels(handle, 1);
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + bacc * hy_stride + hy_h +
+								nLayers * batch_n * hy_stride,
+								prec_shift,
+								hid_shift + bacc * hy_stride + bi * 4 * hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
+
+						// active cell state
+						offset = hid_shift + bacc * hy_stride + bi * 4 * hy_h;
+
+						tanhDesc.Forward(handle,
+							&alpha,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							offset,
+							offset + nLayers * batch_n * hy_stride);
+						// Update time
+						profileRNNkernels(handle, 1);
+
+						// update hidden state
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&alpha1,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							hid_shift + bacc * hy_stride + 2 * hy_h +
+							nLayers * batch_n * hy_stride,
+							hid_shift + bacc * hy_stride + bi * 4 * hy_h +
+							nLayers * batch_n * hy_stride,
+							hid_shift + bacc * hy_stride + bi * 5 * hy_h);
+						// Update time
+						profileRNNkernels(handle, 1);
+					}
+					else if (rnnMode == miopenGRU)
+					{
+						// active z, r gate
+						sp_size[3] = 2 * hy_h;
+						miopenCreateTensorDescriptor(&sp_desc);
+						miopenSetTensorDescriptor(
+							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+
+						offset = hid_shift + bacc * hy_stride;
+
+						sigDesc.Forward(handle,
+							&alpha,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							offset,
+							offset + nLayers * batch_n * hy_stride);
+						// Update time
+						profileRNNkernels(handle, 1);
+
+						// calculate c gate
+						sp_size[3] = hy_h;
+						miopenCreateTensorDescriptor(&sp_desc);
+						miopenSetTensorDescriptor(
+							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 1;
+
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&alpha1,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							hid_shift + bacc * hy_stride + hy_h + nLayers * batch_n * hy_stride,
+							hid_shift + bacc * hy_stride + bi * 3 * hy_h,
+							hid_shift + bacc * hy_stride + 2 * hy_h);
+						// Update time
+						profileRNNkernels(handle, 1);
+
+						// active c gate
+						tanhDesc.Forward(handle,
+							&alpha,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							offset + 2 * hy_h,
+							offset + 2 * hy_h + nLayers * batch_n * hy_stride);
+						// Update time
+						profileRNNkernels(handle, 1);
+
+						// calculate hidden state
+						alpha0 = -1;
+						alpha1 = 1;
+						beta_t = 0;
+						OpTensor(handle,
+							miopenTensorOpMul,
+							&alpha0,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&alpha1,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
+							hid_shift + bacc * hy_stride + 2 * hy_h +
+							nLayers * batch_n * hy_stride,
+							hid_shift + bacc * hy_stride + bi * 3 * hy_h);
+						// Update time
+						profileRNNkernels(handle, 1);
+
+						alpha0 = 1;
+						alpha1 = 0;
+						beta_t = 1;
+
+						OpTensor(handle,
+							miopenTensorOpAdd,
+							&alpha0,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&alpha1,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							&beta_t,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							hid_shift + bacc * hy_stride + 2 * hy_h +
+							nLayers * batch_n * hy_stride,
+							hid_shift + bacc * hy_stride + bi * 3 * hy_h,
+							hid_shift + bacc * hy_stride + bi * 3 * hy_h);
+						// Update time
+						profileRNNkernels(handle, 1);
+
+						alpha0 = 1;
+						alpha1 = 1;
+						beta_t = 1;
+						if (ti == 0)
+						{
+							hx_size[2] = in_n[ti];
+							hx_size[3] = hy_h;
+							miopenCreateTensorDescriptor(&hx_desc);
+							miopenSetTensorDescriptor(
+								hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(hx_desc),
+								hx,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
+								hx_shift,
+								hid_shift + bacc * hy_stride + bi * 3 * hy_h);
+						}
+						else
+						{
+							pretime_shift = li * batch_n * hy_stride +
+								(bacc - in_n[ti - 1]) * hy_stride + bi * 3 * hy_h;
+
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
+								pretime_shift,
+								hid_shift + bacc * hy_stride + bi * 3 * hy_h);
+						}
+						// Update time
+						profileRNNkernels(handle, 1);
+					}
+
+					// update cy, hy
+					hx_size[2] = in_n[ti];
+					hx_size[3] = hy_h;
+					miopenCreateTensorDescriptor(&hx_desc);
+					miopenSetTensorDescriptor(
+						hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+
+					CopyTensor(handle,
+						miopen::deref(sp_desc),
+						reserveSpace,
+						miopen::deref(hx_desc),
+						hy,
+						hid_shift + bacc * hy_stride + hid_off,
+						hx_shift);
+					// Update time
+					profileRNNkernels(handle, 1);
+					
+					if (rnnMode == miopenLSTM)
+					{
+						CopyTensor(handle,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							miopen::deref(hx_desc),
+							cy,
+							hid_shift + bacc * hy_stride + bi * 4 * hy_h,
+							hx_shift);
+						// Update time
+						profileRNNkernels(handle, 1);
+					}
                 }
 
                 if(dirMode)
                 {
                     if(in_n[seqLen - 1 - ti] > 0)
                     {
-                        sp_size[2] = in_n[seqLen - 1 - ti];
+						if (rnnMode == miopenGRU && biasMode)
+						{
+							// apply bias
+							int wn = 1;
+							if (inputMode == miopenRNNskip && li == 0) { wei_shift_bias_temp = wei_shift_bias; wn = 0; }
 
-                        // active gate i, f, o
-                        sp_size[3] = hy_h * 3;
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+							alpha0 = 1;
+							alpha1 = 1;
+							beta_t = 0;
 
-                        offset = hid_shift + baccbi * hy_stride + 4 * hy_h;
+							if (!(li == 0 && inputMode == miopenRNNskip))
+							{
+								w_size[2] = 1;
+								w_size[3] = 3 * hy_h;
+								sp_size[2] = in_n[seqLen - 1 - ti];
+								sp_size[3] = 3 * hy_h;
+								miopenCreateTensorDescriptor(&w_desc);
+								miopenCreateTensorDescriptor(&sp_desc);
+								miopenSetTensorDescriptor(
+									w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
+								miopenSetTensorDescriptor(
+									sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                        sigDesc.Forward(handle,
-                                        &alpha,
-                                        miopen::deref(sp_desc),
-                                        reserveSpace,
-                                        &beta,
-                                        miopen::deref(sp_desc),
-                                        reserveSpace,
-                                        offset,
-                                        offset + nLayers * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1);
+								OpTensor(handle,
+									miopenTensorOpAdd,
+									&alpha0,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									&alpha1,
+									miopen::deref(w_desc),
+									w,
+									&beta_t,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									hid_shift + baccbi * hy_stride + 3 * hy_h,
+									wei_shift_bias_temp + 3 * hy_h,
+									hid_shift + baccbi * hy_stride + 3 * hy_h);
+								// Update time
+								profileRNNkernels(handle, 1);
+							}
 
-                        // active gate c
-                        sp_size[3] = hy_h;
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+							//
+							w_size[2] = 1;
+							w_size[3] = 2 * hy_h;
+							sp_size[2] = in_n[seqLen - 1 - ti];
+							sp_size[3] = 2 * hy_h;
+							miopenCreateTensorDescriptor(&w_desc);
+							miopenCreateTensorDescriptor(&sp_desc);
+							miopenSetTensorDescriptor(
+								w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                        offset = hid_shift + baccbi * hy_stride + 7 * hy_h;
+							OpTensor(handle,
+								miopenTensorOpAdd,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(w_desc),
+								w,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + baccbi * hy_stride + 3 * hy_h,
+								wei_shift_bias_temp + wn * wei_stride + 3 * hy_h,
+								hid_shift + baccbi * hy_stride + 3 * hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
 
-                        tanhDesc.Forward(handle,
-                                         &alpha,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         &beta,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         offset,
-                                         offset + nLayers * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1);
+							//
+							w_size[2] = 1;
+							w_size[3] = hy_h;
+							sp_size[2] = in_n[seqLen - 1 - ti];
+							sp_size[3] = hy_h;
+							miopenCreateTensorDescriptor(&w_desc);
+							miopenCreateTensorDescriptor(&sp_desc);
+							miopenSetTensorDescriptor(
+								w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                        // update cell state
-                        alpha0 = 1;
-                        alpha1 = 1;
-                        beta_t = 1;
+							OpTensor(handle,
+								miopenTensorOpAdd,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(w_desc),
+								w,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
+								wei_shift_bias_temp + wn * wei_stride + 5 * hy_h,
+								hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
+						
+						sp_size[2] = in_n[seqLen - 1 - ti];
+						if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
+						{
+							sp_size[3] = hy_h;
+							miopenCreateTensorDescriptor(&sp_desc);
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                        OpTensor(handle,
-                                 miopenTensorOpMul,
-                                 &alpha0,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &alpha1,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 hid_shift + baccbi * hy_stride + 4 * hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 hid_shift + baccbi * hy_stride + 7 * hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+							offset = hid_shift + baccbi * hy_stride + hy_h;
 
-                        // Update time
-                        profileRNNkernels(handle, 1);
+							activDesc.Forward(handle,
+								&alpha,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								offset,
+								offset + nLayers * batch_n * hy_stride);
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
+						else if (rnnMode == miopenLSTM)
+						{
+							// active gate i, f, o
+							sp_size[3] = hy_h * 3;
+							miopenCreateTensorDescriptor(&sp_desc);
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                        if(ti == 0)
-                        {
-                            hx_size[2] = in_n[seqLen - 1 - ti];
-                            hx_size[3] = hy_h;
-                            miopenCreateTensorDescriptor(&hx_desc);
-                            miopenSetTensorDescriptor(
-                                hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+							offset = hid_shift + baccbi * hy_stride + 4 * hy_h;
 
-                            OpTensor(handle,
-                                     miopenTensorOpMul,
-                                     &alpha0,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     &alpha1,
-                                     miopen::deref(hx_desc),
-                                     cx,
-                                     &beta_t,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     hid_shift + baccbi * hy_stride + 5 * hy_h +
-                                         nLayers * batch_n * hy_stride,
-                                     hx_shift + hy_n * hy_h,
-                                     hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+							sigDesc.Forward(handle,
+								&alpha,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								offset,
+								offset + nLayers * batch_n * hy_stride);
+							// Update time
+							profileRNNkernels(handle, 1);
 
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                        else
-                        {
-                            if(in_n[seqLen - ti] > 0)
-                            {
-                                prec_shift = li * batch_n * hy_stride +
-                                             (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
-                                             bi * 4 * hy_h + hy_h;
+							// active gate c
+							sp_size[3] = hy_h;
+							miopenCreateTensorDescriptor(&sp_desc);
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                                sp_size[2] = in_n[seqLen - ti];
-                                sp_size[3] = hy_h;
-                                miopenCreateTensorDescriptor(&sp_desc);
-                                miopenSetTensorDescriptor(
-                                    sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+							offset = hid_shift + baccbi * hy_stride + 7 * hy_h;
 
-                                OpTensor(handle,
-                                         miopenTensorOpMul,
-                                         &alpha0,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         &alpha1,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         &beta_t,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         hid_shift + baccbi * hy_stride + 5 * hy_h +
-                                             nLayers * batch_n * hy_stride,
-                                         prec_shift,
-                                         hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+							tanhDesc.Forward(handle,
+								&alpha,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								offset,
+								offset + nLayers * batch_n * hy_stride);
+							// Update time
+							profileRNNkernels(handle, 1);
 
-                                // Update time
-                                profileRNNkernels(handle, 1);
-                            }
-                        }
+							// update cell state
+							alpha0 = 1;
+							alpha1 = 1;
+							beta_t = 1;
 
-                        // active cell state
-                        sp_size[2] = in_n[seqLen - 1 - ti];
-                        sp_size[3] = hy_h;
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + baccbi * hy_stride + 4 * hy_h +
+								nLayers * batch_n * hy_stride,
+								hid_shift + baccbi * hy_stride + 7 * hy_h +
+								nLayers * batch_n * hy_stride,
+								hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
 
-                        offset = hid_shift + baccbi * hy_stride + (bi * 4 + 1) * hy_h;
+							if (ti == 0)
+							{
+								hx_size[2] = in_n[seqLen - 1 - ti];
+								hx_size[3] = hy_h;
+								miopenCreateTensorDescriptor(&hx_desc);
+								miopenSetTensorDescriptor(
+									hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
-                        tanhDesc.Forward(handle,
-                                         &alpha,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         &beta,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         offset,
-                                         offset + nLayers * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1);
+								OpTensor(handle,
+									miopenTensorOpMul,
+									&alpha0,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									&alpha1,
+									miopen::deref(hx_desc),
+									cx,
+									&beta_t,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									hid_shift + baccbi * hy_stride + 5 * hy_h +
+									nLayers * batch_n * hy_stride,
+									hx_shift + hy_n * hy_h,
+									hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+								// Update time
+								profileRNNkernels(handle, 1);
+						    }
+							else
+							{
+								if (in_n[seqLen - ti] > 0)
+								{
+									prec_shift = li * batch_n * hy_stride +
+										(baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
+										bi * 4 * hy_h + hy_h;
 
-                        // update hidden state
-                        OpTensor(handle,
-                                 miopenTensorOpMul,
-                                 &alpha0,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &alpha1,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 hid_shift + baccbi * hy_stride + 6 * hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1);
+									sp_size[2] = in_n[seqLen - ti];
+									sp_size[3] = hy_h;
+									miopenCreateTensorDescriptor(&sp_desc);
+									miopenSetTensorDescriptor(
+										sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                        // update cy, hy
-                        hx_size[2] = in_n[seqLen - 1 - ti];
-                        hx_size[3] = hy_h;
-                        miopenCreateTensorDescriptor(&hx_desc);
-                        miopenSetTensorDescriptor(
-                            hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+									OpTensor(handle,
+										miopenTensorOpMul,
+										&alpha0,
+										miopen::deref(sp_desc),
+										reserveSpace,
+										&alpha1,
+										miopen::deref(sp_desc),
+										reserveSpace,
+										&beta_t,
+										miopen::deref(sp_desc),
+										reserveSpace,
+										hid_shift + baccbi * hy_stride + 5 * hy_h +
+										nLayers * batch_n * hy_stride,
+										prec_shift,
+										hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h);
+									// Update time
+									profileRNNkernels(handle, 1);
+								}
+							}
 
-                        CopyTensor(handle,
-                                   miopen::deref(sp_desc),
-                                   reserveSpace,
-                                   miopen::deref(hx_desc),
-                                   cy,
-                                   hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h,
-                                   hx_shift + hy_n * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1);
+							// active cell state
+							sp_size[2] = in_n[seqLen - 1 - ti];
+							sp_size[3] = hy_h;
+							miopenCreateTensorDescriptor(&sp_desc);
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-                        CopyTensor(handle,
-                                   miopen::deref(sp_desc),
-                                   reserveSpace,
-                                   miopen::deref(hx_desc),
-                                   hy,
-                                   hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h,
-                                   hx_shift + hy_n * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1);
+							offset = hid_shift + baccbi * hy_stride + (bi * 4 + 1) * hy_h;
+
+							tanhDesc.Forward(handle,
+								&alpha,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								offset,
+								offset + nLayers * batch_n * hy_stride);
+							// Update time
+							profileRNNkernels(handle, 1);
+
+							// update hidden state
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + baccbi * hy_stride + 6 * hy_h +
+								nLayers * batch_n * hy_stride,
+								hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h +
+								nLayers * batch_n * hy_stride,
+								hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
+						else if (rnnMode == miopenGRU)
+						{
+							// active z, r gate
+							sp_size[3] = 2 * hy_h;
+							miopenCreateTensorDescriptor(&sp_desc);
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+
+							offset = hid_shift + baccbi * hy_stride;
+
+							sigDesc.Forward(handle,
+								&alpha,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								offset + 3 * hy_h,
+								offset + 3 * hy_h + nLayers * batch_n * hy_stride);
+							// Update time
+							profileRNNkernels(handle, 1);
+
+							// calculate c gate
+							sp_size[3] = hy_h;
+							miopenCreateTensorDescriptor(&sp_desc);
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+
+							alpha0 = 1;
+							alpha1 = 1;
+							beta_t = 1;
+
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + baccbi * hy_stride + 4 * hy_h +
+								nLayers * batch_n * hy_stride,
+								hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
+								hid_shift + baccbi * hy_stride + 5 * hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
+
+							// active c gate
+							tanhDesc.Forward(handle,
+								&alpha,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								offset + 5 * hy_h,
+								offset + 5 * hy_h + nLayers * batch_n * hy_stride);
+							// Update time
+							profileRNNkernels(handle, 1);
+
+							// calculate hidden state
+							alpha0 = -1;
+							alpha1 = 1;
+							beta_t = 0;
+							OpTensor(handle,
+								miopenTensorOpMul,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + baccbi * hy_stride + 3 * hy_h +
+								nLayers * batch_n * hy_stride,
+								hid_shift + baccbi * hy_stride + 5 * hy_h +
+								nLayers * batch_n * hy_stride,
+								hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
+
+							alpha0 = 1;
+							alpha1 = 0;
+							beta_t = 1;
+
+							OpTensor(handle,
+								miopenTensorOpAdd,
+								&alpha0,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&alpha1,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta_t,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								hid_shift + baccbi * hy_stride + 5 * hy_h +
+								nLayers * batch_n * hy_stride,
+								hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
+								hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
+
+							alpha0 = 1;
+							alpha1 = 1;
+							beta_t = 1;
+							if (ti == 0)
+							{
+								hx_size[2] = in_n[seqLen - 1 - ti];
+								hx_size[3] = hy_h;
+								miopenCreateTensorDescriptor(&hx_desc);
+								miopenSetTensorDescriptor(
+									hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+
+								OpTensor(handle,
+									miopenTensorOpMul,
+									&alpha0,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									&alpha1,
+									miopen::deref(hx_desc),
+									hx,
+									&beta_t,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									hid_shift + baccbi * hy_stride + 3 * hy_h +
+									nLayers * batch_n * hy_stride,
+									hx_shift + hy_n * hy_h,
+									hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+						    }
+							else
+							{
+								pretime_shift = li * batch_n * hy_stride +
+									(baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
+									bi * 3 * hy_h + hy_h;
+
+								OpTensor(handle,
+									miopenTensorOpMul,
+									&alpha0,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									&alpha1,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									&beta_t,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									hid_shift + baccbi * hy_stride + 3 * hy_h +
+									nLayers * batch_n * hy_stride,
+									pretime_shift,
+									hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
+							}
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
+                        
+						// update cy, hy
+						hx_size[2] = in_n[seqLen - 1 - ti];
+						hx_size[3] = hy_h;
+						miopenCreateTensorDescriptor(&hx_desc);
+						miopenSetTensorDescriptor(
+							hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+						
+						CopyTensor(handle,
+							miopen::deref(sp_desc),
+							reserveSpace,
+							miopen::deref(hx_desc),
+							hy,
+							hid_shift + baccbi * hy_stride + hid_off + hy_h,
+							hx_shift + hy_n * hy_h);
+						// Update time
+						profileRNNkernels(handle, 1);
+
+						if (rnnMode == miopenLSTM)
+						{
+							CopyTensor(handle,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								miopen::deref(hx_desc),
+								cy,
+								hid_shift + baccbi * hy_stride + bi * 4 * hy_h + hy_h,
+								hx_shift + hy_n * hy_h);
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
                     }
                 }
 
                 bacc += in_n[ti];
             }
 
-            // hy, cy clean
-            if(in_n[0] - in_n[seqLen - 1] > 0)
-            {
-                hx_size[2] = in_n[0] - in_n[seqLen - 1];
-                hx_size[3] = hy_h;
-                miopenCreateTensorDescriptor(&hx_desc);
-                miopenSetTensorDescriptor(
-                    hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
+			// hy, cy clean
+			if (in_n[0] - in_n[seqLen - 1] > 0)
+			{
+				hx_size[2] = in_n[0] - in_n[seqLen - 1];
+				hx_size[3] = hy_h;
+				miopenCreateTensorDescriptor(&hx_desc);
+				miopenSetTensorDescriptor(
+					hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
 
-                alpha0 = 0;
-                alpha1 = 0;
-                beta_t = 0;
+				alpha0 = 0;
+				alpha1 = 0;
+				beta_t = 0;
 
-                OpTensor(handle,
-                         miopenTensorOpMul,
-                         &alpha0,
-                         miopen::deref(hx_desc),
-                         hy,
-                         &alpha1,
-                         miopen::deref(hx_desc),
-                         hy,
-                         &beta_t,
-                         miopen::deref(hx_desc),
-                         hy,
-                         hx_shift + in_n[seqLen - 1] * uni_stride,
-                         hx_shift + in_n[seqLen - 1] * uni_stride,
-                         hx_shift + in_n[seqLen - 1] * uni_stride);
-                // Update time
-                profileRNNkernels(handle, 1);
+				OpTensor(handle,
+					miopenTensorOpMul,
+					&alpha0,
+					miopen::deref(hx_desc),
+					hy,
+					&alpha1,
+					miopen::deref(hx_desc),
+					hy,
+					&beta_t,
+					miopen::deref(hx_desc),
+					hy,
+					hx_shift + in_n[seqLen - 1] * uni_stride,
+					hx_shift + in_n[seqLen - 1] * uni_stride,
+					hx_shift + in_n[seqLen - 1] * uni_stride);
+				// Update time
+				profileRNNkernels(handle, 1);
 
-                OpTensor(handle,
-                         miopenTensorOpMul,
-                         &alpha0,
-                         miopen::deref(hx_desc),
-                         cy,
-                         &alpha1,
-                         miopen::deref(hx_desc),
-                         cy,
-                         &beta_t,
-                         miopen::deref(hx_desc),
-                         cy,
-                         hx_shift + in_n[seqLen - 1] * uni_stride,
-                         hx_shift + in_n[seqLen - 1] * uni_stride,
-                         hx_shift + in_n[seqLen - 1] * uni_stride);
-                // Update time
-                profileRNNkernels(handle, 1);
-            }
-        } // end for nLayers
+				if (rnnMode == miopenLSTM)
+				{
+					OpTensor(handle,
+						miopenTensorOpMul,
+						&alpha0,
+						miopen::deref(hx_desc),
+						cy,
+						&alpha1,
+						miopen::deref(hx_desc),
+						cy,
+						&beta_t,
+						miopen::deref(hx_desc),
+						cy,
+						hx_shift + in_n[seqLen - 1] * uni_stride,
+						hx_shift + in_n[seqLen - 1] * uni_stride,
+						hx_shift + in_n[seqLen - 1] * uni_stride);
+					// Update time
+					profileRNNkernels(handle, 1);
+				}
+			}
+        }
 
         // output
-        prelayer_shift = (nLayers - 1) * batch_n * hy_stride + bi * 5 * hy_h;
+        prelayer_shift = (nLayers - 1) * batch_n * hy_stride + hid_off;
 
         sp_size[2] = batch_n;
         sp_size[3] = hy_h * bi;
@@ -4061,1133 +4177,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                    0);
         // Update time
         profileRNNkernels(handle, 2);
+
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
-    }
-    else if(rnnMode == miopenGRU)
-    {
-
-#if MIOPEN_USE_MIOPENGEMM
-        printf("run gru gpu fwd \n");
-        GemmGeometry gg;
-
-        int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift, pretime_shift;
-
-        ActivationDescriptor tanhDesc, sigDesc;
-        sigDesc  = {miopenActivationLOGISTIC, 1, 0, 1};
-        tanhDesc = {miopenActivationTANH, 1, 1, 1};
-
-        for(int li = 0; li < nLayers; li++)
-        {
-            hid_shift           = li * batch_n * hy_stride;
-            hx_shift            = li * hy_n * bi_stride;
-            wei_shift_bias_temp = inputMode == miopenRNNskip
-                                      ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
-                                      : (wei_shift_bias + li * 2 * wei_stride);
-
-            // from input
-            if(li == 0)
-            {
-                if(inputMode == miopenRNNskip)
-                {
-                    x_size[2]  = batch_n;
-                    x_size[3]  = hy_h;
-                    sp_size[2] = batch_n;
-                    sp_size[3] = hy_h;
-                    miopenCreateTensorDescriptor(&x_desc);
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        x_desc, miopenFloat, 4, x_size.data(), x_stride.data());
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                    for(int gi = 0; gi < 3; gi++)
-                    {
-                        CopyTensor(handle,
-                                   miopen::deref(x_desc),
-                                   x,
-                                   miopen::deref(sp_desc),
-                                   reserveSpace,
-                                   0,
-                                   gi * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, (gi == 0) ? 0 : 1);
-
-                        if(dirMode)
-                        {
-                            CopyTensor(handle,
-                                       miopen::deref(x_desc),
-                                       x,
-                                       miopen::deref(sp_desc),
-                                       reserveSpace,
-                                       0,
-                                       (gi + 3) * hy_h);
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
-                }
-                else
-                {
-                    gg = CreateGemmGeometryRNN(batch_n,
-                                               hy_h * bi * 3,
-                                               in_h,
-                                               1,
-                                               1,
-                                               false,
-                                               true,
-                                               false,
-                                               in_stride,
-                                               in_stride,
-                                               hy_stride,
-                                               false,
-                                               network_config);
-                    gg.FindSolution(.003, handle, x, w, reserveSpace, false);
-                    gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
-
-                    // Update time
-                    profileRNNkernels(handle, 0);
-                }
-            }
-            else
-            {
-                wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
-                prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 3 * hy_h;
-
-                gg = CreateGemmGeometryRNN(batch_n,
-                                           hy_h * bi * 3,
-                                           hy_h * bi,
-                                           1,
-                                           1,
-                                           false,
-                                           true,
-                                           false,
-                                           hy_stride,
-                                           bi_stride,
-                                           hy_stride,
-                                           false,
-                                           network_config);
-                gg.FindSolution(.003, handle, reserveSpace, w, reserveSpace, false);
-                gg.RunGemm(
-                    handle, reserveSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
-
-                // Update time
-                profileRNNkernels(handle, 1);
-            }
-
-            // from hidden state
-            bacc   = 0;
-            baccbi = batch_n;
-            for(int ti = 0; ti < seqLen; ti++)
-            {
-                baccbi -= in_n[seqLen - 1 - ti];
-                wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
-
-                if(ti == 0)
-                {
-                    if(in_n[ti] > 0)
-                    {
-                        gg = CreateGemmGeometryRNN(in_n[ti],
-                                                   hy_h * 2,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
-                        gg.RunGemm(handle,
-                                   hx,
-                                   w,
-                                   reserveSpace,
-                                   hx_shift,
-                                   wei_shift,
-                                   hid_shift + bacc * hy_stride);
-
-                        // Update time
-                        profileRNNkernels(handle, 1);
-
-                        gg = CreateGemmGeometryRNN(in_n[ti],
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
-                        gg.RunGemm(handle,
-                                   hx,
-                                   w,
-                                   reserveSpace,
-                                   hx_shift,
-                                   wei_shift + 2 * hy_h * uni_stride,
-                                   hid_shift + bacc * hy_stride + bi * 3 * hy_h);
-
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-
-                    if(dirMode)
-                    {
-                        if(in_n[seqLen - 1 - ti] > 0)
-                        {
-                            gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                                       hy_h * 2,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
-                            gg.RunGemm(handle,
-                                       hx,
-                                       w,
-                                       reserveSpace,
-                                       hx_shift + hy_n * hy_h,
-                                       wei_shift + 3 * hy_h * uni_stride,
-                                       hid_shift + baccbi * hy_stride + 3 * hy_h);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-
-                            gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                                       hy_h,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
-                            gg.RunGemm(handle,
-                                       hx,
-                                       w,
-                                       reserveSpace,
-                                       hx_shift + hy_n * hy_h,
-                                       wei_shift + 5 * hy_h * uni_stride,
-                                       hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
-                }
-                else
-                {
-                    if(in_n[ti] > 0)
-                    {
-                        gg = CreateGemmGeometryRNN(in_n[ti],
-                                                   hy_h * 2,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
-                        gg.RunGemm(handle,
-                                   hy,
-                                   w,
-                                   reserveSpace,
-                                   hx_shift,
-                                   wei_shift,
-                                   hid_shift + bacc * hy_stride);
-
-                        // Update time
-                        profileRNNkernels(handle, 1);
-
-                        gg = CreateGemmGeometryRNN(in_n[ti],
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
-                        gg.RunGemm(handle,
-                                   hy,
-                                   w,
-                                   reserveSpace,
-                                   hx_shift,
-                                   wei_shift + 2 * hy_h * uni_stride,
-                                   hid_shift + bacc * hy_stride + bi * 3 * hy_h);
-
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-
-                    if(dirMode)
-                    {
-                        if(in_n[seqLen - 1 - ti] > 0)
-                        {
-                            gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                                       hy_h * 2,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
-                            gg.RunGemm(handle,
-                                       hy,
-                                       w,
-                                       reserveSpace,
-                                       hx_shift + hy_n * hy_h,
-                                       wei_shift + 3 * hy_h * uni_stride,
-                                       hid_shift + baccbi * hy_stride + 3 * hy_h);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-
-                            gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-                                                       hy_h,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
-                            gg.RunGemm(handle,
-                                       hy,
-                                       w,
-                                       reserveSpace,
-                                       hx_shift + hy_n * hy_h,
-                                       wei_shift + 5 * hy_h * uni_stride,
-                                       hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
-
-                            // Update time
-                            profileRNNkernels(handle, 1);
-                        }
-                    }
-                }
-
-                // update hidden status
-                if(in_n[ti] > 0)
-                {
-                    // apply bias
-                    if(biasMode)
-                    {
-                        if(li == 0 && inputMode == miopenRNNskip)
-                        {
-                            w_size[2]  = 1;
-                            w_size[3]  = 2 * hy_h;
-                            sp_size[2] = 1;
-                            sp_size[3] = 2 * hy_h;
-                            miopenCreateTensorDescriptor(&w_desc);
-                            miopenCreateTensorDescriptor(&sp_desc);
-                            miopenSetTensorDescriptor(
-                                w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                            miopenSetTensorDescriptor(
-                                sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                            alpha0 = 1;
-                            alpha1 = 0;
-                            beta_t = 1;
-
-                            for(int bs = 0; bs < in_n[ti]; bs++)
-                            {
-                                OpTensor(handle,
-                                         miopenTensorOpAdd,
-                                         &alpha0,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &alpha1,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &beta_t,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         wei_shift_bias,
-                                         wei_shift_bias,
-                                         hid_shift + (bacc + bs) * hy_stride);
-                                // Update time
-                                profileRNNkernels(handle, 1);
-                            }
-
-                            //
-                            w_size[2]  = 1;
-                            w_size[3]  = hy_h;
-                            sp_size[2] = 1;
-                            sp_size[3] = hy_h;
-                            miopenCreateTensorDescriptor(&w_desc);
-                            miopenCreateTensorDescriptor(&sp_desc);
-                            miopenSetTensorDescriptor(
-                                w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                            miopenSetTensorDescriptor(
-                                sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                            for(int bs = 0; bs < in_n[ti]; bs++)
-                            {
-                                OpTensor(handle,
-                                         miopenTensorOpAdd,
-                                         &alpha0,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &alpha1,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &beta_t,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         wei_shift_bias + 2 * hy_h,
-                                         wei_shift_bias + 2 * hy_h,
-                                         hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h);
-                                // Update time
-                                profileRNNkernels(handle, 1);
-                            }
-                        }
-                        else
-                        {
-                            w_size[2]  = 1;
-                            w_size[3]  = 3 * hy_h;
-                            sp_size[2] = 1;
-                            sp_size[3] = 3 * hy_h;
-                            miopenCreateTensorDescriptor(&w_desc);
-                            miopenCreateTensorDescriptor(&sp_desc);
-                            miopenSetTensorDescriptor(
-                                w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                            miopenSetTensorDescriptor(
-                                sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                            alpha0 = 1;
-                            alpha1 = 0;
-                            beta_t = 1;
-
-                            for(int bs = 0; bs < in_n[ti]; bs++)
-                            {
-                                OpTensor(handle,
-                                         miopenTensorOpAdd,
-                                         &alpha0,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &alpha1,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &beta_t,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         wei_shift_bias_temp,
-                                         wei_shift_bias_temp,
-                                         hid_shift + (bacc + bs) * hy_stride);
-
-                                // Update time
-                                profileRNNkernels(handle, 1);
-                            }
-
-                            //
-                            w_size[2]  = 1;
-                            w_size[3]  = 2 * hy_h;
-                            sp_size[2] = 1;
-                            sp_size[3] = 2 * hy_h;
-                            miopenCreateTensorDescriptor(&w_desc);
-                            miopenCreateTensorDescriptor(&sp_desc);
-                            miopenSetTensorDescriptor(
-                                w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                            miopenSetTensorDescriptor(
-                                sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                            for(int bs = 0; bs < in_n[ti]; bs++)
-                            {
-                                OpTensor(handle,
-                                         miopenTensorOpAdd,
-                                         &alpha0,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &alpha1,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &beta_t,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         wei_shift_bias_temp + wei_stride,
-                                         wei_shift_bias_temp + wei_stride,
-                                         hid_shift + (bacc + bs) * hy_stride);
-                                // Update time
-                                profileRNNkernels(handle, 1);
-                            }
-
-                            //
-                            w_size[2]  = 1;
-                            w_size[3]  = hy_h;
-                            sp_size[2] = 1;
-                            sp_size[3] = hy_h;
-                            miopenCreateTensorDescriptor(&w_desc);
-                            miopenCreateTensorDescriptor(&sp_desc);
-                            miopenSetTensorDescriptor(
-                                w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                            miopenSetTensorDescriptor(
-                                sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                            for(int bs = 0; bs < in_n[ti]; bs++)
-                            {
-                                OpTensor(handle,
-                                         miopenTensorOpAdd,
-                                         &alpha0,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &alpha1,
-                                         miopen::deref(w_desc),
-                                         w,
-                                         &beta_t,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         wei_shift_bias_temp + wei_stride + 2 * hy_h,
-                                         wei_shift_bias_temp + wei_stride + 2 * hy_h,
-                                         hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h);
-                                // Update time
-                                profileRNNkernels(handle, 1);
-                            }
-                        }
-                    }
-
-                    // active z, r gate
-                    sp_size[2] = in_n[ti];
-                    sp_size[3] = 2 * hy_h;
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                    offset = hid_shift + bacc * hy_stride;
-
-                    sigDesc.Forward(handle,
-                                    &alpha,
-                                    miopen::deref(sp_desc),
-                                    reserveSpace,
-                                    &beta,
-                                    miopen::deref(sp_desc),
-                                    reserveSpace,
-                                    offset,
-                                    offset + nLayers * batch_n * hy_stride);
-                    // Update time
-                    profileRNNkernels(handle, 1);
-
-                    // calculate c gate
-                    sp_size[2] = in_n[ti];
-                    sp_size[3] = hy_h;
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                    alpha0 = 1;
-                    alpha1 = 1;
-                    beta_t = 1;
-
-                    OpTensor(handle,
-                             miopenTensorOpMul,
-                             &alpha0,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &alpha1,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &beta_t,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             hid_shift + bacc * hy_stride + hy_h + nLayers * batch_n * hy_stride,
-                             hid_shift + bacc * hy_stride + bi * 3 * hy_h,
-                             hid_shift + bacc * hy_stride + 2 * hy_h);
-                    // Update time
-                    profileRNNkernels(handle, 1);
-
-                    // active c gate
-                    sp_size[2] = in_n[ti];
-                    sp_size[3] = hy_h;
-                    miopenCreateTensorDescriptor(&sp_desc);
-                    miopenSetTensorDescriptor(
-                        sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                    tanhDesc.Forward(handle,
-                                     &alpha,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     &beta,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     offset + 2 * hy_h,
-                                     offset + 2 * hy_h + nLayers * batch_n * hy_stride);
-                    // Update time
-                    profileRNNkernels(handle, 1);
-
-                    // calculate hidden state
-                    alpha0 = -1;
-                    alpha1 = 1;
-                    beta_t = 0;
-                    OpTensor(handle,
-                             miopenTensorOpMul,
-                             &alpha0,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &alpha1,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &beta_t,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
-                             hid_shift + bacc * hy_stride + 2 * hy_h +
-                                 nLayers * batch_n * hy_stride,
-                             hid_shift + bacc * hy_stride + bi * 3 * hy_h);
-                    // Update time
-                    profileRNNkernels(handle, 1);
-
-                    alpha0 = 1;
-                    alpha1 = 0;
-                    beta_t = 1;
-
-                    OpTensor(handle,
-                             miopenTensorOpAdd,
-                             &alpha0,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &alpha1,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             &beta_t,
-                             miopen::deref(sp_desc),
-                             reserveSpace,
-                             hid_shift + bacc * hy_stride + 2 * hy_h +
-                                 nLayers * batch_n * hy_stride,
-                             hid_shift + bacc * hy_stride + bi * 3 * hy_h,
-                             hid_shift + bacc * hy_stride + bi * 3 * hy_h);
-                    // Update time
-                    profileRNNkernels(handle, 1);
-
-                    alpha0 = 1;
-                    alpha1 = 1;
-                    beta_t = 1;
-                    if(ti == 0)
-                    {
-                        hx_size[2] = in_n[ti];
-                        hx_size[3] = hy_h;
-                        miopenCreateTensorDescriptor(&hx_desc);
-                        miopenSetTensorDescriptor(
-                            hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
-
-                        OpTensor(handle,
-                                 miopenTensorOpMul,
-                                 &alpha0,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &alpha1,
-                                 miopen::deref(hx_desc),
-                                 hx,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
-                                 hx_shift,
-                                 hid_shift + bacc * hy_stride + bi * 3 * hy_h);
-                    }
-                    else
-                    {
-
-                        pretime_shift = li * batch_n * hy_stride +
-                                        (bacc - in_n[ti - 1]) * hy_stride + bi * 3 * hy_h;
-
-                        OpTensor(handle,
-                                 miopenTensorOpMul,
-                                 &alpha0,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &alpha1,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 hid_shift + bacc * hy_stride + nLayers * batch_n * hy_stride,
-                                 pretime_shift,
-                                 hid_shift + bacc * hy_stride + bi * 3 * hy_h);
-                    }
-                    // Update time
-                    profileRNNkernels(handle, 1);
-
-                    // update hy
-                    hx_size[2] = in_n[ti];
-                    hx_size[3] = hy_h;
-                    miopenCreateTensorDescriptor(&hx_desc);
-                    miopenSetTensorDescriptor(
-                        hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
-
-                    CopyTensor(handle,
-                               miopen::deref(sp_desc),
-                               reserveSpace,
-                               miopen::deref(hx_desc),
-                               hy,
-                               hid_shift + bacc * hy_stride + bi * 3 * hy_h,
-                               hx_shift);
-
-                    // Update time
-                    profileRNNkernels(handle, 1);
-                }
-
-                if(dirMode)
-                {
-
-                    if(in_n[seqLen - 1 - ti] > 0)
-                    {
-                        // apply bias
-                        if(biasMode)
-                        {
-                            if(li == 0 && inputMode == miopenRNNskip)
-                            {
-                                w_size[2]  = 1;
-                                w_size[3]  = 2 * hy_h;
-                                sp_size[2] = 1;
-                                sp_size[3] = 2 * hy_h;
-                                miopenCreateTensorDescriptor(&w_desc);
-                                miopenCreateTensorDescriptor(&sp_desc);
-                                miopenSetTensorDescriptor(
-                                    w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                                miopenSetTensorDescriptor(
-                                    sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                                alpha0 = 1;
-                                alpha1 = 0;
-                                beta_t = 1;
-
-                                for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
-                                {
-                                    OpTensor(handle,
-                                             miopenTensorOpAdd,
-                                             &alpha0,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &alpha1,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &beta_t,
-                                             miopen::deref(sp_desc),
-                                             reserveSpace,
-                                             wei_shift_bias + 3 * hy_h,
-                                             wei_shift_bias + 3 * hy_h,
-                                             hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h);
-                                    // Update time
-                                    profileRNNkernels(handle, 1);
-                                }
-
-                                //
-                                w_size[2]  = 1;
-                                w_size[3]  = hy_h;
-                                sp_size[2] = 1;
-                                sp_size[3] = hy_h;
-                                miopenCreateTensorDescriptor(&w_desc);
-                                miopenCreateTensorDescriptor(&sp_desc);
-                                miopenSetTensorDescriptor(
-                                    w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                                miopenSetTensorDescriptor(
-                                    sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                                for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
-                                {
-                                    OpTensor(handle,
-                                             miopenTensorOpAdd,
-                                             &alpha0,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &alpha1,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &beta_t,
-                                             miopen::deref(sp_desc),
-                                             reserveSpace,
-                                             wei_shift_bias + 5 * hy_h,
-                                             wei_shift_bias + 5 * hy_h,
-                                             hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h +
-                                                 hy_h);
-                                    // Update time
-                                    profileRNNkernels(handle, 1);
-                                }
-                            }
-                            else
-                            {
-                                w_size[2]  = 1;
-                                w_size[3]  = 3 * hy_h;
-                                sp_size[2] = 1;
-                                sp_size[3] = 3 * hy_h;
-                                miopenCreateTensorDescriptor(&w_desc);
-                                miopenCreateTensorDescriptor(&sp_desc);
-                                miopenSetTensorDescriptor(
-                                    w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                                miopenSetTensorDescriptor(
-                                    sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                                alpha0 = 1;
-                                alpha1 = 0;
-                                beta_t = 1;
-
-                                for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
-                                {
-                                    OpTensor(handle,
-                                             miopenTensorOpAdd,
-                                             &alpha0,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &alpha1,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &beta_t,
-                                             miopen::deref(sp_desc),
-                                             reserveSpace,
-                                             wei_shift_bias_temp + 3 * hy_h,
-                                             wei_shift_bias_temp + 3 * hy_h,
-                                             hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h);
-                                    // Update time
-                                    profileRNNkernels(handle, 1);
-                                }
-
-                                //
-                                w_size[2]  = 1;
-                                w_size[3]  = 2 * hy_h;
-                                sp_size[2] = 1;
-                                sp_size[3] = 2 * hy_h;
-                                miopenCreateTensorDescriptor(&w_desc);
-                                miopenCreateTensorDescriptor(&sp_desc);
-                                miopenSetTensorDescriptor(
-                                    w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                                miopenSetTensorDescriptor(
-                                    sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                                for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
-                                {
-                                    OpTensor(handle,
-                                             miopenTensorOpAdd,
-                                             &alpha0,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &alpha1,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &beta_t,
-                                             miopen::deref(sp_desc),
-                                             reserveSpace,
-                                             wei_shift_bias_temp + wei_stride + 3 * hy_h,
-                                             wei_shift_bias_temp + wei_stride + 3 * hy_h,
-                                             hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h);
-                                    // Update time
-                                    profileRNNkernels(handle, 1);
-                                }
-
-                                //
-                                w_size[2]  = 1;
-                                w_size[3]  = hy_h;
-                                sp_size[2] = 1;
-                                sp_size[3] = hy_h;
-                                miopenCreateTensorDescriptor(&w_desc);
-                                miopenCreateTensorDescriptor(&sp_desc);
-                                miopenSetTensorDescriptor(
-                                    w_desc, miopenFloat, 4, w_size.data(), w_stride.data());
-                                miopenSetTensorDescriptor(
-                                    sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                                for(int bs = 0; bs < in_n[seqLen - 1 - ti]; bs++)
-                                {
-                                    OpTensor(handle,
-                                             miopenTensorOpAdd,
-                                             &alpha0,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &alpha1,
-                                             miopen::deref(w_desc),
-                                             w,
-                                             &beta_t,
-                                             miopen::deref(sp_desc),
-                                             reserveSpace,
-                                             wei_shift_bias_temp + wei_stride + 5 * hy_h,
-                                             wei_shift_bias_temp + wei_stride + 5 * hy_h,
-                                             hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h +
-                                                 hy_h);
-                                    // Update time
-                                    profileRNNkernels(handle, 1);
-                                }
-                            }
-                        }
-
-                        // active z, r gate
-                        sp_size[2] = in_n[seqLen - 1 - ti];
-                        sp_size[3] = 2 * hy_h;
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                        offset = hid_shift + baccbi * hy_stride;
-
-                        sigDesc.Forward(handle,
-                                        &alpha,
-                                        miopen::deref(sp_desc),
-                                        reserveSpace,
-                                        &beta,
-                                        miopen::deref(sp_desc),
-                                        reserveSpace,
-                                        offset + 3 * hy_h,
-                                        offset + 3 * hy_h + nLayers * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1);
-
-                        // calculate c gate
-                        sp_size[3] = hy_h;
-                        miopenCreateTensorDescriptor(&sp_desc);
-                        miopenSetTensorDescriptor(
-                            sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-                        alpha0 = 1;
-                        alpha1 = 1;
-                        beta_t = 1;
-
-                        OpTensor(handle,
-                                 miopenTensorOpMul,
-                                 &alpha0,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &alpha1,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 hid_shift + baccbi * hy_stride + 4 * hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
-                                 hid_shift + baccbi * hy_stride + 5 * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1);
-
-                        // active c gate
-                        tanhDesc.Forward(handle,
-                                         &alpha,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         &beta,
-                                         miopen::deref(sp_desc),
-                                         reserveSpace,
-                                         offset + 5 * hy_h,
-                                         offset + 5 * hy_h + nLayers * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1);
-
-                        // calculate hidden state
-                        alpha0 = -1;
-                        alpha1 = 1;
-                        beta_t = 0;
-                        OpTensor(handle,
-                                 miopenTensorOpMul,
-                                 &alpha0,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &alpha1,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 hid_shift + baccbi * hy_stride + 3 * hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 hid_shift + baccbi * hy_stride + 5 * hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1);
-
-                        alpha0 = 1;
-                        alpha1 = 0;
-                        beta_t = 1;
-
-                        OpTensor(handle,
-                                 miopenTensorOpAdd,
-                                 &alpha0,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &alpha1,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 &beta_t,
-                                 miopen::deref(sp_desc),
-                                 reserveSpace,
-                                 hid_shift + baccbi * hy_stride + 5 * hy_h +
-                                     nLayers * batch_n * hy_stride,
-                                 hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
-                                 hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1);
-
-                        alpha0 = 1;
-                        alpha1 = 1;
-                        beta_t = 1;
-                        if(ti == 0)
-                        {
-                            hx_size[2] = in_n[seqLen - 1 - ti];
-                            hx_size[3] = hy_h;
-                            miopenCreateTensorDescriptor(&hx_desc);
-                            miopenSetTensorDescriptor(
-                                hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
-
-                            OpTensor(handle,
-                                     miopenTensorOpMul,
-                                     &alpha0,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     &alpha1,
-                                     miopen::deref(hx_desc),
-                                     hx,
-                                     &beta_t,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     hid_shift + baccbi * hy_stride + 3 * hy_h +
-                                         nLayers * batch_n * hy_stride,
-                                     hx_shift + hy_n * hy_h,
-                                     hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
-                        }
-                        else
-                        {
-
-                            pretime_shift = li * batch_n * hy_stride +
-                                            (baccbi + in_n[seqLen - 1 - ti]) * hy_stride +
-                                            bi * 3 * hy_h + hy_h;
-
-                            OpTensor(handle,
-                                     miopenTensorOpMul,
-                                     &alpha0,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     &alpha1,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     &beta_t,
-                                     miopen::deref(sp_desc),
-                                     reserveSpace,
-                                     hid_shift + baccbi * hy_stride + 3 * hy_h +
-                                         nLayers * batch_n * hy_stride,
-                                     pretime_shift,
-                                     hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h);
-                        }
-                        // Update time
-                        profileRNNkernels(handle, 1);
-
-                        // update hy
-                        hx_size[2] = in_n[seqLen - 1 - ti];
-                        hx_size[3] = hy_h;
-                        miopenCreateTensorDescriptor(&hx_desc);
-                        miopenSetTensorDescriptor(
-                            hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
-
-                        CopyTensor(handle,
-                                   miopen::deref(sp_desc),
-                                   reserveSpace,
-                                   miopen::deref(hx_desc),
-                                   hy,
-                                   hid_shift + baccbi * hy_stride + bi * 3 * hy_h + hy_h,
-                                   hx_shift + hy_n * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1);
-                    }
-                }
-
-                bacc += in_n[ti];
-            }
-
-            // hy, cy clean
-            if(in_n[0] - in_n[seqLen - 1] > 0)
-            {
-                hx_size[2] = in_n[0] - in_n[seqLen - 1];
-                hx_size[3] = hy_h;
-                miopenCreateTensorDescriptor(&hx_desc);
-                miopenSetTensorDescriptor(
-                    hx_desc, miopenFloat, 4, hx_size.data(), hx_stride.data());
-
-                alpha0 = 0;
-                alpha1 = 0;
-                beta_t = 0;
-
-                OpTensor(handle,
-                         miopenTensorOpMul,
-                         &alpha0,
-                         miopen::deref(hx_desc),
-                         hy,
-                         &alpha1,
-                         miopen::deref(hx_desc),
-                         hy,
-                         &beta_t,
-                         miopen::deref(hx_desc),
-                         hy,
-                         hx_shift + in_n[seqLen - 1] * uni_stride,
-                         hx_shift + in_n[seqLen - 1] * uni_stride,
-                         hx_shift + in_n[seqLen - 1] * uni_stride);
-                // Update time
-                profileRNNkernels(handle, 1);
-            }
-        }
-
-        // output
-        prelayer_shift = (nLayers - 1) * batch_n * hy_stride + bi * 3 * hy_h;
-
-        sp_size[2] = batch_n;
-        sp_size[3] = hy_h * bi;
-        y_size[2]  = batch_n;
-        y_size[3]  = out_h;
-        miopenCreateTensorDescriptor(&sp_desc);
-        miopenCreateTensorDescriptor(&y_desc);
-        miopenSetTensorDescriptor(sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-        miopenSetTensorDescriptor(y_desc, miopenFloat, 4, y_size.data(), y_stride.data());
-
-        CopyTensor(handle,
-                   miopen::deref(sp_desc),
-                   reserveSpace,
-                   miopen::deref(y_desc),
-                   y,
-                   prelayer_shift,
-                   0);
-        // Update time
-        profileRNNkernels(handle, 2); // done timing
-#else
-        MIOPEN_THROW("GEMM is not supported");
-#endif
-    }
 
     // Suppress warning
     (void)cxDesc;
@@ -8159,6 +7152,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 		hid_off = bi * hy_h * 5;
 		break;
 	case miopenGRU:
+		printf("run gru gpu bwd weights \n");
 		wei_len = hy_h * 3;
 		hid_off = bi * hy_h * 3;
 		break;
