@@ -64,7 +64,7 @@ struct test_driver
         std::string name;
 
         // Function may refer to the argument by reference so this needs to be noncopyable
-        argument()                   = default;
+        argument()                = default;
         argument(const argument&) = delete;
         argument& operator=(const argument&) = delete;
 
@@ -111,10 +111,7 @@ struct test_driver
         return arguments.at(argument_index.at(s));
     }
 
-    bool has_argument(const std::string& arg)
-    {
-        return argument_index.count(arg) > 0;
-    }
+    bool has_argument(const std::string& arg) { return argument_index.count(arg) > 0; }
 
     template <class Visitor>
     void parse(Visitor v)
