@@ -7482,7 +7482,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 							wei_shift + wei_len * uni_stride);
 
 						// Update time
-						if (!rnnMode == miopenGRU)
+						if (rnnMode != miopenGRU)
 							profileRNNkernels(handle, 2);
 						else
 							profileRNNkernels(handle, 1);

@@ -54,8 +54,8 @@
 template <class T>
 struct verify_forward_train_rnn
 {
-    const std::vector<T> input;
-    const std::vector<T> initHidden;
+    std::vector<T> input;
+    std::vector<T> initHidden;
     std::vector<int> batch_seq;
     int hiddenSize;
     int seqLength;
@@ -69,9 +69,9 @@ struct verify_forward_train_rnn
     miopenRNNDescriptor_t rnnDesc;
     
     verify_forward_train_rnn(miopenRNNDescriptor_t pRD,
-                         const std::vector<T> px,
-                         const std::vector<T> phx,
-                         const std::vector<int> pBS,
+                         const std::vector<T>& px,
+                         const std::vector<T>& phx,
+                         const std::vector<int>& pBS,
                          const int pHS,
                          const int pBN,
                          const int pS,
@@ -123,25 +123,30 @@ struct verify_forward_train_rnn
         size_t workSpaceSize;
         size_t reserveSpaceSize;
 		
-		std::vector<miopen::TensorDescriptor> inputDescs;
+        miopenTensorDescriptor_t inDesc;
+        std::vector<miopenTensorDescriptor_t> inputDescs;
         std::vector<int> lens(2,0);
         lens[1] = inputVecLen;
         // -----------------------
         for(int i = 0; i < batch_seq.size(); i++)
         {
             lens[0] = batch_seq[i];
-            inputDescs.push_back(miopen::TensorDescriptor(miopenFloat, lens.data(), 2));
+            miopenCreateTensorDescriptor(&inDesc);
+            miopenSetTensorDescriptor(inDesc,
+                                    miopenFloat,
+                                    2,
+                                    lens.data(), 
+                                    nullptr);
+            inputDescs.push_back(inDesc);
         }
         auto outputDescs = inputDescs;
 
-        miopenStatus_t errcode = miopenStatusSuccess;
-        errcode |= miopenGetRNNInputTensorSize(handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
-        errcode |= miopenGetRNNInputTensorSize(handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
-        errcode |= miopenGetRNNHiddenTensorSize(handle, rnnDesc, seqLength, inputDescs.data(), &hy_sz);
-        errcode |= miopenGetRNNWorkspaceSize(handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-        errcode |= miopenGetRNNTrainingReserveSize(handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-        errcode |= miopenGetRNNParamsSize(handle, rnnDesc, inputDescs[0], &wei_sz, miopenFloat);
-        assert(errcode != miopenStatusSuccess);
+        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
+        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
+        miopenGetRNNHiddenTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &hy_sz);
+        miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
+        miopenGetRNNTrainingReserveSize(&handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputDescs[0], &wei_sz, miopenFloat);
         
         std::vector<T> workSpace(workSpaceSize/4, 0.);
         std::vector<T> reserveSpace(reserveSpaceSize/4, 0.);
@@ -196,12 +201,12 @@ struct verify_forward_train_rnn
                 }
                 else
                 {
-                    RNN_mm_cpu<T>(const_cast<T*>(input), 
+                    RNN_mm_cpu<T>(const_cast<T*>(input.data()), 
                                    in_h,
                                    batch_n,
                                    in_stride,
                                    0,
-                                   const_cast<T*>(weights), 
+                                   const_cast<T*>(weights.data()), 
                                    hy_h * bi,
                                    in_h,
                                    hy_stride,
@@ -451,8 +456,9 @@ struct verify_forward_train_rnn
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
 
-        auto&& handle = get_handle();
 
+        auto&& handle = get_handle();
+        
         int bacc, baccbi; // accumulation of batch
         int bi = dirMode ? 2 : 1;
         
@@ -470,27 +476,32 @@ struct verify_forward_train_rnn
         size_t workSpaceSize = 0;
         size_t reserveSpaceSize = 0;
 
-
-        // TODO: Implement this here!
-        std::vector<miopen::TensorDescriptor> inputDescs;
+        miopenTensorDescriptor_t inDesc;
+        std::vector<miopenTensorDescriptor_t> inputDescs;
         std::vector<int> lens(2,0);
         lens[1] = inputVecLen;
         // -----------------------
         for(int i = 0; i < batch_seq.size(); i++)
         {
             lens[0] = batch_seq[i];
-            inputDescs.push_back(miopen::TensorDescriptor(miopenFloat, lens.data(), 2));
+            miopenCreateTensorDescriptor(&inDesc);
+            miopenSetTensorDescriptor(inDesc,
+                                    miopenFloat,
+                                    2,
+                                    lens.data(), 
+                                    nullptr);
+            inputDescs.push_back(inDesc);
         }
         auto outputDescs = inputDescs;
 
-        miopenStatus_t errcode = miopenStatusSuccess;
-        errcode |= miopenGetRNNInputTensorSize(handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
-        errcode |= miopenGetRNNInputTensorSize(handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
-        errcode |= miopenGetRNNHiddenTensorSize(handle, rnnDesc, seqLength, inputDescs.data(), &hy_sz);
-        errcode |= miopenGetRNNWorkspaceSize(handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-        errcode |= miopenGetRNNTrainingReserveSize(handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-        errcode |= miopenGetRNNParamsSize(handle, rnnDesc, inputDescs[0], &wei_sz, miopenFloat);
-        assert(errcode != miopenStatusSuccess);
+        
+        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
+        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
+        miopenGetRNNHiddenTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &hy_sz);
+        miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
+        miopenGetRNNTrainingReserveSize(&handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputDescs[0], &wei_sz, miopenFloat);
+        
         
         std::vector<T> workSpace(workSpaceSize/4, 0.);
         std::vector<T> reserveSpace(reserveSpaceSize/4, 0.);
@@ -498,19 +509,19 @@ struct verify_forward_train_rnn
         std::vector<T> hiddenState(initHidden.size(), 0.);
         std::vector<T> weights(wei_sz/4, 0.); 
         
-        auto input_dev    = handle.Write(input.data());
+        auto input_dev    = handle.Write(input);
         auto output = input;
         std::fill(output.begin(), output.end(), 0.);
-        auto output_dev  = handle.Write(output.data());
+        auto output_dev  = handle.Write(output);
         
-        auto weights_dev  = handle.Write(weights.data);
-        auto hx_dev  = handle.Write(initHidden.data);
+        auto weights_dev  = handle.Write(weights);
+        auto hx_dev  = handle.Write(initHidden);
 		auto hy = initHidden;
 		std::fill(hy.begin(), hy.end(), 0.);
-		auto hy_dev  = handle.Write(hy.data());
+		auto hy_dev  = handle.Write(hy);
 		
-		auto workSpace_dev = handle.Write(workSpace.data());
-		auto reserveSpace_dev = handle.Write(reserveSpace.data());
+		auto workSpace_dev = handle.Write(workSpace);
+		auto reserveSpace_dev = handle.Write(reserveSpace);
 
 		std::vector<int> hlens(3,0);
 		hlens[0] = nLayers*(dirMode)?2:1;
@@ -521,33 +532,33 @@ struct verify_forward_train_rnn
 		int wei_elems = wei_sz/4;
 		miopen::TensorDescriptor weightDesc(miopenFloat, &wei_elems, 1);
 		
-        miopenRNNForwardTraining(handle,
+        miopenRNNForwardTraining(&handle,
                          rnnDesc,
                          seqLength,
                          inputDescs.data(),
                          input_dev.get(),
-                         hiddenDesc,
+                         &hiddenDesc,
                          hx_dev.get(),
-                         hiddenDesc,
+                         &hiddenDesc,
                          nullptr,
-                         weightDesc,
+                         &weightDesc,
                          weights_dev.get(),
                          outputDescs.data(),
                          output_dev.get(),
-                         hiddenDesc,
+                         &hiddenDesc,
                          hy_dev.get(),
-                         hiddenDesc,
+                         &hiddenDesc,
                          nullptr,
                          workSpace_dev.get(),
                          workSpaceSize,
                          reserveSpace_dev.get(),
                          reserveSpaceSize);
 						 
-        auto retSet = std::make_tuple(handle.Read<T>(output_dev, output.data.size()),
+        auto retSet = std::make_tuple(handle.Read<T>(output_dev, output.size()),
 		handle.Read<T>(hy_dev, hy.size()), 
 		handle.Read<T>(weights_dev, weights.size()), 
 		handle.Read<T>(workSpace_dev, workSpaceSize/4),
-		handle.Read<T>(reserveSpace_dev, reserveSpace/4));
+		handle.Read<T>(reserveSpace_dev, reserveSpaceSize/4));
 		
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -563,10 +574,10 @@ struct verify_forward_train_rnn
     void fail(int badtensor)
     {
 
-        std::cout << "Forward Train Spatial Batch Normalization: " << std::endl;
-        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
+        std::cout << "Forward Train RNN vanilla: " << std::endl;
+        //std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
 
-        switch(badtensor)
+        /*switch(badtensor)
         {
         case(0): std::cout << "Output tensor output failed verification." << std::endl; break;
         case(1): std::cout << "Running Mean output tensor failed verification." << std::endl; break;
@@ -575,7 +586,7 @@ struct verify_forward_train_rnn
             break;
         case(3): std::cout << "Saved Mean tensor failed verification." << std::endl; break;
         case(4): std::cout << "Saved Variance tensor failed verification." << std::endl; break;
-        }
+        }*/
     }
 };
 
@@ -606,7 +617,7 @@ struct rnn_vanilla_driver : test_driver
 		modes[1] = 1;
 		
         // this->verbose=true;
-        add(batchSize, "batch-size", generate_data(get_rnn_batchSize(),5));
+        add(batchSize, "batch-size", generate_data(get_rnn_batchSize(),{5}));
         add(seqLength, "seq-len", generate_data(get_rnn_seq_len()));
         add(inVecLen, "vector-len", generate_data(get_rnn_vector_len()));
         add(hiddenSize, "hidden-size", generate_data(get_rnn_hidden_size()));
@@ -615,7 +626,8 @@ struct rnn_vanilla_driver : test_driver
         add(biasMode, "bias-mode", generate_data(modes));
         add(dirMode, "dir-mode", generate_data(modes));
         add(rnnMode, "rnn-mode", generate_data(modes));
-		add(batchSeq, "batch-seq", generate_data(generate_batchSeq(batchSize, seqLength), 5));
+		//add(batchSeq, "batch-seq", lazy_generate_data([=]{ return generate_batchSeq(batchSize, seqLength); }, 1));
+        
     }
 
     void run()
@@ -673,9 +685,19 @@ struct rnn_vanilla_driver : test_driver
         inputVecLen  = pVL;
     }
 
-         */ 
-        
-        
+    */ 
+        int modval = 5;
+        int currentval = batchSize;
+        batchSeq.clear();
+        for(int i = 0; i < seqLength; i++)
+        {
+            printf("adding a value to batch sequence.\n");
+            int nvalue = currentval - rand()%modval;
+            currentval = (nvalue<1) ? 1 : nvalue;
+            printf("current value: %d\n", currentval);
+            batchSeq.push_back(currentval);
+        }
+
         
         int batch_n = 0;
         for(auto& n : batchSeq) batch_n += n;
@@ -688,19 +710,27 @@ struct rnn_vanilla_driver : test_driver
         miopenRNNDescriptor_t rnnDesc;
         miopenCreateRNNDescriptor(&rnnDesc);
         
-        miopenRNNAlgo_t algoMode = 0;
-        miopenSetRNNDescriptor(rnnDesc, hiddenSize, numLayers, inputMode, dirMode, rnnMode, biasMode, gloMode, miopenFloat);
+        miopenRNNAlgo_t algoMode = miopenRNNdefault;
+        miopenSetRNNDescriptor(rnnDesc, 
+                                hiddenSize, 
+                                numLayers, 
+                                miopenRNNInputMode_t(inputMode), 
+                                miopenRNNDirectionMode_t(dirMode), 
+                                miopenRNNMode_t(rnnMode), 
+                                miopenRNNBiasMode_t(biasMode), 
+                                miopenRNNAlgo_t(algoMode),
+                                miopenFloat);
         
         //Create input tensor
-        int in_sz = inVecLen*seqLength*batch_n;
+        std::size_t in_sz = inVecLen*seqLength*batch_n;
         auto inputTensor = tensor<T>{in_sz}.generate(rand_gen{});
         auto inputData = inputTensor.data;
         
-        int hx_sz = ((dirMode)?2:1)*hiddenSize*batchSize;
+        std::size_t hx_sz = ((dirMode)?2:1)*hiddenSize*batchSize;
         
         auto hxTensor = tensor<T>{hx_sz}.generate(rand_gen{});
         auto hxData = hxTensor.data;
-        
+        printf("hz: %d, batch_n: %d, seqLength: %d\n" ,hiddenSize, batch_n, seqLength);
         verify(verify_forward_train_rnn<T>{rnnDesc, inputData, 
                                         hxData, batchSeq, 
                                         hiddenSize, batch_n, 

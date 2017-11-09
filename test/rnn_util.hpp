@@ -45,14 +45,6 @@ std::vector<int> get_rnn_num_layers()
 {
     return {{1,2,4,6,7,8,10,20}};
 }
-
-
-
-
-        add(hiddenSize, "hidden-size", generate_data(get_rnn_hidden_size()));
-        add(numLayers, "num-layers", generate_data(get_rnn_num_layers()));
-        
-        
         
 std::vector<int> get_rnn_batchSize()
 {
@@ -76,6 +68,11 @@ std::vector<int> get_rnn_hidden_size()
 }
 
 
+std::vector<int> generate_batchSeq()
+{
+    return {{11,10,9,8,5}};
+}
+
 
 
 std::vector<int> generate_batchSeq(const int batchSize, const int seqLength)
@@ -86,8 +83,10 @@ std::vector<int> generate_batchSeq(const int batchSize, const int seqLength)
     std::vector<int> batchseq;
     for(int i = 0; i < seqLength; i++)
     {
+        printf("adding a value to batch sequence.\n");
         int nvalue = currentval - rand()%modval;
         currentval = (nvalue<1) ? 1 : nvalue;
+        printf("current value: %d\n", currentval);
         batchseq.push_back(currentval);
     }
     return batchseq;
