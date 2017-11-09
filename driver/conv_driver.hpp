@@ -26,6 +26,14 @@
 #ifndef GUARD_MIOPEN_CONV_DRIVER_HPP
 #define GUARD_MIOPEN_CONV_DRIVER_HPP
 
+#ifdef MLO_NEURON_SOFTRELU
+#undef MLO_NEURON_SOFTRELU
+#endif
+
+#ifdef MLO_NEURON_POWER
+#undef MLO_NEURON_POWER
+#endif
+
 #include "InputFlags.hpp"
 #include "conv_verify.hpp"
 #include "driver.hpp"
@@ -33,6 +41,7 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include <miopen/convolution.hpp>
 #include <../test/verify.hpp>
 #include <algorithm>
 #include <cstdlib>
@@ -366,8 +375,9 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
         pad_h = 0;
         pad_w = 0;
     }
-    return miopenInitConvolutionDescriptor(
-        convDesc, mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+
+    miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    return miopenStatusSuccess;
 }
 
 template <typename T>
@@ -709,9 +719,9 @@ int ConvDriver<T>::RunForwardCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
-    miopenPaddingMode_t pmode;
+    miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pmode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(pmode == miopenPaddingSame)
     {
@@ -1063,9 +1073,9 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
-    miopenPaddingMode_t pmode;
+    miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pmode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(pmode == miopenPaddingSame)
     {
@@ -1312,9 +1322,9 @@ int ConvDriver<T>::RunBackwardDataCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
-    miopenPaddingMode_t pmode;
+    miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pmode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(out_h <= 0 || out_w <= 0)
         MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
@@ -1501,9 +1511,8 @@ std::string ConvDriver<T>::GetVerificationCacheFileName() const
     std::ostringstream ss;
 
     miopenConvolutionMode_t mode;
-    miopenPaddingMode_t pmode;
     int pad_h, pad_w, u, v, sx, sy;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pmode, &pad_h, &pad_w, &u, &v, &sx, &sy);
+    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &sx, &sy);
 
     const auto inputDesc = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(inputTensor));
     const auto weiDesc   = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(weightTensor));

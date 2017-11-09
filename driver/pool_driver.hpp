@@ -38,6 +38,7 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/pooling.hpp>
 #include <numeric>
 #include <vector>
 
@@ -229,8 +230,11 @@ int PoolDriver<T>::SetPoolDescriptorFromCmdLineArgs()
         printf("Incorrect Padding Mode\n");
         exit(0);
     }
-
-    return miopenSet2dPoolingDescriptor(poolDesc, mode, pmode, win_h, win_w, pad_h, pad_w, u, v);
+    std::initializer_list<int> lens    = {win_h, win_w};
+    std::initializer_list<int> pads    = {pad_h, pad_w};
+    std::initializer_list<int> strides = {u, v};
+    miopen::PoolingDescriptor(mode, pmode, lens.begin(), pads.begin(), strides.begin(), 2);
+    return miopenStatusSuccess;
 }
 
 template <typename T>
@@ -431,7 +435,7 @@ int PoolDriver<T>::VerifyForward()
     miopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
 
     miopenPoolingMode_t mode;
-    miopenPaddingMode_t pmode;
+    miopenPaddingMode_t pmode = miopen::deref(poolDesc).pmode;
     int windowHeight;
     int windowWidth;
     int pad_h;
@@ -439,7 +443,7 @@ int PoolDriver<T>::VerifyForward()
     int u;
     int v;
     miopenGet2dPoolingDescriptor(
-        poolDesc, &mode, &pmode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
+        poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
 
     if(pmode == miopenPaddingSame)
     {
@@ -512,7 +516,7 @@ int PoolDriver<T>::VerifyBackward()
     miopenGet4dTensorDescriptorLengths(dOutputTensor, &ndOut, &cdOut, &hdOut, &wdOut);
 
     miopenPoolingMode_t mode;
-    miopenPaddingMode_t pmode;
+    miopenPaddingMode_t pmode = miopen::deref(poolDesc).pmode;
     int windowHeight;
     int windowWidth;
     int pad_h;
@@ -520,7 +524,7 @@ int PoolDriver<T>::VerifyBackward()
     int u;
     int v;
     miopenGet2dPoolingDescriptor(
-        poolDesc, &mode, &pmode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
+        poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
 
     if(hOut <= 0 || wOut <= 0)
         MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
