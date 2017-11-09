@@ -198,7 +198,7 @@ extern "C" miopenStatus_t miopenGetRNNLayerParamSize(miopenHandle_t handle,
                                                  const int layer,
                                                  miopenTensorDescriptor_t xDesc,
                                                  const int paramID,
-                                                 size_t* numBytes);
+                                                 size_t* numBytes)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, paramID, numBytes);
     return miopen::try_([&] {
@@ -214,7 +214,7 @@ extern "C" miopenStatus_t miopenGetRNNLayerBiasSize(miopenHandle_t handle,
                                                  miopenRNNDescriptor_t rnnDesc,
                                                  const int layer,
                                                  const int biasID,
-                                                 size_t* numBytes);
+                                                 size_t* numBytes)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc, layer,  biasID, numBytes);
     return miopen::try_([&] {
