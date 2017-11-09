@@ -3409,51 +3409,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 								hid_shift + bacc * hy_stride);
 							// Update time
 							profileRNNkernels(handle, 1);
-
-							// activation
-							offset = hid_shift + bacc * hy_stride;
-							activDesc.Backward(handle,
-								&alpha,
-								miopen::deref(sp_desc),
-								reserveSpace,
-								miopen::deref(sp_desc),
-								workSpace,
-								miopen::deref(sp_desc),
-								reserveSpace,
-								&beta,
-								miopen::deref(sp_desc),
-								workSpace,
-								offset + nLayers * batch_n * hy_stride,
-								offset,
-								offset,
-								offset);
-							// Update time
-							profileRNNkernels(handle, 1);
-
-							gg = CreateGemmGeometryRNN(in_n[ti],
-								hy_h,
-								hy_h,
-								1,
-								0,
-								false,
-								false,
-								false,
-								hy_stride,
-								uni_stride,
-								uni_stride,
-								false,
-								network_config);
-							gg.FindSolution(.003, handle, workSpace, w, dhx, false);
-							gg.RunGemm(handle,
-								workSpace,
-								w,
-								dhx,
-								hid_shift + bacc * hy_stride,
-								weitime_shift,
-								hx_shift);
-
-							// Update time
-							profileRNNkernels(handle, 1);
 						}
 					}
 					else if (rnnMode == miopenLSTM || rnnMode == miopenGRU)
@@ -3600,54 +3555,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 									hid_shift + baccbi * hy_stride + hy_h);
 								// Update time
 								profileRNNkernels(handle, 1);
-
-								// activation
-								offset = hid_shift + baccbi * hy_stride + hy_h;
-								miopenSetTensorDescriptor(
-									sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-								activDesc.Backward(handle,
-									&alpha,
-									miopen::deref(sp_desc),
-									reserveSpace,
-									miopen::deref(sp_desc),
-									workSpace,
-									miopen::deref(sp_desc),
-									reserveSpace,
-									&beta,
-									miopen::deref(sp_desc),
-									workSpace,
-									offset + nLayers * batch_n * hy_stride,
-									offset,
-									offset,
-									offset);
-								// Update time
-								profileRNNkernels(handle, 1);
-
-								gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
-									hy_h,
-									hy_h,
-									1,
-									0,
-									false,
-									false,
-									false,
-									hy_stride,
-									uni_stride,
-									uni_stride,
-									false,
-									network_config);
-								gg.FindSolution(.003, handle, workSpace, w, dhx, false);
-								gg.RunGemm(handle,
-									workSpace,
-									w,
-									dhx,
-									hid_shift + baccbi * hy_stride + hy_h,
-									weitime_shift + wei_len * uni_stride,
-									hx_shift + hy_n * hy_h);
-
-								// Update time
-								profileRNNkernels(handle, 1);
 							}
 							else if (rnnMode == miopenLSTM || rnnMode == miopenGRU)
 							{
@@ -3759,7 +3666,54 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 				// update hidden status
 					if (in_n[ti] > 0)
 					{
-						if (rnnMode == miopenLSTM)
+						if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
+						{
+							// activation
+							offset = hid_shift + bacc * hy_stride;
+							activDesc.Backward(handle,
+								&alpha,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								miopen::deref(sp_desc),
+								workSpace,
+								miopen::deref(sp_desc),
+								reserveSpace,
+								&beta,
+								miopen::deref(sp_desc),
+								workSpace,
+								offset + nLayers * batch_n * hy_stride,
+								offset,
+								offset,
+								offset);
+							// Update time
+							profileRNNkernels(handle, 1);
+
+							gg = CreateGemmGeometryRNN(in_n[ti],
+								hy_h,
+								hy_h,
+								1,
+								0,
+								false,
+								false,
+								false,
+								hy_stride,
+								uni_stride,
+								uni_stride,
+								false,
+								network_config);
+							gg.FindSolution(.003, handle, workSpace, w, dhx, false);
+							gg.RunGemm(handle,
+								workSpace,
+								w,
+								dhx,
+								hid_shift + bacc * hy_stride,
+								weitime_shift,
+								hx_shift);
+
+							// Update time
+							profileRNNkernels(handle, 1);
+						}
+						else if (rnnMode == miopenLSTM)
 						{
 							offset = hid_shift + bacc * hy_stride;
 							sp_size[2] = in_n[ti];
@@ -4334,7 +4288,57 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 					{
 						if (in_n[seqLen - 1 - ti] > 0)
 						{
-							if (rnnMode == miopenLSTM)
+							if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
+							{
+								// activation
+								offset = hid_shift + baccbi * hy_stride + hy_h;
+								miopenSetTensorDescriptor(
+									sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+
+								activDesc.Backward(handle,
+									&alpha,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									miopen::deref(sp_desc),
+									workSpace,
+									miopen::deref(sp_desc),
+									reserveSpace,
+									&beta,
+									miopen::deref(sp_desc),
+									workSpace,
+									offset + nLayers * batch_n * hy_stride,
+									offset,
+									offset,
+									offset);
+								// Update time
+								profileRNNkernels(handle, 1);
+
+								gg = CreateGemmGeometryRNN(in_n[seqLen - 1 - ti],
+									hy_h,
+									hy_h,
+									1,
+									0,
+									false,
+									false,
+									false,
+									hy_stride,
+									uni_stride,
+									uni_stride,
+									false,
+									network_config);
+								gg.FindSolution(.003, handle, workSpace, w, dhx, false);
+								gg.RunGemm(handle,
+									workSpace,
+									w,
+									dhx,
+									hid_shift + baccbi * hy_stride + hy_h,
+									weitime_shift + wei_len * uni_stride,
+									hx_shift + hy_n * hy_h);
+
+								// Update time
+								profileRNNkernels(handle, 1);
+							}
+							else if (rnnMode == miopenLSTM)
 							{
 								offset = hid_shift + baccbi * hy_stride;
 								sp_size[2] = in_n[seqLen - 1 - ti];
