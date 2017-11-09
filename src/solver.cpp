@@ -24,17 +24,38 @@
  *
  *******************************************************************************/
 
-#include "miopen/db_record.hpp"
-#include "miopen/db_manage.hpp"
 #include "miopen/solver.hpp"
 #include "miopen/logger.hpp"
+#include "miopen/env.hpp"
 
 #include <ostream>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
 #define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 
 namespace miopen {
+
+namespace {
+
+enum class FindEnforce
+{
+    Begin = 0,
+    None  = Begin,
+    DbUpdate,
+    Search,
+    SearchDbUpdate,
+    Clean,
+    End,
+    Default = None,
+};
+
+FindEnforce GetFindEnforce();
+std::ostream& operator<<(std::ostream&, FindEnforce);
+
+} // namespace
+
 namespace solver {
 
 std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
@@ -51,7 +72,7 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
 {
     std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
-    const PerfDbEnforce enforce               = GetPerfDbEnforce();
+    const FindEnforce enforce                 = GetFindEnforce();
     MIOPEN_LOG_I("Finding solution: " << SolverId());
     do
     {
@@ -60,15 +81,15 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_I("Not searchable: " << SolverId());
             break;
         }
-        if(enforce == PerfDbEnforce::Clean)
+        if(enforce == FindEnforce::Clean)
         {
             if(dbRecord.Remove(SolverId()))
             {
                 MIOPEN_LOG_I("Perf Db: record removed: " << SolverId() << ", enforce=" << enforce);
             }
         }
-        else if((context.do_search && enforce == PerfDbEnforce::Update) ||
-                enforce == PerfDbEnforce::SearchUpdate)
+        else if((context.do_search && enforce == FindEnforce::DbUpdate) ||
+                enforce == FindEnforce::SearchDbUpdate)
         {
             MIOPEN_LOG_I("Perf Db: load skipped: " << SolverId() << ", enforce=" << enforce);
         }
@@ -87,8 +108,8 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             }
             MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
         }
-        if(context.do_search || enforce == PerfDbEnforce::Search ||
-           enforce == PerfDbEnforce::SearchUpdate)
+        if(context.do_search || enforce == FindEnforce::Search ||
+           enforce == FindEnforce::SearchDbUpdate)
         {
             MIOPEN_LOG_I("Starting search: " << SolverId() << ", enforce=" << enforce);
             if(Search(context, *config))
@@ -106,4 +127,49 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
 }
 
 } // namespace solver
+
+namespace {
+
+inline bool operator<=(const FindEnforce& lhs, const int& rhs)
+{
+    return static_cast<int>(lhs) <= rhs;
+}
+
+inline bool operator<(const int& lhs, const FindEnforce& rhs)
+{
+    return lhs < static_cast<int>(rhs);
+}
+
+const char* FindEnforce2CString(const FindEnforce mode)
+{
+    switch(mode)
+    {
+    case FindEnforce::None: return "None";
+    case FindEnforce::DbUpdate: return "DbUpdate";
+    case FindEnforce::Search: return "Search";
+    case FindEnforce::SearchDbUpdate: return "SearchDbUpdate";
+    case FindEnforce::Clean: return "Clean";
+    default: return "<Unknown>";
+    }
+}
+
+FindEnforce GetFindEnforce()
+{
+    static const int val         = miopen::Value(MIOPEN_FIND_ENFORCE{});
+    static const bool ok         = (FindEnforce::Begin <= val && val < FindEnforce::End);
+    static const FindEnforce ret = ok ? static_cast<FindEnforce>(val) : FindEnforce::Default;
+    if(!ok)
+    {
+        MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE, resetting to default: " << ret);
+    }
+    return ret;
+}
+
+std::ostream& operator<<(std::ostream& os, const FindEnforce sm)
+{
+    return os << FindEnforce2CString(sm);
+}
+
+} // namespace
+
 } // namespace miopen
